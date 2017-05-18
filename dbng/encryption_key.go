@@ -8,12 +8,12 @@ import (
 )
 
 type EncryptionKey struct {
-	block cipher.Block
+	aesgcm cipher.AEAD
 }
 
-func NewEncryptionKey(b cipher.Block) *EncryptionKey {
+func NewEncryptionKey(a cipher.AEAD) *EncryptionKey {
 	return &EncryptionKey{
-		block: b,
+		aesgcm: a,
 	}
 }
 
@@ -23,12 +23,7 @@ func (e EncryptionKey) Encrypt(plaintext []byte) (string, string, error) {
 		return "", "", err
 	}
 
-	aesgcm, err := cipher.NewGCM(e.block)
-	if err != nil {
-		return "", "", err
-	}
-
-	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)
+	ciphertext := e.aesgcm.Seal(nil, nonce, plaintext, nil)
 
 	return hex.EncodeToString(ciphertext), hex.EncodeToString(nonce), nil
 }
@@ -48,12 +43,7 @@ func (e EncryptionKey) Decrypt(text string, n string) ([]byte, error) {
 		return nil, err
 	}
 
-	aesgcm, err := cipher.NewGCM(e.block)
-	if err != nil {
-		return nil, err
-	}
-
-	plaintext, err := aesgcm.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := e.aesgcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
 		return nil, err
 	}

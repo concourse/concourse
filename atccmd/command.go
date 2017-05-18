@@ -2,6 +2,7 @@ package atccmd
 
 import (
 	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -239,7 +240,13 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		if err != nil {
 			return nil, err
 		}
-		strategy = dbng.NewEncryptionKey(block)
+
+		aesgcm, err := cipher.NewGCM(block)
+		if err != nil {
+			return nil, err
+		}
+
+		strategy = dbng.NewEncryptionKey(aesgcm)
 	} else {
 		strategy = dbng.NewNoEncryption()
 	}

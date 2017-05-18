@@ -2,6 +2,7 @@ package dbng_test
 
 import (
 	"crypto/aes"
+	"crypto/cipher"
 	"os"
 	"testing"
 	"time"
@@ -85,7 +86,9 @@ var _ = BeforeSuite(func() {
 var _ = BeforeEach(func() {
 	eBlock, err := aes.NewCipher([]byte("AES256Key-32Characters1234567890"))
 	Expect(err).ToNot(HaveOccurred())
-	key = dbng.NewEncryptionKey(eBlock)
+	aesgcm, err := cipher.NewGCM(eBlock)
+	Expect(err).ToNot(HaveOccurred())
+	key = dbng.NewEncryptionKey(aesgcm)
 
 	postgresRunner.Truncate()
 

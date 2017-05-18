@@ -2,6 +2,7 @@ package dbng_test
 
 import (
 	"crypto/aes"
+	"crypto/cipher"
 
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
@@ -20,7 +21,10 @@ var _ = Describe("Encryption Key", func() {
 		block, err := aes.NewCipher(k)
 		Expect(err).ToNot(HaveOccurred())
 
-		key = dbng.NewEncryptionKey(block)
+		aesgcm, err := cipher.NewGCM(block)
+		Expect(err).ToNot(HaveOccurred())
+
+		key = dbng.NewEncryptionKey(aesgcm)
 	})
 
 	Context("when the key is valid", func() {
@@ -68,7 +72,10 @@ var _ = Describe("Encryption Key", func() {
 				block, err := aes.NewCipher(k)
 				Expect(err).ToNot(HaveOccurred())
 
-				wrongKey := dbng.NewEncryptionKey(block)
+				aesgcm, err := cipher.NewGCM(block)
+				Expect(err).ToNot(HaveOccurred())
+
+				wrongKey := dbng.NewEncryptionKey(aesgcm)
 
 				_, err = wrongKey.Decrypt(encryptedText, nonce)
 				Expect(err).To(HaveOccurred())

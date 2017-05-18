@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"crypto/aes"
+	"crypto/cipher"
 	"os"
 	"time"
 
@@ -65,7 +66,9 @@ var _ = BeforeEach(func() {
 
 	eBlock, err := aes.NewCipher([]byte("AES256Key-32Characters1234567890"))
 	Expect(err).ToNot(HaveOccurred())
-	key := dbng.NewEncryptionKey(eBlock)
+	aesgcm, err := cipher.NewGCM(eBlock)
+	Expect(err).ToNot(HaveOccurred())
+	key := dbng.NewEncryptionKey(aesgcm)
 
 	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory, key)
 	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory, key)

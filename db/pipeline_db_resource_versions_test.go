@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"crypto/aes"
+	"crypto/cipher"
 	"time"
 
 	"github.com/concourse/atc"
@@ -67,7 +68,10 @@ var _ = Describe("Resource History", func() {
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 		eBlock, err := aes.NewCipher([]byte("AES256Key-32Characters1234567890"))
 		Expect(err).ToNot(HaveOccurred())
-		key := dbng.NewEncryptionKey(eBlock)
+		aesgcm, err := cipher.NewGCM(eBlock)
+		Expect(err).ToNot(HaveOccurred())
+
+		key := dbng.NewEncryptionKey(aesgcm)
 
 		dbngBuildFactory = dbng.NewBuildFactory(dbngConn, lockFactory, key)
 	})
