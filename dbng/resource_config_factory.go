@@ -132,8 +132,11 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	return usedResourceConfig, nil
 }
 
+// constructResourceConfig cannot be called for constructing a resource type's
+// resource config while also containing the same resource type in the list of
+// resource types, because that results in a circular dependency.
 func constructResourceConfig(
-	resourceType string,
+	resourceTypeName string,
 	source atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
 ) (ResourceConfig, error) {
@@ -141,7 +144,7 @@ func constructResourceConfig(
 		Source: source,
 	}
 
-	customType, found := resourceTypes.Lookup(resourceType)
+	customType, found := resourceTypes.Lookup(resourceTypeName)
 	if found {
 		customTypeResourceConfig, err := constructResourceConfig(
 			customType.Type,
@@ -162,7 +165,7 @@ func constructResourceConfig(
 		}
 	} else {
 		resourceConfig.CreatedByBaseResourceType = &BaseResourceType{
-			Name: resourceType,
+			Name: resourceTypeName,
 		}
 	}
 

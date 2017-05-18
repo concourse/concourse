@@ -35,6 +35,8 @@ var _ = Describe("RootFsUri", func() {
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("image-tests")
 		fakeWorker = new(workerfakes.FakeWorker)
+		fakeWorker.TagsReturns(atc.Tags{"worker", "tags"})
+
 		fakeVolumeClient = new(workerfakes.FakeVolumeClient)
 		fakeContainer = new(dbngfakes.FakeCreatingContainer)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
@@ -218,55 +220,132 @@ var _ = Describe("RootFsUri", func() {
 				atc.Version{"some": "version"},
 				nil,
 			)
+		})
 
-			var err error
-			img, err = imageFactory.GetImage(
-				logger,
-				fakeWorker,
-				fakeVolumeClient,
-				worker.ImageSpec{
-					ImageResource: &atc.ImageResource{
-						Type:   "some-image-resource-type",
-						Source: atc.Source{"some": "source"},
+		Context("when image is provided as image resource", func() {
+			BeforeEach(func() {
+				var err error
+				img, err = imageFactory.GetImage(
+					logger,
+					fakeWorker,
+					fakeVolumeClient,
+					worker.ImageSpec{
+						ImageResource: &atc.ImageResource{
+							Type:   "some-image-resource-type",
+							Source: atc.Source{"some": "source"},
+						},
+						Privileged: true,
 					},
+					42,
+					nil,
+					fakeImageFetchingDelegate,
+					dbng.ForBuild(42),
+					atc.VersionedResourceTypes{},
+				)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("finds or creates cow volume", func() {
+				_, err := img.FetchForContainer(logger, fakeContainer)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
+				_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
+				Expect(volumeSpec).To(Equal(worker.VolumeSpec{
+					Strategy:   cowStrategy,
 					Privileged: true,
-				},
-				42,
-				nil,
-				fakeImageFetchingDelegate,
-				dbng.ForBuild(42),
-				atc.VersionedResourceTypes{},
-			)
-			Expect(err).NotTo(HaveOccurred())
+				}))
+				Expect(container).To(Equal(fakeContainer))
+				Expect(volume).To(Equal(fakeResourceImageVolume))
+				Expect(teamID).To(Equal(42))
+				Expect(path).To(Equal("/"))
+			})
+
+			It("returns fetched image", func() {
+				fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(fetchedImage).To(Equal(worker.FetchedImage{
+					Metadata: worker.ImageMetadata{
+						Env:  []string{"A=1", "B=2"},
+						User: "image-volume-user",
+					},
+					URL:     "raw://some-path/rootfs",
+					Version: atc.Version{"some": "version"},
+				}))
+			})
 		})
 
-		It("finds or creates cow volume", func() {
-			_, err := img.FetchForContainer(logger, fakeContainer)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
-			_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
-			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
-				Strategy:   cowStrategy,
-				Privileged: true,
-			}))
-			Expect(container).To(Equal(fakeContainer))
-			Expect(volume).To(Equal(fakeResourceImageVolume))
-			Expect(teamID).To(Equal(42))
-			Expect(path).To(Equal("/"))
-		})
+		Context("when image is provided as custom resource type", func() {
+			BeforeEach(func() {
+				var err error
+				img, err = imageFactory.GetImage(
+					logger,
+					fakeWorker,
+					fakeVolumeClient,
+					worker.ImageSpec{
+						ResourceType: "some-custom-resource-type",
+						Privileged:   true,
+					},
+					42,
+					nil,
+					fakeImageFetchingDelegate,
+					dbng.ForBuild(42),
+					atc.VersionedResourceTypes{
+						{
+							ResourceType: atc.ResourceType{
+								Name: "some-custom-resource-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "custom-resource-type-source",
+								},
+							},
+						},
+					},
+				)
+				Expect(err).NotTo(HaveOccurred())
+			})
 
-		It("returns fetched image", func() {
-			fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
-			Expect(err).NotTo(HaveOccurred())
+			It("fetches image without custom resource type", func() {
+				_, _, _, resourceType, resourceTypeSource, workerTags, teamID, resourceTypes, delegate, privileged := fakeImageResourceFetcher.FetchArgsForCall(0)
+				Expect(resourceType).To(Equal("some-base-resource-type"))
+				Expect(resourceTypeSource).To(Equal(atc.Source{
+					"some": "custom-resource-type-source",
+				}))
+				Expect(workerTags).To(Equal(atc.Tags{"worker", "tags"}))
+				Expect(teamID).To(Equal(42))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
+				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+				Expect(privileged).To(Equal(true))
+			})
 
-			Expect(fetchedImage).To(Equal(worker.FetchedImage{
-				Metadata: worker.ImageMetadata{
-					Env:  []string{"A=1", "B=2"},
-					User: "image-volume-user",
-				},
-				URL:     "raw://some-path/rootfs",
-				Version: atc.Version{"some": "version"},
-			}))
+			It("finds or creates cow volume", func() {
+				_, err := img.FetchForContainer(logger, fakeContainer)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
+				_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
+				Expect(volumeSpec).To(Equal(worker.VolumeSpec{
+					Strategy:   cowStrategy,
+					Privileged: true,
+				}))
+				Expect(container).To(Equal(fakeContainer))
+				Expect(volume).To(Equal(fakeResourceImageVolume))
+				Expect(teamID).To(Equal(42))
+				Expect(path).To(Equal("/"))
+			})
+
+			It("returns fetched image", func() {
+				fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(fetchedImage).To(Equal(worker.FetchedImage{
+					Metadata: worker.ImageMetadata{
+						Env:  []string{"A=1", "B=2"},
+						User: "image-volume-user",
+					},
+					URL:     "raw://some-path/rootfs",
+					Version: atc.Version{"some": "version"},
+				}))
+			})
 		})
 	})
 

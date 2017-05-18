@@ -58,25 +58,46 @@ func (f *imageFactory) GetImage(
 		}, nil
 	}
 
-	// convert custom resource type from pipeline config into image_resource
-	imageResource := imageSpec.ImageResource
+	// check if custom resource type
 	for _, resourceType := range resourceTypes {
 		if resourceType.Name == imageSpec.ResourceType {
-			imageResource = &atc.ImageResource{
-				Source: resourceType.Source,
-				Type:   resourceType.Type,
+			imageResourceFetcher := f.imageResourceFetcherFactory.ImageResourceFetcherFor(worker)
+			imageParentVolume, imageMetadataReader, version, err := imageResourceFetcher.Fetch(
+				logger.Session("image"),
+				cancel,
+				resourceUser,
+				resourceType.Type,
+				resourceType.Source,
+				worker.Tags(),
+				teamID,
+				resourceTypes.Without(imageSpec.ResourceType),
+				delegate,
+				imageSpec.Privileged,
+			)
+			if err != nil {
+				logger.Error("failed-to-fetch-image", err)
+				return nil, err
 			}
+
+			return &imageFromResource{
+				imageParentVolume:   imageParentVolume,
+				version:             version,
+				imageMetadataReader: imageMetadataReader,
+				imageSpec:           imageSpec,
+				teamID:              teamID,
+				volumeClient:        volumeClient,
+			}, nil
 		}
 	}
 
-	if imageResource != nil {
+	if imageSpec.ImageResource != nil {
 		imageResourceFetcher := f.imageResourceFetcherFactory.ImageResourceFetcherFor(worker)
 		imageParentVolume, imageMetadataReader, version, err := imageResourceFetcher.Fetch(
 			logger.Session("image"),
 			cancel,
 			resourceUser,
-			imageResource.Type,
-			imageResource.Source,
+			imageSpec.ImageResource.Type,
+			imageSpec.ImageResource.Source,
 			worker.Tags(),
 			teamID,
 			resourceTypes,

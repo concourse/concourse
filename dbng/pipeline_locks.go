@@ -74,7 +74,7 @@ func (p *pipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(
 		return nil, false, err
 	}
 
-	deserializedResourceTypes := resourceTypes.Deserialize()
+	deserializedResourceTypes := resourceTypes.Deserialize().Without(resourceTypeName)
 
 	resourceConfig, err := constructResourceConfig(resourceType.Type(), resourceType.Source(), deserializedResourceTypes)
 	if err != nil {

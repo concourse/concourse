@@ -116,7 +116,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 			Type: dbng.ContainerTypeCheck,
 		},
 		resourceSpec,
-		versionedResourceTypes,
+		versionedResourceTypes.Without(resourceTypeName),
 		worker.NoopImageFetchingDelegate{},
 	)
 	if err != nil {
