@@ -608,7 +608,8 @@ viewDraggable maybeDragInfo uip =
         [ Html.div []
             [ viewPauseButton uip
             , Html.a
-                [ onLeftClick <| NavToPipeline uip.pipeline.url
+                [ class "pipeline"
+                , onLeftClick <| NavToPipeline uip.pipeline.url
                 , href uip.pipeline.url
                 ]
                 [ Html.text uip.pipeline.name ]
@@ -646,7 +647,7 @@ viewDropArea teamName pipelineName =
 viewPauseButton : UIPipeline -> Html Msg
 viewPauseButton uip =
     if uip.pipeline.paused then
-        Html.span
+        Html.a
             [ Events.onClick <| UnpausePipeline uip.pipeline.teamName uip.pipeline.name
             , class <|
                 if uip.pauseErrored then
@@ -660,7 +661,7 @@ viewPauseButton uip =
             else
                 [ Html.i [ class "fa fa-fw fa-play" ] [] ]
     else
-        Html.span
+        Html.a
             [ Events.onClick <| PausePipeline uip.pipeline.teamName uip.pipeline.name
             , class <|
                 if uip.pauseErrored then
