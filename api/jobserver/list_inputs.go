@@ -16,9 +16,13 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB, dbPipeline dbng.Pipelin
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 
-		pipelineConfig := pipelineDB.Config()
+		job, found, err := dbPipeline.Job(jobName)
+		if err != nil {
+			logger.Error("failed-to-get-job", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-		jobConfig, found := pipelineConfig.Jobs.Lookup(jobName)
 		if !found {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -26,7 +30,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB, dbPipeline dbng.Pipelin
 
 		scheduler := s.schedulerFactory.BuildScheduler(pipelineDB, dbPipeline, s.externalURL)
 
-		err := scheduler.SaveNextInputMapping(logger, jobConfig)
+		err = scheduler.SaveNextInputMapping(logger, job.Config())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -44,10 +48,17 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB, dbPipeline dbng.Pipelin
 			return
 		}
 
-		jobInputs := config.JobInputs(jobConfig)
+		resources, err := dbPipeline.Resources()
+		if err != nil {
+			logger.Error("failed-to-get-resources", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		jobInputs := config.JobInputs(job.Config())
 		presentedBuildInputs := make([]atc.BuildInput, len(buildInputs))
 		for i, input := range buildInputs {
-			resource, _ := pipelineConfig.Resources.Lookup(input.Resource)
+			resource, _ := resources.Lookup(input.Resource)
 
 			var config config.JobInput
 			for _, jobInput := range jobInputs {
@@ -57,7 +68,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB, dbPipeline dbng.Pipelin
 				}
 			}
 
-			presentedBuildInputs[i] = present.BuildInput(input, config, resource.Source)
+			presentedBuildInputs[i] = present.BuildInput(input, config, resource.Source())
 		}
 
 		json.NewEncoder(w).Encode(presentedBuildInputs)

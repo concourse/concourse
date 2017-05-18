@@ -3,25 +3,25 @@ package present
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 
 func Job(
 	teamName string,
-	job db.SavedJob,
+	job dbng.Job,
 	groups atc.GroupConfigs,
-	finishedBuild db.Build,
-	nextBuild db.Build,
+	finishedBuild dbng.Build,
+	nextBuild dbng.Build,
 ) atc.Job {
 	generator := rata.NewRequestGenerator("", web.Routes)
 
 	req, err := generator.CreateRequest(
 		web.GetJob,
 		rata.Params{
-			"job":           job.Name,
-			"pipeline_name": job.PipelineName,
+			"job":           job.Name(),
+			"pipeline_name": job.PipelineName(),
 			"team_name":     teamName,
 		},
 		nil,
@@ -33,26 +33,26 @@ func Job(
 	var presentedNextBuild, presentedFinishedBuild *atc.Build
 
 	if nextBuild != nil {
-		presented := DBBuild(nextBuild)
+		presented := Build(nextBuild)
 		presentedNextBuild = &presented
 	}
 
 	if finishedBuild != nil {
-		presented := DBBuild(finishedBuild)
+		presented := Build(finishedBuild)
 		presentedFinishedBuild = &presented
 	}
 
 	groupNames := []string{}
 	for _, group := range groups {
 		for _, name := range group.Jobs {
-			if name == job.Name {
+			if name == job.Name() {
 				groupNames = append(groupNames, group.Name)
 			}
 		}
 	}
 
 	sanitizedInputs := []atc.JobInput{}
-	for _, input := range config.JobInputs(job.Config) {
+	for _, input := range config.JobInputs(job.Config()) {
 		sanitizedInputs = append(sanitizedInputs, atc.JobInput{
 			Name:     input.Name,
 			Resource: input.Resource,
@@ -62,7 +62,7 @@ func Job(
 	}
 
 	sanitizedOutputs := []atc.JobOutput{}
-	for _, output := range config.JobOutputs(job.Config) {
+	for _, output := range config.JobOutputs(job.Config()) {
 		sanitizedOutputs = append(sanitizedOutputs, atc.JobOutput{
 			Name:     output.Name,
 			Resource: output.Resource,
@@ -70,13 +70,13 @@ func Job(
 	}
 
 	return atc.Job{
-		ID: job.ID,
+		ID: job.ID(),
 
-		Name:                 job.Name,
+		Name:                 job.Name(),
 		URL:                  req.URL.String(),
-		DisableManualTrigger: job.Config.DisableManualTrigger,
-		Paused:               job.Paused,
-		FirstLoggedBuildID:   job.FirstLoggedBuildID,
+		DisableManualTrigger: job.Config().DisableManualTrigger,
+		Paused:               job.Paused(),
+		FirstLoggedBuildID:   job.FirstLoggedBuildID(),
 		FinishedBuild:        presentedFinishedBuild,
 		NextBuild:            presentedNextBuild,
 

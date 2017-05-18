@@ -42,7 +42,6 @@ type PipelineDB interface {
 	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
 
-	GetJobs() ([]SavedJob, error)
 	GetJob(job string) (SavedJob, bool, error)
 
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
@@ -67,8 +66,6 @@ type PipelineDB interface {
 	UpdateBuildToScheduled(buildID int) (bool, error)
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
-
-	GetDashboard() (Dashboard, atc.GroupConfigs, error)
 
 	Expose() error
 	Hide() error
@@ -1284,54 +1281,6 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (Build, Build, err
 	}
 
 	return finished, next, nil
-}
-
-func (pdb *pipelineDB) GetJobs() ([]SavedJob, error) {
-	return pdb.getJobs()
-}
-
-func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
-	dashboard := Dashboard{}
-
-	savedJobs, err := pdb.getJobs()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	startedBuilds, err := pdb.getLastJobBuildsSatisfying("b.status = 'started'")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pendingBuilds, err := pdb.getLastJobBuildsSatisfying("b.status = 'pending'")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	finishedBuilds, err := pdb.getLastJobBuildsSatisfying("b.status NOT IN ('pending', 'started')")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for _, job := range savedJobs {
-		dashboardJob := DashboardJob{
-			Job: job,
-		}
-
-		if startedBuild, found := startedBuilds[job.Name]; found {
-			dashboardJob.NextBuild = startedBuild
-		} else if pendingBuild, found := pendingBuilds[job.Name]; found {
-			dashboardJob.NextBuild = pendingBuild
-		}
-
-		if finishedBuild, found := finishedBuilds[job.Name]; found {
-			dashboardJob.FinishedBuild = finishedBuild
-		}
-
-		dashboard = append(dashboard, dashboardJob)
-	}
-
-	return dashboard, pdb.SavedPipeline.Config.Groups, nil
 }
 
 func (pdb *pipelineDB) Expose() error {

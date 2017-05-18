@@ -219,17 +219,6 @@ type FakePipelineDB struct {
 	setResourceCheckErrorReturnsOnCall map[int]struct {
 		result1 error
 	}
-	GetJobsStub        func() ([]db.SavedJob, error)
-	getJobsMutex       sync.RWMutex
-	getJobsArgsForCall []struct{}
-	getJobsReturns     struct {
-		result1 []db.SavedJob
-		result2 error
-	}
-	getJobsReturnsOnCall map[int]struct {
-		result1 []db.SavedJob
-		result2 error
-	}
 	GetJobStub        func(job string) (db.SavedJob, bool, error)
 	getJobMutex       sync.RWMutex
 	getJobArgsForCall []struct {
@@ -498,19 +487,6 @@ type FakePipelineDB struct {
 	getBuildsWithVersionAsOutputReturnsOnCall map[int]struct {
 		result1 []db.Build
 		result2 error
-	}
-	GetDashboardStub        func() (db.Dashboard, atc.GroupConfigs, error)
-	getDashboardMutex       sync.RWMutex
-	getDashboardArgsForCall []struct{}
-	getDashboardReturns     struct {
-		result1 db.Dashboard
-		result2 atc.GroupConfigs
-		result3 error
-	}
-	getDashboardReturnsOnCall map[int]struct {
-		result1 db.Dashboard
-		result2 atc.GroupConfigs
-		result3 error
 	}
 	ExposeStub        func() error
 	exposeMutex       sync.RWMutex
@@ -1383,49 +1359,6 @@ func (fake *FakePipelineDB) SetResourceCheckErrorReturnsOnCall(i int, result1 er
 	fake.setResourceCheckErrorReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakePipelineDB) GetJobs() ([]db.SavedJob, error) {
-	fake.getJobsMutex.Lock()
-	ret, specificReturn := fake.getJobsReturnsOnCall[len(fake.getJobsArgsForCall)]
-	fake.getJobsArgsForCall = append(fake.getJobsArgsForCall, struct{}{})
-	fake.recordInvocation("GetJobs", []interface{}{})
-	fake.getJobsMutex.Unlock()
-	if fake.GetJobsStub != nil {
-		return fake.GetJobsStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.getJobsReturns.result1, fake.getJobsReturns.result2
-}
-
-func (fake *FakePipelineDB) GetJobsCallCount() int {
-	fake.getJobsMutex.RLock()
-	defer fake.getJobsMutex.RUnlock()
-	return len(fake.getJobsArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetJobsReturns(result1 []db.SavedJob, result2 error) {
-	fake.GetJobsStub = nil
-	fake.getJobsReturns = struct {
-		result1 []db.SavedJob
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipelineDB) GetJobsReturnsOnCall(i int, result1 []db.SavedJob, result2 error) {
-	fake.GetJobsStub = nil
-	if fake.getJobsReturnsOnCall == nil {
-		fake.getJobsReturnsOnCall = make(map[int]struct {
-			result1 []db.SavedJob
-			result2 error
-		})
-	}
-	fake.getJobsReturnsOnCall[i] = struct {
-		result1 []db.SavedJob
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakePipelineDB) GetJob(job string) (db.SavedJob, bool, error) {
@@ -2467,52 +2400,6 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturnsOnCall(i int, res
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetDashboard() (db.Dashboard, atc.GroupConfigs, error) {
-	fake.getDashboardMutex.Lock()
-	ret, specificReturn := fake.getDashboardReturnsOnCall[len(fake.getDashboardArgsForCall)]
-	fake.getDashboardArgsForCall = append(fake.getDashboardArgsForCall, struct{}{})
-	fake.recordInvocation("GetDashboard", []interface{}{})
-	fake.getDashboardMutex.Unlock()
-	if fake.GetDashboardStub != nil {
-		return fake.GetDashboardStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.getDashboardReturns.result1, fake.getDashboardReturns.result2, fake.getDashboardReturns.result3
-}
-
-func (fake *FakePipelineDB) GetDashboardCallCount() int {
-	fake.getDashboardMutex.RLock()
-	defer fake.getDashboardMutex.RUnlock()
-	return len(fake.getDashboardArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetDashboardReturns(result1 db.Dashboard, result2 atc.GroupConfigs, result3 error) {
-	fake.GetDashboardStub = nil
-	fake.getDashboardReturns = struct {
-		result1 db.Dashboard
-		result2 atc.GroupConfigs
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipelineDB) GetDashboardReturnsOnCall(i int, result1 db.Dashboard, result2 atc.GroupConfigs, result3 error) {
-	fake.GetDashboardStub = nil
-	if fake.getDashboardReturnsOnCall == nil {
-		fake.getDashboardReturnsOnCall = make(map[int]struct {
-			result1 db.Dashboard
-			result2 atc.GroupConfigs
-			result3 error
-		})
-	}
-	fake.getDashboardReturnsOnCall[i] = struct {
-		result1 db.Dashboard
-		result2 atc.GroupConfigs
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakePipelineDB) Expose() error {
 	fake.exposeMutex.Lock()
 	ret, specificReturn := fake.exposeReturnsOnCall[len(fake.exposeArgsForCall)]
@@ -2634,8 +2521,6 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.disableVersionedResourceMutex.RUnlock()
 	fake.setResourceCheckErrorMutex.RLock()
 	defer fake.setResourceCheckErrorMutex.RUnlock()
-	fake.getJobsMutex.RLock()
-	defer fake.getJobsMutex.RUnlock()
 	fake.getJobMutex.RLock()
 	defer fake.getJobMutex.RUnlock()
 	fake.getVersionedResourceByVersionMutex.RLock()
@@ -2676,8 +2561,6 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.getBuildsWithVersionAsInputMutex.RUnlock()
 	fake.getBuildsWithVersionAsOutputMutex.RLock()
 	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
-	fake.getDashboardMutex.RLock()
-	defer fake.getDashboardMutex.RUnlock()
 	fake.exposeMutex.RLock()
 	defer fake.exposeMutex.RUnlock()
 	fake.hideMutex.RLock()

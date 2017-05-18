@@ -15,8 +15,9 @@ import (
 
 var _ = Describe("Pipeline", func() {
 	var (
-		pipeline dbng.Pipeline
-		team     dbng.Team
+		pipeline       dbng.Pipeline
+		team           dbng.Team
+		pipelineConfig atc.Config
 	)
 
 	BeforeEach(func() {
@@ -24,10 +25,71 @@ var _ = Describe("Pipeline", func() {
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 		Expect(err).ToNot(HaveOccurred())
 
-		var created bool
-		pipeline, created, err = team.SavePipeline("fake-pipeline", atc.Config{
+		pipelineConfig = atc.Config{
+			Groups: atc.GroupConfigs{
+				{
+					Name:      "some-group",
+					Jobs:      []string{"job-1", "job-2"},
+					Resources: []string{"some-resource", "some-other-resource"},
+				},
+			},
 			Jobs: atc.JobConfigs{
-				{Name: "job-name"},
+				{
+					Name: "job-name",
+
+					Public: true,
+
+					Serial: true,
+
+					SerialGroups: []string{"serial-group"},
+
+					Plan: atc.PlanSequence{
+						{
+							Put: "some-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+						},
+						{
+							Get:      "some-input",
+							Resource: "some-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+							Passed:  []string{"job-1", "job-2"},
+							Trigger: true,
+						},
+						{
+							Task:           "some-task",
+							Privileged:     true,
+							TaskConfigPath: "some/config/path.yml",
+							TaskConfig: &atc.TaskConfig{
+								RootFsUri: "some-image",
+							},
+						},
+					},
+				},
+				{
+					Name:   "some-other-job",
+					Serial: true,
+				},
+				{
+					Name: "a-job",
+				},
+				{
+					Name: "shared-job",
+				},
+				{
+					Name: "random-job",
+				},
+				{
+					Name:         "other-serial-group-job",
+					SerialGroups: []string{"serial-group", "really-different-group"},
+				},
+				{
+					Name:         "different-serial-group-job",
+					SerialGroups: []string{"different-serial-group"},
+				},
 			},
 			Resources: atc.ResourceConfigs{
 				{Name: "resource-name"},
@@ -42,7 +104,9 @@ var _ = Describe("Pipeline", func() {
 					Source: atc.Source{"some": "source"},
 				},
 			},
-		}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+		}
+		var created bool
+		pipeline, created, err = team.SavePipeline("fake-pipeline", pipelineConfig, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(created).To(BeTrue())
 	})
@@ -917,42 +981,6 @@ var _ = Describe("Pipeline", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
-		})
-	})
-
-	Describe("PauseJob and UnpauseJob", func() {
-		jobName := "job-name"
-
-		It("starts out as unpaused", func() {
-			job, found, err := pipeline.Job(jobName)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(job.Paused()).To(BeFalse())
-		})
-
-		It("can be paused", func() {
-			err := pipeline.PauseJob(jobName)
-			Expect(err).NotTo(HaveOccurred())
-
-			pausedJob, found, err := pipeline.Job(jobName)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(pausedJob.Paused()).To(BeTrue())
-		})
-
-		It("can be unpaused", func() {
-			err := pipeline.PauseJob(jobName)
-			Expect(err).NotTo(HaveOccurred())
-
-			err = pipeline.UnpauseJob(jobName)
-			Expect(err).NotTo(HaveOccurred())
-
-			unpausedJob, found, err := pipeline.Job(jobName)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(unpausedJob.Paused()).To(BeFalse())
 		})
 	})
 
@@ -2512,4 +2540,306 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
+	Describe("Dashboard", func() {
+		It("returns a Dashboard object with a DashboardJob corresponding to each configured job", func() {
+			job, found, err := pipeline.Job("job-name")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = job.UpdateFirstLoggedBuildID(57)
+			Expect(err).NotTo(HaveOccurred())
+
+			otherJob, found, err := pipeline.Job("some-other-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			aJob, found, err := pipeline.Job("a-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			sharedJob, found, err := pipeline.Job("shared-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			randomJob, found, err := pipeline.Job("random-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			otherSerialGroupJob, found, err := pipeline.Job("other-serial-group-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			differentSerialGroupJob, found, err := pipeline.Job("different-serial-group-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			By("returning jobs with no builds")
+			expectedDashboard := dbng.Dashboard{
+				{
+					Job:           job,
+					NextBuild:     nil,
+					FinishedBuild: nil,
+				},
+				{
+					Job:           otherJob,
+					NextBuild:     nil,
+					FinishedBuild: nil,
+				},
+				{
+					Job:           aJob,
+					NextBuild:     nil,
+					FinishedBuild: nil,
+				},
+				{
+					Job:           sharedJob,
+					NextBuild:     nil,
+					FinishedBuild: nil,
+				},
+				{
+					Job:           randomJob,
+					NextBuild:     nil,
+					FinishedBuild: nil,
+				},
+				{
+					Job:           otherSerialGroupJob,
+					NextBuild:     nil,
+					FinishedBuild: nil,
+				},
+				{
+					Job:           differentSerialGroupJob,
+					NextBuild:     nil,
+					FinishedBuild: nil,
+				},
+			}
+
+			actualDashboard, groups, err := pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(groups).To(Equal(pipelineConfig.Groups))
+			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
+			Expect(actualDashboard[1].Job.Name()).To(Equal(otherJob.Name()))
+			Expect(actualDashboard[2].Job.Name()).To(Equal(aJob.Name()))
+			Expect(actualDashboard[3].Job.Name()).To(Equal(sharedJob.Name()))
+			Expect(actualDashboard[4].Job.Name()).To(Equal(randomJob.Name()))
+			Expect(actualDashboard[5].Job.Name()).To(Equal(otherSerialGroupJob.Name()))
+			Expect(actualDashboard[6].Job.Name()).To(Equal(differentSerialGroupJob.Name()))
+
+			By("returning a job's most recent pending build if there are no running builds")
+			jobBuildOldDB, err := pipeline.CreateJobBuild("job-name")
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedDashboard[0].NextBuild = jobBuildOldDB
+
+			actualDashboard, _, err = pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
+			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
+
+			By("returning a job's most recent started build")
+			jobBuildOldDB.Start("engine", "metadata")
+
+			found, err = jobBuildOldDB.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			expectedDashboard[0].NextBuild = jobBuildOldDB
+
+			actualDashboard, _, err = pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
+			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
+			Expect(actualDashboard[0].NextBuild.Status()).To(Equal(dbng.BuildStatusStarted))
+			Expect(actualDashboard[0].NextBuild.Engine()).To(Equal("engine"))
+			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal("metadata"))
+
+			By("returning a job's most recent started build even if there is a newer pending build")
+			jobBuild, err := pipeline.CreateJobBuild("job-name")
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedDashboard[0].NextBuild = jobBuildOldDB
+
+			actualDashboard, _, err = pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
+			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
+
+			By("returning a job's most recent finished build")
+			err = jobBuild.Finish(dbng.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			found, err = jobBuild.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			expectedDashboard[0].FinishedBuild = jobBuild
+			expectedDashboard[0].NextBuild = jobBuildOldDB
+
+			actualDashboard, _, err = pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
+			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
+			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(jobBuild.ID()))
+
+			By("returning a job's most recent finished build even when there is a newer unfinished build")
+			jobBuildNewDB, err := pipeline.CreateJobBuild("job-name")
+			Expect(err).NotTo(HaveOccurred())
+			jobBuildNewDB.Start("engine", "metadata")
+			found, err = jobBuildNewDB.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			expectedDashboard[0].FinishedBuild = jobBuild
+			expectedDashboard[0].NextBuild = jobBuildNewDB
+
+			actualDashboard, _, err = pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
+			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildNewDB.ID()))
+			Expect(actualDashboard[0].NextBuild.Status()).To(Equal(dbng.BuildStatusStarted))
+			Expect(actualDashboard[0].NextBuild.Engine()).To(Equal("engine"))
+			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal("metadata"))
+			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(jobBuild.ID()))
+		})
+	})
+
+	Describe("DeleteBuildEventsByBuildIDs", func() {
+		It("deletes all build logs corresponding to the given build ids", func() {
+			build1DB, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build1DB.SaveEvent(event.Log{
+				Payload: "log 1",
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			build2DB, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build2DB.SaveEvent(event.Log{
+				Payload: "log 2",
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			build3DB, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build3DB.Finish(dbng.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build1DB.Finish(dbng.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build2DB.Finish(dbng.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			build4DB, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			By("doing nothing if the list is empty")
+			err = pipeline.DeleteBuildEventsByBuildIDs([]int{})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("not returning an error")
+			err = pipeline.DeleteBuildEventsByBuildIDs([]int{build3DB.ID(), build4DB.ID(), build1DB.ID()})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build4DB.Finish(dbng.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("deleting events for build 1")
+			events1, err := build1DB.Events(0)
+			Expect(err).NotTo(HaveOccurred())
+			defer events1.Close()
+
+			_, err = events1.Next()
+			Expect(err).To(Equal(dbng.ErrEndOfBuildEventStream))
+
+			By("preserving events for build 2")
+			events2, err := build2DB.Events(0)
+			Expect(err).NotTo(HaveOccurred())
+			defer events2.Close()
+
+			build2Event1, err := events2.Next()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(build2Event1).To(Equal(envelope(event.Log{
+				Payload: "log 2",
+			})))
+
+			_, err = events2.Next() // finish event
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = events2.Next()
+			Expect(err).To(Equal(dbng.ErrEndOfBuildEventStream))
+
+			By("deleting events for build 3")
+			events3, err := build3DB.Events(0)
+			Expect(err).NotTo(HaveOccurred())
+			defer events3.Close()
+
+			_, err = events3.Next()
+			Expect(err).To(Equal(dbng.ErrEndOfBuildEventStream))
+
+			By("being unflapped by build 4, which had no events at the time")
+			events4, err := build4DB.Events(0)
+			Expect(err).NotTo(HaveOccurred())
+			defer events4.Close()
+
+			_, err = events4.Next() // finish event
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = events4.Next()
+			Expect(err).To(Equal(dbng.ErrEndOfBuildEventStream))
+
+			By("updating ReapTime for the affected builds")
+			found, err := build1DB.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(build1DB.ReapTime()).To(BeTemporally(">", build1DB.EndTime()))
+
+			found, err = build2DB.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(build2DB.ReapTime()).To(BeZero())
+
+			found, err = build3DB.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(build3DB.ReapTime()).To(Equal(build1DB.ReapTime()))
+
+			found, err = build4DB.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			// Not required behavior, just a sanity check for what I think will happen
+			Expect(build4DB.ReapTime()).To(Equal(build1DB.ReapTime()))
+		})
+	})
+
+	Describe("Jobs", func() {
+		var jobs []dbng.Job
+
+		BeforeEach(func() {
+			var err error
+			jobs, err = pipeline.Jobs()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns all the jobs", func() {
+			Expect(jobs[0].Name()).To(Equal("job-name"))
+			Expect(jobs[1].Name()).To(Equal("some-other-job"))
+			Expect(jobs[2].Name()).To(Equal("a-job"))
+			Expect(jobs[3].Name()).To(Equal("shared-job"))
+			Expect(jobs[4].Name()).To(Equal("random-job"))
+			Expect(jobs[5].Name()).To(Equal("other-serial-group-job"))
+			Expect(jobs[6].Name()).To(Equal("different-serial-group-job"))
+		})
+	})
 })

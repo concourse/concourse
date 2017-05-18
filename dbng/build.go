@@ -34,6 +34,9 @@ var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.ma
 	JoinClause("LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id")
 
+// XXX not something we want to keep
+const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
+
 //go:generate counterfeiter . Build
 
 type Build interface {

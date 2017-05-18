@@ -684,7 +684,11 @@ var _ = Describe("Build", func() {
 		})
 
 		Context("for job build", func() {
-			var pipeline dbng.Pipeline
+			var (
+				pipeline dbng.Pipeline
+				job      dbng.Job
+			)
+
 			BeforeEach(func() {
 				var err error
 				pipeline, _, err = team.SavePipeline("some-pipeline", atc.Config{
@@ -709,6 +713,11 @@ var _ = Describe("Build", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expectedBuildPrep.BuildID = build.ID()
+
+				var found bool
+				job, found, err = pipeline.Job("some-job")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 			})
 
 			Context("when inputs are satisfied", func() {
@@ -777,7 +786,7 @@ var _ = Describe("Build", func() {
 
 				Context("when job is paused", func() {
 					BeforeEach(func() {
-						err := pipeline.PauseJob("some-job")
+						err := job.Pause()
 						Expect(err).NotTo(HaveOccurred())
 
 						expectedBuildPrep.PausedJob = dbng.BuildPreparationStatusBlocking

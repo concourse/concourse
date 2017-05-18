@@ -10,6 +10,7 @@ import (
 type PipelineFactory interface {
 	GetPipelineByID(teamID int, pipelineID int) Pipeline
 	PublicPipelines() ([]Pipeline, error)
+	AllPipelines() ([]Pipeline, error)
 }
 
 type pipelineFactory struct {
@@ -53,4 +54,16 @@ func (f *pipelineFactory) PublicPipelines() ([]Pipeline, error) {
 	}
 
 	return pipelines, nil
+}
+
+func (f *pipelineFactory) AllPipelines() ([]Pipeline, error) {
+	rows, err := pipelinesQuery.
+		OrderBy("ordering").
+		RunWith(f.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	return scanPipelines(f.conn, f.lockFactory, f.encryption, rows)
 }

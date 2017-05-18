@@ -61,6 +61,18 @@ func (e ResourceNotFoundError) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.Name)
 }
 
+type Resources []Resource
+
+func (resources Resources) Lookup(name string) (Resource, bool) {
+	for _, resource := range resources {
+		if resource.Name() == name {
+			return resource, true
+		}
+	}
+
+	return nil, false
+}
+
 func (r *resource) ID() int              { return r.id }
 func (r *resource) Name() string         { return r.name }
 func (r *resource) PipelineID() int      { return r.pipelineID }

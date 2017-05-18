@@ -362,26 +362,15 @@ type FakePipeline struct {
 		result2 bool
 		result3 error
 	}
-	PauseJobStub        func(job string) error
-	pauseJobMutex       sync.RWMutex
-	pauseJobArgsForCall []struct {
-		job string
+	DeleteBuildEventsByBuildIDsStub        func(buildIDs []int) error
+	deleteBuildEventsByBuildIDsMutex       sync.RWMutex
+	deleteBuildEventsByBuildIDsArgsForCall []struct {
+		buildIDs []int
 	}
-	pauseJobReturns struct {
+	deleteBuildEventsByBuildIDsReturns struct {
 		result1 error
 	}
-	pauseJobReturnsOnCall map[int]struct {
-		result1 error
-	}
-	UnpauseJobStub        func(job string) error
-	unpauseJobMutex       sync.RWMutex
-	unpauseJobArgsForCall []struct {
-		job string
-	}
-	unpauseJobReturns struct {
-		result1 error
-	}
-	unpauseJobReturnsOnCall map[int]struct {
+	deleteBuildEventsByBuildIDsReturnsOnCall map[int]struct {
 		result1 error
 	}
 	AcquireResourceCheckingLockWithIntervalCheckStub        func(logger lager.Logger, resource dbng.Resource, interval time.Duration, immediate bool) (lock.Lock, bool, error)
@@ -446,15 +435,15 @@ type FakePipeline struct {
 		result2 bool
 		result3 error
 	}
-	ResourcesStub        func() ([]dbng.Resource, error)
+	ResourcesStub        func() (dbng.Resources, error)
 	resourcesMutex       sync.RWMutex
 	resourcesArgsForCall []struct{}
 	resourcesReturns     struct {
-		result1 []dbng.Resource
+		result1 dbng.Resources
 		result2 error
 	}
 	resourcesReturnsOnCall map[int]struct {
-		result1 []dbng.Resource
+		result1 dbng.Resources
 		result2 error
 	}
 	ResourceTypesStub        func() (dbng.ResourceTypes, error)
@@ -496,6 +485,30 @@ type FakePipeline struct {
 	jobReturnsOnCall map[int]struct {
 		result1 dbng.Job
 		result2 bool
+		result3 error
+	}
+	JobsStub        func() ([]dbng.Job, error)
+	jobsMutex       sync.RWMutex
+	jobsArgsForCall []struct{}
+	jobsReturns     struct {
+		result1 []dbng.Job
+		result2 error
+	}
+	jobsReturnsOnCall map[int]struct {
+		result1 []dbng.Job
+		result2 error
+	}
+	DashboardStub        func() (dbng.Dashboard, atc.GroupConfigs, error)
+	dashboardMutex       sync.RWMutex
+	dashboardArgsForCall []struct{}
+	dashboardReturns     struct {
+		result1 dbng.Dashboard
+		result2 atc.GroupConfigs
+		result3 error
+	}
+	dashboardReturnsOnCall map[int]struct {
+		result1 dbng.Dashboard
+		result2 atc.GroupConfigs
 		result3 error
 	}
 	ExposeStub        func() error
@@ -1973,98 +1986,55 @@ func (fake *FakePipeline) NextBuildInputsReturnsOnCall(i int, result1 []dbng.Bui
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipeline) PauseJob(job string) error {
-	fake.pauseJobMutex.Lock()
-	ret, specificReturn := fake.pauseJobReturnsOnCall[len(fake.pauseJobArgsForCall)]
-	fake.pauseJobArgsForCall = append(fake.pauseJobArgsForCall, struct {
-		job string
-	}{job})
-	fake.recordInvocation("PauseJob", []interface{}{job})
-	fake.pauseJobMutex.Unlock()
-	if fake.PauseJobStub != nil {
-		return fake.PauseJobStub(job)
+func (fake *FakePipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
+	var buildIDsCopy []int
+	if buildIDs != nil {
+		buildIDsCopy = make([]int, len(buildIDs))
+		copy(buildIDsCopy, buildIDs)
+	}
+	fake.deleteBuildEventsByBuildIDsMutex.Lock()
+	ret, specificReturn := fake.deleteBuildEventsByBuildIDsReturnsOnCall[len(fake.deleteBuildEventsByBuildIDsArgsForCall)]
+	fake.deleteBuildEventsByBuildIDsArgsForCall = append(fake.deleteBuildEventsByBuildIDsArgsForCall, struct {
+		buildIDs []int
+	}{buildIDsCopy})
+	fake.recordInvocation("DeleteBuildEventsByBuildIDs", []interface{}{buildIDsCopy})
+	fake.deleteBuildEventsByBuildIDsMutex.Unlock()
+	if fake.DeleteBuildEventsByBuildIDsStub != nil {
+		return fake.DeleteBuildEventsByBuildIDsStub(buildIDs)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.pauseJobReturns.result1
+	return fake.deleteBuildEventsByBuildIDsReturns.result1
 }
 
-func (fake *FakePipeline) PauseJobCallCount() int {
-	fake.pauseJobMutex.RLock()
-	defer fake.pauseJobMutex.RUnlock()
-	return len(fake.pauseJobArgsForCall)
+func (fake *FakePipeline) DeleteBuildEventsByBuildIDsCallCount() int {
+	fake.deleteBuildEventsByBuildIDsMutex.RLock()
+	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
+	return len(fake.deleteBuildEventsByBuildIDsArgsForCall)
 }
 
-func (fake *FakePipeline) PauseJobArgsForCall(i int) string {
-	fake.pauseJobMutex.RLock()
-	defer fake.pauseJobMutex.RUnlock()
-	return fake.pauseJobArgsForCall[i].job
+func (fake *FakePipeline) DeleteBuildEventsByBuildIDsArgsForCall(i int) []int {
+	fake.deleteBuildEventsByBuildIDsMutex.RLock()
+	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
+	return fake.deleteBuildEventsByBuildIDsArgsForCall[i].buildIDs
 }
 
-func (fake *FakePipeline) PauseJobReturns(result1 error) {
-	fake.PauseJobStub = nil
-	fake.pauseJobReturns = struct {
+func (fake *FakePipeline) DeleteBuildEventsByBuildIDsReturns(result1 error) {
+	fake.DeleteBuildEventsByBuildIDsStub = nil
+	fake.deleteBuildEventsByBuildIDsReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakePipeline) PauseJobReturnsOnCall(i int, result1 error) {
-	fake.PauseJobStub = nil
-	if fake.pauseJobReturnsOnCall == nil {
-		fake.pauseJobReturnsOnCall = make(map[int]struct {
+func (fake *FakePipeline) DeleteBuildEventsByBuildIDsReturnsOnCall(i int, result1 error) {
+	fake.DeleteBuildEventsByBuildIDsStub = nil
+	if fake.deleteBuildEventsByBuildIDsReturnsOnCall == nil {
+		fake.deleteBuildEventsByBuildIDsReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.pauseJobReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) UnpauseJob(job string) error {
-	fake.unpauseJobMutex.Lock()
-	ret, specificReturn := fake.unpauseJobReturnsOnCall[len(fake.unpauseJobArgsForCall)]
-	fake.unpauseJobArgsForCall = append(fake.unpauseJobArgsForCall, struct {
-		job string
-	}{job})
-	fake.recordInvocation("UnpauseJob", []interface{}{job})
-	fake.unpauseJobMutex.Unlock()
-	if fake.UnpauseJobStub != nil {
-		return fake.UnpauseJobStub(job)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.unpauseJobReturns.result1
-}
-
-func (fake *FakePipeline) UnpauseJobCallCount() int {
-	fake.unpauseJobMutex.RLock()
-	defer fake.unpauseJobMutex.RUnlock()
-	return len(fake.unpauseJobArgsForCall)
-}
-
-func (fake *FakePipeline) UnpauseJobArgsForCall(i int) string {
-	fake.unpauseJobMutex.RLock()
-	defer fake.unpauseJobMutex.RUnlock()
-	return fake.unpauseJobArgsForCall[i].job
-}
-
-func (fake *FakePipeline) UnpauseJobReturns(result1 error) {
-	fake.UnpauseJobStub = nil
-	fake.unpauseJobReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) UnpauseJobReturnsOnCall(i int, result1 error) {
-	fake.UnpauseJobStub = nil
-	if fake.unpauseJobReturnsOnCall == nil {
-		fake.unpauseJobReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.unpauseJobReturnsOnCall[i] = struct {
+	fake.deleteBuildEventsByBuildIDsReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -2280,7 +2250,7 @@ func (fake *FakePipeline) ResourceReturnsOnCall(i int, result1 dbng.Resource, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipeline) Resources() ([]dbng.Resource, error) {
+func (fake *FakePipeline) Resources() (dbng.Resources, error) {
 	fake.resourcesMutex.Lock()
 	ret, specificReturn := fake.resourcesReturnsOnCall[len(fake.resourcesArgsForCall)]
 	fake.resourcesArgsForCall = append(fake.resourcesArgsForCall, struct{}{})
@@ -2301,24 +2271,24 @@ func (fake *FakePipeline) ResourcesCallCount() int {
 	return len(fake.resourcesArgsForCall)
 }
 
-func (fake *FakePipeline) ResourcesReturns(result1 []dbng.Resource, result2 error) {
+func (fake *FakePipeline) ResourcesReturns(result1 dbng.Resources, result2 error) {
 	fake.ResourcesStub = nil
 	fake.resourcesReturns = struct {
-		result1 []dbng.Resource
+		result1 dbng.Resources
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) ResourcesReturnsOnCall(i int, result1 []dbng.Resource, result2 error) {
+func (fake *FakePipeline) ResourcesReturnsOnCall(i int, result1 dbng.Resources, result2 error) {
 	fake.ResourcesStub = nil
 	if fake.resourcesReturnsOnCall == nil {
 		fake.resourcesReturnsOnCall = make(map[int]struct {
-			result1 []dbng.Resource
+			result1 dbng.Resources
 			result2 error
 		})
 	}
 	fake.resourcesReturnsOnCall[i] = struct {
-		result1 []dbng.Resource
+		result1 dbng.Resources
 		result2 error
 	}{result1, result2}
 }
@@ -2470,6 +2440,95 @@ func (fake *FakePipeline) JobReturnsOnCall(i int, result1 dbng.Job, result2 bool
 	fake.jobReturnsOnCall[i] = struct {
 		result1 dbng.Job
 		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) Jobs() ([]dbng.Job, error) {
+	fake.jobsMutex.Lock()
+	ret, specificReturn := fake.jobsReturnsOnCall[len(fake.jobsArgsForCall)]
+	fake.jobsArgsForCall = append(fake.jobsArgsForCall, struct{}{})
+	fake.recordInvocation("Jobs", []interface{}{})
+	fake.jobsMutex.Unlock()
+	if fake.JobsStub != nil {
+		return fake.JobsStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.jobsReturns.result1, fake.jobsReturns.result2
+}
+
+func (fake *FakePipeline) JobsCallCount() int {
+	fake.jobsMutex.RLock()
+	defer fake.jobsMutex.RUnlock()
+	return len(fake.jobsArgsForCall)
+}
+
+func (fake *FakePipeline) JobsReturns(result1 []dbng.Job, result2 error) {
+	fake.JobsStub = nil
+	fake.jobsReturns = struct {
+		result1 []dbng.Job
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) JobsReturnsOnCall(i int, result1 []dbng.Job, result2 error) {
+	fake.JobsStub = nil
+	if fake.jobsReturnsOnCall == nil {
+		fake.jobsReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Job
+			result2 error
+		})
+	}
+	fake.jobsReturnsOnCall[i] = struct {
+		result1 []dbng.Job
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) Dashboard() (dbng.Dashboard, atc.GroupConfigs, error) {
+	fake.dashboardMutex.Lock()
+	ret, specificReturn := fake.dashboardReturnsOnCall[len(fake.dashboardArgsForCall)]
+	fake.dashboardArgsForCall = append(fake.dashboardArgsForCall, struct{}{})
+	fake.recordInvocation("Dashboard", []interface{}{})
+	fake.dashboardMutex.Unlock()
+	if fake.DashboardStub != nil {
+		return fake.DashboardStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.dashboardReturns.result1, fake.dashboardReturns.result2, fake.dashboardReturns.result3
+}
+
+func (fake *FakePipeline) DashboardCallCount() int {
+	fake.dashboardMutex.RLock()
+	defer fake.dashboardMutex.RUnlock()
+	return len(fake.dashboardArgsForCall)
+}
+
+func (fake *FakePipeline) DashboardReturns(result1 dbng.Dashboard, result2 atc.GroupConfigs, result3 error) {
+	fake.DashboardStub = nil
+	fake.dashboardReturns = struct {
+		result1 dbng.Dashboard
+		result2 atc.GroupConfigs
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 dbng.Dashboard, result2 atc.GroupConfigs, result3 error) {
+	fake.DashboardStub = nil
+	if fake.dashboardReturnsOnCall == nil {
+		fake.dashboardReturnsOnCall = make(map[int]struct {
+			result1 dbng.Dashboard
+			result2 atc.GroupConfigs
+			result3 error
+		})
+	}
+	fake.dashboardReturnsOnCall[i] = struct {
+		result1 dbng.Dashboard
+		result2 atc.GroupConfigs
 		result3 error
 	}{result1, result2, result3}
 }
@@ -2785,10 +2844,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.createJobBuildMutex.RUnlock()
 	fake.nextBuildInputsMutex.RLock()
 	defer fake.nextBuildInputsMutex.RUnlock()
-	fake.pauseJobMutex.RLock()
-	defer fake.pauseJobMutex.RUnlock()
-	fake.unpauseJobMutex.RLock()
-	defer fake.unpauseJobMutex.RUnlock()
+	fake.deleteBuildEventsByBuildIDsMutex.RLock()
+	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
 	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()
 	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.RUnlock()
 	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.RLock()
@@ -2805,6 +2862,10 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.resourceTypeMutex.RUnlock()
 	fake.jobMutex.RLock()
 	defer fake.jobMutex.RUnlock()
+	fake.jobsMutex.RLock()
+	defer fake.jobsMutex.RUnlock()
+	fake.dashboardMutex.RLock()
+	defer fake.dashboardMutex.RUnlock()
 	fake.exposeMutex.RLock()
 	defer fake.exposeMutex.RUnlock()
 	fake.hideMutex.RLock()

@@ -51,17 +51,17 @@ func (b *badge) String() string {
 	return buffer.String()
 }
 
-func badgeForBuild(build db.Build) *badge {
+func badgeForBuild(build dbng.Build) *badge {
 	switch {
 	case build == nil:
 		return &badgeUnknown
-	case build.Status() == db.StatusSucceeded:
+	case build.Status() == dbng.BuildStatusSucceeded:
 		return &badgePassing
-	case build.Status() == db.StatusFailed:
+	case build.Status() == dbng.BuildStatusFailed:
 		return &badgeFailing
-	case build.Status() == db.StatusAborted:
+	case build.Status() == dbng.BuildStatusAborted:
 		return &badgeAborted
-	case build.Status() == db.StatusErrored:
+	case build.Status() == dbng.BuildStatusErrored:
 		return &badgeErrored
 	default:
 		return &badgeUnknown
@@ -98,18 +98,24 @@ type badgeTemplateConfig struct {
 	FillColor       string
 }
 
-func (s *Server) JobBadge(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) JobBadge(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("job-badge")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 
-		_, found := pipelineDB.Config().Jobs.Lookup(jobName)
+		job, found, err := pipeline.Job(jobName)
+		if err != nil {
+			logger.Error("error-finding-job", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		if !found {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		build, _, err := pipelineDB.GetJobFinishedAndNextBuild(jobName)
+		build, _, err := job.FinishedAndNextBuild()
 		if err != nil {
 			logger.Error("could-not-get-job-finished-and-next-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

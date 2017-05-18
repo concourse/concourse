@@ -10,13 +10,13 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListJobs(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) ListJobs(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("list-jobs")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var jobs []atc.Job
 
-		dashboard, groups, err := pipelineDB.GetDashboard()
+		dashboard, groups, err := pipeline.Dashboard()
 		if err != nil {
 			logger.Error("failed-to-get-dashboard", err)
 			w.WriteHeader(http.StatusInternalServerError)

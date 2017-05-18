@@ -8,12 +8,24 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) UnpauseJob(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
-	logger := s.logger.Session("unpause-job")
+func (s *Server) UnpauseJob(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := s.logger.Session("unpause-job")
 		jobName := rata.Param(r, "job_name")
 
-		err := pipelineDB.UnpauseJob(jobName)
+		job, found, err := pipeline.Job(jobName)
+		if err != nil {
+			logger.Error("failed-to-get-job", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		err = job.Unpause()
 		if err != nil {
 			logger.Error("failed-to-unpause-job", err)
 			w.WriteHeader(http.StatusInternalServerError)

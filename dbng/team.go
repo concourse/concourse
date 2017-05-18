@@ -977,11 +977,16 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
 		return err
 	}
 
+	encryptedPayload, nonce, err := t.encryption.Encrypt(configPayload)
+	if err != nil {
+		return err
+	}
+
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE jobs
-		SET config = $3, interruptible = $4, active = true
+		SET config = $3, interruptible = $4, active = true, nonce = $5
 		WHERE name = $1 AND pipeline_id = $2
-	`, job.Name, pipelineID, configPayload, job.Interruptible)
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce)
 	if err != nil {
 		return err
 	}
@@ -991,9 +996,9 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO jobs (name, pipeline_id, config, interruptible, active)
-		VALUES ($1, $2, $3, $4, true)
-	`, job.Name, pipelineID, configPayload, job.Interruptible)
+		INSERT INTO jobs (name, pipeline_id, config, interruptible, active, nonce)
+		VALUES ($1, $2, $3, $4, true, $5)
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce)
 
 	return swallowUniqueViolation(err)
 }

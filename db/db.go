@@ -77,8 +77,6 @@ type DB interface {
 	GetPipe(pipeGUID string) (Pipe, error)
 
 	GetTaskLock(logger lager.Logger, taskName string) (lock.Lock, bool, error)
-
-	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 }
 
 //go:generate counterfeiter . Notifier

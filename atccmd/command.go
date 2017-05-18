@@ -30,7 +30,6 @@ import (
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/gc/buildreaper"
 	"github.com/concourse/atc/gcng"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
@@ -499,10 +498,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 		{"build-reaper", lockrunner.NewRunner(
 			logger.Session("build-reaper-runner"),
-			buildreaper.NewBuildReaper(
+			gcng.NewBuildReaper(
 				logger.Session("build-reaper"),
-				sqlDB,
-				pipelineDBFactory,
+				dbPipelineFactory,
 				500,
 			),
 			"build-reaper",
