@@ -60,8 +60,7 @@ files:
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
-  - github.com/concourse/atc/gc/buildreaper/*.go # gosub
-  - github.com/concourse/atc/gcng/*.go # gosub
+  - github.com/concourse/atc/gc/*.go # gosub
   - github.com/concourse/atc/lockrunner/*.go # gosub
   - github.com/concourse/atc/mainredirect/*.go # gosub
   - github.com/concourse/atc/metric/*.go # gosub
