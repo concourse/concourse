@@ -14,7 +14,8 @@ var _ = Describe("A job with a put that runs with no artifacts", func() {
 	BeforeEach(func() {
 		originGitServer = gitserver.Start(client)
 
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/put-only.yml",
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
@@ -26,7 +27,7 @@ var _ = Describe("A job with a put that runs with no artifacts", func() {
 
 	It("has its working directory created anyway", func() {
 		By("triggering the job")
-		watch := triggerJob("broken-put")
+		watch := flyHelper.TriggerJob(pipelineName, "broken-put")
 
 		By("waiting for it to exit")
 		<-watch.Exited
