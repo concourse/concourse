@@ -348,30 +348,6 @@ var _ = Describe("PipelineDB", func() {
 			})
 		})
 
-		Describe("GetJobBuild", func() {
-			var firstBuild db.Build
-			var job db.SavedJob
-
-			BeforeEach(func() {
-				var err error
-				var found bool
-				job, found, err = pipelineDB.GetJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				firstBuild, err = pipelineDB.CreateJobBuild(job.Name)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("finds the build", func() {
-				build, found, err := pipelineDB.GetJobBuild(job.Name, firstBuild.Name())
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.ID()).To(Equal(firstBuild.ID()))
-				Expect(build.Status()).To(Equal(firstBuild.Status()))
-			})
-		})
-
 		Describe("GetNextPendingBuildBySerialGroup", func() {
 			var jobOneConfig atc.JobConfig
 			var jobOneTwoConfig atc.JobConfig

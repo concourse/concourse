@@ -12,15 +12,17 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) ListJobBuilds(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			builds []db.Build
+			builds []dbng.Build
 			err    error
 			until  int
 			since  int
 			limit  int
 		)
+
+		logger := s.logger.Session("list-job-builds")
 
 		jobName := r.FormValue(":job_name")
 		teamName := r.FormValue(":team_name")
@@ -37,7 +39,19 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.H
 			limit = atc.PaginationAPIDefaultLimit
 		}
 
-		builds, pagination, err := pipelineDB.GetJobBuilds(jobName, db.Page{
+		job, found, err := pipeline.Job(jobName)
+		if err != nil {
+			logger.Error("failed-to-get-job", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		builds, pagination, err := job.Builds(dbng.Page{
 			Since: since,
 			Until: until,
 			Limit: limit,
@@ -48,24 +62,24 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.H
 		}
 
 		if pagination.Next != nil {
-			s.addNextLink(w, teamName, pipelineDB.GetPipelineName(), jobName, *pagination.Next)
+			s.addNextLink(w, teamName, pipeline.Name(), jobName, *pagination.Next)
 		}
 
 		if pagination.Previous != nil {
-			s.addPreviousLink(w, teamName, pipelineDB.GetPipelineName(), jobName, *pagination.Previous)
+			s.addPreviousLink(w, teamName, pipeline.Name(), jobName, *pagination.Previous)
 		}
 
 		w.WriteHeader(http.StatusOK)
 
 		jobBuilds := make([]atc.Build, len(builds))
 		for i := 0; i < len(builds); i++ {
-			jobBuilds[i] = present.DBBuild(builds[i])
+			jobBuilds[i] = present.Build(builds[i])
 		}
 		json.NewEncoder(w).Encode(jobBuilds)
 	})
 }
 
-func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, jobName string, page db.Page) {
+func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, jobName string, page dbng.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/teams/%s/pipelines/%s/jobs/%s/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
@@ -80,7 +94,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, jobN
 	))
 }
 
-func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, jobName string, page db.Page) {
+func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, jobName string, page dbng.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/teams/%s/pipelines/%s/jobs/%s/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,

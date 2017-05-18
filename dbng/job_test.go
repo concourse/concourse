@@ -304,4 +304,33 @@ var _ = Describe("Job", func() {
 			})
 		})
 	})
+
+	Describe("Build", func() {
+		var firstBuild dbng.Build
+
+		Context("when a build exists", func() {
+			BeforeEach(func() {
+				var err error
+				firstBuild, err = pipeline.CreateJobBuild(job.Name())
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("finds the build", func() {
+				build, found, err := job.Build(firstBuild.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.ID()).To(Equal(firstBuild.ID()))
+				Expect(build.Status()).To(Equal(firstBuild.Status()))
+			})
+		})
+
+		Context("when the build does not exist", func() {
+			It("does not error", func() {
+				build, found, err := job.Build("bogus-build")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(build).To(BeNil())
+			})
+		})
+	})
 })

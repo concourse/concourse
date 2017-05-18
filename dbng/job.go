@@ -29,6 +29,7 @@ type Job interface {
 	Unpause() error
 
 	Builds(page Page) ([]Build, Pagination, error)
+	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
 }
@@ -279,6 +280,27 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 	}
 
 	return builds, pagination, nil
+}
+
+func (j *job) Build(name string) (Build, bool, error) {
+	row := buildsQuery.Where(sq.Eq{
+		"b.job_id": j.id,
+		"b.name":   name,
+	}).
+		RunWith(j.conn).
+		QueryRow()
+
+	build := &build{conn: j.conn, lockFactory: j.lockFactory, encryption: j.encryption}
+
+	err := scanBuild(build, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return build, true, nil
 }
 
 func (j *job) updatePausedJob(pause bool) error {

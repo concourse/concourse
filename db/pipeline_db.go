@@ -56,9 +56,7 @@ type PipelineDB interface {
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 	GetJobFinishedAndNextBuild(job string) (Build, Build, error)
-	GetJobBuilds(job string, page Page) ([]Build, Pagination, error)
 	GetAllJobBuilds(job string) ([]Build, error)
-	GetJobBuild(job string, build string) (Build, bool, error)
 	CreateJobBuild(job string) (Build, error)
 	SetMaxInFlightReached(job string, reached bool) error
 	UpdateFirstLoggedBuildID(job string, newFirstLoggedBuildID int) error
@@ -475,40 +473,6 @@ func (pdb *pipelineDB) GetJob(jobName string) (SavedJob, bool, error) {
 	}
 
 	return dbJob, true, nil
-}
-
-func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, bool, error) {
-	tx, err := pdb.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
-	dbJob, err := pdb.getJob(tx, job)
-	if err != nil {
-		return nil, false, err
-	}
-
-	build, found, err := pdb.buildFactory.ScanBuild(tx.QueryRow(`
-		SELECT `+qualifiedBuildColumns+`
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
-		INNER JOIN teams t ON b.team_id = t.id
-		WHERE b.job_id = $1
-		AND b.name = $2
-	`, dbJob.ID, name))
-	if err != nil {
-		return nil, false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, false, err
-	}
-
-	return build, found, nil
 }
 
 func (pdb *pipelineDB) CreateJobBuild(jobName string) (Build, error) {
@@ -1109,111 +1073,6 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 	}
 
 	return tx.Commit()
-}
-
-func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Pagination, error) {
-	var (
-		err        error
-		maxID      int
-		minID      int
-		firstBuild Build
-		lastBuild  Build
-		pagination Pagination
-
-		rows *sql.Rows
-	)
-
-	query := fmt.Sprintf(`
-		SELECT ` + qualifiedBuildColumns + `
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
-		INNER JOIN teams t ON b.team_id = t.id
-		WHERE j.name = $1
-			AND j.pipeline_id = $2
-	`)
-
-	if page.Since == 0 && page.Until == 0 {
-		rows, err = pdb.conn.Query(fmt.Sprintf(`
-			%s
-			ORDER BY b.id DESC
-			LIMIT $3
-		`, query), jobName, pdb.ID, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, err
-		}
-	} else if page.Until != 0 {
-		rows, err = pdb.conn.Query(fmt.Sprintf(`
-			SELECT sub.*
-			FROM (%s
-					AND b.id > $3
-				ORDER BY b.id ASC
-				LIMIT $4
-			) sub
-			ORDER BY sub.id DESC
-		`, query), jobName, pdb.ID, page.Until, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, err
-		}
-	} else {
-		rows, err = pdb.conn.Query(fmt.Sprintf(`
-				%s
-				AND b.id < $3
-			ORDER BY b.id DESC
-			LIMIT $4
-		`, query), jobName, pdb.ID, page.Since, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, err
-		}
-	}
-
-	defer rows.Close()
-
-	builds := []Build{}
-
-	for rows.Next() {
-		build, _, err := pdb.buildFactory.ScanBuild(rows)
-		if err != nil {
-			return nil, Pagination{}, err
-		}
-
-		builds = append(builds, build)
-	}
-
-	if len(builds) == 0 {
-		return []Build{}, Pagination{}, nil
-	}
-
-	err = pdb.conn.QueryRow(`
-		SELECT COALESCE(MAX(b.id), 0) as maxID,
-			COALESCE(MIN(b.id), 0) as minID
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		WHERE j.name = $1
-			AND j.pipeline_id = $2
-	`, jobName, pdb.ID).Scan(&maxID, &minID)
-	if err != nil {
-		return nil, Pagination{}, err
-	}
-
-	firstBuild = builds[0]
-	lastBuild = builds[len(builds)-1]
-
-	if firstBuild.ID() < maxID {
-		pagination.Previous = &Page{
-			Until: firstBuild.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	if lastBuild.ID() > minID {
-		pagination.Next = &Page{
-			Since: lastBuild.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	return builds, pagination, nil
 }
 
 func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]Build, error) {

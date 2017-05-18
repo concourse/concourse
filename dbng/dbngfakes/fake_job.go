@@ -134,6 +134,21 @@ type FakeJob struct {
 		result2 dbng.Pagination
 		result3 error
 	}
+	BuildStub        func(name string) (dbng.Build, bool, error)
+	buildMutex       sync.RWMutex
+	buildArgsForCall []struct {
+		name string
+	}
+	buildReturns struct {
+		result1 dbng.Build
+		result2 bool
+		result3 error
+	}
+	buildReturnsOnCall map[int]struct {
+		result1 dbng.Build
+		result2 bool
+		result3 error
+	}
 	FinishedAndNextBuildStub        func() (dbng.Build, dbng.Build, error)
 	finishedAndNextBuildMutex       sync.RWMutex
 	finishedAndNextBuildArgsForCall []struct{}
@@ -699,6 +714,60 @@ func (fake *FakeJob) BuildsReturnsOnCall(i int, result1 []dbng.Build, result2 db
 	}{result1, result2, result3}
 }
 
+func (fake *FakeJob) Build(name string) (dbng.Build, bool, error) {
+	fake.buildMutex.Lock()
+	ret, specificReturn := fake.buildReturnsOnCall[len(fake.buildArgsForCall)]
+	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
+		name string
+	}{name})
+	fake.recordInvocation("Build", []interface{}{name})
+	fake.buildMutex.Unlock()
+	if fake.BuildStub != nil {
+		return fake.BuildStub(name)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.buildReturns.result1, fake.buildReturns.result2, fake.buildReturns.result3
+}
+
+func (fake *FakeJob) BuildCallCount() int {
+	fake.buildMutex.RLock()
+	defer fake.buildMutex.RUnlock()
+	return len(fake.buildArgsForCall)
+}
+
+func (fake *FakeJob) BuildArgsForCall(i int) string {
+	fake.buildMutex.RLock()
+	defer fake.buildMutex.RUnlock()
+	return fake.buildArgsForCall[i].name
+}
+
+func (fake *FakeJob) BuildReturns(result1 dbng.Build, result2 bool, result3 error) {
+	fake.BuildStub = nil
+	fake.buildReturns = struct {
+		result1 dbng.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJob) BuildReturnsOnCall(i int, result1 dbng.Build, result2 bool, result3 error) {
+	fake.BuildStub = nil
+	if fake.buildReturnsOnCall == nil {
+		fake.buildReturnsOnCall = make(map[int]struct {
+			result1 dbng.Build
+			result2 bool
+			result3 error
+		})
+	}
+	fake.buildReturnsOnCall[i] = struct {
+		result1 dbng.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeJob) FinishedAndNextBuild() (dbng.Build, dbng.Build, error) {
 	fake.finishedAndNextBuildMutex.Lock()
 	ret, specificReturn := fake.finishedAndNextBuildReturnsOnCall[len(fake.finishedAndNextBuildArgsForCall)]
@@ -822,6 +891,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.unpauseMutex.RUnlock()
 	fake.buildsMutex.RLock()
 	defer fake.buildsMutex.RUnlock()
+	fake.buildMutex.RLock()
+	defer fake.buildMutex.RUnlock()
 	fake.finishedAndNextBuildMutex.RLock()
 	defer fake.finishedAndNextBuildMutex.RUnlock()
 	fake.updateFirstLoggedBuildIDMutex.RLock()
