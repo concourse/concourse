@@ -311,6 +311,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       volumes: ["./keys/worker:/concourse-keys"]
       environment:
         CONCOURSE_TSA_HOST: concourse-web
+        CONCOURSE_GARDEN_DNS_SERVER: 8.8.8.8
   }
 
   Then, run the following to generate the necessary keys:
