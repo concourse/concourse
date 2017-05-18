@@ -7,36 +7,56 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("Configuring a resource in a pipeline config", func() {
+var _ = Describe("Configuring a resource type in a pipeline config", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
 		originGitServer = gitserver.Start(client)
 		originGitServer.CommitResource()
 		originGitServer.CommitFileToBranch("initial", "initial", "trigger")
-
-		flyHelper.ConfigurePipeline(
-			pipelineName,
-			"-c", "fixtures/resource-types.yml",
-			"-v", "origin-git-server="+originGitServer.URI(),
-		)
 	})
 
 	AfterEach(func() {
 		originGitServer.Stop()
 	})
 
-	It("can use custom resource types for 'get', 'put', and task 'image_resource's", func() {
-		watch := flyHelper.Watch(pipelineName, "resource-getter")
-		<-watch.Exited
-		Expect(watch.ExitCode()).To(Equal(0))
+	Context("with custom resource types", func() {
+		BeforeEach(func() {
+			flyHelper.ConfigurePipeline(
+				pipelineName,
+				"-c", "fixtures/resource-types.yml",
+				"-v", "origin-git-server="+originGitServer.URI(),
+			)
+		})
 
-		watch = flyHelper.Watch(pipelineName, "resource-putter")
-		Expect(watch).To(gbytes.Say("pushing using custom resource"))
-		Expect(watch).To(gbytes.Say("some-output/some-file"))
+		It("can use custom resource types for 'get', 'put', and task 'image_resource's", func() {
+			watch := flyHelper.Watch(pipelineName, "resource-getter")
+			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
 
-		watch = flyHelper.Watch(pipelineName, "resource-imgur")
-		Expect(watch).To(gbytes.Say("fetched from custom resource"))
-		Expect(watch).To(gbytes.Say("SOME_ENV=yep"))
+			watch = flyHelper.Watch(pipelineName, "resource-putter")
+			Expect(watch).To(gbytes.Say("pushing using custom resource"))
+			Expect(watch).To(gbytes.Say("some-output/some-file"))
+
+			watch = flyHelper.Watch(pipelineName, "resource-imgur")
+			Expect(watch).To(gbytes.Say("fetched from custom resource"))
+			Expect(watch).To(gbytes.Say("SOME_ENV=yep"))
+		})
+	})
+
+	Context("when resource type named as base resource type", func() {
+		BeforeEach(func() {
+			flyHelper.ConfigurePipeline(
+				pipelineName,
+				"-c", "fixtures/resource-type-named-as-base-type.yml",
+				"-v", "origin-git-server="+originGitServer.URI(),
+			)
+		})
+
+		It("can use custom resource type named as base resource type", func() {
+			watch := flyHelper.Watch(pipelineName, "resource-getter")
+			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
+		})
 	})
 })
