@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/testflight/gitserver"
+	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/sclevine/agouti/matchers"
@@ -71,7 +72,9 @@ var _ = Describe("resource metadata", func() {
 		)
 
 		BeforeEach(func() {
-			anotherPipelineName = "another-pipeline"
+			guid, err := uuid.NewV4()
+			Expect(err).NotTo(HaveOccurred())
+			anotherPipelineName = "another-pipeline-" + guid.String()
 
 			flyHelper.ConfigurePipeline(
 				pipelineName,
@@ -96,6 +99,7 @@ var _ = Describe("resource metadata", func() {
 			By("triggering job")
 			watch := flyHelper.TriggerJob(pipelineName, "simple")
 			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
 
 			By("navigating to the build's page")
 			Expect(page.Navigate(atcRoute(fmt.Sprintf("teams/%s/pipelines/%s/jobs/simple/builds/%d", teamName, pipelineName, 1)))).To(Succeed())
@@ -110,6 +114,7 @@ var _ = Describe("resource metadata", func() {
 			By("triggering the job in another pipeline")
 			watch = flyHelper.TriggerJob(anotherPipelineName, "simple")
 			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
 
 			By("navigating to the other pipeline's build's page")
 			Expect(page.Navigate(atcRoute(fmt.Sprintf("teams/%s/pipelines/%s/jobs/simple/builds/%d", teamName, anotherPipelineName, 1)))).To(Succeed())
