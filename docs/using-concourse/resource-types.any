@@ -62,12 +62,18 @@ before using it!
     resource can track and fetch new BOSH stemcells from bosh.io.
   }{
     The
-    \hyperlink{https://github.com/concourse/bosh-deployment-resource}{\code{bosh-deployment}}
-    resource can deploy BOSH stemcells and releases.
-  }{
-    The
     \hyperlink{https://github.com/concourse/vagrant-cloud-resource}{\code{vagrant-cloud}}
     resource can fetch and publish Vagrant boxes to Atlas.
+  }
+}
+
+\section{Deprecated Resources Provided With Concourse}{
+  The following resource types come with Concourse out of the box, but are deprecated:
+
+  \list{
+    The
+    \hyperlink{https://github.com/concourse/bosh-deployment-resource}{\code{bosh-deployment}}
+    resource can deploy BOSH stemcells and releases. (Please use \hyperlink{https://github.com/cloudfoundry/bosh-deployment-resource}{\code{cloudfoundry/bosh-deployment-resource}})
   }
 }
 
