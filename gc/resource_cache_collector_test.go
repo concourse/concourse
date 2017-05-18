@@ -1,22 +1,22 @@
-package gcng_test
+package gc_test
 
 import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/gcng"
+	"github.com/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("ResourceCacheCollector", func() {
-	var collector gcng.Collector
-	var buildCollector gcng.Collector
+	var collector gc.Collector
+	var buildCollector gc.Collector
 
 	BeforeEach(func() {
-		collector = gcng.NewResourceCacheCollector(logger, resourceCacheFactory)
-		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
+		collector = gc.NewResourceCacheCollector(logger, resourceCacheFactory)
+		buildCollector = gc.NewBuildCollector(logger, buildFactory)
 	})
 
 	Describe("Run", func() {
@@ -64,14 +64,14 @@ var _ = Describe("ResourceCacheCollector", func() {
 			})
 
 			Context("when the cache is no longer in use", func() {
-				var resourceCacheUseCollector gcng.Collector
+				var resourceCacheUseCollector gc.Collector
 
 				JustBeforeEach(func() {
 					err := defaultBuild.Finish(dbng.BuildStatusSucceeded)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(buildCollector.Run()).To(Succeed())
 
-					resourceCacheUseCollector = gcng.NewResourceCacheUseCollector(logger, resourceCacheFactory)
+					resourceCacheUseCollector = gc.NewResourceCacheUseCollector(logger, resourceCacheFactory)
 					err = resourceCacheUseCollector.Run()
 					Expect(err).NotTo(HaveOccurred())
 				})

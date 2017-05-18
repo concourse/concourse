@@ -1,12 +1,12 @@
-package gcng_test
+package gc_test
 
 import (
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
-	. "github.com/concourse/atc/gcng"
-	"github.com/concourse/atc/gcng/gcngfakes"
+	. "github.com/concourse/atc/gc"
+	"github.com/concourse/atc/gc/gcfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,14 +16,14 @@ var _ = Describe("Aggregate Collector", func() {
 	var (
 		subject Collector
 
-		fakeBuildCollector             *gcngfakes.FakeCollector
-		fakeWorkerCollector            *gcngfakes.FakeCollector
-		fakeResourceCacheUseCollector  *gcngfakes.FakeCollector
-		fakeResourceConfigUseCollector *gcngfakes.FakeCollector
-		fakeResourceConfigCollector    *gcngfakes.FakeCollector
-		fakeResourceCacheCollector     *gcngfakes.FakeCollector
-		fakeVolumeCollector            *gcngfakes.FakeCollector
-		fakeContainerCollector         *gcngfakes.FakeCollector
+		fakeBuildCollector             *gcfakes.FakeCollector
+		fakeWorkerCollector            *gcfakes.FakeCollector
+		fakeResourceCacheUseCollector  *gcfakes.FakeCollector
+		fakeResourceConfigUseCollector *gcfakes.FakeCollector
+		fakeResourceConfigCollector    *gcfakes.FakeCollector
+		fakeResourceCacheCollector     *gcfakes.FakeCollector
+		fakeVolumeCollector            *gcfakes.FakeCollector
+		fakeContainerCollector         *gcfakes.FakeCollector
 
 		err      error
 		disaster error
@@ -31,14 +31,14 @@ var _ = Describe("Aggregate Collector", func() {
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("collector")
-		fakeBuildCollector = new(gcngfakes.FakeCollector)
-		fakeWorkerCollector = new(gcngfakes.FakeCollector)
-		fakeResourceCacheUseCollector = new(gcngfakes.FakeCollector)
-		fakeResourceConfigUseCollector = new(gcngfakes.FakeCollector)
-		fakeResourceConfigCollector = new(gcngfakes.FakeCollector)
-		fakeResourceCacheCollector = new(gcngfakes.FakeCollector)
-		fakeVolumeCollector = new(gcngfakes.FakeCollector)
-		fakeContainerCollector = new(gcngfakes.FakeCollector)
+		fakeBuildCollector = new(gcfakes.FakeCollector)
+		fakeWorkerCollector = new(gcfakes.FakeCollector)
+		fakeResourceCacheUseCollector = new(gcfakes.FakeCollector)
+		fakeResourceConfigUseCollector = new(gcfakes.FakeCollector)
+		fakeResourceConfigCollector = new(gcfakes.FakeCollector)
+		fakeResourceCacheCollector = new(gcfakes.FakeCollector)
+		fakeVolumeCollector = new(gcfakes.FakeCollector)
+		fakeContainerCollector = new(gcfakes.FakeCollector)
 
 		subject = NewCollector(
 			logger,

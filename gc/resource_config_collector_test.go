@@ -1,21 +1,21 @@
-package gcng_test
+package gc_test
 
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/gcng"
+	"github.com/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("ResourceConfigCollector", func() {
-	var collector gcng.Collector
+	var collector gc.Collector
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("resource-cache-use-collector")
-		collector = gcng.NewResourceConfigCollector(logger, resourceConfigFactory)
+		collector = gc.NewResourceConfigCollector(logger, resourceConfigFactory)
 	})
 
 	Describe("Run", func() {

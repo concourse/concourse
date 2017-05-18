@@ -1,4 +1,4 @@
-package gcng
+package gc
 
 import (
 	"errors"

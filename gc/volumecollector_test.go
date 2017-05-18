@@ -1,4 +1,4 @@
-package gcng_test
+package gc_test
 
 import (
 	"errors"
@@ -7,8 +7,8 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/gcng"
-	"github.com/concourse/atc/gcng/gcngfakes"
+	"github.com/concourse/atc/gc"
+	"github.com/concourse/atc/gc/gcfakes"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("VolumeCollector", func() {
 	var (
-		volumeCollector gcng.Collector
+		volumeCollector gc.Collector
 
 		volumeFactory          dbng.VolumeFactory
 		containerFactory       dbng.ContainerFactory
@@ -39,14 +39,14 @@ var _ = Describe("VolumeCollector", func() {
 		workerFactory = dbng.NewWorkerFactory(dbConn)
 
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
-		fakeBaggageclaimClientFactory := new(gcngfakes.FakeBaggageclaimClientFactory)
+		fakeBaggageclaimClientFactory := new(gcfakes.FakeBaggageclaimClientFactory)
 		fakeBaggageclaimClientFactory.NewClientReturns(fakeBaggageclaimClient)
 
 		fakeBCVolume = new(baggageclaimfakes.FakeVolume)
 		fakeBaggageclaimClient.LookupVolumeReturns(fakeBCVolume, true, nil)
 
 		logger := lagertest.NewTestLogger("volume-collector")
-		volumeCollector = gcng.NewVolumeCollector(
+		volumeCollector = gc.NewVolumeCollector(
 			logger,
 			volumeFactory,
 			fakeBaggageclaimClientFactory,

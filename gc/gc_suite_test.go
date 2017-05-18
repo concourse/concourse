@@ -1,4 +1,4 @@
-package gcng_test
+package gc_test
 
 import (
 	"crypto/aes"
@@ -19,9 +19,9 @@ import (
 	"testing"
 )
 
-func TestGcng(t *testing.T) {
+func TestGc(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Gcng Suite")
+	RunSpecs(t, "Gc Suite")
 }
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -105,7 +105,7 @@ var _ = BeforeEach(func() {
 
 	Expect(setupTx.Commit()).To(Succeed())
 
-	logger = lagertest.NewTestLogger("gcng-test")
+	logger = lagertest.NewTestLogger("gc-test")
 
 	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)
 	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn, lockFactory)

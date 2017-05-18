@@ -1,8 +1,8 @@
-package gcng_test
+package gc_test
 
 import (
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc/gcng"
+	"github.com/concourse/atc/gc"
 
 	"errors"
 
@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("WorkerCollector", func() {
 	var (
-		workerCollector     gcng.Collector
+		workerCollector     gc.Collector
 		fakeWorkerLifecycle *dbngfakes.FakeWorkerLifecycle
 	)
 
@@ -21,7 +21,7 @@ var _ = Describe("WorkerCollector", func() {
 		logger := lagertest.NewTestLogger("volume-collector")
 		fakeWorkerLifecycle = new(dbngfakes.FakeWorkerLifecycle)
 
-		workerCollector = gcng.NewWorkerCollector(
+		workerCollector = gc.NewWorkerCollector(
 			logger,
 			fakeWorkerLifecycle,
 		)

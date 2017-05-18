@@ -30,7 +30,7 @@ import (
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/gcng"
+	"github.com/concourse/atc/gc"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
@@ -452,42 +452,42 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 		{"collector", lockrunner.NewRunner(
 			logger.Session("collector-runner"),
-			gcng.NewCollector(
+			gc.NewCollector(
 				logger.Session("ng-collector"),
-				gcng.NewBuildCollector(
+				gc.NewBuildCollector(
 					logger.Session("build-collector"),
 					dbBuildFactory,
 				),
-				gcng.NewWorkerCollector(
+				gc.NewWorkerCollector(
 					logger.Session("worker-collector"),
 					dbWorkerLifecycle,
 				),
-				gcng.NewResourceCacheUseCollector(
+				gc.NewResourceCacheUseCollector(
 					logger.Session("resource-cache-use-collector"),
 					dbResourceCacheFactory,
 				),
-				gcng.NewResourceConfigUseCollector(
+				gc.NewResourceConfigUseCollector(
 					logger.Session("resource-config-use-collector"),
 					dbResourceConfigFactory,
 				),
-				gcng.NewResourceConfigCollector(
+				gc.NewResourceConfigCollector(
 					logger.Session("resource-config-collector"),
 					dbResourceConfigFactory,
 				),
-				gcng.NewResourceCacheCollector(
+				gc.NewResourceCacheCollector(
 					logger.Session("resource-cache-collector"),
 					dbResourceCacheFactory,
 				),
-				gcng.NewVolumeCollector(
+				gc.NewVolumeCollector(
 					logger.Session("volume-collector"),
 					dbVolumeFactory,
-					gcng.NewBaggageclaimClientFactory(dbWorkerFactory),
+					gc.NewBaggageclaimClientFactory(dbWorkerFactory),
 				),
-				gcng.NewContainerCollector(
+				gc.NewContainerCollector(
 					logger.Session("container-collector"),
 					dbContainerFactory,
 					dbWorkerFactory,
-					gcng.NewGardenClientFactory(),
+					gc.NewGardenClientFactory(),
 				),
 			),
 			"collector",
@@ -498,7 +498,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 		{"build-reaper", lockrunner.NewRunner(
 			logger.Session("build-reaper-runner"),
-			gcng.NewBuildReaper(
+			gc.NewBuildReaper(
 				logger.Session("build-reaper"),
 				dbPipelineFactory,
 				500,

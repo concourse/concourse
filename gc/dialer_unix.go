@@ -1,6 +1,6 @@
 // +build linux darwin solaris
 
-package gcng
+package gc
 
 import (
 	"net"

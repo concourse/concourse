@@ -1,18 +1,18 @@
-package gcng_test
+package gc_test
 
 import (
 	"errors"
 	"time"
 
 	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/gcng"
+	"github.com/concourse/atc/gc"
+	"github.com/concourse/atc/gc/gcfakes"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc/dbng/dbngfakes"
-	"github.com/concourse/atc/gcng/gcngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -20,8 +20,8 @@ import (
 var _ = Describe("ContainerCollector", func() {
 	var (
 		fakeWorkerProvider      *dbngfakes.FakeWorkerFactory
-		fakeContainerFactory    *gcngfakes.FakeContainerFactory
-		fakeGardenClientFactory gcng.GardenClientFactory
+		fakeContainerFactory    *gcfakes.FakeContainerFactory
+		fakeGardenClientFactory gc.GardenClientFactory
 
 		fakeGardenClient *gardenfakes.FakeClient
 		logger           *lagertest.TestLogger
@@ -43,12 +43,12 @@ var _ = Describe("ContainerCollector", func() {
 		gardenClientFactoryCallCount int
 		gardenClientFactoryArgs      []dbng.Worker
 
-		collector gcng.Collector
+		collector gc.Collector
 	)
 
 	BeforeEach(func() {
 		fakeWorkerProvider = new(dbngfakes.FakeWorkerFactory)
-		fakeContainerFactory = new(gcngfakes.FakeContainerFactory)
+		fakeContainerFactory = new(gcfakes.FakeContainerFactory)
 
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		gardenClientFactoryCallCount = 0
@@ -115,7 +115,7 @@ var _ = Describe("ContainerCollector", func() {
 		destroyingContainerFromCreated.DestroyReturns(true, nil)
 		destroyingContainer.DestroyReturns(true, nil)
 
-		collector = gcng.NewContainerCollector(
+		collector = gc.NewContainerCollector(
 			logger,
 			fakeContainerFactory,
 			fakeWorkerProvider,
@@ -327,7 +327,7 @@ var _ = Describe("ContainerCollector", func() {
 					return fakeGardenClient, nil
 				}
 
-				collector = gcng.NewContainerCollector(
+				collector = gc.NewContainerCollector(
 					logger,
 					fakeContainerFactory,
 					fakeWorkerProvider,
