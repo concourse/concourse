@@ -13,17 +13,23 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 )
 
 var _ = Describe("Versions API", func() {
 	var pipelineDB *dbfakes.FakePipelineDB
 	var expectedSavedPipeline db.SavedPipeline
+	var fakePipeline *dbngfakes.FakePipeline
 
 	BeforeEach(func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		pipelineDBFactory.BuildReturns(pipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
 		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, true, nil)
+
+		fakePipeline = new(dbngfakes.FakePipeline)
+		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
+		dbTeam.PipelineReturns(fakePipeline, true, nil)
 	})
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", func() {
@@ -270,11 +276,11 @@ var _ = Describe("Versions API", func() {
 
 			Context("when enabling the resource succeeds", func() {
 				BeforeEach(func() {
-					pipelineDB.EnableVersionedResourceReturns(nil)
+					fakePipeline.EnableVersionedResourceReturns(nil)
 				})
 
 				It("enabled the right versioned resource", func() {
-					Expect(pipelineDB.EnableVersionedResourceArgsForCall(0)).To(Equal(42))
+					Expect(fakePipeline.EnableVersionedResourceArgsForCall(0)).To(Equal(42))
 				})
 
 				It("returns 200", func() {
@@ -284,7 +290,7 @@ var _ = Describe("Versions API", func() {
 
 			Context("when enabling the resource fails", func() {
 				BeforeEach(func() {
-					pipelineDB.EnableVersionedResourceReturns(errors.New("welp"))
+					fakePipeline.EnableVersionedResourceReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {
@@ -323,7 +329,7 @@ var _ = Describe("Versions API", func() {
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
-			It("injects the proper pipelineDB", func() {
+			It("injects the proper pipeline", func() {
 				Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
 				Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("a-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
@@ -333,11 +339,11 @@ var _ = Describe("Versions API", func() {
 
 			Context("when enabling the resource succeeds", func() {
 				BeforeEach(func() {
-					pipelineDB.DisableVersionedResourceReturns(nil)
+					fakePipeline.DisableVersionedResourceReturns(nil)
 				})
 
 				It("disabled the right versioned resource", func() {
-					Expect(pipelineDB.DisableVersionedResourceArgsForCall(0)).To(Equal(42))
+					Expect(fakePipeline.DisableVersionedResourceArgsForCall(0)).To(Equal(42))
 				})
 
 				It("returns 200", func() {
@@ -347,7 +353,7 @@ var _ = Describe("Versions API", func() {
 
 			Context("when enabling the resource fails", func() {
 				BeforeEach(func() {
-					pipelineDB.DisableVersionedResourceReturns(errors.New("welp"))
+					fakePipeline.DisableVersionedResourceReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {

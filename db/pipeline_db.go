@@ -39,7 +39,6 @@ type PipelineDB interface {
 
 	SaveResourceTypeVersion(atc.ResourceType, atc.Version) error
 	EnableVersionedResource(versionedResourceID int) error
-	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
 
 	GetJob(job string) (SavedJob, bool, error)
@@ -376,10 +375,6 @@ func (pdb *pipelineDB) SaveResourceTypeVersion(resourceType atc.ResourceType, ve
 	}
 
 	return tx.Commit()
-}
-
-func (pdb *pipelineDB) DisableVersionedResource(versionedResourceID int) error {
-	return pdb.toggleVersionedResource(versionedResourceID, false)
 }
 
 func (pdb *pipelineDB) EnableVersionedResource(versionedResourceID int) error {
