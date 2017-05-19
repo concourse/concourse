@@ -435,8 +435,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		{"pipelines", pipelines.SyncRunner{
 			Syncer: cmd.constructPipelineSyncer(
 				logger.Session("syncer"),
-				sqlDB,
-				pipelineDBFactory,
 				dbPipelineFactory,
 				radarSchedulerFactory,
 			),
@@ -990,37 +988,32 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (cmd *ATCCommand) constructPipelineSyncer(
 	logger lager.Logger,
-	sqlDB *db.SQLDB,
-	pipelineDBFactory db.PipelineDBFactory,
-	dbPipelineFactory dbng.PipelineFactory,
+	pipelineFactory dbng.PipelineFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 ) *pipelines.Syncer {
 	return pipelines.NewSyncer(
 		logger,
-		sqlDB,
-		pipelineDBFactory,
-		dbPipelineFactory,
-		func(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) ifrit.Runner {
+		pipelineFactory,
+		func(pipeline dbng.Pipeline) ifrit.Runner {
 			return grouper.NewParallel(os.Interrupt, grouper.Members{
 				{
-					pipelineDB.ScopedName("radar"),
+					pipeline.ScopedName("radar"),
 					radar.NewRunner(
-						logger.Session(dbPipeline.ScopedName("radar")),
+						logger.Session(pipeline.ScopedName("radar")),
 						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildScanRunnerFactory(dbPipeline, cmd.ExternalURL.String()),
-						dbPipeline,
+						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String()),
+						pipeline,
 						1*time.Minute,
 					),
 				},
 				{
-					pipelineDB.ScopedName("scheduler"),
+					pipeline.ScopedName("scheduler"),
 					&scheduler.Runner{
-						Logger: logger.Session(pipelineDB.ScopedName("scheduler")),
+						Logger: logger.Session(pipeline.ScopedName("scheduler")),
 
-						DB:       pipelineDB,
-						Pipeline: dbPipeline,
+						Pipeline: pipeline,
 
-						Scheduler: radarSchedulerFactory.BuildScheduler(dbPipeline, cmd.ExternalURL.String()),
+						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline, cmd.ExternalURL.String()),
 
 						Noop: cmd.Developer.Noop,
 

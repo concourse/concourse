@@ -3,11 +3,10 @@ package pipelineserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ExposePipeline(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
+func (s *Server) ExposePipeline(pipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("expose-pipeline")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := pipeline.Expose()

@@ -8,11 +8,10 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListResourceVersions(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
+func (s *Server) ListResourceVersions(pipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("list-resource-versions")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (

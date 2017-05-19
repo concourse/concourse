@@ -399,6 +399,22 @@ type FakePipeline struct {
 	deleteBuildEventsByBuildIDsReturnsOnCall map[int]struct {
 		result1 error
 	}
+	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (lock.Lock, bool, error)
+	acquireSchedulingLockMutex       sync.RWMutex
+	acquireSchedulingLockArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 time.Duration
+	}
+	acquireSchedulingLockReturns struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
+	acquireSchedulingLockReturnsOnCall map[int]struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
 	AcquireResourceCheckingLockWithIntervalCheckStub        func(logger lager.Logger, resource dbng.Resource, interval time.Duration, immediate bool) (lock.Lock, bool, error)
 	acquireResourceCheckingLockWithIntervalCheckMutex       sync.RWMutex
 	acquireResourceCheckingLockWithIntervalCheckArgsForCall []struct {
@@ -2167,6 +2183,61 @@ func (fake *FakePipeline) DeleteBuildEventsByBuildIDsReturnsOnCall(i int, result
 	}{result1}
 }
 
+func (fake *FakePipeline) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
+	fake.acquireSchedulingLockMutex.Lock()
+	ret, specificReturn := fake.acquireSchedulingLockReturnsOnCall[len(fake.acquireSchedulingLockArgsForCall)]
+	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 time.Duration
+	}{arg1, arg2})
+	fake.recordInvocation("AcquireSchedulingLock", []interface{}{arg1, arg2})
+	fake.acquireSchedulingLockMutex.Unlock()
+	if fake.AcquireSchedulingLockStub != nil {
+		return fake.AcquireSchedulingLockStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.acquireSchedulingLockReturns.result1, fake.acquireSchedulingLockReturns.result2, fake.acquireSchedulingLockReturns.result3
+}
+
+func (fake *FakePipeline) AcquireSchedulingLockCallCount() int {
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
+	return len(fake.acquireSchedulingLockArgsForCall)
+}
+
+func (fake *FakePipeline) AcquireSchedulingLockArgsForCall(i int) (lager.Logger, time.Duration) {
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
+	return fake.acquireSchedulingLockArgsForCall[i].arg1, fake.acquireSchedulingLockArgsForCall[i].arg2
+}
+
+func (fake *FakePipeline) AcquireSchedulingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireSchedulingLockStub = nil
+	fake.acquireSchedulingLockReturns = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) AcquireSchedulingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireSchedulingLockStub = nil
+	if fake.acquireSchedulingLockReturnsOnCall == nil {
+		fake.acquireSchedulingLockReturnsOnCall = make(map[int]struct {
+			result1 lock.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.acquireSchedulingLockReturnsOnCall[i] = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheck(logger lager.Logger, resource dbng.Resource, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Lock()
 	ret, specificReturn := fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall[len(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall)]
@@ -2978,6 +3049,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.nextBuildInputsMutex.RUnlock()
 	fake.deleteBuildEventsByBuildIDsMutex.RLock()
 	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
 	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()
 	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.RUnlock()
 	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.RLock()

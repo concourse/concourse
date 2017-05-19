@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/metric"
@@ -38,8 +37,6 @@ var errPipelineRemoved = errors.New("pipeline removed")
 
 type Runner struct {
 	Logger lager.Logger
-
-	DB db.PipelineDB
 
 	Pipeline dbng.Pipeline
 
@@ -85,7 +82,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return nil
 	}
 
-	schedulingLock, acquired, err := runner.DB.AcquireSchedulingLock(logger, runner.Interval)
+	schedulingLock, acquired, err := runner.Pipeline.AcquireSchedulingLock(logger, runner.Interval)
 	if err != nil {
 		logger.Error("failed-to-acquire-scheduling-lock", err)
 		return nil

@@ -4,12 +4,11 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) PauseResource(_ db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) PauseResource(dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("pause-resource")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := rata.Param(r, "resource_name")

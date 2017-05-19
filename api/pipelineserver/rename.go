@@ -6,11 +6,10 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) RenamePipeline(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
+func (s *Server) RenamePipeline(pipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("rename-pipeline")
 

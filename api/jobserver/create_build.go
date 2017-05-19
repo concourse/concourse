@@ -6,11 +6,10 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) CreateJobBuild(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
+func (s *Server) CreateJobBuild(pipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("create-job-build")
 
@@ -42,7 +41,7 @@ func (s *Server) CreateJobBuild(_ db.PipelineDB, pipeline dbng.Pipeline) http.Ha
 			return
 		}
 
-		build, _, err := scheduler.TriggerImmediately(logger, job, config.Resources, resourceTypes.Deserialize())
+		build, _, err := scheduler.TriggerImmediately(logger, job.Config(), pipeline.Config().Resources, resourceTypes.Deserialize())
 		if err != nil {
 			logger.Error("failed-to-trigger", err)
 			w.WriteHeader(http.StatusInternalServerError)

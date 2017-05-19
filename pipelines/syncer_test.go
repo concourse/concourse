@@ -8,22 +8,19 @@ import (
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/pipelines"
-	"github.com/concourse/atc/pipelines/pipelinesfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/fake_runner"
-
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Pipelines Syncer", func() {
 	var (
-		syncherDB             *pipelinesfakes.FakeSyncherDB
-		pipelineDB            *dbfakes.FakePipelineDB
-		otherPipelineDB       *dbfakes.FakePipelineDB
-		pipelineDBFactory     *dbfakes.FakePipelineDBFactory
+		pipeline              *dbngfakes.FakePipeline
+		otherPipeline         *dbngfakes.FakePipeline
+		pipeline1             *dbngfakes.FakePipeline
+		pipeline2             *dbngfakes.FakePipeline
+		pipelineFactory       *dbngfakes.FakePipelineFactory
 		pipelineRunnerFactory PipelineRunnerFactory
 
 		fakeRunner         *fake_runner.FakeRunner
@@ -34,37 +31,35 @@ var _ = Describe("Pipelines Syncer", func() {
 	)
 
 	BeforeEach(func() {
-		syncherDB = new(pipelinesfakes.FakeSyncherDB)
-		pipelineDB = new(dbfakes.FakePipelineDB)
-		otherPipelineDB = new(dbfakes.FakePipelineDB)
-		pipelineDB.PipelineReturns(db.SavedPipeline{ID: 42})
-		otherPipelineDB.PipelineReturns(db.SavedPipeline{ID: 43})
+		pipeline = new(dbngfakes.FakePipeline)
+		otherPipeline = new(dbngfakes.FakePipeline)
+		pipeline.IDReturns(1)
+		otherPipeline.IDReturns(2)
 
-		pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-		dbPipelineFactory := new(dbngfakes.FakePipelineFactory)
+		pipelineFactory = new(dbngfakes.FakePipelineFactory)
 
 		fakeRunner = new(fake_runner.FakeRunner)
 		otherFakeRunner = new(fake_runner.FakeRunner)
 
-		pipelineRunnerFactory = func(pipelineDBArg db.PipelineDB, _ dbng.Pipeline) ifrit.Runner {
-			switch pipelineDBArg {
-			case pipelineDB:
+		pipelineRunnerFactory = func(pipelineArg dbng.Pipeline) ifrit.Runner {
+			switch pipelineArg {
+			case pipeline:
 				return fakeRunner
-			case otherPipelineDB:
+			case otherPipeline:
 				return otherFakeRunner
 			default:
 				panic("unexpected pipelineDB input received")
 			}
 		}
 
-		pipelineDBFactory.BuildStub = func(pipeline db.SavedPipeline) db.PipelineDB {
-			switch pipeline.Name {
-			case "pipeline":
-				return pipelineDB
-			case "other-pipeline":
-				return otherPipelineDB
-			case "renamed-pipeline":
-				return pipelineDB
+		pipelineFactory.GetPipelineByIDStub = func(teamID int, pipelineID int) dbng.Pipeline {
+			switch pipelineID {
+			case 1:
+				return pipeline
+			case 2:
+				return otherPipeline
+			case 3:
+				return pipeline
 			default:
 				panic("unexpected pipeline input received")
 			}
@@ -80,26 +75,17 @@ var _ = Describe("Pipelines Syncer", func() {
 			return <-exitChan
 		}
 
-		syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
-			{
-				ID: 1,
-				Pipeline: db.Pipeline{
-					Name: "pipeline",
-				},
-			},
-			{
-				ID: 2,
-				Pipeline: db.Pipeline{
-					Name: "other-pipeline",
-				},
-			},
-		}, nil)
+		pipeline1 = new(dbngfakes.FakePipeline)
+		pipeline2 = new(dbngfakes.FakePipeline)
+		pipeline1.IDReturns(1)
+		pipeline1.NameReturns("pipeline")
+		pipeline2.IDReturns(2)
+		pipeline2.NameReturns("other-pipeline")
+		pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline1, pipeline2}, nil)
 
 		syncer = NewSyncer(
 			lagertest.NewTestLogger("test"),
-			syncherDB,
-			pipelineDBFactory,
-			dbPipelineFactory,
+			pipelineFactory,
 			pipelineRunnerFactory,
 		)
 	})
@@ -125,14 +111,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			Eventually(fakeRunner.RunCallCount).Should(Equal(1))
 			Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
-			syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
-				{
-					ID: 2,
-					Pipeline: db.Pipeline{
-						Name: "other-pipeline",
-					},
-				},
-			}, nil)
+			pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline2}, nil)
 
 			syncer.Sync()
 
@@ -145,20 +124,11 @@ var _ = Describe("Pipelines Syncer", func() {
 				Eventually(fakeRunner.RunCallCount).Should(Equal(1))
 				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
-				syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
-					{
-						ID: 2,
-						Pipeline: db.Pipeline{
-							Name: "other-pipeline",
-						},
-					},
-					{
-						ID: 3,
-						Pipeline: db.Pipeline{
-							Name: "pipeline",
-						},
-					},
-				}, nil)
+				pipeline3 := new(dbngfakes.FakePipeline)
+				pipeline3.IDReturns(3)
+				pipeline3.NameReturns("pipeline")
+
+				pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline2, pipeline3}, nil)
 
 				syncer.Sync()
 
@@ -174,20 +144,9 @@ var _ = Describe("Pipelines Syncer", func() {
 				Eventually(fakeRunner.RunCallCount).Should(Equal(1))
 				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
-				syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
-					{
-						ID: 1,
-						Pipeline: db.Pipeline{
-							Name: "renamed-pipeline",
-						},
-					},
-					{
-						ID: 2,
-						Pipeline: db.Pipeline{
-							Name: "other-pipeline",
-						},
-					},
-				}, nil)
+				pipeline1.NameReturns("renamed-pipeline")
+
+				pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline1, pipeline2}, nil)
 
 				syncer.Sync()
 
@@ -200,27 +159,12 @@ var _ = Describe("Pipelines Syncer", func() {
 	})
 
 	Context("when a pipeline is paused", func() {
-		pipelines := []db.SavedPipeline{
-			{
-				ID:     1,
-				Paused: true,
-				Pipeline: db.Pipeline{
-					Name: "pipeline",
-				},
-			},
-			{
-				ID: 2,
-				Pipeline: db.Pipeline{
-					Name: "other-pipeline",
-				},
-			},
-		}
-
 		JustBeforeEach(func() {
 			Eventually(fakeRunner.RunCallCount).Should(Equal(1))
 			Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
-			syncherDB.GetAllPipelinesReturns(pipelines, nil)
+			pipeline1.PausedReturns(true)
+			pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline1, pipeline2}, nil)
 
 			syncer.Sync()
 		})

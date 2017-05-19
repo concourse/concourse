@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/dbng"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -27,6 +28,10 @@ var _ = Describe("Locks", func() {
 		dbLock     lock.Lock
 		pipelineDB db.PipelineDB
 		teamDB     db.TeamDB
+
+		pipeline    dbng.Pipeline
+		team        dbng.Team
+		teamFactory dbng.TeamFactory
 
 		logger *lagertest.TestLogger
 	)
@@ -84,6 +89,29 @@ var _ = Describe("Locks", func() {
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 		dbLock = lockFactory.NewLock(logger, lock.LockID{42})
+
+		dbngConn := postgresRunner.OpenConn()
+		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
+		team, err = teamFactory.CreateTeam(atc.Team{Name: "team-name"})
+		Expect(err).NotTo(HaveOccurred())
+
+		pipeline, _, err = team.SavePipeline("some-pipeline", atc.Config{
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+				},
+			},
+			Resources: atc.ResourceConfigs{
+				{
+					Name: "some-resource",
+					Type: "some-base-resource-type",
+					Source: atc.Source{
+						"some": "source",
+					},
+				},
+			},
+		}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -258,13 +286,13 @@ var _ = Describe("Locks", func() {
 	Describe("taking out a lock on pipeline scheduling", func() {
 		Context("when it has been scheduled recently", func() {
 			It("does not get the lock", func() {
-				lock, acquired, err := pipelineDB.AcquireSchedulingLock(logger, 1*time.Second)
+				lock, acquired, err := pipeline.AcquireSchedulingLock(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
 				lock.Release()
 
-				_, acquired, err = pipelineDB.AcquireSchedulingLock(logger, 1*time.Second)
+				_, acquired, err = pipeline.AcquireSchedulingLock(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 			})
@@ -272,12 +300,12 @@ var _ = Describe("Locks", func() {
 
 		Context("when there has not been any scheduling recently", func() {
 			It("gets and keeps the lock and stops others from getting it", func() {
-				lock, acquired, err := pipelineDB.AcquireSchedulingLock(logger, 1*time.Second)
+				lock, acquired, err := pipeline.AcquireSchedulingLock(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
 				Consistently(func() bool {
-					_, acquired, err = pipelineDB.AcquireSchedulingLock(logger, 1*time.Second)
+					_, acquired, err = pipeline.AcquireSchedulingLock(logger, 1*time.Second)
 					Expect(err).NotTo(HaveOccurred())
 
 					return acquired
@@ -287,7 +315,7 @@ var _ = Describe("Locks", func() {
 
 				time.Sleep(time.Second)
 
-				newLock, acquired, err := pipelineDB.AcquireSchedulingLock(logger, 1*time.Second)
+				newLock, acquired, err := pipeline.AcquireSchedulingLock(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 

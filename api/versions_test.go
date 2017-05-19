@@ -10,23 +10,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 )
 
 var _ = Describe("Versions API", func() {
-	var pipelineDB *dbfakes.FakePipelineDB
-	var expectedSavedPipeline db.SavedPipeline
 	var fakePipeline *dbngfakes.FakePipeline
 
 	BeforeEach(func() {
-		pipelineDB = new(dbfakes.FakePipelineDB)
-		pipelineDBFactory.BuildReturns(pipelineDB)
-		expectedSavedPipeline = db.SavedPipeline{}
-		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, true, nil)
-
 		fakePipeline = new(dbngfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
@@ -267,13 +258,6 @@ var _ = Describe("Versions API", func() {
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
-			It("injects the proper pipelineDB", func() {
-				Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("a-pipeline"))
-				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
-				actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
-				Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
-			})
-
 			Context("when enabling the resource succeeds", func() {
 				BeforeEach(func() {
 					fakePipeline.EnableVersionedResourceReturns(nil)
@@ -327,14 +311,6 @@ var _ = Describe("Versions API", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
-			})
-
-			It("injects the proper pipeline", func() {
-				Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
-				Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("a-pipeline"))
-				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
-				actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
-				Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
 			})
 
 			Context("when enabling the resource succeeds", func() {

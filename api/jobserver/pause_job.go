@@ -3,12 +3,11 @@ package jobserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) PauseJob(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
+func (s *Server) PauseJob(pipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("pause-job")
 		jobName := rata.Param(r, "job_name")

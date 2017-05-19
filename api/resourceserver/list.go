@@ -7,11 +7,10 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListResources(_ db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) ListResources(dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("list-resources")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resources, err := dbPipeline.Resources()

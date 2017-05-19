@@ -7,11 +7,10 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) GetResource(_ db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) GetResource(dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("get-resource")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.FormValue(":resource_name")

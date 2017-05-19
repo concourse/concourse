@@ -6,13 +6,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/rata"
 )
 
 // CheckResourceWebHook defines a handler for process a check resource request via an access token.
-func (s *Server) CheckResourceWebHook(_ db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) CheckResourceWebHook(dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("check-resource-webhook")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

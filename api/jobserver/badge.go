@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
@@ -98,7 +97,7 @@ type badgeTemplateConfig struct {
 	FillColor       string
 }
 
-func (s *Server) JobBadge(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
+func (s *Server) JobBadge(pipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("job-badge")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
