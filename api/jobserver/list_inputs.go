@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
@@ -55,12 +54,12 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB, dbPipeline dbng.Pipelin
 			return
 		}
 
-		jobInputs := config.JobInputs(job.Config())
+		jobInputs := job.Config().Inputs()
 		presentedBuildInputs := make([]atc.BuildInput, len(buildInputs))
 		for i, input := range buildInputs {
 			resource, _ := resources.Lookup(input.Resource)
 
-			var config config.JobInput
+			var config atc.JobInput
 			for _, jobInput := range jobInputs {
 				if jobInput.Name == input.Name {
 					config = jobInput

@@ -2,7 +2,6 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
@@ -52,7 +51,7 @@ func Job(
 	}
 
 	sanitizedInputs := []atc.JobInput{}
-	for _, input := range config.JobInputs(job.Config()) {
+	for _, input := range job.Config().Inputs() {
 		sanitizedInputs = append(sanitizedInputs, atc.JobInput{
 			Name:     input.Name,
 			Resource: input.Resource,
@@ -62,7 +61,7 @@ func Job(
 	}
 
 	sanitizedOutputs := []atc.JobOutput{}
-	for _, output := range config.JobOutputs(job.Config()) {
+	for _, output := range job.Config().Outputs() {
 		sanitizedOutputs = append(sanitizedOutputs, atc.JobOutput{
 			Name:     output.Name,
 			Resource: output.Resource,

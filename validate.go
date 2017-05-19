@@ -172,10 +172,10 @@ func usedResources(c Config) map[string]bool {
 
 	for _, job := range c.Jobs {
 		for _, input := range job.Inputs() {
-			usedResources[input.ResourceName()] = true
+			usedResources[input.Resource] = true
 		}
 		for _, output := range job.Outputs() {
-			usedResources[output.ResourceName()] = true
+			usedResources[output.Resource] = true
 		}
 	}
 
@@ -222,12 +222,12 @@ func validateJobs(c Config) ([]Warning, error) {
 
 		encountered := map[string]int{}
 		for _, input := range job.Inputs() {
-			encountered[input.Get]++
+			encountered[input.Name]++
 
-			if encountered[input.Get] == 2 {
+			if encountered[input.Name] == 2 {
 				errorMessages = append(
 					errorMessages,
-					fmt.Sprintf("%s has get steps with the same name: %s", identifier, input.Get),
+					fmt.Sprintf("%s has get steps with the same name: %s", identifier, input.Name),
 				)
 			}
 		}
@@ -367,14 +367,14 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []st
 				foundResource := false
 
 				for _, input := range jobConfig.Inputs() {
-					if input.ResourceName() == plan.ResourceName() {
+					if input.Resource == plan.ResourceName() {
 						foundResource = true
 						break
 					}
 				}
 
 				for _, output := range jobConfig.Outputs() {
-					if output.ResourceName() == plan.ResourceName() {
+					if output.Resource == plan.ResourceName() {
 						foundResource = true
 						break
 					}

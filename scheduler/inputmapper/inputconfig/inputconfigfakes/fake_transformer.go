@@ -4,18 +4,18 @@ package inputconfigfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
 )
 
 type FakeTransformer struct {
-	TransformInputConfigsStub        func(db *algorithm.VersionsDB, jobName string, inputs []config.JobInput) (algorithm.InputConfigs, error)
+	TransformInputConfigsStub        func(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error)
 	transformInputConfigsMutex       sync.RWMutex
 	transformInputConfigsArgsForCall []struct {
 		db      *algorithm.VersionsDB
 		jobName string
-		inputs  []config.JobInput
+		inputs  []atc.JobInput
 	}
 	transformInputConfigsReturns struct {
 		result1 algorithm.InputConfigs
@@ -29,10 +29,10 @@ type FakeTransformer struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTransformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []config.JobInput) (algorithm.InputConfigs, error) {
-	var inputsCopy []config.JobInput
+func (fake *FakeTransformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error) {
+	var inputsCopy []atc.JobInput
 	if inputs != nil {
-		inputsCopy = make([]config.JobInput, len(inputs))
+		inputsCopy = make([]atc.JobInput, len(inputs))
 		copy(inputsCopy, inputs)
 	}
 	fake.transformInputConfigsMutex.Lock()
@@ -40,7 +40,7 @@ func (fake *FakeTransformer) TransformInputConfigs(db *algorithm.VersionsDB, job
 	fake.transformInputConfigsArgsForCall = append(fake.transformInputConfigsArgsForCall, struct {
 		db      *algorithm.VersionsDB
 		jobName string
-		inputs  []config.JobInput
+		inputs  []atc.JobInput
 	}{db, jobName, inputsCopy})
 	fake.recordInvocation("TransformInputConfigs", []interface{}{db, jobName, inputsCopy})
 	fake.transformInputConfigsMutex.Unlock()
@@ -59,7 +59,7 @@ func (fake *FakeTransformer) TransformInputConfigsCallCount() int {
 	return len(fake.transformInputConfigsArgsForCall)
 }
 
-func (fake *FakeTransformer) TransformInputConfigsArgsForCall(i int) (*algorithm.VersionsDB, string, []config.JobInput) {
+func (fake *FakeTransformer) TransformInputConfigsArgsForCall(i int) (*algorithm.VersionsDB, string, []atc.JobInput) {
 	fake.transformInputConfigsMutex.RLock()
 	defer fake.transformInputConfigsMutex.RUnlock()
 	return fake.transformInputConfigsArgsForCall[i].db, fake.transformInputConfigsArgsForCall[i].jobName, fake.transformInputConfigsArgsForCall[i].inputs

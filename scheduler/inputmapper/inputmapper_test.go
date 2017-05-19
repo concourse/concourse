@@ -5,7 +5,6 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler/inputmapper"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig/inputconfigfakes"
@@ -99,12 +98,12 @@ var _ = Describe("Inputmapper", func() {
 					Expect(actualVersionsDB).To(Equal(versionsDB))
 					Expect(actualJobName).To(Equal("some-job"))
 					Expect(actualJobInputs).To(ConsistOf(
-						config.JobInput{
+						atc.JobInput{
 							Name:     "alias",
 							Resource: "a",
 							Version:  &atc.VersionConfig{Latest: true},
 						},
-						config.JobInput{
+						atc.JobInput{
 							Name:     "b",
 							Resource: "b",
 							Version:  &atc.VersionConfig{Latest: true},

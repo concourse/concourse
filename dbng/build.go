@@ -11,7 +11,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
@@ -561,7 +560,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	configInputs := config.JobInputs(jobConfig)
+	configInputs := jobConfig.Inputs()
 
 	nextBuildInputs, found, err := pipeline.NextBuildInputs(jobName)
 	if err != nil {

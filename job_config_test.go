@@ -1,18 +1,109 @@
-package config_test
+package atc_test
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Job config", func() {
-	Describe("JobInputs", func() {
+var _ = Describe("JobConfig", func() {
+	Describe("MaxInFlight", func() {
+		It("returns the raw MaxInFlight if set", func() {
+			jobConfig := atc.JobConfig{
+				RawMaxInFlight: 42,
+			}
+
+			Expect(jobConfig.MaxInFlight()).To(Equal(42))
+		})
+
+		It("returns 1 if Serial is true or SerialGroups has items in it", func() {
+			jobConfig := atc.JobConfig{
+				Serial:       true,
+				SerialGroups: []string{},
+			}
+
+			Expect(jobConfig.MaxInFlight()).To(Equal(1))
+
+			jobConfig.SerialGroups = []string{
+				"one",
+			}
+			Expect(jobConfig.MaxInFlight()).To(Equal(1))
+
+			jobConfig.Serial = false
+			Expect(jobConfig.MaxInFlight()).To(Equal(1))
+		})
+
+		It("returns 1 if Serial is true or SerialGroups has items in it, even if raw MaxInFlight is set", func() {
+			jobConfig := atc.JobConfig{
+				Serial:         true,
+				SerialGroups:   []string{},
+				RawMaxInFlight: 3,
+			}
+
+			Expect(jobConfig.MaxInFlight()).To(Equal(1))
+
+			jobConfig.SerialGroups = []string{
+				"one",
+			}
+			Expect(jobConfig.MaxInFlight()).To(Equal(1))
+
+			jobConfig.Serial = false
+			Expect(jobConfig.MaxInFlight()).To(Equal(1))
+		})
+
+		It("returns 0 if MaxInFlight is not set, Serial is false, and SerialGroups is empty", func() {
+			jobConfig := atc.JobConfig{
+				Serial:       false,
+				SerialGroups: []string{},
+			}
+
+			Expect(jobConfig.MaxInFlight()).To(Equal(0))
+		})
+	})
+
+	Describe("GetSerialGroups", func() {
+		It("Returns the values if SerialGroups is specified", func() {
+			jobConfig := atc.JobConfig{
+				SerialGroups: []string{"one", "two"},
+			}
+
+			Expect(jobConfig.GetSerialGroups()).To(Equal([]string{"one", "two"}))
+		})
+
+		It("Returns the job name if Serial but SerialGroups are not specified", func() {
+			jobConfig := atc.JobConfig{
+				Name:   "some-job",
+				Serial: true,
+			}
+
+			Expect(jobConfig.GetSerialGroups()).To(Equal([]string{"some-job"}))
+		})
+
+		It("Returns the job name if MaxInFlight but SerialGroups are not specified", func() {
+			jobConfig := atc.JobConfig{
+				Name:           "some-job",
+				RawMaxInFlight: 1,
+			}
+
+			Expect(jobConfig.GetSerialGroups()).To(Equal([]string{"some-job"}))
+		})
+
+		It("returns an empty slice of strings if there are no groups and it is not serial and has no max-in-flight", func() {
+			jobConfig := atc.JobConfig{
+				Name:   "some-job",
+				Serial: false,
+			}
+
+			Expect(jobConfig.GetSerialGroups()).To(Equal([]string{}))
+		})
+	})
+
+	Describe("Inputs", func() {
 		var (
 			jobConfig atc.JobConfig
 
-			inputs []config.JobInput
+			inputs []atc.JobInput
 		)
 
 		BeforeEach(func() {
@@ -20,7 +111,7 @@ var _ = Describe("Job config", func() {
 		})
 
 		JustBeforeEach(func() {
-			inputs = config.JobInputs(jobConfig)
+			inputs = jobConfig.Inputs()
 		})
 
 		Context("with a build plan", func() {
@@ -49,7 +140,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("uses both for inputs", func() {
-					Expect(inputs).To(Equal([]config.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInput{
 						{
 							Name:     "some-get-plan",
 							Resource: "some-get-plan",
@@ -80,7 +171,7 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config with the version", func() {
 					Expect(inputs).To(Equal(
-						[]config.JobInput{
+						[]atc.JobInput{
 							{
 								Name:     "a",
 								Resource: "a",
@@ -108,11 +199,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						config.JobInput{
+						atc.JobInput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobInput{
+						atc.JobInput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -135,11 +226,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						config.JobInput{
+						atc.JobInput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobInput{
+						atc.JobInput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -163,11 +254,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						config.JobInput{
+						atc.JobInput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobInput{
+						atc.JobInput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -190,11 +281,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						config.JobInput{
+						atc.JobInput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobInput{
+						atc.JobInput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -217,11 +308,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						config.JobInput{
+						atc.JobInput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobInput{
+						atc.JobInput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -244,11 +335,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						config.JobInput{
+						atc.JobInput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobInput{
+						atc.JobInput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -268,7 +359,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("uses it as resource in the input config", func() {
-					Expect(inputs).To(Equal([]config.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInput{
 						{
 							Name:     "some-get-plan",
 							Resource: "some-get-resource",
@@ -294,7 +385,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(Equal([]config.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInput{
 						{
 							Name:     "a",
 							Resource: "a",
@@ -334,7 +425,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an input config for all of the get plans present", func() {
-					Expect(inputs).To(Equal([]config.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInput{
 						{
 							Name:     "a",
 							Resource: "a",
@@ -376,7 +467,7 @@ var _ = Describe("Job config", func() {
 		var (
 			jobConfig atc.JobConfig
 
-			outputs []config.JobOutput
+			outputs []atc.JobOutput
 		)
 
 		BeforeEach(func() {
@@ -384,7 +475,7 @@ var _ = Describe("Job config", func() {
 		})
 
 		JustBeforeEach(func() {
-			outputs = config.JobOutputs(jobConfig)
+			outputs = jobConfig.Outputs()
 		})
 
 		Context("with a build plan", func() {
@@ -420,7 +511,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an output for all of the put plans present", func() {
-					Expect(outputs).To(Equal([]config.JobOutput{
+					Expect(outputs).To(Equal([]atc.JobOutput{
 						{
 							Name:     "a",
 							Resource: "a",
@@ -453,11 +544,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(outputs).To(ConsistOf(
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -480,11 +571,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(outputs).To(ConsistOf(
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -508,11 +599,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(outputs).To(ConsistOf(
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -535,11 +626,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an output config for all put plans", func() {
 					Expect(outputs).To(ConsistOf(
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -562,11 +653,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an output config for all put plans", func() {
 					Expect(outputs).To(ConsistOf(
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "b",
 							Resource: "b",
 						},
@@ -589,11 +680,11 @@ var _ = Describe("Job config", func() {
 
 				It("returns an output config for all put plans", func() {
 					Expect(outputs).To(ConsistOf(
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "a",
 							Resource: "a",
 						},
-						config.JobOutput{
+						atc.JobOutput{
 							Name:     "b",
 							Resource: "b",
 						},

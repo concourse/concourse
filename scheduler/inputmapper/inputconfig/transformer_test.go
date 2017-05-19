@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
@@ -28,7 +27,7 @@ var _ = Describe("Transformer", func() {
 	Describe("TransformInputConfigs", func() {
 		Context("when the job name exists in the versionsDB", func() {
 			var (
-				jobInputs       []config.JobInput
+				jobInputs       []atc.JobInput
 				algorithmInputs algorithm.InputConfigs
 				tranformErr     error
 			)
@@ -46,7 +45,7 @@ var _ = Describe("Transformer", func() {
 
 			Context("when an input has nil version", func() {
 				BeforeEach(func() {
-					jobInputs = []config.JobInput{{
+					jobInputs = []atc.JobInput{{
 						Name:     "job-input-1",
 						Resource: "r1",
 						Version:  nil,
@@ -67,7 +66,7 @@ var _ = Describe("Transformer", func() {
 
 			Context("when an input has passed constraints", func() {
 				BeforeEach(func() {
-					jobInputs = []config.JobInput{{
+					jobInputs = []atc.JobInput{{
 						Name:     "job-input-1",
 						Resource: "r1",
 						Version:  &atc.VersionConfig{Latest: true},
@@ -89,7 +88,7 @@ var _ = Describe("Transformer", func() {
 
 			Context("when an input has version: every", func() {
 				BeforeEach(func() {
-					jobInputs = []config.JobInput{{
+					jobInputs = []atc.JobInput{{
 						Name:     "job-input-1",
 						Resource: "r1",
 						Version:  &atc.VersionConfig{Every: true, Latest: true}, // spice things up a bit
@@ -110,7 +109,7 @@ var _ = Describe("Transformer", func() {
 
 			Context("when an input has a pinned version", func() {
 				BeforeEach(func() {
-					jobInputs = []config.JobInput{
+					jobInputs = []atc.JobInput{
 						{
 							Name:     "job-input-1",
 							Resource: "r1",
@@ -195,7 +194,7 @@ var _ = Describe("Transformer", func() {
 				algorithmInputs, transformErr := transformer.TransformInputConfigs(
 					&algorithm.VersionsDB{},
 					"no",
-					[]config.JobInput{{
+					[]atc.JobInput{{
 						Name:     "job-input-1",
 						Resource: "nah",
 						Version:  &atc.VersionConfig{},

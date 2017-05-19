@@ -367,22 +367,6 @@ type FakePipelineDB struct {
 		result2 db.Build
 		result3 error
 	}
-	GetJobBuildsStub        func(job string, page db.Page) ([]db.Build, db.Pagination, error)
-	getJobBuildsMutex       sync.RWMutex
-	getJobBuildsArgsForCall []struct {
-		job  string
-		page db.Page
-	}
-	getJobBuildsReturns struct {
-		result1 []db.Build
-		result2 db.Pagination
-		result3 error
-	}
-	getJobBuildsReturnsOnCall map[int]struct {
-		result1 []db.Build
-		result2 db.Pagination
-		result3 error
-	}
 	GetAllJobBuildsStub        func(job string) ([]db.Build, error)
 	getAllJobBuildsMutex       sync.RWMutex
 	getAllJobBuildsArgsForCall []struct {
@@ -1921,61 +1905,6 @@ func (fake *FakePipelineDB) GetJobFinishedAndNextBuildReturnsOnCall(i int, resul
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetJobBuilds(job string, page db.Page) ([]db.Build, db.Pagination, error) {
-	fake.getJobBuildsMutex.Lock()
-	ret, specificReturn := fake.getJobBuildsReturnsOnCall[len(fake.getJobBuildsArgsForCall)]
-	fake.getJobBuildsArgsForCall = append(fake.getJobBuildsArgsForCall, struct {
-		job  string
-		page db.Page
-	}{job, page})
-	fake.recordInvocation("GetJobBuilds", []interface{}{job, page})
-	fake.getJobBuildsMutex.Unlock()
-	if fake.GetJobBuildsStub != nil {
-		return fake.GetJobBuildsStub(job, page)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.getJobBuildsReturns.result1, fake.getJobBuildsReturns.result2, fake.getJobBuildsReturns.result3
-}
-
-func (fake *FakePipelineDB) GetJobBuildsCallCount() int {
-	fake.getJobBuildsMutex.RLock()
-	defer fake.getJobBuildsMutex.RUnlock()
-	return len(fake.getJobBuildsArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetJobBuildsArgsForCall(i int) (string, db.Page) {
-	fake.getJobBuildsMutex.RLock()
-	defer fake.getJobBuildsMutex.RUnlock()
-	return fake.getJobBuildsArgsForCall[i].job, fake.getJobBuildsArgsForCall[i].page
-}
-
-func (fake *FakePipelineDB) GetJobBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
-	fake.GetJobBuildsStub = nil
-	fake.getJobBuildsReturns = struct {
-		result1 []db.Build
-		result2 db.Pagination
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipelineDB) GetJobBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
-	fake.GetJobBuildsStub = nil
-	if fake.getJobBuildsReturnsOnCall == nil {
-		fake.getJobBuildsReturnsOnCall = make(map[int]struct {
-			result1 []db.Build
-			result2 db.Pagination
-			result3 error
-		})
-	}
-	fake.getJobBuildsReturnsOnCall[i] = struct {
-		result1 []db.Build
-		result2 db.Pagination
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakePipelineDB) GetAllJobBuilds(job string) ([]db.Build, error) {
 	fake.getAllJobBuildsMutex.Lock()
 	ret, specificReturn := fake.getAllJobBuildsReturnsOnCall[len(fake.getAllJobBuildsArgsForCall)]
@@ -2472,8 +2401,6 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.getNextPendingBuildBySerialGroupMutex.RUnlock()
 	fake.getJobFinishedAndNextBuildMutex.RLock()
 	defer fake.getJobFinishedAndNextBuildMutex.RUnlock()
-	fake.getJobBuildsMutex.RLock()
-	defer fake.getJobBuildsMutex.RUnlock()
 	fake.getAllJobBuildsMutex.RLock()
 	defer fake.getAllJobBuildsMutex.RUnlock()
 	fake.createJobBuildMutex.RLock()

@@ -3,7 +3,6 @@ package inputmapper
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
 )
@@ -42,7 +41,7 @@ func (i *inputMapper) SaveNextInputMapping(
 ) (algorithm.InputMapping, error) {
 	logger = logger.Session("save-next-input-mapping")
 
-	inputConfigs := config.JobInputs(job)
+	inputConfigs := job.Inputs()
 
 	algorithmInputConfigs, err := i.transformer.TransformInputConfigs(versions, job.Name, inputConfigs)
 	if err != nil {

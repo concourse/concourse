@@ -6,7 +6,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/scheduler/inputmapper"
@@ -78,7 +77,7 @@ func (s *Scheduler) ensurePendingBuildExists(
 		return err
 	}
 
-	for _, inputConfig := range config.JobInputs(jobConfig) {
+	for _, inputConfig := range jobConfig.Inputs() {
 		inputVersion, ok := inputMapping[inputConfig.Name]
 
 		//trigger: true, and the version has not been used

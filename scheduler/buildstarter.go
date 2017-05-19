@@ -3,7 +3,6 @@ package scheduler
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/scheduler/inputmapper"
@@ -97,7 +96,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	}
 
 	if nextPendingBuild.IsManuallyTriggered() {
-		jobBuildInputs := config.JobInputs(jobConfig)
+		jobBuildInputs := jobConfig.Inputs()
 		for _, input := range jobBuildInputs {
 			scanLog := logger.Session("scan", lager.Data{
 				"input":    input.Name,
