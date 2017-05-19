@@ -16,6 +16,8 @@ type Volume interface {
 	SetProperty(key string, value string) error
 	Properties() (baggageclaim.VolumeProperties, error)
 
+	SetPrivileged(bool) error
+
 	StreamIn(path string, tarStream io.Reader) error
 	StreamOut(path string) (io.ReadCloser, error)
 
@@ -55,6 +57,10 @@ func (v *volume) Path() string { return v.bcVolume.Path() }
 
 func (v *volume) SetProperty(key string, value string) error {
 	return v.bcVolume.SetProperty(key, value)
+}
+
+func (v *volume) SetPrivileged(privileged bool) error {
+	return v.bcVolume.SetPrivileged(privileged)
 }
 
 func (v *volume) StreamIn(path string, tarStream io.Reader) error {

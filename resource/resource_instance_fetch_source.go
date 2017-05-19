@@ -120,6 +120,12 @@ func (s *resourceInstanceFetchSource) Initialize(signals <-chan os.Signal, ready
 		return err
 	}
 
+	err = volume.SetPrivileged(false)
+	if err != nil {
+		sLog.Error("failed-to-set-volume-unprivileged", err)
+		return err
+	}
+
 	err = volume.Initialize()
 	if err != nil {
 		sLog.Error("failed-to-initialize-cache", err)
