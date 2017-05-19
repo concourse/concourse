@@ -579,7 +579,7 @@ viewTab id currentTab idx step =
     in
         Html.li
             [ classList [ ( "current", currentTab == tab ), ( "inactive", not <| treeIsActive step ) ] ]
-            [ Html.span [ onClick (SwitchTab id tab) ] [ Html.text (toString tab) ] ]
+            [ Html.a [ onClick (SwitchTab id tab) ] [ Html.text (toString tab) ] ]
 
 
 viewSeq : Model -> StepTree -> Html Msg
