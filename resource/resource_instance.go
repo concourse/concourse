@@ -73,7 +73,7 @@ func (instance resourceInstance) CreateOn(logger lager.Logger, workerClient work
 		logger,
 		worker.VolumeSpec{
 			Strategy:   baggageclaim.EmptyStrategy{},
-			Privileged: true,
+			Privileged: instance.resourceTypeName == "docker-image",
 		},
 		resourceCache,
 	)

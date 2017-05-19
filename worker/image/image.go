@@ -196,7 +196,7 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 				logger,
 				worker.VolumeSpec{
 					Strategy:   importVolume.COWStrategy(),
-					Privileged: true,
+					Privileged: t.Type == "docker-image",
 				},
 				container,
 				importVolume,

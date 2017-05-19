@@ -136,10 +136,12 @@ func (s *resourceInstanceFetchSource) Initialize(signals <-chan os.Signal, ready
 }
 
 func (s *resourceInstanceFetchSource) createContainerForVolume(volume worker.Volume) (worker.Container, error) {
+	privileged := s.resourceOptions.ResourceType() == "docker-image"
+
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: string(s.resourceOptions.ResourceType()),
-			Privileged:   true,
+			Privileged:   privileged,
 		},
 		Tags:   s.tags,
 		TeamID: s.teamID,

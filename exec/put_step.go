@@ -91,7 +91,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.resourceConfig.Type,
-			Privileged:   true,
+			Privileged:   step.resourceConfig.Type == "docker-image",
 		},
 		Tags:   step.tags,
 		TeamID: step.teamID,

@@ -200,7 +200,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: imageResourceType,
-			Privileged:   true,
+			Privileged:   imageResourceType == "docker-image",
 		},
 		Tags:   tags,
 		TeamID: teamID,

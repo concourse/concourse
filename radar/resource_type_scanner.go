@@ -104,7 +104,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResourceType.Config.Type,
-			Privileged:   true,
+			Privileged:   savedResourceType.Config.Type == "docker-image",
 		},
 		Tags:   []string{},
 		TeamID: scanner.dbPipeline.TeamID(),
