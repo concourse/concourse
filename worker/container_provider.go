@@ -517,6 +517,25 @@ func (p *containerProvider) createGardenContainer(
 ) (garden.Container, error) {
 	volumeMounts := []VolumeMount{}
 
+	tmpdirVolume, err := p.volumeClient.FindOrCreateVolumeForContainer(
+		logger,
+		VolumeSpec{
+			Strategy:   baggageclaim.EmptyStrategy{},
+			Privileged: bool(spec.ImageSpec.Privileged),
+		},
+		creatingContainer,
+		spec.TeamID,
+		"/var/lib/docker",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	volumeMounts = append(volumeMounts, VolumeMount{
+		Volume:    tmpdirVolume,
+		MountPath: "/var/lib/docker",
+	})
+
 	if spec.Dir != "" && !p.anyMountTo(spec.Dir, spec.Inputs) {
 		workdirVolume, volumeErr := p.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
