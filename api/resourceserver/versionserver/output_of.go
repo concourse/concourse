@@ -11,12 +11,12 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListBuildsWithVersionAsOutput(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) ListBuildsWithVersionAsOutput(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		versionIDString := r.FormValue(":resource_version_id")
 		versionID, _ := strconv.Atoi(versionIDString)
 
-		builds, err := pipelineDB.GetBuildsWithVersionAsOutput(versionID)
+		builds, err := pipeline.GetBuildsWithVersionAsOutput(versionID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -24,7 +24,7 @@ func (s *Server) ListBuildsWithVersionAsOutput(pipelineDB db.PipelineDB, _ dbng.
 
 		presentedBuilds := []atc.Build{}
 		for _, build := range builds {
-			presentedBuilds = append(presentedBuilds, present.DBBuild(build))
+			presentedBuilds = append(presentedBuilds, present.Build(build))
 		}
 
 		w.Header().Set("Content-Type", "application/json")

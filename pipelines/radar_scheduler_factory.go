@@ -5,7 +5,6 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/radar"
@@ -21,7 +20,7 @@ import (
 
 type RadarSchedulerFactory interface {
 	BuildScanRunnerFactory(dbPipeline dbng.Pipeline, externalURL string) radar.ScanRunnerFactory
-	BuildScheduler(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline, externalURL string) scheduler.BuildScheduler
+	BuildScheduler(pipeline dbng.Pipeline, externalURL string) scheduler.BuildScheduler
 }
 
 type radarSchedulerFactory struct {
@@ -46,26 +45,26 @@ func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline dbng.Pipelin
 	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.interval, dbPipeline, clock.NewClock(), externalURL)
 }
 
-func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline, externalURL string) scheduler.BuildScheduler {
+func (rsf *radarSchedulerFactory) BuildScheduler(pipeline dbng.Pipeline, externalURL string) scheduler.BuildScheduler {
 	scanner := radar.NewResourceScanner(
 		clock.NewClock(),
 		rsf.resourceFactory,
 		rsf.interval,
-		dbPipeline,
+		pipeline,
 		externalURL,
 	)
 	inputMapper := inputmapper.NewInputMapper(
-		pipelineDB,
-		inputconfig.NewTransformer(pipelineDB),
+		pipeline,
+		inputconfig.NewTransformer(pipeline),
 	)
 	return &scheduler.Scheduler{
-		Pipeline:    dbPipeline,
+		Pipeline:    pipeline,
 		InputMapper: inputMapper,
 		BuildStarter: scheduler.NewBuildStarter(
-			dbPipeline,
-			maxinflight.NewUpdater(pipelineDB),
+			pipeline,
+			maxinflight.NewUpdater(pipeline),
 			factory.NewBuildFactory(
-				pipelineDB.GetPipelineID(),
+				pipeline.ID(),
 				atc.NewPlanFactory(time.Now().Unix()),
 			),
 			scanner,

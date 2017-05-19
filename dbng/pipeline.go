@@ -51,8 +51,11 @@ type Pipeline interface {
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 	GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
+
 	DisableVersionedResource(versionedResourceID int) error
 	EnableVersionedResource(versionedResourceID int) error
+	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
+	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
 
 	SaveIndependentInputMapping(inputMapping algorithm.InputMapping, jobName string) error
 	SaveNextInputMapping(inputMapping algorithm.InputMapping, jobName string) error
@@ -66,6 +69,9 @@ type Pipeline interface {
 	CreateJobBuild(jobName string) (Build, error)
 	NextBuildInputs(jobName string) ([]BuildInput, bool, error)
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
+
+	// Needs test (from db/lock_test.go)
+	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
 
 	AcquireResourceCheckingLockWithIntervalCheck(
 		logger lager.Logger,
@@ -731,6 +737,59 @@ func (p *pipeline) EnableVersionedResource(versionedResourceID int) error {
 	return p.toggleVersionedResource(versionedResourceID, true)
 }
 
+func (p *pipeline) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error) {
+	rows, err := buildsQuery.
+		JoinClause("LEFT OUTER JOIN build_inputs bi ON bi.build_id = b.id").
+		Where(sq.Eq{
+			"bi.versioned_resource_id": versionedResourceID,
+		}).
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	builds := []Build{}
+	for rows.Next() {
+		build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+		err = scanBuild(build, rows)
+		if err != nil {
+			return nil, err
+		}
+		builds = append(builds, build)
+	}
+
+	return builds, err
+}
+
+func (p *pipeline) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error) {
+	rows, err := buildsQuery.
+		JoinClause("LEFT OUTER JOIN build_outputs bo ON bo.build_id = b.id").
+		Where(sq.Eq{
+			"bo.versioned_resource_id": versionedResourceID,
+		}).
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	builds := []Build{}
+	for rows.Next() {
+		build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+		err = scanBuild(build, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		builds = append(builds, build)
+	}
+
+	return builds, err
+}
+
 func (p *pipeline) SaveIndependentInputMapping(inputMapping algorithm.InputMapping, jobName string) error {
 	return p.saveJobInputMapping("independent_build_inputs", inputMapping, jobName)
 }
@@ -1317,6 +1376,53 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	err = tx.Commit()
 	return err
+}
+
+func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	updated, err := checkIfRowsUpdated(tx, `
+		UPDATE pipelines
+		SET last_scheduled = now()
+		WHERE id = $1
+			AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
+	`, p.id, interval.Seconds())
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !updated {
+		return nil, false, nil
+	}
+
+	lock := p.lockFactory.NewLock(
+		logger.Session("lock", lager.Data{
+			"pipeline": p.name,
+		}),
+		lock.NewPipelineSchedulingLockLockID(p.id),
+	)
+
+	acquired, err := lock.Acquire()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !acquired {
+		return nil, false, nil
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		lock.Release()
+		return nil, false, err
+	}
+
+	return lock, true, nil
 }
 
 func (p *pipeline) saveOutput(buildID int, vr VersionedResource, explicit bool) error {

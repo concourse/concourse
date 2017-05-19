@@ -173,6 +173,45 @@ type FakeJob struct {
 	updateFirstLoggedBuildIDReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SetMaxInFlightReachedStub        func(bool) error
+	setMaxInFlightReachedMutex       sync.RWMutex
+	setMaxInFlightReachedArgsForCall []struct {
+		arg1 bool
+	}
+	setMaxInFlightReachedReturns struct {
+		result1 error
+	}
+	setMaxInFlightReachedReturnsOnCall map[int]struct {
+		result1 error
+	}
+	GetRunningBuildsBySerialGroupStub        func(serialGroups []string) ([]dbng.Build, error)
+	getRunningBuildsBySerialGroupMutex       sync.RWMutex
+	getRunningBuildsBySerialGroupArgsForCall []struct {
+		serialGroups []string
+	}
+	getRunningBuildsBySerialGroupReturns struct {
+		result1 []dbng.Build
+		result2 error
+	}
+	getRunningBuildsBySerialGroupReturnsOnCall map[int]struct {
+		result1 []dbng.Build
+		result2 error
+	}
+	GetNextPendingBuildBySerialGroupStub        func(serialGroups []string) (dbng.Build, bool, error)
+	getNextPendingBuildBySerialGroupMutex       sync.RWMutex
+	getNextPendingBuildBySerialGroupArgsForCall []struct {
+		serialGroups []string
+	}
+	getNextPendingBuildBySerialGroupReturns struct {
+		result1 dbng.Build
+		result2 bool
+		result3 error
+	}
+	getNextPendingBuildBySerialGroupReturnsOnCall map[int]struct {
+		result1 dbng.Build
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -862,6 +901,169 @@ func (fake *FakeJob) UpdateFirstLoggedBuildIDReturnsOnCall(i int, result1 error)
 	}{result1}
 }
 
+func (fake *FakeJob) SetMaxInFlightReached(arg1 bool) error {
+	fake.setMaxInFlightReachedMutex.Lock()
+	ret, specificReturn := fake.setMaxInFlightReachedReturnsOnCall[len(fake.setMaxInFlightReachedArgsForCall)]
+	fake.setMaxInFlightReachedArgsForCall = append(fake.setMaxInFlightReachedArgsForCall, struct {
+		arg1 bool
+	}{arg1})
+	fake.recordInvocation("SetMaxInFlightReached", []interface{}{arg1})
+	fake.setMaxInFlightReachedMutex.Unlock()
+	if fake.SetMaxInFlightReachedStub != nil {
+		return fake.SetMaxInFlightReachedStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.setMaxInFlightReachedReturns.result1
+}
+
+func (fake *FakeJob) SetMaxInFlightReachedCallCount() int {
+	fake.setMaxInFlightReachedMutex.RLock()
+	defer fake.setMaxInFlightReachedMutex.RUnlock()
+	return len(fake.setMaxInFlightReachedArgsForCall)
+}
+
+func (fake *FakeJob) SetMaxInFlightReachedArgsForCall(i int) bool {
+	fake.setMaxInFlightReachedMutex.RLock()
+	defer fake.setMaxInFlightReachedMutex.RUnlock()
+	return fake.setMaxInFlightReachedArgsForCall[i].arg1
+}
+
+func (fake *FakeJob) SetMaxInFlightReachedReturns(result1 error) {
+	fake.SetMaxInFlightReachedStub = nil
+	fake.setMaxInFlightReachedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJob) SetMaxInFlightReachedReturnsOnCall(i int, result1 error) {
+	fake.SetMaxInFlightReachedStub = nil
+	if fake.setMaxInFlightReachedReturnsOnCall == nil {
+		fake.setMaxInFlightReachedReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setMaxInFlightReachedReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJob) GetRunningBuildsBySerialGroup(serialGroups []string) ([]dbng.Build, error) {
+	var serialGroupsCopy []string
+	if serialGroups != nil {
+		serialGroupsCopy = make([]string, len(serialGroups))
+		copy(serialGroupsCopy, serialGroups)
+	}
+	fake.getRunningBuildsBySerialGroupMutex.Lock()
+	ret, specificReturn := fake.getRunningBuildsBySerialGroupReturnsOnCall[len(fake.getRunningBuildsBySerialGroupArgsForCall)]
+	fake.getRunningBuildsBySerialGroupArgsForCall = append(fake.getRunningBuildsBySerialGroupArgsForCall, struct {
+		serialGroups []string
+	}{serialGroupsCopy})
+	fake.recordInvocation("GetRunningBuildsBySerialGroup", []interface{}{serialGroupsCopy})
+	fake.getRunningBuildsBySerialGroupMutex.Unlock()
+	if fake.GetRunningBuildsBySerialGroupStub != nil {
+		return fake.GetRunningBuildsBySerialGroupStub(serialGroups)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getRunningBuildsBySerialGroupReturns.result1, fake.getRunningBuildsBySerialGroupReturns.result2
+}
+
+func (fake *FakeJob) GetRunningBuildsBySerialGroupCallCount() int {
+	fake.getRunningBuildsBySerialGroupMutex.RLock()
+	defer fake.getRunningBuildsBySerialGroupMutex.RUnlock()
+	return len(fake.getRunningBuildsBySerialGroupArgsForCall)
+}
+
+func (fake *FakeJob) GetRunningBuildsBySerialGroupArgsForCall(i int) []string {
+	fake.getRunningBuildsBySerialGroupMutex.RLock()
+	defer fake.getRunningBuildsBySerialGroupMutex.RUnlock()
+	return fake.getRunningBuildsBySerialGroupArgsForCall[i].serialGroups
+}
+
+func (fake *FakeJob) GetRunningBuildsBySerialGroupReturns(result1 []dbng.Build, result2 error) {
+	fake.GetRunningBuildsBySerialGroupStub = nil
+	fake.getRunningBuildsBySerialGroupReturns = struct {
+		result1 []dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJob) GetRunningBuildsBySerialGroupReturnsOnCall(i int, result1 []dbng.Build, result2 error) {
+	fake.GetRunningBuildsBySerialGroupStub = nil
+	if fake.getRunningBuildsBySerialGroupReturnsOnCall == nil {
+		fake.getRunningBuildsBySerialGroupReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Build
+			result2 error
+		})
+	}
+	fake.getRunningBuildsBySerialGroupReturnsOnCall[i] = struct {
+		result1 []dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJob) GetNextPendingBuildBySerialGroup(serialGroups []string) (dbng.Build, bool, error) {
+	var serialGroupsCopy []string
+	if serialGroups != nil {
+		serialGroupsCopy = make([]string, len(serialGroups))
+		copy(serialGroupsCopy, serialGroups)
+	}
+	fake.getNextPendingBuildBySerialGroupMutex.Lock()
+	ret, specificReturn := fake.getNextPendingBuildBySerialGroupReturnsOnCall[len(fake.getNextPendingBuildBySerialGroupArgsForCall)]
+	fake.getNextPendingBuildBySerialGroupArgsForCall = append(fake.getNextPendingBuildBySerialGroupArgsForCall, struct {
+		serialGroups []string
+	}{serialGroupsCopy})
+	fake.recordInvocation("GetNextPendingBuildBySerialGroup", []interface{}{serialGroupsCopy})
+	fake.getNextPendingBuildBySerialGroupMutex.Unlock()
+	if fake.GetNextPendingBuildBySerialGroupStub != nil {
+		return fake.GetNextPendingBuildBySerialGroupStub(serialGroups)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.getNextPendingBuildBySerialGroupReturns.result1, fake.getNextPendingBuildBySerialGroupReturns.result2, fake.getNextPendingBuildBySerialGroupReturns.result3
+}
+
+func (fake *FakeJob) GetNextPendingBuildBySerialGroupCallCount() int {
+	fake.getNextPendingBuildBySerialGroupMutex.RLock()
+	defer fake.getNextPendingBuildBySerialGroupMutex.RUnlock()
+	return len(fake.getNextPendingBuildBySerialGroupArgsForCall)
+}
+
+func (fake *FakeJob) GetNextPendingBuildBySerialGroupArgsForCall(i int) []string {
+	fake.getNextPendingBuildBySerialGroupMutex.RLock()
+	defer fake.getNextPendingBuildBySerialGroupMutex.RUnlock()
+	return fake.getNextPendingBuildBySerialGroupArgsForCall[i].serialGroups
+}
+
+func (fake *FakeJob) GetNextPendingBuildBySerialGroupReturns(result1 dbng.Build, result2 bool, result3 error) {
+	fake.GetNextPendingBuildBySerialGroupStub = nil
+	fake.getNextPendingBuildBySerialGroupReturns = struct {
+		result1 dbng.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJob) GetNextPendingBuildBySerialGroupReturnsOnCall(i int, result1 dbng.Build, result2 bool, result3 error) {
+	fake.GetNextPendingBuildBySerialGroupStub = nil
+	if fake.getNextPendingBuildBySerialGroupReturnsOnCall == nil {
+		fake.getNextPendingBuildBySerialGroupReturnsOnCall = make(map[int]struct {
+			result1 dbng.Build
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getNextPendingBuildBySerialGroupReturnsOnCall[i] = struct {
+		result1 dbng.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -897,6 +1099,12 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.finishedAndNextBuildMutex.RUnlock()
 	fake.updateFirstLoggedBuildIDMutex.RLock()
 	defer fake.updateFirstLoggedBuildIDMutex.RUnlock()
+	fake.setMaxInFlightReachedMutex.RLock()
+	defer fake.setMaxInFlightReachedMutex.RUnlock()
+	fake.getRunningBuildsBySerialGroupMutex.RLock()
+	defer fake.getRunningBuildsBySerialGroupMutex.RUnlock()
+	fake.getNextPendingBuildBySerialGroupMutex.RLock()
+	defer fake.getNextPendingBuildBySerialGroupMutex.RUnlock()
 	return fake.invocations
 }
 

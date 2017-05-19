@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
@@ -32,6 +33,10 @@ type Job interface {
 	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
+
+	SetMaxInFlightReached(bool) error
+	GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, error)
+	GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bool, error)
 }
 
 var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce").
@@ -301,6 +306,158 @@ func (j *job) Build(name string) (Build, bool, error) {
 	}
 
 	return build, true, nil
+}
+
+func (j *job) GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bool, error) {
+	err := j.updateSerialGroups(serialGroups)
+	if err != nil {
+		return nil, false, err
+	}
+
+	args := []interface{}{j.pipelineID}
+	refs := make([]string, len(serialGroups))
+
+	for i, serialGroup := range serialGroups {
+		args = append(args, serialGroup)
+		refs[i] = fmt.Sprintf("$%d", i+2)
+	}
+
+	row := j.conn.QueryRow(`
+		SELECT DISTINCT `+qualifiedBuildColumns+`
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
+		INNER JOIN jobs_serial_groups jsg ON j.id = jsg.job_id
+				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
+		WHERE b.status = 'pending'
+			AND j.inputs_determined = true
+			AND j.pipeline_id = $1
+		ORDER BY b.id ASC
+		LIMIT 1
+	`, args...)
+
+	build := &build{conn: j.conn, lockFactory: j.lockFactory, encryption: j.encryption}
+	err = scanBuild(build, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return build, true, nil
+}
+
+func (j *job) GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, error) {
+	err := j.updateSerialGroups(serialGroups)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []interface{}{j.pipelineID}
+	refs := make([]string, len(serialGroups))
+
+	for i, serialGroup := range serialGroups {
+		args = append(args, serialGroup)
+		refs[i] = fmt.Sprintf("$%d", i+2)
+	}
+
+	rows, err := j.conn.Query(`
+		SELECT DISTINCT `+qualifiedBuildColumns+`
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
+		INNER JOIN jobs_serial_groups jsg ON j.id = jsg.job_id
+				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
+		WHERE (
+				b.status = 'started'
+				OR
+				(b.scheduled = true AND b.status = 'pending')
+			)
+			AND j.pipeline_id = $1
+	`, args...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	bs := []Build{}
+
+	for rows.Next() {
+		build := &build{conn: j.conn, lockFactory: j.lockFactory, encryption: j.encryption}
+		err = scanBuild(build, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		bs = append(bs, build)
+	}
+
+	return bs, nil
+}
+
+func (j *job) SetMaxInFlightReached(reached bool) error {
+	result, err := psql.Update("jobs").
+		Set("max_in_flight_reached", reached).
+		Where(sq.Eq{
+			"id": j.id,
+		}).
+		RunWith(j.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected != 1 {
+		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	return nil
+}
+
+func (j *job) updateSerialGroups(serialGroups []string) error {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = psql.Delete("jobs_serial_groups").
+		Where(sq.Eq{
+			"job_id": j.id,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	for _, serialGroup := range serialGroups {
+		_, err = psql.Insert("jobs_serial_groups (job_id, serial_group)").
+			Values(j.id, serialGroup).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (j *job) updatePausedJob(pause bool) error {

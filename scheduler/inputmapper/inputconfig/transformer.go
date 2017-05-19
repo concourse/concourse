@@ -2,8 +2,8 @@ package inputconfig
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/dbng"
 )
 
 //go:generate counterfeiter . Transformer
@@ -12,18 +12,12 @@ type Transformer interface {
 	TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error)
 }
 
-//go:generate counterfeiter . TransformerDB
-
-type TransformerDB interface {
-	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (db.SavedVersionedResource, bool, error)
-}
-
-func NewTransformer(db TransformerDB) Transformer {
-	return &transformer{db: db}
+func NewTransformer(pipeline dbng.Pipeline) Transformer {
+	return &transformer{pipeline: pipeline}
 }
 
 type transformer struct {
-	db TransformerDB
+	pipeline dbng.Pipeline
 }
 
 func (i *transformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error) {
@@ -36,7 +30,7 @@ func (i *transformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName st
 
 		pinnedVersionID := 0
 		if input.Version.Pinned != nil {
-			savedVersion, found, err := i.db.GetVersionedResourceByVersion(input.Version.Pinned, input.Resource)
+			savedVersion, found, err := i.pipeline.GetVersionedResourceByVersion(input.Version.Pinned, input.Resource)
 			if err != nil {
 				return nil, err
 			}

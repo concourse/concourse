@@ -60,6 +60,14 @@ var _ = Describe("Job", func() {
 				{
 					Name: "some-other-job",
 				},
+				{
+					Name:         "other-serial-group-job",
+					SerialGroups: []string{"serial-group", "really-different-group"},
+				},
+				{
+					Name:         "different-serial-group-job",
+					SerialGroups: []string{"different-serial-group"},
+				},
 			},
 		}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 		Expect(err).ToNot(HaveOccurred())
@@ -331,6 +339,184 @@ var _ = Describe("Job", func() {
 				Expect(found).To(BeFalse())
 				Expect(build).To(BeNil())
 			})
+		})
+	})
+
+	Describe("GetRunningBuildsBySerialGroup", func() {
+		Describe("same job", func() {
+			var startedBuild, scheduledBuild dbng.Build
+
+			BeforeEach(func() {
+				var err error
+				_, err = pipeline.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				startedBuild, err = pipeline.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = startedBuild.Start("", "")
+				Expect(err).NotTo(HaveOccurred())
+
+				scheduledBuild, err = pipeline.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				scheduled, err := scheduledBuild.Schedule()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(scheduled).To(BeTrue())
+
+				for _, s := range []dbng.BuildStatus{dbng.BuildStatusSucceeded, dbng.BuildStatusFailed, dbng.BuildStatusErrored, dbng.BuildStatusAborted} {
+					finishedBuild, err := pipeline.CreateJobBuild("some-job")
+					Expect(err).NotTo(HaveOccurred())
+
+					scheduled, err = finishedBuild.Schedule()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(scheduled).To(BeTrue())
+
+					err = finishedBuild.Finish(s)
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				_, err = pipeline.CreateJobBuild("some-other-job")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns a list of running or schedule builds for said job", func() {
+				builds, err := job.GetRunningBuildsBySerialGroup([]string{"serial-group"})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(len(builds)).To(Equal(2))
+				ids := []int{}
+				for _, build := range builds {
+					ids = append(ids, build.ID())
+				}
+				Expect(ids).To(ConsistOf([]int{startedBuild.ID(), scheduledBuild.ID()}))
+			})
+		})
+
+		Describe("multiple jobs with same serial group", func() {
+			var serialGroupBuild dbng.Build
+
+			BeforeEach(func() {
+				var err error
+				_, err = pipeline.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				serialGroupBuild, err = pipeline.CreateJobBuild("other-serial-group-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				scheduled, err := serialGroupBuild.Schedule()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(scheduled).To(BeTrue())
+
+				differentSerialGroupBuild, err := pipeline.CreateJobBuild("different-serial-group-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				scheduled, err = differentSerialGroupBuild.Schedule()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(scheduled).To(BeTrue())
+			})
+
+			It("returns a list of builds in the same serial group", func() {
+				builds, err := job.GetRunningBuildsBySerialGroup([]string{"serial-group"})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(len(builds)).To(Equal(1))
+				Expect(builds[0].ID()).To(Equal(serialGroupBuild.ID()))
+			})
+		})
+	})
+
+	Describe("GetNextPendingBuildBySerialGroup", func() {
+		var job1Name, job2Name string
+		var job1, job2 dbng.Job
+
+		BeforeEach(func() {
+			job1Name = "some-job"
+			job2Name = "other-serial-group-job"
+
+			var found bool
+			var err error
+			job1, found, err = pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			job2, found, err = pipeline.Job("other-serial-group-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		Context("when some jobs have builds with inputs determined as false", func() {
+			var actualBuild dbng.Build
+
+			BeforeEach(func() {
+				_, err := pipeline.CreateJobBuild(job1Name)
+				Expect(err).NotTo(HaveOccurred())
+
+				actualBuild, err = pipeline.CreateJobBuild(job2Name)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = pipeline.SaveNextInputMapping(nil, "other-serial-group-job")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should return the next most pending build in a group of jobs", func() {
+				build, found, err := job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.ID()).To(Equal(actualBuild.ID()))
+			})
+		})
+
+		It("should return the next most pending build in a group of jobs", func() {
+			buildOne, err := pipeline.CreateJobBuild(job1Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			buildTwo, err := pipeline.CreateJobBuild(job1Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			buildThree, err := pipeline.CreateJobBuild(job2Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = pipeline.SaveNextInputMapping(nil, "some-job")
+			Expect(err).NotTo(HaveOccurred())
+			err = pipeline.SaveNextInputMapping(nil, "other-serial-group-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			build, found, err := job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.ID()).To(Equal(buildOne.ID()))
+
+			build, found, err = job2.GetNextPendingBuildBySerialGroup([]string{"serial-group", "really-different-group"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.ID()).To(Equal(buildOne.ID()))
+
+			Expect(buildOne.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+
+			build, found, err = job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.ID()).To(Equal(buildTwo.ID()))
+
+			build, found, err = job2.GetNextPendingBuildBySerialGroup([]string{"serial-group", "really-different-group"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.ID()).To(Equal(buildTwo.ID()))
+
+			scheduled, err := buildTwo.Schedule()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(scheduled).To(BeTrue())
+			Expect(buildTwo.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+
+			build, found, err = job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.ID()).To(Equal(buildThree.ID()))
+
+			build, found, err = job2.GetNextPendingBuildBySerialGroup([]string{"serial-group", "really-different-group"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.ID()).To(Equal(buildThree.ID()))
 		})
 	})
 })

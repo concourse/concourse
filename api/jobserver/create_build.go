@@ -10,28 +10,32 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) CreateJobBuild(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) CreateJobBuild(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("create-job-build")
 
 		jobName := r.FormValue(":job_name")
 
-		config := pipelineDB.Config()
+		job, found, err := pipeline.Job(jobName)
+		if err != nil {
+			logger.Error("failed-to-get-resource-types", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-		job, found := config.Jobs.Lookup(jobName)
 		if !found {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		if job.DisableManualTrigger {
+		if job.Config().DisableManualTrigger {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
 
-		scheduler := s.schedulerFactory.BuildScheduler(pipelineDB, dbPipeline, s.externalURL)
+		scheduler := s.schedulerFactory.BuildScheduler(pipeline, s.externalURL)
 
-		resourceTypes, err := dbPipeline.ResourceTypes()
+		resourceTypes, err := pipeline.ResourceTypes()
 		if err != nil {
 			logger.Error("failed-to-get-resource-types", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -2842,4 +2842,166 @@ var _ = Describe("Pipeline", func() {
 			Expect(jobs[6].Name()).To(Equal("different-serial-group-job"))
 		})
 	})
+
+	Describe("GetBuildsWithVersionAsInput", func() {
+		var savedVersionedResourceID int
+		var expectedBuilds []dbng.Build
+
+		BeforeEach(func() {
+			build, err := pipeline.CreateJobBuild("job-name")
+			Expect(err).NotTo(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, build)
+
+			secondBuild, err := pipeline.CreateJobBuild("job-name")
+			Expect(err).NotTo(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, secondBuild)
+
+			_, err = pipeline.CreateJobBuild("some-other-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			dbngBuild, found, err := buildFactory.Build(build.ID())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = dbngBuild.SaveInput(dbng.BuildInput{
+				Name: "some-input",
+				VersionedResource: dbng.VersionedResource{
+					Resource: "some-resource",
+					Type:     "some-type",
+					Version: dbng.ResourceVersion{
+						"version": "v1",
+					},
+					Metadata: []dbng.ResourceMetadataField{
+						{
+							Name:  "some",
+							Value: "value",
+						},
+					},
+				},
+				FirstOccurrence: true,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			versionedResources, err := dbngBuild.GetVersionedResources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(versionedResources).To(HaveLen(1))
+
+			dbngSecondBuild, found, err := buildFactory.Build(secondBuild.ID())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			err = dbngSecondBuild.SaveInput(dbng.BuildInput{
+				Name: "some-input",
+				VersionedResource: dbng.VersionedResource{
+					Resource: "some-resource",
+					Type:     "some-type",
+					Version: dbng.ResourceVersion{
+						"version": "v1",
+					},
+					Metadata: []dbng.ResourceMetadataField{
+						{
+							Name:  "some",
+							Value: "value",
+						},
+					},
+				},
+				FirstOccurrence: true,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			secondVersionedResources, err := dbngBuild.GetVersionedResources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(secondVersionedResources).To(HaveLen(1))
+			Expect(secondVersionedResources[0].ID).To(Equal(versionedResources[0].ID))
+
+			savedVersionedResourceID = versionedResources[0].ID
+		})
+
+		It("returns the builds for which the provided version id was an input", func() {
+			builds, err := pipeline.GetBuildsWithVersionAsInput(savedVersionedResourceID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builds).To(ConsistOf(expectedBuilds))
+		})
+
+		It("returns an empty slice of builds when the provided version id doesn't exist", func() {
+			builds, err := pipeline.GetBuildsWithVersionAsInput(savedVersionedResourceID + 100)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builds).To(Equal([]dbng.Build{}))
+		})
+	})
+
+	Describe("GetBuildsWithVersionAsOutput", func() {
+		var savedVersionedResourceID int
+		var expectedBuilds []dbng.Build
+
+		BeforeEach(func() {
+			build, err := pipeline.CreateJobBuild("job-name")
+			Expect(err).NotTo(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, build)
+
+			secondBuild, err := pipeline.CreateJobBuild("job-name")
+			Expect(err).NotTo(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, secondBuild)
+
+			_, err = pipeline.CreateJobBuild("some-other-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			dbngBuild, found, err := buildFactory.Build(build.ID())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = dbngBuild.SaveOutput(dbng.VersionedResource{
+				Resource: "some-resource",
+				Type:     "some-type",
+				Version: dbng.ResourceVersion{
+					"version": "v1",
+				},
+				Metadata: []dbng.ResourceMetadataField{
+					{
+						Name:  "some",
+						Value: "value",
+					},
+				},
+			}, true)
+			Expect(err).NotTo(HaveOccurred())
+			versionedResources, err := dbngBuild.GetVersionedResources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(versionedResources).To(HaveLen(1))
+
+			dbngSecondBuild, found, err := buildFactory.Build(secondBuild.ID())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = dbngSecondBuild.SaveOutput(dbng.VersionedResource{
+				Resource: "some-resource",
+				Type:     "some-type",
+				Version: dbng.ResourceVersion{
+					"version": "v1",
+				},
+				Metadata: []dbng.ResourceMetadataField{
+					{
+						Name:  "some",
+						Value: "value",
+					},
+				},
+			}, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			secondVersionedResources, err := dbngBuild.GetVersionedResources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(secondVersionedResources).To(HaveLen(1))
+			Expect(secondVersionedResources[0].ID).To(Equal(versionedResources[0].ID))
+
+			savedVersionedResourceID = versionedResources[0].ID
+		})
+
+		It("returns the builds for which the provided version id was an output", func() {
+			builds, err := pipeline.GetBuildsWithVersionAsOutput(savedVersionedResourceID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builds).To(ConsistOf(expectedBuilds))
+		})
+
+		It("returns an empty slice of builds when the provided version id doesn't exist", func() {
+			builds, err := pipeline.GetBuildsWithVersionAsOutput(savedVersionedResourceID + 100)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builds).To(Equal([]dbng.Build{}))
+		})
+	})
 })

@@ -247,6 +247,32 @@ type FakePipeline struct {
 	enableVersionedResourceReturnsOnCall map[int]struct {
 		result1 error
 	}
+	GetBuildsWithVersionAsInputStub        func(versionedResourceID int) ([]dbng.Build, error)
+	getBuildsWithVersionAsInputMutex       sync.RWMutex
+	getBuildsWithVersionAsInputArgsForCall []struct {
+		versionedResourceID int
+	}
+	getBuildsWithVersionAsInputReturns struct {
+		result1 []dbng.Build
+		result2 error
+	}
+	getBuildsWithVersionAsInputReturnsOnCall map[int]struct {
+		result1 []dbng.Build
+		result2 error
+	}
+	GetBuildsWithVersionAsOutputStub        func(versionedResourceID int) ([]dbng.Build, error)
+	getBuildsWithVersionAsOutputMutex       sync.RWMutex
+	getBuildsWithVersionAsOutputArgsForCall []struct {
+		versionedResourceID int
+	}
+	getBuildsWithVersionAsOutputReturns struct {
+		result1 []dbng.Build
+		result2 error
+	}
+	getBuildsWithVersionAsOutputReturnsOnCall map[int]struct {
+		result1 []dbng.Build
+		result2 error
+	}
 	SaveIndependentInputMappingStub        func(inputMapping algorithm.InputMapping, jobName string) error
 	saveIndependentInputMappingMutex       sync.RWMutex
 	saveIndependentInputMappingArgsForCall []struct {
@@ -1529,6 +1555,108 @@ func (fake *FakePipeline) EnableVersionedResourceReturnsOnCall(i int, result1 er
 	fake.enableVersionedResourceReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsInput(versionedResourceID int) ([]dbng.Build, error) {
+	fake.getBuildsWithVersionAsInputMutex.Lock()
+	ret, specificReturn := fake.getBuildsWithVersionAsInputReturnsOnCall[len(fake.getBuildsWithVersionAsInputArgsForCall)]
+	fake.getBuildsWithVersionAsInputArgsForCall = append(fake.getBuildsWithVersionAsInputArgsForCall, struct {
+		versionedResourceID int
+	}{versionedResourceID})
+	fake.recordInvocation("GetBuildsWithVersionAsInput", []interface{}{versionedResourceID})
+	fake.getBuildsWithVersionAsInputMutex.Unlock()
+	if fake.GetBuildsWithVersionAsInputStub != nil {
+		return fake.GetBuildsWithVersionAsInputStub(versionedResourceID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getBuildsWithVersionAsInputReturns.result1, fake.getBuildsWithVersionAsInputReturns.result2
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsInputCallCount() int {
+	fake.getBuildsWithVersionAsInputMutex.RLock()
+	defer fake.getBuildsWithVersionAsInputMutex.RUnlock()
+	return len(fake.getBuildsWithVersionAsInputArgsForCall)
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsInputArgsForCall(i int) int {
+	fake.getBuildsWithVersionAsInputMutex.RLock()
+	defer fake.getBuildsWithVersionAsInputMutex.RUnlock()
+	return fake.getBuildsWithVersionAsInputArgsForCall[i].versionedResourceID
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsInputReturns(result1 []dbng.Build, result2 error) {
+	fake.GetBuildsWithVersionAsInputStub = nil
+	fake.getBuildsWithVersionAsInputReturns = struct {
+		result1 []dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsInputReturnsOnCall(i int, result1 []dbng.Build, result2 error) {
+	fake.GetBuildsWithVersionAsInputStub = nil
+	if fake.getBuildsWithVersionAsInputReturnsOnCall == nil {
+		fake.getBuildsWithVersionAsInputReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Build
+			result2 error
+		})
+	}
+	fake.getBuildsWithVersionAsInputReturnsOnCall[i] = struct {
+		result1 []dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]dbng.Build, error) {
+	fake.getBuildsWithVersionAsOutputMutex.Lock()
+	ret, specificReturn := fake.getBuildsWithVersionAsOutputReturnsOnCall[len(fake.getBuildsWithVersionAsOutputArgsForCall)]
+	fake.getBuildsWithVersionAsOutputArgsForCall = append(fake.getBuildsWithVersionAsOutputArgsForCall, struct {
+		versionedResourceID int
+	}{versionedResourceID})
+	fake.recordInvocation("GetBuildsWithVersionAsOutput", []interface{}{versionedResourceID})
+	fake.getBuildsWithVersionAsOutputMutex.Unlock()
+	if fake.GetBuildsWithVersionAsOutputStub != nil {
+		return fake.GetBuildsWithVersionAsOutputStub(versionedResourceID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getBuildsWithVersionAsOutputReturns.result1, fake.getBuildsWithVersionAsOutputReturns.result2
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsOutputCallCount() int {
+	fake.getBuildsWithVersionAsOutputMutex.RLock()
+	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
+	return len(fake.getBuildsWithVersionAsOutputArgsForCall)
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsOutputArgsForCall(i int) int {
+	fake.getBuildsWithVersionAsOutputMutex.RLock()
+	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
+	return fake.getBuildsWithVersionAsOutputArgsForCall[i].versionedResourceID
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsOutputReturns(result1 []dbng.Build, result2 error) {
+	fake.GetBuildsWithVersionAsOutputStub = nil
+	fake.getBuildsWithVersionAsOutputReturns = struct {
+		result1 []dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) GetBuildsWithVersionAsOutputReturnsOnCall(i int, result1 []dbng.Build, result2 error) {
+	fake.GetBuildsWithVersionAsOutputStub = nil
+	if fake.getBuildsWithVersionAsOutputReturnsOnCall == nil {
+		fake.getBuildsWithVersionAsOutputReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Build
+			result2 error
+		})
+	}
+	fake.getBuildsWithVersionAsOutputReturnsOnCall[i] = struct {
+		result1 []dbng.Build
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePipeline) SaveIndependentInputMapping(inputMapping algorithm.InputMapping, jobName string) error {
@@ -2826,6 +2954,10 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.disableVersionedResourceMutex.RUnlock()
 	fake.enableVersionedResourceMutex.RLock()
 	defer fake.enableVersionedResourceMutex.RUnlock()
+	fake.getBuildsWithVersionAsInputMutex.RLock()
+	defer fake.getBuildsWithVersionAsInputMutex.RUnlock()
+	fake.getBuildsWithVersionAsOutputMutex.RLock()
+	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
 	fake.saveIndependentInputMappingMutex.RLock()
 	defer fake.saveIndependentInputMappingMutex.RUnlock()
 	fake.saveNextInputMappingMutex.RLock()

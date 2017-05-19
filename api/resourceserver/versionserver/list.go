@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) ListResourceVersions(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("list-resource-versions")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
@@ -46,7 +46,7 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB, dbPipeline dbng.
 			limit = atc.PaginationAPIDefaultLimit
 		}
 
-		versions, pagination, found, err := dbPipeline.GetResourceVersions(resourceName, dbng.Page{
+		versions, pagination, found, err := pipeline.GetResourceVersions(resourceName, dbng.Page{
 			Until: until,
 			Since: since,
 			From:  from,
@@ -65,11 +65,11 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB, dbPipeline dbng.
 		}
 
 		if pagination.Next != nil {
-			s.addNextLink(w, teamName, pipelineDB.GetPipelineName(), resourceName, *pagination.Next)
+			s.addNextLink(w, teamName, pipeline.Name(), resourceName, *pagination.Next)
 		}
 
 		if pagination.Previous != nil {
-			s.addPreviousLink(w, teamName, pipelineDB.GetPipelineName(), resourceName, *pagination.Previous)
+			s.addPreviousLink(w, teamName, pipeline.Name(), resourceName, *pagination.Previous)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

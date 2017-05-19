@@ -802,7 +802,7 @@ var _ = Describe("Build", func() {
 
 				Context("when max running builds is reached", func() {
 					BeforeEach(func() {
-						err := pipeline.SetMaxInFlightReached("some-job", true)
+						err := job.SetMaxInFlightReached(true)
 						Expect(err).NotTo(HaveOccurred())
 
 						expectedBuildPrep.MaxRunningBuilds = dbng.BuildPreparationStatusBlocking
@@ -818,10 +818,10 @@ var _ = Describe("Build", func() {
 
 				Context("when max running builds is de-reached", func() {
 					BeforeEach(func() {
-						err := pipeline.SetMaxInFlightReached("some-job", true)
+						err := job.SetMaxInFlightReached(true)
 						Expect(err).NotTo(HaveOccurred())
 
-						err = pipeline.SetMaxInFlightReached("some-job", false)
+						err = job.SetMaxInFlightReached(false)
 						Expect(err).NotTo(HaveOccurred())
 					})
 

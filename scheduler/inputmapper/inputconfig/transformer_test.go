@@ -4,10 +4,10 @@ import (
 	"errors"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
-	"github.com/concourse/atc/scheduler/inputmapper/inputconfig/inputconfigfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,13 +15,13 @@ import (
 
 var _ = Describe("Transformer", func() {
 	var (
-		fakeDB      *inputconfigfakes.FakeTransformerDB
-		transformer inputconfig.Transformer
+		fakePipeline *dbngfakes.FakePipeline
+		transformer  inputconfig.Transformer
 	)
 
 	BeforeEach(func() {
-		fakeDB = new(inputconfigfakes.FakeTransformerDB)
-		transformer = inputconfig.NewTransformer(fakeDB)
+		fakePipeline = new(dbngfakes.FakePipeline)
+		transformer = inputconfig.NewTransformer(fakePipeline)
 	})
 
 	Describe("TransformInputConfigs", func() {
@@ -128,7 +128,7 @@ var _ = Describe("Transformer", func() {
 
 					BeforeEach(func() {
 						disaster = errors.New("bad thing")
-						fakeDB.GetVersionedResourceByVersionReturns(db.SavedVersionedResource{}, false, disaster)
+						fakePipeline.GetVersionedResourceByVersionReturns(dbng.SavedVersionedResource{}, false, disaster)
 					})
 
 					It("returns the error", func() {
@@ -136,8 +136,8 @@ var _ = Describe("Transformer", func() {
 					})
 
 					It("looked up the version id with the right resource and version", func() {
-						Expect(fakeDB.GetVersionedResourceByVersionCallCount()).To(Equal(1))
-						actualVersion, actualResource := fakeDB.GetVersionedResourceByVersionArgsForCall(0)
+						Expect(fakePipeline.GetVersionedResourceByVersionCallCount()).To(Equal(1))
+						actualVersion, actualResource := fakePipeline.GetVersionedResourceByVersionArgsForCall(0)
 						Expect(actualVersion).To(Equal(atc.Version{"version": "v1"}))
 						Expect(actualResource).To(Equal("r1"))
 					})
@@ -145,7 +145,7 @@ var _ = Describe("Transformer", func() {
 
 				Context("when the pinned version is not found", func() {
 					BeforeEach(func() {
-						fakeDB.GetVersionedResourceByVersionReturns(db.SavedVersionedResource{}, false, nil)
+						fakePipeline.GetVersionedResourceByVersionReturns(dbng.SavedVersionedResource{}, false, nil)
 					})
 
 					It("omits the entire input", func() {
@@ -162,7 +162,7 @@ var _ = Describe("Transformer", func() {
 
 				Context("when the pinned version is found", func() {
 					BeforeEach(func() {
-						fakeDB.GetVersionedResourceByVersionReturns(db.SavedVersionedResource{ID: 99}, true, nil)
+						fakePipeline.GetVersionedResourceByVersionReturns(dbng.SavedVersionedResource{ID: 99}, true, nil)
 					})
 
 					It("sets the pinned version ID", func() {
