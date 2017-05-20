@@ -248,6 +248,26 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 
     Use this to provide things like credentials, not to set up the task's
     Bash environment (they do not support interpolation).
+
+    If the pipeline file specifies params, the pipeline's params will override
+    the task's params. A common pattern is to list the param in the task
+    definition with no value. This indicates that you expect the pipeline to
+    provide the value.
+
+    For example, in the task.yml:
+
+    \codeblock{yaml}{
+    params:
+      FOO: fizzbuzz
+      BAR:
+    }
+
+    And in the pipeline.yml:
+
+    \codeblock{yaml}{
+    params:
+      BAR: qux
+    }
   }
 }
 
