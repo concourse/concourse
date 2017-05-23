@@ -143,6 +143,7 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	step.repository.RegisterSource(step.sourceName, step)
 
+	step.logger.Debug("completing-get-step", lager.Data{"version": step.versionedSource.Version(), "metadata": step.versionedSource.Metadata()})
 	step.succeeded = true
 	step.delegate.Completed(ExitStatus(0), &VersionInfo{
 		Version:  step.versionedSource.Version(),

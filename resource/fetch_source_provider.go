@@ -121,6 +121,8 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		return nil, err
 	}
 
+	f.logger.Debug("initializing-resource-instance-fetch-source", lager.Data{"resource-cache": resourceCache})
+
 	return NewResourceInstanceFetchSource(
 		f.logger,
 		resourceCache,
