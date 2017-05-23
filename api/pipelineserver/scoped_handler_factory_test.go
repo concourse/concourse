@@ -33,6 +33,7 @@ var _ = Describe("Handler", func() {
 
 		dbTeamFactory = new(dbngfakes.FakeTeamFactory)
 		fakeTeam = new(dbngfakes.FakeTeam)
+		fakePipeline = new(dbngfakes.FakePipeline)
 
 		handlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
 		handler = handlerFactory.HandlerFor(delegate.GetHandler)
