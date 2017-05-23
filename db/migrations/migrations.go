@@ -182,5 +182,6 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		AddWorkerTaskCaches,
 		AddGroupsAndRemoveConfigFromPipeline(strategy),
 		AddPipelineIdToBuilds,
+		UseMd5ForVersions,
 	}
 }
