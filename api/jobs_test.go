@@ -184,7 +184,7 @@ var _ = Describe("Jobs API", func() {
 									Jobs: []string{"some-job"},
 								},
 							},
-						})
+						}, "", 0, nil)
 
 						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 					})
@@ -281,6 +281,16 @@ var _ = Describe("Jobs API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
 					})
+
+					Context("when getting the config fails", func() {
+						BeforeEach(func() {
+							fakePipeline.ConfigReturns(atc.Config{}, "", 0, errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
 				})
 			})
 
@@ -344,7 +354,7 @@ var _ = Describe("Jobs API", func() {
 							},
 						},
 					},
-				})
+				}, "", 0, nil)
 			})
 
 			Context("when not authorized", func() {
@@ -1259,7 +1269,7 @@ var _ = Describe("Jobs API", func() {
 									{Name: "resource-1", Type: "some-type"},
 									{Name: "resource-2", Type: "some-other-type"},
 								},
-							})
+							}, "", 0, nil)
 						})
 
 						It("triggers using the current config", func() {
@@ -1301,6 +1311,16 @@ var _ = Describe("Jobs API", func() {
 							"start_time": 1,
 							"end_time": 100
 						}`))
+						})
+					})
+
+					Context("when getting the config fails", func() {
+						BeforeEach(func() {
+							fakePipeline.ConfigReturns(atc.Config{}, "", 0, errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
 					})
 

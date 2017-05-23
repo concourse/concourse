@@ -18,16 +18,12 @@ import (
 
 var _ = Describe("Locks", func() {
 	var (
-		dbConn            db.Conn
-		listener          *pq.Listener
-		pipelineDBFactory db.PipelineDBFactory
-		teamDBFactory     db.TeamDBFactory
-		lockFactory       lock.LockFactory
-		sqlDB             *db.SQLDB
+		dbConn      db.Conn
+		listener    *pq.Listener
+		lockFactory lock.LockFactory
+		sqlDB       *db.SQLDB
 
-		dbLock     lock.Lock
-		pipelineDB db.PipelineDB
-		teamDB     db.TeamDB
+		dbLock lock.Lock
 
 		pipeline    dbng.Pipeline
 		team        dbng.Team
@@ -49,49 +45,13 @@ var _ = Describe("Locks", func() {
 
 		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
-		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-
-		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
-		Expect(err).NotTo(HaveOccurred())
-		teamDB := teamDBFactory.GetTeamDB("some-team")
-
-		pipelineConfig := atc.Config{
-			Resources: atc.ResourceConfigs{
-				{
-					Name: "some-resource",
-					Type: "some-type",
-					Source: atc.Source{
-						"source-config": "some-value",
-					},
-				},
-			},
-			ResourceTypes: atc.ResourceTypes{
-				{
-					Name: "some-resource-type",
-					Type: "some-type",
-					Source: atc.Source{
-						"source-config": "some-value",
-					},
-				},
-			},
-			Jobs: atc.JobConfigs{
-				{
-					Name: "some-job",
-				},
-			},
-		}
-
-		savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated("pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
-		Expect(err).NotTo(HaveOccurred())
-
-		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 		dbLock = lockFactory.NewLock(logger, lock.LockID{42})
 
 		dbngConn := postgresRunner.OpenConn()
 		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
+
+		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "team-name"})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -107,6 +67,15 @@ var _ = Describe("Locks", func() {
 					Type: "some-base-resource-type",
 					Source: atc.Source{
 						"some": "source",
+					},
+				},
+			},
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name: "some-resource-type",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
 					},
 				},
 			},
@@ -325,11 +294,11 @@ var _ = Describe("Locks", func() {
 	})
 
 	Describe("taking out a lock on build tracking", func() {
-		var build db.Build
+		var build dbng.Build
 
 		BeforeEach(func() {
 			var err error
-			build, err = teamDB.CreateOneOffBuild()
+			build, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 		})
 

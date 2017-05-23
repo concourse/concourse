@@ -103,7 +103,7 @@ func (runner *Runner) tick(
 ) {
 	found, err := runner.pipeline.Reload()
 	if err != nil {
-		runner.logger.Error("failed-to-get-config", err)
+		runner.logger.Error("failed-to-reload-pipeline", err)
 		return
 	}
 
@@ -112,7 +112,11 @@ func (runner *Runner) tick(
 		return
 	}
 
-	config := runner.pipeline.Config()
+	config, _, _, err := runner.pipeline.Config()
+	if err != nil {
+		runner.logger.Error("failed-to-get-config", err)
+		return
+	}
 
 	for _, resourceType := range config.ResourceTypes {
 		scopedName := runner.pipeline.ScopedName("resource-type:" + resourceType.Name)

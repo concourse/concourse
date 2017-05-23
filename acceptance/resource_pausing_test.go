@@ -11,13 +11,12 @@ import (
 
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
 var _ = Describe("Resource Pausing", func() {
 	var atcCommand *ATCCommand
-	var pipelineDB db.PipelineDB
+	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
 		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
@@ -25,7 +24,7 @@ var _ = Describe("Resource Pausing", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue()) // created by postgresRunner
 
-		_, _, err = defaultTeam.SavePipeline("some-pipeline", atc.Config{
+		pipeline, _, err = defaultTeam.SavePipeline("some-pipeline", atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",
@@ -46,13 +45,6 @@ var _ = Describe("Resource Pausing", func() {
 		err = atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-
-		savedPipeline, found, err := teamDB.GetPipelineByName("some-pipeline")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-
-		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
 	AfterEach(func() {
@@ -109,10 +101,10 @@ var _ = Describe("Resource Pausing", func() {
 			Expect(page.Find(".btn-pause.fl").Click()).To(Succeed())
 			Eventually(page.Find(".header i.fa-pause")).Should(BeFound())
 
-			resource, _, err := pipelineDB.GetResource("resource-name")
+			resource, _, err := pipeline.Resource("resource-name")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = pipelineDB.SetResourceCheckError(resource, errors.New("failed to foo the bar"))
+			err = pipeline.SetResourceCheckError(resource, errors.New("failed to foo the bar"))
 			Expect(err).NotTo(HaveOccurred())
 
 			page.Refresh()

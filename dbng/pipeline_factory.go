@@ -8,7 +8,6 @@ import (
 //go:generate counterfeiter . PipelineFactory
 
 type PipelineFactory interface {
-	GetPipelineByID(teamID int, pipelineID int) Pipeline
 	PublicPipelines() ([]Pipeline, error)
 	AllPipelines() ([]Pipeline, error)
 }
@@ -24,17 +23,6 @@ func NewPipelineFactory(conn Conn, lockFactory lock.LockFactory, encryption Encr
 		conn:        conn,
 		lockFactory: lockFactory,
 		encryption:  encryption,
-	}
-}
-
-func (f *pipelineFactory) GetPipelineByID(teamID int, pipelineID int) Pipeline {
-	// XXX: construct a real one using the regular pipeline constructors; don't just set teamID etc inline
-	return &pipeline{
-		id:          pipelineID,
-		teamID:      teamID,
-		conn:        f.conn,
-		lockFactory: f.lockFactory,
-		encryption:  f.encryption,
 	}
 }
 

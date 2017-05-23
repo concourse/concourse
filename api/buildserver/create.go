@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) CreateBuild(teamDB db.TeamDB, team dbng.Team) http.Handler {
+func (s *Server) CreateBuild(_ db.TeamDB, team dbng.Team) http.Handler {
 	hLog := s.logger.Session("create-build")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -268,7 +268,7 @@ var _ = Describe("Builds API", func() {
 									Jobs: atc.JobConfigs{
 										{Name: "job1", Public: false},
 									},
-								})
+								}, "", 0, nil)
 							})
 
 							It("returns 200", func() {
@@ -282,7 +282,7 @@ var _ = Describe("Builds API", func() {
 									Jobs: atc.JobConfigs{
 										{Name: "job1", Public: true},
 									},
-								})
+								}, "", 0, nil)
 							})
 
 							It("returns 200", func() {
@@ -385,7 +385,7 @@ var _ = Describe("Builds API", func() {
 								Jobs: atc.JobConfigs{
 									{Name: "job1", Public: false},
 								},
-							})
+							}, "", 0, nil)
 						})
 
 						It("returns 200", func() {
@@ -399,7 +399,7 @@ var _ = Describe("Builds API", func() {
 								Jobs: atc.JobConfigs{
 									{Name: "job1", Public: true},
 								},
-							})
+							}, "", 0, nil)
 						})
 
 						It("returns 200", func() {
@@ -944,7 +944,7 @@ var _ = Describe("Builds API", func() {
 								Jobs: atc.JobConfigs{
 									{Name: "some-job", Public: false},
 								},
-							})
+							}, "", 0, nil)
 						})
 
 						It("returns 401", func() {
@@ -958,7 +958,7 @@ var _ = Describe("Builds API", func() {
 								Jobs: atc.JobConfigs{
 									{Name: "some-job", Public: true},
 								},
-							})
+							}, "", 0, nil)
 						})
 
 						It("returns 200", func() {
@@ -1229,7 +1229,7 @@ var _ = Describe("Builds API", func() {
 								Jobs: atc.JobConfigs{
 									{Name: "job1", Public: false},
 								},
-							})
+							}, "", 0, nil)
 						})
 
 						It("returns 401", func() {
@@ -1243,7 +1243,7 @@ var _ = Describe("Builds API", func() {
 								Jobs: atc.JobConfigs{
 									{Name: "job1", Public: true},
 								},
-							})
+							}, "", 0, nil)
 						})
 
 						It("returns 200", func() {
@@ -1414,7 +1414,7 @@ var _ = Describe("Builds API", func() {
 								Jobs: atc.JobConfigs{
 									{Name: "job1", Public: false},
 								},
-							})
+							}, "", 0, nil)
 						})
 
 						It("returns 200", func() {
@@ -1428,7 +1428,7 @@ var _ = Describe("Builds API", func() {
 								Jobs: atc.JobConfigs{
 									{Name: "job1", Public: true},
 								},
-							})
+							}, "", 0, nil)
 						})
 
 						It("returns 200", func() {

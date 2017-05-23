@@ -11,14 +11,12 @@ import (
 
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
 var _ = Describe("Resource Pagination", func() {
 	var atcCommand *ATCCommand
-	var pipelineDB db.PipelineDB
-	var dbPipeline dbng.Pipeline
+	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
 		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
@@ -26,7 +24,7 @@ var _ = Describe("Resource Pagination", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue()) // created by postgresRunner
 
-		_, _, err = defaultTeam.SavePipeline(atc.DefaultPipelineName, atc.Config{
+		pipeline, _, err = defaultTeam.SavePipeline(atc.DefaultPipelineName, atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",
@@ -43,21 +41,9 @@ var _ = Describe("Resource Pagination", func() {
 		}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-
-		savedPipeline, found, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-
-		pipelineDB = pipelineDBFactory.Build(savedPipeline)
-
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
 		err = atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
-
-		dbPipeline, found, err = defaultTeam.Pipeline(atc.DefaultPipelineName)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
 	})
 
 	AfterEach(func() {
@@ -98,7 +84,7 @@ var _ = Describe("Resource Pagination", func() {
 					resourceVersions = append(resourceVersions, atc.Version{"version": strconv.Itoa(i)})
 				}
 
-				err := dbPipeline.SaveResourceVersions(resourceConfig, resourceVersions)
+				err := pipeline.SaveResourceVersions(resourceConfig, resourceVersions)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -142,7 +128,7 @@ var _ = Describe("Resource Pagination", func() {
 					resourceVersions = append(resourceVersions, atc.Version{"version": strconv.Itoa(i)})
 				}
 
-				err := dbPipeline.SaveResourceVersions(resourceConfig, resourceVersions)
+				err := pipeline.SaveResourceVersions(resourceConfig, resourceVersions)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

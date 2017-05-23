@@ -16,10 +16,9 @@ import (
 
 var _ = Describe("Pipelines Syncer", func() {
 	var (
-		pipeline              *dbngfakes.FakePipeline
-		otherPipeline         *dbngfakes.FakePipeline
 		pipeline1             *dbngfakes.FakePipeline
 		pipeline2             *dbngfakes.FakePipeline
+		pipeline3             *dbngfakes.FakePipeline
 		pipelineFactory       *dbngfakes.FakePipelineFactory
 		pipelineRunnerFactory PipelineRunnerFactory
 
@@ -31,37 +30,28 @@ var _ = Describe("Pipelines Syncer", func() {
 	)
 
 	BeforeEach(func() {
-		pipeline = new(dbngfakes.FakePipeline)
-		otherPipeline = new(dbngfakes.FakePipeline)
-		pipeline.IDReturns(1)
-		otherPipeline.IDReturns(2)
-
 		pipelineFactory = new(dbngfakes.FakePipelineFactory)
+		pipeline1 = new(dbngfakes.FakePipeline)
+		pipeline2 = new(dbngfakes.FakePipeline)
+		pipeline3 = new(dbngfakes.FakePipeline)
+		pipeline1.IDReturns(1)
+		pipeline1.NameReturns("pipeline")
+		pipeline2.IDReturns(2)
+		pipeline2.NameReturns("other-pipeline")
 
 		fakeRunner = new(fake_runner.FakeRunner)
 		otherFakeRunner = new(fake_runner.FakeRunner)
 
 		pipelineRunnerFactory = func(pipelineArg dbng.Pipeline) ifrit.Runner {
 			switch pipelineArg {
-			case pipeline:
+			case pipeline1:
 				return fakeRunner
-			case otherPipeline:
+			case pipeline2:
 				return otherFakeRunner
+			case pipeline3:
+				return fakeRunner
 			default:
 				panic("unexpected pipelineDB input received")
-			}
-		}
-
-		pipelineFactory.GetPipelineByIDStub = func(teamID int, pipelineID int) dbng.Pipeline {
-			switch pipelineID {
-			case 1:
-				return pipeline
-			case 2:
-				return otherPipeline
-			case 3:
-				return pipeline
-			default:
-				panic("unexpected pipeline input received")
 			}
 		}
 
@@ -75,12 +65,6 @@ var _ = Describe("Pipelines Syncer", func() {
 			return <-exitChan
 		}
 
-		pipeline1 = new(dbngfakes.FakePipeline)
-		pipeline2 = new(dbngfakes.FakePipeline)
-		pipeline1.IDReturns(1)
-		pipeline1.NameReturns("pipeline")
-		pipeline2.IDReturns(2)
-		pipeline2.NameReturns("other-pipeline")
 		pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline1, pipeline2}, nil)
 
 		syncer = NewSyncer(
@@ -124,7 +108,6 @@ var _ = Describe("Pipelines Syncer", func() {
 				Eventually(fakeRunner.RunCallCount).Should(Equal(1))
 				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
-				pipeline3 := new(dbngfakes.FakePipeline)
 				pipeline3.IDReturns(3)
 				pipeline3.NameReturns("pipeline")
 

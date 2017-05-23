@@ -124,7 +124,11 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return errPipelineRemoved
 	}
 
-	config := runner.Pipeline.Config()
+	config, _, _, err := runner.Pipeline.Config()
+	if err != nil {
+		logger.Error("failed-to-get-config", err)
+		return err
+	}
 
 	sLog := logger.Session("scheduling")
 

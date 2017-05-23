@@ -141,56 +141,68 @@ var _ = Describe("Config API", func() {
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
-			Context("when the config can be loaded", func() {
+			Context("when the team is found", func() {
+				var fakeTeam *dbngfakes.FakeTeam
 				BeforeEach(func() {
-					teamDB.GetConfigReturns(pipelineConfig, atc.RawConfig("raw-config"), 1, nil)
+					fakeTeam = new(dbngfakes.FakeTeam)
+					fakeTeam.NameReturns("a-team")
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
 
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
+				Context("when the pipeline is found", func() {
+					var fakePipeline *dbngfakes.FakePipeline
+					BeforeEach(func() {
+						fakePipeline = new(dbngfakes.FakePipeline)
+						fakePipeline.NameReturns("something-else")
+						fakeTeam.PipelineReturns(fakePipeline, true, nil)
+					})
 
-				It("returns the config version as X-Concourse-Config-Version", func() {
-					Expect(response.Header.Get(atc.ConfigVersionHeader)).To(Equal("1"))
-				})
+					Context("when the config can be loaded", func() {
+						BeforeEach(func() {
+							fakePipeline.ConfigReturns(pipelineConfig, atc.RawConfig("raw-config"), 1, nil)
+						})
 
-				It("returns the config", func() {
-					var actualConfigResponse atc.ConfigResponse
-					err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
-					Expect(err).NotTo(HaveOccurred())
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
 
-					Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{
-						Config:    &pipelineConfig,
-						RawConfig: atc.RawConfig("raw-config"),
-					}))
-				})
+						It("returns the config version as X-Concourse-Config-Version", func() {
+							Expect(response.Header.Get(atc.ConfigVersionHeader)).To(Equal("1"))
+						})
 
-				It("calls get config with the correct arguments", func() {
-					Expect(teamDB.GetConfigArgsForCall(0)).To(Equal("something-else"))
-				})
-			})
+						It("returns the config", func() {
+							var actualConfigResponse atc.ConfigResponse
+							err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
+							Expect(err).NotTo(HaveOccurred())
 
-			Context("when getting the config fails", func() {
-				BeforeEach(func() {
-					teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("oh no!"))
-				})
+							Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{
+								Config:    &pipelineConfig,
+								RawConfig: atc.RawConfig("raw-config"),
+							}))
+						})
+					})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
+					Context("when getting the config fails", func() {
+						BeforeEach(func() {
+							fakePipeline.ConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("oh no!"))
+						})
 
-			Context("when getting the config fails because it is malformed", func() {
-				BeforeEach(func() {
-					teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig("raw-config"), 42, atc.MalformedConfigError{UnmarshalError: errors.New("invalid character")})
-				})
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
 
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
+					Context("when getting the config fails because it is malformed", func() {
+						BeforeEach(func() {
+							fakePipeline.ConfigReturns(atc.Config{}, atc.RawConfig("raw-config"), 42, atc.MalformedConfigError{UnmarshalError: errors.New("invalid character")})
+						})
 
-				It("returns error JSON", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns error JSON", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 					{
 						"config": null,
 						"errors": [
@@ -198,10 +210,52 @@ var _ = Describe("Config API", func() {
 						],
 						"raw_config": "raw-config"
 					}`))
+						})
+
+						It("returns the config version header", func() {
+							Expect(response.Header.Get(atc.ConfigVersionHeader)).To(Equal("42"))
+						})
+					})
 				})
 
-				It("returns the config version header", func() {
-					Expect(response.Header.Get(atc.ConfigVersionHeader)).To(Equal("42"))
+				Context("when the pipeline is not found", func() {
+					BeforeEach(func() {
+						fakeTeam.PipelineReturns(nil, false, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when finding the pipeline fails", func() {
+					BeforeEach(func() {
+						fakeTeam.PipelineReturns(nil, false, errors.New("failed"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+
+			Context("when the team is not found", func() {
+				BeforeEach(func() {
+					dbTeamFactory.FindTeamReturns(nil, false, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when finding the team fails", func() {
+				BeforeEach(func() {
+					dbTeamFactory.FindTeamReturns(nil, false, errors.New("failed"))
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})

@@ -5,7 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 var _ = Describe("Build", func() {
@@ -73,11 +73,11 @@ var _ = Describe("Build", func() {
 		})
 
 		It("returns false if in any other state", func() {
-			states := []db.Status{
-				db.StatusAborted,
-				db.StatusErrored,
-				db.StatusFailed,
-				db.StatusSucceeded,
+			states := []dbng.BuildStatus{
+				dbng.BuildStatusAborted,
+				dbng.BuildStatusErrored,
+				dbng.BuildStatusFailed,
+				dbng.BuildStatusSucceeded,
 			}
 
 			for _, state := range states {

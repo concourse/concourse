@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) GetContainer(teamDB db.TeamDB, team dbng.Team) http.Handler {
+func (s *Server) GetContainer(_ db.TeamDB, team dbng.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle := r.FormValue(":id")
 

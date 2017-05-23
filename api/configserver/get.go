@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
+
 	"github.com/concourse/atc"
 	"github.com/tedsuo/rata"
 )
@@ -12,8 +14,35 @@ import (
 func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-config")
 	pipelineName := rata.Param(r, "pipeline_name")
-	teamDB := s.teamDBFactory.GetTeamDB(rata.Param(r, "team_name"))
-	config, rawConfig, id, err := teamDB.GetConfig(pipelineName)
+	teamName := rata.Param(r, "team_name")
+
+	team, found, err := s.teamFactory.FindTeam(teamName)
+	if err != nil {
+		logger.Error("failed-to-find-team", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
+		logger.Debug("team-not-found", lager.Data{"team": teamName})
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	pipeline, found, err := team.Pipeline(pipelineName)
+	if err != nil {
+		logger.Error("failed-to-find-pipeline", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
+		logger.Debug("pipeline-not-found", lager.Data{"pipeline": pipelineName})
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	config, rawConfig, id, err := pipeline.Config()
 	if err != nil {
 		if malformedErr, ok := err.(atc.MalformedConfigError); ok {
 			getConfigResponse := atc.ConfigResponse{

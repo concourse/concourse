@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListContainers(teamDB db.TeamDB, team dbng.Team) http.Handler {
+func (s *Server) ListContainers(_ db.TeamDB, team dbng.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.RawQuery
 		hLog := s.logger.Session("list-containers", lager.Data{

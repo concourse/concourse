@@ -535,7 +535,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 	if maxInFlightReached {
 		maxInFlightReachedStatus = BuildPreparationStatusBlocking
 	}
-	// XXX TODO: make key not nil
+
 	tf := NewTeamFactory(b.conn, b.lockFactory, b.encryption)
 	t, found, err := tf.FindTeam(b.teamName)
 	if err != nil {
@@ -555,12 +555,16 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	jobConfig, found := pipeline.Config().Jobs.Lookup(jobName)
+	job, found, err := pipeline.Job(jobName)
+	if err != nil {
+		return BuildPreparation{}, false, err
+	}
+
 	if !found {
 		return BuildPreparation{}, false, nil
 	}
 
-	configInputs := jobConfig.Inputs()
+	configInputs := job.Config().Inputs()
 
 	nextBuildInputs, found, err := pipeline.NextBuildInputs(jobName)
 	if err != nil {

@@ -11,8 +11,6 @@ type SQLDB struct {
 	conn        Conn
 	lockFactory lock.LockFactory
 	bus         *notificationsBus
-
-	buildFactory *buildFactory
 }
 
 func NewSQL(
@@ -21,10 +19,9 @@ func NewSQL(
 	lockFactory lock.LockFactory,
 ) *SQLDB {
 	return &SQLDB{
-		conn:         sqldbConnection,
-		lockFactory:  lockFactory,
-		bus:          bus,
-		buildFactory: newBuildFactory(sqldbConnection, bus, lockFactory),
+		conn:        sqldbConnection,
+		lockFactory: lockFactory,
+		bus:         bus,
 	}
 }
 

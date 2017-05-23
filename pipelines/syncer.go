@@ -79,8 +79,7 @@ func (syncer *Syncer) Sync() {
 			continue
 		}
 
-		dbPipeline := syncer.pipelineFactory.GetPipelineByID(pipeline.TeamID(), pipeline.ID())
-		runner := syncer.pipelineRunnerFactory(dbPipeline)
+		runner := syncer.pipelineRunnerFactory(pipeline)
 
 		syncer.logger.Debug("starting-pipeline", lager.Data{"pipeline": pipeline.Name()})
 

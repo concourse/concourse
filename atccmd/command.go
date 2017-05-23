@@ -253,7 +253,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, strategy)
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
-	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory, strategy)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
 	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
@@ -335,7 +334,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		dbBuildFactory,
 		providerFactory,
 		signingKey,
-		pipelineDBFactory,
 		engine,
 		workerClient,
 		drain,
@@ -887,7 +885,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 	dbBuildFactory dbng.BuildFactory,
 	providerFactory auth.OAuthFactory,
 	signingKey *rsa.PrivateKey,
-	pipelineDBFactory db.PipelineDBFactory,
 	engine engine.Engine,
 	workerClient worker.Client,
 	drain <-chan struct{},
@@ -934,7 +931,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		providerFactory,
 		cmd.oauthBaseURL(),
 
-		pipelineDBFactory,
 		teamDBFactory,
 		dbTeamFactory,
 		dbPipelineFactory,

@@ -7,7 +7,6 @@ import (
 	. "github.com/sclevine/agouti/matchers"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
 
 	"encoding/json"
 	"io/ioutil"
@@ -21,7 +20,7 @@ import (
 var _ = Describe("Auth Session", func() {
 	var atcCommand *ATCCommand
 	var page *agouti.Page
-	var pipelineDB db.PipelineDB
+	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
@@ -36,7 +35,7 @@ var _ = Describe("Auth Session", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue()) // created by postgresRunner
 
-		_, _, err = defaultTeam.SavePipeline("main", atc.Config{
+		pipeline, _, err = defaultTeam.SavePipeline("main", atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",
@@ -44,12 +43,6 @@ var _ = Describe("Auth Session", func() {
 			},
 		}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
-
-		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-		savedPipeline, found, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
 	AfterEach(func() {
@@ -84,8 +77,13 @@ var _ = Describe("Auth Session", func() {
 
 			// API request will return bad request
 			// no changes in UI, no builds will be scheduled
-			builds, err := pipelineDB.GetAllJobBuilds("job-name")
+			job, found, err := pipeline.Job("job-name")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			builds, _, err := job.Builds(dbng.Page{Limit: 1})
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(builds).To(HaveLen(0))
 		})
 	})

@@ -10,10 +10,10 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListResources(dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) ListResources(pipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("list-resources")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resources, err := dbPipeline.Resources()
+		resources, err := pipeline.Resources()
 		if err != nil {
 			logger.Error("failed-to-get-dashboard-resources", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -23,13 +23,20 @@ func (s *Server) ListResources(dbPipeline dbng.Pipeline) http.Handler {
 		showCheckErr := auth.IsAuthenticated(r)
 		teamName := r.FormValue(":team_name")
 
+		config, _, _, err := pipeline.Config()
+		if err != nil {
+			logger.Error("failed-to-get-pipeline-config", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		var presentedResources []atc.Resource
 		for _, resource := range resources {
 			presentedResources = append(
 				presentedResources,
 				present.Resource(
 					resource,
-					dbPipeline.Config().Groups,
+					config.Groups,
 					showCheckErr,
 					teamName,
 				),

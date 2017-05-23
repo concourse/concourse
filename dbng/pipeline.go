@@ -32,10 +32,11 @@ type Pipeline interface {
 	TeamID() int
 	TeamName() string
 	ConfigVersion() ConfigVersion
-	Config() atc.Config
 	Public() bool
 	Paused() bool
 	ScopedName(string) string
+
+	Config() (atc.Config, atc.RawConfig, ConfigVersion, error)
 
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
@@ -115,7 +116,6 @@ type pipeline struct {
 	teamID        int
 	teamName      string
 	configVersion ConfigVersion
-	config        atc.Config
 	paused        bool
 	public        bool
 
@@ -138,7 +138,6 @@ var pipelinesQuery = psql.Select(`
 		p.version,
 		p.team_id,
 		t.name,
-		p.config,
 		p.paused,
 		p.public
 	`).
@@ -180,12 +179,44 @@ func (p *pipeline) Name() string                 { return p.name }
 func (p *pipeline) TeamID() int                  { return p.teamID }
 func (p *pipeline) TeamName() string             { return p.teamName }
 func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
-func (p *pipeline) Config() atc.Config           { return p.config }
 func (p *pipeline) Public() bool                 { return p.public }
 func (p *pipeline) Paused() bool                 { return p.paused }
 
 func (p *pipeline) ScopedName(n string) string {
 	return p.name + ":" + n
+}
+
+func (p *pipeline) Config() (atc.Config, atc.RawConfig, ConfigVersion, error) {
+	var configBlob []byte
+	var version int
+	err := p.conn.QueryRow(`
+		SELECT config, version
+		FROM pipelines
+		WHERE name = $1 AND team_id = (
+			SELECT id
+			FROM teams
+			WHERE LOWER(name) = LOWER($2)
+		)
+	`, p.name, p.teamName).Scan(&configBlob, &version)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return atc.Config{}, atc.RawConfig(""), 0, nil
+		}
+		return atc.Config{}, atc.RawConfig(""), 0, err
+	}
+
+	// decryptedConfig, err := factory.encryption.Decrypt(configBlob.String, nonce.String)
+	// if err != nil {
+	// 	return err
+	// }
+
+	var config atc.Config
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return atc.Config{}, atc.RawConfig(string(configBlob)), ConfigVersion(version), atc.MalformedConfigError{err}
+	}
+
+	return config, atc.RawConfig(string(configBlob)), ConfigVersion(version), nil
 }
 
 // Write test
@@ -1093,7 +1124,12 @@ func (p *pipeline) Dashboard() (Dashboard, atc.GroupConfigs, error) {
 		dashboard = append(dashboard, dashboardJob)
 	}
 
-	return dashboard, p.config.Groups, nil
+	config, _, _, err := p.Config()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return dashboard, config.Groups, nil
 }
 
 func (p *pipeline) Pause() error {

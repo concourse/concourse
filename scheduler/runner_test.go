@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/algorithm"
-	dbfakes "github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
@@ -22,7 +21,6 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		pipelineDB   *dbfakes.FakePipelineDB
 		fakePipeline *dbngfakes.FakePipeline
 		scheduler    *schedulerfakes.FakeBuildScheduler
 		noop         bool
@@ -39,10 +37,8 @@ var _ = Describe("Runner", func() {
 	)
 
 	BeforeEach(func() {
-		pipelineDB = new(dbfakes.FakePipelineDB)
-		pipelineDB.GetPipelineNameReturns("some-pipeline")
-
 		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline.NameReturns("some-pipeline")
 
 		versionedResourceTypes = atc.VersionedResourceTypes{
 			atc.VersionedResourceType{
@@ -126,17 +122,16 @@ var _ = Describe("Runner", func() {
 				},
 			},
 		}
-		pipelineDB.ReloadReturns(true, nil)
-		pipelineDB.ConfigReturns(initialConfig)
+		fakePipeline.ReloadReturns(true, nil)
+		fakePipeline.ConfigReturns(initialConfig, "", 0, nil)
 
 		lock = new(lockfakes.FakeLock)
-		pipelineDB.AcquireSchedulingLockReturns(lock, true, nil)
+		fakePipeline.AcquireSchedulingLockReturns(lock, true, nil)
 	})
 
 	JustBeforeEach(func() {
 		process = ginkgomon.Invoke(&Runner{
 			Logger:    lagertest.NewTestLogger("test"),
-			DB:        pipelineDB,
 			Pipeline:  fakePipeline,
 			Scheduler: scheduler,
 			Noop:      noop,
@@ -149,19 +144,19 @@ var _ = Describe("Runner", func() {
 	})
 
 	It("signs the scheduling lock for the pipeline", func() {
-		Eventually(pipelineDB.AcquireSchedulingLockCallCount).Should(BeNumerically(">=", 1))
+		Eventually(fakePipeline.AcquireSchedulingLockCallCount).Should(BeNumerically(">=", 1))
 
-		_, duration := pipelineDB.AcquireSchedulingLockArgsForCall(0)
+		_, duration := fakePipeline.AcquireSchedulingLockArgsForCall(0)
 		Expect(duration).To(Equal(100 * time.Millisecond))
 	})
 
 	Context("when it can't get the lock", func() {
 		BeforeEach(func() {
-			pipelineDB.AcquireSchedulingLockReturns(nil, false, nil)
+			fakePipeline.AcquireSchedulingLockReturns(nil, false, nil)
 		})
 
 		It("does not do any scheduling", func() {
-			Eventually(pipelineDB.AcquireSchedulingLockCallCount).Should(Equal(2))
+			Eventually(fakePipeline.AcquireSchedulingLockCallCount).Should(Equal(2))
 
 			Expect(scheduler.ScheduleCallCount()).To(BeZero())
 		})
@@ -169,11 +164,11 @@ var _ = Describe("Runner", func() {
 
 	Context("when getting the lock blows up", func() {
 		BeforeEach(func() {
-			pipelineDB.AcquireSchedulingLockReturns(nil, false, errors.New(":3"))
+			fakePipeline.AcquireSchedulingLockReturns(nil, false, errors.New(":3"))
 		})
 
 		It("does not do any scheduling", func() {
-			Eventually(pipelineDB.AcquireSchedulingLockCallCount).Should(Equal(2))
+			Eventually(fakePipeline.AcquireSchedulingLockCallCount).Should(Equal(2))
 
 			Expect(scheduler.ScheduleCallCount()).To(BeZero())
 		})
@@ -218,7 +213,7 @@ var _ = Describe("Runner", func() {
 
 	Context("when the pipeline is destroyed", func() {
 		BeforeEach(func() {
-			pipelineDB.ReloadStub = eventualReloadConfigStubWith(false, nil)
+			fakePipeline.ReloadStub = eventualReloadConfigStubWith(false, nil)
 		})
 
 		It("exits", func() {
@@ -228,11 +223,11 @@ var _ = Describe("Runner", func() {
 
 	Context("when getting the config fails for some other reason", func() {
 		BeforeEach(func() {
-			pipelineDB.ReloadStub = eventualReloadConfigStubWith(false, errors.New("idk lol"))
+			fakePipeline.ReloadStub = eventualReloadConfigStubWith(false, errors.New("idk lol"))
 		})
 
 		It("keeps on truckin'", func() {
-			Eventually(pipelineDB.ReloadCallCount).Should(BeNumerically(">=", 2))
+			Eventually(fakePipeline.ReloadCallCount).Should(BeNumerically(">=", 2))
 		})
 	})
 })

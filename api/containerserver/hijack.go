@@ -19,7 +19,7 @@ var upgrader = websocket.Upgrader{
 	HandshakeTimeout: 5 * time.Second,
 }
 
-func (s *Server) HijackContainer(teamDB db.TeamDB, team dbng.Team) http.Handler {
+func (s *Server) HijackContainer(_ db.TeamDB, team dbng.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle := r.FormValue(":id")
 

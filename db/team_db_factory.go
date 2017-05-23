@@ -26,8 +26,7 @@ func NewTeamDBFactory(conn Conn, bus *notificationsBus, lockFactory lock.LockFac
 
 func (f *teamDBFactory) GetTeamDB(teamName string) TeamDB {
 	return &teamDB{
-		teamName:     teamName,
-		conn:         f.conn,
-		buildFactory: newBuildFactory(f.conn, f.bus, f.lockFactory),
+		teamName: teamName,
+		conn:     f.conn,
 	}
 }

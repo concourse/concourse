@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("Handler", func() {
+var _ = Describe("Handler", func() {
 	var (
 		response *http.Response
 		server   *httptest.Server
@@ -32,6 +32,7 @@ var _ = FDescribe("Handler", func() {
 		delegate = &delegateHandler{}
 
 		dbTeamFactory = new(dbngfakes.FakeTeamFactory)
+		fakeTeam = new(dbngfakes.FakeTeam)
 
 		handlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
 		handler = handlerFactory.HandlerFor(delegate.GetHandler)

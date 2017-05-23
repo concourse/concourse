@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
@@ -58,7 +59,7 @@ var _ = Describe("Runner", func() {
 			return "pipeline:" + thing
 		}
 		fakePipeline.ReloadReturns(true, nil)
-		fakePipeline.ConfigReturns(initialConfig)
+		fakePipeline.ConfigReturns(initialConfig, "", 0, nil)
 
 		scanRunnerFactory.ScanResourceRunnerStub = func(lager.Logger, string) ifrit.Runner {
 			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -110,13 +111,13 @@ var _ = Describe("Runner", func() {
 
 			config := initialConfig
 
-			fakePipeline.ConfigStub = func() atc.Config {
+			fakePipeline.ConfigStub = func() (atc.Config, atc.RawConfig, dbng.ConfigVersion, error) {
 				select {
 				case config = <-configs:
 				default:
 				}
 
-				return config
+				return config, "", 0, nil
 			}
 		})
 

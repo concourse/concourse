@@ -44,7 +44,6 @@ var (
 	fakeVolumeFactory             *dbngfakes.FakeVolumeFactory
 	fakeContainerFactory          *dbngfakes.FakeContainerFactory
 	pipeDB                        *pipesfakes.FakePipeDB
-	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	dbTeamFactory                 *dbngfakes.FakeTeamFactory
 	dbPipelineFactory             *dbngfakes.FakePipelineFactory
@@ -92,7 +91,6 @@ func (f *fakeEventHandlerFactory) Construct(
 }
 
 var _ = BeforeEach(func() {
-	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
 	dbTeamFactory = new(dbngfakes.FakeTeamFactory)
 	dbPipelineFactory = new(dbngfakes.FakePipelineFactory)
@@ -175,7 +173,6 @@ var _ = BeforeEach(func() {
 		providerFactory,
 		oAuthBaseURL,
 
-		pipelineDBFactory,
 		teamDBFactory,
 		dbTeamFactory,
 		dbPipelineFactory,

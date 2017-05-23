@@ -71,7 +71,6 @@ func swallowUniqueViolation(err error) error {
 type DB interface {
 	CreateTeam(team Team) (SavedTeam, error)
 	CreateDefaultTeamIfNotExists() error
-	DeleteTeamByName(teamName string) error
 
 	CreatePipe(pipeGUID string, url string, teamName string) error
 	GetPipe(pipeGUID string) (Pipe, error)
@@ -98,16 +97,4 @@ var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 type EventSource interface {
 	Next() (event.Envelope, error)
 	Close() error
-}
-
-type BuildInput struct {
-	Name string
-
-	VersionedResource
-
-	FirstOccurrence bool
-}
-
-type BuildOutput struct {
-	VersionedResource
 }

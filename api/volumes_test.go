@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/onsi/ginkgo"
@@ -48,32 +47,9 @@ var _ = Describe("Volumes API", func() {
 				userContextReader.GetTeamReturns("some-team", true, true)
 			})
 
-			Context("when identifying the team errors", func() {
-				BeforeEach(func() {
-					teamDB.GetTeamReturns(db.SavedTeam{}, true, errors.New("disaster"))
-				})
-
-				It("returns 500 Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			// TODO this test will no longer be meaningful once DBNG takes fully over and we lose the teamDB concept.
-			Context("when the team db gave back a missing team", func() {
-				BeforeEach(func() {
-					teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
-				})
-
-				It("returns 401 Not Authorized", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-			})
-
 			Context("when identifying the team succeeds", func() {
 				BeforeEach(func() {
-					teamDB.GetTeamReturns(db.SavedTeam{
-						ID: 1,
-					}, true, nil)
+					dbTeam.IDReturns(1)
 				})
 
 				It("asks the factory for the volumes", func() {

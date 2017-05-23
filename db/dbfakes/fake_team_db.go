@@ -9,21 +9,6 @@ import (
 )
 
 type FakeTeamDB struct {
-	GetPipelineByNameStub        func(pipelineName string) (db.SavedPipeline, bool, error)
-	getPipelineByNameMutex       sync.RWMutex
-	getPipelineByNameArgsForCall []struct {
-		pipelineName string
-	}
-	getPipelineByNameReturns struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}
-	getPipelineByNameReturnsOnCall map[int]struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}
 	GetTeamStub        func() (db.SavedTeam, bool, error)
 	getTeamMutex       sync.RWMutex
 	getTeamArgsForCall []struct{}
@@ -54,91 +39,8 @@ type FakeTeamDB struct {
 		result3 db.ConfigVersion
 		result4 error
 	}
-	SaveConfigToBeDeprecatedStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.SavedPipeline, bool, error)
-	saveConfigToBeDeprecatedMutex       sync.RWMutex
-	saveConfigToBeDeprecatedArgsForCall []struct {
-		arg1 string
-		arg2 atc.Config
-		arg3 db.ConfigVersion
-		arg4 db.PipelinePausedState
-	}
-	saveConfigToBeDeprecatedReturns struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}
-	saveConfigToBeDeprecatedReturnsOnCall map[int]struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}
-	CreateOneOffBuildStub        func() (db.Build, error)
-	createOneOffBuildMutex       sync.RWMutex
-	createOneOffBuildArgsForCall []struct{}
-	createOneOffBuildReturns     struct {
-		result1 db.Build
-		result2 error
-	}
-	createOneOffBuildReturnsOnCall map[int]struct {
-		result1 db.Build
-		result2 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeTeamDB) GetPipelineByName(pipelineName string) (db.SavedPipeline, bool, error) {
-	fake.getPipelineByNameMutex.Lock()
-	ret, specificReturn := fake.getPipelineByNameReturnsOnCall[len(fake.getPipelineByNameArgsForCall)]
-	fake.getPipelineByNameArgsForCall = append(fake.getPipelineByNameArgsForCall, struct {
-		pipelineName string
-	}{pipelineName})
-	fake.recordInvocation("GetPipelineByName", []interface{}{pipelineName})
-	fake.getPipelineByNameMutex.Unlock()
-	if fake.GetPipelineByNameStub != nil {
-		return fake.GetPipelineByNameStub(pipelineName)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.getPipelineByNameReturns.result1, fake.getPipelineByNameReturns.result2, fake.getPipelineByNameReturns.result3
-}
-
-func (fake *FakeTeamDB) GetPipelineByNameCallCount() int {
-	fake.getPipelineByNameMutex.RLock()
-	defer fake.getPipelineByNameMutex.RUnlock()
-	return len(fake.getPipelineByNameArgsForCall)
-}
-
-func (fake *FakeTeamDB) GetPipelineByNameArgsForCall(i int) string {
-	fake.getPipelineByNameMutex.RLock()
-	defer fake.getPipelineByNameMutex.RUnlock()
-	return fake.getPipelineByNameArgsForCall[i].pipelineName
-}
-
-func (fake *FakeTeamDB) GetPipelineByNameReturns(result1 db.SavedPipeline, result2 bool, result3 error) {
-	fake.GetPipelineByNameStub = nil
-	fake.getPipelineByNameReturns = struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeTeamDB) GetPipelineByNameReturnsOnCall(i int, result1 db.SavedPipeline, result2 bool, result3 error) {
-	fake.GetPipelineByNameStub = nil
-	if fake.getPipelineByNameReturnsOnCall == nil {
-		fake.getPipelineByNameReturnsOnCall = make(map[int]struct {
-			result1 db.SavedPipeline
-			result2 bool
-			result3 error
-		})
-	}
-	fake.getPipelineByNameReturnsOnCall[i] = struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakeTeamDB) GetTeam() (db.SavedTeam, bool, error) {
@@ -244,119 +146,13 @@ func (fake *FakeTeamDB) GetConfigReturnsOnCall(i int, result1 atc.Config, result
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeTeamDB) SaveConfigToBeDeprecated(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) (db.SavedPipeline, bool, error) {
-	fake.saveConfigToBeDeprecatedMutex.Lock()
-	ret, specificReturn := fake.saveConfigToBeDeprecatedReturnsOnCall[len(fake.saveConfigToBeDeprecatedArgsForCall)]
-	fake.saveConfigToBeDeprecatedArgsForCall = append(fake.saveConfigToBeDeprecatedArgsForCall, struct {
-		arg1 string
-		arg2 atc.Config
-		arg3 db.ConfigVersion
-		arg4 db.PipelinePausedState
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("SaveConfigToBeDeprecated", []interface{}{arg1, arg2, arg3, arg4})
-	fake.saveConfigToBeDeprecatedMutex.Unlock()
-	if fake.SaveConfigToBeDeprecatedStub != nil {
-		return fake.SaveConfigToBeDeprecatedStub(arg1, arg2, arg3, arg4)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.saveConfigToBeDeprecatedReturns.result1, fake.saveConfigToBeDeprecatedReturns.result2, fake.saveConfigToBeDeprecatedReturns.result3
-}
-
-func (fake *FakeTeamDB) SaveConfigToBeDeprecatedCallCount() int {
-	fake.saveConfigToBeDeprecatedMutex.RLock()
-	defer fake.saveConfigToBeDeprecatedMutex.RUnlock()
-	return len(fake.saveConfigToBeDeprecatedArgsForCall)
-}
-
-func (fake *FakeTeamDB) SaveConfigToBeDeprecatedArgsForCall(i int) (string, atc.Config, db.ConfigVersion, db.PipelinePausedState) {
-	fake.saveConfigToBeDeprecatedMutex.RLock()
-	defer fake.saveConfigToBeDeprecatedMutex.RUnlock()
-	return fake.saveConfigToBeDeprecatedArgsForCall[i].arg1, fake.saveConfigToBeDeprecatedArgsForCall[i].arg2, fake.saveConfigToBeDeprecatedArgsForCall[i].arg3, fake.saveConfigToBeDeprecatedArgsForCall[i].arg4
-}
-
-func (fake *FakeTeamDB) SaveConfigToBeDeprecatedReturns(result1 db.SavedPipeline, result2 bool, result3 error) {
-	fake.SaveConfigToBeDeprecatedStub = nil
-	fake.saveConfigToBeDeprecatedReturns = struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeTeamDB) SaveConfigToBeDeprecatedReturnsOnCall(i int, result1 db.SavedPipeline, result2 bool, result3 error) {
-	fake.SaveConfigToBeDeprecatedStub = nil
-	if fake.saveConfigToBeDeprecatedReturnsOnCall == nil {
-		fake.saveConfigToBeDeprecatedReturnsOnCall = make(map[int]struct {
-			result1 db.SavedPipeline
-			result2 bool
-			result3 error
-		})
-	}
-	fake.saveConfigToBeDeprecatedReturnsOnCall[i] = struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeTeamDB) CreateOneOffBuild() (db.Build, error) {
-	fake.createOneOffBuildMutex.Lock()
-	ret, specificReturn := fake.createOneOffBuildReturnsOnCall[len(fake.createOneOffBuildArgsForCall)]
-	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct{}{})
-	fake.recordInvocation("CreateOneOffBuild", []interface{}{})
-	fake.createOneOffBuildMutex.Unlock()
-	if fake.CreateOneOffBuildStub != nil {
-		return fake.CreateOneOffBuildStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
-}
-
-func (fake *FakeTeamDB) CreateOneOffBuildCallCount() int {
-	fake.createOneOffBuildMutex.RLock()
-	defer fake.createOneOffBuildMutex.RUnlock()
-	return len(fake.createOneOffBuildArgsForCall)
-}
-
-func (fake *FakeTeamDB) CreateOneOffBuildReturns(result1 db.Build, result2 error) {
-	fake.CreateOneOffBuildStub = nil
-	fake.createOneOffBuildReturns = struct {
-		result1 db.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeTeamDB) CreateOneOffBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
-	fake.CreateOneOffBuildStub = nil
-	if fake.createOneOffBuildReturnsOnCall == nil {
-		fake.createOneOffBuildReturnsOnCall = make(map[int]struct {
-			result1 db.Build
-			result2 error
-		})
-	}
-	fake.createOneOffBuildReturnsOnCall[i] = struct {
-		result1 db.Build
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getPipelineByNameMutex.RLock()
-	defer fake.getPipelineByNameMutex.RUnlock()
 	fake.getTeamMutex.RLock()
 	defer fake.getTeamMutex.RUnlock()
 	fake.getConfigMutex.RLock()
 	defer fake.getConfigMutex.RUnlock()
-	fake.saveConfigToBeDeprecatedMutex.RLock()
-	defer fake.saveConfigToBeDeprecatedMutex.RUnlock()
-	fake.createOneOffBuildMutex.RLock()
-	defer fake.createOneOffBuildMutex.RUnlock()
 	return fake.invocations
 }
 

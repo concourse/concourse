@@ -1141,27 +1141,8 @@ func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, Created
 }
 
 func scanPipeline(p *pipeline, scan scannable) error {
-	var configBlob []byte
-
-	err := scan.Scan(&p.id, &p.name, &p.configVersion, &p.teamID, &p.teamName, &configBlob, &p.paused, &p.public)
-	if err != nil {
-		return err
-	}
-
-	// decryptedConfig, err := factory.encryption.Decrypt(configBlob.String, nonce.String)
-	// if err != nil {
-	// 	return err
-	// }
-
-	var config atc.Config
-	err = json.Unmarshal(configBlob, &config)
-	if err != nil {
-		return err
-	}
-
-	p.config = config
-
-	return nil
+	err := scan.Scan(&p.id, &p.name, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public)
+	return err
 }
 
 func scanPipelines(conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy, rows *sql.Rows) ([]Pipeline, error) {

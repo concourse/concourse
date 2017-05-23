@@ -27,6 +27,7 @@ var _ = Describe("Pipelines API", func() {
 		privatePipeline       *dbngfakes.FakePipeline
 	)
 	BeforeEach(func() {
+		dbPipeline = new(dbngfakes.FakePipeline)
 		fakeTeam = new(dbngfakes.FakeTeam)
 
 		publicPipeline = new(dbngfakes.FakePipeline)
@@ -43,7 +44,7 @@ var _ = Describe("Pipelines API", func() {
 					Resources: []string{"resource3", "resource4"},
 				},
 			},
-		})
+		}, "", 0, nil)
 
 		anotherPublicPipeline = new(dbngfakes.FakePipeline)
 		anotherPublicPipeline.IDReturns(2)
@@ -66,7 +67,7 @@ var _ = Describe("Pipelines API", func() {
 					Resources: []string{"resource1", "resource2"},
 				},
 			},
-		})
+		}, "", 0, nil)
 
 		fakeTeam.PipelinesReturns([]dbng.Pipeline{
 			privatePipeline,
@@ -382,7 +383,7 @@ var _ = Describe("Pipelines API", func() {
 						Resources: []string{"resource3", "resource4"},
 					},
 				},
-			})
+			}, "", 0, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -529,6 +530,7 @@ var _ = Describe("Pipelines API", func() {
 					authValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("a-team", true, true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+					dbPipeline.NameReturns("a-pipeline-name")
 					fakeTeam.PipelineReturns(dbPipeline, true, nil)
 				})
 

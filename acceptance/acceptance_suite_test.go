@@ -31,14 +31,13 @@ var (
 
 	certTmpDir string
 
-	postgresRunner    postgresrunner.Runner
-	dbConn            db.Conn
-	dbngConn          dbng.Conn
-	lockFactory       lock.LockFactory
-	dbProcess         ifrit.Process
-	dbListener        *pq.Listener
-	teamDBFactory     db.TeamDBFactory
-	pipelineDBFactory db.PipelineDBFactory
+	postgresRunner postgresrunner.Runner
+	dbConn         db.Conn
+	dbngConn       dbng.Conn
+	lockFactory    lock.LockFactory
+	dbProcess      ifrit.Process
+	dbListener     *pq.Listener
+	teamDBFactory  db.TeamDBFactory
 
 	sqlDB *db.SQLDB
 
@@ -91,7 +90,6 @@ var _ = BeforeEach(func() {
 	sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 	teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
-	pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 })
 
 var _ = AfterEach(func() {
