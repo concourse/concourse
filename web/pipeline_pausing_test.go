@@ -72,7 +72,7 @@ var _ = Describe("PipelinePausing", func() {
 			Eventually(page.Find(".pipeline-graph.test").Text, loadingTimeout).Should(ContainSubstring("another-job-name"))
 
 			By("pausing another pipeline")
-			spanXPath := fmt.Sprintf("//a[@href='/teams/%s/pipelines/%s']/preceding-sibling::span", teamName, anotherPipelineName)
+			spanXPath := fmt.Sprintf("//a[@href='/teams/%s/pipelines/%s']/preceding-sibling::a", teamName, anotherPipelineName)
 			Eventually(page.All(navList).FindByXPath(spanXPath), loadingTimeout).Should(BeVisible())
 			Expect(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'disabled')]")).To(BeFound())
 			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
