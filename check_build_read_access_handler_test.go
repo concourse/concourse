@@ -200,7 +200,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 								},
 							},
 						}
-						pipeline.ConfigReturns(config)
+						pipeline.ConfigReturns(config, "", 0, nil)
 					})
 
 					ItReturnsTheBuild()
@@ -216,7 +216,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 								},
 							},
 						}
-						pipeline.ConfigReturns(config)
+						pipeline.ConfigReturns(config, "", 0, nil)
 					})
 
 					It("returns "+string(status), func() {
@@ -226,7 +226,17 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 				Context("checking job is public fails", func() {
 					BeforeEach(func() {
-						pipeline.ConfigReturns(atc.Config{})
+						pipeline.ConfigReturns(atc.Config{}, "", 0, nil)
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("getting config fails", func() {
+					BeforeEach(func() {
+						pipeline.ConfigReturns(atc.Config{}, "", 0, errors.New("error"))
 					})
 
 					It("returns 500", func() {
