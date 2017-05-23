@@ -1773,7 +1773,7 @@ var _ = Describe("Team", func() {
 			Expect(configPipeline).To(Equal(otherConfig))
 		})
 
-		FIt("can manage multiple pipeline configurations", func() {
+		It("can manage multiple pipeline configurations", func() {
 			pipelineName := "a-pipeline-name"
 			otherPipelineName := "an-other-pipeline-name"
 
