@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type PostgresConfig struct {
@@ -22,6 +24,8 @@ type PostgresConfig struct {
 	CACert     FileFlag `long:"ca-cert"     description:"CA cert file location, to verify when connecting with SSL."`
 	ClientCert FileFlag `long:"client-cert" description:"Client cert file location."`
 	ClientKey  FileFlag `long:"client-key"  description:"Client key file location."`
+
+	ConnectTimeout time.Duration `long:"connect-timeout" description:"Dialing timeout. (0 means wait indefinitely)" default:"5m"`
 
 	Database string `long:"database" description:"The name of the database to use." default:"atc"`
 }
@@ -61,6 +65,10 @@ func (config PostgresConfig) ConnectionString() string {
 
 	if config.ClientKey != "" {
 		properties["sslkey"] = config.ClientKey.Path()
+	}
+
+	if config.ConnectTimeout != 0 {
+		properties["connect_timeout"] = strconv.Itoa(int(config.ConnectTimeout.Seconds()))
 	}
 
 	var pairs []string
