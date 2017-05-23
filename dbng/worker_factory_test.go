@@ -27,14 +27,16 @@ var _ = Describe("WorkerFactory", func() {
 			ActiveContainers: 140,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
-					Type:    "some-resource-type",
-					Image:   "some-image",
-					Version: "some-version",
+					Type:       "some-resource-type",
+					Image:      "some-image",
+					Version:    "some-version",
+					Privileged: true,
 				},
 				{
-					Type:    "other-resource-type",
-					Image:   "other-image",
-					Version: "other-version",
+					Type:       "other-resource-type",
+					Image:      "other-image",
+					Version:    "other-version",
+					Privileged: false,
 				},
 			},
 			Platform:  "some-platform",
@@ -45,19 +47,47 @@ var _ = Describe("WorkerFactory", func() {
 	})
 
 	Describe("SaveWorker", func() {
-		Context("the worker already exists", func() {
+		resourceTypeIDs := func(workerName string) map[string]int {
+			ids := map[string]int{}
+			rows, err := psql.Select("w.id", "b.name").
+				From("worker_base_resource_types w").
+				Join("base_resource_types AS b ON w.base_resource_type_id = b.id").
+				Where(sq.Eq{"w.worker_name": workerName}).
+				RunWith(dbConn).
+				Query()
+			Expect(err).NotTo(HaveOccurred())
+			for rows.Next() {
+				var id int
+				var name string
+				err = rows.Scan(&id, &name)
+				Expect(err).NotTo(HaveOccurred())
+				ids[name] = id
+			}
+			return ids
+		}
+
+		Context("when the worker already exists", func() {
 			BeforeEach(func() {
 				var err error
 				worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
+			It("saves resource types", func() {
+				worker, found, err := workerFactory.GetWorker(atcWorker.Name)
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(worker.ResourceTypes()).To(Equal(atcWorker.ResourceTypes))
+			})
+
 			It("removes old worker resource type", func() {
 				atcWorker.ResourceTypes = []atc.WorkerResourceType{
 					{
-						Type:    "other-resource-type",
-						Image:   "other-image",
-						Version: "other-version",
+						Type:       "other-resource-type",
+						Image:      "other-image",
+						Version:    "other-version",
+						Privileged: false,
 					},
 				}
 
@@ -74,7 +104,23 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(count).To(Equal(1))
 			})
 
-			Context("the worker is in stalled state", func() {
+			It("replaces outdated worker resource type", func() {
+				beforeIDs := resourceTypeIDs("some-name")
+				Expect(len(beforeIDs)).To(Equal(2))
+
+				atcWorker.ResourceTypes[0].Version = "some-new-version"
+
+				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+
+				afterIDs := resourceTypeIDs("some-name")
+				Expect(len(afterIDs)).To(Equal(2))
+
+				Expect(beforeIDs["some-resource-type"]).ToNot(Equal(afterIDs["some-resource-type"]))
+				Expect(beforeIDs["other-resource-type"]).To(Equal(afterIDs["other-resource-type"]))
+			})
+
+			Context("when the worker is in stalled state", func() {
 				var stalled []string
 				BeforeEach(func() {
 					_, err := workerFactory.SaveWorker(atcWorker, -5*time.Minute)
@@ -93,7 +139,7 @@ var _ = Describe("WorkerFactory", func() {
 				})
 			})
 
-			Context("when worker has a new version", func() {
+			Context("when the worker has a new version", func() {
 				BeforeEach(func() {
 					atcWorker.Version = "1.0.0"
 				})

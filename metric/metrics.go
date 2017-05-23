@@ -121,7 +121,7 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 
 type WorkerVolumes struct {
 	WorkerName string
-	Volumes int
+	Volumes    int
 }
 
 func (event WorkerVolumes) Emit(logger lager.Logger) {
@@ -137,7 +137,6 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 		},
 	)
 }
-
 
 type BuildStarted struct {
 	PipelineName string

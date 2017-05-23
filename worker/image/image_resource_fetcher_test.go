@@ -212,7 +212,6 @@ var _ = Describe("Image", func() {
 									Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 										ImageSpec: worker.ImageSpec{
 											ResourceType: "docker",
-											Privileged:   true,
 										},
 										Tags:   []string{"worker", "tags"},
 										TeamID: 123,
@@ -238,7 +237,6 @@ var _ = Describe("Image", func() {
 									Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 										ImageSpec: worker.ImageSpec{
 											ResourceType: "docker",
-											Privileged:   true,
 										},
 										Tags:   []string{"worker", "tags"},
 										TeamID: 123,
@@ -280,7 +278,6 @@ var _ = Describe("Image", func() {
 								Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 									ImageSpec: worker.ImageSpec{
 										ResourceType: "docker",
-										Privileged:   true,
 									},
 									Tags:   []string{"worker", "tags"},
 									TeamID: 123,

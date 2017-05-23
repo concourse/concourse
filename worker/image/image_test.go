@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("RootFsUri", func() {
+var _ = Describe("Image", func() {
 	var (
 		imageFactory                    worker.ImageFactory
 		img                             worker.Image
@@ -109,7 +109,8 @@ var _ = Describe("RootFsUri", func() {
 					Env:  []string{"A=1", "B=2"},
 					User: "image-volume-user",
 				},
-				URL: "raw://some-path/rootfs",
+				URL:        "raw://some-path/rootfs",
+				Privileged: true,
 			}))
 		})
 	})
@@ -187,7 +188,8 @@ var _ = Describe("RootFsUri", func() {
 					Env:  []string{"A=1", "B=2"},
 					User: "image-volume-user",
 				},
-				URL: "raw://some-path/rootfs",
+				URL:        "raw://some-path/rootfs",
+				Privileged: true,
 			}))
 		})
 	})
@@ -264,14 +266,16 @@ var _ = Describe("RootFsUri", func() {
 					Env:  []string{"A=1", "B=2"},
 					User: "image-volume-user",
 				},
-				URL:     "raw://some-path/rootfs",
-				Version: atc.Version{"some": "version"},
+				URL:        "raw://some-path/rootfs",
+				Version:    atc.Version{"some": "version"},
+				Privileged: true,
 			}))
 		})
 	})
 
 	Describe("imageFromBaseResourceType", func() {
 		var cowStrategy baggageclaim.COWStrategy
+		var workerResourceType atc.WorkerResourceType
 		var fakeContainerRootfsVolume *workerfakes.FakeVolume
 		var fakeImportVolume *workerfakes.FakeVolume
 
@@ -287,12 +291,15 @@ var _ = Describe("RootFsUri", func() {
 			fakeImportVolume.COWStrategyReturns(cowStrategy)
 			fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeReturns(fakeImportVolume, nil)
 
+			workerResourceType = atc.WorkerResourceType{
+				Type:       "some-base-resource-type",
+				Image:      "some-base-image-path",
+				Version:    "some-base-version",
+				Privileged: false,
+			}
+
 			fakeWorker.ResourceTypesReturns([]atc.WorkerResourceType{
-				{
-					Type:    "some-base-resource-type",
-					Image:   "some-base-image-path",
-					Version: "some-base-version",
-				},
+				workerResourceType,
 			})
 
 			fakeWorker.NameReturns("some-worker-name")
@@ -304,7 +311,6 @@ var _ = Describe("RootFsUri", func() {
 				fakeVolumeClient,
 				worker.ImageSpec{
 					ResourceType: "some-base-resource-type",
-					Privileged:   true,
 				},
 				42,
 				nil,
@@ -315,7 +321,7 @@ var _ = Describe("RootFsUri", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("finds or creates import volume", func() {
+		It("finds or creates unprivileged import volume", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeCallCount()).To(Equal(1))
@@ -324,20 +330,20 @@ var _ = Describe("RootFsUri", func() {
 				Strategy: baggageclaim.ImportStrategy{
 					Path: "some-base-image-path",
 				},
-				Privileged: true,
+				Privileged: false,
 			}))
 			Expect(teamID).To(Equal(42))
 			Expect(resourceTypeName).To(Equal("some-base-resource-type"))
 		})
 
-		It("finds or creates cow volume", func() {
+		It("finds or creates unprivileged cow volume", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
 			_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
 				Strategy:   cowStrategy,
-				Privileged: true,
+				Privileged: false,
 			}))
 			Expect(teamID).To(Equal(42))
 			Expect(container).To(Equal(fakeContainer))
@@ -350,10 +356,60 @@ var _ = Describe("RootFsUri", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fetchedImage).To(Equal(worker.FetchedImage{
-				Metadata: worker.ImageMetadata{},
-				URL:      "raw://some-path",
-				Version:  atc.Version{"some-base-resource-type": "some-base-version"},
+				Metadata:   worker.ImageMetadata{},
+				URL:        "raw://some-path",
+				Version:    atc.Version{"some-base-resource-type": "some-base-version"},
+				Privileged: false,
 			}))
+		})
+
+		Context("when the worker base resource type is privileged", func() {
+			BeforeEach(func() {
+				workerResourceType.Privileged = true
+				fakeWorker.ResourceTypesReturns([]atc.WorkerResourceType{workerResourceType})
+			})
+
+			It("finds or creates privileged import volume", func() {
+				_, err := img.FetchForContainer(logger, fakeContainer)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeCallCount()).To(Equal(1))
+				_, volumeSpec, teamID, resourceTypeName := fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeArgsForCall(0)
+				Expect(volumeSpec).To(Equal(worker.VolumeSpec{
+					Strategy: baggageclaim.ImportStrategy{
+						Path: "some-base-image-path",
+					},
+					Privileged: true,
+				}))
+				Expect(teamID).To(Equal(42))
+				Expect(resourceTypeName).To(Equal("some-base-resource-type"))
+			})
+
+			It("finds or creates privileged cow volume", func() {
+				_, err := img.FetchForContainer(logger, fakeContainer)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
+				_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
+				Expect(volumeSpec).To(Equal(worker.VolumeSpec{
+					Strategy:   cowStrategy,
+					Privileged: true,
+				}))
+				Expect(teamID).To(Equal(42))
+				Expect(container).To(Equal(fakeContainer))
+				Expect(volume).To(Equal(fakeImportVolume))
+				Expect(path).To(Equal("/"))
+			})
+
+			It("returns privileged fetched image", func() {
+				fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(fetchedImage).To(Equal(worker.FetchedImage{
+					Metadata:   worker.ImageMetadata{},
+					URL:        "raw://some-path",
+					Version:    atc.Version{"some-base-resource-type": "some-base-version"},
+					Privileged: true,
+				}))
+			})
 		})
 	})
 

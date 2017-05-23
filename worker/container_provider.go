@@ -458,8 +458,7 @@ func (p *containerProvider) findOrCreateContainer(
 				logger,
 				creatingContainer,
 				spec,
-				fetchedImage.Metadata,
-				fetchedImage.URL,
+				fetchedImage,
 			)
 			if err != nil {
 				logger.Error("failed-to-create-container-in-garden", err)
@@ -512,8 +511,7 @@ func (p *containerProvider) createGardenContainer(
 	logger lager.Logger,
 	creatingContainer dbng.CreatingContainer,
 	spec ContainerSpec,
-	imageMetadata ImageMetadata,
-	imageURL string,
+	fetchedImage FetchedImage,
 ) (garden.Container, error) {
 	volumeMounts := []VolumeMount{}
 
@@ -521,7 +519,7 @@ func (p *containerProvider) createGardenContainer(
 		logger,
 		VolumeSpec{
 			Strategy:   baggageclaim.EmptyStrategy{},
-			Privileged: bool(spec.ImageSpec.Privileged),
+			Privileged: fetchedImage.Privileged,
 		},
 		creatingContainer,
 		spec.TeamID,
@@ -541,7 +539,7 @@ func (p *containerProvider) createGardenContainer(
 			logger,
 			VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
-				Privileged: bool(spec.ImageSpec.Privileged),
+				Privileged: fetchedImage.Privileged,
 			},
 			creatingContainer,
 			spec.TeamID,
@@ -570,7 +568,7 @@ func (p *containerProvider) createGardenContainer(
 				logger,
 				VolumeSpec{
 					Strategy:   localVolume.COWStrategy(),
-					Privileged: spec.ImageSpec.Privileged,
+					Privileged: fetchedImage.Privileged,
 				},
 				creatingContainer,
 				localVolume,
@@ -585,7 +583,7 @@ func (p *containerProvider) createGardenContainer(
 				logger,
 				VolumeSpec{
 					Strategy:   baggageclaim.EmptyStrategy{},
-					Privileged: spec.ImageSpec.Privileged,
+					Privileged: fetchedImage.Privileged,
 				},
 				creatingContainer,
 				spec.TeamID,
@@ -612,7 +610,7 @@ func (p *containerProvider) createGardenContainer(
 			logger,
 			VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
-				Privileged: bool(spec.ImageSpec.Privileged),
+				Privileged: fetchedImage.Privileged,
 			},
 			creatingContainer,
 			spec.TeamID,
@@ -649,10 +647,10 @@ func (p *containerProvider) createGardenContainer(
 	if spec.User != "" {
 		gardenProperties[userPropertyName] = spec.User
 	} else {
-		gardenProperties[userPropertyName] = imageMetadata.User
+		gardenProperties[userPropertyName] = fetchedImage.Metadata.User
 	}
 
-	env := append(imageMetadata.Env, spec.Env...)
+	env := append(fetchedImage.Metadata.Env, spec.Env...)
 
 	if p.httpProxyURL != "" {
 		env = append(env, fmt.Sprintf("http_proxy=%s", p.httpProxyURL))
@@ -667,12 +665,12 @@ func (p *containerProvider) createGardenContainer(
 	}
 
 	return p.gardenClient.Create(garden.ContainerSpec{
-		BindMounts: bindMounts,
-		Privileged: spec.ImageSpec.Privileged,
-		Properties: gardenProperties,
-		RootFSPath: imageURL,
-		Env:        env,
 		Handle:     creatingContainer.Handle(),
+		RootFSPath: fetchedImage.URL,
+		Privileged: fetchedImage.Privileged,
+		BindMounts: bindMounts,
+		Env:        env,
+		Properties: gardenProperties,
 	})
 }
 

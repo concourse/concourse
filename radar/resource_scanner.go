@@ -241,7 +241,6 @@ func (scanner *resourceScanner) scan(
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResource.Type(),
-			Privileged:   savedResource.Type() == "docker-image",
 		},
 		Tags:   savedResource.Tags(),
 		TeamID: scanner.dbPipeline.TeamID(),
