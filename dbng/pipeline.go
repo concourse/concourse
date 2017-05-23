@@ -189,15 +189,17 @@ func (p *pipeline) ScopedName(n string) string {
 func (p *pipeline) Config() (atc.Config, atc.RawConfig, ConfigVersion, error) {
 	var configBlob []byte
 	var version int
+	var nonce sql.NullString
+
 	err := p.conn.QueryRow(`
-		SELECT config, version
+		SELECT config, version, nonce
 		FROM pipelines
 		WHERE name = $1 AND team_id = (
 			SELECT id
 			FROM teams
 			WHERE LOWER(name) = LOWER($2)
 		)
-	`, p.name, p.teamName).Scan(&configBlob, &version)
+	`, p.name, p.teamName).Scan(&configBlob, &version, &nonce)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return atc.Config{}, atc.RawConfig(""), 0, nil
@@ -205,18 +207,18 @@ func (p *pipeline) Config() (atc.Config, atc.RawConfig, ConfigVersion, error) {
 		return atc.Config{}, atc.RawConfig(""), 0, err
 	}
 
-	// decryptedConfig, err := factory.encryption.Decrypt(configBlob.String, nonce.String)
-	// if err != nil {
-	// 	return err
-	// }
-
-	var config atc.Config
-	err = json.Unmarshal(configBlob, &config)
+	decryptedConfig, err := p.encryption.Decrypt(string(configBlob), nonce.String)
 	if err != nil {
-		return atc.Config{}, atc.RawConfig(string(configBlob)), ConfigVersion(version), atc.MalformedConfigError{err}
+		return atc.Config{}, atc.RawConfig(""), 0, err
 	}
 
-	return config, atc.RawConfig(string(configBlob)), ConfigVersion(version), nil
+	var config atc.Config
+	err = json.Unmarshal(decryptedConfig, &config)
+	if err != nil {
+		return atc.Config{}, atc.RawConfig(string(decryptedConfig)), ConfigVersion(version), atc.MalformedConfigError{err}
+	}
+
+	return config, atc.RawConfig(string(decryptedConfig)), ConfigVersion(version), nil
 }
 
 // Write test

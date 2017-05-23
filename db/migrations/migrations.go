@@ -162,4 +162,5 @@ var Migrations = []migration.Migrator{
 	AddNonceToResourcesAndResourceTypes,
 	AddMetadataToResourceCache,
 	AddNonceToJobs,
+	AddNonceToPipelines,
 }

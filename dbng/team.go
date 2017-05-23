@@ -529,13 +529,10 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
-	// var nonce []byte
-	// if !t.key.IsEmpty() {
-	// 	payload, nonce, err = t.key.Encrypt(payload)
-	// 	if err != nil {
-	// 		return nil, false, err
-	// 	}
-	// }
+	encryptedPayload, nonce, err := t.encryption.Encrypt(payload)
+	if err != nil {
+		return nil, false, err
+	}
 
 	var created bool
 	var existingConfig int
@@ -566,11 +563,12 @@ func (t *team) SavePipeline(
 		err = psql.Insert("pipelines").
 			SetMap(map[string]interface{}{
 				"name":     pipelineName,
-				"config":   payload,
+				"config":   encryptedPayload,
 				"version":  sq.Expr("nextval('config_version_seq')"),
 				"ordering": sq.Expr("(SELECT COUNT(1) + 1 FROM pipelines)"),
 				"paused":   pausedState.Bool(),
 				"team_id":  t.id,
+				"nonce":    nonce,
 			}).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -604,8 +602,9 @@ func (t *team) SavePipeline(
 		}
 	} else {
 		update := psql.Update("pipelines").
-			Set("config", payload).
+			Set("config", encryptedPayload).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
+			Set("nonce", nonce).
 			Where(sq.Eq{
 				"name":    pipelineName,
 				"version": from,

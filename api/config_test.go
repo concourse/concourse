@@ -907,29 +907,6 @@ jobs:
 				})
 			})
 
-			Context("when a config version is not specified", func() {
-				BeforeEach(func() {
-					// don't
-				})
-
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-				})
-
-				It("returns an error in the response body", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
-							{
-								"errors": [
-									"no config version specified"
-								]
-							}`))
-				})
-
-				It("does not save it", func() {
-					Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
-				})
-			})
-
 			Context("when a config version is malformed", func() {
 				BeforeEach(func() {
 					request.Header.Set(atc.ConfigVersionHeader, "forty-two")

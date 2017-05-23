@@ -1676,7 +1676,10 @@ var _ = Describe("Team", func() {
 				Expect(found).To(BeTrue())
 				Expect(pipeline.Paused()).To(BeTrue())
 
-				_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), dbng.PipelineUnpaused)
+				_, _, configVersion, err := pipeline.Config()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, _, err = team.SavePipeline(pipelineName, config, configVersion, dbng.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, found, err = team.Pipeline(pipelineName)
@@ -1770,7 +1773,7 @@ var _ = Describe("Team", func() {
 			Expect(configPipeline).To(Equal(otherConfig))
 		})
 
-		It("can manage multiple pipeline configurations", func() {
+		FIt("can manage multiple pipeline configurations", func() {
 			pipelineName := "a-pipeline-name"
 			otherPipelineName := "an-other-pipeline-name"
 
@@ -1869,11 +1872,15 @@ var _ = Describe("Team", func() {
 			invalidPipeline, _, err := team.SavePipeline(invalidPipelineName, config, 1, dbng.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
+			plaintext := []byte("bad-json")
+			invalidConfig, invalidNonce, err := key.Encrypt(plaintext)
+			Expect(err).NotTo(HaveOccurred())
+
 			dbConn.Exec(`
 		UPDATE pipelines
-		SET config = ':bad_json:'
+		SET config = $1, nonce = $2
 		WHERE name = 'invalid-config'
-		`)
+		`, invalidConfig, invalidNonce)
 
 			_, _, invalidConfigVersion, err := invalidPipeline.Config()
 			Expect(err).To(BeAssignableToTypeOf(atc.MalformedConfigError{}))

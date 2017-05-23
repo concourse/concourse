@@ -50,22 +50,18 @@ type SaveConfigResponse struct {
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session := s.logger.Session("set-config")
-	configVersionStr := r.Header.Get(atc.ConfigVersionHeader)
-	if len(configVersionStr) == 0 {
-		s.handleBadRequest(w, []string{"no config version specified"}, session)
-		return
-	}
 
 	var version dbng.ConfigVersion
-	_, err := fmt.Sscanf(configVersionStr, "%d", &version)
-	if err != nil {
-		session.Error("malformed-config-version", err)
-		s.handleBadRequest(w, []string{fmt.Sprintf("config version is malformed: %s", err)}, session)
-		return
+	if configVersionStr := r.Header.Get(atc.ConfigVersionHeader); len(configVersionStr) != 0 {
+		_, err := fmt.Sscanf(configVersionStr, "%d", &version)
+		if err != nil {
+			session.Error("malformed-config-version", err)
+			s.handleBadRequest(w, []string{fmt.Sprintf("config version is malformed: %s", err)}, session)
+			return
+		}
 	}
 
 	config, pausedState, err := saveConfigRequestUnmarshaler(r)
-
 	switch err {
 	case ErrStatusUnsupportedMediaType:
 		w.WriteHeader(http.StatusUnsupportedMediaType)
