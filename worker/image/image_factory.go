@@ -26,7 +26,7 @@ func NewImageFactory(
 
 func (f *imageFactory) GetImage(
 	logger lager.Logger,
-	worker worker.Worker,
+	workerClient worker.Worker,
 	volumeClient worker.VolumeClient,
 	imageSpec worker.ImageSpec,
 	teamID int,
@@ -36,7 +36,7 @@ func (f *imageFactory) GetImage(
 	resourceTypes atc.VersionedResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
-		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(worker)
+		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(workerClient)
 		if err != nil {
 			logger.Error("failed-to-check-if-volume-exists-on-worker", err)
 			return nil, err
@@ -58,26 +58,43 @@ func (f *imageFactory) GetImage(
 		}, nil
 	}
 
-	// convert custom resource type from pipeline config into image_resource
-	imageResource := imageSpec.ImageResource
-	for _, resourceType := range resourceTypes {
-		if resourceType.Name == imageSpec.ResourceType {
-			imageResource = &atc.ImageResource{
-				Source: resourceType.Source,
-				Type:   resourceType.Type,
+	if imageSpec.ResourceType != "" {
+		var foundCustom bool
+		for _, resourceType := range resourceTypes {
+			if resourceType.Name == imageSpec.ResourceType {
+				foundCustom = true
+
+				imageSpec = worker.ImageSpec{
+					ImageResource: &atc.ImageResource{
+						Source: resourceType.Source,
+						Type:   resourceType.Type + "lol",
+					},
+					Privileged: resourceType.Privileged,
+				}
+
+				break
 			}
+		}
+
+		if !foundCustom {
+			return &imageFromBaseResourceType{
+				worker:           workerClient,
+				resourceTypeName: imageSpec.ResourceType,
+				teamID:           teamID,
+				volumeClient:     volumeClient,
+			}, nil
 		}
 	}
 
-	if imageResource != nil {
-		imageResourceFetcher := f.imageResourceFetcherFactory.ImageResourceFetcherFor(worker)
+	if imageSpec.ImageResource != nil {
+		imageResourceFetcher := f.imageResourceFetcherFactory.ImageResourceFetcherFor(workerClient)
 		imageParentVolume, imageMetadataReader, version, err := imageResourceFetcher.Fetch(
 			logger.Session("image"),
 			cancel,
 			resourceUser,
-			imageResource.Type,
-			imageResource.Source,
-			worker.Tags(),
+			imageSpec.ImageResource.Type,
+			imageSpec.ImageResource.Source,
+			workerClient.Tags(),
 			teamID,
 			resourceTypes,
 			delegate,
@@ -95,15 +112,6 @@ func (f *imageFactory) GetImage(
 			imageSpec:           imageSpec,
 			teamID:              teamID,
 			volumeClient:        volumeClient,
-		}, nil
-	}
-
-	if imageSpec.ResourceType != "" {
-		return &imageFromBaseResourceType{
-			worker:           worker,
-			resourceTypeName: imageSpec.ResourceType,
-			teamID:           teamID,
-			volumeClient:     volumeClient,
 		}, nil
 	}
 
