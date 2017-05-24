@@ -57,6 +57,8 @@ cat \
 
 chown vcap:vcap $KNOWN_HOSTS_FILE
 
+WORKER_VERSION=$(cat /var/vcap/packages/worker_version/version)
+
 cat /var/vcap/jobs/groundcrew/config/worker.json | \
   sed -e "s/HOSTNAME_REPLACE_ME/$(hostname | cut -d '-' -f 2-)/g" | \
   sed -e 's/"START_TIME_REPLACE_ME"/'$(date +%s)'/g' | \
