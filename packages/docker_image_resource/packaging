@@ -6,7 +6,8 @@ cat <<EOF > ${BOSH_INSTALL_TARGET}/resource_metadata.json
 {
   "type": "docker-image",
   "image": "${BOSH_INSTALL_TARGET}/rootfs",
-  "version": "$(sha1sum resources/docker-image-resource.tar.gz | cut -d ' ' -f1)"
+  "version": "$(sha1sum resources/docker-image-resource.tar.gz | cut -d ' ' -f1)",
+  "privileged": true
 }
 EOF
 

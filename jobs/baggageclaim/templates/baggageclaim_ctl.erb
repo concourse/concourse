@@ -29,9 +29,16 @@ case $1 in
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
+    OVERLAYS_DIR=/var/vcap/data/baggageclaim/overlays
+    mkdir -p ${OVERLAYS_DIR}
+
+<% if p("driver") == "btrfs" %>
+    VOLUMES_DIR=/var/vcap/data/baggageclaim/volumes
+    mkdir -p ${VOLUMES_DIR}
+
     IMAGE_PATH=/var/vcap/data/baggageclaim/volumes.img
-  <% if p('volumes_image_size_mb') > 0 %>
-    IMAGE_SIZE=<%= p('volumes_image_size_mb') %>
+  <% if p("volumes_image_size_mb") > 0 %>
+    IMAGE_SIZE=<%= p("volumes_image_size_mb") %>
   <% else %>
     DISK_SIZE=$(df -m /var/vcap/data | tail -n1 | awk '{print $2}')
     IMAGE_SIZE=$(($DISK_SIZE - 10 * 1024))
@@ -41,9 +48,6 @@ case $1 in
     fi
   <% end %>
     mkdir -p $(dirname ${IMAGE_PATH})
-
-    VOLUMES_DIR=/var/vcap/data/baggageclaim/volumes
-    mkdir -p ${VOLUMES_DIR}
 
     # break out of bosh-lite device limitations
     chmod +x "${BIN_DIR}/permit_device_control"
@@ -62,19 +66,24 @@ case $1 in
       --mkfs-bin /var/vcap/packages/btrfs_tools/sbin/mkfs.btrfs \
       1>>$LOG_DIR/fs_mounter.stdout.log \
       2>>$LOG_DIR/fs_mounter.stderr.log
+<% else %>
+    VOLUMES_DIR=/var/vcap/data/baggageclaim/<%= p("driver") %>/volumes
+    mkdir -p ${VOLUMES_DIR}
+<% end %>
 
     echo $$ > $PIDFILE
 
     exec /var/vcap/packages/baggageclaim/bin/baggageclaim \
       --volumes ${VOLUMES_DIR} \
-      --driver btrfs \
+      --driver <%= p("driver") %> \
+      --overlays-dir ${OVERLAYS_DIR} \
+      --btrfs-bin /var/vcap/packages/btrfs_tools/sbin/btrfs \
+      --mkfs-bin /var/vcap/packages/btrfs_tools/sbin/mkfs.btrfs \
       --bind-ip <%= p("bind_ip") %> \
       --bind-port <%= p("bind_port") %> \
       --log-level <%= p("log_level") %> \
       --yeller-api-key <%= esc(p("yeller.api_key")) %> \
       --yeller-environment <%= esc(p("yeller.environment_name")) %> \
-      --btrfs-bin /var/vcap/packages/btrfs_tools/sbin/btrfs \
-      --mkfs-bin /var/vcap/packages/btrfs_tools/sbin/mkfs.btrfs \
       1>>$LOG_DIR/baggageclaim.stdout.log \
       2>>$LOG_DIR/baggageclaim.stderr.log
 

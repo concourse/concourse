@@ -17,6 +17,11 @@ provides:
   - bind_port
 
 properties:
+  driver:
+    description: |
+      Driver to use for the volume store. One of btrfs, overlay, or naive.
+    default: btrfs
+
   bind_ip:
     description: |
       IP address on which Baggageclaim should listen for HTTP traffic.
