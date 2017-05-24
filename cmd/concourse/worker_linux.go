@@ -248,6 +248,12 @@ func (cmd *WorkerCommand) extractResource(
 
 	defer versionFile.Close()
 
+	var privileged bool
+	_, err = os.Stat(filepath.Join(resourcesDir, resourceType, "privileged"))
+	if err == nil {
+		privileged = true
+	}
+
 	_, err = os.Stat(okMarker)
 	if err == nil {
 		logger.Info("already-extracted")
@@ -290,8 +296,9 @@ func (cmd *WorkerCommand) extractResource(
 	}
 
 	return atc.WorkerResourceType{
-		Type:    resourceType,
-		Image:   rootfsDir,
-		Version: version,
+		Type:       resourceType,
+		Image:      rootfsDir,
+		Version:    version,
+		Privileged: privileged,
 	}, nil
 }

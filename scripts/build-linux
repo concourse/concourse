@@ -68,6 +68,12 @@ pushd concourse/
 
     mkdir -p $resource_dir
     cp -L "$resource" $resource_dir/rootfs.tar.gz
+
     echo $resource_version > $resource_dir/version
+
+    package_name="$(echo $resource_name | tr '-' '_')_resource"
+    if grep '"privileged": true' packages/$package_name/packaging >/dev/null; then
+      touch $resource_dir/privileged
+    fi
   done
 popd
