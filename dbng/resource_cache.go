@@ -45,7 +45,6 @@ type UsedResourceCache struct {
 	ID             int
 	ResourceConfig *UsedResourceConfig
 	Version        atc.Version
-	Metadata       ResourceMetadataFields
 }
 
 func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
@@ -195,12 +194,11 @@ func (cache ResourceCache) lockName() (string, error) {
 
 func (cache ResourceCache) findWithResourceConfig(tx Tx, resourceConfig *UsedResourceConfig) (*UsedResourceCache, bool, error) {
 	var id int
-	var metadataJSON sql.NullString
-	err := psql.Select("id, metadata").From("resource_caches").Where(sq.Eq{
+	err := psql.Select("id").From("resource_caches").Where(sq.Eq{
 		"resource_config_id": resourceConfig.ID,
 		"version":            cache.version(),
 		"params_hash":        paramsHash(cache.Params),
-	}).RunWith(tx).QueryRow().Scan(&id, &metadataJSON)
+	}).RunWith(tx).QueryRow().Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -209,19 +207,10 @@ func (cache ResourceCache) findWithResourceConfig(tx Tx, resourceConfig *UsedRes
 		return nil, false, err
 	}
 
-	var metadata []ResourceMetadataField
-	if metadataJSON.Valid {
-		err = json.Unmarshal([]byte(metadataJSON.String), &metadata)
-		if err != nil {
-			return nil, false, err
-		}
-	}
-
 	return &UsedResourceCache{
 		ID:             id,
 		ResourceConfig: resourceConfig,
 		Version:        cache.Version,
-		Metadata:       metadata,
 	}, true, nil
 }
 

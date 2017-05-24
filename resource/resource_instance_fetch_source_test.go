@@ -18,7 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("VolumeFetchSource", func() {
+var _ = Describe("ResourceInstanceFetchSource", func() {
 	var (
 		fetchSource resource.FetchSource
 
@@ -63,12 +63,12 @@ var _ = Describe("VolumeFetchSource", func() {
 		fakeResourceInstance.CreateOnReturns(fakeVolume, nil)
 		resourceCache = &dbng.UsedResourceCache{
 			ID: 42,
-			Metadata: []dbng.ResourceMetadataField{
-				{Name: "some", Value: "metadata"},
-			},
 		}
 		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(resourceCache, nil)
+		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]dbng.ResourceMetadataField{
+			{Name: "some", Value: "metadata"},
+		}, nil)
 		fetchSource = resource.NewResourceInstanceFetchSource(
 			logger,
 			resourceCache,

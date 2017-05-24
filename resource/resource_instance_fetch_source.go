@@ -71,12 +71,18 @@ func (s *resourceInstanceFetchSource) FindInitialized() (VersionedSource, bool, 
 		return nil, false, nil
 	}
 
-	s.logger.Debug("found-initialized-versioned-source", lager.Data{"version": s.resourceOptions.Version(), "metadata": s.resourceCache.Metadata.ToATCMetadata()})
+	metadata, err := s.dbResourceCacheFactory.ResourceCacheMetadata(s.resourceCache)
+	if err != nil {
+		sLog.Error("failed-to-get-resource-cache-metadata", err)
+		return nil, false, err
+	}
+
+	s.logger.Debug("found-initialized-versioned-source", lager.Data{"version": s.resourceOptions.Version(), "metadata": metadata.ToATCMetadata()})
 
 	return NewGetVersionedSource(
 		volume,
 		s.resourceOptions.Version(),
-		s.resourceCache.Metadata.ToATCMetadata(),
+		metadata.ToATCMetadata(),
 	), true, nil
 }
 

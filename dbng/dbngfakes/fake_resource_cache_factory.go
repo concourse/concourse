@@ -86,6 +86,19 @@ type FakeResourceCacheFactory struct {
 	updateResourceCacheMetadataReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ResourceCacheMetadataStub        func(*dbng.UsedResourceCache) (dbng.ResourceMetadataFields, error)
+	resourceCacheMetadataMutex       sync.RWMutex
+	resourceCacheMetadataArgsForCall []struct {
+		arg1 *dbng.UsedResourceCache
+	}
+	resourceCacheMetadataReturns struct {
+		result1 dbng.ResourceMetadataFields
+		result2 error
+	}
+	resourceCacheMetadataReturnsOnCall map[int]struct {
+		result1 dbng.ResourceMetadataFields
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -401,6 +414,57 @@ func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataReturnsOnCall(i
 	}{result1}
 }
 
+func (fake *FakeResourceCacheFactory) ResourceCacheMetadata(arg1 *dbng.UsedResourceCache) (dbng.ResourceMetadataFields, error) {
+	fake.resourceCacheMetadataMutex.Lock()
+	ret, specificReturn := fake.resourceCacheMetadataReturnsOnCall[len(fake.resourceCacheMetadataArgsForCall)]
+	fake.resourceCacheMetadataArgsForCall = append(fake.resourceCacheMetadataArgsForCall, struct {
+		arg1 *dbng.UsedResourceCache
+	}{arg1})
+	fake.recordInvocation("ResourceCacheMetadata", []interface{}{arg1})
+	fake.resourceCacheMetadataMutex.Unlock()
+	if fake.ResourceCacheMetadataStub != nil {
+		return fake.ResourceCacheMetadataStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.resourceCacheMetadataReturns.result1, fake.resourceCacheMetadataReturns.result2
+}
+
+func (fake *FakeResourceCacheFactory) ResourceCacheMetadataCallCount() int {
+	fake.resourceCacheMetadataMutex.RLock()
+	defer fake.resourceCacheMetadataMutex.RUnlock()
+	return len(fake.resourceCacheMetadataArgsForCall)
+}
+
+func (fake *FakeResourceCacheFactory) ResourceCacheMetadataArgsForCall(i int) *dbng.UsedResourceCache {
+	fake.resourceCacheMetadataMutex.RLock()
+	defer fake.resourceCacheMetadataMutex.RUnlock()
+	return fake.resourceCacheMetadataArgsForCall[i].arg1
+}
+
+func (fake *FakeResourceCacheFactory) ResourceCacheMetadataReturns(result1 dbng.ResourceMetadataFields, result2 error) {
+	fake.ResourceCacheMetadataStub = nil
+	fake.resourceCacheMetadataReturns = struct {
+		result1 dbng.ResourceMetadataFields
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceCacheFactory) ResourceCacheMetadataReturnsOnCall(i int, result1 dbng.ResourceMetadataFields, result2 error) {
+	fake.ResourceCacheMetadataStub = nil
+	if fake.resourceCacheMetadataReturnsOnCall == nil {
+		fake.resourceCacheMetadataReturnsOnCall = make(map[int]struct {
+			result1 dbng.ResourceMetadataFields
+			result2 error
+		})
+	}
+	fake.resourceCacheMetadataReturnsOnCall[i] = struct {
+		result1 dbng.ResourceMetadataFields
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -418,6 +482,8 @@ func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	defer fake.cleanUpInvalidCachesMutex.RUnlock()
 	fake.updateResourceCacheMetadataMutex.RLock()
 	defer fake.updateResourceCacheMetadataMutex.RUnlock()
+	fake.resourceCacheMetadataMutex.RLock()
+	defer fake.resourceCacheMetadataMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -1,6 +1,7 @@
 package dbng
 
 import (
+	"database/sql"
 	"encoding/json"
 
 	"code.cloudfoundry.org/lager"
@@ -37,6 +38,7 @@ type ResourceCacheFactory interface {
 	// Also, metadata will be available to us before we create resource cache so this
 	// method can be removed at that point. See  https://github.com/concourse/concourse/issues/534
 	UpdateResourceCacheMetadata(*UsedResourceCache, []atc.MetadataField) error
+	ResourceCacheMetadata(*UsedResourceCache) (ResourceMetadataFields, error)
 }
 
 type resourceCacheFactory struct {
@@ -278,4 +280,27 @@ func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache *UsedRe
 	}
 
 	return nil
+}
+
+func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache *UsedResourceCache) (ResourceMetadataFields, error) {
+	var metadataJSON sql.NullString
+	err := psql.Select("metadata").
+		From("resource_caches").
+		Where(sq.Eq{"id": resourceCache.ID}).
+		RunWith(f.conn).
+		QueryRow().
+		Scan(&metadataJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	var metadata []ResourceMetadataField
+	if metadataJSON.Valid {
+		err = json.Unmarshal([]byte(metadataJSON.String), &metadata)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return metadata, nil
 }
