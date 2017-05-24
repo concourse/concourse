@@ -147,6 +147,8 @@ before using it!
   }{
     \hyperlink{https://github.com/mrsixw/concourse-rsync-resource}{Rsync}
   }{
+    \hyperlink{https://github.com/chemist/rsync-resource}{Rsync: rsyncd, for local net}
+  }{
     \hyperlink{https://github.com/cf-platform-eng/concourse-pypi-resource}{PyPI Packages}
   }{
     \hyperlink{https://github.com/mdomke/concourse-devpi-resource}{Devpi Server: PyPI mirror and package server}
