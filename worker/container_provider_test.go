@@ -145,6 +145,9 @@ var _ = Describe("ContainerProvider", func() {
 		fakeRemoteInputAS.VolumeOnReturns(nil, false, nil)
 		fakeRemoteInput.SourceReturns(fakeRemoteInputAS)
 
+		fakeScratchVolume := new(workerfakes.FakeVolume)
+		fakeScratchVolume.PathReturns("/fake/scratch/volume")
+
 		fakeWorkdirVolume := new(workerfakes.FakeVolume)
 		fakeWorkdirVolume.PathReturns("/fake/work-dir/volume")
 
@@ -161,6 +164,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeResourceCacheVolume.PathReturns("/fake/resource/cache/volume")
 
 		stubbedVolumes = map[string]*workerfakes.FakeVolume{
+			"/scratch":                    fakeScratchVolume,
 			"/some/work-dir":              fakeWorkdirVolume,
 			"/some/work-dir/local-input":  fakeLocalCOWVolume,
 			"/some/work-dir/remote-input": fakeRemoteInputContainerVolume,
@@ -380,6 +384,11 @@ var _ = Describe("ContainerProvider", func() {
 				Properties: garden.Properties{"user": "some-user"},
 				BindMounts: []garden.BindMount{
 					{
+						SrcPath: "/fake/scratch/volume",
+						DstPath: "/scratch",
+						Mode:    garden.BindMountModeRW,
+					},
+					{
 						SrcPath: "/fake/work-dir/volume",
 						DstPath: "/some/work-dir",
 						Mode:    garden.BindMountModeRW,
@@ -417,6 +426,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		It("creates each volume unprivileged", func() {
 			Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
+				"/scratch":                    VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
 				"/some/work-dir":              VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
 				"/some/work-dir/output":       VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
 				"/some/work-dir/local-input":  VolumeSpec{Strategy: fakeLocalVolume.COWStrategy()},
@@ -462,6 +472,7 @@ var _ = Describe("ContainerProvider", func() {
 
 			It("creates each volume privileged", func() {
 				Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
+					"/scratch":                    VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 					"/some/work-dir":              VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 					"/some/work-dir/output":       VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 					"/some/work-dir/local-input":  VolumeSpec{Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
@@ -483,6 +494,11 @@ var _ = Describe("ContainerProvider", func() {
 
 				actualSpec := fakeGardenClient.CreateArgsForCall(0)
 				Expect(actualSpec.BindMounts).To(Equal([]garden.BindMount{
+					{
+						SrcPath: "/fake/scratch/volume",
+						DstPath: "/scratch",
+						Mode:    garden.BindMountModeRW,
+					},
 					{
 						SrcPath: "/fake/local/cow/volume",
 						DstPath: "/some/work-dir",
