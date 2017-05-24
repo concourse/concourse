@@ -227,6 +227,11 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     \code{tags}, both of which determine where steps in a
     \reference{build-plans}{Build Plan} are scheduled.
 
+    Linux workers come with a set of
+    \hyperlink{https://concourse.ci/resource-types.html#section_resources-provided-with-concourse}{base
+    resource types}. If you are planning to use them you need to have at least
+    one Linux worker.
+
     You may want a few workers, depending on the resource usage of your
     pipeline. There should be one per machine; running multiple on one box
     doesn't really make sense, as each worker runs as many containers as
