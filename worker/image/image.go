@@ -58,8 +58,9 @@ func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
 	}
 
 	return worker.FetchedImage{
-		Metadata: metadata,
-		URL:      imageURL.String(),
+		Metadata:   metadata,
+		URL:        imageURL.String(),
+		Privileged: i.imageSpec.Privileged,
 	}, nil
 }
 
@@ -115,8 +116,9 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 	}
 
 	return worker.FetchedImage{
-		Metadata: metadata,
-		URL:      imageURL.String(),
+		Metadata:   metadata,
+		URL:        imageURL.String(),
+		Privileged: i.imageSpec.Privileged,
 	}, nil
 }
 
@@ -124,7 +126,7 @@ type imageFromResource struct {
 	imageParentVolume   worker.Volume
 	version             atc.Version
 	imageMetadataReader io.ReadCloser
-	imageSpec           worker.ImageSpec
+	privileged          bool
 	teamID              int
 	volumeClient        worker.VolumeClient
 }
@@ -137,7 +139,7 @@ func (i *imageFromResource) FetchForContainer(
 		logger.Session("create-cow-volume"),
 		worker.VolumeSpec{
 			Strategy:   i.imageParentVolume.COWStrategy(),
-			Privileged: i.imageSpec.Privileged,
+			Privileged: i.privileged,
 		},
 		container,
 		i.imageParentVolume,
@@ -160,9 +162,10 @@ func (i *imageFromResource) FetchForContainer(
 	}
 
 	return worker.FetchedImage{
-		Metadata: metadata,
-		Version:  i.version,
-		URL:      imageURL.String(),
+		Metadata:   metadata,
+		Version:    i.version,
+		URL:        imageURL.String(),
+		Privileged: i.privileged,
 	}, nil
 }
 
@@ -183,7 +186,7 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 				logger,
 				worker.VolumeSpec{
 					Strategy:   baggageclaim.ImportStrategy{Path: t.Image},
-					Privileged: true,
+					Privileged: t.Privileged,
 				},
 				i.teamID,
 				i.resourceTypeName,
@@ -196,7 +199,7 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 				logger,
 				worker.VolumeSpec{
 					Strategy:   importVolume.COWStrategy(),
-					Privileged: true,
+					Privileged: t.Privileged,
 				},
 				container,
 				importVolume,
@@ -213,9 +216,10 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 			}
 
 			return worker.FetchedImage{
-				Metadata: worker.ImageMetadata{},
-				Version:  atc.Version{i.resourceTypeName: t.Version},
-				URL:      rootFSURL.String(),
+				Metadata:   worker.ImageMetadata{},
+				Version:    atc.Version{i.resourceTypeName: t.Version},
+				URL:        rootFSURL.String(),
+				Privileged: t.Privileged,
 			}, nil
 		}
 	}
@@ -223,11 +227,11 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 	return worker.FetchedImage{}, ErrUnsupportedResourceType
 }
 
-type imageInTask struct {
+type imageFromRootfsURI struct {
 	url string
 }
 
-func (i *imageInTask) FetchForContainer(
+func (i *imageFromRootfsURI) FetchForContainer(
 	logger lager.Logger,
 	container dbng.CreatingContainer,
 ) (worker.FetchedImage, error) {

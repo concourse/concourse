@@ -100,7 +100,6 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResourceType.Type(),
-			Privileged:   true,
 		},
 		Tags:   []string{},
 		TeamID: scanner.dbPipeline.TeamID(),

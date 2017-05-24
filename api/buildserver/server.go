@@ -2,7 +2,6 @@ package buildserver
 
 import (
 	"net/http"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth"
@@ -25,8 +24,6 @@ type Server struct {
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
 	rejector            auth.Rejector
-
-	httpClient *http.Client
 }
 
 func NewServer(
@@ -52,11 +49,5 @@ func NewServer(
 		drain:               drain,
 
 		rejector: auth.UnauthorizedRejector{},
-
-		httpClient: &http.Client{
-			Transport: &http.Transport{
-				ResponseHeaderTimeout: 5 * time.Minute,
-			},
-		},
 	}
 }

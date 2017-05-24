@@ -52,7 +52,7 @@ var _ = Describe("Job", func() {
 							Privileged:     true,
 							TaskConfigPath: "some/config/path.yml",
 							TaskConfig: &atc.TaskConfig{
-								RootFsUri: "some-image",
+								RootfsURI: "some-image",
 							},
 						},
 					},

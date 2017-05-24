@@ -27,7 +27,7 @@ var _ = Describe("ConfigSource", func() {
 		repo = worker.NewArtifactRepository()
 		taskConfig = atc.TaskConfig{
 			Platform:  "some-platform",
-			RootFsUri: "some-image",
+			RootfsURI: "some-image",
 			ImageResource: &atc.ImageResource{
 				Type:   "docker",
 				Source: atc.Source{"a": "b"},
@@ -401,7 +401,7 @@ run: {path: a/file}
 
 			configA = atc.TaskConfig{
 				Platform:  "some-platform",
-				RootFsUri: "some-image",
+				RootfsURI: "some-image",
 				Params:    map[string]string{"PARAM": "A"},
 				Run: atc.TaskRunConfig{
 					Path: "echo",
@@ -439,7 +439,7 @@ run: {path: a/file}
 				It("returns the merged config", func() {
 					Expect(fetchedConfig).To(Equal(atc.TaskConfig{
 						Platform:  "some-platform",
-						RootFsUri: "some-image",
+						RootfsURI: "some-image",
 						Params:    map[string]string{"PARAM": "B"},
 						Run: atc.TaskRunConfig{
 							Path: "echo",
@@ -503,7 +503,7 @@ run: {path: a/file}
 		Context("when the config is valid", func() {
 			config := atc.TaskConfig{
 				Platform:  "some-platform",
-				RootFsUri: "some-image",
+				RootfsURI: "some-image",
 				Params:    map[string]string{"PARAM": "A"},
 				Run: atc.TaskRunConfig{
 					Path: "echo",
@@ -524,7 +524,7 @@ run: {path: a/file}
 		Context("when the config is invalid", func() {
 			BeforeEach(func() {
 				fakeConfigSource.FetchConfigReturns(atc.TaskConfig{
-					RootFsUri: "some-image",
+					RootfsURI: "some-image",
 					Params:    map[string]string{"PARAM": "A"},
 					Run: atc.TaskRunConfig{
 						Args: []string{"bananapants"},

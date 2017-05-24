@@ -133,11 +133,10 @@ var _ = Describe("ResourceInstance", func() {
 				Expect(createdVolume).To(Equal(volume))
 			})
 
-			It("created with the right strategy and privileges", func() {
+			It("created with the right strategy", func() {
 				_, spec, _ := fakeWorkerClient.CreateVolumeForResourceCacheArgsForCall(0)
 				Expect(spec).To(Equal(worker.VolumeSpec{
-					Strategy:   baggageclaim.EmptyStrategy{},
-					Privileged: true,
+					Strategy: baggageclaim.EmptyStrategy{},
 				}))
 			})
 		})

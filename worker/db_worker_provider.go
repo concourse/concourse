@@ -192,7 +192,7 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 		provider.dbWorkerFactory,
 		&http.Transport{
 			DisableKeepAlives:     true,
-			ResponseHeaderTimeout: 1 * time.Minute,
+			ResponseHeaderTimeout: 10 * time.Minute,
 		},
 	))
 

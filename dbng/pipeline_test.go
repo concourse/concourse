@@ -64,7 +64,7 @@ var _ = Describe("Pipeline", func() {
 							Privileged:     true,
 							TaskConfigPath: "some/config/path.yml",
 							TaskConfig: &atc.TaskConfig{
-								RootFsUri: "some-image",
+								RootfsURI: "some-image",
 							},
 						},
 					},
@@ -1392,7 +1392,7 @@ var _ = Describe("Pipeline", func() {
 								Privileged:     true,
 								TaskConfigPath: "some/config/path.yml",
 								TaskConfig: &atc.TaskConfig{
-									RootFsUri: "some-image",
+									RootfsURI: "some-image",
 								},
 							},
 						},

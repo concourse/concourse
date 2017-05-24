@@ -133,7 +133,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "docker-image",
-						Privileged:   true,
 					},
 					Tags:   []string{},
 					TeamID: 123,

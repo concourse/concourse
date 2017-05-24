@@ -27,9 +27,10 @@ type ImageFactory interface {
 }
 
 type FetchedImage struct {
-	Metadata ImageMetadata
-	Version  atc.Version
-	URL      string
+	Metadata   ImageMetadata
+	Version    atc.Version
+	URL        string
+	Privileged bool
 }
 
 //go:generate counterfeiter . Image

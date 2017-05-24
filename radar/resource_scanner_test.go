@@ -150,7 +150,6 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "git",
-						Privileged:   true,
 					},
 					Tags:   atc.Tags{"some-tag"},
 					TeamID: 123,
@@ -439,7 +438,6 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "git",
-						Privileged:   true,
 					},
 					Tags:   atc.Tags{"some-tag"},
 					TeamID: 123,

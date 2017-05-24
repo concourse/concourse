@@ -161,7 +161,6 @@ var _ = Describe("GardenFactory", func() {
 					Expect(planID).To(Equal(atc.PlanID("some-plan-id")))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "some-resource-type",
-						Privileged:   true,
 					}))
 					Expect(containerSpec.Tags).To(Equal([]string{"some", "tags"}))
 					Expect(containerSpec.TeamID).To(Equal(123))

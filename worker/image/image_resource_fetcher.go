@@ -199,7 +199,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: imageResourceType,
-			Privileged:   true,
 		},
 		Tags:   tags,
 		TeamID: teamID,

@@ -125,6 +125,12 @@ func (s *resourceInstanceFetchSource) Initialize(signals <-chan os.Signal, ready
 		return nil, err
 	}
 
+	err = volume.SetPrivileged(false)
+	if err != nil {
+		sLog.Error("failed-to-set-volume-unprivileged", err)
+		return nil, err
+	}
+
 	err = volume.Initialize()
 	if err != nil {
 		sLog.Error("failed-to-initialize-cache", err)
@@ -144,7 +150,6 @@ func (s *resourceInstanceFetchSource) createContainerForVolume(volume worker.Vol
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: string(s.resourceOptions.ResourceType()),
-			Privileged:   true,
 		},
 		Tags:   s.tags,
 		TeamID: s.teamID,

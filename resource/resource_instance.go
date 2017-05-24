@@ -72,8 +72,7 @@ func (instance resourceInstance) CreateOn(logger lager.Logger, workerClient work
 	return workerClient.CreateVolumeForResourceCache(
 		logger,
 		worker.VolumeSpec{
-			Strategy:   baggageclaim.EmptyStrategy{},
-			Privileged: true,
+			Strategy: baggageclaim.EmptyStrategy{},
 		},
 		resourceCache,
 	)

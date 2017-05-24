@@ -72,7 +72,7 @@ func (f *imageFactory) GetImage(
 				teamID,
 				resourceTypes.Without(imageSpec.ResourceType),
 				delegate,
-				imageSpec.Privileged,
+				resourceType.Privileged,
 			)
 			if err != nil {
 				logger.Error("failed-to-fetch-image", err)
@@ -83,7 +83,7 @@ func (f *imageFactory) GetImage(
 				imageParentVolume:   imageParentVolume,
 				version:             version,
 				imageMetadataReader: imageMetadataReader,
-				imageSpec:           imageSpec,
+				privileged:          resourceType.Privileged,
 				teamID:              teamID,
 				volumeClient:        volumeClient,
 			}, nil
@@ -113,7 +113,7 @@ func (f *imageFactory) GetImage(
 			imageParentVolume:   imageParentVolume,
 			version:             version,
 			imageMetadataReader: imageMetadataReader,
-			imageSpec:           imageSpec,
+			privileged:          imageSpec.Privileged,
 			teamID:              teamID,
 			volumeClient:        volumeClient,
 		}, nil
@@ -128,7 +128,7 @@ func (f *imageFactory) GetImage(
 		}, nil
 	}
 
-	return &imageInTask{
+	return &imageFromRootfsURI{
 		url: imageSpec.ImageURL,
 	}, nil
 }

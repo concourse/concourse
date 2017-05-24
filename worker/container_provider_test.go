@@ -54,6 +54,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeRemoteInputAS *workerfakes.FakeArtifactSource
 
 		fakeRemoteInputContainerVolume *workerfakes.FakeVolume
+		fakeLocalVolume                *workerfakes.FakeVolume
 		fakeOutputVolume               *workerfakes.FakeVolume
 		fakeLocalCOWVolume             *workerfakes.FakeVolume
 		fakeResourceCacheVolume        *workerfakes.FakeVolume
@@ -68,6 +69,7 @@ var _ = Describe("ContainerProvider", func() {
 		findOrCreateContainer Container
 
 		stubbedVolumes map[string]*workerfakes.FakeVolume
+		volumeSpecs    map[string]VolumeSpec
 	)
 
 	disasterErr := errors.New("disaster")
@@ -86,6 +88,12 @@ var _ = Describe("ContainerProvider", func() {
 		fakeVolumeClient = new(workerfakes.FakeVolumeClient)
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage = new(workerfakes.FakeImage)
+		fakeImage.FetchForContainerReturns(FetchedImage{
+			Metadata: ImageMetadata{
+				Env: []string{"IMAGE=ENV"},
+			},
+			URL: "some-image-url",
+		}, nil)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
 		fakeLockDB = new(workerfakes.FakeLockDB)
 		fakeWorker = new(workerfakes.FakeWorker)
@@ -122,7 +130,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeLocalInput.NameReturns("local-input")
 		fakeLocalInput.DestinationPathReturns("/some/work-dir/local-input")
 		fakeLocalInputAS := new(workerfakes.FakeArtifactSource)
-		fakeLocalVolume := new(workerfakes.FakeVolume)
+		fakeLocalVolume = new(workerfakes.FakeVolume)
 		fakeLocalVolume.PathReturns("/fake/local/volume")
 		fakeLocalVolume.COWStrategyReturns(baggageclaim.COWStrategy{
 			Parent: new(baggageclaimfakes.FakeVolume),
@@ -136,6 +144,9 @@ var _ = Describe("ContainerProvider", func() {
 		fakeRemoteInputAS = new(workerfakes.FakeArtifactSource)
 		fakeRemoteInputAS.VolumeOnReturns(nil, false, nil)
 		fakeRemoteInput.SourceReturns(fakeRemoteInputAS)
+
+		fakeScratchVolume := new(workerfakes.FakeVolume)
+		fakeScratchVolume.PathReturns("/fake/scratch/volume")
 
 		fakeWorkdirVolume := new(workerfakes.FakeVolume)
 		fakeWorkdirVolume.PathReturns("/fake/work-dir/volume")
@@ -153,11 +164,14 @@ var _ = Describe("ContainerProvider", func() {
 		fakeResourceCacheVolume.PathReturns("/fake/resource/cache/volume")
 
 		stubbedVolumes = map[string]*workerfakes.FakeVolume{
+			"/scratch":                    fakeScratchVolume,
 			"/some/work-dir":              fakeWorkdirVolume,
 			"/some/work-dir/local-input":  fakeLocalCOWVolume,
 			"/some/work-dir/remote-input": fakeRemoteInputContainerVolume,
 			"/some/work-dir/output":       fakeOutputVolume,
 		}
+
+		volumeSpecs = map[string]VolumeSpec{}
 
 		fakeVolumeClient.FindOrCreateCOWVolumeForContainerStub = func(logger lager.Logger, volumeSpec VolumeSpec, creatingContainer dbng.CreatingContainer, volume Volume, teamID int, mountPath string) (Volume, error) {
 			Expect(volume).To(Equal(fakeLocalVolume))
@@ -167,6 +181,8 @@ var _ = Describe("ContainerProvider", func() {
 				panic("unknown container volume: " + mountPath)
 			}
 
+			volumeSpecs[mountPath] = volumeSpec
+
 			return volume, nil
 		}
 
@@ -175,6 +191,9 @@ var _ = Describe("ContainerProvider", func() {
 			if !found {
 				panic("unknown container volume: " + mountPath)
 			}
+
+			volumeSpecs[mountPath] = volumeSpec
+
 			return volume, nil
 		}
 
@@ -190,7 +209,6 @@ var _ = Describe("ContainerProvider", func() {
 			TeamID: 73410,
 
 			ImageSpec: ImageSpec{
-				Privileged: true,
 				ImageResource: &atc.ImageResource{
 					Type:   "docker-image",
 					Source: atc.Source{"some": "image"},
@@ -362,9 +380,14 @@ var _ = Describe("ContainerProvider", func() {
 			actualSpec := fakeGardenClient.CreateArgsForCall(0)
 			Expect(actualSpec).To(Equal(garden.ContainerSpec{
 				Handle:     "some-handle",
-				Privileged: true,
+				RootFSPath: "some-image-url",
 				Properties: garden.Properties{"user": "some-user"},
 				BindMounts: []garden.BindMount{
+					{
+						SrcPath: "/fake/scratch/volume",
+						DstPath: "/scratch",
+						Mode:    garden.BindMountModeRW,
+					},
 					{
 						SrcPath: "/fake/work-dir/volume",
 						DstPath: "/some/work-dir",
@@ -392,11 +415,22 @@ var _ = Describe("ContainerProvider", func() {
 					},
 				},
 				Env: []string{
+					"IMAGE=ENV",
 					"SOME=ENV",
 					"http_proxy=http://proxy.com",
 					"https_proxy=https://proxy.com",
 					"no_proxy=http://noproxy.com",
 				},
+			}))
+		})
+
+		It("creates each volume unprivileged", func() {
+			Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
+				"/scratch":                    VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+				"/some/work-dir":              VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+				"/some/work-dir/output":       VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+				"/some/work-dir/local-input":  VolumeSpec{Strategy: fakeLocalVolume.COWStrategy()},
+				"/some/work-dir/remote-input": VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
 			}))
 		})
 
@@ -418,6 +452,36 @@ var _ = Describe("ContainerProvider", func() {
 			Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(1))
 		})
 
+		Context("when the fetched image was privileged", func() {
+			BeforeEach(func() {
+				fakeImage.FetchForContainerReturns(FetchedImage{
+					Privileged: true,
+					Metadata: ImageMetadata{
+						Env: []string{"IMAGE=ENV"},
+					},
+					URL: "some-image-url",
+				}, nil)
+			})
+
+			It("creates the container privileged", func() {
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+				actualSpec := fakeGardenClient.CreateArgsForCall(0)
+				Expect(actualSpec.Privileged).To(BeTrue())
+			})
+
+			It("creates each volume privileged", func() {
+				Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
+					"/scratch":                    VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+					"/some/work-dir":              VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+					"/some/work-dir/output":       VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+					"/some/work-dir/local-input":  VolumeSpec{Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
+					"/some/work-dir/remote-input": VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+				}))
+			})
+
+		})
+
 		Context("when an input has the path set to the workdir itself", func() {
 			BeforeEach(func() {
 				fakeLocalInput.DestinationPathReturns("/some/work-dir")
@@ -430,6 +494,11 @@ var _ = Describe("ContainerProvider", func() {
 
 				actualSpec := fakeGardenClient.CreateArgsForCall(0)
 				Expect(actualSpec.BindMounts).To(Equal([]garden.BindMount{
+					{
+						SrcPath: "/fake/scratch/volume",
+						DstPath: "/scratch",
+						Mode:    garden.BindMountModeRW,
+					},
 					{
 						SrcPath: "/fake/local/cow/volume",
 						DstPath: "/some/work-dir",
