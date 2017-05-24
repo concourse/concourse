@@ -19,8 +19,8 @@ provides:
 properties:
   driver:
     description: |
-      Driver to use for the volume store. One of btrfs, overlay, or naive.
-    default: btrfs
+      Driver to use for the volume store. One of overlay, btrfs, or naive.
+    default: overlay
 
   bind_ip:
     description: |
