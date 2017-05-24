@@ -115,7 +115,7 @@ func (f *imageFactory) GetImage(
 		}, nil
 	}
 
-	return &imageFromRootFsUri{
+	return &imageFromRootfsURI{
 		url: imageSpec.ImageURL,
 	}, nil
 }

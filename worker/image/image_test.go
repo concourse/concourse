@@ -518,7 +518,7 @@ var _ = Describe("Image", func() {
 		})
 	})
 
-	Describe("imageFromRootFsUri", func() {
+	Describe("imageFromRootfsURI", func() {
 		BeforeEach(func() {
 			var err error
 			img, err = imageFactory.GetImage(

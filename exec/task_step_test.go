@@ -135,7 +135,7 @@ var _ = Describe("GardenFactory", func() {
 			BeforeEach(func() {
 				fetchedConfig = atc.TaskConfig{
 					Platform:  "some-platform",
-					RootFsUri: "some-image",
+					RootfsURI: "some-image",
 					ImageResource: &atc.ImageResource{
 						Type:   "docker",
 						Source: atc.Source{"some": "source"},
@@ -281,7 +281,7 @@ var _ = Describe("GardenFactory", func() {
 						BeforeEach(func() {
 							configSource.FetchConfigReturns(atc.TaskConfig{
 								Platform:  "some-platform",
-								RootFsUri: "some-image",
+								RootfsURI: "some-image",
 								Params:    map[string]string{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
@@ -477,7 +477,7 @@ var _ = Describe("GardenFactory", func() {
 
 							configSource.FetchConfigReturns(atc.TaskConfig{
 								Platform:  "some-platform",
-								RootFsUri: "some-image",
+								RootfsURI: "some-image",
 								Params:    map[string]string{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
@@ -594,7 +594,7 @@ var _ = Describe("GardenFactory", func() {
 						BeforeEach(func() {
 							configSource.FetchConfigReturns(atc.TaskConfig{
 								Platform:  "some-platform",
-								RootFsUri: "some-image",
+								RootfsURI: "some-image",
 								Params:    map[string]string{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
@@ -1041,7 +1041,7 @@ var _ = Describe("GardenFactory", func() {
 										BeforeEach(func() {
 											configWithImage := atc.TaskConfig{
 												Platform:  "some-platform",
-												RootFsUri: "some-image",
+												RootfsURI: "some-image",
 												Params:    map[string]string{"SOME": "params"},
 												Run: atc.TaskRunConfig{
 													Path: "ls",
@@ -1092,7 +1092,7 @@ var _ = Describe("GardenFactory", func() {
 										BeforeEach(func() {
 											configWithImageAndImageResource := atc.TaskConfig{
 												Platform:  "some-platform",
-												RootFsUri: "some-image",
+												RootfsURI: "some-image",
 												ImageResource: &atc.ImageResource{
 													Type:   "docker",
 													Source: atc.Source{"some": "source"},

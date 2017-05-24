@@ -610,7 +610,7 @@ run: {path: a/file}
 	Describe("merging", func() {
 		It("merges params while preserving other properties", func() {
 			Expect(TaskConfig{
-				RootFsUri: "some-image",
+				RootfsURI: "some-image",
 				Params: map[string]string{
 					"FOO": "1",
 					"BAR": "2",
@@ -623,7 +623,7 @@ run: {path: a/file}
 			})).To(
 
 				Equal(TaskConfig{
-					RootFsUri: "some-image",
+					RootfsURI: "some-image",
 					Params: map[string]string{
 						"FOO": "3",
 						"BAR": "2",
@@ -648,13 +648,13 @@ run: {path: a/file}
 
 		It("overrides the image", func() {
 			Expect(TaskConfig{
-				RootFsUri: "some-image",
+				RootfsURI: "some-image",
 			}.Merge(TaskConfig{
-				RootFsUri: "better-image",
+				RootfsURI: "better-image",
 			})).To(
 
 				Equal(TaskConfig{
-					RootFsUri: "better-image",
+					RootfsURI: "better-image",
 				}))
 
 		})
@@ -666,7 +666,7 @@ run: {path: a/file}
 					Args: []string{"arg1", "arg2"},
 				},
 			}.Merge(TaskConfig{
-				RootFsUri: "some-image",
+				RootfsURI: "some-image",
 				Run: TaskRunConfig{
 					Path: "better-path",
 					Args: []string{"better-arg1", "better-arg2"},
@@ -674,7 +674,7 @@ run: {path: a/file}
 			})).To(
 
 				Equal(TaskConfig{
-					RootFsUri: "some-image",
+					RootfsURI: "some-image",
 					Run: TaskRunConfig{
 						Path: "better-path",
 						Args: []string{"better-arg1", "better-arg2"},
@@ -690,14 +690,14 @@ run: {path: a/file}
 					Args: []string{"arg1", "arg2"},
 				},
 			}.Merge(TaskConfig{
-				RootFsUri: "some-image",
+				RootfsURI: "some-image",
 				Run: TaskRunConfig{
 					Path: "better-path",
 				},
 			})).To(
 
 				Equal(TaskConfig{
-					RootFsUri: "some-image",
+					RootfsURI: "some-image",
 					Run: TaskRunConfig{
 						Path: "better-path",
 					},
