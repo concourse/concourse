@@ -65,7 +65,7 @@
 [submodule "src/github.com/concourse/baggageclaim"]
 	path = src/github.com/concourse/baggageclaim
 	url = https://github.com/concourse/baggageclaim
-	branch = overlay-driver
+	branch = master
 [submodule "src/github.com/xoebus/zest"]
 	path = src/github.com/xoebus/zest
 	url = https://github.com/xoebus/zest
