@@ -20,7 +20,7 @@ var _ = Describe("Auth", func() {
 	var atcCommand *ATCCommand
 
 	BeforeEach(func() {
-		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
+		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue()) // created by postgresRunner

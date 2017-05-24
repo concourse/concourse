@@ -19,7 +19,7 @@ var _ = Describe("Resource Pagination", func() {
 	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
-		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
+		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue()) // created by postgresRunner

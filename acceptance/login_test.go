@@ -21,7 +21,7 @@ var _ = Describe("Logging In", func() {
 	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
-		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
+		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 		var err error
 		var found bool
 		defaultTeam, found, err = teamFactory.FindTeam(atc.DefaultTeamName)

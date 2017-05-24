@@ -10,7 +10,7 @@ import (
 func AddAuthToTeams(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`
     ALTER TABLE teams
-    ADD COLUMN auth json null;
+    ADD COLUMN auth json NULL;
 	`)
 	if err != nil {
 		return err

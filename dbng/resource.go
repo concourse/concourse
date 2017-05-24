@@ -49,8 +49,7 @@ type resource struct {
 	paused       bool
 	webhookToken string
 
-	conn       Conn
-	encryption EncryptionStrategy
+	conn Conn
 }
 
 type ResourceNotFoundError struct {
@@ -139,7 +138,14 @@ func scanResource(r *resource, row scannable) error {
 		return err
 	}
 
-	decryptedConfig, err := r.encryption.Decrypt(string(configBlob), nonce.String)
+	es := r.conn.EncryptionStrategy()
+
+	var noncense *string
+	if nonce.Valid {
+		noncense = &nonce.String
+	}
+
+	decryptedConfig, err := es.Decrypt(string(configBlob), noncense)
 	if err != nil {
 		return err
 	}

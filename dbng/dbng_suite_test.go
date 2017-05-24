@@ -1,8 +1,6 @@
 package dbng_test
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"os"
 	"testing"
 	"time"
@@ -50,7 +48,6 @@ var (
 	defaultPipeline           dbng.Pipeline
 	logger                    *lagertest.TestLogger
 	lockFactory               lock.LockFactory
-	key                       dbng.EncryptionStrategy
 
 	fullMetadata = dbng.ContainerMetadata{
 		Type: dbng.ContainerTypeTask,
@@ -84,22 +81,16 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	eBlock, err := aes.NewCipher([]byte("AES256Key-32Characters1234567890"))
-	Expect(err).ToNot(HaveOccurred())
-	aesgcm, err := cipher.NewGCM(eBlock)
-	Expect(err).ToNot(HaveOccurred())
-	key = dbng.NewEncryptionKey(aesgcm)
-
 	postgresRunner.Truncate()
 
 	dbConn = postgresRunner.OpenConn()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
-	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory, key)
+	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory)
 	volumeFactory = dbng.NewVolumeFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)
-	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory, key)
+	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
 	workerFactory = dbng.NewWorkerFactory(dbConn)
 	workerLifecycle = dbng.NewWorkerLifecycle(dbConn)
 	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn, lockFactory)
@@ -107,6 +98,7 @@ var _ = BeforeEach(func() {
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
 	workerBaseResourceTypeFactory = dbng.NewWorkerBaseResourceTypeFactory(dbConn)
 
+	var err error
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())
 

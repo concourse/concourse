@@ -81,15 +81,5 @@ var _ = Describe("Encryption Key", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
-
-		Context("when decrypting a non-encrypted text", func() {
-			It("returns the same text", func() {
-				plaintext = []byte("exampleplaintext")
-
-				decryptedText, err := key.Decrypt(string(plaintext), "")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(decryptedText).To(Equal(plaintext))
-			})
-		})
 	})
 })

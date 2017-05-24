@@ -1,8 +1,6 @@
 package gc_test
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"os"
 	"time"
 
@@ -64,14 +62,8 @@ var _ = BeforeEach(func() {
 
 	lockFactory := lock.NewLockFactory(postgresRunner.OpenSingleton())
 
-	eBlock, err := aes.NewCipher([]byte("AES256Key-32Characters1234567890"))
-	Expect(err).ToNot(HaveOccurred())
-	aesgcm, err := cipher.NewGCM(eBlock)
-	Expect(err).ToNot(HaveOccurred())
-	key := dbng.NewEncryptionKey(aesgcm)
-
-	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory, key)
-	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory, key)
+	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
+	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory)
 
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())

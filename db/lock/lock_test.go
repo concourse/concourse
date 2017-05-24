@@ -49,7 +49,7 @@ var _ = Describe("Locks", func() {
 		dbLock = lockFactory.NewLock(logger, lock.LockID{42})
 
 		dbngConn := postgresRunner.OpenConn()
-		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
+		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory)
 
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "team-name"})

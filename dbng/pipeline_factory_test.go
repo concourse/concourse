@@ -11,7 +11,7 @@ var _ = Describe("Pipeline Factory", func() {
 	var pipelineFactory dbng.PipelineFactory
 
 	BeforeEach(func() {
-		pipelineFactory = dbng.NewPipelineFactory(dbConn, lockFactory, key)
+		pipelineFactory = dbng.NewPipelineFactory(dbConn, lockFactory)
 	})
 
 	Describe("PublicPipelines", func() {

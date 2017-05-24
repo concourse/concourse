@@ -61,8 +61,7 @@ type resourceType struct {
 	source  atc.Source
 	version atc.Version
 
-	conn       Conn
-	encryption EncryptionStrategy
+	conn Conn
 }
 
 func (t *resourceType) ID() int            { return t.id }
@@ -130,7 +129,14 @@ func scanResourceType(t *resourceType, row scannable) error {
 		}
 	}
 
-	decryptedConfig, err := t.encryption.Decrypt(string(configJSON), nonce.String)
+	es := t.conn.EncryptionStrategy()
+
+	var noncense *string
+	if nonce.Valid {
+		noncense = &nonce.String
+	}
+
+	decryptedConfig, err := es.Decrypt(string(configJSON), noncense)
 	if err != nil {
 		return err
 	}

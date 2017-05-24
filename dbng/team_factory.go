@@ -2,6 +2,7 @@ package dbng
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -21,24 +22,25 @@ type TeamFactory interface {
 	GetByID(teamID int) Team
 }
 
+var ErrDataIsEncrypted = errors.New("failed to decrypt data that is encrypted")
+var ErrDataIsNotEncrypted = errors.New("failed to decrypt data that is not encrypted")
+
 //go:generate counterfeiter . EncryptionStrategy
 
 type EncryptionStrategy interface {
-	Encrypt([]byte) (string, string, error)
-	Decrypt(string, string) ([]byte, error)
+	Encrypt([]byte) (string, *string, error)
+	Decrypt(string, *string) ([]byte, error)
 }
 
 type teamFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
-	encryption  EncryptionStrategy
 }
 
-func NewTeamFactory(conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy) TeamFactory {
+func NewTeamFactory(conn Conn, lockFactory lock.LockFactory) TeamFactory {
 	return &teamFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
-		encryption:  encryption,
 	}
 }
 
@@ -60,7 +62,8 @@ func (factory *teamFactory) CreateTeam(t atc.Team) (Team, error) {
 		return nil, err
 	}
 
-	encryptedAuth, nonce, err := factory.encryption.Encrypt(auth)
+	es := factory.conn.EncryptionStrategy()
+	encryptedAuth, nonce, err := es.Encrypt(auth)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +78,6 @@ func (factory *teamFactory) CreateTeam(t atc.Team) (Team, error) {
 	team := &team{
 		conn:        factory.conn,
 		lockFactory: factory.lockFactory,
-		encryption:  factory.encryption,
 	}
 	err = factory.scanTeam(team, row)
 
@@ -104,7 +106,6 @@ func (factory *teamFactory) GetByID(teamID int) Team {
 		id:          teamID,
 		conn:        factory.conn,
 		lockFactory: factory.lockFactory,
-		encryption:  factory.encryption,
 	}
 }
 
@@ -112,7 +113,6 @@ func (factory *teamFactory) FindTeam(teamName string) (Team, bool, error) {
 	team := &team{
 		conn:        factory.conn,
 		lockFactory: factory.lockFactory,
-		encryption:  factory.encryption,
 	}
 
 	row := psql.Select("id, name, admin, basic_auth, auth, nonce").
@@ -149,7 +149,6 @@ func (factory *teamFactory) GetTeams() ([]Team, error) {
 		team := &team{
 			conn:        factory.conn,
 			lockFactory: factory.lockFactory,
-			encryption:  factory.encryption,
 		}
 
 		err = factory.scanTeam(team, rows)
@@ -164,27 +163,33 @@ func (factory *teamFactory) GetTeams() ([]Team, error) {
 }
 
 func (factory *teamFactory) scanTeam(t *team, rows scannable) error {
-	var basicAuthen, providerAuth, nonce sql.NullString
+	var basicAuth, providerAuth, nonce sql.NullString
 
 	err := rows.Scan(
 		&t.id,
 		&t.name,
 		&t.admin,
-		&basicAuthen,
+		&basicAuth,
 		&providerAuth,
 		&nonce,
 	)
 
-	if basicAuthen.Valid {
-		err = json.Unmarshal([]byte(basicAuthen.String), &t.basicAuth)
-
+	if basicAuth.Valid {
+		err = json.Unmarshal([]byte(basicAuth.String), &t.basicAuth)
 		if err != nil {
 			return err
 		}
 	}
 
 	if providerAuth.Valid {
-		pAuth, err := factory.encryption.Decrypt(providerAuth.String, nonce.String)
+		es := factory.conn.EncryptionStrategy()
+
+		var noncense *string
+		if nonce.Valid {
+			noncense = &nonce.String
+		}
+
+		pAuth, err := es.Decrypt(providerAuth.String, noncense)
 		if err != nil {
 			return err
 		}

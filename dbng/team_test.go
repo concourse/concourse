@@ -1873,14 +1873,11 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			plaintext := []byte("bad-json")
-			invalidConfig, invalidNonce, err := key.Encrypt(plaintext)
-			Expect(err).NotTo(HaveOccurred())
-
 			dbConn.Exec(`
 		UPDATE pipelines
-		SET config = $1, nonce = $2
+		SET config = $1
 		WHERE name = 'invalid-config'
-		`, invalidConfig, invalidNonce)
+		`, plaintext)
 
 			_, _, invalidConfigVersion, err := invalidPipeline.Config()
 			Expect(err).To(BeAssignableToTypeOf(atc.MalformedConfigError{}))

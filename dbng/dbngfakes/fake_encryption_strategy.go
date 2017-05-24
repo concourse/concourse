@@ -8,26 +8,26 @@ import (
 )
 
 type FakeEncryptionStrategy struct {
-	EncryptStub        func([]byte) (string, string, error)
+	EncryptStub        func([]byte) (string, *string, error)
 	encryptMutex       sync.RWMutex
 	encryptArgsForCall []struct {
 		arg1 []byte
 	}
 	encryptReturns struct {
 		result1 string
-		result2 string
+		result2 *string
 		result3 error
 	}
 	encryptReturnsOnCall map[int]struct {
 		result1 string
-		result2 string
+		result2 *string
 		result3 error
 	}
-	DecryptStub        func(string, string) ([]byte, error)
+	DecryptStub        func(string, *string) ([]byte, error)
 	decryptMutex       sync.RWMutex
 	decryptArgsForCall []struct {
 		arg1 string
-		arg2 string
+		arg2 *string
 	}
 	decryptReturns struct {
 		result1 []byte
@@ -41,7 +41,7 @@ type FakeEncryptionStrategy struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeEncryptionStrategy) Encrypt(arg1 []byte) (string, string, error) {
+func (fake *FakeEncryptionStrategy) Encrypt(arg1 []byte) (string, *string, error) {
 	var arg1Copy []byte
 	if arg1 != nil {
 		arg1Copy = make([]byte, len(arg1))
@@ -75,37 +75,37 @@ func (fake *FakeEncryptionStrategy) EncryptArgsForCall(i int) []byte {
 	return fake.encryptArgsForCall[i].arg1
 }
 
-func (fake *FakeEncryptionStrategy) EncryptReturns(result1 string, result2 string, result3 error) {
+func (fake *FakeEncryptionStrategy) EncryptReturns(result1 string, result2 *string, result3 error) {
 	fake.EncryptStub = nil
 	fake.encryptReturns = struct {
 		result1 string
-		result2 string
+		result2 *string
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeEncryptionStrategy) EncryptReturnsOnCall(i int, result1 string, result2 string, result3 error) {
+func (fake *FakeEncryptionStrategy) EncryptReturnsOnCall(i int, result1 string, result2 *string, result3 error) {
 	fake.EncryptStub = nil
 	if fake.encryptReturnsOnCall == nil {
 		fake.encryptReturnsOnCall = make(map[int]struct {
 			result1 string
-			result2 string
+			result2 *string
 			result3 error
 		})
 	}
 	fake.encryptReturnsOnCall[i] = struct {
 		result1 string
-		result2 string
+		result2 *string
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeEncryptionStrategy) Decrypt(arg1 string, arg2 string) ([]byte, error) {
+func (fake *FakeEncryptionStrategy) Decrypt(arg1 string, arg2 *string) ([]byte, error) {
 	fake.decryptMutex.Lock()
 	ret, specificReturn := fake.decryptReturnsOnCall[len(fake.decryptArgsForCall)]
 	fake.decryptArgsForCall = append(fake.decryptArgsForCall, struct {
 		arg1 string
-		arg2 string
+		arg2 *string
 	}{arg1, arg2})
 	fake.recordInvocation("Decrypt", []interface{}{arg1, arg2})
 	fake.decryptMutex.Unlock()
@@ -124,7 +124,7 @@ func (fake *FakeEncryptionStrategy) DecryptCallCount() int {
 	return len(fake.decryptArgsForCall)
 }
 
-func (fake *FakeEncryptionStrategy) DecryptArgsForCall(i int) (string, string) {
+func (fake *FakeEncryptionStrategy) DecryptArgsForCall(i int) (string, *string) {
 	fake.decryptMutex.RLock()
 	defer fake.decryptMutex.RUnlock()
 	return fake.decryptArgsForCall[i].arg1, fake.decryptArgsForCall[i].arg2

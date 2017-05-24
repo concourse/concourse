@@ -17,20 +17,22 @@ func NewEncryptionKey(a cipher.AEAD) *EncryptionKey {
 	}
 }
 
-func (e EncryptionKey) Encrypt(plaintext []byte) (string, string, error) {
+func (e EncryptionKey) Encrypt(plaintext []byte) (string, *string, error) {
 	nonce := make([]byte, 12)
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
 	ciphertext := e.aesgcm.Seal(nil, nonce, plaintext, nil)
 
-	return hex.EncodeToString(ciphertext), hex.EncodeToString(nonce), nil
+	noncense := hex.EncodeToString(nonce)
+
+	return hex.EncodeToString(ciphertext), &noncense, nil
 }
 
-func (e EncryptionKey) Decrypt(text string, n string) ([]byte, error) {
-	if n == "" {
-		return []byte(text), nil
+func (e EncryptionKey) Decrypt(text string, n *string) ([]byte, error) {
+	if n == nil {
+		return nil, ErrDataIsNotEncrypted
 	}
 
 	ciphertext, err := hex.DecodeString(text)
@@ -38,7 +40,7 @@ func (e EncryptionKey) Decrypt(text string, n string) ([]byte, error) {
 		return nil, err
 	}
 
-	nonce, err := hex.DecodeString(n)
+	nonce, err := hex.DecodeString(*n)
 	if err != nil {
 		return nil, err
 	}

@@ -215,7 +215,24 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	retryingDriverName := "too-many-connections-retrying"
 	dbng.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
 
-	dbConn, dbngConn, err := cmd.constructDBConn(retryingDriverName, logger)
+	var strategy dbng.EncryptionStrategy
+	if cmd.EncryptionKey != "" {
+		block, err := aes.NewCipher([]byte(cmd.EncryptionKey))
+		if err != nil {
+			return nil, err
+		}
+
+		aesgcm, err := cipher.NewGCM(block)
+		if err != nil {
+			return nil, err
+		}
+
+		strategy = dbng.NewEncryptionKey(aesgcm)
+	} else {
+		strategy = dbng.NewNoEncryption()
+	}
+
+	dbConn, dbngConn, err := cmd.constructDBConn(retryingDriverName, logger, strategy)
 	if err != nil {
 		return nil, err
 	}
@@ -234,29 +251,13 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	listener := pq.NewListener(cmd.Postgres.ConnectionString(), time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
 
-	var strategy dbng.EncryptionStrategy
-	if cmd.EncryptionKey != "" {
-		block, err := aes.NewCipher([]byte(cmd.EncryptionKey))
-		if err != nil {
-			return nil, err
-		}
-
-		aesgcm, err := cipher.NewGCM(block)
-		if err != nil {
-			return nil, err
-		}
-
-		strategy = dbng.NewEncryptionKey(aesgcm)
-	} else {
-		strategy = dbng.NewNoEncryption()
-	}
-	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, strategy)
+	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
-	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory, strategy)
+	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
 	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
-	dbPipelineFactory := dbng.NewPipelineFactory(dbngConn, lockFactory, strategy)
+	dbPipelineFactory := dbng.NewPipelineFactory(dbngConn, lockFactory)
 	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
 	dbWorkerLifecycle := dbng.NewWorkerLifecycle(dbngConn)
 	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn, lockFactory)
@@ -686,8 +687,8 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 	metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
 }
 
-func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger) (db.Conn, dbng.Conn, error) {
-	dbngConn, err := dbng.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString())
+func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, strategy dbng.EncryptionStrategy) (db.Conn, dbng.Conn, error) {
+	dbngConn, err := dbng.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), strategy)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}

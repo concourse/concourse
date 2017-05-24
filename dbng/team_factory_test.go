@@ -92,8 +92,6 @@ var _ = Describe("Team Factory", func() {
 		BeforeEach(func() {
 			err := defaultTeam.Delete()
 			Expect(err).ToNot(HaveOccurred())
-			mainTeam, _, _ := teamFactory.FindTeam("main")
-			err = mainTeam.Delete()
 		})
 
 		JustBeforeEach(func() {
@@ -111,15 +109,15 @@ var _ = Describe("Team Factory", func() {
 			})
 
 			It("returns the team", func() {
-				Expect(teams[0].Name()).To(Equal(atcTeam.Name))
-				Expect(teams[0].BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
-				err := bcrypt.CompareHashAndPassword([]byte(teams[0].BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
+				Expect(teams[1].Name()).To(Equal(atcTeam.Name))
+				Expect(teams[1].BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
+				err := bcrypt.CompareHashAndPassword([]byte(teams[1].BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
 				Expect(err).ToNot(HaveOccurred())
-				Expect(teams[0].Auth()).To(Equal(atcTeam.Auth))
+				Expect(teams[1].Auth()).To(Equal(atcTeam.Auth))
 			})
 		})
 
-		Context("when there are more than one team", func() {
+		Context("when there is more than one team", func() {
 			var (
 				createdTeam      dbng.Team
 				otherCreatedTeam dbng.Team
@@ -139,22 +137,16 @@ var _ = Describe("Team Factory", func() {
 			})
 
 			It("returns both teams", func() {
-				Expect(teams[0].Name()).To(Equal(atcTeam.Name))
-				Expect(teams[0].BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
-				err := bcrypt.CompareHashAndPassword([]byte(teams[0].BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
+				Expect(teams[1].Name()).To(Equal(atcTeam.Name))
+				Expect(teams[1].BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
+				err := bcrypt.CompareHashAndPassword([]byte(teams[1].BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
 				Expect(err).ToNot(HaveOccurred())
-				Expect(teams[0].Auth()).To(Equal(atcTeam.Auth))
+				Expect(teams[1].Auth()).To(Equal(atcTeam.Auth))
 
-				Expect(teams[1].Name()).To(Equal("some-other-team"))
-				Expect(teams[1].BasicAuth().BasicAuthUsername).To(Equal("boring-user"))
-				err = bcrypt.CompareHashAndPassword([]byte(teams[1].BasicAuth().BasicAuthPassword), []byte("boring-password"))
+				Expect(teams[2].Name()).To(Equal("some-other-team"))
+				Expect(teams[2].BasicAuth().BasicAuthUsername).To(Equal("boring-user"))
+				err = bcrypt.CompareHashAndPassword([]byte(teams[2].BasicAuth().BasicAuthPassword), []byte("boring-password"))
 				Expect(err).ToNot(HaveOccurred())
-			})
-		})
-
-		Context("when there are no teams", func() {
-			It("returns nil", func() {
-				Expect(teams).To(Equal([]dbng.Team{}))
 			})
 		})
 	})

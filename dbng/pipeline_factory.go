@@ -15,14 +15,12 @@ type PipelineFactory interface {
 type pipelineFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
-	encryption  EncryptionStrategy
 }
 
-func NewPipelineFactory(conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy) PipelineFactory {
+func NewPipelineFactory(conn Conn, lockFactory lock.LockFactory) PipelineFactory {
 	return &pipelineFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
-		encryption:  encryption,
 	}
 }
 
@@ -36,7 +34,7 @@ func (f *pipelineFactory) PublicPipelines() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	pipelines, err := scanPipelines(f.conn, f.lockFactory, f.encryption, rows)
+	pipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -53,5 +51,5 @@ func (f *pipelineFactory) AllPipelines() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	return scanPipelines(f.conn, f.lockFactory, f.encryption, rows)
+	return scanPipelines(f.conn, f.lockFactory, rows)
 }

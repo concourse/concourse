@@ -124,7 +124,6 @@ type pipeline struct {
 
 	conn        Conn
 	lockFactory lock.LockFactory
-	encryption  EncryptionStrategy
 }
 
 //ConfigVersion is a sequence identifier used for compare-and-swap
@@ -166,11 +165,10 @@ func (state PipelinePausedState) Bool() *bool {
 	}
 }
 
-func newPipeline(conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy) *pipeline {
+func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	return &pipeline{
 		conn:        conn,
 		lockFactory: lockFactory,
-		encryption:  encryption,
 	}
 }
 
@@ -207,7 +205,14 @@ func (p *pipeline) Config() (atc.Config, atc.RawConfig, ConfigVersion, error) {
 		return atc.Config{}, atc.RawConfig(""), 0, err
 	}
 
-	decryptedConfig, err := p.encryption.Decrypt(string(configBlob), nonce.String)
+	es := p.conn.EncryptionStrategy()
+
+	var noncense *string
+	if nonce.Valid {
+		noncense = &nonce.String
+	}
+
+	decryptedConfig, err := es.Decrypt(string(configBlob), noncense)
 	if err != nil {
 		return atc.Config{}, atc.RawConfig(""), 0, err
 	}
@@ -279,7 +284,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 		return nil, err
 	}
 
-	build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+	build := &build{conn: p.conn, lockFactory: p.lockFactory}
 	err = scanBuild(build, buildsQuery.
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
@@ -356,7 +361,7 @@ func (p *pipeline) GetPendingBuildsForJob(jobName string) ([]Build, error) {
 		"j.pipeline_id": p.id,
 	}).RunWith(p.conn).QueryRow()
 
-	job := &job{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+	job := &job{conn: p.conn, lockFactory: p.lockFactory}
 	err := scanJob(job, row)
 	if err != nil {
 		return nil, err
@@ -377,7 +382,7 @@ func (p *pipeline) GetPendingBuildsForJob(jobName string) ([]Build, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+		build := &build{conn: p.conn, lockFactory: p.lockFactory}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, err
@@ -408,7 +413,7 @@ func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+		build := &build{conn: p.conn, lockFactory: p.lockFactory}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, err
@@ -785,7 +790,7 @@ func (p *pipeline) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build
 
 	builds := []Build{}
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+		build := &build{conn: p.conn, lockFactory: p.lockFactory}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, err
@@ -811,7 +816,7 @@ func (p *pipeline) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Buil
 
 	builds := []Build{}
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+		build := &build{conn: p.conn, lockFactory: p.lockFactory}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, err
@@ -904,7 +909,7 @@ func (p *pipeline) Resource(name string) (Resource, bool, error) {
 		"r.name":        name,
 	}).RunWith(p.conn).QueryRow()
 
-	resource := &resource{conn: p.conn, encryption: p.encryption}
+	resource := &resource{conn: p.conn}
 	err := scanResource(resource, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -928,7 +933,7 @@ func (p *pipeline) Resources() (Resources, error) {
 	var resources Resources
 
 	for rows.Next() {
-		newResource := &resource{conn: p.conn, encryption: p.encryption}
+		newResource := &resource{conn: p.conn}
 		err := scanResource(newResource, rows)
 		if err != nil {
 			return nil, err
@@ -1004,7 +1009,7 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	resourceTypes := []ResourceType{}
 
 	for rows.Next() {
-		resourceType := &resourceType{conn: p.conn, encryption: p.encryption}
+		resourceType := &resourceType{conn: p.conn}
 		err := scanResourceType(resourceType, rows)
 		if err != nil {
 			return nil, err
@@ -1022,7 +1027,7 @@ func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 		"name":        name,
 	}).RunWith(p.conn).QueryRow()
 
-	resourceType := &resourceType{conn: p.conn, encryption: p.encryption}
+	resourceType := &resourceType{conn: p.conn}
 	err := scanResourceType(resourceType, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1042,7 +1047,7 @@ func (p *pipeline) Job(name string) (Job, bool, error) {
 		"j.pipeline_id": p.id,
 	}).RunWith(p.conn).QueryRow()
 
-	job := &job{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+	job := &job{conn: p.conn, lockFactory: p.lockFactory}
 	err := scanJob(job, row)
 
 	if err != nil {
@@ -1069,7 +1074,7 @@ func (p *pipeline) Jobs() ([]Job, error) {
 		return nil, err
 	}
 
-	jobs, err := scanJobs(p.conn, p.lockFactory, p.encryption, rows)
+	jobs, err := scanJobs(p.conn, p.lockFactory, rows)
 	return jobs, err
 }
 
@@ -1088,7 +1093,7 @@ func (p *pipeline) Dashboard() (Dashboard, atc.GroupConfigs, error) {
 		return nil, nil, err
 	}
 
-	jobs, err := scanJobs(p.conn, p.lockFactory, p.encryption, rows)
+	jobs, err := scanJobs(p.conn, p.lockFactory, rows)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1909,7 +1914,7 @@ func (p *pipeline) getLastJobBuildsSatisfying(bRequirement string) (map[string]B
 	nextBuilds := make(map[string]Build)
 
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
+		build := &build{conn: p.conn, lockFactory: p.lockFactory}
 		err := scanBuild(build, rows)
 		if err != nil {
 			return nil, err

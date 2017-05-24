@@ -67,7 +67,6 @@ type job struct {
 
 	conn        Conn
 	lockFactory lock.LockFactory
-	encryption  EncryptionStrategy
 }
 
 func (j *job) ID() int                 { return j.id }
@@ -119,7 +118,7 @@ func (j *job) FinishedAndNextBuild() (Build, Build, error) {
 
 	var finished, next Build
 
-	finishedBuild := &build{conn: j.conn, lockFactory: j.lockFactory, encryption: j.encryption}
+	finishedBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
 	err := scanBuild(finishedBuild, row)
 	if err == nil {
 		finished = finishedBuild
@@ -138,7 +137,7 @@ func (j *job) FinishedAndNextBuild() (Build, Build, error) {
 		RunWith(j.conn).
 		QueryRow()
 
-	nextBuild := &build{conn: j.conn, lockFactory: j.lockFactory, encryption: j.encryption}
+	nextBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
 	err = scanBuild(nextBuild, row)
 	if err == nil {
 		next = nextBuild
@@ -240,7 +239,7 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 	builds := []Build{}
 
 	for rows.Next() {
-		build := &build{conn: j.conn, lockFactory: j.lockFactory, encryption: j.encryption}
+		build := &build{conn: j.conn, lockFactory: j.lockFactory}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, Pagination{}, err
@@ -295,7 +294,7 @@ func (j *job) Build(name string) (Build, bool, error) {
 		RunWith(j.conn).
 		QueryRow()
 
-	build := &build{conn: j.conn, lockFactory: j.lockFactory, encryption: j.encryption}
+	build := &build{conn: j.conn, lockFactory: j.lockFactory}
 
 	err := scanBuild(build, row)
 	if err != nil {
@@ -337,7 +336,7 @@ func (j *job) GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bo
 		LIMIT 1
 	`, args...)
 
-	build := &build{conn: j.conn, lockFactory: j.lockFactory, encryption: j.encryption}
+	build := &build{conn: j.conn, lockFactory: j.lockFactory}
 	err = scanBuild(build, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -388,7 +387,7 @@ func (j *job) GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, err
 	bs := []Build{}
 
 	for rows.Next() {
-		build := &build{conn: j.conn, lockFactory: j.lockFactory, encryption: j.encryption}
+		build := &build{conn: j.conn, lockFactory: j.lockFactory}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, err
@@ -493,7 +492,14 @@ func scanJob(j *job, row scannable) error {
 		return err
 	}
 
-	decryptedConfig, err := j.encryption.Decrypt(string(configBlob), nonce.String)
+	es := j.conn.EncryptionStrategy()
+
+	var noncense *string
+	if nonce.Valid {
+		noncense = &nonce.String
+	}
+
+	decryptedConfig, err := es.Decrypt(string(configBlob), noncense)
 	if err != nil {
 		return err
 	}
@@ -509,13 +515,13 @@ func scanJob(j *job, row scannable) error {
 	return nil
 }
 
-func scanJobs(conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy, rows *sql.Rows) ([]Job, error) {
+func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Job, error) {
 	defer rows.Close()
 
 	jobs := []Job{}
 
 	for rows.Next() {
-		job := &job{conn: conn, lockFactory: lockFactory, encryption: encryption}
+		job := &job{conn: conn, lockFactory: lockFactory}
 
 		err := scanJob(job, rows)
 		if err != nil {

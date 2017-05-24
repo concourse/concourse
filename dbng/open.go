@@ -18,7 +18,7 @@ import (
 
 type Conn interface {
 	Bus() NotificationsBus
-	Close() error
+	EncryptionStrategy() EncryptionStrategy
 
 	Begin() (Tx, error)
 	Driver() driver.Driver
@@ -30,6 +30,8 @@ type Conn interface {
 	SetMaxIdleConns(n int)
 	SetMaxOpenConns(n int)
 	Stats() sql.DBStats
+
+	Close() error
 }
 
 type Tx interface {
@@ -42,7 +44,7 @@ type Tx interface {
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 }
 
-func Open(logger lager.Logger, sqlDriver string, sqlDataSource string) (Conn, error) {
+func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, encryption EncryptionStrategy) (Conn, error) {
 	for {
 		sqlDb, err := migration.Open(sqlDriver, sqlDataSource, migrations.Migrations)
 		if err != nil {
@@ -55,12 +57,60 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string) (Conn, er
 			return nil, err
 		}
 
+		for table, col := range map[string]string{
+			"teams":          "auth",
+			"resources":      "config",
+			"jobs":           "config",
+			"resource_types": "config",
+			"pipelines":      "config",
+		} {
+			rows, err := sqlDb.Query(`
+			SELECT id, ` + col + `
+			FROM ` + table + `
+			WHERE nonce IS NULL
+		`)
+			if err != nil && err != sql.ErrNoRows {
+				return nil, err
+			}
+
+			for rows.Next() {
+				var (
+					id  int
+					val sql.NullString
+				)
+
+				err := rows.Scan(&id, &val)
+				if err != nil {
+					return nil, err
+				}
+
+				if !val.Valid {
+					continue
+				}
+
+				encrypted, nonce, err := encryption.Encrypt([]byte(val.String))
+				if err != nil {
+					return nil, err
+				}
+
+				_, err = sqlDb.Exec(`
+				UPDATE `+table+`
+				SET `+col+` = $1, nonce = $2
+				WHERE id = $3
+			`, encrypted, nonce, id)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+
 		listener := pq.NewListener(sqlDataSource, time.Second, time.Minute, nil)
 
 		return &db{
 			DB: sqlDb,
 
-			bus: NewNotificationsBus(listener, sqlDb),
+			bus:        NewNotificationsBus(listener, sqlDb),
+			encryption: encryption,
 		}, nil
 	}
 }
@@ -68,11 +118,16 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string) (Conn, er
 type db struct {
 	*sql.DB
 
-	bus NotificationsBus
+	bus        NotificationsBus
+	encryption EncryptionStrategy
 }
 
 func (db *db) Bus() NotificationsBus {
 	return db.bus
+}
+
+func (db *db) EncryptionStrategy() EncryptionStrategy {
+	return db.encryption
 }
 
 func (db *db) Close() error {
