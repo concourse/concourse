@@ -25,15 +25,21 @@ plan:
 }
 
 \define-attribute{get: string}{
-  \italic{Required.} The logical name of the resource being fetched. This name
+  \italic{Required.} The name of the resource once it is fetched. This name
   satisfies logical inputs to a \reference{tasks}{Task}, and may be referenced
   within the plan itself (e.g. in the \code{file} attribute of a
   \reference{task-step}{\code{task}} step).
+
+  This is also the name of the resource to fetch, if \code{resource} is not
+  set.
 }
 
 \define-attribute{resource: string}{
-  \italic{Optional. Defaults to \code{name}.} The resource to fetch, as
-  configured in \reference{configuring-resources}{\code{resources}}.
+  \italic{Optional. Defaults to \code{get}, the name.} The resource to fetch,
+  as configured in \reference{configuring-resources}{\code{resources}}.
+
+  Use this attribute to rename a resource from the overall pipeline context
+  into the job-specific context.
 }
 
 \define-attribute{version: ("latest" | "every" | \{version\})}{get-version}{
