@@ -227,11 +227,11 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 	return worker.FetchedImage{}, ErrUnsupportedResourceType
 }
 
-type imageInTask struct {
+type imageFromRootFsUri struct {
 	url string
 }
 
-func (i *imageInTask) FetchForContainer(
+func (i *imageFromRootFsUri) FetchForContainer(
 	logger lager.Logger,
 	container dbng.CreatingContainer,
 ) (worker.FetchedImage, error) {
