@@ -32,7 +32,7 @@ var _ = Describe("Worker retiring", func() {
 
 		By("getting the worker volumes")
 		volumesBefore := flyTable("volumes")
-		Expect(volumesBefore).To(HaveLen(2))
+		Expect(volumesBefore).ToNot(BeEmpty())
 
 		By("retiring the worker")
 		Deploy(deployment, "operations/retire-worker.yml")
