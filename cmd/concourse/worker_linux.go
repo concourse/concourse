@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"code.cloudfoundry.org/guardian/guardiancmd"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/bin/bindata"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )
@@ -39,48 +39,6 @@ func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
 
 	// configured as work-dir/volumes
 	command.FindOptionByLongName("baggageclaim-volumes").Required = false
-}
-
-func (cmd *WorkerCommand) setup(logger lager.Logger) (bool, error) {
-	restoredDir := cmd.assetPath("linux")
-
-	okMarker := cmd.assetPath("ok")
-
-	_, err := os.Stat(okMarker)
-	if err == nil {
-		logger.Info("already-done")
-		return true, nil
-	}
-
-	logger.Info("unpacking")
-
-	err = bindata.RestoreAssets(cmd.assetPath(), "linux")
-	if err != nil {
-		logger.Error("failed-to-unpack", err)
-		return false, err
-	}
-
-	_, err = os.Stat(cmd.assetPath())
-	if os.IsNotExist(err) {
-		logger.Info("no-assets")
-		return false, nil
-	}
-
-	ok, err := os.Create(okMarker)
-	if err != nil {
-		logger.Error("failed-to-create-ok-marker", err)
-		return false, err
-	}
-
-	err = ok.Close()
-	if err != nil {
-		logger.Error("failed-to-close-ok-marker", err)
-		return false, err
-	}
-
-	logger.Info("done")
-
-	return true, nil
 }
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc.Worker, ifrit.Runner, error) {
@@ -123,10 +81,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 		iptablesDir := cmd.assetPath("iptables")
 		cmd.Garden.Bin.IPTables = guardiancmd.FileFlag(filepath.Join(iptablesDir, "sbin", "iptables"))
 
-		worker.ResourceTypes, err = cmd.extractResources(
-			logger.Session("extract-resources"),
-			assetsDir,
-		)
+		worker.ResourceTypes, err = cmd.extractResources(logger.Session("extract-resources"))
 		if err != nil {
 			return atc.Worker{}, nil, err
 		}
@@ -141,7 +96,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 	return worker, &runner, nil
 }
 
-func (cmd *WorkerCommand) extractResources(logger lager.Logger, assetsDir string) ([]atc.WorkerResourceType, error) {
+func (cmd *WorkerCommand) extractResources(logger lager.Logger) ([]atc.WorkerResourceType, error) {
 	var resourceTypes []atc.WorkerResourceType
 
 	resourcesDir := cmd.assetPath("resources")
@@ -157,7 +112,6 @@ func (cmd *WorkerCommand) extractResources(logger lager.Logger, assetsDir string
 
 		workerResourceType, err := cmd.extractResource(
 			logger.Session("extract", lager.Data{"resource-type": resourceType}),
-			assetsDir,
 			resourcesDir,
 			resourceType,
 		)
@@ -174,7 +128,6 @@ func (cmd *WorkerCommand) extractResources(logger lager.Logger, assetsDir string
 
 func (cmd *WorkerCommand) extractResource(
 	logger lager.Logger,
-	assetsDir string,
 	resourcesDir string,
 	resourceType string,
 ) (atc.WorkerResourceType, error) {
@@ -257,6 +210,8 @@ func (cmd *WorkerCommand) extractResource(
 		Privileged: privileged,
 	}, nil
 }
+
+var ErrNotRoot = errors.New("worker must be run as root")
 
 func (cmd *WorkerCommand) checkRoot() error {
 	currentUser, err := user.Current()

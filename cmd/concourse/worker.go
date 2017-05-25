@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
+	"github.com/concourse/bin/bindata"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/restart"
@@ -91,7 +92,47 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 }
 
 func (cmd *WorkerCommand) assetPath(paths ...string) string {
-	return filepath.Join(append([]string{cmd.WorkDir.Path(), Version}, paths...)...)
+	return filepath.Join(append([]string{cmd.WorkDir.Path(), Version, "assets"}, paths...)...)
+}
+
+func (cmd *WorkerCommand) setup(logger lager.Logger) (bool, error) {
+	okMarker := cmd.assetPath("ok")
+
+	_, err := os.Stat(okMarker)
+	if err == nil {
+		logger.Info("already-done")
+		return true, nil
+	}
+
+	logger.Info("unpacking")
+
+	err = bindata.RestoreAssets(cmd.assetPath(), "assets")
+	if err != nil {
+		logger.Error("failed-to-unpack", err)
+		return false, err
+	}
+
+	_, err = os.Stat(cmd.assetPath())
+	if os.IsNotExist(err) {
+		logger.Info("no-assets")
+		return false, nil
+	}
+
+	ok, err := os.Create(okMarker)
+	if err != nil {
+		logger.Error("failed-to-create-ok-marker", err)
+		return false, err
+	}
+
+	err = ok.Close()
+	if err != nil {
+		logger.Error("failed-to-close-ok-marker", err)
+		return false, err
+	}
+
+	logger.Info("done")
+
+	return true, nil
 }
 
 func (cmd *WorkerCommand) workerName() (string, error) {

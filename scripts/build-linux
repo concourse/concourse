@@ -2,23 +2,23 @@
 
 set -e -u -x
 
-LINUX_ASSETS=$PWD/linux
+ASSETS_DIR=$PWD/assets
 
-rm -rf $LINUX_ASSETS
-mkdir -p $LINUX_ASSETS
+rm -rf $ASSETS_DIR
+mkdir -p $ASSETS_DIR
 
-mkdir -p $LINUX_ASSETS/bin
-cp /opt/static-assets/tar $LINUX_ASSETS/bin/tar
+mkdir -p $ASSETS_DIR/bin
+cp /opt/static-assets/tar $ASSETS_DIR/bin/tar
 
-mkdir -p $LINUX_ASSETS/btrfs
-cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $LINUX_ASSETS/btrfs
+mkdir -p $ASSETS_DIR/btrfs
+cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $ASSETS_DIR/btrfs
 
-cp -a /opt/static-assets/iptables $LINUX_ASSETS/iptables
+cp -a /opt/static-assets/iptables $ASSETS_DIR/iptables
 
 # go-bindata does weird stuff with symlinks. we only care about iptables anyway
-rm $LINUX_ASSETS/iptables/sbin/*
-rm -r $LINUX_ASSETS/iptables/bin
-cp -aL /opt/static-assets/iptables/sbin/iptables $LINUX_ASSETS/iptables/sbin/iptables
+rm $ASSETS_DIR/iptables/sbin/*
+rm -r $ASSETS_DIR/iptables/bin
+cp -aL /opt/static-assets/iptables/sbin/iptables $ASSETS_DIR/iptables/sbin/iptables
 
 pushd garden-runc-release/
   # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
@@ -38,15 +38,15 @@ pushd garden-runc-release/
         BUILDTAGS=seccomp \
         make static
 
-      mv runc $LINUX_ASSETS/bin
+      mv runc $ASSETS_DIR/bin
     popd
 
     pushd src/code.cloudfoundry.org/guardian/rundmc/nstar
       make
-      mv nstar $LINUX_ASSETS/bin
+      mv nstar $ASSETS_DIR/bin
     popd
 
-    cp bin/{init,dadoo} $LINUX_ASSETS/bin
+    cp bin/{init,dadoo} $ASSETS_DIR/bin
   )
 popd
 
@@ -54,7 +54,7 @@ pushd concourse/
   # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
   HOME=$PWD bosh sync-blobs
 
-  mkdir -p $LINUX_ASSETS/resources
+  mkdir -p $ASSETS_DIR/resources
 
   for resource in blobs/resources/*-resource.tar.gz; do
     resource_name="$(basename $resource | sed -e 's/-resource.tar.gz//')"
@@ -64,7 +64,7 @@ pushd concourse/
       exit 1
     fi
 
-    resource_dir=$LINUX_ASSETS/resources/$resource_name
+    resource_dir=$ASSETS_DIR/resources/$resource_name
 
     mkdir -p $resource_dir
     cp -L "$resource" $resource_dir/rootfs.tar.gz

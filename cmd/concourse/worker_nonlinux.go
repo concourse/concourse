@@ -17,10 +17,6 @@ func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
 	command.FindOptionByLongName("baggageclaim-volumes").Required = false
 }
 
-func (cmd *WorkerCommand) setup(logger lager.Logger) (bool, error) {
-	return false, nil
-}
-
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc.Worker, ifrit.Runner, error) {
 	return cmd.houdiniRunner(logger, runtime.GOOS)
 }
