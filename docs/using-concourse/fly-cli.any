@@ -297,6 +297,17 @@ flag. Once you've learned what the commands do, you may want to consult
     The task would then run with \code{BAR} as \code{"hello"}, and \code{FOO}
     as \code{"fizzbuzz"} (its default value).
   }
+
+  \section{Targeting a specific worker with \code{--tag}}{
+    If you want to execute a task on a worker that has a specific tag. Example:
+
+    \codeblock{bash}{
+      fly -t example execute --config task.yml --tag bar
+    }
+
+    This will execute the task specified by \code{task.yml} on a worker that has
+    been tagged \code{bar}
+  }
 }
 
 \section{\code{pipelines}\aux{: Listing configured pipelines}}{fly-pipelines}{
