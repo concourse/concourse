@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/baggageclaim/fs"
 	"github.com/concourse/bin/bindata"
+	"github.com/concourse/bin/kernel"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )
@@ -42,7 +44,10 @@ func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
 	command.FindOptionByLongName("garden-tar-bin").Required = false
 
 	command.FindOptionByLongName("baggageclaim-volumes").Required = false
-	command.FindOptionByLongName("baggageclaim-driver").Default = []string{"btrfs"}
+
+	driverFlag := command.FindOptionByLongName("baggageclaim-driver")
+	driverFlag.Choices = append(driverFlag.Choices, "detect")
+	driverFlag.Default = []string{"detect"}
 }
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.Worker, ifrit.Runner, error) {
@@ -51,7 +56,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	assetsDir, err := cmd.restoreVersionedAssets(logger.Session("unpack-assets"))
+	assetsDir, hasAssets, err := cmd.restoreVersionedAssets(logger.Session("unpack-assets"))
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
@@ -66,18 +71,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	}
 
 	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP)
-
 	cmd.Garden.Containers.Dir = depotDir
-
-	cmd.Garden.Bin.Runc = filepath.Join(assetsDir, "bin", "runc")
-	cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "dadoo"))
-	cmd.Garden.Bin.Init = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "init"))
-	cmd.Garden.Bin.NSTar = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "nstar"))
-	cmd.Garden.Bin.Tar = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "tar"))
-
-	iptablesDir := filepath.Join(assetsDir, "iptables")
-	cmd.Garden.Bin.IPTables = guardiancmd.FileFlag(filepath.Join(iptablesDir, "sbin", "iptables"))
-
 	cmd.Garden.Network.AllowHostAccess = true
 
 	worker := atc.Worker{
@@ -91,12 +85,23 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		StartTime:     time.Now().Unix(),
 	}
 
-	worker.ResourceTypes, err = cmd.extractResources(
-		logger.Session("extract-resources"),
-		assetsDir,
-	)
-	if err != nil {
-		return atc.Worker{}, nil, err
+	if hasAssets {
+		cmd.Garden.Bin.Runc = filepath.Join(assetsDir, "bin", "runc")
+		cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "dadoo"))
+		cmd.Garden.Bin.Init = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "init"))
+		cmd.Garden.Bin.NSTar = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "nstar"))
+		cmd.Garden.Bin.Tar = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "tar"))
+
+		iptablesDir := filepath.Join(assetsDir, "iptables")
+		cmd.Garden.Bin.IPTables = guardiancmd.FileFlag(filepath.Join(iptablesDir, "sbin", "iptables"))
+
+		worker.ResourceTypes, err = cmd.extractResources(
+			logger.Session("extract-resources"),
+			assetsDir,
+		)
+		if err != nil {
+			return atc.Worker{}, nil, err
+		}
 	}
 
 	worker.Name, err = cmd.workerName()
@@ -108,7 +113,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	return worker, &runner, nil
 }
 
-func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, error) {
+func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, bool, error) {
 	assetsDir := filepath.Join(cmd.WorkDir.Path(), Version)
 
 	restoredDir := filepath.Join(assetsDir, "linux")
@@ -118,7 +123,7 @@ func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, e
 	_, err := os.Stat(okMarker)
 	if err == nil {
 		logger.Info("already-done")
-		return restoredDir, nil
+		return restoredDir, true, nil
 	}
 
 	logger.Info("unpacking")
@@ -126,37 +131,35 @@ func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, e
 	err = bindata.RestoreAssets(assetsDir, "linux")
 	if err != nil {
 		logger.Error("failed-to-unpack", err)
-		return "", err
+		return "", false, err
+	}
+
+	_, err = os.Stat(assetsDir)
+	if os.IsNotExist(err) {
+		return "", false, nil
 	}
 
 	ok, err := os.Create(okMarker)
 	if err != nil {
 		logger.Error("failed-to-create-ok-marker", err)
-		return "", err
+		return "", false, err
 	}
 
 	err = ok.Close()
 	if err != nil {
 		logger.Error("failed-to-close-ok-marker", err)
-		return "", err
+		return "", false, err
 	}
 
 	logger.Info("done")
 
-	return restoredDir, nil
+	return restoredDir, false, nil
 }
 
 func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
-	volumesImage := filepath.Join(cmd.WorkDir.Path(), "volumes.img")
 	volumesDir := filepath.Join(cmd.WorkDir.Path(), "volumes")
 
-	assetsDir, err := cmd.restoreVersionedAssets(logger.Session("unpack-assets"))
-	if err != nil {
-		return nil, err
-	}
-	btrfsToolsDir := filepath.Join(assetsDir, "btrfs")
-
-	err = os.MkdirAll(volumesDir, 0755)
+	err := os.MkdirAll(volumesDir, 0755)
 	if err != nil {
 		return nil, err
 	}
@@ -167,8 +170,36 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 		return nil, fmt.Errorf("failed to stat volumes filesystem: %s", err)
 	}
 
-	if fsStat.Type != btrfsFSType {
-		filesystem := fs.New(logger.Session("fs"), volumesImage, volumesDir, filepath.Join(btrfsToolsDir, "mkfs.btrfs"))
+	kernelSupportsOverlay := kernel.CheckKernelVersion(4, 0, 0)
+
+	if cmd.Baggageclaim.Driver == "detect" {
+		if fsStat.Type == btrfsFSType {
+			cmd.Baggageclaim.Driver = "btrfs"
+		} else if kernelSupportsOverlay {
+			cmd.Baggageclaim.Driver = "overlay"
+		} else {
+			cmd.Baggageclaim.Driver = "naive"
+		}
+	}
+
+	volumesImage := filepath.Join(cmd.WorkDir.Path(), "volumes.img")
+
+	assetsDir, hasAssets, err := cmd.restoreVersionedAssets(logger.Session("unpack-assets"))
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Baggageclaim.Metrics = cmd.Metrics
+	cmd.Baggageclaim.VolumesDir = baggageclaimcmd.DirFlag(volumesDir)
+
+	if hasAssets {
+		btrfsToolsDir := filepath.Join(assetsDir, "btrfs")
+		cmd.Baggageclaim.MkfsBin = filepath.Join(btrfsToolsDir, "mkfs.btrfs")
+		cmd.Baggageclaim.BtrfsBin = filepath.Join(btrfsToolsDir, "btrfs")
+	}
+
+	if cmd.Baggageclaim.Driver == "btrfs" && fsStat.Type != btrfsFSType {
+		filesystem := fs.New(logger.Session("fs"), volumesImage, volumesDir, cmd.Baggageclaim.MkfsBin)
 
 		err = filesystem.Create(fsStat.Blocks * uint64(fsStat.Bsize))
 		if err != nil {
@@ -177,11 +208,9 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 		}
 	}
 
-	cmd.Baggageclaim.Metrics = cmd.Metrics
-	cmd.Baggageclaim.VolumesDir = baggageclaimcmd.DirFlag(volumesDir)
-
-	cmd.Baggageclaim.MkfsBin = filepath.Join(btrfsToolsDir, "mkfs.btrfs")
-	cmd.Baggageclaim.BtrfsBin = filepath.Join(btrfsToolsDir, "btrfs")
+	if cmd.Baggageclaim.Driver == "overlay" && !kernelSupportsOverlay {
+		return nil, errors.New("overlay driver requires kernel version >= 4.0.0")
+	}
 
 	return cmd.Baggageclaim.Runner(nil)
 }
