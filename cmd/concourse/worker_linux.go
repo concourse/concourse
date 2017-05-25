@@ -18,8 +18,6 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-const btrfsFSType = 0x9123683e
-
 type GardenBackend guardiancmd.ServerCommand
 
 func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
