@@ -198,6 +198,8 @@ before using it!
     \hyperlink{https://github.com/SHyx0rmZ/capistrano-resource}{Capistrano}
   }{
     \hyperlink{https://github.com/SHyx0rmZ/aptly-cli-resource}{aptly CLI}
+  }{
+    \hyperlink{https://github.com/frodenas/alertmanager-resource}{Prometheus Alertmanager}
   }
 
   \section{Adding to this list}{
