@@ -106,7 +106,7 @@ func (cmd *WorkerCommand) setup(logger lager.Logger) (bool, error) {
 
 	logger.Info("unpacking")
 
-	err = bindata.RestoreAssets(cmd.assetPath(), "assets")
+	err = bindata.RestoreAssets(filepath.Split(cmd.assetPath()))
 	if err != nil {
 		logger.Error("failed-to-unpack", err)
 		return false, err
