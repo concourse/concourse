@@ -64,7 +64,7 @@ webpid=$!
 wait_for_proc_port web $webpid 8080
 
 $CONCOURSE worker \
-  --work-dir /etc/concourse \
+  --work-dir /scratch/concourse \
   --tsa-worker-private-key /etc/concourse/worker \
   --tsa-public-key /etc/concourse/tsa-host.pub \
   --garden-network-pool 10.255.0.0/22 \
