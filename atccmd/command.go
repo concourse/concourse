@@ -780,6 +780,10 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 
 func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory dbng.TeamFactory) error {
 	team, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
+	if err != nil {
+		return err
+	}
+
 	if !found {
 		return errors.New("default team not found")
 	}
@@ -791,6 +795,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory dbng.TeamFactory)
 			BasicAuthPassword: cmd.Authentication.BasicAuth.Password,
 		}
 	}
+
 	err = team.UpdateBasicAuth(basicAuth)
 	if err != nil {
 		return err
