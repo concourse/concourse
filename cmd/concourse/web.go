@@ -56,8 +56,8 @@ func (cmd *WebCommand) Execute(args []string) error {
 	}
 
 	runner := sigmon.New(grouper.NewParallel(os.Interrupt, grouper.Members{
-		{"atc", atcRunner},
-		{"tsa", tsaRunner},
+		{Name: "atc", Runner: atcRunner},
+		{Name: "tsa", Runner: tsaRunner},
 	}))
 
 	return <-ifrit.Invoke(runner).Wait()

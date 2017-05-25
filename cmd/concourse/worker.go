@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -49,14 +50,19 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	logger := lager.NewLogger("worker")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.INFO))
 
-	worker, gardenRunner, err := cmd.gardenRunner(logger.Session("garden"), args)
+	hasAssets, err := cmd.setup(logger.Session("setup"))
+	if err != nil {
+		return err
+	}
+
+	worker, gardenRunner, err := cmd.gardenRunner(logger.Session("garden"), hasAssets)
 	if err != nil {
 		return err
 	}
 
 	worker.Version = WorkerVersion
 
-	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"))
+	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"), hasAssets)
 	if err != nil {
 		return err
 	}
@@ -84,12 +90,35 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(runner).Wait()
 }
 
+func (cmd *WorkerCommand) assetPath(paths ...string) string {
+	return filepath.Join(append([]string{cmd.WorkDir.Path(), Version}, paths...)...)
+}
+
 func (cmd *WorkerCommand) workerName() (string, error) {
 	if cmd.Name != "" {
 		return cmd.Name, nil
 	}
 
 	return os.Hostname()
+}
+
+func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger, hasAssets bool) (ifrit.Runner, error) {
+	volumesDir := filepath.Join(cmd.WorkDir.Path(), "volumes")
+
+	err := os.MkdirAll(volumesDir, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Baggageclaim.Metrics = cmd.Metrics
+	cmd.Baggageclaim.VolumesDir = baggageclaimcmd.DirFlag(volumesDir)
+
+	if hasAssets {
+		cmd.Baggageclaim.MkfsBin = cmd.assetPath("btrfs", "mkfs.btrfs")
+		cmd.Baggageclaim.BtrfsBin = cmd.assetPath("btrfs", "btrfs")
+	}
+
+	return cmd.Baggageclaim.Runner(nil)
 }
 
 func (cmd *WorkerCommand) beaconRunner(logger lager.Logger, worker atc.Worker) ifrit.Runner {
