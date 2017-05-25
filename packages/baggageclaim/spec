@@ -5,6 +5,8 @@ dependencies:
   - golang
 
 files:
+  # only required by linux-only code, so sync-package-specs doesn't pull it in
+  - github.com/concourse/baggageclaim/kernel/*.go
   - code.cloudfoundry.org/clock/*.go # gosub
   - code.cloudfoundry.org/lager/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
