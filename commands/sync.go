@@ -27,7 +27,7 @@ func (command *SyncCommand) Execute(args []string) error {
 	}
 
 	if info.Version == version.Version {
-		fmt.Printf("version already matches; skipping\n")
+		fmt.Printf("version %s already matches; skipping\n", info.Version)
 		return nil
 	}
 
@@ -49,7 +49,7 @@ func (command *SyncCommand) Execute(args []string) error {
 	filesSize, _ := strconv.ParseInt(headers.Get("Content-Length"), 10, 64)
 	progressBar := pb.New64(filesSize).SetUnits(pb.U_BYTES)
 	progressBar.Start()
-	defer progressBar.FinishPrint("update successful!")
+	defer progressBar.FinishPrint(fmt.Sprintf("successfully updated from %s to %s", version.Version, info.Version))
 	r := body
 	reader := progressBar.NewProxyReader(r)
 
