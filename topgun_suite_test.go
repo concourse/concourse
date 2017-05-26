@@ -133,13 +133,14 @@ var _ = AfterEach(func() {
 	bosh("delete-deployment")
 })
 
-func Deploy(manifest string, operations ...string) {
+func StartDeploy(manifest string, operations ...string) *gexec.Session {
+
 	opFlags := []string{}
 	for _, op := range operations {
 		opFlags = append(opFlags, fmt.Sprintf("-o=%s", op))
 	}
 
-	bosh(
+	return spawnBosh(
 		append([]string{
 			"deploy", manifest,
 			"-v", "deployment-name=" + deploymentName,
@@ -157,6 +158,10 @@ func Deploy(manifest string, operations ...string) {
 			"-v", "stemcell-version='" + stemcellVersion + "'",
 		}, opFlags...)...,
 	)
+}
+
+func Deploy(manifest string, operations ...string) {
+	wait(StartDeploy(manifest, operations...))
 
 	// give some time for atc to bootstrap (run migrations, etc)
 	Eventually(func() int {
