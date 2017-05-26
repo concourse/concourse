@@ -47,7 +47,8 @@ function permit_device_control() {
 
 function containers_gone_wild() {
   for i in $(seq 64 67); do
-    mknod -m 0660 /dev/loop$i b 7 $i
+    mknod -m 0660 /scratch/loop$i b 7 $i
+    ln -s /scratch/loop$i /dev/loop$i
   done
 }
 
