@@ -1,8 +1,6 @@
 package atccmd
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -90,7 +88,8 @@ type ATCCommand struct {
 
 	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 
-	EncryptionKey string `long:"encryption-key" description:"16 or 32 byte AES key used to encrypt pipeline config and team auth before storing it into the database."`
+	EncryptionKey    CipherFlag `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey CipherFlag `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
 
 	Postgres PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -215,24 +214,17 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	retryingDriverName := "too-many-connections-retrying"
 	dbng.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
 
-	var strategy dbng.EncryptionStrategy
-	if cmd.EncryptionKey != "" {
-		block, err := aes.NewCipher([]byte(cmd.EncryptionKey))
-		if err != nil {
-			return nil, err
-		}
-
-		aesgcm, err := cipher.NewGCM(block)
-		if err != nil {
-			return nil, err
-		}
-
-		strategy = dbng.NewEncryptionKey(aesgcm)
-	} else {
-		strategy = dbng.NewNoEncryption()
+	var newKey *dbng.EncryptionKey
+	if cmd.EncryptionKey.AEAD != nil {
+		newKey = dbng.NewEncryptionKey(cmd.EncryptionKey.AEAD)
 	}
 
-	dbConn, dbngConn, err := cmd.constructDBConn(retryingDriverName, logger, strategy)
+	var oldKey *dbng.EncryptionKey
+	if cmd.OldEncryptionKey.AEAD != nil {
+		oldKey = dbng.NewEncryptionKey(cmd.OldEncryptionKey.AEAD)
+	}
+
+	dbConn, dbngConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey)
 	if err != nil {
 		return nil, err
 	}
@@ -687,8 +679,8 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 	metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
 }
 
-func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, strategy dbng.EncryptionStrategy) (db.Conn, dbng.Conn, error) {
-	dbngConn, err := dbng.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), strategy)
+func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, newKey *dbng.EncryptionKey, oldKey *dbng.EncryptionKey) (db.Conn, dbng.Conn, error) {
+	dbngConn, err := dbng.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}

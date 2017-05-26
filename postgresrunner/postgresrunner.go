@@ -116,7 +116,8 @@ func (runner *Runner) OpenConn() dbng.Conn {
 		lagertest.NewTestLogger("postgres-runner"),
 		"postgres",
 		runner.DataSourceName(),
-		dbng.NewNoEncryption(),
+		nil,
+		nil,
 	)
 	Expect(err).NotTo(HaveOccurred())
 

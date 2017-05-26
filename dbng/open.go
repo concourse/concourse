@@ -3,6 +3,7 @@ package dbng
 import (
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -44,7 +45,7 @@ type Tx interface {
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 }
 
-func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, encryption EncryptionStrategy) (Conn, error) {
+func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *EncryptionKey, oldKey *EncryptionKey) (Conn, error) {
 	for {
 		sqlDb, err := migration.Open(sqlDriver, sqlDataSource, migrations.Migrations)
 		if err != nil {
@@ -57,50 +58,27 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, encryptio
 			return nil, err
 		}
 
-		for table, col := range map[string]string{
-			"teams":          "auth",
-			"resources":      "config",
-			"jobs":           "config",
-			"resource_types": "config",
-			"pipelines":      "config",
-		} {
-			rows, err := sqlDb.Query(`
-			SELECT id, ` + col + `
-			FROM ` + table + `
-			WHERE nonce IS NULL
-		`)
-			if err != nil && err != sql.ErrNoRows {
+		var strategy EncryptionStrategy
+		if newKey != nil {
+			strategy = newKey
+		} else {
+			strategy = NewNoEncryption()
+		}
+
+		switch {
+		case oldKey != nil && newKey == nil:
+			err = decryptToPlaintext(logger.Session("decrypt"), sqlDb, oldKey)
+		case oldKey != nil && newKey != nil:
+			err = encryptWithNewKey(logger.Session("rotate"), sqlDb, newKey, oldKey)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if newKey != nil {
+			err = encryptPlaintext(logger.Session("encrypt"), sqlDb, newKey)
+			if err != nil {
 				return nil, err
-			}
-
-			for rows.Next() {
-				var (
-					id  int
-					val sql.NullString
-				)
-
-				err := rows.Scan(&id, &val)
-				if err != nil {
-					return nil, err
-				}
-
-				if !val.Valid {
-					continue
-				}
-
-				encrypted, nonce, err := encryption.Encrypt([]byte(val.String))
-				if err != nil {
-					return nil, err
-				}
-
-				_, err = sqlDb.Exec(`
-				UPDATE `+table+`
-				SET `+col+` = $1, nonce = $2
-				WHERE id = $3
-			`, encrypted, nonce, id)
-				if err != nil {
-					return nil, err
-				}
 			}
 		}
 
@@ -110,9 +88,219 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, encryptio
 			DB: sqlDb,
 
 			bus:        NewNotificationsBus(listener, sqlDb),
-			encryption: encryption,
+			encryption: strategy,
 		}, nil
 	}
+}
+
+var encryptedColumns = map[string]string{
+	"teams":          "auth",
+	"resources":      "config",
+	"jobs":           "config",
+	"resource_types": "config",
+	"pipelines":      "config",
+}
+
+func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *EncryptionKey) error {
+	for table, col := range encryptedColumns {
+		rows, err := sqlDB.Query(`
+			SELECT id, ` + col + `
+			FROM ` + table + `
+			WHERE nonce IS NULL
+		`)
+		if err != nil {
+			return err
+		}
+
+		tLog := logger.Session("table", lager.Data{
+			"table": table,
+		})
+
+		encryptedRows := 0
+
+		for rows.Next() {
+			var (
+				id  int
+				val sql.NullString
+			)
+
+			err := rows.Scan(&id, &val)
+			if err != nil {
+				tLog.Error("failed-to-scan", err)
+				return err
+			}
+
+			if !val.Valid {
+				continue
+			}
+
+			rLog := tLog.Session("row", lager.Data{
+				"id": id,
+			})
+
+			encrypted, nonce, err := key.Encrypt([]byte(val.String))
+			if err != nil {
+				rLog.Error("failed-to-encrypt", err)
+				return err
+			}
+
+			_, err = sqlDB.Exec(`
+				UPDATE `+table+`
+				SET `+col+` = $1, nonce = $2
+				WHERE id = $3
+			`, encrypted, nonce, id)
+			if err != nil {
+				rLog.Error("failed-to-update", err)
+				return err
+			}
+
+			encryptedRows++
+		}
+
+		if encryptedRows > 0 {
+			tLog.Info("encrypted-existing-plaintext-data", lager.Data{
+				"rows": encryptedRows,
+			})
+		}
+	}
+
+	return nil
+}
+
+func decryptToPlaintext(logger lager.Logger, sqlDB *sql.DB, oldKey *EncryptionKey) error {
+	for table, col := range encryptedColumns {
+		rows, err := sqlDB.Query(`
+			SELECT id, nonce, ` + col + `
+			FROM ` + table + `
+			WHERE nonce IS NOT NULL
+		`)
+		if err != nil {
+			return err
+		}
+
+		tLog := logger.Session("table", lager.Data{
+			"table": table,
+		})
+
+		decryptedRows := 0
+
+		for rows.Next() {
+			var (
+				id         int
+				val, nonce string
+			)
+
+			err := rows.Scan(&id, &nonce, &val)
+			if err != nil {
+				tLog.Error("failed-to-scan", err)
+				return err
+			}
+
+			rLog := tLog.Session("row", lager.Data{
+				"id": id,
+			})
+
+			decrypted, err := oldKey.Decrypt(val, &nonce)
+			if err != nil {
+				rLog.Error("failed-to-decrypt", err)
+				return err
+			}
+
+			_, err = sqlDB.Exec(`
+				UPDATE `+table+`
+				SET `+col+` = $1, nonce = NULL
+				WHERE id = $2
+			`, decrypted, id)
+			if err != nil {
+				rLog.Error("failed-to-update", err)
+				return err
+			}
+
+			decryptedRows++
+		}
+
+		if decryptedRows > 0 {
+			tLog.Info("decrypted-existing-encrypted-data", lager.Data{
+				"rows": decryptedRows,
+			})
+		}
+	}
+
+	return nil
+}
+
+var ErrEncryptedWithUnknownKey = errors.New("row encrypted with neither old nor new key")
+
+func encryptWithNewKey(logger lager.Logger, sqlDB *sql.DB, newKey *EncryptionKey, oldKey *EncryptionKey) error {
+	for table, col := range encryptedColumns {
+		rows, err := sqlDB.Query(`
+			SELECT id, nonce, ` + col + `
+			FROM ` + table + `
+			WHERE nonce IS NOT NULL
+		`)
+		if err != nil {
+			return err
+		}
+
+		tLog := logger.Session("table", lager.Data{
+			"table": table,
+		})
+
+		encryptedRows := 0
+
+		for rows.Next() {
+			var (
+				id         int
+				val, nonce string
+			)
+
+			err := rows.Scan(&id, &nonce, &val)
+			if err != nil {
+				tLog.Error("failed-to-scan", err)
+				return err
+			}
+
+			rLog := tLog.Session("row", lager.Data{
+				"id": id,
+			})
+
+			decrypted, err := oldKey.Decrypt(val, &nonce)
+			if err != nil {
+				_, err = newKey.Decrypt(val, &nonce)
+				if err == nil {
+					rLog.Debug("already-encrypted-with-new-key")
+					continue
+				}
+
+				logger.Error("failed-to-decrypt-with-either-key", err)
+				return ErrEncryptedWithUnknownKey
+			}
+
+			encrypted, newNonce, err := newKey.Encrypt(decrypted)
+			if err != nil {
+				rLog.Error("failed-to-encrypt", err)
+				return err
+			}
+
+			_, err = sqlDB.Exec(`
+				UPDATE `+table+`
+				SET `+col+` = $1, nonce = $2
+				WHERE id = $3
+			`, encrypted, newNonce, id)
+			if err != nil {
+				rLog.Error("failed-to-update", err)
+				return err
+			}
+		}
+
+		if encryptedRows > 0 {
+			tLog.Info("re-encrypted-existing-encrypted-data", lager.Data{
+				"rows": encryptedRows,
+			})
+		}
+	}
+
+	return nil
 }
 
 type db struct {
