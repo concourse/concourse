@@ -104,6 +104,12 @@ func (cmd *WorkerCommand) setup(logger lager.Logger) (bool, error) {
 		return true, nil
 	}
 
+	_, err = bindata.AssetDir("assets")
+	if err != nil {
+		logger.Info("no-assets")
+		return false, nil
+	}
+
 	logger.Info("unpacking")
 
 	err = bindata.RestoreAssets(filepath.Split(cmd.assetPath()))
