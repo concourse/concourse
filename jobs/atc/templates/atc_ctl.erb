@@ -102,7 +102,12 @@ case $1 in
       --postgres-client-key /var/vcap/jobs/atc/config/postges_client_key \
       <% end %> \
       --postgres-connect-timeout <%= p("postgresql.connect_timeout") %> \
-      --encryption-key <%= esc(p("encryption_key")) %> \
+      <% if_p("encryption_key") do |key| %> \
+      --encryption-key <%= esc(key) %> \
+      <% end %> \
+      <% if_p("old_encryption_key") do |key| %> \
+      --old-encryption-key <%= esc(key) %> \
+      <% end %> \
       <% if p("no_really_i_dont_want_any_auth") %> \
       --no-really-i-dont-want-any-auth \
       <% end %> \
