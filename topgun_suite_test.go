@@ -188,7 +188,7 @@ func JobIPs(instance string) []string {
 	return jobIPs[instance]
 }
 
-var instanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+-\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s*$`)
+var instanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s*$`)
 var jobRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s*$`)
 
 func loadJobIPs() map[string][]string {
