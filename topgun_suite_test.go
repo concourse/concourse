@@ -213,8 +213,8 @@ func loadJobInstances() map[string][]boshInstance {
 		instanceMatch := instanceRow.FindStringSubmatch(line)
 		if len(instanceMatch) > 0 {
 			instance = boshInstance{
-				Name: instanceMatch[4],
-				IP:   instanceMatch[0],
+				Name: instanceMatch[1],
+				IP:   instanceMatch[3],
 			}
 
 			continue
