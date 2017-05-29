@@ -86,8 +86,8 @@ case $1 in
       --tls-cert /var/vcap/jobs/atc/config/tls_cert \
       --tls-key /var/vcap/jobs/atc/config/tls_key \
       <% end %> \
-      --peer-url <%= p("peer_url", "http://#{spec.address}:#{p("bind_port")}") %> \
-      --external-url <%= esc(p("external_url")) %> \
+      --peer-url <%= esc(p("peer_url", "http://#{spec.address}:#{p("bind_port")}")) %> \
+      --external-url <%= esc(p("external_url", "http://#{spec.address}:#{p("bind_port")}")) %> \
       --postgres-host <%= esc(postgres_host) %> \
       --postgres-port <%= esc(postgres_port) %> \
       --postgres-database <%= esc(postgres_database) %> \
