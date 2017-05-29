@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -65,13 +64,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 	})
 
 	Describe("container for resource that is removed from pipeline", func() {
-		var dbConn *sql.DB
-
 		BeforeEach(func() {
-			var err error
-			dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", atcIP))
-			Expect(err).ToNot(HaveOccurred())
-
 			Deploy("deployments/single-vm.yml")
 		})
 
@@ -129,13 +122,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 	})
 
 	Describe("container for resource when pipeline is paused", func() {
-		var dbConn *sql.DB
-
 		BeforeEach(func() {
-			var err error
-			dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", atcIP))
-			Expect(err).ToNot(HaveOccurred())
-
 			Deploy("deployments/single-vm.yml")
 		})
 
@@ -194,13 +181,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 	})
 
 	Describe("container for resource that is updated", func() {
-		var dbConn *sql.DB
-
 		BeforeEach(func() {
-			var err error
-			dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", atcIP))
-			Expect(err).ToNot(HaveOccurred())
-
 			Deploy("deployments/single-vm.yml")
 		})
 

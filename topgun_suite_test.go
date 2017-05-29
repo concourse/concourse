@@ -2,6 +2,7 @@ package topgun_test
 
 import (
 	"crypto/tls"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,10 +37,13 @@ var (
 	deploymentName, flyTarget string
 	jobIPs                    map[string][]string
 
-	dbIP                    string
+	dbIP   string
+	dbConn *sql.DB
+
 	atcIP, atcExternalURL   string
 	atcIP2, atcExternalURL2 string
-	gitServerIP             string
+
+	gitServerIP string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion string
 	stemcellVersion                                   string
@@ -115,6 +119,12 @@ var _ = BeforeEach(func() {
 	bosh("delete-deployment")
 
 	jobIPs = map[string][]string{}
+	dbIP = ""
+	atcIP = ""
+	atcExternalURL = ""
+	atcIP2 = ""
+	atcExternalURL2 = ""
+	gitServerIP = ""
 })
 
 var _ = AfterEach(func() {
@@ -164,6 +174,10 @@ func Deploy(manifest string, operations ...string) {
 
 	atcExternalURL = fmt.Sprintf("http://%s:8080", atcIP)
 	atcExternalURL2 = fmt.Sprintf("http://%s:8080", atcIP2)
+
+	var err error
+	dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbIP))
+	Expect(err).ToNot(HaveOccurred())
 
 	// give some time for atc to bootstrap (run migrations, etc)
 	Eventually(func() int {

@@ -12,14 +12,6 @@ import (
 )
 
 var _ = Describe(":life Garbage collecting resource cache volumes", func() {
-	var dbConn *sql.DB
-
-	BeforeEach(func() {
-		var err error
-		dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", atcIP))
-		Expect(err).ToNot(HaveOccurred())
-	})
-
 	Describe("A resource that was removed from pipeline", func() {
 		BeforeEach(func() {
 			Deploy("deployments/single-vm.yml")

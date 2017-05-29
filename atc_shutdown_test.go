@@ -1,8 +1,6 @@
 package topgun_test
 
 import (
-	"database/sql"
-	"fmt"
 	"regexp"
 	"time"
 
@@ -14,14 +12,6 @@ import (
 )
 
 var _ = Describe("[#137641079] ATC Shutting down", func() {
-	var dbConn *sql.DB
-
-	BeforeEach(func() {
-		var err error
-		dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbIP))
-		Expect(err).ToNot(HaveOccurred())
-	})
-
 	Context("with two atcs available", func() {
 		BeforeEach(func() {
 			By("Configuring two ATCs")

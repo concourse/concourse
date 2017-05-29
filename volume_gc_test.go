@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
@@ -16,13 +15,7 @@ import (
 )
 
 var _ = Describe(":life volume gc", func() {
-	var dbConn *sql.DB
-
 	BeforeEach(func() {
-		var err error
-		dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", atcIP))
-		Expect(err).ToNot(HaveOccurred())
-
 		Deploy("deployments/single-vm.yml")
 	})
 
