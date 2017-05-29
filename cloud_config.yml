@@ -2,7 +2,8 @@
 networks:
 - name: topgun
   subnets:
-  - range: 10.234.0.0/16
+  - az: z1
+    range: 10.234.0.0/16
     gateway: 10.234.0.1
 
 - name: testflight

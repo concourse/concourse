@@ -11,6 +11,7 @@ instance_groups:
 - name: concourse
   instances: 1
   networks: [{name: topgun}]
+  azs: [z1]
   persistent_disk: 10240
   vm_type: topgun
   stemcell: trusty

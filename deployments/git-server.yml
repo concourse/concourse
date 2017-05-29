@@ -9,6 +9,7 @@ instance_groups:
 - name: git-server
   instances: 1
   networks: [{name: topgun}]
+  azs: [z1]
   vm_type: topgun
   stemcell: trusty
   jobs:

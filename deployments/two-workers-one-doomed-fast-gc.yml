@@ -11,6 +11,7 @@ instance_groups:
 - name: web
   instances: 1
   networks: [{name: topgun}]
+  azs: [z1]
   persistent_disk: 10240
   vm_type: topgun
   stemcell: trusty
@@ -37,8 +38,8 @@ instance_groups:
 
 - name: worker
   instances: 1
-  networks:
-  - name: topgun
+  networks: [{name: topgun}]
+  azs: [z1]
   vm_type: topgun
   stemcell: trusty
   jobs:
@@ -66,8 +67,8 @@ instance_groups:
 
 - name: doomed_worker
   instances: 1
-  networks:
-  - name: topgun
+  networks: [{name: topgun}]
+  azs: [z1]
   vm_type: topgun
   stemcell: trusty
   jobs:
