@@ -34,11 +34,12 @@ import (
 
 var (
 	deploymentName, flyTarget string
-	dbIP                      string
-	atcIP, atcExternalURL     string
-	atcIP2, atcExternalURL2   string
-	atcExternalURLTLS         string
-	gitServerIP               string
+	jobIPs                    map[string][]string
+
+	dbIP                    string
+	atcIP, atcExternalURL   string
+	atcIP2, atcExternalURL2 string
+	gitServerIP             string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion string
 	stemcellVersion                                   string
@@ -113,14 +114,7 @@ var _ = BeforeEach(func() {
 
 	bosh("delete-deployment")
 
-	atcIP = fmt.Sprintf("10.234.%d.2", deploymentNumber)
-	atcIP2 = fmt.Sprintf("10.234.%d.3", deploymentNumber)
-	dbIP = fmt.Sprintf("10.234.%d.4", deploymentNumber)
-	gitServerIP = fmt.Sprintf("10.234.%d.5", deploymentNumber)
-
-	atcExternalURL = fmt.Sprintf("http://%s:8080", atcIP)
-	atcExternalURL2 = fmt.Sprintf("http://%s:8080", atcIP2)
-	atcExternalURLTLS = fmt.Sprintf("https://%s:4443", atcIP)
+	jobIPs = map[string][]string{}
 })
 
 var _ = AfterEach(func() {
@@ -134,7 +128,6 @@ var _ = AfterEach(func() {
 })
 
 func StartDeploy(manifest string, operations ...string) *gexec.Session {
-
 	opFlags := []string{}
 	for _, op := range operations {
 		opFlags = append(opFlags, fmt.Sprintf("-o=%s", op))
@@ -144,15 +137,8 @@ func StartDeploy(manifest string, operations ...string) *gexec.Session {
 		append([]string{
 			"deploy", manifest,
 			"-v", "deployment-name=" + deploymentName,
-			"-v", "atc-ip=" + atcIP,
-			"-v", "atc-ip-2=" + atcIP2,
-			"-v", "db-ip=" + dbIP,
-			"-v", "atc-external-url=" + atcExternalURL,
-			"-v", "atc-external-url-2=" + atcExternalURL2,
-			"-v", "atc-external-url-tls=" + atcExternalURLTLS,
 			"-v", "concourse-release-version=" + concourseReleaseVersion,
 			"-v", "garden-runc-release-version=" + gardenRuncReleaseVersion,
-			"-v", "git-server-ip=" + gitServerIP,
 
 			// 3363.10 becomes 3363.1 as it's floating point; quotes prevent that
 			"-v", "stemcell-version='" + stemcellVersion + "'",
@@ -163,6 +149,22 @@ func StartDeploy(manifest string, operations ...string) *gexec.Session {
 func Deploy(manifest string, operations ...string) {
 	wait(StartDeploy(manifest, operations...))
 
+	jobIPs = loadJobIPs()
+
+	atcIPs := JobIPs("atc")
+	atcIP = atcIPs[0]
+	if len(atcIPs) > 1 {
+		atcIP2 = atcIPs[1]
+	} else {
+		atcIP2 = ""
+	}
+
+	dbIP = JobIP("postgresql")
+	gitServerIP = JobIP("git_server")
+
+	atcExternalURL = fmt.Sprintf("http://%s:8080", atcIP)
+	atcExternalURL2 = fmt.Sprintf("http://%s:8080", atcIP2)
+
 	// give some time for atc to bootstrap (run migrations, etc)
 	Eventually(func() int {
 		flySession := spawnFly("login", "-c", atcExternalURL)
@@ -171,6 +173,50 @@ func Deploy(manifest string, operations ...string) {
 	}, 2*time.Minute).Should(Equal(0))
 
 	boshLogs = spawnBosh("logs", "-f")
+}
+
+func JobIP(instance string) string {
+	ips := jobIPs[instance]
+	if len(ips) == 0 {
+		return ""
+	}
+
+	return ips[0]
+}
+
+func JobIPs(instance string) []string {
+	return jobIPs[instance]
+}
+
+var instanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+-\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s*$`)
+var jobRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s*$`)
+
+func loadJobIPs() map[string][]string {
+	session := spawnBosh("instances", "-p")
+	<-session.Exited
+	Expect(session.ExitCode()).To(Equal(0))
+
+	output := string(session.Out.Contents())
+
+	jobIPs := map[string][]string{}
+
+	lines := strings.Split(output, "\n")
+	var instanceIP string
+	for _, line := range lines {
+		instanceMatch := instanceRow.FindStringSubmatch(line)
+		if len(instanceMatch) > 0 {
+			instanceIP = instanceMatch[4]
+			continue
+		}
+
+		jobMatch := jobRow.FindStringSubmatch(line)
+		if len(jobMatch) > 0 {
+			jobName := jobMatch[3]
+			jobIPs[jobName] = append(jobIPs[jobName], instanceIP)
+		}
+	}
+
+	return jobIPs
 }
 
 func bosh(argv ...string) {

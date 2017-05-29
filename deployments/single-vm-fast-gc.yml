@@ -10,9 +10,7 @@ releases:
 instance_groups:
 - name: concourse
   instances: 1
-  networks:
-  - name: topgun
-    static_ips: [((atc-ip))]
+  networks: [{name: topgun}]
   persistent_disk: 10240
   vm_type: topgun
   stemcell: trusty
@@ -22,7 +20,6 @@ instance_groups:
     properties:
       no_really_i_dont_want_any_auth: true
       log_level: debug
-      external_url: ((atc-external-url))
       postgresql_database: atc
       gc_interval: 1s
 
