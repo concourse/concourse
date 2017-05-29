@@ -177,8 +177,8 @@ func Deploy(manifest string, operations ...string) {
 	boshLogs = spawnBosh("logs", "-f")
 }
 
-func JobInstance(instance string) *boshInstance {
-	is := jobInstances[instance]
+func JobInstance(job string) *boshInstance {
+	is := jobInstances[job]
 	if len(is) == 0 {
 		return nil
 	}
@@ -222,7 +222,7 @@ func loadJobInstances() map[string][]boshInstance {
 
 		jobMatch := jobRow.FindStringSubmatch(line)
 		if len(jobMatch) > 0 {
-			jobName := jobMatch[3]
+			jobName := jobMatch[2]
 			jobInstances[jobName] = append(jobInstances[jobName], instance)
 		}
 	}
