@@ -29,7 +29,7 @@ var _ = Describe("Database secrets encryption", func() {
 	}
 
 	pgDump := func() *gexec.Session {
-		dump := exec.Command("pg_dump", "-U", "atc", "-h", atcIP, "atc")
+		dump := exec.Command("pg_dump", "-U", "atc", "-h", dbInstance.IP, "atc")
 		dump.Env = append(os.Environ(), "PGPASSWORD=dummy-password")
 		dump.Stdin = bytes.NewBufferString("dummy-password\n")
 		session, err := gexec.Start(dump, GinkgoWriter, GinkgoWriter)

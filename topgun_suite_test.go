@@ -35,15 +35,13 @@ import (
 
 var (
 	deploymentName, flyTarget string
-	jobIPs                    map[string][]string
+	jobInstances              map[string][]boshInstance
 
-	dbIP   string
-	dbConn *sql.DB
+	dbInstance *boshInstance
+	dbConn     *sql.DB
 
-	atcIP, atcExternalURL   string
-	atcIP2, atcExternalURL2 string
-
-	gitServerIP string
+	atcInstance    *boshInstance
+	atcExternalURL string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion string
 	stemcellVersion                                   string
@@ -118,13 +116,12 @@ var _ = BeforeEach(func() {
 
 	bosh("delete-deployment")
 
-	jobIPs = map[string][]string{}
-	dbIP = ""
-	atcIP = ""
+	jobInstances = map[string][]boshInstance{}
+
+	dbInstance = nil
+	dbConn = nil
+	atcInstance = nil
 	atcExternalURL = ""
-	atcIP2 = ""
-	atcExternalURL2 = ""
-	gitServerIP = ""
 })
 
 var _ = AfterEach(func() {
@@ -159,24 +156,15 @@ func StartDeploy(manifest string, operations ...string) *gexec.Session {
 func Deploy(manifest string, operations ...string) {
 	wait(StartDeploy(manifest, operations...))
 
-	jobIPs = loadJobIPs()
+	jobInstances = loadJobInstances()
 
-	atcIPs := JobIPs("atc")
-	atcIP = atcIPs[0]
-	if len(atcIPs) > 1 {
-		atcIP2 = atcIPs[1]
-	} else {
-		atcIP2 = ""
-	}
+	atcInstance = JobInstance("atc")
+	atcExternalURL = fmt.Sprintf("http://%s:8080", atcInstance.IP)
 
-	dbIP = JobIP("postgresql")
-	gitServerIP = JobIP("git_server")
-
-	atcExternalURL = fmt.Sprintf("http://%s:8080", atcIP)
-	atcExternalURL2 = fmt.Sprintf("http://%s:8080", atcIP2)
+	dbInstance = JobInstance("postgresql")
 
 	var err error
-	dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbIP))
+	dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
 	Expect(err).ToNot(HaveOccurred())
 
 	// give some time for atc to bootstrap (run migrations, etc)
@@ -189,48 +177,57 @@ func Deploy(manifest string, operations ...string) {
 	boshLogs = spawnBosh("logs", "-f")
 }
 
-func JobIP(instance string) string {
-	ips := jobIPs[instance]
-	if len(ips) == 0 {
-		return ""
+func JobInstance(instance string) *boshInstance {
+	is := jobInstances[instance]
+	if len(is) == 0 {
+		return nil
 	}
 
-	return ips[0]
+	return &is[0]
 }
 
-func JobIPs(instance string) []string {
-	return jobIPs[instance]
+func JobInstances(instance string) []boshInstance {
+	return jobInstances[instance]
 }
 
-var instanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s*$`)
-var jobRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s*$`)
+type boshInstance struct {
+	Name string
+	IP   string
+}
 
-func loadJobIPs() map[string][]string {
+var instanceRow = regexp.MustCompile(`^([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s*$`)
+var jobRow = regexp.MustCompile(`^([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s*$`)
+
+func loadJobInstances() map[string][]boshInstance {
 	session := spawnBosh("instances", "-p")
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
 
 	output := string(session.Out.Contents())
 
-	jobIPs := map[string][]string{}
+	jobInstances := map[string][]boshInstance{}
 
 	lines := strings.Split(output, "\n")
-	var instanceIP string
+	var instance boshInstance
 	for _, line := range lines {
 		instanceMatch := instanceRow.FindStringSubmatch(line)
 		if len(instanceMatch) > 0 {
-			instanceIP = instanceMatch[4]
+			instance = boshInstance{
+				Name: instanceMatch[4],
+				IP:   instanceMatch[0],
+			}
+
 			continue
 		}
 
 		jobMatch := jobRow.FindStringSubmatch(line)
 		if len(jobMatch) > 0 {
 			jobName := jobMatch[3]
-			jobIPs[jobName] = append(jobIPs[jobName], instanceIP)
+			jobInstances[jobName] = append(jobInstances[jobName], instance)
 		}
 	}
 
-	return jobIPs
+	return jobInstances
 }
 
 func bosh(argv ...string) {

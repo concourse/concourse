@@ -20,7 +20,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 	BeforeEach(func() {
 		Deploy("deployments/single-vm.yml")
 
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
+		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
 	})
 
 	getContainer := func(condition, value string) func() hijackedContainerResult {

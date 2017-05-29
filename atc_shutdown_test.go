@@ -13,10 +13,20 @@ import (
 
 var _ = Describe("[#137641079] ATC Shutting down", func() {
 	Context("with two atcs available", func() {
+		var atcs []boshInstance
+		var atc0URL string
+		var atc1URL string
+
 		BeforeEach(func() {
 			By("Configuring two ATCs")
 			Deploy("deployments/two-atcs-one-worker.yml")
 			waitForRunningWorker()
+
+			atcs = JobInstances("atc")
+			atc0URL = "http://" + atcs[0].IP + ":8080"
+			atc1URL = "http://" + atcs[1].IP + ":8080"
+
+			<-spawnFly("login", "-c", atc0URL).Exited
 		})
 
 		Describe("tracking builds previously tracked by shutdown ATC", func() {
@@ -24,7 +34,7 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 
 			BeforeEach(func() {
 				By("stopping one of the web instances")
-				stopSession = spawnBosh("stop", "web/1")
+				stopSession = spawnBosh("stop", atcs[1].Name)
 				Eventually(stopSession).Should(gexec.Exit(0))
 			})
 
@@ -47,14 +57,15 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 					Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 					By("starting the stopped web instance")
-					startSession := spawnBosh("start", "web/1")
+					startSession := spawnBosh("start", atcs[1].Name)
 					<-startSession.Exited
 					Eventually(startSession).Should(gexec.Exit(0))
-					<-spawnFly("login", "-c", atcExternalURL2).Exited
+
+					<-spawnFly("login", "-c", atc1URL).Exited
 				})
 
 				AfterEach(func() {
-					restartSession := spawnBosh("start", "web/0")
+					restartSession := spawnBosh("start", atcs[0].Name)
 					<-restartSession.Exited
 					Eventually(restartSession).Should(gexec.Exit(0))
 				})
@@ -62,7 +73,7 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 				Context("when the atc tracking the build shuts down", func() {
 					JustBeforeEach(func() {
 						By("stopping the first web instance")
-						landSession := spawnBosh("stop", "web/0")
+						landSession := spawnBosh("stop", atcs[0].Name)
 						<-landSession.Exited
 						Eventually(landSession).Should(gexec.Exit(0))
 					})

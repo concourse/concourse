@@ -21,7 +21,7 @@ var _ = Describe(":life [#130495079] Garbage collecting containers for destroyed
 	BeforeEach(func() {
 		Deploy("deployments/single-vm.yml")
 
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
+		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
 	})
 
 	It("should be removed", func() {

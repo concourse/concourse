@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"code.cloudfoundry.org/garden"
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	sq "github.com/Masterminds/squirrel"
@@ -14,8 +15,12 @@ import (
 )
 
 var _ = Describe(":life Garbage collecting build containers", func() {
+	var gClient garden.Client
+
 	BeforeEach(func() {
 		Deploy("deployments/single-vm.yml")
+
+		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
 	})
 
 	getContainers := func(condition, value string) []string {
@@ -50,8 +55,6 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 10*time.Minute, time.Second).Should(BeZero())
 
 				By("having removed the containers from the worker")
-				gClient := gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
-
 				containers, err := gClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -90,8 +93,6 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 10*time.Minute, time.Second).Should(BeZero())
 
 				By("having removed the containers from the worker")
-				gClient := gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
-
 				containers, err := gClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -132,8 +133,6 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 2*time.Minute, time.Second).Should(Equal(len(buildContainerHandles)))
 
 				By("not removing the containers from the worker")
-				gClient := gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
-
 				containers, err := gClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -193,8 +192,6 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 10*time.Minute, time.Second).Should(BeZero())
 
 				By("having removed the first build containers from the worker")
-				gClient := gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
-
 				containers, err := gClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -270,8 +267,6 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 2*time.Minute, time.Second).Should(Equal(len(firstBuildContainerHandles)))
 
 				By("not removing the first build containers from the worker")
-				gClient := gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
-
 				containers, err := gClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 

@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"time"
 
+	"code.cloudfoundry.org/garden"
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/baggageclaim"
 	bgclient "github.com/concourse/baggageclaim/client"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
@@ -15,8 +17,14 @@ import (
 )
 
 var _ = Describe(":life volume gc", func() {
+	var gClient garden.Client
+	var bcClient baggageclaim.Client
+
 	BeforeEach(func() {
 		Deploy("deployments/single-vm.yml")
+
+		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
+		bcClient = bgclient.New(fmt.Sprintf("http://%s:7788", JobInstance("baggageclaim").IP), http.DefaultTransport)
 	})
 
 	Describe("A volume that belonged to a container that is now gone", func() {
@@ -75,8 +83,6 @@ var _ = Describe(":life volume gc", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the containers from the worker")
-			gClient := gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
-
 			containers, err := gClient.Containers(nil)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -98,8 +104,6 @@ var _ = Describe(":life volume gc", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			bcClient := bgclient.New(fmt.Sprintf("http://%s:7788", atcIP), http.DefaultTransport)
-
 			volumes, err := bcClient.ListVolumes(logger, nil)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -178,8 +182,6 @@ var _ = Describe(":life volume gc", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			bcClient := bgclient.New(fmt.Sprintf("http://%s:7788", atcIP), http.DefaultTransport)
-
 			volumes, err := bcClient.ListVolumes(logger, nil)
 			Expect(err).ToNot(HaveOccurred())
 
