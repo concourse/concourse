@@ -291,6 +291,8 @@ func encryptWithNewKey(logger lager.Logger, sqlDB *sql.DB, newKey *EncryptionKey
 				rLog.Error("failed-to-update", err)
 				return err
 			}
+
+			encryptedRows++
 		}
 
 		if encryptedRows > 0 {
