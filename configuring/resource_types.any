@@ -86,7 +86,7 @@ consists of the following attributes:
   custom resource types!).
 }
 
-\define-attribute{source: object}{
+\define-attribute{source: object}{resource-type-source}{
   \italic{Optional.} The location of the resource type's resource. This varies
   by resource type, and is a black box to Concourse; it is blindly passed to
   the resource at runtime.
@@ -96,6 +96,21 @@ consists of the following attributes:
   \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image
   resource} (or whatever resource type your resource type uses) for more
   information.
+}
+
+\define-attribute{privileged: boolean}{resource-type-privileged}{
+  \italic{Optional. Default \code{false}.} If set to \code{true}, the
+  resource's containers will be run with full capabilities, as determined by
+  the Garden backend the task runs on. For Linux-based backends it typically
+  determines whether or not the container will run in a separate user
+  namespace, and whether the \code{root} user is "actual" \code{root} (if set
+  to \code{true}) or a user namespaced \code{root} (if set to \code{false},
+  the default).
+
+  This is a gaping security hole; only configure it if the resource type needs
+  it (which should be called out in its documentation). This is not up to the
+  resource type to decide dynamically, so as to prevent privilege escalation
+  via third-party resource type exploits.
 }
 
 \define-attribute{tags: [string]}{resource-type-tags}{

@@ -34,6 +34,12 @@ def(resource(repo, name = repo split("-") collect &.capitalize join(" "))):
 def(ghuser(username)):
   hyperlink(i"https://github.com/#{username}", bold(i"@#{username}"))
 
+def(ghissue(number, repo = "concourse")):
+  hyperlink(i"https://github.com/concourse/#{repo}/issues/#{number}", bold(i"##{number}"))
+
+def(boshprop(job, property)):
+  hyperlink(i"http://bosh.io/jobs/#{job}?source=github.com/concourse/concourse#p=#{property}", code(property))
+
 def(release(date, concourse-version, garden-runc-version, garden-linux-version = nil, notes)):
   release-date =
     data Element new(
