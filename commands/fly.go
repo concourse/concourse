@@ -5,6 +5,8 @@ import "github.com/concourse/fly/rc"
 type FlyCommand struct {
 	Help HelpCommand `command:"help" description:"Print this help message"`
 
+	Fmt FmtCommand `command:"fmt" description:"Format a pipeline config"`
+
 	Target  rc.TargetName  `short:"t" long:"target" description:"Concourse target name"`
 	Targets TargetsCommand `command:"targets" alias:"ts" description:"List saved targets"`
 
