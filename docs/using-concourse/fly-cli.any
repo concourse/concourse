@@ -299,14 +299,15 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 
   \section{Targeting a specific worker with \code{--tag}}{
-    If you want to execute a task on a worker that has a specific tag. Example:
+    If you want to execute a task on a worker that has a specific tag, you
+    can do so by passing \code{--tag}:
 
     \codeblock{bash}{
       fly -t example execute --config task.yml --tag bar
     }
 
     This will execute the task specified by \code{task.yml} on a worker that has
-    been tagged \code{bar}
+    been tagged \code{bar}.
   }
 }
 
