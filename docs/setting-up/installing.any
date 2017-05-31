@@ -300,6 +300,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       depends_on: [concourse-db]
       ports: ["8080:8080"]
       volumes: ["./keys/web:/concourse-keys"]
+      restart: unless-stopped # required so that it retries until conocurse-db comes up
       environment:
         CONCOURSE_BASIC_AUTH_USERNAME: concourse
         CONCOURSE_BASIC_AUTH_PASSWORD: changeme
