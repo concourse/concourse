@@ -693,7 +693,7 @@ func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, n
 	dbConn.SetMaxOpenConns(64)
 	dbngConn.SetMaxOpenConns(64)
 
-	return metric.CountQueries(dbConn), dbngConn, nil
+	return dbConn, metric.CountQueries(dbngConn), nil
 }
 
 func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {

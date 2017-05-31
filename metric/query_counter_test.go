@@ -3,8 +3,8 @@ package metric_test
 import (
 	"errors"
 
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/metric"
 
 	. "github.com/onsi/ginkgo"
@@ -13,12 +13,12 @@ import (
 
 var _ = Describe("Counting Database Queries", func() {
 	var (
-		underlyingConn *dbfakes.FakeConn
-		countingConn   db.Conn
+		underlyingConn *dbngfakes.FakeConn
+		countingConn   dbng.Conn
 	)
 
 	BeforeEach(func() {
-		underlyingConn = new(dbfakes.FakeConn)
+		underlyingConn = new(dbngfakes.FakeConn)
 		countingConn = metric.CountQueries(underlyingConn)
 	})
 
@@ -55,7 +55,7 @@ var _ = Describe("Counting Database Queries", func() {
 			Expect(metric.DatabaseQueries.Delta()).To(Equal(2))
 
 			By("working in transactions")
-			underlyingTx := &dbfakes.FakeTx{}
+			underlyingTx := &dbngfakes.FakeTx{}
 			underlyingConn.BeginReturns(underlyingTx, nil)
 
 			tx, err := countingConn.Begin()

@@ -17,6 +17,8 @@ import (
 	"github.com/lib/pq"
 )
 
+//go:generate counterfeiter . Conn
+
 type Conn interface {
 	Bus() NotificationsBus
 	EncryptionStrategy() EncryptionStrategy
@@ -34,6 +36,8 @@ type Conn interface {
 
 	Close() error
 }
+
+//go:generate counterfeiter . Tx
 
 type Tx interface {
 	Commit() error
