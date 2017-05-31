@@ -305,8 +305,10 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
         CONCOURSE_BASIC_AUTH_USERNAME: concourse
         CONCOURSE_BASIC_AUTH_PASSWORD: changeme
         CONCOURSE_EXTERNAL_URL: "$\{CONCOURSE_EXTERNAL_URL\}"
-        CONCOURSE_POSTGRES_DATA_SOURCE: |-
-          postgres://concourse:changeme@concourse-db:5432/concourse?sslmode=disable
+        CONCOURSE_POSTGRES_HOST: concourse-db
+        CONCOURSE_POSTGRES_USER: concourse
+        CONCOURSE_POSTGRES_PASSWORD: changeme
+        CONCOURSE_POSTGRES_DATABASE: concourse
 
     concourse-worker:
       image: concourse/concourse

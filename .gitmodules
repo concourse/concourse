@@ -275,3 +275,7 @@
 	path = src/github.com/charlievieth/fs
 	url = https://github.com/charlievieth/fs
 	branch = master
+[submodule "src/github.com/miekg/dns"]
+	path = src/github.com/miekg/dns
+	url = https://github.com/miekg/dns
+	branch = master
