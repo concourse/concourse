@@ -18,19 +18,19 @@ type BuildScheduler interface {
 	Schedule(
 		logger lager.Logger,
 		versions *algorithm.VersionsDB,
-		jobConfigs atc.JobConfigs,
-		resourceConfigs atc.ResourceConfigs,
+		jobs []dbng.Job,
+		resources dbng.Resources,
 		resourceTypes atc.VersionedResourceTypes,
 	) (map[string]time.Duration, error)
 
 	TriggerImmediately(
 		logger lager.Logger,
-		jobConfig atc.JobConfig,
-		resourceConfigs atc.ResourceConfigs,
+		job dbng.Job,
+		resources dbng.Resources,
 		resourceTypes atc.VersionedResourceTypes,
 	) (dbng.Build, Waiter, error)
 
-	SaveNextInputMapping(logger lager.Logger, job atc.JobConfig) error
+	SaveNextInputMapping(logger lager.Logger, job dbng.Job) error
 }
 
 var errPipelineRemoved = errors.New("pipeline removed")
@@ -124,9 +124,15 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return errPipelineRemoved
 	}
 
-	config, _, _, err := runner.Pipeline.Config()
+	resources, err := runner.Pipeline.Resources()
 	if err != nil {
-		logger.Error("failed-to-get-config", err)
+		logger.Error("failed-to-get-resources", err)
+		return err
+	}
+
+	jobs, err := runner.Pipeline.Jobs()
+	if err != nil {
+		logger.Error("failed-to-get-jobs", err)
 		return err
 	}
 
@@ -141,8 +147,8 @@ func (runner *Runner) tick(logger lager.Logger) error {
 	schedulingTimes, err := runner.Scheduler.Schedule(
 		sLog,
 		versions,
-		config.Jobs,
-		config.Resources,
+		jobs,
+		resources,
 		resourceTypes.Deserialize(),
 	)
 

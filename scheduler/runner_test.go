@@ -34,6 +34,10 @@ var _ = Describe("Runner", func() {
 		process ifrit.Process
 
 		versionedResourceTypes atc.VersionedResourceTypes
+		fakeJob1               *dbngfakes.FakeJob
+		fakeJob2               *dbngfakes.FakeJob
+		fakeResource1          *dbngfakes.FakeResource
+		fakeResource2          *dbngfakes.FakeResource
 	)
 
 	BeforeEach(func() {
@@ -122,8 +126,23 @@ var _ = Describe("Runner", func() {
 				},
 			},
 		}
+		fakeJob1 = new(dbngfakes.FakeJob)
+		fakeJob1.NameReturns("some-job")
+		fakeJob2 = new(dbngfakes.FakeJob)
+		fakeJob2.NameReturns("some-other-job")
+
+		fakeResource1 = new(dbngfakes.FakeResource)
+		fakeResource1.NameReturns("some-resource")
+		fakeResource1.TypeReturns("git")
+		fakeResource1.SourceReturns(atc.Source{"uri": "git://some-resource"})
+		fakeResource2 = new(dbngfakes.FakeResource)
+		fakeResource2.NameReturns("some-dependant-resource")
+		fakeResource2.TypeReturns("git")
+		fakeResource2.SourceReturns(atc.Source{"uri": "git://some-dependant-resource"})
+
+		fakePipeline.JobsReturns([]dbng.Job{fakeJob1, fakeJob2}, nil)
+		fakePipeline.ResourcesReturns(dbng.Resources{fakeResource1, fakeResource2}, nil)
 		fakePipeline.ReloadReturns(true, nil)
-		fakePipeline.ConfigReturns(initialConfig, "", 0, nil)
 
 		lock = new(lockfakes.FakeLock)
 		fakePipeline.AcquireSchedulingLockReturns(lock, true, nil)
@@ -179,11 +198,8 @@ var _ = Describe("Runner", func() {
 
 		_, versions, jobs, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
 		Expect(versions).To(Equal(someVersions))
-		Expect(jobs).To(Equal(atc.JobConfigs{
-			{Name: "some-job"},
-			{Name: "some-other-job"},
-		}))
-		Expect(resources).To(Equal(initialConfig.Resources))
+		Expect(jobs).To(Equal([]dbng.Job{fakeJob1, fakeJob2}))
+		Expect(resources).To(Equal(dbng.Resources{fakeResource1, fakeResource2}))
 		Expect(resourceTypes).To(Equal(versionedResourceTypes))
 	})
 

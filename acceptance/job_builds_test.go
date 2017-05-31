@@ -71,7 +71,11 @@ var _ = Describe("Job Builds", func() {
 			Context("with more then 100 job builds", func() {
 				BeforeEach(func() {
 					for i := 1; i < 104; i++ {
-						_, err := pipeline.CreateJobBuild("job-name")
+						job, found, err := pipeline.Job("job-name")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						_, err = job.CreateBuild()
 						Expect(err).NotTo(HaveOccurred())
 					}
 				})

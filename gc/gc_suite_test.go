@@ -39,6 +39,7 @@ var (
 
 	defaultTeam     dbng.Team
 	defaultPipeline dbng.Pipeline
+	defaultJob      dbng.Job
 	defaultBuild    dbng.Build
 
 	usedResource dbng.Resource
@@ -79,12 +80,21 @@ var _ = BeforeEach(func() {
 				Source: atc.Source{"some": "source"},
 			},
 		},
+		Jobs: atc.JobConfigs{
+			{
+				Name: "some-job",
+			},
+		},
 	}
 
 	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool
+	defaultJob, found, err = defaultPipeline.Job("some-job")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
+
 	usedResource, found, err = defaultPipeline.Resource("some-resource")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())

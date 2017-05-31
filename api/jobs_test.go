@@ -1187,6 +1187,8 @@ var _ = Describe("Jobs API", func() {
 		var response *http.Response
 
 		var fakeScheduler *schedulerfakes.FakeBuildScheduler
+		var fakeResource *dbngfakes.FakeResource
+		var fakeResource2 *dbngfakes.FakeResource
 
 		BeforeEach(func() {
 			var err error
@@ -1264,30 +1266,23 @@ var _ = Describe("Jobs API", func() {
 							build.EndTimeReturns(time.Unix(100, 0))
 							fakeScheduler.TriggerImmediatelyReturns(build, nil, nil)
 
-							fakePipeline.ConfigReturns(atc.Config{
-								Resources: atc.ResourceConfigs{
-									{Name: "resource-1", Type: "some-type"},
-									{Name: "resource-2", Type: "some-other-type"},
-								},
-							}, "", 0, nil)
+							fakeResource = new(dbngfakes.FakeResource)
+							fakeResource.NameReturns("resource-1")
+							fakeResource.TypeReturns("some-type")
+
+							fakeResource2 = new(dbngfakes.FakeResource)
+							fakeResource2.NameReturns("resource-2")
+							fakeResource2.TypeReturns("some-other-type")
+
+							fakePipeline.ResourcesReturns(dbng.Resources{fakeResource, fakeResource2}, nil)
 						})
 
 						It("triggers using the current config", func() {
 							Expect(fakeScheduler.TriggerImmediatelyCallCount()).To(Equal(1))
 
 							_, job, resources, resourceTypes := fakeScheduler.TriggerImmediatelyArgsForCall(0)
-							Expect(job).To(Equal(atc.JobConfig{
-								Name: "some-job",
-								Plan: atc.PlanSequence{
-									{
-										Get: "some-input",
-									},
-								},
-							}))
-							Expect(resources).To(Equal(atc.ResourceConfigs{
-								{Name: "resource-1", Type: "some-type"},
-								{Name: "resource-2", Type: "some-other-type"},
-							}))
+							Expect(job).To(Equal(fakeJob))
+							Expect(resources).To(Equal(dbng.Resources{fakeResource, fakeResource2}))
 							Expect(resourceTypes).To(Equal(versionedResourceTypes))
 						})
 
@@ -1316,7 +1311,7 @@ var _ = Describe("Jobs API", func() {
 
 					Context("when getting the config fails", func() {
 						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{}, "", 0, errors.New("oh no!"))
+							fakePipeline.ResourcesReturns(dbng.Resources{}, errors.New("oh no!"))
 						})
 
 						It("returns 500", func() {
@@ -1381,14 +1376,14 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			Context("when getting the job succeeds", func() {
-				var someJob *dbngfakes.FakeJob
+				var fakeJob *dbngfakes.FakeJob
 
 				Context("when it contains the requested job", func() {
 					var fakeScheduler *schedulerfakes.FakeBuildScheduler
 					BeforeEach(func() {
-						someJob = new(dbngfakes.FakeJob)
-						someJob.NameReturns("some-job")
-						someJob.ConfigReturns(atc.JobConfig{
+						fakeJob = new(dbngfakes.FakeJob)
+						fakeJob.NameReturns("some-job")
+						fakeJob.ConfigReturns(atc.JobConfig{
 							Name: "some-job",
 							Plan: atc.PlanSequence{
 								{
@@ -1406,7 +1401,7 @@ var _ = Describe("Jobs API", func() {
 								},
 							},
 						})
-						fakePipeline.JobReturns(someJob, true, nil)
+						fakePipeline.JobReturns(fakeJob, true, nil)
 
 						fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
 						fakeSchedulerFactory.BuildSchedulerReturns(fakeScheduler)
@@ -1423,7 +1418,7 @@ var _ = Describe("Jobs API", func() {
 
 					Context("when the input versions for the job can be determined", func() {
 						BeforeEach(func() {
-							fakePipeline.GetNextBuildInputsStub = func(string) ([]dbng.BuildInput, bool, error) {
+							fakeJob.GetNextBuildInputsStub = func() ([]dbng.BuildInput, bool, error) {
 								defer GinkgoRecover()
 								Expect(fakeScheduler.SaveNextInputMappingCallCount()).To(Equal(1))
 								return []dbng.BuildInput{
@@ -1458,13 +1453,8 @@ var _ = Describe("Jobs API", func() {
 						})
 
 						It("determined the inputs with the correct job config", func() {
-							_, receivedJobConfig := fakeScheduler.SaveNextInputMappingArgsForCall(0)
-							Expect(receivedJobConfig).To(Equal(someJob.Config()))
-						})
-
-						It("loaded the inputs with the correct job name", func() {
-							receivedJobName := fakePipeline.GetNextBuildInputsArgsForCall(0)
-							Expect(receivedJobName).To(Equal("some-job"))
+							_, recievedJob := fakeScheduler.SaveNextInputMappingArgsForCall(0)
+							Expect(recievedJob.Name()).To(Equal(fakeJob.Name()))
 						})
 
 						It("returns the inputs", func() {
@@ -1506,7 +1496,7 @@ var _ = Describe("Jobs API", func() {
 
 					Context("when the job has no input versions available", func() {
 						BeforeEach(func() {
-							fakePipeline.GetNextBuildInputsReturns(nil, false, nil)
+							fakeJob.GetNextBuildInputsReturns(nil, false, nil)
 						})
 
 						It("returns 404", func() {
@@ -1516,7 +1506,7 @@ var _ = Describe("Jobs API", func() {
 
 					Context("when the input versions for the job can not be determined", func() {
 						BeforeEach(func() {
-							fakePipeline.GetNextBuildInputsReturns(nil, false, errors.New("oh no!"))
+							fakeJob.GetNextBuildInputsReturns(nil, false, errors.New("oh no!"))
 						})
 
 						It("returns 500", func() {

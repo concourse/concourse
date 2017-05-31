@@ -8,6 +8,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/db/lock"
 )
 
@@ -29,10 +30,19 @@ type Job interface {
 	Pause() error
 	Unpause() error
 
+	CreateBuild() (Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
 	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
+	EnsurePendingBuildExists() error
+	GetPendingBuilds() ([]Build, error)
+
+	GetIndependentBuildInputs() ([]BuildInput, error)
+	GetNextBuildInputs() ([]BuildInput, bool, error)
+	SaveNextInputMapping(inputMapping algorithm.InputMapping) error
+	SaveIndependentInputMapping(inputMapping algorithm.InputMapping) error
+	DeleteNextInputMapping() error
 
 	SetMaxInFlightReached(bool) error
 	GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, error)
@@ -423,6 +433,214 @@ func (j *job) SetMaxInFlightReached(reached bool) error {
 	return nil
 }
 
+func (j *job) SaveIndependentInputMapping(inputMapping algorithm.InputMapping) error {
+	return j.saveJobInputMapping("independent_build_inputs", inputMapping)
+}
+
+func (j *job) SaveNextInputMapping(inputMapping algorithm.InputMapping) error {
+	return j.saveJobInputMapping("next_build_inputs", inputMapping)
+}
+
+func (j *job) GetIndependentBuildInputs() ([]BuildInput, error) {
+	return j.getBuildInputs("independent_build_inputs")
+}
+
+func (j *job) GetNextBuildInputs() ([]BuildInput, bool, error) {
+	var found bool
+	err := psql.Select("inputs_determined").
+		From("jobs").
+		Where(sq.Eq{
+			"name":        j.name,
+			"pipeline_id": j.pipelineID,
+		}).
+		RunWith(j.conn).
+		QueryRow().
+		Scan(&found)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	// there is a possible race condition where found is true at first but the
+	// inputs are deleted by the time we get here
+	buildInputs, err := j.getBuildInputs("next_build_inputs")
+	return buildInputs, true, err
+}
+
+func (j *job) DeleteNextInputMapping() error {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = psql.Update("jobs").
+		Set("inputs_determined", false).
+		Where(sq.Eq{
+			"name":        j.name,
+			"pipeline_id": j.pipelineID,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Delete("next_build_inputs").
+		Where(sq.Eq{"job_id": j.id}).
+		RunWith(tx).Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (j *job) EnsurePendingBuildExists() error {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	buildName, err := j.getNewBuildName(tx)
+	if err != nil {
+		return err
+	}
+
+	rows, err := tx.Query(`
+		INSERT INTO builds (name, job_id, team_id, status)
+		SELECT $1, $2, $3, 'pending'
+		WHERE NOT EXISTS
+			(SELECT id FROM builds WHERE job_id = $2 AND status = 'pending')
+		RETURNING id
+	`, buildName, j.id, j.teamID)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	if rows.Next() {
+		var buildID int
+		err := rows.Scan(&buildID)
+		if err != nil {
+			return err
+		}
+
+		rows.Close()
+
+		err = createBuildEventSeq(tx, buildID)
+		if err != nil {
+			return err
+		}
+
+		return tx.Commit()
+	}
+
+	return nil
+}
+
+func (j *job) GetPendingBuilds() ([]Build, error) {
+	builds := []Build{}
+
+	row := jobsQuery.Where(sq.Eq{
+		"j.name":        j.name,
+		"j.active":      true,
+		"j.pipeline_id": j.pipelineID,
+	}).RunWith(j.conn).QueryRow()
+
+	job := &job{conn: j.conn, lockFactory: j.lockFactory}
+	err := scanJob(job, row)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := buildsQuery.
+		Where(sq.Eq{
+			"b.job_id": j.id,
+			"b.status": BuildStatusPending,
+		}).
+		OrderBy("b.id ASC").
+		RunWith(j.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		build := &build{conn: j.conn, lockFactory: j.lockFactory}
+		err = scanBuild(build, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		builds = append(builds, build)
+	}
+
+	return builds, nil
+}
+
+func (j *job) CreateBuild() (Build, error) {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	buildName, err := j.getNewBuildName(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	var buildID int
+	err = psql.Insert("builds").
+		Columns("name", "job_id", "team_id", "status", "manually_triggered").
+		Values(buildName, j.id, j.teamID, BuildStatusPending, true).
+		Suffix("RETURNING id").
+		RunWith(tx).
+		QueryRow().
+		Scan(&buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	build := &build{conn: j.conn, lockFactory: j.lockFactory}
+	err = scanBuild(build, buildsQuery.
+		Where(sq.Eq{"b.id": buildID}).
+		RunWith(tx).
+		QueryRow(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = createBuildEventSeq(tx, buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return build, nil
+}
+
 func (j *job) updateSerialGroups(serialGroups []string) error {
 	tx, err := j.conn.Begin()
 	if err != nil {
@@ -479,6 +697,159 @@ func (j *job) updatePausedJob(pause bool) error {
 	}
 
 	return nil
+}
+
+func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
+	rows, err := psql.Select("i.input_name, i.first_occurrence, r.name, v.type, v.version, v.metadata").
+		From(table + " i").
+		Join("jobs j ON i.job_id = j.id").
+		Join("versioned_resources v ON v.id = i.version_id").
+		Join("resources r ON r.id = v.resource_id").
+		Where(sq.Eq{
+			"j.name":        j.name,
+			"j.pipeline_id": j.pipelineID,
+		}).
+		RunWith(j.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	buildInputs := []BuildInput{}
+	for rows.Next() {
+		var (
+			inputName       string
+			firstOccurrence bool
+			resourceName    string
+			resourceType    string
+			versionBlob     string
+			metadataBlob    string
+			version         ResourceVersion
+			metadata        []ResourceMetadataField
+		)
+
+		err := rows.Scan(&inputName, &firstOccurrence, &resourceName, &resourceType, &versionBlob, &metadataBlob)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal([]byte(versionBlob), &version)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadataBlob), &metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		buildInputs = append(buildInputs, BuildInput{
+			Name: inputName,
+			VersionedResource: VersionedResource{
+				Resource: resourceName,
+				Type:     resourceType,
+				Version:  version,
+				Metadata: metadata,
+			},
+			FirstOccurrence: firstOccurrence,
+		})
+	}
+	return buildInputs, nil
+}
+
+func (j *job) getNewBuildName(tx Tx) (string, error) {
+	var buildName string
+	err := psql.Update("jobs").
+		Set("build_number_seq", sq.Expr("build_number_seq + 1")).
+		Where(sq.Eq{
+			"name":        j.name,
+			"pipeline_id": j.pipelineID,
+		}).
+		Suffix("RETURNING build_number_seq").
+		RunWith(tx).
+		QueryRow().
+		Scan(&buildName)
+
+	return buildName, err
+}
+
+func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapping) error {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	if table == "next_build_inputs" {
+		_, err = psql.Update("jobs").
+			Set("inputs_determined", true).
+			Where(sq.Eq{
+				"id": j.id,
+			}).
+			RunWith(tx).
+			Exec()
+	}
+	if err != nil {
+		return err
+	}
+
+	rows, err := psql.Select("input_name, version_id, first_occurrence").
+		From(table).
+		Where(sq.Eq{"job_id": j.id}).
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	oldInputMapping := algorithm.InputMapping{}
+	for rows.Next() {
+		var inputName string
+		var inputVersion algorithm.InputVersion
+		err := rows.Scan(&inputName, &inputVersion.VersionID, &inputVersion.FirstOccurrence)
+		if err != nil {
+			return err
+		}
+
+		oldInputMapping[inputName] = inputVersion
+	}
+
+	for inputName, oldInputVersion := range oldInputMapping {
+		inputVersion, found := inputMapping[inputName]
+		if !found || inputVersion != oldInputVersion {
+			_, err = psql.Delete(table).
+				Where(sq.Eq{
+					"job_id":     j.id,
+					"input_name": inputName,
+				}).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	for inputName, inputVersion := range inputMapping {
+		oldInputVersion, found := oldInputMapping[inputName]
+		if !found || inputVersion != oldInputVersion {
+			_, err := psql.Insert(table).
+				SetMap(map[string]interface{}{
+					"job_id":           j.id,
+					"input_name":       inputName,
+					"version_id":       inputVersion.VersionID,
+					"first_occurrence": inputVersion.FirstOccurrence,
+				}).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
 }
 
 func scanJob(j *job, row scannable) error {

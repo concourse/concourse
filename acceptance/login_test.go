@@ -91,7 +91,11 @@ var _ = Describe("Logging In", func() {
 
 				BeforeEach(func() {
 					// job build data
-					build, err := pipeline.CreateJobBuild("job-name")
+					job, found, err := pipeline.Job("job-name")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					build, err := job.CreateBuild()
 					Expect(err).NotTo(HaveOccurred())
 					buildPath = fmt.Sprintf("/builds/%d", build.ID())
 				})

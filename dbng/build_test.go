@@ -258,6 +258,8 @@ var _ = Describe("Build", func() {
 
 	Describe("SaveInput", func() {
 		var pipeline dbng.Pipeline
+		var job dbng.Job
+
 		BeforeEach(func() {
 			pipelineConfig := atc.Config{
 				Jobs: atc.JobConfigs{
@@ -276,11 +278,16 @@ var _ = Describe("Build", func() {
 			var err error
 			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			job, found, err = pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
 
 		Context("when a job build", func() {
 			It("saves the build's input", func() {
-				build, err := pipeline.CreateJobBuild("some-job")
+				build, err := job.CreateBuild()
 				Expect(err).ToNot(HaveOccurred())
 
 				versionedResource := dbng.VersionedResource{
@@ -350,6 +357,8 @@ var _ = Describe("Build", func() {
 
 	Describe("SaveOutput", func() {
 		var pipeline dbng.Pipeline
+		var job dbng.Job
+
 		BeforeEach(func() {
 			pipelineConfig := atc.Config{
 				Jobs: atc.JobConfigs{
@@ -372,11 +381,16 @@ var _ = Describe("Build", func() {
 			var err error
 			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			job, found, err = pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
 
 		Context("when a job build", func() {
 			It("can get a build's output", func() {
-				build, err := pipeline.CreateJobBuild("some-job")
+				build, err := job.CreateBuild()
 				Expect(err).ToNot(HaveOccurred())
 
 				versionedResource := dbng.VersionedResource{
@@ -481,6 +495,7 @@ var _ = Describe("Build", func() {
 	Describe("GetResources", func() {
 		var (
 			pipeline dbng.Pipeline
+			job      dbng.Job
 			vr1      dbng.VersionedResource
 			vr2      dbng.VersionedResource
 		)
@@ -519,10 +534,15 @@ var _ = Describe("Build", func() {
 			var err error
 			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			job, found, err = pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
 
 		It("correctly distinguishes them", func() {
-			build, err := pipeline.CreateJobBuild("some-job")
+			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			// save a normal 'get'
@@ -564,7 +584,7 @@ var _ = Describe("Build", func() {
 		})
 
 		It("fails to save build output if resource does not exist", func() {
-			build, err := pipeline.CreateJobBuild("some-job")
+			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			vr := dbng.VersionedResource{
@@ -603,10 +623,13 @@ var _ = Describe("Build", func() {
 						},
 					},
 				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
-
 				Expect(err).ToNot(HaveOccurred())
 
-				build, err = createdPipeline.CreateJobBuild("some-job")
+				job, found, err := createdPipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				build, err = job.CreateBuild()
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -707,14 +730,18 @@ var _ = Describe("Build", func() {
 						},
 					},
 				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
-
 				Expect(err).ToNot(HaveOccurred())
-				build, err = pipeline.CreateJobBuild("some-job")
+
+				var found bool
+				job, found, err = pipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				build, err = job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
 				expectedBuildPrep.BuildID = build.ID()
 
-				var found bool
 				job, found, err = pipeline.Job("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -738,9 +765,9 @@ var _ = Describe("Build", func() {
 					Expect(found).To(BeTrue())
 					Expect(versions).To(HaveLen(1))
 
-					pipeline.SaveNextInputMapping(algorithm.InputMapping{
+					job.SaveNextInputMapping(algorithm.InputMapping{
 						"some-input": {VersionID: versions[0].ID, FirstOccurrence: true},
-					}, "some-job")
+					})
 
 					expectedBuildPrep.Inputs = map[string]dbng.BuildPreparationStatus{
 						"some-input": dbng.BuildPreparationStatusNotBlocking,
@@ -909,14 +936,18 @@ var _ = Describe("Build", func() {
 					)
 					Expect(err).NotTo(HaveOccurred())
 
+					job, found, err := pipeline.Job("some-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
 					versions, _, found, err := pipeline.GetResourceVersions("input1", dbng.Page{Limit: 1})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(versions).To(HaveLen(1))
 
-					pipeline.SaveIndependentInputMapping(algorithm.InputMapping{
+					job.SaveIndependentInputMapping(algorithm.InputMapping{
 						"input1": {VersionID: versions[0].ID, FirstOccurrence: true},
-					}, "some-job")
+					})
 
 					expectedBuildPrep.Inputs = map[string]dbng.BuildPreparationStatus{
 						"input1": dbng.BuildPreparationStatusNotBlocking,
@@ -960,10 +991,13 @@ var _ = Describe("Build", func() {
 						},
 					},
 				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
-
 				Expect(err).ToNot(HaveOccurred())
 
-				build, err = pipeline.CreateJobBuild("some-job")
+				job, found, err := pipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				build, err = job.CreateBuild()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(build.IsScheduled()).To(BeFalse())
 			})
@@ -1043,7 +1077,11 @@ var _ = Describe("Build", func() {
 			pipeline, _, err := team.SavePipeline("some-pipeline", pipelineConfig, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
 
-			build, err = pipeline.CreateJobBuild("some-job")
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err = job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
 			versionedResource := dbng.VersionedResource{

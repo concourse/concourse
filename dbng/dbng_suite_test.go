@@ -46,6 +46,7 @@ var (
 	defaultResourceType       dbng.ResourceType
 	defaultResource           dbng.Resource
 	defaultPipeline           dbng.Pipeline
+	defaultJob                dbng.Job
 	logger                    *lagertest.TestLogger
 	lockFactory               lock.LockFactory
 
@@ -158,6 +159,10 @@ var _ = BeforeEach(func() {
 	Expect(found).To(BeTrue())
 
 	defaultResource, found, err = defaultPipeline.Resource("some-resource")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
+
+	defaultJob, found, err = defaultPipeline.Job("some-job")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
 

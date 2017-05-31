@@ -33,7 +33,7 @@ var _ = Describe("ContainerFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				build, err = defaultPipeline.CreateJobBuild("some-job")
+				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), fullMetadata)

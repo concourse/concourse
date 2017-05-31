@@ -192,7 +192,11 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
 
-					dbBuild, err = pipeline.CreateJobBuild("some-job")
+					job, found, err := pipeline.Job("some-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					dbBuild, err = job.CreateBuild()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -220,7 +224,11 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
 
-					dbBuild, err = pipeline.CreateJobBuild("some-job")
+					job, found, err := pipeline.Job("some-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					dbBuild, err = job.CreateBuild()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -406,7 +414,11 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
 
-					dbBuild, err = pipeline.CreateJobBuild("some-job")
+					job, found, err := pipeline.Job("some-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					dbBuild, err = job.CreateBuild()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -434,7 +446,11 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
 
-					dbBuild, err = pipeline.CreateJobBuild("some-job")
+					job, found, err := pipeline.Job("some-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					dbBuild, err = job.CreateBuild()
 					Expect(err).NotTo(HaveOccurred())
 				})
 

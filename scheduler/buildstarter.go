@@ -14,8 +14,8 @@ import (
 type BuildStarter interface {
 	TryStartPendingBuildsForJob(
 		logger lager.Logger,
-		jobConfig atc.JobConfig,
-		resourceConfigs atc.ResourceConfigs,
+		job dbng.Job,
+		resources dbng.Resources,
 		resourceTypes atc.VersionedResourceTypes,
 		nextPendingBuilds []dbng.Build,
 	) error
@@ -56,13 +56,13 @@ type buildStarter struct {
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
 	logger lager.Logger,
-	jobConfig atc.JobConfig,
-	resourceConfigs atc.ResourceConfigs,
+	job dbng.Job,
+	resources dbng.Resources,
 	resourceTypes atc.VersionedResourceTypes,
 	nextPendingBuildsForJob []dbng.Build,
 ) error {
 	for _, nextPendingBuild := range nextPendingBuildsForJob {
-		started, err := s.tryStartNextPendingBuild(logger, nextPendingBuild, jobConfig, resourceConfigs, resourceTypes)
+		started, err := s.tryStartNextPendingBuild(logger, nextPendingBuild, job, resources, resourceTypes)
 		if err != nil {
 			return err
 		}
@@ -78,8 +78,8 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 func (s *buildStarter) tryStartNextPendingBuild(
 	logger lager.Logger,
 	nextPendingBuild dbng.Build,
-	jobConfig atc.JobConfig,
-	resourceConfigs atc.ResourceConfigs,
+	job dbng.Job,
+	resources dbng.Resources,
 	resourceTypes atc.VersionedResourceTypes,
 ) (bool, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
@@ -87,7 +87,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		"build-name": nextPendingBuild.Name(),
 	})
 
-	reachedMaxInFlight, err := s.maxInFlightUpdater.UpdateMaxInFlightReached(logger, jobConfig, nextPendingBuild.ID())
+	reachedMaxInFlight, err := s.maxInFlightUpdater.UpdateMaxInFlightReached(logger, job, nextPendingBuild.ID())
 	if err != nil {
 		return false, err
 	}
@@ -96,7 +96,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	}
 
 	if nextPendingBuild.IsManuallyTriggered() {
-		jobBuildInputs := jobConfig.Inputs()
+		jobBuildInputs := job.Config().Inputs()
 		for _, input := range jobBuildInputs {
 			scanLog := logger.Session("scan", lager.Data{
 				"input":    input.Name,
@@ -115,13 +115,13 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			return false, err
 		}
 
-		_, err = s.inputMapper.SaveNextInputMapping(logger, versions, jobConfig)
+		_, err = s.inputMapper.SaveNextInputMapping(logger, versions, job)
 		if err != nil {
 			return false, err
 		}
 	}
 
-	buildInputs, found, err := s.pipeline.GetNextBuildInputs(nextPendingBuild.JobName())
+	buildInputs, found, err := job.GetNextBuildInputs()
 	if err != nil {
 		logger.Error("failed-to-get-next-build-inputs", err)
 		return false, err
@@ -139,15 +139,6 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	job, found, err := s.pipeline.Job(nextPendingBuild.JobName())
-	if err != nil {
-		logger.Error("failed-to-check-if-job-is-paused", err)
-		return false, err
-	}
-	if !found {
-		logger.Debug("job-not-found")
-		return false, nil
-	}
 	if job.Paused() {
 		return false, nil
 	}
@@ -168,7 +159,17 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, err
 	}
 
-	plan, err := s.factory.Create(jobConfig, resourceConfigs, resourceTypes, buildInputs)
+	resourceConfigs := atc.ResourceConfigs{}
+	for _, v := range resources {
+		resourceConfigs = append(resourceConfigs, atc.ResourceConfig{
+			Name:   v.Name(),
+			Type:   v.Type(),
+			Source: v.Source(),
+			Tags:   v.Tags(),
+		})
+	}
+
+	plan, err := s.factory.Create(job.Config(), resourceConfigs, resourceTypes, buildInputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
 		err := nextPendingBuild.Finish(dbng.BuildStatusErrored)

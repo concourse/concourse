@@ -2,7 +2,6 @@ package inputmapper
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
@@ -14,7 +13,7 @@ type InputMapper interface {
 	SaveNextInputMapping(
 		logger lager.Logger,
 		versions *algorithm.VersionsDB,
-		job atc.JobConfig,
+		job dbng.Job,
 	) (algorithm.InputMapping, error)
 }
 
@@ -30,13 +29,13 @@ type inputMapper struct {
 func (i *inputMapper) SaveNextInputMapping(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
-	job atc.JobConfig,
+	job dbng.Job,
 ) (algorithm.InputMapping, error) {
 	logger = logger.Session("save-next-input-mapping")
 
-	inputConfigs := job.Inputs()
+	inputConfigs := job.Config().Inputs()
 
-	algorithmInputConfigs, err := i.transformer.TransformInputConfigs(versions, job.Name, inputConfigs)
+	algorithmInputConfigs, err := i.transformer.TransformInputConfigs(versions, job.Name(), inputConfigs)
 	if err != nil {
 		logger.Error("failed-to-get-algorithm-input-configs", err)
 		return nil, err
@@ -50,7 +49,7 @@ func (i *inputMapper) SaveNextInputMapping(
 		}
 	}
 
-	err = i.pipeline.SaveIndependentInputMapping(independentMapping, job.Name)
+	err = job.SaveIndependentInputMapping(independentMapping)
 	if err != nil {
 		logger.Error("failed-to-save-independent-input-mapping", err)
 		return nil, err
@@ -58,7 +57,7 @@ func (i *inputMapper) SaveNextInputMapping(
 
 	if len(independentMapping) < len(inputConfigs) {
 		// this is necessary to prevent builds from running with missing pinned versions
-		err := i.pipeline.DeleteNextInputMapping(job.Name)
+		err := job.DeleteNextInputMapping()
 		if err != nil {
 			logger.Error("failed-to-delete-next-input-mapping-after-missing-pending", err)
 		}
@@ -68,7 +67,7 @@ func (i *inputMapper) SaveNextInputMapping(
 
 	resolvedMapping, ok := algorithmInputConfigs.Resolve(versions)
 	if !ok {
-		err := i.pipeline.DeleteNextInputMapping(job.Name)
+		err := job.DeleteNextInputMapping()
 		if err != nil {
 			logger.Error("failed-to-delete-next-input-mapping-after-failed-resolve", err)
 		}
@@ -76,7 +75,7 @@ func (i *inputMapper) SaveNextInputMapping(
 		return nil, err
 	}
 
-	err = i.pipeline.SaveNextInputMapping(resolvedMapping, job.Name)
+	err = job.SaveNextInputMapping(resolvedMapping)
 	if err != nil {
 		logger.Error("failed-to-save-next-input-mapping", err)
 		return nil, err

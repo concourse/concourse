@@ -260,12 +260,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					var firstBuild dbng.Build
 
 					BeforeEach(func() {
-						err = defaultPipeline.SaveJob(atc.JobConfig{
-							Name: "some-job",
-						})
-						Expect(err).NotTo(HaveOccurred())
-
-						firstBuild, err = defaultPipeline.CreateJobBuild("some-job")
+						firstBuild, err = defaultJob.CreateBuild()
 						Expect(err).NotTo(HaveOccurred())
 
 						imageVersion := atc.Version{"ref": "abc"}
@@ -296,7 +291,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					})
 
 					It("deletes the use for old build image resource", func() {
-						secondBuild, err := defaultPipeline.CreateJobBuild("some-job")
+						secondBuild, err := defaultJob.CreateBuild()
 						Expect(err).NotTo(HaveOccurred())
 
 						imageVersion2 := atc.Version{"ref": "abc2"}

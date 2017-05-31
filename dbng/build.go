@@ -564,7 +564,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 
 	configInputs := job.Config().Inputs()
 
-	nextBuildInputs, found, err := pipeline.NextBuildInputs(jobName)
+	nextBuildInputs, found, err := job.GetNextBuildInputs()
 	if err != nil {
 		return BuildPreparation{}, false, err
 	}
@@ -579,7 +579,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 			inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
 		}
 	} else {
-		buildInputs, err := pipeline.GetIndependentBuildInputs(jobName)
+		buildInputs, err := job.GetIndependentBuildInputs()
 		if err != nil {
 			return BuildPreparation{}, false, err
 		}

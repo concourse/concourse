@@ -79,10 +79,10 @@ var _ = Describe("BuildFactory", func() {
 		Context("pipeline builds", func() {
 
 			It("[#139963615] marks builds that aren't the latest as non-interceptible, ", func() {
-				build1, err := defaultPipeline.CreateJobBuild("some-job")
+				build1, err := defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				build2, err := defaultPipeline.CreateJobBuild("some-job")
+				build2, err := defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
 				build1.Finish(dbng.BuildStatusErrored)
@@ -97,10 +97,14 @@ var _ = Describe("BuildFactory", func() {
 				}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				pb1, err := p.CreateJobBuild("some-other-job")
+				j, found, err := p.Job("some-other-job")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				pb1, err := j.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				pb2, err := p.CreateJobBuild("some-other-job")
+				pb2, err := j.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
 				pb1.Finish(dbng.BuildStatusErrored)
@@ -130,7 +134,7 @@ var _ = Describe("BuildFactory", func() {
 
 			DescribeTable("completed builds",
 				func(status dbng.BuildStatus, matcher types.GomegaMatcher) {
-					b, err := defaultPipeline.CreateJobBuild("some-job")
+					b, err := defaultJob.CreateBuild()
 					Expect(err).NotTo(HaveOccurred())
 
 					var i bool
@@ -147,7 +151,7 @@ var _ = Describe("BuildFactory", func() {
 			)
 
 			It("does not mark non-completed builds", func() {
-				b, err := defaultPipeline.CreateJobBuild("some-job")
+				b, err := defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
 				var i bool
@@ -182,14 +186,22 @@ var _ = Describe("BuildFactory", func() {
 			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = privatePipeline.CreateJobBuild("some-job")
+			privateJob, found, err := privatePipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			_, err = privateJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 			publicPipeline.Expose()
 
-			publicBuild, err = publicPipeline.CreateJobBuild("some-job")
+			publicJob, found, err := publicPipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			publicBuild, err = publicJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -216,10 +228,14 @@ var _ = Describe("BuildFactory", func() {
 			}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
 			build1DB, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build2DB, err = pipeline.CreateJobBuild("some-job")
+			build2DB, err = job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.CreateOneOffBuild()

@@ -41,9 +41,6 @@ type Pipeline interface {
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
 
-	SaveJob(job atc.JobConfig) error
-	SetMaxInFlightReached(string, bool) error
-
 	SetResourceCheckError(Resource, error) error
 
 	GetAllPendingBuilds() (map[string][]Build, error)
@@ -58,17 +55,6 @@ type Pipeline interface {
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
 
-	SaveIndependentInputMapping(inputMapping algorithm.InputMapping, jobName string) error
-	SaveNextInputMapping(inputMapping algorithm.InputMapping, jobName string) error
-
-	// TODO: move to job
-	GetIndependentBuildInputs(jobName string) ([]BuildInput, error)
-	GetNextBuildInputs(jobName string) ([]BuildInput, bool, error)
-	DeleteNextInputMapping(jobName string) error
-	EnsurePendingBuildExists(jobName string) error
-	GetPendingBuildsForJob(jobName string) ([]Build, error)
-	CreateJobBuild(jobName string) (Build, error)
-	NextBuildInputs(jobName string) ([]BuildInput, bool, error)
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
 	// Needs test (from db/lock_test.go)
@@ -352,48 +338,6 @@ func (p *pipeline) SetResourceCheckError(resource Resource, cause error) error {
 	return err
 }
 
-func (p *pipeline) GetPendingBuildsForJob(jobName string) ([]Build, error) {
-	builds := []Build{}
-
-	row := jobsQuery.Where(sq.Eq{
-		"j.name":        jobName,
-		"j.active":      true,
-		"j.pipeline_id": p.id,
-	}).RunWith(p.conn).QueryRow()
-
-	job := &job{conn: p.conn, lockFactory: p.lockFactory}
-	err := scanJob(job, row)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := buildsQuery.
-		Where(sq.Eq{
-			"b.job_id": job.ID(),
-			"b.status": BuildStatusPending,
-		}).
-		OrderBy("b.id ASC").
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory}
-		err = scanBuild(build, rows)
-		if err != nil {
-			return nil, err
-		}
-
-		builds = append(builds, build)
-	}
-
-	return builds, nil
-}
-
 func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
 	builds := map[string][]Build{}
 
@@ -423,52 +367,6 @@ func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
 	}
 
 	return builds, nil
-}
-
-func (p *pipeline) EnsurePendingBuildExists(jobName string) error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	buildName, jobID, err := getNewBuildNameForJob(tx, jobName, p.id)
-	if err != nil {
-		return err
-	}
-
-	rows, err := tx.Query(`
-		INSERT INTO builds (name, job_id, team_id, status)
-		SELECT $1, $2, $3, 'pending'
-		WHERE NOT EXISTS
-			(SELECT id FROM builds WHERE job_id = $2 AND status = 'pending')
-		RETURNING id
-	`, buildName, jobID, p.teamID)
-	if err != nil {
-		return err
-	}
-
-	defer rows.Close()
-
-	if rows.Next() {
-		var buildID int
-		err := rows.Scan(&buildID)
-		if err != nil {
-			return err
-		}
-
-		rows.Close()
-
-		err = createBuildEventSeq(tx, buildID)
-		if err != nil {
-			return err
-		}
-
-		return tx.Commit()
-	}
-
-	return nil
 }
 
 func (p *pipeline) SaveResourceVersions(config atc.ResourceConfig, versions []atc.Version) error {
@@ -828,81 +726,6 @@ func (p *pipeline) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Buil
 	return builds, err
 }
 
-func (p *pipeline) SaveIndependentInputMapping(inputMapping algorithm.InputMapping, jobName string) error {
-	return p.saveJobInputMapping("independent_build_inputs", inputMapping, jobName)
-}
-
-func (p *pipeline) GetIndependentBuildInputs(jobName string) ([]BuildInput, error) {
-	return p.getJobBuildInputs("independent_build_inputs", jobName)
-}
-
-func (p *pipeline) SaveNextInputMapping(inputMapping algorithm.InputMapping, jobName string) error {
-	return p.saveJobInputMapping("next_build_inputs", inputMapping, jobName)
-}
-
-func (p *pipeline) GetNextBuildInputs(jobName string) ([]BuildInput, bool, error) {
-	var found bool
-	err := psql.Select("inputs_determined").
-		From("jobs").
-		Where(sq.Eq{
-			"name":        jobName,
-			"pipeline_id": p.id,
-		}).
-		RunWith(p.conn).
-		QueryRow().
-		Scan(&found)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	// there is a possible race condition where found is true at first but the
-	// inputs are deleted by the time we get here
-	buildInputs, err := p.getJobBuildInputs("next_build_inputs", jobName)
-	return buildInputs, true, err
-}
-
-func (p *pipeline) DeleteNextInputMapping(jobName string) error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	var jobID int
-	err = psql.Update("jobs").
-		Set("inputs_determined", false).
-		Where(sq.Eq{
-			"name":        jobName,
-			"pipeline_id": p.id,
-		}).
-		Suffix("RETURNING id").
-		RunWith(tx).
-		QueryRow().
-		Scan(&jobID)
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Delete("next_build_inputs").
-		Where(sq.Eq{"job_id": jobID}).
-		RunWith(tx).Exec()
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (p *pipeline) Resource(name string) (Resource, bool, error) {
 	row := resourcesQuery.Where(sq.Eq{
 		"r.pipeline_id": p.id,
@@ -943,60 +766,6 @@ func (p *pipeline) Resources() (Resources, error) {
 	}
 
 	return resources, nil
-}
-
-func (p *pipeline) SaveJob(job atc.JobConfig) error {
-	configPayload, err := json.Marshal(job)
-	if err != nil {
-		return err
-	}
-
-	return safeCreateOrUpdate(
-		p.conn,
-		func(tx Tx) (sql.Result, error) {
-			return psql.Insert("jobs").
-				Columns("name", "pipeline_id", "config", "active").
-				Values(job.Name, p.id, configPayload, true).
-				RunWith(tx).
-				Exec()
-		},
-		func(tx Tx) (sql.Result, error) {
-			return psql.Update("jobs").
-				Set("config", configPayload).
-				Set("active", true).
-				Where(sq.Eq{
-					"name":        job.Name,
-					"pipeline_id": p.id,
-				}).
-				RunWith(tx).
-				Exec()
-		},
-	)
-}
-
-func (p *pipeline) SetMaxInFlightReached(jobName string, reached bool) error {
-	result, err := psql.Update("jobs").
-		Set("max_in_flight_reached", reached).
-		Where(sq.Eq{
-			"name":        jobName,
-			"pipeline_id": p.id,
-		}).
-		RunWith(p.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
-	}
-
-	return nil
 }
 
 func (p *pipeline) ResourceTypes() (ResourceTypes, error) {

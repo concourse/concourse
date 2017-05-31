@@ -28,13 +28,13 @@ func (s *Server) ListJobInputs(pipeline dbng.Pipeline) http.Handler {
 
 		scheduler := s.schedulerFactory.BuildScheduler(pipeline, s.externalURL)
 
-		err = scheduler.SaveNextInputMapping(logger, job.Config())
+		err = scheduler.SaveNextInputMapping(logger, job)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		buildInputs, found, err := pipeline.GetNextBuildInputs(jobName)
+		buildInputs, found, err := job.GetNextBuildInputs()
 		if err != nil {
 			logger.Error("failed-to-get-next-build-inputs", err)
 			w.WriteHeader(http.StatusInternalServerError)

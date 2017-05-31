@@ -255,7 +255,11 @@ var _ = Describe("Team", func() {
 				diffUser,
 			}
 
-			build, err := defaultPipeline.CreateJobBuild("some-job")
+			job, found, err := defaultPipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			metaContainers = make(map[dbng.ContainerMetadata][]dbng.Container)
@@ -448,7 +452,11 @@ var _ = Describe("Team", func() {
 		var createdContainer dbng.CreatedContainer
 
 		BeforeEach(func() {
-			build, err := defaultPipeline.CreateJobBuild("some-job")
+			job, found, err := defaultPipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", StepName: "some-task"})
@@ -1206,8 +1214,12 @@ var _ = Describe("Team", func() {
 				pipeline, _, err = team.SavePipeline("some-pipeline", config, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
+				job, found, err := pipeline.Job("some-job")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
 				for i := 3; i < 5; i++ {
-					build, err := pipeline.CreateJobBuild("some-job")
+					build, err := job.CreateBuild()
 					Expect(err).NotTo(HaveOccurred())
 					allBuilds[i] = build
 					pipelineBuilds[i-3] = build

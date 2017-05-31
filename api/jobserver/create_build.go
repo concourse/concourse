@@ -41,14 +41,14 @@ func (s *Server) CreateJobBuild(pipeline dbng.Pipeline) http.Handler {
 			return
 		}
 
-		config, _, _, err := pipeline.Config()
+		resources, err := pipeline.Resources()
 		if err != nil {
-			logger.Error("failed-to-get-pipeline-config", err)
+			logger.Error("failed-to-get-resources", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		build, _, err := scheduler.TriggerImmediately(logger, job.Config(), config.Resources, resourceTypes.Deserialize())
+		build, _, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes.Deserialize())
 		if err != nil {
 			logger.Error("failed-to-trigger", err)
 			w.WriteHeader(http.StatusInternalServerError)

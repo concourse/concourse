@@ -5,18 +5,18 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/scheduler/inputmapper"
 )
 
 type FakeInputMapper struct {
-	SaveNextInputMappingStub        func(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig) (algorithm.InputMapping, error)
+	SaveNextInputMappingStub        func(logger lager.Logger, versions *algorithm.VersionsDB, job dbng.Job) (algorithm.InputMapping, error)
 	saveNextInputMappingMutex       sync.RWMutex
 	saveNextInputMappingArgsForCall []struct {
 		logger   lager.Logger
 		versions *algorithm.VersionsDB
-		job      atc.JobConfig
+		job      dbng.Job
 	}
 	saveNextInputMappingReturns struct {
 		result1 algorithm.InputMapping
@@ -30,13 +30,13 @@ type FakeInputMapper struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeInputMapper) SaveNextInputMapping(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig) (algorithm.InputMapping, error) {
+func (fake *FakeInputMapper) SaveNextInputMapping(logger lager.Logger, versions *algorithm.VersionsDB, job dbng.Job) (algorithm.InputMapping, error) {
 	fake.saveNextInputMappingMutex.Lock()
 	ret, specificReturn := fake.saveNextInputMappingReturnsOnCall[len(fake.saveNextInputMappingArgsForCall)]
 	fake.saveNextInputMappingArgsForCall = append(fake.saveNextInputMappingArgsForCall, struct {
 		logger   lager.Logger
 		versions *algorithm.VersionsDB
-		job      atc.JobConfig
+		job      dbng.Job
 	}{logger, versions, job})
 	fake.recordInvocation("SaveNextInputMapping", []interface{}{logger, versions, job})
 	fake.saveNextInputMappingMutex.Unlock()
@@ -55,7 +55,7 @@ func (fake *FakeInputMapper) SaveNextInputMappingCallCount() int {
 	return len(fake.saveNextInputMappingArgsForCall)
 }
 
-func (fake *FakeInputMapper) SaveNextInputMappingArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfig) {
+func (fake *FakeInputMapper) SaveNextInputMappingArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, dbng.Job) {
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
 	return fake.saveNextInputMappingArgsForCall[i].logger, fake.saveNextInputMappingArgsForCall[i].versions, fake.saveNextInputMappingArgsForCall[i].job

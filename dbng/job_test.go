@@ -1,7 +1,10 @@
 package dbng_test
 
 import (
+	"time"
+
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -69,6 +72,16 @@ var _ = Describe("Job", func() {
 					SerialGroups: []string{"different-serial-group"},
 				},
 			},
+			Resources: atc.ResourceConfigs{
+				{
+					Name: "some-resource",
+					Type: "some-type",
+				},
+				{
+					Name: "some-other-resource",
+					Type: "some-type",
+				},
+			},
 		}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(created).To(BeTrue())
@@ -109,6 +122,7 @@ var _ = Describe("Job", func() {
 
 	Describe("FinishedAndNextBuild", func() {
 		var otherPipeline dbng.Pipeline
+		var otherJob dbng.Job
 
 		BeforeEach(func() {
 			var created bool
@@ -120,6 +134,11 @@ var _ = Describe("Job", func() {
 			}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
+
+			var found bool
+			otherJob, found, err = otherPipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
 
 		It("can report a job's latest running and finished builds", func() {
@@ -129,13 +148,13 @@ var _ = Describe("Job", func() {
 			Expect(next).To(BeNil())
 			Expect(finished).To(BeNil())
 
-			finishedBuild, err := pipeline.CreateJobBuild("some-job")
+			finishedBuild, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = finishedBuild.Finish(dbng.BuildStatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherFinishedBuild, err := otherPipeline.CreateJobBuild("some-job")
+			otherFinishedBuild, err := otherJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherFinishedBuild.Finish(dbng.BuildStatusSucceeded)
@@ -147,14 +166,14 @@ var _ = Describe("Job", func() {
 			Expect(next).To(BeNil())
 			Expect(finished.ID()).To(Equal(finishedBuild.ID()))
 
-			nextBuild, err := pipeline.CreateJobBuild("some-job")
+			nextBuild, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			started, err := nextBuild.Start("some-engine", "meta")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
-			otherNextBuild, err := otherPipeline.CreateJobBuild("some-job")
+			otherNextBuild, err := otherJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			otherStarted, err := otherNextBuild.Start("some-engine", "meta")
@@ -167,7 +186,7 @@ var _ = Describe("Job", func() {
 			Expect(next.ID()).To(Equal(nextBuild.ID()))
 			Expect(finished.ID()).To(Equal(finishedBuild.ID()))
 
-			anotherRunningBuild, err := pipeline.CreateJobBuild("some-job")
+			anotherRunningBuild, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			finished, next, err = job.FinishedAndNextBuild()
@@ -234,15 +253,8 @@ var _ = Describe("Job", func() {
 
 		BeforeEach(func() {
 			for i := 0; i < 10; i++ {
-				build, err := pipeline.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				_, err = pipeline.CreateJobBuild("some-other-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				builds[i] = build
-
 				var found bool
+				var err error
 				someJob, found, err = pipeline.Job("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -250,6 +262,14 @@ var _ = Describe("Job", func() {
 				someOtherJob, found, err = pipeline.Job("some-other-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
+
+				build, err := someJob.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = someOtherJob.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				builds[i] = build
 			}
 		})
 
@@ -319,7 +339,7 @@ var _ = Describe("Job", func() {
 		Context("when a build exists", func() {
 			BeforeEach(func() {
 				var err error
-				firstBuild, err = pipeline.CreateJobBuild(job.Name())
+				firstBuild, err = job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -348,15 +368,15 @@ var _ = Describe("Job", func() {
 
 			BeforeEach(func() {
 				var err error
-				_, err = pipeline.CreateJobBuild("some-job")
+				_, err = job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				startedBuild, err = pipeline.CreateJobBuild("some-job")
+				startedBuild, err = job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 				_, err = startedBuild.Start("", "")
 				Expect(err).NotTo(HaveOccurred())
 
-				scheduledBuild, err = pipeline.CreateJobBuild("some-job")
+				scheduledBuild, err = job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
 				scheduled, err := scheduledBuild.Schedule()
@@ -364,7 +384,7 @@ var _ = Describe("Job", func() {
 				Expect(scheduled).To(BeTrue())
 
 				for _, s := range []dbng.BuildStatus{dbng.BuildStatusSucceeded, dbng.BuildStatusFailed, dbng.BuildStatusErrored, dbng.BuildStatusAborted} {
-					finishedBuild, err := pipeline.CreateJobBuild("some-job")
+					finishedBuild, err := job.CreateBuild()
 					Expect(err).NotTo(HaveOccurred())
 
 					scheduled, err = finishedBuild.Schedule()
@@ -375,7 +395,11 @@ var _ = Describe("Job", func() {
 					Expect(err).NotTo(HaveOccurred())
 				}
 
-				_, err = pipeline.CreateJobBuild("some-other-job")
+				otherJob, found, err := pipeline.Job("some-other-job")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				_, err = otherJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -397,17 +421,25 @@ var _ = Describe("Job", func() {
 
 			BeforeEach(func() {
 				var err error
-				_, err = pipeline.CreateJobBuild("some-job")
+				_, err = job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				serialGroupBuild, err = pipeline.CreateJobBuild("other-serial-group-job")
+				otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				serialGroupBuild, err = otherSerialJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
 				scheduled, err := serialGroupBuild.Schedule()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(scheduled).To(BeTrue())
 
-				differentSerialGroupBuild, err := pipeline.CreateJobBuild("different-serial-group-job")
+				differentSerialJob, found, err := pipeline.Job("different-serial-group-job")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				differentSerialGroupBuild, err := differentSerialJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
 				scheduled, err = differentSerialGroupBuild.Schedule()
@@ -448,13 +480,13 @@ var _ = Describe("Job", func() {
 			var actualBuild dbng.Build
 
 			BeforeEach(func() {
-				_, err := pipeline.CreateJobBuild(job1Name)
+				_, err := job1.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				actualBuild, err = pipeline.CreateJobBuild(job2Name)
+				actualBuild, err = job2.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				err = pipeline.SaveNextInputMapping(nil, "other-serial-group-job")
+				err = job2.SaveNextInputMapping(nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -467,18 +499,18 @@ var _ = Describe("Job", func() {
 		})
 
 		It("should return the next most pending build in a group of jobs", func() {
-			buildOne, err := pipeline.CreateJobBuild(job1Name)
+			buildOne, err := job1.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			buildTwo, err := pipeline.CreateJobBuild(job1Name)
+			buildTwo, err := job1.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			buildThree, err := pipeline.CreateJobBuild(job2Name)
+			buildThree, err := job2.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = pipeline.SaveNextInputMapping(nil, "some-job")
+			err = job1.SaveNextInputMapping(nil)
 			Expect(err).NotTo(HaveOccurred())
-			err = pipeline.SaveNextInputMapping(nil, "other-serial-group-job")
+			err = job2.SaveNextInputMapping(nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			build, found, err := job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
@@ -517,6 +549,617 @@ var _ = Describe("Job", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(build.ID()).To(Equal(buildThree.ID()))
+		})
+	})
+
+	Describe("NextBuildInputs", func() {
+		var pipeline2 dbng.Pipeline
+		var versions dbng.SavedVersionedResources
+		var job dbng.Job
+		var job2 dbng.Job
+
+		BeforeEach(func() {
+			resourceConfig := atc.ResourceConfig{
+				Name: "some-resource",
+				Type: "some-type",
+			}
+
+			err := pipeline.SaveResourceVersions(
+				resourceConfig,
+				[]atc.Version{
+					{"version": "v1"},
+					{"version": "v2"},
+					{"version": "v3"},
+				},
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			var found bool
+			job, found, err = pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			// save metadata for v1
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			err = build.SaveInput(dbng.BuildInput{
+				Name: "some-input",
+				VersionedResource: dbng.VersionedResource{
+					Resource: "some-resource",
+					Type:     "some-type",
+					Version:  dbng.ResourceVersion{"version": "v1"},
+					Metadata: []dbng.ResourceMetadataField{{Name: "name1", Value: "value1"}},
+				},
+				FirstOccurrence: true,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			reversions, _, found, err := pipeline.GetResourceVersions("some-resource", dbng.Page{Limit: 3})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			versions = []dbng.SavedVersionedResource{reversions[2], reversions[1], reversions[0]}
+
+			config := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+					{
+						Name: "some-other-job",
+					},
+				},
+				Resources: atc.ResourceConfigs{resourceConfig},
+			}
+
+			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			job2, found, err = pipeline2.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+		})
+
+		Describe("independent build inputs", func() {
+			It("gets independent build inputs for the given job name", func() {
+				inputVersions := algorithm.InputMapping{
+					"some-input-1": algorithm.InputVersion{
+						VersionID:       versions[0].ID,
+						FirstOccurrence: false,
+					},
+					"some-input-2": algorithm.InputVersion{
+						VersionID:       versions[1].ID,
+						FirstOccurrence: true,
+					},
+				}
+				err := job.SaveIndependentInputMapping(inputVersions)
+				Expect(err).NotTo(HaveOccurred())
+
+				pipeline2InputVersions := algorithm.InputMapping{
+					"some-input-3": algorithm.InputVersion{
+						VersionID:       versions[2].ID,
+						FirstOccurrence: false,
+					},
+				}
+				err = job2.SaveIndependentInputMapping(pipeline2InputVersions)
+				Expect(err).NotTo(HaveOccurred())
+
+				buildInputs := []dbng.BuildInput{
+					{
+						Name:              "some-input-1",
+						VersionedResource: versions[0].VersionedResource,
+						FirstOccurrence:   false,
+					},
+					{
+						Name:              "some-input-2",
+						VersionedResource: versions[1].VersionedResource,
+						FirstOccurrence:   true,
+					},
+				}
+
+				actualBuildInputs, err := job.GetIndependentBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
+
+				By("updating the set of independent build inputs")
+				inputVersions2 := algorithm.InputMapping{
+					"some-input-2": algorithm.InputVersion{
+						VersionID:       versions[2].ID,
+						FirstOccurrence: false,
+					},
+					"some-input-3": algorithm.InputVersion{
+						VersionID:       versions[2].ID,
+						FirstOccurrence: true,
+					},
+				}
+				err = job.SaveIndependentInputMapping(inputVersions2)
+				Expect(err).NotTo(HaveOccurred())
+
+				buildInputs2 := []dbng.BuildInput{
+					{
+						Name:              "some-input-2",
+						VersionedResource: versions[2].VersionedResource,
+						FirstOccurrence:   false,
+					},
+					{
+						Name:              "some-input-3",
+						VersionedResource: versions[2].VersionedResource,
+						FirstOccurrence:   true,
+					},
+				}
+
+				actualBuildInputs2, err := job.GetIndependentBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(actualBuildInputs2).To(ConsistOf(buildInputs2))
+
+				By("updating independent build inputs to an empty set when the mapping is nil")
+				err = job.SaveIndependentInputMapping(nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				actualBuildInputs3, err := job.GetIndependentBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(actualBuildInputs3).To(BeEmpty())
+			})
+		})
+
+		Describe("next build inputs", func() {
+			It("gets next build inputs for the given job name", func() {
+				inputVersions := algorithm.InputMapping{
+					"some-input-1": algorithm.InputVersion{
+						VersionID:       versions[0].ID,
+						FirstOccurrence: false,
+					},
+					"some-input-2": algorithm.InputVersion{
+						VersionID:       versions[1].ID,
+						FirstOccurrence: true,
+					},
+				}
+				err := job.SaveNextInputMapping(inputVersions)
+				Expect(err).NotTo(HaveOccurred())
+
+				pipeline2InputVersions := algorithm.InputMapping{
+					"some-input-3": algorithm.InputVersion{
+						VersionID:       versions[2].ID,
+						FirstOccurrence: false,
+					},
+				}
+				err = job2.SaveNextInputMapping(pipeline2InputVersions)
+				Expect(err).NotTo(HaveOccurred())
+
+				buildInputs := []dbng.BuildInput{
+					{
+						Name:              "some-input-1",
+						VersionedResource: versions[0].VersionedResource,
+						FirstOccurrence:   false,
+					},
+					{
+						Name:              "some-input-2",
+						VersionedResource: versions[1].VersionedResource,
+						FirstOccurrence:   true,
+					},
+				}
+
+				actualBuildInputs, found, err := job.GetNextBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
+
+				By("updating the set of next build inputs")
+				inputVersions2 := algorithm.InputMapping{
+					"some-input-2": algorithm.InputVersion{
+						VersionID:       versions[2].ID,
+						FirstOccurrence: false,
+					},
+					"some-input-3": algorithm.InputVersion{
+						VersionID:       versions[2].ID,
+						FirstOccurrence: true,
+					},
+				}
+				err = job.SaveNextInputMapping(inputVersions2)
+				Expect(err).NotTo(HaveOccurred())
+
+				buildInputs2 := []dbng.BuildInput{
+					{
+						Name:              "some-input-2",
+						VersionedResource: versions[2].VersionedResource,
+						FirstOccurrence:   false,
+					},
+					{
+						Name:              "some-input-3",
+						VersionedResource: versions[2].VersionedResource,
+						FirstOccurrence:   true,
+					},
+				}
+
+				actualBuildInputs2, found, err := job.GetNextBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(actualBuildInputs2).To(ConsistOf(buildInputs2))
+
+				By("updating next build inputs to an empty set when the mapping is nil")
+				err = job.SaveNextInputMapping(nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				actualBuildInputs3, found, err := job.GetNextBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(actualBuildInputs3).To(BeEmpty())
+			})
+
+			It("distinguishes between a job with no inputs and a job with missing inputs", func() {
+				By("initially returning not found")
+				_, found, err := job.GetNextBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+
+				By("returning found when an empty input mapping is saved")
+				err = job.SaveNextInputMapping(algorithm.InputMapping{})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, found, err = job.GetNextBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				By("returning not found when the input mapping is deleted")
+				err = job.DeleteNextInputMapping()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, found, err = job.GetNextBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("saving build inputs", func() {
+		var (
+			buildMetadata []dbng.ResourceMetadataField
+			vr1           dbng.VersionedResource
+		)
+
+		BeforeEach(func() {
+			buildMetadata = []dbng.ResourceMetadataField{
+				{
+					Name:  "meta1",
+					Value: "value1",
+				},
+				{
+					Name:  "meta2",
+					Value: "value2",
+				},
+			}
+
+			vr1 = dbng.VersionedResource{
+				Resource: "some-other-resource",
+				Type:     "some-type",
+				Version:  dbng.ResourceVersion{"ver": "2"},
+			}
+		})
+
+		It("fails to save build input if resource does not exist", func() {
+			build, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			vr := dbng.VersionedResource{
+				Resource: "unknown-resource",
+				Type:     "some-type",
+				Version:  dbng.ResourceVersion{"ver": "2"},
+			}
+
+			input := dbng.BuildInput{
+				Name:              "some-input",
+				VersionedResource: vr,
+			}
+
+			err = build.SaveInput(input)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("updates metadata of existing versioned resources", func() {
+			build, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build.SaveInput(dbng.BuildInput{
+				Name:              "some-input",
+				VersionedResource: vr1,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			inputs, _, err := build.Resources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(inputs).To(ConsistOf([]dbng.BuildInput{
+				{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
+			}))
+
+			withMetadata := vr1
+			withMetadata.Metadata = buildMetadata
+
+			err = build.SaveInput(dbng.BuildInput{
+				Name:              "some-other-input",
+				VersionedResource: withMetadata,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			inputs, _, err = build.Resources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(inputs).To(ConsistOf([]dbng.BuildInput{
+				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
+				{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
+			}))
+
+			err = build.SaveInput(dbng.BuildInput{
+				Name:              "some-input",
+				VersionedResource: withMetadata,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			inputs, _, err = build.Resources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(inputs).To(ConsistOf([]dbng.BuildInput{
+				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
+				{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
+			}))
+
+		})
+
+		It("does not clobber metadata of existing versioned resources", func() {
+			build, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			withMetadata := vr1
+			withMetadata.Metadata = buildMetadata
+
+			withoutMetadata := vr1
+			withoutMetadata.Metadata = nil
+
+			err = build.SaveInput(dbng.BuildInput{
+				Name:              "some-input",
+				VersionedResource: withMetadata,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			inputs, _, err := build.Resources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(inputs).To(ConsistOf([]dbng.BuildInput{
+				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
+			}))
+
+			err = build.SaveInput(dbng.BuildInput{
+				Name:              "some-other-input",
+				VersionedResource: withoutMetadata,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			inputs, _, err = build.Resources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(inputs).To(ConsistOf([]dbng.BuildInput{
+				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
+				{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
+			}))
+		})
+	})
+
+	Describe("a build is created for a job", func() {
+		var (
+			build1DB      dbng.Build
+			otherPipeline dbng.Pipeline
+			otherJob      dbng.Job
+		)
+
+		BeforeEach(func() {
+			pipelineConfig := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+					},
+				},
+			}
+			var err error
+			otherPipeline, _, err = team.SavePipeline("some-other-pipeline", pipelineConfig, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			build1DB, err = job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(build1DB.ID()).NotTo(BeZero())
+			Expect(build1DB.JobName()).To(Equal("some-job"))
+			Expect(build1DB.Name()).To(Equal("1"))
+			Expect(build1DB.Status()).To(Equal(dbng.BuildStatusPending))
+			Expect(build1DB.IsScheduled()).To(BeFalse())
+
+			var found bool
+			otherJob, found, err = otherPipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		It("becomes the next pending build for job", func() {
+			nextPendings, err := job.GetPendingBuilds()
+			Expect(err).NotTo(HaveOccurred())
+			//time.Sleep(10 * time.Hour)
+			Expect(nextPendings).NotTo(BeEmpty())
+			Expect(nextPendings[0].ID()).To(Equal(build1DB.ID()))
+		})
+
+		It("is in the list of pending builds", func() {
+			nextPendingBuilds, err := pipeline.GetAllPendingBuilds()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
+			Expect(nextPendingBuilds["some-job"]).To(Equal([]dbng.Build{build1DB}))
+		})
+
+		Context("and another build for a different pipeline is created with the same job name", func() {
+			BeforeEach(func() {
+				otherBuild, err := otherJob.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(otherBuild.ID()).NotTo(BeZero())
+				Expect(otherBuild.JobName()).To(Equal("some-job"))
+				Expect(otherBuild.Name()).To(Equal("1"))
+				Expect(otherBuild.Status()).To(Equal(dbng.BuildStatusPending))
+				Expect(otherBuild.IsScheduled()).To(BeFalse())
+			})
+
+			It("does not change the next pending build for job", func() {
+				nextPendingBuilds, err := job.GetPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nextPendingBuilds).To(Equal([]dbng.Build{build1DB}))
+			})
+
+			It("does not change pending builds", func() {
+				nextPendingBuilds, err := pipeline.GetAllPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
+				Expect(nextPendingBuilds["some-job"]).To(Equal([]dbng.Build{build1DB}))
+			})
+		})
+
+		Context("when scheduled", func() {
+			BeforeEach(func() {
+				var err error
+				var found bool
+				found, err = build1DB.Schedule()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("remains the next pending build for job", func() {
+				nextPendingBuilds, err := job.GetPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nextPendingBuilds).NotTo(BeEmpty())
+				Expect(nextPendingBuilds[0].ID()).To(Equal(build1DB.ID()))
+			})
+
+			It("remains in the list of pending builds", func() {
+				nextPendingBuilds, err := pipeline.GetAllPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
+				Expect(nextPendingBuilds["some-job"][0].ID()).To(Equal(build1DB.ID()))
+			})
+		})
+
+		Context("when started", func() {
+			BeforeEach(func() {
+				started, err := build1DB.Start("some-engine", "some-metadata")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(started).To(BeTrue())
+			})
+
+			It("saves the updated status, and the engine and engine metadata", func() {
+				found, err := build1DB.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build1DB.Status()).To(Equal(dbng.BuildStatusStarted))
+				Expect(build1DB.Engine()).To(Equal("some-engine"))
+				Expect(build1DB.EngineMetadata()).To(Equal("some-metadata"))
+			})
+
+			It("saves the build's start time", func() {
+				found, err := build1DB.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build1DB.StartTime().Unix()).To(BeNumerically("~", time.Now().Unix(), 3))
+			})
+		})
+
+		Context("when the build finishes", func() {
+			BeforeEach(func() {
+				err := build1DB.Finish(dbng.BuildStatusSucceeded)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("sets the build's status and end time", func() {
+				found, err := build1DB.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build1DB.Status()).To(Equal(dbng.BuildStatusSucceeded))
+				Expect(build1DB.EndTime().Unix()).To(BeNumerically("~", time.Now().Unix(), 3))
+			})
+		})
+
+		Context("and another is created for the same job", func() {
+			var build2DB dbng.Build
+
+			BeforeEach(func() {
+				var err error
+				build2DB, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(build2DB.ID()).NotTo(BeZero())
+				Expect(build2DB.ID()).NotTo(Equal(build1DB.ID()))
+				Expect(build2DB.Name()).To(Equal("2"))
+				Expect(build2DB.Status()).To(Equal(dbng.BuildStatusPending))
+			})
+
+			Describe("the first build", func() {
+				It("remains the next pending build", func() {
+					nextPendingBuilds, err := job.GetPendingBuilds()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(nextPendingBuilds).To(HaveLen(2))
+					Expect(nextPendingBuilds[0].ID()).To(Equal(build1DB.ID()))
+					Expect(nextPendingBuilds[1].ID()).To(Equal(build2DB.ID()))
+				})
+
+				It("remains in the list of pending builds", func() {
+					nextPendingBuilds, err := pipeline.GetAllPendingBuilds()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(nextPendingBuilds["some-job"]).To(HaveLen(2))
+					Expect(nextPendingBuilds["some-job"]).To(ConsistOf(build1DB, build2DB))
+				})
+			})
+		})
+	})
+
+	Describe("EnsurePendingBuildExists", func() {
+		Context("when only a started build exists", func() {
+			BeforeEach(func() {
+				build1, err := job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				started, err := build1.Start("some-engine", "some-metadata")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(started).To(BeTrue())
+			})
+
+			It("creates a build", func() {
+				err := job.EnsurePendingBuildExists()
+				Expect(err).NotTo(HaveOccurred())
+
+				pendingBuilds, err := job.GetPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pendingBuilds).To(HaveLen(1))
+			})
+
+			It("doesn't create another build the second time it's called", func() {
+				err := job.EnsurePendingBuildExists()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = job.EnsurePendingBuildExists()
+				Expect(err).NotTo(HaveOccurred())
+
+				builds2, err := job.GetPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builds2).To(HaveLen(1))
+
+				started, err := builds2[0].Start("some-engine", "some-metadata")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(started).To(BeTrue())
+
+				builds2, err = job.GetPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builds2).To(HaveLen(0))
+			})
 		})
 	})
 })
