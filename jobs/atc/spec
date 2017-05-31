@@ -62,7 +62,9 @@ properties:
 
   external_url:
     description: |
-      Externally reachable URL of the ATCs. Required for OAuth.
+      Externally reachable URL of the ATCs. Required for OAuth. This will be
+      auto-generated using the IP of each ATC VM if not specified, however
+      this is only a reasonable default if you have a single instance.
 
       Typically this is the URL that you as a user would use to reach your CI.
       For multiple ATCs it would go to some sort of load balancer.
@@ -110,8 +112,20 @@ properties:
       The 16 or 32 byte AES key to use for encrypting sensitive information
       in the database.
 
-      If not specified, nothing will be encrypted.
-    default: ""
+      If specified, all existing data will be encrypted on start and any new
+      data will be encrypted.
+
+  old_encryption_key:
+    description: |
+      The key used previously to encrypt sensitive information in the database.
+
+      To rotate your encryption key, set both old_encryption_key and
+      encryption_key. This will result in the ATC re-encrypting all data on
+      start.
+
+      To disable encryption, specify old_encryption_key and do *not* set
+      encryption_key. This will result in the ATC decrypting all data on start,
+      restoring it to plaintext.
 
   no_really_i_dont_want_any_auth:
     description: |

@@ -25,3 +25,4 @@ things installed.
 \include-section{./setting-up/architecture.any}
 \include-section{./setting-up/worker-pools.any}
 \include-section{./setting-up/metrics.any}
+\include-section{./setting-up/encryption.any}
