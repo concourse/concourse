@@ -116,6 +116,7 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			atc.SanitizeDecodeHook,
 			atc.VersionConfigDecodeHook,
+			atc.LoadTaskConfigDecodeHook,
 		),
 	}
 

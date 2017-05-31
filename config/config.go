@@ -14,7 +14,7 @@ func LoadTaskConfig(configPath string, args []string) (atc.TaskConfig, error) {
 		return atc.TaskConfig{}, fmt.Errorf("failed to read task config: %s", err)
 	}
 
-	config, err := atc.LoadTaskConfig(configFile)
+	config, err := atc.NewTaskConfig(configFile)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}

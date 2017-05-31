@@ -93,25 +93,27 @@ run:
 			}),
 			planFactory.NewPlan(atc.TaskPlan{
 				Name: "one-off",
-				Config: &atc.TaskConfig{
-					Platform: "some-platform",
-					ImageResource: &atc.ImageResource{
-						Type: "docker-image",
-						Source: atc.Source{
-							"repository": "ubuntu",
+				Config: &atc.LoadTaskConfig{
+					TaskConfig: &atc.TaskConfig{
+						Platform: "some-platform",
+						ImageResource: &atc.ImageResource{
+							Type: "docker-image",
+							Source: atc.Source{
+								"repository": "ubuntu",
+							},
 						},
-					},
-					Inputs: []atc.TaskInputConfig{
-						{Name: "fixture"},
-					},
-					Params: map[string]string{
-						"FOO": "bar",
-						"BAZ": "buzz",
-						"X":   "1",
-					},
-					Run: atc.TaskRunConfig{
-						Path: "find",
-						Args: []string{"."},
+						Inputs: []atc.TaskInputConfig{
+							{Name: "fixture"},
+						},
+						Params: map[string]string{
+							"FOO": "bar",
+							"BAZ": "buzz",
+							"X":   "1",
+						},
+						Run: atc.TaskRunConfig{
+							Path: "find",
+							Args: []string{"."},
+						},
 					},
 				},
 			}),

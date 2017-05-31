@@ -71,7 +71,7 @@ func CreateBuild(
 	taskPlan := fact.NewPlan(atc.TaskPlan{
 		Name:       "one-off",
 		Privileged: privileged,
-		Config:     &config,
+		Config:     &atc.LoadTaskConfig{TaskConfig: &config},
 	})
 
 	if len(tags) != 0 {

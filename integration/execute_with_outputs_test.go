@@ -100,28 +100,30 @@ run:
 				}),
 				planFactory.NewPlan(atc.TaskPlan{
 					Name: "one-off",
-					Config: &atc.TaskConfig{
-						Platform: "some-platform",
-						ImageResource: &atc.ImageResource{
-							Type: "docker-image",
-							Source: atc.Source{
-								"repository": "ubuntu",
+					Config: &atc.LoadTaskConfig{
+						TaskConfig: &atc.TaskConfig{
+							Platform: "some-platform",
+							ImageResource: &atc.ImageResource{
+								Type: "docker-image",
+								Source: atc.Source{
+									"repository": "ubuntu",
+								},
 							},
-						},
-						Inputs: []atc.TaskInputConfig{
-							{Name: "fixture"},
-						},
-						Outputs: []atc.TaskOutputConfig{
-							{Name: "some-dir"},
-						},
-						Params: map[string]string{
-							"FOO": "bar",
-							"BAZ": "buzz",
-							"X":   "1",
-						},
-						Run: atc.TaskRunConfig{
-							Path: "/bin/sh",
-							Args: []string{"-c", "echo some-content > some-dir/a-file"},
+							Inputs: []atc.TaskInputConfig{
+								{Name: "fixture"},
+							},
+							Outputs: []atc.TaskOutputConfig{
+								{Name: "some-dir"},
+							},
+							Params: map[string]string{
+								"FOO": "bar",
+								"BAZ": "buzz",
+								"X":   "1",
+							},
+							Run: atc.TaskRunConfig{
+								Path: "/bin/sh",
+								Args: []string{"-c", "echo some-content > some-dir/a-file"},
+							},
 						},
 					},
 				}),
