@@ -135,6 +135,19 @@ var _ = Describe("VolumeClient", func() {
 					fakeLockDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
 				})
 
+				Context("when checking for the volume in baggageclaim", func() {
+					BeforeEach(func() {
+						fakeBaggageclaimClient.LookupVolumeStub = func(lager.Logger, string) (baggageclaim.Volume, bool, error) {
+							Expect(fakeLockDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
+							return nil, false, nil
+						}
+					})
+
+					It("does so with the lock held", func() {
+						Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
+					})
+				})
+
 				Context("when volume exists in baggageclaim", func() {
 					BeforeEach(func() {
 						fakeBaggageclaimClient.LookupVolumeReturns(fakeBaggageclaimVolume, true, nil)

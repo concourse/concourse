@@ -219,9 +219,6 @@ func (c *volumeClient) findOrCreateVolume(
 	findVolumeFunc func() (dbng.CreatingVolume, dbng.CreatedVolume, error),
 	createVolumeFunc func() (dbng.CreatingVolume, error),
 ) (Volume, error) {
-	var bcVolume baggageclaim.Volume
-	var bcVolumeFound bool
-
 	creatingVolume, createdVolume, err := findVolumeFunc()
 	if err != nil {
 		logger.Error("failed-to-find-volume-in-db", err)
@@ -231,7 +228,7 @@ func (c *volumeClient) findOrCreateVolume(
 	if createdVolume != nil {
 		logger = logger.WithData(lager.Data{"volume": createdVolume.Handle()})
 
-		bcVolume, bcVolumeFound, err = c.baggageclaimClient.LookupVolume(
+		bcVolume, bcVolumeFound, err := c.baggageclaimClient.LookupVolume(
 			logger.Session("lookup-volume"),
 			createdVolume.Handle(),
 		)
@@ -252,17 +249,7 @@ func (c *volumeClient) findOrCreateVolume(
 
 	if creatingVolume != nil {
 		logger = logger.WithData(lager.Data{"volume": creatingVolume.Handle()})
-
-		bcVolume, bcVolumeFound, err = c.baggageclaimClient.LookupVolume(
-			logger.Session("create-volume"),
-			creatingVolume.Handle(),
-		)
-		if err != nil {
-			logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
-			return nil, err
-		}
-
-		logger.Debug("found-creating-volume", lager.Data{"real-volume-found": bcVolumeFound})
+		logger.Debug("found-creating-volume")
 	} else {
 		creatingVolume, err = createVolumeFunc()
 		if err != nil {
@@ -288,7 +275,18 @@ func (c *volumeClient) findOrCreateVolume(
 
 	defer lock.Release()
 
-	if !bcVolumeFound {
+	bcVolume, bcVolumeFound, err := c.baggageclaimClient.LookupVolume(
+		logger.Session("create-volume"),
+		creatingVolume.Handle(),
+	)
+	if err != nil {
+		logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
+		return nil, err
+	}
+
+	if bcVolumeFound {
+		logger.Debug("real-volume-exists")
+	} else {
 		logger.Debug("creating-real-volume")
 
 		bcVolume, err = c.baggageclaimClient.CreateVolume(
