@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"os/user"
@@ -13,12 +14,18 @@ import (
 
 	"code.cloudfoundry.org/guardian/guardiancmd"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/localip"
 	"github.com/concourse/atc"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
 )
 
-type GardenBackend guardiancmd.ServerCommand
+type GardenBackend struct {
+	guardiancmd.ServerCommand
+
+	DNS DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
+}
 
 func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
 	command.FindOptionByLongName("garden-bind-port").Default = []string{"7777"}
@@ -58,6 +65,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 
 	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP)
 	cmd.Garden.Containers.Dir = depotDir
+
 	cmd.Garden.Network.AllowHostAccess = true
 
 	worker := atc.Worker{
@@ -92,8 +100,36 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 		return atc.Worker{}, nil, err
 	}
 
-	runner := guardiancmd.ServerCommand(cmd.Garden)
-	return worker, &runner, nil
+	members := grouper.Members{
+		{
+			Name:   "garden-runc",
+			Runner: &cmd.Garden.ServerCommand,
+		},
+	}
+
+	if cmd.Garden.DNS.Enable {
+		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
+		if err != nil {
+			return atc.Worker{}, nil, err
+		}
+
+		lip, err := localip.LocalIP()
+		if err != nil {
+			return atc.Worker{}, nil, err
+		}
+
+		cmd.Garden.Network.AdditionalDNSServers = append(
+			cmd.Garden.Network.AdditionalDNSServers,
+			guardiancmd.IPFlag(net.ParseIP(lip)),
+		)
+
+		members = append(members, grouper.Member{
+			Name:   "dns-proxy",
+			Runner: dnsProxyRunner,
+		})
+	}
+
+	return worker, grouper.NewParallel(os.Interrupt, members), nil
 }
 
 func (cmd *WorkerCommand) extractResources(logger lager.Logger) ([]atc.WorkerResourceType, error) {
@@ -224,4 +260,33 @@ func (cmd *WorkerCommand) checkRoot() error {
 	}
 
 	return nil
+}
+
+func (cmd *WorkerCommand) dnsProxyRunner(logger lager.Logger) (ifrit.Runner, error) {
+	server, err := cmd.Garden.DNS.Server()
+	if err != nil {
+		return nil, err
+	}
+
+	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		server.NotifyStartedFunc = func() {
+			close(ready)
+			logger.Info("started")
+		}
+
+		serveErr := make(chan error, 1)
+
+		go func() {
+			serveErr <- server.ListenAndServe()
+		}()
+
+		for {
+			select {
+			case err := <-serveErr:
+				return err
+			case <-signals:
+				server.Shutdown()
+			}
+		}
+	}), nil
 }
