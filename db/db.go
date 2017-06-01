@@ -5,8 +5,6 @@ import (
 	"database/sql/driver"
 	"errors"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 )
@@ -66,16 +64,6 @@ func swallowUniqueViolation(err error) error {
 	}
 
 	return nil
-}
-
-type DB interface {
-	CreateTeam(team Team) (SavedTeam, error)
-	CreateDefaultTeamIfNotExists() error
-
-	CreatePipe(pipeGUID string, url string, teamName string) error
-	GetPipe(pipeGUID string) (Pipe, error)
-
-	GetTaskLock(logger lager.Logger, taskName string) (lock.Lock, bool, error)
 }
 
 //go:generate counterfeiter . Notifier

@@ -84,6 +84,39 @@ var _ = Describe("Team Factory", func() {
 		})
 	})
 
+	Describe("CreateDefaultTeamIfNotExists", func() {
+		It("creates the default team", func() {
+
+			t, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
+			Expect(err).NotTo(HaveOccurred())
+			if found {
+				Expect(t.Admin()).To(BeFalse())
+			}
+
+			team, err := teamFactory.CreateDefaultTeamIfNotExists()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(team.Admin()).To(BeTrue())
+
+			t, found, err = teamFactory.FindTeam(atc.DefaultTeamName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(t.ID()).To(Equal(team.ID()))
+		})
+
+		Context("when the default team already exists", func() {
+			It("does not duplicate the default team", func() {
+
+				team, err := teamFactory.CreateDefaultTeamIfNotExists()
+				Expect(err).NotTo(HaveOccurred())
+
+				team2, err := teamFactory.CreateDefaultTeamIfNotExists()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(team.ID()).To(Equal(team2.ID()))
+			})
+		})
+	})
+
 	Describe("FindTeams", func() {
 		var (
 			teams []dbng.Team

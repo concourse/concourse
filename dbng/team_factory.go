@@ -20,6 +20,7 @@ type TeamFactory interface {
 	FindTeam(string) (Team, bool, error)
 	GetTeams() ([]Team, error)
 	GetByID(teamID int) Team
+	CreateDefaultTeamIfNotExists() (Team, error)
 }
 
 var ErrDataIsEncrypted = errors.New("failed to decrypt data that is encrypted")
@@ -45,6 +46,10 @@ func NewTeamFactory(conn Conn, lockFactory lock.LockFactory) TeamFactory {
 }
 
 func (factory *teamFactory) CreateTeam(t atc.Team) (Team, error) {
+	return factory.createTeam(t, false)
+}
+
+func (factory *teamFactory) createTeam(t atc.Team, admin bool) (Team, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -69,8 +74,8 @@ func (factory *teamFactory) CreateTeam(t atc.Team) (Team, error) {
 	}
 
 	row := psql.Insert("teams").
-		Columns("name, basic_auth, auth, nonce").
-		Values(t.Name, encryptedBasicAuthJSON, encryptedAuth, nonce).
+		Columns("name, basic_auth, auth, nonce, admin").
+		Values(t.Name, encryptedBasicAuthJSON, encryptedAuth, nonce, admin).
 		Suffix("RETURNING id, name, admin, basic_auth, auth, nonce").
 		RunWith(tx).
 		QueryRow()
@@ -160,6 +165,30 @@ func (factory *teamFactory) GetTeams() ([]Team, error) {
 	}
 
 	return teams, nil
+}
+
+func (factory *teamFactory) CreateDefaultTeamIfNotExists() (Team, error) {
+	_, err := psql.Update("teams").Set("admin", true).Where(sq.Eq{"LOWER(name)": strings.ToLower(atc.DefaultTeamName)}).RunWith(factory.conn).Exec()
+
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	t, found, err := factory.FindTeam(atc.DefaultTeamName)
+	if err != nil {
+		return nil, err
+	}
+
+	if found {
+		return t, nil
+	}
+
+	//not found, have to create
+	return factory.createTeam(atc.Team{
+		Name: atc.DefaultTeamName,
+	},
+		true,
+	)
 }
 
 func (factory *teamFactory) scanTeam(t *team, rows scannable) error {

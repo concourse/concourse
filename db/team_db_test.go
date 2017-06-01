@@ -16,7 +16,7 @@ var _ = Describe("TeamDB", func() {
 		dbConn   db.Conn
 		listener *pq.Listener
 
-		database      db.DB
+		database      *db.SQLDB
 		teamDBFactory db.TeamDBFactory
 
 		teamDB            db.TeamDB

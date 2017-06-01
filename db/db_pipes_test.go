@@ -15,7 +15,7 @@ import (
 var _ = Describe("Pipes", func() {
 	var dbConn db.Conn
 	var listener *pq.Listener
-	var database db.DB
+	var database *db.SQLDB
 	var savedTeam db.SavedTeam
 	var err error
 

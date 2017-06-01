@@ -20,7 +20,7 @@ var _ = Describe("SQL DB Teams", func() {
 	var dbngConn dbng.Conn
 	var listener *pq.Listener
 
-	var database db.DB
+	var database *db.SQLDB
 	var workerFactory dbng.WorkerFactory
 	var teamDBFactory db.TeamDBFactory
 
@@ -47,46 +47,6 @@ var _ = Describe("SQL DB Teams", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	Describe("CreateDefaultTeamIfNotExists", func() {
-		It("creates the default team", func() {
-			err := database.CreateDefaultTeamIfNotExists()
-			Expect(err).NotTo(HaveOccurred())
-
-			var count sql.NullInt64
-			dbConn.QueryRow(fmt.Sprintf(`select count(1) from teams where name = '%s'`, atc.DefaultTeamName)).Scan(&count)
-
-			Expect(count.Valid).To(BeTrue())
-			Expect(count.Int64).To(Equal(int64(1)))
-
-			team, _, err := teamDBFactory.GetTeamDB(atc.DefaultTeamName).GetTeam()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(team.Admin).To(BeTrue())
-		})
-
-		Context("when the default team already exists", func() {
-			It("does not duplicate the default team", func() {
-				err := database.CreateDefaultTeamIfNotExists()
-				Expect(err).NotTo(HaveOccurred())
-
-				var count sql.NullInt64
-				dbConn.QueryRow(fmt.Sprintf(`select count(1) from teams where name = '%s'`, atc.DefaultTeamName)).Scan(&count)
-
-				Expect(count.Valid).To(BeTrue())
-				Expect(count.Int64).To(Equal(int64(1)))
-			})
-
-			It("sets admin permissions on that team", func() {
-				err := database.CreateDefaultTeamIfNotExists()
-				Expect(err).NotTo(HaveOccurred())
-
-				var admin bool
-				dbConn.QueryRow(fmt.Sprintf(`select admin from teams where name = '%s'`, atc.DefaultTeamName)).Scan(&admin)
-
-				Expect(admin).To(BeTrue())
-			})
-		})
 	})
 
 	Describe("CreateTeam", func() {
