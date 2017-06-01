@@ -19,6 +19,8 @@ import (
 
 	"testing"
 	"time"
+
+	"github.com/concourse/atc"
 )
 
 func TestAcceptance(t *testing.T) {
@@ -35,11 +37,11 @@ var (
 	dbConn         db.Conn
 	dbngConn       dbng.Conn
 	lockFactory    lock.LockFactory
+	teamFactory    dbng.TeamFactory
 	dbProcess      ifrit.Process
 	dbListener     *pq.Listener
 
-	sqlDB *db.SQLDB
-
+	defaultTeam  dbng.Team
 	agoutiDriver *agouti.WebDriver
 )
 
@@ -85,7 +87,14 @@ var _ = BeforeEach(func() {
 	dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
-	sqlDB = db.NewSQL(dbConn, lockFactory)
+	teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory)
+
+	var err error
+	var found bool
+	defaultTeam, found, err = teamFactory.FindTeam(atc.DefaultTeamName)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue()) // created by postgresRunner
+
 })
 
 var _ = AfterEach(func() {

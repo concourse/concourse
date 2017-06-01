@@ -13,18 +13,10 @@ import (
 
 var _ = Describe("Navigation", func() {
 	var atcCommand *ATCCommand
-	var defaultTeam dbng.Team
 
 	BeforeEach(func() {
-		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
-		var err error
-		var found bool
-		defaultTeam, found, err = teamFactory.FindTeam(atc.DefaultTeamName)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue()) // created by postgresRunner
-
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
-		err = atcCommand.Start()
+		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 	})
 

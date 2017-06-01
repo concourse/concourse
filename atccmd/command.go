@@ -242,7 +242,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	bus := dbngConn.Bus()
 
 	teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
-	sqlDB := db.NewSQL(dbConn, lockFactory)
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
@@ -314,7 +313,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
-		sqlDB,
 		teamFactory,
 		dbPipelineFactory,
 		dbWorkerFactory,
@@ -867,7 +865,6 @@ func (cmd *ATCCommand) constructHTTPHandler(
 func (cmd *ATCCommand) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
-	sqlDB *db.SQLDB,
 	teamFactory dbng.TeamFactory,
 	dbPipelineFactory dbng.PipelineFactory,
 	dbWorkerFactory dbng.WorkerFactory,

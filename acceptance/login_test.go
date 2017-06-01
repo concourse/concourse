@@ -16,18 +16,11 @@ import (
 
 var _ = Describe("Logging In", func() {
 	var atcCommand *ATCCommand
-	var defaultTeam dbng.Team
 	var pipelineName string
 	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
-		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 		var err error
-		var found bool
-		defaultTeam, found, err = teamFactory.FindTeam(atc.DefaultTeamName)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue()) // created by postgresRunner
-
 		pipelineName = atc.DefaultPipelineName
 
 		pipeline, _, err = defaultTeam.SavePipeline(pipelineName, atc.Config{

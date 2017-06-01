@@ -21,7 +21,6 @@ var _ = Describe("Locks", func() {
 		dbConn      db.Conn
 		listener    *pq.Listener
 		lockFactory lock.LockFactory
-		sqlDB       *db.SQLDB
 
 		dbLock lock.Lock
 
@@ -43,7 +42,6 @@ var _ = Describe("Locks", func() {
 		logger = lagertest.NewTestLogger("test")
 
 		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
-		sqlDB = db.NewSQL(dbConn, lockFactory)
 
 		dbngConn := postgresRunner.OpenConn()
 		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory)

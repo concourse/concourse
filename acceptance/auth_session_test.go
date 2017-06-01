@@ -30,11 +30,6 @@ var _ = Describe("Auth Session", func() {
 		page, err = agoutiDriver.NewPage()
 		Expect(err).NotTo(HaveOccurred())
 
-		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
-		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue()) // created by postgresRunner
-
 		pipeline, _, err = defaultTeam.SavePipeline("main", atc.Config{
 			Jobs: atc.JobConfigs{
 				{

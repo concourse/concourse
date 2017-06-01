@@ -19,11 +19,7 @@ var _ = Describe("Resource Pausing", func() {
 	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
-		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
-		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue()) // created by postgresRunner
-
+		var err error
 		pipeline, _, err = defaultTeam.SavePipeline("some-pipeline", atc.Config{
 			Jobs: atc.JobConfigs{
 				{
