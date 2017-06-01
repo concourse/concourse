@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/rata"
 )
 
@@ -19,21 +19,14 @@ type Server struct {
 	pipes  map[string]pipe
 	pipesL *sync.RWMutex
 
-	db PipeDB
-}
-
-//go:generate counterfeiter . PipeDB
-
-type PipeDB interface {
-	CreatePipe(pipeGUID string, url string, teamName string) error
-	GetPipe(pipeGUID string) (db.Pipe, error)
+	teamFactory dbng.TeamFactory
 }
 
 func NewServer(
 	logger lager.Logger,
 	url string,
 	externalURL string,
-	db PipeDB,
+	teamFactory dbng.TeamFactory,
 ) *Server {
 	return &Server{
 		logger: logger,
@@ -41,9 +34,9 @@ func NewServer(
 		url:         url,
 		externalURL: externalURL,
 
-		pipes:  make(map[string]pipe),
-		pipesL: new(sync.RWMutex),
-		db:     db,
+		pipes:       make(map[string]pipe),
+		pipesL:      new(sync.RWMutex),
+		teamFactory: teamFactory,
 	}
 }
 

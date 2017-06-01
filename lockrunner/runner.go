@@ -10,12 +10,6 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-//go:generate counterfeiter . RunnerDB
-
-type RunnerDB interface {
-	GetTaskLock(logger lager.Logger, lockName string) (lock.Lock, bool, error)
-}
-
 //go:generate counterfeiter . Task
 
 type Task interface {
@@ -26,7 +20,7 @@ func NewRunner(
 	logger lager.Logger,
 	task Task,
 	taskName string,
-	db RunnerDB,
+	lockFactory lock.LockFactory,
 	clock clock.Clock,
 	interval time.Duration,
 ) ifrit.Runner {
@@ -42,7 +36,7 @@ func NewRunner(
 				lockLogger := logger.Session("lock-task", lager.Data{"task-name": taskName})
 				lockLogger.Debug("tick")
 
-				lock, acquired, err := db.GetTaskLock(lockLogger, taskName)
+				lock, acquired, err := lockFactory.Acquire(lockLogger, lock.NewTaskLockID(taskName))
 
 				if err != nil {
 					lockLogger.Error("failed-to-get-lock", err)

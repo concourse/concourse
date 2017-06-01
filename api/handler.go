@@ -25,7 +25,6 @@ import (
 	"github.com/concourse/atc/api/volumeserver"
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/mainredirect"
@@ -45,15 +44,12 @@ func NewHandler(
 	providerFactory auth.ProviderFactory,
 	oAuthBaseURL string,
 
-	teamDBFactory db.TeamDBFactory,
 	dbTeamFactory dbng.TeamFactory,
 	dbPipelineFactory dbng.PipelineFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 	volumeFactory dbng.VolumeFactory,
 	containerFactory dbng.ContainerFactory,
 	dbBuildFactory dbng.BuildFactory,
-
-	pipeDB pipes.PipeDB,
 
 	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
@@ -82,7 +78,7 @@ func NewHandler(
 
 	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
-	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, teamDBFactory, dbTeamFactory)
+	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
 	authServer := authserver.NewServer(
 		logger,
@@ -110,19 +106,19 @@ func NewHandler(
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
-	pipeServer := pipes.NewServer(logger, peerURL, externalURL, pipeDB)
+	pipeServer := pipes.NewServer(logger, peerURL, externalURL, dbTeamFactory)
 
-	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, teamDBFactory, dbPipelineFactory)
+	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory)
 
 	configServer := configserver.NewServer(logger, dbTeamFactory)
 
-	workerServer := workerserver.NewServer(logger, teamDBFactory, dbTeamFactory, dbWorkerFactory)
+	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
 
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 
-	containerServer := containerserver.NewServer(logger, workerClient, teamDBFactory)
+	containerServer := containerserver.NewServer(logger, workerClient)
 
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 

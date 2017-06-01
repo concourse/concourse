@@ -9,76 +9,86 @@ import (
 )
 
 type FakeLockFactory struct {
-	NewLockStub        func(logger lager.Logger, ids lock.LockID) lock.Lock
-	newLockMutex       sync.RWMutex
-	newLockArgsForCall []struct {
+	AcquireStub        func(logger lager.Logger, ids lock.LockID) (lock.Lock, bool, error)
+	acquireMutex       sync.RWMutex
+	acquireArgsForCall []struct {
 		logger lager.Logger
 		ids    lock.LockID
 	}
-	newLockReturns struct {
+	acquireReturns struct {
 		result1 lock.Lock
+		result2 bool
+		result3 error
 	}
-	newLockReturnsOnCall map[int]struct {
+	acquireReturnsOnCall map[int]struct {
 		result1 lock.Lock
+		result2 bool
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLockFactory) NewLock(logger lager.Logger, ids lock.LockID) lock.Lock {
-	fake.newLockMutex.Lock()
-	ret, specificReturn := fake.newLockReturnsOnCall[len(fake.newLockArgsForCall)]
-	fake.newLockArgsForCall = append(fake.newLockArgsForCall, struct {
+func (fake *FakeLockFactory) Acquire(logger lager.Logger, ids lock.LockID) (lock.Lock, bool, error) {
+	fake.acquireMutex.Lock()
+	ret, specificReturn := fake.acquireReturnsOnCall[len(fake.acquireArgsForCall)]
+	fake.acquireArgsForCall = append(fake.acquireArgsForCall, struct {
 		logger lager.Logger
 		ids    lock.LockID
 	}{logger, ids})
-	fake.recordInvocation("NewLock", []interface{}{logger, ids})
-	fake.newLockMutex.Unlock()
-	if fake.NewLockStub != nil {
-		return fake.NewLockStub(logger, ids)
+	fake.recordInvocation("Acquire", []interface{}{logger, ids})
+	fake.acquireMutex.Unlock()
+	if fake.AcquireStub != nil {
+		return fake.AcquireStub(logger, ids)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.newLockReturns.result1
+	return fake.acquireReturns.result1, fake.acquireReturns.result2, fake.acquireReturns.result3
 }
 
-func (fake *FakeLockFactory) NewLockCallCount() int {
-	fake.newLockMutex.RLock()
-	defer fake.newLockMutex.RUnlock()
-	return len(fake.newLockArgsForCall)
+func (fake *FakeLockFactory) AcquireCallCount() int {
+	fake.acquireMutex.RLock()
+	defer fake.acquireMutex.RUnlock()
+	return len(fake.acquireArgsForCall)
 }
 
-func (fake *FakeLockFactory) NewLockArgsForCall(i int) (lager.Logger, lock.LockID) {
-	fake.newLockMutex.RLock()
-	defer fake.newLockMutex.RUnlock()
-	return fake.newLockArgsForCall[i].logger, fake.newLockArgsForCall[i].ids
+func (fake *FakeLockFactory) AcquireArgsForCall(i int) (lager.Logger, lock.LockID) {
+	fake.acquireMutex.RLock()
+	defer fake.acquireMutex.RUnlock()
+	return fake.acquireArgsForCall[i].logger, fake.acquireArgsForCall[i].ids
 }
 
-func (fake *FakeLockFactory) NewLockReturns(result1 lock.Lock) {
-	fake.NewLockStub = nil
-	fake.newLockReturns = struct {
+func (fake *FakeLockFactory) AcquireReturns(result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireStub = nil
+	fake.acquireReturns = struct {
 		result1 lock.Lock
-	}{result1}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeLockFactory) NewLockReturnsOnCall(i int, result1 lock.Lock) {
-	fake.NewLockStub = nil
-	if fake.newLockReturnsOnCall == nil {
-		fake.newLockReturnsOnCall = make(map[int]struct {
+func (fake *FakeLockFactory) AcquireReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireStub = nil
+	if fake.acquireReturnsOnCall == nil {
+		fake.acquireReturnsOnCall = make(map[int]struct {
 			result1 lock.Lock
+			result2 bool
+			result3 error
 		})
 	}
-	fake.newLockReturnsOnCall[i] = struct {
+	fake.acquireReturnsOnCall[i] = struct {
 		result1 lock.Lock
-	}{result1}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeLockFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.newLockMutex.RLock()
-	defer fake.newLockMutex.RUnlock()
+	fake.acquireMutex.RLock()
+	defer fake.acquireMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

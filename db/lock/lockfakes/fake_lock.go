@@ -8,17 +8,6 @@ import (
 )
 
 type FakeLock struct {
-	AcquireStub        func() (bool, error)
-	acquireMutex       sync.RWMutex
-	acquireArgsForCall []struct{}
-	acquireReturns     struct {
-		result1 bool
-		result2 error
-	}
-	acquireReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
-	}
 	ReleaseStub        func() error
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct{}
@@ -30,49 +19,6 @@ type FakeLock struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeLock) Acquire() (bool, error) {
-	fake.acquireMutex.Lock()
-	ret, specificReturn := fake.acquireReturnsOnCall[len(fake.acquireArgsForCall)]
-	fake.acquireArgsForCall = append(fake.acquireArgsForCall, struct{}{})
-	fake.recordInvocation("Acquire", []interface{}{})
-	fake.acquireMutex.Unlock()
-	if fake.AcquireStub != nil {
-		return fake.AcquireStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.acquireReturns.result1, fake.acquireReturns.result2
-}
-
-func (fake *FakeLock) AcquireCallCount() int {
-	fake.acquireMutex.RLock()
-	defer fake.acquireMutex.RUnlock()
-	return len(fake.acquireArgsForCall)
-}
-
-func (fake *FakeLock) AcquireReturns(result1 bool, result2 error) {
-	fake.AcquireStub = nil
-	fake.acquireReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeLock) AcquireReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.AcquireStub = nil
-	if fake.acquireReturnsOnCall == nil {
-		fake.acquireReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.acquireReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeLock) Release() error {
@@ -118,8 +64,6 @@ func (fake *FakeLock) ReleaseReturnsOnCall(i int, result1 error) {
 func (fake *FakeLock) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.acquireMutex.RLock()
-	defer fake.acquireMutex.RUnlock()
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

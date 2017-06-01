@@ -465,14 +465,12 @@ func (b *build) SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.
 }
 
 func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
-	lock := b.lockFactory.NewLock(
+	lock, acquired, err := b.lockFactory.Acquire(
 		logger.Session("lock", lager.Data{
 			"build_id": b.id,
 		}),
 		lock.NewBuildTrackingLockID(b.id),
 	)
-
-	acquired, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}

@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
@@ -31,7 +32,7 @@ type containerProviderFactory struct {
 	dbResourceConfigFactory dbng.ResourceConfigFactory
 	dbTeamFactory           dbng.TeamFactory
 
-	lockDB LockDB
+	lockFactory lock.LockFactory
 
 	httpProxyURL  string
 	httpsProxyURL string
@@ -49,7 +50,7 @@ func NewContainerProviderFactory(
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbTeamFactory dbng.TeamFactory,
-	lockDB LockDB,
+	lockFactory lock.LockFactory,
 	httpProxyURL string,
 	httpsProxyURL string,
 	noProxy string,
@@ -64,7 +65,7 @@ func NewContainerProviderFactory(
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
 		dbTeamFactory:           dbTeamFactory,
-		lockDB:                  lockDB,
+		lockFactory:             lockFactory,
 		httpProxyURL:            httpProxyURL,
 		httpsProxyURL:           httpsProxyURL,
 		noProxy:                 noProxy,
@@ -82,7 +83,7 @@ func (f *containerProviderFactory) ContainerProviderFor(worker Worker) Container
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
 		dbTeamFactory:           f.dbTeamFactory,
-		lockDB:                  f.lockDB,
+		lockFactory:             f.lockFactory,
 		httpProxyURL:            f.httpProxyURL,
 		httpsProxyURL:           f.httpsProxyURL,
 		noProxy:                 f.noProxy,
@@ -148,8 +149,8 @@ type containerProvider struct {
 	dbResourceConfigFactory dbng.ResourceConfigFactory
 	dbTeamFactory           dbng.TeamFactory
 
-	lockDB   LockDB
-	provider WorkerProvider
+	lockFactory lock.LockFactory
+	provider    WorkerProvider
 
 	worker        Worker
 	httpProxyURL  string
@@ -335,7 +336,6 @@ func (p *containerProvider) FindCreatedContainerByHandle(
 		createdVolumes,
 		p.gardenClient,
 		p.baggageclaimClient,
-		p.lockDB,
 		p.worker.Name(),
 	)
 
@@ -431,7 +431,7 @@ func (p *containerProvider) findOrCreateContainer(
 				logger.Debug("created-creating-container-in-db")
 			}
 
-			lock, acquired, err := p.lockDB.AcquireContainerCreatingLock(logger, creatingContainer.ID())
+			lock, acquired, err := p.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID(creatingContainer.ID()))
 			if err != nil {
 				logger.Error("failed-to-acquire-container-creating-lock", err)
 				return nil, err
@@ -502,7 +502,6 @@ func (p *containerProvider) constructGardenWorkerContainer(
 		createdVolumes,
 		p.gardenClient,
 		p.baggageclaimClient,
-		p.lockDB,
 		p.worker.Name(),
 	)
 }

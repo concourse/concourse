@@ -168,7 +168,11 @@ func (factory *teamFactory) GetTeams() ([]Team, error) {
 }
 
 func (factory *teamFactory) CreateDefaultTeamIfNotExists() (Team, error) {
-	_, err := psql.Update("teams").Set("admin", true).Where(sq.Eq{"LOWER(name)": strings.ToLower(atc.DefaultTeamName)}).RunWith(factory.conn).Exec()
+	_, err := psql.Update("teams").
+		Set("admin", true).
+		Where(sq.Eq{"LOWER(name)": strings.ToLower(atc.DefaultTeamName)}).
+		RunWith(factory.conn).
+		Exec()
 
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err

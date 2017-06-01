@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 	"github.com/gorilla/websocket"
@@ -19,7 +18,7 @@ var upgrader = websocket.Upgrader{
 	HandshakeTimeout: 5 * time.Second,
 }
 
-func (s *Server) HijackContainer(_ db.TeamDB, team dbng.Team) http.Handler {
+func (s *Server) HijackContainer(team dbng.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle := r.FormValue(":id")
 

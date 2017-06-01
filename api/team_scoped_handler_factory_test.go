@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 
@@ -9,9 +10,8 @@ import (
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,23 +21,23 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 		response          *http.Response
 		server            *httptest.Server
 		delegate          *delegateHandler
-		teamDBFactory     *dbfakes.FakeTeamDBFactory
-		teamDB            *dbfakes.FakeTeamDB
+		fakeTeamFactory   *dbngfakes.FakeTeamFactory
+		fakeTeam          *dbngfakes.FakeTeam
 		authValidator     *authfakes.FakeValidator
 		userContextReader *authfakes.FakeUserContextReader
 		handler           http.Handler
 	)
 
 	BeforeEach(func() {
-		teamDBFactory = new(dbfakes.FakeTeamDBFactory)
-		teamDB = new(dbfakes.FakeTeamDB)
-		teamDBFactory.GetTeamDBReturns(teamDB)
+		fakeTeamFactory = new(dbngfakes.FakeTeamFactory)
+		fakeTeam = new(dbngfakes.FakeTeam)
+		fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 
 		delegate = &delegateHandler{}
 
 		logger := lagertest.NewTestLogger("test")
 
-		handlerFactory := api.NewTeamScopedHandlerFactory(logger, teamDBFactory, dbTeamFactory)
+		handlerFactory := api.NewTeamScopedHandlerFactory(logger, fakeTeamFactory)
 		innerHandler := handlerFactory.HandlerFor(delegate.GetHandler)
 
 		authValidator = new(authfakes.FakeValidator)
@@ -66,15 +66,34 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 			userContextReader.GetTeamReturns("some-team", false, true)
 		})
 
-		It("creates teamDB with team name from context", func() {
-			Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-			Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
+		Context("when the team is not found", func() {
+			BeforeEach(func() {
+				fakeTeamFactory.FindTeamReturns(nil, false, nil)
+			})
+
+			It("returns 404", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
 		})
 
-		It("calls scoped handler with teamDB from context", func() {
+		Context("when finding the team fails", func() {
+			BeforeEach(func() {
+				fakeTeamFactory.FindTeamReturns(nil, false, errors.New("what is a team?"))
+			})
+
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		It("creates team with team name from context", func() {
+			Expect(fakeTeamFactory.FindTeamCallCount()).To(Equal(1))
+			Expect(fakeTeamFactory.FindTeamArgsForCall(0)).To(Equal("some-team"))
+		})
+
+		It("calls scoped handler with team from context", func() {
 			Expect(delegate.IsCalled).To(BeTrue())
-			Expect(delegate.TeamDB).To(BeIdenticalTo(teamDB))
-			Expect(delegate.Team).To(BeIdenticalTo(dbTeam))
+			Expect(delegate.Team).To(BeIdenticalTo(fakeTeam))
 		})
 	})
 
@@ -90,7 +109,6 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 
 		It("does not call scoped handler", func() {
 			Expect(delegate.IsCalled).To(BeFalse())
-			Expect(delegate.TeamDB).To(BeNil())
 			Expect(delegate.Team).To(BeNil())
 		})
 	})
@@ -98,14 +116,12 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 
 type delegateHandler struct {
 	IsCalled bool
-	TeamDB   db.TeamDB
 	Team     dbng.Team
 }
 
-func (handler *delegateHandler) GetHandler(teamDB db.TeamDB, dbTeam dbng.Team) http.Handler {
+func (handler *delegateHandler) GetHandler(team dbng.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.IsCalled = true
-		handler.TeamDB = teamDB
-		handler.Team = dbTeam
+		handler.Team = team
 	})
 }

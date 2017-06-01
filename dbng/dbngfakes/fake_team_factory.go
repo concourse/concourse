@@ -59,6 +59,17 @@ type FakeTeamFactory struct {
 	getByIDReturnsOnCall map[int]struct {
 		result1 dbng.Team
 	}
+	CreateDefaultTeamIfNotExistsStub        func() (dbng.Team, error)
+	createDefaultTeamIfNotExistsMutex       sync.RWMutex
+	createDefaultTeamIfNotExistsArgsForCall []struct{}
+	createDefaultTeamIfNotExistsReturns     struct {
+		result1 dbng.Team
+		result2 error
+	}
+	createDefaultTeamIfNotExistsReturnsOnCall map[int]struct {
+		result1 dbng.Team
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -259,6 +270,49 @@ func (fake *FakeTeamFactory) GetByIDReturnsOnCall(i int, result1 dbng.Team) {
 	}{result1}
 }
 
+func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExists() (dbng.Team, error) {
+	fake.createDefaultTeamIfNotExistsMutex.Lock()
+	ret, specificReturn := fake.createDefaultTeamIfNotExistsReturnsOnCall[len(fake.createDefaultTeamIfNotExistsArgsForCall)]
+	fake.createDefaultTeamIfNotExistsArgsForCall = append(fake.createDefaultTeamIfNotExistsArgsForCall, struct{}{})
+	fake.recordInvocation("CreateDefaultTeamIfNotExists", []interface{}{})
+	fake.createDefaultTeamIfNotExistsMutex.Unlock()
+	if fake.CreateDefaultTeamIfNotExistsStub != nil {
+		return fake.CreateDefaultTeamIfNotExistsStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createDefaultTeamIfNotExistsReturns.result1, fake.createDefaultTeamIfNotExistsReturns.result2
+}
+
+func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExistsCallCount() int {
+	fake.createDefaultTeamIfNotExistsMutex.RLock()
+	defer fake.createDefaultTeamIfNotExistsMutex.RUnlock()
+	return len(fake.createDefaultTeamIfNotExistsArgsForCall)
+}
+
+func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExistsReturns(result1 dbng.Team, result2 error) {
+	fake.CreateDefaultTeamIfNotExistsStub = nil
+	fake.createDefaultTeamIfNotExistsReturns = struct {
+		result1 dbng.Team
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExistsReturnsOnCall(i int, result1 dbng.Team, result2 error) {
+	fake.CreateDefaultTeamIfNotExistsStub = nil
+	if fake.createDefaultTeamIfNotExistsReturnsOnCall == nil {
+		fake.createDefaultTeamIfNotExistsReturnsOnCall = make(map[int]struct {
+			result1 dbng.Team
+			result2 error
+		})
+	}
+	fake.createDefaultTeamIfNotExistsReturnsOnCall[i] = struct {
+		result1 dbng.Team
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeamFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -270,6 +324,8 @@ func (fake *FakeTeamFactory) Invocations() map[string][][]interface{} {
 	defer fake.getTeamsMutex.RUnlock()
 	fake.getByIDMutex.RLock()
 	defer fake.getByIDMutex.RUnlock()
+	fake.createDefaultTeamIfNotExistsMutex.RLock()
+	defer fake.createDefaultTeamIfNotExistsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -7,11 +7,10 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListVolumes(teamDB db.TeamDB, team dbng.Team) http.Handler {
+func (s *Server) ListVolumes(team dbng.Team) http.Handler {
 	hLog := s.logger.Session("list-volumes")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

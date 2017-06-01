@@ -19,10 +19,8 @@ import (
 	"github.com/concourse/atc/dbng/dbngfakes"
 
 	"github.com/concourse/atc/api/jobserver/jobserverfakes"
-	"github.com/concourse/atc/api/pipes/pipesfakes"
 	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/atc/wrappa"
@@ -43,14 +41,11 @@ var (
 	fakeWorkerClient              *workerfakes.FakeClient
 	fakeVolumeFactory             *dbngfakes.FakeVolumeFactory
 	fakeContainerFactory          *dbngfakes.FakeContainerFactory
-	pipeDB                        *pipesfakes.FakePipeDB
-	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	dbTeamFactory                 *dbngfakes.FakeTeamFactory
 	dbPipelineFactory             *dbngfakes.FakePipelineFactory
 	fakePipeline                  *dbngfakes.FakePipeline
 	dbWorkerFactory               *dbngfakes.FakeWorkerFactory
 	dbWorkerLifecycle             *dbngfakes.FakeWorkerLifecycle
-	teamDB                        *dbfakes.FakeTeamDB
 	build                         *dbngfakes.FakeBuild
 	dbBuildFactory                *dbngfakes.FakeBuildFactory
 	dbTeam                        *dbngfakes.FakeTeam
@@ -91,7 +86,6 @@ func (f *fakeEventHandlerFactory) Construct(
 }
 
 var _ = BeforeEach(func() {
-	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
 	dbTeamFactory = new(dbngfakes.FakeTeamFactory)
 	dbPipelineFactory = new(dbngfakes.FakePipelineFactory)
 	dbBuildFactory = new(dbngfakes.FakeBuildFactory)
@@ -106,9 +100,6 @@ var _ = BeforeEach(func() {
 
 	dbWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbngfakes.FakeWorkerLifecycle)
-	teamDB = new(dbfakes.FakeTeamDB)
-	teamDBFactory.GetTeamDBReturns(teamDB)
-	pipeDB = new(pipesfakes.FakePipeDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
@@ -173,15 +164,12 @@ var _ = BeforeEach(func() {
 		providerFactory,
 		oAuthBaseURL,
 
-		teamDBFactory,
 		dbTeamFactory,
 		dbPipelineFactory,
 		dbWorkerFactory,
 		fakeVolumeFactory,
 		fakeContainerFactory,
 		dbBuildFactory,
-
-		pipeDB,
 
 		peerAddr,
 		constructedEventHandler.Construct,

@@ -21,7 +21,19 @@ func (s *Server) WritePipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbPipe, err := s.db.GetPipe(pipeID)
+	dbTeam, found, err := s.teamFactory.FindTeam(authTeam.Name())
+	if err != nil {
+		logger.Error("failed-to-get-team-from-db", errors.New("failed-to-get-team-from-db"))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		logger.Error("failed-to-find-team", errors.New("failed-to-find-team"))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	dbPipe, err := dbTeam.GetPipe(pipeID)
 	if err != nil {
 		logger.Error("failed-to-get-pipe", err)
 		w.WriteHeader(http.StatusInternalServerError)

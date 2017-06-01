@@ -399,6 +399,31 @@ type FakeTeam struct {
 	updateProviderAuthReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CreatePipeStub        func(string, string) error
+	createPipeMutex       sync.RWMutex
+	createPipeArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	createPipeReturns struct {
+		result1 error
+	}
+	createPipeReturnsOnCall map[int]struct {
+		result1 error
+	}
+	GetPipeStub        func(string) (dbng.Pipe, error)
+	getPipeMutex       sync.RWMutex
+	getPipeArgsForCall []struct {
+		arg1 string
+	}
+	getPipeReturns struct {
+		result1 dbng.Pipe
+		result2 error
+	}
+	getPipeReturnsOnCall map[int]struct {
+		result1 dbng.Pipe
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -1870,6 +1895,106 @@ func (fake *FakeTeam) UpdateProviderAuthReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeTeam) CreatePipe(arg1 string, arg2 string) error {
+	fake.createPipeMutex.Lock()
+	ret, specificReturn := fake.createPipeReturnsOnCall[len(fake.createPipeArgsForCall)]
+	fake.createPipeArgsForCall = append(fake.createPipeArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("CreatePipe", []interface{}{arg1, arg2})
+	fake.createPipeMutex.Unlock()
+	if fake.CreatePipeStub != nil {
+		return fake.CreatePipeStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.createPipeReturns.result1
+}
+
+func (fake *FakeTeam) CreatePipeCallCount() int {
+	fake.createPipeMutex.RLock()
+	defer fake.createPipeMutex.RUnlock()
+	return len(fake.createPipeArgsForCall)
+}
+
+func (fake *FakeTeam) CreatePipeArgsForCall(i int) (string, string) {
+	fake.createPipeMutex.RLock()
+	defer fake.createPipeMutex.RUnlock()
+	return fake.createPipeArgsForCall[i].arg1, fake.createPipeArgsForCall[i].arg2
+}
+
+func (fake *FakeTeam) CreatePipeReturns(result1 error) {
+	fake.CreatePipeStub = nil
+	fake.createPipeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) CreatePipeReturnsOnCall(i int, result1 error) {
+	fake.CreatePipeStub = nil
+	if fake.createPipeReturnsOnCall == nil {
+		fake.createPipeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.createPipeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) GetPipe(arg1 string) (dbng.Pipe, error) {
+	fake.getPipeMutex.Lock()
+	ret, specificReturn := fake.getPipeReturnsOnCall[len(fake.getPipeArgsForCall)]
+	fake.getPipeArgsForCall = append(fake.getPipeArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("GetPipe", []interface{}{arg1})
+	fake.getPipeMutex.Unlock()
+	if fake.GetPipeStub != nil {
+		return fake.GetPipeStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getPipeReturns.result1, fake.getPipeReturns.result2
+}
+
+func (fake *FakeTeam) GetPipeCallCount() int {
+	fake.getPipeMutex.RLock()
+	defer fake.getPipeMutex.RUnlock()
+	return len(fake.getPipeArgsForCall)
+}
+
+func (fake *FakeTeam) GetPipeArgsForCall(i int) string {
+	fake.getPipeMutex.RLock()
+	defer fake.getPipeMutex.RUnlock()
+	return fake.getPipeArgsForCall[i].arg1
+}
+
+func (fake *FakeTeam) GetPipeReturns(result1 dbng.Pipe, result2 error) {
+	fake.GetPipeStub = nil
+	fake.getPipeReturns = struct {
+		result1 dbng.Pipe
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) GetPipeReturnsOnCall(i int, result1 dbng.Pipe, result2 error) {
+	fake.GetPipeStub = nil
+	if fake.getPipeReturnsOnCall == nil {
+		fake.getPipeReturnsOnCall = make(map[int]struct {
+			result1 dbng.Pipe
+			result2 error
+		})
+	}
+	fake.getPipeReturnsOnCall[i] = struct {
+		result1 dbng.Pipe
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1933,6 +2058,10 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.updateBasicAuthMutex.RUnlock()
 	fake.updateProviderAuthMutex.RLock()
 	defer fake.updateProviderAuthMutex.RUnlock()
+	fake.createPipeMutex.RLock()
+	defer fake.createPipeMutex.RUnlock()
+	fake.getPipeMutex.RLock()
+	defer fake.getPipeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -72,6 +72,9 @@ type Team interface {
 
 	UpdateBasicAuth(basicAuth *atc.BasicAuth) error
 	UpdateProviderAuth(auth map[string]*json.RawMessage) error
+
+	CreatePipe(string, string) error
+	GetPipe(string) (Pipe, error)
 }
 
 type team struct {
@@ -968,6 +971,66 @@ func (t *team) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
 	`
 	params := []interface{}{string(encryptedAuth), t.name, nonce}
 	return t.queryTeam(query, params)
+}
+
+func (t *team) CreatePipe(pipeGUID string, url string) error {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		INSERT INTO pipes(id, url, team_id)
+		VALUES (
+			$1,
+			$2,
+			( SELECT id
+				FROM teams
+				WHERE name = $3
+			)
+		)
+	`, pipeGUID, url, t.name)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *team) GetPipe(pipeGUID string) (Pipe, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return Pipe{}, err
+	}
+
+	defer tx.Rollback()
+
+	var pipe Pipe
+
+	err = tx.QueryRow(`
+		SELECT p.id AS pipe_id, coalesce(url, '') AS url, t.name AS team_name
+		FROM pipes p
+			JOIN teams t
+			ON t.id = p.team_id
+		WHERE p.id = $1
+	`, pipeGUID).Scan(&pipe.ID, &pipe.URL, &pipe.TeamName)
+	if err != nil {
+		return Pipe{}, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return Pipe{}, err
+	}
+
+	return pipe, nil
 }
 
 func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {

@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/worker"
 )
 
@@ -48,19 +49,19 @@ type ResourceOptions interface {
 
 func NewFetcher(
 	clock clock.Clock,
-	db LockDB,
+	lockFactory lock.LockFactory,
 	fetchSourceProviderFactory FetchSourceProviderFactory,
 ) Fetcher {
 	return &fetcher{
-		clock: clock,
-		db:    db,
+		clock:                      clock,
+		lockFactory:                lockFactory,
 		fetchSourceProviderFactory: fetchSourceProviderFactory,
 	}
 }
 
 type fetcher struct {
 	clock                      clock.Clock
-	db                         LockDB
+	lockFactory                lock.LockFactory
 	fetchSourceProviderFactory FetchSourceProviderFactory
 }
 
@@ -148,8 +149,7 @@ func (f *fetcher) fetchWithLock(
 
 	lockLogger := logger.Session("lock-task", lager.Data{"lock-name": lockName})
 
-	lock, acquired, err := f.db.GetTaskLock(lockLogger, lockName)
-
+	lock, acquired, err := f.lockFactory.Acquire(lockLogger, lock.NewTaskLockID(lockName))
 	if err != nil {
 		lockLogger.Error("failed-to-get-lock", err)
 		return nil, ErrFailedToGetLock

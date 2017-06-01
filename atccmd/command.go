@@ -243,7 +243,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	listener := pq.NewListener(cmd.Postgres.ConnectionString(), time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
 
-	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
+	teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory)
@@ -255,10 +255,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn, lockFactory)
 	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn, lockFactory)
 	dbWorkerBaseResourceTypeFactory := dbng.NewWorkerBaseResourceTypeFactory(dbngConn)
-	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock(), dbResourceCacheFactory)
+	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
 	workerClient := cmd.constructWorkerPool(
 		logger,
-		sqlDB,
+		lockFactory,
 		resourceFetcherFactory,
 		resourceFactoryFactory,
 		dbResourceCacheFactory,
@@ -266,7 +266,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		dbWorkerBaseResourceTypeFactory,
 		dbVolumeFactory,
 		dbWorkerFactory,
-		dbTeamFactory,
+		teamFactory,
 		workerVersion,
 	)
 
@@ -292,12 +292,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	err = sqlDB.CreateDefaultTeamIfNotExists()
+	_, err = teamFactory.CreateDefaultTeamIfNotExists()
 	if err != nil {
 		return nil, err
 	}
 
-	err = cmd.configureAuthForDefaultTeam(dbTeamFactory)
+	err = cmd.configureAuthForDefaultTeam(teamFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -318,8 +318,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		logger,
 		reconfigurableSink,
 		sqlDB,
-		teamDBFactory,
-		dbTeamFactory,
+		teamFactory,
 		dbPipelineFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
@@ -341,7 +340,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	oauthHandler, err := auth.NewOAuthHandler(
 		logger,
 		providerFactory,
-		dbTeamFactory,
+		teamFactory,
 		signingKey,
 		cmd.AuthDuration,
 		cmd.isTLSEnabled(),
@@ -487,7 +486,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				),
 			),
 			"collector",
-			sqlDB,
+			lockFactory,
 			clock.NewClock(),
 			cmd.GCInterval,
 		)},
@@ -500,7 +499,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				500,
 			),
 			"build-reaper",
-			sqlDB,
+			lockFactory,
 			clock.NewClock(),
 			30*time.Second,
 		)},
@@ -711,7 +710,7 @@ func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {
 
 func (cmd *ATCCommand) constructWorkerPool(
 	logger lager.Logger,
-	sqlDB *db.SQLDB,
+	lockFactory lock.LockFactory,
 	resourceFetcherFactory resource.FetcherFactory,
 	resourceFactoryFactory resource.ResourceFactoryFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
@@ -719,7 +718,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbWorkerFactory dbng.WorkerFactory,
-	dbTeamFactory dbng.TeamFactory,
+	teamFactory dbng.TeamFactory,
 	workerVersion *version.Version,
 ) worker.Client {
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
@@ -731,14 +730,14 @@ func (cmd *ATCCommand) constructWorkerPool(
 	)
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
-			sqlDB,
+			lockFactory,
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 			image.NewImageFactory(imageResourceFetcherFactory),
 			dbResourceCacheFactory,
 			dbResourceConfigFactory,
 			dbWorkerBaseResourceTypeFactory,
 			dbVolumeFactory,
-			dbTeamFactory,
+			teamFactory,
 			dbWorkerFactory,
 			workerVersion,
 		),
@@ -874,8 +873,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
-	teamDBFactory db.TeamDBFactory,
-	dbTeamFactory dbng.TeamFactory,
+	teamFactory dbng.TeamFactory,
 	dbPipelineFactory dbng.PipelineFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
@@ -893,10 +891,10 @@ func (cmd *ATCCommand) constructAPIHandler(
 		PublicKey: &signingKey.PublicKey,
 	}
 
-	getTokenValidator := auth.NewTeamAuthValidator(dbTeamFactory, authValidator)
+	getTokenValidator := auth.NewTeamAuthValidator(teamFactory, authValidator)
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(
-		dbTeamFactory,
+		teamFactory,
 	)
 
 	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(dbBuildFactory)
@@ -929,15 +927,12 @@ func (cmd *ATCCommand) constructAPIHandler(
 		providerFactory,
 		cmd.oauthBaseURL(),
 
-		teamDBFactory,
-		dbTeamFactory,
+		teamFactory,
 		dbPipelineFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
 		dbContainerFactory,
 		dbBuildFactory,
-
-		sqlDB, // pipes.PipeDB
 
 		cmd.PeerURL.String(),
 		buildserver.NewEventHandler,

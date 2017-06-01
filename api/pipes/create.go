@@ -26,7 +26,20 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.db.CreatePipe(guid.String(), s.url, authTeam.Name())
+	team, found, err := s.teamFactory.FindTeam(authTeam.Name())
+	if err != nil {
+		logger.Error("failed-to-find-team", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
+		logger.Debug("team-not-found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	err = team.CreatePipe(guid.String(), s.url)
 	if err != nil {
 		logger.Error("failed-to-create-pipe", err)
 		w.WriteHeader(http.StatusInternalServerError)

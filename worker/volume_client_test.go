@@ -27,7 +27,7 @@ var _ = Describe("VolumeClient", func() {
 		testLogger *lagertest.TestLogger
 
 		fakeBaggageclaimClient            *baggageclaimfakes.FakeClient
-		fakeLockDB                        *workerfakes.FakeLockDB
+		fakeLockFactory                   *lockfakes.FakeLockFactory
 		fakeDBVolumeFactory               *dbngfakes.FakeVolumeFactory
 		fakeWorkerBaseResourceTypeFactory *dbngfakes.FakeWorkerBaseResourceTypeFactory
 		fakeClock                         *fakeclock.FakeClock
@@ -38,7 +38,7 @@ var _ = Describe("VolumeClient", func() {
 
 	BeforeEach(func() {
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
-		fakeLockDB = new(workerfakes.FakeLockDB)
+		fakeLockFactory = new(lockfakes.FakeLockFactory)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		dbWorker = new(dbngfakes.FakeWorker)
 		dbWorker.NameReturns("some-worker")
@@ -51,7 +51,7 @@ var _ = Describe("VolumeClient", func() {
 
 		volumeClient = worker.NewVolumeClient(
 			fakeBaggageclaimClient,
-			fakeLockDB,
+			fakeLockFactory,
 			fakeDBVolumeFactory,
 			fakeWorkerBaseResourceTypeFactory,
 			fakeClock,
@@ -100,11 +100,11 @@ var _ = Describe("VolumeClient", func() {
 				var disaster = errors.New("disaster")
 
 				BeforeEach(func() {
-					fakeLockDB.AcquireVolumeCreatingLockReturns(nil, false, disaster)
+					fakeLockFactory.AcquireReturns(nil, false, disaster)
 				})
 
 				It("returns error", func() {
-					Expect(fakeLockDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
+					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
 					Expect(foundOrCreatedErr).To(Equal(disaster))
 				})
 			})
@@ -112,7 +112,7 @@ var _ = Describe("VolumeClient", func() {
 			Context("when it could not acquire creating lock", func() {
 				BeforeEach(func() {
 					callCount := 0
-					fakeLockDB.AcquireVolumeCreatingLockStub = func(logger lager.Logger, volumeID int) (lock.Lock, bool, error) {
+					fakeLockFactory.AcquireStub = func(logger lager.Logger, lockID lock.LockID) (lock.Lock, bool, error) {
 						callCount++
 						go fakeClock.WaitForWatcherAndIncrement(time.Second)
 
@@ -125,20 +125,20 @@ var _ = Describe("VolumeClient", func() {
 				})
 
 				It("retries to find volume again", func() {
-					Expect(fakeLockDB.AcquireVolumeCreatingLockCallCount()).To(Equal(3))
+					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(3))
 					Expect(fakeDBVolumeFactory.FindContainerVolumeCallCount()).To(Equal(3))
 				})
 			})
 
 			Context("when it acquires the lock", func() {
 				BeforeEach(func() {
-					fakeLockDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
+					fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 				})
 
 				Context("when checking for the volume in baggageclaim", func() {
 					BeforeEach(func() {
 						fakeBaggageclaimClient.LookupVolumeStub = func(lager.Logger, string) (baggageclaim.Volume, bool, error) {
-							Expect(fakeLockDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
+							Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
 							return nil, false, nil
 						}
 					})
@@ -211,7 +211,7 @@ var _ = Describe("VolumeClient", func() {
 
 			BeforeEach(func() {
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, nil, nil)
-				fakeLockDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
+				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 				creatingVolume := new(dbngfakes.FakeCreatingVolume)
 				fakeDBVolumeFactory.CreateContainerVolumeReturns(creatingVolume, nil)
 				fakeCreatedVolume = new(dbngfakes.FakeCreatedVolume)
@@ -219,7 +219,7 @@ var _ = Describe("VolumeClient", func() {
 			})
 
 			It("acquires the lock", func() {
-				Expect(fakeLockDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
+				Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
 			})
 
 			It("creates volume in creating state", func() {
@@ -293,11 +293,11 @@ var _ = Describe("VolumeClient", func() {
 				var disaster = errors.New("disaster")
 
 				BeforeEach(func() {
-					fakeLockDB.AcquireVolumeCreatingLockReturns(nil, false, disaster)
+					fakeLockFactory.AcquireReturns(nil, false, disaster)
 				})
 
 				It("returns error", func() {
-					Expect(fakeLockDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
+					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
 					Expect(foundOrCreatedErr).To(Equal(disaster))
 				})
 			})
@@ -305,7 +305,7 @@ var _ = Describe("VolumeClient", func() {
 			Context("when it could not acquire creating lock", func() {
 				BeforeEach(func() {
 					callCount := 0
-					fakeLockDB.AcquireVolumeCreatingLockStub = func(logger lager.Logger, volumeID int) (lock.Lock, bool, error) {
+					fakeLockFactory.AcquireStub = func(logger lager.Logger, lockID lock.LockID) (lock.Lock, bool, error) {
 						callCount++
 						go fakeClock.WaitForWatcherAndIncrement(time.Second)
 
@@ -318,14 +318,14 @@ var _ = Describe("VolumeClient", func() {
 				})
 
 				It("retries to find volume again", func() {
-					Expect(fakeLockDB.AcquireVolumeCreatingLockCallCount()).To(Equal(3))
+					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(3))
 					Expect(fakeDBVolumeFactory.FindContainerVolumeCallCount()).To(Equal(3))
 				})
 			})
 
 			Context("when it acquires the lock", func() {
 				BeforeEach(func() {
-					fakeLockDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
+					fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 				})
 
 				Context("when volume exists in baggageclaim", func() {
@@ -389,11 +389,11 @@ var _ = Describe("VolumeClient", func() {
 		Context("when volume does not exist in db", func() {
 			BeforeEach(func() {
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, nil, nil)
-				fakeLockDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
+				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 			})
 
 			It("acquires the lock", func() {
-				Expect(fakeLockDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
+				Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
 			})
 
 			It("creates volume in creating state with parent volume", func() {
@@ -433,7 +433,7 @@ var _ = Describe("VolumeClient", func() {
 			fakeCreatedVolume = new(dbngfakes.FakeCreatedVolume)
 			fakeDBVolumeFactory.FindResourceCacheVolumeReturns(nil, nil, nil)
 			fakeDBVolumeFactory.CreateResourceCacheVolumeReturns(fakeCreatingVolume, nil)
-			fakeLockDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
+			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 			fakeCreatingVolume.CreatedReturns(fakeCreatedVolume, nil)
 		})
 
@@ -454,7 +454,7 @@ var _ = Describe("VolumeClient", func() {
 		})
 
 		It("acquires the lock", func() {
-			Expect(fakeLockDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
+			Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
 		})
 
 		It("creates volume in creating state", func() {
@@ -487,7 +487,7 @@ var _ = Describe("VolumeClient", func() {
 		JustBeforeEach(func() {
 			_, found, lookupErr = worker.NewVolumeClient(
 				fakeBaggageclaimClient,
-				fakeLockDB,
+				fakeLockFactory,
 				fakeDBVolumeFactory,
 				fakeWorkerBaseResourceTypeFactory,
 				fakeClock,

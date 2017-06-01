@@ -1,15 +1,12 @@
 package db_test
 
 import (
-	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"

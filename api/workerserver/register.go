@@ -69,7 +69,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	}.Emit(s.logger)
 
 	if registration.Team != "" {
-		team, found, err := s.dbTeamFactory.FindTeam(registration.Team)
+		team, found, err := s.teamFactory.FindTeam(registration.Team)
 		if err != nil {
 			logger.Error("failed-to-get-team", err)
 			w.WriteHeader(http.StatusInternalServerError)

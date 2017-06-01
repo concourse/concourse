@@ -58,7 +58,6 @@ type gardenWorker struct {
 
 	volumeClient VolumeClient
 
-	lockDB   LockDB
 	provider WorkerProvider
 
 	clock clock.Clock
@@ -76,7 +75,6 @@ type gardenWorker struct {
 func NewGardenWorker(
 	containerProviderFactory ContainerProviderFactory,
 	volumeClient VolumeClient,
-	lockDB LockDB,
 	provider WorkerProvider,
 	clock clock.Clock,
 	activeContainers int,
@@ -93,7 +91,6 @@ func NewGardenWorker(
 
 		volumeClient: volumeClient,
 
-		lockDB:           lockDB,
 		provider:         provider,
 		clock:            clock,
 		activeContainers: activeContainers,

@@ -86,7 +86,6 @@ var _ = Describe("Team Factory", func() {
 
 	Describe("CreateDefaultTeamIfNotExists", func() {
 		It("creates the default team", func() {
-
 			t, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 			Expect(err).NotTo(HaveOccurred())
 			if found {
@@ -105,7 +104,6 @@ var _ = Describe("Team Factory", func() {
 
 		Context("when the default team already exists", func() {
 			It("does not duplicate the default team", func() {
-
 				team, err := teamFactory.CreateDefaultTeamIfNotExists()
 				Expect(err).NotTo(HaveOccurred())
 

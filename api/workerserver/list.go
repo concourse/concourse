@@ -8,11 +8,10 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListWorkers(_ db.TeamDB, team dbng.Team) http.Handler {
+func (s *Server) ListWorkers(team dbng.Team) http.Handler {
 	logger := s.logger.Session("list-workers")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

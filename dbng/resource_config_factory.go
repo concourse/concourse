@@ -360,12 +360,10 @@ func acquireResourceCheckingLock(
 		return nil, false, err
 	}
 
-	lock := lockFactory.NewLock(
+	lock, acquired, err := lockFactory.Acquire(
 		logger,
 		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
 	)
-
-	acquired, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}

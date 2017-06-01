@@ -24,7 +24,7 @@ var _ = Describe("Fetcher", func() {
 	var (
 		fakeFetchSourceProvider *resourcefakes.FakeFetchSourceProvider
 		fakeClock               *fakeclock.FakeClock
-		fakeLockDB              *resourcefakes.FakeLockDB
+		fakeLockFactory         *lockfakes.FakeLockFactory
 		fetcher                 resource.Fetcher
 		signals                 chan os.Signal
 		ready                   chan struct{}
@@ -42,11 +42,11 @@ var _ = Describe("Fetcher", func() {
 		fakeFetchSourceProviderFactory.NewFetchSourceProviderReturns(fakeFetchSourceProvider)
 
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
-		fakeLockDB = new(resourcefakes.FakeLockDB)
+		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
 		fetcher = resource.NewFetcher(
 			fakeClock,
-			fakeLockDB,
+			fakeLockFactory,
 			fakeFetchSourceProviderFactory,
 		)
 
@@ -120,7 +120,7 @@ var _ = Describe("Fetcher", func() {
 					BeforeEach(func() {
 						fakeLock := new(lockfakes.FakeLock)
 						callCount := 0
-						fakeLockDB.GetTaskLockStub = func(lager.Logger, string) (lock.Lock, bool, error) {
+						fakeLockFactory.AcquireStub = func(lager.Logger, lock.LockID) (lock.Lock, bool, error) {
 							callCount++
 							fakeClock.Increment(resource.GetResourceLockInterval)
 							if callCount == 1 {
@@ -131,7 +131,7 @@ var _ = Describe("Fetcher", func() {
 					})
 
 					It("retries until it gets the lock", func() {
-						Expect(fakeLockDB.GetTaskLockCallCount()).To(Equal(2))
+						Expect(fakeLockFactory.AcquireCallCount()).To(Equal(2))
 					})
 
 					It("initializes fetch source after lock is acquired", func() {
@@ -143,7 +143,7 @@ var _ = Describe("Fetcher", func() {
 					BeforeEach(func() {
 						fakeLock := new(lockfakes.FakeLock)
 						callCount := 0
-						fakeLockDB.GetTaskLockStub = func(lager.Logger, string) (lock.Lock, bool, error) {
+						fakeLockFactory.AcquireStub = func(lager.Logger, lock.LockID) (lock.Lock, bool, error) {
 							callCount++
 							fakeClock.Increment(resource.GetResourceLockInterval)
 							if callCount == 1 {
@@ -154,7 +154,7 @@ var _ = Describe("Fetcher", func() {
 					})
 
 					It("retries until it gets the lock", func() {
-						Expect(fakeLockDB.GetTaskLockCallCount()).To(Equal(2))
+						Expect(fakeLockFactory.AcquireCallCount()).To(Equal(2))
 					})
 
 					It("initializes fetch source after lock is acquired", func() {
@@ -168,14 +168,14 @@ var _ = Describe("Fetcher", func() {
 
 				BeforeEach(func() {
 					fakeLock = new(lockfakes.FakeLock)
-					fakeLockDB.GetTaskLockReturns(fakeLock, true, nil)
+					fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 					fakeFetchSource.InitializeReturns(fakeVersionedSource, nil)
 				})
 
 				It("acquires a lock with source lock name", func() {
-					Expect(fakeLockDB.GetTaskLockCallCount()).To(Equal(1))
-					_, lockName := fakeLockDB.GetTaskLockArgsForCall(0)
-					Expect(lockName).To(Equal("fake-lock-name"))
+					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
+					_, lockID := fakeLockFactory.AcquireArgsForCall(0)
+					Expect(lockID).To(Equal(lock.NewTaskLockID("fake-lock-name")))
 				})
 
 				It("releases the lock", func() {

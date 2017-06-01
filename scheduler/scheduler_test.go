@@ -160,7 +160,9 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("didn't create a pending build", func() {
-						Expect(fakePipeline.EnsurePendingBuildExistsCallCount()).To(BeZero())
+						//TODO: create a positive test case for this
+						Expect(fakeJob.EnsurePendingBuildExistsCallCount()).To(BeZero())
+						Expect(fakeJob2.EnsurePendingBuildExistsCallCount()).To(BeZero())
 					})
 				})
 			})

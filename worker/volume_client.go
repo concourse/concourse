@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
@@ -54,7 +55,7 @@ var ErrBaseResourceTypeNotFound = errors.New("base-resource-type-not-found")
 
 type volumeClient struct {
 	baggageclaimClient              baggageclaim.Client
-	lockDB                          LockDB
+	lockFactory                     lock.LockFactory
 	dbVolumeFactory                 dbng.VolumeFactory
 	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
 	clock                           clock.Clock
@@ -63,7 +64,7 @@ type volumeClient struct {
 
 func NewVolumeClient(
 	baggageclaimClient baggageclaim.Client,
-	lockDB LockDB,
+	lockFactory lock.LockFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory,
 	clock clock.Clock,
@@ -71,7 +72,7 @@ func NewVolumeClient(
 ) VolumeClient {
 	return &volumeClient{
 		baggageclaimClient:              baggageclaimClient,
-		lockDB:                          lockDB,
+		lockFactory:                     lockFactory,
 		dbVolumeFactory:                 dbVolumeFactory,
 		dbWorkerBaseResourceTypeFactory: dbWorkerBaseResourceTypeFactory,
 		clock:    clock,
@@ -262,7 +263,7 @@ func (c *volumeClient) findOrCreateVolume(
 		logger.Debug("created-creating-volume")
 	}
 
-	lock, acquired, err := c.lockDB.AcquireVolumeCreatingLock(logger, creatingVolume.ID())
+	lock, acquired, err := c.lockFactory.Acquire(logger, lock.NewVolumeCreatingLockID(creatingVolume.ID()))
 	if err != nil {
 		logger.Error("failed-to-acquire-volume-creating-lock", err)
 		return nil, err

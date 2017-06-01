@@ -43,7 +43,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
 		fakeDBResourceCacheFactory  *dbngfakes.FakeResourceCacheFactory
 		fakeDBResourceConfigFactory *dbngfakes.FakeResourceConfigFactory
-		fakeLockDB                  *workerfakes.FakeLockDB
+		fakeLockFactory             *lockfakes.FakeLockFactory
 		fakeWorker                  *workerfakes.FakeWorker
 
 		containerProvider        ContainerProvider
@@ -95,7 +95,7 @@ var _ = Describe("ContainerProvider", func() {
 			URL: "some-image-url",
 		}, nil)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
-		fakeLockDB = new(workerfakes.FakeLockDB)
+		fakeLockFactory = new(lockfakes.FakeLockFactory)
 		fakeWorker = new(workerfakes.FakeWorker)
 
 		fakeDBTeamFactory := new(dbngfakes.FakeTeamFactory)
@@ -117,7 +117,7 @@ var _ = Describe("ContainerProvider", func() {
 			fakeDBResourceCacheFactory,
 			fakeDBResourceConfigFactory,
 			fakeDBTeamFactory,
-			fakeLockDB,
+			fakeLockFactory,
 			"http://proxy.com",
 			"https://proxy.com",
 			"http://noproxy.com",
@@ -253,7 +253,7 @@ var _ = Describe("ContainerProvider", func() {
 			})
 
 			It("does not acquire lock", func() {
-				Expect(fakeLockDB.AcquireContainerCreatingLockCallCount()).To(Equal(0))
+				Expect(fakeLockFactory.AcquireCallCount()).To(Equal(0))
 			})
 
 			It("marks container as created", func() {
@@ -276,7 +276,7 @@ var _ = Describe("ContainerProvider", func() {
 			})
 
 			It("acquires lock", func() {
-				Expect(fakeLockDB.AcquireContainerCreatingLockCallCount()).To(Equal(1))
+				Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
 			})
 
 			It("creates container in garden", func() {
@@ -371,7 +371,7 @@ var _ = Describe("ContainerProvider", func() {
 		})
 
 		It("acquires lock", func() {
-			Expect(fakeLockDB.AcquireContainerCreatingLockCallCount()).To(Equal(1))
+			Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
 		})
 
 		It("creates the container in garden", func() {
@@ -559,7 +559,7 @@ var _ = Describe("ContainerProvider", func() {
 	Describe("FindOrCreateBuildContainer", func() {
 		BeforeEach(func() {
 			fakeDBTeam.CreateBuildContainerReturns(fakeCreatingContainer, nil)
-			fakeLockDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
+			fakeLockFactory.AcquireReturns(new(lockfakes.FakeLock), true, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -608,7 +608,7 @@ var _ = Describe("ContainerProvider", func() {
 				ID: 42,
 			}, nil)
 			fakeDBTeam.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
-			fakeLockDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
+			fakeLockFactory.AcquireReturns(new(lockfakes.FakeLock), true, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -655,7 +655,7 @@ var _ = Describe("ContainerProvider", func() {
 	Describe("CreateResourceGetContainer", func() {
 		BeforeEach(func() {
 			fakeDBTeam.CreateResourceGetContainerReturns(fakeCreatingContainer, nil)
-			fakeLockDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
+			fakeLockFactory.AcquireReturns(new(lockfakes.FakeLock), true, nil)
 		})
 
 		JustBeforeEach(func() {

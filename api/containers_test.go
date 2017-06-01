@@ -82,7 +82,6 @@ var _ = Describe("Containers API", func() {
 			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers", nil)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
-			teamDBFactory.GetTeamDBReturns(teamDB)
 		})
 
 		Context("when not authenticated", func() {

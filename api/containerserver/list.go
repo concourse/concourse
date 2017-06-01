@@ -9,11 +9,10 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListContainers(_ db.TeamDB, team dbng.Team) http.Handler {
+func (s *Server) ListContainers(team dbng.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.RawQuery
 		hLog := s.logger.Session("list-containers", lager.Data{

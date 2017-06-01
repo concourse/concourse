@@ -50,7 +50,7 @@ func NewContainerCreatingLockID(containerID int) LockID {
 //go:generate counterfeiter . LockFactory
 
 type LockFactory interface {
-	NewLock(logger lager.Logger, ids LockID) Lock
+	Acquire(logger lager.Logger, ids LockID) (Lock, bool, error)
 }
 
 type lockFactory struct {
@@ -84,20 +84,30 @@ func NewTestLockFactory(db LockDB) LockFactory {
 	}
 }
 
-func (f *lockFactory) NewLock(logger lager.Logger, id LockID) Lock {
-	return &lock{
+func (f *lockFactory) Acquire(logger lager.Logger, id LockID) (Lock, bool, error) {
+	l := &lock{
 		logger:       logger,
 		db:           f.db,
 		id:           id,
 		locks:        f.locks,
 		acquireMutex: f.acquireMutex,
 	}
+
+	acquired, err := l.Acquire()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !acquired {
+		return nil, false, nil
+	}
+
+	return l, true, nil
 }
 
 //go:generate counterfeiter . Lock
 
 type Lock interface {
-	Acquire() (bool, error)
 	Release() error
 }
 

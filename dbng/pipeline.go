@@ -42,11 +42,11 @@ type Pipeline interface {
 	Reload() (bool, error)
 
 	SetResourceCheckError(Resource, error) error
+	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
+	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 
 	GetAllPendingBuilds() (map[string][]Build, error)
 
-	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
-	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 	GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
 
@@ -1212,14 +1212,12 @@ func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Dura
 		return nil, false, nil
 	}
 
-	lock := p.lockFactory.NewLock(
+	lock, acquired, err := p.lockFactory.Acquire(
 		logger.Session("lock", lager.Data{
 			"pipeline": p.name,
 		}),
 		lock.NewPipelineSchedulingLockLockID(p.id),
 	)
-
-	acquired, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}

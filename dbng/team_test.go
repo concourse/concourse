@@ -10,6 +10,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
+	uuid "github.com/nu7hatch/gouuid"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -1937,6 +1938,22 @@ var _ = Describe("Team", func() {
 				_, _, err = team.SavePipeline("steve", otherConfig, otherTeamPipeline.ConfigVersion(), dbng.PipelinePaused)
 				Expect(err).To(HaveOccurred())
 			})
+		})
+	})
+
+	Describe("CreatePipe/GetPipe", func() {
+		It("saves a pipe to the db", func() {
+			myGuid, err := uuid.NewV4()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = team.CreatePipe(myGuid.String(), "a-url")
+			Expect(err).NotTo(HaveOccurred())
+
+			pipe, err := team.GetPipe(myGuid.String())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pipe.ID).To(Equal(myGuid.String()))
+			Expect(pipe.URL).To(Equal("a-url"))
+			Expect(pipe.TeamName).To(Equal("some-team"))
 		})
 	})
 })

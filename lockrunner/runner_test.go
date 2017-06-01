@@ -12,6 +12,7 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/lockrunner/lockrunnerfakes"
@@ -19,10 +20,10 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		fakeDB    *lockrunnerfakes.FakeRunnerDB
-		fakeTask  *lockrunnerfakes.FakeTask
-		fakeClock *fakeclock.FakeClock
-		fakeLock  *lockfakes.FakeLock
+		fakeLockFactory *lockfakes.FakeLockFactory
+		fakeTask        *lockrunnerfakes.FakeTask
+		fakeClock       *fakeclock.FakeClock
+		fakeLock        *lockfakes.FakeLock
 
 		interval time.Duration
 
@@ -30,7 +31,7 @@ var _ = Describe("Runner", func() {
 	)
 
 	BeforeEach(func() {
-		fakeDB = new(lockrunnerfakes.FakeRunnerDB)
+		fakeLockFactory = new(lockfakes.FakeLockFactory)
 		fakeTask = new(lockrunnerfakes.FakeTask)
 		fakeLock = new(lockfakes.FakeLock)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -43,7 +44,7 @@ var _ = Describe("Runner", func() {
 			lagertest.NewTestLogger("test"),
 			fakeTask,
 			"some-task-name",
-			fakeDB,
+			fakeLockFactory,
 			fakeClock,
 			interval,
 		))
@@ -60,14 +61,14 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("calls to get a lock for cache invalidation", func() {
-			Eventually(fakeDB.GetTaskLockCallCount).Should(Equal(1))
-			_, actualTaskName := fakeDB.GetTaskLockArgsForCall(0)
-			Expect(actualTaskName).To(Equal("some-task-name"))
+			Eventually(fakeLockFactory.AcquireCallCount).Should(Equal(1))
+			_, lockID := fakeLockFactory.AcquireArgsForCall(0)
+			Expect(lockID).To(Equal(lock.NewTaskLockID("some-task-name")))
 		})
 
 		Context("when getting a lock succeeds", func() {
 			BeforeEach(func() {
-				fakeDB.GetTaskLockReturns(fakeLock, true, nil)
+				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 			})
 
 			It("it collects lost baggage", func() {
@@ -96,7 +97,7 @@ var _ = Describe("Runner", func() {
 		Context("when getting a lock fails", func() {
 			Context("because of an error", func() {
 				BeforeEach(func() {
-					fakeDB.GetTaskLockReturns(nil, true, errors.New("disaster"))
+					fakeLockFactory.AcquireReturns(nil, true, errors.New("disaster"))
 				})
 
 				It("does not exit and does not collect baggage", func() {
@@ -107,7 +108,7 @@ var _ = Describe("Runner", func() {
 
 			Context("because we got acquired of false", func() {
 				BeforeEach(func() {
-					fakeDB.GetTaskLockReturns(nil, false, nil)
+					fakeLockFactory.AcquireReturns(nil, false, nil)
 				})
 
 				It("does not exit and does not collect baggage", func() {

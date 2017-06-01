@@ -8,27 +8,20 @@ import (
 	"code.cloudfoundry.org/clock"
 	gclient "code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/worker/transport"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 )
-
-//go:generate counterfeiter . LockDB
-
-type LockDB interface {
-	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
-	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
-}
 
 var ErrDesiredWorkerNotRunning = errors.New("desired garden worker is not known to be running")
 
 type dbWorkerProvider struct {
-	lockDB                          LockDB
+	lockFactory                     lock.LockFactory
 	retryBackOffFactory             retryhttp.BackOffFactory
 	imageFactory                    ImageFactory
 	dbResourceCacheFactory          dbng.ResourceCacheFactory
@@ -41,7 +34,7 @@ type dbWorkerProvider struct {
 }
 
 func NewDBWorkerProvider(
-	lockDB LockDB,
+	lockFactory lock.LockFactory,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
@@ -53,7 +46,7 @@ func NewDBWorkerProvider(
 	workerVersion *version.Version,
 ) WorkerProvider {
 	return &dbWorkerProvider{
-		lockDB:                          lockDB,
+		lockFactory:                     lockFactory,
 		retryBackOffFactory:             retryBackOffFactory,
 		imageFactory:                    imageFactory,
 		dbResourceCacheFactory:          dbResourceCacheFactory,
@@ -198,7 +191,7 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 
 	volumeClient := NewVolumeClient(
 		bClient,
-		provider.lockDB,
+		provider.lockFactory,
 		provider.dbVolumeFactory,
 		provider.dbWorkerBaseResourceTypeFactory,
 		clock.NewClock(),
@@ -214,7 +207,7 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 		provider.dbResourceCacheFactory,
 		provider.dbResourceConfigFactory,
 		provider.dbTeamFactory,
-		provider.lockDB,
+		provider.lockFactory,
 		savedWorker.HTTPProxyURL(),
 		savedWorker.HTTPSProxyURL(),
 		savedWorker.NoProxy(),
@@ -224,7 +217,6 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 	return NewGardenWorker(
 		containerProviderFactory,
 		volumeClient,
-		provider.lockDB,
 		provider,
 		tikTok,
 		savedWorker.ActiveContainers(),

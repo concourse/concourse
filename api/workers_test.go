@@ -39,8 +39,8 @@ var _ = Describe("Workers API", func() {
 			It("fetches workers by team name from user context", func() {
 				Expect(dbTeam.WorkersCallCount()).To(Equal(1))
 
-				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-				teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+				Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+				teamName := dbTeamFactory.FindTeamArgsForCall(0)
 				Expect(teamName).To(Equal("some-team"))
 			})
 
