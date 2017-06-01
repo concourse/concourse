@@ -59,9 +59,9 @@ resources/semver-resource.tar.gz:
   object_id: 51d538b4-34f0-445b-6938-e737537abb8c
   sha: a309c3b32aa72721c57fba3d72e5476fe4b0c401
 resources/time-resource.tar.gz:
-  size: 6198858
-  object_id: 6c4a4d9a-e1fa-4673-5799-80477e737683
-  sha: 6cb048c27d86f4b7fbd20b93d39d431b9984b70f
+  size: 6197297
+  object_id: a9bd6d25-998c-4acf-5dd6-b8af567177f7
+  sha: 5e843913603522cfcf767d2f68e499c227e43308
 resources/tracker-resource.tar.gz:
   size: 16074722
   object_id: c03b1869-5ebf-4e1c-4a75-b6f5e3740bef
