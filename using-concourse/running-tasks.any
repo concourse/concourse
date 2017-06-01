@@ -103,8 +103,12 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     \italic{Optional.} A string specifying the rootfs uri of the container, as
     interpreted by your worker's Garden backend.
 
-    You should only use this if you cannot use \reference{image_resource} for
-    some reason, and you know what you're doing.
+    \reference{image_resource} is a preferred way to specify base image and
+    \code{rootfs_uri} is not recommended. With \code{rootfs_uri} image fetching
+    is delegated to backend which does not guarantee image caching and might
+    result in some permission errors. You should only use this if you cannot
+    use \reference{image_resource} for some reason, and you know what you're
+    doing.
   }
 
   \define-attribute{inputs: [object]}{
