@@ -22,15 +22,17 @@ var _ = Describe("Aborting a build", func() {
 						Plan: atc.PlanSequence{
 							{
 								Task: "some-task",
-								TaskConfig: &atc.TaskConfig{
-									Platform: "linux",
-									ImageResource: &atc.ImageResource{
-										Type:   "docker-image",
-										Source: atc.Source{"repository": "busybox"},
-									},
-									Run: atc.TaskRunConfig{
-										Path: "sh",
-										Args: []string{"-c", "echo running; sleep 1000"},
+								TaskConfig: &atc.LoadTaskConfig{
+									TaskConfig: &atc.TaskConfig{
+										Platform: "linux",
+										ImageResource: &atc.ImageResource{
+											Type:   "docker-image",
+											Source: atc.Source{"repository": "busybox"},
+										},
+										Run: atc.TaskRunConfig{
+											Path: "sh",
+											Args: []string{"-c", "echo running; sleep 1000"},
+										},
 									},
 								},
 							},
@@ -73,15 +75,17 @@ var _ = Describe("Aborting a build", func() {
 
 			build, err = client.CreateBuild(pf.NewPlan(atc.TaskPlan{
 				Name: "some-task",
-				Config: &atc.TaskConfig{
-					Platform: "linux",
-					ImageResource: &atc.ImageResource{
-						Type:   "docker-image",
-						Source: atc.Source{"repository": "busybox"},
-					},
-					Run: atc.TaskRunConfig{
-						Path: "sh",
-						Args: []string{"-c", "echo running; sleep 1000"},
+				Config: &atc.LoadTaskConfig{
+					TaskConfig: &atc.TaskConfig{
+						Platform: "linux",
+						ImageResource: &atc.ImageResource{
+							Type:   "docker-image",
+							Source: atc.Source{"repository": "busybox"},
+						},
+						Run: atc.TaskRunConfig{
+							Path: "sh",
+							Args: []string{"-c", "echo running; sleep 1000"},
+						},
 					},
 				},
 			}))

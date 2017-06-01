@@ -22,15 +22,17 @@ var _ = Describe("Viewing builds", func() {
 						Plan: atc.PlanSequence{
 							{
 								Task: "some-task",
-								TaskConfig: &atc.TaskConfig{
-									Platform: "linux",
-									ImageResource: &atc.ImageResource{
-										Type:   "docker-image",
-										Source: atc.Source{"repository": "busybox"},
-									},
-									Run: atc.TaskRunConfig{
-										Path: "sh",
-										Args: []string{"-c", "echo hello from some-job"},
+								TaskConfig: &atc.LoadTaskConfig{
+									TaskConfig: &atc.TaskConfig{
+										Platform: "linux",
+										ImageResource: &atc.ImageResource{
+											Type:   "docker-image",
+											Source: atc.Source{"repository": "busybox"},
+										},
+										Run: atc.TaskRunConfig{
+											Path: "sh",
+											Args: []string{"-c", "echo hello from some-job"},
+										},
 									},
 								},
 							},
@@ -72,15 +74,17 @@ var _ = Describe("Viewing builds", func() {
 
 			build, err = client.CreateBuild(pf.NewPlan(atc.TaskPlan{
 				Name: "some-task",
-				Config: &atc.TaskConfig{
-					Platform: "linux",
-					ImageResource: &atc.ImageResource{
-						Type:   "docker-image",
-						Source: atc.Source{"repository": "busybox"},
-					},
-					Run: atc.TaskRunConfig{
-						Path: "sh",
-						Args: []string{"-c", "echo hello from one-off"},
+				Config: &atc.LoadTaskConfig{
+					TaskConfig: &atc.TaskConfig{
+						Platform: "linux",
+						ImageResource: &atc.ImageResource{
+							Type:   "docker-image",
+							Source: atc.Source{"repository": "busybox"},
+						},
+						Run: atc.TaskRunConfig{
+							Path: "sh",
+							Args: []string{"-c", "echo hello from one-off"},
+						},
 					},
 				},
 			}))
