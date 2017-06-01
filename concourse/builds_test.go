@@ -30,7 +30,7 @@ var _ = Describe("ATC Handler Builds", func() {
 						Task: &atc.TaskPlan{
 							Name:       "one-off",
 							Privileged: true,
-							Config:     &atc.TaskConfig{},
+							Config:     &atc.LoadTaskConfig{},
 						},
 					},
 				},
