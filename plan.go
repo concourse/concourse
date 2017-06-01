@@ -101,8 +101,8 @@ type TaskPlan struct {
 	Privileged bool `json:"privileged"`
 	Tags       Tags `json:"tags,omitempty"`
 
-	ConfigPath string      `json:"config_path,omitempty"`
-	Config     *TaskConfig `json:"config,omitempty"`
+	ConfigPath string          `json:"config_path,omitempty"`
+	Config     *LoadTaskConfig `json:"config,omitempty"`
 
 	Params            Params            `json:"params,omitempty"`
 	InputMapping      map[string]string `json:"input_mapping,omitempty"`

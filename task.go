@@ -38,7 +38,7 @@ type ImageResource struct {
 	Source Source `yaml:"source" json:"source" mapstructure:"source"`
 }
 
-func LoadTaskConfig(configBytes []byte) (TaskConfig, error) {
+func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 	var untypedInput map[string]interface{}
 
 	if err := yaml.Unmarshal(configBytes, &untypedInput); err != nil {

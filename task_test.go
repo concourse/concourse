@@ -37,7 +37,7 @@ inputs: []
 
 run: {path: a/file}
 `)
-					task, err := LoadTaskConfig(data)
+					task, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(task.Platform).To(Equal("beos"))
 					Expect(task.Run.Path).To(Equal("a/file"))
@@ -52,7 +52,7 @@ params:
 
 run: {path: a/file}
 `)
-					config, err := LoadTaskConfig(data)
+					config, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(config.Params["testParam"]).To(Equal("true"))
 				})
@@ -66,7 +66,7 @@ params:
 
 run: {path: a/file}
 `)
-					config, err := LoadTaskConfig(data)
+					config, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(config.Params["testParam"]).To(Equal("1059262"))
 				})
@@ -80,7 +80,7 @@ params:
 
 run: {path: a/file}
 `)
-					config, err := LoadTaskConfig(data)
+					config, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(config.Params["testParam"]).To(Equal("1059262.123123123"))
 				})
@@ -95,7 +95,7 @@ params:
 
 run: {path: a/file}
 `)
-					config, err := LoadTaskConfig(data)
+					config, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(config.Params["testParam"]).To(Equal(`{"foo":"bar"}`))
 				})
@@ -111,7 +111,7 @@ params:
 
 run: {path: a/file}
 `)
-					task, err := LoadTaskConfig(data)
+					task, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(task.Platform).To(Equal("beos"))
 					Expect(task.Params).To(Equal(map[string]string{"FOO": "1"}))
@@ -127,7 +127,7 @@ intputs: []
 
 run: {path: a/file}
 `)
-					_, err := LoadTaskConfig(data)
+					_, err := NewTaskConfig(data)
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -142,7 +142,7 @@ outputs: ['a/b/c']
 
 run: {path: a/file}
 `)
-					_, err := LoadTaskConfig(data)
+					_, err := NewTaskConfig(data)
 					Expect(err).To(HaveOccurred())
 				})
 			})

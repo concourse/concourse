@@ -94,8 +94,10 @@ var _ = Describe("Config API", func() {
 						{
 							Task:       "some-task",
 							Privileged: true,
-							TaskConfig: &atc.TaskConfig{
-								RootfsURI: "some-image",
+							TaskConfig: &atc.LoadTaskConfig{
+								TaskConfig: &atc.TaskConfig{
+									RootfsURI: "some-image",
+								},
 							},
 						},
 						{
@@ -515,15 +517,17 @@ jobs:
 												},
 												{
 													Task: "some-task",
-													TaskConfig: &atc.TaskConfig{
-														Run: atc.TaskRunConfig{
-															Path: "ls",
-														},
+													TaskConfig: &atc.LoadTaskConfig{
+														TaskConfig: &atc.TaskConfig{
+															Run: atc.TaskRunConfig{
+																Path: "ls",
+															},
 
-														Params: map[string]string{
-															"FOO": "true",
-															"BAR": "1",
-															"BAZ": "1.9",
+															Params: map[string]string{
+																"FOO": "true",
+																"BAR": "1",
+																"BAZ": "1.9",
+															},
 														},
 													},
 												},

@@ -6,10 +6,44 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 const VersionLatest = "latest"
 const VersionEvery = "every"
+
+var LoadTaskConfigDecodeHook = func(
+	srcType reflect.Type,
+	dstType reflect.Type,
+	data interface{},
+) (interface{}, error) {
+	if dstType != reflect.TypeOf(LoadTaskConfig{}) {
+		return data, nil
+	}
+
+	if srcType.Kind() == reflect.Map {
+		dataToMarshal, err := sanitize(data)
+		if err != nil {
+			return nil, err
+		}
+
+		marshaled, err := yaml.Marshal(dataToMarshal)
+		if err != nil {
+			return nil, err
+		}
+
+		var loadTaskConfig LoadTaskConfig
+		err = yaml.Unmarshal(marshaled, &loadTaskConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		return loadTaskConfig, nil
+	}
+
+	return data, nil
+}
 
 var VersionConfigDecodeHook = func(
 	srcType reflect.Type,

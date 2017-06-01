@@ -52,7 +52,9 @@ var _ = Describe("ConfigSource", func() {
 				"task-plan-param-key": "task-plan-param-val-1",
 				"common-key":          "task-plan-param-val-2",
 			},
-			Config: &taskConfig,
+			Config: &atc.LoadTaskConfig{
+				TaskConfig: &taskConfig,
+			},
 		}
 	})
 
@@ -99,7 +101,9 @@ var _ = Describe("ConfigSource", func() {
 		Context("when task plan params are not set", func() {
 			BeforeEach(func() {
 				taskPlan = atc.TaskPlan{
-					Config: &taskConfig,
+					Config: &atc.LoadTaskConfig{
+						TaskConfig: &taskConfig,
+					},
 				}
 			})
 
@@ -177,7 +181,9 @@ var _ = Describe("ConfigSource", func() {
 		Context("when task plan params are not set", func() {
 			BeforeEach(func() {
 				taskPlan = atc.TaskPlan{
-					Config: &taskConfig,
+					Config: &atc.LoadTaskConfig{
+						TaskConfig: &taskConfig,
+					},
 				}
 			})
 

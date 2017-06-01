@@ -684,9 +684,11 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the plan contains config and config path", func() {
 					BeforeEach(func() {
-						taskPlan.Config = &atc.TaskConfig{
-							Params: map[string]string{
-								"task-param": "task-param-value",
+						taskPlan.Config = &atc.LoadTaskConfig{
+							TaskConfig: &atc.TaskConfig{
+								Params: map[string]string{
+									"task-param": "task-param-value",
+								},
 							},
 						}
 					})

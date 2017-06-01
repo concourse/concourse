@@ -169,7 +169,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					}),
 					Next: planFactory.NewPlan(atc.TaskPlan{
 						Name:   "some-resource",
-						Config: &atc.TaskConfig{},
+						Config: &atc.LoadTaskConfig{},
 					}),
 				})
 

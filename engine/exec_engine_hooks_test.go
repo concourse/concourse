@@ -152,19 +152,19 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					})
 					failureTaskPlan = planFactory.NewPlan(atc.TaskPlan{
 						Name:   "some-failure-task",
-						Config: &atc.TaskConfig{},
+						Config: &atc.LoadTaskConfig{},
 					})
 					successTaskPlan = planFactory.NewPlan(atc.TaskPlan{
 						Name:   "some-success-task",
-						Config: &atc.TaskConfig{},
+						Config: &atc.LoadTaskConfig{},
 					})
 					completionTaskPlan = planFactory.NewPlan(atc.TaskPlan{
 						Name:   "some-completion-task",
-						Config: &atc.TaskConfig{},
+						Config: &atc.LoadTaskConfig{},
 					})
 					nextTaskPlan = planFactory.NewPlan(atc.TaskPlan{
 						Name:   "some-next-task",
-						Config: &atc.TaskConfig{},
+						Config: &atc.LoadTaskConfig{},
 					})
 
 					plan = planFactory.NewPlan(atc.OnSuccessPlan{
@@ -327,7 +327,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					}),
 					Next: planFactory.NewPlan(atc.TaskPlan{
 						Name:   "some-resource",
-						Config: &atc.TaskConfig{},
+						Config: &atc.LoadTaskConfig{},
 					}),
 				})
 
@@ -350,7 +350,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						}),
 						Next: planFactory.NewPlan(atc.TaskPlan{
 							Name:   "some-resource",
-							Config: &atc.TaskConfig{},
+							Config: &atc.LoadTaskConfig{},
 						}),
 					}),
 					Next: planFactory.NewPlan(atc.OnSuccessPlan{
@@ -392,11 +392,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 							Next: planFactory.NewPlan(atc.OnFailurePlan{
 								Step: planFactory.NewPlan(atc.TaskPlan{
 									Name:   "some-resource",
-									Config: &atc.TaskConfig{},
+									Config: &atc.LoadTaskConfig{},
 								}),
 								Next: planFactory.NewPlan(atc.TaskPlan{
 									Name:   "some-input-success-failure",
-									Config: &atc.TaskConfig{},
+									Config: &atc.LoadTaskConfig{},
 								}),
 							}),
 						}),
@@ -438,7 +438,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						}),
 						Next: planFactory.NewPlan(atc.TaskPlan{
 							Name:   "some-resource",
-							Config: &atc.TaskConfig{},
+							Config: &atc.LoadTaskConfig{},
 						}),
 					}),
 					Next: planFactory.NewPlan(atc.GetPlan{
@@ -478,7 +478,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Step: planFactory.NewPlan(atc.AggregatePlan{
 						planFactory.NewPlan(atc.TaskPlan{
 							Name:   "some-resource",
-							Config: &atc.TaskConfig{},
+							Config: &atc.LoadTaskConfig{},
 						}),
 						planFactory.NewPlan(atc.OnFailurePlan{
 							Step: planFactory.NewPlan(atc.GetPlan{
@@ -486,7 +486,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 							}),
 							Next: planFactory.NewPlan(atc.TaskPlan{
 								Name:   "some-resource",
-								Config: &atc.TaskConfig{},
+								Config: &atc.LoadTaskConfig{},
 							}),
 						}),
 					}),

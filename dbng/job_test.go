@@ -54,8 +54,10 @@ var _ = Describe("Job", func() {
 							Task:           "some-task",
 							Privileged:     true,
 							TaskConfigPath: "some/config/path.yml",
-							TaskConfig: &atc.TaskConfig{
-								RootfsURI: "some-image",
+							TaskConfig: &atc.LoadTaskConfig{
+								TaskConfig: &atc.TaskConfig{
+									RootfsURI: "some-image",
+								},
 							},
 						},
 					},

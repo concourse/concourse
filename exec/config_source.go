@@ -33,8 +33,8 @@ type StaticConfigSource struct {
 func (configSource StaticConfigSource) FetchConfig(*worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig := atc.TaskConfig{}
 
-	if configSource.Plan.Config != nil {
-		taskConfig = *configSource.Plan.Config
+	if configSource.Plan.Config != nil && configSource.Plan.Config.TaskConfig != nil {
+		taskConfig = *configSource.Plan.Config.TaskConfig
 	}
 
 	if configSource.Plan.Params == nil {
@@ -150,7 +150,7 @@ func (configSource FileConfigSource) FetchConfig(repo *worker.ArtifactRepository
 		return atc.TaskConfig{}, err
 	}
 
-	config, err := atc.LoadTaskConfig(streamedFile)
+	config, err := atc.NewTaskConfig(streamedFile)
 	if err != nil {
 		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.Path, err)
 	}
