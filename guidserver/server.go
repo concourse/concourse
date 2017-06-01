@@ -179,6 +179,10 @@ func (server *Server) ReportingGuids() []string {
 func Cleanup(client concourse.Client) {
 	logger := lagertest.NewTestLogger("guid-server-cleanup")
 
+	if helpers.WorkersAreLocal(logger, client) {
+		return
+	}
+
 	_, gardenClient, baggageclaimClient := helpers.WorkerWithResourceType(logger, client, "bosh-deployment")
 
 	containers, err := gardenClient.Containers(garden.Properties{"testflight": "yep"})

@@ -419,7 +419,11 @@ func (server *Server) CommittedGuids() []string {
 }
 
 func Cleanup(client concourse.Client) {
-	logger := lagertest.NewTestLogger("guid-server-cleanup")
+	logger := lagertest.NewTestLogger("git-server-cleanup")
+
+	if helpers.WorkersAreLocal(logger, client) {
+		return
+	}
 
 	_, gardenClient, baggageclaimClient := helpers.WorkerWithResourceType(logger, client, "git")
 

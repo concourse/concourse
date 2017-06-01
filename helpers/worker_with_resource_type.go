@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"net/http"
+	"strings"
 
 	"code.cloudfoundry.org/garden"
 	gclient "code.cloudfoundry.org/garden/client"
@@ -13,6 +14,23 @@ import (
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+func WorkersAreLocal(logger lager.Logger, client concourse.Client) bool {
+	workers, err := client.ListWorkers()
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, w := range workers {
+		if w.State != "running" || len(w.Tags) > 0 {
+			continue
+		}
+
+		if strings.HasPrefix(w.GardenAddr, "127.") {
+			return true
+		}
+	}
+
+	return false
+}
 
 func WorkerWithResourceType(logger lager.Logger, client concourse.Client, resourceType string) (string, garden.Client, baggageclaim.Client) {
 	gLog := logger.Session("garden-connection")
@@ -39,6 +57,10 @@ func WorkerWithResourceType(logger lager.Logger, client concourse.Client, resour
 
 		if rootfs == "" {
 			continue
+		}
+
+		if strings.HasPrefix(w.GardenAddr, "127.") {
+			ginkgo.Skip("worker is registered with local address; skipping")
 		}
 
 		gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
