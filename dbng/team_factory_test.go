@@ -42,8 +42,13 @@ var _ = Describe("Team Factory", func() {
 			Expect(team.Name()).To(Equal(atcTeam.Name))
 			Expect(team.BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
 			err := bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(team.Auth()).To(Equal(atcTeam.Auth))
+
+			t, found, err := teamFactory.FindTeam(atcTeam.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(t.ID()).To(Equal(team.ID()))
 		})
 	})
 

@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/engine"
@@ -21,7 +20,6 @@ import (
 var _ = Describe("ExecEngine", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
-		fakeTeamDB          *dbfakes.FakeTeamDB
 		fakeDelegateFactory *enginefakes.FakeBuildDelegateFactory
 		logger              *lagertest.TestLogger
 
@@ -38,13 +36,9 @@ var _ = Describe("ExecEngine", func() {
 		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
 		logger = lagertest.NewTestLogger("test")
 
-		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
-		fakeTeamDB = new(dbfakes.FakeTeamDB)
-		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
 		execEngine = engine.NewExecEngine(
 			fakeFactory,
 			fakeDelegateFactory,
-			fakeTeamDBFactory,
 			"http://example.com",
 		)
 	})

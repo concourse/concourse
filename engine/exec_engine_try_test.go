@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/worker"
 
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec/execfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -40,11 +39,9 @@ var _ = Describe("Exec Engine with Try", func() {
 		fakeFactory = new(execfakes.FakeFactory)
 		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
 
-		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
 		execEngine = engine.NewExecEngine(
 			fakeFactory,
 			fakeDelegateFactory,
-			fakeTeamDBFactory,
 			"http://example.com",
 		)
 

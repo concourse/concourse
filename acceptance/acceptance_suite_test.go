@@ -37,7 +37,6 @@ var (
 	lockFactory    lock.LockFactory
 	dbProcess      ifrit.Process
 	dbListener     *pq.Listener
-	teamDBFactory  db.TeamDBFactory
 
 	sqlDB *db.SQLDB
 
@@ -88,8 +87,6 @@ var _ = BeforeEach(func() {
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 	sqlDB = db.NewSQL(dbConn, bus, lockFactory)
-
-	teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
 })
 
 var _ = AfterEach(func() {

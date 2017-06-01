@@ -10,7 +10,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
@@ -26,7 +25,6 @@ const execEngineName = "exec.v2"
 type execEngine struct {
 	factory         exec.Factory
 	delegateFactory BuildDelegateFactory
-	teamDBFactory   db.TeamDBFactory
 	externalURL     string
 	releaseCh       chan struct{}
 }
@@ -34,13 +32,11 @@ type execEngine struct {
 func NewExecEngine(
 	factory exec.Factory,
 	delegateFactory BuildDelegateFactory,
-	teamDBFactory db.TeamDBFactory,
 	externalURL string,
 ) Engine {
 	return &execEngine{
 		factory:         factory,
 		delegateFactory: delegateFactory,
-		teamDBFactory:   teamDBFactory,
 		externalURL:     externalURL,
 		releaseCh:       make(chan struct{}),
 	}

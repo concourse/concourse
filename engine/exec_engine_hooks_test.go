@@ -3,7 +3,6 @@ package engine_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/engine"
@@ -40,11 +39,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		fakeFactory = new(execfakes.FakeFactory)
 		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
 
-		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
 		execEngine = engine.NewExecEngine(
 			fakeFactory,
 			fakeDelegateFactory,
-			fakeTeamDBFactory,
 			"http://example.com",
 		)
 

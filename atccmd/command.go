@@ -272,8 +272,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
 	resourceFactory := resourceFactoryFactory.FactoryFor(workerClient)
-	teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, teamDBFactory)
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceFactory,
@@ -817,7 +816,6 @@ func (cmd *ATCCommand) constructEngine(
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
-	teamDBFactory db.TeamDBFactory,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
@@ -829,7 +827,6 @@ func (cmd *ATCCommand) constructEngine(
 	execV2Engine := engine.NewExecEngine(
 		gardenFactory,
 		engine.NewBuildDelegateFactory(),
-		teamDBFactory,
 		cmd.ExternalURL.String(),
 	)
 
