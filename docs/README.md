@@ -12,7 +12,7 @@ get Rubinius installed.
 
 ## Locally
 
-1. Install [Rubinius](https://rubini.us).
+1. Install [Rubinius](https://rubinius.com/).
 1. `bundle install`
 1. `bundle exec anatomy -i index.any -o /tmp/docs`
 1. Open `/tmp/docs/index.html` in your browser.
