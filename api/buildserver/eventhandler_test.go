@@ -10,7 +10,6 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/atc/api/buildserver"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/event"
@@ -170,13 +169,13 @@ var _ = Describe("Handler", func() {
 		})
 
 		Context("when the eventsource returns an error", func() {
-			var fakeEventSource *dbfakes.FakeEventSource
+			var fakeEventSource *dbngfakes.FakeEventSource
 			var disaster error
 
 			BeforeEach(func() {
 				disaster = errors.New("a coffee machine")
 
-				fakeEventSource = new(dbfakes.FakeEventSource)
+				fakeEventSource = new(dbngfakes.FakeEventSource)
 
 				from := 0
 				fakeEventSource.NextStub = func() (event.Envelope, error) {
@@ -226,9 +225,9 @@ var _ = Describe("Handler", func() {
 		})
 
 		Context("when the event stream never ends", func() {
-			var fakeEventSource *dbfakes.FakeEventSource
+			var fakeEventSource *dbngfakes.FakeEventSource
 			BeforeEach(func() {
-				fakeEventSource = new(dbfakes.FakeEventSource)
+				fakeEventSource = new(dbngfakes.FakeEventSource)
 				fakeEventSource.NextReturns(fakeEvent(`{"event":1}`), nil)
 				build.EventsReturns(fakeEventSource, nil)
 			})

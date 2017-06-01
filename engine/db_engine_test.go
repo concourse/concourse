@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
@@ -508,7 +507,7 @@ var _ = Describe("DBEngine", func() {
 								}
 
 								aborts := make(chan struct{})
-								notifier := new(dbfakes.FakeNotifier)
+								notifier := new(dbngfakes.FakeNotifier)
 								notifier.NotifyReturns(aborts)
 
 								dbBuild.AbortNotifierReturns(notifier, nil)
@@ -525,7 +524,7 @@ var _ = Describe("DBEngine", func() {
 
 						Context("when listening for aborts succeeds", func() {
 							var (
-								notifier *dbfakes.FakeNotifier
+								notifier *dbngfakes.FakeNotifier
 								abort    chan<- struct{}
 							)
 
@@ -533,7 +532,7 @@ var _ = Describe("DBEngine", func() {
 								aborts := make(chan struct{})
 								abort = aborts
 
-								notifier = new(dbfakes.FakeNotifier)
+								notifier = new(dbngfakes.FakeNotifier)
 								notifier.NotifyReturns(aborts)
 
 								dbBuild.AbortNotifierReturns(notifier, nil)

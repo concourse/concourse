@@ -33,10 +33,9 @@ var _ = Describe("TLS", func() {
 		dbConn = db.Wrap(postgresRunner.OpenDB())
 
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		bus := db.NewNotificationsBus(dbListener, dbConn)
 
 		lockFactory := lock.NewLockFactory(postgresRunner.OpenSingleton())
-		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
+		sqlDB = db.NewSQL(dbConn, lockFactory)
 
 		page, err = agoutiDriver.NewPage()
 		Expect(err).NotTo(HaveOccurred())

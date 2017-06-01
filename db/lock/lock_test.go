@@ -39,12 +39,11 @@ var _ = Describe("Locks", func() {
 
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
-		bus := db.NewNotificationsBus(listener, dbConn)
 
 		logger = lagertest.NewTestLogger("test")
 
 		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
-		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
+		sqlDB = db.NewSQL(dbConn, lockFactory)
 
 		dbngConn := postgresRunner.OpenConn()
 		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory)

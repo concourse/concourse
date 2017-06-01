@@ -47,7 +47,6 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
-	"github.com/lib/pq"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -240,11 +239,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	lockFactory := lock.NewLockFactory(lockConn)
 
-	listener := pq.NewListener(cmd.Postgres.ConnectionString(), time.Second, time.Minute, nil)
-	bus := db.NewNotificationsBus(listener, dbConn)
+	bus := dbngConn.Bus()
 
 	teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
-	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
+	sqlDB := db.NewSQL(dbConn, lockFactory)
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)

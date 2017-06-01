@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/concourse/atc/db/lock"
 )
@@ -10,18 +9,15 @@ import (
 type SQLDB struct {
 	conn        Conn
 	lockFactory lock.LockFactory
-	bus         *notificationsBus
 }
 
 func NewSQL(
 	sqldbConnection Conn,
-	bus *notificationsBus,
 	lockFactory lock.LockFactory,
 ) *SQLDB {
 	return &SQLDB{
 		conn:        sqldbConnection,
 		lockFactory: lockFactory,
-		bus:         bus,
 	}
 }
 
@@ -35,64 +31,4 @@ func (err nonOneRowAffectedError) Error() string {
 
 type scannable interface {
 	Scan(destinations ...interface{}) error
-}
-
-type conditionNotifier struct {
-	cond func() (bool, error)
-
-	bus     NotificationsBus
-	channel string
-
-	notified chan bool
-	notify   chan struct{}
-
-	stop chan struct{}
-}
-
-func (notifier *conditionNotifier) Notify() <-chan struct{} {
-	return notifier.notify
-}
-
-func (notifier *conditionNotifier) Close() error {
-	close(notifier.stop)
-	return notifier.bus.Unlisten(notifier.channel, notifier.notified)
-}
-
-func (notifier *conditionNotifier) watch() {
-	for {
-		c, err := notifier.cond()
-		if err != nil {
-			select {
-			case <-time.After(5 * time.Second):
-				continue
-			case <-notifier.stop:
-				return
-			}
-		}
-
-		if c {
-			notifier.sendNotification()
-		}
-
-	dance:
-		for {
-			select {
-			case <-notifier.stop:
-				return
-			case ok := <-notifier.notified:
-				if ok {
-					notifier.sendNotification()
-				} else {
-					break dance
-				}
-			}
-		}
-	}
-}
-
-func (notifier *conditionNotifier) sendNotification() {
-	select {
-	case notifier.notify <- struct{}{}:
-	default:
-	}
 }

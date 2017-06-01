@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
@@ -121,5 +120,9 @@ type Container interface {
 	MarkAsHijacked() error
 }
 
-type ResourceCacheIdentifier db.ResourceCacheIdentifier
+type ResourceCacheIdentifier struct {
+	ResourceVersion atc.Version
+	ResourceHash    string
+}
+
 type VolumeProperties map[string]string
