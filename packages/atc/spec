@@ -50,11 +50,11 @@ files:
   - github.com/concourse/atc/auth/verifier/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
   - github.com/concourse/atc/cmd/atc/*.go # gosub
+  - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
   - github.com/concourse/atc/db/lock/*.go # gosub
+  - github.com/concourse/atc/db/migration/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
-  - github.com/concourse/atc/dbng/*.go # gosub
-  - github.com/concourse/atc/dbng/migration/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
