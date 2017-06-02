@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 
 	"strconv"
 
@@ -26,7 +26,7 @@ type OAuthBeginHandler struct {
 	logger          lager.Logger
 	providerFactory ProviderFactory
 	privateKey      *rsa.PrivateKey
-	teamFactory     dbng.TeamFactory
+	teamFactory     db.TeamFactory
 	expire          time.Duration
 	isTLSEnabled    bool
 }
@@ -35,7 +35,7 @@ func NewOAuthBeginHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
-	teamFactory dbng.TeamFactory,
+	teamFactory db.TeamFactory,
 	expire time.Duration,
 	isTLSEnabled bool,
 ) http.Handler {

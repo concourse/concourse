@@ -8,8 +8,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,19 +20,19 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		response       *http.Response
 		server         *httptest.Server
 		delegate       *buildDelegateHandler
-		buildFactory   *dbngfakes.FakeBuildFactory
+		buildFactory   *dbfakes.FakeBuildFactory
 		handlerFactory auth.CheckBuildReadAccessHandlerFactory
 		handler        http.Handler
 
 		authValidator     *authfakes.FakeValidator
 		userContextReader *authfakes.FakeUserContextReader
 
-		build    *dbngfakes.FakeBuild
-		pipeline *dbngfakes.FakePipeline
+		build    *dbfakes.FakeBuild
+		pipeline *dbfakes.FakePipeline
 	)
 
 	BeforeEach(func() {
-		buildFactory = new(dbngfakes.FakeBuildFactory)
+		buildFactory = new(dbfakes.FakeBuildFactory)
 		handlerFactory = auth.NewCheckBuildReadAccessHandlerFactory(buildFactory)
 
 		authValidator = new(authfakes.FakeValidator)
@@ -40,8 +40,8 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 		delegate = &buildDelegateHandler{}
 
-		build = new(dbngfakes.FakeBuild)
-		pipeline = new(dbngfakes.FakePipeline)
+		build = new(dbfakes.FakeBuild)
+		pipeline = new(dbfakes.FakePipeline)
 		build.PipelineReturns(pipeline, true, nil)
 		build.TeamNameReturns("some-team")
 		build.JobNameReturns("some-job")
@@ -292,10 +292,10 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 type buildDelegateHandler struct {
 	IsCalled     bool
-	ContextBuild dbng.Build
+	ContextBuild db.Build
 }
 
 func (handler *buildDelegateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.IsCalled = true
-	handler.ContextBuild = r.Context().Value(auth.BuildContextKey).(dbng.Build)
+	handler.ContextBuild = r.Context().Value(auth.BuildContextKey).(db.Build)
 }

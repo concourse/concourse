@@ -13,7 +13,7 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("LogOutHandler", func() {
@@ -31,7 +31,7 @@ var _ = Describe("LogOutHandler", func() {
 
 		BeforeEach(func() {
 			fakeProviderFactory = new(authfakes.FakeProviderFactory)
-			fakeTeamFactory := new(dbngfakes.FakeTeamFactory)
+			fakeTeamFactory := new(dbfakes.FakeTeamFactory)
 			signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
 			Expect(err).ToNot(HaveOccurred())
 			expire = 24 * time.Hour

@@ -3,7 +3,7 @@ package auth
 import (
 	"net/http"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type CheckWorkerTeamAccessHandlerFactory interface {
@@ -11,11 +11,11 @@ type CheckWorkerTeamAccessHandlerFactory interface {
 }
 
 type checkWorkerTeamAccessHandlerFactory struct {
-	workerFactory dbng.WorkerFactory
+	workerFactory db.WorkerFactory
 }
 
 func NewCheckWorkerTeamAccessHandlerFactory(
-	workerFactory dbng.WorkerFactory,
+	workerFactory db.WorkerFactory,
 ) CheckWorkerTeamAccessHandlerFactory {
 	return &checkWorkerTeamAccessHandlerFactory{
 		workerFactory: workerFactory,
@@ -35,7 +35,7 @@ func (f *checkWorkerTeamAccessHandlerFactory) HandlerFor(
 
 type checkWorkerTeamHandler struct {
 	rejector        Rejector
-	workerFactory   dbng.WorkerFactory
+	workerFactory   db.WorkerFactory
 	delegateHandler http.Handler
 }
 

@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/uaa"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,12 +18,12 @@ import (
 var _ = Describe("OAuthFactory", func() {
 	var (
 		oauthFactory auth.OAuthFactory
-		fakeTeam     *dbngfakes.FakeTeam
+		fakeTeam     *dbfakes.FakeTeam
 		authConfig   map[string]*json.RawMessage
 	)
 
 	BeforeEach(func() {
-		fakeTeam = new(dbngfakes.FakeTeam)
+		fakeTeam = new(dbfakes.FakeTeam)
 
 		oauthFactory = auth.NewOAuthFactory(
 			lagertest.NewTestLogger("test"),

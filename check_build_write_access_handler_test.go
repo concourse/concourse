@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,19 +18,19 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		response       *http.Response
 		server         *httptest.Server
 		delegate       *buildDelegateHandler
-		buildFactory   *dbngfakes.FakeBuildFactory
+		buildFactory   *dbfakes.FakeBuildFactory
 		handlerFactory auth.CheckBuildWriteAccessHandlerFactory
 		handler        http.Handler
 
 		authValidator     *authfakes.FakeValidator
 		userContextReader *authfakes.FakeUserContextReader
 
-		build    *dbngfakes.FakeBuild
-		pipeline *dbngfakes.FakePipeline
+		build    *dbfakes.FakeBuild
+		pipeline *dbfakes.FakePipeline
 	)
 
 	BeforeEach(func() {
-		buildFactory = new(dbngfakes.FakeBuildFactory)
+		buildFactory = new(dbfakes.FakeBuildFactory)
 		handlerFactory = auth.NewCheckBuildWriteAccessHandlerFactory(buildFactory)
 
 		authValidator = new(authfakes.FakeValidator)
@@ -38,8 +38,8 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 		delegate = &buildDelegateHandler{}
 
-		build = new(dbngfakes.FakeBuild)
-		pipeline = new(dbngfakes.FakePipeline)
+		build = new(dbfakes.FakeBuild)
+		pipeline = new(dbfakes.FakePipeline)
 		build.PipelineReturns(pipeline, true, nil)
 		build.TeamNameReturns("some-team")
 		build.JobNameReturns("some-job")
