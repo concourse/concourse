@@ -53,7 +53,7 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *E
 	for {
 		sqlDb, err := migration.Open(sqlDriver, sqlDataSource, migrations.Migrations)
 		if err != nil {
-			if strings.Contains(err.Error(), " dial ") {
+			if strings.Contains(err.Error(), "dial ") {
 				logger.Error("failed-to-open-db-retrying", err)
 				time.Sleep(5 * time.Second)
 				continue
