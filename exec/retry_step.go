@@ -11,11 +11,11 @@ import (
 type Retry []StepFactory
 
 // Using constructs a *RetryStep.
-func (stepFactory Retry) Using(prev Step, repo *worker.ArtifactRepository) Step {
+func (stepFactory Retry) Using(repo *worker.ArtifactRepository) Step {
 	retry := &RetryStep{}
 
 	for _, subStepFactory := range stepFactory {
-		retry.Attempts = append(retry.Attempts, subStepFactory.Using(prev, repo))
+		retry.Attempts = append(retry.Attempts, subStepFactory.Using(repo))
 	}
 
 	return retry
@@ -38,7 +38,6 @@ func (step *RetryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 	for _, attempt := range step.Attempts {
 		step.LastAttempt = attempt
 
-		var succeeded Success
 		attemptErr = attempt.Run(signals, make(chan struct{}))
 		if attemptErr == ErrInterrupted {
 			return attemptErr
@@ -48,7 +47,7 @@ func (step *RetryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			continue
 		}
 
-		if attempt.Result(&succeeded) && bool(succeeded) {
+		if attempt.Succeeded() {
 			break
 		}
 	}
@@ -56,7 +55,7 @@ func (step *RetryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 	return attemptErr
 }
 
-// Result delegates to the last step that it ran.
-func (step *RetryStep) Result(x interface{}) bool {
-	return step.LastAttempt.Result(x)
+// Succeeded delegates to the last step that it ran.
+func (step *RetryStep) Succeeded() bool {
+	return step.LastAttempt.Succeeded()
 }

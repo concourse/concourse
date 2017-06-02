@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -41,85 +40,84 @@ func (err MissingTaskImageSourceError) Error() string {
 make sure there's a corresponding 'get' step, or a task that produces it as an output`, err.SourceName)
 }
 
-// TaskStep executes a TaskConfig, whose inputs will be fetched from the
-// worker.ArtifactRepository and outputs will be added to the worker.ArtifactRepository.
-type TaskStep struct {
-	logger            lager.Logger
-	metadata          db.ContainerMetadata
-	tags              atc.Tags
-	teamID            int
-	buildID           int
-	planID            atc.PlanID
-	delegate          TaskDelegate
-	privileged        Privileged
-	configSource      TaskConfigSource
-	workerPool        worker.Client
-	artifactsRoot     string
-	resourceTypes     atc.VersionedResourceTypes
-	inputMapping      map[string]string
-	outputMapping     map[string]string
-	imageArtifactName string
-	clock             clock.Clock
-	repo              *worker.ArtifactRepository
+//go:generate counterfeiter . TaskConfigSource
 
-	process garden.Process
-
-	exitStatus int
+type TaskConfigSource interface {
+	GetTaskConfig() (atc.TaskConfig, error)
 }
 
-func newTaskStep(
-	logger lager.Logger,
-	metadata db.ContainerMetadata,
+type FetchConfigActionTaskConfigSource struct {
+	Action FetchConfigResultAction
+}
+
+func (s *FetchConfigActionTaskConfigSource) GetTaskConfig() (atc.TaskConfig, error) {
+	taskConfig := s.Action.Result()
+	return taskConfig, nil
+}
+
+// TaskAction executes a TaskConfig, whose inputs will be fetched from the
+// worker.ArtifactRepository and outputs will be added to the worker.ArtifactRepository.
+type TaskAction struct {
+	privileged    Privileged
+	configSource  TaskConfigSource
+	tags          atc.Tags
+	inputMapping  map[string]string
+	outputMapping map[string]string
+
+	// TODO: replace with RootFSSource
+	artifactsRoot     string
+	imageArtifactName string
+
+	imageFetchingDelegate ImageFetchingDelegate
+	workerPool            worker.Client
+	teamID                int
+	buildID               int
+	planID                atc.PlanID
+	containerMetadata     db.ContainerMetadata
+
+	resourceTypes atc.VersionedResourceTypes
+
+	exitStatus ExitStatus
+}
+
+func NewTaskAction(
+	privileged Privileged,
+	configSource TaskConfigSource,
 	tags atc.Tags,
+	inputMapping map[string]string,
+	outputMapping map[string]string,
+	artifactsRoot string,
+	imageArtifactName string,
+	imageFetchingDelegate ImageFetchingDelegate,
+	workerPool worker.Client,
 	teamID int,
 	buildID int,
 	planID atc.PlanID,
-	delegate TaskDelegate,
-	privileged Privileged,
-	configSource TaskConfigSource,
-	workerPool worker.Client,
-	artifactsRoot string,
+	containerMetadata db.ContainerMetadata,
 	resourceTypes atc.VersionedResourceTypes,
-	inputMapping map[string]string,
-	outputMapping map[string]string,
-	imageArtifactName string,
-	clock clock.Clock,
-) TaskStep {
-	return TaskStep{
-		logger:            logger,
-		metadata:          metadata,
-		tags:              tags,
-		teamID:            teamID,
-		buildID:           buildID,
-		planID:            planID,
-		delegate:          delegate,
-		privileged:        privileged,
-		configSource:      configSource,
-		workerPool:        workerPool,
-		artifactsRoot:     artifactsRoot,
-		resourceTypes:     resourceTypes,
-		inputMapping:      inputMapping,
-		outputMapping:     outputMapping,
-		imageArtifactName: imageArtifactName,
-		clock:             clock,
+) *TaskAction {
+	return &TaskAction{
+		privileged:            privileged,
+		configSource:          configSource,
+		tags:                  tags,
+		inputMapping:          inputMapping,
+		outputMapping:         outputMapping,
+		artifactsRoot:         artifactsRoot,
+		imageArtifactName:     imageArtifactName,
+		imageFetchingDelegate: imageFetchingDelegate,
+		workerPool:            workerPool,
+		teamID:                teamID,
+		buildID:               buildID,
+		planID:                planID,
+		containerMetadata:     containerMetadata,
+		resourceTypes:         resourceTypes,
 	}
 }
 
-// Using finishes construction of the TaskStep and returns a *TaskStep. If the
-// *TaskStep errors, its error is reported to the delegate.
-func (step TaskStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
-	step.repo = repo
-
-	return errorReporter{
-		Step:          &step,
-		ReportFailure: step.delegate.Failed,
-	}
-}
-
-// Run will first load the TaskConfig. A worker will be selected based on the
-// TaskConfig's platform, the TaskStep's tags, and prioritized by availability
-// of volumes for the TaskConfig's inputs. Inputs that did not have volumes
-// available on the worker will be streamed in to the container.
+// Run will first selects the worker based on the TaskConfig's platform, the
+// TaskStep's tags, and prioritized by availability of volumes for the TaskConfig's
+// inputs. Inputs that did not have volumes available on the worker will be streamed
+// in to the container.
 //
 // If any inputs are not available in the worker.ArtifactRepository, MissingInputsError
 // is returned.
@@ -132,38 +130,33 @@ func (step TaskStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 // are registered with the worker.ArtifactRepository. If no outputs are specified, the
 // task's entire working directory is registered as an ArtifactSource under the
 // name of the task.
-func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	processIO := garden.ProcessIO{
-		Stdout: step.delegate.Stdout(),
-		Stderr: step.delegate.Stderr(),
-	}
+func (action *TaskAction) Run(
+	logger lager.Logger,
+	repository *worker.ArtifactRepository,
 
-	deprecationConfigSource := DeprecationConfigSource{
-		Delegate: step.configSource,
-		Stderr:   step.delegate.Stderr(),
-	}
-
-	config, err := deprecationConfigSource.FetchConfig(step.repo)
+	// TODO: consider passing these as context
+	signals <-chan os.Signal,
+	ready chan<- struct{},
+) error {
+	config, err := action.configSource.GetTaskConfig()
 	if err != nil {
 		return err
 	}
 
-	containerSpec, err := step.containerSpec(config)
+	containerSpec, err := action.containerSpec(repository, config)
 	if err != nil {
 		return err
 	}
 
-	step.delegate.Initializing(config)
-
-	container, err := step.workerPool.FindOrCreateContainer(
-		step.logger,
+	container, err := action.workerPool.FindOrCreateContainer(
+		logger,
 		signals,
-		step.delegate,
-		db.ForBuild(step.buildID),
-		db.NewBuildStepContainerOwner(step.buildID, step.planID),
-		step.metadata,
+		action.imageFetchingDelegate,
+		db.ForBuild(action.buildID),
+		db.NewBuildStepContainerOwner(action.buildID, action.planID),
+		action.containerMetadata,
 		containerSpec,
-		step.resourceTypes,
+		action.resourceTypes,
 	)
 	if err != nil {
 		return err
@@ -171,14 +164,14 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	exitStatusProp, err := container.Property(taskExitStatusPropertyName)
 	if err == nil {
-		step.logger.Info("already-exited", lager.Data{"status": exitStatusProp})
+		logger.Info("already-exited", lager.Data{"status": exitStatusProp})
 
-		_, err = fmt.Sscanf(exitStatusProp, "%d", &step.exitStatus)
+		_, err = fmt.Sscanf(exitStatusProp, "%d", &action.exitStatus)
 		if err != nil {
 			return err
 		}
 
-		step.registerSource(config, container)
+		action.registerSource(logger, repository, config, container)
 		return nil
 	}
 
@@ -190,21 +183,24 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		processID = taskProcessID
 	}
 
-	step.process, err = container.Attach(processID, processIO)
+	processIO := garden.ProcessIO{
+		Stdout: action.imageFetchingDelegate.Stdout(),
+		Stderr: action.imageFetchingDelegate.Stderr(),
+	}
+
+	process, err := container.Attach(processID, processIO)
 	if err == nil {
-		step.logger.Info("already-running")
+		logger.Info("already-running")
 	} else {
-		step.logger.Info("spawning")
+		logger.Info("spawning")
 
-		step.delegate.Started()
-
-		step.process, err = container.Run(garden.ProcessSpec{
+		process, err = container.Run(garden.ProcessSpec{
 			ID: taskProcessID,
 
 			Path: config.Run.Path,
 			Args: config.Run.Args,
 
-			Dir: path.Join(step.artifactsRoot, config.Run.Dir),
+			Dir: path.Join(action.artifactsRoot, config.Run.Dir),
 			TTY: &garden.TTYSpec{},
 		}, processIO)
 	}
@@ -212,7 +208,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return err
 	}
 
-	step.logger.Info("attached")
+	logger.Info("attached")
 
 	close(ready)
 
@@ -221,17 +217,17 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	var processErr error
 
 	go func() {
-		processStatus, processErr = step.process.Wait()
+		processStatus, processErr = process.Wait()
 		close(exited)
 	}()
 
 	select {
 	case <-signals:
-		step.registerSource(config, container)
+		action.registerSource(logger, repository, config, container)
 
 		err = container.Stop(false)
 		if err != nil {
-			step.logger.Error("stopping-container", err)
+			logger.Error("stopping-container", err)
 		}
 
 		<-exited
@@ -243,33 +239,36 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return processErr
 		}
 
-		step.registerSource(config, container)
+		action.registerSource(logger, repository, config, container)
 
-		step.exitStatus = processStatus
+		action.exitStatus = ExitStatus(processStatus)
 
 		err := container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
 		if err != nil {
 			return err
 		}
 
-		step.delegate.Finished(ExitStatus(processStatus))
-
 		return nil
 	}
 }
 
-func (step *TaskStep) containerSpec(config atc.TaskConfig) (worker.ContainerSpec, error) {
+// ExitStatus returns exit status of task script.
+func (action *TaskAction) ExitStatus() ExitStatus {
+	return action.exitStatus
+}
+
+func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ContainerSpec, error) {
 	imageSpec := worker.ImageSpec{
-		Privileged: bool(step.privileged),
+		Privileged: bool(action.privileged),
 	}
-	if step.imageArtifactName != "" {
-		source, found := step.repo.SourceFor(worker.ArtifactName(step.imageArtifactName))
+	if action.imageArtifactName != "" {
+		source, found := repository.SourceFor(worker.ArtifactName(action.imageArtifactName))
 		if !found {
-			return worker.ContainerSpec{}, MissingTaskImageSourceError{step.imageArtifactName}
+			return worker.ContainerSpec{}, MissingTaskImageSourceError{action.imageArtifactName}
 		}
 
 		imageSpec.ImageArtifactSource = source
-		imageSpec.ImageArtifactName = worker.ArtifactName(step.imageArtifactName)
+		imageSpec.ImageArtifactName = worker.ArtifactName(action.imageArtifactName)
 	} else {
 		imageSpec.ImageURL = config.RootfsURI
 		imageSpec.ImageResource = config.ImageResource
@@ -277,12 +276,12 @@ func (step *TaskStep) containerSpec(config atc.TaskConfig) (worker.ContainerSpec
 
 	containerSpec := worker.ContainerSpec{
 		Platform:  config.Platform,
-		Tags:      step.tags,
-		TeamID:    step.teamID,
+		Tags:      action.tags,
+		TeamID:    action.teamID,
 		ImageSpec: imageSpec,
 		User:      config.Run.User,
-		Dir:       step.artifactsRoot,
-		Env:       step.envForParams(config.Params),
+		Dir:       action.artifactsRoot,
+		Env:       action.envForParams(config.Params),
 
 		Inputs:  []worker.InputSource{},
 		Outputs: worker.OutputPaths{},
@@ -291,11 +290,11 @@ func (step *TaskStep) containerSpec(config atc.TaskConfig) (worker.ContainerSpec
 	var missingInputs []string
 	for _, input := range config.Inputs {
 		inputName := input.Name
-		if sourceName, ok := step.inputMapping[inputName]; ok {
+		if sourceName, ok := action.inputMapping[inputName]; ok {
 			inputName = sourceName
 		}
 
-		source, found := step.repo.SourceFor(worker.ArtifactName(inputName))
+		source, found := repository.SourceFor(worker.ArtifactName(inputName))
 		if !found {
 			missingInputs = append(missingInputs, inputName)
 			continue
@@ -305,7 +304,7 @@ func (step *TaskStep) containerSpec(config atc.TaskConfig) (worker.ContainerSpec
 			name:          worker.ArtifactName(inputName),
 			config:        input,
 			source:        source,
-			artifactsRoot: step.artifactsRoot,
+			artifactsRoot: action.artifactsRoot,
 		})
 	}
 
@@ -314,56 +313,36 @@ func (step *TaskStep) containerSpec(config atc.TaskConfig) (worker.ContainerSpec
 	}
 
 	for _, output := range config.Outputs {
-		path := artifactsPath(output, step.artifactsRoot)
+		path := artifactsPath(output, action.artifactsRoot)
 		containerSpec.Outputs[output.Name] = path
 	}
 
 	return containerSpec, nil
 }
 
-func (step *TaskStep) registerSource(config atc.TaskConfig, container worker.Container) {
+func (action *TaskAction) registerSource(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig, container worker.Container) {
 	volumeMounts := container.VolumeMounts()
 
-	step.logger.Debug("registering-outputs", lager.Data{"config": config})
+	logger.Debug("registering-outputs", lager.Data{"config": config})
 
 	for _, output := range config.Outputs {
 		outputName := output.Name
-		if destinationName, ok := step.outputMapping[output.Name]; ok {
+		if destinationName, ok := action.outputMapping[output.Name]; ok {
 			outputName = destinationName
 		}
 
-		outputPath := artifactsPath(output, step.artifactsRoot)
+		outputPath := artifactsPath(output, action.artifactsRoot)
 
 		for _, mount := range volumeMounts {
 			if mount.MountPath == outputPath {
-				source := newVolumeSource(step.logger, mount.Volume)
-				step.repo.RegisterSource(worker.ArtifactName(outputName), source)
+				source := newVolumeSource(logger, mount.Volume)
+				repository.RegisterSource(worker.ArtifactName(outputName), source)
 			}
 		}
 	}
 }
 
-// Result indicates Success as true if the script's exit status was 0.
-//
-// It also indicates ExitStatus as the exit status of the script.
-//
-// All other types are ignored.
-func (step *TaskStep) Result(x interface{}) bool {
-	switch v := x.(type) {
-	case *Success:
-		*v = step.exitStatus == 0
-		return true
-
-	case *ExitStatus:
-		*v = ExitStatus(step.exitStatus)
-		return true
-
-	default:
-		return false
-	}
-}
-
-func (TaskStep) envForParams(params map[string]string) []string {
+func (TaskAction) envForParams(params map[string]string) []string {
 	env := make([]string, 0, len(params))
 
 	for k, v := range params {

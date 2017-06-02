@@ -32,8 +32,8 @@ func Timeout(
 }
 
 // Using constructs a *TimeoutStep.
-func (ts TimeoutStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
-	ts.runStep = ts.step.Using(prev, repo)
+func (ts TimeoutStep) Using(repo *worker.ArtifactRepository) Step {
+	ts.runStep = ts.step.Using(repo)
 
 	return &ts
 }
@@ -85,17 +85,8 @@ dance:
 	return nil
 }
 
-// Result indicates Success as true if the nested step completed successfully
+// Succeeded is true if the nested step completed successfully
 // and did not time out.
-//
-// Any other type is ignored.
-func (ts *TimeoutStep) Result(x interface{}) bool {
-	switch v := x.(type) {
-	case *Success:
-		var success Success
-		ts.runStep.Result(&success)
-		*v = success && !Success(ts.timedOut)
-		return true
-	}
-	return false
+func (ts *TimeoutStep) Succeeded() bool {
+	return !ts.timedOut && ts.runStep.Succeeded()
 }

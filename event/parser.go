@@ -33,21 +33,19 @@ func registerEvent(e atc.Event) {
 }
 
 func init() {
-	registerEvent(InitializeTask{})
+	registerEvent(Initialize{})
 	registerEvent(StartTask{})
 	registerEvent(FinishTask{})
-	registerEvent(InitializeGet{})
 	registerEvent(FinishGet{})
-	registerEvent(InitializePut{})
 	registerEvent(FinishPut{})
 	registerEvent(Status{})
 	registerEvent(Log{})
 	registerEvent(Error{})
 
 	// deprecated:
+	registerEvent(InitializeV10{})
 	registerEvent(FinishV10{})
 	registerEvent(StartV10{})
-	registerEvent(InitializeV10{})
 	registerEvent(InputV10{})
 	registerEvent(InputV20{})
 	registerEvent(OutputV10{})
@@ -61,9 +59,11 @@ func init() {
 	registerEvent(InitializeTaskV10{})
 	registerEvent(InitializeTaskV20{})
 	registerEvent(InitializeTaskV30{})
+	registerEvent(InitializeTaskV40{})
 	registerEvent(StartTaskV10{})
 	registerEvent(StartTaskV20{})
 	registerEvent(StartTaskV30{})
+	registerEvent(StartTaskV40{})
 	registerEvent(LogV10{})
 	registerEvent(LogV20{})
 	registerEvent(LogV30{})
@@ -74,6 +74,8 @@ func init() {
 	registerEvent(FinishPutV10{})
 	registerEvent(FinishPutV20{})
 	registerEvent(FinishPutV30{})
+	registerEvent(InitializeGetV10{})
+	registerEvent(InitializePutV10{})
 }
 
 type Message struct {
