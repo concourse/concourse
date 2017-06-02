@@ -11,7 +11,6 @@ import (
 	"github.com/sclevine/agouti"
 	. "github.com/sclevine/agouti/matchers"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
@@ -34,7 +33,6 @@ var (
 	certTmpDir string
 
 	postgresRunner postgresrunner.Runner
-	dbConn         db.Conn
 	dbngConn       dbng.Conn
 	lockFactory    lock.LockFactory
 	teamFactory    dbng.TeamFactory
@@ -83,7 +81,6 @@ var _ = BeforeEach(func() {
 	postgresRunner.Truncate()
 	dbngConn = postgresRunner.OpenConn()
 
-	dbConn = db.Wrap(postgresRunner.OpenDB())
 	dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
@@ -98,7 +95,7 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	Expect(dbConn.Close()).To(Succeed())
+	Expect(dbngConn.Close()).To(Succeed())
 	Expect(dbListener.Close()).To(Succeed())
 })
 

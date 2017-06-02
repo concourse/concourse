@@ -6,7 +6,6 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
@@ -18,11 +17,12 @@ import (
 
 var _ = Describe("Locks", func() {
 	var (
-		dbConn      db.Conn
 		listener    *pq.Listener
 		lockFactory lock.LockFactory
 
 		dbLock lock.Lock
+
+		dbngConn dbng.Conn
 
 		pipeline    dbng.Pipeline
 		team        dbng.Team
@@ -34,8 +34,6 @@ var _ = Describe("Locks", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = db.Wrap(postgresRunner.OpenDB())
-
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 
@@ -43,7 +41,7 @@ var _ = Describe("Locks", func() {
 
 		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
-		dbngConn := postgresRunner.OpenConn()
+		dbngConn = postgresRunner.OpenConn()
 		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory)
 
 		var err error
@@ -79,7 +77,7 @@ var _ = Describe("Locks", func() {
 	})
 
 	AfterEach(func() {
-		err := dbConn.Close()
+		err := dbngConn.Close()
 		Expect(err).NotTo(HaveOccurred())
 
 		err = listener.Close()

@@ -15,7 +15,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
 	"github.com/lib/pq"
 )
 
@@ -29,8 +28,6 @@ var _ = Describe("TLS", func() {
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
-		dbConn = db.Wrap(postgresRunner.OpenDB())
-
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		page, err = agoutiDriver.NewPage()
@@ -41,7 +38,6 @@ var _ = Describe("TLS", func() {
 		Expect(page.Destroy()).To(Succeed())
 		atcCommand.Stop()
 
-		Expect(dbConn.Close()).To(Succeed())
 		Expect(dbListener.Close()).To(Succeed())
 	})
 
