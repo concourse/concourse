@@ -30,9 +30,6 @@ const GITHUB_AUTH = "github"
 const GITHUB_AUTH_NO_CLIENT_SECRET = "github-no-secret"
 const GITHUB_AUTH_NO_TEAM = "github-no-team"
 const GITHUB_ENTERPRISE_AUTH = "github-enterprise"
-const GITLAB_AUTH = "gitlab"
-const GITLAB_AUTH_NO_CLIENT_SECRET = "gitlab-no-secret"
-const GITLAB_AUTH_NO_GROUP = "gitlab-no-group"
 const UAA_AUTH = "cf"
 const UAA_AUTH_NO_CLIENT_SECRET = "cf-no-secret"
 const UAA_AUTH_NO_TOKEN_URL = "cf-no-token-url"
@@ -244,22 +241,6 @@ func (a *ATCCommand) getATCCommand() *exec.Cmd {
 				"--github-auth-auth-url", "https://github.example.com/login/oauth/authorize",
 				"--github-auth-token-url", "https://github.example.com/login/oauth/access_token",
 				"--github-auth-api-url", "https://github.example.com/api/v3/",
-			)
-		case GITLAB_AUTH:
-			params = append(params,
-				"--gitlab-auth-client-id", "admin",
-				"--gitlab-auth-client-secret", "password",
-				"--gitlab-auth-group", "mygroup",
-			)
-		case GITLAB_AUTH_NO_CLIENT_SECRET:
-			params = append(params,
-				"--gitlab-auth-client-id", "admin",
-				"--gitlab-auth-group", "mygroup",
-			)
-		case GITLAB_AUTH_NO_GROUP:
-			params = append(params,
-				"--gitlab-auth-client-id", "admin",
-				"--gitlab-auth-client-secret", "password",
 			)
 		case UAA_AUTH:
 			params = append(params,

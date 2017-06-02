@@ -71,24 +71,6 @@ var _ = Describe("Auth", func() {
 		})
 	})
 
-	Describe("GitLab Auth", func() {
-		It("requires client id and client secret to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITLAB_AUTH_NO_CLIENT_SECRET)
-			session, err := atcCommand.StartAndWait()
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("must specify --gitlab-auth-client-id and --gitlab-auth-client-secret to use GitLab OAuth."))
-		})
-
-		It("requires groups to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITLAB_AUTH_NO_GROUP)
-			session, err := atcCommand.StartAndWait()
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("the following is required for gitlab-auth: groups"))
-		})
-	})
-
 	Describe("Basic Auth", func() {
 		It("errors when only username is specified", func() {
 			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_PASSWORD)
