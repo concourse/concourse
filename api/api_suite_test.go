@@ -15,8 +15,8 @@ import (
 
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 
 	"github.com/concourse/atc/api/jobserver/jobserverfakes"
 	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
@@ -39,16 +39,16 @@ var (
 	providerFactory               *authfakes.FakeProviderFactory
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
-	fakeVolumeFactory             *dbngfakes.FakeVolumeFactory
-	fakeContainerFactory          *dbngfakes.FakeContainerFactory
-	dbTeamFactory                 *dbngfakes.FakeTeamFactory
-	dbPipelineFactory             *dbngfakes.FakePipelineFactory
-	fakePipeline                  *dbngfakes.FakePipeline
-	dbWorkerFactory               *dbngfakes.FakeWorkerFactory
-	dbWorkerLifecycle             *dbngfakes.FakeWorkerLifecycle
-	build                         *dbngfakes.FakeBuild
-	dbBuildFactory                *dbngfakes.FakeBuildFactory
-	dbTeam                        *dbngfakes.FakeTeam
+	fakeVolumeFactory             *dbfakes.FakeVolumeFactory
+	fakeContainerFactory          *dbfakes.FakeContainerFactory
+	dbTeamFactory                 *dbfakes.FakeTeamFactory
+	dbPipelineFactory             *dbfakes.FakePipelineFactory
+	fakePipeline                  *dbfakes.FakePipeline
+	dbWorkerFactory               *dbfakes.FakeWorkerFactory
+	dbWorkerLifecycle             *dbfakes.FakeWorkerLifecycle
+	build                         *dbfakes.FakeBuild
+	dbBuildFactory                *dbfakes.FakeBuildFactory
+	dbTeam                        *dbfakes.FakeTeam
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
 	configValidationErrorMessages []string
@@ -66,14 +66,14 @@ var (
 )
 
 type fakeEventHandlerFactory struct {
-	build dbng.Build
+	build db.Build
 
 	lock sync.Mutex
 }
 
 func (f *fakeEventHandlerFactory) Construct(
 	logger lager.Logger,
-	build dbng.Build,
+	build db.Build,
 ) http.Handler {
 	f.lock.Lock()
 	f.build = build
@@ -86,20 +86,20 @@ func (f *fakeEventHandlerFactory) Construct(
 }
 
 var _ = BeforeEach(func() {
-	dbTeamFactory = new(dbngfakes.FakeTeamFactory)
-	dbPipelineFactory = new(dbngfakes.FakePipelineFactory)
-	dbBuildFactory = new(dbngfakes.FakeBuildFactory)
+	dbTeamFactory = new(dbfakes.FakeTeamFactory)
+	dbPipelineFactory = new(dbfakes.FakePipelineFactory)
+	dbBuildFactory = new(dbfakes.FakeBuildFactory)
 
-	dbTeam = new(dbngfakes.FakeTeam)
+	dbTeam = new(dbfakes.FakeTeam)
 	dbTeam.IDReturns(734)
 	dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 	dbTeamFactory.GetByIDReturns(dbTeam)
 
-	fakePipeline = new(dbngfakes.FakePipeline)
+	fakePipeline = new(dbfakes.FakePipeline)
 	dbTeam.PipelineReturns(fakePipeline, true, nil)
 
-	dbWorkerFactory = new(dbngfakes.FakeWorkerFactory)
-	dbWorkerLifecycle = new(dbngfakes.FakeWorkerLifecycle)
+	dbWorkerFactory = new(dbfakes.FakeWorkerFactory)
+	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
@@ -116,8 +116,8 @@ var _ = BeforeEach(func() {
 	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
 	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
 
-	fakeVolumeFactory = new(dbngfakes.FakeVolumeFactory)
-	fakeContainerFactory = new(dbngfakes.FakeContainerFactory)
+	fakeVolumeFactory = new(dbfakes.FakeVolumeFactory)
+	fakeContainerFactory = new(dbfakes.FakeContainerFactory)
 
 	var err error
 
@@ -134,7 +134,7 @@ var _ = BeforeEach(func() {
 
 	isTLSEnabled = false
 
-	build = new(dbngfakes.FakeBuild)
+	build = new(dbfakes.FakeBuild)
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(dbTeamFactory)
 

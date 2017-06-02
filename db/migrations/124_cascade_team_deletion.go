@@ -3,7 +3,7 @@ package migrations
 import (
 	"fmt"
 
-	"github.com/concourse/atc/dbng/migration"
+	"github.com/concourse/atc/db/migration"
 )
 
 func CascadeTeamDeletes(tx migration.LimitedTx) error {

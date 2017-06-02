@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 )
@@ -13,7 +13,7 @@ import (
 //go:generate counterfeiter . ResourceInstance
 
 type ResourceInstance interface {
-	ResourceUser() dbng.ResourceUser
+	ResourceUser() db.ResourceUser
 
 	FindInitializedOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	CreateOn(lager.Logger, worker.Client) (worker.Volume, error)
@@ -26,9 +26,9 @@ type resourceInstance struct {
 	version                atc.Version
 	source                 atc.Source
 	params                 atc.Params
-	resourceUser           dbng.ResourceUser
+	resourceUser           db.ResourceUser
 	resourceTypes          atc.VersionedResourceTypes
-	dbResourceCacheFactory dbng.ResourceCacheFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
 func NewResourceInstance(
@@ -36,9 +36,9 @@ func NewResourceInstance(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	resourceTypes atc.VersionedResourceTypes,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
 ) ResourceInstance {
 	return &resourceInstance{
 		resourceTypeName:       resourceTypeName,
@@ -51,7 +51,7 @@ func NewResourceInstance(
 	}
 }
 
-func (instance resourceInstance) ResourceUser() dbng.ResourceUser {
+func (instance resourceInstance) ResourceUser() db.ResourceUser {
 	return instance.resourceUser
 }
 

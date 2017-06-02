@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/pipelines"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,10 +16,10 @@ import (
 
 var _ = Describe("Pipelines Syncer", func() {
 	var (
-		pipeline1             *dbngfakes.FakePipeline
-		pipeline2             *dbngfakes.FakePipeline
-		pipeline3             *dbngfakes.FakePipeline
-		pipelineFactory       *dbngfakes.FakePipelineFactory
+		pipeline1             *dbfakes.FakePipeline
+		pipeline2             *dbfakes.FakePipeline
+		pipeline3             *dbfakes.FakePipeline
+		pipelineFactory       *dbfakes.FakePipelineFactory
 		pipelineRunnerFactory PipelineRunnerFactory
 
 		fakeRunner         *fake_runner.FakeRunner
@@ -30,10 +30,10 @@ var _ = Describe("Pipelines Syncer", func() {
 	)
 
 	BeforeEach(func() {
-		pipelineFactory = new(dbngfakes.FakePipelineFactory)
-		pipeline1 = new(dbngfakes.FakePipeline)
-		pipeline2 = new(dbngfakes.FakePipeline)
-		pipeline3 = new(dbngfakes.FakePipeline)
+		pipelineFactory = new(dbfakes.FakePipelineFactory)
+		pipeline1 = new(dbfakes.FakePipeline)
+		pipeline2 = new(dbfakes.FakePipeline)
+		pipeline3 = new(dbfakes.FakePipeline)
 		pipeline1.IDReturns(1)
 		pipeline1.NameReturns("pipeline")
 		pipeline2.IDReturns(2)
@@ -42,7 +42,7 @@ var _ = Describe("Pipelines Syncer", func() {
 		fakeRunner = new(fake_runner.FakeRunner)
 		otherFakeRunner = new(fake_runner.FakeRunner)
 
-		pipelineRunnerFactory = func(pipelineArg dbng.Pipeline) ifrit.Runner {
+		pipelineRunnerFactory = func(pipelineArg db.Pipeline) ifrit.Runner {
 			switch pipelineArg {
 			case pipeline1:
 				return fakeRunner
@@ -65,7 +65,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			return <-exitChan
 		}
 
-		pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline1, pipeline2}, nil)
+		pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline1, pipeline2}, nil)
 
 		syncer = NewSyncer(
 			lagertest.NewTestLogger("test"),
@@ -95,7 +95,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			Eventually(fakeRunner.RunCallCount).Should(Equal(1))
 			Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
-			pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline2}, nil)
+			pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline2}, nil)
 
 			syncer.Sync()
 
@@ -111,7 +111,7 @@ var _ = Describe("Pipelines Syncer", func() {
 				pipeline3.IDReturns(3)
 				pipeline3.NameReturns("pipeline")
 
-				pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline2, pipeline3}, nil)
+				pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline2, pipeline3}, nil)
 
 				syncer.Sync()
 
@@ -129,7 +129,7 @@ var _ = Describe("Pipelines Syncer", func() {
 
 				pipeline1.NameReturns("renamed-pipeline")
 
-				pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline1, pipeline2}, nil)
+				pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline1, pipeline2}, nil)
 
 				syncer.Sync()
 
@@ -147,7 +147,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 			pipeline1.PausedReturns(true)
-			pipelineFactory.AllPipelinesReturns([]dbng.Pipeline{pipeline1, pipeline2}, nil)
+			pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline1, pipeline2}, nil)
 
 			syncer.Sync()
 		})

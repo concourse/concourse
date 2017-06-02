@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type CheckBuildWriteAccessHandlerFactory interface {
@@ -13,11 +13,11 @@ type CheckBuildWriteAccessHandlerFactory interface {
 }
 
 type checkBuildWriteAccessHandlerFactory struct {
-	buildFactory dbng.BuildFactory
+	buildFactory db.BuildFactory
 }
 
 func NewCheckBuildWriteAccessHandlerFactory(
-	buildFactory dbng.BuildFactory,
+	buildFactory db.BuildFactory,
 ) *checkBuildWriteAccessHandlerFactory {
 	return &checkBuildWriteAccessHandlerFactory{
 		buildFactory: buildFactory,
@@ -37,7 +37,7 @@ func (f *checkBuildWriteAccessHandlerFactory) HandlerFor(
 
 type checkBuildWriteAccessHandler struct {
 	rejector        Rejector
-	buildFactory    dbng.BuildFactory
+	buildFactory    db.BuildFactory
 	delegateHandler http.Handler
 }
 

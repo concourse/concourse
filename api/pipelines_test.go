@@ -11,26 +11,26 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 
 	"github.com/concourse/atc/db/algorithm"
 )
 
 var _ = Describe("Pipelines API", func() {
 	var (
-		dbPipeline *dbngfakes.FakePipeline
-		fakeTeam   *dbngfakes.FakeTeam
+		dbPipeline *dbfakes.FakePipeline
+		fakeTeam   *dbfakes.FakeTeam
 
-		publicPipeline        *dbngfakes.FakePipeline
-		anotherPublicPipeline *dbngfakes.FakePipeline
-		privatePipeline       *dbngfakes.FakePipeline
+		publicPipeline        *dbfakes.FakePipeline
+		anotherPublicPipeline *dbfakes.FakePipeline
+		privatePipeline       *dbfakes.FakePipeline
 	)
 	BeforeEach(func() {
-		dbPipeline = new(dbngfakes.FakePipeline)
-		fakeTeam = new(dbngfakes.FakeTeam)
+		dbPipeline = new(dbfakes.FakePipeline)
+		fakeTeam = new(dbfakes.FakeTeam)
 
-		publicPipeline = new(dbngfakes.FakePipeline)
+		publicPipeline = new(dbfakes.FakePipeline)
 		publicPipeline.IDReturns(1)
 		publicPipeline.PausedReturns(true)
 		publicPipeline.PublicReturns(true)
@@ -46,14 +46,14 @@ var _ = Describe("Pipelines API", func() {
 			},
 		}, "", 0, nil)
 
-		anotherPublicPipeline = new(dbngfakes.FakePipeline)
+		anotherPublicPipeline = new(dbfakes.FakePipeline)
 		anotherPublicPipeline.IDReturns(2)
 		anotherPublicPipeline.PausedReturns(true)
 		anotherPublicPipeline.PublicReturns(true)
 		anotherPublicPipeline.TeamNameReturns("another")
 		anotherPublicPipeline.NameReturns("another-pipeline")
 
-		privatePipeline = new(dbngfakes.FakePipeline)
+		privatePipeline = new(dbfakes.FakePipeline)
 		privatePipeline.IDReturns(3)
 		privatePipeline.PausedReturns(false)
 		privatePipeline.PublicReturns(false)
@@ -69,19 +69,19 @@ var _ = Describe("Pipelines API", func() {
 			},
 		}, "", 0, nil)
 
-		fakeTeam.PipelinesReturns([]dbng.Pipeline{
+		fakeTeam.PipelinesReturns([]db.Pipeline{
 			privatePipeline,
 			publicPipeline,
 		}, nil)
 
-		fakeTeam.VisiblePipelinesReturns([]dbng.Pipeline{
+		fakeTeam.VisiblePipelinesReturns([]db.Pipeline{
 			privatePipeline,
 			publicPipeline,
 			anotherPublicPipeline,
 		}, nil)
-		fakeTeam.PublicPipelinesReturns([]dbng.Pipeline{publicPipeline}, nil)
+		fakeTeam.PublicPipelinesReturns([]db.Pipeline{publicPipeline}, nil)
 
-		dbPipelineFactory.PublicPipelinesReturns([]dbng.Pipeline{publicPipeline, anotherPublicPipeline}, nil)
+		dbPipelineFactory.PublicPipelinesReturns([]db.Pipeline{publicPipeline, anotherPublicPipeline}, nil)
 	})
 
 	Describe("GET /api/v1/pipelines", func() {
@@ -361,10 +361,10 @@ var _ = Describe("Pipelines API", func() {
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name", func() {
 		var response *http.Response
-		var fakePipeline *dbngfakes.FakePipeline
+		var fakePipeline *dbfakes.FakePipeline
 
 		BeforeEach(func() {
-			fakePipeline = new(dbngfakes.FakePipeline)
+			fakePipeline = new(dbfakes.FakePipeline)
 			fakePipeline.IDReturns(4)
 			fakePipeline.NameReturns("some-specific-pipeline")
 			fakePipeline.PausedReturns(false)

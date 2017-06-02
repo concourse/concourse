@@ -6,10 +6,10 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) GetContainer(team dbng.Team) http.Handler {
+func (s *Server) GetContainer(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle := r.FormValue(":id")
 

@@ -14,9 +14,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
@@ -30,8 +30,8 @@ var _ = Describe("ContainerProvider", func() {
 		logger                    *lagertest.TestLogger
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
-		fakeCreatingContainer *dbngfakes.FakeCreatingContainer
-		fakeCreatedContainer  *dbngfakes.FakeCreatedContainer
+		fakeCreatingContainer *dbfakes.FakeCreatingContainer
+		fakeCreatedContainer  *dbfakes.FakeCreatedContainer
 
 		fakeGardenClient            *gardenfakes.FakeClient
 		fakeGardenContainer         *gardenfakes.FakeContainer
@@ -39,10 +39,10 @@ var _ = Describe("ContainerProvider", func() {
 		fakeVolumeClient            *workerfakes.FakeVolumeClient
 		fakeImageFactory            *workerfakes.FakeImageFactory
 		fakeImage                   *workerfakes.FakeImage
-		fakeDBTeam                  *dbngfakes.FakeTeam
-		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
-		fakeDBResourceCacheFactory  *dbngfakes.FakeResourceCacheFactory
-		fakeDBResourceConfigFactory *dbngfakes.FakeResourceConfigFactory
+		fakeDBTeam                  *dbfakes.FakeTeam
+		fakeDBVolumeFactory         *dbfakes.FakeVolumeFactory
+		fakeDBResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
+		fakeDBResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeLockFactory             *lockfakes.FakeLockFactory
 		fakeWorker                  *workerfakes.FakeWorker
 
@@ -61,8 +61,8 @@ var _ = Describe("ContainerProvider", func() {
 
 		cancel            <-chan os.Signal
 		containerSpec     ContainerSpec
-		resourceUser      dbng.ResourceUser
-		containerMetadata dbng.ContainerMetadata
+		resourceUser      db.ResourceUser
+		containerMetadata db.ContainerMetadata
 		resourceTypes     atc.VersionedResourceTypes
 
 		findOrCreateErr       error
@@ -77,9 +77,9 @@ var _ = Describe("ContainerProvider", func() {
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 
-		fakeCreatingContainer = new(dbngfakes.FakeCreatingContainer)
+		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		fakeCreatingContainer.HandleReturns("some-handle")
-		fakeCreatedContainer = new(dbngfakes.FakeCreatedContainer)
+		fakeCreatedContainer = new(dbfakes.FakeCreatedContainer)
 
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
@@ -98,13 +98,13 @@ var _ = Describe("ContainerProvider", func() {
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 		fakeWorker = new(workerfakes.FakeWorker)
 
-		fakeDBTeamFactory := new(dbngfakes.FakeTeamFactory)
-		fakeDBTeam = new(dbngfakes.FakeTeam)
+		fakeDBTeamFactory := new(dbfakes.FakeTeamFactory)
+		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
-		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
+		fakeDBVolumeFactory = new(dbfakes.FakeVolumeFactory)
 		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
-		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
-		fakeDBResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
+		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeDBResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 
@@ -173,7 +173,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		volumeSpecs = map[string]VolumeSpec{}
 
-		fakeVolumeClient.FindOrCreateCOWVolumeForContainerStub = func(logger lager.Logger, volumeSpec VolumeSpec, creatingContainer dbng.CreatingContainer, volume Volume, teamID int, mountPath string) (Volume, error) {
+		fakeVolumeClient.FindOrCreateCOWVolumeForContainerStub = func(logger lager.Logger, volumeSpec VolumeSpec, creatingContainer db.CreatingContainer, volume Volume, teamID int, mountPath string) (Volume, error) {
 			Expect(volume).To(Equal(fakeLocalVolume))
 
 			volume, found := stubbedVolumes[mountPath]
@@ -186,7 +186,7 @@ var _ = Describe("ContainerProvider", func() {
 			return volume, nil
 		}
 
-		fakeVolumeClient.FindOrCreateVolumeForContainerStub = func(logger lager.Logger, volumeSpec VolumeSpec, creatingContainer dbng.CreatingContainer, teamID int, mountPath string) (Volume, error) {
+		fakeVolumeClient.FindOrCreateVolumeForContainerStub = func(logger lager.Logger, volumeSpec VolumeSpec, creatingContainer db.CreatingContainer, teamID int, mountPath string) (Volume, error) {
 			volume, found := stubbedVolumes[mountPath]
 			if !found {
 				panic("unknown container volume: " + mountPath)
@@ -199,9 +199,9 @@ var _ = Describe("ContainerProvider", func() {
 
 		cancel = make(chan os.Signal)
 
-		resourceUser = dbng.ForBuild(42)
+		resourceUser = db.ForBuild(42)
 
-		containerMetadata = dbng.ContainerMetadata{
+		containerMetadata = db.ContainerMetadata{
 			StepName: "some-step",
 		}
 
@@ -604,7 +604,7 @@ var _ = Describe("ContainerProvider", func() {
 
 	Describe("FindOrCreateResourceCheckContainer", func() {
 		BeforeEach(func() {
-			fakeDBResourceConfigFactory.FindOrCreateResourceConfigReturns(&dbng.UsedResourceConfig{
+			fakeDBResourceConfigFactory.FindOrCreateResourceConfigReturns(&db.UsedResourceConfig{
 				ID: 42,
 			}, nil)
 			fakeDBTeam.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
@@ -661,7 +661,7 @@ var _ = Describe("ContainerProvider", func() {
 		JustBeforeEach(func() {
 			findOrCreateContainer, findOrCreateErr = containerProvider.CreateResourceGetContainer(
 				logger,
-				dbng.ForBuild(42),
+				db.ForBuild(42),
 				cancel,
 				fakeImageFetchingDelegate,
 				containerMetadata,
@@ -699,7 +699,7 @@ var _ = Describe("ContainerProvider", func() {
 				fakeContainer = new(gardenfakes.FakeContainer)
 				fakeContainer.HandleReturns("provider-handle")
 
-				fakeDBVolumeFactory.FindVolumesForContainerReturns([]dbng.CreatedVolume{}, nil)
+				fakeDBVolumeFactory.FindVolumesForContainerReturns([]db.CreatedVolume{}, nil)
 
 				fakeDBTeam.FindCreatedContainerByHandleReturns(fakeCreatedContainer, true, nil)
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
@@ -734,8 +734,8 @@ var _ = Describe("ContainerProvider", func() {
 					handle1Volume = new(baggageclaimfakes.FakeVolume)
 					handle2Volume = new(baggageclaimfakes.FakeVolume)
 
-					fakeVolume1 := new(dbngfakes.FakeCreatedVolume)
-					fakeVolume2 := new(dbngfakes.FakeCreatedVolume)
+					fakeVolume1 := new(dbfakes.FakeCreatedVolume)
+					fakeVolume2 := new(dbfakes.FakeCreatedVolume)
 
 					expectedHandle1Volume = NewVolume(handle1Volume, fakeVolume1)
 					expectedHandle2Volume = NewVolume(handle2Volume, fakeVolume2)
@@ -746,7 +746,7 @@ var _ = Describe("ContainerProvider", func() {
 					fakeVolume1.PathReturns("/handle-1/path")
 					fakeVolume2.PathReturns("/handle-2/path")
 
-					fakeDBVolumeFactory.FindVolumesForContainerReturns([]dbng.CreatedVolume{fakeVolume1, fakeVolume2}, nil)
+					fakeDBVolumeFactory.FindVolumesForContainerReturns([]db.CreatedVolume{fakeVolume1, fakeVolume2}, nil)
 
 					fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
 						if handle == "handle-1" {

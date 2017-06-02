@@ -9,8 +9,8 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -27,10 +27,10 @@ type containerProviderFactory struct {
 	baggageclaimClient      baggageclaim.Client
 	volumeClient            VolumeClient
 	imageFactory            ImageFactory
-	dbVolumeFactory         dbng.VolumeFactory
-	dbResourceCacheFactory  dbng.ResourceCacheFactory
-	dbResourceConfigFactory dbng.ResourceConfigFactory
-	dbTeamFactory           dbng.TeamFactory
+	dbVolumeFactory         db.VolumeFactory
+	dbResourceCacheFactory  db.ResourceCacheFactory
+	dbResourceConfigFactory db.ResourceConfigFactory
+	dbTeamFactory           db.TeamFactory
 
 	lockFactory lock.LockFactory
 
@@ -46,10 +46,10 @@ func NewContainerProviderFactory(
 	baggageclaimClient baggageclaim.Client,
 	volumeClient VolumeClient,
 	imageFactory ImageFactory,
-	dbVolumeFactory dbng.VolumeFactory,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
-	dbResourceConfigFactory dbng.ResourceConfigFactory,
-	dbTeamFactory dbng.TeamFactory,
+	dbVolumeFactory db.VolumeFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
+	dbResourceConfigFactory db.ResourceConfigFactory,
+	dbTeamFactory db.TeamFactory,
 	lockFactory lock.LockFactory,
 	httpProxyURL string,
 	httpsProxyURL string,
@@ -107,17 +107,17 @@ type ContainerProvider interface {
 		delegate ImageFetchingDelegate,
 		buildID int,
 		planID atc.PlanID,
-		metadata dbng.ContainerMetadata,
+		metadata db.ContainerMetadata,
 		spec ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 	) (Container, error)
 
 	FindOrCreateResourceCheckContainer(
 		logger lager.Logger,
-		resourceUser dbng.ResourceUser,
+		resourceUser db.ResourceUser,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
-		metadata dbng.ContainerMetadata,
+		metadata db.ContainerMetadata,
 		spec ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 		resourceType string,
@@ -126,10 +126,10 @@ type ContainerProvider interface {
 
 	CreateResourceGetContainer(
 		logger lager.Logger,
-		resourceUser dbng.ResourceUser,
+		resourceUser db.ResourceUser,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
-		metadata dbng.ContainerMetadata,
+		metadata db.ContainerMetadata,
 		spec ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 		resourceTypeName string,
@@ -144,10 +144,10 @@ type containerProvider struct {
 	baggageclaimClient      baggageclaim.Client
 	volumeClient            VolumeClient
 	imageFactory            ImageFactory
-	dbVolumeFactory         dbng.VolumeFactory
-	dbResourceCacheFactory  dbng.ResourceCacheFactory
-	dbResourceConfigFactory dbng.ResourceConfigFactory
-	dbTeamFactory           dbng.TeamFactory
+	dbVolumeFactory         db.VolumeFactory
+	dbResourceCacheFactory  db.ResourceCacheFactory
+	dbResourceConfigFactory db.ResourceConfigFactory
+	dbTeamFactory           db.TeamFactory
 
 	lockFactory lock.LockFactory
 	provider    WorkerProvider
@@ -166,25 +166,25 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 	delegate ImageFetchingDelegate,
 	buildID int,
 	planID atc.PlanID,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
 	return p.findOrCreateContainer(
 		logger,
-		dbng.ForBuild(buildID),
+		db.ForBuild(buildID),
 		cancel,
 		delegate,
 		spec,
 		resourceTypes,
-		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+		func() (db.CreatingContainer, db.CreatedContainer, error) {
 			return p.dbTeamFactory.GetByID(spec.TeamID).FindBuildContainerOnWorker(
 				p.worker.Name(),
 				buildID,
 				planID,
 			)
 		},
-		func() (dbng.CreatingContainer, error) {
+		func() (db.CreatingContainer, error) {
 			return p.dbTeamFactory.GetByID(spec.TeamID).CreateBuildContainer(
 				p.worker.Name(),
 				buildID,
@@ -197,10 +197,10 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 
 func (p *containerProvider) FindOrCreateResourceCheckContainer(
 	logger lager.Logger,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,
@@ -225,7 +225,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 		delegate,
 		spec,
 		resourceTypes,
-		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+		func() (db.CreatingContainer, db.CreatedContainer, error) {
 			logger.Debug("looking-for-container-in-db", lager.Data{
 				"team-id":            spec.TeamID,
 				"worker-name":        p.worker.Name(),
@@ -236,7 +236,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 				resourceConfig,
 			)
 		},
-		func() (dbng.CreatingContainer, error) {
+		func() (db.CreatingContainer, error) {
 			logger.Debug("creating-container-in-db", lager.Data{
 				"team-id":            spec.TeamID,
 				"worker-name":        p.worker.Name(),
@@ -253,10 +253,10 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 
 func (p *containerProvider) CreateResourceGetContainer(
 	logger lager.Logger,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceTypeName string,
@@ -285,10 +285,10 @@ func (p *containerProvider) CreateResourceGetContainer(
 		delegate,
 		spec,
 		resourceTypes,
-		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+		func() (db.CreatingContainer, db.CreatedContainer, error) {
 			return nil, nil, nil
 		},
-		func() (dbng.CreatingContainer, error) {
+		func() (db.CreatingContainer, error) {
 			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceGetContainer(
 				p.worker.Name(),
 				resourceCache,
@@ -349,13 +349,13 @@ func (p *containerProvider) FindCreatedContainerByHandle(
 
 func (p *containerProvider) findOrCreateContainer(
 	logger lager.Logger,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
-	findContainerFunc func() (dbng.CreatingContainer, dbng.CreatedContainer, error),
-	createContainerFunc func() (dbng.CreatingContainer, error),
+	findContainerFunc func() (db.CreatingContainer, db.CreatedContainer, error),
+	createContainerFunc func() (db.CreatingContainer, error),
 ) (Container, error) {
 	for {
 		var gardenContainer garden.Container
@@ -486,7 +486,7 @@ func (p *containerProvider) findOrCreateContainer(
 
 func (p *containerProvider) constructGardenWorkerContainer(
 	logger lager.Logger,
-	createdContainer dbng.CreatedContainer,
+	createdContainer db.CreatedContainer,
 	gardenContainer garden.Container,
 ) (Container, error) {
 	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
@@ -508,7 +508,7 @@ func (p *containerProvider) constructGardenWorkerContainer(
 
 func (p *containerProvider) createGardenContainer(
 	logger lager.Logger,
-	creatingContainer dbng.CreatingContainer,
+	creatingContainer db.CreatingContainer,
 	spec ContainerSpec,
 	fetchedImage FetchedImage,
 ) (garden.Container, error) {

@@ -13,9 +13,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/migration"
 	"github.com/concourse/atc/db/migrations"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/migration"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -111,8 +111,8 @@ func (runner *Runner) OpenDB() *sql.DB {
 	return dbConn
 }
 
-func (runner *Runner) OpenConn() dbng.Conn {
-	dbConn, err := dbng.Open(
+func (runner *Runner) OpenConn() db.Conn {
+	dbConn, err := db.Open(
 		lagertest.NewTestLogger("postgres-runner"),
 		"postgres",
 		runner.DataSourceName(),

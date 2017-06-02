@@ -2,8 +2,8 @@ package resource
 
 import (
 	"code.cloudfoundry.org/clock"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -16,7 +16,7 @@ type FetcherFactory interface {
 func NewFetcherFactory(
 	lockFactory lock.LockFactory,
 	clock clock.Clock,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
 ) FetcherFactory {
 	return &fetcherFactory{
 		lockFactory: lockFactory,
@@ -28,7 +28,7 @@ func NewFetcherFactory(
 type fetcherFactory struct {
 	lockFactory            lock.LockFactory
 	clock                  clock.Clock
-	dbResourceCacheFactory dbng.ResourceCacheFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
 func (f *fetcherFactory) FetcherFor(workerClient worker.Client) Fetcher {

@@ -3,14 +3,14 @@ package jobserver
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
 )
 
 //go:generate counterfeiter . SchedulerFactory
 
 type SchedulerFactory interface {
-	BuildScheduler(dbng.Pipeline, string) scheduler.BuildScheduler
+	BuildScheduler(db.Pipeline, string) scheduler.BuildScheduler
 }
 
 type Server struct {

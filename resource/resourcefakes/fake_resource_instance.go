@@ -5,20 +5,20 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeResourceInstance struct {
-	ResourceUserStub        func() dbng.ResourceUser
+	ResourceUserStub        func() db.ResourceUser
 	resourceUserMutex       sync.RWMutex
 	resourceUserArgsForCall []struct{}
 	resourceUserReturns     struct {
-		result1 dbng.ResourceUser
+		result1 db.ResourceUser
 	}
 	resourceUserReturnsOnCall map[int]struct {
-		result1 dbng.ResourceUser
+		result1 db.ResourceUser
 	}
 	FindInitializedOnStub        func(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	findInitializedOnMutex       sync.RWMutex
@@ -63,7 +63,7 @@ type FakeResourceInstance struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceInstance) ResourceUser() dbng.ResourceUser {
+func (fake *FakeResourceInstance) ResourceUser() db.ResourceUser {
 	fake.resourceUserMutex.Lock()
 	ret, specificReturn := fake.resourceUserReturnsOnCall[len(fake.resourceUserArgsForCall)]
 	fake.resourceUserArgsForCall = append(fake.resourceUserArgsForCall, struct{}{})
@@ -84,22 +84,22 @@ func (fake *FakeResourceInstance) ResourceUserCallCount() int {
 	return len(fake.resourceUserArgsForCall)
 }
 
-func (fake *FakeResourceInstance) ResourceUserReturns(result1 dbng.ResourceUser) {
+func (fake *FakeResourceInstance) ResourceUserReturns(result1 db.ResourceUser) {
 	fake.ResourceUserStub = nil
 	fake.resourceUserReturns = struct {
-		result1 dbng.ResourceUser
+		result1 db.ResourceUser
 	}{result1}
 }
 
-func (fake *FakeResourceInstance) ResourceUserReturnsOnCall(i int, result1 dbng.ResourceUser) {
+func (fake *FakeResourceInstance) ResourceUserReturnsOnCall(i int, result1 db.ResourceUser) {
 	fake.ResourceUserStub = nil
 	if fake.resourceUserReturnsOnCall == nil {
 		fake.resourceUserReturnsOnCall = make(map[int]struct {
-			result1 dbng.ResourceUser
+			result1 db.ResourceUser
 		})
 	}
 	fake.resourceUserReturnsOnCall[i] = struct {
-		result1 dbng.ResourceUser
+		result1 db.ResourceUser
 	}{result1}
 }
 

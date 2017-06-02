@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 	"github.com/concourse/atc/gc/gcfakes"
 
@@ -12,48 +12,48 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("ContainerCollector", func() {
 	var (
-		fakeWorkerProvider      *dbngfakes.FakeWorkerFactory
+		fakeWorkerProvider      *dbfakes.FakeWorkerFactory
 		fakeContainerFactory    *gcfakes.FakeContainerFactory
 		fakeGardenClientFactory gc.GardenClientFactory
 
 		fakeGardenClient *gardenfakes.FakeClient
 		logger           *lagertest.TestLogger
 
-		creatingContainer               *dbngfakes.FakeCreatingContainer
-		createdContainerFromCreating    *dbngfakes.FakeCreatedContainer
-		destroyingContainerFromCreating *dbngfakes.FakeDestroyingContainer
+		creatingContainer               *dbfakes.FakeCreatingContainer
+		createdContainerFromCreating    *dbfakes.FakeCreatedContainer
+		destroyingContainerFromCreating *dbfakes.FakeDestroyingContainer
 
-		createdContainer               *dbngfakes.FakeCreatedContainer
-		destroyingContainerFromCreated *dbngfakes.FakeDestroyingContainer
+		createdContainer               *dbfakes.FakeCreatedContainer
+		destroyingContainerFromCreated *dbfakes.FakeDestroyingContainer
 
-		destroyingContainer *dbngfakes.FakeDestroyingContainer
+		destroyingContainer *dbfakes.FakeDestroyingContainer
 
-		fakeWorker1 *dbngfakes.FakeWorker
-		fakeWorker2 *dbngfakes.FakeWorker
+		fakeWorker1 *dbfakes.FakeWorker
+		fakeWorker2 *dbfakes.FakeWorker
 
 		gardenAddr string
 
 		gardenClientFactoryCallCount int
-		gardenClientFactoryArgs      []dbng.Worker
+		gardenClientFactoryArgs      []db.Worker
 
 		collector gc.Collector
 	)
 
 	BeforeEach(func() {
-		fakeWorkerProvider = new(dbngfakes.FakeWorkerFactory)
+		fakeWorkerProvider = new(dbfakes.FakeWorkerFactory)
 		fakeContainerFactory = new(gcfakes.FakeContainerFactory)
 
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		gardenClientFactoryCallCount = 0
 		gardenClientFactoryArgs = nil
-		fakeGardenClientFactory = func(worker dbng.Worker, logger lager.Logger) (garden.Client, error) {
+		fakeGardenClientFactory = func(worker db.Worker, logger lager.Logger) (garden.Client, error) {
 			gardenClientFactoryCallCount++
 			gardenClientFactoryArgs = append(gardenClientFactoryArgs, worker)
 
@@ -64,52 +64,52 @@ var _ = Describe("ContainerCollector", func() {
 
 		gardenAddr = "127.0.0.1"
 
-		fakeWorker1 = new(dbngfakes.FakeWorker)
+		fakeWorker1 = new(dbfakes.FakeWorker)
 		fakeWorker1.NameReturns("foo")
 		fakeWorker1.GardenAddrReturns(&gardenAddr)
 
-		fakeWorker2 = new(dbngfakes.FakeWorker)
+		fakeWorker2 = new(dbfakes.FakeWorker)
 		fakeWorker2.NameReturns("bar")
 		fakeWorker2.GardenAddrReturns(&gardenAddr)
 
-		creatingContainer = new(dbngfakes.FakeCreatingContainer)
+		creatingContainer = new(dbfakes.FakeCreatingContainer)
 		creatingContainer.HandleReturns("some-handle-1")
 
-		createdContainerFromCreating = new(dbngfakes.FakeCreatedContainer)
+		createdContainerFromCreating = new(dbfakes.FakeCreatedContainer)
 		creatingContainer.CreatedReturns(createdContainerFromCreating, nil)
 		createdContainerFromCreating.HandleReturns("some-handle-1")
 
-		destroyingContainerFromCreating = new(dbngfakes.FakeDestroyingContainer)
+		destroyingContainerFromCreating = new(dbfakes.FakeDestroyingContainer)
 		createdContainerFromCreating.DestroyingReturns(destroyingContainerFromCreating, nil)
 		destroyingContainerFromCreating.HandleReturns("some-handle-1")
 		destroyingContainerFromCreating.WorkerNameReturns("foo")
 
-		createdContainer = new(dbngfakes.FakeCreatedContainer)
+		createdContainer = new(dbfakes.FakeCreatedContainer)
 		createdContainer.HandleReturns("some-handle-2")
 		createdContainer.WorkerNameReturns("foo")
 
-		destroyingContainerFromCreated = new(dbngfakes.FakeDestroyingContainer)
+		destroyingContainerFromCreated = new(dbfakes.FakeDestroyingContainer)
 		createdContainer.DestroyingReturns(destroyingContainerFromCreated, nil)
 		destroyingContainerFromCreated.HandleReturns("some-handle-2")
 		destroyingContainerFromCreated.WorkerNameReturns("foo")
 
-		destroyingContainer = new(dbngfakes.FakeDestroyingContainer)
+		destroyingContainer = new(dbfakes.FakeDestroyingContainer)
 		destroyingContainer.HandleReturns("some-handle-3")
 		destroyingContainer.WorkerNameReturns("bar")
 
 		fakeContainerFactory.FindContainersForDeletionReturns(
-			[]dbng.CreatingContainer{
+			[]db.CreatingContainer{
 				creatingContainer,
 			},
-			[]dbng.CreatedContainer{
+			[]db.CreatedContainer{
 				createdContainer,
 			},
-			[]dbng.DestroyingContainer{
+			[]db.DestroyingContainer{
 				destroyingContainer,
 			},
 			nil,
 		)
-		fakeWorkerProvider.WorkersReturns([]dbng.Worker{fakeWorker1, fakeWorker2}, nil)
+		fakeWorkerProvider.WorkersReturns([]db.Worker{fakeWorker1, fakeWorker2}, nil)
 
 		destroyingContainerFromCreating.DestroyReturns(true, nil)
 		destroyingContainerFromCreated.DestroyReturns(true, nil)
@@ -262,7 +262,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		Context("when a container's worker is not found", func() {
 			BeforeEach(func() {
-				fakeWorkerProvider.WorkersReturns([]dbng.Worker{fakeWorker2}, nil)
+				fakeWorkerProvider.WorkersReturns([]db.Worker{fakeWorker2}, nil)
 			})
 
 			It("continues destroying the rest of the containers", func() {
@@ -280,7 +280,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		Context("when a container's worker is stalled", func() {
 			BeforeEach(func() {
-				fakeWorker1.StateReturns(dbng.WorkerStateStalled)
+				fakeWorker1.StateReturns(db.WorkerStateStalled)
 			})
 
 			It("continues destroying the rest of the containers", func() {
@@ -298,7 +298,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		Context("when a container's worker is landed", func() {
 			BeforeEach(func() {
-				fakeWorker1.StateReturns(dbng.WorkerStateLanded)
+				fakeWorker1.StateReturns(db.WorkerStateLanded)
 			})
 
 			It("continues destroying the rest of the containers", func() {
@@ -316,7 +316,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		Context("when getting a garden client for a worker errors", func() {
 			BeforeEach(func() {
-				fakeGardenClientFactory = func(worker dbng.Worker, logger lager.Logger) (garden.Client, error) {
+				fakeGardenClientFactory = func(worker db.Worker, logger lager.Logger) (garden.Client, error) {
 					gardenClientFactoryCallCount++
 					gardenClientFactoryArgs = append(gardenClientFactoryArgs, worker)
 

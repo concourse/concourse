@@ -15,7 +15,7 @@ import (
 	"github.com/cppforlife/go-semi-semantic/version"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 var ErrDesiredWorkerNotRunning = errors.New("desired garden worker is not known to be running")
@@ -24,12 +24,12 @@ type dbWorkerProvider struct {
 	lockFactory                     lock.LockFactory
 	retryBackOffFactory             retryhttp.BackOffFactory
 	imageFactory                    ImageFactory
-	dbResourceCacheFactory          dbng.ResourceCacheFactory
-	dbResourceConfigFactory         dbng.ResourceConfigFactory
-	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
-	dbVolumeFactory                 dbng.VolumeFactory
-	dbTeamFactory                   dbng.TeamFactory
-	dbWorkerFactory                 dbng.WorkerFactory
+	dbResourceCacheFactory          db.ResourceCacheFactory
+	dbResourceConfigFactory         db.ResourceConfigFactory
+	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory
+	dbVolumeFactory                 db.VolumeFactory
+	dbTeamFactory                   db.TeamFactory
+	dbWorkerFactory                 db.WorkerFactory
 	workerVersion                   *version.Version
 }
 
@@ -37,12 +37,12 @@ func NewDBWorkerProvider(
 	lockFactory lock.LockFactory,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
-	dbResourceConfigFactory dbng.ResourceConfigFactory,
-	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory,
-	dbVolumeFactory dbng.VolumeFactory,
-	dbTeamFactory dbng.TeamFactory,
-	workerFactory dbng.WorkerFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
+	dbResourceConfigFactory db.ResourceConfigFactory,
+	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
+	dbVolumeFactory db.VolumeFactory,
+	dbTeamFactory db.TeamFactory,
+	workerFactory db.WorkerFactory,
 	workerVersion *version.Version,
 ) WorkerProvider {
 	return &dbWorkerProvider{
@@ -70,7 +70,7 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 	workers := []Worker{}
 
 	for _, savedWorker := range savedWorkers {
-		if savedWorker.State() != dbng.WorkerStateRunning {
+		if savedWorker.State() != db.WorkerStateRunning {
 			continue
 		}
 
@@ -138,7 +138,7 @@ func (provider *dbWorkerProvider) FindWorkerForBuildContainer(
 func (provider *dbWorkerProvider) FindWorkerForResourceCheckContainer(
 	logger lager.Logger,
 	teamID int,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	resourceType string,
 	resourceSource atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
@@ -168,7 +168,7 @@ func (provider *dbWorkerProvider) FindWorkerForResourceCheckContainer(
 	return worker, true, err
 }
 
-func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker dbng.Worker) Worker {
+func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker) Worker {
 	gcf := NewGardenConnectionFactory(
 		provider.dbWorkerFactory,
 		logger.Session("garden-connection"),

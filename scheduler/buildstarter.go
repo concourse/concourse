@@ -3,7 +3,7 @@ package scheduler
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/scheduler/inputmapper"
 	"github.com/concourse/atc/scheduler/maxinflight"
@@ -14,21 +14,21 @@ import (
 type BuildStarter interface {
 	TryStartPendingBuildsForJob(
 		logger lager.Logger,
-		job dbng.Job,
-		resources dbng.Resources,
+		job db.Job,
+		resources db.Resources,
 		resourceTypes atc.VersionedResourceTypes,
-		nextPendingBuilds []dbng.Build,
+		nextPendingBuilds []db.Build,
 	) error
 }
 
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []dbng.BuildInput) (atc.Plan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 func NewBuildStarter(
-	pipeline dbng.Pipeline,
+	pipeline db.Pipeline,
 	maxInFlightUpdater maxinflight.Updater,
 	factory BuildFactory,
 	scanner Scanner,
@@ -46,7 +46,7 @@ func NewBuildStarter(
 }
 
 type buildStarter struct {
-	pipeline           dbng.Pipeline
+	pipeline           db.Pipeline
 	maxInFlightUpdater maxinflight.Updater
 	factory            BuildFactory
 	execEngine         engine.Engine
@@ -56,10 +56,10 @@ type buildStarter struct {
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
 	logger lager.Logger,
-	job dbng.Job,
-	resources dbng.Resources,
+	job db.Job,
+	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
-	nextPendingBuildsForJob []dbng.Build,
+	nextPendingBuildsForJob []db.Build,
 ) error {
 	for _, nextPendingBuild := range nextPendingBuildsForJob {
 		started, err := s.tryStartNextPendingBuild(logger, nextPendingBuild, job, resources, resourceTypes)
@@ -77,9 +77,9 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 
 func (s *buildStarter) tryStartNextPendingBuild(
 	logger lager.Logger,
-	nextPendingBuild dbng.Build,
-	job dbng.Job,
-	resources dbng.Resources,
+	nextPendingBuild db.Build,
+	job db.Job,
+	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
 ) (bool, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
@@ -172,7 +172,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	plan, err := s.factory.Create(job.Config(), resourceConfigs, resourceTypes, buildInputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
-		err := nextPendingBuild.Finish(dbng.BuildStatusErrored)
+		err := nextPendingBuild.Finish(db.BuildStatusErrored)
 		if err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
 		}

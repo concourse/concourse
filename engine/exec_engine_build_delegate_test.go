@@ -7,8 +7,8 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
@@ -22,7 +22,7 @@ var _ = Describe("BuildDelegate", func() {
 	var (
 		factory BuildDelegateFactory
 
-		fakeBuild *dbngfakes.FakeBuild
+		fakeBuild *dbfakes.FakeBuild
 
 		delegate BuildDelegate
 
@@ -34,7 +34,7 @@ var _ = Describe("BuildDelegate", func() {
 	BeforeEach(func() {
 		factory = NewBuildDelegateFactory()
 
-		fakeBuild = new(dbngfakes.FakeBuild)
+		fakeBuild = new(dbfakes.FakeBuild)
 		delegate = factory.Delegate(fakeBuild)
 
 		logger = lagertest.NewTestLogger("test")
@@ -171,7 +171,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(dbng.BuildStatusFailed))
+							Expect(savedStatus).To(Equal(db.BuildStatusFailed))
 						})
 					})
 
@@ -186,7 +186,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(dbng.BuildStatusSucceeded))
+							Expect(savedStatus).To(Equal(db.BuildStatusSucceeded))
 						})
 					})
 				})
@@ -204,13 +204,13 @@ var _ = Describe("BuildDelegate", func() {
 						Expect(fakeBuild.SaveInputCallCount()).To(Equal(1))
 
 						savedInput := fakeBuild.SaveInputArgsForCall(0)
-						Expect(savedInput).To(Equal(dbng.BuildInput{
+						Expect(savedInput).To(Equal(db.BuildInput{
 							Name: "some-input",
-							VersionedResource: dbng.VersionedResource{
+							VersionedResource: db.VersionedResource{
 								Resource: "some-input-resource",
 								Type:     "some-type",
-								Version:  dbng.ResourceVersion{"result": "version"},
-								Metadata: []dbng.ResourceMetadataField{{"result", "metadata"}},
+								Version:  db.ResourceVersion{"result": "version"},
+								Metadata: []db.ResourceMetadataField{{"result", "metadata"}},
 							},
 						}))
 					})
@@ -255,11 +255,11 @@ var _ = Describe("BuildDelegate", func() {
 									Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
 									savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
-									Expect(savedOutput).To(Equal(dbng.VersionedResource{
+									Expect(savedOutput).To(Equal(db.VersionedResource{
 										Resource: "some-input-resource",
 										Type:     "some-type",
-										Version:  dbng.ResourceVersion{"result": "version"},
-										Metadata: []dbng.ResourceMetadataField{{"result", "metadata"}},
+										Version:  db.ResourceVersion{"result": "version"},
+										Metadata: []db.ResourceMetadataField{{"result", "metadata"}},
 									}))
 
 									Expect(explicit).To(BeFalse())
@@ -325,11 +325,11 @@ var _ = Describe("BuildDelegate", func() {
 								Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
 								savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
-								Expect(savedOutput).To(Equal(dbng.VersionedResource{
+								Expect(savedOutput).To(Equal(db.VersionedResource{
 									Resource: "some-input-resource",
 									Type:     "some-type",
-									Version:  dbng.ResourceVersion{"explicit": "version"},
-									Metadata: []dbng.ResourceMetadataField{{"explicit", "metadata"}},
+									Version:  db.ResourceVersion{"explicit": "version"},
+									Metadata: []db.ResourceMetadataField{{"explicit", "metadata"}},
 								}))
 
 								Expect(explicit).To(BeTrue())
@@ -582,7 +582,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(dbng.BuildStatusSucceeded))
+							Expect(savedStatus).To(Equal(db.BuildStatusSucceeded))
 						})
 					})
 
@@ -600,7 +600,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(dbng.BuildStatusErrored))
+							Expect(savedStatus).To(Equal(db.BuildStatusErrored))
 						})
 					})
 				})
@@ -817,11 +817,11 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
 					savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
-					Expect(savedOutput).To(Equal(dbng.VersionedResource{
+					Expect(savedOutput).To(Equal(db.VersionedResource{
 						Resource: "some-output-resource",
 						Type:     "some-type",
-						Version:  dbng.ResourceVersion{"result": "version"},
-						Metadata: []dbng.ResourceMetadataField{{"result", "metadata"}},
+						Version:  db.ResourceVersion{"result": "version"},
+						Metadata: []db.ResourceMetadataField{{"result", "metadata"}},
 					}))
 
 					Expect(explicit).To(BeTrue())
@@ -857,11 +857,11 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
 					savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
-					Expect(savedOutput).To(Equal(dbng.VersionedResource{
+					Expect(savedOutput).To(Equal(db.VersionedResource{
 						Resource: "some-output-resource",
 						Type:     "some-type",
-						Version:  dbng.ResourceVersion{"result": "version"},
-						Metadata: []dbng.ResourceMetadataField{{"result", "metadata"}},
+						Version:  db.ResourceVersion{"result": "version"},
+						Metadata: []db.ResourceMetadataField{{"result", "metadata"}},
 					}))
 
 					Expect(explicit).To(BeTrue())
@@ -913,7 +913,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(dbng.BuildStatusSucceeded))
+							Expect(savedStatus).To(Equal(db.BuildStatusSucceeded))
 						})
 					})
 
@@ -928,7 +928,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(dbng.BuildStatusFailed))
+							Expect(savedStatus).To(Equal(db.BuildStatusFailed))
 						})
 					})
 				})
@@ -1068,7 +1068,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 					savedStatus := fakeBuild.FinishArgsForCall(0)
-					Expect(savedStatus).To(Equal(dbng.BuildStatusAborted))
+					Expect(savedStatus).To(Equal(db.BuildStatusAborted))
 				})
 			})
 
@@ -1086,7 +1086,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 					savedStatus := fakeBuild.FinishArgsForCall(0)
-					Expect(savedStatus).To(Equal(dbng.BuildStatusAborted))
+					Expect(savedStatus).To(Equal(db.BuildStatusAborted))
 				})
 			})
 		})

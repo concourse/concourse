@@ -9,8 +9,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp"
@@ -21,7 +21,7 @@ var _ = Describe("HijackableClient #Do", func() {
 	var (
 		request              http.Request
 		fakeDB               *transportfakes.FakeTransportDB
-		savedWorker          *dbngfakes.FakeWorker
+		savedWorker          *dbfakes.FakeWorker
 		savedWorkerAddress   string
 		fakeHijackableClient *retryhttpfakes.FakeHijackableClient
 		hijackableClient     retryhttp.HijackableClient
@@ -44,10 +44,10 @@ var _ = Describe("HijackableClient #Do", func() {
 		}
 
 		savedWorkerAddress = "some-garden-addr"
-		savedWorker = new(dbngfakes.FakeWorker)
+		savedWorker = new(dbfakes.FakeWorker)
 		savedWorker.GardenAddrReturns(&savedWorkerAddress)
 		savedWorker.ExpiresAtReturns(time.Now().Add(123 * time.Minute))
-		savedWorker.StateReturns(dbng.WorkerStateRunning)
+		savedWorker.StateReturns(db.WorkerStateRunning)
 
 		fakeDB.GetWorkerReturns(savedWorker, true, nil)
 
@@ -97,8 +97,8 @@ var _ = Describe("HijackableClient #Do", func() {
 
 	Context("when the worker is stalled in the db", func() {
 		BeforeEach(func() {
-			stalledWorker := new(dbngfakes.FakeWorker)
-			stalledWorker.StateReturns(dbng.WorkerStateStalled)
+			stalledWorker := new(dbfakes.FakeWorker)
+			stalledWorker.StateReturns(db.WorkerStateStalled)
 			fakeDB.GetWorkerReturns(stalledWorker, true, nil)
 		})
 

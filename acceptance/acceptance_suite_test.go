@@ -11,8 +11,8 @@ import (
 	"github.com/sclevine/agouti"
 	. "github.com/sclevine/agouti/matchers"
 
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
 
@@ -33,13 +33,13 @@ var (
 	certTmpDir string
 
 	postgresRunner postgresrunner.Runner
-	dbngConn       dbng.Conn
+	dbConn         db.Conn
 	lockFactory    lock.LockFactory
-	teamFactory    dbng.TeamFactory
+	teamFactory    db.TeamFactory
 	dbProcess      ifrit.Process
 	dbListener     *pq.Listener
 
-	defaultTeam  dbng.Team
+	defaultTeam  db.Team
 	agoutiDriver *agouti.WebDriver
 )
 
@@ -79,12 +79,12 @@ var _ = SynchronizedAfterSuite(func() {
 
 var _ = BeforeEach(func() {
 	postgresRunner.Truncate()
-	dbngConn = postgresRunner.OpenConn()
+	dbConn = postgresRunner.OpenConn()
 
 	dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
-	teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory)
+	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 
 	var err error
 	var found bool
@@ -95,7 +95,7 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	Expect(dbngConn.Close()).To(Succeed())
+	Expect(dbConn.Close()).To(Succeed())
 	Expect(dbListener.Close()).To(Succeed())
 })
 

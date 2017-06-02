@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
@@ -41,12 +41,12 @@ type FakeWorkerProvider struct {
 		result2 bool
 		result3 error
 	}
-	FindWorkerForResourceCheckContainerStub        func(logger lager.Logger, teamID int, resourceUser dbng.ResourceUser, resourceType string, resourceSource atc.Source, types atc.VersionedResourceTypes) (worker.Worker, bool, error)
+	FindWorkerForResourceCheckContainerStub        func(logger lager.Logger, teamID int, resourceUser db.ResourceUser, resourceType string, resourceSource atc.Source, types atc.VersionedResourceTypes) (worker.Worker, bool, error)
 	findWorkerForResourceCheckContainerMutex       sync.RWMutex
 	findWorkerForResourceCheckContainerArgsForCall []struct {
 		logger         lager.Logger
 		teamID         int
-		resourceUser   dbng.ResourceUser
+		resourceUser   db.ResourceUser
 		resourceType   string
 		resourceSource atc.Source
 		types          atc.VersionedResourceTypes
@@ -190,13 +190,13 @@ func (fake *FakeWorkerProvider) FindWorkerForContainerReturnsOnCall(i int, resul
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainer(logger lager.Logger, teamID int, resourceUser dbng.ResourceUser, resourceType string, resourceSource atc.Source, types atc.VersionedResourceTypes) (worker.Worker, bool, error) {
+func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainer(logger lager.Logger, teamID int, resourceUser db.ResourceUser, resourceType string, resourceSource atc.Source, types atc.VersionedResourceTypes) (worker.Worker, bool, error) {
 	fake.findWorkerForResourceCheckContainerMutex.Lock()
 	ret, specificReturn := fake.findWorkerForResourceCheckContainerReturnsOnCall[len(fake.findWorkerForResourceCheckContainerArgsForCall)]
 	fake.findWorkerForResourceCheckContainerArgsForCall = append(fake.findWorkerForResourceCheckContainerArgsForCall, struct {
 		logger         lager.Logger
 		teamID         int
-		resourceUser   dbng.ResourceUser
+		resourceUser   db.ResourceUser
 		resourceType   string
 		resourceSource atc.Source
 		types          atc.VersionedResourceTypes
@@ -218,7 +218,7 @@ func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerCallCount() i
 	return len(fake.findWorkerForResourceCheckContainerArgsForCall)
 }
 
-func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerArgsForCall(i int) (lager.Logger, int, dbng.ResourceUser, string, atc.Source, atc.VersionedResourceTypes) {
+func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerArgsForCall(i int) (lager.Logger, int, db.ResourceUser, string, atc.Source, atc.VersionedResourceTypes) {
 	fake.findWorkerForResourceCheckContainerMutex.RLock()
 	defer fake.findWorkerForResourceCheckContainerMutex.RUnlock()
 	return fake.findWorkerForResourceCheckContainerArgsForCall[i].logger, fake.findWorkerForResourceCheckContainerArgsForCall[i].teamID, fake.findWorkerForResourceCheckContainerArgsForCall[i].resourceUser, fake.findWorkerForResourceCheckContainerArgsForCall[i].resourceType, fake.findWorkerForResourceCheckContainerArgsForCall[i].resourceSource, fake.findWorkerForResourceCheckContainerArgsForCall[i].types

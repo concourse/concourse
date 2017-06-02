@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,10 +21,10 @@ var _ = Describe("Auth API", func() {
 			request  *http.Request
 			response *http.Response
 
-			fakeTeam *dbngfakes.FakeTeam
+			fakeTeam *dbfakes.FakeTeam
 		)
 		BeforeEach(func() {
-			fakeTeam = new(dbngfakes.FakeTeam)
+			fakeTeam = new(dbfakes.FakeTeam)
 			fakeTeam.IDReturns(0)
 			fakeTeam.NameReturns("some-team")
 			fakeTeam.AdminReturns(true)
@@ -130,13 +130,13 @@ var _ = Describe("Auth API", func() {
 				request  *http.Request
 				response *http.Response
 
-				fakeTeam            *dbngfakes.FakeTeam
+				fakeTeam            *dbfakes.FakeTeam
 				fakeProviderFactory *providerfakes.FakeTeamProvider
 				fakeProviderName    = "FakeProvider"
 				fakeAuthConfig      *providerfakes.FakeAuthConfig
 			)
 			BeforeEach(func() {
-				fakeTeam = new(dbngfakes.FakeTeam)
+				fakeTeam = new(dbfakes.FakeTeam)
 				fakeProviderFactory = new(providerfakes.FakeTeamProvider)
 				fakeAuthConfig = new(providerfakes.FakeAuthConfig)
 
@@ -208,10 +208,10 @@ var _ = Describe("Auth API", func() {
 			var request *http.Request
 			var response *http.Response
 
-			var fakeTeam *dbngfakes.FakeTeam
+			var fakeTeam *dbfakes.FakeTeam
 
 			BeforeEach(func() {
-				fakeTeam = new(dbngfakes.FakeTeam)
+				fakeTeam = new(dbfakes.FakeTeam)
 				fakeTeam.IDReturns(0)
 				fakeTeam.NameReturns("some-team")
 
@@ -247,10 +247,10 @@ var _ = Describe("Auth API", func() {
 		Context("when team cannot be found", func() {
 			var request *http.Request
 			var response *http.Response
-			var fakeTeam *dbngfakes.FakeTeam
+			var fakeTeam *dbfakes.FakeTeam
 
 			BeforeEach(func() {
-				fakeTeam = new(dbngfakes.FakeTeam)
+				fakeTeam = new(dbfakes.FakeTeam)
 				dbTeamFactory.FindTeamReturns(fakeTeam, false, nil)
 
 				var err error
@@ -276,11 +276,11 @@ var _ = Describe("Auth API", func() {
 			response *http.Response
 
 			err      error
-			fakeTeam *dbngfakes.FakeTeam
+			fakeTeam *dbfakes.FakeTeam
 		)
 
 		BeforeEach(func() {
-			fakeTeam = new(dbngfakes.FakeTeam)
+			fakeTeam = new(dbfakes.FakeTeam)
 			fakeTeam.IDReturns(5)
 			fakeTeam.NameReturns("some-team")
 			fakeTeam.AdminReturns(true)

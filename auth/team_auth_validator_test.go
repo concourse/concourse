@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,8 +21,8 @@ import (
 var _ = Describe("TeamAuthValidator", func() {
 	var (
 		validator        auth.Validator
-		fakeTeam         *dbngfakes.FakeTeam
-		fakeTeamFactory  *dbngfakes.FakeTeamFactory
+		fakeTeam         *dbfakes.FakeTeam
+		fakeTeamFactory  *dbfakes.FakeTeamFactory
 		fakeTeamProvider *providerfakes.FakeTeamProvider
 		jwtValidator     *authfakes.FakeValidator
 
@@ -43,9 +43,9 @@ var _ = Describe("TeamAuthValidator", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		jwtValidator = new(authfakes.FakeValidator)
-		fakeTeamFactory = new(dbngfakes.FakeTeamFactory)
+		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeTeamProvider = new(providerfakes.FakeTeamProvider)
-		fakeTeam = new(dbngfakes.FakeTeam)
+		fakeTeam = new(dbfakes.FakeTeam)
 		fakeTeam.NameReturns(atc.DefaultTeamName)
 
 		validator = auth.NewTeamAuthValidator(fakeTeamFactory, jwtValidator)

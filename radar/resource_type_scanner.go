@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -13,14 +13,14 @@ import (
 type resourceTypeScanner struct {
 	resourceFactory resource.ResourceFactory
 	defaultInterval time.Duration
-	dbPipeline      dbng.Pipeline
+	dbPipeline      db.Pipeline
 	externalURL     string
 }
 
 func NewResourceTypeScanner(
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
-	dbPipeline dbng.Pipeline,
+	dbPipeline db.Pipeline,
 	externalURL string,
 ) Scanner {
 	return &resourceTypeScanner{
@@ -86,7 +86,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	}
 
 	if !found {
-		return dbng.ResourceTypeNotFoundError{Name: resourceTypeName}
+		return db.ResourceTypeNotFoundError{Name: resourceTypeName}
 	}
 
 	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
@@ -108,11 +108,11 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
 		nil,
-		dbng.ForResourceType(savedResourceType.ID()),
+		db.ForResourceType(savedResourceType.ID()),
 		savedResourceType.Type(),
 		savedResourceType.Source(),
-		dbng.ContainerMetadata{
-			Type: dbng.ContainerTypeCheck,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
 		},
 		resourceSpec,
 		versionedResourceTypes.Without(resourceTypeName),

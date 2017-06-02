@@ -3,7 +3,7 @@ package gc_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -39,7 +39,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 			BeforeEach(func() {
 				_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
-					dbng.ForBuild(defaultBuild.ID()),
+					db.ForBuild(defaultBuild.ID()),
 					"some-base-type",
 					atc.Source{
 						"some": "source",
@@ -71,7 +71,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForBuild(defaultBuild.ID()),
+						db.ForBuild(defaultBuild.ID()),
 						"some-base-type",
 						atc.Version{"some": "version"},
 						atc.Source{

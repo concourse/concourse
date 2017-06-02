@@ -9,7 +9,7 @@ import (
 
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 var _ = Describe("Job Builds", func() {
@@ -48,7 +48,7 @@ var _ = Describe("Job Builds", func() {
 
 		Context("with a job in the configuration", func() {
 			var pipelineName = "some-pipeline"
-			var pipeline dbng.Pipeline
+			var pipeline db.Pipeline
 
 			BeforeEach(func() {
 				var err error
@@ -56,7 +56,7 @@ var _ = Describe("Job Builds", func() {
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
-				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

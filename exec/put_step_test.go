@@ -6,8 +6,8 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
@@ -24,7 +24,7 @@ var _ = Describe("GardenFactory", func() {
 	var (
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFactory        *resourcefakes.FakeResourceFactory
-		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
+		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
 		factory Factory
 
@@ -33,8 +33,8 @@ var _ = Describe("GardenFactory", func() {
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
-		workerMetadata = dbng.ContainerMetadata{
-			Type:     dbng.ContainerTypePut,
+		workerMetadata = db.ContainerMetadata{
+			Type:     db.ContainerTypePut,
 			StepName: "some-step",
 		}
 		teamID = 123
@@ -44,7 +44,7 @@ var _ = Describe("GardenFactory", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFetcher := new(resourcefakes.FakeFetcher)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
-		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
 
@@ -152,8 +152,8 @@ var _ = Describe("GardenFactory", func() {
 					Expect(fakeResourceFactory.NewPutResourceCallCount()).To(Equal(1))
 
 					_, _, buildID, planID, sm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewPutResourceArgsForCall(0)
-					Expect(sm).To(Equal(dbng.ContainerMetadata{
-						Type:             dbng.ContainerTypePut,
+					Expect(sm).To(Equal(db.ContainerMetadata{
+						Type:             db.ContainerTypePut,
 						StepName:         "some-step",
 						WorkingDirectory: "/tmp/build/put",
 					}))

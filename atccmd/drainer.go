@@ -6,14 +6,14 @@ import (
 	"github.com/concourse/atc/builds"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type drainer struct {
 	logger  lager.Logger
 	drain   chan<- struct{}
 	tracker builds.BuildTracker
-	bus     dbng.NotificationsBus
+	bus     db.NotificationsBus
 }
 
 func (d drainer) Run(signals <-chan os.Signal, ready chan<- struct{}) error {

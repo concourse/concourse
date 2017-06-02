@@ -9,14 +9,14 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/vito/go-sse/sse"
 )
 
 const ProtocolVersionHeader = "X-ATC-Stream-Version"
 const CurrentProtocolVersion = "2.0"
 
-func NewEventHandler(logger lager.Logger, build dbng.Build) http.Handler {
+func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clientNotifier := w.(http.CloseNotifier)
 
@@ -69,7 +69,7 @@ func NewEventHandler(logger lager.Logger, build dbng.Build) http.Handler {
 
 			ev, err := events.Next()
 			if err != nil {
-				if err == dbng.ErrEndOfBuildEventStream {
+				if err == db.ErrEndOfBuildEventStream {
 					err := writer.WriteEnd(eventID)
 					if err != nil {
 						logger.Info("failed-to-write-end", lager.Data{"error": err.Error()})

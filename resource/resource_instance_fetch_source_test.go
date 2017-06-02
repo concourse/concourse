@@ -8,8 +8,8 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -27,8 +27,8 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeVolume               *workerfakes.FakeVolume
 		fakeResourceInstance     *resourcefakes.FakeResourceInstance
 		fakeWorker               *workerfakes.FakeWorker
-		resourceCache            *dbng.UsedResourceCache
-		fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
+		resourceCache            *db.UsedResourceCache
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
 		signals <-chan os.Signal
 		ready   chan<- struct{}
@@ -61,12 +61,12 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeVolume = new(workerfakes.FakeVolume)
 		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
 		fakeResourceInstance.CreateOnReturns(fakeVolume, nil)
-		resourceCache = &dbng.UsedResourceCache{
+		resourceCache = &db.UsedResourceCache{
 			ID: 42,
 		}
-		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(resourceCache, nil)
-		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]dbng.ResourceMetadataField{
+		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceMetadataField{
 			{Name: "some", Value: "metadata"},
 		}, nil)
 		fetchSource = resource.NewResourceInstanceFetchSource(

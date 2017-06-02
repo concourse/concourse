@@ -9,10 +9,10 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) ListContainers(team dbng.Team) http.Handler {
+func (s *Server) ListContainers(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.RawQuery
 		hLog := s.logger.Session("list-containers", lager.Data{
@@ -50,10 +50,10 @@ func (s *Server) ListContainers(team dbng.Team) http.Handler {
 }
 
 type containerLocator interface {
-	Locate(logger lager.Logger) ([]dbng.Container, error)
+	Locate(logger lager.Logger) ([]db.Container, error)
 }
 
-func createContainerLocatorFromRequest(team dbng.Team, r *http.Request) (containerLocator, error) {
+func createContainerLocatorFromRequest(team db.Team, r *http.Request) (containerLocator, error) {
 	query := r.URL.Query()
 
 	if query.Get("type") == "check" {
@@ -65,9 +65,9 @@ func createContainerLocatorFromRequest(team dbng.Team, r *http.Request) (contain
 	}
 
 	var err error
-	var containerType dbng.ContainerType
+	var containerType db.ContainerType
 	if query.Get("type") != "" {
-		containerType, err = dbng.ContainerTypeFromString(query.Get("type"))
+		containerType, err = db.ContainerTypeFromString(query.Get("type"))
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +91,7 @@ func createContainerLocatorFromRequest(team dbng.Team, r *http.Request) (contain
 	return &stepContainerLocator{
 		team: team,
 
-		metadata: dbng.ContainerMetadata{
+		metadata: db.ContainerMetadata{
 			Type: containerType,
 
 			StepName: query.Get("step_name"),
@@ -109,21 +109,21 @@ func createContainerLocatorFromRequest(team dbng.Team, r *http.Request) (contain
 }
 
 type checkContainerLocator struct {
-	team         dbng.Team
+	team         db.Team
 	pipelineName string
 	resourceName string
 }
 
-func (l *checkContainerLocator) Locate(logger lager.Logger) ([]dbng.Container, error) {
+func (l *checkContainerLocator) Locate(logger lager.Logger) ([]db.Container, error) {
 	return l.team.FindCheckContainers(logger, l.pipelineName, l.resourceName)
 }
 
 type stepContainerLocator struct {
-	team     dbng.Team
-	metadata dbng.ContainerMetadata
+	team     db.Team
+	metadata db.ContainerMetadata
 }
 
-func (l *stepContainerLocator) Locate(logger lager.Logger) ([]dbng.Container, error) {
+func (l *stepContainerLocator) Locate(logger lager.Logger) ([]db.Container, error) {
 	return l.team.FindContainersByMetadata(l.metadata)
 }
 

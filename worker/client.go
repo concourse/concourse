@@ -7,7 +7,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -20,17 +20,17 @@ type Client interface {
 		ImageFetchingDelegate,
 		int,
 		atc.PlanID,
-		dbng.ContainerMetadata,
+		db.ContainerMetadata,
 		ContainerSpec,
 		atc.VersionedResourceTypes,
 	) (Container, error)
 
 	CreateResourceGetContainer(
 		logger lager.Logger,
-		resourceUser dbng.ResourceUser,
+		resourceUser db.ResourceUser,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
-		metadata dbng.ContainerMetadata,
+		metadata db.ContainerMetadata,
 		spec ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 		resourceType string,
@@ -41,10 +41,10 @@ type Client interface {
 
 	FindOrCreateResourceCheckContainer(
 		logger lager.Logger,
-		resourceUser dbng.ResourceUser,
+		resourceUser db.ResourceUser,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
-		metadata dbng.ContainerMetadata,
+		metadata db.ContainerMetadata,
 		spec ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 		resourceType string,
@@ -54,12 +54,12 @@ type Client interface {
 	CreateVolumeForResourceCache(
 		logger lager.Logger,
 		vs VolumeSpec,
-		resourceCache *dbng.UsedResourceCache,
+		resourceCache *db.UsedResourceCache,
 	) (Volume, error)
 
 	FindInitializedVolumeForResourceCache(
 		logger lager.Logger,
-		resourceCache *dbng.UsedResourceCache,
+		resourceCache *db.UsedResourceCache,
 	) (Volume, bool, error)
 
 	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)

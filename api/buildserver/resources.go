@@ -7,10 +7,10 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) BuildResources(build dbng.Build) http.Handler {
+func (s *Server) BuildResources(build db.Build) http.Handler {
 	log := s.logger.Session("build-resources")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

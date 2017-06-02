@@ -14,10 +14,10 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
@@ -35,8 +35,8 @@ var _ = Describe("Image", func() {
 	var fakeResourceFetcherFactory *resourcefakes.FakeFetcherFactory
 	var fakeResourceFetcher *resourcefakes.FakeFetcher
 	var fakeResourceFactoryFactory *resourcefakes.FakeResourceFactoryFactory
-	var fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
-	var fakeResourceConfigFactory *dbngfakes.FakeResourceConfigFactory
+	var fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+	var fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 
 	var imageResourceFetcher image.ImageResourceFetcher
 
@@ -63,7 +63,7 @@ var _ = Describe("Image", func() {
 		fakeResourceFetcherFactory = new(resourcefakes.FakeFetcherFactory)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeResourceFactoryFactory = new(resourcefakes.FakeResourceFactoryFactory)
-		fakeResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
+		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeResourceFetcherFactory.FetcherForReturns(fakeResourceFetcher)
 		fakeResourceFactoryFactory.FactoryForReturns(fakeResourceFactory)
 		fakeClock = fakeclock.NewFakeClock(time.Now())
@@ -99,7 +99,7 @@ var _ = Describe("Image", func() {
 			},
 		}
 
-		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		imageResourceFetcher = image.NewImageResourceFetcherFactory(
 			fakeResourceFetcherFactory,
@@ -114,7 +114,7 @@ var _ = Describe("Image", func() {
 		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = imageResourceFetcher.Fetch(
 			logger,
 			signals,
-			dbng.ForBuild(42),
+			db.ForBuild(42),
 			imageResource.Type,
 			imageResource.Source,
 			atc.Tags{"worker", "tags"},
@@ -202,9 +202,9 @@ var _ = Describe("Image", func() {
 									Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
 									_, csig, user, _, _, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 									Expect(csig).To(Equal(signals))
-									Expect(user).To(Equal(dbng.ForBuild(42)))
-									Expect(metadata).To(Equal(dbng.ContainerMetadata{
-										Type: dbng.ContainerTypeCheck,
+									Expect(user).To(Equal(db.ForBuild(42)))
+									Expect(metadata).To(Equal(db.ContainerMetadata{
+										Type: db.ContainerTypeCheck,
 									}))
 									Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 										ImageSpec: worker.ImageSpec{
@@ -227,9 +227,9 @@ var _ = Describe("Image", func() {
 									Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
 									_, csig, user, _, _, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 									Expect(csig).To(Equal(signals))
-									Expect(user).To(Equal(dbng.ForBuild(42)))
-									Expect(metadata).To(Equal(dbng.ContainerMetadata{
-										Type: dbng.ContainerTypeCheck,
+									Expect(user).To(Equal(db.ForBuild(42)))
+									Expect(metadata).To(Equal(db.ContainerMetadata{
+										Type: db.ContainerTypeCheck,
 									}))
 									Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 										ImageSpec: worker.ImageSpec{
@@ -268,9 +268,9 @@ var _ = Describe("Image", func() {
 								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
 								_, csig, user, _, _, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 								Expect(csig).To(Equal(signals))
-								Expect(user).To(Equal(dbng.ForBuild(42)))
-								Expect(metadata).To(Equal(dbng.ContainerMetadata{
-									Type: dbng.ContainerTypeCheck,
+								Expect(user).To(Equal(db.ForBuild(42)))
+								Expect(metadata).To(Equal(db.ContainerMetadata{
+									Type: db.ContainerTypeCheck,
 								}))
 								Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 									ImageSpec: worker.ImageSpec{
@@ -304,8 +304,8 @@ var _ = Describe("Image", func() {
 								_, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 								Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 								Expect(session).To(Equal(resource.Session{
-									Metadata: dbng.ContainerMetadata{
-										Type: dbng.ContainerTypeGet,
+									Metadata: db.ContainerMetadata{
+										Type: db.ContainerTypeGet,
 									},
 								}))
 								Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
@@ -315,7 +315,7 @@ var _ = Describe("Image", func() {
 									atc.Version{"v": "1"},
 									atc.Source{"some": "source"},
 									atc.Params{},
-									dbng.ForBuild(42),
+									db.ForBuild(42),
 									customTypes,
 									fakeResourceCacheFactory,
 								)))
@@ -439,7 +439,7 @@ var _ = Describe("Image", func() {
 
 			fakeLock = new(lockfakes.FakeLock)
 			callCount := 0
-			fakeResourceConfigFactory.AcquireResourceCheckingLockStub = func(lager.Logger, dbng.ResourceUser, string, atc.Source, atc.VersionedResourceTypes) (lock.Lock, bool, error) {
+			fakeResourceConfigFactory.AcquireResourceCheckingLockStub = func(lager.Logger, db.ResourceUser, string, atc.Source, atc.VersionedResourceTypes) (lock.Lock, bool, error) {
 				callCount++
 
 				if callCount == 5 {

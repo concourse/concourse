@@ -7,8 +7,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/tedsuo/ifrit"
@@ -20,7 +20,7 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		fakePipeline      *dbngfakes.FakePipeline
+		fakePipeline      *dbfakes.FakePipeline
 		scanRunnerFactory *radarfakes.FakeScanRunnerFactory
 		noop              bool
 		syncInterval      time.Duration
@@ -32,7 +32,7 @@ var _ = Describe("Runner", func() {
 
 	BeforeEach(func() {
 		scanRunnerFactory = new(radarfakes.FakeScanRunnerFactory)
-		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline = new(dbfakes.FakePipeline)
 		noop = false
 		syncInterval = 100 * time.Millisecond
 
@@ -111,7 +111,7 @@ var _ = Describe("Runner", func() {
 
 			config := initialConfig
 
-			fakePipeline.ConfigStub = func() (atc.Config, atc.RawConfig, dbng.ConfigVersion, error) {
+			fakePipeline.ConfigStub = func() (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
 				select {
 				case config = <-configs:
 				default:

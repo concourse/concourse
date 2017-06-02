@@ -12,20 +12,20 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/resource"
 )
 
 var _ = Describe("Resources API", func() {
 	var (
-		fakePipeline *dbngfakes.FakePipeline
-		resource1    *dbngfakes.FakeResource
+		fakePipeline *dbfakes.FakePipeline
+		resource1    *dbfakes.FakeResource
 	)
 
 	BeforeEach(func() {
-		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline = new(dbfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
 	})
@@ -42,7 +42,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when getting the dashboard resources succeeds", func() {
 			BeforeEach(func() {
-				resource1 = new(dbngfakes.FakeResource)
+				resource1 = new(dbfakes.FakeResource)
 				resource1.IDReturns(1)
 				resource1.CheckErrorReturns(nil)
 				resource1.PausedReturns(true)
@@ -50,7 +50,7 @@ var _ = Describe("Resources API", func() {
 				resource1.NameReturns("resource-1")
 				resource1.TypeReturns("type-1")
 
-				resource2 := new(dbngfakes.FakeResource)
+				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
 				resource2.CheckErrorReturns(errors.New("sup"))
 				resource2.FailingToCheckReturns(true)
@@ -59,7 +59,7 @@ var _ = Describe("Resources API", func() {
 				resource2.NameReturns("resource-2")
 				resource2.TypeReturns("type-2")
 
-				resource3 := new(dbngfakes.FakeResource)
+				resource3 := new(dbfakes.FakeResource)
 				resource3.IDReturns(3)
 				resource3.CheckErrorReturns(nil)
 				resource3.PausedReturns(true)
@@ -67,7 +67,7 @@ var _ = Describe("Resources API", func() {
 				resource3.NameReturns("resource-3")
 				resource3.TypeReturns("type-3")
 
-				fakePipeline.ResourcesReturns([]dbng.Resource{
+				fakePipeline.ResourcesReturns([]db.Resource{
 					resource1, resource2, resource3,
 				}, nil)
 
@@ -255,7 +255,7 @@ var _ = Describe("Resources API", func() {
 					fakePipeline.PublicReturns(true)
 					resourceName = "resource-1"
 
-					resource1 := new(dbngfakes.FakeResource)
+					resource1 := new(dbfakes.FakeResource)
 					resource1.CheckErrorReturns(errors.New("sup"))
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
@@ -318,7 +318,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when the call to get a resource succeeds", func() {
 				BeforeEach(func() {
-					resource1 := new(dbngfakes.FakeResource)
+					resource1 := new(dbfakes.FakeResource)
 					resource1.CheckErrorReturns(errors.New("sup"))
 					resource1.PausedReturns(true)
 					resource1.PipelineNameReturns("a-pipeline")
@@ -376,11 +376,11 @@ var _ = Describe("Resources API", func() {
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pause", func() {
 		var (
 			response     *http.Response
-			fakeResource *dbngfakes.FakeResource
+			fakeResource *dbfakes.FakeResource
 		)
 
 		BeforeEach(func() {
-			fakeResource = new(dbngfakes.FakeResource)
+			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("resource-name")
 
 			fakePipeline.ResourceReturns(fakeResource, true, nil)
@@ -452,11 +452,11 @@ var _ = Describe("Resources API", func() {
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/unpause", func() {
 		var (
 			response     *http.Response
-			fakeResource *dbngfakes.FakeResource
+			fakeResource *dbfakes.FakeResource
 		)
 
 		BeforeEach(func() {
-			fakeResource = new(dbngfakes.FakeResource)
+			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("resource-name")
 
 			fakePipeline.ResourceReturns(fakeResource, true, nil)
@@ -590,16 +590,16 @@ var _ = Describe("Resources API", func() {
 
 			Context("when the resource already has versions", func() {
 				BeforeEach(func() {
-					returnedVersion := dbng.SavedVersionedResource{
+					returnedVersion := db.SavedVersionedResource{
 						ID:      4,
 						Enabled: true,
-						VersionedResource: dbng.VersionedResource{
+						VersionedResource: db.VersionedResource{
 							Resource: "some-resource",
 							Type:     "some-type",
-							Version: dbng.ResourceVersion{
+							Version: db.ResourceVersion{
 								"some": "version",
 							},
-							Metadata: []dbng.ResourceMetadataField{
+							Metadata: []db.ResourceMetadataField{
 								{
 									Name:  "some",
 									Value: "metadata",
@@ -620,7 +620,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when failing to get latest version for resource", func() {
 				BeforeEach(func() {
-					fakePipeline.GetLatestVersionedResourceReturns(dbng.SavedVersionedResource{}, false, errors.New("disaster"))
+					fakePipeline.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, errors.New("disaster"))
 				})
 
 				It("returns 500", func() {
@@ -634,7 +634,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when checking fails with ResourceNotFoundError", func() {
 				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(dbng.ResourceNotFoundError{})
+					fakeScanner.ScanFromVersionReturns(db.ResourceNotFoundError{})
 				})
 
 				It("returns 404", func() {

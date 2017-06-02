@@ -3,7 +3,7 @@ package exec
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -24,7 +24,7 @@ type DependentGetStep struct {
 	delegate               ResourceDelegate
 	resourceFetcher        resource.Fetcher
 	resourceTypes          atc.VersionedResourceTypes
-	dbResourceCacheFactory dbng.ResourceCacheFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
 func newDependentGetStep(
@@ -40,7 +40,7 @@ func newDependentGetStep(
 	delegate ResourceDelegate,
 	resourceFetcher resource.Fetcher,
 	resourceTypes atc.VersionedResourceTypes,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
 ) DependentGetStep {
 	return DependentGetStep{
 		logger:                 logger,
@@ -76,7 +76,7 @@ func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) S
 			info.Version,
 			step.resourceConfig.Source,
 			step.params,
-			dbng.ForBuild(step.buildID),
+			db.ForBuild(step.buildID),
 			step.resourceTypes,
 			step.dbResourceCacheFactory,
 		),

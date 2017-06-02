@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
@@ -41,12 +41,12 @@ type FetchSource interface {
 
 type fetchSourceProviderFactory struct {
 	workerClient           worker.Client
-	dbResourceCacheFactory dbng.ResourceCacheFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
 func NewFetchSourceProviderFactory(
 	workerClient worker.Client,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
 ) FetchSourceProviderFactory {
 	return &fetchSourceProviderFactory{
 		workerClient:           workerClient,
@@ -91,7 +91,7 @@ type fetchSourceProvider struct {
 	resourceOptions        ResourceOptions
 	workerClient           worker.Client
 	imageFetchingDelegate  worker.ImageFetchingDelegate
-	dbResourceCacheFactory dbng.ResourceCacheFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
 func (f *fetchSourceProvider) Get() (FetchSource, error) {

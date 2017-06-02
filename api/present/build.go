@@ -4,12 +4,12 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 
-func Build(build dbng.Build) atc.Build {
+func Build(build db.Build) atc.Build {
 	var err error
 	var reqURL string
 	if build.JobName() == "" && build.PipelineName() == "" {

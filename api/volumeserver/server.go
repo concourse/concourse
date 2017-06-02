@@ -2,17 +2,17 @@ package volumeserver
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type Server struct {
 	logger  lager.Logger
-	factory dbng.VolumeFactory
+	factory db.VolumeFactory
 }
 
 func NewServer(
 	logger lager.Logger,
-	vf dbng.VolumeFactory,
+	vf db.VolumeFactory,
 ) *Server {
 	return &Server{
 		logger:  logger,

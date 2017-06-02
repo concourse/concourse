@@ -6,9 +6,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/scheduler"
@@ -22,11 +22,11 @@ import (
 
 var _ = Describe("I'm a BuildStarter", func() {
 	var (
-		fakePipeline     *dbngfakes.FakePipeline
+		fakePipeline     *dbfakes.FakePipeline
 		fakeUpdater      *maxinflightfakes.FakeUpdater
 		fakeFactory      *schedulerfakes.FakeBuildFactory
 		fakeEngine       *enginefakes.FakeEngine
-		pendingBuilds    []dbng.Build
+		pendingBuilds    []db.Build
 		fakeScanner      *schedulerfakes.FakeScanner
 		fakeInputMapper  *inputmapperfakes.FakeInputMapper
 		fakeBuildStarter *schedulerfakes.FakeBuildStarter
@@ -37,7 +37,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 	)
 
 	BeforeEach(func() {
-		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline = new(dbfakes.FakePipeline)
 		fakeUpdater = new(maxinflightfakes.FakeUpdater)
 		fakeFactory = new(schedulerfakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
@@ -52,9 +52,9 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 	Describe("TryStartPendingBuildsForJob", func() {
 		var tryStartErr error
-		var createdBuild *dbngfakes.FakeBuild
-		var job *dbngfakes.FakeJob
-		var resource *dbngfakes.FakeResource
+		var createdBuild *dbfakes.FakeBuild
+		var job *dbfakes.FakeJob
+		var resource *dbfakes.FakeResource
 		var versionedResourceTypes atc.VersionedResourceTypes
 
 		BeforeEach(func() {
@@ -65,19 +65,19 @@ var _ = Describe("I'm a BuildStarter", func() {
 				},
 			}
 
-			createdBuild = new(dbngfakes.FakeBuild)
+			createdBuild = new(dbfakes.FakeBuild)
 			createdBuild.IDReturns(66)
 			createdBuild.IsManuallyTriggeredReturns(true)
 
-			pendingBuilds = []dbng.Build{createdBuild}
+			pendingBuilds = []db.Build{createdBuild}
 
-			resource = new(dbngfakes.FakeResource)
+			resource = new(dbfakes.FakeResource)
 			resource.NameReturns("some-resource")
 		})
 
 		Context("when manually triggered", func() {
 			BeforeEach(func() {
-				job = new(dbngfakes.FakeJob)
+				job = new(dbfakes.FakeJob)
 				job.NameReturns("some-job")
 				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1"}, {Get: "input-2"}}})
 			})
@@ -86,7 +86,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 				tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 					lagertest.NewTestLogger("test"),
 					job,
-					dbng.Resources{resource},
+					db.Resources{resource},
 					versionedResourceTypes,
 					pendingBuilds,
 				)
@@ -220,7 +220,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 						Context("when saving the next input mapping succeeds", func() {
 							BeforeEach(func() {
-								fakeInputMapper.SaveNextInputMappingStub = func(lager.Logger, *algorithm.VersionsDB, dbng.Job) (algorithm.InputMapping, error) {
+								fakeInputMapper.SaveNextInputMappingStub = func(lager.Logger, *algorithm.VersionsDB, db.Job) (algorithm.InputMapping, error) {
 									defer GinkgoRecover()
 									return nil, nil
 								}
@@ -237,7 +237,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 		Context("when not manually triggered", func() {
 			BeforeEach(func() {
-				job = new(dbngfakes.FakeJob)
+				job = new(dbfakes.FakeJob)
 				job.NameReturns("some-job")
 				job.ConfigReturns(atc.JobConfig{Name: "some-job"})
 			})
@@ -246,7 +246,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 				tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 					lagertest.NewTestLogger("test"),
 					job,
-					dbng.Resources{resource},
+					db.Resources{resource},
 					atc.VersionedResourceTypes{
 						{
 							ResourceType: atc.ResourceType{Name: "some-resource-type"},
@@ -299,26 +299,26 @@ var _ = Describe("I'm a BuildStarter", func() {
 				BeforeEach(func() {
 					job.PausedReturns(false)
 					fakeUpdater.UpdateMaxInFlightReachedReturns(false, nil)
-					job.GetNextBuildInputsReturns([]dbng.BuildInput{{Name: "some-input"}}, true, nil)
+					job.GetNextBuildInputsReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
 					fakePipeline.PausedReturns(false)
 				})
 
 				Context("when there are several pending builds", func() {
-					var pendingBuild1 *dbngfakes.FakeBuild
-					var pendingBuild2 *dbngfakes.FakeBuild
-					var pendingBuild3 *dbngfakes.FakeBuild
+					var pendingBuild1 *dbfakes.FakeBuild
+					var pendingBuild2 *dbfakes.FakeBuild
+					var pendingBuild3 *dbfakes.FakeBuild
 
 					BeforeEach(func() {
-						pendingBuild1 = new(dbngfakes.FakeBuild)
+						pendingBuild1 = new(dbfakes.FakeBuild)
 						pendingBuild1.IDReturns(99)
 						pendingBuild1.ScheduleReturns(true, nil)
-						pendingBuild2 = new(dbngfakes.FakeBuild)
+						pendingBuild2 = new(dbfakes.FakeBuild)
 						pendingBuild2.IDReturns(999)
 						pendingBuild2.ScheduleReturns(true, nil)
-						pendingBuild3 = new(dbngfakes.FakeBuild)
+						pendingBuild3 = new(dbfakes.FakeBuild)
 						pendingBuild3.IDReturns(555)
 						pendingBuild3.ScheduleReturns(true, nil)
-						pendingBuilds = []dbng.Build{pendingBuild1, pendingBuild2, pendingBuild3}
+						pendingBuilds = []db.Build{pendingBuild1, pendingBuild2, pendingBuild3}
 					})
 
 					Context("when marking the build as scheduled fails", func() {
@@ -366,7 +366,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 							It("used the right inputs for the right build", func() {
 								Expect(pendingBuild1.UseInputsCallCount()).To(Equal(1))
 								actualInputs := pendingBuild1.UseInputsArgsForCall(0)
-								Expect(actualInputs).To(Equal([]dbng.BuildInput{{Name: "some-input"}}))
+								Expect(actualInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 							})
 						})
 
@@ -386,7 +386,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-									Expect(actualBuildInputs).To(Equal([]dbng.BuildInput{{Name: "some-input"}}))
+									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 								})
 
 								Context("when marking the build as errored fails", func() {
@@ -401,7 +401,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 									It("marked the right build as errored", func() {
 										Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
 										actualStatus := pendingBuild1.FinishArgsForCall(0)
-										Expect(actualStatus).To(Equal(dbng.BuildStatusErrored))
+										Expect(actualStatus).To(Equal(db.BuildStatusErrored))
 									})
 								})
 
@@ -428,19 +428,19 @@ var _ = Describe("I'm a BuildStarter", func() {
 									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-									Expect(actualBuildInputs).To(Equal([]dbng.BuildInput{{Name: "some-input"}}))
+									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
 									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
 									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-									Expect(actualBuildInputs).To(Equal([]dbng.BuildInput{{Name: "some-input"}}))
+									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
 									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(2)
 									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-									Expect(actualBuildInputs).To(Equal([]dbng.BuildInput{{Name: "some-input"}}))
+									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 								})
 
 								Context("when creating the engine build fails", func() {
@@ -463,7 +463,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 										engineBuild2 = new(enginefakes.FakeBuild)
 										engineBuild3 = new(enginefakes.FakeBuild)
 										createBuildCallCount := 0
-										fakeEngine.CreateBuildStub = func(lager.Logger, dbng.Build, atc.Plan) (engine.Build, error) {
+										fakeEngine.CreateBuildStub = func(lager.Logger, db.Build, atc.Plan) (engine.Build, error) {
 											createBuildCallCount++
 											switch createBuildCallCount {
 											case 1:

@@ -10,15 +10,15 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Versions API", func() {
-	var fakePipeline *dbngfakes.FakePipeline
+	var fakePipeline *dbfakes.FakePipeline
 
 	BeforeEach(func() {
-		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline = new(dbfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
 	})
@@ -60,7 +60,7 @@ var _ = Describe("Versions API", func() {
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
 					fakePipeline.PublicReturns(true)
-					fakePipeline.GetResourceVersionsReturns([]dbng.SavedVersionedResource{}, dbng.Pagination{}, true, nil)
+					fakePipeline.GetResourceVersionsReturns([]db.SavedVersionedResource{}, db.Pagination{}, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -81,7 +81,7 @@ var _ = Describe("Versions API", func() {
 
 					resourceName, page := fakePipeline.GetResourceVersionsArgsForCall(0)
 					Expect(resourceName).To(Equal("some-resource"))
-					Expect(page).To(Equal(dbng.Page{
+					Expect(page).To(Equal(db.Page{
 						Since: 0,
 						Until: 0,
 						From:  0,
@@ -101,7 +101,7 @@ var _ = Describe("Versions API", func() {
 
 					resourceName, page := fakePipeline.GetResourceVersionsArgsForCall(0)
 					Expect(resourceName).To(Equal("some-resource"))
-					Expect(page).To(Equal(dbng.Page{
+					Expect(page).To(Equal(db.Page{
 						Since: 2,
 						Until: 3,
 						From:  5,
@@ -112,21 +112,21 @@ var _ = Describe("Versions API", func() {
 			})
 
 			Context("when getting the versions succeeds", func() {
-				var returnedVersions []dbng.SavedVersionedResource
+				var returnedVersions []db.SavedVersionedResource
 
 				BeforeEach(func() {
 					queryParams = "?since=5&limit=2"
-					returnedVersions = []dbng.SavedVersionedResource{
+					returnedVersions = []db.SavedVersionedResource{
 						{
 							ID:      4,
 							Enabled: true,
-							VersionedResource: dbng.VersionedResource{
+							VersionedResource: db.VersionedResource{
 								Resource: "some-resource",
 								Type:     "some-type",
-								Version: dbng.ResourceVersion{
+								Version: db.ResourceVersion{
 									"some": "version",
 								},
-								Metadata: []dbng.ResourceMetadataField{
+								Metadata: []db.ResourceMetadataField{
 									{
 										Name:  "some",
 										Value: "metadata",
@@ -137,13 +137,13 @@ var _ = Describe("Versions API", func() {
 						{
 							ID:      2,
 							Enabled: false,
-							VersionedResource: dbng.VersionedResource{
+							VersionedResource: db.VersionedResource{
 								Resource: "some-resource",
 								Type:     "some-type",
-								Version: dbng.ResourceVersion{
+								Version: db.ResourceVersion{
 									"some": "version",
 								},
-								Metadata: []dbng.ResourceMetadataField{
+								Metadata: []db.ResourceMetadataField{
 									{
 										Name:  "some",
 										Value: "metadata",
@@ -153,7 +153,7 @@ var _ = Describe("Versions API", func() {
 						},
 					}
 
-					fakePipeline.GetResourceVersionsReturns(returnedVersions, dbng.Pagination{}, true, nil)
+					fakePipeline.GetResourceVersionsReturns(returnedVersions, db.Pagination{}, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -201,9 +201,9 @@ var _ = Describe("Versions API", func() {
 				Context("when next/previous pages are available", func() {
 					BeforeEach(func() {
 						fakePipeline.NameReturns("some-pipeline")
-						fakePipeline.GetResourceVersionsReturns(returnedVersions, dbng.Pagination{
-							Previous: &dbng.Page{Until: 4, Limit: 2},
-							Next:     &dbng.Page{Since: 2, Limit: 2},
+						fakePipeline.GetResourceVersionsReturns(returnedVersions, db.Pagination{
+							Previous: &db.Page{Until: 4, Limit: 2},
+							Next:     &db.Page{Since: 2, Limit: 2},
 						}, true, nil)
 					})
 
@@ -218,7 +218,7 @@ var _ = Describe("Versions API", func() {
 
 			Context("when the versions can't be found", func() {
 				BeforeEach(func() {
-					fakePipeline.GetResourceVersionsReturns(nil, dbng.Pagination{}, false, nil)
+					fakePipeline.GetResourceVersionsReturns(nil, db.Pagination{}, false, nil)
 				})
 
 				It("returns 404 not found", func() {
@@ -228,7 +228,7 @@ var _ = Describe("Versions API", func() {
 
 			Context("when getting the versions fails", func() {
 				BeforeEach(func() {
-					fakePipeline.GetResourceVersionsReturns(nil, dbng.Pagination{}, false, errors.New("oh no!"))
+					fakePipeline.GetResourceVersionsReturns(nil, db.Pagination{}, false, errors.New("oh no!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -407,27 +407,27 @@ var _ = Describe("Versions API", func() {
 
 			Context("when getting the builds succeeds", func() {
 				BeforeEach(func() {
-					build1 := new(dbngfakes.FakeBuild)
+					build1 := new(dbfakes.FakeBuild)
 					build1.IDReturns(1024)
 					build1.NameReturns("5")
 					build1.JobNameReturns("some-job")
 					build1.PipelineNameReturns("a-pipeline")
 					build1.TeamNameReturns("a-team")
-					build1.StatusReturns(dbng.BuildStatusSucceeded)
+					build1.StatusReturns(db.BuildStatusSucceeded)
 					build1.StartTimeReturns(time.Unix(1, 0))
 					build1.EndTimeReturns(time.Unix(100, 0))
 
-					build2 := new(dbngfakes.FakeBuild)
+					build2 := new(dbfakes.FakeBuild)
 					build2.IDReturns(1025)
 					build2.NameReturns("6")
 					build2.JobNameReturns("some-job")
 					build2.PipelineNameReturns("a-pipeline")
 					build2.TeamNameReturns("a-team")
-					build2.StatusReturns(dbng.BuildStatusSucceeded)
+					build2.StatusReturns(db.BuildStatusSucceeded)
 					build2.StartTimeReturns(time.Unix(200, 0))
 					build2.EndTimeReturns(time.Unix(300, 0))
 
-					fakePipeline.GetBuildsWithVersionAsInputReturns([]dbng.Build{build1, build2}, nil)
+					fakePipeline.GetBuildsWithVersionAsInputReturns([]db.Build{build1, build2}, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -554,27 +554,27 @@ var _ = Describe("Versions API", func() {
 
 			Context("when getting the builds succeeds", func() {
 				BeforeEach(func() {
-					build1 := new(dbngfakes.FakeBuild)
+					build1 := new(dbfakes.FakeBuild)
 					build1.IDReturns(1024)
 					build1.NameReturns("5")
 					build1.JobNameReturns("some-job")
 					build1.PipelineNameReturns("a-pipeline")
 					build1.TeamNameReturns("a-team")
-					build1.StatusReturns(dbng.BuildStatusSucceeded)
+					build1.StatusReturns(db.BuildStatusSucceeded)
 					build1.StartTimeReturns(time.Unix(1, 0))
 					build1.EndTimeReturns(time.Unix(100, 0))
 
-					build2 := new(dbngfakes.FakeBuild)
+					build2 := new(dbfakes.FakeBuild)
 					build2.IDReturns(1025)
 					build2.NameReturns("6")
 					build2.JobNameReturns("some-job")
 					build2.PipelineNameReturns("a-pipeline")
 					build2.TeamNameReturns("a-team")
-					build2.StatusReturns(dbng.BuildStatusSucceeded)
+					build2.StatusReturns(db.BuildStatusSucceeded)
 					build2.StartTimeReturns(time.Unix(200, 0))
 					build2.EndTimeReturns(time.Unix(300, 0))
 
-					fakePipeline.GetBuildsWithVersionAsOutputReturns([]dbng.Build{build1, build2}, nil)
+					fakePipeline.GetBuildsWithVersionAsOutputReturns([]db.Build{build1, build2}, nil)
 				})
 
 				It("returns 200 OK", func() {

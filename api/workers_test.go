@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -46,25 +46,25 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the workers can be listed", func() {
 				var (
-					teamWorker1 *dbngfakes.FakeWorker
-					teamWorker2 *dbngfakes.FakeWorker
+					teamWorker1 *dbfakes.FakeWorker
+					teamWorker2 *dbfakes.FakeWorker
 				)
 
 				BeforeEach(func() {
 
-					teamWorker1 = new(dbngfakes.FakeWorker)
+					teamWorker1 = new(dbfakes.FakeWorker)
 					gardenAddr1 := "1.2.3.4:7777"
 					teamWorker1.GardenAddrReturns(&gardenAddr1)
 					bcURL1 := "1.2.3.4:8888"
 					teamWorker1.BaggageclaimURLReturns(&bcURL1)
 
-					teamWorker2 = new(dbngfakes.FakeWorker)
+					teamWorker2 = new(dbfakes.FakeWorker)
 					gardenAddr2 := "5.6.7.8:7777"
 					teamWorker2.GardenAddrReturns(&gardenAddr2)
 					bcURL2 := "5.6.7.8:8888"
 					teamWorker2.BaggageclaimURLReturns(&bcURL2)
 
-					dbTeam.WorkersReturns([]dbng.Worker{
+					dbTeam.WorkersReturns([]db.Worker{
 						teamWorker1,
 						teamWorker2,
 					}, nil)
@@ -211,10 +211,10 @@ var _ = Describe("Workers API", func() {
 				})
 
 				Context("when specified team exists", func() {
-					var foundTeam *dbngfakes.FakeTeam
+					var foundTeam *dbfakes.FakeTeam
 
 					BeforeEach(func() {
-						foundTeam = new(dbngfakes.FakeTeam)
+						foundTeam = new(dbfakes.FakeTeam)
 						dbTeamFactory.FindTeamReturns(foundTeam, true, nil)
 					})
 
@@ -224,7 +224,7 @@ var _ = Describe("Workers API", func() {
 
 					Context("when saving the worker succeeds", func() {
 						BeforeEach(func() {
-							foundTeam.SaveWorkerReturns(new(dbngfakes.FakeWorker), nil)
+							foundTeam.SaveWorkerReturns(new(dbfakes.FakeWorker), nil)
 						})
 
 						It("returns 200", func() {
@@ -285,7 +285,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when saving the worker succeeds", func() {
 				BeforeEach(func() {
-					dbWorkerFactory.SaveWorkerReturns(new(dbngfakes.FakeWorker), nil)
+					dbWorkerFactory.SaveWorkerReturns(new(dbfakes.FakeWorker), nil)
 				})
 
 				It("returns 200", func() {
@@ -377,7 +377,7 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
-			fakeWorker *dbngfakes.FakeWorker
+			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
@@ -389,7 +389,7 @@ var _ = Describe("Workers API", func() {
 		})
 
 		BeforeEach(func() {
-			fakeWorker = new(dbngfakes.FakeWorker)
+			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-worker"
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.TeamNameReturns("some-team")
@@ -477,7 +477,7 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
-			fakeWorker *dbngfakes.FakeWorker
+			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
@@ -489,7 +489,7 @@ var _ = Describe("Workers API", func() {
 		})
 
 		BeforeEach(func() {
-			fakeWorker = new(dbngfakes.FakeWorker)
+			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-worker"
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.TeamNameReturns("some-team")
@@ -579,7 +579,7 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
-			fakeWorker *dbngfakes.FakeWorker
+			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
@@ -591,7 +591,7 @@ var _ = Describe("Workers API", func() {
 		})
 
 		BeforeEach(func() {
-			fakeWorker = new(dbngfakes.FakeWorker)
+			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-worker"
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.TeamNameReturns("some-team")
@@ -636,7 +636,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when the worker is running", func() {
 			BeforeEach(func() {
-				fakeWorker.PruneReturns(dbng.ErrCannotPruneRunningWorker)
+				fakeWorker.PruneReturns(db.ErrCannotPruneRunningWorker)
 			})
 
 			It("returns 400", func() {
@@ -669,17 +669,17 @@ var _ = Describe("Workers API", func() {
 			err        error
 
 			worker     atc.Worker
-			fakeWorker *dbngfakes.FakeWorker
+			fakeWorker *dbfakes.FakeWorker
 		)
 
 		BeforeEach(func() {
-			fakeWorker = new(dbngfakes.FakeWorker)
+			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-name"
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.ActiveContainersReturns(2)
 			fakeWorker.PlatformReturns("penguin")
 			fakeWorker.TagsReturns([]string{"some-tag"})
-			fakeWorker.StateReturns(dbng.WorkerStateRunning)
+			fakeWorker.StateReturns(db.WorkerStateRunning)
 			fakeWorker.TeamNameReturns("some-team")
 
 			ttlStr = "30s"
@@ -771,7 +771,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when the worker does not exist", func() {
 			BeforeEach(func() {
-				dbWorkerFactory.HeartbeatWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+				dbWorkerFactory.HeartbeatWorkerReturns(nil, db.ErrWorkerNotPresent)
 			})
 
 			It("returns 404", func() {
@@ -798,7 +798,7 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
-			fakeWorker *dbngfakes.FakeWorker
+			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
@@ -810,7 +810,7 @@ var _ = Describe("Workers API", func() {
 		})
 
 		BeforeEach(func() {
-			fakeWorker = new(dbngfakes.FakeWorker)
+			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-worker"
 			fakeWorker.NameReturns(workerName)
 

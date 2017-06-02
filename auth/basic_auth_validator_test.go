@@ -11,7 +11,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("BasicAuthValidator", func() {
@@ -20,10 +20,10 @@ var _ = Describe("BasicAuthValidator", func() {
 
 	var (
 		validator auth.Validator
-		fakeTeam  *dbngfakes.FakeTeam
+		fakeTeam  *dbfakes.FakeTeam
 	)
 	BeforeEach(func() {
-		fakeTeam = new(dbngfakes.FakeTeam)
+		fakeTeam = new(dbfakes.FakeTeam)
 		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 4)
 		Expect(err).ToNot(HaveOccurred())
 

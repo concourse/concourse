@@ -1,6 +1,6 @@
 package migrations
 
-import "github.com/concourse/atc/dbng/migration"
+import "github.com/concourse/atc/db/migration"
 
 func AddNotNullConstraintToContainerHandle(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`

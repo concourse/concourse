@@ -22,7 +22,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider/providerfakes"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("OAuthBeginHandler", func() {
@@ -31,8 +31,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		fakeProviderFactory *authfakes.FakeProviderFactory
 
-		fakeTeamFactory *dbngfakes.FakeTeamFactory
-		fakeTeam        *dbngfakes.FakeTeam
+		fakeTeamFactory *dbfakes.FakeTeamFactory
+		fakeTeam        *dbfakes.FakeTeam
 
 		signingKey *rsa.PrivateKey
 
@@ -49,8 +49,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		fakeProviderFactory = new(authfakes.FakeProviderFactory)
 
-		fakeTeam = new(dbngfakes.FakeTeam)
-		fakeTeamFactory = new(dbngfakes.FakeTeamFactory)
+		fakeTeam = new(dbfakes.FakeTeam)
+		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
 
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)

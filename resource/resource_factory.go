@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
@@ -35,7 +35,7 @@ type ResourceFactory interface {
 		signals <-chan os.Signal,
 		buildID int,
 		planID atc.PlanID,
-		metadata dbng.ContainerMetadata,
+		metadata db.ContainerMetadata,
 		containerSpec worker.ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -44,10 +44,10 @@ type ResourceFactory interface {
 	NewCheckResource(
 		logger lager.Logger,
 		signals <-chan os.Signal,
-		resourceUser dbng.ResourceUser,
+		resourceUser db.ResourceUser,
 		resourceType string,
 		resourceSource atc.Source,
-		metadata dbng.ContainerMetadata,
+		metadata db.ContainerMetadata,
 		resourceSpec worker.ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -63,7 +63,7 @@ func (f *resourceFactory) NewPutResource(
 	signals <-chan os.Signal,
 	buildID int,
 	planID atc.PlanID,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	containerSpec worker.ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -88,10 +88,10 @@ func (f *resourceFactory) NewPutResource(
 func (f *resourceFactory) NewCheckResource(
 	logger lager.Logger,
 	signals <-chan os.Signal,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	resourceType string,
 	resourceSource atc.Source,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	resourceSpec worker.ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,

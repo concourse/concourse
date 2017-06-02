@@ -6,12 +6,12 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp/retryhttpfakes"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -69,10 +69,10 @@ var _ = Describe("GardenRoundTripper #RoundTrip", func() {
 			fakeRoundTripper.RoundTripReturns(nil, errors.New("some-error"))
 
 			address := "some-new-worker-address"
-			savedWorker := new(dbngfakes.FakeWorker)
+			savedWorker := new(dbfakes.FakeWorker)
 			savedWorker.GardenAddrReturns(&address)
 			savedWorker.ExpiresAtReturns(time.Now().Add(123 * time.Minute))
-			savedWorker.StateReturns(dbng.WorkerStateRunning)
+			savedWorker.StateReturns(db.WorkerStateRunning)
 
 			fakeDB.GetWorkerReturns(savedWorker, true, nil)
 		})
@@ -111,8 +111,8 @@ var _ = Describe("GardenRoundTripper #RoundTrip", func() {
 
 		Context("when the worker is in the DB and the garden addr is empty", func() {
 			BeforeEach(func() {
-				runningWorker := new(dbngfakes.FakeWorker)
-				runningWorker.StateReturns(dbng.WorkerStateStalled)
+				runningWorker := new(dbfakes.FakeWorker)
+				runningWorker.StateReturns(db.WorkerStateStalled)
 				runningWorker.GardenAddrReturns(nil)
 
 				fakeDB.GetWorkerReturns(runningWorker, true, nil)

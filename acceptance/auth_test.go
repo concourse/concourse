@@ -13,14 +13,14 @@ import (
 	"github.com/onsi/gomega/gexec"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 var _ = Describe("Auth", func() {
 	var atcCommand *ATCCommand
 
 	BeforeEach(func() {
-		_, _, err := defaultTeam.SavePipeline(atc.DefaultPipelineName, atc.Config{}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+		_, _, err := defaultTeam.SavePipeline(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

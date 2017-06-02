@@ -5,16 +5,16 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeImage struct {
-	FetchForContainerStub        func(logger lager.Logger, container dbng.CreatingContainer) (worker.FetchedImage, error)
+	FetchForContainerStub        func(logger lager.Logger, container db.CreatingContainer) (worker.FetchedImage, error)
 	fetchForContainerMutex       sync.RWMutex
 	fetchForContainerArgsForCall []struct {
 		logger    lager.Logger
-		container dbng.CreatingContainer
+		container db.CreatingContainer
 	}
 	fetchForContainerReturns struct {
 		result1 worker.FetchedImage
@@ -28,12 +28,12 @@ type FakeImage struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImage) FetchForContainer(logger lager.Logger, container dbng.CreatingContainer) (worker.FetchedImage, error) {
+func (fake *FakeImage) FetchForContainer(logger lager.Logger, container db.CreatingContainer) (worker.FetchedImage, error) {
 	fake.fetchForContainerMutex.Lock()
 	ret, specificReturn := fake.fetchForContainerReturnsOnCall[len(fake.fetchForContainerArgsForCall)]
 	fake.fetchForContainerArgsForCall = append(fake.fetchForContainerArgsForCall, struct {
 		logger    lager.Logger
-		container dbng.CreatingContainer
+		container db.CreatingContainer
 	}{logger, container})
 	fake.recordInvocation("FetchForContainer", []interface{}{logger, container})
 	fake.fetchForContainerMutex.Unlock()
@@ -52,7 +52,7 @@ func (fake *FakeImage) FetchForContainerCallCount() int {
 	return len(fake.fetchForContainerArgsForCall)
 }
 
-func (fake *FakeImage) FetchForContainerArgsForCall(i int) (lager.Logger, dbng.CreatingContainer) {
+func (fake *FakeImage) FetchForContainerArgsForCall(i int) (lager.Logger, db.CreatingContainer) {
 	fake.fetchForContainerMutex.RLock()
 	defer fake.fetchForContainerMutex.RUnlock()
 	return fake.fetchForContainerArgsForCall[i].logger, fake.fetchForContainerArgsForCall[i].container

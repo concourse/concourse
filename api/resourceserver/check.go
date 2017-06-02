@@ -6,12 +6,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) CheckResource(dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("check-resource")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +52,7 @@ func (s *Server) CheckResource(dbPipeline dbng.Pipeline) http.Handler {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(checkResponseBody)
-		case dbng.ResourceNotFoundError:
+		case db.ResourceNotFoundError:
 			w.WriteHeader(http.StatusNotFound)
 		case error:
 			w.WriteHeader(http.StatusInternalServerError)

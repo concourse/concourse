@@ -1,6 +1,6 @@
 package migrations
 
-import "github.com/concourse/atc/dbng/migration"
+import "github.com/concourse/atc/db/migration"
 
 func AddVersionToBuildEvents(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`ALTER TABLE build_events ADD COLUMN version text`)

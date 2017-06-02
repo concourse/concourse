@@ -5,16 +5,16 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler/maxinflight"
 )
 
 type FakeUpdater struct {
-	UpdateMaxInFlightReachedStub        func(logger lager.Logger, job dbng.Job, buildID int) (bool, error)
+	UpdateMaxInFlightReachedStub        func(logger lager.Logger, job db.Job, buildID int) (bool, error)
 	updateMaxInFlightReachedMutex       sync.RWMutex
 	updateMaxInFlightReachedArgsForCall []struct {
 		logger  lager.Logger
-		job     dbng.Job
+		job     db.Job
 		buildID int
 	}
 	updateMaxInFlightReachedReturns struct {
@@ -29,12 +29,12 @@ type FakeUpdater struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeUpdater) UpdateMaxInFlightReached(logger lager.Logger, job dbng.Job, buildID int) (bool, error) {
+func (fake *FakeUpdater) UpdateMaxInFlightReached(logger lager.Logger, job db.Job, buildID int) (bool, error) {
 	fake.updateMaxInFlightReachedMutex.Lock()
 	ret, specificReturn := fake.updateMaxInFlightReachedReturnsOnCall[len(fake.updateMaxInFlightReachedArgsForCall)]
 	fake.updateMaxInFlightReachedArgsForCall = append(fake.updateMaxInFlightReachedArgsForCall, struct {
 		logger  lager.Logger
-		job     dbng.Job
+		job     db.Job
 		buildID int
 	}{logger, job, buildID})
 	fake.recordInvocation("UpdateMaxInFlightReached", []interface{}{logger, job, buildID})
@@ -54,7 +54,7 @@ func (fake *FakeUpdater) UpdateMaxInFlightReachedCallCount() int {
 	return len(fake.updateMaxInFlightReachedArgsForCall)
 }
 
-func (fake *FakeUpdater) UpdateMaxInFlightReachedArgsForCall(i int) (lager.Logger, dbng.Job, int) {
+func (fake *FakeUpdater) UpdateMaxInFlightReachedArgsForCall(i int) (lager.Logger, db.Job, int) {
 	fake.updateMaxInFlightReachedMutex.RLock()
 	defer fake.updateMaxInFlightReachedMutex.RUnlock()
 	return fake.updateMaxInFlightReachedArgsForCall[i].logger, fake.updateMaxInFlightReachedArgsForCall[i].job, fake.updateMaxInFlightReachedArgsForCall[i].buildID

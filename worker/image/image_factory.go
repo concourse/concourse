@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
@@ -32,7 +32,7 @@ func (f *imageFactory) GetImage(
 	teamID int,
 	cancel <-chan os.Signal,
 	delegate worker.ImageFetchingDelegate,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	resourceTypes atc.VersionedResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {

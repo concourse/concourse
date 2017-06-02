@@ -7,8 +7,8 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -24,8 +24,8 @@ var _ = Describe("Worker", func() {
 		fakeImageFactory             *wfakes.FakeImageFactory
 		fakeWorkerProvider           *wfakes.FakeWorkerProvider
 		fakeClock                    *fakeclock.FakeClock
-		fakeDBResourceCacheFactory   *dbngfakes.FakeResourceCacheFactory
-		fakeResourceConfigFactory    *dbngfakes.FakeResourceConfigFactory
+		fakeDBResourceCacheFactory   *dbfakes.FakeResourceCacheFactory
+		fakeResourceConfigFactory    *dbfakes.FakeResourceConfigFactory
 		fakeContainerProviderFactory *wfakes.FakeContainerProviderFactory
 		fakeContainerProvider        *wfakes.FakeContainerProvider
 		activeContainers             int
@@ -61,8 +61,8 @@ var _ = Describe("Worker", func() {
 		workerUptime = 0
 		workerVersion = "1.2.3"
 
-		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
-		fakeResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
+		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
 		fakeContainerProvider = new(wfakes.FakeContainerProvider)
 		fakeContainerProviderFactory = new(wfakes.FakeContainerProviderFactory)
@@ -209,7 +209,7 @@ var _ = Describe("Worker", func() {
 				nil,
 				42,
 				atc.PlanID("some-plan-id"),
-				dbng.ContainerMetadata{},
+				db.ContainerMetadata{},
 				ContainerSpec{
 					ImageSpec: imageSpec,
 				},

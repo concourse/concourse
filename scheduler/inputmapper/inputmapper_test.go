@@ -6,7 +6,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler/inputmapper"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig/inputconfigfakes"
 
@@ -16,7 +16,7 @@ import (
 
 var _ = Describe("Inputmapper", func() {
 	var (
-		fakePipeline    *dbngfakes.FakePipeline
+		fakePipeline    *dbfakes.FakePipeline
 		fakeTransformer *inputconfigfakes.FakeTransformer
 
 		inputMapper inputmapper.InputMapper
@@ -25,7 +25,7 @@ var _ = Describe("Inputmapper", func() {
 	)
 
 	BeforeEach(func() {
-		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline = new(dbfakes.FakePipeline)
 		fakeTransformer = new(inputconfigfakes.FakeTransformer)
 
 		inputMapper = inputmapper.NewInputMapper(fakePipeline, fakeTransformer)
@@ -36,7 +36,7 @@ var _ = Describe("Inputmapper", func() {
 	Describe("SaveNextInputMapping", func() {
 		var (
 			versionsDB   *algorithm.VersionsDB
-			fakeJob      *dbngfakes.FakeJob
+			fakeJob      *dbfakes.FakeJob
 			inputMapping algorithm.InputMapping
 			mappingErr   error
 		)
@@ -74,7 +74,7 @@ var _ = Describe("Inputmapper", func() {
 
 		Context("when inputs resolve", func() {
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job")
 				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
@@ -197,7 +197,7 @@ var _ = Describe("Inputmapper", func() {
 
 		Context("when inputs only resolve individually", func() {
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job")
 				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
@@ -260,7 +260,7 @@ var _ = Describe("Inputmapper", func() {
 
 		Context("when some inputs don't resolve", func() {
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job")
 				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
@@ -307,7 +307,7 @@ var _ = Describe("Inputmapper", func() {
 
 		Context("when a pinned version is missing but the remaining versions resolve", func() {
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job")
 				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
@@ -348,7 +348,7 @@ var _ = Describe("Inputmapper", func() {
 
 		Context("when the job has no inputs", func() {
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job")
 				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{

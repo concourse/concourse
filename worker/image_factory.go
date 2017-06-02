@@ -7,7 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 //go:generate counterfeiter . ImageFactory
@@ -21,7 +21,7 @@ type ImageFactory interface {
 		teamID int,
 		signals <-chan os.Signal,
 		delegate ImageFetchingDelegate,
-		resourceUser dbng.ResourceUser,
+		resourceUser db.ResourceUser,
 		resourceTypes atc.VersionedResourceTypes,
 	) (Image, error)
 }
@@ -38,7 +38,7 @@ type FetchedImage struct {
 type Image interface {
 	FetchForContainer(
 		logger lager.Logger,
-		container dbng.CreatingContainer,
+		container db.CreatingContainer,
 	) (FetchedImage, error)
 }
 

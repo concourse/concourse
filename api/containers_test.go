@@ -18,14 +18,14 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker/workerfakes"
 )
 
 var _ = Describe("Containers API", func() {
 	var (
-		stepType         = dbng.ContainerTypeTask
+		stepType         = db.ContainerTypeTask
 		stepName         = "some-step"
 		pipelineID       = 1111
 		jobID            = 2222
@@ -36,15 +36,15 @@ var _ = Describe("Containers API", func() {
 
 		req *http.Request
 
-		fakeContainer1 *dbngfakes.FakeContainer
-		fakeContainer2 *dbngfakes.FakeContainer
+		fakeContainer1 *dbfakes.FakeContainer
+		fakeContainer2 *dbfakes.FakeContainer
 	)
 
 	BeforeEach(func() {
-		fakeContainer1 = new(dbngfakes.FakeContainer)
+		fakeContainer1 = new(dbfakes.FakeContainer)
 		fakeContainer1.HandleReturns("some-handle")
 		fakeContainer1.WorkerNameReturns("some-worker-name")
-		fakeContainer1.MetadataReturns(dbng.ContainerMetadata{
+		fakeContainer1.MetadataReturns(db.ContainerMetadata{
 			Type: stepType,
 
 			StepName: stepName,
@@ -58,10 +58,10 @@ var _ = Describe("Containers API", func() {
 			User:             user,
 		})
 
-		fakeContainer2 = new(dbngfakes.FakeContainer)
+		fakeContainer2 = new(dbfakes.FakeContainer)
 		fakeContainer2.HandleReturns("some-other-handle")
 		fakeContainer2.WorkerNameReturns("some-other-worker-name")
-		fakeContainer2.MetadataReturns(dbng.ContainerMetadata{
+		fakeContainer2.MetadataReturns(db.ContainerMetadata{
 			Type: stepType,
 
 			StepName: stepName + "-other",
@@ -106,7 +106,7 @@ var _ = Describe("Containers API", func() {
 			Context("with no params", func() {
 				Context("when no errors are returned", func() {
 					BeforeEach(func() {
-						dbTeam.FindContainersByMetadataReturns([]dbng.Container{fakeContainer1, fakeContainer2}, nil)
+						dbTeam.FindContainersByMetadataReturns([]db.Container{fakeContainer1, fakeContainer2}, nil)
 					})
 
 					It("returns 200", func() {
@@ -163,7 +163,7 @@ var _ = Describe("Containers API", func() {
 
 				Context("when no containers are found", func() {
 					BeforeEach(func() {
-						dbTeam.FindContainersByMetadataReturns([]dbng.Container{}, nil)
+						dbTeam.FindContainersByMetadataReturns([]db.Container{}, nil)
 					})
 
 					It("returns 200", func() {
@@ -219,7 +219,7 @@ var _ = Describe("Containers API", func() {
 					Expect(dbTeam.FindContainersByMetadataCallCount()).To(Equal(1))
 
 					meta := dbTeam.FindContainersByMetadataArgsForCall(0)
-					Expect(meta).To(Equal(dbng.ContainerMetadata{
+					Expect(meta).To(Equal(db.ContainerMetadata{
 						PipelineID: pipelineID,
 					}))
 				})
@@ -239,7 +239,7 @@ var _ = Describe("Containers API", func() {
 					Expect(dbTeam.FindContainersByMetadataCallCount()).To(Equal(1))
 
 					meta := dbTeam.FindContainersByMetadataArgsForCall(0)
-					Expect(meta).To(Equal(dbng.ContainerMetadata{
+					Expect(meta).To(Equal(db.ContainerMetadata{
 						JobID: jobID,
 					}))
 				})
@@ -257,7 +257,7 @@ var _ = Describe("Containers API", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					meta := dbTeam.FindContainersByMetadataArgsForCall(0)
-					Expect(meta).To(Equal(dbng.ContainerMetadata{
+					Expect(meta).To(Equal(db.ContainerMetadata{
 						Type: stepType,
 					}))
 				})
@@ -275,7 +275,7 @@ var _ = Describe("Containers API", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					meta := dbTeam.FindContainersByMetadataArgsForCall(0)
-					Expect(meta).To(Equal(dbng.ContainerMetadata{
+					Expect(meta).To(Equal(db.ContainerMetadata{
 						StepName: stepName,
 					}))
 				})
@@ -296,7 +296,7 @@ var _ = Describe("Containers API", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						meta := dbTeam.FindContainersByMetadataArgsForCall(0)
-						Expect(meta).To(Equal(dbng.ContainerMetadata{
+						Expect(meta).To(Equal(db.ContainerMetadata{
 							BuildID: buildID,
 						}))
 					})
@@ -335,7 +335,7 @@ var _ = Describe("Containers API", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						meta := dbTeam.FindContainersByMetadataArgsForCall(0)
-						Expect(meta).To(Equal(dbng.ContainerMetadata{
+						Expect(meta).To(Equal(db.ContainerMetadata{
 							Attempt: attempt,
 						}))
 					})
@@ -532,12 +532,12 @@ var _ = Describe("Containers API", func() {
 
 			Context("and the worker client returns a container", func() {
 				var (
-					fakeDBContainer *dbngfakes.FakeCreatedContainer
+					fakeDBContainer *dbfakes.FakeCreatedContainer
 					fakeContainer   *workerfakes.FakeContainer
 				)
 
 				BeforeEach(func() {
-					fakeDBContainer = new(dbngfakes.FakeCreatedContainer)
+					fakeDBContainer = new(dbfakes.FakeCreatedContainer)
 					dbTeam.FindContainerByHandleReturns(fakeDBContainer, true, nil)
 					fakeDBContainer.HandleReturns("some-handle")
 

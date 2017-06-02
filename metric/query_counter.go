@@ -4,17 +4,17 @@ import (
 	"database/sql"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func CountQueries(conn dbng.Conn) dbng.Conn {
+func CountQueries(conn db.Conn) db.Conn {
 	return &countingConn{
 		Conn: conn,
 	}
 }
 
 type countingConn struct {
-	dbng.Conn
+	db.Conn
 }
 
 func (e *countingConn) Query(query string, args ...interface{}) (*sql.Rows, error) {
@@ -35,7 +35,7 @@ func (e *countingConn) Exec(query string, args ...interface{}) (sql.Result, erro
 	return e.Conn.Exec(query, args...)
 }
 
-func (e *countingConn) Begin() (dbng.Tx, error) {
+func (e *countingConn) Begin() (db.Tx, error) {
 	tx, err := e.Conn.Begin()
 	if err != nil {
 		return tx, err
@@ -45,7 +45,7 @@ func (e *countingConn) Begin() (dbng.Tx, error) {
 }
 
 type countingTx struct {
-	dbng.Tx
+	db.Tx
 }
 
 func (e *countingTx) Query(query string, args ...interface{}) (*sql.Rows, error) {

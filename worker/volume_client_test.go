@@ -7,10 +7,10 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 
@@ -28,10 +28,10 @@ var _ = Describe("VolumeClient", func() {
 
 		fakeBaggageclaimClient            *baggageclaimfakes.FakeClient
 		fakeLockFactory                   *lockfakes.FakeLockFactory
-		fakeDBVolumeFactory               *dbngfakes.FakeVolumeFactory
-		fakeWorkerBaseResourceTypeFactory *dbngfakes.FakeWorkerBaseResourceTypeFactory
+		fakeDBVolumeFactory               *dbfakes.FakeVolumeFactory
+		fakeWorkerBaseResourceTypeFactory *dbfakes.FakeWorkerBaseResourceTypeFactory
 		fakeClock                         *fakeclock.FakeClock
-		dbWorker                          *dbngfakes.FakeWorker
+		dbWorker                          *dbfakes.FakeWorker
 
 		volumeClient worker.VolumeClient
 	)
@@ -40,13 +40,13 @@ var _ = Describe("VolumeClient", func() {
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
-		dbWorker = new(dbngfakes.FakeWorker)
+		dbWorker = new(dbfakes.FakeWorker)
 		dbWorker.NameReturns("some-worker")
 
 		testLogger = lagertest.NewTestLogger("test")
 
-		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
-		fakeWorkerBaseResourceTypeFactory = new(dbngfakes.FakeWorkerBaseResourceTypeFactory)
+		fakeDBVolumeFactory = new(dbfakes.FakeVolumeFactory)
+		fakeWorkerBaseResourceTypeFactory = new(dbfakes.FakeWorkerBaseResourceTypeFactory)
 		fakeLock = new(lockfakes.FakeLock)
 
 		volumeClient = worker.NewVolumeClient(
@@ -63,13 +63,13 @@ var _ = Describe("VolumeClient", func() {
 		var fakeBaggageclaimVolume *baggageclaimfakes.FakeVolume
 		var foundOrCreatedVolume worker.Volume
 		var foundOrCreatedErr error
-		var container dbng.CreatingContainer
-		var fakeCreatingVolume *dbngfakes.FakeCreatingVolume
+		var container db.CreatingContainer
+		var fakeCreatingVolume *dbfakes.FakeCreatingVolume
 		var volumeStrategy baggageclaim.Strategy
 
 		BeforeEach(func() {
 			fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
-			fakeCreatingVolume = new(dbngfakes.FakeCreatingVolume)
+			fakeCreatingVolume = new(dbfakes.FakeCreatingVolume)
 			fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
 			fakeDBVolumeFactory.CreateContainerVolumeReturns(fakeCreatingVolume, nil)
 
@@ -79,7 +79,7 @@ var _ = Describe("VolumeClient", func() {
 		})
 
 		JustBeforeEach(func() {
-			container = new(dbngfakes.FakeCreatingContainer)
+			container = new(dbfakes.FakeCreatingContainer)
 			foundOrCreatedVolume, foundOrCreatedErr = volumeClient.FindOrCreateVolumeForContainer(
 				testLogger,
 				worker.VolumeSpec{
@@ -179,7 +179,7 @@ var _ = Describe("VolumeClient", func() {
 
 		Context("when volume exists in created state", func() {
 			BeforeEach(func() {
-				fakeCreatedVolume := new(dbngfakes.FakeCreatedVolume)
+				fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
 			})
 
@@ -207,14 +207,14 @@ var _ = Describe("VolumeClient", func() {
 		})
 
 		Context("when volume does not exist in db", func() {
-			var fakeCreatedVolume *dbngfakes.FakeCreatedVolume
+			var fakeCreatedVolume *dbfakes.FakeCreatedVolume
 
 			BeforeEach(func() {
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, nil, nil)
 				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-				creatingVolume := new(dbngfakes.FakeCreatingVolume)
+				creatingVolume := new(dbfakes.FakeCreatingVolume)
 				fakeDBVolumeFactory.CreateContainerVolumeReturns(creatingVolume, nil)
-				fakeCreatedVolume = new(dbngfakes.FakeCreatedVolume)
+				fakeCreatedVolume = new(dbfakes.FakeCreatedVolume)
 				creatingVolume.CreatedReturns(fakeCreatedVolume, nil)
 			})
 
@@ -243,9 +243,9 @@ var _ = Describe("VolumeClient", func() {
 		var fakeBaggageclaimVolume *baggageclaimfakes.FakeVolume
 		var foundOrCreatedVolume worker.Volume
 		var foundOrCreatedErr error
-		var container dbng.CreatingContainer
-		var fakeCreatingVolume *dbngfakes.FakeCreatingVolume
-		var fakeCreatedVolume *dbngfakes.FakeCreatedVolume
+		var container db.CreatingContainer
+		var fakeCreatingVolume *dbfakes.FakeCreatingVolume
+		var fakeCreatedVolume *dbfakes.FakeCreatedVolume
 		var volumeStrategy baggageclaim.Strategy
 		var parentVolume *workerfakes.FakeVolume
 		var fakeParentBCVolume *baggageclaimfakes.FakeVolume
@@ -260,18 +260,18 @@ var _ = Describe("VolumeClient", func() {
 				Parent: fakeParentBCVolume,
 			}
 
-			fakeCreatingVolume = new(dbngfakes.FakeCreatingVolume)
+			fakeCreatingVolume = new(dbfakes.FakeCreatingVolume)
 			parentVolume.CreateChildForContainerReturns(fakeCreatingVolume, nil)
 
 			fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
 			fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
 
-			fakeCreatedVolume = new(dbngfakes.FakeCreatedVolume)
+			fakeCreatedVolume = new(dbfakes.FakeCreatedVolume)
 			fakeCreatingVolume.CreatedReturns(fakeCreatedVolume, nil)
 		})
 
 		JustBeforeEach(func() {
-			container = new(dbngfakes.FakeCreatingContainer)
+			container = new(dbfakes.FakeCreatingContainer)
 			foundOrCreatedVolume, foundOrCreatedErr = volumeClient.FindOrCreateCOWVolumeForContainer(
 				testLogger,
 				worker.VolumeSpec{
@@ -359,7 +359,7 @@ var _ = Describe("VolumeClient", func() {
 
 		Context("when volume exists in created state", func() {
 			BeforeEach(func() {
-				fakeCreatedVolume := new(dbngfakes.FakeCreatedVolume)
+				fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
 			})
 
@@ -416,9 +416,9 @@ var _ = Describe("VolumeClient", func() {
 		var foundOrCreatedErr error
 
 		var fakeBaggageclaimVolume *baggageclaimfakes.FakeVolume
-		var fakeCreatingVolume *dbngfakes.FakeCreatingVolume
-		var resourcCache *dbng.UsedResourceCache
-		var fakeCreatedVolume *dbngfakes.FakeCreatedVolume
+		var fakeCreatingVolume *dbfakes.FakeCreatingVolume
+		var resourcCache *db.UsedResourceCache
+		var fakeCreatedVolume *dbfakes.FakeCreatedVolume
 
 		BeforeEach(func() {
 			fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
@@ -426,11 +426,11 @@ var _ = Describe("VolumeClient", func() {
 
 			fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
 
-			fakeCreatingVolume = new(dbngfakes.FakeCreatingVolume)
+			fakeCreatingVolume = new(dbfakes.FakeCreatingVolume)
 
-			resourcCache = &dbng.UsedResourceCache{ID: 52}
+			resourcCache = &db.UsedResourceCache{ID: 52}
 
-			fakeCreatedVolume = new(dbngfakes.FakeCreatedVolume)
+			fakeCreatedVolume = new(dbfakes.FakeCreatedVolume)
 			fakeDBVolumeFactory.FindResourceCacheVolumeReturns(nil, nil, nil)
 			fakeDBVolumeFactory.CreateResourceCacheVolumeReturns(fakeCreatingVolume, nil)
 			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
@@ -480,7 +480,7 @@ var _ = Describe("VolumeClient", func() {
 		BeforeEach(func() {
 			handle = "some-handle"
 
-			fakeCreatedVolume := new(dbngfakes.FakeCreatedVolume)
+			fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
 			fakeDBVolumeFactory.FindCreatedVolumeReturns(fakeCreatedVolume, true, nil)
 		})
 

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type CheckBuildReadAccessHandlerFactory interface {
@@ -14,11 +14,11 @@ type CheckBuildReadAccessHandlerFactory interface {
 }
 
 type checkBuildReadAccessHandlerFactory struct {
-	buildFactory dbng.BuildFactory
+	buildFactory db.BuildFactory
 }
 
 func NewCheckBuildReadAccessHandlerFactory(
-	buildFactory dbng.BuildFactory,
+	buildFactory db.BuildFactory,
 ) *checkBuildReadAccessHandlerFactory {
 	return &checkBuildReadAccessHandlerFactory{
 		buildFactory: buildFactory,
@@ -51,7 +51,7 @@ func (f *checkBuildReadAccessHandlerFactory) CheckIfPrivateJobHandler(
 
 type checkBuildReadAccessHandler struct {
 	rejector        Rejector
-	buildFactory    dbng.BuildFactory
+	buildFactory    db.BuildFactory
 	delegateHandler http.Handler
 	allowPrivateJob bool
 }

@@ -6,12 +6,12 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp/retryhttpfakes"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -70,10 +70,10 @@ var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 			fakeRoundTripper.RoundTripReturns(nil, errors.New("some-error"))
 
 			bcURL := "http://5.6.7.8:7878"
-			savedWorker := new(dbngfakes.FakeWorker)
+			savedWorker := new(dbfakes.FakeWorker)
 			savedWorker.BaggageclaimURLReturns(&bcURL)
 			savedWorker.ExpiresAtReturns(time.Now().Add(123 * time.Minute))
-			savedWorker.StateReturns(dbng.WorkerStateRunning)
+			savedWorker.StateReturns(db.WorkerStateRunning)
 
 			fakeDB.GetWorkerReturns(savedWorker, true, nil)
 		})
@@ -113,8 +113,8 @@ var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 		Context("when the worker is in the DB and the baggageclaim URL is empty", func() {
 			BeforeEach(func() {
 
-				runningWorker := new(dbngfakes.FakeWorker)
-				runningWorker.StateReturns(dbng.WorkerStateStalled)
+				runningWorker := new(dbfakes.FakeWorker)
+				runningWorker.StateReturns(db.WorkerStateStalled)
 				runningWorker.BaggageclaimURLReturns(nil)
 
 				fakeDB.GetWorkerReturns(runningWorker, true, nil)

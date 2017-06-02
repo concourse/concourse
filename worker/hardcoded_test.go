@@ -14,14 +14,14 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker"
 )
 
 var _ = Describe("Hardcoded", func() {
 	var (
 		logger           lager.Logger
-		workerFactory    *dbngfakes.FakeWorkerFactory
+		workerFactory    *dbfakes.FakeWorkerFactory
 		gardenAddr       string
 		baggageClaimAddr string
 		resourceTypes    []atc.WorkerResourceType
@@ -32,7 +32,7 @@ var _ = Describe("Hardcoded", func() {
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("hardcoded-worker")
-		workerFactory = new(dbngfakes.FakeWorkerFactory)
+		workerFactory = new(dbfakes.FakeWorkerFactory)
 		gardenAddr = "http://garden.example.com"
 		baggageClaimAddr = "http://volumes.example.com"
 		resourceTypes = []atc.WorkerResourceType{

@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) CreateJobBuild(pipeline dbng.Pipeline) http.Handler {
+func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("create-job-build")
 

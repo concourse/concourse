@@ -25,7 +25,7 @@ import (
 	"github.com/concourse/atc/api/volumeserver"
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/mainredirect"
 	"github.com/concourse/atc/worker"
@@ -44,12 +44,12 @@ func NewHandler(
 	providerFactory auth.ProviderFactory,
 	oAuthBaseURL string,
 
-	dbTeamFactory dbng.TeamFactory,
-	dbPipelineFactory dbng.PipelineFactory,
-	dbWorkerFactory dbng.WorkerFactory,
-	volumeFactory dbng.VolumeFactory,
-	containerFactory dbng.ContainerFactory,
-	dbBuildFactory dbng.BuildFactory,
+	dbTeamFactory db.TeamFactory,
+	dbPipelineFactory db.PipelineFactory,
+	dbWorkerFactory db.WorkerFactory,
+	volumeFactory db.VolumeFactory,
+	containerFactory db.ContainerFactory,
+	dbBuildFactory db.BuildFactory,
 
 	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,

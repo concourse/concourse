@@ -10,9 +10,9 @@ import (
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
@@ -40,22 +40,22 @@ var _ = Describe("DBProvider", func() {
 
 		fakeImageFactory                    *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
-		fakeDBVolumeFactory                 *dbngfakes.FakeVolumeFactory
-		fakeDBWorkerFactory                 *dbngfakes.FakeWorkerFactory
-		fakeDBTeamFactory                   *dbngfakes.FakeTeamFactory
-		fakeDBWorkerBaseResourceTypeFactory *dbngfakes.FakeWorkerBaseResourceTypeFactory
-		fakeDBResourceCacheFactory          *dbngfakes.FakeResourceCacheFactory
-		fakeDBResourceConfigFactory         *dbngfakes.FakeResourceConfigFactory
-		fakeCreatingContainer               *dbngfakes.FakeCreatingContainer
-		fakeCreatedContainer                *dbngfakes.FakeCreatedContainer
+		fakeDBVolumeFactory                 *dbfakes.FakeVolumeFactory
+		fakeDBWorkerFactory                 *dbfakes.FakeWorkerFactory
+		fakeDBTeamFactory                   *dbfakes.FakeTeamFactory
+		fakeDBWorkerBaseResourceTypeFactory *dbfakes.FakeWorkerBaseResourceTypeFactory
+		fakeDBResourceCacheFactory          *dbfakes.FakeResourceCacheFactory
+		fakeDBResourceConfigFactory         *dbfakes.FakeResourceConfigFactory
+		fakeCreatingContainer               *dbfakes.FakeCreatingContainer
+		fakeCreatedContainer                *dbfakes.FakeCreatedContainer
 
-		fakeDBTeam *dbngfakes.FakeTeam
+		fakeDBTeam *dbfakes.FakeTeam
 
 		workers    []Worker
 		workersErr error
 
-		fakeWorker1 *dbngfakes.FakeWorker
-		fakeWorker2 *dbngfakes.FakeWorker
+		fakeWorker1 *dbfakes.FakeWorker
+		fakeWorker2 *dbfakes.FakeWorker
 	)
 
 	BeforeEach(func() {
@@ -87,11 +87,11 @@ var _ = Describe("DBProvider", func() {
 
 		worker1Version := "1.2.3"
 
-		fakeWorker1 = new(dbngfakes.FakeWorker)
+		fakeWorker1 = new(dbfakes.FakeWorker)
 		fakeWorker1.NameReturns("some-worker")
 		fakeWorker1.GardenAddrReturns(&gardenAddr)
 		fakeWorker1.BaggageclaimURLReturns(&baggageclaimURL)
-		fakeWorker1.StateReturns(dbng.WorkerStateRunning)
+		fakeWorker1.StateReturns(db.WorkerStateRunning)
 		fakeWorker1.ActiveContainersReturns(2)
 		fakeWorker1.ResourceTypesReturns([]atc.WorkerResourceType{
 			{Type: "some-resource-a", Image: "some-image-a"}})
@@ -100,11 +100,11 @@ var _ = Describe("DBProvider", func() {
 
 		worker2Version := "1.2.4"
 
-		fakeWorker2 = new(dbngfakes.FakeWorker)
+		fakeWorker2 = new(dbfakes.FakeWorker)
 		fakeWorker2.NameReturns("some-other-worker")
 		fakeWorker2.GardenAddrReturns(&gardenAddr)
 		fakeWorker2.BaggageclaimURLReturns(&baggageclaimURL)
-		fakeWorker2.StateReturns(dbng.WorkerStateRunning)
+		fakeWorker2.StateReturns(db.WorkerStateRunning)
 		fakeWorker2.ActiveContainersReturns(2)
 		fakeWorker2.ResourceTypesReturns([]atc.WorkerResourceType{
 			{Type: "some-resource-b", Image: "some-image-b"}})
@@ -116,23 +116,23 @@ var _ = Describe("DBProvider", func() {
 		fakeImage.FetchForContainerReturns(FetchedImage{}, nil)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
-		fakeDBTeamFactory = new(dbngfakes.FakeTeamFactory)
-		fakeDBTeam = new(dbngfakes.FakeTeam)
+		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
+		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
-		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
+		fakeDBVolumeFactory = new(dbfakes.FakeVolumeFactory)
 
 		fakeBackOffFactory := new(retryhttpfakes.FakeBackOffFactory)
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
-		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
-		fakeDBResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
-		fakeDBWorkerBaseResourceTypeFactory = new(dbngfakes.FakeWorkerBaseResourceTypeFactory)
+		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeDBResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
+		fakeDBWorkerBaseResourceTypeFactory = new(dbfakes.FakeWorkerBaseResourceTypeFactory)
 		fakeLock := new(lockfakes.FakeLock)
 
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 		fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
-		fakeDBWorkerFactory = new(dbngfakes.FakeWorkerFactory)
+		fakeDBWorkerFactory = new(dbfakes.FakeWorkerFactory)
 
 		wantWorkerVersion, err = version.NewVersionFromString("1.1.0")
 		Expect(err).ToNot(HaveOccurred())
@@ -174,7 +174,7 @@ var _ = Describe("DBProvider", func() {
 
 		Context("when the database yields workers", func() {
 			BeforeEach(func() {
-				fakeDBWorkerFactory.WorkersReturns([]dbng.Worker{fakeWorker1, fakeWorker2}, nil)
+				fakeDBWorkerFactory.WorkersReturns([]db.Worker{fakeWorker1, fakeWorker2}, nil)
 			})
 
 			It("succeeds", func() {
@@ -187,26 +187,26 @@ var _ = Describe("DBProvider", func() {
 
 			Context("when some of the workers returned are stalled or landing", func() {
 				BeforeEach(func() {
-					landingWorker := new(dbngfakes.FakeWorker)
+					landingWorker := new(dbfakes.FakeWorker)
 					landingWorker.NameReturns("landing-worker")
 					landingWorker.GardenAddrReturns(&gardenAddr)
 					landingWorker.BaggageclaimURLReturns(&baggageclaimURL)
-					landingWorker.StateReturns(dbng.WorkerStateLanding)
+					landingWorker.StateReturns(db.WorkerStateLanding)
 					landingWorker.ActiveContainersReturns(5)
 					landingWorker.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 
-					stalledWorker := new(dbngfakes.FakeWorker)
+					stalledWorker := new(dbfakes.FakeWorker)
 					stalledWorker.NameReturns("stalled-worker")
 					stalledWorker.GardenAddrReturns(&gardenAddr)
 					stalledWorker.BaggageclaimURLReturns(&baggageclaimURL)
-					stalledWorker.StateReturns(dbng.WorkerStateStalled)
+					stalledWorker.StateReturns(db.WorkerStateStalled)
 					stalledWorker.ActiveContainersReturns(0)
 					stalledWorker.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 
 					fakeDBWorkerFactory.WorkersReturns(
-						[]dbng.Worker{
+						[]db.Worker{
 							fakeWorker1,
 							stalledWorker,
 							landingWorker,
@@ -221,33 +221,33 @@ var _ = Describe("DBProvider", func() {
 
 			Context("when a worker's major version is higher or lower than the atc worker version", func() {
 				BeforeEach(func() {
-					worker1 := new(dbngfakes.FakeWorker)
+					worker1 := new(dbfakes.FakeWorker)
 					worker1.NameReturns("worker-1")
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
-					worker1.StateReturns(dbng.WorkerStateRunning)
+					worker1.StateReturns(db.WorkerStateRunning)
 					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version1 := "1.1.0"
 					worker1.VersionReturns(&version1)
 
-					worker2 := new(dbngfakes.FakeWorker)
+					worker2 := new(dbfakes.FakeWorker)
 					worker2.NameReturns("worker-2")
 					worker2.GardenAddrReturns(&gardenAddr)
 					worker2.BaggageclaimURLReturns(&baggageclaimURL)
-					worker2.StateReturns(dbng.WorkerStateRunning)
+					worker2.StateReturns(db.WorkerStateRunning)
 					worker2.ActiveContainersReturns(0)
 					worker2.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version2 := "2.0.0"
 					worker2.VersionReturns(&version2)
 
-					worker3 := new(dbngfakes.FakeWorker)
+					worker3 := new(dbfakes.FakeWorker)
 					worker3.NameReturns("worker-2")
 					worker3.GardenAddrReturns(&gardenAddr)
 					worker3.BaggageclaimURLReturns(&baggageclaimURL)
-					worker3.StateReturns(dbng.WorkerStateRunning)
+					worker3.StateReturns(db.WorkerStateRunning)
 					worker3.ActiveContainersReturns(0)
 					worker3.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
@@ -255,7 +255,7 @@ var _ = Describe("DBProvider", func() {
 					worker3.VersionReturns(&version3)
 
 					fakeDBWorkerFactory.WorkersReturns(
-						[]dbng.Worker{
+						[]db.Worker{
 							worker3,
 							worker2,
 							worker1,
@@ -271,33 +271,33 @@ var _ = Describe("DBProvider", func() {
 
 			Context("when a worker's minor version is higher or lower than the atc worker version", func() {
 				BeforeEach(func() {
-					worker1 := new(dbngfakes.FakeWorker)
+					worker1 := new(dbfakes.FakeWorker)
 					worker1.NameReturns("worker-1")
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
-					worker1.StateReturns(dbng.WorkerStateRunning)
+					worker1.StateReturns(db.WorkerStateRunning)
 					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version1 := "1.1.0"
 					worker1.VersionReturns(&version1)
 
-					worker2 := new(dbngfakes.FakeWorker)
+					worker2 := new(dbfakes.FakeWorker)
 					worker2.NameReturns("worker-2")
 					worker2.GardenAddrReturns(&gardenAddr)
 					worker2.BaggageclaimURLReturns(&baggageclaimURL)
-					worker2.StateReturns(dbng.WorkerStateRunning)
+					worker2.StateReturns(db.WorkerStateRunning)
 					worker2.ActiveContainersReturns(0)
 					worker2.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version2 := "1.2.0"
 					worker2.VersionReturns(&version2)
 
-					worker3 := new(dbngfakes.FakeWorker)
+					worker3 := new(dbfakes.FakeWorker)
 					worker3.NameReturns("worker-2")
 					worker3.GardenAddrReturns(&gardenAddr)
 					worker3.BaggageclaimURLReturns(&baggageclaimURL)
-					worker3.StateReturns(dbng.WorkerStateRunning)
+					worker3.StateReturns(db.WorkerStateRunning)
 					worker3.ActiveContainersReturns(0)
 					worker3.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
@@ -305,7 +305,7 @@ var _ = Describe("DBProvider", func() {
 					worker3.VersionReturns(&version3)
 
 					fakeDBWorkerFactory.WorkersReturns(
-						[]dbng.Worker{
+						[]db.Worker{
 							worker3,
 							worker2,
 							worker1,
@@ -322,17 +322,17 @@ var _ = Describe("DBProvider", func() {
 
 			Context("when a worker does not have a version (outdated)", func() {
 				BeforeEach(func() {
-					worker1 := new(dbngfakes.FakeWorker)
+					worker1 := new(dbfakes.FakeWorker)
 					worker1.NameReturns("worker-1")
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
-					worker1.StateReturns(dbng.WorkerStateRunning)
+					worker1.StateReturns(db.WorkerStateRunning)
 					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 
 					fakeDBWorkerFactory.WorkersReturns(
-						[]dbng.Worker{
+						[]db.Worker{
 							worker1,
 						}, nil)
 				})
@@ -345,11 +345,11 @@ var _ = Describe("DBProvider", func() {
 
 			Context("when a worker's version is incorretly formatted", func() {
 				BeforeEach(func() {
-					worker1 := new(dbngfakes.FakeWorker)
+					worker1 := new(dbfakes.FakeWorker)
 					worker1.NameReturns("worker-1")
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
-					worker1.StateReturns(dbng.WorkerStateRunning)
+					worker1.StateReturns(db.WorkerStateRunning)
 					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
@@ -357,7 +357,7 @@ var _ = Describe("DBProvider", func() {
 					worker1.VersionReturns(&version1)
 
 					fakeDBWorkerFactory.WorkersReturns(
-						[]dbng.Worker{
+						[]db.Worker{
 							worker1,
 						}, nil)
 				})
@@ -386,7 +386,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, 42, atc.PlanID("some-plan-id"), dbng.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, 42, atc.PlanID("some-plan-id"), db.ContainerMetadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -414,19 +414,19 @@ var _ = Describe("DBProvider", func() {
 
 			Describe("a created container", func() {
 				BeforeEach(func() {
-					createdVolume := new(dbngfakes.FakeCreatedVolume)
+					createdVolume := new(dbfakes.FakeCreatedVolume)
 					createdVolume.HandleReturns("vol-handle")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
 					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
 					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 
-					fakeCreatingContainer = new(dbngfakes.FakeCreatingContainer)
+					fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 					fakeCreatingContainer.HandleReturns("some-handle")
-					fakeCreatedContainer = new(dbngfakes.FakeCreatedContainer)
+					fakeCreatedContainer = new(dbfakes.FakeCreatedContainer)
 					fakeCreatingContainer.CreatedReturns(fakeCreatedContainer, nil)
 					fakeDBTeam.CreateBuildContainerReturns(fakeCreatingContainer, nil)
 
-					workerBaseResourceType := &dbng.UsedWorkerBaseResourceType{ID: 42}
+					workerBaseResourceType := &db.UsedWorkerBaseResourceType{ID: 42}
 					fakeDBWorkerBaseResourceTypeFactory.FindReturns(workerBaseResourceType, true, nil)
 				})
 
@@ -443,7 +443,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, 42, atc.PlanID("some-plan-id"), dbng.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, 42, atc.PlanID("some-plan-id"), db.ContainerMetadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(container.Handle()).To(Equal("created-handle"))
@@ -488,12 +488,12 @@ var _ = Describe("DBProvider", func() {
 		})
 
 		Context("when the worker is found", func() {
-			var fakeExistingWorker *dbngfakes.FakeWorker
+			var fakeExistingWorker *dbfakes.FakeWorker
 
 			BeforeEach(func() {
 				addr := "1.2.3.4:7777"
 
-				fakeExistingWorker = new(dbngfakes.FakeWorker)
+				fakeExistingWorker = new(dbfakes.FakeWorker)
 				fakeExistingWorker.NameReturns("some-worker")
 				fakeExistingWorker.GardenAddrReturns(&addr)
 				workerVersion := "1.1.0"
@@ -579,12 +579,12 @@ var _ = Describe("DBProvider", func() {
 		})
 
 		Context("when the worker is found", func() {
-			var fakeExistingWorker *dbngfakes.FakeWorker
+			var fakeExistingWorker *dbfakes.FakeWorker
 
 			BeforeEach(func() {
 				addr := "1.2.3.4:7777"
 
-				fakeExistingWorker = new(dbngfakes.FakeWorker)
+				fakeExistingWorker = new(dbfakes.FakeWorker)
 				fakeExistingWorker.NameReturns("some-worker")
 				fakeExistingWorker.GardenAddrReturns(&addr)
 				workerVersion := "1.1.0"
@@ -665,7 +665,7 @@ var _ = Describe("DBProvider", func() {
 			foundWorker, found, findErr = provider.FindWorkerForResourceCheckContainer(
 				logger,
 				345278,
-				dbng.ForResource(1235),
+				db.ForResource(1235),
 				"some-resource-type",
 				atc.Source{"some": "source"},
 				atc.VersionedResourceTypes{
@@ -681,21 +681,21 @@ var _ = Describe("DBProvider", func() {
 		})
 
 		Context("when creating the resource config succeeds", func() {
-			var usedResourceConfig *dbng.UsedResourceConfig
+			var usedResourceConfig *db.UsedResourceConfig
 
 			BeforeEach(func() {
-				usedResourceConfig = &dbng.UsedResourceConfig{ID: 1}
+				usedResourceConfig = &db.UsedResourceConfig{ID: 1}
 
 				fakeDBResourceConfigFactory.FindOrCreateResourceConfigReturns(usedResourceConfig, nil)
 			})
 
 			Context("when the worker is found", func() {
-				var fakeExistingWorker *dbngfakes.FakeWorker
+				var fakeExistingWorker *dbfakes.FakeWorker
 
 				BeforeEach(func() {
 					addr := "1.2.3.4:7777"
 
-					fakeExistingWorker = new(dbngfakes.FakeWorker)
+					fakeExistingWorker = new(dbfakes.FakeWorker)
 					fakeExistingWorker.NameReturns("some-worker")
 					fakeExistingWorker.GardenAddrReturns(&addr)
 					workerVersion := "1.1.0"

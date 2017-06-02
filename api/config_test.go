@@ -10,8 +10,8 @@ import (
 	"net/textproto"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
@@ -144,17 +144,17 @@ var _ = Describe("Config API", func() {
 			})
 
 			Context("when the team is found", func() {
-				var fakeTeam *dbngfakes.FakeTeam
+				var fakeTeam *dbfakes.FakeTeam
 				BeforeEach(func() {
-					fakeTeam = new(dbngfakes.FakeTeam)
+					fakeTeam = new(dbfakes.FakeTeam)
 					fakeTeam.NameReturns("a-team")
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
 
 				Context("when the pipeline is found", func() {
-					var fakePipeline *dbngfakes.FakePipeline
+					var fakePipeline *dbfakes.FakePipeline
 					BeforeEach(func() {
-						fakePipeline = new(dbngfakes.FakePipeline)
+						fakePipeline = new(dbfakes.FakePipeline)
 						fakePipeline.NameReturns("something-else")
 						fakeTeam.PipelineReturns(fakePipeline, true, nil)
 					})
@@ -376,8 +376,8 @@ var _ = Describe("Config API", func() {
 							name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
-							Expect(id).To(Equal(dbng.ConfigVersion(42)))
-							Expect(pipelineState).To(Equal(dbng.PipelineNoChange))
+							Expect(id).To(Equal(db.ConfigVersion(42)))
+							Expect(pipelineState).To(Equal(db.PipelineNoChange))
 						})
 
 						Context("and saving it fails", func() {
@@ -396,7 +396,7 @@ var _ = Describe("Config API", func() {
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								returnedPipeline := new(dbngfakes.FakePipeline)
+								returnedPipeline := new(dbfakes.FakePipeline)
 								dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 							})
 
@@ -452,8 +452,8 @@ var _ = Describe("Config API", func() {
 							name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
-							Expect(id).To(Equal(dbng.ConfigVersion(42)))
-							Expect(pipelineState).To(Equal(dbng.PipelineNoChange))
+							Expect(id).To(Equal(db.ConfigVersion(42)))
+							Expect(pipelineState).To(Equal(db.PipelineNoChange))
 						})
 
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
@@ -536,14 +536,14 @@ jobs:
 									},
 								}))
 
-								Expect(id).To(Equal(dbng.ConfigVersion(42)))
-								Expect(pipelineState).To(Equal(dbng.PipelineNoChange))
+								Expect(id).To(Equal(db.ConfigVersion(42)))
+								Expect(pipelineState).To(Equal(db.PipelineNoChange))
 							})
 						})
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								returnedPipeline := new(dbngfakes.FakePipeline)
+								returnedPipeline := new(dbfakes.FakePipeline)
 								dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 							})
 
@@ -595,7 +595,7 @@ jobs:
 
 					Context("multi-part requests", func() {
 						var pausedValue string
-						var expectedDBValue dbng.PipelinePausedState
+						var expectedDBValue db.PipelinePausedState
 
 						writeMultiPart := func() {
 							body := &bytes.Buffer{}
@@ -639,13 +639,13 @@ jobs:
 								name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(pipelineConfig))
-								Expect(id).To(Equal(dbng.ConfigVersion(42)))
+								Expect(id).To(Equal(db.ConfigVersion(42)))
 								Expect(pipelineState).To(Equal(expectedDBValue))
 							})
 
 							Context("when it's the first time the pipeline has been created", func() {
 								BeforeEach(func() {
-									returnedPipeline := new(dbngfakes.FakePipeline)
+									returnedPipeline := new(dbfakes.FakePipeline)
 									dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 								})
 
@@ -712,7 +712,7 @@ jobs:
 						Context("when paused is specified", func() {
 							BeforeEach(func() {
 								pausedValue = "true"
-								expectedDBValue = dbng.PipelinePaused
+								expectedDBValue = db.PipelinePaused
 							})
 
 							itSavesThePipeline()
@@ -721,7 +721,7 @@ jobs:
 						Context("when unpaused is specified", func() {
 							BeforeEach(func() {
 								pausedValue = "false"
-								expectedDBValue = dbng.PipelineUnpaused
+								expectedDBValue = db.PipelineUnpaused
 							})
 
 							itSavesThePipeline()
@@ -730,7 +730,7 @@ jobs:
 						Context("when neither paused or unpaused is specified", func() {
 							BeforeEach(func() {
 								pausedValue = ""
-								expectedDBValue = dbng.PipelineNoChange
+								expectedDBValue = db.PipelineNoChange
 							})
 
 							itSavesThePipeline()

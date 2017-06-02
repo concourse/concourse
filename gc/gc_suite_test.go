@@ -8,8 +8,8 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,20 +29,20 @@ var (
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
 
-	dbConn                dbng.Conn
+	dbConn                db.Conn
 	err                   error
-	resourceCacheFactory  dbng.ResourceCacheFactory
-	resourceConfigFactory dbng.ResourceConfigFactory
-	buildFactory          dbng.BuildFactory
+	resourceCacheFactory  db.ResourceCacheFactory
+	resourceConfigFactory db.ResourceConfigFactory
+	buildFactory          db.BuildFactory
 
-	teamFactory dbng.TeamFactory
+	teamFactory db.TeamFactory
 
-	defaultTeam     dbng.Team
-	defaultPipeline dbng.Pipeline
-	defaultJob      dbng.Job
-	defaultBuild    dbng.Build
+	defaultTeam     db.Team
+	defaultPipeline db.Pipeline
+	defaultJob      db.Job
+	defaultBuild    db.Build
 
-	usedResource dbng.Resource
+	usedResource db.Resource
 	logger       *lagertest.TestLogger
 )
 
@@ -63,8 +63,8 @@ var _ = BeforeEach(func() {
 
 	lockFactory := lock.NewLockFactory(postgresRunner.OpenSingleton())
 
-	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
-	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory)
+	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
+	buildFactory = db.NewBuildFactory(dbConn, lockFactory)
 
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())
@@ -87,7 +87,7 @@ var _ = BeforeEach(func() {
 		},
 	}
 
-	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, db.ConfigVersion(0), db.PipelineUnpaused)
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool
@@ -102,7 +102,7 @@ var _ = BeforeEach(func() {
 	setupTx, err := dbConn.Begin()
 	Expect(err).ToNot(HaveOccurred())
 
-	baseResourceType := dbng.BaseResourceType{
+	baseResourceType := db.BaseResourceType{
 		Name: "some-base-type",
 	}
 	_, err = baseResourceType.FindOrCreate(setupTx)
@@ -112,8 +112,8 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("gc-test")
 
-	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)
-	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn, lockFactory)
+	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
+	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 })
 
 var _ = AfterEach(func() {

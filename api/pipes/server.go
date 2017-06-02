@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
 
@@ -19,14 +19,14 @@ type Server struct {
 	pipes  map[string]pipe
 	pipesL *sync.RWMutex
 
-	teamFactory dbng.TeamFactory
+	teamFactory db.TeamFactory
 }
 
 func NewServer(
 	logger lager.Logger,
 	url string,
 	externalURL string,
-	teamFactory dbng.TeamFactory,
+	teamFactory db.TeamFactory,
 ) *Server {
 	return &Server{
 		logger: logger,

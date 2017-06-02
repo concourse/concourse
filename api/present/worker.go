@@ -2,10 +2,10 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func Worker(workerInfo dbng.Worker) atc.Worker {
+func Worker(workerInfo db.Worker) atc.Worker {
 	gardenAddr := ""
 	if workerInfo.GardenAddr() != nil {
 		gardenAddr = *workerInfo.GardenAddr()

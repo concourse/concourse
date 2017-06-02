@@ -2,10 +2,10 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func Container(container dbng.Container) atc.Container {
+func Container(container db.Container) atc.Container {
 	meta := container.Metadata()
 
 	return atc.Container{

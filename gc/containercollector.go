@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 const HijackedContainerTimeout = 5 * time.Minute
@@ -16,20 +16,20 @@ const HijackedContainerTimeout = 5 * time.Minute
 //go:generate counterfeiter . containerFactory
 
 type containerFactory interface {
-	FindContainersForDeletion() ([]dbng.CreatingContainer, []dbng.CreatedContainer, []dbng.DestroyingContainer, error)
+	FindContainersForDeletion() ([]db.CreatingContainer, []db.CreatedContainer, []db.DestroyingContainer, error)
 }
 
 type containerCollector struct {
 	rootLogger          lager.Logger
 	containerFactory    containerFactory
-	workerProvider      dbng.WorkerFactory
+	workerProvider      db.WorkerFactory
 	gardenClientFactory GardenClientFactory
 }
 
 func NewContainerCollector(
 	logger lager.Logger,
 	containerFactory containerFactory,
-	workerProvider dbng.WorkerFactory,
+	workerProvider db.WorkerFactory,
 	gardenClientFactory GardenClientFactory,
 ) Collector {
 	return &containerCollector{
@@ -40,10 +40,10 @@ func NewContainerCollector(
 	}
 }
 
-type GardenClientFactory func(dbng.Worker, lager.Logger) (garden.Client, error)
+type GardenClientFactory func(db.Worker, lager.Logger) (garden.Client, error)
 
 func NewGardenClientFactory() GardenClientFactory {
-	return func(w dbng.Worker, logger lager.Logger) (garden.Client, error) {
+	return func(w db.Worker, logger lager.Logger) (garden.Client, error) {
 		if w.GardenAddr() == nil {
 			return nil, errors.New("worker does not have a garden address")
 		}
@@ -65,7 +65,7 @@ func (c *containerCollector) Run() error {
 		return err
 	}
 
-	workersByName := map[string]dbng.Worker{}
+	workersByName := map[string]db.Worker{}
 	for _, w := range workers {
 		workersByName[w.Name()] = w
 	}
@@ -159,9 +159,9 @@ func (c *containerCollector) Run() error {
 
 func (c *containerCollector) markHijackedContainerAsDestroying(
 	logger lager.Logger,
-	hijackedContainer dbng.CreatedContainer,
-	workersByName map[string]dbng.Worker,
-) dbng.DestroyingContainer {
+	hijackedContainer db.CreatedContainer,
+	workersByName map[string]db.Worker,
+) db.DestroyingContainer {
 	w, found := workersByName[hijackedContainer.WorkerName()]
 	if !found {
 		logger.Info("worker-not-found")
@@ -205,7 +205,7 @@ func (c *containerCollector) markHijackedContainerAsDestroying(
 	return nil
 }
 
-func (c *containerCollector) tryToDestroyContainer(logger lager.Logger, container dbng.DestroyingContainer, workersByName map[string]dbng.Worker) {
+func (c *containerCollector) tryToDestroyContainer(logger lager.Logger, container db.DestroyingContainer, workersByName map[string]db.Worker) {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
@@ -214,7 +214,7 @@ func (c *containerCollector) tryToDestroyContainer(logger lager.Logger, containe
 		logger.Info("worker-not-found")
 		return
 	}
-	if w.State() == dbng.WorkerStateStalled || w.State() == dbng.WorkerStateLanded {
+	if w.State() == db.WorkerStateStalled || w.State() == db.WorkerStateLanded {
 		logger.Debug("worker-is-not-available", lager.Data{"state": string(w.State())})
 		return
 	}

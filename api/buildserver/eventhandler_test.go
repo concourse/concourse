@@ -10,8 +10,8 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/atc/api/buildserver"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/event"
 	"github.com/vito/go-sse/sse"
 
@@ -30,13 +30,13 @@ func fakeEvent(payload string) event.Envelope {
 
 var _ = Describe("Handler", func() {
 	var (
-		build *dbngfakes.FakeBuild
+		build *dbfakes.FakeBuild
 
 		server *httptest.Server
 	)
 
 	BeforeEach(func() {
-		build = new(dbngfakes.FakeBuild)
+		build = new(dbfakes.FakeBuild)
 
 		server = httptest.NewServer(NewEventHandler(lagertest.NewTestLogger("test"), build))
 	})
@@ -55,7 +55,7 @@ var _ = Describe("Handler", func() {
 		})
 
 		Context("when subscribing to the build succeeds", func() {
-			var fakeEventSource *dbngfakes.FakeEventSource
+			var fakeEventSource *dbfakes.FakeEventSource
 			var returnedEvents []event.Envelope
 
 			BeforeEach(func() {
@@ -65,16 +65,16 @@ var _ = Describe("Handler", func() {
 					fakeEvent(`{"event":3}`),
 				}
 
-				fakeEventSource = new(dbngfakes.FakeEventSource)
+				fakeEventSource = new(dbfakes.FakeEventSource)
 
-				build.EventsStub = func(from uint) (dbng.EventSource, error) {
+				build.EventsStub = func(from uint) (db.EventSource, error) {
 					fakeEventSource.NextStub = func() (event.Envelope, error) {
 						defer GinkgoRecover()
 
 						Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
 
 						if from >= uint(len(returnedEvents)) {
-							return event.Envelope{}, dbng.ErrEndOfBuildEventStream
+							return event.Envelope{}, db.ErrEndOfBuildEventStream
 						}
 
 						from++
@@ -169,13 +169,13 @@ var _ = Describe("Handler", func() {
 		})
 
 		Context("when the eventsource returns an error", func() {
-			var fakeEventSource *dbngfakes.FakeEventSource
+			var fakeEventSource *dbfakes.FakeEventSource
 			var disaster error
 
 			BeforeEach(func() {
 				disaster = errors.New("a coffee machine")
 
-				fakeEventSource = new(dbngfakes.FakeEventSource)
+				fakeEventSource = new(dbfakes.FakeEventSource)
 
 				from := 0
 				fakeEventSource.NextStub = func() (event.Envelope, error) {
@@ -225,9 +225,9 @@ var _ = Describe("Handler", func() {
 		})
 
 		Context("when the event stream never ends", func() {
-			var fakeEventSource *dbngfakes.FakeEventSource
+			var fakeEventSource *dbfakes.FakeEventSource
 			BeforeEach(func() {
-				fakeEventSource = new(dbngfakes.FakeEventSource)
+				fakeEventSource = new(dbfakes.FakeEventSource)
 				fakeEventSource.NextReturns(fakeEvent(`{"event":1}`), nil)
 				build.EventsReturns(fakeEventSource, nil)
 			})

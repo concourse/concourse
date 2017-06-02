@@ -2,12 +2,12 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 
-func Resource(resource dbng.Resource, groups atc.GroupConfigs, showCheckError bool, teamName string) atc.Resource {
+func Resource(resource db.Resource, groups atc.GroupConfigs, showCheckError bool, teamName string) atc.Resource {
 	generator := rata.NewRequestGenerator("", web.Routes)
 
 	req, err := generator.CreateRequest(

@@ -3,10 +3,10 @@ package buildserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) BuildEvents(build dbng.Build) http.Handler {
+func (s *Server) BuildEvents(build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		streamDone := make(chan struct{})
 

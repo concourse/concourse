@@ -6,9 +6,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/worker"
 
@@ -20,15 +20,15 @@ import (
 var _ = Describe("ResourceTypeScanner", func() {
 	var (
 		fakeResourceFactory *rfakes.FakeResourceFactory
-		fakeDBPipeline      *dbngfakes.FakePipeline
+		fakeDBPipeline      *dbfakes.FakePipeline
 		interval            time.Duration
 
-		fakeResourceType      *dbngfakes.FakeResourceType
+		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
 
 		scanner Scanner
 
-		savedResourceType *dbngfakes.FakeResourceType
+		savedResourceType *dbfakes.FakeResourceType
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
@@ -38,8 +38,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		interval = 1 * time.Minute
 
-		fakeDBPipeline = new(dbngfakes.FakePipeline)
-		savedResourceType = new(dbngfakes.FakeResourceType)
+		fakeDBPipeline = new(dbfakes.FakePipeline)
+		savedResourceType = new(dbfakes.FakeResourceType)
 
 		scanner = NewResourceTypeScanner(
 			fakeResourceFactory,
@@ -63,13 +63,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeDBPipeline.NameReturns("some-pipeline")
 		fakeDBPipeline.TeamIDReturns(teamID)
 
-		fakeResourceType = new(dbngfakes.FakeResourceType)
+		fakeResourceType = new(dbfakes.FakeResourceType)
 		fakeResourceType.IDReturns(1)
 		fakeResourceType.NameReturns("some-custom-resource")
 		fakeResourceType.TypeReturns("docker-image")
 		fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
 		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
-		fakeDBPipeline.ResourceTypesReturns([]dbng.ResourceType{fakeResourceType}, nil)
+		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
 
 		versionedResourceType = atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
@@ -125,9 +125,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(fakeResource.CheckCallCount()).To(Equal(1))
 				Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
 				_, _, user, resourceType, resourceSource, metadata, resourceSpec, customTypes, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
-				Expect(user).To(Equal(dbng.ForResourceType(39)))
-				Expect(metadata).To(Equal(dbng.ContainerMetadata{
-					Type: dbng.ContainerTypeCheck,
+				Expect(user).To(Equal(db.ForResourceType(39)))
+				Expect(metadata).To(Equal(db.ContainerMetadata{
+					Type: db.ContainerTypeCheck,
 				}))
 				Expect(customTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{

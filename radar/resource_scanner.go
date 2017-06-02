@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -18,7 +18,7 @@ type resourceScanner struct {
 	clock           clock.Clock
 	resourceFactory resource.ResourceFactory
 	defaultInterval time.Duration
-	dbPipeline      dbng.Pipeline
+	dbPipeline      db.Pipeline
 	externalURL     string
 }
 
@@ -26,7 +26,7 @@ func NewResourceScanner(
 	clock clock.Clock,
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
-	dbPipeline dbng.Pipeline,
+	dbPipeline db.Pipeline,
 	externalURL string,
 ) Scanner {
 	return &resourceScanner{
@@ -134,7 +134,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 
 	if !found {
 		logger.Debug("resource-not-found")
-		return dbng.ResourceNotFoundError{Name: resourceName}
+		return db.ResourceNotFoundError{Name: resourceName}
 	}
 
 	interval, err := scanner.checkInterval(savedResource.CheckEvery())
@@ -198,7 +198,7 @@ func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) e
 
 func (scanner *resourceScanner) scan(
 	logger lager.Logger,
-	savedResource dbng.Resource,
+	savedResource db.Resource,
 	fromVersion atc.Version,
 	resourceTypes atc.VersionedResourceTypes,
 ) error {
@@ -246,11 +246,11 @@ func (scanner *resourceScanner) scan(
 	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
 		nil,
-		dbng.ForResource(savedResource.ID()),
+		db.ForResource(savedResource.ID()),
 		savedResource.Type(),
 		savedResource.Source(),
-		dbng.ContainerMetadata{
-			Type: dbng.ContainerTypeCheck,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
 		},
 		containerSpec,
 		resourceTypes,

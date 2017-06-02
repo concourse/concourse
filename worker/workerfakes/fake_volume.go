@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 )
@@ -117,18 +117,18 @@ type FakeVolume struct {
 	initializeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	CreateChildForContainerStub        func(dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
+	CreateChildForContainerStub        func(db.CreatingContainer, string) (db.CreatingVolume, error)
 	createChildForContainerMutex       sync.RWMutex
 	createChildForContainerArgsForCall []struct {
-		arg1 dbng.CreatingContainer
+		arg1 db.CreatingContainer
 		arg2 string
 	}
 	createChildForContainerReturns struct {
-		result1 dbng.CreatingVolume
+		result1 db.CreatingVolume
 		result2 error
 	}
 	createChildForContainerReturnsOnCall map[int]struct {
-		result1 dbng.CreatingVolume
+		result1 db.CreatingVolume
 		result2 error
 	}
 	DestroyStub        func() error
@@ -587,11 +587,11 @@ func (fake *FakeVolume) InitializeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolume) CreateChildForContainer(arg1 dbng.CreatingContainer, arg2 string) (dbng.CreatingVolume, error) {
+func (fake *FakeVolume) CreateChildForContainer(arg1 db.CreatingContainer, arg2 string) (db.CreatingVolume, error) {
 	fake.createChildForContainerMutex.Lock()
 	ret, specificReturn := fake.createChildForContainerReturnsOnCall[len(fake.createChildForContainerArgsForCall)]
 	fake.createChildForContainerArgsForCall = append(fake.createChildForContainerArgsForCall, struct {
-		arg1 dbng.CreatingContainer
+		arg1 db.CreatingContainer
 		arg2 string
 	}{arg1, arg2})
 	fake.recordInvocation("CreateChildForContainer", []interface{}{arg1, arg2})
@@ -611,30 +611,30 @@ func (fake *FakeVolume) CreateChildForContainerCallCount() int {
 	return len(fake.createChildForContainerArgsForCall)
 }
 
-func (fake *FakeVolume) CreateChildForContainerArgsForCall(i int) (dbng.CreatingContainer, string) {
+func (fake *FakeVolume) CreateChildForContainerArgsForCall(i int) (db.CreatingContainer, string) {
 	fake.createChildForContainerMutex.RLock()
 	defer fake.createChildForContainerMutex.RUnlock()
 	return fake.createChildForContainerArgsForCall[i].arg1, fake.createChildForContainerArgsForCall[i].arg2
 }
 
-func (fake *FakeVolume) CreateChildForContainerReturns(result1 dbng.CreatingVolume, result2 error) {
+func (fake *FakeVolume) CreateChildForContainerReturns(result1 db.CreatingVolume, result2 error) {
 	fake.CreateChildForContainerStub = nil
 	fake.createChildForContainerReturns = struct {
-		result1 dbng.CreatingVolume
+		result1 db.CreatingVolume
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeVolume) CreateChildForContainerReturnsOnCall(i int, result1 dbng.CreatingVolume, result2 error) {
+func (fake *FakeVolume) CreateChildForContainerReturnsOnCall(i int, result1 db.CreatingVolume, result2 error) {
 	fake.CreateChildForContainerStub = nil
 	if fake.createChildForContainerReturnsOnCall == nil {
 		fake.createChildForContainerReturnsOnCall = make(map[int]struct {
-			result1 dbng.CreatingVolume
+			result1 db.CreatingVolume
 			result2 error
 		})
 	}
 	fake.createChildForContainerReturnsOnCall[i] = struct {
-		result1 dbng.CreatingVolume
+		result1 db.CreatingVolume
 		result2 error
 	}{result1, result2}
 }

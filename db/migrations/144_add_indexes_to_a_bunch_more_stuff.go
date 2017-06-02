@@ -1,6 +1,6 @@
 package migrations
 
-import "github.com/concourse/atc/dbng/migration"
+import "github.com/concourse/atc/db/migration"
 
 // We pretty much just added an index for every foreign key, plus one on
 // containers for plan_id.

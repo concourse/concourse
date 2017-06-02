@@ -9,12 +9,12 @@ import (
 	"github.com/tedsuo/ifrit"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 func NewHardcoded(
 	logger lager.Logger,
-	workerFactory dbng.WorkerFactory,
+	workerFactory db.WorkerFactory,
 	clock c.Clock,
 	gardenAddr string,
 	baggageclaimURL string,

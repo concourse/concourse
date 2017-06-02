@@ -4,30 +4,30 @@ package gcfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type FakeContainerFactory struct {
-	FindContainersForDeletionStub        func() ([]dbng.CreatingContainer, []dbng.CreatedContainer, []dbng.DestroyingContainer, error)
+	FindContainersForDeletionStub        func() ([]db.CreatingContainer, []db.CreatedContainer, []db.DestroyingContainer, error)
 	findContainersForDeletionMutex       sync.RWMutex
 	findContainersForDeletionArgsForCall []struct{}
 	findContainersForDeletionReturns     struct {
-		result1 []dbng.CreatingContainer
-		result2 []dbng.CreatedContainer
-		result3 []dbng.DestroyingContainer
+		result1 []db.CreatingContainer
+		result2 []db.CreatedContainer
+		result3 []db.DestroyingContainer
 		result4 error
 	}
 	findContainersForDeletionReturnsOnCall map[int]struct {
-		result1 []dbng.CreatingContainer
-		result2 []dbng.CreatedContainer
-		result3 []dbng.DestroyingContainer
+		result1 []db.CreatingContainer
+		result2 []db.CreatedContainer
+		result3 []db.DestroyingContainer
 		result4 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerFactory) FindContainersForDeletion() ([]dbng.CreatingContainer, []dbng.CreatedContainer, []dbng.DestroyingContainer, error) {
+func (fake *FakeContainerFactory) FindContainersForDeletion() ([]db.CreatingContainer, []db.CreatedContainer, []db.DestroyingContainer, error) {
 	fake.findContainersForDeletionMutex.Lock()
 	ret, specificReturn := fake.findContainersForDeletionReturnsOnCall[len(fake.findContainersForDeletionArgsForCall)]
 	fake.findContainersForDeletionArgsForCall = append(fake.findContainersForDeletionArgsForCall, struct{}{})
@@ -48,30 +48,30 @@ func (fake *FakeContainerFactory) FindContainersForDeletionCallCount() int {
 	return len(fake.findContainersForDeletionArgsForCall)
 }
 
-func (fake *FakeContainerFactory) FindContainersForDeletionReturns(result1 []dbng.CreatingContainer, result2 []dbng.CreatedContainer, result3 []dbng.DestroyingContainer, result4 error) {
+func (fake *FakeContainerFactory) FindContainersForDeletionReturns(result1 []db.CreatingContainer, result2 []db.CreatedContainer, result3 []db.DestroyingContainer, result4 error) {
 	fake.FindContainersForDeletionStub = nil
 	fake.findContainersForDeletionReturns = struct {
-		result1 []dbng.CreatingContainer
-		result2 []dbng.CreatedContainer
-		result3 []dbng.DestroyingContainer
+		result1 []db.CreatingContainer
+		result2 []db.CreatedContainer
+		result3 []db.DestroyingContainer
 		result4 error
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeContainerFactory) FindContainersForDeletionReturnsOnCall(i int, result1 []dbng.CreatingContainer, result2 []dbng.CreatedContainer, result3 []dbng.DestroyingContainer, result4 error) {
+func (fake *FakeContainerFactory) FindContainersForDeletionReturnsOnCall(i int, result1 []db.CreatingContainer, result2 []db.CreatedContainer, result3 []db.DestroyingContainer, result4 error) {
 	fake.FindContainersForDeletionStub = nil
 	if fake.findContainersForDeletionReturnsOnCall == nil {
 		fake.findContainersForDeletionReturnsOnCall = make(map[int]struct {
-			result1 []dbng.CreatingContainer
-			result2 []dbng.CreatedContainer
-			result3 []dbng.DestroyingContainer
+			result1 []db.CreatingContainer
+			result2 []db.CreatedContainer
+			result3 []db.DestroyingContainer
 			result4 error
 		})
 	}
 	fake.findContainersForDeletionReturnsOnCall[i] = struct {
-		result1 []dbng.CreatingContainer
-		result2 []dbng.CreatedContainer
-		result3 []dbng.DestroyingContainer
+		result1 []db.CreatingContainer
+		result2 []db.CreatedContainer
+		result3 []db.DestroyingContainer
 		result4 error
 	}{result1, result2, result3, result4}
 }

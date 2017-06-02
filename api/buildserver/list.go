@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
@@ -35,14 +35,14 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		limit = atc.PaginationAPIDefaultLimit
 	}
 
-	page := dbng.Page{Until: until, Since: since, Limit: limit}
+	page := db.Page{Until: until, Since: since, Limit: limit}
 
-	var builds []dbng.Build
-	var pagination dbng.Pagination
+	var builds []db.Build
+	var pagination db.Pagination
 
 	authTeam, authTeamFound := auth.GetTeam(r)
 	if authTeamFound {
-		var team dbng.Team
+		var team db.Team
 		var found bool
 		team, found, err = s.teamFactory.FindTeam(authTeam.Name())
 		if err != nil {
@@ -85,7 +85,7 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(atc)
 }
 
-func (s *Server) addNextLink(w http.ResponseWriter, page dbng.Page) {
+func (s *Server) addNextLink(w http.ResponseWriter, page db.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
@@ -97,7 +97,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, page dbng.Page) {
 	))
 }
 
-func (s *Server) addPreviousLink(w http.ResponseWriter, page dbng.Page) {
+func (s *Server) addPreviousLink(w http.ResponseWriter, page db.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,

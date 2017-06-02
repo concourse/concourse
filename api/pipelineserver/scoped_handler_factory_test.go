@@ -8,8 +8,8 @@ import (
 
 	"github.com/concourse/atc/api/pipelineserver"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,9 +21,9 @@ var _ = Describe("Handler", func() {
 		server   *httptest.Server
 		delegate *delegateHandler
 
-		dbTeamFactory *dbngfakes.FakeTeamFactory
-		fakeTeam      *dbngfakes.FakeTeam
-		fakePipeline  *dbngfakes.FakePipeline
+		dbTeamFactory *dbfakes.FakeTeamFactory
+		fakeTeam      *dbfakes.FakeTeam
+		fakePipeline  *dbfakes.FakePipeline
 
 		handler http.Handler
 	)
@@ -31,9 +31,9 @@ var _ = Describe("Handler", func() {
 	BeforeEach(func() {
 		delegate = &delegateHandler{}
 
-		dbTeamFactory = new(dbngfakes.FakeTeamFactory)
-		fakeTeam = new(dbngfakes.FakeTeam)
-		fakePipeline = new(dbngfakes.FakePipeline)
+		dbTeamFactory = new(dbfakes.FakeTeamFactory)
+		fakeTeam = new(dbfakes.FakeTeam)
+		fakePipeline = new(dbfakes.FakePipeline)
 
 		handlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
 		handler = handlerFactory.HandlerFor(delegate.GetHandler)
@@ -54,10 +54,10 @@ var _ = Describe("Handler", func() {
 	})
 
 	Context("when pipeline is in request context", func() {
-		var contextPipeline *dbngfakes.FakePipeline
+		var contextPipeline *dbfakes.FakePipeline
 
 		BeforeEach(func() {
-			contextPipeline = new(dbngfakes.FakePipeline)
+			contextPipeline = new(dbfakes.FakePipeline)
 			handler = &wrapHandler{handler, contextPipeline}
 		})
 
@@ -160,10 +160,10 @@ var _ = Describe("Handler", func() {
 
 type delegateHandler struct {
 	IsCalled bool
-	Pipeline dbng.Pipeline
+	Pipeline db.Pipeline
 }
 
-func (handler *delegateHandler) GetHandler(dbPipeline dbng.Pipeline) http.Handler {
+func (handler *delegateHandler) GetHandler(dbPipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.IsCalled = true
 		handler.Pipeline = dbPipeline
@@ -172,7 +172,7 @@ func (handler *delegateHandler) GetHandler(dbPipeline dbng.Pipeline) http.Handle
 
 type wrapHandler struct {
 	delegate        http.Handler
-	contextPipeline dbng.Pipeline
+	contextPipeline db.Pipeline
 }
 
 func (h *wrapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

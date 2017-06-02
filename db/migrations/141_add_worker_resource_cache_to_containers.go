@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/concourse/atc/dbng/migration"
+	"github.com/concourse/atc/db/migration"
 )
 
 func AddWorkerResourceCacheToContainers(tx migration.LimitedTx) error {

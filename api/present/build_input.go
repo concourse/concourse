@@ -2,10 +2,10 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func BuildInput(input dbng.BuildInput, config atc.JobInput, source atc.Source) atc.BuildInput {
+func BuildInput(input db.BuildInput, config atc.JobInput, source atc.Source) atc.BuildInput {
 	return atc.BuildInput{
 		Name:     input.Name,
 		Resource: input.Resource,

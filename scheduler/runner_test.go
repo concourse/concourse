@@ -13,15 +13,15 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Runner", func() {
 	var (
-		fakePipeline *dbngfakes.FakePipeline
+		fakePipeline *dbfakes.FakePipeline
 		scheduler    *schedulerfakes.FakeBuildScheduler
 		noop         bool
 
@@ -34,14 +34,14 @@ var _ = Describe("Runner", func() {
 		process ifrit.Process
 
 		versionedResourceTypes atc.VersionedResourceTypes
-		fakeJob1               *dbngfakes.FakeJob
-		fakeJob2               *dbngfakes.FakeJob
-		fakeResource1          *dbngfakes.FakeResource
-		fakeResource2          *dbngfakes.FakeResource
+		fakeJob1               *dbfakes.FakeJob
+		fakeJob2               *dbfakes.FakeJob
+		fakeResource1          *dbfakes.FakeResource
+		fakeResource2          *dbfakes.FakeResource
 	)
 
 	BeforeEach(func() {
-		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline = new(dbfakes.FakePipeline)
 		fakePipeline.NameReturns("some-pipeline")
 
 		versionedResourceTypes = atc.VersionedResourceTypes{
@@ -71,10 +71,10 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		fakePipeline.ResourceTypesReturns([]dbng.ResourceType{
-			fakeDBNGResourceType(versionedResourceTypes[0]),
-			fakeDBNGResourceType(versionedResourceTypes[1]),
-			fakeDBNGResourceType(versionedResourceTypes[2]),
+		fakePipeline.ResourceTypesReturns([]db.ResourceType{
+			fakeDBResourceType(versionedResourceTypes[0]),
+			fakeDBResourceType(versionedResourceTypes[1]),
+			fakeDBResourceType(versionedResourceTypes[2]),
 		}, nil)
 
 		scheduler = new(schedulerfakes.FakeBuildScheduler)
@@ -126,22 +126,22 @@ var _ = Describe("Runner", func() {
 				},
 			},
 		}
-		fakeJob1 = new(dbngfakes.FakeJob)
+		fakeJob1 = new(dbfakes.FakeJob)
 		fakeJob1.NameReturns("some-job")
-		fakeJob2 = new(dbngfakes.FakeJob)
+		fakeJob2 = new(dbfakes.FakeJob)
 		fakeJob2.NameReturns("some-other-job")
 
-		fakeResource1 = new(dbngfakes.FakeResource)
+		fakeResource1 = new(dbfakes.FakeResource)
 		fakeResource1.NameReturns("some-resource")
 		fakeResource1.TypeReturns("git")
 		fakeResource1.SourceReturns(atc.Source{"uri": "git://some-resource"})
-		fakeResource2 = new(dbngfakes.FakeResource)
+		fakeResource2 = new(dbfakes.FakeResource)
 		fakeResource2.NameReturns("some-dependant-resource")
 		fakeResource2.TypeReturns("git")
 		fakeResource2.SourceReturns(atc.Source{"uri": "git://some-dependant-resource"})
 
-		fakePipeline.JobsReturns([]dbng.Job{fakeJob1, fakeJob2}, nil)
-		fakePipeline.ResourcesReturns(dbng.Resources{fakeResource1, fakeResource2}, nil)
+		fakePipeline.JobsReturns([]db.Job{fakeJob1, fakeJob2}, nil)
+		fakePipeline.ResourcesReturns(db.Resources{fakeResource1, fakeResource2}, nil)
 		fakePipeline.ReloadReturns(true, nil)
 
 		lock = new(lockfakes.FakeLock)
@@ -198,8 +198,8 @@ var _ = Describe("Runner", func() {
 
 		_, versions, jobs, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
 		Expect(versions).To(Equal(someVersions))
-		Expect(jobs).To(Equal([]dbng.Job{fakeJob1, fakeJob2}))
-		Expect(resources).To(Equal(dbng.Resources{fakeResource1, fakeResource2}))
+		Expect(jobs).To(Equal([]db.Job{fakeJob1, fakeJob2}))
+		Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
 		Expect(resourceTypes).To(Equal(versionedResourceTypes))
 	})
 
@@ -248,8 +248,8 @@ var _ = Describe("Runner", func() {
 	})
 })
 
-func fakeDBNGResourceType(t atc.VersionedResourceType) *dbngfakes.FakeResourceType {
-	fake := new(dbngfakes.FakeResourceType)
+func fakeDBResourceType(t atc.VersionedResourceType) *dbfakes.FakeResourceType {
+	fake := new(dbfakes.FakeResourceType)
 	fake.NameReturns(t.Name)
 	fake.TypeReturns(t.Type)
 	fake.SourceReturns(t.Source)

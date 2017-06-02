@@ -5,13 +5,13 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
 type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
-	resourceCache          *dbng.UsedResourceCache
+	resourceCache          *db.UsedResourceCache
 	resourceInstance       ResourceInstance
 	worker                 worker.Worker
 	resourceOptions        ResourceOptions
@@ -21,12 +21,12 @@ type resourceInstanceFetchSource struct {
 	session                Session
 	metadata               Metadata
 	imageFetchingDelegate  worker.ImageFetchingDelegate
-	dbResourceCacheFactory dbng.ResourceCacheFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
 func NewResourceInstanceFetchSource(
 	logger lager.Logger,
-	resourceCache *dbng.UsedResourceCache,
+	resourceCache *db.UsedResourceCache,
 	resourceInstance ResourceInstance,
 	worker worker.Worker,
 	resourceOptions ResourceOptions,
@@ -36,7 +36,7 @@ func NewResourceInstanceFetchSource(
 	session Session,
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
 ) FetchSource {
 	return &resourceInstanceFetchSource{
 		logger:                 logger,

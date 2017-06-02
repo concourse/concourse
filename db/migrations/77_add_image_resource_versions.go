@@ -1,6 +1,6 @@
 package migrations
 
-import "github.com/concourse/atc/dbng/migration"
+import "github.com/concourse/atc/db/migration"
 
 func AddImageResourceVersions(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`CREATE TABLE image_resource_versions (

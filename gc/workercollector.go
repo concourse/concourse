@@ -2,17 +2,17 @@ package gc
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type workerCollector struct {
 	logger          lager.Logger
-	workerLifecycle dbng.WorkerLifecycle
+	workerLifecycle db.WorkerLifecycle
 }
 
 func NewWorkerCollector(
 	logger lager.Logger,
-	workerLifecycle dbng.WorkerLifecycle,
+	workerLifecycle db.WorkerLifecycle,
 ) Collector {
 	return &workerCollector{
 		logger:          logger,

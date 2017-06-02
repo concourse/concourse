@@ -6,8 +6,8 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -19,19 +19,19 @@ type VolumeClient interface {
 	CreateVolumeForResourceCache(
 		lager.Logger,
 		VolumeSpec,
-		*dbng.UsedResourceCache,
+		*db.UsedResourceCache,
 	) (Volume, error)
 	FindOrCreateVolumeForContainer(
 		lager.Logger,
 		VolumeSpec,
-		dbng.CreatingContainer,
+		db.CreatingContainer,
 		int,
 		string,
 	) (Volume, error)
 	FindOrCreateCOWVolumeForContainer(
 		lager.Logger,
 		VolumeSpec,
-		dbng.CreatingContainer,
+		db.CreatingContainer,
 		Volume,
 		int,
 		string,
@@ -44,7 +44,7 @@ type VolumeClient interface {
 	) (Volume, error)
 	FindInitializedVolumeForResourceCache(
 		lager.Logger,
-		*dbng.UsedResourceCache,
+		*db.UsedResourceCache,
 	) (Volume, bool, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
@@ -56,19 +56,19 @@ var ErrBaseResourceTypeNotFound = errors.New("base-resource-type-not-found")
 type volumeClient struct {
 	baggageclaimClient              baggageclaim.Client
 	lockFactory                     lock.LockFactory
-	dbVolumeFactory                 dbng.VolumeFactory
-	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
+	dbVolumeFactory                 db.VolumeFactory
+	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory
 	clock                           clock.Clock
-	dbWorker                        dbng.Worker
+	dbWorker                        db.Worker
 }
 
 func NewVolumeClient(
 	baggageclaimClient baggageclaim.Client,
 	lockFactory lock.LockFactory,
-	dbVolumeFactory dbng.VolumeFactory,
-	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory,
+	dbVolumeFactory db.VolumeFactory,
+	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
 	clock clock.Clock,
-	dbWorker dbng.Worker,
+	dbWorker db.Worker,
 ) VolumeClient {
 	return &volumeClient{
 		baggageclaimClient:              baggageclaimClient,
@@ -83,17 +83,17 @@ func NewVolumeClient(
 func (c *volumeClient) FindOrCreateVolumeForContainer(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	container dbng.CreatingContainer,
+	container db.CreatingContainer,
 	teamID int,
 	mountPath string,
 ) (Volume, error) {
 	return c.findOrCreateVolume(
 		logger.Session("find-or-create-volume-for-container"),
 		volumeSpec,
-		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
+		func() (db.CreatingVolume, db.CreatedVolume, error) {
 			return c.dbVolumeFactory.FindContainerVolume(teamID, c.dbWorker, container, mountPath)
 		},
-		func() (dbng.CreatingVolume, error) {
+		func() (db.CreatingVolume, error) {
 			return c.dbVolumeFactory.CreateContainerVolume(teamID, c.dbWorker, container, mountPath)
 		},
 	)
@@ -102,7 +102,7 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 func (c *volumeClient) FindOrCreateCOWVolumeForContainer(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	container dbng.CreatingContainer,
+	container db.CreatingContainer,
 	parent Volume,
 	teamID int,
 	mountPath string,
@@ -110,10 +110,10 @@ func (c *volumeClient) FindOrCreateCOWVolumeForContainer(
 	return c.findOrCreateVolume(
 		logger.Session("find-or-create-cow-volume-for-container"),
 		volumeSpec,
-		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
+		func() (db.CreatingVolume, db.CreatedVolume, error) {
 			return c.dbVolumeFactory.FindContainerVolume(teamID, c.dbWorker, container, mountPath)
 		},
-		func() (dbng.CreatingVolume, error) {
+		func() (db.CreatingVolume, error) {
 			return parent.CreateChildForContainer(container, mountPath)
 		},
 	)
@@ -137,10 +137,10 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 	return c.findOrCreateVolume(
 		logger.Session("find-or-create-volume-for-base-resource-type"),
 		volumeSpec,
-		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
+		func() (db.CreatingVolume, db.CreatedVolume, error) {
 			return c.dbVolumeFactory.FindBaseResourceTypeVolume(teamID, workerBaseResourceType)
 		},
-		func() (dbng.CreatingVolume, error) {
+		func() (db.CreatingVolume, error) {
 			return c.dbVolumeFactory.CreateBaseResourceTypeVolume(teamID, workerBaseResourceType)
 		},
 	)
@@ -149,15 +149,15 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 func (c *volumeClient) CreateVolumeForResourceCache(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	usedResourceCache *dbng.UsedResourceCache,
+	usedResourceCache *db.UsedResourceCache,
 ) (Volume, error) {
 	return c.findOrCreateVolume(
 		logger.Session("find-or-create-volume-for-resource-cache"),
 		volumeSpec,
-		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
+		func() (db.CreatingVolume, db.CreatedVolume, error) {
 			return nil, nil, nil
 		},
-		func() (dbng.CreatingVolume, error) {
+		func() (db.CreatingVolume, error) {
 			return c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker, usedResourceCache)
 		},
 	)
@@ -165,7 +165,7 @@ func (c *volumeClient) CreateVolumeForResourceCache(
 
 func (c *volumeClient) FindInitializedVolumeForResourceCache(
 	logger lager.Logger,
-	usedResourceCache *dbng.UsedResourceCache,
+	usedResourceCache *db.UsedResourceCache,
 ) (Volume, bool, error) {
 	dbVolume, found, err := c.dbVolumeFactory.FindResourceCacheInitializedVolume(c.dbWorker, usedResourceCache)
 	if err != nil {
@@ -217,8 +217,8 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 func (c *volumeClient) findOrCreateVolume(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	findVolumeFunc func() (dbng.CreatingVolume, dbng.CreatedVolume, error),
-	createVolumeFunc func() (dbng.CreatingVolume, error),
+	findVolumeFunc func() (db.CreatingVolume, db.CreatedVolume, error),
+	createVolumeFunc func() (db.CreatingVolume, error),
 ) (Volume, error) {
 	creatingVolume, createdVolume, err := findVolumeFunc()
 	if err != nil {

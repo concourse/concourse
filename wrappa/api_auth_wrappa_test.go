@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
 
@@ -24,16 +24,16 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeCheckBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
 		fakeCheckBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
 		fakeCheckWorkerTeamAccessHandlerFactory auth.CheckWorkerTeamAccessHandlerFactory
-		fakeBuildFactory                        *dbngfakes.FakeBuildFactory
+		fakeBuildFactory                        *dbfakes.FakeBuildFactory
 	)
 
 	BeforeEach(func() {
 		fakeAuthValidator = new(authfakes.FakeValidator)
 		fakeGetTokenValidator = new(authfakes.FakeValidator)
 		fakeUserContextReader = new(authfakes.FakeUserContextReader)
-		fakeTeamFactory := new(dbngfakes.FakeTeamFactory)
-		workerFactory := new(dbngfakes.FakeWorkerFactory)
-		fakeBuildFactory = new(dbngfakes.FakeBuildFactory)
+		fakeTeamFactory := new(dbfakes.FakeTeamFactory)
+		workerFactory := new(dbfakes.FakeWorkerFactory)
+		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
 		fakeCheckPipelineAccessHandlerFactory = auth.NewCheckPipelineAccessHandlerFactory(
 			fakeTeamFactory,
 		)

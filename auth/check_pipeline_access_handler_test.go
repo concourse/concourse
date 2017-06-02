@@ -7,8 +7,8 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,9 +19,9 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 		response    *http.Response
 		server      *httptest.Server
 		delegate    *pipelineDelegateHandler
-		teamFactory *dbngfakes.FakeTeamFactory
-		team        *dbngfakes.FakeTeam
-		pipeline    *dbngfakes.FakePipeline
+		teamFactory *dbfakes.FakeTeamFactory
+		team        *dbfakes.FakeTeam
+		pipeline    *dbfakes.FakePipeline
 		handler     http.Handler
 
 		authValidator     *authfakes.FakeValidator
@@ -29,11 +29,11 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 	)
 
 	BeforeEach(func() {
-		teamFactory = new(dbngfakes.FakeTeamFactory)
-		team = new(dbngfakes.FakeTeam)
+		teamFactory = new(dbfakes.FakeTeamFactory)
+		team = new(dbfakes.FakeTeam)
 		teamFactory.FindTeamReturns(team, true, nil)
 
-		pipeline = new(dbngfakes.FakePipeline)
+		pipeline = new(dbfakes.FakePipeline)
 
 		handlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
 
@@ -156,10 +156,10 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 
 type pipelineDelegateHandler struct {
 	IsCalled          bool
-	ContextPipelineDB dbng.Pipeline
+	ContextPipelineDB db.Pipeline
 }
 
 func (handler *pipelineDelegateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.IsCalled = true
-	handler.ContextPipelineDB = r.Context().Value(auth.PipelineContextKey).(dbng.Pipeline)
+	handler.ContextPipelineDB = r.Context().Value(auth.PipelineContextKey).(db.Pipeline)
 }

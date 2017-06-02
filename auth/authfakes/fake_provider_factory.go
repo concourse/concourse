@@ -6,14 +6,14 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type FakeProviderFactory struct {
-	GetProviderStub        func(dbng.Team, string) (provider.Provider, bool, error)
+	GetProviderStub        func(db.Team, string) (provider.Provider, bool, error)
 	getProviderMutex       sync.RWMutex
 	getProviderArgsForCall []struct {
-		arg1 dbng.Team
+		arg1 db.Team
 		arg2 string
 	}
 	getProviderReturns struct {
@@ -30,11 +30,11 @@ type FakeProviderFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeProviderFactory) GetProvider(arg1 dbng.Team, arg2 string) (provider.Provider, bool, error) {
+func (fake *FakeProviderFactory) GetProvider(arg1 db.Team, arg2 string) (provider.Provider, bool, error) {
 	fake.getProviderMutex.Lock()
 	ret, specificReturn := fake.getProviderReturnsOnCall[len(fake.getProviderArgsForCall)]
 	fake.getProviderArgsForCall = append(fake.getProviderArgsForCall, struct {
-		arg1 dbng.Team
+		arg1 db.Team
 		arg2 string
 	}{arg1, arg2})
 	fake.recordInvocation("GetProvider", []interface{}{arg1, arg2})
@@ -54,7 +54,7 @@ func (fake *FakeProviderFactory) GetProviderCallCount() int {
 	return len(fake.getProviderArgsForCall)
 }
 
-func (fake *FakeProviderFactory) GetProviderArgsForCall(i int) (dbng.Team, string) {
+func (fake *FakeProviderFactory) GetProviderArgsForCall(i int) (db.Team, string) {
 	fake.getProviderMutex.RLock()
 	defer fake.getProviderMutex.RUnlock()
 	return fake.getProviderArgsForCall[i].arg1, fake.getProviderArgsForCall[i].arg2

@@ -13,7 +13,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -38,7 +38,7 @@ type ImageResourceFetcher interface {
 	Fetch(
 		logger lager.Logger,
 		signals <-chan os.Signal,
-		resourceUser dbng.ResourceUser,
+		resourceUser db.ResourceUser,
 		imageResourceType string,
 		imageResourceSource atc.Source,
 		tags atc.Tags,
@@ -52,16 +52,16 @@ type ImageResourceFetcher interface {
 type imageResourceFetcherFactory struct {
 	resourceFetcherFactory  resource.FetcherFactory
 	resourceFactoryFactory  resource.ResourceFactoryFactory
-	dbResourceCacheFactory  dbng.ResourceCacheFactory
-	dbResourceConfigFactory dbng.ResourceConfigFactory
+	dbResourceCacheFactory  db.ResourceCacheFactory
+	dbResourceConfigFactory db.ResourceConfigFactory
 	clock                   clock.Clock
 }
 
 func NewImageResourceFetcherFactory(
 	resourceFetcherFactory resource.FetcherFactory,
 	resourceFactoryFactory resource.ResourceFactoryFactory,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
-	dbResourceConfigFactory dbng.ResourceConfigFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
+	dbResourceConfigFactory db.ResourceConfigFactory,
 	clock clock.Clock,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
@@ -86,15 +86,15 @@ func (f *imageResourceFetcherFactory) ImageResourceFetcherFor(worker worker.Work
 type imageResourceFetcher struct {
 	resourceFetcher         resource.Fetcher
 	resourceFactory         resource.ResourceFactory
-	dbResourceCacheFactory  dbng.ResourceCacheFactory
-	dbResourceConfigFactory dbng.ResourceConfigFactory
+	dbResourceCacheFactory  db.ResourceCacheFactory
+	dbResourceConfigFactory db.ResourceConfigFactory
 	clock                   clock.Clock
 }
 
 func (i *imageResourceFetcher) Fetch(
 	logger lager.Logger,
 	signals <-chan os.Signal,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	imageResourceType string,
 	imageResourceSource atc.Source,
 	tags atc.Tags,
@@ -127,8 +127,8 @@ func (i *imageResourceFetcher) Fetch(
 	}
 
 	getSess := resource.Session{
-		Metadata: dbng.ContainerMetadata{
-			Type: dbng.ContainerTypeGet,
+		Metadata: db.ContainerMetadata{
+			Type: db.ContainerTypeGet,
 		},
 	}
 
@@ -188,7 +188,7 @@ func (i *imageResourceFetcher) Fetch(
 func (i *imageResourceFetcher) getLatestVersion(
 	logger lager.Logger,
 	signals <-chan os.Signal,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	imageResourceType string,
 	imageResourceSource atc.Source,
 	tags atc.Tags,
@@ -237,8 +237,8 @@ func (i *imageResourceFetcher) getLatestVersion(
 		resourceUser,
 		imageResourceType,
 		imageResourceSource,
-		dbng.ContainerMetadata{
-			Type: dbng.ContainerTypeCheck,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
 		},
 		resourceSpec,
 		customTypes,

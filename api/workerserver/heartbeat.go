@@ -8,7 +8,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 )
 
@@ -52,7 +52,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 	}.Emit(s.logger)
 
 	savedWorker, err := s.dbWorkerFactory.HeartbeatWorker(registration, ttl)
-	if err == dbng.ErrWorkerNotPresent {
+	if err == db.ErrWorkerNotPresent {
 		logger.Error("failed-to-find-worker", err)
 		w.WriteHeader(http.StatusNotFound)
 		return

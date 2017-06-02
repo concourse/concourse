@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +111,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(present.Team(team))
 }
 
-func (s *Server) updateCredentials(atcTeam atc.Team, team dbng.Team) error {
+func (s *Server) updateCredentials(atcTeam atc.Team, team db.Team) error {
 	err := team.UpdateBasicAuth(atcTeam.BasicAuth)
 	if err != nil {
 		return err

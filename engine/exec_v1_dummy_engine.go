@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type execV1DummyEngine struct{}
@@ -20,11 +20,11 @@ func (execV1DummyEngine) Name() string {
 	return execV1DummyEngineName
 }
 
-func (execV1DummyEngine) CreateBuild(logger lager.Logger, build dbng.Build, plan atc.Plan) (Build, error) {
+func (execV1DummyEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	return nil, errors.New("dummy engine does not support new builds")
 }
 
-func (execV1DummyEngine) LookupBuild(logger lager.Logger, build dbng.Build) (Build, error) {
+func (execV1DummyEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	return execV1DummyBuild{}, nil
 }
 

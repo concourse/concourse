@@ -2,8 +2,8 @@ package inputmapper
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
 )
 
@@ -13,23 +13,23 @@ type InputMapper interface {
 	SaveNextInputMapping(
 		logger lager.Logger,
 		versions *algorithm.VersionsDB,
-		job dbng.Job,
+		job db.Job,
 	) (algorithm.InputMapping, error)
 }
 
-func NewInputMapper(pipeline dbng.Pipeline, transformer inputconfig.Transformer) InputMapper {
+func NewInputMapper(pipeline db.Pipeline, transformer inputconfig.Transformer) InputMapper {
 	return &inputMapper{pipeline: pipeline, transformer: transformer}
 }
 
 type inputMapper struct {
-	pipeline    dbng.Pipeline
+	pipeline    db.Pipeline
 	transformer inputconfig.Transformer
 }
 
 func (i *inputMapper) SaveNextInputMapping(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
-	job dbng.Job,
+	job db.Job,
 ) (algorithm.InputMapping, error) {
 	logger = logger.Session("save-next-input-mapping")
 

@@ -15,20 +15,20 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	gconn "code.cloudfoundry.org/garden/client/connection"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/retryhttp/retryhttpfakes"
 )
 
 var _ = Describe("hijackStreamer", func() {
 	var (
-		savedWorker          *dbngfakes.FakeWorker
+		savedWorker          *dbfakes.FakeWorker
 		savedWorkerAddress   string
 		fakeDB               *transportfakes.FakeTransportDB
 		fakeRoundTripper     *transportfakes.FakeRoundTripper
@@ -43,11 +43,11 @@ var _ = Describe("hijackStreamer", func() {
 	BeforeEach(func() {
 		savedWorkerAddress = "some-garden-addr"
 
-		savedWorker = new(dbngfakes.FakeWorker)
+		savedWorker = new(dbfakes.FakeWorker)
 
 		savedWorker.GardenAddrReturns(&savedWorkerAddress)
 		savedWorker.ExpiresAtReturns(time.Now().Add(123 * time.Minute))
-		savedWorker.StateReturns(dbng.WorkerStateRunning)
+		savedWorker.StateReturns(db.WorkerStateRunning)
 
 		fakeDB = new(transportfakes.FakeTransportDB)
 		fakeDB.GetWorkerReturns(savedWorker, true, nil)

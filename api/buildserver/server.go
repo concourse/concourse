@@ -5,12 +5,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/worker"
 )
 
-type EventHandlerFactory func(lager.Logger, dbng.Build) http.Handler
+type EventHandlerFactory func(lager.Logger, db.Build) http.Handler
 
 type Server struct {
 	logger lager.Logger
@@ -19,8 +19,8 @@ type Server struct {
 
 	engine              engine.Engine
 	workerClient        worker.Client
-	teamFactory         dbng.TeamFactory
-	buildFactory        dbng.BuildFactory
+	teamFactory         db.TeamFactory
+	buildFactory        db.BuildFactory
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
 	rejector            auth.Rejector
@@ -31,8 +31,8 @@ func NewServer(
 	externalURL string,
 	engine engine.Engine,
 	workerClient worker.Client,
-	teamFactory dbng.TeamFactory,
-	buildFactory dbng.BuildFactory,
+	teamFactory db.TeamFactory,
+	buildFactory db.BuildFactory,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
 ) *Server {

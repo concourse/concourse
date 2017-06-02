@@ -5,8 +5,8 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler/maxinflight"
 
 	. "github.com/onsi/ginkgo"
@@ -15,15 +15,15 @@ import (
 
 var _ = Describe("Updater", func() {
 	var (
-		fakePipeline *dbngfakes.FakePipeline
-		fakeJob      *dbngfakes.FakeJob
+		fakePipeline *dbfakes.FakePipeline
+		fakeJob      *dbfakes.FakeJob
 		updater      maxinflight.Updater
 		disaster     error
 	)
 
 	BeforeEach(func() {
-		fakePipeline = new(dbngfakes.FakePipeline)
-		fakeJob = new(dbngfakes.FakeJob)
+		fakePipeline = new(dbfakes.FakePipeline)
+		fakeJob = new(dbfakes.FakeJob)
 		updater = maxinflight.NewUpdater(fakePipeline)
 		disaster = errors.New("bad thing")
 	})
@@ -110,10 +110,10 @@ var _ = Describe("Updater", func() {
 			})
 
 			Context("when there is another build ahead of us in line", func() {
-				var fakeBuild *dbngfakes.FakeBuild
+				var fakeBuild *dbfakes.FakeBuild
 
 				BeforeEach(func() {
-					fakeBuild = new(dbngfakes.FakeBuild)
+					fakeBuild = new(dbfakes.FakeBuild)
 					fakeBuild.IDReturns(101)
 					fakeJob.GetNextPendingBuildBySerialGroupReturns(fakeBuild, true, nil)
 				})
@@ -122,10 +122,10 @@ var _ = Describe("Updater", func() {
 			})
 
 			Context("when the build we are trying to run is first in line", func() {
-				var fakeBuild *dbngfakes.FakeBuild
+				var fakeBuild *dbfakes.FakeBuild
 
 				BeforeEach(func() {
-					fakeBuild = new(dbngfakes.FakeBuild)
+					fakeBuild = new(dbfakes.FakeBuild)
 					fakeBuild.IDReturns(57)
 					fakeJob.GetNextPendingBuildBySerialGroupReturns(fakeBuild, true, nil)
 				})
@@ -156,7 +156,7 @@ var _ = Describe("Updater", func() {
 
 			Context("when there are 3 builds of the job running", func() {
 				BeforeEach(func() {
-					fakeJob.GetRunningBuildsBySerialGroupReturns([]dbng.Build{nil, nil, nil}, nil)
+					fakeJob.GetRunningBuildsBySerialGroupReturns([]db.Build{nil, nil, nil}, nil)
 				})
 
 				itReturnsTrueAndNoError()
@@ -168,7 +168,7 @@ var _ = Describe("Updater", func() {
 
 			Context("when there are 2 builds of the job running", func() {
 				BeforeEach(func() {
-					fakeJob.GetRunningBuildsBySerialGroupReturns([]dbng.Build{nil, nil}, nil)
+					fakeJob.GetRunningBuildsBySerialGroupReturns([]db.Build{nil, nil}, nil)
 				})
 
 				Context("when looking up the next pending build returns an error", func() {
@@ -211,7 +211,7 @@ var _ = Describe("Updater", func() {
 
 			Context("when a job in the serial group is running", func() {
 				BeforeEach(func() {
-					fakeJob.GetRunningBuildsBySerialGroupReturns([]dbng.Build{nil}, nil)
+					fakeJob.GetRunningBuildsBySerialGroupReturns([]db.Build{nil}, nil)
 				})
 
 				itReturnsTrueAndNoError()
@@ -223,7 +223,7 @@ var _ = Describe("Updater", func() {
 
 			Context("when no job in the serial group is running", func() {
 				BeforeEach(func() {
-					fakeJob.GetRunningBuildsBySerialGroupReturns([]dbng.Build{}, nil)
+					fakeJob.GetRunningBuildsBySerialGroupReturns([]db.Build{}, nil)
 				})
 
 				Context("when looking up the next pending build returns an error", func() {

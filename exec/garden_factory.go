@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -18,14 +18,14 @@ type gardenFactory struct {
 	workerClient           worker.Client
 	resourceFetcher        resource.Fetcher
 	resourceFactory        resource.ResourceFactory
-	dbResourceCacheFactory dbng.ResourceCacheFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
 func NewGardenFactory(
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
 ) Factory {
 	return &gardenFactory{
 		workerClient:           workerClient,
@@ -42,7 +42,7 @@ func (factory *gardenFactory) DependentGet(
 	planID atc.PlanID,
 	stepMetadata StepMetadata,
 	sourceName worker.ArtifactName,
-	workerMetadata dbng.ContainerMetadata,
+	workerMetadata db.ContainerMetadata,
 	delegate GetDelegate,
 	resourceConfig atc.ResourceConfig,
 	tags atc.Tags,
@@ -75,7 +75,7 @@ func (factory *gardenFactory) Get(
 	planID atc.PlanID,
 	stepMetadata StepMetadata,
 	sourceName worker.ArtifactName,
-	workerMetadata dbng.ContainerMetadata,
+	workerMetadata db.ContainerMetadata,
 	delegate GetDelegate,
 	resourceConfig atc.ResourceConfig,
 	tags atc.Tags,
@@ -95,7 +95,7 @@ func (factory *gardenFactory) Get(
 			version,
 			resourceConfig.Source,
 			params,
-			dbng.ForBuild(buildID),
+			db.ForBuild(buildID),
 			resourceTypes,
 			factory.dbResourceCacheFactory,
 		),
@@ -117,7 +117,7 @@ func (factory *gardenFactory) Put(
 	buildID int,
 	planID atc.PlanID,
 	stepMetadata StepMetadata,
-	workerMetadata dbng.ContainerMetadata,
+	workerMetadata db.ContainerMetadata,
 	delegate PutDelegate,
 	resourceConfig atc.ResourceConfig,
 	tags atc.Tags,
@@ -149,7 +149,7 @@ func (factory *gardenFactory) Task(
 	buildID int,
 	planID atc.PlanID,
 	sourceName worker.ArtifactName,
-	workerMetadata dbng.ContainerMetadata,
+	workerMetadata db.ContainerMetadata,
 	delegate TaskDelegate,
 	privileged Privileged,
 	tags atc.Tags,

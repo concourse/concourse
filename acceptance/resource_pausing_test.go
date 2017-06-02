@@ -11,12 +11,12 @@ import (
 
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 var _ = Describe("Resource Pausing", func() {
 	var atcCommand *ATCCommand
-	var pipeline dbng.Pipeline
+	var pipeline db.Pipeline
 
 	BeforeEach(func() {
 		var err error
@@ -34,7 +34,7 @@ var _ = Describe("Resource Pausing", func() {
 			Resources: atc.ResourceConfigs{
 				{Name: "resource-name"},
 			},
-		}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+		}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)

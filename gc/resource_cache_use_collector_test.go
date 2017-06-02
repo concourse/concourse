@@ -4,7 +4,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -24,9 +24,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 	Describe("Run", func() {
 		Describe("cache uses", func() {
 			var (
-				pipelineWithTypes     dbng.Pipeline
+				pipelineWithTypes     db.Pipeline
 				versionedResourceType atc.VersionedResourceType
-				dbResourceType        dbng.ResourceType
+				dbResourceType        db.ResourceType
 			)
 
 			countResourceCacheUses := func() int {
@@ -65,7 +65,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						ResourceTypes: atc.ResourceTypes{versionedResourceType.ResourceType},
 					},
 					0,
-					dbng.PipelineNoChange,
+					db.PipelineNoChange,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
@@ -82,7 +82,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForBuild(defaultBuild.ID()),
+						db.ForBuild(defaultBuild.ID()),
 						"some-type",
 						atc.Version{"some": "version"},
 						atc.Source{
@@ -107,7 +107,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("once the build has completed successfully", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						Expect(defaultBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+						Expect(defaultBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
 						Expect(buildCollector.Run()).To(Succeed())
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
@@ -117,7 +117,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("once the build has been aborted", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						Expect(defaultBuild.Finish(dbng.BuildStatusAborted)).To(Succeed())
+						Expect(defaultBuild.Finish(db.BuildStatusAborted)).To(Succeed())
 						Expect(buildCollector.Run()).To(Succeed())
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
@@ -128,7 +128,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					Context("when the build is a one-off", func() {
 						It("cleans up the uses", func() {
 							Expect(countResourceCacheUses()).NotTo(BeZero())
-							Expect(defaultBuild.Finish(dbng.BuildStatusFailed)).To(Succeed())
+							Expect(defaultBuild.Finish(db.BuildStatusFailed)).To(Succeed())
 							Expect(buildCollector.Run()).To(Succeed())
 							Expect(collector.Run()).To(Succeed())
 							Expect(countResourceCacheUses()).To(BeZero())
@@ -170,7 +170,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						Context("when it is the latest failed build", func() {
 							It("preserves the uses", func() {
 								Expect(countResourceCacheUses()).NotTo(BeZero())
-								Expect(defaultBuild.Finish(dbng.BuildStatusFailed)).To(Succeed())
+								Expect(defaultBuild.Finish(db.BuildStatusFailed)).To(Succeed())
 								Expect(buildCollector.Run()).To(Succeed())
 								Expect(collector.Run()).To(Succeed())
 								Expect(countResourceCacheUses()).NotTo(BeZero())
@@ -201,7 +201,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForBuild(defaultBuild.ID()),
+							db.ForBuild(defaultBuild.ID()),
 							"some-base-type",
 							imageVersion,
 							atc.Source{
@@ -216,7 +216,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					Context("when the build ran less than 24 hours ago", func() {
 						It("keeps the image resource for 24 hours", func() {
 							Expect(countResourceCacheUses()).NotTo(BeZero())
-							Expect(defaultBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+							Expect(defaultBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
 							Expect(buildCollector.Run()).To(Succeed())
 							Expect(collector.Run()).To(Succeed())
 							Expect(countResourceCacheUses()).To(Equal(1))
@@ -242,7 +242,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						It("cleans up all the uses", func() {
 							Expect(countResourceCacheUses()).NotTo(BeZero())
-							Expect(defaultBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+							Expect(defaultBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
 
 							updateTimeToPast()
 
@@ -257,7 +257,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 			Context("for pipeline builds", func() {
 				Context("if job build is using image resource", func() {
-					var firstBuild dbng.Build
+					var firstBuild db.Build
 
 					BeforeEach(func() {
 						firstBuild, err = defaultJob.CreateBuild()
@@ -269,7 +269,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForBuild(firstBuild.ID()),
+							db.ForBuild(firstBuild.ID()),
 							"some-base-type",
 							imageVersion,
 							atc.Source{
@@ -280,7 +280,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(firstBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+						Expect(firstBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
 						Expect(buildCollector.Run()).To(Succeed())
 					})
 
@@ -298,11 +298,11 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						err = secondBuild.SaveImageResourceVersion(atc.PlanID("123"), imageVersion2, "some-resource-hash")
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(secondBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+						Expect(secondBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForBuild(secondBuild.ID()),
+							db.ForBuild(secondBuild.ID()),
 							"some-base-type",
 							imageVersion2,
 							atc.Source{
@@ -358,7 +358,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForResourceType(dbResourceType.ID()),
+						db.ForResourceType(dbResourceType.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
@@ -392,7 +392,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 			})
 
 			Describe("for resources", func() {
-				setActiveResource := func(resource dbng.Resource, active bool) {
+				setActiveResource := func(resource db.Resource, active bool) {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
@@ -413,7 +413,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForResource(usedResource.ID()),
+						db.ForResource(usedResource.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
@@ -468,7 +468,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								},
 							},
 							0,
-							dbng.PipelineUnpaused,
+							db.PipelineUnpaused,
 						)
 
 						Expect(err).ToNot(HaveOccurred())
@@ -480,7 +480,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForResource(anotherResource.ID()),
+							db.ForResource(anotherResource.ID()),
 							"some-type",
 							atc.Version{"some-type": "version"},
 							atc.Source{

@@ -2,17 +2,17 @@ package gc
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type resourceConfigCollector struct {
 	logger        lager.Logger
-	configFactory dbng.ResourceConfigFactory
+	configFactory db.ResourceConfigFactory
 }
 
 func NewResourceConfigCollector(
 	logger lager.Logger,
-	configFactory dbng.ResourceConfigFactory,
+	configFactory db.ResourceConfigFactory,
 ) Collector {
 	return &resourceConfigCollector{
 		logger:        logger.Session("resource-config-collector"),

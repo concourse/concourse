@@ -8,7 +8,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
@@ -60,7 +60,7 @@ func (ms byTypeAndName) Less(i int, j int) bool {
 	return ms[i].DisplayName < ms[j].DisplayName
 }
 
-func (s *Server) authMethods(team dbng.Team) ([]atc.AuthMethod, error) {
+func (s *Server) authMethods(team db.Team) ([]atc.AuthMethod, error) {
 	methods := []atc.AuthMethod{}
 
 	providers := provider.GetProviders()

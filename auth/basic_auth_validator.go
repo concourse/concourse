@@ -3,16 +3,16 @@ package auth
 import (
 	"net/http"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type basicAuthValidator struct {
-	team dbng.Team
+	team db.Team
 }
 
-func NewBasicAuthValidator(team dbng.Team) Validator {
+func NewBasicAuthValidator(team db.Team) Validator {
 	return basicAuthValidator{
 		team: team,
 	}

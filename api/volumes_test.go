@@ -6,18 +6,18 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Volumes API", func() {
 
-	var fakeWorker *dbngfakes.FakeWorker
+	var fakeWorker *dbfakes.FakeWorker
 
 	BeforeEach(func() {
-		fakeWorker = new(dbngfakes.FakeWorker)
+		fakeWorker = new(dbfakes.FakeWorker)
 		fakeWorker.NameReturns("some-worker")
 	})
 
@@ -58,22 +58,22 @@ var _ = Describe("Volumes API", func() {
 
 				Context("when getting all volumes succeeds", func() {
 					BeforeEach(func() {
-						someOtherFakeWorker := new(dbngfakes.FakeWorker)
+						someOtherFakeWorker := new(dbfakes.FakeWorker)
 						someOtherFakeWorker.NameReturns("some-other-worker")
 
-						fakeVolumeFactory.GetTeamVolumesStub = func(teamID int) ([]dbng.CreatedVolume, error) {
+						fakeVolumeFactory.GetTeamVolumesStub = func(teamID int) ([]db.CreatedVolume, error) {
 							if teamID != 1 {
-								return []dbng.CreatedVolume{}, nil
+								return []db.CreatedVolume{}, nil
 							}
 
-							volume1 := new(dbngfakes.FakeCreatedVolume)
+							volume1 := new(dbfakes.FakeCreatedVolume)
 							volume1.HandleReturns("some-resource-cache-handle")
 							volume1.WorkerReturns(fakeWorker)
-							volume1.TypeReturns(dbng.VolumeTypeResource)
+							volume1.TypeReturns(db.VolumeTypeResource)
 							volume1.SizeInBytesReturns(1024)
-							volume1.ResourceTypeReturns(&dbng.VolumeResourceType{
-								ResourceType: &dbng.VolumeResourceType{
-									WorkerBaseResourceType: &dbng.UsedWorkerBaseResourceType{
+							volume1.ResourceTypeReturns(&db.VolumeResourceType{
+								ResourceType: &db.VolumeResourceType{
+									WorkerBaseResourceType: &db.UsedWorkerBaseResourceType{
 										Name:    "some-base-resource-type",
 										Version: "some-base-version",
 									},
@@ -81,32 +81,32 @@ var _ = Describe("Volumes API", func() {
 								},
 								Version: atc.Version{"some": "version"},
 							}, nil)
-							volume2 := new(dbngfakes.FakeCreatedVolume)
+							volume2 := new(dbfakes.FakeCreatedVolume)
 							volume2.HandleReturns("some-import-handle")
 							volume2.WorkerReturns(fakeWorker)
 							volume2.SizeInBytesReturns(2048)
-							volume2.TypeReturns(dbng.VolumeTypeResourceType)
-							volume2.BaseResourceTypeReturns(&dbng.UsedWorkerBaseResourceType{
+							volume2.TypeReturns(db.VolumeTypeResourceType)
+							volume2.BaseResourceTypeReturns(&db.UsedWorkerBaseResourceType{
 								Name:    "some-base-resource-type",
 								Version: "some-base-version",
 							}, nil)
-							volume3 := new(dbngfakes.FakeCreatedVolume)
+							volume3 := new(dbfakes.FakeCreatedVolume)
 							volume3.HandleReturns("some-output-handle")
 							volume3.WorkerReturns(someOtherFakeWorker)
 							volume3.ContainerHandleReturns("some-container-handle")
 							volume3.PathReturns("some-path")
 							volume3.ParentHandleReturns("some-parent-handle")
 							volume3.SizeInBytesReturns(4096)
-							volume3.TypeReturns(dbng.VolumeTypeContainer)
-							volume4 := new(dbngfakes.FakeCreatedVolume)
+							volume3.TypeReturns(db.VolumeTypeContainer)
+							volume4 := new(dbfakes.FakeCreatedVolume)
 							volume4.HandleReturns("some-cow-handle")
 							volume4.WorkerReturns(fakeWorker)
 							volume4.ContainerHandleReturns("some-container-handle")
 							volume4.PathReturns("some-path")
 							volume4.SizeInBytesReturns(8192)
-							volume4.TypeReturns(dbng.VolumeTypeContainer)
+							volume4.TypeReturns(db.VolumeTypeContainer)
 
-							return []dbng.CreatedVolume{
+							return []db.CreatedVolume{
 								volume1,
 								volume2,
 								volume3,
@@ -189,7 +189,7 @@ var _ = Describe("Volumes API", func() {
 
 				Context("when getting all volumes fails", func() {
 					BeforeEach(func() {
-						fakeVolumeFactory.GetTeamVolumesReturns([]dbng.CreatedVolume{}, errors.New("oh no!"))
+						fakeVolumeFactory.GetTeamVolumesReturns([]db.CreatedVolume{}, errors.New("oh no!"))
 					})
 
 					It("returns 500 Internal Server Error", func() {

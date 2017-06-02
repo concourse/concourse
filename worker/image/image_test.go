@@ -6,8 +6,8 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/worker/image/imagefakes"
@@ -26,7 +26,7 @@ var _ = Describe("Image", func() {
 		logger                          *lagertest.TestLogger
 		fakeWorker                      *workerfakes.FakeWorker
 		fakeVolumeClient                *workerfakes.FakeVolumeClient
-		fakeContainer                   *dbngfakes.FakeCreatingContainer
+		fakeContainer                   *dbfakes.FakeCreatingContainer
 		fakeImageFetchingDelegate       *workerfakes.FakeImageFetchingDelegate
 		fakeImageResourceFetcherFactory *imagefakes.FakeImageResourceFetcherFactory
 		fakeImageResourceFetcher        *imagefakes.FakeImageResourceFetcher
@@ -38,7 +38,7 @@ var _ = Describe("Image", func() {
 		fakeWorker.TagsReturns(atc.Tags{"worker", "tags"})
 
 		fakeVolumeClient = new(workerfakes.FakeVolumeClient)
-		fakeContainer = new(dbngfakes.FakeCreatingContainer)
+		fakeContainer = new(dbfakes.FakeCreatingContainer)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 		fakeImageResourceFetcherFactory = new(imagefakes.FakeImageResourceFetcherFactory)
@@ -81,7 +81,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
-				dbng.ForBuild(42),
+				db.ForBuild(42),
 				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -150,7 +150,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
-				dbng.ForBuild(42),
+				db.ForBuild(42),
 				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -241,7 +241,7 @@ var _ = Describe("Image", func() {
 					42,
 					nil,
 					fakeImageFetchingDelegate,
-					dbng.ForBuild(42),
+					db.ForBuild(42),
 					atc.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -291,7 +291,7 @@ var _ = Describe("Image", func() {
 					42,
 					nil,
 					fakeImageFetchingDelegate,
-					dbng.ForBuild(42),
+					db.ForBuild(42),
 					atc.VersionedResourceTypes{
 						{
 							ResourceType: atc.ResourceType{
@@ -388,7 +388,7 @@ var _ = Describe("Image", func() {
 					42,
 					nil,
 					fakeImageFetchingDelegate,
-					dbng.ForBuild(42),
+					db.ForBuild(42),
 					atc.VersionedResourceTypes{
 						{
 							ResourceType: atc.ResourceType{
@@ -512,7 +512,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
-				dbng.ForBuild(42),
+				db.ForBuild(42),
 				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -623,7 +623,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
-				dbng.ForBuild(42),
+				db.ForBuild(42),
 				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())

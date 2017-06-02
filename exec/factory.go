@@ -6,7 +6,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
@@ -22,7 +22,7 @@ type Factory interface {
 		atc.PlanID,
 		StepMetadata,
 		worker.ArtifactName,
-		dbng.ContainerMetadata,
+		db.ContainerMetadata,
 		GetDelegate,
 		atc.ResourceConfig,
 		atc.Tags,
@@ -38,7 +38,7 @@ type Factory interface {
 		int, // buildID
 		atc.PlanID,
 		StepMetadata,
-		dbng.ContainerMetadata,
+		db.ContainerMetadata,
 		PutDelegate,
 		atc.ResourceConfig,
 		atc.Tags,
@@ -55,7 +55,7 @@ type Factory interface {
 		atc.PlanID,
 		StepMetadata,
 		worker.ArtifactName,
-		dbng.ContainerMetadata,
+		db.ContainerMetadata,
 		GetDelegate,
 		atc.ResourceConfig,
 		atc.Tags,
@@ -70,7 +70,7 @@ type Factory interface {
 		int, // buildID
 		atc.PlanID,
 		worker.ArtifactName,
-		dbng.ContainerMetadata,
+		db.ContainerMetadata,
 		TaskDelegate,
 		Privileged,
 		atc.Tags,

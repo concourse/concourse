@@ -12,20 +12,20 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
 )
 
 var _ = Describe("Jobs API", func() {
-	var fakeJob *dbngfakes.FakeJob
+	var fakeJob *dbfakes.FakeJob
 	var versionedResourceTypes atc.VersionedResourceTypes
-	var fakePipeline *dbngfakes.FakePipeline
+	var fakePipeline *dbfakes.FakePipeline
 
 	BeforeEach(func() {
-		fakeJob = new(dbngfakes.FakeJob)
+		fakeJob = new(dbfakes.FakeJob)
 
-		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline = new(dbfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
 
@@ -56,10 +56,10 @@ var _ = Describe("Jobs API", func() {
 			},
 		}
 
-		fakePipeline.ResourceTypesReturns([]dbng.ResourceType{
-			fakeDBNGResourceType(versionedResourceTypes[0]),
-			fakeDBNGResourceType(versionedResourceTypes[1]),
-			fakeDBNGResourceType(versionedResourceTypes[2]),
+		fakePipeline.ResourceTypesReturns([]db.ResourceType{
+			fakeDBResourceType(versionedResourceTypes[0]),
+			fakeDBResourceType(versionedResourceTypes[1]),
+			fakeDBResourceType(versionedResourceTypes[2]),
 		}, nil)
 	})
 
@@ -103,8 +103,8 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		Context("when authorized", func() {
-			var build1 *dbngfakes.FakeBuild
-			var build2 *dbngfakes.FakeBuild
+			var build1 *dbfakes.FakeBuild
+			var build2 *dbfakes.FakeBuild
 
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
@@ -113,23 +113,23 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when getting the build succeeds", func() {
 				BeforeEach(func() {
-					build1 = new(dbngfakes.FakeBuild)
+					build1 = new(dbfakes.FakeBuild)
 					build1.IDReturns(1)
 					build1.NameReturns("1")
 					build1.JobNameReturns("some-job")
 					build1.PipelineNameReturns("some-pipeline")
 					build1.TeamNameReturns("some-team")
-					build1.StatusReturns(dbng.BuildStatusSucceeded)
+					build1.StatusReturns(db.BuildStatusSucceeded)
 					build1.StartTimeReturns(time.Unix(1, 0))
 					build1.EndTimeReturns(time.Unix(100, 0))
 
-					build2 = new(dbngfakes.FakeBuild)
+					build2 = new(dbfakes.FakeBuild)
 					build2.IDReturns(3)
 					build2.NameReturns("2")
 					build2.JobNameReturns("some-job")
 					build2.PipelineNameReturns("some-pipeline")
 					build2.TeamNameReturns("some-team")
-					build2.StatusReturns(dbng.BuildStatusStarted)
+					build2.StatusReturns(db.BuildStatusStarted)
 				})
 
 				Context("when getting the job fails", func() {
@@ -403,21 +403,21 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when the finished build is successful", func() {
 					BeforeEach(func() {
-						build1 := new(dbngfakes.FakeBuild)
+						build1 := new(dbfakes.FakeBuild)
 						build1.IDReturns(1)
 						build1.NameReturns("1")
 						build1.JobNameReturns("some-job")
 						build1.PipelineNameReturns("some-pipeline")
 						build1.StartTimeReturns(time.Unix(1, 0))
 						build1.EndTimeReturns(time.Unix(100, 0))
-						build1.StatusReturns(dbng.BuildStatusSucceeded)
+						build1.StatusReturns(db.BuildStatusSucceeded)
 
-						build2 := new(dbngfakes.FakeBuild)
+						build2 := new(dbfakes.FakeBuild)
 						build2.IDReturns(3)
 						build2.NameReturns("2")
 						build2.JobNameReturns("some-job")
 						build2.PipelineNameReturns("some-pipeline")
-						build2.StatusReturns(dbng.BuildStatusStarted)
+						build2.StatusReturns(db.BuildStatusStarted)
 
 						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 					})
@@ -456,21 +456,21 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when the finished build is failed", func() {
 					BeforeEach(func() {
-						build1 := new(dbngfakes.FakeBuild)
+						build1 := new(dbfakes.FakeBuild)
 						build1.IDReturns(1)
 						build1.NameReturns("1")
 						build1.JobNameReturns("some-job")
 						build1.PipelineNameReturns("some-pipeline")
 						build1.StartTimeReturns(time.Unix(1, 0))
 						build1.EndTimeReturns(time.Unix(100, 0))
-						build1.StatusReturns(dbng.BuildStatusFailed)
+						build1.StatusReturns(db.BuildStatusFailed)
 
-						build2 := new(dbngfakes.FakeBuild)
+						build2 := new(dbfakes.FakeBuild)
 						build2.IDReturns(3)
 						build2.NameReturns("2")
 						build2.JobNameReturns("some-job")
 						build2.PipelineNameReturns("some-pipeline")
-						build2.StatusReturns(dbng.BuildStatusStarted)
+						build2.StatusReturns(db.BuildStatusStarted)
 
 						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 					})
@@ -509,21 +509,21 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when the finished build was aborted", func() {
 					BeforeEach(func() {
-						build1 := new(dbngfakes.FakeBuild)
+						build1 := new(dbfakes.FakeBuild)
 						build1.IDReturns(1)
 						build1.NameReturns("1")
 						build1.JobNameReturns("some-job")
 						build1.PipelineNameReturns("some-pipeline")
-						build1.StatusReturns(dbng.BuildStatusAborted)
+						build1.StatusReturns(db.BuildStatusAborted)
 
-						build2 := new(dbngfakes.FakeBuild)
+						build2 := new(dbfakes.FakeBuild)
 						build2.IDReturns(1)
 						build2.NameReturns("1")
 						build2.JobNameReturns("some-job")
 						build2.PipelineNameReturns("some-pipeline")
 						build2.StartTimeReturns(time.Unix(1, 0))
 						build2.EndTimeReturns(time.Unix(100, 0))
-						build2.StatusReturns(dbng.BuildStatusAborted)
+						build2.StatusReturns(db.BuildStatusAborted)
 
 						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 					})
@@ -562,21 +562,21 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when the finished build errored", func() {
 					BeforeEach(func() {
-						build1 := new(dbngfakes.FakeBuild)
+						build1 := new(dbfakes.FakeBuild)
 						build1.IDReturns(1)
 						build1.NameReturns("1")
 						build1.JobNameReturns("some-job")
 						build1.PipelineNameReturns("some-pipeline")
 						build1.StartTimeReturns(time.Unix(1, 0))
 						build1.EndTimeReturns(time.Unix(100, 0))
-						build1.StatusReturns(dbng.BuildStatusErrored)
+						build1.StatusReturns(db.BuildStatusErrored)
 
-						build2 := new(dbngfakes.FakeBuild)
+						build2 := new(dbfakes.FakeBuild)
 						build2.IDReturns(3)
 						build2.NameReturns("2")
 						build2.JobNameReturns("some-job")
 						build2.PipelineNameReturns("some-pipeline")
-						build2.StatusReturns(dbng.BuildStatusStarted)
+						build2.StatusReturns(db.BuildStatusStarted)
 
 						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 					})
@@ -670,7 +670,7 @@ var _ = Describe("Jobs API", func() {
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
-		var dashboardResponse dbng.Dashboard
+		var dashboardResponse db.Dashboard
 		var groups []atc.GroupConfig
 
 		JustBeforeEach(func() {
@@ -681,7 +681,7 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		Context("when getting the dashboard succeeds", func() {
-			var job1 *dbngfakes.FakeJob
+			var job1 *dbfakes.FakeJob
 
 			BeforeEach(func() {
 				groups = []atc.GroupConfig{
@@ -695,7 +695,7 @@ var _ = Describe("Jobs API", func() {
 					},
 				}
 
-				job1 = new(dbngfakes.FakeJob)
+				job1 = new(dbfakes.FakeJob)
 				job1.IDReturns(1)
 				job1.PausedReturns(true)
 				job1.PipelineNameReturns("another-pipeline")
@@ -705,7 +705,7 @@ var _ = Describe("Jobs API", func() {
 					Plan: atc.PlanSequence{{Get: "input-1"}, {Put: "output-1"}},
 				})
 
-				job2 := new(dbngfakes.FakeJob)
+				job2 := new(dbfakes.FakeJob)
 				job2.IDReturns(2)
 				job2.PausedReturns(true)
 				job2.PipelineNameReturns("another-pipeline")
@@ -715,7 +715,7 @@ var _ = Describe("Jobs API", func() {
 					Plan: atc.PlanSequence{{Get: "input-2"}, {Put: "output-2"}},
 				})
 
-				job3 := new(dbngfakes.FakeJob)
+				job3 := new(dbfakes.FakeJob)
 				job3.IDReturns(3)
 				job3.PausedReturns(true)
 				job3.PipelineNameReturns("another-pipeline")
@@ -725,35 +725,35 @@ var _ = Describe("Jobs API", func() {
 					Plan: atc.PlanSequence{{Get: "input-3"}, {Put: "output-3"}},
 				})
 
-				nextBuild1 := new(dbngfakes.FakeBuild)
+				nextBuild1 := new(dbfakes.FakeBuild)
 				nextBuild1.IDReturns(3)
 				nextBuild1.NameReturns("2")
 				nextBuild1.JobNameReturns("job-1")
 				nextBuild1.PipelineNameReturns("another-pipeline")
 				nextBuild1.TeamNameReturns("some-team")
-				nextBuild1.StatusReturns(dbng.BuildStatusStarted)
+				nextBuild1.StatusReturns(db.BuildStatusStarted)
 
-				finishedBuild1 := new(dbngfakes.FakeBuild)
+				finishedBuild1 := new(dbfakes.FakeBuild)
 				finishedBuild1.IDReturns(1)
 				finishedBuild1.NameReturns("1")
 				finishedBuild1.JobNameReturns("job-1")
 				finishedBuild1.PipelineNameReturns("another-pipeline")
 				finishedBuild1.TeamNameReturns("some-team")
-				finishedBuild1.StatusReturns(dbng.BuildStatusSucceeded)
+				finishedBuild1.StatusReturns(db.BuildStatusSucceeded)
 				finishedBuild1.StartTimeReturns(time.Unix(1, 0))
 				finishedBuild1.EndTimeReturns(time.Unix(100, 0))
 
-				finishedBuild2 := new(dbngfakes.FakeBuild)
+				finishedBuild2 := new(dbfakes.FakeBuild)
 				finishedBuild2.IDReturns(4)
 				finishedBuild2.NameReturns("1")
 				finishedBuild2.JobNameReturns("job-2")
 				finishedBuild2.PipelineNameReturns("another-pipeline")
 				finishedBuild2.TeamNameReturns("some-team")
-				finishedBuild2.StatusReturns(dbng.BuildStatusSucceeded)
+				finishedBuild2.StatusReturns(db.BuildStatusSucceeded)
 				finishedBuild2.StartTimeReturns(time.Unix(101, 0))
 				finishedBuild2.EndTimeReturns(time.Unix(200, 0))
 
-				dashboardResponse = dbng.Dashboard{
+				dashboardResponse = db.Dashboard{
 					{
 						Job:           job1,
 						NextBuild:     nextBuild1,
@@ -1011,7 +1011,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
-					fakeBuild := new(dbngfakes.FakeBuild)
+					fakeBuild := new(dbfakes.FakeBuild)
 
 					fakePipeline.PublicReturns(true)
 					fakePipeline.JobReturns(fakeJob, true, nil)
@@ -1041,7 +1041,7 @@ var _ = Describe("Jobs API", func() {
 						Expect(fakeJob.BuildsCallCount()).To(Equal(1))
 
 						page := fakeJob.BuildsArgsForCall(0)
-						Expect(page).To(Equal(dbng.Page{
+						Expect(page).To(Equal(db.Page{
 							Since: 0,
 							Until: 0,
 							Limit: 100,
@@ -1058,7 +1058,7 @@ var _ = Describe("Jobs API", func() {
 						Expect(fakeJob.BuildsCallCount()).To(Equal(1))
 
 						page := fakeJob.BuildsArgsForCall(0)
-						Expect(page).To(Equal(dbng.Page{
+						Expect(page).To(Equal(db.Page{
 							Since: 2,
 							Until: 3,
 							Limit: 8,
@@ -1067,33 +1067,33 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				Context("when getting the builds succeeds", func() {
-					var returnedBuilds []dbng.Build
+					var returnedBuilds []db.Build
 
 					BeforeEach(func() {
 						queryParams = "?since=5&limit=2"
 
-						build1 := new(dbngfakes.FakeBuild)
+						build1 := new(dbfakes.FakeBuild)
 						build1.IDReturns(4)
 						build1.NameReturns("2")
 						build1.JobNameReturns("some-job")
 						build1.PipelineNameReturns("some-pipeline")
 						build1.TeamNameReturns("some-team")
-						build1.StatusReturns(dbng.BuildStatusStarted)
+						build1.StatusReturns(db.BuildStatusStarted)
 						build1.StartTimeReturns(time.Unix(1, 0))
 						build1.EndTimeReturns(time.Unix(100, 0))
 
-						build2 := new(dbngfakes.FakeBuild)
+						build2 := new(dbfakes.FakeBuild)
 						build2.IDReturns(2)
 						build2.NameReturns("1")
 						build2.JobNameReturns("some-job")
 						build2.PipelineNameReturns("some-pipeline")
 						build2.TeamNameReturns("some-team")
-						build2.StatusReturns(dbng.BuildStatusSucceeded)
+						build2.StatusReturns(db.BuildStatusSucceeded)
 						build2.StartTimeReturns(time.Unix(101, 0))
 						build2.EndTimeReturns(time.Unix(200, 0))
 
-						returnedBuilds = []dbng.Build{build1, build2}
-						fakeJob.BuildsReturns(returnedBuilds, dbng.Pagination{}, nil)
+						returnedBuilds = []db.Build{build1, build2}
+						fakeJob.BuildsReturns(returnedBuilds, db.Pagination{}, nil)
 					})
 
 					It("returns 200 OK", func() {
@@ -1134,9 +1134,9 @@ var _ = Describe("Jobs API", func() {
 
 					Context("when next/previous pages are available", func() {
 						BeforeEach(func() {
-							fakeJob.BuildsReturns(returnedBuilds, dbng.Pagination{
-								Previous: &dbng.Page{Until: 4, Limit: 2},
-								Next:     &dbng.Page{Since: 2, Limit: 2},
+							fakeJob.BuildsReturns(returnedBuilds, db.Pagination{
+								Previous: &db.Page{Until: 4, Limit: 2},
+								Next:     &db.Page{Since: 2, Limit: 2},
 							}, nil)
 						})
 
@@ -1151,7 +1151,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when getting the build fails", func() {
 					BeforeEach(func() {
-						fakeJob.BuildsReturns(nil, dbng.Pagination{}, errors.New("oh no!"))
+						fakeJob.BuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
 					})
 
 					It("returns 404 Not Found", func() {
@@ -1187,8 +1187,8 @@ var _ = Describe("Jobs API", func() {
 		var response *http.Response
 
 		var fakeScheduler *schedulerfakes.FakeBuildScheduler
-		var fakeResource *dbngfakes.FakeResource
-		var fakeResource2 *dbngfakes.FakeResource
+		var fakeResource *dbfakes.FakeResource
+		var fakeResource2 *dbfakes.FakeResource
 
 		BeforeEach(func() {
 			var err error
@@ -1255,26 +1255,26 @@ var _ = Describe("Jobs API", func() {
 
 					Context("when triggering the build succeeds", func() {
 						BeforeEach(func() {
-							build := new(dbngfakes.FakeBuild)
+							build := new(dbfakes.FakeBuild)
 							build.IDReturns(42)
 							build.NameReturns("1")
 							build.JobNameReturns("some-job")
 							build.PipelineNameReturns("a-pipeline")
 							build.TeamNameReturns("some-team")
-							build.StatusReturns(dbng.BuildStatusStarted)
+							build.StatusReturns(db.BuildStatusStarted)
 							build.StartTimeReturns(time.Unix(1, 0))
 							build.EndTimeReturns(time.Unix(100, 0))
 							fakeScheduler.TriggerImmediatelyReturns(build, nil, nil)
 
-							fakeResource = new(dbngfakes.FakeResource)
+							fakeResource = new(dbfakes.FakeResource)
 							fakeResource.NameReturns("resource-1")
 							fakeResource.TypeReturns("some-type")
 
-							fakeResource2 = new(dbngfakes.FakeResource)
+							fakeResource2 = new(dbfakes.FakeResource)
 							fakeResource2.NameReturns("resource-2")
 							fakeResource2.TypeReturns("some-other-type")
 
-							fakePipeline.ResourcesReturns(dbng.Resources{fakeResource, fakeResource2}, nil)
+							fakePipeline.ResourcesReturns(db.Resources{fakeResource, fakeResource2}, nil)
 						})
 
 						It("triggers using the current config", func() {
@@ -1282,7 +1282,7 @@ var _ = Describe("Jobs API", func() {
 
 							_, job, resources, resourceTypes := fakeScheduler.TriggerImmediatelyArgsForCall(0)
 							Expect(job).To(Equal(fakeJob))
-							Expect(resources).To(Equal(dbng.Resources{fakeResource, fakeResource2}))
+							Expect(resources).To(Equal(db.Resources{fakeResource, fakeResource2}))
 							Expect(resourceTypes).To(Equal(versionedResourceTypes))
 						})
 
@@ -1311,7 +1311,7 @@ var _ = Describe("Jobs API", func() {
 
 					Context("when getting the config fails", func() {
 						BeforeEach(func() {
-							fakePipeline.ResourcesReturns(dbng.Resources{}, errors.New("oh no!"))
+							fakePipeline.ResourcesReturns(db.Resources{}, errors.New("oh no!"))
 						})
 
 						It("returns 500", func() {
@@ -1376,12 +1376,12 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			Context("when getting the job succeeds", func() {
-				var fakeJob *dbngfakes.FakeJob
+				var fakeJob *dbfakes.FakeJob
 
 				Context("when it contains the requested job", func() {
 					var fakeScheduler *schedulerfakes.FakeBuildScheduler
 					BeforeEach(func() {
-						fakeJob = new(dbngfakes.FakeJob)
+						fakeJob = new(dbfakes.FakeJob)
 						fakeJob.NameReturns("some-job")
 						fakeJob.ConfigReturns(atc.JobConfig{
 							Name: "some-job",
@@ -1406,36 +1406,36 @@ var _ = Describe("Jobs API", func() {
 						fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
 						fakeSchedulerFactory.BuildSchedulerReturns(fakeScheduler)
 
-						resource1 := new(dbngfakes.FakeResource)
+						resource1 := new(dbfakes.FakeResource)
 						resource1.NameReturns("some-resource")
 						resource1.SourceReturns(atc.Source{"some": "source"})
 
-						resource2 := new(dbngfakes.FakeResource)
+						resource2 := new(dbfakes.FakeResource)
 						resource2.NameReturns("some-other-resource")
 						resource2.SourceReturns(atc.Source{"some": "other-source"})
-						fakePipeline.ResourcesReturns([]dbng.Resource{resource1, resource2}, nil)
+						fakePipeline.ResourcesReturns([]db.Resource{resource1, resource2}, nil)
 					})
 
 					Context("when the input versions for the job can be determined", func() {
 						BeforeEach(func() {
-							fakeJob.GetNextBuildInputsStub = func() ([]dbng.BuildInput, bool, error) {
+							fakeJob.GetNextBuildInputsStub = func() ([]db.BuildInput, bool, error) {
 								defer GinkgoRecover()
 								Expect(fakeScheduler.SaveNextInputMappingCallCount()).To(Equal(1))
-								return []dbng.BuildInput{
+								return []db.BuildInput{
 									{
 										Name: "some-input",
-										VersionedResource: dbng.VersionedResource{
+										VersionedResource: db.VersionedResource{
 											Resource: "some-resource",
 											Type:     "some-type",
-											Version:  dbng.ResourceVersion{"some": "version"},
+											Version:  db.ResourceVersion{"some": "version"},
 										},
 									},
 									{
 										Name: "some-other-input",
-										VersionedResource: dbng.VersionedResource{
+										VersionedResource: db.VersionedResource{
 											Resource: "some-other-resource",
 											Type:     "some-other-type",
-											Version:  dbng.ResourceVersion{"some": "other-version"},
+											Version:  db.ResourceVersion{"some": "other-version"},
 										},
 									},
 								}, true, nil
@@ -1566,23 +1566,23 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			Context("when getting the job succeeds", func() {
-				var fakeJob *dbngfakes.FakeJob
+				var fakeJob *dbfakes.FakeJob
 
 				BeforeEach(func() {
-					fakeJob = new(dbngfakes.FakeJob)
+					fakeJob = new(dbfakes.FakeJob)
 					fakeJob.NameReturns("some-job")
 					fakePipeline.JobReturns(fakeJob, true, nil)
 				})
 
 				Context("when getting the build succeeds", func() {
 					BeforeEach(func() {
-						dbBuild := new(dbngfakes.FakeBuild)
+						dbBuild := new(dbfakes.FakeBuild)
 						dbBuild.IDReturns(1)
 						dbBuild.NameReturns("1")
 						dbBuild.JobNameReturns("some-job")
 						dbBuild.PipelineNameReturns("a-pipeline")
 						dbBuild.TeamNameReturns("some-team")
-						dbBuild.StatusReturns(dbng.BuildStatusSucceeded)
+						dbBuild.StatusReturns(db.BuildStatusSucceeded)
 						dbBuild.StartTimeReturns(time.Unix(1, 0))
 						dbBuild.EndTimeReturns(time.Unix(100, 0))
 						fakeJob.BuildReturns(dbBuild, true, nil)
@@ -1679,7 +1679,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
-					fakeBuild := new(dbngfakes.FakeBuild)
+					fakeBuild := new(dbfakes.FakeBuild)
 					fakePipeline.JobReturns(fakeJob, true, nil)
 					fakeJob.BuildReturns(fakeBuild, true, nil)
 
@@ -1840,8 +1840,8 @@ var _ = Describe("Jobs API", func() {
 	})
 })
 
-func fakeDBNGResourceType(t atc.VersionedResourceType) *dbngfakes.FakeResourceType {
-	fake := new(dbngfakes.FakeResourceType)
+func fakeDBResourceType(t atc.VersionedResourceType) *dbfakes.FakeResourceType {
+	fake := new(dbfakes.FakeResourceType)
 	fake.NameReturns(t.Name)
 	fake.TypeReturns(t.Type)
 	fake.SourceReturns(t.Source)

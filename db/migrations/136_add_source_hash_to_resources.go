@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng/migration"
+	"github.com/concourse/atc/db/migration"
 )
 
 func AddSourceHashToResources(tx migration.LimitedTx) error {

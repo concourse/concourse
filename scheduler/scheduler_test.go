@@ -5,9 +5,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/inputmapper/inputmapperfakes"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("Scheduler", func() {
 	var (
-		fakePipeline     *dbngfakes.FakePipeline
+		fakePipeline     *dbfakes.FakePipeline
 		fakeInputMapper  *inputmapperfakes.FakeInputMapper
 		fakeBuildStarter *schedulerfakes.FakeBuildStarter
 		fakeScanner      *schedulerfakes.FakeScanner
@@ -28,7 +28,7 @@ var _ = Describe("Scheduler", func() {
 	)
 
 	BeforeEach(func() {
-		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline = new(dbfakes.FakePipeline)
 		fakeInputMapper = new(inputmapperfakes.FakeInputMapper)
 		fakeBuildStarter = new(schedulerfakes.FakeBuildStarter)
 		fakeScanner = new(schedulerfakes.FakeScanner)
@@ -46,22 +46,22 @@ var _ = Describe("Scheduler", func() {
 	Describe("Schedule", func() {
 		var (
 			versionsDB             *algorithm.VersionsDB
-			fakeJobs               []dbng.Job
-			fakeJob                *dbngfakes.FakeJob
-			fakeJob2               *dbngfakes.FakeJob
-			fakeResource           *dbngfakes.FakeResource
-			nextPendingBuilds      []dbng.Build
-			nextPendingBuildsJob1  []dbng.Build
-			nextPendingBuildsJob2  []dbng.Build
+			fakeJobs               []db.Job
+			fakeJob                *dbfakes.FakeJob
+			fakeJob2               *dbfakes.FakeJob
+			fakeResource           *dbfakes.FakeResource
+			nextPendingBuilds      []db.Build
+			nextPendingBuildsJob1  []db.Build
+			nextPendingBuildsJob2  []db.Build
 			scheduleErr            error
 			versionedResourceTypes atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
-			nextPendingBuilds = []dbng.Build{new(dbngfakes.FakeBuild)}
-			nextPendingBuildsJob1 = []dbng.Build{new(dbngfakes.FakeBuild), new(dbngfakes.FakeBuild)}
-			nextPendingBuildsJob2 = []dbng.Build{new(dbngfakes.FakeBuild)}
-			fakePipeline.GetAllPendingBuildsReturns(map[string][]dbng.Build{
+			nextPendingBuilds = []db.Build{new(dbfakes.FakeBuild)}
+			nextPendingBuildsJob1 = []db.Build{new(dbfakes.FakeBuild), new(dbfakes.FakeBuild)}
+			nextPendingBuildsJob2 = []db.Build{new(dbfakes.FakeBuild)}
+			fakePipeline.GetAllPendingBuildsReturns(map[string][]db.Build{
 				"some-job":   nextPendingBuilds,
 				"some-job-1": nextPendingBuildsJob1,
 				"some-job-2": nextPendingBuildsJob2,
@@ -74,7 +74,7 @@ var _ = Describe("Scheduler", func() {
 				},
 			}
 
-			fakeResource = new(dbngfakes.FakeResource)
+			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("some-resource")
 		})
 
@@ -86,7 +86,7 @@ var _ = Describe("Scheduler", func() {
 				lagertest.NewTestLogger("test"),
 				versionsDB,
 				fakeJobs,
-				dbng.Resources{fakeResource},
+				db.Resources{fakeResource},
 				versionedResourceTypes,
 			)
 			if waiter != nil {
@@ -96,13 +96,13 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has no inputs", func() {
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job-1")
 
-				fakeJob2 = new(dbngfakes.FakeJob)
+				fakeJob2 = new(dbfakes.FakeJob)
 				fakeJob2.NameReturns("some-job-2")
 
-				fakeJobs = []dbng.Job{fakeJob, fakeJob2}
+				fakeJobs = []db.Job{fakeJob, fakeJob2}
 			})
 
 			Context("when saving the next input mapping fails", func() {
@@ -144,7 +144,7 @@ var _ = Describe("Scheduler", func() {
 						Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
 						_, actualJob, actualResources, actualResourceTypes, actualPendingBuilds := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
 						Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
-						Expect(actualResources).To(Equal(dbng.Resources{fakeResource}))
+						Expect(actualResources).To(Equal(db.Resources{fakeResource}))
 						Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 						Expect(actualPendingBuilds).To(Equal(nextPendingBuildsJob1))
 					})
@@ -170,7 +170,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has one trigger: true input", func() {
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job")
 				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
@@ -179,7 +179,7 @@ var _ = Describe("Scheduler", func() {
 					},
 				})
 
-				fakeJobs = []dbng.Job{fakeJob}
+				fakeJobs = []db.Job{fakeJob}
 
 				fakeBuildStarter.TryStartPendingBuildsForJobReturns(nil)
 			})
@@ -255,19 +255,19 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("TriggerImmediately", func() {
 		var (
-			fakeJob           *dbngfakes.FakeJob
-			fakeResource      *dbngfakes.FakeResource
-			triggeredBuild    dbng.Build
+			fakeJob           *dbfakes.FakeJob
+			fakeResource      *dbfakes.FakeResource
+			triggeredBuild    db.Build
 			triggerErr        error
-			nextPendingBuilds []dbng.Build
+			nextPendingBuilds []db.Build
 		)
 
 		BeforeEach(func() {
-			fakeJob = new(dbngfakes.FakeJob)
+			fakeJob = new(dbfakes.FakeJob)
 			fakeJob.NameReturns("some-job")
 			fakeJob.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1"}, {Get: "input-2"}}})
 
-			fakeResource = new(dbngfakes.FakeResource)
+			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("some-resource")
 		})
 
@@ -276,7 +276,7 @@ var _ = Describe("Scheduler", func() {
 			triggeredBuild, waiter, triggerErr = scheduler.TriggerImmediately(
 				lagertest.NewTestLogger("test"),
 				fakeJob,
-				dbng.Resources{fakeResource},
+				db.Resources{fakeResource},
 				atc.VersionedResourceTypes{
 					{
 						ResourceType: atc.ResourceType{Name: "some-resource-type"},
@@ -300,10 +300,10 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		Context("when creating the build succeeds", func() {
-			var createdBuild *dbngfakes.FakeBuild
+			var createdBuild *dbfakes.FakeBuild
 
 			BeforeEach(func() {
-				createdBuild = new(dbngfakes.FakeBuild)
+				createdBuild = new(dbfakes.FakeBuild)
 				createdBuild.IsManuallyTriggeredReturns(true)
 				fakeJob.CreateBuildReturns(createdBuild, nil)
 			})
@@ -324,7 +324,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when get pending builds for job succeeds", func() {
 				BeforeEach(func() {
-					nextPendingBuilds = []dbng.Build{new(dbngfakes.FakeBuild)}
+					nextPendingBuilds = []db.Build{new(dbfakes.FakeBuild)}
 					fakeJob.GetPendingBuildsReturns(nextPendingBuilds, nil)
 				})
 
@@ -349,10 +349,10 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("SaveNextInputMapping", func() {
 		var saveErr error
-		var fakeJob *dbngfakes.FakeJob
+		var fakeJob *dbfakes.FakeJob
 
 		JustBeforeEach(func() {
-			fakeJob = new(dbngfakes.FakeJob)
+			fakeJob = new(dbfakes.FakeJob)
 			fakeJob.NameReturns("some-job")
 
 			saveErr = scheduler.SaveNextInputMapping(lagertest.NewTestLogger("test"), fakeJob)

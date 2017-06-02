@@ -4,16 +4,16 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type teamAuthValidator struct {
-	teamFactory  dbng.TeamFactory
+	teamFactory  db.TeamFactory
 	jwtValidator Validator
 }
 
 func NewTeamAuthValidator(
-	teamFactory dbng.TeamFactory,
+	teamFactory db.TeamFactory,
 	jwtValidator Validator,
 ) Validator {
 	return &teamAuthValidator{
@@ -41,7 +41,7 @@ func (v teamAuthValidator) IsAuthenticated(r *http.Request) bool {
 
 }
 
-func isAuthConfigured(t dbng.Team) bool {
+func isAuthConfigured(t db.Team) bool {
 	if t.BasicAuth() != nil {
 		return true
 	}

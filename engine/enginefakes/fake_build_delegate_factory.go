@@ -4,15 +4,15 @@ package enginefakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 )
 
 type FakeBuildDelegateFactory struct {
-	DelegateStub        func(dbng.Build) engine.BuildDelegate
+	DelegateStub        func(db.Build) engine.BuildDelegate
 	delegateMutex       sync.RWMutex
 	delegateArgsForCall []struct {
-		arg1 dbng.Build
+		arg1 db.Build
 	}
 	delegateReturns struct {
 		result1 engine.BuildDelegate
@@ -24,11 +24,11 @@ type FakeBuildDelegateFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildDelegateFactory) Delegate(arg1 dbng.Build) engine.BuildDelegate {
+func (fake *FakeBuildDelegateFactory) Delegate(arg1 db.Build) engine.BuildDelegate {
 	fake.delegateMutex.Lock()
 	ret, specificReturn := fake.delegateReturnsOnCall[len(fake.delegateArgsForCall)]
 	fake.delegateArgsForCall = append(fake.delegateArgsForCall, struct {
-		arg1 dbng.Build
+		arg1 db.Build
 	}{arg1})
 	fake.recordInvocation("Delegate", []interface{}{arg1})
 	fake.delegateMutex.Unlock()
@@ -47,7 +47,7 @@ func (fake *FakeBuildDelegateFactory) DelegateCallCount() int {
 	return len(fake.delegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) dbng.Build {
+func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) db.Build {
 	fake.delegateMutex.RLock()
 	defer fake.delegateMutex.RUnlock()
 	return fake.delegateArgsForCall[i].arg1

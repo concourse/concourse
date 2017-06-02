@@ -2,10 +2,10 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func Volume(volume dbng.CreatedVolume) (atc.Volume, error) {
+func Volume(volume db.CreatedVolume) (atc.Volume, error) {
 	resourceType, err := volume.ResourceType()
 	if err != nil {
 		return atc.Volume{}, err
@@ -29,7 +29,7 @@ func Volume(volume dbng.CreatedVolume) (atc.Volume, error) {
 	}, nil
 }
 
-func toVolumeResourceType(dbResourceType *dbng.VolumeResourceType) *atc.VolumeResourceType {
+func toVolumeResourceType(dbResourceType *db.VolumeResourceType) *atc.VolumeResourceType {
 	if dbResourceType == nil {
 		return nil
 	}
@@ -52,7 +52,7 @@ func toVolumeResourceType(dbResourceType *dbng.VolumeResourceType) *atc.VolumeRe
 	return nil
 }
 
-func toVolumeBaseResourceType(dbResourceType *dbng.UsedWorkerBaseResourceType) *atc.VolumeBaseResourceType {
+func toVolumeBaseResourceType(dbResourceType *db.UsedWorkerBaseResourceType) *atc.VolumeBaseResourceType {
 	if dbResourceType == nil {
 		return nil
 	}

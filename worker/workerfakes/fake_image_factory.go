@@ -7,12 +7,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeImageFactory struct {
-	GetImageStub        func(logger lager.Logger, workerClient worker.Worker, volumeClient worker.VolumeClient, imageSpec worker.ImageSpec, teamID int, signals <-chan os.Signal, delegate worker.ImageFetchingDelegate, resourceUser dbng.ResourceUser, resourceTypes atc.VersionedResourceTypes) (worker.Image, error)
+	GetImageStub        func(logger lager.Logger, workerClient worker.Worker, volumeClient worker.VolumeClient, imageSpec worker.ImageSpec, teamID int, signals <-chan os.Signal, delegate worker.ImageFetchingDelegate, resourceUser db.ResourceUser, resourceTypes atc.VersionedResourceTypes) (worker.Image, error)
 	getImageMutex       sync.RWMutex
 	getImageArgsForCall []struct {
 		logger        lager.Logger
@@ -22,7 +22,7 @@ type FakeImageFactory struct {
 		teamID        int
 		signals       <-chan os.Signal
 		delegate      worker.ImageFetchingDelegate
-		resourceUser  dbng.ResourceUser
+		resourceUser  db.ResourceUser
 		resourceTypes atc.VersionedResourceTypes
 	}
 	getImageReturns struct {
@@ -37,7 +37,7 @@ type FakeImageFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageFactory) GetImage(logger lager.Logger, workerClient worker.Worker, volumeClient worker.VolumeClient, imageSpec worker.ImageSpec, teamID int, signals <-chan os.Signal, delegate worker.ImageFetchingDelegate, resourceUser dbng.ResourceUser, resourceTypes atc.VersionedResourceTypes) (worker.Image, error) {
+func (fake *FakeImageFactory) GetImage(logger lager.Logger, workerClient worker.Worker, volumeClient worker.VolumeClient, imageSpec worker.ImageSpec, teamID int, signals <-chan os.Signal, delegate worker.ImageFetchingDelegate, resourceUser db.ResourceUser, resourceTypes atc.VersionedResourceTypes) (worker.Image, error) {
 	fake.getImageMutex.Lock()
 	ret, specificReturn := fake.getImageReturnsOnCall[len(fake.getImageArgsForCall)]
 	fake.getImageArgsForCall = append(fake.getImageArgsForCall, struct {
@@ -48,7 +48,7 @@ func (fake *FakeImageFactory) GetImage(logger lager.Logger, workerClient worker.
 		teamID        int
 		signals       <-chan os.Signal
 		delegate      worker.ImageFetchingDelegate
-		resourceUser  dbng.ResourceUser
+		resourceUser  db.ResourceUser
 		resourceTypes atc.VersionedResourceTypes
 	}{logger, workerClient, volumeClient, imageSpec, teamID, signals, delegate, resourceUser, resourceTypes})
 	fake.recordInvocation("GetImage", []interface{}{logger, workerClient, volumeClient, imageSpec, teamID, signals, delegate, resourceUser, resourceTypes})
@@ -68,7 +68,7 @@ func (fake *FakeImageFactory) GetImageCallCount() int {
 	return len(fake.getImageArgsForCall)
 }
 
-func (fake *FakeImageFactory) GetImageArgsForCall(i int) (lager.Logger, worker.Worker, worker.VolumeClient, worker.ImageSpec, int, <-chan os.Signal, worker.ImageFetchingDelegate, dbng.ResourceUser, atc.VersionedResourceTypes) {
+func (fake *FakeImageFactory) GetImageArgsForCall(i int) (lager.Logger, worker.Worker, worker.VolumeClient, worker.ImageSpec, int, <-chan os.Signal, worker.ImageFetchingDelegate, db.ResourceUser, atc.VersionedResourceTypes) {
 	fake.getImageMutex.RLock()
 	defer fake.getImageMutex.RUnlock()
 	return fake.getImageArgsForCall[i].logger, fake.getImageArgsForCall[i].workerClient, fake.getImageArgsForCall[i].volumeClient, fake.getImageArgsForCall[i].imageSpec, fake.getImageArgsForCall[i].teamID, fake.getImageArgsForCall[i].signals, fake.getImageArgsForCall[i].delegate, fake.getImageArgsForCall[i].resourceUser, fake.getImageArgsForCall[i].resourceTypes

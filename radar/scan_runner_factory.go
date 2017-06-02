@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/tedsuo/ifrit"
 
@@ -34,7 +34,7 @@ type scanRunnerFactory struct {
 func NewScanRunnerFactory(
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
-	dbPipeline dbng.Pipeline,
+	dbPipeline db.Pipeline,
 	clock clock.Clock,
 	externalURL string,
 ) ScanRunnerFactory {

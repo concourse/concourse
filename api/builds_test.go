@@ -16,8 +16,8 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine/enginefakes"
 )
 
@@ -61,13 +61,13 @@ var _ = Describe("Builds API", func() {
 
 			Context("when creating a one-off build succeeds", func() {
 				BeforeEach(func() {
-					dbTeam.CreateOneOffBuildStub = func() (dbng.Build, error) {
+					dbTeam.CreateOneOffBuildStub = func() (db.Build, error) {
 						Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
 						teamName := dbTeamFactory.FindTeamArgsForCall(0)
 						build.IDReturns(42)
 						build.NameReturns("1")
 						build.TeamNameReturns(teamName)
-						build.StatusReturns(dbng.BuildStatusStarted)
+						build.StatusReturns(db.BuildStatusStarted)
 						build.StartTimeReturns(time.Unix(1, 0))
 						build.EndTimeReturns(time.Unix(100, 0))
 						build.ReapTimeReturns(time.Unix(200, 0))
@@ -225,7 +225,7 @@ var _ = Describe("Builds API", func() {
 					build.JobNameReturns("job1")
 					build.PipelineNameReturns("pipeline1")
 					build.TeamNameReturns("some-team")
-					build.StatusReturns(dbng.BuildStatusSucceeded)
+					build.StatusReturns(db.BuildStatusSucceeded)
 					build.StartTimeReturns(time.Unix(1, 0))
 					build.EndTimeReturns(time.Unix(100, 0))
 					build.ReapTimeReturns(time.Unix(200, 0))
@@ -434,14 +434,14 @@ var _ = Describe("Builds API", func() {
 
 				Context("when the build inputs/ouputs are not empty", func() {
 					BeforeEach(func() {
-						build.ResourcesReturns([]dbng.BuildInput{
+						build.ResourcesReturns([]db.BuildInput{
 							{
 								Name: "input1",
-								VersionedResource: dbng.VersionedResource{
+								VersionedResource: db.VersionedResource{
 									Resource: "myresource1",
 									Type:     "git",
-									Version:  dbng.ResourceVersion{"version": "value1"},
-									Metadata: []dbng.ResourceMetadataField{
+									Version:  db.ResourceVersion{"version": "value1"},
+									Metadata: []db.ResourceMetadataField{
 										{
 											Name:  "meta1",
 											Value: "value1",
@@ -456,26 +456,26 @@ var _ = Describe("Builds API", func() {
 							},
 							{
 								Name: "input2",
-								VersionedResource: dbng.VersionedResource{
+								VersionedResource: db.VersionedResource{
 									Resource: "myresource2",
 									Type:     "git",
-									Version:  dbng.ResourceVersion{"version": "value2"},
-									Metadata: []dbng.ResourceMetadataField{},
+									Version:  db.ResourceVersion{"version": "value2"},
+									Metadata: []db.ResourceMetadataField{},
 								},
 								FirstOccurrence: false,
 							},
 						},
-							[]dbng.BuildOutput{
+							[]db.BuildOutput{
 								{
-									VersionedResource: dbng.VersionedResource{
+									VersionedResource: db.VersionedResource{
 										Resource: "myresource3",
-										Version:  dbng.ResourceVersion{"version": "value3"},
+										Version:  db.ResourceVersion{"version": "value3"},
 									},
 								},
 								{
-									VersionedResource: dbng.VersionedResource{
+									VersionedResource: db.VersionedResource{
 										Resource: "myresource4",
-										Version:  dbng.ResourceVersion{"version": "value4"},
+										Version:  db.ResourceVersion{"version": "value4"},
 									},
 								},
 							}, nil)
@@ -539,7 +539,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when the build resources error", func() {
 					BeforeEach(func() {
-						build.ResourcesReturns([]dbng.BuildInput{}, []dbng.BuildOutput{}, errors.New("where are my feedback?"))
+						build.ResourcesReturns([]db.BuildInput{}, []db.BuildOutput{}, errors.New("where are my feedback?"))
 					})
 
 					It("returns internal server error", func() {
@@ -588,33 +588,33 @@ var _ = Describe("Builds API", func() {
 	Describe("GET /api/v1/builds", func() {
 		var response *http.Response
 		var queryParams string
-		var returnedBuilds []dbng.Build
+		var returnedBuilds []db.Build
 
 		BeforeEach(func() {
 			queryParams = ""
-			build1 := new(dbngfakes.FakeBuild)
+			build1 := new(dbfakes.FakeBuild)
 			build1.IDReturns(4)
 			build1.NameReturns("2")
 			build1.JobNameReturns("job2")
 			build1.PipelineNameReturns("pipeline2")
 			build1.TeamNameReturns("some-team")
-			build1.StatusReturns(dbng.BuildStatusStarted)
+			build1.StatusReturns(db.BuildStatusStarted)
 			build1.StartTimeReturns(time.Unix(1, 0))
 			build1.EndTimeReturns(time.Unix(100, 0))
 			build1.ReapTimeReturns(time.Unix(300, 0))
 
-			build2 := new(dbngfakes.FakeBuild)
+			build2 := new(dbfakes.FakeBuild)
 			build2.IDReturns(3)
 			build2.NameReturns("1")
 			build2.JobNameReturns("job1")
 			build2.PipelineNameReturns("pipeline1")
 			build2.TeamNameReturns("some-team")
-			build2.StatusReturns(dbng.BuildStatusSucceeded)
+			build2.StatusReturns(db.BuildStatusSucceeded)
 			build2.StartTimeReturns(time.Unix(101, 0))
 			build2.EndTimeReturns(time.Unix(200, 0))
 			build2.ReapTimeReturns(time.Unix(400, 0))
 
-			returnedBuilds = []dbng.Build{build1, build2}
+			returnedBuilds = []db.Build{build1, build2}
 
 			authValidator.IsAuthenticatedReturns(false)
 		})
@@ -641,7 +641,7 @@ var _ = Describe("Builds API", func() {
 					Expect(dbBuildFactory.PublicBuildsCallCount()).To(Equal(1))
 
 					page := dbBuildFactory.PublicBuildsArgsForCall(0)
-					Expect(page).To(Equal(dbng.Page{
+					Expect(page).To(Equal(db.Page{
 						Since: 0,
 						Until: 0,
 						Limit: 100,
@@ -658,7 +658,7 @@ var _ = Describe("Builds API", func() {
 					Expect(dbBuildFactory.PublicBuildsCallCount()).To(Equal(1))
 
 					page := dbBuildFactory.PublicBuildsArgsForCall(0)
-					Expect(page).To(Equal(dbng.Page{
+					Expect(page).To(Equal(db.Page{
 						Since: 2,
 						Until: 3,
 						Limit: 8,
@@ -668,7 +668,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when getting the builds succeeds", func() {
 				BeforeEach(func() {
-					dbBuildFactory.PublicBuildsReturns(returnedBuilds, dbng.Pagination{}, nil)
+					dbBuildFactory.PublicBuildsReturns(returnedBuilds, db.Pagination{}, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -712,9 +712,9 @@ var _ = Describe("Builds API", func() {
 
 			Context("when next/previous pages are available", func() {
 				BeforeEach(func() {
-					dbBuildFactory.PublicBuildsReturns(returnedBuilds, dbng.Pagination{
-						Previous: &dbng.Page{Until: 4, Limit: 2},
-						Next:     &dbng.Page{Since: 3, Limit: 2},
+					dbBuildFactory.PublicBuildsReturns(returnedBuilds, db.Pagination{
+						Previous: &db.Page{Until: 4, Limit: 2},
+						Next:     &db.Page{Since: 3, Limit: 2},
 					}, nil)
 				})
 
@@ -728,7 +728,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when getting all builds fails", func() {
 				BeforeEach(func() {
-					dbBuildFactory.PublicBuildsReturns(nil, dbng.Pagination{}, errors.New("oh no!"))
+					dbBuildFactory.PublicBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -752,7 +752,7 @@ var _ = Describe("Builds API", func() {
 					Expect(dbTeam.PrivateAndPublicBuildsCallCount()).To(Equal(1))
 
 					page := dbTeam.PrivateAndPublicBuildsArgsForCall(0)
-					Expect(page).To(Equal(dbng.Page{
+					Expect(page).To(Equal(db.Page{
 						Since: 0,
 						Until: 0,
 						Limit: 100,
@@ -769,7 +769,7 @@ var _ = Describe("Builds API", func() {
 					Expect(dbTeam.PrivateAndPublicBuildsCallCount()).To(Equal(1))
 
 					page := dbTeam.PrivateAndPublicBuildsArgsForCall(0)
-					Expect(page).To(Equal(dbng.Page{
+					Expect(page).To(Equal(db.Page{
 						Since: 2,
 						Until: 3,
 						Limit: 8,
@@ -779,7 +779,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when getting the builds succeeds", func() {
 				BeforeEach(func() {
-					dbTeam.PrivateAndPublicBuildsReturns(returnedBuilds, dbng.Pagination{}, nil)
+					dbTeam.PrivateAndPublicBuildsReturns(returnedBuilds, db.Pagination{}, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -830,9 +830,9 @@ var _ = Describe("Builds API", func() {
 
 			Context("when next/previous pages are available", func() {
 				BeforeEach(func() {
-					dbTeam.PrivateAndPublicBuildsReturns(returnedBuilds, dbng.Pagination{
-						Previous: &dbng.Page{Until: 4, Limit: 2},
-						Next:     &dbng.Page{Since: 3, Limit: 2},
+					dbTeam.PrivateAndPublicBuildsReturns(returnedBuilds, db.Pagination{
+						Previous: &db.Page{Until: 4, Limit: 2},
+						Next:     &db.Page{Since: 3, Limit: 2},
 					}, nil)
 				})
 
@@ -846,7 +846,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when getting all builds fails", func() {
 				BeforeEach(func() {
-					dbTeam.PrivateAndPublicBuildsReturns(nil, dbng.Pagination{}, errors.New("oh no!"))
+					dbTeam.PrivateAndPublicBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -1160,20 +1160,20 @@ var _ = Describe("Builds API", func() {
 		})
 
 		Context("when the build is found", func() {
-			var buildPrep dbng.BuildPreparation
+			var buildPrep db.BuildPreparation
 
 			BeforeEach(func() {
-				buildPrep = dbng.BuildPreparation{
+				buildPrep = db.BuildPreparation{
 					BuildID:          42,
-					PausedPipeline:   dbng.BuildPreparationStatusNotBlocking,
-					PausedJob:        dbng.BuildPreparationStatusNotBlocking,
-					MaxRunningBuilds: dbng.BuildPreparationStatusBlocking,
-					Inputs: map[string]dbng.BuildPreparationStatus{
-						"foo": dbng.BuildPreparationStatusUnknown,
-						"bar": dbng.BuildPreparationStatusBlocking,
+					PausedPipeline:   db.BuildPreparationStatusNotBlocking,
+					PausedJob:        db.BuildPreparationStatusNotBlocking,
+					MaxRunningBuilds: db.BuildPreparationStatusBlocking,
+					Inputs: map[string]db.BuildPreparationStatus{
+						"foo": db.BuildPreparationStatusUnknown,
+						"bar": db.BuildPreparationStatusBlocking,
 					},
-					InputsSatisfied:     dbng.BuildPreparationStatusBlocking,
-					MissingInputReasons: dbng.MissingInputReasons{"some-input": "some-reason"},
+					InputsSatisfied:     db.BuildPreparationStatusBlocking,
+					MissingInputReasons: db.MissingInputReasons{"some-input": "some-reason"},
 				}
 				dbBuildFactory.BuildReturns(build, true, nil)
 				build.JobNameReturns("job1")
@@ -1292,7 +1292,7 @@ var _ = Describe("Builds API", func() {
 				Context("when the build preparation is not found", func() {
 					BeforeEach(func() {
 						dbBuildFactory.BuildReturns(build, true, nil)
-						build.PreparationReturns(dbng.BuildPreparation{}, false, nil)
+						build.PreparationReturns(db.BuildPreparation{}, false, nil)
 					})
 
 					It("returns Not Found", func() {
@@ -1303,7 +1303,7 @@ var _ = Describe("Builds API", func() {
 				Context("when looking up the build preparation fails", func() {
 					BeforeEach(func() {
 						dbBuildFactory.BuildReturns(build, true, nil)
-						build.PreparationReturns(dbng.BuildPreparation{}, false, errors.New("ho ho ho merry festivus"))
+						build.PreparationReturns(db.BuildPreparation{}, false, errors.New("ho ho ho merry festivus"))
 					})
 
 					It("returns 500 Internal Server Error", func() {

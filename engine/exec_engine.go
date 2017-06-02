@@ -10,7 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
 	"github.com/tedsuo/ifrit"
@@ -46,7 +46,7 @@ func (engine *execEngine) Name() string {
 	return execEngineName
 }
 
-func (engine *execEngine) CreateBuild(logger lager.Logger, build dbng.Build, plan atc.Plan) (Build, error) {
+func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	return &execBuild{
 		teamName:     build.TeamName(),
 		teamID:       build.TeamID(),
@@ -70,7 +70,7 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build dbng.Build, pla
 	}, nil
 }
 
-func (engine *execEngine) LookupBuild(logger lager.Logger, build dbng.Build) (Build, error) {
+func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	var metadata execMetadata
 	err := json.Unmarshal([]byte(build.EngineMetadata()), &metadata)
 	if err != nil {
@@ -104,7 +104,7 @@ func (engine *execEngine) ReleaseAll(logger lager.Logger) {
 	close(engine.releaseCh)
 }
 
-func buildMetadata(build dbng.Build, externalURL string) StepMetadata {
+func buildMetadata(build db.Build, externalURL string) StepMetadata {
 	return StepMetadata{
 		BuildID:      build.ID(),
 		BuildName:    build.Name(),
@@ -247,16 +247,16 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 }
 
 func (build *execBuild) workerMetadata(
-	containerType dbng.ContainerType,
+	containerType db.ContainerType,
 	stepName string,
 	attempts []int,
-) dbng.ContainerMetadata {
+) db.ContainerMetadata {
 	attemptStrs := []string{}
 	for _, a := range attempts {
 		attemptStrs = append(attemptStrs, strconv.Itoa(a))
 	}
 
-	return dbng.ContainerMetadata{
+	return db.ContainerMetadata{
 		Type: containerType,
 
 		PipelineID: build.pipelineID,

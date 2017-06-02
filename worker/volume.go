@@ -3,7 +3,7 @@ package worker
 import (
 	"io"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -26,7 +26,7 @@ type Volume interface {
 	IsInitialized() (bool, error)
 	Initialize() error
 
-	CreateChildForContainer(dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
+	CreateChildForContainer(db.CreatingContainer, string) (db.CreatingVolume, error)
 
 	Destroy() error
 }
@@ -38,12 +38,12 @@ type VolumeMount struct {
 
 type volume struct {
 	bcVolume baggageclaim.Volume
-	dbVolume dbng.CreatedVolume
+	dbVolume db.CreatedVolume
 }
 
 func NewVolume(
 	bcVolume baggageclaim.Volume,
-	dbVolume dbng.CreatedVolume,
+	dbVolume db.CreatedVolume,
 ) Volume {
 	return &volume{
 		bcVolume: bcVolume,
@@ -93,6 +93,6 @@ func (v *volume) Initialize() error {
 	return v.dbVolume.Initialize()
 }
 
-func (v *volume) CreateChildForContainer(creatingContainer dbng.CreatingContainer, mountPath string) (dbng.CreatingVolume, error) {
+func (v *volume) CreateChildForContainer(creatingContainer db.CreatingContainer, mountPath string) (db.CreatingVolume, error) {
 	return v.dbVolume.CreateChildForContainer(creatingContainer, mountPath)
 }

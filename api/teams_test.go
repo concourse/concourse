@@ -11,8 +11,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -26,11 +26,11 @@ func jsonEncode(object interface{}) *bytes.Buffer {
 
 var _ = Describe("Teams API", func() {
 	var (
-		fakeTeam *dbngfakes.FakeTeam
+		fakeTeam *dbfakes.FakeTeam
 	)
 
 	BeforeEach(func() {
-		fakeTeam = new(dbngfakes.FakeTeam)
+		fakeTeam = new(dbfakes.FakeTeam)
 
 	})
 
@@ -62,14 +62,14 @@ var _ = Describe("Teams API", func() {
 
 		Context("when the database returns teams", func() {
 			var (
-				fakeTeamOne   *dbngfakes.FakeTeam
-				fakeTeamTwo   *dbngfakes.FakeTeam
-				fakeTeamThree *dbngfakes.FakeTeam
+				fakeTeamOne   *dbfakes.FakeTeam
+				fakeTeamTwo   *dbfakes.FakeTeam
+				fakeTeamThree *dbfakes.FakeTeam
 			)
 			BeforeEach(func() {
-				fakeTeamOne = new(dbngfakes.FakeTeam)
-				fakeTeamTwo = new(dbngfakes.FakeTeam)
-				fakeTeamThree = new(dbngfakes.FakeTeam)
+				fakeTeamOne = new(dbfakes.FakeTeam)
+				fakeTeamTwo = new(dbfakes.FakeTeam)
+				fakeTeamThree = new(dbfakes.FakeTeam)
 
 				fakeTeamOne.IDReturns(5)
 				fakeTeamOne.NameReturns("avengers")
@@ -87,7 +87,7 @@ var _ = Describe("Teams API", func() {
 				fakeTeamThree.AuthReturns(map[string]*json.RawMessage{
 					"fake-provider": (*json.RawMessage)(&data),
 				})
-				dbTeamFactory.GetTeamsReturns([]dbng.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
+				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -366,7 +366,7 @@ var _ = Describe("Teams API", func() {
 		var response *http.Response
 
 		var atcTeam atc.Team
-		var team dbng.Team
+		var team db.Team
 		var teamName string
 
 		BeforeEach(func() {
@@ -423,7 +423,7 @@ var _ = Describe("Teams API", func() {
 						teamName = atc.DefaultTeamName
 						fakeTeam.AdminReturns(true)
 						dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-						dbTeamFactory.GetTeamsReturns([]dbng.Team{fakeTeam}, nil)
+						dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeam}, nil)
 					})
 
 					It("returns 403 Forbidden and backs off", func() {

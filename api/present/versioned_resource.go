@@ -2,17 +2,17 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func VersionedResource(vr dbng.VersionedResource) atc.VersionedResource {
+func VersionedResource(vr db.VersionedResource) atc.VersionedResource {
 	return atc.VersionedResource{
 		Resource: vr.Resource,
 		Version:  atc.Version(vr.Version),
 	}
 }
 
-func SavedVersionedResource(svr dbng.SavedVersionedResource) atc.VersionedResource {
+func SavedVersionedResource(svr db.SavedVersionedResource) atc.VersionedResource {
 	var metadata []atc.MetadataField
 
 	for _, v := range svr.Metadata {

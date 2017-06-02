@@ -1,6 +1,6 @@
 package migrations
 
-import "github.com/concourse/atc/dbng/migration"
+import "github.com/concourse/atc/db/migration"
 
 func AddFirstLoggedBuildIDToJobsAndReapTimeToBuildsAndLeases(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`ALTER TABLE jobs ADD COLUMN first_logged_build_id int NOT NULL DEFAULT 0`)

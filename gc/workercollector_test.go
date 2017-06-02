@@ -6,7 +6,7 @@ import (
 
 	"errors"
 
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -14,12 +14,12 @@ import (
 var _ = Describe("WorkerCollector", func() {
 	var (
 		workerCollector     gc.Collector
-		fakeWorkerLifecycle *dbngfakes.FakeWorkerLifecycle
+		fakeWorkerLifecycle *dbfakes.FakeWorkerLifecycle
 	)
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("volume-collector")
-		fakeWorkerLifecycle = new(dbngfakes.FakeWorkerLifecycle)
+		fakeWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
 
 		workerCollector = gc.NewWorkerCollector(
 			logger,

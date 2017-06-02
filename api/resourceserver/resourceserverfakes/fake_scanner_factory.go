@@ -5,15 +5,15 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/api/resourceserver"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/radar"
 )
 
 type FakeScannerFactory struct {
-	NewResourceScannerStub        func(pipeline dbng.Pipeline) radar.Scanner
+	NewResourceScannerStub        func(pipeline db.Pipeline) radar.Scanner
 	newResourceScannerMutex       sync.RWMutex
 	newResourceScannerArgsForCall []struct {
-		pipeline dbng.Pipeline
+		pipeline db.Pipeline
 	}
 	newResourceScannerReturns struct {
 		result1 radar.Scanner
@@ -25,11 +25,11 @@ type FakeScannerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeScannerFactory) NewResourceScanner(pipeline dbng.Pipeline) radar.Scanner {
+func (fake *FakeScannerFactory) NewResourceScanner(pipeline db.Pipeline) radar.Scanner {
 	fake.newResourceScannerMutex.Lock()
 	ret, specificReturn := fake.newResourceScannerReturnsOnCall[len(fake.newResourceScannerArgsForCall)]
 	fake.newResourceScannerArgsForCall = append(fake.newResourceScannerArgsForCall, struct {
-		pipeline dbng.Pipeline
+		pipeline db.Pipeline
 	}{pipeline})
 	fake.recordInvocation("NewResourceScanner", []interface{}{pipeline})
 	fake.newResourceScannerMutex.Unlock()
@@ -48,7 +48,7 @@ func (fake *FakeScannerFactory) NewResourceScannerCallCount() int {
 	return len(fake.newResourceScannerArgsForCall)
 }
 
-func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) dbng.Pipeline {
+func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) db.Pipeline {
 	fake.newResourceScannerMutex.RLock()
 	defer fake.newResourceScannerMutex.RUnlock()
 	return fake.newResourceScannerArgsForCall[i].pipeline

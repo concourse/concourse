@@ -12,14 +12,14 @@ import (
 	"net/url"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/retryhttp"
 	"github.com/tedsuo/rata"
 )
 
 //go:generate counterfeiter . TransportDB
 type TransportDB interface {
-	GetWorker(name string) (dbng.Worker, bool, error)
+	GetWorker(name string) (db.Worker, bool, error)
 }
 
 //go:generate counterfeiter . ReadCloser

@@ -4,7 +4,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
@@ -99,7 +99,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 	configSource = exec.ValidatingConfigSource{configSource}
 
 	workerMetadata := build.workerMetadata(
-		dbng.ContainerTypeTask,
+		db.ContainerTypeTask,
 		plan.Task.Name,
 		plan.Attempts,
 	)
@@ -131,7 +131,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 	})
 
 	workerMetadata := build.workerMetadata(
-		dbng.ContainerTypeGet,
+		db.ContainerTypeGet,
 		plan.Get.Name,
 		plan.Attempts,
 	)
@@ -163,7 +163,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 	})
 
 	workerMetadata := build.workerMetadata(
-		dbng.ContainerTypePut,
+		db.ContainerTypePut,
 		plan.Put.Name,
 		plan.Attempts,
 	)
@@ -195,7 +195,7 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 	getPlan := plan.DependentGet.GetPlan()
 
 	workerMetadata := build.workerMetadata(
-		dbng.ContainerTypeGet,
+		db.ContainerTypeGet,
 		getPlan.Name,
 		plan.Attempts,
 	)

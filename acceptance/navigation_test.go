@@ -8,7 +8,7 @@ import (
 	. "github.com/sclevine/agouti/matchers"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 var _ = Describe("Navigation", func() {
@@ -52,7 +52,7 @@ var _ = Describe("Navigation", func() {
 						Name: "job-1",
 					},
 				},
-			}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+			}, db.ConfigVersion(1), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, _, err = defaultTeam.SavePipeline("pipeline-2", atc.Config{
@@ -61,7 +61,7 @@ var _ = Describe("Navigation", func() {
 						Name: "job-2",
 					},
 				},
-			}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+			}, db.ConfigVersion(1), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 		})

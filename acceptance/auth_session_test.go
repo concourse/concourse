@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -20,7 +20,7 @@ import (
 var _ = Describe("Auth Session", func() {
 	var atcCommand *ATCCommand
 	var page *agouti.Page
-	var pipeline dbng.Pipeline
+	var pipeline db.Pipeline
 
 	BeforeEach(func() {
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
@@ -36,7 +36,7 @@ var _ = Describe("Auth Session", func() {
 					Name: "job-name",
 				},
 			},
-		}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+		}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -76,7 +76,7 @@ var _ = Describe("Auth Session", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			builds, _, err := job.Builds(dbng.Page{Limit: 1})
+			builds, _, err := job.Builds(db.Page{Limit: 1})
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(builds).To(HaveLen(0))

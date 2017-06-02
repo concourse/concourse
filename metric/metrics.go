@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 var DatabaseQueries = Meter(0)
@@ -167,7 +167,7 @@ type BuildFinished struct {
 	JobName       string
 	BuildName     string
 	BuildID       int
-	BuildStatus   dbng.BuildStatus
+	BuildStatus   db.BuildStatus
 	BuildDuration time.Duration
 }
 

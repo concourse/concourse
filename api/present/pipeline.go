@@ -2,12 +2,12 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 
-func Pipeline(savedPipeline dbng.Pipeline) atc.Pipeline {
+func Pipeline(savedPipeline db.Pipeline) atc.Pipeline {
 	pathForRoute, err := web.Routes.CreatePathForRoute(web.Pipeline, rata.Params{
 		"team_name": savedPipeline.TeamName(),
 		"pipeline":  savedPipeline.Name(),

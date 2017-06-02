@@ -11,9 +11,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 )
@@ -24,7 +24,7 @@ var _ = Describe("DBEngine", func() {
 
 		fakeEngineA *enginefakes.FakeEngine
 		fakeEngineB *enginefakes.FakeEngine
-		dbBuild     *dbngfakes.FakeBuild
+		dbBuild     *dbfakes.FakeBuild
 
 		dbEngine Engine
 	)
@@ -38,7 +38,7 @@ var _ = Describe("DBEngine", func() {
 		fakeEngineB = new(enginefakes.FakeEngine)
 		fakeEngineB.NameReturns("fake-engine-b")
 
-		dbBuild = new(dbngfakes.FakeBuild)
+		dbBuild = new(dbfakes.FakeBuild)
 		dbBuild.IDReturns(128)
 
 		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB})
@@ -358,7 +358,7 @@ var _ = Describe("DBEngine", func() {
 						Expect(dbBuild.FinishCallCount()).To(Equal(1))
 
 						status := dbBuild.FinishArgsForCall(0)
-						Expect(status).To(Equal(dbng.BuildStatusAborted))
+						Expect(status).To(Equal(db.BuildStatusAborted))
 					})
 
 					It("releases the lock", func() {
@@ -507,7 +507,7 @@ var _ = Describe("DBEngine", func() {
 								}
 
 								aborts := make(chan struct{})
-								notifier := new(dbngfakes.FakeNotifier)
+								notifier := new(dbfakes.FakeNotifier)
 								notifier.NotifyReturns(aborts)
 
 								dbBuild.AbortNotifierReturns(notifier, nil)
@@ -524,7 +524,7 @@ var _ = Describe("DBEngine", func() {
 
 						Context("when listening for aborts succeeds", func() {
 							var (
-								notifier *dbngfakes.FakeNotifier
+								notifier *dbfakes.FakeNotifier
 								abort    chan<- struct{}
 							)
 
@@ -532,7 +532,7 @@ var _ = Describe("DBEngine", func() {
 								aborts := make(chan struct{})
 								abort = aborts
 
-								notifier = new(dbngfakes.FakeNotifier)
+								notifier = new(dbfakes.FakeNotifier)
 								notifier.NotifyReturns(aborts)
 
 								dbBuild.AbortNotifierReturns(notifier, nil)
@@ -618,7 +618,7 @@ var _ = Describe("DBEngine", func() {
 						It("marks the build as errored", func() {
 							Expect(dbBuild.FinishCallCount()).To(Equal(1))
 							buildStatus := dbBuild.FinishArgsForCall(0)
-							Expect(buildStatus).To(Equal(dbng.BuildStatusErrored))
+							Expect(buildStatus).To(Equal(db.BuildStatusErrored))
 						})
 					})
 				})
@@ -633,7 +633,7 @@ var _ = Describe("DBEngine", func() {
 					It("marks the build as errored", func() {
 						Expect(dbBuild.FinishCallCount()).To(Equal(1))
 						buildStatus := dbBuild.FinishArgsForCall(0)
-						Expect(buildStatus).To(Equal(dbng.BuildStatusErrored))
+						Expect(buildStatus).To(Equal(db.BuildStatusErrored))
 					})
 				})
 
@@ -656,7 +656,7 @@ var _ = Describe("DBEngine", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
 						dbBuild.EngineReturns("fake-engine-b")
-						dbBuild.StatusReturns(dbng.BuildStatusSucceeded)
+						dbBuild.StatusReturns(db.BuildStatusSucceeded)
 					})
 
 					It("does not look up the build in the engine", func() {

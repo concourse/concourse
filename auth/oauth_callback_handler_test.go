@@ -28,8 +28,8 @@ import (
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 type testCookieJar struct {
@@ -60,8 +60,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		fakeProviderFactory *authfakes.FakeProviderFactory
 
-		fakeTeam        *dbngfakes.FakeTeam
-		fakeTeamFactory *dbngfakes.FakeTeamFactory
+		fakeTeam        *dbfakes.FakeTeam
+		fakeTeamFactory *dbfakes.FakeTeamFactory
 
 		signingKey *rsa.PrivateKey
 
@@ -75,7 +75,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 	BeforeEach(func() {
 		fakeProvider = new(providerfakes.FakeProvider)
 
-		fakeTeamFactory = new(dbngfakes.FakeTeamFactory)
+		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeProviderFactory = new(authfakes.FakeProviderFactory)
 
 		var err error
@@ -83,7 +83,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		Expect(err).ToNot(HaveOccurred())
 		expire = 24 * time.Hour
 
-		fakeProviderFactory.GetProviderStub = func(team dbng.Team, providerName string) (provider.Provider, bool, error) {
+		fakeProviderFactory.GetProviderStub = func(team db.Team, providerName string) (provider.Provider, bool, error) {
 			if providerName == "some-provider" {
 				return fakeProvider, true, nil
 			}
@@ -93,7 +93,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		preTokenClient = &http.Client{Timeout: 31 * time.Second}
 		fakeProvider.PreTokenClientReturns(preTokenClient, nil)
 
-		fakeTeam = new(dbngfakes.FakeTeam)
+		fakeTeam = new(dbfakes.FakeTeam)
 		fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 		fakeTeam.NameReturns("some-team")
 

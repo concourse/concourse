@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 var ErrResourceNotFound = errors.New("resource not found")
@@ -12,7 +12,7 @@ var ErrResourceNotFound = errors.New("resource not found")
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []dbng.BuildInput) (atc.Plan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type buildFactory struct {
@@ -31,7 +31,7 @@ func (factory *buildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
-	inputs []dbng.BuildInput,
+	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	plan, err := factory.constructPlanFromJob(job, resources, resourceTypes, inputs)
 	if err != nil {
@@ -51,7 +51,7 @@ func (factory *buildFactory) constructPlanFromJob(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
-	inputs []dbng.BuildInput,
+	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	planSequence := job.Plan
 
@@ -71,7 +71,7 @@ func (factory *buildFactory) do(
 	planSequence atc.PlanSequence,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
-	inputs []dbng.BuildInput,
+	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	do := atc.DoPlan{}
 
@@ -97,7 +97,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
-	inputs []dbng.BuildInput,
+	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	var plan atc.Plan
 	var err error
@@ -135,7 +135,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
-	inputs []dbng.BuildInput,
+	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	var plan atc.Plan
 	var err error
@@ -204,7 +204,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 		}
 
 		name := planConfig.Get
-		var version dbng.ResourceVersion
+		var version db.ResourceVersion
 		for _, input := range inputs {
 			if input.Name == name {
 				version = input.Version
@@ -288,7 +288,7 @@ type constructionParams struct {
 	hooks         atc.Hooks
 	resources     atc.ResourceConfigs
 	resourceTypes atc.VersionedResourceTypes
-	inputs        []dbng.BuildInput
+	inputs        []db.BuildInput
 }
 
 func (factory *buildFactory) applyHooks(cp constructionParams) (atc.Plan, error) {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
@@ -18,7 +18,7 @@ type Runner struct {
 	noop bool
 
 	scanRunnerFactory ScanRunnerFactory
-	pipeline          dbng.Pipeline
+	pipeline          db.Pipeline
 	syncInterval      time.Duration
 }
 
@@ -26,7 +26,7 @@ func NewRunner(
 	logger lager.Logger,
 	noop bool,
 	scanRunnerFactory ScanRunnerFactory,
-	pipeline dbng.Pipeline,
+	pipeline db.Pipeline,
 	syncInterval time.Duration,
 ) *Runner {
 	return &Runner{

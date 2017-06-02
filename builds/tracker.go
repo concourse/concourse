@@ -2,14 +2,14 @@ package builds
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 )
 
 func NewTracker(
 	logger lager.Logger,
 
-	buildFactory dbng.BuildFactory,
+	buildFactory db.BuildFactory,
 	engine engine.Engine,
 ) *Tracker {
 	return &Tracker{
@@ -22,7 +22,7 @@ func NewTracker(
 type Tracker struct {
 	logger lager.Logger
 
-	buildFactory dbng.BuildFactory
+	buildFactory db.BuildFactory
 	engine       engine.Engine
 }
 

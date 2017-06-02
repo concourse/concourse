@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 	"github.com/concourse/atc/gc/gcfakes"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
@@ -19,24 +19,24 @@ var _ = Describe("VolumeCollector", func() {
 	var (
 		volumeCollector gc.Collector
 
-		volumeFactory          dbng.VolumeFactory
-		containerFactory       dbng.ContainerFactory
-		workerFactory          dbng.WorkerFactory
+		volumeFactory          db.VolumeFactory
+		containerFactory       db.ContainerFactory
+		workerFactory          db.WorkerFactory
 		fakeBCVolume           *baggageclaimfakes.FakeVolume
 		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
-		createdVolume          dbng.CreatedVolume
-		creatingContainer1     dbng.CreatingContainer
-		creatingContainer2     dbng.CreatingContainer
-		team                   dbng.Team
-		worker                 dbng.Worker
+		createdVolume          db.CreatedVolume
+		creatingContainer1     db.CreatingContainer
+		creatingContainer2     db.CreatingContainer
+		team                   db.Team
+		worker                 db.Worker
 	)
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		containerFactory = dbng.NewContainerFactory(dbConn)
-		volumeFactory = dbng.NewVolumeFactory(dbConn)
-		workerFactory = dbng.NewWorkerFactory(dbConn)
+		containerFactory = db.NewContainerFactory(dbConn)
+		volumeFactory = db.NewVolumeFactory(dbConn)
+		workerFactory = db.NewWorkerFactory(dbConn)
 
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
 		fakeBaggageclaimClientFactory := new(gcfakes.FakeBaggageclaimClientFactory)
@@ -69,13 +69,13 @@ var _ = Describe("VolumeCollector", func() {
 			}, 5*time.Minute)
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer1, err = team.CreateBuildContainer(worker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
+			creatingContainer1, err = team.CreateBuildContainer(worker.Name(), build.ID(), "some-plan", db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer2, err = team.CreateBuildContainer(worker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
+			creatingContainer2, err = team.CreateBuildContainer(worker.Name(), build.ID(), "some-plan", db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})

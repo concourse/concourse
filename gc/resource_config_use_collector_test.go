@@ -6,7 +6,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -26,9 +26,9 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 	Describe("Run", func() {
 		Describe("config uses", func() {
 			var (
-				pipelineWithTypes     dbng.Pipeline
+				pipelineWithTypes     db.Pipeline
 				versionedResourceType atc.VersionedResourceType
-				dbResourceType        dbng.ResourceType
+				dbResourceType        db.ResourceType
 			)
 
 			countResourceConfigUses := func() int {
@@ -67,7 +67,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						ResourceTypes: atc.ResourceTypes{versionedResourceType.ResourceType},
 					},
 					0,
-					dbng.PipelineNoChange,
+					db.PipelineNoChange,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
@@ -84,7 +84,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 						logger,
-						dbng.ForBuild(defaultBuild.ID()),
+						db.ForBuild(defaultBuild.ID()),
 						"some-type",
 						atc.Source{
 							"some": "source",
@@ -237,7 +237,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 						logger,
-						dbng.ForResourceType(dbResourceType.ID()),
+						db.ForResourceType(dbResourceType.ID()),
 						"some-type",
 						atc.Source{
 							"cache": "source",
@@ -267,7 +267,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 			})
 
 			Describe("for resources", func() {
-				setActiveResource := func(resource dbng.Resource, active bool) {
+				setActiveResource := func(resource db.Resource, active bool) {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
@@ -289,7 +289,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForResource(usedResource.ID()),
+						db.ForResource(usedResource.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
@@ -343,7 +343,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 								},
 							},
 							0,
-							dbng.PipelineUnpaused,
+							db.PipelineUnpaused,
 						)
 
 						Expect(err).ToNot(HaveOccurred())
@@ -355,7 +355,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForResource(anotherResource.ID()),
+							db.ForResource(anotherResource.ID()),
 							"some-type",
 							atc.Version{"some-type": "version"},
 							anotherResource.Source(),
@@ -378,7 +378,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				})
 
 				Context("when the config no longer matches the current config", func() {
-					setResourceSourceHash := func(resource dbng.Resource, hash string) {
+					setResourceSourceHash := func(resource db.Resource, hash string) {
 						tx, err := dbConn.Begin()
 						Expect(err).NotTo(HaveOccurred())
 						defer tx.Rollback()
@@ -400,7 +400,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 					BeforeEach(func() {
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForResource(usedResource.ID()),
+							db.ForResource(usedResource.ID()),
 							"some-type",
 							atc.Version{"some-type": "version"},
 							usedResource.Source(),

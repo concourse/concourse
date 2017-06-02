@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
 )
 
 type volumeCollector struct {
 	rootLogger                lager.Logger
-	volumeFactory             dbng.VolumeFactory
+	volumeFactory             db.VolumeFactory
 	baggageclaimClientFactory BaggageclaimClientFactory
 }
 
@@ -23,10 +23,10 @@ type BaggageclaimClientFactory interface {
 }
 
 type baggageclaimClientFactory struct {
-	dbWorkerFactory dbng.WorkerFactory
+	dbWorkerFactory db.WorkerFactory
 }
 
-func NewBaggageclaimClientFactory(dbWorkerFactory dbng.WorkerFactory) BaggageclaimClientFactory {
+func NewBaggageclaimClientFactory(dbWorkerFactory db.WorkerFactory) BaggageclaimClientFactory {
 	return &baggageclaimClientFactory{
 		dbWorkerFactory: dbWorkerFactory,
 	}
@@ -43,7 +43,7 @@ func (f *baggageclaimClientFactory) NewClient(apiURL string, workerName string) 
 
 func NewVolumeCollector(
 	logger lager.Logger,
-	volumeFactory dbng.VolumeFactory,
+	volumeFactory db.VolumeFactory,
 	baggageclaimClientFactory BaggageclaimClientFactory,
 ) Collector {
 	return &volumeCollector{
@@ -60,9 +60,9 @@ func (vc *volumeCollector) Run() error {
 	defer logger.Debug("done")
 
 	var (
-		creatingVolumes   []dbng.CreatingVolume
-		createdVolumes    []dbng.CreatedVolume
-		destroyingVolumes []dbng.DestroyingVolume
+		creatingVolumes   []db.CreatingVolume
+		createdVolumes    []db.CreatedVolume
+		destroyingVolumes []db.DestroyingVolume
 		err               error
 	)
 
@@ -170,7 +170,7 @@ func (vc *volumeCollector) destroyRealVolume(logger lager.Logger, volume baggage
 	return true
 }
 
-func (vc *volumeCollector) destroyDBVolume(logger lager.Logger, dbVolume dbng.DestroyingVolume) {
+func (vc *volumeCollector) destroyDBVolume(logger lager.Logger, dbVolume db.DestroyingVolume) {
 	logger.Debug("destroying")
 
 	destroyed, err := dbVolume.Destroy()

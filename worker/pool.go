@@ -10,7 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 //go:generate counterfeiter . WorkerProvider
@@ -27,7 +27,7 @@ type WorkerProvider interface {
 	FindWorkerForResourceCheckContainer(
 		logger lager.Logger,
 		teamID int,
-		resourceUser dbng.ResourceUser,
+		resourceUser db.ResourceUser,
 		resourceType string,
 		resourceSource atc.Source,
 		types atc.VersionedResourceTypes,
@@ -133,7 +133,7 @@ func (pool *pool) FindOrCreateBuildContainer(
 	delegate ImageFetchingDelegate,
 	buildID int,
 	planID atc.PlanID,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
@@ -195,10 +195,10 @@ func (pool *pool) FindOrCreateBuildContainer(
 
 func (pool *pool) CreateResourceGetContainer(
 	logger lager.Logger,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,
@@ -228,10 +228,10 @@ func (pool *pool) CreateResourceGetContainer(
 
 func (pool *pool) FindOrCreateResourceCheckContainer(
 	logger lager.Logger,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,
@@ -290,11 +290,11 @@ func (*pool) FindResourceTypeByPath(string) (atc.WorkerResourceType, bool) {
 	return atc.WorkerResourceType{}, false
 }
 
-func (*pool) CreateVolumeForResourceCache(lager.Logger, VolumeSpec, *dbng.UsedResourceCache) (Volume, error) {
+func (*pool) CreateVolumeForResourceCache(lager.Logger, VolumeSpec, *db.UsedResourceCache) (Volume, error) {
 	return nil, errors.New("CreateVolumeForResourceCache not implemented for pool")
 }
 
-func (*pool) FindInitializedVolumeForResourceCache(logger lager.Logger, resourceCache *dbng.UsedResourceCache) (Volume, bool, error) {
+func (*pool) FindInitializedVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error) {
 	return nil, false, errors.New("FindInitializedVolumeForResourceCache not implemented for pool")
 }
 

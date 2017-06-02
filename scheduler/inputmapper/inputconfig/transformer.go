@@ -2,8 +2,8 @@ package inputconfig
 
 import (
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/dbng"
 )
 
 //go:generate counterfeiter . Transformer
@@ -12,12 +12,12 @@ type Transformer interface {
 	TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error)
 }
 
-func NewTransformer(pipeline dbng.Pipeline) Transformer {
+func NewTransformer(pipeline db.Pipeline) Transformer {
 	return &transformer{pipeline: pipeline}
 }
 
 type transformer struct {
-	pipeline dbng.Pipeline
+	pipeline db.Pipeline
 }
 
 func (i *transformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error) {

@@ -2,7 +2,7 @@ package gc
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type BuildReaper interface {
@@ -11,13 +11,13 @@ type BuildReaper interface {
 
 type buildReaper struct {
 	logger          lager.Logger
-	pipelineFactory dbng.PipelineFactory
+	pipelineFactory db.PipelineFactory
 	batchSize       int
 }
 
 func NewBuildReaper(
 	logger lager.Logger,
-	pipelineFactory dbng.PipelineFactory,
+	pipelineFactory db.PipelineFactory,
 	batchSize int,
 ) BuildReaper {
 	return &buildReaper{
@@ -50,7 +50,7 @@ func (br *buildReaper) Run() error {
 				continue
 			}
 
-			buildsToConsiderDeleting := []dbng.Build{}
+			buildsToConsiderDeleting := []db.Build{}
 			until := job.FirstLoggedBuildID() - 1
 			limit := br.batchSize
 
@@ -58,7 +58,7 @@ func (br *buildReaper) Run() error {
 				until = 1
 
 				buildsToConsiderDeleting, _, err = job.Builds(
-					dbng.Page{Since: 2, Limit: 1},
+					db.Page{Since: 2, Limit: 1},
 				)
 				if err != nil {
 					br.logger.Error("could-not-get-job-build-1-to-delete", err)
@@ -70,7 +70,7 @@ func (br *buildReaper) Run() error {
 
 			if limit > 0 {
 				moreBuildsToConsiderDeleting, _, err := job.Builds(
-					dbng.Page{Until: until, Limit: limit},
+					db.Page{Until: until, Limit: limit},
 				)
 				if err != nil {
 					br.logger.Error("could-not-get-job-builds-to-delete", err)
@@ -89,7 +89,7 @@ func (br *buildReaper) Run() error {
 			}
 
 			buildsToRetain, _, err := job.Builds(
-				dbng.Page{Limit: job.Config().BuildLogsToRetain},
+				db.Page{Limit: job.Config().BuildLogsToRetain},
 			)
 			if err != nil {
 				br.logger.Error("could-not-get-job-builds-to-retain", err)

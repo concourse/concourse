@@ -3,8 +3,8 @@ package engine_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/worker"
@@ -22,7 +22,7 @@ var _ = Describe("Exec Engine with Try", func() {
 
 		execEngine engine.Engine
 
-		build              *dbngfakes.FakeBuild
+		build              *dbfakes.FakeBuild
 		expectedTeamID     = 1111
 		expectedPipelineID = 2222
 		expectedJobID      = 3333
@@ -48,7 +48,7 @@ var _ = Describe("Exec Engine with Try", func() {
 		fakeDelegate = new(enginefakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		build = new(dbngfakes.FakeBuild)
+		build = new(dbfakes.FakeBuild)
 		build.IDReturns(expectedBuildID)
 		build.NameReturns("42")
 		build.JobNameReturns("some-job")
@@ -133,8 +133,8 @@ var _ = Describe("Exec Engine with Try", func() {
 				Expect(planID).To(Equal(inputPlan.ID))
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
-				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-					Type:         dbng.ContainerTypeGet,
+				Expect(workerMetadata).To(Equal(db.ContainerMetadata{
+					Type:         db.ContainerTypeGet,
 					StepName:     "some-input",
 					PipelineID:   expectedPipelineID,
 					PipelineName: "some-pipeline",

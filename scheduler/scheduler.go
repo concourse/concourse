@@ -6,13 +6,13 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/scheduler/inputmapper"
 )
 
 type Scheduler struct {
-	Pipeline     dbng.Pipeline
+	Pipeline     db.Pipeline
 	InputMapper  inputmapper.InputMapper
 	BuildStarter BuildStarter
 	Scanner      Scanner
@@ -27,8 +27,8 @@ type Scanner interface {
 func (s *Scheduler) Schedule(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
-	jobs []dbng.Job,
-	resources dbng.Resources,
+	jobs []db.Job,
+	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
 ) (map[string]time.Duration, error) {
 	jobSchedulingTime := map[string]time.Duration{}
@@ -70,7 +70,7 @@ func (s *Scheduler) Schedule(
 func (s *Scheduler) ensurePendingBuildExists(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
-	job dbng.Job,
+	job db.Job,
 ) error {
 	inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, job)
 	if err != nil {
@@ -101,10 +101,10 @@ type Waiter interface {
 
 func (s *Scheduler) TriggerImmediately(
 	logger lager.Logger,
-	job dbng.Job,
-	resources dbng.Resources,
+	job db.Job,
+	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
-) (dbng.Build, Waiter, error) {
+) (db.Build, Waiter, error) {
 	logger = logger.Session("trigger-immediately", lager.Data{"job_name": job.Name()})
 
 	build, err := job.CreateBuild()
@@ -134,7 +134,7 @@ func (s *Scheduler) TriggerImmediately(
 	return build, wg, nil
 }
 
-func (s *Scheduler) SaveNextInputMapping(logger lager.Logger, job dbng.Job) error {
+func (s *Scheduler) SaveNextInputMapping(logger lager.Logger, job db.Job) error {
 	versions, err := s.Pipeline.LoadVersionsDB()
 	if err != nil {
 		logger.Error("failed-to-load-versions-db", err)

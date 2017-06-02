@@ -6,8 +6,8 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -17,12 +17,12 @@ import (
 var _ = Describe("BuildReaper", func() {
 	var (
 		buildReaper         BuildReaper
-		fakePipelineFactory *dbngfakes.FakePipelineFactory
+		fakePipelineFactory *dbfakes.FakePipelineFactory
 		batchSize           int
 	)
 
 	BeforeEach(func() {
-		fakePipelineFactory = new(dbngfakes.FakePipelineFactory)
+		fakePipelineFactory = new(dbfakes.FakePipelineFactory)
 		batchSize = 5
 	})
 
@@ -36,13 +36,13 @@ var _ = Describe("BuildReaper", func() {
 	})
 
 	Context("when there is a pipeline", func() {
-		var fakePipeline *dbngfakes.FakePipeline
+		var fakePipeline *dbfakes.FakePipeline
 
 		BeforeEach(func() {
-			fakePipeline = new(dbngfakes.FakePipeline)
+			fakePipeline = new(dbfakes.FakePipeline)
 			fakePipeline.IDReturns(42)
 
-			fakePipelineFactory.AllPipelinesReturns([]dbng.Pipeline{fakePipeline}, nil)
+			fakePipelineFactory.AllPipelinesReturns([]db.Pipeline{fakePipeline}, nil)
 		})
 
 		Context("when getting the dashboard fails", func() {
@@ -60,30 +60,30 @@ var _ = Describe("BuildReaper", func() {
 		})
 
 		Context("when the dashboard has a job", func() {
-			var fakeJob *dbngfakes.FakeJob
+			var fakeJob *dbfakes.FakeJob
 
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("job-1")
 				fakeJob.FirstLoggedBuildIDReturns(6)
 				fakeJob.ConfigReturns(atc.JobConfig{
 					BuildLogsToRetain: 10,
 				})
 
-				fakePipeline.JobsReturns([]dbng.Job{fakeJob}, nil)
+				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
 			})
 
 			Context("when there are more build logs than we can reap in this run", func() {
 				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
-						if page == (dbng.Page{Limit: 10}) {
-							return []dbng.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Until: 5, Limit: 5}) {
-							return []dbng.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, dbng.Pagination{}, nil
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Limit: 10}) {
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
-						return nil, dbng.Pagination{}, nil
+						return nil, db.Pagination{}, nil
 					}
 				})
 
@@ -151,15 +151,15 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when there are fewer build logs than we can reap in this run", func() {
 				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
-						if page == (dbng.Page{Limit: 10}) {
-							return []dbng.Build{sb(18), sb(17), sb(16), sb(15), sb(14), sb(13), sb(12), sb(11), sb(10), sb(9)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Until: 5, Limit: 5}) {
-							return []dbng.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, dbng.Pagination{}, nil
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Limit: 10}) {
+							return []db.Build{sb(18), sb(17), sb(16), sb(15), sb(14), sb(13), sb(12), sb(11), sb(10), sb(9)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
-						return nil, dbng.Pagination{}, nil
+						return nil, db.Pagination{}, nil
 					}
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
@@ -188,21 +188,21 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when the builds we want to reap are still running", func() {
 				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
-						if page == (dbng.Page{Limit: 10}) {
-							return []dbng.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Until: 5, Limit: 5}) {
-							return []dbng.Build{
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Limit: 10}) {
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{
 								sb(10),
 								runningBuild(9),
 								runningBuild(8),
 								sb(7),
 								sb(6),
-							}, dbng.Pagination{}, nil
+							}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
-						return nil, dbng.Pagination{}, nil
+						return nil, db.Pagination{}, nil
 					}
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
@@ -231,15 +231,15 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when no builds need to be reaped", func() {
 				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
-						if page == (dbng.Page{Limit: 10}) {
-							return []dbng.Build{sb(12), sb(11), sb(10), sb(9), sb(8), sb(7), sb(6), sb(5), sb(4), sb(3)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Until: 5, Limit: 5}) {
-							return []dbng.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, dbng.Pagination{}, nil
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Limit: 10}) {
+							return []db.Build{sb(12), sb(11), sb(10), sb(9), sb(8), sb(7), sb(6), sb(5), sb(4), sb(3)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
-						return nil, dbng.Pagination{}, nil
+						return nil, db.Pagination{}, nil
 					}
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
@@ -264,7 +264,7 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when no builds exist", func() {
 				BeforeEach(func() {
-					fakeJob.BuildsReturns(nil, dbng.Pagination{}, nil)
+					fakeJob.BuildsReturns(nil, db.Pagination{}, nil)
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
 
@@ -286,7 +286,7 @@ var _ = Describe("BuildReaper", func() {
 				BeforeEach(func() {
 					disaster = errors.New("major malfunction")
 
-					fakeJob.BuildsReturns(nil, dbng.Pagination{}, disaster)
+					fakeJob.BuildsReturns(nil, db.Pagination{}, disaster)
 				})
 
 				It("returns the error", func() {
@@ -297,32 +297,32 @@ var _ = Describe("BuildReaper", func() {
 		})
 
 		Context("when FirstLoggedBuildID == 1", func() {
-			var fakeJob *dbngfakes.FakeJob
+			var fakeJob *dbfakes.FakeJob
 
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("job-1")
 				fakeJob.FirstLoggedBuildIDReturns(1)
 				fakeJob.ConfigReturns(atc.JobConfig{
 					BuildLogsToRetain: 10,
 				})
 
-				fakePipeline.JobsReturns([]dbng.Job{fakeJob}, nil)
+				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
 			})
 
 			Context("when a build of this job has build id 1", func() {
 				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
-						if page == (dbng.Page{Limit: 10}) {
-							return []dbng.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Until: 1, Limit: 4}) {
-							return []dbng.Build{sb(5), sb(4), sb(3), sb(2)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Since: 2, Limit: 1}) {
-							return []dbng.Build{sb(1)}, dbng.Pagination{}, nil
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Limit: 10}) {
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 1, Limit: 4}) {
+							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
+						} else if page == (db.Page{Since: 2, Limit: 1}) {
+							return []db.Build{sb(1)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
-						return nil, dbng.Pagination{}, nil
+						return nil, db.Pagination{}, nil
 					}
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
@@ -374,17 +374,17 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when no build of this job has build id 1", func() {
 				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
-						if page == (dbng.Page{Limit: 10}) {
-							return []dbng.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Until: 1, Limit: 5}) {
-							return []dbng.Build{sb(6), sb(5), sb(4), sb(3), sb(2)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Since: 2, Limit: 1}) {
-							return []dbng.Build{}, dbng.Pagination{}, nil
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Limit: 10}) {
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 1, Limit: 5}) {
+							return []db.Build{sb(6), sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
+						} else if page == (db.Page{Since: 2, Limit: 1}) {
+							return []db.Build{}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
-						return nil, dbng.Pagination{}, nil
+						return nil, db.Pagination{}, nil
 					}
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
@@ -407,7 +407,7 @@ var _ = Describe("BuildReaper", func() {
 				BeforeEach(func() {
 					disaster = errors.New("major malfunction")
 
-					fakeJob.BuildsReturns(nil, dbng.Pagination{}, disaster)
+					fakeJob.BuildsReturns(nil, db.Pagination{}, disaster)
 				})
 
 				It("returns the error", func() {
@@ -418,32 +418,32 @@ var _ = Describe("BuildReaper", func() {
 		})
 
 		Context("when FirstLoggedBuildID == 0", func() {
-			var fakeJob *dbngfakes.FakeJob
+			var fakeJob *dbfakes.FakeJob
 
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("job-1")
 				fakeJob.FirstLoggedBuildIDReturns(0)
 				fakeJob.ConfigReturns(atc.JobConfig{
 					BuildLogsToRetain: 10,
 				})
 
-				fakePipeline.JobsReturns([]dbng.Job{fakeJob}, nil)
+				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
 			})
 
 			Context("when a build of this job has build id 1", func() {
 				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
-						if page == (dbng.Page{Limit: 10}) {
-							return []dbng.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Until: 1, Limit: 4}) {
-							return []dbng.Build{sb(5), sb(4), sb(3), sb(2)}, dbng.Pagination{}, nil
-						} else if page == (dbng.Page{Since: 2, Limit: 1}) {
-							return []dbng.Build{sb(1)}, dbng.Pagination{}, nil
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Limit: 10}) {
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 1, Limit: 4}) {
+							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
+						} else if page == (db.Page{Since: 2, Limit: 1}) {
+							return []db.Build{sb(1)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
-						return nil, dbng.Pagination{}, nil
+						return nil, db.Pagination{}, nil
 					}
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
@@ -471,17 +471,17 @@ var _ = Describe("BuildReaper", func() {
 		})
 
 		Context("when the dashboard job says retain 0 builds", func() {
-			var fakeJob *dbngfakes.FakeJob
+			var fakeJob *dbfakes.FakeJob
 
 			BeforeEach(func() {
-				fakeJob = new(dbngfakes.FakeJob)
+				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("job-1")
 				fakeJob.FirstLoggedBuildIDReturns(6)
 				fakeJob.ConfigReturns(atc.JobConfig{
 					BuildLogsToRetain: 0,
 				})
 
-				fakePipeline.DashboardReturns(dbng.Dashboard{
+				fakePipeline.DashboardReturns(db.Dashboard{
 					{
 						Job: fakeJob,
 					},
@@ -500,14 +500,14 @@ var _ = Describe("BuildReaper", func() {
 	})
 
 	Context("when there is a paused pipeline", func() {
-		var fakePipeline *dbngfakes.FakePipeline
+		var fakePipeline *dbfakes.FakePipeline
 
 		BeforeEach(func() {
-			fakePipeline = new(dbngfakes.FakePipeline)
+			fakePipeline = new(dbfakes.FakePipeline)
 			fakePipeline.IDReturns(42)
 			fakePipeline.PausedReturns(true)
 
-			fakePipelineFactory.AllPipelinesReturns([]dbng.Pipeline{fakePipeline}, nil)
+			fakePipelineFactory.AllPipelinesReturns([]db.Pipeline{fakePipeline}, nil)
 		})
 
 		It("skips the reaping step for that pipeline", func() {
@@ -534,15 +534,15 @@ var _ = Describe("BuildReaper", func() {
 	})
 })
 
-func sb(id int) dbng.Build {
-	build := new(dbngfakes.FakeBuild)
+func sb(id int) db.Build {
+	build := new(dbfakes.FakeBuild)
 	build.IDReturns(id)
 	build.IsRunningReturns(false)
 	return build
 }
 
-func runningBuild(id int) dbng.Build {
-	build := new(dbngfakes.FakeBuild)
+func runningBuild(id int) db.Build {
+	build := new(dbfakes.FakeBuild)
 	build.IDReturns(id)
 	build.IsRunningReturns(true)
 	return build

@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -14,8 +14,8 @@ var ErrMissingVolume = errors.New("volume mounted to container is missing")
 
 type gardenWorkerContainer struct {
 	garden.Container
-	dbContainer dbng.CreatedContainer
-	dbVolumes   []dbng.CreatedVolume
+	dbContainer db.CreatedContainer
+	dbVolumes   []db.CreatedVolume
 
 	gardenClient garden.Client
 
@@ -31,8 +31,8 @@ type gardenWorkerContainer struct {
 func newGardenWorkerContainer(
 	logger lager.Logger,
 	container garden.Container,
-	dbContainer dbng.CreatedContainer,
-	dbContainerVolumes []dbng.CreatedVolume,
+	dbContainer db.CreatedContainer,
+	dbContainerVolumes []db.CreatedVolume,
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
 	workerName string,

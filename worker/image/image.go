@@ -7,7 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 )
@@ -23,7 +23,7 @@ type imageProvidedByPreviousStepOnSameWorker struct {
 
 func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
 	logger lager.Logger,
-	container dbng.CreatingContainer,
+	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	imageVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
 		logger,
@@ -72,7 +72,7 @@ type imageProvidedByPreviousStepOnDifferentWorker struct {
 
 func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 	logger lager.Logger,
-	container dbng.CreatingContainer,
+	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	imageVolume, err := i.volumeClient.FindOrCreateVolumeForContainer(
 		logger,
@@ -133,7 +133,7 @@ type imageFromResource struct {
 
 func (i *imageFromResource) FetchForContainer(
 	logger lager.Logger,
-	container dbng.CreatingContainer,
+	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	imageVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
 		logger.Session("create-cow-volume"),
@@ -178,7 +178,7 @@ type imageFromBaseResourceType struct {
 
 func (i *imageFromBaseResourceType) FetchForContainer(
 	logger lager.Logger,
-	container dbng.CreatingContainer,
+	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	for _, t := range i.worker.ResourceTypes() {
 		if t.Type == i.resourceTypeName {
@@ -233,7 +233,7 @@ type imageFromRootfsURI struct {
 
 func (i *imageFromRootfsURI) FetchForContainer(
 	logger lager.Logger,
-	container dbng.CreatingContainer,
+	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	return worker.FetchedImage{
 		URL: i.url,

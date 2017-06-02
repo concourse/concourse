@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -85,7 +85,7 @@ var _ = Describe("Pipes API", func() {
 				BeforeEach(func() {
 					userContextReader.GetTeamReturns("team1", false, true)
 					pipe = createPipe()
-					dbTeam.GetPipeReturns(dbng.Pipe{
+					dbTeam.GetPipeReturns(db.Pipe{
 						ID:       pipe.ID,
 						URL:      peerAddr,
 						TeamName: "team1",
@@ -235,7 +235,7 @@ var _ = Describe("Pipes API", func() {
 					BeforeEach(func() {
 						otherATCServer = ghttp.NewServer()
 
-						dbTeam.GetPipeReturns(dbng.Pipe{
+						dbTeam.GetPipeReturns(db.Pipe{
 							ID:       "some-guid",
 							URL:      otherATCServer.URL(),
 							TeamName: "team1",

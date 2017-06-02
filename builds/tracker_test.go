@@ -9,15 +9,15 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 )
 
 var _ = Describe("Tracker", func() {
 	var (
-		fakeBuildFactory *dbngfakes.FakeBuildFactory
+		fakeBuildFactory *dbfakes.FakeBuildFactory
 		fakeEngine       *enginefakes.FakeEngine
 
 		tracker *builds.Tracker
@@ -25,7 +25,7 @@ var _ = Describe("Tracker", func() {
 	)
 
 	BeforeEach(func() {
-		fakeBuildFactory = new(dbngfakes.FakeBuildFactory)
+		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
 
 		logger = lagertest.NewTestLogger("test")
@@ -38,16 +38,16 @@ var _ = Describe("Tracker", func() {
 	})
 
 	Describe("Track", func() {
-		var inFlightBuilds []*dbngfakes.FakeBuild
+		var inFlightBuilds []*dbfakes.FakeBuild
 		var engineBuilds []*enginefakes.FakeBuild
 
 		BeforeEach(func() {
-			inFlightBuilds = []*dbngfakes.FakeBuild{
-				new(dbngfakes.FakeBuild),
-				new(dbngfakes.FakeBuild),
-				new(dbngfakes.FakeBuild),
+			inFlightBuilds = []*dbfakes.FakeBuild{
+				new(dbfakes.FakeBuild),
+				new(dbfakes.FakeBuild),
+				new(dbfakes.FakeBuild),
 			}
-			returnedBuilds := []dbng.Build{
+			returnedBuilds := []db.Build{
 				inFlightBuilds[0],
 				inFlightBuilds[1],
 				inFlightBuilds[2],
@@ -56,7 +56,7 @@ var _ = Describe("Tracker", func() {
 			fakeBuildFactory.GetAllStartedBuildsReturns(returnedBuilds, nil)
 
 			engineBuilds = []*enginefakes.FakeBuild{}
-			fakeEngine.LookupBuildStub = func(logger lager.Logger, build dbng.Build) (engine.Build, error) {
+			fakeEngine.LookupBuildStub = func(logger lager.Logger, build db.Build) (engine.Build, error) {
 				engineBuild := new(enginefakes.FakeBuild)
 				engineBuilds = append(engineBuilds, engineBuild)
 				return engineBuild, nil

@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 // show all public pipelines and team private pipelines if authorized
@@ -14,7 +14,7 @@ func (s *Server) ListAllPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-all-pipelines")
 	authTeam, authTeamFound := auth.GetTeam(r)
 
-	var pipelines []dbng.Pipeline
+	var pipelines []db.Pipeline
 	if authTeamFound {
 		team, found, err := s.teamFactory.FindTeam(authTeam.Name())
 		if err != nil {

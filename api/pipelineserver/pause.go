@@ -3,10 +3,10 @@ package pipelineserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) PausePipeline(pipelineDB dbng.Pipeline) http.Handler {
+func (s *Server) PausePipeline(pipelineDB db.Pipeline) http.Handler {
 	logger := s.logger.Session("pause-pipeline")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := pipelineDB.Pause()

@@ -2,17 +2,17 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 
 func Job(
 	teamName string,
-	job dbng.Job,
+	job db.Job,
 	groups atc.GroupConfigs,
-	finishedBuild dbng.Build,
-	nextBuild dbng.Build,
+	finishedBuild db.Build,
+	nextBuild db.Build,
 ) atc.Job {
 	generator := rata.NewRequestGenerator("", web.Routes)
 

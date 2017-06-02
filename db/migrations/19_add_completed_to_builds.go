@@ -1,6 +1,6 @@
 package migrations
 
-import "github.com/concourse/atc/dbng/migration"
+import "github.com/concourse/atc/db/migration"
 
 func AddCompletedToBuilds(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`ALTER TABLE builds ADD COLUMN completed boolean NOT NULL default false`)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type CheckPipelineAccessHandlerFactory interface {
@@ -12,11 +12,11 @@ type CheckPipelineAccessHandlerFactory interface {
 }
 
 type checkPipelineAccessHandlerFactory struct {
-	teamFactory dbng.TeamFactory
+	teamFactory db.TeamFactory
 }
 
 func NewCheckPipelineAccessHandlerFactory(
-	teamFactory dbng.TeamFactory,
+	teamFactory db.TeamFactory,
 ) *checkPipelineAccessHandlerFactory {
 	return &checkPipelineAccessHandlerFactory{
 		teamFactory: teamFactory,
@@ -36,7 +36,7 @@ func (f *checkPipelineAccessHandlerFactory) HandlerFor(
 
 type checkPipelineAccessHandler struct {
 	rejector        Rejector
-	teamFactory     dbng.TeamFactory
+	teamFactory     db.TeamFactory
 	delegateHandler http.Handler
 }
 

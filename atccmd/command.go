@@ -23,8 +23,8 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/gc"
@@ -209,19 +209,19 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	metric.SetupConnectionCountingDriver("postgres", cmd.Postgres.ConnectionString(), connectionCountingDriverName)
 
 	retryingDriverName := "too-many-connections-retrying"
-	dbng.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
+	db.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
 
-	var newKey *dbng.EncryptionKey
+	var newKey *db.EncryptionKey
 	if cmd.EncryptionKey.AEAD != nil {
-		newKey = dbng.NewEncryptionKey(cmd.EncryptionKey.AEAD)
+		newKey = db.NewEncryptionKey(cmd.EncryptionKey.AEAD)
 	}
 
-	var oldKey *dbng.EncryptionKey
+	var oldKey *db.EncryptionKey
 	if cmd.OldEncryptionKey.AEAD != nil {
-		oldKey = dbng.NewEncryptionKey(cmd.OldEncryptionKey.AEAD)
+		oldKey = db.NewEncryptionKey(cmd.OldEncryptionKey.AEAD)
 	}
 
-	dbngConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey)
+	dbConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey)
 	if err != nil {
 		return nil, err
 	}
@@ -233,19 +233,19 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	lockFactory := lock.NewLockFactory(lockConn)
 
-	bus := dbngConn.Bus()
+	bus := dbConn.Bus()
 
-	teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
+	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
-	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory)
-	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
-	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
-	dbPipelineFactory := dbng.NewPipelineFactory(dbngConn, lockFactory)
-	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
-	dbWorkerLifecycle := dbng.NewWorkerLifecycle(dbngConn)
-	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn, lockFactory)
-	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn, lockFactory)
-	dbWorkerBaseResourceTypeFactory := dbng.NewWorkerBaseResourceTypeFactory(dbngConn)
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory)
+	dbVolumeFactory := db.NewVolumeFactory(dbConn)
+	dbContainerFactory := db.NewContainerFactory(dbConn)
+	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	dbWorkerFactory := db.NewWorkerFactory(dbConn)
+	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
+	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
+	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
+	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
 	workerClient := cmd.constructWorkerPool(
 		logger,
@@ -667,24 +667,24 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 	metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
 }
 
-func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, newKey *dbng.EncryptionKey, oldKey *dbng.EncryptionKey) (dbng.Conn, error) {
-	dbngConn, err := dbng.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey)
+func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, newKey *db.EncryptionKey, oldKey *db.EncryptionKey) (db.Conn, error) {
+	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
 
 	// Instrument with Metrics
-	dbngConn = metric.CountQueries(dbngConn)
+	dbConn = metric.CountQueries(dbConn)
 
 	// Instrument with Logging
 	if cmd.LogDBQueries {
-		dbngConn = dbng.Log(logger.Session("log-conn"), dbngConn)
+		dbConn = db.Log(logger.Session("log-conn"), dbConn)
 	}
 
 	// Prepare
-	dbngConn.SetMaxOpenConns(64)
+	dbConn.SetMaxOpenConns(64)
 
-	return dbngConn, nil
+	return dbConn, nil
 }
 
 func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {
@@ -705,12 +705,12 @@ func (cmd *ATCCommand) constructWorkerPool(
 	lockFactory lock.LockFactory,
 	resourceFetcherFactory resource.FetcherFactory,
 	resourceFactoryFactory resource.ResourceFactoryFactory,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
-	dbResourceConfigFactory dbng.ResourceConfigFactory,
-	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory,
-	dbVolumeFactory dbng.VolumeFactory,
-	dbWorkerFactory dbng.WorkerFactory,
-	teamFactory dbng.TeamFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
+	dbResourceConfigFactory db.ResourceConfigFactory,
+	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
+	dbVolumeFactory db.VolumeFactory,
+	dbWorkerFactory db.WorkerFactory,
+	teamFactory db.TeamFactory,
 	workerVersion *version.Version,
 ) worker.Client {
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
@@ -761,7 +761,7 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory dbng.TeamFactory) error {
+func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
 	team, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 	if err != nil {
 		return err
@@ -808,7 +808,7 @@ func (cmd *ATCCommand) constructEngine(
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
@@ -862,12 +862,12 @@ func (cmd *ATCCommand) constructHTTPHandler(
 func (cmd *ATCCommand) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
-	teamFactory dbng.TeamFactory,
-	dbPipelineFactory dbng.PipelineFactory,
-	dbWorkerFactory dbng.WorkerFactory,
-	dbVolumeFactory dbng.VolumeFactory,
-	dbContainerFactory dbng.ContainerFactory,
-	dbBuildFactory dbng.BuildFactory,
+	teamFactory db.TeamFactory,
+	dbPipelineFactory db.PipelineFactory,
+	dbWorkerFactory db.WorkerFactory,
+	dbVolumeFactory db.VolumeFactory,
+	dbContainerFactory db.ContainerFactory,
+	dbBuildFactory db.BuildFactory,
 	providerFactory auth.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	engine engine.Engine,
@@ -966,13 +966,13 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (cmd *ATCCommand) constructPipelineSyncer(
 	logger lager.Logger,
-	pipelineFactory dbng.PipelineFactory,
+	pipelineFactory db.PipelineFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 ) *pipelines.Syncer {
 	return pipelines.NewSyncer(
 		logger,
 		pipelineFactory,
-		func(pipeline dbng.Pipeline) ifrit.Runner {
+		func(pipeline db.Pipeline) ifrit.Runner {
 			return grouper.NewParallel(os.Interrupt, grouper.Members{
 				{
 					pipeline.ScopedName("radar"),
@@ -1005,7 +1005,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 
 func (cmd *ATCCommand) appendStaticWorker(
 	logger lager.Logger,
-	workerFactory dbng.WorkerFactory,
+	workerFactory db.WorkerFactory,
 	members []grouper.Member,
 ) []grouper.Member {
 	var resourceTypes []atc.WorkerResourceType

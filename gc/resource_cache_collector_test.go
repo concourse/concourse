@@ -3,7 +3,7 @@ package gc_test
 import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -40,7 +40,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 			BeforeEach(func() {
 				_, err = resourceCacheFactory.FindOrCreateResourceCache(
 					logger,
-					dbng.ForBuild(defaultBuild.ID()),
+					db.ForBuild(defaultBuild.ID()),
 					"some-base-type",
 					atc.Version{"some": "version"},
 					atc.Source{
@@ -67,7 +67,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 				var resourceCacheUseCollector gc.Collector
 
 				JustBeforeEach(func() {
-					err := defaultBuild.Finish(dbng.BuildStatusSucceeded)
+					err := defaultBuild.Finish(db.BuildStatusSucceeded)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(buildCollector.Run()).To(Succeed())
 
@@ -172,7 +172,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									Expect(err).NotTo(HaveOccurred())
 									_, err = resourceCacheFactory.FindOrCreateResourceCache(
 										logger,
-										dbng.ForBuild(newBuild.ID()),
+										db.ForBuild(newBuild.ID()),
 										"some-base-type",
 										atc.Version{"new": "version"},
 										atc.Source{

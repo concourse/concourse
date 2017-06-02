@@ -4,29 +4,29 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type ScopedHandlerFactory struct {
-	teamDBNGFactory dbng.TeamFactory
+	teamDBFactory db.TeamFactory
 }
 
 func NewScopedHandlerFactory(
-	teamDBNGFactory dbng.TeamFactory,
+	teamDBFactory db.TeamFactory,
 ) *ScopedHandlerFactory {
 	return &ScopedHandlerFactory{
-		teamDBNGFactory: teamDBNGFactory,
+		teamDBFactory: teamDBFactory,
 	}
 }
 
-func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(dbng.Pipeline) http.Handler) http.HandlerFunc {
+func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipeline) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		teamName := r.FormValue(":team_name")
 		pipelineName := r.FormValue(":pipeline_name")
 
-		pipeline, ok := r.Context().Value(auth.PipelineContextKey).(dbng.Pipeline)
+		pipeline, ok := r.Context().Value(auth.PipelineContextKey).(db.Pipeline)
 		if !ok {
-			dbngTeam, found, err := pdbh.teamDBNGFactory.FindTeam(teamName)
+			dbTeam, found, err := pdbh.teamDBFactory.FindTeam(teamName)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -37,7 +37,7 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(dbng.Pip
 				return
 			}
 
-			pipeline, found, err = dbngTeam.Pipeline(pipelineName)
+			pipeline, found, err = dbTeam.Pipeline(pipelineName)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return

@@ -8,13 +8,13 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) ListJobBuilds(pipeline dbng.Pipeline) http.Handler {
+func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			builds []dbng.Build
+			builds []db.Build
 			err    error
 			until  int
 			since  int
@@ -50,7 +50,7 @@ func (s *Server) ListJobBuilds(pipeline dbng.Pipeline) http.Handler {
 			return
 		}
 
-		builds, pagination, err := job.Builds(dbng.Page{
+		builds, pagination, err := job.Builds(db.Page{
 			Since: since,
 			Until: until,
 			Limit: limit,
@@ -78,7 +78,7 @@ func (s *Server) ListJobBuilds(pipeline dbng.Pipeline) http.Handler {
 	})
 }
 
-func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, jobName string, page dbng.Page) {
+func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, jobName string, page db.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/teams/%s/pipelines/%s/jobs/%s/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
@@ -93,7 +93,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, jobN
 	))
 }
 
-func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, jobName string, page dbng.Page) {
+func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, jobName string, page db.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/teams/%s/pipelines/%s/jobs/%s/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,

@@ -14,8 +14,8 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource/resourcefakes"
@@ -30,7 +30,7 @@ import (
 var _ = Describe("GardenFactory", func() {
 	var (
 		fakeWorkerClient           *workerfakes.FakeClient
-		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
+		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
 		factory Factory
 
@@ -40,14 +40,14 @@ var _ = Describe("GardenFactory", func() {
 
 		sourceName        worker.ArtifactName = "some-source-name"
 		imageArtifactName string
-		workerMetadata    dbng.ContainerMetadata
+		workerMetadata    db.ContainerMetadata
 	)
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
 		fakeResourceFetcher := new(resourcefakes.FakeFetcher)
-		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
@@ -101,8 +101,8 @@ var _ = Describe("GardenFactory", func() {
 			imageArtifactName = ""
 			fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 
-			workerMetadata = dbng.ContainerMetadata{
-				Type:     dbng.ContainerTypeTask,
+			workerMetadata = db.ContainerMetadata{
+				Type:     db.ContainerTypeTask,
 				StepName: "some-step",
 			}
 		})
@@ -172,8 +172,8 @@ var _ = Describe("GardenFactory", func() {
 					Expect(cancel).ToNot(BeNil())
 					Expect(buildID).To(Equal(1234))
 					Expect(planID).To(Equal(atc.PlanID("some-plan-id")))
-					Expect(createdMetadata).To(Equal(dbng.ContainerMetadata{
-						Type:             dbng.ContainerTypeTask,
+					Expect(createdMetadata).To(Equal(db.ContainerMetadata{
+						Type:             db.ContainerTypeTask,
 						StepName:         "some-step",
 						WorkingDirectory: "/tmp/build/a1f5c0c1",
 					}))

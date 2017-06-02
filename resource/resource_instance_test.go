@@ -6,8 +6,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -22,14 +22,14 @@ var _ = Describe("ResourceInstance", func() {
 		logger                   lager.Logger
 		resourceInstance         ResourceInstance
 		fakeWorkerClient         *workerfakes.FakeClient
-		fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		disaster                 error
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeWorkerClient = new(workerfakes.FakeClient)
-		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		disaster = errors.New("disaster")
 
 		resourceInstance = NewResourceInstance(
@@ -37,7 +37,7 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Version{"some": "version"},
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
-			dbng.ForBuild(42),
+			db.ForBuild(42),
 			atc.VersionedResourceTypes{},
 			fakeResourceCacheFactory,
 		)
@@ -56,7 +56,7 @@ var _ = Describe("ResourceInstance", func() {
 
 		It("'find-or-create's the resource cache with the same user", func() {
 			_, user, _, _, _, _, _ := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
-			Expect(user).To(Equal(dbng.ForBuild(42)))
+			Expect(user).To(Equal(db.ForBuild(42)))
 		})
 
 		Context("when failing to find or create cache in database", func() {

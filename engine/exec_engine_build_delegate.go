@@ -8,7 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
@@ -32,7 +32,7 @@ type BuildDelegate interface {
 //go:generate counterfeiter . BuildDelegateFactory
 
 type BuildDelegateFactory interface {
-	Delegate(dbng.Build) BuildDelegate
+	Delegate(db.Build) BuildDelegate
 }
 
 type buildDelegateFactory struct{}
@@ -41,19 +41,19 @@ func NewBuildDelegateFactory() BuildDelegateFactory {
 	return buildDelegateFactory{}
 }
 
-func (factory buildDelegateFactory) Delegate(build dbng.Build) BuildDelegate {
+func (factory buildDelegateFactory) Delegate(build db.Build) BuildDelegate {
 	return newBuildDelegate(build)
 }
 
 type delegate struct {
-	build dbng.Build
+	build db.Build
 
 	implicitOutputs map[string]implicitOutput
 
 	lock sync.Mutex
 }
 
-func newBuildDelegate(build dbng.Build) BuildDelegate {
+func newBuildDelegate(build db.Build) BuildDelegate {
 	return &delegate{
 		build: build,
 
@@ -179,7 +179,7 @@ func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus
 }
 
 func (delegate *delegate) saveStatus(logger lager.Logger, status atc.BuildStatus) {
-	err := delegate.build.Finish(dbng.BuildStatus(status))
+	err := delegate.build.Finish(db.BuildStatus(status))
 	if err != nil {
 		logger.Error("failed-to-finish-build", err)
 	}
@@ -200,7 +200,7 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 	var metadata []atc.MetadataField
 
 	if info != nil {
-		err := delegate.build.SaveInput(dbng.BuildInput{
+		err := delegate.build.SaveInput(db.BuildInput{
 			Name:              plan.Name,
 			VersionedResource: vrFromInput(plan, *info),
 		})
@@ -266,18 +266,18 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 }
 
 func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
-	metadata := make([]dbng.ResourceMetadataField, len(info.Metadata))
+	metadata := make([]db.ResourceMetadataField, len(info.Metadata))
 	for i, md := range info.Metadata {
-		metadata[i] = dbng.ResourceMetadataField{
+		metadata[i] = db.ResourceMetadataField{
 			Name:  md.Name,
 			Value: md.Value,
 		}
 	}
 
-	err := delegate.build.SaveOutput(dbng.VersionedResource{
+	err := delegate.build.SaveOutput(db.VersionedResource{
 		Resource: plan.Resource,
 		Type:     plan.Type,
-		Version:  dbng.ResourceVersion(info.Version),
+		Version:  db.ResourceVersion(info.Version),
 		Metadata: metadata,
 	}, false)
 	if err != nil {
@@ -453,7 +453,7 @@ func (execution *executionDelegate) Stderr() io.Writer {
 }
 
 type dbEventWriter struct {
-	build dbng.Build
+	build db.Build
 
 	origin event.Origin
 
@@ -482,28 +482,28 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func vrFromInput(plan atc.GetPlan, fetchedInfo exec.VersionInfo) dbng.VersionedResource {
-	return dbng.VersionedResource{
+func vrFromInput(plan atc.GetPlan, fetchedInfo exec.VersionInfo) db.VersionedResource {
+	return db.VersionedResource{
 		Resource: plan.Resource,
 		Type:     plan.Type,
-		Version:  dbng.ResourceVersion(fetchedInfo.Version),
+		Version:  db.ResourceVersion(fetchedInfo.Version),
 		Metadata: atcMetadataToDBMetadata(fetchedInfo.Metadata),
 	}
 }
 
-func vrFromOutput(putted event.FinishPut) dbng.VersionedResource {
-	return dbng.VersionedResource{
+func vrFromOutput(putted event.FinishPut) db.VersionedResource {
+	return db.VersionedResource{
 		Resource: putted.Plan.Resource,
 		Type:     putted.Plan.Type,
-		Version:  dbng.ResourceVersion(putted.CreatedVersion),
+		Version:  db.ResourceVersion(putted.CreatedVersion),
 		Metadata: atcMetadataToDBMetadata(putted.CreatedMetadata),
 	}
 }
 
-func atcMetadataToDBMetadata(atcm []atc.MetadataField) []dbng.ResourceMetadataField {
-	metadata := make([]dbng.ResourceMetadataField, len(atcm))
+func atcMetadataToDBMetadata(atcm []atc.MetadataField) []db.ResourceMetadataField {
+	metadata := make([]db.ResourceMetadataField, len(atcm))
 	for i, md := range atcm {
-		metadata[i] = dbng.ResourceMetadataField{
+		metadata[i] = db.ResourceMetadataField{
 			Name:  md.Name,
 			Value: md.Value,
 		}

@@ -10,8 +10,8 @@ import (
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,16 +21,16 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 		response          *http.Response
 		server            *httptest.Server
 		delegate          *delegateHandler
-		fakeTeamFactory   *dbngfakes.FakeTeamFactory
-		fakeTeam          *dbngfakes.FakeTeam
+		fakeTeamFactory   *dbfakes.FakeTeamFactory
+		fakeTeam          *dbfakes.FakeTeam
 		authValidator     *authfakes.FakeValidator
 		userContextReader *authfakes.FakeUserContextReader
 		handler           http.Handler
 	)
 
 	BeforeEach(func() {
-		fakeTeamFactory = new(dbngfakes.FakeTeamFactory)
-		fakeTeam = new(dbngfakes.FakeTeam)
+		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
+		fakeTeam = new(dbfakes.FakeTeam)
 		fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 
 		delegate = &delegateHandler{}
@@ -116,10 +116,10 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 
 type delegateHandler struct {
 	IsCalled bool
-	Team     dbng.Team
+	Team     db.Team
 }
 
-func (handler *delegateHandler) GetHandler(team dbng.Team) http.Handler {
+func (handler *delegateHandler) GetHandler(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.IsCalled = true
 		handler.Team = team

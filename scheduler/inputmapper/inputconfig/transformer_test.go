@@ -4,9 +4,9 @@ import (
 	"errors"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
 
 	. "github.com/onsi/ginkgo"
@@ -15,12 +15,12 @@ import (
 
 var _ = Describe("Transformer", func() {
 	var (
-		fakePipeline *dbngfakes.FakePipeline
+		fakePipeline *dbfakes.FakePipeline
 		transformer  inputconfig.Transformer
 	)
 
 	BeforeEach(func() {
-		fakePipeline = new(dbngfakes.FakePipeline)
+		fakePipeline = new(dbfakes.FakePipeline)
 		transformer = inputconfig.NewTransformer(fakePipeline)
 	})
 
@@ -128,7 +128,7 @@ var _ = Describe("Transformer", func() {
 
 					BeforeEach(func() {
 						disaster = errors.New("bad thing")
-						fakePipeline.GetVersionedResourceByVersionReturns(dbng.SavedVersionedResource{}, false, disaster)
+						fakePipeline.GetVersionedResourceByVersionReturns(db.SavedVersionedResource{}, false, disaster)
 					})
 
 					It("returns the error", func() {
@@ -145,7 +145,7 @@ var _ = Describe("Transformer", func() {
 
 				Context("when the pinned version is not found", func() {
 					BeforeEach(func() {
-						fakePipeline.GetVersionedResourceByVersionReturns(dbng.SavedVersionedResource{}, false, nil)
+						fakePipeline.GetVersionedResourceByVersionReturns(db.SavedVersionedResource{}, false, nil)
 					})
 
 					It("omits the entire input", func() {
@@ -162,7 +162,7 @@ var _ = Describe("Transformer", func() {
 
 				Context("when the pinned version is found", func() {
 					BeforeEach(func() {
-						fakePipeline.GetVersionedResourceByVersionReturns(dbng.SavedVersionedResource{ID: 99}, true, nil)
+						fakePipeline.GetVersionedResourceByVersionReturns(db.SavedVersionedResource{ID: 99}, true, nil)
 					})
 
 					It("sets the pinned version ID", func() {

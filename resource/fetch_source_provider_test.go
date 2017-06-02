@@ -6,8 +6,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
@@ -31,13 +31,13 @@ var _ = Describe("FetchSourceProvider", func() {
 		tags                     atc.Tags
 		resourceTypes            atc.VersionedResourceTypes
 		teamID                   = 3
-		resourceCache            *dbng.UsedResourceCache
-		fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
+		resourceCache            *db.UsedResourceCache
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 	)
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
-		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fetchSourceProviderFactory := resource.NewFetchSourceProviderFactory(fakeWorkerClient, fakeResourceCacheFactory)
 		logger = lagertest.NewTestLogger("test")
 		resourceInstance = new(resourcefakes.FakeResourceInstance)
@@ -55,7 +55,7 @@ var _ = Describe("FetchSourceProvider", func() {
 		resourceOptions = new(resourcefakes.FakeResourceOptions)
 		resourceOptions.ResourceTypeReturns("some-resource-type")
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
-		resourceCache = &dbng.UsedResourceCache{ID: 42}
+		resourceCache = &db.UsedResourceCache{ID: 42}
 		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(resourceCache, nil)
 
 		fetchSourceProvider = fetchSourceProviderFactory.NewFetchSourceProvider(

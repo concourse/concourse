@@ -13,7 +13,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
@@ -45,7 +45,7 @@ make sure there's a corresponding 'get' step, or a task that produces it as an o
 // worker.ArtifactRepository and outputs will be added to the worker.ArtifactRepository.
 type TaskStep struct {
 	logger            lager.Logger
-	metadata          dbng.ContainerMetadata
+	metadata          db.ContainerMetadata
 	tags              atc.Tags
 	teamID            int
 	buildID           int
@@ -69,7 +69,7 @@ type TaskStep struct {
 
 func newTaskStep(
 	logger lager.Logger,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	tags atc.Tags,
 	teamID int,
 	buildID int,

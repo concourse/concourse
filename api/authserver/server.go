@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type Server struct {
@@ -15,7 +15,7 @@ type Server struct {
 	authTokenGenerator auth.AuthTokenGenerator
 	csrfTokenGenerator auth.CSRFTokenGenerator
 	providerFactory    auth.ProviderFactory
-	teamFactory        dbng.TeamFactory
+	teamFactory        db.TeamFactory
 	expire             time.Duration
 	isTLSEnabled       bool
 }
@@ -27,7 +27,7 @@ func NewServer(
 	authTokenGenerator auth.AuthTokenGenerator,
 	csrfTokenGenerator auth.CSRFTokenGenerator,
 	providerFactory auth.ProviderFactory,
-	teamFactory dbng.TeamFactory,
+	teamFactory db.TeamFactory,
 	expire time.Duration,
 	isTLSEnabled bool,
 ) *Server {

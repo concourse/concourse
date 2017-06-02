@@ -12,8 +12,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
@@ -30,7 +30,7 @@ var _ = Describe("Get", func() {
 	var (
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFetcher        *resourcefakes.FakeFetcher
-		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
+		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
 		fakeCache           *resourcefakes.FakeCache
 		fakeVolume          *workerfakes.FakeVolume
@@ -54,9 +54,9 @@ var _ = Describe("Get", func() {
 		step    Step
 		process ifrit.Process
 
-		workerMetadata = dbng.ContainerMetadata{
+		workerMetadata = db.ContainerMetadata{
 			PipelineID: 4567,
-			Type:       dbng.ContainerTypeGet,
+			Type:       db.ContainerTypeGet,
 			StepName:   "some-step",
 		}
 
@@ -110,7 +110,7 @@ var _ = Describe("Get", func() {
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 		fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
-		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
 	})
@@ -171,9 +171,9 @@ var _ = Describe("Get", func() {
 		_, sid, tags, actualTeamID, actualResourceTypes, resourceInstance, sm, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 		Expect(sm).To(Equal(stepMetadata))
 		Expect(sid).To(Equal(resource.Session{
-			Metadata: dbng.ContainerMetadata{
+			Metadata: db.ContainerMetadata{
 				PipelineID:       4567,
-				Type:             dbng.ContainerTypeGet,
+				Type:             db.ContainerTypeGet,
 				StepName:         "some-step",
 				WorkingDirectory: "/tmp/build/get",
 			},
@@ -185,7 +185,7 @@ var _ = Describe("Get", func() {
 			version,
 			resourceConfig.Source,
 			params,
-			dbng.ForBuild(42),
+			db.ForBuild(42),
 			resourceTypes,
 			fakeDBResourceCacheFactory,
 		)))

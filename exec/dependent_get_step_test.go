@@ -12,8 +12,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
@@ -30,7 +30,7 @@ var _ = Describe("DependentGet", func() {
 	var (
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFetcher        *resourcefakes.FakeFetcher
-		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
+		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeVersionedSource        *resourcefakes.FakeVersionedSource
 		getDelegate                *execfakes.FakeGetDelegate
 		resourceConfig             atc.ResourceConfig
@@ -50,9 +50,9 @@ var _ = Describe("DependentGet", func() {
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
-		workerMetadata = dbng.ContainerMetadata{
+		workerMetadata = db.ContainerMetadata{
 			PipelineID: 4567,
-			Type:       dbng.ContainerTypeGet,
+			Type:       db.ContainerTypeGet,
 			StepName:   "some-step",
 		}
 
@@ -67,7 +67,7 @@ var _ = Describe("DependentGet", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
-		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
 
@@ -191,7 +191,7 @@ var _ = Describe("DependentGet", func() {
 				version,
 				resourceConfig.Source,
 				params,
-				dbng.ForBuild(1234),
+				db.ForBuild(1234),
 				resourceTypes,
 				fakeDBResourceCacheFactory,
 			)))

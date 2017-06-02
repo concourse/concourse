@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 var (
@@ -50,17 +50,17 @@ func (b *badge) String() string {
 	return buffer.String()
 }
 
-func badgeForBuild(build dbng.Build) *badge {
+func badgeForBuild(build db.Build) *badge {
 	switch {
 	case build == nil:
 		return &badgeUnknown
-	case build.Status() == dbng.BuildStatusSucceeded:
+	case build.Status() == db.BuildStatusSucceeded:
 		return &badgePassing
-	case build.Status() == dbng.BuildStatusFailed:
+	case build.Status() == db.BuildStatusFailed:
 		return &badgeFailing
-	case build.Status() == dbng.BuildStatusAborted:
+	case build.Status() == db.BuildStatusAborted:
 		return &badgeAborted
-	case build.Status() == dbng.BuildStatusErrored:
+	case build.Status() == db.BuildStatusErrored:
 		return &badgeErrored
 	default:
 		return &badgeUnknown
@@ -97,7 +97,7 @@ type badgeTemplateConfig struct {
 	FillColor       string
 }
 
-func (s *Server) JobBadge(pipeline dbng.Pipeline) http.Handler {
+func (s *Server) JobBadge(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("job-badge")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")

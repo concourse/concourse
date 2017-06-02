@@ -4,23 +4,23 @@ package transportfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"
 )
 
 type FakeTransportDB struct {
-	GetWorkerStub        func(name string) (dbng.Worker, bool, error)
+	GetWorkerStub        func(name string) (db.Worker, bool, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
 		name string
 	}
 	getWorkerReturns struct {
-		result1 dbng.Worker
+		result1 db.Worker
 		result2 bool
 		result3 error
 	}
 	getWorkerReturnsOnCall map[int]struct {
-		result1 dbng.Worker
+		result1 db.Worker
 		result2 bool
 		result3 error
 	}
@@ -28,7 +28,7 @@ type FakeTransportDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTransportDB) GetWorker(name string) (dbng.Worker, bool, error) {
+func (fake *FakeTransportDB) GetWorker(name string) (db.Worker, bool, error) {
 	fake.getWorkerMutex.Lock()
 	ret, specificReturn := fake.getWorkerReturnsOnCall[len(fake.getWorkerArgsForCall)]
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
@@ -57,26 +57,26 @@ func (fake *FakeTransportDB) GetWorkerArgsForCall(i int) string {
 	return fake.getWorkerArgsForCall[i].name
 }
 
-func (fake *FakeTransportDB) GetWorkerReturns(result1 dbng.Worker, result2 bool, result3 error) {
+func (fake *FakeTransportDB) GetWorkerReturns(result1 db.Worker, result2 bool, result3 error) {
 	fake.GetWorkerStub = nil
 	fake.getWorkerReturns = struct {
-		result1 dbng.Worker
+		result1 db.Worker
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTransportDB) GetWorkerReturnsOnCall(i int, result1 dbng.Worker, result2 bool, result3 error) {
+func (fake *FakeTransportDB) GetWorkerReturnsOnCall(i int, result1 db.Worker, result2 bool, result3 error) {
 	fake.GetWorkerStub = nil
 	if fake.getWorkerReturnsOnCall == nil {
 		fake.getWorkerReturnsOnCall = make(map[int]struct {
-			result1 dbng.Worker
+			result1 db.Worker
 			result2 bool
 			result3 error
 		})
 	}
 	fake.getWorkerReturnsOnCall[i] = struct {
-		result1 dbng.Worker
+		result1 db.Worker
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

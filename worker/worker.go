@@ -11,7 +11,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
@@ -149,11 +149,11 @@ func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResou
 	return atc.WorkerResourceType{}, false
 }
 
-func (worker *gardenWorker) CreateVolumeForResourceCache(logger lager.Logger, volumeSpec VolumeSpec, resourceCache *dbng.UsedResourceCache) (Volume, error) {
+func (worker *gardenWorker) CreateVolumeForResourceCache(logger lager.Logger, volumeSpec VolumeSpec, resourceCache *db.UsedResourceCache) (Volume, error) {
 	return worker.volumeClient.CreateVolumeForResourceCache(logger, volumeSpec, resourceCache)
 }
 
-func (worker *gardenWorker) FindInitializedVolumeForResourceCache(logger lager.Logger, resourceCache *dbng.UsedResourceCache) (Volume, bool, error) {
+func (worker *gardenWorker) FindInitializedVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error) {
 	return worker.volumeClient.FindInitializedVolumeForResourceCache(logger, resourceCache)
 }
 
@@ -167,7 +167,7 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 	delegate ImageFetchingDelegate,
 	buildID int,
 	planID atc.PlanID,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
@@ -187,10 +187,10 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 
 func (worker *gardenWorker) CreateResourceGetContainer(
 	logger lager.Logger,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceTypeName string,
@@ -216,10 +216,10 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 
 func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	logger lager.Logger,
-	resourceUser dbng.ResourceUser,
+	resourceUser db.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	metadata dbng.ContainerMetadata,
+	metadata db.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,

@@ -7,17 +7,17 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 type TeamScopedHandlerFactory struct {
 	logger      lager.Logger
-	teamFactory dbng.TeamFactory
+	teamFactory db.TeamFactory
 }
 
 func NewTeamScopedHandlerFactory(
 	logger lager.Logger,
-	teamFactory dbng.TeamFactory,
+	teamFactory db.TeamFactory,
 ) *TeamScopedHandlerFactory {
 	return &TeamScopedHandlerFactory{
 		logger:      logger,
@@ -25,7 +25,7 @@ func NewTeamScopedHandlerFactory(
 	}
 }
 
-func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(dbng.Team) http.Handler) http.HandlerFunc {
+func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.Team) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := f.logger.Session("team-scoped-handler")
 

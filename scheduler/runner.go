@@ -7,8 +7,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/metric"
 )
 
@@ -18,19 +18,19 @@ type BuildScheduler interface {
 	Schedule(
 		logger lager.Logger,
 		versions *algorithm.VersionsDB,
-		jobs []dbng.Job,
-		resources dbng.Resources,
+		jobs []db.Job,
+		resources db.Resources,
 		resourceTypes atc.VersionedResourceTypes,
 	) (map[string]time.Duration, error)
 
 	TriggerImmediately(
 		logger lager.Logger,
-		job dbng.Job,
-		resources dbng.Resources,
+		job db.Job,
+		resources db.Resources,
 		resourceTypes atc.VersionedResourceTypes,
-	) (dbng.Build, Waiter, error)
+	) (db.Build, Waiter, error)
 
-	SaveNextInputMapping(logger lager.Logger, job dbng.Job) error
+	SaveNextInputMapping(logger lager.Logger, job db.Job) error
 }
 
 var errPipelineRemoved = errors.New("pipeline removed")
@@ -38,7 +38,7 @@ var errPipelineRemoved = errors.New("pipeline removed")
 type Runner struct {
 	Logger lager.Logger
 
-	Pipeline dbng.Pipeline
+	Pipeline db.Pipeline
 
 	Scheduler BuildScheduler
 

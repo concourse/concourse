@@ -6,9 +6,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/atc/dbng"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -22,11 +22,11 @@ var _ = Describe("Locks", func() {
 
 		dbLock lock.Lock
 
-		dbngConn dbng.Conn
+		dbConn db.Conn
 
-		pipeline    dbng.Pipeline
-		team        dbng.Team
-		teamFactory dbng.TeamFactory
+		pipeline    db.Pipeline
+		team        db.Team
+		teamFactory db.TeamFactory
 
 		logger *lagertest.TestLogger
 	)
@@ -41,8 +41,8 @@ var _ = Describe("Locks", func() {
 
 		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
-		dbngConn = postgresRunner.OpenConn()
-		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory)
+		dbConn = postgresRunner.OpenConn()
+		teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "team-name"})
@@ -72,12 +72,12 @@ var _ = Describe("Locks", func() {
 					},
 				},
 			},
-		}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+		}, db.ConfigVersion(0), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		err := dbngConn.Close()
+		err := dbConn.Close()
 		Expect(err).NotTo(HaveOccurred())
 
 		err = listener.Close()
@@ -308,7 +308,7 @@ var _ = Describe("Locks", func() {
 	})
 
 	Describe("taking out a lock on build tracking", func() {
-		var build dbng.Build
+		var build db.Build
 
 		BeforeEach(func() {
 			var err error

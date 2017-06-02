@@ -2,24 +2,24 @@ package maxinflight
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 )
 
 //go:generate counterfeiter . Updater
 
 type Updater interface {
-	UpdateMaxInFlightReached(logger lager.Logger, job dbng.Job, buildID int) (bool, error)
+	UpdateMaxInFlightReached(logger lager.Logger, job db.Job, buildID int) (bool, error)
 }
 
-func NewUpdater(pipeline dbng.Pipeline) Updater {
+func NewUpdater(pipeline db.Pipeline) Updater {
 	return &updater{pipeline: pipeline}
 }
 
 type updater struct {
-	pipeline dbng.Pipeline
+	pipeline db.Pipeline
 }
 
-func (u *updater) UpdateMaxInFlightReached(logger lager.Logger, job dbng.Job, buildID int) (bool, error) {
+func (u *updater) UpdateMaxInFlightReached(logger lager.Logger, job db.Job, buildID int) (bool, error) {
 	logger = logger.Session("is-max-in-flight-reached", lager.Data{"job-name": job.Name()})
 
 	reached, err := u.isMaxInFlightReached(logger, job, buildID)
@@ -36,7 +36,7 @@ func (u *updater) UpdateMaxInFlightReached(logger lager.Logger, job dbng.Job, bu
 	return reached, nil
 }
 
-func (u *updater) isMaxInFlightReached(logger lager.Logger, job dbng.Job, buildID int) (bool, error) {
+func (u *updater) isMaxInFlightReached(logger lager.Logger, job db.Job, buildID int) (bool, error) {
 	maxInFlight := job.Config().MaxInFlight()
 
 	if maxInFlight == 0 {

@@ -4,16 +4,16 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/tedsuo/ifrit"
 )
 
-type PipelineRunnerFactory func(dbng.Pipeline) ifrit.Runner
+type PipelineRunnerFactory func(db.Pipeline) ifrit.Runner
 
 type Syncer struct {
 	logger lager.Logger
 
-	pipelineFactory       dbng.PipelineFactory
+	pipelineFactory       db.PipelineFactory
 	pipelineRunnerFactory PipelineRunnerFactory
 
 	runningPipelines map[int]runningPipeline
@@ -29,7 +29,7 @@ type runningPipeline struct {
 
 func NewSyncer(
 	logger lager.Logger,
-	pipelineFactory dbng.PipelineFactory,
+	pipelineFactory db.PipelineFactory,
 	pipelineRunnerFactory PipelineRunnerFactory,
 ) *Syncer {
 	return &Syncer{
