@@ -23,9 +23,7 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
@@ -223,13 +221,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		oldKey = dbng.NewEncryptionKey(cmd.OldEncryptionKey.AEAD)
 	}
 
-	dbConn, dbngConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey)
+	dbngConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey)
 	if err != nil {
 		return nil, err
-	}
-
-	if cmd.LogDBQueries {
-		dbConn = db.Log(logger.Session("log-conn"), dbConn)
 	}
 
 	lockConn, err := cmd.constructLockConn(retryingDriverName)
@@ -673,21 +667,24 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 	metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
 }
 
-func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, newKey *dbng.EncryptionKey, oldKey *dbng.EncryptionKey) (db.Conn, dbng.Conn, error) {
+func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, newKey *dbng.EncryptionKey, oldKey *dbng.EncryptionKey) (dbng.Conn, error) {
 	dbngConn, err := dbng.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
+		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
 
-	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.Postgres.ConnectionString())
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
+	// Instrument with Metrics
+	dbngConn = metric.CountQueries(dbngConn)
+
+	// Instrument with Logging
+	if cmd.LogDBQueries {
+		dbngConn = dbng.Log(logger.Session("log-conn"), dbngConn)
 	}
 
-	dbConn.SetMaxOpenConns(64)
+	// Prepare
 	dbngConn.SetMaxOpenConns(64)
 
-	return dbConn, metric.CountQueries(dbngConn), nil
+	return dbngConn, nil
 }
 
 func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {

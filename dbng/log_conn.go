@@ -1,10 +1,11 @@
-package db
+package dbng
 
 import (
 	"database/sql"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/Masterminds/squirrel"
 )
 
 func Log(logger lager.Logger, conn Conn) Conn {
@@ -25,7 +26,7 @@ func (c *logConn) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return c.Conn.Query(query, args...)
 }
 
-func (c *logConn) QueryRow(query string, args ...interface{}) *sql.Row {
+func (c *logConn) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
 	c.logger.Debug("query-row", lager.Data{"query": c.strip(query)})
 	return c.Conn.QueryRow(query, args...)
 }
