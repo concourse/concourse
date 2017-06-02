@@ -13,22 +13,16 @@ import (
 )
 
 type FakeFactory struct {
-	GetStub        func(lager.Logger, int, int, atc.PlanID, exec.StepMetadata, worker.ArtifactName, db.ContainerMetadata, exec.GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params, atc.Version, atc.VersionedResourceTypes) exec.StepFactory
+	GetStub        func(lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.StepFactory
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		arg1  lager.Logger
-		arg2  int
-		arg3  int
-		arg4  atc.PlanID
-		arg5  exec.StepMetadata
-		arg6  worker.ArtifactName
-		arg7  db.ContainerMetadata
-		arg8  exec.GetDelegate
-		arg9  atc.ResourceConfig
-		arg10 atc.Tags
-		arg11 atc.Params
-		arg12 atc.Version
-		arg13 atc.VersionedResourceTypes
+		arg1 lager.Logger
+		arg2 int
+		arg3 int
+		arg4 atc.Plan
+		arg5 exec.StepMetadata
+		arg6 db.ContainerMetadata
+		arg7 exec.GetDelegate
 	}
 	getReturns struct {
 		result1 exec.StepFactory
@@ -108,28 +102,22 @@ type FakeFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.PlanID, arg5 exec.StepMetadata, arg6 worker.ArtifactName, arg7 db.ContainerMetadata, arg8 exec.GetDelegate, arg9 atc.ResourceConfig, arg10 atc.Tags, arg11 atc.Params, arg12 atc.Version, arg13 atc.VersionedResourceTypes) exec.StepFactory {
+func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.Plan, arg5 exec.StepMetadata, arg6 db.ContainerMetadata, arg7 exec.GetDelegate) exec.StepFactory {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1  lager.Logger
-		arg2  int
-		arg3  int
-		arg4  atc.PlanID
-		arg5  exec.StepMetadata
-		arg6  worker.ArtifactName
-		arg7  db.ContainerMetadata
-		arg8  exec.GetDelegate
-		arg9  atc.ResourceConfig
-		arg10 atc.Tags
-		arg11 atc.Params
-		arg12 atc.Version
-		arg13 atc.VersionedResourceTypes
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13})
-	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13})
+		arg1 lager.Logger
+		arg2 int
+		arg3 int
+		arg4 atc.Plan
+		arg5 exec.StepMetadata
+		arg6 db.ContainerMetadata
+		arg7 exec.GetDelegate
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13)
+		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1
@@ -143,10 +131,10 @@ func (fake *FakeFactory) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeFactory) GetArgsForCall(i int) (lager.Logger, int, int, atc.PlanID, exec.StepMetadata, worker.ArtifactName, db.ContainerMetadata, exec.GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params, atc.Version, atc.VersionedResourceTypes) {
+func (fake *FakeFactory) GetArgsForCall(i int) (lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
-	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5, fake.getArgsForCall[i].arg6, fake.getArgsForCall[i].arg7, fake.getArgsForCall[i].arg8, fake.getArgsForCall[i].arg9, fake.getArgsForCall[i].arg10, fake.getArgsForCall[i].arg11, fake.getArgsForCall[i].arg12, fake.getArgsForCall[i].arg13
+	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5, fake.getArgsForCall[i].arg6, fake.getArgsForCall[i].arg7
 }
 
 func (fake *FakeFactory) GetReturns(result1 exec.StepFactory) {

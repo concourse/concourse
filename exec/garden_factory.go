@@ -73,44 +73,47 @@ func (factory *gardenFactory) Get(
 	logger lager.Logger,
 	teamID int,
 	buildID int,
-	planID atc.PlanID,
+	plan atc.Plan,
 	stepMetadata StepMetadata,
-	sourceName worker.ArtifactName,
 	workerMetadata db.ContainerMetadata,
 	delegate GetDelegate,
-	resourceConfig atc.ResourceConfig,
-	tags atc.Tags,
-	params atc.Params,
-	version atc.Version,
-	resourceTypes atc.VersionedResourceTypes,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
-	return newGetStep(
-		logger,
-		sourceName,
-		resourceConfig,
-		version,
-		params,
-		resource.NewResourceInstance(
-			resource.ResourceType(resourceConfig.Type),
-			version,
-			resourceConfig.Source,
-			params,
-			db.ForBuild(buildID),
-			db.NewBuildStepContainerOwner(buildID, planID),
-			resourceTypes,
-			factory.dbResourceCacheFactory,
-		),
-		stepMetadata,
-		resource.Session{
-			Metadata: workerMetadata,
+
+	actions := []Action{
+		&GetAction{
+			Type:     plan.Get.Type,
+			Name:     plan.Get.Name,
+			Resource: plan.Get.Resource,
+			Source:   plan.Get.Source,
+			Params:   plan.Get.Params,
+			Version:  plan.Get.Version,
+			Tags:     plan.Get.Tags,
+			Outputs:  []string{plan.Get.Name},
+
+			// TODO: can we remove these dependencies?
+			delegate:          delegate,
+			resourceFetcher:   factory.resourceFetcher,
+			teamID:            teamID,
+			containerMetadata: workerMetadata,
+			resourceInstance: resource.NewResourceInstance(
+				resource.ResourceType(plan.Get.Type),
+				plan.Get.Version,
+				plan.Get.Source,
+				plan.Get.Params,
+				db.ForBuild(buildID),
+				db.NewBuildStepContainerOwner(buildID, planID),
+				plan.Get.VersionedResourceTypes,
+				factory.dbResourceCacheFactory,
+			),
+			stepMetadata: stepMetadata,
+
+			// TODO: remove after all actions are introduced
+			resourceTypes: plan.Get.VersionedResourceTypes,
 		},
-		tags,
-		teamID,
-		delegate,
-		factory.resourceFetcher,
-		resourceTypes,
-	)
+	}
+
+	return newActionsStep(actions, logger)
 }
 
 func (factory *gardenFactory) Put(

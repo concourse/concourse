@@ -262,11 +262,3 @@ func (d *getStepResource) LockName(workerName string) (string, error) {
 	}
 	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
 }
-
-type getStepLockID struct {
-	Type       resource.ResourceType `json:"type"`
-	Version    atc.Version           `json:"version"`
-	Source     atc.Source            `json:"source"`
-	Params     atc.Params            `json:"params"`
-	WorkerName string                `json:"worker_name"`
-}

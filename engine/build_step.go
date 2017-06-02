@@ -79,6 +79,7 @@ func (build *execBuild) buildEnsureStep(logger lager.Logger, plan atc.Plan) exec
 	return exec.Ensure(step, next)
 }
 
+// needs rootfs
 func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("task")
 
@@ -125,6 +126,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 	)
 }
 
+// needs rootfs
 func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("get", lager.Data{
 		"name": plan.Get.Name,
@@ -140,23 +142,14 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		logger,
 		build.teamID,
 		build.buildID,
-		plan.ID,
+		plan,
 		build.stepMetadata,
-		worker.ArtifactName(plan.Get.Name),
 		workerMetadata,
 		build.delegate.InputDelegate(logger, *plan.Get, event.OriginID(plan.ID)),
-		atc.ResourceConfig{
-			Name:   plan.Get.Resource,
-			Type:   plan.Get.Type,
-			Source: plan.Get.Source,
-		},
-		plan.Get.Tags,
-		plan.Get.Params,
-		plan.Get.Version,
-		plan.Get.VersionedResourceTypes,
 	)
 }
 
+// needs rootfs
 func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("put", lager.Data{
 		"name": plan.Put.Name,
@@ -187,6 +180,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 	)
 }
 
+// needs rootfs
 func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("get", lager.Data{
 		"name": plan.DependentGet.Name,

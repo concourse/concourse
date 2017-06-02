@@ -19,16 +19,10 @@ type Factory interface {
 		lager.Logger,
 		int, // teamID
 		int, // buildID
-		atc.PlanID,
+		atc.Plan,
 		StepMetadata,
-		worker.ArtifactName,
 		db.ContainerMetadata,
 		GetDelegate,
-		atc.ResourceConfig,
-		atc.Tags,
-		atc.Params,
-		atc.Version,
-		atc.VersionedResourceTypes,
 	) StepFactory
 
 	// Put constructs a PutStep factory.
