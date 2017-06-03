@@ -179,18 +179,6 @@ var _ = Describe("Plan", func() {
 				},
 
 				atc.Plan{
-					ID: "17",
-					DependentGet: &atc.DependentGetPlan{
-						Type:     "type",
-						Name:     "name",
-						Resource: "resource",
-						Source:   atc.Source{"some": "source"},
-						Params:   atc.Params{"some": "params"},
-						Tags:     atc.Tags{"tags"},
-					},
-				},
-
-				atc.Plan{
 					ID: "18",
 					Timeout: &atc.TimeoutPlan{
 						Step: atc.Plan{
@@ -381,14 +369,6 @@ var _ = Describe("Plan", func() {
             "privileged": false
           }
         }
-      }
-    },
-    {
-      "id": "17",
-      "dependent_get": {
-        "type": "type",
-        "name": "name",
-        "resource": "resource"
       }
     },
     {

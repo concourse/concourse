@@ -35,40 +35,6 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) DependentGet(
-	logger lager.Logger,
-	teamID int,
-	buildID int,
-	planID atc.PlanID,
-	stepMetadata StepMetadata,
-	sourceName worker.ArtifactName,
-	workerMetadata db.ContainerMetadata,
-	delegate GetDelegate,
-	resourceConfig atc.ResourceConfig,
-	tags atc.Tags,
-	params atc.Params,
-	resourceTypes atc.VersionedResourceTypes,
-) StepFactory {
-	return newDependentGetStep(
-		logger,
-		sourceName,
-		resourceConfig,
-		params,
-		stepMetadata,
-		resource.Session{
-			Metadata: workerMetadata,
-		},
-		tags,
-		teamID,
-		buildID,
-		planID,
-		delegate,
-		factory.resourceFetcher,
-		resourceTypes,
-		factory.dbResourceCacheFactory,
-	)
-}
-
 func (factory *gardenFactory) Get(
 	logger lager.Logger,
 	teamID int,
@@ -128,6 +94,7 @@ func (factory *gardenFactory) Put(
 	tags atc.Tags,
 	params atc.Params,
 	resourceTypes atc.VersionedResourceTypes,
+	result *atc.Version,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 	return newPutStep(
@@ -145,6 +112,7 @@ func (factory *gardenFactory) Put(
 		delegate,
 		factory.resourceFactory,
 		resourceTypes,
+		result,
 	)
 }
 

@@ -165,6 +165,8 @@ func (factory *buildFactory) constructUnhookedPlan(
 			return atc.Plan{}, ErrResourceNotFound
 		}
 
+		var putPlanResult atc.Version
+
 		putPlan := atc.PutPlan{
 			Type:     resource.Type,
 			Name:     logicalName,
@@ -174,15 +176,19 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Tags:     planConfig.Tags,
 
 			VersionedResourceTypes: resourceTypes,
+
+			Result: &putPlanResult,
 		}
 
-		dependentGetPlan := atc.DependentGetPlan{
+		dependentGetPlan := atc.GetPlan{
 			Type:     resource.Type,
 			Name:     logicalName,
 			Resource: resourceName,
-			Params:   planConfig.GetParams,
-			Tags:     planConfig.Tags,
-			Source:   resource.Source,
+			Version:  putPlanResult,
+
+			Params: planConfig.GetParams,
+			Tags:   planConfig.Tags,
+			Source: resource.Source,
 
 			VersionedResourceTypes: resourceTypes,
 		}

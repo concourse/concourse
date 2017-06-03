@@ -102,12 +102,6 @@ var _ = Describe("Exec Engine With Hooks", func() {
 			outputStepFactory.UsingReturns(outputStep)
 			fakeFactory.PutReturns(outputStepFactory)
 
-			dependentStepFactory = new(execfakes.FakeStepFactory)
-			dependentStep = new(execfakes.FakeStep)
-			dependentStep.ResultStub = successResult(true)
-			dependentStepFactory.UsingReturns(dependentStep)
-			fakeFactory.DependentGetReturns(dependentStepFactory)
-
 			taskStep.RunReturns(nil)
 			inputStep.RunReturns(nil)
 			outputStep.RunReturns(nil)
@@ -354,7 +348,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						Step: planFactory.NewPlan(atc.PutPlan{
 							Name: "some-put",
 						}),
-						Next: planFactory.NewPlan(atc.DependentGetPlan{
+						Next: planFactory.NewPlan(atc.GetPlan{
 							Name: "some-put",
 						}),
 					}),

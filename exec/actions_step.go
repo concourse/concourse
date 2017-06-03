@@ -42,13 +42,11 @@ type ActionsStep struct {
 	logger lager.Logger // TODO: can we move that to method? need to change all steps though
 
 	repository *worker.ArtifactRepository
-
-	succeeded bool
+	succeeded  bool
 }
 
 func (step ActionsStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	step.repository = repo
-
 	return &step
 }
 

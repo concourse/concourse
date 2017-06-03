@@ -235,10 +235,6 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 		return build.buildPutStep(logger, plan)
 	}
 
-	if plan.DependentGet != nil {
-		return build.buildDependentGetStep(logger, plan)
-	}
-
 	if plan.Retry != nil {
 		return build.buildRetryStep(logger, plan)
 	}

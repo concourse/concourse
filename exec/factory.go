@@ -38,23 +38,7 @@ type Factory interface {
 		atc.Tags,
 		atc.Params,
 		atc.VersionedResourceTypes,
-	) StepFactory
-
-	// DependentGet constructs a GetStep factory whose version is determined by
-	// the previous step.
-	DependentGet(
-		lager.Logger,
-		int, // teamID
-		int, // buildID
-		atc.PlanID,
-		StepMetadata,
-		worker.ArtifactName,
-		db.ContainerMetadata,
-		GetDelegate,
-		atc.ResourceConfig,
-		atc.Tags,
-		atc.Params,
-		atc.VersionedResourceTypes,
+		*atc.Version,
 	) StepFactory
 
 	// Task constructs a TaskStep factory.

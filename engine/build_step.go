@@ -180,40 +180,6 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 	)
 }
 
-// needs rootfs
-func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
-	logger = logger.Session("get", lager.Data{
-		"name": plan.DependentGet.Name,
-	})
-
-	getPlan := plan.DependentGet.GetPlan()
-
-	workerMetadata := build.workerMetadata(
-		db.ContainerTypeGet,
-		getPlan.Name,
-		plan.Attempts,
-	)
-
-	return build.factory.DependentGet(
-		logger,
-		build.teamID,
-		build.buildID,
-		plan.ID,
-		build.stepMetadata,
-		worker.ArtifactName(getPlan.Name),
-		workerMetadata,
-		build.delegate.InputDelegate(logger, getPlan, event.OriginID(plan.ID)),
-		atc.ResourceConfig{
-			Name:   getPlan.Resource,
-			Type:   getPlan.Type,
-			Source: getPlan.Source,
-		},
-		getPlan.Tags,
-		getPlan.Params,
-		getPlan.VersionedResourceTypes,
-	)
-}
-
 func (build *execBuild) buildRetryStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("retry")
 
