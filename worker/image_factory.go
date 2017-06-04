@@ -19,7 +19,6 @@ type ImageFactory interface {
 		volumeClient VolumeClient,
 		imageSpec ImageSpec,
 		teamID int,
-		signals <-chan os.Signal,
 		delegate ImageFetchingDelegate,
 		resourceUser db.ResourceUser,
 		resourceTypes atc.VersionedResourceTypes,
@@ -38,6 +37,7 @@ type FetchedImage struct {
 type Image interface {
 	FetchForContainer(
 		logger lager.Logger,
+		cancel <-chan os.Signal,
 		container db.CreatingContainer,
 	) (FetchedImage, error)
 }

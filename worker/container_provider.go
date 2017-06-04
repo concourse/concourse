@@ -408,7 +408,6 @@ func (p *containerProvider) findOrCreateContainer(
 				p.volumeClient,
 				spec.ImageSpec,
 				spec.TeamID,
-				cancel,
 				delegate,
 				resourceUser,
 				resourceTypes,
@@ -446,7 +445,7 @@ func (p *containerProvider) findOrCreateContainer(
 
 			logger.Debug("fetching-image")
 
-			fetchedImage, err := image.FetchForContainer(logger, creatingContainer)
+			fetchedImage, err := image.FetchForContainer(logger, cancel, creatingContainer)
 			if err != nil {
 				logger.Error("failed-to-fetch-image-for-container", err)
 				return nil, err

@@ -3,6 +3,7 @@ package image
 import (
 	"io"
 	"net/url"
+	"os"
 	"path"
 
 	"code.cloudfoundry.org/lager"
@@ -23,6 +24,7 @@ type imageProvidedByPreviousStepOnSameWorker struct {
 
 func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
 	logger lager.Logger,
+	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	imageVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
@@ -72,6 +74,7 @@ type imageProvidedByPreviousStepOnDifferentWorker struct {
 
 func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 	logger lager.Logger,
+	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	imageVolume, err := i.volumeClient.FindOrCreateVolumeForContainer(
@@ -123,26 +126,37 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 }
 
 type imageFromResource struct {
-	imageParentVolume   worker.Volume
-	version             atc.Version
-	imageMetadataReader io.ReadCloser
-	privileged          bool
-	teamID              int
-	volumeClient        worker.VolumeClient
+	privileged   bool
+	teamID       int
+	volumeClient worker.VolumeClient
+
+	imageResourceFetcher ImageResourceFetcher
 }
 
 func (i *imageFromResource) FetchForContainer(
 	logger lager.Logger,
+	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
+	imageParentVolume, imageMetadataReader, version, err := i.imageResourceFetcher.Fetch(
+		logger.Session("image"),
+		cancel,
+		container,
+		i.privileged,
+	)
+	if err != nil {
+		logger.Error("failed-to-fetch-image", err)
+		return worker.FetchedImage{}, err
+	}
+
 	imageVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
 		logger.Session("create-cow-volume"),
 		worker.VolumeSpec{
-			Strategy:   i.imageParentVolume.COWStrategy(),
+			Strategy:   imageParentVolume.COWStrategy(),
 			Privileged: i.privileged,
 		},
 		container,
-		i.imageParentVolume,
+		imageParentVolume,
 		i.teamID,
 		"/",
 	)
@@ -151,7 +165,7 @@ func (i *imageFromResource) FetchForContainer(
 		return worker.FetchedImage{}, err
 	}
 
-	metadata, err := loadMetadata(i.imageMetadataReader)
+	metadata, err := loadMetadata(imageMetadataReader)
 	if err != nil {
 		return worker.FetchedImage{}, err
 	}
@@ -163,7 +177,7 @@ func (i *imageFromResource) FetchForContainer(
 
 	return worker.FetchedImage{
 		Metadata:   metadata,
-		Version:    i.version,
+		Version:    version,
 		URL:        imageURL.String(),
 		Privileged: i.privileged,
 	}, nil
@@ -178,6 +192,7 @@ type imageFromBaseResourceType struct {
 
 func (i *imageFromBaseResourceType) FetchForContainer(
 	logger lager.Logger,
+	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	for _, t := range i.worker.ResourceTypes() {
@@ -233,6 +248,7 @@ type imageFromRootfsURI struct {
 
 func (i *imageFromRootfsURI) FetchForContainer(
 	logger lager.Logger,
+	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	return worker.FetchedImage{

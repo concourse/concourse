@@ -2,7 +2,6 @@ package image
 
 import (
 	"errors"
-	"os"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -30,7 +29,6 @@ func (f *imageFactory) GetImage(
 	volumeClient worker.VolumeClient,
 	imageSpec worker.ImageSpec,
 	teamID int,
-	cancel <-chan os.Signal,
 	delegate worker.ImageFetchingDelegate,
 	resourceUser db.ResourceUser,
 	resourceTypes atc.VersionedResourceTypes,
@@ -61,61 +59,44 @@ func (f *imageFactory) GetImage(
 	// check if custom resource type
 	for _, resourceType := range resourceTypes {
 		if resourceType.Name == imageSpec.ResourceType {
-			imageResourceFetcher := f.imageResourceFetcherFactory.ImageResourceFetcherFor(worker)
-			imageParentVolume, imageMetadataReader, version, err := imageResourceFetcher.Fetch(
-				logger.Session("image"),
-				cancel,
+			imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
+				worker,
 				resourceUser,
-				resourceType.Type,
-				resourceType.Source,
-				worker.Tags(),
+				atc.ImageResource{
+					Type:   resourceType.Type,
+					Source: resourceType.Source,
+				},
 				teamID,
 				resourceTypes.Without(imageSpec.ResourceType),
 				delegate,
-				resourceType.Privileged,
 			)
-			if err != nil {
-				logger.Error("failed-to-fetch-image", err)
-				return nil, err
-			}
 
 			return &imageFromResource{
-				imageParentVolume:   imageParentVolume,
-				version:             version,
-				imageMetadataReader: imageMetadataReader,
-				privileged:          resourceType.Privileged,
-				teamID:              teamID,
-				volumeClient:        volumeClient,
+				imageResourceFetcher: imageResourceFetcher,
+
+				privileged:   resourceType.Privileged,
+				teamID:       teamID,
+				volumeClient: volumeClient,
 			}, nil
 		}
 	}
 
 	if imageSpec.ImageResource != nil {
-		imageResourceFetcher := f.imageResourceFetcherFactory.ImageResourceFetcherFor(worker)
-		imageParentVolume, imageMetadataReader, version, err := imageResourceFetcher.Fetch(
-			logger.Session("image"),
-			cancel,
+		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
+			worker,
 			resourceUser,
-			imageSpec.ImageResource.Type,
-			imageSpec.ImageResource.Source,
-			worker.Tags(),
+			*imageSpec.ImageResource,
 			teamID,
 			resourceTypes,
 			delegate,
-			imageSpec.Privileged,
 		)
-		if err != nil {
-			logger.Error("failed-to-fetch-image", err)
-			return nil, err
-		}
 
 		return &imageFromResource{
-			imageParentVolume:   imageParentVolume,
-			version:             version,
-			imageMetadataReader: imageMetadataReader,
-			privileged:          imageSpec.Privileged,
-			teamID:              teamID,
-			volumeClient:        volumeClient,
+			imageResourceFetcher: imageResourceFetcher,
+
+			privileged:   imageSpec.Privileged,
+			teamID:       teamID,
+			volumeClient: volumeClient,
 		}, nil
 	}
 

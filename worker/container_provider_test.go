@@ -362,7 +362,7 @@ var _ = Describe("ContainerProvider", func() {
 			Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 			Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
-			_, actualContainer := fakeImage.FetchForContainerArgsForCall(0)
+			_, _, actualContainer := fakeImage.FetchForContainerArgsForCall(0)
 			Expect(actualContainer).To(Equal(fakeCreatingContainer))
 		})
 

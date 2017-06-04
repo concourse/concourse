@@ -37,6 +37,7 @@ var _ = Describe("Image", func() {
 	var fakeResourceFactoryFactory *resourcefakes.FakeResourceFactoryFactory
 	var fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 	var fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+	var fakeCreatingContainer *dbfakes.FakeCreatingContainer
 
 	var imageResourceFetcher image.ImageResourceFetcher
 
@@ -66,6 +67,7 @@ var _ = Describe("Image", func() {
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeResourceFetcherFactory.FetcherForReturns(fakeResourceFetcher)
 		fakeResourceFactoryFactory.FactoryForReturns(fakeResourceFactory)
+		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 		stderrBuf = gbytes.NewBuffer()
 
@@ -78,6 +80,7 @@ var _ = Describe("Image", func() {
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
 		fakeWorker = new(workerfakes.FakeWorker)
+		fakeWorker.TagsReturns(atc.Tags{"worker", "tags"})
 		teamID = 123
 
 		customTypes = atc.VersionedResourceTypes{
@@ -107,20 +110,21 @@ var _ = Describe("Image", func() {
 			fakeResourceCacheFactory,
 			fakeResourceConfigFactory,
 			fakeClock,
-		).ImageResourceFetcherFor(fakeWorker)
+		).NewImageResourceFetcher(
+			fakeWorker,
+			db.ForBuild(42),
+			imageResource,
+			teamID,
+			customTypes,
+			fakeImageFetchingDelegate,
+		)
 	})
 
 	JustBeforeEach(func() {
 		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = imageResourceFetcher.Fetch(
 			logger,
 			signals,
-			db.ForBuild(42),
-			imageResource.Type,
-			imageResource.Source,
-			atc.Tags{"worker", "tags"},
-			teamID,
-			customTypes,
-			fakeImageFetchingDelegate,
+			fakeCreatingContainer,
 			privileged,
 		)
 	})

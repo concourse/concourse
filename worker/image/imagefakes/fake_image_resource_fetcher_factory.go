@@ -4,70 +4,82 @@ package imagefakes
 import (
 	"sync"
 
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
 )
 
 type FakeImageResourceFetcherFactory struct {
-	ImageResourceFetcherForStub        func(worker.Worker) image.ImageResourceFetcher
-	imageResourceFetcherForMutex       sync.RWMutex
-	imageResourceFetcherForArgsForCall []struct {
+	NewImageResourceFetcherStub        func(worker.Worker, db.ResourceUser, atc.ImageResource, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) image.ImageResourceFetcher
+	newImageResourceFetcherMutex       sync.RWMutex
+	newImageResourceFetcherArgsForCall []struct {
 		arg1 worker.Worker
+		arg2 db.ResourceUser
+		arg3 atc.ImageResource
+		arg4 int
+		arg5 atc.VersionedResourceTypes
+		arg6 worker.ImageFetchingDelegate
 	}
-	imageResourceFetcherForReturns struct {
+	newImageResourceFetcherReturns struct {
 		result1 image.ImageResourceFetcher
 	}
-	imageResourceFetcherForReturnsOnCall map[int]struct {
+	newImageResourceFetcherReturnsOnCall map[int]struct {
 		result1 image.ImageResourceFetcher
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherFor(arg1 worker.Worker) image.ImageResourceFetcher {
-	fake.imageResourceFetcherForMutex.Lock()
-	ret, specificReturn := fake.imageResourceFetcherForReturnsOnCall[len(fake.imageResourceFetcherForArgsForCall)]
-	fake.imageResourceFetcherForArgsForCall = append(fake.imageResourceFetcherForArgsForCall, struct {
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcher(arg1 worker.Worker, arg2 db.ResourceUser, arg3 atc.ImageResource, arg4 int, arg5 atc.VersionedResourceTypes, arg6 worker.ImageFetchingDelegate) image.ImageResourceFetcher {
+	fake.newImageResourceFetcherMutex.Lock()
+	ret, specificReturn := fake.newImageResourceFetcherReturnsOnCall[len(fake.newImageResourceFetcherArgsForCall)]
+	fake.newImageResourceFetcherArgsForCall = append(fake.newImageResourceFetcherArgsForCall, struct {
 		arg1 worker.Worker
-	}{arg1})
-	fake.recordInvocation("ImageResourceFetcherFor", []interface{}{arg1})
-	fake.imageResourceFetcherForMutex.Unlock()
-	if fake.ImageResourceFetcherForStub != nil {
-		return fake.ImageResourceFetcherForStub(arg1)
+		arg2 db.ResourceUser
+		arg3 atc.ImageResource
+		arg4 int
+		arg5 atc.VersionedResourceTypes
+		arg6 worker.ImageFetchingDelegate
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("NewImageResourceFetcher", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.newImageResourceFetcherMutex.Unlock()
+	if fake.NewImageResourceFetcherStub != nil {
+		return fake.NewImageResourceFetcherStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.imageResourceFetcherForReturns.result1
+	return fake.newImageResourceFetcherReturns.result1
 }
 
-func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherForCallCount() int {
-	fake.imageResourceFetcherForMutex.RLock()
-	defer fake.imageResourceFetcherForMutex.RUnlock()
-	return len(fake.imageResourceFetcherForArgsForCall)
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCallCount() int {
+	fake.newImageResourceFetcherMutex.RLock()
+	defer fake.newImageResourceFetcherMutex.RUnlock()
+	return len(fake.newImageResourceFetcherArgsForCall)
 }
 
-func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherForArgsForCall(i int) worker.Worker {
-	fake.imageResourceFetcherForMutex.RLock()
-	defer fake.imageResourceFetcherForMutex.RUnlock()
-	return fake.imageResourceFetcherForArgsForCall[i].arg1
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherArgsForCall(i int) (worker.Worker, db.ResourceUser, atc.ImageResource, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) {
+	fake.newImageResourceFetcherMutex.RLock()
+	defer fake.newImageResourceFetcherMutex.RUnlock()
+	return fake.newImageResourceFetcherArgsForCall[i].arg1, fake.newImageResourceFetcherArgsForCall[i].arg2, fake.newImageResourceFetcherArgsForCall[i].arg3, fake.newImageResourceFetcherArgsForCall[i].arg4, fake.newImageResourceFetcherArgsForCall[i].arg5, fake.newImageResourceFetcherArgsForCall[i].arg6
 }
 
-func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherForReturns(result1 image.ImageResourceFetcher) {
-	fake.ImageResourceFetcherForStub = nil
-	fake.imageResourceFetcherForReturns = struct {
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturns(result1 image.ImageResourceFetcher) {
+	fake.NewImageResourceFetcherStub = nil
+	fake.newImageResourceFetcherReturns = struct {
 		result1 image.ImageResourceFetcher
 	}{result1}
 }
 
-func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherForReturnsOnCall(i int, result1 image.ImageResourceFetcher) {
-	fake.ImageResourceFetcherForStub = nil
-	if fake.imageResourceFetcherForReturnsOnCall == nil {
-		fake.imageResourceFetcherForReturnsOnCall = make(map[int]struct {
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturnsOnCall(i int, result1 image.ImageResourceFetcher) {
+	fake.NewImageResourceFetcherStub = nil
+	if fake.newImageResourceFetcherReturnsOnCall == nil {
+		fake.newImageResourceFetcherReturnsOnCall = make(map[int]struct {
 			result1 image.ImageResourceFetcher
 		})
 	}
-	fake.imageResourceFetcherForReturnsOnCall[i] = struct {
+	fake.newImageResourceFetcherReturnsOnCall[i] = struct {
 		result1 image.ImageResourceFetcher
 	}{result1}
 }
@@ -75,8 +87,8 @@ func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherForReturnsOnCal
 func (fake *FakeImageResourceFetcherFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.imageResourceFetcherForMutex.RLock()
-	defer fake.imageResourceFetcherForMutex.RUnlock()
+	fake.newImageResourceFetcherMutex.RLock()
+	defer fake.newImageResourceFetcherMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -2,6 +2,7 @@ package image_test
 
 import (
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -23,6 +24,7 @@ var _ = Describe("Image", func() {
 	var (
 		imageFactory                    worker.ImageFactory
 		img                             worker.Image
+		signals                         chan os.Signal
 		logger                          *lagertest.TestLogger
 		fakeWorker                      *workerfakes.FakeWorker
 		fakeVolumeClient                *workerfakes.FakeVolumeClient
@@ -37,13 +39,14 @@ var _ = Describe("Image", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.TagsReturns(atc.Tags{"worker", "tags"})
 
+		signals = make(chan os.Signal)
 		fakeVolumeClient = new(workerfakes.FakeVolumeClient)
 		fakeContainer = new(dbfakes.FakeCreatingContainer)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 		fakeImageResourceFetcherFactory = new(imagefakes.FakeImageResourceFetcherFactory)
 		fakeImageResourceFetcher = new(imagefakes.FakeImageResourceFetcher)
-		fakeImageResourceFetcherFactory.ImageResourceFetcherForReturns(fakeImageResourceFetcher)
+		fakeImageResourceFetcherFactory.NewImageResourceFetcherReturns(fakeImageResourceFetcher)
 		imageFactory = image.NewImageFactory(fakeImageResourceFetcherFactory)
 	})
 
@@ -88,7 +91,7 @@ var _ = Describe("Image", func() {
 		})
 
 		It("finds or creates cow volume", func() {
-			_, err := img.FetchForContainer(logger, fakeContainer)
+			_, err := img.FetchForContainer(logger, signals, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
 			_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
@@ -103,7 +106,7 @@ var _ = Describe("Image", func() {
 		})
 
 		It("returns fetched image", func() {
-			fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+			fetchedImage, err := img.FetchForContainer(logger, signals, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fetchedImage).To(Equal(worker.FetchedImage{
@@ -157,7 +160,7 @@ var _ = Describe("Image", func() {
 		})
 
 		It("finds or creates volume", func() {
-			_, err := img.FetchForContainer(logger, fakeContainer)
+			_, err := img.FetchForContainer(logger, signals, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
 			_, volumeSpec, container, teamID, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
@@ -171,7 +174,7 @@ var _ = Describe("Image", func() {
 		})
 
 		It("streams the volume from another worker", func() {
-			_, err := img.FetchForContainer(logger, fakeContainer)
+			_, err := img.FetchForContainer(logger, signals, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeImageArtifactSource.StreamToCallCount()).To(Equal(1))
@@ -182,7 +185,7 @@ var _ = Describe("Image", func() {
 		})
 
 		It("returns fetched image", func() {
-			fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+			fetchedImage, err := img.FetchForContainer(logger, signals, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fetchedImage).To(Equal(worker.FetchedImage{
@@ -248,7 +251,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("finds or creates cow volume", func() {
-				_, err := img.FetchForContainer(logger, fakeContainer)
+				_, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
 				_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
@@ -263,7 +266,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("returns fetched image", func() {
-				fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+				fetchedImage, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fetchedImage).To(Equal(worker.FetchedImage{
@@ -320,12 +323,13 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches unprivileged image without custom resource type", func() {
-				_, _, _, resourceType, resourceTypeSource, workerTags, teamID, resourceTypes, delegate, privileged := fakeImageResourceFetcher.FetchArgsForCall(0)
-				Expect(resourceType).To(Equal("some-base-resource-type"))
-				Expect(resourceTypeSource).To(Equal(atc.Source{
+				worker, resourceUser, imageResource, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				Expect(worker).To(Equal(fakeWorker))
+				Expect(resourceUser).To(Equal(db.ForBuild(42)))
+				Expect(imageResource.Type).To(Equal("some-base-resource-type"))
+				Expect(imageResource.Source).To(Equal(atc.Source{
 					"some": "custom-resource-type-source",
 				}))
-				Expect(workerTags).To(Equal(atc.Tags{"worker", "tags"}))
 				Expect(teamID).To(Equal(42))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{
 					{
@@ -341,11 +345,10 @@ var _ = Describe("Image", func() {
 					},
 				}))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-				Expect(privileged).To(Equal(false))
 			})
 
 			It("finds or creates unprivileged cow volume", func() {
-				_, err := img.FetchForContainer(logger, fakeContainer)
+				_, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
 				_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
@@ -360,7 +363,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("returns fetched image", func() {
-				fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+				fetchedImage, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fetchedImage).To(Equal(worker.FetchedImage{
@@ -417,12 +420,13 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches image without custom resource type", func() {
-				_, _, _, resourceType, resourceTypeSource, workerTags, teamID, resourceTypes, delegate, privileged := fakeImageResourceFetcher.FetchArgsForCall(0)
-				Expect(resourceType).To(Equal("some-base-image-resource-type"))
-				Expect(resourceTypeSource).To(Equal(atc.Source{
+				worker, resourceUser, imageResource, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				Expect(worker).To(Equal(fakeWorker))
+				Expect(resourceUser).To(Equal(db.ForBuild(42)))
+				Expect(imageResource.Type).To(Equal("some-base-image-resource-type"))
+				Expect(imageResource.Source).To(Equal(atc.Source{
 					"some": "custom-image-resource-type-source",
 				}))
-				Expect(workerTags).To(Equal(atc.Tags{"worker", "tags"}))
 				Expect(teamID).To(Equal(42))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{
 					{
@@ -437,11 +441,10 @@ var _ = Describe("Image", func() {
 					},
 				}))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-				Expect(privileged).To(Equal(true))
 			})
 
 			It("finds or creates cow volume", func() {
-				_, err := img.FetchForContainer(logger, fakeContainer)
+				_, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
 				_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
@@ -456,7 +459,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("returns fetched image", func() {
-				fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+				fetchedImage, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fetchedImage).To(Equal(worker.FetchedImage{
@@ -519,7 +522,7 @@ var _ = Describe("Image", func() {
 		})
 
 		It("finds or creates unprivileged import volume", func() {
-			_, err := img.FetchForContainer(logger, fakeContainer)
+			_, err := img.FetchForContainer(logger, signals, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeCallCount()).To(Equal(1))
 			_, volumeSpec, teamID, resourceTypeName := fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeArgsForCall(0)
@@ -534,7 +537,7 @@ var _ = Describe("Image", func() {
 		})
 
 		It("finds or creates unprivileged cow volume", func() {
-			_, err := img.FetchForContainer(logger, fakeContainer)
+			_, err := img.FetchForContainer(logger, signals, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
 			_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
@@ -549,7 +552,7 @@ var _ = Describe("Image", func() {
 		})
 
 		It("returns fetched image", func() {
-			fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+			fetchedImage, err := img.FetchForContainer(logger, signals, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fetchedImage).To(Equal(worker.FetchedImage{
@@ -567,7 +570,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("finds or creates privileged import volume", func() {
-				_, err := img.FetchForContainer(logger, fakeContainer)
+				_, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeCallCount()).To(Equal(1))
 				_, volumeSpec, teamID, resourceTypeName := fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeArgsForCall(0)
@@ -582,7 +585,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("finds or creates privileged cow volume", func() {
-				_, err := img.FetchForContainer(logger, fakeContainer)
+				_, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
 				_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
@@ -597,7 +600,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("returns privileged fetched image", func() {
-				fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+				fetchedImage, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fetchedImage).To(Equal(worker.FetchedImage{
@@ -630,7 +633,7 @@ var _ = Describe("Image", func() {
 		})
 
 		It("returns the fetched image", func() {
-			fetchedImage, err := img.FetchForContainer(logger, fakeContainer)
+			fetchedImage, err := img.FetchForContainer(logger, signals, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fetchedImage).To(Equal(worker.FetchedImage{

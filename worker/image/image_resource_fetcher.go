@@ -29,7 +29,14 @@ var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not prod
 //go:generate counterfeiter . ImageResourceFetcherFactory
 
 type ImageResourceFetcherFactory interface {
-	ImageResourceFetcherFor(worker.Worker) ImageResourceFetcher
+	NewImageResourceFetcher(
+		worker.Worker,
+		db.ResourceUser,
+		atc.ImageResource,
+		int,
+		atc.VersionedResourceTypes,
+		worker.ImageFetchingDelegate,
+	) ImageResourceFetcher
 }
 
 //go:generate counterfeiter . ImageResourceFetcher
@@ -37,14 +44,8 @@ type ImageResourceFetcherFactory interface {
 type ImageResourceFetcher interface {
 	Fetch(
 		logger lager.Logger,
-		signals <-chan os.Signal,
-		resourceUser db.ResourceUser,
-		imageResourceType string,
-		imageResourceSource atc.Source,
-		tags atc.Tags,
-		teamID int,
-		customTypes atc.VersionedResourceTypes,
-		imageFetchingDelegate worker.ImageFetchingDelegate,
+		cancel <-chan os.Signal,
+		container db.CreatingContainer,
 		privileged bool,
 	) (worker.Volume, io.ReadCloser, atc.Version, error)
 }
@@ -73,53 +74,68 @@ func NewImageResourceFetcherFactory(
 	}
 }
 
-func (f *imageResourceFetcherFactory) ImageResourceFetcherFor(worker worker.Worker) ImageResourceFetcher {
+func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
+	worker worker.Worker,
+	resourceUser db.ResourceUser,
+	imageResource atc.ImageResource,
+	teamID int,
+	customTypes atc.VersionedResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
+) ImageResourceFetcher {
 	return &imageResourceFetcher{
 		resourceFetcher:         f.resourceFetcherFactory.FetcherFor(worker),
 		resourceFactory:         f.resourceFactoryFactory.FactoryFor(worker),
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
 		clock: f.clock,
+
+		worker:                worker,
+		resourceUser:          resourceUser,
+		imageResource:         imageResource,
+		teamID:                teamID,
+		customTypes:           customTypes,
+		imageFetchingDelegate: imageFetchingDelegate,
 	}
 }
 
 type imageResourceFetcher struct {
+	worker                  worker.Worker
 	resourceFetcher         resource.Fetcher
 	resourceFactory         resource.ResourceFactory
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 	clock                   clock.Clock
+
+	resourceUser          db.ResourceUser
+	imageResource         atc.ImageResource
+	teamID                int
+	customTypes           atc.VersionedResourceTypes
+	imageFetchingDelegate worker.ImageFetchingDelegate
 }
 
 func (i *imageResourceFetcher) Fetch(
 	logger lager.Logger,
 	signals <-chan os.Signal,
-	resourceUser db.ResourceUser,
-	imageResourceType string,
-	imageResourceSource atc.Source,
-	tags atc.Tags,
-	teamID int,
-	customTypes atc.VersionedResourceTypes,
-	imageFetchingDelegate worker.ImageFetchingDelegate,
+	container db.CreatingContainer,
 	privileged bool,
 ) (worker.Volume, io.ReadCloser, atc.Version, error) {
-	version, err := i.getLatestVersion(logger, signals, resourceUser, imageResourceType, imageResourceSource, tags, teamID, customTypes, imageFetchingDelegate)
+	version, err := i.getLatestVersion(logger, signals, container)
 	if err != nil {
 		logger.Error("failed-to-get-latest-image-version", err)
 		return nil, nil, nil, err
 	}
 
 	resourceInstance := resource.NewResourceInstance(
-		resource.ResourceType(imageResourceType),
+		resource.ResourceType(i.imageResource.Type),
 		version,
-		imageResourceSource,
+		i.imageResource.Source,
 		atc.Params{},
-		resourceUser,
-		customTypes,
+		i.resourceUser,
+		i.customTypes,
 		i.dbResourceCacheFactory,
 	)
 
-	err = imageFetchingDelegate.ImageVersionDetermined(
+	err = i.imageFetchingDelegate.ImageVersionDetermined(
 		resourceInstance.ResourceCacheIdentifier(),
 	)
 	if err != nil {
@@ -132,11 +148,11 @@ func (i *imageResourceFetcher) Fetch(
 		},
 	}
 
-	resourceType := resource.ResourceType(imageResourceType)
+	resourceType := resource.ResourceType(i.imageResource.Type)
 
 	resourceOptions := &imageResourceOptions{
-		imageFetchingDelegate: imageFetchingDelegate,
-		source:                imageResourceSource,
+		imageFetchingDelegate: i.imageFetchingDelegate,
+		source:                i.imageResource.Source,
 		version:               version,
 		resourceType:          resourceType,
 	}
@@ -145,12 +161,12 @@ func (i *imageResourceFetcher) Fetch(
 	versionedSource, err := i.resourceFetcher.Fetch(
 		logger.Session("init-image"),
 		getSess,
-		tags,
-		teamID,
-		customTypes,
+		i.worker.Tags(),
+		i.teamID,
+		i.customTypes,
 		resourceInstance,
 		resource.EmptyMetadata{},
-		imageFetchingDelegate,
+		i.imageFetchingDelegate,
 		resourceOptions,
 		signals,
 		make(chan struct{}),
@@ -188,33 +204,27 @@ func (i *imageResourceFetcher) Fetch(
 func (i *imageResourceFetcher) getLatestVersion(
 	logger lager.Logger,
 	signals <-chan os.Signal,
-	resourceUser db.ResourceUser,
-	imageResourceType string,
-	imageResourceSource atc.Source,
-	tags atc.Tags,
-	teamID int,
-	customTypes atc.VersionedResourceTypes,
-	imageFetchingDelegate worker.ImageFetchingDelegate,
+	container db.CreatingContainer,
 ) (atc.Version, error) {
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: imageResourceType,
+			ResourceType: i.imageResource.Type,
 		},
-		Tags:   tags,
-		TeamID: teamID,
+		Tags:   i.worker.Tags(),
+		TeamID: i.teamID,
 	}
 
 	for {
 		lock, acquired, err := i.dbResourceConfigFactory.AcquireResourceCheckingLock(
 			logger,
-			resourceUser,
-			imageResourceType,
-			imageResourceSource,
-			customTypes,
+			i.resourceUser,
+			i.imageResource.Type,
+			i.imageResource.Source,
+			i.customTypes,
 		)
 		if err != nil {
 			logger.Error("failed-to-get-lock", err, lager.Data{
-				"resource-user": resourceUser,
+				"resource-user": i.resourceUser,
 			})
 
 			return nil, err
@@ -234,21 +244,21 @@ func (i *imageResourceFetcher) getLatestVersion(
 	checkingResource, err := i.resourceFactory.NewCheckResource(
 		logger,
 		signals,
-		resourceUser,
-		imageResourceType,
-		imageResourceSource,
+		i.resourceUser,
+		i.imageResource.Type,
+		i.imageResource.Source,
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
 		resourceSpec,
-		customTypes,
-		imageFetchingDelegate,
+		i.customTypes,
+		i.imageFetchingDelegate,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	versions, err := checkingResource.Check(imageResourceSource, nil)
+	versions, err := checkingResource.Check(i.imageResource.Source, nil)
 	if err != nil {
 		return nil, err
 	}
