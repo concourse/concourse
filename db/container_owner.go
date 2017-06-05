@@ -14,8 +14,8 @@ type creatingContainerContainerOwner struct {
 }
 
 // NewCreatingContainerContainerOwner references a container that is in
-// creating state. When the container transitions to another state, or
-// disappears, the ownership is nullified.
+// creating state. When the referenced container transitions to another state,
+// or disappears, the container can be removed.
 //
 // This is used for the 'check' and 'get' containers created when fetching an
 // image for a container.
@@ -29,7 +29,6 @@ func NewCreatingContainerContainerOwner(
 
 func (c creatingContainerContainerOwner) SetMap() map[string]interface{} {
 	return map[string]interface{}{
-		"creating_container_id":    c.Container.ID(),
-		"creating_container_state": ContainerStateCreating,
+		"creating_container_id": c.Container.ID(),
 	}
 }

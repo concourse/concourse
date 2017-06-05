@@ -416,5 +416,70 @@ var _ = Describe("ContainerFactory", func() {
 				})
 			})
 		})
+
+		FDescribe("containers for creating containers", func() {
+			var (
+				creatingTaskContainer db.CreatingContainer
+				creatingContainer     db.CreatingContainer
+				build                 db.Build
+			)
+
+			BeforeEach(func() {
+				var err error
+				build, err = defaultJob.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				creatingTaskContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), fullMetadata)
+				Expect(err).NotTo(HaveOccurred())
+
+				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewCreatingContainerContainerOwner(creatingTaskContainer), fullMetadata)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when the container they're for is still creating", func() {
+				It("does not find the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(creatingContainers).To(BeEmpty())
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
+
+			Context("when the container they're for is created", func() {
+				BeforeEach(func() {
+					_, err := creatingTaskContainer.Created()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("does not find the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(creatingContainers).To(HaveLen(1))
+					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
+
+			Context("when the container they're for is gone", func() {
+				BeforeEach(func() {
+					_, err := creatingTaskContainer.Created()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("finds the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(creatingContainers).To(HaveLen(1))
+					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
+		})
 	})
 })

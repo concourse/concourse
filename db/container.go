@@ -7,7 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-var ErrContainerDisappeared = errors.New("container-disappeared-from-db")
+var ErrContainerDisappeared = errors.New("container disappeared from db")
 
 type ContainerState string
 
