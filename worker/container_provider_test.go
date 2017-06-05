@@ -349,21 +349,21 @@ var _ = Describe("ContainerProvider", func() {
 	ItHandlesNonExistentContainer := func(createDatabaseCallCountFunc func() int) {
 		It("gets image", func() {
 			Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
-			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualCancel, actualDelegate, actualResourceUser, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
+			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualDelegate, actualResourceUser, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
 			Expect(actualWorker).To(Equal(fakeWorker))
 			Expect(actualVolumeClient).To(Equal(fakeVolumeClient))
 			Expect(actualImageSpec).To(Equal(containerSpec.ImageSpec))
 			Expect(actualImageSpec).ToNot(BeZero())
 			Expect(actualTeamID).To(Equal(containerSpec.TeamID))
 			Expect(actualTeamID).ToNot(BeZero())
-			Expect(actualCancel).To(Equal(cancel))
 			Expect(actualDelegate).To(Equal(fakeImageFetchingDelegate))
 			Expect(actualResourceUser).To(Equal(resourceUser))
 			Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 			Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
-			_, _, actualContainer := fakeImage.FetchForContainerArgsForCall(0)
+			_, actualCancel, actualContainer := fakeImage.FetchForContainerArgsForCall(0)
 			Expect(actualContainer).To(Equal(fakeCreatingContainer))
+			Expect(actualCancel).To(Equal(cancel))
 		})
 
 		It("creates container in database", func() {
