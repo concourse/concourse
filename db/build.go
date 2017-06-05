@@ -365,7 +365,7 @@ func (b *build) Delete() (bool, error) {
 
 func (b *build) Abort() error {
 	_, err := psql.Update("builds").
-		Set("status", BuildStatusAborted).
+		Set("status", string(BuildStatusAborted)).
 		Where(sq.Eq{"id": b.id}).
 		RunWith(b.conn).
 		Exec()
