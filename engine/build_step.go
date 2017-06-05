@@ -177,6 +177,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		plan.Put.Tags,
 		plan.Put.Params,
 		plan.Put.VersionedResourceTypes,
+		plan.Put.Result,
 	)
 }
 

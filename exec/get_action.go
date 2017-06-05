@@ -10,7 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -30,7 +30,7 @@ type GetAction struct {
 	delegate          GetDelegate
 	resourceFetcher   resource.Fetcher
 	teamID            int
-	containerMetadata dbng.ContainerMetadata
+	containerMetadata db.ContainerMetadata
 	resourceInstance  resource.ResourceInstance
 	stepMetadata      StepMetadata
 
