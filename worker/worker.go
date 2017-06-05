@@ -161,30 +161,6 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 	return worker.volumeClient.LookupVolume(logger, handle)
 }
 
-func (worker *gardenWorker) FindOrCreateContainer(
-	logger lager.Logger,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	user db.ResourceUser,
-	owner db.ContainerOwner,
-	metadata db.ContainerMetadata,
-	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-) (Container, error) {
-	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-
-	return containerProvider.FindOrCreateContainer(
-		logger,
-		cancel,
-		user,
-		owner,
-		delegate,
-		metadata,
-		spec,
-		resourceTypes,
-	)
-}
-
 func (worker *gardenWorker) FindOrCreateBuildContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,

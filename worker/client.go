@@ -62,17 +62,6 @@ type Client interface {
 		resourceCache *db.UsedResourceCache,
 	) (Volume, bool, error)
 
-	FindOrCreateContainer(
-		lager.Logger,
-		<-chan os.Signal,
-		ImageFetchingDelegate,
-		db.ResourceUser,
-		db.ContainerOwner,
-		db.ContainerMetadata,
-		ContainerSpec,
-		atc.VersionedResourceTypes,
-	) (Container, error)
-
 	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)

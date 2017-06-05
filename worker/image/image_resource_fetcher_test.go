@@ -144,7 +144,7 @@ var _ = Describe("Image", func() {
 			BeforeEach(func() {
 				fakeCheckResource = new(resourcefakes.FakeResource)
 				fakeBuildResource = new(resourcefakes.FakeResource)
-				fakeResourceFactory.NewResourceReturns(fakeCheckResource, nil)
+				fakeResourceFactory.NewCheckResourceReturns(fakeCheckResource, nil)
 			})
 
 			Context("when check returns a version", func() {
@@ -199,15 +199,14 @@ var _ = Describe("Image", func() {
 
 							Context("calling NewBuildResource", func() {
 								BeforeEach(func() {
-									fakeResourceFactory.NewResourceReturns(fakeBuildResource, nil)
+									fakeResourceFactory.NewCheckResourceReturns(fakeBuildResource, nil)
 								})
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-									Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-									_, csig, user, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+									Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
+									_, csig, user, _, _, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 									Expect(csig).To(Equal(signals))
 									Expect(user).To(Equal(db.ForBuild(42)))
-									Expect(owner).To(Equal(db.NewCreatingContainerContainerOwner(fakeCreatingContainer)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
@@ -223,17 +222,16 @@ var _ = Describe("Image", func() {
 								})
 							})
 
-							Context("calling NewResource", func() {
+							Context("calling NewCheckResource", func() {
 								BeforeEach(func() {
-									fakeResourceFactory.NewResourceReturns(fakeCheckResource, nil)
+									fakeResourceFactory.NewCheckResourceReturns(fakeCheckResource, nil)
 								})
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-									Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-									_, csig, user, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+									Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
+									_, csig, user, _, _, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 									Expect(csig).To(Equal(signals))
 									Expect(user).To(Equal(db.ForBuild(42)))
-									Expect(owner).To(Equal(db.NewCreatingContainerContainerOwner(fakeCreatingContainer)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
@@ -271,11 +269,10 @@ var _ = Describe("Image", func() {
 							})
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-								Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-								_, csig, user, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
+								_, csig, user, _, _, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 								Expect(csig).To(Equal(signals))
 								Expect(user).To(Equal(db.ForBuild(42)))
-								Expect(owner).To(Equal(db.NewCreatingContainerContainerOwner(fakeCreatingContainer)))
 								Expect(metadata).To(Equal(db.ContainerMetadata{
 									Type: db.ContainerTypeCheck,
 								}))
@@ -424,7 +421,7 @@ var _ = Describe("Image", func() {
 
 			BeforeEach(func() {
 				disaster = errors.New("wah")
-				fakeResourceFactory.NewResourceReturns(nil, disaster)
+				fakeResourceFactory.NewCheckResourceReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -442,7 +439,7 @@ var _ = Describe("Image", func() {
 
 		BeforeEach(func() {
 			fakeCheckResource := new(resourcefakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeCheckResource, nil)
+			fakeResourceFactory.NewCheckResourceReturns(fakeCheckResource, nil)
 
 			fakeLock = new(lockfakes.FakeLock)
 			callCount := 0
