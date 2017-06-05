@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"os"
 	"os/exec"
 
 	"github.com/concourse/atc"
@@ -93,6 +94,36 @@ var _ = Describe("Fly CLI", func() {
 							{{Contents: "foreign-pipeline-2"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
 						},
 					}))
+				})
+			})
+
+			Context("completion", func() {
+				BeforeEach(func() {
+					os.Setenv("GO_FLAGS_COMPLETION", "1")
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+								{Name: "some-pipeline-1", URL: "/pipelines/some-pipeline-1", Paused: false, Public: false},
+								{Name: "some-pipeline-2", URL: "/pipelines/some-pipeline-2", Paused: false, Public: false},
+								{Name: "another-pipeline", URL: "/pipelines/another-pipeline", Paused: false, Public: false},
+							}),
+						),
+					)
+				})
+
+				AfterEach(func() {
+					os.Unsetenv("GO_FLAGS_COMPLETION")
+				})
+
+				It("returns all matching pipelines", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "some-")
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
+					Eventually(sess.Out).Should(gbytes.Say("some-pipeline-1"))
+					Eventually(sess.Out).Should(gbytes.Say("some-pipeline-2"))
+					Eventually(sess.Out).ShouldNot(gbytes.Say("another-pipeline"))
 				})
 			})
 		})
