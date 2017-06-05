@@ -241,12 +241,11 @@ func (i *imageResourceFetcher) getLatestVersion(
 		break
 	}
 
-	checkingResource, err := i.resourceFactory.NewCheckResource(
+	checkingResource, err := i.resourceFactory.NewResource(
 		logger,
 		signals,
 		i.resourceUser,
-		i.imageResource.Type,
-		i.imageResource.Source,
+		db.NewCreatingContainerContainerOwner(container),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
