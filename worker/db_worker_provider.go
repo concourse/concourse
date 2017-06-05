@@ -86,6 +86,30 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 	return workers, nil
 }
 
+func (provider *dbWorkerProvider) FindWorkerForContainerByOwner(
+	logger lager.Logger,
+	teamID int,
+	owner db.ContainerOwner,
+) (Worker, bool, error) {
+	logger = logger.Session("worker-for-container")
+	team := provider.dbTeamFactory.GetByID(teamID)
+
+	dbWorker, found, err := team.FindWorkerForContainerByOwner(owner)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	worker := provider.newGardenWorker(logger, clock.NewClock(), dbWorker)
+	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
+		return nil, false, nil
+	}
+	return worker, true, err
+}
+
 func (provider *dbWorkerProvider) FindWorkerForContainer(
 	logger lager.Logger,
 	teamID int,

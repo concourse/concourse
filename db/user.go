@@ -7,6 +7,18 @@ import (
 	"github.com/concourse/atc/db/lock"
 )
 
+// ResourceUser encapsulates the ownership of a resource cache or config, by
+// managing the resource_config_users and resource_cache_users tables.
+//
+// These tables exist because resource caches and resource configs outlive most
+// objects that reference them. They are referenced by multiple objects, and
+// should only be garbage collectible when all uses go away. A simpler model of
+// this would be simply incrementing/decrementing a 'uses' column on the cache
+// or config itself, and garbage-collecting it if it's zero. However, this
+// would not allow us to tell when a use is no longer needed, as they wouldn't
+// be tied to who needed them. Having a separate 'uses' table allows us to know
+// when a use is no longer valid, e.g. because it's a build that completed or a
+// resource that is no longer being checked.
 type ResourceUser interface {
 	UseResourceCache(lager.Logger, Tx, lock.LockFactory, ResourceCache) (*UsedResourceCache, error)
 	UseResourceConfig(lager.Logger, Tx, lock.LockFactory, ResourceConfig) (*UsedResourceConfig, error)

@@ -137,6 +137,17 @@ type ContainerProvider interface {
 		source atc.Source,
 		params atc.Params,
 	) (Container, error)
+
+	FindOrCreateContainer(
+		logger lager.Logger,
+		cancel <-chan os.Signal,
+		resourceUser db.ResourceUser,
+		owner db.ContainerOwner,
+		delegate ImageFetchingDelegate,
+		metadata db.ContainerMetadata,
+		spec ContainerSpec,
+		resourceTypes atc.VersionedResourceTypes,
+	) (Container, error)
 }
 
 type containerProvider struct {
@@ -158,6 +169,39 @@ type containerProvider struct {
 	noProxy       string
 
 	clock clock.Clock
+}
+
+func (p *containerProvider) FindOrCreateContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	resourceUser db.ResourceUser,
+	owner db.ContainerOwner,
+	delegate ImageFetchingDelegate,
+	metadata db.ContainerMetadata,
+	spec ContainerSpec,
+	resourceTypes atc.VersionedResourceTypes,
+) (Container, error) {
+	return p.findOrCreateContainer(
+		logger,
+		resourceUser,
+		cancel,
+		delegate,
+		spec,
+		resourceTypes,
+		func() (db.CreatingContainer, db.CreatedContainer, error) {
+			return p.dbTeamFactory.GetByID(spec.TeamID).FindContainerOnWorker(
+				p.worker.Name(),
+				owner,
+			)
+		},
+		func() (db.CreatingContainer, error) {
+			return p.dbTeamFactory.GetByID(spec.TeamID).CreateContainer(
+				p.worker.Name(),
+				owner,
+				metadata,
+			)
+		},
+	)
 }
 
 func (p *containerProvider) FindOrCreateBuildContainer(
