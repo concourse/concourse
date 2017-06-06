@@ -69,13 +69,13 @@ var _ = Describe("VolumeCollector", func() {
 			}, 5*time.Minute)
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer1, err = team.CreateContainer(worker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer1, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer2, err = team.CreateContainer(worker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer2, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
