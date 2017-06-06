@@ -218,6 +218,8 @@ func (factory *buildFactory) constructUnhookedPlan(
 			}
 		}
 
+		var result atc.VersionInfo
+
 		plan = factory.planFactory.NewPlan(atc.GetPlan{
 			Type:     resource.Type,
 			Name:     name,
@@ -228,6 +230,8 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Tags:     planConfig.Tags,
 
 			VersionedResourceTypes: resourceTypes,
+
+			Result: &result,
 		})
 
 	case planConfig.Task != "":

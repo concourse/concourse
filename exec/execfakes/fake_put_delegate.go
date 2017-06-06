@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 )
@@ -13,11 +14,11 @@ type FakePutDelegate struct {
 	InitializingStub        func()
 	initializingMutex       sync.RWMutex
 	initializingArgsForCall []struct{}
-	CompletedStub           func(exec.ExitStatus, *exec.VersionInfo)
+	CompletedStub           func(exec.ExitStatus, *atc.VersionInfo)
 	completedMutex          sync.RWMutex
 	completedArgsForCall    []struct {
 		arg1 exec.ExitStatus
-		arg2 *exec.VersionInfo
+		arg2 *atc.VersionInfo
 	}
 	FailedStub        func(error)
 	failedMutex       sync.RWMutex
@@ -73,11 +74,11 @@ func (fake *FakePutDelegate) InitializingCallCount() int {
 	return len(fake.initializingArgsForCall)
 }
 
-func (fake *FakePutDelegate) Completed(arg1 exec.ExitStatus, arg2 *exec.VersionInfo) {
+func (fake *FakePutDelegate) Completed(arg1 exec.ExitStatus, arg2 *atc.VersionInfo) {
 	fake.completedMutex.Lock()
 	fake.completedArgsForCall = append(fake.completedArgsForCall, struct {
 		arg1 exec.ExitStatus
-		arg2 *exec.VersionInfo
+		arg2 *atc.VersionInfo
 	}{arg1, arg2})
 	fake.recordInvocation("Completed", []interface{}{arg1, arg2})
 	fake.completedMutex.Unlock()
@@ -92,7 +93,7 @@ func (fake *FakePutDelegate) CompletedCallCount() int {
 	return len(fake.completedArgsForCall)
 }
 
-func (fake *FakePutDelegate) CompletedArgsForCall(i int) (exec.ExitStatus, *exec.VersionInfo) {
+func (fake *FakePutDelegate) CompletedArgsForCall(i int) (exec.ExitStatus, *atc.VersionInfo) {
 	fake.completedMutex.RLock()
 	defer fake.completedMutex.RUnlock()
 	return fake.completedArgsForCall[i].arg1, fake.completedArgsForCall[i].arg2

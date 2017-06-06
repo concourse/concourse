@@ -153,7 +153,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	}
 
 	step.succeeded = true
-	step.delegate.Completed(ExitStatus(0), &VersionInfo{
+	step.delegate.Completed(ExitStatus(0), &atc.VersionInfo{
 		Version:  step.versionedSource.Version(),
 		Metadata: step.versionedSource.Metadata(),
 	})
@@ -174,8 +174,8 @@ func (step *PutStep) Result(x interface{}) bool {
 	case *Success:
 		*v = Success(step.succeeded)
 		return true
-	case *VersionInfo:
-		*v = VersionInfo{
+	case *atc.VersionInfo:
+		*v = atc.VersionInfo{
 			Version:  step.versionedSource.Version(),
 			Metadata: step.versionedSource.Metadata(),
 		}

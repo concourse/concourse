@@ -364,3 +364,8 @@ type MetadataField struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
+
+type VersionInfo struct {
+	Version  Version
+	Metadata []MetadataField
+}

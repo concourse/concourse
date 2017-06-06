@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 	"github.com/tedsuo/ifrit"
 )
@@ -66,13 +65,6 @@ type Success bool
 // ExitStatus is the resulting exit code from the process that the step ran.
 // Typically if the ExitStatus result is 0, the Success result is true.
 type ExitStatus int
-
-// VersionInfo is the version and metadata of a resource that was fetched or
-// produced. It is used by Put, Get, and DependentGet.
-type VersionInfo struct {
-	Version  atc.Version
-	Metadata []atc.MetadataField
-}
 
 // NoopStep implements a step that successfully does nothing.
 type NoopStep struct{}

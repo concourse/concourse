@@ -140,12 +140,13 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 
 	return build.factory.Get(
 		logger,
-		build.teamID,
 		build.buildID,
+		build.teamID,
 		plan,
 		build.stepMetadata,
 		workerMetadata,
-		build.delegate.InputDelegate(logger, *plan.Get, event.OriginID(plan.ID)),
+		build.delegate.ImageFetchingDelegate(plan.ID),
+		build.delegate.GetBuildDelegate(plan.ID, *plan.Get, plan.Get.Result),
 	)
 }
 

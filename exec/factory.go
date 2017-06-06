@@ -22,7 +22,8 @@ type Factory interface {
 		atc.Plan,
 		StepMetadata,
 		db.ContainerMetadata,
-		GetDelegate,
+		ImageFetchingDelegate,
+		BuildDelegate,
 	) StepFactory
 
 	// Put constructs a PutStep factory.
@@ -67,6 +68,12 @@ type StepMetadata interface {
 	Env() []string
 }
 
+type ImageFetchingDelegate interface {
+	ImageVersionDetermined(*db.UsedResourceCache) error
+	Stdout() io.Writer
+	Stderr() io.Writer
+}
+
 //go:generate counterfeiter . TaskDelegate
 
 // TaskDelegate is used to record events related to a TaskStep's runtime
@@ -89,21 +96,13 @@ type TaskDelegate interface {
 type ResourceDelegate interface {
 	Initializing()
 
-	Completed(ExitStatus, *VersionInfo)
+	Completed(ExitStatus, *atc.VersionInfo)
 	Failed(error)
 
 	ImageVersionDetermined(*db.UsedResourceCache) error
 
 	Stdout() io.Writer
 	Stderr() io.Writer
-}
-
-//go:generate counterfeiter . GetDelegate
-
-// GetDelegate is used to record events related to a GetStep's runtime
-// behavior.
-type GetDelegate interface {
-	ResourceDelegate
 }
 
 //go:generate counterfeiter . PutDelegate

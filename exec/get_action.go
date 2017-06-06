@@ -26,13 +26,15 @@ type GetAction struct {
 	RootFSSource RootFSSource
 	Outputs      []string
 
+	result *atc.VersionInfo
+
 	// TODO: can we remove these dependencies?
-	delegate          GetDelegate
-	resourceFetcher   resource.Fetcher
-	teamID            int
-	containerMetadata db.ContainerMetadata
-	resourceInstance  resource.ResourceInstance
-	stepMetadata      StepMetadata
+	imageFetchingDelegate ImageFetchingDelegate
+	resourceFetcher       resource.Fetcher
+	teamID                int
+	containerMetadata     db.ContainerMetadata
+	resourceInstance      resource.ResourceInstance
+	stepMetadata          StepMetadata
 
 	// TODO: remove after all actions are introduced
 	resourceTypes atc.VersionedResourceTypes
@@ -46,15 +48,13 @@ func (action *GetAction) Run(
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) error {
-	action.delegate.Initializing()
-
 	// TODO: can we remove resource definition?
 	resourceDefinition := &getResource{
-		source:       action.Source,
-		resourceType: resource.ResourceType(action.Type),
-		delegate:     action.delegate,
-		params:       action.Params,
-		version:      action.Version,
+		source:                action.Source,
+		resourceType:          resource.ResourceType(action.Type),
+		imageFetchingDelegate: action.imageFetchingDelegate,
+		params:                action.Params,
+		version:               action.Version,
 	}
 
 	versionedSource, err := action.resourceFetcher.Fetch(
@@ -67,17 +67,11 @@ func (action *GetAction) Run(
 		action.resourceTypes,
 		action.resourceInstance,
 		action.stepMetadata,
-		action.delegate,
+		action.imageFetchingDelegate,
 		resourceDefinition,
 		signals,
 		ready,
 	)
-
-	if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-		logger.Error("get-run-resource-script-failed", err)
-		action.delegate.Completed(ExitStatus(err.ExitStatus), nil)
-		return nil
-	}
 
 	if err != nil {
 		logger.Error("failed-to-init-with-cache", err)
@@ -92,17 +86,12 @@ func (action *GetAction) Run(
 		})
 	}
 
-	logger.Debug("completing-get-step", lager.Data{"version": versionedSource.Version(), "metadata": versionedSource.Metadata()})
-	action.delegate.Completed(ExitStatus(0), &VersionInfo{
+	action.result = &atc.VersionInfo{
 		Version:  versionedSource.Version(),
 		Metadata: versionedSource.Metadata(),
-	})
+	}
 
 	return nil
-}
-
-func (action *GetAction) Failed(err error) {
-	action.delegate.Failed(err)
 }
 
 type getArtifactSource struct {
@@ -114,7 +103,7 @@ type getArtifactSource struct {
 // VolumeOn locates the cache for the GetStep's resource and version on the
 // given worker.
 func (s *getArtifactSource) VolumeOn(worker worker.Worker) (worker.Volume, bool, error) {
-	return s.resourceInstance.FindInitializedOn(s.logger.Session("volume-on"), worker)
+	return s.resourceInstance.FindOn(s.logger.Session("volume-on"), worker)
 }
 
 // StreamTo streams the resource's data to the destination.
@@ -150,17 +139,17 @@ func (s *getArtifactSource) StreamFile(path string) (io.ReadCloser, error) {
 }
 
 type getResource struct {
-	delegate     GetDelegate
-	resourceType resource.ResourceType
-	source       atc.Source
-	params       atc.Params
-	version      atc.Version
+	imageFetchingDelegate ImageFetchingDelegate
+	resourceType          resource.ResourceType
+	source                atc.Source
+	params                atc.Params
+	version               atc.Version
 }
 
 func (d *getResource) IOConfig() resource.IOConfig {
 	return resource.IOConfig{
-		Stdout: d.delegate.Stdout(),
-		Stderr: d.delegate.Stderr(),
+		Stdout: d.imageFetchingDelegate.Stdout(),
+		Stderr: d.imageFetchingDelegate.Stderr(),
 	}
 }
 

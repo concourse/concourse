@@ -37,12 +37,13 @@ func NewGardenFactory(
 
 func (factory *gardenFactory) Get(
 	logger lager.Logger,
-	teamID int,
 	buildID int,
+	teamID int,
 	plan atc.Plan,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	delegate GetDelegate,
+	imageFetchingDelegate ImageFetchingDelegate,
+	buildDelegate BuildDelegate,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
@@ -57,18 +58,20 @@ func (factory *gardenFactory) Get(
 			Tags:     plan.Get.Tags,
 			Outputs:  []string{plan.Get.Name},
 
+			result: plan.Get.Result,
+
 			// TODO: can we remove these dependencies?
-			delegate:          delegate,
-			resourceFetcher:   factory.resourceFetcher,
-			teamID:            teamID,
-			containerMetadata: workerMetadata,
+			imageFetchingDelegate: imageFetchingDelegate,
+			resourceFetcher:       factory.resourceFetcher,
+			teamID:                teamID,
+			containerMetadata:     workerMetadata,
 			resourceInstance: resource.NewResourceInstance(
 				resource.ResourceType(plan.Get.Type),
 				plan.Get.Version,
 				plan.Get.Source,
 				plan.Get.Params,
 				db.ForBuild(buildID),
-				db.NewBuildStepContainerOwner(buildID, planID),
+				db.NewBuildStepContainerOwner(buildID, plan.ID),
 				plan.Get.VersionedResourceTypes,
 				factory.dbResourceCacheFactory,
 			),
@@ -79,7 +82,7 @@ func (factory *gardenFactory) Get(
 		},
 	}
 
-	return newActionsStep(actions, logger)
+	return newActionsStep(logger, actions, buildDelegate)
 }
 
 func (factory *gardenFactory) Put(
