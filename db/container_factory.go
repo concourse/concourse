@@ -23,12 +23,13 @@ func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContaine
 		LeftJoin("builds b ON b.id = c.build_id").
 		LeftJoin("volumes v ON v.worker_resource_cache_id = c.worker_resource_cache_id").
 		LeftJoin("worker_resource_caches wrc ON wrc.id = c.worker_resource_cache_id").
-		LeftJoin("containers cc ON cc.id = c.creating_container_id").
+		LeftJoin("containers icc ON icc.id = c.image_check_container_id").
+		LeftJoin("containers igc ON igc.id = c.image_get_container_id").
 		LeftJoin("(select resource_cache_id, count(*) cnt from resource_cache_uses GROUP BY resource_cache_id) rcu ON rcu.resource_cache_id = wrc.resource_cache_id").
 		Where(sq.Or{
 			sq.Expr("(c.build_id IS NOT NULL AND b.interceptible = false)"),
 			sq.Expr("(c.best_if_used_by < NOW())"),
-			sq.Expr("(c.build_id IS NULL AND c.resource_config_id IS NULL AND c.worker_resource_cache_id IS NULL AND (c.creating_container_id IS NULL OR cc.state != 'creating'))"),
+			sq.Expr("(c.build_id IS NULL AND c.resource_config_id IS NULL AND c.worker_resource_cache_id IS NULL AND (c.image_get_container_id IS NULL OR igc.state != 'creating') AND (c.image_check_container_id IS NULL OR icc.state != 'creating'))"),
 			sq.Expr("(c.resource_config_id IS NOT NULL AND c.worker_base_resource_type_id IS NULL)"),
 			sq.Expr("(c.worker_resource_cache_id IS NOT NULL AND v.initialized = true)"),
 			sq.Expr("(c.worker_resource_cache_id IS NOT NULL AND rcu.cnt IS NULL)"), // if there are no records, join will add NULL columns

@@ -11,33 +11,46 @@ type ContainerOwner interface {
 	SetMap() map[string]interface{}
 }
 
-type creatingContainerContainerOwner struct {
-	Container CreatingContainer
-}
-
-// NewCreatingContainerContainerOwner references a container that is in
-// creating state. When the referenced container transitions to another state,
-// or disappears, the container can be removed.
-//
-// This is used for the 'check' and 'get' containers created when fetching an
-// image for a container.
-func NewCreatingContainerContainerOwner(
+// NewImageCheckContainerOwner references a container whose image resource this
+// container is checking. When the referenced container transitions to another
+// state, or disappears, the container can be removed.
+func NewImageCheckContainerOwner(
 	container CreatingContainer,
 ) ContainerOwner {
-	return creatingContainerContainerOwner{
+	return imageCheckContainerOwner{
 		Container: container,
 	}
 }
 
-func (c creatingContainerContainerOwner) SetMap() map[string]interface{} {
+type imageCheckContainerOwner struct {
+	Container CreatingContainer
+}
+
+func (c imageCheckContainerOwner) SetMap() map[string]interface{} {
 	return map[string]interface{}{
-		"creating_container_id": c.Container.ID(),
+		"image_check_container_id": c.Container.ID(),
 	}
 }
 
-type buildStepContainerOwner struct {
-	BuildID int
-	PlanID  atc.PlanID
+// NewImageGetContainerOwner references a container whose image resource this
+// container is fetching. When the referenced container transitions to another
+// state, or disappears, the container can be removed.
+func NewImageGetContainerOwner(
+	container CreatingContainer,
+) ContainerOwner {
+	return imageGetContainerOwner{
+		Container: container,
+	}
+}
+
+type imageGetContainerOwner struct {
+	Container CreatingContainer
+}
+
+func (c imageGetContainerOwner) SetMap() map[string]interface{} {
+	return map[string]interface{}{
+		"image_get_container_id": c.Container.ID(),
+	}
 }
 
 // NewBuildStepContainerOwner references a step within a build. When the build
@@ -50,6 +63,11 @@ func NewBuildStepContainerOwner(
 		BuildID: buildID,
 		PlanID:  planID,
 	}
+}
+
+type buildStepContainerOwner struct {
+	BuildID int
+	PlanID  atc.PlanID
 }
 
 func (c buildStepContainerOwner) SetMap() map[string]interface{} {

@@ -164,4 +164,5 @@ var Migrations = []migration.Migrator{
 	AddNonceToJobs,
 	AddNonceToPipelines,
 	AddCreatingContainerIDAndStateToContainers,
+	ReplaceCreatingContainerIDWithImageCheckForContainerIDAndImageGetForContainerID,
 }

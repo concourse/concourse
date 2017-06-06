@@ -207,7 +207,7 @@ var _ = Describe("Image", func() {
 									_, csig, user, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 									Expect(csig).To(Equal(signals))
 									Expect(user).To(Equal(db.ForBuild(42)))
-									Expect(owner).To(Equal(db.NewCreatingContainerContainerOwner(fakeCreatingContainer)))
+									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
@@ -233,7 +233,7 @@ var _ = Describe("Image", func() {
 									_, csig, user, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 									Expect(csig).To(Equal(signals))
 									Expect(user).To(Equal(db.ForBuild(42)))
-									Expect(owner).To(Equal(db.NewCreatingContainerContainerOwner(fakeCreatingContainer)))
+									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
@@ -275,7 +275,7 @@ var _ = Describe("Image", func() {
 								_, csig, user, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 								Expect(csig).To(Equal(signals))
 								Expect(user).To(Equal(db.ForBuild(42)))
-								Expect(owner).To(Equal(db.NewCreatingContainerContainerOwner(fakeCreatingContainer)))
+								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer)))
 								Expect(metadata).To(Equal(db.ContainerMetadata{
 									Type: db.ContainerTypeCheck,
 								}))
@@ -323,7 +323,7 @@ var _ = Describe("Image", func() {
 									atc.Source{"some": "source"},
 									atc.Params{},
 									db.ForBuild(42),
-									db.NewCreatingContainerContainerOwner(fakeCreatingContainer),
+									db.NewImageGetContainerOwner(fakeCreatingContainer),
 									customTypes,
 									fakeResourceCacheFactory,
 								)))

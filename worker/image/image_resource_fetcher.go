@@ -131,7 +131,7 @@ func (i *imageResourceFetcher) Fetch(
 		i.imageResource.Source,
 		atc.Params{},
 		i.resourceUser,
-		db.NewCreatingContainerContainerOwner(container),
+		db.NewImageGetContainerOwner(container),
 		i.customTypes,
 		i.dbResourceCacheFactory,
 	)
@@ -246,7 +246,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 		logger,
 		signals,
 		i.resourceUser,
-		db.NewCreatingContainerContainerOwner(container),
+		db.NewImageCheckContainerOwner(container),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
