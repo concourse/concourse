@@ -51,14 +51,14 @@ func (factory *gardenFactory) Get(
 
 	imageFetchingDelegate := buildDelegate.ImageFetchingDelegate(plan.ID)
 	getAction := &GetAction{
-		Type:            plan.Get.Type,
-		Name:            plan.Get.Name,
-		Resource:        plan.Get.Resource,
-		Source:          plan.Get.Source,
-		Params:          plan.Get.Params,
-		VersionProvider: NewVersionProviderFromPlan(plan.Get, factory.putActions),
-		Tags:            plan.Get.Tags,
-		Outputs:         []string{plan.Get.Name},
+		Type:          plan.Get.Type,
+		Name:          plan.Get.Name,
+		Resource:      plan.Get.Resource,
+		Source:        plan.Get.Source,
+		Params:        plan.Get.Params,
+		VersionSource: NewVersionSourceFromPlan(plan.Get, factory.putActions),
+		Tags:          plan.Get.Tags,
+		Outputs:       []string{plan.Get.Name},
 
 		imageFetchingDelegate:  imageFetchingDelegate,
 		resourceFetcher:        factory.resourceFetcher,

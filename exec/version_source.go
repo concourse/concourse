@@ -6,42 +6,42 @@ import (
 	"github.com/concourse/atc"
 )
 
-func NewVersionProviderFromPlan(
+func NewVersionSourceFromPlan(
 	getPlan *atc.GetPlan,
 	putActions map[atc.PlanID]*PutAction,
-) VersionProvider {
+) VersionSource {
 	if getPlan.Version != nil {
-		return &StaticVersionProvider{
+		return &StaticVersionSource{
 			Version: *getPlan.Version,
 		}
 	} else if getPlan.VersionFrom != nil {
-		return &PutActionVersionProvider{
+		return &PutActionVersionSource{
 			Action: putActions[*getPlan.VersionFrom],
 		}
 	} else {
-		return &EmptyVersionProvider{}
+		return &EmptyVersionSource{}
 	}
 }
 
-type VersionProvider interface {
+type VersionSource interface {
 	GetVersion() (atc.Version, error)
 }
 
-type StaticVersionProvider struct {
+type StaticVersionSource struct {
 	Version atc.Version
 }
 
-func (p *StaticVersionProvider) GetVersion() (atc.Version, error) {
+func (p *StaticVersionSource) GetVersion() (atc.Version, error) {
 	return p.Version, nil
 }
 
 var ErrPutActionVersionMissing = errors.New("version is missing from put action")
 
-type PutActionVersionProvider struct {
+type PutActionVersionSource struct {
 	Action PutResultAction
 }
 
-func (p *PutActionVersionProvider) GetVersion() (atc.Version, error) {
+func (p *PutActionVersionSource) GetVersion() (atc.Version, error) {
 	versionInfo, present := p.Action.Result()
 	if !present {
 		return atc.Version{}, ErrPutActionVersionMissing
@@ -50,8 +50,8 @@ func (p *PutActionVersionProvider) GetVersion() (atc.Version, error) {
 	return versionInfo.Version, nil
 }
 
-type EmptyVersionProvider struct{}
+type EmptyVersionSource struct{}
 
-func (p *EmptyVersionProvider) GetVersion() (atc.Version, error) {
+func (p *EmptyVersionSource) GetVersion() (atc.Version, error) {
 	return atc.Version{}, nil
 }

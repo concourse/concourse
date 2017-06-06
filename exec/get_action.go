@@ -16,15 +16,15 @@ import (
 )
 
 type GetAction struct {
-	Type            string
-	Name            string
-	Resource        string
-	Source          atc.Source
-	Params          atc.Params
-	VersionProvider VersionProvider
-	Tags            atc.Tags
-	RootFSSource    RootFSSource
-	Outputs         []string
+	Type          string
+	Name          string
+	Resource      string
+	Source        atc.Source
+	Params        atc.Params
+	VersionSource VersionSource
+	Tags          atc.Tags
+	RootFSSource  RootFSSource
+	Outputs       []string
 
 	// TODO: can we remove these dependencies?
 	imageFetchingDelegate  ImageFetchingDelegate
@@ -50,7 +50,7 @@ func (action *GetAction) Run(
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) error {
-	version, err := action.VersionProvider.GetVersion()
+	version, err := action.VersionSource.GetVersion()
 	if err != nil {
 		return err
 	}
