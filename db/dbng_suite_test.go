@@ -95,7 +95,7 @@ var _ = BeforeEach(func() {
 	workerFactory = db.NewWorkerFactory(dbConn)
 	workerLifecycle = db.NewWorkerLifecycle(dbConn)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
-	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
+	resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
 	baseResourceTypeFactory = db.NewBaseResourceTypeFactory(dbConn)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 

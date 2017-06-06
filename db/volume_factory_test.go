@@ -35,7 +35,7 @@ var _ = Describe("VolumeFactory", func() {
 				CreatedByBaseResourceType: &baseResourceType,
 			},
 		}
-		usedResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, lockFactory, resourceCache)
+		usedResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, resourceCache)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(setupTx.Commit()).To(Succeed())
@@ -316,7 +316,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, cache)
+			usedResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, setupTx, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -383,7 +383,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, cache)
+			usedResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, setupTx, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -462,7 +462,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, cache)
+			usedResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, setupTx, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -609,7 +609,7 @@ var _ = Describe("VolumeFactory", func() {
 					Params:  atc.Params{"some": "params"},
 				}
 
-				usedResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, anotherResourceCache)
+				usedResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, setupTx, anotherResourceCache)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(setupTx.Commit()).To(Succeed())

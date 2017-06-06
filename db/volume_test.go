@@ -308,7 +308,7 @@ var _ = Describe("Volume", func() {
 					},
 				},
 			}
-			usedResourceCache, err := db.ForBuild(defaultBuild.ID()).UseResourceCache(logger, setupTx, lockFactory, resourceCache)
+			usedResourceCache, err := db.ForBuild(defaultBuild.ID()).UseResourceCache(logger, setupTx, resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 

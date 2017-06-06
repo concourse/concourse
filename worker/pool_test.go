@@ -398,7 +398,7 @@ var _ = Describe("Pool", func() {
 			fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 			fakeOwner = new(dbfakes.FakeContainerOwner)
-			fakeOwner.SetMapReturns(map[string]interface{}{
+			fakeOwner.SQLMapReturns(map[string]interface{}{
 				"build_id": 42,
 				"plan_id":  atc.PlanID("some-plan-id"),
 			})

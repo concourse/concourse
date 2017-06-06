@@ -112,7 +112,7 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("gc-test")
 
-	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
+	resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 })
 

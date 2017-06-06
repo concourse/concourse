@@ -765,7 +765,7 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			fakeOwner = new(dbfakes.FakeContainerOwner)
-			fakeOwner.SetMapReturns(map[string]interface{}{
+			fakeOwner.SQLMapReturns(map[string]interface{}{
 				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
 			})
@@ -826,7 +826,7 @@ var _ = Describe("Team", func() {
 		Context("when there is no container", func() {
 			It("returns nil", func() {
 				bogusOwner := new(dbfakes.FakeContainerOwner)
-				bogusOwner.SetMapReturns(map[string]interface{}{
+				bogusOwner.SQLMapReturns(map[string]interface{}{
 					"build_id": build.ID() + 1,
 					"plan_id":  "how-could-this-happen-to-me",
 				})
@@ -1931,7 +1931,7 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			fakeOwner = new(dbfakes.FakeContainerOwner)
-			fakeOwner.SetMapReturns(map[string]interface{}{
+			fakeOwner.SQLMapReturns(map[string]interface{}{
 				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
 			})

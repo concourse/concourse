@@ -379,7 +379,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 						},
 					},
 				}
-				usedResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, lockFactory, resourceCache)
+				usedResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, resourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 			})
