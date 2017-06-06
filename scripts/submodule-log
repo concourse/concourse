@@ -10,7 +10,7 @@ echo
 
 if [ "$#" != "0" ]; then
   for id in "$@"; do
-    echo "[#${id}]"
+    echo "#${id}"
   done
 
   echo
