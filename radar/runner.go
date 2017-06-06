@@ -1,13 +1,14 @@
 package radar
 
 import (
+	"context"
 	"os"
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/grouper"
+	"golang.org/x/sync/syncmap"
 )
 
 //go:generate counterfeiter . ScanRunnerFactory
@@ -20,6 +21,7 @@ type Runner struct {
 	scanRunnerFactory ScanRunnerFactory
 	pipeline          db.Pipeline
 	syncInterval      time.Duration
+	scanning          syncmap.Map
 }
 
 func NewRunner(
@@ -35,135 +37,116 @@ func NewRunner(
 		scanRunnerFactory: scanRunnerFactory,
 		pipeline:          pipeline,
 		syncInterval:      syncInterval,
+		scanning:          syncmap.Map{},
 	}
 }
 
-func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (r *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	r.logger.Info("start")
+	defer r.logger.Info("done")
+
+	ticker := time.NewTicker(r.syncInterval)
+	scannerContext, cancel := context.WithCancel(context.Background())
 	close(ready)
 
-	if runner.noop {
-		<-signals
-		return nil
+	err := r.tick(scannerContext)
+	if err != nil {
+		cancel()
+		return err
 	}
 
-	runner.logger.Info("start")
-	defer runner.logger.Info("done")
-
-	ticker := time.NewTicker(runner.syncInterval)
-
-	scannersGroup := grouper.NewDynamic(nil, 0, 0)
-
-	scannersClient := scannersGroup.Client()
-	exits := scannersClient.ExitListener()
-	insertScanner := scannersClient.Inserter()
-
-	scanners := ifrit.Invoke(scannersGroup)
-
-	scanning := make(map[string]bool)
-	scanningResourceTypes := make(map[string]bool)
-
-	runner.tick(scanning, scanningResourceTypes, insertScanner)
-
-dance:
 	for {
 		select {
-		case <-signals:
-			scanners.Signal(os.Interrupt)
-
-			// don't bother waiting for scanners on shutdown
-
-			break dance
-
-		case exited := <-exits:
-			if exited.Err != nil {
-				runner.logger.Error("scanner-failed", exited.Err, lager.Data{
-					"member": exited.Member.Name,
-				})
-			} else {
-				runner.logger.Info("scanner-exited", lager.Data{
-					"member": exited.Member.Name,
-				})
-			}
-
-			delete(scanning, exited.Member.Name)
-			delete(scanningResourceTypes, exited.Member.Name)
-
 		case <-ticker.C:
-			runner.tick(scanning, scanningResourceTypes, insertScanner)
+			err := r.tick(scannerContext)
+			if err != nil {
+				break
+			}
+		case <-signals:
+			ticker.Stop()
+			cancel()
+			return nil
 		}
 	}
+}
 
+func (r *Runner) tick(ctx context.Context) error {
+	config, err := r.reloadPipelineConfig()
+	if err != nil {
+		return err
+	}
+	r.scanResourceTypes(config.ResourceTypes, ctx)
+	r.scanResources(config.Resources, ctx)
 	return nil
 }
 
-func (runner *Runner) tick(
-	scanning map[string]bool,
-	scanningResourceTypes map[string]bool,
-	insertScanner chan<- grouper.Member,
-) {
-	found, err := runner.pipeline.Reload()
+func (r *Runner) scanResources(resources atc.ResourceConfigs, ctx context.Context) {
+	for _, resource := range resources {
+		scopedName := r.pipeline.ScopedName("resource:" + resource.Name)
+		if _, found := r.scanning.Load(scopedName); found {
+			continue
+		}
+
+		logger := r.logger.Session("scan-resource", lager.Data{
+			"pipeline-scoped-name": scopedName,
+		})
+
+		go func(name string, scopedName string) {
+			r.scanning.Store(scopedName, true)
+			runner := r.scanRunnerFactory.ScanResourceRunner(logger, name)
+			err := runner.Run(ctx)
+			if err != nil {
+				r.logger.Info("scanresources-runner-error", lager.Data{
+					"error": err,
+				})
+			}
+			r.scanning.Delete(scopedName)
+		}(resource.Name, scopedName)
+	}
+}
+
+func (r *Runner) scanResourceTypes(resourceTypes atc.ResourceTypes, ctx context.Context) {
+	for _, resourceType := range resourceTypes {
+		scopedName := r.pipeline.ScopedName("resource-type:" + resourceType.Name)
+		if _, found := r.scanning.Load(scopedName); found {
+			continue
+		}
+
+		logger := r.logger.Session("scan-resource-type", lager.Data{
+			"pipeline-scoped-name": scopedName,
+		})
+
+		go func(name string, scopedName string) {
+			r.scanning.Store(scopedName, true)
+			runner := r.scanRunnerFactory.ScanResourceTypeRunner(logger, name)
+			err := runner.Run(ctx)
+			if err != nil {
+				r.logger.Info("scanresources-runner-error", lager.Data{
+					"error": err,
+				})
+			}
+			r.scanning.Delete(scopedName)
+		}(resourceType.Name, scopedName)
+	}
+}
+
+func (r *Runner) reloadPipelineConfig() (atc.Config, error) {
+	found, err := r.pipeline.Reload()
 	if err != nil {
-		runner.logger.Error("failed-to-reload-pipeline", err)
-		return
+		r.logger.Error("failed-to-reload-pipeline", err)
+		return atc.Config{}, err
 	}
 
 	if !found {
-		runner.logger.Info("pipeline-removed")
-		return
+		r.logger.Info("pipeline-removed")
+		return atc.Config{}, err
 	}
 
-	config, _, _, err := runner.pipeline.Config()
+	config, _, _, err := r.pipeline.Config()
 	if err != nil {
-		runner.logger.Error("failed-to-get-config", err)
-		return
+		r.logger.Error("failed-to-get-config", err)
+		return atc.Config{}, err
 	}
 
-	for _, resourceType := range config.ResourceTypes {
-		scopedName := runner.pipeline.ScopedName("resource-type:" + resourceType.Name)
-
-		if scanningResourceTypes[scopedName] {
-			continue
-		}
-
-		scanningResourceTypes[scopedName] = true
-
-		logger := runner.logger.Session("scan-resource-type", lager.Data{
-			"pipeline-scoped-name": scopedName,
-		})
-		runner := runner.scanRunnerFactory.ScanResourceTypeRunner(logger, resourceType.Name)
-
-		// avoid deadlock if exit event is blocked; inserting in this case
-		// will block on the event being consumed (which is in this select)
-		go func(name string) {
-			insertScanner <- grouper.Member{
-				Name:   name,
-				Runner: runner,
-			}
-		}(scopedName)
-	}
-
-	for _, resource := range config.Resources {
-		scopedName := runner.pipeline.ScopedName("resource:" + resource.Name)
-
-		if scanning[scopedName] {
-			continue
-		}
-
-		scanning[scopedName] = true
-
-		logger := runner.logger.Session("scan-resource", lager.Data{
-			"pipeline-scoped-name": scopedName,
-		})
-		runner := runner.scanRunnerFactory.ScanResourceRunner(logger, resource.Name)
-
-		// avoid deadlock if exit event is blocked; inserting in this case
-		// will block on the event being consumed (which is in this select)
-		go func(name string) {
-			insertScanner <- grouper.Member{
-				Name:   name,
-				Runner: runner,
-			}
-		}(scopedName)
-	}
-
+	return config, nil
 }

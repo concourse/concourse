@@ -1,10 +1,9 @@
 package radar_test
 
 import (
-	"os"
+	"context"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -25,9 +24,13 @@ var _ = Describe("Runner", func() {
 		noop              bool
 		syncInterval      time.Duration
 
-		initialConfig atc.Config
+		config atc.Config
 
-		process ifrit.Process
+		process                ifrit.Process
+		fakeResourceRunner     *radarfakes.FakeIntervalRunner
+		fakeResourceTypeRunner *radarfakes.FakeIntervalRunner
+		fakeContext            context.Context
+		fakeCancel             context.CancelFunc
 	)
 
 	BeforeEach(func() {
@@ -35,8 +38,9 @@ var _ = Describe("Runner", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		noop = false
 		syncInterval = 100 * time.Millisecond
+		fakeContext, fakeCancel = context.WithCancel(context.Background())
 
-		initialConfig = atc.Config{
+		config = atc.Config{
 			Resources: atc.ResourceConfigs{
 				{
 					Name: "some-resource",
@@ -59,22 +63,23 @@ var _ = Describe("Runner", func() {
 			return "pipeline:" + thing
 		}
 		fakePipeline.ReloadReturns(true, nil)
-		fakePipeline.ConfigReturns(initialConfig, "", 0, nil)
-
-		scanRunnerFactory.ScanResourceRunnerStub = func(lager.Logger, string) ifrit.Runner {
-			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-				close(ready)
-				<-signals
-				return nil
-			})
+		fakePipeline.ConfigStub = func() (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
+			return config, "", 0, nil
 		}
 
-		scanRunnerFactory.ScanResourceTypeRunnerStub = func(lager.Logger, string) ifrit.Runner {
-			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-				close(ready)
-				<-signals
-				return nil
-			})
+		fakeResourceRunner = new(radarfakes.FakeIntervalRunner)
+		scanRunnerFactory.ScanResourceRunnerReturns(fakeResourceRunner)
+		fakeResourceTypeRunner = new(radarfakes.FakeIntervalRunner)
+		scanRunnerFactory.ScanResourceTypeRunnerReturns(fakeResourceTypeRunner)
+
+		fakeResourceRunner.RunStub = func(ctx context.Context) error {
+			<-fakeContext.Done()
+			return nil
+		}
+
+		fakeResourceTypeRunner.RunStub = func(ctx context.Context) error {
+			<-fakeContext.Done()
+			return nil
 		}
 	})
 
@@ -95,136 +100,74 @@ var _ = Describe("Runner", func() {
 	It("scans for every configured resource", func() {
 		Eventually(scanRunnerFactory.ScanResourceRunnerCallCount).Should(Equal(2))
 
-		_, resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
-		Expect(resource).To(Equal("some-resource"))
+		_, call1Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
+		_, call2Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
 
-		_, resource = scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
-		Expect(resource).To(Equal("some-other-resource"))
+		resources := []string{call1Resource, call2Resource}
+		Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource"}))
 	})
 
 	Context("when new resources are configured", func() {
-		var updateConfig chan<- atc.Config
-
-		BeforeEach(func() {
-			configs := make(chan atc.Config)
-			updateConfig = configs
-
-			config := initialConfig
-
-			fakePipeline.ConfigStub = func() (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
-				select {
-				case config = <-configs:
-				default:
-				}
-
-				return config, "", 0, nil
-			}
-		})
-
 		It("scans for them eventually", func() {
 			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount).Should(Equal(2))
 
-			_, resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
-			Expect(resource).To(Equal("some-resource"))
+			_, call1Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
+			_, call2Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
+			resources := []string{call1Resource, call2Resource}
+			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource"}))
 
-			_, resource = scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
-			Expect(resource).To(Equal("some-other-resource"))
-
-			newConfig := initialConfig
-			newConfig.Resources = append(newConfig.Resources, atc.ResourceConfig{
+			config.Resources = append(config.Resources, atc.ResourceConfig{
 				Name: "another-resource",
 			})
 
-			updateConfig <- newConfig
+			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount, time.Second).Should(Equal(3))
 
-			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount).Should(Equal(3))
-
-			_, resource = scanRunnerFactory.ScanResourceRunnerArgsForCall(2)
-			Expect(resource).To(Equal("another-resource"))
+			_, call3Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(2)
+			resources = append(resources, call3Resource)
+			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource", "another-resource"}))
 
 			Consistently(scanRunnerFactory.ScanResourceRunnerCallCount).Should(Equal(3))
 		})
 	})
 
 	Context("when resources stop being able to check", func() {
-		var scannerExit chan struct{}
-
-		BeforeEach(func() {
-			scannerExit = make(chan struct{})
-
-			scanRunnerFactory.ScanResourceRunnerStub = func(lager.Logger, string) ifrit.Runner {
-				return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-					close(ready)
-
-					select {
-					case <-signals:
-						return nil
-					case <-scannerExit:
-						return nil
-					}
-				})
-			}
-		})
-
 		It("starts scanning again eventually", func() {
 			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount).Should(Equal(2))
 
-			_, resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
-			Expect(resource).To(Equal("some-resource"))
+			_, call1Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
+			_, call2Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
+			resources := []string{call1Resource, call2Resource}
 
-			_, resource = scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
-			Expect(resource).To(Equal("some-other-resource"))
+			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource"}))
 
-			close(scannerExit)
+			fakeCancel()
 
 			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount, 10*syncInterval).Should(Equal(4))
 
-			_, resource = scanRunnerFactory.ScanResourceRunnerArgsForCall(2)
-			Expect(resource).To(Equal("some-resource"))
+			_, call3Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(2)
+			_, call4Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(3)
+			resources = append(resources, call3Resource, call4Resource)
+			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource", "some-resource", "some-other-resource"}))
 
-			_, resource = scanRunnerFactory.ScanResourceRunnerArgsForCall(3)
-			Expect(resource).To(Equal("some-other-resource"))
 		})
 	})
 
 	Context("when resource types stop being able to check", func() {
-		var scannerExit chan struct{}
-
-		BeforeEach(func() {
-			scannerExit = make(chan struct{})
-
-			scanRunnerFactory.ScanResourceTypeRunnerStub = func(lager.Logger, string) ifrit.Runner {
-				return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-					close(ready)
-
-					select {
-					case <-signals:
-						return nil
-					case <-scannerExit:
-						return nil
-					}
-				})
-			}
-		})
-
 		It("starts scanning again eventually", func() {
 			Eventually(scanRunnerFactory.ScanResourceTypeRunnerCallCount).Should(Equal(2))
 
-			_, resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(0)
-			Expect(resource).To(Equal("some-resource"))
+			_, call1Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
+			_, call2Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
+			resources := []string{call1Resource, call2Resource}
 
-			_, resource = scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(1)
-			Expect(resource).To(Equal("some-other-resource"))
-
-			close(scannerExit)
+			fakeCancel()
 
 			Eventually(scanRunnerFactory.ScanResourceTypeRunnerCallCount, 10*syncInterval).Should(Equal(4))
 
-			_, resource = scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(2)
-			Expect(resource).To(Equal("some-resource"))
-
-			_, resource = scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(3)
-			Expect(resource).To(Equal("some-other-resource"))
+			_, call3Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(2)
+			_, call4Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(3)
+			resources = append(resources, call3Resource, call4Resource)
+			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource", "some-resource", "some-other-resource"}))
 		})
 	})
 

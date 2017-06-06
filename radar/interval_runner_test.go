@@ -1,8 +1,8 @@
 package radar_test
 
 import (
+	"context"
 	"errors"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -23,19 +23,15 @@ var _ = Describe("IntervalRunner", func() {
 		interval  time.Duration
 		times     chan time.Time
 
-		intervalRunner *IntervalRunner
+		intervalRunner IntervalRunner
 		fakeScanner    *radarfakes.FakeScanner
 
-		signalCh chan os.Signal
-		readyCh  chan struct{}
-		errCh    chan error
+		ctx    context.Context
+		cancel context.CancelFunc
+		err    error
 	)
 
 	BeforeEach(func() {
-		signalCh = make(chan os.Signal)
-		readyCh = make(chan struct{})
-		errCh = make(chan error)
-
 		epoch = time.Unix(123, 456).UTC()
 		fakeClock = fakeclock.NewFakeClock(epoch)
 
@@ -46,6 +42,8 @@ var _ = Describe("IntervalRunner", func() {
 			times <- fakeClock.Now()
 			return interval, nil
 		}
+		ctx, cancel = context.WithCancel(context.Background())
+		err = nil
 
 		logger := lagertest.NewTestLogger("test")
 		intervalRunner = NewIntervalRunner(logger, fakeClock, "some-resource", fakeScanner)
@@ -54,19 +52,14 @@ var _ = Describe("IntervalRunner", func() {
 	Describe("RunFunc", func() {
 		JustBeforeEach(func() {
 			go func() {
-				errCh <- intervalRunner.RunFunc(signalCh, readyCh)
+				err = intervalRunner.Run(ctx)
 			}()
-			<-readyCh
 		})
 
 		Context("when run does not return error", func() {
 			AfterEach(func() {
-				signalCh <- os.Interrupt
-				<-errCh
-			})
-
-			It("closes the ready channel immediately", func() {
-				Expect(readyCh).To(BeClosed())
+				cancel()
+				Consistently(func() error { return err }).Should(BeNil())
 			})
 
 			It("immediately runs a scan", func() {
@@ -109,7 +102,7 @@ var _ = Describe("IntervalRunner", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(<-errCh).To(Equal(disaster))
+				Eventually(func() error { return err }).Should(Equal(disaster))
 			})
 		})
 
@@ -122,8 +115,7 @@ var _ = Describe("IntervalRunner", func() {
 			})
 
 			AfterEach(func() {
-				signalCh <- os.Interrupt
-				<-errCh
+				cancel()
 			})
 
 			It("waits for the interval and tries again", func() {

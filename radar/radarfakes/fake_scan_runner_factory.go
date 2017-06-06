@@ -6,39 +6,38 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/radar"
-	"github.com/tedsuo/ifrit"
 )
 
 type FakeScanRunnerFactory struct {
-	ScanResourceRunnerStub        func(lager.Logger, string) ifrit.Runner
+	ScanResourceRunnerStub        func(lager.Logger, string) radar.IntervalRunner
 	scanResourceRunnerMutex       sync.RWMutex
 	scanResourceRunnerArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
 	}
 	scanResourceRunnerReturns struct {
-		result1 ifrit.Runner
+		result1 radar.IntervalRunner
 	}
 	scanResourceRunnerReturnsOnCall map[int]struct {
-		result1 ifrit.Runner
+		result1 radar.IntervalRunner
 	}
-	ScanResourceTypeRunnerStub        func(lager.Logger, string) ifrit.Runner
+	ScanResourceTypeRunnerStub        func(lager.Logger, string) radar.IntervalRunner
 	scanResourceTypeRunnerMutex       sync.RWMutex
 	scanResourceTypeRunnerArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
 	}
 	scanResourceTypeRunnerReturns struct {
-		result1 ifrit.Runner
+		result1 radar.IntervalRunner
 	}
 	scanResourceTypeRunnerReturnsOnCall map[int]struct {
-		result1 ifrit.Runner
+		result1 radar.IntervalRunner
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceRunner(arg1 lager.Logger, arg2 string) ifrit.Runner {
+func (fake *FakeScanRunnerFactory) ScanResourceRunner(arg1 lager.Logger, arg2 string) radar.IntervalRunner {
 	fake.scanResourceRunnerMutex.Lock()
 	ret, specificReturn := fake.scanResourceRunnerReturnsOnCall[len(fake.scanResourceRunnerArgsForCall)]
 	fake.scanResourceRunnerArgsForCall = append(fake.scanResourceRunnerArgsForCall, struct {
@@ -68,26 +67,26 @@ func (fake *FakeScanRunnerFactory) ScanResourceRunnerArgsForCall(i int) (lager.L
 	return fake.scanResourceRunnerArgsForCall[i].arg1, fake.scanResourceRunnerArgsForCall[i].arg2
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceRunnerReturns(result1 ifrit.Runner) {
+func (fake *FakeScanRunnerFactory) ScanResourceRunnerReturns(result1 radar.IntervalRunner) {
 	fake.ScanResourceRunnerStub = nil
 	fake.scanResourceRunnerReturns = struct {
-		result1 ifrit.Runner
+		result1 radar.IntervalRunner
 	}{result1}
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceRunnerReturnsOnCall(i int, result1 ifrit.Runner) {
+func (fake *FakeScanRunnerFactory) ScanResourceRunnerReturnsOnCall(i int, result1 radar.IntervalRunner) {
 	fake.ScanResourceRunnerStub = nil
 	if fake.scanResourceRunnerReturnsOnCall == nil {
 		fake.scanResourceRunnerReturnsOnCall = make(map[int]struct {
-			result1 ifrit.Runner
+			result1 radar.IntervalRunner
 		})
 	}
 	fake.scanResourceRunnerReturnsOnCall[i] = struct {
-		result1 ifrit.Runner
+		result1 radar.IntervalRunner
 	}{result1}
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceTypeRunner(arg1 lager.Logger, arg2 string) ifrit.Runner {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunner(arg1 lager.Logger, arg2 string) radar.IntervalRunner {
 	fake.scanResourceTypeRunnerMutex.Lock()
 	ret, specificReturn := fake.scanResourceTypeRunnerReturnsOnCall[len(fake.scanResourceTypeRunnerArgsForCall)]
 	fake.scanResourceTypeRunnerArgsForCall = append(fake.scanResourceTypeRunnerArgsForCall, struct {
@@ -117,22 +116,22 @@ func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerArgsForCall(i int) (lag
 	return fake.scanResourceTypeRunnerArgsForCall[i].arg1, fake.scanResourceTypeRunnerArgsForCall[i].arg2
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerReturns(result1 ifrit.Runner) {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerReturns(result1 radar.IntervalRunner) {
 	fake.ScanResourceTypeRunnerStub = nil
 	fake.scanResourceTypeRunnerReturns = struct {
-		result1 ifrit.Runner
+		result1 radar.IntervalRunner
 	}{result1}
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerReturnsOnCall(i int, result1 ifrit.Runner) {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerReturnsOnCall(i int, result1 radar.IntervalRunner) {
 	fake.ScanResourceTypeRunnerStub = nil
 	if fake.scanResourceTypeRunnerReturnsOnCall == nil {
 		fake.scanResourceTypeRunnerReturnsOnCall = make(map[int]struct {
-			result1 ifrit.Runner
+			result1 radar.IntervalRunner
 		})
 	}
 	fake.scanResourceTypeRunnerReturnsOnCall[i] = struct {
-		result1 ifrit.Runner
+		result1 radar.IntervalRunner
 	}{result1}
 }
 
