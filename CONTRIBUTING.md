@@ -91,7 +91,7 @@ easier for rapid iteration.
 
 You'll just need the following:
 
-* Go 1.7+
+* Go 1.8+
 * PostgreSQL
 * Docker
 
