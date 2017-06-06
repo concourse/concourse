@@ -30,21 +30,16 @@ type FakeFactory struct {
 	getReturnsOnCall map[int]struct {
 		result1 exec.StepFactory
 	}
-	PutStub        func(lager.Logger, int, int, atc.PlanID, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate, atc.ResourceConfig, atc.Tags, atc.Params, atc.VersionedResourceTypes, *atc.Version) exec.StepFactory
+	PutStub        func(lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.BuildDelegate) exec.StepFactory
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
-		arg1  lager.Logger
-		arg2  int
-		arg3  int
-		arg4  atc.PlanID
-		arg5  exec.StepMetadata
-		arg6  db.ContainerMetadata
-		arg7  exec.PutDelegate
-		arg8  atc.ResourceConfig
-		arg9  atc.Tags
-		arg10 atc.Params
-		arg11 atc.VersionedResourceTypes
-		arg12 *atc.Version
+		arg1 lager.Logger
+		arg2 int
+		arg3 int
+		arg4 atc.Plan
+		arg5 exec.StepMetadata
+		arg6 db.ContainerMetadata
+		arg7 exec.BuildDelegate
 	}
 	putReturns struct {
 		result1 exec.StepFactory
@@ -135,27 +130,22 @@ func (fake *FakeFactory) GetReturnsOnCall(i int, result1 exec.StepFactory) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.PlanID, arg5 exec.StepMetadata, arg6 db.ContainerMetadata, arg7 exec.PutDelegate, arg8 atc.ResourceConfig, arg9 atc.Tags, arg10 atc.Params, arg11 atc.VersionedResourceTypes, arg12 *atc.Version) exec.StepFactory {
+func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.Plan, arg5 exec.StepMetadata, arg6 db.ContainerMetadata, arg7 exec.BuildDelegate) exec.StepFactory {
 	fake.putMutex.Lock()
 	ret, specificReturn := fake.putReturnsOnCall[len(fake.putArgsForCall)]
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
-		arg1  lager.Logger
-		arg2  int
-		arg3  int
-		arg4  atc.PlanID
-		arg5  exec.StepMetadata
-		arg6  db.ContainerMetadata
-		arg7  exec.PutDelegate
-		arg8  atc.ResourceConfig
-		arg9  atc.Tags
-		arg10 atc.Params
-		arg11 atc.VersionedResourceTypes
-		arg12 *atc.Version
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12})
-	fake.recordInvocation("Put", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12})
+		arg1 lager.Logger
+		arg2 int
+		arg3 int
+		arg4 atc.Plan
+		arg5 exec.StepMetadata
+		arg6 db.ContainerMetadata
+		arg7 exec.BuildDelegate
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("Put", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
-		return fake.PutStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)
+		return fake.PutStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1
@@ -169,10 +159,10 @@ func (fake *FakeFactory) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeFactory) PutArgsForCall(i int) (lager.Logger, int, int, atc.PlanID, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate, atc.ResourceConfig, atc.Tags, atc.Params, atc.VersionedResourceTypes, *atc.Version) {
+func (fake *FakeFactory) PutArgsForCall(i int) (lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.BuildDelegate) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
-	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5, fake.putArgsForCall[i].arg6, fake.putArgsForCall[i].arg7, fake.putArgsForCall[i].arg8, fake.putArgsForCall[i].arg9, fake.putArgsForCall[i].arg10, fake.putArgsForCall[i].arg11, fake.putArgsForCall[i].arg12
+	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5, fake.putArgsForCall[i].arg6, fake.putArgsForCall[i].arg7
 }
 
 func (fake *FakeFactory) PutReturns(result1 exec.StepFactory) {

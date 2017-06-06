@@ -165,19 +165,10 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		logger,
 		build.teamID,
 		build.buildID,
-		plan.ID,
+		plan,
 		build.stepMetadata,
 		workerMetadata,
-		build.delegate.OutputDelegate(logger, *plan.Put, event.OriginID(plan.ID)),
-		atc.ResourceConfig{
-			Name:   plan.Put.Resource,
-			Type:   plan.Put.Type,
-			Source: plan.Put.Source,
-		},
-		plan.Put.Tags,
-		plan.Put.Params,
-		plan.Put.VersionedResourceTypes,
-		plan.Put.Result,
+		build.delegate,
 	)
 }
 

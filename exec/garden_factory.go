@@ -19,6 +19,8 @@ type gardenFactory struct {
 	resourceFetcher        resource.Fetcher
 	resourceFactory        resource.ResourceFactory
 	dbResourceCacheFactory db.ResourceCacheFactory
+
+	putActions map[atc.PlanID]*PutAction
 }
 
 func NewGardenFactory(
@@ -32,6 +34,7 @@ func NewGardenFactory(
 		resourceFetcher:        resourceFetcher,
 		resourceFactory:        resourceFactory,
 		dbResourceCacheFactory: dbResourceCacheFactory,
+		putActions:             map[atc.PlanID]*PutAction{},
 	}
 }
 
@@ -48,31 +51,23 @@ func (factory *gardenFactory) Get(
 
 	imageFetchingDelegate := buildDelegate.ImageFetchingDelegate(plan.ID)
 	getAction := &GetAction{
-		Type:     plan.Get.Type,
-		Name:     plan.Get.Name,
-		Resource: plan.Get.Resource,
-		Source:   plan.Get.Source,
-		Params:   plan.Get.Params,
-		Version:  plan.Get.Version,
-		Tags:     plan.Get.Tags,
-		Outputs:  []string{plan.Get.Name},
+		Type:            plan.Get.Type,
+		Name:            plan.Get.Name,
+		Resource:        plan.Get.Resource,
+		Source:          plan.Get.Source,
+		Params:          plan.Get.Params,
+		VersionProvider: NewVersionProviderFromPlan(plan.Get, factory.putActions),
+		Tags:            plan.Get.Tags,
+		Outputs:         []string{plan.Get.Name},
 
-		// TODO: can we remove these dependencies?
-		imageFetchingDelegate: imageFetchingDelegate,
-		resourceFetcher:       factory.resourceFetcher,
-		teamID:                teamID,
-		containerMetadata:     workerMetadata,
-		resourceInstance: resource.NewResourceInstance(
-			resource.ResourceType(plan.Get.Type),
-			plan.Get.Version,
-			plan.Get.Source,
-			plan.Get.Params,
-			db.ForBuild(buildID),
-			db.NewBuildStepContainerOwner(buildID, plan.ID),
-			plan.Get.VersionedResourceTypes,
-			factory.dbResourceCacheFactory,
-		),
-		stepMetadata: stepMetadata,
+		imageFetchingDelegate:  imageFetchingDelegate,
+		resourceFetcher:        factory.resourceFetcher,
+		teamID:                 teamID,
+		buildID:                buildID,
+		planID:                 plan.ID,
+		containerMetadata:      workerMetadata,
+		dbResourceCacheFactory: factory.dbResourceCacheFactory,
+		stepMetadata:           stepMetadata,
 
 		// TODO: remove after all actions are introduced
 		resourceTypes: plan.Get.VersionedResourceTypes,
@@ -88,34 +83,38 @@ func (factory *gardenFactory) Put(
 	logger lager.Logger,
 	teamID int,
 	buildID int,
-	planID atc.PlanID,
+	plan atc.Plan,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	delegate PutDelegate,
-	resourceConfig atc.ResourceConfig,
-	tags atc.Tags,
-	params atc.Params,
-	resourceTypes atc.VersionedResourceTypes,
-	result *atc.Version,
+	buildDelegate BuildDelegate,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
-	return newPutStep(
-		logger,
-		resourceConfig,
-		params,
-		stepMetadata,
-		resource.Session{
-			Metadata: workerMetadata,
-		},
-		tags,
-		teamID,
-		buildID,
-		planID,
-		delegate,
-		factory.resourceFactory,
-		resourceTypes,
-		result,
-	)
+
+	imageFetchingDelegate := buildDelegate.ImageFetchingDelegate(plan.ID)
+	putAction := &PutAction{
+		Type:     plan.Put.Type,
+		Name:     plan.Put.Name,
+		Resource: plan.Put.Resource,
+		Source:   plan.Put.Source,
+		Params:   plan.Put.Params,
+		Tags:     plan.Put.Tags,
+
+		imageFetchingDelegate: imageFetchingDelegate,
+		resourceFactory:       factory.resourceFactory,
+		teamID:                teamID,
+		buildID:               buildID,
+		planID:                plan.ID,
+		containerMetadata:     workerMetadata,
+		stepMetadata:          stepMetadata,
+
+		resourceTypes: plan.Put.VersionedResourceTypes,
+	}
+	factory.putActions[plan.ID] = putAction
+
+	actions := []Action{putAction}
+
+	buildEventsDelegate := buildDelegate.PutBuildEventsDelegate(plan.ID, *plan.Put, putAction)
+	return newActionsStep(logger, actions, buildEventsDelegate)
 }
 
 func (factory *gardenFactory) Task(

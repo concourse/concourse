@@ -109,7 +109,7 @@ func (plan GetPlan) Public() *json.RawMessage {
 		Type:     plan.Type,
 		Name:     plan.Name,
 		Resource: plan.Resource,
-		Version:  plan.Version,
+		Version:  *plan.Version,
 	})
 }
 

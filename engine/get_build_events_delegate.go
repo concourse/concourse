@@ -72,14 +72,20 @@ func (d *getBuildEventsDelegate) Finished(logger lager.Logger, status exec.ExitS
 		}
 	}
 
+	eventPlan := event.GetPlan{
+		Name:     d.plan.Name,
+		Resource: d.plan.Resource,
+		Type:     d.plan.Type,
+	}
+	if d.plan.Version != nil {
+		// When version is coming from another action, plan does not have a version
+		// Also, some resources do not have a version in plan (e.g. archive)
+		eventPlan.Version = *d.plan.Version
+	}
+
 	err := d.build.SaveEvent(event.FinishGet{
-		Origin: d.eventOrigin,
-		Plan: event.GetPlan{
-			Name:     d.plan.Name,
-			Resource: d.plan.Resource,
-			Type:     d.plan.Type,
-			Version:  d.plan.Version,
-		},
+		Origin:          d.eventOrigin,
+		Plan:            eventPlan,
 		ExitStatus:      int(status),
 		FetchedVersion:  versionInfo.Version,
 		FetchedMetadata: versionInfo.Metadata,

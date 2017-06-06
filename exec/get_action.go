@@ -16,28 +16,30 @@ import (
 )
 
 type GetAction struct {
-	Type         string
-	Name         string
-	Resource     string
-	Source       atc.Source
-	Params       atc.Params
-	Version      atc.Version
-	Tags         atc.Tags
-	RootFSSource RootFSSource
-	Outputs      []string
-
-	result *atc.VersionInfo
+	Type            string
+	Name            string
+	Resource        string
+	Source          atc.Source
+	Params          atc.Params
+	VersionProvider VersionProvider
+	Tags            atc.Tags
+	RootFSSource    RootFSSource
+	Outputs         []string
 
 	// TODO: can we remove these dependencies?
-	imageFetchingDelegate ImageFetchingDelegate
-	resourceFetcher       resource.Fetcher
-	teamID                int
-	containerMetadata     db.ContainerMetadata
-	resourceInstance      resource.ResourceInstance
-	stepMetadata          StepMetadata
+	imageFetchingDelegate  ImageFetchingDelegate
+	resourceFetcher        resource.Fetcher
+	teamID                 int
+	buildID                int
+	planID                 atc.PlanID
+	containerMetadata      db.ContainerMetadata
+	dbResourceCacheFactory db.ResourceCacheFactory
+	stepMetadata           StepMetadata
 
 	// TODO: remove after all actions are introduced
 	resourceTypes atc.VersionedResourceTypes
+
+	result *VersionInfo
 }
 
 func (action *GetAction) Run(
@@ -48,14 +50,29 @@ func (action *GetAction) Run(
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) error {
+	version, err := action.VersionProvider.GetVersion()
+	if err != nil {
+		return err
+	}
+
 	// TODO: can we remove resource definition?
 	resourceDefinition := &getResource{
 		source:                action.Source,
 		resourceType:          resource.ResourceType(action.Type),
 		imageFetchingDelegate: action.imageFetchingDelegate,
 		params:                action.Params,
-		version:               action.Version,
+		version:               version,
 	}
+	resourceInstance := resource.NewResourceInstance(
+		resource.ResourceType(action.Type),
+		version,
+		action.Source,
+		action.Params,
+		db.ForBuild(action.buildID),
+		db.NewBuildStepContainerOwner(action.buildID, action.planID),
+		action.resourceTypes,
+		action.dbResourceCacheFactory,
+	)
 
 	versionedSource, err := action.resourceFetcher.Fetch(
 		logger,
@@ -65,7 +82,7 @@ func (action *GetAction) Run(
 		action.Tags,
 		action.teamID,
 		action.resourceTypes,
-		action.resourceInstance,
+		resourceInstance,
 		action.stepMetadata,
 		action.imageFetchingDelegate,
 		resourceDefinition,
@@ -81,12 +98,12 @@ func (action *GetAction) Run(
 	for _, outputName := range action.Outputs {
 		repository.RegisterSource(worker.ArtifactName(outputName), &getArtifactSource{
 			logger:           logger,
-			resourceInstance: action.resourceInstance,
+			resourceInstance: resourceInstance,
 			versionedSource:  versionedSource,
 		})
 	}
 
-	action.result = &atc.VersionInfo{
+	action.result = &VersionInfo{
 		Version:  versionedSource.Version(),
 		Metadata: versionedSource.Metadata(),
 	}
@@ -94,12 +111,12 @@ func (action *GetAction) Run(
 	return nil
 }
 
-func (action *GetAction) Result() (atc.VersionInfo, bool) {
+func (action *GetAction) Result() (VersionInfo, bool) {
 	if action.result != nil {
 		return *action.result, true
 	}
 
-	return atc.VersionInfo{}, false
+	return VersionInfo{}, false
 }
 
 type getArtifactSource struct {

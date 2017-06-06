@@ -48,13 +48,14 @@ type AggregatePlan []Plan
 type DoPlan []Plan
 
 type GetPlan struct {
-	Type     string  `json:"type"`
-	Name     string  `json:"name,omitempty"`
-	Resource string  `json:"resource"`
-	Source   Source  `json:"source"`
-	Params   Params  `json:"params,omitempty"`
-	Version  Version `json:"version,omitempty"`
-	Tags     Tags    `json:"tags,omitempty"`
+	Type        string   `json:"type"`
+	Name        string   `json:"name,omitempty"`
+	Resource    string   `json:"resource"`
+	Source      Source   `json:"source"`
+	Params      Params   `json:"params,omitempty"`
+	Version     *Version `json:"version,omitempty"`
+	VersionFrom *PlanID  `json:"version_from,omitempty"`
+	Tags        Tags     `json:"tags,omitempty"`
 
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
@@ -68,8 +69,6 @@ type PutPlan struct {
 	Tags     Tags   `json:"tags,omitempty"`
 
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
-
-	Result *Version
 }
 
 type TaskPlan struct {

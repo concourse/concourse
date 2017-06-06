@@ -67,9 +67,14 @@ func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		err := action.Run(s.logger, s.repository, signals, ready)
 		if err != nil {
 			if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-				s.logger.Error("get-run-resource-script-failed", err)
+				s.logger.Error("resource-script-failed", err)
 				s.buildEventsDelegate.Finished(s.logger, ExitStatus(err.ExitStatus))
 				return nil
+			}
+
+			if err == resource.ErrAborted {
+				s.logger.Debug("resource-aborted")
+				return ErrInterrupted
 			}
 
 			s.logger.Error("failed-to-run-action", err)

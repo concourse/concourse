@@ -165,9 +165,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 			return atc.Plan{}, ErrResourceNotFound
 		}
 
-		var putPlanResult atc.Version
-
-		putPlan := atc.PutPlan{
+		putPlan := factory.planFactory.NewPlan(atc.PutPlan{
 			Type:     resource.Type,
 			Name:     logicalName,
 			Resource: resourceName,
@@ -176,26 +174,24 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Tags:     planConfig.Tags,
 
 			VersionedResourceTypes: resourceTypes,
+		})
 
-			Result: &putPlanResult,
-		}
-
-		dependentGetPlan := atc.GetPlan{
-			Type:     resource.Type,
-			Name:     logicalName,
-			Resource: resourceName,
-			Version:  putPlanResult,
+		dependentGetPlan := factory.planFactory.NewPlan(atc.GetPlan{
+			Type:        resource.Type,
+			Name:        logicalName,
+			Resource:    resourceName,
+			VersionFrom: &putPlan.ID,
 
 			Params: planConfig.GetParams,
 			Tags:   planConfig.Tags,
 			Source: resource.Source,
 
 			VersionedResourceTypes: resourceTypes,
-		}
+		})
 
 		plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
-			Step: factory.planFactory.NewPlan(putPlan),
-			Next: factory.planFactory.NewPlan(dependentGetPlan),
+			Step: putPlan,
+			Next: dependentGetPlan,
 		})
 
 	case planConfig.Get != "":
@@ -210,10 +206,10 @@ func (factory *buildFactory) constructUnhookedPlan(
 		}
 
 		name := planConfig.Get
-		var version db.ResourceVersion
+		var version atc.Version
 		for _, input := range inputs {
 			if input.Name == name {
-				version = input.Version
+				version = atc.Version(input.Version)
 				break
 			}
 		}
@@ -224,7 +220,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Resource: resourceName,
 			Source:   resource.Source,
 			Params:   planConfig.Params,
-			Version:  atc.Version(version),
+			Version:  &version,
 			Tags:     planConfig.Tags,
 
 			VersionedResourceTypes: resourceTypes,

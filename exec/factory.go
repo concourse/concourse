@@ -14,7 +14,7 @@ import (
 
 // Factory is used when building up the steps for a build.
 type Factory interface {
-	// Get constructs a GetStep factory.
+	// Get constructs a ActionsStep factory for Get.
 	Get(
 		lager.Logger,
 		int, // teamID
@@ -25,20 +25,15 @@ type Factory interface {
 		BuildDelegate,
 	) StepFactory
 
-	// Put constructs a PutStep factory.
+	// Put constructs a ActionsStep factory for Put.
 	Put(
 		lager.Logger,
 		int, // teamID
 		int, // buildID
-		atc.PlanID,
+		atc.Plan,
 		StepMetadata,
 		db.ContainerMetadata,
-		PutDelegate,
-		atc.ResourceConfig,
-		atc.Tags,
-		atc.Params,
-		atc.VersionedResourceTypes,
-		*atc.Version,
+		BuildDelegate,
 	) StepFactory
 
 	// Task constructs a TaskStep factory.
@@ -68,11 +63,16 @@ type StepMetadata interface {
 }
 
 type GetResultAction interface {
-	Result() (atc.VersionInfo, bool)
+	Result() (VersionInfo, bool)
+}
+
+type PutResultAction interface {
+	Result() (VersionInfo, bool)
 }
 
 type BuildDelegate interface {
 	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan, GetResultAction) BuildEventsDelegate
+	PutBuildEventsDelegate(atc.PlanID, atc.PutPlan, PutResultAction) BuildEventsDelegate
 	ImageFetchingDelegate(atc.PlanID) ImageFetchingDelegate
 }
 
@@ -104,7 +104,7 @@ type TaskDelegate interface {
 type ResourceDelegate interface {
 	Initializing()
 
-	Completed(ExitStatus, *atc.VersionInfo)
+	Completed(ExitStatus, *VersionInfo)
 	Failed(error)
 
 	ImageVersionDetermined(*db.UsedResourceCache) error
