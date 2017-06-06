@@ -291,7 +291,7 @@ var _ = Describe("Volume", func() {
 			var err error
 			defaultBuild, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(defaultBuild.ID()), db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})

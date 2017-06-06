@@ -11,12 +11,12 @@ var _ = Describe("Container", func() {
 	var (
 		creatingContainer db.CreatingContainer
 		expectedHandles   []string
-		defaultBuild      db.Build
+		build             db.Build
 	)
 
 	BeforeEach(func() {
 		var err error
-		defaultBuild, err = defaultTeam.CreateOneOffBuild()
+		build, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
 
 		creatingContainer, err = defaultTeam.CreateContainer(

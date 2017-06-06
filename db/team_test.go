@@ -266,12 +266,12 @@ var _ = Describe("Team", func() {
 
 			metaContainers = make(map[db.ContainerMetadata][]db.Container)
 			for _, meta := range sampleMetadata {
-				firstContainerCreating, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), meta)
+				firstContainerCreating, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), meta)
 				Expect(err).NotTo(HaveOccurred())
 
 				metaContainers[meta] = append(metaContainers[meta], firstContainerCreating)
 
-				secondContainerCreating, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), meta)
+				secondContainerCreating, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), meta)
 				Expect(err).NotTo(HaveOccurred())
 
 				secondContainerCreated, err := secondContainerCreating.Created()
@@ -279,7 +279,7 @@ var _ = Describe("Team", func() {
 
 				metaContainers[meta] = append(metaContainers[meta], secondContainerCreated)
 
-				thirdContainerCreating, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), meta)
+				thirdContainerCreating, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), meta)
 				Expect(err).NotTo(HaveOccurred())
 
 				thirdContainerCreated, err := thirdContainerCreating.Created()
@@ -461,7 +461,7 @@ var _ = Describe("Team", func() {
 			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), db.ContainerMetadata{Type: "task", StepName: "some-task"})
+			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), db.ContainerMetadata{Type: "task", StepName: "some-task"})
 			Expect(err).NotTo(HaveOccurred())
 
 			createdContainer, err = creatingContainer.Created()
@@ -693,7 +693,7 @@ var _ = Describe("Team", func() {
 
 			BeforeEach(func() {
 				var err error
-				container, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(defaultBuild.ID()), db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"), containerMetadata)
+				container, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"), containerMetadata)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -717,7 +717,7 @@ var _ = Describe("Team", func() {
 			var container db.CreatedContainer
 
 			BeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(defaultBuild.ID()), db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"), containerMetadata)
+				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"), containerMetadata)
 				Expect(err).NotTo(HaveOccurred())
 
 				container, err = creatingContainer.Created()

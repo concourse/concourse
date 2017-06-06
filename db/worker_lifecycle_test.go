@@ -138,7 +138,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					err = dbBuild.SaveStatus(s)
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.ForBuild(dbBuild.ID()), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+					_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -164,7 +164,7 @@ var _ = Describe("Worker Lifecycle", func() {
 				err := dbBuild.SaveStatus(s)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.ForBuild(dbBuild.ID()), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+				_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
 				Expect(err).NotTo(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -358,7 +358,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					err = dbBuild.SaveStatus(s)
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.ForBuild(dbBuild.ID()), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+					_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -385,7 +385,7 @@ var _ = Describe("Worker Lifecycle", func() {
 				err := dbBuild.SaveStatus(s)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.ForBuild(dbBuild.ID()), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+				_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
 				Expect(err).NotTo(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)

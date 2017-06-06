@@ -48,7 +48,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		JustBeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
@@ -134,7 +134,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
