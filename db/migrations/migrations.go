@@ -165,4 +165,5 @@ var Migrations = []migration.Migrator{
 	AddNonceToPipelines,
 	AddCreatingContainerIDAndStateToContainers,
 	ReplaceCreatingContainerIDWithImageCheckForContainerIDAndImageGetForContainerID,
+	DropWorkerResourceCacheFromContainers,
 }
