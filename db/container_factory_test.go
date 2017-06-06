@@ -417,7 +417,7 @@ var _ = Describe("ContainerFactory", func() {
 			})
 		})
 
-		FDescribe("containers for creating containers", func() {
+		Describe("containers for creating containers", func() {
 			var (
 				creatingTaskContainer db.CreatingContainer
 				creatingContainer     db.CreatingContainer
