@@ -99,7 +99,6 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("completion", func() {
 				BeforeEach(func() {
-					os.Setenv("GO_FLAGS_COMPLETION", "1")
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
@@ -112,12 +111,9 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
-				AfterEach(func() {
-					os.Unsetenv("GO_FLAGS_COMPLETION")
-				})
-
 				It("returns all matching pipelines", func() {
 					flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "some-")
+					flyCmd.Env = append(os.Environ(), "GO_FLAGS_COMPLETION=1")
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess).Should(gexec.Exit(0))
