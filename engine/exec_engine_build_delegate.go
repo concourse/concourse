@@ -26,7 +26,7 @@ type ImplicitOutputsRepo interface {
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	GetBuildDelegate(atc.PlanID, atc.GetPlan, *atc.VersionInfo) exec.BuildDelegate
+	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan, exec.GetResultAction) exec.BuildEventsDelegate
 	ExecutionDelegate(lager.Logger, atc.TaskPlan, event.OriginID) exec.TaskDelegate
 	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginID) exec.PutDelegate
 	ImageFetchingDelegate(atc.PlanID) exec.ImageFetchingDelegate
@@ -66,12 +66,12 @@ func newBuildDelegate(build db.Build) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) GetBuildDelegate(
+func (delegate *delegate) GetBuildEventsDelegate(
 	planID atc.PlanID,
 	plan atc.GetPlan,
-	result *atc.VersionInfo,
-) exec.BuildDelegate {
-	return NewGetBuildDelegate(delegate.build, planID, plan, delegate.implicitOutputsRepo, result)
+	getResultAction exec.GetResultAction,
+) exec.BuildEventsDelegate {
+	return NewGetBuildEventsDelegate(delegate.build, planID, plan, delegate.implicitOutputsRepo, getResultAction)
 }
 
 func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.PutPlan, id event.OriginID) exec.PutDelegate {

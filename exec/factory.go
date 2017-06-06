@@ -22,7 +22,6 @@ type Factory interface {
 		atc.Plan,
 		StepMetadata,
 		db.ContainerMetadata,
-		ImageFetchingDelegate,
 		BuildDelegate,
 	) StepFactory
 
@@ -66,6 +65,15 @@ type Factory interface {
 // it's running.
 type StepMetadata interface {
 	Env() []string
+}
+
+type GetResultAction interface {
+	Result() (atc.VersionInfo, bool)
+}
+
+type BuildDelegate interface {
+	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan, GetResultAction) BuildEventsDelegate
+	ImageFetchingDelegate(atc.PlanID) ImageFetchingDelegate
 }
 
 type ImageFetchingDelegate interface {

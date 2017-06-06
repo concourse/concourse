@@ -94,6 +94,14 @@ func (action *GetAction) Run(
 	return nil
 }
 
+func (action *GetAction) Result() (atc.VersionInfo, bool) {
+	if action.result != nil {
+		return *action.result, true
+	}
+
+	return atc.VersionInfo{}, false
+}
+
 type getArtifactSource struct {
 	logger           lager.Logger
 	resourceInstance resource.ResourceInstance

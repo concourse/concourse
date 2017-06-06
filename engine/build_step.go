@@ -145,8 +145,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		plan,
 		build.stepMetadata,
 		workerMetadata,
-		build.delegate.ImageFetchingDelegate(plan.ID),
-		build.delegate.GetBuildDelegate(plan.ID, *plan.Get, plan.Get.Result),
+		build.delegate,
 	)
 }
 

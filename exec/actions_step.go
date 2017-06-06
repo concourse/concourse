@@ -29,16 +29,16 @@ type Action interface {
 func newActionsStep(
 	logger lager.Logger, // TODO: can we move that to method? need to change all steps though
 	actions []Action,
-	buildDelegate BuildDelegate,
+	buildEventsDelegate BuildEventsDelegate,
 ) ActionsStep {
 	return ActionsStep{
-		logger:        logger,
-		actions:       actions,
-		buildDelegate: buildDelegate,
+		logger:              logger,
+		actions:             actions,
+		buildEventsDelegate: buildEventsDelegate,
 	}
 }
 
-type BuildDelegate interface {
+type BuildEventsDelegate interface {
 	Initializing(lager.Logger)
 
 	Failed(lager.Logger, error)
@@ -46,8 +46,8 @@ type BuildDelegate interface {
 }
 
 type ActionsStep struct {
-	actions       []Action
-	buildDelegate BuildDelegate
+	actions             []Action
+	buildEventsDelegate BuildEventsDelegate
 
 	logger lager.Logger // TODO: can we move that to method? need to change all steps though
 
@@ -61,24 +61,24 @@ func (s ActionsStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 }
 
 func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	s.buildDelegate.Initializing(s.logger)
+	s.buildEventsDelegate.Initializing(s.logger)
 
 	for _, action := range s.actions {
 		err := action.Run(s.logger, s.repository, signals, ready)
 		if err != nil {
 			if err, ok := err.(resource.ErrResourceScriptFailed); ok {
 				s.logger.Error("get-run-resource-script-failed", err)
-				s.buildDelegate.Finished(s.logger, ExitStatus(err.ExitStatus))
+				s.buildEventsDelegate.Finished(s.logger, ExitStatus(err.ExitStatus))
 				return nil
 			}
 
 			s.logger.Error("failed-to-run-action", err)
-			s.buildDelegate.Failed(s.logger, err)
+			s.buildEventsDelegate.Failed(s.logger, err)
 			return err
 		}
 	}
 
-	s.buildDelegate.Finished(s.logger, ExitStatus(0))
+	s.buildEventsDelegate.Finished(s.logger, ExitStatus(0))
 
 	s.succeeded = true
 

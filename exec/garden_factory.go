@@ -42,47 +42,46 @@ func (factory *gardenFactory) Get(
 	plan atc.Plan,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	imageFetchingDelegate ImageFetchingDelegate,
 	buildDelegate BuildDelegate,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
-	actions := []Action{
-		&GetAction{
-			Type:     plan.Get.Type,
-			Name:     plan.Get.Name,
-			Resource: plan.Get.Resource,
-			Source:   plan.Get.Source,
-			Params:   plan.Get.Params,
-			Version:  plan.Get.Version,
-			Tags:     plan.Get.Tags,
-			Outputs:  []string{plan.Get.Name},
+	imageFetchingDelegate := buildDelegate.ImageFetchingDelegate(plan.ID)
+	getAction := &GetAction{
+		Type:     plan.Get.Type,
+		Name:     plan.Get.Name,
+		Resource: plan.Get.Resource,
+		Source:   plan.Get.Source,
+		Params:   plan.Get.Params,
+		Version:  plan.Get.Version,
+		Tags:     plan.Get.Tags,
+		Outputs:  []string{plan.Get.Name},
 
-			result: plan.Get.Result,
+		// TODO: can we remove these dependencies?
+		imageFetchingDelegate: imageFetchingDelegate,
+		resourceFetcher:       factory.resourceFetcher,
+		teamID:                teamID,
+		containerMetadata:     workerMetadata,
+		resourceInstance: resource.NewResourceInstance(
+			resource.ResourceType(plan.Get.Type),
+			plan.Get.Version,
+			plan.Get.Source,
+			plan.Get.Params,
+			db.ForBuild(buildID),
+			db.NewBuildStepContainerOwner(buildID, plan.ID),
+			plan.Get.VersionedResourceTypes,
+			factory.dbResourceCacheFactory,
+		),
+		stepMetadata: stepMetadata,
 
-			// TODO: can we remove these dependencies?
-			imageFetchingDelegate: imageFetchingDelegate,
-			resourceFetcher:       factory.resourceFetcher,
-			teamID:                teamID,
-			containerMetadata:     workerMetadata,
-			resourceInstance: resource.NewResourceInstance(
-				resource.ResourceType(plan.Get.Type),
-				plan.Get.Version,
-				plan.Get.Source,
-				plan.Get.Params,
-				db.ForBuild(buildID),
-				db.NewBuildStepContainerOwner(buildID, plan.ID),
-				plan.Get.VersionedResourceTypes,
-				factory.dbResourceCacheFactory,
-			),
-			stepMetadata: stepMetadata,
-
-			// TODO: remove after all actions are introduced
-			resourceTypes: plan.Get.VersionedResourceTypes,
-		},
+		// TODO: remove after all actions are introduced
+		resourceTypes: plan.Get.VersionedResourceTypes,
 	}
 
-	return newActionsStep(logger, actions, buildDelegate)
+	actions := []Action{getAction}
+
+	buildEventsDelegate := buildDelegate.GetBuildEventsDelegate(plan.ID, *plan.Get, getAction)
+	return newActionsStep(logger, actions, buildEventsDelegate)
 }
 
 func (factory *gardenFactory) Put(

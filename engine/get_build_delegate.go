@@ -9,31 +9,31 @@ import (
 	"github.com/concourse/atc/exec"
 )
 
-type getBuildDelegate struct {
+type getBuildEventsDelegate struct {
 	build               db.Build
 	eventOrigin         event.Origin
 	plan                atc.GetPlan
 	implicitOutputsRepo ImplicitOutputsRepo
-	result              *atc.VersionInfo
+	resultAction        exec.GetResultAction
 }
 
-func NewGetBuildDelegate(
+func NewGetBuildEventsDelegate(
 	build db.Build,
 	planID atc.PlanID,
 	plan atc.GetPlan,
 	implicitOutputsRepo ImplicitOutputsRepo,
-	result *atc.VersionInfo,
-) exec.BuildDelegate {
-	return &getBuildDelegate{
+	resultAction exec.GetResultAction,
+) exec.BuildEventsDelegate {
+	return &getBuildEventsDelegate{
 		build:               build,
 		eventOrigin:         event.Origin{ID: event.OriginID(planID)},
 		plan:                plan,
 		implicitOutputsRepo: implicitOutputsRepo,
-		result:              result,
+		resultAction:        resultAction,
 	}
 }
 
-func (d *getBuildDelegate) Initializing(logger lager.Logger) {
+func (d *getBuildEventsDelegate) Initializing(logger lager.Logger) {
 	err := d.build.SaveEvent(event.InitializeGet{
 		Origin: d.eventOrigin,
 	})
@@ -42,7 +42,7 @@ func (d *getBuildDelegate) Initializing(logger lager.Logger) {
 	}
 }
 
-func (d *getBuildDelegate) Failed(logger lager.Logger, errVal error) {
+func (d *getBuildEventsDelegate) Failed(logger lager.Logger, errVal error) {
 	err := d.build.SaveEvent(event.Error{
 		Message: errVal.Error(),
 		Origin:  d.eventOrigin,
@@ -54,26 +54,22 @@ func (d *getBuildDelegate) Failed(logger lager.Logger, errVal error) {
 	logger.Info("errored", lager.Data{"error": errVal.Error()})
 }
 
-func (d *getBuildDelegate) Finished(logger lager.Logger, status exec.ExitStatus) {
-	var version atc.Version
-	var metadata []atc.MetadataField
+func (d *getBuildEventsDelegate) Finished(logger lager.Logger, status exec.ExitStatus) {
+	versionInfo, resultPresent := d.resultAction.Result()
 
-	if d.result != nil {
+	if resultPresent {
 		err := d.build.SaveInput(db.BuildInput{
 			Name: d.plan.Name,
 			VersionedResource: db.VersionedResource{
 				Resource: d.plan.Resource,
 				Type:     d.plan.Type,
-				Version:  db.ResourceVersion(d.result.Version),
-				Metadata: db.NewResourceMetadataFields(d.result.Metadata),
+				Version:  db.ResourceVersion(versionInfo.Version),
+				Metadata: db.NewResourceMetadataFields(versionInfo.Metadata),
 			},
 		})
 		if err != nil {
 			logger.Error("failed-to-save-input", err)
 		}
-
-		version = d.result.Version
-		metadata = d.result.Metadata
 	}
 
 	err := d.build.SaveEvent(event.FinishGet{
@@ -85,16 +81,16 @@ func (d *getBuildDelegate) Finished(logger lager.Logger, status exec.ExitStatus)
 			Version:  d.plan.Version,
 		},
 		ExitStatus:      int(status),
-		FetchedVersion:  version,
-		FetchedMetadata: metadata,
+		FetchedVersion:  versionInfo.Version,
+		FetchedMetadata: versionInfo.Metadata,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-input-event", err)
 	}
 
-	if d.result != nil {
-		d.implicitOutputsRepo.Register(d.plan.Resource, implicitOutput{plan: d.plan, info: *d.result})
+	if resultPresent {
+		d.implicitOutputsRepo.Register(d.plan.Resource, implicitOutput{plan: d.plan, info: versionInfo})
 	}
 
-	logger.Info("finished", lager.Data{"version-info": d.result})
+	logger.Info("finished", lager.Data{"version-info": versionInfo})
 }

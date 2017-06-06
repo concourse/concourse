@@ -57,8 +57,6 @@ type GetPlan struct {
 	Tags     Tags    `json:"tags,omitempty"`
 
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
-
-	Result *VersionInfo
 }
 
 type PutPlan struct {
