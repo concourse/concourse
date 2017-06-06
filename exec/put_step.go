@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -107,11 +108,11 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		})
 	}
 
-	putResource, err := step.resourceFactory.NewPutResource(
+	putResource, err := step.resourceFactory.NewResource(
 		step.logger,
 		signals,
-		step.buildID,
-		step.planID,
+		db.ForBuild(step.buildID),
+		db.NewBuildStepContainerOwner(step.buildID, step.planID),
 		step.session.Metadata,
 		containerSpec,
 		step.resourceTypes,

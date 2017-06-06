@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -195,31 +194,6 @@ var _ = Describe("Worker", func() {
 			Expect(found).To(BeTrue())
 		})
 
-	})
-
-	Describe("FindOrCreateBuildContainer", func() {
-		var container Container
-		var createErr error
-		var imageSpec ImageSpec
-
-		JustBeforeEach(func() {
-			container, createErr = gardenWorker.FindOrCreateBuildContainer(
-				logger,
-				nil,
-				nil,
-				42,
-				atc.PlanID("some-plan-id"),
-				db.ContainerMetadata{},
-				ContainerSpec{
-					ImageSpec: imageSpec,
-				},
-				atc.VersionedResourceTypes{},
-			)
-		})
-
-		It("delegates container creation to the container provider", func() {
-			Expect(fakeContainerProvider.FindOrCreateBuildContainerCallCount()).To(Equal(1))
-		})
 	})
 
 	Describe("Satisfying", func() {

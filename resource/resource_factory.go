@@ -41,17 +41,6 @@ type ResourceFactory interface {
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (Resource, error)
 
-	NewPutResource(
-		logger lager.Logger,
-		signals <-chan os.Signal,
-		buildID int,
-		planID atc.PlanID,
-		metadata db.ContainerMetadata,
-		containerSpec worker.ContainerSpec,
-		resourceTypes atc.VersionedResourceTypes,
-		imageFetchingDelegate worker.ImageFetchingDelegate,
-	) (Resource, error)
-
 	NewCheckResource(
 		logger lager.Logger,
 		signals <-chan os.Signal,
@@ -85,33 +74,6 @@ func (f *resourceFactory) NewResource(
 		imageFetchingDelegate,
 		user,
 		owner,
-		metadata,
-		containerSpec,
-		resourceTypes,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewResourceForContainer(container), nil
-}
-
-func (f *resourceFactory) NewPutResource(
-	logger lager.Logger,
-	signals <-chan os.Signal,
-	buildID int,
-	planID atc.PlanID,
-	metadata db.ContainerMetadata,
-	containerSpec worker.ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-	imageFetchingDelegate worker.ImageFetchingDelegate,
-) (Resource, error) {
-	container, err := f.workerClient.FindOrCreateBuildContainer(
-		logger,
-		signals,
-		imageFetchingDelegate,
-		buildID,
-		planID,
 		metadata,
 		containerSpec,
 		resourceTypes,

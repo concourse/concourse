@@ -139,7 +139,7 @@ var _ = Describe("GardenFactory", func() {
 
 				BeforeEach(func() {
 					fakeResource = new(resourcefakes.FakeResource)
-					fakeResourceFactory.NewPutResourceReturns(fakeResource, nil)
+					fakeResourceFactory.NewResourceReturns(fakeResource, nil)
 
 					fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 					fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -149,16 +149,16 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("initializes the resource with the correct type, session, and sources", func() {
-					Expect(fakeResourceFactory.NewPutResourceCallCount()).To(Equal(1))
+					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 
-					_, _, buildID, planID, sm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewPutResourceArgsForCall(0)
+					_, _, user, owner, sm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 					Expect(sm).To(Equal(db.ContainerMetadata{
 						Type:             db.ContainerTypePut,
 						StepName:         "some-step",
 						WorkingDirectory: "/tmp/build/put",
 					}))
-					Expect(buildID).To(Equal(42))
-					Expect(planID).To(Equal(atc.PlanID("some-plan-id")))
+					Expect(user).To(Equal(db.ForBuild(42)))
+					Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"))))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "some-resource-type",
 					}))
@@ -333,7 +333,7 @@ var _ = Describe("GardenFactory", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeResourceFactory.NewPutResourceReturns(nil, disaster)
+					fakeResourceFactory.NewResourceReturns(nil, disaster)
 				})
 
 				It("exits with the failure", func() {

@@ -134,31 +134,6 @@ func (provider *dbWorkerProvider) FindWorkerForContainer(
 	return worker, true, err
 }
 
-func (provider *dbWorkerProvider) FindWorkerForBuildContainer(
-	logger lager.Logger,
-	teamID int,
-	buildID int,
-	planID atc.PlanID,
-) (Worker, bool, error) {
-	logger = logger.Session("worker-for-build")
-	team := provider.dbTeamFactory.GetByID(teamID)
-
-	dbWorker, found, err := team.FindWorkerForBuildContainer(buildID, planID)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	worker := provider.newGardenWorker(logger, clock.NewClock(), dbWorker)
-	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
-		return nil, false, nil
-	}
-	return worker, true, err
-}
-
 func (provider *dbWorkerProvider) FindWorkerForResourceCheckContainer(
 	logger lager.Logger,
 	teamID int,

@@ -25,110 +25,6 @@ var _ = Describe("ContainerFactory", func() {
 	})
 
 	Describe("FindContainersForDeletion", func() {
-		Describe("task containers", func() {
-			var (
-				creatingContainer db.CreatingContainer
-				build             db.Build
-			)
-
-			BeforeEach(func() {
-				var err error
-				build, err = defaultJob.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
-
-				creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), fullMetadata)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Context("when the build is finded as interceptible", func() {
-				BeforeEach(func() {
-					err := build.SetInterceptible(true)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("does not find container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(creatingContainers).To(BeEmpty())
-					Expect(createdContainers).To(BeEmpty())
-					Expect(destroyingContainers).To(BeEmpty())
-				})
-			})
-
-			Context("when the build is marked as non-interceptible", func() {
-				BeforeEach(func() {
-					err := build.SetInterceptible(false)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				Context("when the container is creating", func() {
-					It("finds container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(creatingContainers).To(HaveLen(1))
-						Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
-						Expect(createdContainers).To(BeEmpty())
-						Expect(destroyingContainers).To(BeEmpty())
-					})
-				})
-
-				Context("when the container is created", func() {
-					BeforeEach(func() {
-						_, err := creatingContainer.Created()
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("finds container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(creatingContainers).To(BeEmpty())
-						Expect(createdContainers).To(HaveLen(1))
-						Expect(createdContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
-						Expect(destroyingContainers).To(BeEmpty())
-					})
-				})
-
-				Context("when the container is destroying", func() {
-					BeforeEach(func() {
-						createdContainer, err := creatingContainer.Created()
-						Expect(err).NotTo(HaveOccurred())
-						_, err = createdContainer.Destroying()
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("finds container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(creatingContainers).To(BeEmpty())
-						Expect(createdContainers).To(BeEmpty())
-						Expect(destroyingContainers).To(HaveLen(1))
-						Expect(destroyingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
-					})
-				})
-			})
-
-			Context("when build is deleted", func() {
-				BeforeEach(func() {
-					err := defaultPipeline.Destroy()
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("finds container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(creatingContainers).To(HaveLen(1))
-					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
-					Expect(createdContainers).To(BeEmpty())
-					Expect(destroyingContainers).To(BeEmpty())
-				})
-			})
-		})
-
 		Describe("check containers", func() {
 			var (
 				creatingContainer db.CreatingContainer
@@ -413,7 +309,11 @@ var _ = Describe("ContainerFactory", func() {
 				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingTaskContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), fullMetadata)
+				creatingTaskContainer, err = defaultTeam.CreateContainer(
+					defaultWorker.Name(),
+					db.NewBuildStepContainerOwner(build.ID(), "simple-plan"),
+					fullMetadata,
+				)
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewImageCheckContainerOwner(creatingTaskContainer), fullMetadata)
@@ -478,7 +378,11 @@ var _ = Describe("ContainerFactory", func() {
 				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingTaskContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), fullMetadata)
+				creatingTaskContainer, err = defaultTeam.CreateContainer(
+					defaultWorker.Name(),
+					db.NewBuildStepContainerOwner(build.ID(), "simple-plan"),
+					fullMetadata,
+				)
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewImageGetContainerOwner(creatingTaskContainer), fullMetadata)

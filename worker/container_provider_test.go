@@ -556,52 +556,6 @@ var _ = Describe("ContainerProvider", func() {
 		})
 	}
 
-	Describe("FindOrCreateBuildContainer", func() {
-		BeforeEach(func() {
-			fakeDBTeam.CreateBuildContainerReturns(fakeCreatingContainer, nil)
-			fakeLockFactory.AcquireReturns(new(lockfakes.FakeLock), true, nil)
-		})
-
-		JustBeforeEach(func() {
-			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateBuildContainer(
-				logger,
-				cancel,
-				fakeImageFetchingDelegate,
-				42,
-				atc.PlanID("some-plan-id"),
-				containerMetadata,
-				containerSpec,
-				resourceTypes,
-			)
-		})
-
-		Context("when container exists in database in creating state", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindBuildContainerOnWorkerReturns(fakeCreatingContainer, nil, nil)
-			})
-
-			ItHandlesContainerInCreatingState()
-		})
-
-		Context("when container exists in database in created state", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindBuildContainerOnWorkerReturns(nil, fakeCreatedContainer, nil)
-			})
-
-			ItHandlesContainerInCreatedState()
-		})
-
-		Context("when container does not exist in database", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindBuildContainerOnWorkerReturns(nil, nil, nil)
-			})
-
-			ItHandlesNonExistentContainer(func() int {
-				return fakeDBTeam.CreateBuildContainerCallCount()
-			})
-		})
-	})
-
 	Describe("FindOrCreateResourceCheckContainer", func() {
 		BeforeEach(func() {
 			fakeDBResourceConfigFactory.FindOrCreateResourceConfigReturns(&db.UsedResourceConfig{

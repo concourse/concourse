@@ -386,7 +386,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, 42, atc.PlanID("some-plan-id"), db.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateContainer(logger, nil, fakeImageFetchingDelegate, db.ForBuild(42), db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")), db.ContainerMetadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -424,7 +424,7 @@ var _ = Describe("DBProvider", func() {
 					fakeCreatingContainer.HandleReturns("some-handle")
 					fakeCreatedContainer = new(dbfakes.FakeCreatedContainer)
 					fakeCreatingContainer.CreatedReturns(fakeCreatedContainer, nil)
-					fakeDBTeam.CreateBuildContainerReturns(fakeCreatingContainer, nil)
+					fakeDBTeam.CreateContainerReturns(fakeCreatingContainer, nil)
 
 					workerBaseResourceType := &db.UsedWorkerBaseResourceType{ID: 42}
 					fakeDBWorkerBaseResourceTypeFactory.FindReturns(workerBaseResourceType, true, nil)
@@ -443,7 +443,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, 42, atc.PlanID("some-plan-id"), db.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateContainer(logger, nil, fakeImageFetchingDelegate, db.ForBuild(42), db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")), db.ContainerMetadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(container.Handle()).To(Equal("created-handle"))
@@ -648,98 +648,6 @@ var _ = Describe("DBProvider", func() {
 
 			BeforeEach(func() {
 				fakeDBTeam.FindWorkerForContainerByOwnerReturns(nil, false, disaster)
-			})
-
-			It("returns the error", func() {
-				Expect(findErr).To(Equal(disaster))
-				Expect(foundWorker).To(BeNil())
-				Expect(found).To(BeFalse())
-			})
-		})
-	})
-
-	Describe("FindWorkerForBuildContainer", func() {
-		var (
-			foundWorker Worker
-			found       bool
-			findErr     error
-		)
-
-		JustBeforeEach(func() {
-			foundWorker, found, findErr = provider.FindWorkerForBuildContainer(
-				logger,
-				345278,
-				42,
-				atc.PlanID("some-plan-id"),
-			)
-		})
-
-		Context("when the worker is found", func() {
-			var fakeExistingWorker *dbfakes.FakeWorker
-
-			BeforeEach(func() {
-				addr := "1.2.3.4:7777"
-
-				fakeExistingWorker = new(dbfakes.FakeWorker)
-				fakeExistingWorker.NameReturns("some-worker")
-				fakeExistingWorker.GardenAddrReturns(&addr)
-				workerVersion := "1.1.0"
-				fakeExistingWorker.VersionReturns(&workerVersion)
-
-				fakeDBTeam.FindWorkerForBuildContainerReturns(fakeExistingWorker, true, nil)
-			})
-
-			It("returns true", func() {
-				Expect(found).To(BeTrue())
-				Expect(findErr).ToNot(HaveOccurred())
-			})
-
-			It("returns the worker", func() {
-				Expect(foundWorker).ToNot(BeNil())
-				Expect(foundWorker.Name()).To(Equal("some-worker"))
-			})
-
-			It("found the worker for the right resource config", func() {
-				actualBuildID, actualPlanID := fakeDBTeam.FindWorkerForBuildContainerArgsForCall(0)
-				Expect(actualBuildID).To(Equal(42))
-				Expect(actualPlanID).To(Equal(atc.PlanID("some-plan-id")))
-			})
-
-			It("found the right team", func() {
-				actualTeam := fakeDBTeamFactory.GetByIDArgsForCall(0)
-				Expect(actualTeam).To(Equal(345278))
-			})
-
-			Context("when the worker version is outdated", func() {
-				BeforeEach(func() {
-					fakeExistingWorker.VersionReturns(nil)
-				})
-
-				It("returns an error", func() {
-					Expect(findErr).ToNot(HaveOccurred())
-					Expect(foundWorker).To(BeNil())
-					Expect(found).To(BeFalse())
-				})
-			})
-		})
-
-		Context("when the worker is not found", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindWorkerForBuildContainerReturns(nil, false, nil)
-			})
-
-			It("returns false", func() {
-				Expect(findErr).ToNot(HaveOccurred())
-				Expect(foundWorker).To(BeNil())
-				Expect(found).To(BeFalse())
-			})
-		})
-
-		Context("when finding the worker fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeDBTeam.FindWorkerForBuildContainerReturns(nil, false, disaster)
 			})
 
 			It("returns the error", func() {

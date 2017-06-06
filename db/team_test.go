@@ -266,12 +266,12 @@ var _ = Describe("Team", func() {
 
 			metaContainers = make(map[db.ContainerMetadata][]db.Container)
 			for _, meta := range sampleMetadata {
-				firstContainerCreating, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), meta)
+				firstContainerCreating, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), meta)
 				Expect(err).NotTo(HaveOccurred())
 
 				metaContainers[meta] = append(metaContainers[meta], firstContainerCreating)
 
-				secondContainerCreating, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), meta)
+				secondContainerCreating, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), meta)
 				Expect(err).NotTo(HaveOccurred())
 
 				secondContainerCreated, err := secondContainerCreating.Created()
@@ -279,7 +279,7 @@ var _ = Describe("Team", func() {
 
 				metaContainers[meta] = append(metaContainers[meta], secondContainerCreated)
 
-				thirdContainerCreating, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), meta)
+				thirdContainerCreating, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), meta)
 				Expect(err).NotTo(HaveOccurred())
 
 				thirdContainerCreated, err := thirdContainerCreating.Created()
@@ -461,7 +461,7 @@ var _ = Describe("Team", func() {
 			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), db.ContainerMetadata{Type: "task", StepName: "some-task"})
+			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(build.ID()), db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job")), db.ContainerMetadata{Type: "task", StepName: "some-task"})
 			Expect(err).NotTo(HaveOccurred())
 
 			createdContainer, err = creatingContainer.Created()
@@ -693,7 +693,7 @@ var _ = Describe("Team", func() {
 
 			BeforeEach(func() {
 				var err error
-				container, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", containerMetadata)
+				container, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(defaultBuild.ID()), db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"), containerMetadata)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -717,7 +717,7 @@ var _ = Describe("Team", func() {
 			var container db.CreatedContainer
 
 			BeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", containerMetadata)
+				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.ForBuild(defaultBuild.ID()), db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"), containerMetadata)
 				Expect(err).NotTo(HaveOccurred())
 
 				container, err = creatingContainer.Created()
@@ -835,144 +835,6 @@ var _ = Describe("Team", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(worker).To(BeNil())
-			})
-		})
-	})
-
-	Describe("FindWorkerForBuildContainer", func() {
-		var containerMetadata db.ContainerMetadata
-		var defaultBuild db.Build
-
-		BeforeEach(func() {
-			containerMetadata = db.ContainerMetadata{
-				Type:     "task",
-				StepName: "some-task",
-			}
-			var err error
-			defaultBuild, err = defaultTeam.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when there is a creating container", func() {
-			BeforeEach(func() {
-				_, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", containerMetadata)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("returns it", func() {
-				worker, found, err := defaultTeam.FindWorkerForBuildContainer(defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(worker).NotTo(BeNil())
-				Expect(worker.Name()).To(Equal(defaultWorker.Name()))
-			})
-
-			It("does not find container for another team", func() {
-				worker, found, err := otherTeam.FindWorkerForBuildContainer(defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
-				Expect(worker).To(BeNil())
-			})
-		})
-
-		Context("when there is a created container", func() {
-			BeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", containerMetadata)
-				Expect(err).NotTo(HaveOccurred())
-				_, err = creatingContainer.Created()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns it", func() {
-				worker, found, err := defaultTeam.FindWorkerForBuildContainer(defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(worker).NotTo(BeNil())
-				Expect(worker.Name()).To(Equal(defaultWorker.Name()))
-			})
-
-			It("does not find container for another team", func() {
-				worker, found, err := otherTeam.FindWorkerForBuildContainer(defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
-				Expect(worker).To(BeNil())
-			})
-		})
-
-		Context("when there is no container", func() {
-			It("returns nil", func() {
-				worker, found, err := defaultTeam.FindWorkerForBuildContainer(defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
-				Expect(worker).To(BeNil())
-			})
-		})
-	})
-
-	Describe("FindBuildContainerOnWorker", func() {
-		var containerMetadata db.ContainerMetadata
-		var defaultBuild db.Build
-
-		BeforeEach(func() {
-			containerMetadata = db.ContainerMetadata{
-				Type:     "task",
-				StepName: "some-task",
-			}
-			var err error
-			defaultBuild, err = defaultTeam.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when there is a creating container", func() {
-			BeforeEach(func() {
-				_, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", containerMetadata)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("returns it", func() {
-				creatingContainer, createdContainer, err := defaultTeam.FindBuildContainerOnWorker(defaultWorker.Name(), defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(createdContainer).To(BeNil())
-				Expect(creatingContainer).NotTo(BeNil())
-			})
-
-			It("does not find container for another team", func() {
-				creatingContainer, createdContainer, err := otherTeam.FindBuildContainerOnWorker(defaultWorker.Name(), defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(creatingContainer).To(BeNil())
-				Expect(createdContainer).To(BeNil())
-			})
-		})
-
-		Context("when there is a created container", func() {
-			BeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", containerMetadata)
-				Expect(err).NotTo(HaveOccurred())
-				_, err = creatingContainer.Created()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns it", func() {
-				creatingContainer, createdContainer, err := defaultTeam.FindBuildContainerOnWorker(defaultWorker.Name(), defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(createdContainer).NotTo(BeNil())
-				Expect(creatingContainer).To(BeNil())
-			})
-
-			It("does not find container for another team", func() {
-				creatingContainer, createdContainer, err := otherTeam.FindBuildContainerOnWorker(defaultWorker.Name(), defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(creatingContainer).To(BeNil())
-				Expect(createdContainer).To(BeNil())
-			})
-		})
-
-		Context("when there is no container", func() {
-			It("returns nil", func() {
-				creatingContainer, createdContainer, err := defaultTeam.FindBuildContainerOnWorker(defaultWorker.Name(), defaultBuild.ID(), "some-plan")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(createdContainer).To(BeNil())
-				Expect(creatingContainer).To(BeNil())
 			})
 		})
 	})

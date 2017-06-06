@@ -64,9 +64,6 @@ type Team interface {
 	CreateResourceCheckContainer(workerName string, resourceConfig *UsedResourceConfig, meta ContainerMetadata) (CreatingContainer, error)
 
 	FindWorkerForContainer(handle string) (Worker, bool, error)
-	FindWorkerForBuildContainer(buildID int, planID atc.PlanID) (Worker, bool, error)
-	FindBuildContainerOnWorker(workerName string, buildID int, planID atc.PlanID) (CreatingContainer, CreatedContainer, error)
-	CreateBuildContainer(workerName string, buildID int, planID atc.PlanID, meta ContainerMetadata) (CreatingContainer, error)
 
 	FindWorkerForContainerByOwner(ContainerOwner) (Worker, bool, error)
 	FindContainerOnWorker(workerName string, owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
@@ -250,17 +247,6 @@ func (t *team) FindWorkerForContainer(handle string) (Worker, bool, error) {
 	}))
 }
 
-func (t *team) FindWorkerForBuildContainer(
-	buildID int,
-	planID atc.PlanID,
-) (Worker, bool, error) {
-	return getWorker(t.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
-		sq.Eq{"c.build_id": buildID},
-		sq.Eq{"c.plan_id": string(planID)},
-		sq.Eq{"c.team_id": t.id},
-	}))
-}
-
 func (t *team) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool, error) {
 	ownerEq := sq.Eq{}
 	for k, v := range owner.SetMap() {
@@ -271,65 +257,6 @@ func (t *team) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool
 		sq.Eq{"c.team_id": t.id},
 		ownerEq,
 	}))
-}
-
-func (t *team) FindBuildContainerOnWorker(
-	workerName string,
-	buildID int,
-	planID atc.PlanID,
-) (CreatingContainer, CreatedContainer, error) {
-	return t.findContainer(sq.And{
-		sq.Eq{"worker_name": workerName},
-		sq.Eq{"build_id": buildID},
-		sq.Eq{"plan_id": string(planID)},
-	})
-}
-
-func (t *team) CreateBuildContainer(
-	workerName string,
-	buildID int,
-	planID atc.PlanID,
-	meta ContainerMetadata,
-) (CreatingContainer, error) {
-	handle, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
-
-	var containerID int
-	cols := []interface{}{&containerID}
-
-	metadata := &ContainerMetadata{}
-	cols = append(cols, metadata.ScanTargets()...)
-
-	insMap := meta.SQLMap()
-	insMap["worker_name"] = workerName
-	insMap["handle"] = handle.String()
-	insMap["team_id"] = t.id
-	insMap["build_id"] = buildID
-	insMap["plan_id"] = string(planID)
-
-	err = psql.Insert("containers").
-		SetMap(insMap).
-		Suffix("RETURNING id, " + strings.Join(containerMetadataColumns, ", ")).
-		RunWith(t.conn).
-		QueryRow().
-		Scan(cols...)
-	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-			return nil, ErrBuildDisappeared
-		}
-
-		return nil, err
-	}
-
-	return newCreatingContainer(
-		containerID,
-		handle.String(),
-		workerName,
-		*metadata,
-		t.conn,
-	), nil
 }
 
 func (t *team) FindContainerOnWorker(workerName string, owner ContainerOwner) (CreatingContainer, CreatedContainer, error) {

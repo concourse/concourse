@@ -155,12 +155,12 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	step.delegate.Initializing(config)
 
-	container, err := step.workerPool.FindOrCreateBuildContainer(
+	container, err := step.workerPool.FindOrCreateContainer(
 		step.logger,
 		signals,
 		step.delegate,
-		step.buildID,
-		step.planID,
+		db.ForBuild(step.buildID),
+		db.NewBuildStepContainerOwner(step.buildID, step.planID),
 		step.metadata,
 		containerSpec,
 		step.resourceTypes,

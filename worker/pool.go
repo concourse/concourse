@@ -38,13 +38,6 @@ type WorkerProvider interface {
 		resourceSource atc.Source,
 		types atc.VersionedResourceTypes,
 	) (Worker, bool, error)
-
-	FindWorkerForBuildContainer(
-		logger lager.Logger,
-		teamID int,
-		buildID int,
-		planID atc.PlanID,
-	) (Worker, bool, error)
 }
 
 var (
@@ -192,72 +185,6 @@ func (pool *pool) FindOrCreateContainer(
 		delegate,
 		user,
 		owner,
-		metadata,
-		spec,
-		resourceTypes,
-	)
-}
-
-func (pool *pool) FindOrCreateBuildContainer(
-	logger lager.Logger,
-	signals <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	buildID int,
-	planID atc.PlanID,
-	metadata db.ContainerMetadata,
-	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-) (Container, error) {
-	worker, found, err := pool.provider.FindWorkerForBuildContainer(
-		logger.Session("find-worker"),
-		spec.TeamID, // XXX: better place for this?
-		buildID,
-		planID,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		compatibleWorkers, err := pool.AllSatisfying(logger, spec.WorkerSpec(), resourceTypes)
-		if err != nil {
-			return nil, err
-		}
-
-		workersByCount := map[int][]Worker{}
-		var highestCount int
-		for _, w := range compatibleWorkers {
-			candidateInputCount := 0
-
-			for _, inputSource := range spec.Inputs {
-				_, found, err := inputSource.Source().VolumeOn(w)
-				if err != nil {
-					return nil, err
-				}
-
-				if found {
-					candidateInputCount++
-				}
-			}
-
-			workersByCount[candidateInputCount] = append(workersByCount[candidateInputCount], w)
-
-			if candidateInputCount >= highestCount {
-				highestCount = candidateInputCount
-			}
-		}
-
-		workers := workersByCount[highestCount]
-
-		worker = workers[pool.rand.Intn(len(workers))]
-	}
-
-	return worker.FindOrCreateBuildContainer(
-		logger,
-		signals,
-		delegate,
-		buildID,
-		planID,
 		metadata,
 		spec,
 		resourceTypes,

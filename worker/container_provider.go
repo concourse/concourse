@@ -101,17 +101,6 @@ type ContainerProvider interface {
 		teamID int,
 	) (Container, bool, error)
 
-	FindOrCreateBuildContainer(
-		logger lager.Logger,
-		cancel <-chan os.Signal,
-		delegate ImageFetchingDelegate,
-		buildID int,
-		planID atc.PlanID,
-		metadata db.ContainerMetadata,
-		spec ContainerSpec,
-		resourceTypes atc.VersionedResourceTypes,
-	) (Container, error)
-
 	FindOrCreateResourceCheckContainer(
 		logger lager.Logger,
 		resourceUser db.ResourceUser,
@@ -184,41 +173,6 @@ func (p *containerProvider) FindOrCreateContainer(
 			return p.dbTeamFactory.GetByID(spec.TeamID).CreateContainer(
 				p.worker.Name(),
 				owner,
-				metadata,
-			)
-		},
-	)
-}
-
-func (p *containerProvider) FindOrCreateBuildContainer(
-	logger lager.Logger,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	buildID int,
-	planID atc.PlanID,
-	metadata db.ContainerMetadata,
-	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-) (Container, error) {
-	return p.findOrCreateContainer(
-		logger,
-		db.ForBuild(buildID),
-		cancel,
-		delegate,
-		spec,
-		resourceTypes,
-		func() (db.CreatingContainer, db.CreatedContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).FindBuildContainerOnWorker(
-				p.worker.Name(),
-				buildID,
-				planID,
-			)
-		},
-		func() (db.CreatingContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).CreateBuildContainer(
-				p.worker.Name(),
-				buildID,
-				planID,
 				metadata,
 			)
 		},

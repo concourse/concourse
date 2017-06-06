@@ -19,7 +19,11 @@ var _ = Describe("Container", func() {
 		defaultBuild, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
 
-		creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", fullMetadata)
+		creatingContainer, err = defaultTeam.CreateContainer(
+			defaultWorker.Name(),
+			db.NewBuildStepContainerOwner(build.ID(), "some-plan"),
+			fullMetadata,
+		)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

@@ -14,17 +14,6 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	FindOrCreateBuildContainer(
-		lager.Logger,
-		<-chan os.Signal,
-		ImageFetchingDelegate,
-		int,
-		atc.PlanID,
-		db.ContainerMetadata,
-		ContainerSpec,
-		atc.VersionedResourceTypes,
-	) (Container, error)
-
 	FindOrCreateResourceCheckContainer(
 		logger lager.Logger,
 		resourceUser db.ResourceUser,
