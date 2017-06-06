@@ -8,55 +8,55 @@ import (
 )
 
 type FakeContainerOwner struct {
-	SetMapStub        func() map[string]interface{}
-	setMapMutex       sync.RWMutex
-	setMapArgsForCall []struct{}
-	setMapReturns     struct {
+	SQLMapStub        func() map[string]interface{}
+	sQLMapMutex       sync.RWMutex
+	sQLMapArgsForCall []struct{}
+	sQLMapReturns     struct {
 		result1 map[string]interface{}
 	}
-	setMapReturnsOnCall map[int]struct {
+	sQLMapReturnsOnCall map[int]struct {
 		result1 map[string]interface{}
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerOwner) SetMap() map[string]interface{} {
-	fake.setMapMutex.Lock()
-	ret, specificReturn := fake.setMapReturnsOnCall[len(fake.setMapArgsForCall)]
-	fake.setMapArgsForCall = append(fake.setMapArgsForCall, struct{}{})
-	fake.recordInvocation("SetMap", []interface{}{})
-	fake.setMapMutex.Unlock()
-	if fake.SetMapStub != nil {
-		return fake.SetMapStub()
+func (fake *FakeContainerOwner) SQLMap() map[string]interface{} {
+	fake.sQLMapMutex.Lock()
+	ret, specificReturn := fake.sQLMapReturnsOnCall[len(fake.sQLMapArgsForCall)]
+	fake.sQLMapArgsForCall = append(fake.sQLMapArgsForCall, struct{}{})
+	fake.recordInvocation("SQLMap", []interface{}{})
+	fake.sQLMapMutex.Unlock()
+	if fake.SQLMapStub != nil {
+		return fake.SQLMapStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.setMapReturns.result1
+	return fake.sQLMapReturns.result1
 }
 
-func (fake *FakeContainerOwner) SetMapCallCount() int {
-	fake.setMapMutex.RLock()
-	defer fake.setMapMutex.RUnlock()
-	return len(fake.setMapArgsForCall)
+func (fake *FakeContainerOwner) SQLMapCallCount() int {
+	fake.sQLMapMutex.RLock()
+	defer fake.sQLMapMutex.RUnlock()
+	return len(fake.sQLMapArgsForCall)
 }
 
-func (fake *FakeContainerOwner) SetMapReturns(result1 map[string]interface{}) {
-	fake.SetMapStub = nil
-	fake.setMapReturns = struct {
+func (fake *FakeContainerOwner) SQLMapReturns(result1 map[string]interface{}) {
+	fake.SQLMapStub = nil
+	fake.sQLMapReturns = struct {
 		result1 map[string]interface{}
 	}{result1}
 }
 
-func (fake *FakeContainerOwner) SetMapReturnsOnCall(i int, result1 map[string]interface{}) {
-	fake.SetMapStub = nil
-	if fake.setMapReturnsOnCall == nil {
-		fake.setMapReturnsOnCall = make(map[int]struct {
+func (fake *FakeContainerOwner) SQLMapReturnsOnCall(i int, result1 map[string]interface{}) {
+	fake.SQLMapStub = nil
+	if fake.sQLMapReturnsOnCall == nil {
+		fake.sQLMapReturnsOnCall = make(map[int]struct {
 			result1 map[string]interface{}
 		})
 	}
-	fake.setMapReturnsOnCall[i] = struct {
+	fake.sQLMapReturnsOnCall[i] = struct {
 		result1 map[string]interface{}
 	}{result1}
 }
@@ -64,8 +64,8 @@ func (fake *FakeContainerOwner) SetMapReturnsOnCall(i int, result1 map[string]in
 func (fake *FakeContainerOwner) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.setMapMutex.RLock()
-	defer fake.setMapMutex.RUnlock()
+	fake.sQLMapMutex.RLock()
+	defer fake.sQLMapMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -33,26 +33,6 @@ type FakeResourceFactory struct {
 		result1 resource.Resource
 		result2 error
 	}
-	NewPutResourceStub        func(logger lager.Logger, signals <-chan os.Signal, buildID int, planID atc.PlanID, metadata db.ContainerMetadata, containerSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error)
-	newPutResourceMutex       sync.RWMutex
-	newPutResourceArgsForCall []struct {
-		logger                lager.Logger
-		signals               <-chan os.Signal
-		buildID               int
-		planID                atc.PlanID
-		metadata              db.ContainerMetadata
-		containerSpec         worker.ContainerSpec
-		resourceTypes         atc.VersionedResourceTypes
-		imageFetchingDelegate worker.ImageFetchingDelegate
-	}
-	newPutResourceReturns struct {
-		result1 resource.Resource
-		result2 error
-	}
-	newPutResourceReturnsOnCall map[int]struct {
-		result1 resource.Resource
-		result2 error
-	}
 	NewCheckResourceStub        func(logger lager.Logger, signals <-chan os.Signal, resourceUser db.ResourceUser, resourceType string, resourceSource atc.Source, metadata db.ContainerMetadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error)
 	newCheckResourceMutex       sync.RWMutex
 	newCheckResourceArgsForCall []struct {
@@ -136,64 +116,6 @@ func (fake *FakeResourceFactory) NewResourceReturnsOnCall(i int, result1 resourc
 	}{result1, result2}
 }
 
-func (fake *FakeResourceFactory) NewPutResource(logger lager.Logger, signals <-chan os.Signal, buildID int, planID atc.PlanID, metadata db.ContainerMetadata, containerSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error) {
-	fake.newPutResourceMutex.Lock()
-	ret, specificReturn := fake.newPutResourceReturnsOnCall[len(fake.newPutResourceArgsForCall)]
-	fake.newPutResourceArgsForCall = append(fake.newPutResourceArgsForCall, struct {
-		logger                lager.Logger
-		signals               <-chan os.Signal
-		buildID               int
-		planID                atc.PlanID
-		metadata              db.ContainerMetadata
-		containerSpec         worker.ContainerSpec
-		resourceTypes         atc.VersionedResourceTypes
-		imageFetchingDelegate worker.ImageFetchingDelegate
-	}{logger, signals, buildID, planID, metadata, containerSpec, resourceTypes, imageFetchingDelegate})
-	fake.recordInvocation("NewPutResource", []interface{}{logger, signals, buildID, planID, metadata, containerSpec, resourceTypes, imageFetchingDelegate})
-	fake.newPutResourceMutex.Unlock()
-	if fake.NewPutResourceStub != nil {
-		return fake.NewPutResourceStub(logger, signals, buildID, planID, metadata, containerSpec, resourceTypes, imageFetchingDelegate)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.newPutResourceReturns.result1, fake.newPutResourceReturns.result2
-}
-
-func (fake *FakeResourceFactory) NewPutResourceCallCount() int {
-	fake.newPutResourceMutex.RLock()
-	defer fake.newPutResourceMutex.RUnlock()
-	return len(fake.newPutResourceArgsForCall)
-}
-
-func (fake *FakeResourceFactory) NewPutResourceArgsForCall(i int) (lager.Logger, <-chan os.Signal, int, atc.PlanID, db.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) {
-	fake.newPutResourceMutex.RLock()
-	defer fake.newPutResourceMutex.RUnlock()
-	return fake.newPutResourceArgsForCall[i].logger, fake.newPutResourceArgsForCall[i].signals, fake.newPutResourceArgsForCall[i].buildID, fake.newPutResourceArgsForCall[i].planID, fake.newPutResourceArgsForCall[i].metadata, fake.newPutResourceArgsForCall[i].containerSpec, fake.newPutResourceArgsForCall[i].resourceTypes, fake.newPutResourceArgsForCall[i].imageFetchingDelegate
-}
-
-func (fake *FakeResourceFactory) NewPutResourceReturns(result1 resource.Resource, result2 error) {
-	fake.NewPutResourceStub = nil
-	fake.newPutResourceReturns = struct {
-		result1 resource.Resource
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeResourceFactory) NewPutResourceReturnsOnCall(i int, result1 resource.Resource, result2 error) {
-	fake.NewPutResourceStub = nil
-	if fake.newPutResourceReturnsOnCall == nil {
-		fake.newPutResourceReturnsOnCall = make(map[int]struct {
-			result1 resource.Resource
-			result2 error
-		})
-	}
-	fake.newPutResourceReturnsOnCall[i] = struct {
-		result1 resource.Resource
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, signals <-chan os.Signal, resourceUser db.ResourceUser, resourceType string, resourceSource atc.Source, metadata db.ContainerMetadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error) {
 	fake.newCheckResourceMutex.Lock()
 	ret, specificReturn := fake.newCheckResourceReturnsOnCall[len(fake.newCheckResourceArgsForCall)]
@@ -258,8 +180,6 @@ func (fake *FakeResourceFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.newResourceMutex.RLock()
 	defer fake.newResourceMutex.RUnlock()
-	fake.newPutResourceMutex.RLock()
-	defer fake.newPutResourceMutex.RUnlock()
 	fake.newCheckResourceMutex.RLock()
 	defer fake.newCheckResourceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

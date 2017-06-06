@@ -78,24 +78,6 @@ type FakeWorkerProvider struct {
 		result2 bool
 		result3 error
 	}
-	FindWorkerForBuildContainerStub        func(logger lager.Logger, teamID int, buildID int, planID atc.PlanID) (worker.Worker, bool, error)
-	findWorkerForBuildContainerMutex       sync.RWMutex
-	findWorkerForBuildContainerArgsForCall []struct {
-		logger  lager.Logger
-		teamID  int
-		buildID int
-		planID  atc.PlanID
-	}
-	findWorkerForBuildContainerReturns struct {
-		result1 worker.Worker
-		result2 bool
-		result3 error
-	}
-	findWorkerForBuildContainerReturnsOnCall map[int]struct {
-		result1 worker.Worker
-		result2 bool
-		result3 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -322,63 +304,6 @@ func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerReturnsOnCall
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerProvider) FindWorkerForBuildContainer(logger lager.Logger, teamID int, buildID int, planID atc.PlanID) (worker.Worker, bool, error) {
-	fake.findWorkerForBuildContainerMutex.Lock()
-	ret, specificReturn := fake.findWorkerForBuildContainerReturnsOnCall[len(fake.findWorkerForBuildContainerArgsForCall)]
-	fake.findWorkerForBuildContainerArgsForCall = append(fake.findWorkerForBuildContainerArgsForCall, struct {
-		logger  lager.Logger
-		teamID  int
-		buildID int
-		planID  atc.PlanID
-	}{logger, teamID, buildID, planID})
-	fake.recordInvocation("FindWorkerForBuildContainer", []interface{}{logger, teamID, buildID, planID})
-	fake.findWorkerForBuildContainerMutex.Unlock()
-	if fake.FindWorkerForBuildContainerStub != nil {
-		return fake.FindWorkerForBuildContainerStub(logger, teamID, buildID, planID)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.findWorkerForBuildContainerReturns.result1, fake.findWorkerForBuildContainerReturns.result2, fake.findWorkerForBuildContainerReturns.result3
-}
-
-func (fake *FakeWorkerProvider) FindWorkerForBuildContainerCallCount() int {
-	fake.findWorkerForBuildContainerMutex.RLock()
-	defer fake.findWorkerForBuildContainerMutex.RUnlock()
-	return len(fake.findWorkerForBuildContainerArgsForCall)
-}
-
-func (fake *FakeWorkerProvider) FindWorkerForBuildContainerArgsForCall(i int) (lager.Logger, int, int, atc.PlanID) {
-	fake.findWorkerForBuildContainerMutex.RLock()
-	defer fake.findWorkerForBuildContainerMutex.RUnlock()
-	return fake.findWorkerForBuildContainerArgsForCall[i].logger, fake.findWorkerForBuildContainerArgsForCall[i].teamID, fake.findWorkerForBuildContainerArgsForCall[i].buildID, fake.findWorkerForBuildContainerArgsForCall[i].planID
-}
-
-func (fake *FakeWorkerProvider) FindWorkerForBuildContainerReturns(result1 worker.Worker, result2 bool, result3 error) {
-	fake.FindWorkerForBuildContainerStub = nil
-	fake.findWorkerForBuildContainerReturns = struct {
-		result1 worker.Worker
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeWorkerProvider) FindWorkerForBuildContainerReturnsOnCall(i int, result1 worker.Worker, result2 bool, result3 error) {
-	fake.FindWorkerForBuildContainerStub = nil
-	if fake.findWorkerForBuildContainerReturnsOnCall == nil {
-		fake.findWorkerForBuildContainerReturnsOnCall = make(map[int]struct {
-			result1 worker.Worker
-			result2 bool
-			result3 error
-		})
-	}
-	fake.findWorkerForBuildContainerReturnsOnCall[i] = struct {
-		result1 worker.Worker
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -390,8 +315,6 @@ func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	defer fake.findWorkerForContainerByOwnerMutex.RUnlock()
 	fake.findWorkerForResourceCheckContainerMutex.RLock()
 	defer fake.findWorkerForResourceCheckContainerMutex.RUnlock()
-	fake.findWorkerForBuildContainerMutex.RLock()
-	defer fake.findWorkerForBuildContainerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
