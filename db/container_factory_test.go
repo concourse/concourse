@@ -293,58 +293,66 @@ var _ = Describe("ContainerFactory", func() {
 			})
 		})
 
-		Describe("get containers", func() {
+		Describe("containers owned by a build", func() {
 			var (
 				creatingContainer db.CreatingContainer
-				resourceCache     *db.UsedResourceCache
+				build             db.Build
 			)
 
 			BeforeEach(func() {
 				var err error
-				resourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
-					logger,
-					db.ForResource(defaultResource.ID()),
-					"some-base-resource-type",
-					atc.Version{"some": "version"},
-					atc.Source{"some": "source"},
-					atc.Params{},
-					atc.VersionedResourceTypes{},
-				)
+				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateResourceGetContainer(defaultWorker.Name(), resourceCache, fullMetadata)
+				creatingContainer, err = defaultTeam.CreateContainer(
+					defaultWorker.Name(),
+					db.NewBuildStepContainerOwner(build.ID(), "simple-plan"),
+					fullMetadata,
+				)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when the resource cache is deleted", func() {
+			Context("when the build is interceptible", func() {
 				BeforeEach(func() {
-					err := defaultPipeline.Destroy()
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceCacheFactory.CleanUsesForInactiveResources()
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceCacheFactory.CleanUpInvalidCaches()
+					err := build.SetInterceptible(true)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("finds the container for deletion", func() {
+				It("does not find container for deletion", func() {
 					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(creatingContainers).To(HaveLen(1))
-					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(creatingContainers).To(BeEmpty())
 					Expect(createdContainers).To(BeEmpty())
 					Expect(destroyingContainers).To(BeEmpty())
 				})
+			})
 
-				Context("when container is created", func() {
+			Context("when the build is marked as non-interceptible", func() {
+				BeforeEach(func() {
+					err := build.SetInterceptible(false)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Context("when the container is creating", func() {
+					It("finds container for deletion", func() {
+						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(creatingContainers).To(HaveLen(1))
+						Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+						Expect(createdContainers).To(BeEmpty())
+						Expect(destroyingContainers).To(BeEmpty())
+					})
+				})
+
+				Context("when the container is created", func() {
 					BeforeEach(func() {
 						_, err := creatingContainer.Created()
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("finds the container for deletion", func() {
+					It("finds container for deletion", func() {
 						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
@@ -355,7 +363,7 @@ var _ = Describe("ContainerFactory", func() {
 					})
 				})
 
-				Context("when container is destroying", func() {
+				Context("when the container is destroying", func() {
 					BeforeEach(func() {
 						createdContainer, err := creatingContainer.Created()
 						Expect(err).NotTo(HaveOccurred())
@@ -363,7 +371,7 @@ var _ = Describe("ContainerFactory", func() {
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("finds the container for deletion", func() {
+					It("finds container for deletion", func() {
 						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
@@ -375,37 +383,13 @@ var _ = Describe("ContainerFactory", func() {
 				})
 			})
 
-			Context("when volume for resource cache is initialized", func() {
-				BeforeEach(func() {
-					creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, resourceCache)
-					Expect(err).NotTo(HaveOccurred())
-					createdVolume, err := creatingVolume.Created()
-					Expect(err).NotTo(HaveOccurred())
-					err = createdVolume.Initialize()
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("finds the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(creatingContainers).To(HaveLen(1))
-					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
-					Expect(createdContainers).To(BeEmpty())
-					Expect(destroyingContainers).To(BeEmpty())
-				})
-			})
-
-			Context("when there are no uses for resource cache", func() {
+			Context("when build is deleted", func() {
 				BeforeEach(func() {
 					err := defaultPipeline.Destroy()
 					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceCacheFactory.CleanUsesForInactiveResources()
-					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("finds the container for deletion", func() {
+				It("finds container for deletion", func() {
 					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
@@ -417,7 +401,7 @@ var _ = Describe("ContainerFactory", func() {
 			})
 		})
 
-		Describe("containers for creating containers", func() {
+		Describe("containers owned by creating containers", func() {
 			var (
 				creatingTaskContainer db.CreatingContainer
 				creatingContainer     db.CreatingContainer

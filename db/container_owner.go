@@ -1,5 +1,7 @@
 package db
 
+import "github.com/concourse/atc"
+
 //go:generate counterfeiter . ContainerOwner
 
 // ContainerOwner designates the data the container should reference that
@@ -30,5 +32,29 @@ func NewCreatingContainerContainerOwner(
 func (c creatingContainerContainerOwner) SetMap() map[string]interface{} {
 	return map[string]interface{}{
 		"creating_container_id": c.Container.ID(),
+	}
+}
+
+type buildStepContainerOwner struct {
+	BuildID int
+	PlanID  atc.PlanID
+}
+
+// NewBuildStepContainerOwner references a step within a build. When the build
+// becomes non-interceptible or disappears, the container can be removed.
+func NewBuildStepContainerOwner(
+	buildID int,
+	planID atc.PlanID,
+) ContainerOwner {
+	return buildStepContainerOwner{
+		BuildID: buildID,
+		PlanID:  planID,
+	}
+}
+
+func (c buildStepContainerOwner) SetMap() map[string]interface{} {
+	return map[string]interface{}{
+		"build_id": c.BuildID,
+		"plan_id":  c.PlanID,
 	}
 }

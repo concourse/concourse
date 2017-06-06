@@ -264,39 +264,6 @@ func (pool *pool) FindOrCreateBuildContainer(
 	)
 }
 
-func (pool *pool) CreateResourceGetContainer(
-	logger lager.Logger,
-	resourceUser db.ResourceUser,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	metadata db.ContainerMetadata,
-	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-	resourceType string,
-	version atc.Version,
-	source atc.Source,
-	params atc.Params,
-) (Container, error) {
-	worker, err := pool.Satisfying(logger, spec.WorkerSpec(), resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	return worker.CreateResourceGetContainer(
-		logger,
-		resourceUser,
-		cancel,
-		delegate,
-		metadata,
-		spec,
-		resourceTypes,
-		resourceType,
-		version,
-		source,
-		params,
-	)
-}
-
 func (pool *pool) FindOrCreateResourceCheckContainer(
 	logger lager.Logger,
 	resourceUser db.ResourceUser,

@@ -20,6 +20,15 @@ type FakeResourceInstance struct {
 	resourceUserReturnsOnCall map[int]struct {
 		result1 db.ResourceUser
 	}
+	ContainerOwnerStub        func() db.ContainerOwner
+	containerOwnerMutex       sync.RWMutex
+	containerOwnerArgsForCall []struct{}
+	containerOwnerReturns     struct {
+		result1 db.ContainerOwner
+	}
+	containerOwnerReturnsOnCall map[int]struct {
+		result1 db.ContainerOwner
+	}
 	FindInitializedOnStub        func(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	findInitializedOnMutex       sync.RWMutex
 	findInitializedOnArgsForCall []struct {
@@ -100,6 +109,46 @@ func (fake *FakeResourceInstance) ResourceUserReturnsOnCall(i int, result1 db.Re
 	}
 	fake.resourceUserReturnsOnCall[i] = struct {
 		result1 db.ResourceUser
+	}{result1}
+}
+
+func (fake *FakeResourceInstance) ContainerOwner() db.ContainerOwner {
+	fake.containerOwnerMutex.Lock()
+	ret, specificReturn := fake.containerOwnerReturnsOnCall[len(fake.containerOwnerArgsForCall)]
+	fake.containerOwnerArgsForCall = append(fake.containerOwnerArgsForCall, struct{}{})
+	fake.recordInvocation("ContainerOwner", []interface{}{})
+	fake.containerOwnerMutex.Unlock()
+	if fake.ContainerOwnerStub != nil {
+		return fake.ContainerOwnerStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.containerOwnerReturns.result1
+}
+
+func (fake *FakeResourceInstance) ContainerOwnerCallCount() int {
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+	return len(fake.containerOwnerArgsForCall)
+}
+
+func (fake *FakeResourceInstance) ContainerOwnerReturns(result1 db.ContainerOwner) {
+	fake.ContainerOwnerStub = nil
+	fake.containerOwnerReturns = struct {
+		result1 db.ContainerOwner
+	}{result1}
+}
+
+func (fake *FakeResourceInstance) ContainerOwnerReturnsOnCall(i int, result1 db.ContainerOwner) {
+	fake.ContainerOwnerStub = nil
+	if fake.containerOwnerReturnsOnCall == nil {
+		fake.containerOwnerReturnsOnCall = make(map[int]struct {
+			result1 db.ContainerOwner
+		})
+	}
+	fake.containerOwnerReturnsOnCall[i] = struct {
+		result1 db.ContainerOwner
 	}{result1}
 }
 
@@ -255,6 +304,8 @@ func (fake *FakeResourceInstance) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.resourceUserMutex.RLock()
 	defer fake.resourceUserMutex.RUnlock()
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
 	fake.findInitializedOnMutex.RLock()
 	defer fake.findInitializedOnMutex.RUnlock()
 	fake.createOnMutex.RLock()

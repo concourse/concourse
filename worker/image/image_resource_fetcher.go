@@ -131,6 +131,7 @@ func (i *imageResourceFetcher) Fetch(
 		i.imageResource.Source,
 		atc.Params{},
 		i.resourceUser,
+		db.NewCreatingContainerContainerOwner(container),
 		i.customTypes,
 		i.dbResourceCacheFactory,
 	)

@@ -652,33 +652,6 @@ var _ = Describe("ContainerProvider", func() {
 		})
 	})
 
-	Describe("CreateResourceGetContainer", func() {
-		BeforeEach(func() {
-			fakeDBTeam.CreateResourceGetContainerReturns(fakeCreatingContainer, nil)
-			fakeLockFactory.AcquireReturns(new(lockfakes.FakeLock), true, nil)
-		})
-
-		JustBeforeEach(func() {
-			findOrCreateContainer, findOrCreateErr = containerProvider.CreateResourceGetContainer(
-				logger,
-				db.ForBuild(42),
-				cancel,
-				fakeImageFetchingDelegate,
-				containerMetadata,
-				containerSpec,
-				resourceTypes,
-				"some-resource",
-				atc.Version{"some": "version"},
-				atc.Source{"some": "source"},
-				atc.Params{},
-			)
-		})
-
-		ItHandlesNonExistentContainer(func() int {
-			return fakeDBTeam.CreateResourceGetContainerCallCount()
-		})
-	})
-
 	Describe("FindCreatedContainerByHandle", func() {
 		var (
 			foundContainer Container

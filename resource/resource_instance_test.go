@@ -38,6 +38,7 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
 			db.ForBuild(42),
+			db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")),
 			atc.VersionedResourceTypes{},
 			fakeResourceCacheFactory,
 		)

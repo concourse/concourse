@@ -63,8 +63,6 @@ type Team interface {
 	FindResourceCheckContainerOnWorker(workerName string, resourceConfig *UsedResourceConfig) (CreatingContainer, CreatedContainer, error)
 	CreateResourceCheckContainer(workerName string, resourceConfig *UsedResourceConfig, meta ContainerMetadata) (CreatingContainer, error)
 
-	CreateResourceGetContainer(workerName string, resourceConfig *UsedResourceCache, meta ContainerMetadata) (CreatingContainer, error)
-
 	FindWorkerForContainer(handle string) (Worker, bool, error)
 	FindWorkerForBuildContainer(buildID int, planID atc.PlanID) (Worker, bool, error)
 	FindBuildContainerOnWorker(workerName string, buildID int, planID atc.PlanID) (CreatingContainer, CreatedContainer, error)
@@ -233,64 +231,6 @@ func (t *team) CreateResourceCheckContainer(
 
 	err = tx.Commit()
 	if err != nil {
-		return nil, err
-	}
-
-	return newCreatingContainer(
-		containerID,
-		handle.String(),
-		workerName,
-		*metadata,
-		t.conn,
-	), nil
-}
-
-func (t *team) CreateResourceGetContainer(
-	workerName string,
-	resourceCache *UsedResourceCache,
-	meta ContainerMetadata,
-) (CreatingContainer, error) {
-	var workerResourcCache *UsedWorkerResourceCache
-	err := safeFindOrCreate(t.conn, func(tx Tx) error {
-		var err error
-		workerResourcCache, err = WorkerResourceCache{
-			WorkerName:    workerName,
-			ResourceCache: resourceCache,
-		}.FindOrCreate(tx)
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	handle, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
-
-	var containerID int
-	cols := []interface{}{&containerID}
-
-	metadata := &ContainerMetadata{}
-	cols = append(cols, metadata.ScanTargets()...)
-
-	insMap := meta.SQLMap()
-	insMap["worker_name"] = workerName
-	insMap["handle"] = handle.String()
-	insMap["team_id"] = t.id
-	insMap["worker_resource_cache_id"] = workerResourcCache.ID
-
-	err = psql.Insert("containers").
-		SetMap(insMap).
-		Suffix("RETURNING id, " + strings.Join(containerMetadataColumns, ", ")).
-		RunWith(t.conn).
-		QueryRow().
-		Scan(cols...)
-	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-			return nil, ErrResourceCacheDisappeared
-		}
-
 		return nil, err
 	}
 

@@ -186,6 +186,7 @@ var _ = Describe("Get", func() {
 			resourceConfig.Source,
 			params,
 			db.ForBuild(42),
+			db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")),
 			resourceTypes,
 			fakeDBResourceCacheFactory,
 		)))

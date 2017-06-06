@@ -21,6 +21,7 @@ type DependentGetStep struct {
 	tags                   atc.Tags
 	teamID                 int
 	buildID                int
+	planID                 atc.PlanID
 	delegate               ResourceDelegate
 	resourceFetcher        resource.Fetcher
 	resourceTypes          atc.VersionedResourceTypes
@@ -37,6 +38,7 @@ func newDependentGetStep(
 	tags atc.Tags,
 	teamID int,
 	buildID int,
+	planID atc.PlanID,
 	delegate ResourceDelegate,
 	resourceFetcher resource.Fetcher,
 	resourceTypes atc.VersionedResourceTypes,
@@ -52,6 +54,7 @@ func newDependentGetStep(
 		tags:                   tags,
 		teamID:                 teamID,
 		buildID:                buildID,
+		planID:                 planID,
 		delegate:               delegate,
 		resourceFetcher:        resourceFetcher,
 		resourceTypes:          resourceTypes,
@@ -77,6 +80,7 @@ func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) S
 			step.resourceConfig.Source,
 			step.params,
 			db.ForBuild(step.buildID),
+			db.NewBuildStepContainerOwner(step.buildID, step.planID),
 			step.resourceTypes,
 			step.dbResourceCacheFactory,
 		),

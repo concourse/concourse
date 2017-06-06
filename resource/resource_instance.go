@@ -14,6 +14,7 @@ import (
 
 type ResourceInstance interface {
 	ResourceUser() db.ResourceUser
+	ContainerOwner() db.ContainerOwner
 
 	FindInitializedOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	CreateOn(lager.Logger, worker.Client) (worker.Volume, error)
@@ -27,6 +28,7 @@ type resourceInstance struct {
 	source                 atc.Source
 	params                 atc.Params
 	resourceUser           db.ResourceUser
+	containerOwner         db.ContainerOwner
 	resourceTypes          atc.VersionedResourceTypes
 	dbResourceCacheFactory db.ResourceCacheFactory
 }
@@ -37,6 +39,7 @@ func NewResourceInstance(
 	source atc.Source,
 	params atc.Params,
 	resourceUser db.ResourceUser,
+	containerOwner db.ContainerOwner,
 	resourceTypes atc.VersionedResourceTypes,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 ) ResourceInstance {
@@ -46,6 +49,7 @@ func NewResourceInstance(
 		source:                 source,
 		params:                 params,
 		resourceUser:           resourceUser,
+		containerOwner:         containerOwner,
 		resourceTypes:          resourceTypes,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
@@ -53,6 +57,10 @@ func NewResourceInstance(
 
 func (instance resourceInstance) ResourceUser() db.ResourceUser {
 	return instance.resourceUser
+}
+
+func (instance resourceInstance) ContainerOwner() db.ContainerOwner {
+	return instance.containerOwner
 }
 
 func (instance resourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {

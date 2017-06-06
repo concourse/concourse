@@ -192,6 +192,7 @@ var _ = Describe("DependentGet", func() {
 				resourceConfig.Source,
 				params,
 				db.ForBuild(1234),
+				db.NewBuildStepContainerOwner(1234, atc.PlanID("some-plan-id")),
 				resourceTypes,
 				fakeDBResourceCacheFactory,
 			)))

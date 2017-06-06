@@ -25,20 +25,6 @@ type Client interface {
 		atc.VersionedResourceTypes,
 	) (Container, error)
 
-	CreateResourceGetContainer(
-		logger lager.Logger,
-		resourceUser db.ResourceUser,
-		cancel <-chan os.Signal,
-		delegate ImageFetchingDelegate,
-		metadata db.ContainerMetadata,
-		spec ContainerSpec,
-		resourceTypes atc.VersionedResourceTypes,
-		resourceType string,
-		version atc.Version,
-		source atc.Source,
-		params atc.Params,
-	) (Container, error)
-
 	FindOrCreateResourceCheckContainer(
 		logger lager.Logger,
 		resourceUser db.ResourceUser,

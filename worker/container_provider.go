@@ -124,20 +124,6 @@ type ContainerProvider interface {
 		source atc.Source,
 	) (Container, error)
 
-	CreateResourceGetContainer(
-		logger lager.Logger,
-		resourceUser db.ResourceUser,
-		cancel <-chan os.Signal,
-		delegate ImageFetchingDelegate,
-		metadata db.ContainerMetadata,
-		spec ContainerSpec,
-		resourceTypes atc.VersionedResourceTypes,
-		resourceTypeName string,
-		version atc.Version,
-		source atc.Source,
-		params atc.Params,
-	) (Container, error)
-
 	FindOrCreateContainer(
 		logger lager.Logger,
 		cancel <-chan os.Signal,
@@ -289,53 +275,6 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceCheckContainer(
 				p.worker.Name(),
 				resourceConfig,
-				metadata,
-			)
-		},
-	)
-}
-
-func (p *containerProvider) CreateResourceGetContainer(
-	logger lager.Logger,
-	resourceUser db.ResourceUser,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	metadata db.ContainerMetadata,
-	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-	resourceTypeName string,
-	version atc.Version,
-	source atc.Source,
-	params atc.Params,
-) (Container, error) {
-	resourceCache, err := p.dbResourceCacheFactory.FindOrCreateResourceCache(
-		logger,
-		resourceUser,
-		resourceTypeName,
-		version,
-		source,
-		params,
-		resourceTypes,
-	)
-	if err != nil {
-		logger.Error("failed-to-get-resource-cache", err, lager.Data{"user": resourceUser})
-		return nil, err
-	}
-
-	return p.findOrCreateContainer(
-		logger,
-		resourceUser,
-		cancel,
-		delegate,
-		spec,
-		resourceTypes,
-		func() (db.CreatingContainer, db.CreatedContainer, error) {
-			return nil, nil, nil
-		},
-		func() (db.CreatingContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceGetContainer(
-				p.worker.Name(),
-				resourceCache,
 				metadata,
 			)
 		},

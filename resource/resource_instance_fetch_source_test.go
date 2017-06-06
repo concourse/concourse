@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -29,6 +30,8 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeWorker               *workerfakes.FakeWorker
 		resourceCache            *db.UsedResourceCache
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+		fakeDelegate             *workerfakes.FakeImageFetchingDelegate
+		resourceTypes            atc.VersionedResourceTypes
 
 		signals <-chan os.Signal
 		ready   chan<- struct{}
@@ -56,11 +59,13 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		}
 
 		fakeWorker = new(workerfakes.FakeWorker)
-		fakeWorker.CreateResourceGetContainerReturns(fakeContainer, nil)
+		fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
 		fakeVolume = new(workerfakes.FakeVolume)
 		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
 		fakeResourceInstance.CreateOnReturns(fakeVolume, nil)
+		fakeResourceInstance.ResourceUserReturns(db.ForBuild(43))
+		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id")))
 		resourceCache = &db.UsedResourceCache{
 			ID: 42,
 		}
@@ -69,18 +74,32 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceMetadataField{
 			{Name: "some", Value: "metadata"},
 		}, nil)
+
+		fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
+
+		resourceTypes = atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "source"},
+				},
+				Version: atc.Version{"some-custom": "version"},
+			},
+		}
+
 		fetchSource = resource.NewResourceInstanceFetchSource(
 			logger,
 			resourceCache,
 			fakeResourceInstance,
 			fakeWorker,
 			resourceOptions,
-			nil,
+			resourceTypes,
 			atc.Tags{},
 			42,
 			resource.Session{},
 			resource.EmptyMetadata{},
-			new(workerfakes.FakeImageFetchingDelegate),
+			fakeDelegate,
 			fakeResourceCacheFactory,
 		)
 	})
@@ -168,7 +187,24 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 			It("creates container with volume and worker", func() {
 				Expect(initErr).NotTo(HaveOccurred())
-				Expect(fakeWorker.CreateResourceGetContainerCallCount()).To(Equal(1))
+				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+				_, _, delegate, user, owner, metadata, spec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				Expect(delegate).To(Equal(fakeDelegate))
+				Expect(user).To(Equal(db.ForBuild(43)))
+				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"))))
+				Expect(metadata).To(BeZero())
+				Expect(spec).To(Equal(worker.ContainerSpec{
+					TeamID: 42,
+					Tags:   []string{},
+					ImageSpec: worker.ImageSpec{
+						ResourceType: "fake-resource-type",
+					},
+					ResourceCache: &worker.VolumeMount{
+						Volume:    fakeVolume,
+						MountPath: resource.ResourcesDir("get"),
+					},
+				}))
+				Expect(types).To(Equal(resourceTypes))
 			})
 
 			It("fetches versioned source", func() {

@@ -167,17 +167,14 @@ func (s *resourceInstanceFetchSource) createContainerForVolume(volume worker.Vol
 		},
 	}
 
-	return s.worker.CreateResourceGetContainer(
+	return s.worker.FindOrCreateContainer(
 		s.logger,
-		s.resourceInstance.ResourceUser(),
 		nil,
 		s.imageFetchingDelegate,
+		s.resourceInstance.ResourceUser(),
+		s.resourceInstance.ContainerOwner(),
 		s.session.Metadata,
 		containerSpec,
 		s.resourceTypes,
-		string(s.resourceOptions.ResourceType()),
-		s.resourceOptions.Version(),
-		s.resourceOptions.Source(),
-		s.resourceOptions.Params(),
 	)
 }

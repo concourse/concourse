@@ -323,6 +323,7 @@ var _ = Describe("Image", func() {
 									atc.Source{"some": "source"},
 									atc.Params{},
 									db.ForBuild(42),
+									db.NewCreatingContainerContainerOwner(fakeCreatingContainer),
 									customTypes,
 									fakeResourceCacheFactory,
 								)))
