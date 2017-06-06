@@ -83,7 +83,7 @@ func (f *resourceConfigFactory) FindResourceConfig(
 	}
 	defer tx.Rollback()
 
-	usedResourceConfig, found, err := resourceConfig.Find(logger, tx)
+	usedResourceConfig, found, err := resourceConfig.Find(tx)
 	if err != nil {
 		return nil, false, err
 	}
@@ -117,7 +117,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	err = safeFindOrCreate(f.conn, func(tx Tx) error {
 		var err error
 
-		usedResourceConfig, err = user.UseResourceConfig(logger, tx, f.lockFactory, resourceConfig)
+		usedResourceConfig, err = user.UseResourceConfig(logger, tx, resourceConfig)
 		if err != nil {
 			return err
 		}
@@ -348,7 +348,7 @@ func acquireResourceCheckingLock(
 	err := safeFindOrCreate(conn, func(tx Tx) error {
 		var err error
 
-		usedResourceConfig, err = user.UseResourceConfig(logger, tx, lockFactory, resourceConfig)
+		usedResourceConfig, err = user.UseResourceConfig(logger, tx, resourceConfig)
 		if err != nil {
 			return err
 		}

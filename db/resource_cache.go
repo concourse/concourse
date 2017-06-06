@@ -11,7 +11,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
 
@@ -70,11 +69,8 @@ func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
 	return true, nil
 }
 
-func (cache ResourceCache) Find(
-	logger lager.Logger,
-	tx Tx,
-) (*UsedResourceCache, bool, error) {
-	usedResourceConfig, found, err := cache.ResourceConfig.Find(logger, tx)
+func (cache ResourceCache) Find(tx Tx) (*UsedResourceCache, bool, error) {
+	usedResourceConfig, found, err := cache.ResourceConfig.Find(tx)
 	if err != nil {
 		return nil, false, err
 	}
@@ -89,12 +85,11 @@ func (cache ResourceCache) Find(
 func (cache ResourceCache) findOrCreate(
 	logger lager.Logger,
 	tx Tx,
-	lockFactory lock.LockFactory,
 	user ResourceUser,
 	forColumnName string,
 	forColumnID int,
 ) (*UsedResourceCache, error) {
-	usedResourceConfig, err := user.UseResourceConfig(logger, tx, lockFactory, cache.ResourceConfig)
+	usedResourceConfig, err := user.UseResourceConfig(logger, tx, cache.ResourceConfig)
 	if err != nil {
 		return nil, err
 	}

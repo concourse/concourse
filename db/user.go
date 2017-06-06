@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db/lock"
 )
 
 // ResourceUser encapsulates the ownership of a resource cache or config, by
@@ -20,8 +19,8 @@ import (
 // when a use is no longer valid, e.g. because it's a build that completed or a
 // resource that is no longer being checked.
 type ResourceUser interface {
-	UseResourceCache(lager.Logger, Tx, lock.LockFactory, ResourceCache) (*UsedResourceCache, error)
-	UseResourceConfig(lager.Logger, Tx, lock.LockFactory, ResourceConfig) (*UsedResourceConfig, error)
+	UseResourceCache(lager.Logger, Tx, ResourceCache) (*UsedResourceCache, error)
+	UseResourceConfig(lager.Logger, Tx, ResourceConfig) (*UsedResourceConfig, error)
 
 	Description() string
 }
@@ -46,8 +45,8 @@ func (user forBuild) Description() string {
 	return fmt.Sprintf("build #%d", user.BuildID)
 }
 
-func (user forBuild) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
-	return resourceCache.findOrCreate(logger, tx, lockFactory, user, "build_id", user.BuildID)
+func (user forBuild) UseResourceCache(logger lager.Logger, tx Tx, resourceCache ResourceCache) (*UsedResourceCache, error) {
+	return resourceCache.findOrCreate(logger, tx, user, "build_id", user.BuildID)
 }
 
 // UseResourceConfig creates the ResourceConfig, recursively creating its
@@ -69,8 +68,8 @@ func (user forBuild) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lo
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (user forBuild) UseResourceConfig(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, user, "build_id", user.BuildID)
+func (user forBuild) UseResourceConfig(logger lager.Logger, tx Tx, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
+	return resourceConfig.findOrCreate(logger, tx, user, "build_id", user.BuildID)
 }
 
 type forResource struct {
@@ -85,8 +84,8 @@ func (user forResource) Description() string {
 	return fmt.Sprintf("resource %d", user.ResourceID)
 }
 
-func (user forResource) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
-	return resourceCache.findOrCreate(logger, tx, lockFactory, user, "resource_id", user.ResourceID)
+func (user forResource) UseResourceCache(logger lager.Logger, tx Tx, resourceCache ResourceCache) (*UsedResourceCache, error) {
+	return resourceCache.findOrCreate(logger, tx, user, "resource_id", user.ResourceID)
 }
 
 // UseResourceConfig creates the ResourceConfig, recursively creating its
@@ -108,8 +107,8 @@ func (user forResource) UseResourceCache(logger lager.Logger, tx Tx, lockFactory
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (user forResource) UseResourceConfig(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, user, "resource_id", user.ResourceID)
+func (user forResource) UseResourceConfig(logger lager.Logger, tx Tx, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
+	return resourceConfig.findOrCreate(logger, tx, user, "resource_id", user.ResourceID)
 }
 
 type forResourceType struct {
@@ -124,8 +123,8 @@ func (user forResourceType) Description() string {
 	return fmt.Sprintf("resource type %d", user.ResourceTypeID)
 }
 
-func (user forResourceType) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
-	return resourceCache.findOrCreate(logger, tx, lockFactory, user, "resource_type_id", user.ResourceTypeID)
+func (user forResourceType) UseResourceCache(logger lager.Logger, tx Tx, resourceCache ResourceCache) (*UsedResourceCache, error) {
+	return resourceCache.findOrCreate(logger, tx, user, "resource_type_id", user.ResourceTypeID)
 }
 
 // FindOrCreateForResourceType creates the ResourceConfig, recursively creating
@@ -147,6 +146,6 @@ func (user forResourceType) UseResourceCache(logger lager.Logger, tx Tx, lockFac
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (user forResourceType) UseResourceConfig(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, user, "resource_type_id", user.ResourceTypeID)
+func (user forResourceType) UseResourceConfig(logger lager.Logger, tx Tx, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
+	return resourceConfig.findOrCreate(logger, tx, user, "resource_type_id", user.ResourceTypeID)
 }

@@ -11,7 +11,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
 
@@ -54,7 +53,7 @@ type UsedResourceConfig struct {
 	CreatedByBaseResourceType *UsedBaseResourceType
 }
 
-func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, user ResourceUser, forColumnName string, forColumnID int) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, user ResourceUser, forColumnName string, forColumnID int) (*UsedResourceConfig, error) {
 	urc := &UsedResourceConfig{}
 
 	var parentID int
@@ -62,7 +61,7 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 	if resourceConfig.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
 
-		resourceCache, err := user.UseResourceCache(logger, tx, lockFactory, *resourceConfig.CreatedByResourceCache)
+		resourceCache, err := user.UseResourceCache(logger, tx, *resourceConfig.CreatedByResourceCache)
 		if err != nil {
 			return nil, err
 		}
@@ -167,7 +166,7 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 	return urc, nil
 }
 
-func (resourceConfig ResourceConfig) Find(logger lager.Logger, tx Tx) (*UsedResourceConfig, bool, error) {
+func (resourceConfig ResourceConfig) Find(tx Tx) (*UsedResourceConfig, bool, error) {
 	urc := &UsedResourceConfig{}
 
 	var parentID int
@@ -175,7 +174,7 @@ func (resourceConfig ResourceConfig) Find(logger lager.Logger, tx Tx) (*UsedReso
 	if resourceConfig.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
 
-		resourceCache, found, err := resourceConfig.CreatedByResourceCache.Find(logger, tx)
+		resourceCache, found, err := resourceConfig.CreatedByResourceCache.Find(tx)
 		if err != nil {
 			return nil, false, err
 		}

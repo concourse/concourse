@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
 
@@ -42,14 +41,12 @@ type ResourceCacheFactory interface {
 }
 
 type resourceCacheFactory struct {
-	conn        Conn
-	lockFactory lock.LockFactory
+	conn Conn
 }
 
-func NewResourceCacheFactory(conn Conn, lockFactory lock.LockFactory) ResourceCacheFactory {
+func NewResourceCacheFactory(conn Conn) ResourceCacheFactory {
 	return &resourceCacheFactory{
-		conn:        conn,
-		lockFactory: lockFactory,
+		conn: conn,
 	}
 }
 
@@ -77,7 +74,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 
 	err = safeFindOrCreate(f.conn, func(tx Tx) error {
 		var err error
-		usedResourceCache, err = resourceUser.UseResourceCache(logger, tx, f.lockFactory, resourceCache)
+		usedResourceCache, err = resourceUser.UseResourceCache(logger, tx, resourceCache)
 		if err != nil {
 			return err
 		}
