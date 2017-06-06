@@ -119,4 +119,5 @@ files:
   - golang.org/x/oauth2/*.go # gosub
   - golang.org/x/oauth2/github/*.go # gosub
   - golang.org/x/oauth2/internal/*.go # gosub
+  - golang.org/x/sync/syncmap/*.go # gosub
   - gopkg.in/yaml.v2/*.go # gosub
