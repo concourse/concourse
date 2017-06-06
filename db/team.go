@@ -249,7 +249,7 @@ func (t *team) FindWorkerForContainer(handle string) (Worker, bool, error) {
 
 func (t *team) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool, error) {
 	ownerEq := sq.Eq{}
-	for k, v := range owner.SetMap() {
+	for k, v := range owner.SQLMap() {
 		ownerEq["c."+k] = v
 	}
 
@@ -262,7 +262,7 @@ func (t *team) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool
 func (t *team) FindContainerOnWorker(workerName string, owner ContainerOwner) (CreatingContainer, CreatedContainer, error) {
 	return t.findContainer(sq.And{
 		sq.Eq{"worker_name": workerName},
-		sq.Eq(owner.SetMap()),
+		sq.Eq(owner.SQLMap()),
 	})
 }
 
@@ -283,7 +283,7 @@ func (t *team) CreateContainer(workerName string, owner ContainerOwner, meta Con
 	insMap["handle"] = handle.String()
 	insMap["team_id"] = t.id
 
-	for k, v := range owner.SetMap() {
+	for k, v := range owner.SQLMap() {
 		insMap[k] = v
 	}
 

@@ -8,7 +8,7 @@ import "github.com/concourse/atc"
 // identifies its lifecycle. When the owner goes away, the container should
 // be garbage collected.
 type ContainerOwner interface {
-	SetMap() map[string]interface{}
+	SQLMap() map[string]interface{}
 }
 
 // NewImageCheckContainerOwner references a container whose image resource this
@@ -26,7 +26,7 @@ type imageCheckContainerOwner struct {
 	Container CreatingContainer
 }
 
-func (c imageCheckContainerOwner) SetMap() map[string]interface{} {
+func (c imageCheckContainerOwner) SQLMap() map[string]interface{} {
 	return map[string]interface{}{
 		"image_check_container_id": c.Container.ID(),
 	}
@@ -47,7 +47,7 @@ type imageGetContainerOwner struct {
 	Container CreatingContainer
 }
 
-func (c imageGetContainerOwner) SetMap() map[string]interface{} {
+func (c imageGetContainerOwner) SQLMap() map[string]interface{} {
 	return map[string]interface{}{
 		"image_get_container_id": c.Container.ID(),
 	}
@@ -70,7 +70,7 @@ type buildStepContainerOwner struct {
 	PlanID  atc.PlanID
 }
 
-func (c buildStepContainerOwner) SetMap() map[string]interface{} {
+func (c buildStepContainerOwner) SQLMap() map[string]interface{} {
 	return map[string]interface{}{
 		"build_id": c.BuildID,
 		"plan_id":  c.PlanID,
