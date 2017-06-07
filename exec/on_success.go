@@ -12,7 +12,6 @@ type OnSuccessStep struct {
 	stepFactory    StepFactory
 	successFactory StepFactory
 
-	prev Step
 	repo *worker.ArtifactRepository
 
 	step    Step
@@ -28,11 +27,10 @@ func OnSuccess(firstStep StepFactory, secondStep StepFactory) OnSuccessStep {
 }
 
 // Using constructs an *OnSuccessStep.
-func (o OnSuccessStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
+func (o OnSuccessStep) Using(repo *worker.ArtifactRepository) Step {
 	o.repo = repo
-	o.prev = prev
 
-	o.step = o.stepFactory.Using(o.prev, o.repo)
+	o.step = o.stepFactory.Using(o.repo)
 	return &o
 }
 
@@ -57,7 +55,7 @@ func (o *OnSuccessStep) Run(signals <-chan os.Signal, ready chan<- struct{}) err
 		return nil
 	}
 
-	o.success = o.successFactory.Using(o.step, o.repo)
+	o.success = o.successFactory.Using(o.repo)
 	err := o.success.Run(signals, make(chan struct{}))
 	return err
 }

@@ -2,7 +2,6 @@ package exec
 
 import (
 	"errors"
-	"os"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -22,7 +21,7 @@ var ErrInterrupted = errors.New("interrupted")
 // determine how to run.
 // TODO: Remove Step in prev
 type StepFactory interface {
-	Using(Step, *worker.ArtifactRepository) Step
+	Using(*worker.ArtifactRepository) Step
 }
 
 //go:generate counterfeiter . Step
@@ -73,19 +72,4 @@ type ExitStatus int
 type VersionInfo struct {
 	Version  atc.Version
 	Metadata []atc.MetadataField
-}
-
-// NoopStep implements a step that successfully does nothing.
-type NoopStep struct{}
-
-// Run returns nil immediately without doing anything. It does not bother
-// indicating that it's ready or listening for signals.
-func (NoopStep) Run(<-chan os.Signal, chan<- struct{}) error {
-	return nil
-}
-
-// Result returns false. Arguably it should at least be able to indicate
-// Success (as true), though it currently does not.
-func (NoopStep) Result(interface{}) bool {
-	return false
 }

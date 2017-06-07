@@ -13,11 +13,11 @@ import (
 type Aggregate []StepFactory
 
 // Using delegates to each StepFactory and returns an AggregateStep.
-func (a Aggregate) Using(prev Step, repo *worker.ArtifactRepository) Step {
+func (a Aggregate) Using(repo *worker.ArtifactRepository) Step {
 	sources := AggregateStep{}
 
 	for _, step := range a {
-		sources = append(sources, step.Using(prev, repo))
+		sources = append(sources, step.Using(repo))
 	}
 
 	return sources

@@ -56,7 +56,7 @@ type ActionsStep struct {
 	succeeded  bool
 }
 
-func (s ActionsStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
+func (s ActionsStep) Using(repo *worker.ArtifactRepository) Step {
 	s.repository = repo
 	return &s
 }

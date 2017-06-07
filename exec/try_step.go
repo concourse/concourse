@@ -20,8 +20,8 @@ func Try(step StepFactory) TryStep {
 }
 
 // Using constructs a *TryStep.
-func (ts TryStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
-	ts.runStep = ts.step.Using(prev, repo)
+func (ts TryStep) Using(repo *worker.ArtifactRepository) Step {
+	ts.runStep = ts.step.Using(repo)
 	return &ts
 }
 

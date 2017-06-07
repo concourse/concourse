@@ -11,11 +11,11 @@ import (
 type Retry []StepFactory
 
 // Using constructs a *RetryStep.
-func (stepFactory Retry) Using(prev Step, repo *worker.ArtifactRepository) Step {
+func (stepFactory Retry) Using(repo *worker.ArtifactRepository) Step {
 	retry := &RetryStep{}
 
 	for _, subStepFactory := range stepFactory {
-		retry.Attempts = append(retry.Attempts, subStepFactory.Using(prev, repo))
+		retry.Attempts = append(retry.Attempts, subStepFactory.Using(repo))
 	}
 
 	return retry

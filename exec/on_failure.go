@@ -12,7 +12,6 @@ type OnFailureStep struct {
 	stepFactory    StepFactory
 	failureFactory StepFactory
 
-	prev Step
 	repo *worker.ArtifactRepository
 
 	step    Step
@@ -28,11 +27,10 @@ func OnFailure(firstStep StepFactory, secondStep StepFactory) OnFailureStep {
 }
 
 // Using constructs an *OnFailureStep.
-func (o OnFailureStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
+func (o OnFailureStep) Using(repo *worker.ArtifactRepository) Step {
 	o.repo = repo
-	o.prev = prev
 
-	o.step = o.stepFactory.Using(o.prev, o.repo)
+	o.step = o.stepFactory.Using(o.repo)
 	return &o
 }
 
@@ -57,7 +55,7 @@ func (o *OnFailureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) err
 	_ = o.step.Result(&success)
 
 	if !success {
-		o.failure = o.failureFactory.Using(o.step, o.repo)
+		o.failure = o.failureFactory.Using(o.repo)
 		err := o.failure.Run(signals, make(chan struct{}))
 		return err
 	}

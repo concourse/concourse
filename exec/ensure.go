@@ -13,7 +13,6 @@ type EnsureStep struct {
 	stepFactory   StepFactory
 	ensureFactory StepFactory
 
-	prev Step
 	repo *worker.ArtifactRepository
 
 	step   Step
@@ -29,11 +28,10 @@ func Ensure(firstStep StepFactory, secondStep StepFactory) EnsureStep {
 }
 
 // Using constructs an *EnsureStep.
-func (o EnsureStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
+func (o EnsureStep) Using(repo *worker.ArtifactRepository) Step {
 	o.repo = repo
-	o.prev = prev
 
-	o.step = o.stepFactory.Using(o.prev, o.repo)
+	o.step = o.stepFactory.Using(o.repo)
 	return &o
 }
 
@@ -51,7 +49,7 @@ func (o *EnsureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		errors = multierror.Append(errors, originalErr)
 	}
 
-	o.ensure = o.ensureFactory.Using(o.step, o.repo)
+	o.ensure = o.ensureFactory.Using(o.repo)
 
 	hookErr := o.ensure.Run(signals, make(chan struct{}))
 	if hookErr != nil {

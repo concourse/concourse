@@ -159,7 +159,7 @@ func (build *execBuild) Abort(lager.Logger) error {
 
 func (build *execBuild) Resume(logger lager.Logger) {
 	stepFactory := build.buildStepFactory(logger, build.metadata.Plan)
-	source := stepFactory.Using(&exec.NoopStep{}, worker.NewArtifactRepository())
+	source := stepFactory.Using(worker.NewArtifactRepository())
 
 	process := ifrit.Background(source)
 

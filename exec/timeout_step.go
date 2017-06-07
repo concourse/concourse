@@ -32,8 +32,8 @@ func Timeout(
 }
 
 // Using constructs a *TimeoutStep.
-func (ts TimeoutStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
-	ts.runStep = ts.step.Using(prev, repo)
+func (ts TimeoutStep) Using(repo *worker.ArtifactRepository) Step {
+	ts.runStep = ts.step.Using(repo)
 
 	return &ts
 }

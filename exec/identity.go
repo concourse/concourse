@@ -11,8 +11,8 @@ import (
 type Identity struct{}
 
 // Using constructs an IdentityStep.
-func (Identity) Using(prev Step, repo *worker.ArtifactRepository) Step {
-	return IdentityStep{prev}
+func (Identity) Using(repo *worker.ArtifactRepository) Step {
+	return IdentityStep{}
 }
 
 // IdentityStep does nothing, and delegates everything else to its nested step.

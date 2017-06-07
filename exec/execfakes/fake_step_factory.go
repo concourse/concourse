@@ -9,11 +9,10 @@ import (
 )
 
 type FakeStepFactory struct {
-	UsingStub        func(exec.Step, *worker.ArtifactRepository) exec.Step
+	UsingStub        func(*worker.ArtifactRepository) exec.Step
 	usingMutex       sync.RWMutex
 	usingArgsForCall []struct {
-		arg1 exec.Step
-		arg2 *worker.ArtifactRepository
+		arg1 *worker.ArtifactRepository
 	}
 	usingReturns struct {
 		result1 exec.Step
@@ -25,17 +24,16 @@ type FakeStepFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeStepFactory) Using(arg1 exec.Step, arg2 *worker.ArtifactRepository) exec.Step {
+func (fake *FakeStepFactory) Using(arg1 *worker.ArtifactRepository) exec.Step {
 	fake.usingMutex.Lock()
 	ret, specificReturn := fake.usingReturnsOnCall[len(fake.usingArgsForCall)]
 	fake.usingArgsForCall = append(fake.usingArgsForCall, struct {
-		arg1 exec.Step
-		arg2 *worker.ArtifactRepository
-	}{arg1, arg2})
-	fake.recordInvocation("Using", []interface{}{arg1, arg2})
+		arg1 *worker.ArtifactRepository
+	}{arg1})
+	fake.recordInvocation("Using", []interface{}{arg1})
 	fake.usingMutex.Unlock()
 	if fake.UsingStub != nil {
-		return fake.UsingStub(arg1, arg2)
+		return fake.UsingStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -49,10 +47,10 @@ func (fake *FakeStepFactory) UsingCallCount() int {
 	return len(fake.usingArgsForCall)
 }
 
-func (fake *FakeStepFactory) UsingArgsForCall(i int) (exec.Step, *worker.ArtifactRepository) {
+func (fake *FakeStepFactory) UsingArgsForCall(i int) *worker.ArtifactRepository {
 	fake.usingMutex.RLock()
 	defer fake.usingMutex.RUnlock()
-	return fake.usingArgsForCall[i].arg1, fake.usingArgsForCall[i].arg2
+	return fake.usingArgsForCall[i].arg1
 }
 
 func (fake *FakeStepFactory) UsingReturns(result1 exec.Step) {
