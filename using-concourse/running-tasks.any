@@ -134,6 +134,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
       \define-attribute{path: string}{
         \italic{Optional.} The path where the input will be placed. If not
         specified, the input's \code{name} is used.
+        Paths are relative to the working directory of the task. Absolute paths are not respected. 
       }
     }
   }
