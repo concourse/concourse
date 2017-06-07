@@ -14,7 +14,6 @@ import (
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
 
@@ -131,39 +130,6 @@ func (provider *dbWorkerProvider) FindWorkerForContainer(
 	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
 		return nil, false, nil
 	}
-	return worker, true, err
-}
-
-func (provider *dbWorkerProvider) FindWorkerForResourceCheckContainer(
-	logger lager.Logger,
-	teamID int,
-	resourceUser db.ResourceUser,
-	resourceType string,
-	resourceSource atc.Source,
-	resourceTypes atc.VersionedResourceTypes,
-) (Worker, bool, error) {
-	logger = logger.Session("worker-for-resource-check")
-	team := provider.dbTeamFactory.GetByID(teamID)
-
-	config, err := provider.dbResourceConfigFactory.FindOrCreateResourceConfig(logger, resourceUser, resourceType, resourceSource, resourceTypes)
-	if err != nil {
-		return nil, false, err
-	}
-
-	dbWorker, found, err := team.FindWorkerForResourceCheckContainer(config)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	worker := provider.newGardenWorker(logger, clock.NewClock(), dbWorker)
-	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
-		return nil, false, nil
-	}
-
 	return worker, true, err
 }
 

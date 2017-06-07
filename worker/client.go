@@ -14,18 +14,6 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	FindOrCreateResourceCheckContainer(
-		logger lager.Logger,
-		resourceUser db.ResourceUser,
-		cancel <-chan os.Signal,
-		delegate ImageFetchingDelegate,
-		metadata db.ContainerMetadata,
-		spec ContainerSpec,
-		resourceTypes atc.VersionedResourceTypes,
-		resourceType string,
-		source atc.Source,
-	) (Container, error)
-
 	CreateVolumeForResourceCache(
 		logger lager.Logger,
 		vs VolumeSpec,

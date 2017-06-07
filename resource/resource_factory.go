@@ -40,18 +40,6 @@ type ResourceFactory interface {
 		resourceTypes atc.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (Resource, error)
-
-	NewCheckResource(
-		logger lager.Logger,
-		signals <-chan os.Signal,
-		resourceUser db.ResourceUser,
-		resourceType string,
-		resourceSource atc.Source,
-		metadata db.ContainerMetadata,
-		resourceSpec worker.ContainerSpec,
-		resourceTypes atc.VersionedResourceTypes,
-		imageFetchingDelegate worker.ImageFetchingDelegate,
-	) (Resource, error)
 }
 
 type resourceFactory struct {
@@ -77,35 +65,6 @@ func (f *resourceFactory) NewResource(
 		metadata,
 		containerSpec,
 		resourceTypes,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewResourceForContainer(container), nil
-}
-
-func (f *resourceFactory) NewCheckResource(
-	logger lager.Logger,
-	signals <-chan os.Signal,
-	resourceUser db.ResourceUser,
-	resourceType string,
-	resourceSource atc.Source,
-	metadata db.ContainerMetadata,
-	resourceSpec worker.ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-	imageFetchingDelegate worker.ImageFetchingDelegate,
-) (Resource, error) {
-	container, err := f.workerClient.FindOrCreateResourceCheckContainer(
-		logger,
-		resourceUser,
-		signals,
-		imageFetchingDelegate,
-		metadata,
-		resourceSpec,
-		resourceTypes,
-		resourceType,
-		resourceSource,
 	)
 	if err != nil {
 		return nil, err

@@ -59,10 +59,6 @@ type Team interface {
 
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 
-	FindWorkerForResourceCheckContainer(resourceConfig *UsedResourceConfig) (Worker, bool, error)
-	FindResourceCheckContainerOnWorker(workerName string, resourceConfig *UsedResourceConfig) (CreatingContainer, CreatedContainer, error)
-	CreateResourceCheckContainer(workerName string, resourceConfig *UsedResourceConfig, meta ContainerMetadata) (CreatingContainer, error)
-
 	FindWorkerForContainer(handle string) (Worker, bool, error)
 
 	FindWorkerForContainerByOwner(ContainerOwner) (Worker, bool, error)
@@ -135,109 +131,6 @@ func (t *team) Workers() ([]Worker, error) {
 		sq.Eq{"t.id": t.id},
 		sq.Eq{"w.team_id": nil},
 	}))
-}
-
-func (t *team) FindWorkerForResourceCheckContainer(
-	resourceConfig *UsedResourceConfig,
-) (Worker, bool, error) {
-	return getWorker(t.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
-		sq.Eq{"c.resource_config_id": resourceConfig.ID},
-		sq.Or{
-			sq.Eq{"c.best_if_used_by": nil},
-			sq.Expr("c.best_if_used_by > NOW()"),
-		},
-		sq.Eq{"c.team_id": t.id},
-	}))
-}
-
-func (t *team) FindResourceCheckContainerOnWorker(
-	workerName string,
-	resourceConfig *UsedResourceConfig,
-) (CreatingContainer, CreatedContainer, error) {
-	return t.findContainer(sq.And{
-		sq.Eq{"worker_name": workerName},
-		sq.Eq{"resource_config_id": resourceConfig.ID},
-		sq.Or{
-			sq.Eq{"best_if_used_by": nil},
-			sq.Expr("best_if_used_by > NOW()"),
-		},
-	})
-}
-
-func (t *team) CreateResourceCheckContainer(
-	workerName string,
-	resourceConfig *UsedResourceConfig,
-	meta ContainerMetadata,
-) (CreatingContainer, error) {
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	handle, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
-
-	brtID := t.findBaseResourceTypeID(resourceConfig)
-	wbrtID, err := t.findWorkerBaseResourceType(brtID, workerName, tx)
-	if err != nil {
-		return nil, err
-	}
-
-	var containerID int
-	cols := []interface{}{&containerID}
-
-	metadata := &ContainerMetadata{}
-	cols = append(cols, metadata.ScanTargets()...)
-
-	var biub time.Time
-	err = psql.Select("NOW() + LEAST(GREATEST('5 minutes'::interval, NOW() - to_timestamp(w.start_time)), '1 hour'::interval)").
-		From("workers w").
-		Where(sq.Eq{"w.name": workerName}).
-		RunWith(tx).
-		QueryRow().
-		Scan(&biub)
-	if err != nil {
-		return nil, err
-	}
-
-	insMap := meta.SQLMap()
-	insMap["worker_name"] = workerName
-	insMap["handle"] = handle.String()
-	insMap["team_id"] = t.id
-	insMap["resource_config_id"] = resourceConfig.ID
-	insMap["worker_base_resource_type_id"] = wbrtID
-	insMap["best_if_used_by"] = biub
-
-	err = psql.Insert("containers").
-		SetMap(insMap).
-		Suffix("RETURNING id, " + strings.Join(containerMetadataColumns, ", ")).
-		RunWith(tx).
-		QueryRow().
-		Scan(cols...)
-	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-			return nil, ErrResourceConfigDisappeared
-		}
-
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return newCreatingContainer(
-		containerID,
-		handle.String(),
-		workerName,
-		*metadata,
-		t.conn,
-	), nil
 }
 
 func (t *team) FindWorkerForContainer(handle string) (Worker, bool, error) {
@@ -1197,27 +1090,6 @@ func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]P
 	}
 
 	return pipelines, nil
-}
-
-func (t *team) findBaseResourceTypeID(resourceConfig *UsedResourceConfig) *UsedBaseResourceType {
-	if resourceConfig.CreatedByBaseResourceType != nil {
-		return resourceConfig.CreatedByBaseResourceType
-	} else {
-		return t.findBaseResourceTypeID(resourceConfig.CreatedByResourceCache.ResourceConfig)
-	}
-}
-
-func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResourceType, workerName string, tx Tx) (int, error) {
-	var wbrtID int
-	err := psql.Select("id").From("worker_base_resource_types").Where(sq.Eq{
-		"worker_name":           workerName,
-		"base_resource_type_id": usedBaseResourceType.ID,
-	}).RunWith(tx).QueryRow().Scan(&wbrtID)
-	if err != nil {
-		return 0, err
-	}
-
-	return wbrtID, nil
 }
 
 func (t *team) queryTeam(query string, params []interface{}) error {

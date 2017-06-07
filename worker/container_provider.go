@@ -101,18 +101,6 @@ type ContainerProvider interface {
 		teamID int,
 	) (Container, bool, error)
 
-	FindOrCreateResourceCheckContainer(
-		logger lager.Logger,
-		resourceUser db.ResourceUser,
-		cancel <-chan os.Signal,
-		delegate ImageFetchingDelegate,
-		metadata db.ContainerMetadata,
-		spec ContainerSpec,
-		resourceTypes atc.VersionedResourceTypes,
-		resourceType string,
-		source atc.Source,
-	) (Container, error)
-
 	FindOrCreateContainer(
 		logger lager.Logger,
 		cancel <-chan os.Signal,
@@ -156,148 +144,13 @@ func (p *containerProvider) FindOrCreateContainer(
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
-	return p.findOrCreateContainer(
-		logger,
-		resourceUser,
-		cancel,
-		delegate,
-		spec,
-		resourceTypes,
-		func() (db.CreatingContainer, db.CreatedContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).FindContainerOnWorker(
-				p.worker.Name(),
-				owner,
-			)
-		},
-		func() (db.CreatingContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).CreateContainer(
-				p.worker.Name(),
-				owner,
-				metadata,
-			)
-		},
-	)
-}
-
-func (p *containerProvider) FindOrCreateResourceCheckContainer(
-	logger lager.Logger,
-	resourceUser db.ResourceUser,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	metadata db.ContainerMetadata,
-	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-	resourceType string,
-	source atc.Source,
-) (Container, error) {
-	resourceConfig, err := p.dbResourceConfigFactory.FindOrCreateResourceConfig(
-		logger,
-		resourceUser,
-		resourceType,
-		source,
-		resourceTypes,
-	)
-	if err != nil {
-		logger.Error("failed-to-get-resource-config", err)
-		return nil, err
-	}
-
-	return p.findOrCreateContainer(
-		logger,
-		resourceUser,
-		cancel,
-		delegate,
-		spec,
-		resourceTypes,
-		func() (db.CreatingContainer, db.CreatedContainer, error) {
-			logger.Debug("looking-for-container-in-db", lager.Data{
-				"team-id":            spec.TeamID,
-				"worker-name":        p.worker.Name(),
-				"resource-config-id": resourceConfig.ID,
-			})
-			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainerOnWorker(
-				p.worker.Name(),
-				resourceConfig,
-			)
-		},
-		func() (db.CreatingContainer, error) {
-			logger.Debug("creating-container-in-db", lager.Data{
-				"team-id":            spec.TeamID,
-				"worker-name":        p.worker.Name(),
-				"resource-config-id": resourceConfig.ID,
-			})
-			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceCheckContainer(
-				p.worker.Name(),
-				resourceConfig,
-				metadata,
-			)
-		},
-	)
-}
-
-func (p *containerProvider) FindCreatedContainerByHandle(
-	logger lager.Logger,
-	handle string,
-	teamID int,
-) (Container, bool, error) {
-	gardenContainer, err := p.gardenClient.Lookup(handle)
-	if err != nil {
-		if _, ok := err.(garden.ContainerNotFoundError); ok {
-			logger.Info("container-not-found")
-			return nil, false, nil
-		}
-
-		logger.Error("failed-to-lookup-on-garden", err)
-		return nil, false, err
-	}
-
-	createdContainer, found, err := p.dbTeamFactory.GetByID(teamID).FindCreatedContainerByHandle(handle)
-	if err != nil {
-		logger.Error("failed-to-lookup-in-db", err)
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
-	if err != nil {
-		return nil, false, err
-	}
-
-	container, err := newGardenWorkerContainer(
-		logger,
-		gardenContainer,
-		createdContainer,
-		createdVolumes,
-		p.gardenClient,
-		p.baggageclaimClient,
-		p.worker.Name(),
-	)
-
-	if err != nil {
-		logger.Error("failed-to-construct-container", err)
-		return nil, false, err
-	}
-
-	return container, true, nil
-}
-
-func (p *containerProvider) findOrCreateContainer(
-	logger lager.Logger,
-	resourceUser db.ResourceUser,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-	findContainerFunc func() (db.CreatingContainer, db.CreatedContainer, error),
-	createContainerFunc func() (db.CreatingContainer, error),
-) (Container, error) {
 	for {
 		var gardenContainer garden.Container
 
-		creatingContainer, createdContainer, err := findContainerFunc()
+		creatingContainer, createdContainer, err := p.dbTeamFactory.GetByID(spec.TeamID).FindContainerOnWorker(
+			p.worker.Name(),
+			owner,
+		)
 		if err != nil {
 			logger.Error("failed-to-find-container-in-db", err)
 			return nil, err
@@ -333,7 +186,6 @@ func (p *containerProvider) findOrCreateContainer(
 					return nil, err
 				}
 			}
-
 		}
 
 		if gardenContainer != nil {
@@ -356,7 +208,11 @@ func (p *containerProvider) findOrCreateContainer(
 			if creatingContainer == nil {
 				logger.Debug("creating-container-in-db")
 
-				creatingContainer, err = createContainerFunc()
+				creatingContainer, err = p.dbTeamFactory.GetByID(spec.TeamID).CreateContainer(
+					p.worker.Name(),
+					owner,
+					metadata,
+				)
 				if err != nil {
 					logger.Error("failed-to-create-container-in-db", err)
 					return nil, err
@@ -418,6 +274,55 @@ func (p *containerProvider) findOrCreateContainer(
 			gardenContainer,
 		)
 	}
+}
+
+func (p *containerProvider) FindCreatedContainerByHandle(
+	logger lager.Logger,
+	handle string,
+	teamID int,
+) (Container, bool, error) {
+	gardenContainer, err := p.gardenClient.Lookup(handle)
+	if err != nil {
+		if _, ok := err.(garden.ContainerNotFoundError); ok {
+			logger.Info("container-not-found")
+			return nil, false, nil
+		}
+
+		logger.Error("failed-to-lookup-on-garden", err)
+		return nil, false, err
+	}
+
+	createdContainer, found, err := p.dbTeamFactory.GetByID(teamID).FindCreatedContainerByHandle(handle)
+	if err != nil {
+		logger.Error("failed-to-lookup-in-db", err)
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
+	if err != nil {
+		return nil, false, err
+	}
+
+	container, err := newGardenWorkerContainer(
+		logger,
+		gardenContainer,
+		createdContainer,
+		createdVolumes,
+		p.gardenClient,
+		p.baggageclaimClient,
+		p.worker.Name(),
+	)
+
+	if err != nil {
+		logger.Error("failed-to-construct-container", err)
+		return nil, false, err
+	}
+
+	return container, true, nil
 }
 
 func (p *containerProvider) constructGardenWorkerContainer(

@@ -185,32 +185,6 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	)
 }
 
-func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
-	logger lager.Logger,
-	resourceUser db.ResourceUser,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	metadata db.ContainerMetadata,
-	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-	resourceType string,
-	source atc.Source,
-) (Container, error) {
-	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-
-	return containerProvider.FindOrCreateResourceCheckContainer(
-		logger,
-		resourceUser,
-		cancel,
-		delegate,
-		metadata,
-		spec,
-		resourceTypes,
-		resourceType,
-		source,
-	)
-}
-
 func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
 	return containerProvider.FindCreatedContainerByHandle(logger, handle, teamID)

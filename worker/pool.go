@@ -29,15 +29,6 @@ type WorkerProvider interface {
 		teamID int,
 		owner db.ContainerOwner,
 	) (Worker, bool, error)
-
-	FindWorkerForResourceCheckContainer(
-		logger lager.Logger,
-		teamID int,
-		resourceUser db.ResourceUser,
-		resourceType string,
-		resourceSource atc.Source,
-		types atc.VersionedResourceTypes,
-	) (Worker, bool, error)
 }
 
 var (
@@ -188,49 +179,6 @@ func (pool *pool) FindOrCreateContainer(
 		metadata,
 		spec,
 		resourceTypes,
-	)
-}
-
-func (pool *pool) FindOrCreateResourceCheckContainer(
-	logger lager.Logger,
-	resourceUser db.ResourceUser,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	metadata db.ContainerMetadata,
-	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-	resourceType string,
-	source atc.Source,
-) (Container, error) {
-	worker, found, err := pool.provider.FindWorkerForResourceCheckContainer(
-		logger.Session("find-worker"),
-		spec.TeamID, // XXX: better place for this?
-		resourceUser,
-		resourceType,
-		source,
-		resourceTypes,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		worker, err = pool.Satisfying(logger, spec.WorkerSpec(), resourceTypes)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return worker.FindOrCreateResourceCheckContainer(
-		logger,
-		resourceUser,
-		cancel,
-		delegate,
-		metadata,
-		spec,
-		resourceTypes,
-		resourceType,
-		source,
 	)
 }
 
