@@ -59,11 +59,12 @@ var _ = Describe("ContainerProvider", func() {
 		fakeLocalCOWVolume             *workerfakes.FakeVolume
 		fakeResourceCacheVolume        *workerfakes.FakeVolume
 
-		cancel            <-chan os.Signal
-		containerSpec     ContainerSpec
-		resourceUser      db.ResourceUser
-		containerMetadata db.ContainerMetadata
-		resourceTypes     atc.VersionedResourceTypes
+		cancel             <-chan os.Signal
+		containerSpec      ContainerSpec
+		resourceUser       db.ResourceUser
+		fakeContainerOwner *dbfakes.FakeContainerOwner
+		containerMetadata  db.ContainerMetadata
+		resourceTypes      atc.VersionedResourceTypes
 
 		findOrCreateErr       error
 		findOrCreateContainer Container
@@ -200,6 +201,7 @@ var _ = Describe("ContainerProvider", func() {
 		cancel = make(chan os.Signal)
 
 		resourceUser = db.ForBuild(42)
+		fakeContainerOwner = new(dbfakes.FakeContainerOwner)
 
 		containerMetadata = db.ContainerMetadata{
 			StepName: "some-step",
@@ -555,6 +557,52 @@ var _ = Describe("ContainerProvider", func() {
 			})
 		})
 	}
+
+	Describe("FindOrCreateContainer", func() {
+		BeforeEach(func() {
+			fakeDBTeam.CreateContainerReturns(fakeCreatingContainer, nil)
+			fakeLockFactory.AcquireReturns(new(lockfakes.FakeLock), true, nil)
+		})
+
+		JustBeforeEach(func() {
+			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateContainer(
+				logger,
+				cancel,
+				resourceUser,
+				fakeContainerOwner,
+				fakeImageFetchingDelegate,
+				containerMetadata,
+				containerSpec,
+				resourceTypes,
+			)
+		})
+
+		Context("when container exists in database in creating state", func() {
+			BeforeEach(func() {
+				fakeDBTeam.FindContainerOnWorkerReturns(fakeCreatingContainer, nil, nil)
+			})
+
+			ItHandlesContainerInCreatingState()
+		})
+
+		Context("when container exists in database in created state", func() {
+			BeforeEach(func() {
+				fakeDBTeam.FindContainerOnWorkerReturns(nil, fakeCreatedContainer, nil)
+			})
+
+			ItHandlesContainerInCreatedState()
+		})
+
+		Context("when container does not exist in database", func() {
+			BeforeEach(func() {
+				fakeDBTeam.FindContainerOnWorkerReturns(nil, nil, nil)
+			})
+
+			ItHandlesNonExistentContainer(func() int {
+				return fakeDBTeam.CreateContainerCallCount()
+			})
+		})
+	})
 
 	Describe("FindCreatedContainerByHandle", func() {
 		var (
