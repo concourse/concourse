@@ -591,6 +591,10 @@ var _ = Describe("Team", func() {
 				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
 			}, true, nil)
+			fakeOwner.CreateReturns(map[string]interface{}{
+				"build_id": build.ID(),
+				"plan_id":  "simple-plan",
+			}, nil)
 		})
 
 		Context("when there is a creating container", func() {
@@ -652,6 +656,10 @@ var _ = Describe("Team", func() {
 					"build_id": build.ID() + 1,
 					"plan_id":  "how-could-this-happen-to-me",
 				}, true, nil)
+				bogusOwner.CreateReturns(map[string]interface{}{
+					"build_id": build.ID() + 1,
+					"plan_id":  "how-could-this-happen-to-me",
+				}, nil)
 
 				worker, found, err := defaultTeam.FindWorkerForContainerByOwner(bogusOwner)
 				Expect(err).NotTo(HaveOccurred())
@@ -1757,6 +1765,10 @@ var _ = Describe("Team", func() {
 				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
 			}, true, nil)
+			fakeOwner.CreateReturns(map[string]interface{}{
+				"build_id": build.ID(),
+				"plan_id":  "simple-plan",
+			}, nil)
 
 			team = defaultTeam
 		})
