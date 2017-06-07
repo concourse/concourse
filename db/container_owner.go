@@ -108,6 +108,10 @@ func (c buildStepContainerOwner) sqlMap() map[string]interface{} {
 	}
 }
 
+// NewResourceConfigCheckSessionContainerOwner references a resource config and
+// worker base resource type, with an expiry. When the resource config or
+// worker base resource type disappear, or the expiry is reached, the container
+// can be removed.
 func NewResourceConfigCheckSessionContainerOwner(
 	resourceConfig *UsedResourceConfig,
 ) ContainerOwner {
