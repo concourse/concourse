@@ -44,10 +44,10 @@ var _ = Describe("Identity", func() {
 		})
 	})
 
-	Describe("Result", func() {
+	Describe("Succeeded", func() {
 		It("calls through to the input source", func() {
 			var result int
-			step.Result(&result)
+			step.Succeeded(&result)
 
 			Expect(inStep.ResultCallCount()).To(Equal(1))
 			Expect(inStep.ResultArgsForCall(0)).To(Equal(&result))

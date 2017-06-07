@@ -35,14 +35,7 @@ func (ts *TryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	return nil
 }
 
-// Result indicates Success as true, and delegates everything else to the
-// nested step.
-func (ts *TryStep) Result(x interface{}) bool {
-	switch v := x.(type) {
-	case *Success:
-		*v = Success(true)
-		return true
-	default:
-		return ts.runStep.Result(x)
-	}
+// Succeeded is true
+func (ts *TryStep) Succeeded() bool {
+	return true
 }

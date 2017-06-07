@@ -88,7 +88,7 @@ var _ = Describe("Timeout Step", func() {
 				Expect(<-process.Wait()).To(Succeed())
 
 				var success Success
-				Expect(step.Result(&success)).To(BeTrue())
+				Expect(step.Succeeded(&success)).To(BeTrue())
 				Expect(bool(success)).To(BeFalse())
 			})
 		})
@@ -142,7 +142,7 @@ var _ = Describe("Timeout Step", func() {
 				Eventually(process.Wait()).Should(Receive(BeNil()))
 
 				var success Success
-				Expect(step.Result(&success)).To(BeTrue())
+				Expect(step.Succeeded(&success)).To(BeTrue())
 				Expect(bool(success)).To(BeTrue())
 			})
 		})
@@ -156,7 +156,7 @@ var _ = Describe("Timeout Step", func() {
 				Eventually(process.Wait()).Should(Receive(BeNil()))
 
 				var success Success
-				Expect(step.Result(&success)).To(BeTrue())
+				Expect(step.Succeeded(&success)).To(BeTrue())
 				Expect(bool(success)).To(BeFalse())
 			})
 		})

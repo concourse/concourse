@@ -241,7 +241,7 @@ var _ = Describe("GardenFactory", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
 						var success Success
-						Expect(step.Result(&success)).To(BeTrue())
+						Expect(step.Succeeded(&success)).To(BeTrue())
 						Expect(bool(success)).To(BeFalse())
 					})
 
@@ -249,7 +249,7 @@ var _ = Describe("GardenFactory", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
 						var status ExitStatus
-						Expect(step.Result(&status)).To(BeTrue())
+						Expect(step.Succeeded(&status)).To(BeTrue())
 						Expect(status).To(Equal(ExitStatus(123)))
 					})
 
@@ -1174,7 +1174,7 @@ var _ = Describe("GardenFactory", func() {
 							Expect(<-process.Wait()).To(BeNil())
 
 							var success Success
-							Expect(step.Result(&success)).To(BeTrue())
+							Expect(step.Succeeded(&success)).To(BeTrue())
 							Expect(bool(success)).To(BeTrue())
 						})
 
@@ -1182,7 +1182,7 @@ var _ = Describe("GardenFactory", func() {
 							<-process.Wait()
 
 							var status ExitStatus
-							Expect(step.Result(&status)).To(BeTrue())
+							Expect(step.Succeeded(&status)).To(BeTrue())
 							Expect(status).To(Equal(ExitStatus(0)))
 						})
 
@@ -1261,7 +1261,7 @@ var _ = Describe("GardenFactory", func() {
 							Eventually(process.Wait()).Should(Receive(BeNil()))
 
 							var success Success
-							Expect(step.Result(&success)).To(BeTrue())
+							Expect(step.Succeeded(&success)).To(BeTrue())
 							Expect(bool(success)).To(BeFalse())
 						})
 
@@ -1269,7 +1269,7 @@ var _ = Describe("GardenFactory", func() {
 							Eventually(process.Wait()).Should(Receive(BeNil()))
 
 							var status ExitStatus
-							Expect(step.Result(&status)).To(BeTrue())
+							Expect(step.Succeeded(&status)).To(BeTrue())
 							Expect(status).To(Equal(ExitStatus(1)))
 						})
 

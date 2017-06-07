@@ -281,7 +281,7 @@ func (action *TaskAction) registerSource(logger lager.Logger, repository *worker
 	}
 }
 
-// Result indicates Success as true if the script's exit status was 0.
+// Succeeded indicates Success as true if the script's exit status was 0.
 //
 // It also indicates ExitStatus as the exit status of the script.
 //

@@ -78,38 +78,15 @@ func (step AggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) e
 	return nil
 }
 
-// Result indicates Success as true if all of the steps indicate Success as
-// true, or if there were no steps at all. If none of the steps can indicate
-// Success, it will return false and not indicate success itself.
-//
-// All other result types are ignored, and Result will return false.
-func (step AggregateStep) Result(x interface{}) bool {
-	if success, ok := x.(*Success); ok {
-		if len(step) == 0 {
-			*success = Success(true)
-			return true
+// Succeeded is true if all of the steps' Succeeded is true
+func (step AggregateStep) Succeeded() bool {
+	succeeded := true
+
+	for _, src := range step {
+		if !src.Succeeded() {
+			succeeded = false
 		}
-
-		succeeded := true
-		anyIndicated := false
-		for _, src := range step {
-			var s Success
-			if !src.Result(&s) {
-				continue
-			}
-
-			anyIndicated = true
-			succeeded = succeeded && bool(s)
-		}
-
-		if !anyIndicated {
-			return false
-		}
-
-		*success = Success(succeeded)
-
-		return true
 	}
 
-	return false
+	return succeeded
 }

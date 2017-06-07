@@ -133,7 +133,7 @@ var _ = Describe("On Success Step", func() {
 		Expect(hook.RunCallCount()).To(Equal(1))
 	})
 
-	Describe("Result", func() {
+	Describe("Succeeded", func() {
 		Context("when the provided interface is type Success", func() {
 			var signals chan os.Signal
 			var ready chan struct{}
@@ -151,7 +151,7 @@ var _ = Describe("On Success Step", func() {
 				It("assigns the provided interface to true", func() {
 					var succeeded exec.Success
 					onSuccessStep.Run(signals, ready)
-					onSuccessStep.Result(&succeeded)
+					onSuccessStep.Succeeded(&succeeded)
 
 					Expect(bool(succeeded)).To(BeTrue())
 				})
@@ -165,7 +165,7 @@ var _ = Describe("On Success Step", func() {
 				It("does not run hook and assigns the provided interface to false", func() {
 					var succeeded exec.Success
 					onSuccessStep.Run(signals, ready)
-					onSuccessStep.Result(&succeeded)
+					onSuccessStep.Succeeded(&succeeded)
 					Expect(hook.RunCallCount()).To(Equal(0))
 					Expect(hook.ResultCallCount()).To(Equal(0))
 					Expect(bool(succeeded)).To(BeFalse())
@@ -183,7 +183,7 @@ var _ = Describe("On Success Step", func() {
 				It("assigns the provided interface to false", func() {
 					var succeeded exec.Success
 					onSuccessStep.Run(signals, ready)
-					onSuccessStep.Result(&succeeded)
+					onSuccessStep.Succeeded(&succeeded)
 					Expect(step.RunCallCount()).To(Equal(1))
 					Expect(step.ResultCallCount()).To(Equal(2))
 					Expect(hook.RunCallCount()).To(Equal(1))

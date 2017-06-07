@@ -91,12 +91,6 @@ func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	return nil
 }
 
-func (s *ActionsStep) Result(x interface{}) bool {
-	switch v := x.(type) {
-	case *Success:
-		*v = Success(s.succeeded)
-		return true
-	default:
-		return false
-	}
+func (s *ActionsStep) Succeeded() bool {
+	return s.succeeded
 }

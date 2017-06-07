@@ -29,7 +29,7 @@ var _ = Describe("Try Step", func() {
 		step = try.Using(nil, nil)
 	})
 
-	Describe("Result", func() {
+	Describe("Succeeded", func() {
 		Context("when compared against Success", func() {
 			var x *Success
 
@@ -38,12 +38,12 @@ var _ = Describe("Try Step", func() {
 			})
 
 			It("returns true", func() {
-				result := step.Result(x)
+				result := step.Succeeded(x)
 				Expect(result).Should(Equal(true))
 			})
 
 			It("assigns the provided interface to Success(true)", func() {
-				step.Result(x)
+				step.Succeeded(x)
 				Expect(*x).Should(Equal(Success(true)))
 			})
 		})
@@ -58,14 +58,14 @@ var _ = Describe("Try Step", func() {
 						*v = ExitStatus(exitCode)
 						return true
 					default:
-						panic("unexpected Result comparison")
+						panic("unexpected Succeeded comparison")
 					}
 				}
 			})
 
 			It("deletegates to the inner step", func() {
 				x := new(ExitStatus)
-				result := step.Result(x)
+				result := step.Succeeded(x)
 				Expect(result).Should(Equal(true))
 				Expect(*x).Should(Equal(ExitStatus(exitCode)))
 			})

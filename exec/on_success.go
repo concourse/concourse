@@ -47,9 +47,7 @@ func (o *OnSuccessStep) Run(signals <-chan os.Signal, ready chan<- struct{}) err
 		return stepRunErr
 	}
 
-	var success Success
-
-	_ = o.step.Result(&success)
+	success := o.step.Succeeded()
 
 	if !success {
 		return nil
@@ -60,30 +58,8 @@ func (o *OnSuccessStep) Run(signals <-chan os.Signal, ready chan<- struct{}) err
 	return err
 }
 
-// Result indicates Success as true if the first step completed and the second
+// Succeeded is true if the first step completed and the second
 // step completed successfully.
-//
-// Any other type is ignored.
-func (o *OnSuccessStep) Result(x interface{}) bool {
-	switch v := x.(type) {
-	case *Success:
-		if o.success == nil {
-			// no second step means we must have failed the first step
-			*v = false
-			return true
-		}
-		stepResult := o.step.Result(v)
-		if !stepResult {
-			return false
-		}
-		//TODO: reset value of x when we cannot compare in the successStep.Result
-		successResult := o.success.Result(v)
-		if !successResult {
-			return false
-		}
-		return true
-
-	default:
-		return false
-	}
+func (o *OnSuccessStep) Succeeded() bool {
+	return o.step.Succeeded() && o.success.Succeeded()
 }

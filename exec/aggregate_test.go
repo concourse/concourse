@@ -153,7 +153,7 @@ var _ = Describe("Aggregate", func() {
 		Context("when the result type is bad", func() {
 			It("returns false", func() {
 				result := "this-is-bad"
-				Expect(step.Result(&result)).To(BeFalse())
+				Expect(step.Succeeded(&result)).To(BeFalse())
 			})
 		})
 
@@ -171,7 +171,7 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("yields true", func() {
-					Expect(step.Result(&result)).To(BeTrue())
+					Expect(step.Succeeded(&result)).To(BeTrue())
 					Expect(result).To(Equal(Success(true)))
 				})
 			})
@@ -183,7 +183,7 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("yields false", func() {
-					Expect(step.Result(&result)).To(BeTrue())
+					Expect(step.Succeeded(&result)).To(BeTrue())
 					Expect(result).To(Equal(Success(false)))
 				})
 			})
@@ -195,7 +195,7 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("only considers the branches that do", func() {
-					Expect(step.Result(&result)).To(BeTrue())
+					Expect(step.Succeeded(&result)).To(BeTrue())
 					Expect(result).To(Equal(Success(true)))
 				})
 			})
@@ -207,7 +207,7 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("returns false", func() {
-					Expect(step.Result(&result)).To(BeFalse())
+					Expect(step.Succeeded(&result)).To(BeFalse())
 					Expect(result).To(Equal(Success(false)))
 				})
 			})
@@ -218,7 +218,7 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("returns true", func() {
-					Expect(step.Result(&result)).To(BeTrue())
+					Expect(step.Succeeded(&result)).To(BeTrue())
 					Expect(result).To(Equal(Success(true)))
 				})
 			})

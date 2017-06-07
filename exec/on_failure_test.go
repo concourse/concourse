@@ -130,7 +130,7 @@ var _ = Describe("On Failure Step", func() {
 		Expect(hook.RunCallCount()).To(Equal(1))
 	})
 
-	Describe("Result", func() {
+	Describe("Succeeded", func() {
 		Context("when the provided interface is type Success", func() {
 			var signals chan os.Signal
 			var ready chan struct{}
@@ -149,7 +149,7 @@ var _ = Describe("On Failure Step", func() {
 				It("assigns the provided interface to false", func() {
 					var succeeded exec.Success
 					onFailureStep.Run(signals, ready)
-					onFailureStep.Result(&succeeded)
+					onFailureStep.Succeeded(&succeeded)
 
 					Expect(bool(succeeded)).To(BeFalse())
 				})
@@ -164,7 +164,7 @@ var _ = Describe("On Failure Step", func() {
 				It("assigns the provided interface to false", func() {
 					var succeeded exec.Success
 					onFailureStep.Run(signals, ready)
-					onFailureStep.Result(&succeeded)
+					onFailureStep.Succeeded(&succeeded)
 
 					Expect(bool(succeeded)).To(BeFalse())
 				})
@@ -178,7 +178,7 @@ var _ = Describe("On Failure Step", func() {
 				It("never runs hook", func() {
 					var succeeded exec.Success
 					onFailureStep.Run(signals, ready)
-					onFailureStep.Result(&succeeded)
+					onFailureStep.Succeeded(&succeeded)
 					Expect(hook.RunCallCount()).To(Equal(0))
 					Expect(hook.ResultCallCount()).To(Equal(0))
 					Expect(bool(succeeded)).To(BeTrue())
@@ -194,7 +194,7 @@ var _ = Describe("On Failure Step", func() {
 				It("doesn't indicate success", func() {
 					var succeeded exec.Success
 					onFailureStep.Run(signals, ready)
-					onFailureStep.Result(&succeeded)
+					onFailureStep.Succeeded(&succeeded)
 					Expect(step.RunCallCount()).To(Equal(1))
 					Expect(step.ResultCallCount()).To(Equal(1))
 					Expect(hook.RunCallCount()).To(Equal(1))
@@ -212,7 +212,7 @@ var _ = Describe("On Failure Step", func() {
 				It("doesn't indicate success", func() {
 					var succeeded exec.Success
 					onFailureStep.Run(signals, ready)
-					onFailureStep.Result(&succeeded)
+					onFailureStep.Succeeded(&succeeded)
 					Expect(step.RunCallCount()).To(Equal(1))
 					Expect(step.ResultCallCount()).To(Equal(1))
 					Expect(hook.RunCallCount()).To(Equal(1))

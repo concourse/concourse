@@ -2,7 +2,6 @@ package engine
 
 import (
 	"encoding/json"
-	"errors"
 	"strconv"
 	"strings"
 
@@ -166,7 +165,7 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	exited := process.Wait()
 
 	aborted := false
-	var succeeded exec.Success
+	var succeeded bool
 
 	for {
 		select {
@@ -174,14 +173,11 @@ func (build *execBuild) Resume(logger lager.Logger) {
 			logger.Info("releasing")
 			return
 		case err := <-exited:
-			if aborted {
-				succeeded = false
-			} else if !source.Result(&succeeded) {
-				logger.Error("step-had-no-result", errors.New("step failed to provide us with a result"))
-				succeeded = false
+			if !aborted {
+				succeeded = source.Succeeded()
 			}
 
-			build.delegate.Finish(logger.Session("finish"), err, succeeded, aborted)
+			build.delegate.Finish(logger.Session("finish"), err, exec.Success(succeeded), aborted)
 			return
 
 		case sig := <-build.signals:

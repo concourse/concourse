@@ -48,16 +48,9 @@ type Step interface {
 	// how far the step got.
 	ifrit.Runner
 
-	// Result is used to collect metadata from the step. Usually this is
-	// `Success`, but some steps support more types (e.g. `VersionInfo`).
-	//
-	// Result returns a bool indicating whether it was able to populate the
-	// destination. If the destination's type is unknown to the step, it must
-	// return false.
-	//
-	// Implementers of this method MUST not mutate the given pointer if they
-	// are unable to respond (i.e. returning false from this function).
-	Result(interface{}) bool
+	// Succeeded is true when the Step succeeded, and false otherwise.
+	// Succeeded is not guaranteed to be truthful until after you run Run()
+	Succeeded() bool
 }
 
 // Success indicates whether a step completed successfully.

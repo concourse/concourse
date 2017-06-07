@@ -202,7 +202,7 @@ var _ = Describe("GardenFactory", func() {
 
 				It("reports the created version info", func() {
 					var info VersionInfo
-					Expect(step.Result(&info)).To(BeTrue())
+					Expect(step.Succeeded(&info)).To(BeTrue())
 					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
 					Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 				})
@@ -211,7 +211,7 @@ var _ = Describe("GardenFactory", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 
 					var success Success
-					Expect(step.Result(&success)).To(BeTrue())
+					Expect(step.Succeeded(&success)).To(BeTrue())
 					Expect(bool(success)).To(BeTrue())
 				})
 
@@ -322,7 +322,7 @@ var _ = Describe("GardenFactory", func() {
 
 							var success Success
 
-							Expect(step.Result(&success)).To(BeTrue())
+							Expect(step.Succeeded(&success)).To(BeTrue())
 							Expect(bool(success)).To(BeFalse())
 						})
 					})

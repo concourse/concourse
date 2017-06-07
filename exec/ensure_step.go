@@ -59,30 +59,7 @@ func (o *EnsureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return errors
 }
 
-// Result indicates Success by and-ing together both step's Success results. If
-// either of them cannot indicate Success, it returns false.
-//
-// All other result types are ignored.
-func (o *EnsureStep) Result(x interface{}) bool {
-	switch v := x.(type) {
-	case *Success:
-		var aSuccess Success
-		stepResult := o.step.Result(&aSuccess)
-		if !stepResult {
-			return false
-		}
-
-		var bSuccess Success
-		ensureResult := o.ensure.Result(&bSuccess)
-		if !ensureResult {
-			return false
-		}
-
-		*v = aSuccess && bSuccess
-
-		return true
-
-	default:
-		return false
-	}
+// Succeeded is true if both of its steps are true
+func (o *EnsureStep) Succeeded() bool {
+	return o.step.Succeeded() && o.ensure.Succeeded()
 }

@@ -130,7 +130,7 @@ var _ = Describe("Ensure Step", func() {
 		Expect(hook.RunCallCount()).To(Equal(1))
 	})
 
-	Describe("Result", func() {
+	Describe("Succeeded", func() {
 		Context("when the provided interface is type Success", func() {
 			var signals chan os.Signal
 			var ready chan struct{}
@@ -148,7 +148,7 @@ var _ = Describe("Ensure Step", func() {
 				It("assigns the provided interface to true", func() {
 					var succeeded exec.Success
 					ensureStep.Run(signals, ready)
-					ensureStep.Result(&succeeded)
+					ensureStep.Succeeded(&succeeded)
 
 					Expect(bool(succeeded)).To(BeTrue())
 				})
@@ -163,7 +163,7 @@ var _ = Describe("Ensure Step", func() {
 				It("assigns the provided interface to false", func() {
 					var succeeded exec.Success
 					ensureStep.Run(signals, ready)
-					ensureStep.Result(&succeeded)
+					ensureStep.Succeeded(&succeeded)
 					Expect(bool(succeeded)).To(BeFalse())
 				})
 			})
@@ -177,7 +177,7 @@ var _ = Describe("Ensure Step", func() {
 				It("assigns the provided interface to false", func() {
 					var succeeded exec.Success
 					ensureStep.Run(signals, ready)
-					ensureStep.Result(&succeeded)
+					ensureStep.Succeeded(&succeeded)
 					Expect(bool(succeeded)).To(BeFalse())
 				})
 			})
@@ -192,7 +192,7 @@ var _ = Describe("Ensure Step", func() {
 				It("assigns the provided interface to false", func() {
 					var succeeded exec.Success
 					ensureStep.Run(signals, ready)
-					ensureStep.Result(&succeeded)
+					ensureStep.Succeeded(&succeeded)
 					Expect(bool(succeeded)).To(BeFalse())
 				})
 			})
