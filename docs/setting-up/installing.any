@@ -626,6 +626,14 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
           if the worker is in a separate deployment, these must be configured
           to reach the TSA
         }
+
+        \item{\code{garden.forward_address} on the \code{groundcrew} job}{
+          if the worker is in a separate deployment, this must be the locally-reachable Garden address to forward through the TSA; e.g.: 127.0.0.1:7777
+        }
+
+        \item{\code{baggageclaim.forward_address} on the \code{groundcrew} job}{
+          if the worker is in a separate deployment, this must be the locally-reachable Baggageclaim address to forward through the TSA; e.g.: 127.0.0.1:7788
+        }
       }
 
       Once again, after setting these properties run \code{bosh deploy} to make
