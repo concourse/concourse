@@ -129,7 +129,7 @@ func (pool *pool) FindOrCreateContainer(
 ) (Container, error) {
 	worker, found, err := pool.provider.FindWorkerForContainerByOwner(
 		logger.Session("find-worker"),
-		spec.TeamID, // XXX: better place for this?
+		spec.TeamID,
 		owner,
 	)
 	if err != nil {
