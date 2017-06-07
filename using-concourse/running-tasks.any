@@ -134,6 +134,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
       \define-attribute{path: string}{
         \italic{Optional.} The path where the input will be placed. If not
         specified, the input's \code{name} is used.
+        
         Paths are relative to the working directory of the task. Absolute paths are not respected. 
       }
     }
@@ -159,6 +160,8 @@ Once you've figured out your tasks's configuration, you can reuse it for a
       \define-attribute{path: string}{
         \italic{Optional.} The path to a directory where the output will be
         taken from. If not specified, the output's \code{name} is used.
+        
+        Paths are relative to the working directory of the task. Absolute paths are not respected.
 
         Note that this value \italic{must not overlap} with any other inputs or
         outputs. Each output results in a new empty directory that your task
@@ -220,6 +223,8 @@ Once you've figured out your tasks's configuration, you can reuse it for a
         working directory. For a script living in a resource's repo, you must
         specify the full path to the resource, i.e.
         \code{my-resource/scripts/test}.
+        
+        Paths are relative to the working directory of the task. Absolute paths are not respected. 
       }
 
       \define-attribute{args: [string]}{task-run-args}{
