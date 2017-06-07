@@ -28,7 +28,6 @@ var _ = Describe("IntervalRunner", func() {
 
 		ctx    context.Context
 		cancel context.CancelFunc
-		err    error
 	)
 
 	BeforeEach(func() {
@@ -43,25 +42,29 @@ var _ = Describe("IntervalRunner", func() {
 			return interval, nil
 		}
 		ctx, cancel = context.WithCancel(context.Background())
-		err = nil
 
 		logger := lagertest.NewTestLogger("test")
 		intervalRunner = NewIntervalRunner(logger, fakeClock, "some-resource", fakeScanner)
 	})
 
 	Describe("RunFunc", func() {
+		var runErrs chan error
+
 		JustBeforeEach(func() {
+			errs := make(chan error, 1)
+			runErrs = errs
 			go func() {
-				err = intervalRunner.Run(ctx)
+				errs <- intervalRunner.Run(ctx)
+				close(errs)
 			}()
 		})
 
-		Context("when run does not return error", func() {
-			AfterEach(func() {
-				cancel()
-				Consistently(func() error { return err }).Should(BeNil())
-			})
+		AfterEach(func() {
+			cancel()
+			Expect(<-runErrs).To(BeNil())
+		})
 
+		Context("when run does not return error", func() {
 			It("immediately runs a scan", func() {
 				Expect(<-times).To(Equal(epoch))
 			})
@@ -102,7 +105,7 @@ var _ = Describe("IntervalRunner", func() {
 			})
 
 			It("returns an error", func() {
-				Eventually(func() error { return err }).Should(Equal(disaster))
+				Expect(<-runErrs).To(Equal(disaster))
 			})
 		})
 
@@ -112,10 +115,6 @@ var _ = Describe("IntervalRunner", func() {
 					times <- fakeClock.Now()
 					return interval, ErrFailedToAcquireLock
 				}
-			})
-
-			AfterEach(func() {
-				cancel()
 			})
 
 			It("waits for the interval and tries again", func() {

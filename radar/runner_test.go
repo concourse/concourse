@@ -38,7 +38,6 @@ var _ = Describe("Runner", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		noop = false
 		syncInterval = 100 * time.Millisecond
-		fakeContext, fakeCancel = context.WithCancel(context.Background())
 
 		config = atc.Config{
 			Resources: atc.ResourceConfigs{
@@ -72,13 +71,17 @@ var _ = Describe("Runner", func() {
 		fakeResourceTypeRunner = new(radarfakes.FakeIntervalRunner)
 		scanRunnerFactory.ScanResourceTypeRunnerReturns(fakeResourceTypeRunner)
 
+		fcon, fcanc := context.WithCancel(context.Background())
+		fakeContext = fcon
+		fakeCancel = fcanc
+
 		fakeResourceRunner.RunStub = func(ctx context.Context) error {
-			<-fakeContext.Done()
+			<-fcon.Done()
 			return nil
 		}
 
 		fakeResourceTypeRunner.RunStub = func(ctx context.Context) error {
-			<-fakeContext.Done()
+			<-fcon.Done()
 			return nil
 		}
 	})
