@@ -26,7 +26,7 @@ cases to show you how you'd use Concourse in real-world scenarios.
 You may also want to just dive right in to some living, breathing Concourse pipelines. These aren't accompanied by documentation explaining them, but it may be useful just to see some real-world use cases:
 
 \list{
-  \hyperlink{https://github.com/concourse/concourse/tree/master/ci/pipelines}{Concourse's own CI pipelines}
+  \hyperlink{https://github.com/concourse/pipelines}{Concourse's own CI pipelines}
 }{
   \hyperlink{https://github.com/cloudfoundry/buildpacks-ci}{Cloud Foundry buildpacks CI}
 }{
