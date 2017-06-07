@@ -20,6 +20,7 @@ var ErrInterrupted = errors.New("interrupted")
 //
 // Some steps, i.e. DependentGetStep, use information from the previous step to
 // determine how to run.
+// TODO: Remove Step in prev
 type StepFactory interface {
 	Using(Step, *worker.ArtifactRepository) Step
 }

@@ -5,9 +5,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/worker"
 )
 
 func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
@@ -105,24 +103,14 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		plan.Attempts,
 	)
 
-	clock := clock.NewClock()
-
 	return build.factory.Task(
 		logger,
+		plan,
+		configSource,
 		build.teamID,
 		build.buildID,
-		plan.ID,
-		worker.ArtifactName(plan.Task.Name),
 		workerMetadata,
-		build.delegate.ExecutionDelegate(logger, *plan.Task, event.OriginID(plan.ID)),
-		exec.Privileged(plan.Task.Privileged),
-		plan.Task.Tags,
-		configSource,
-		plan.Task.VersionedResourceTypes,
-		plan.Task.InputMapping,
-		plan.Task.OutputMapping,
-		plan.Task.ImageArtifactName,
-		clock,
+		build.delegate,
 	)
 }
 

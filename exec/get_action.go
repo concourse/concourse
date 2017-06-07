@@ -39,7 +39,8 @@ type GetAction struct {
 	// TODO: remove after all actions are introduced
 	resourceTypes atc.VersionedResourceTypes
 
-	result *VersionInfo
+	versionInfo VersionInfo
+	exitStatus  ExitStatus
 }
 
 func (action *GetAction) Run(
@@ -89,9 +90,13 @@ func (action *GetAction) Run(
 		signals,
 		ready,
 	)
-
 	if err != nil {
-		logger.Error("failed-to-init-with-cache", err)
+		logger.Error("failed-to-fetch-resource", err)
+		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
+			action.exitStatus = ExitStatus(err.ExitStatus)
+			return nil
+		}
+
 		return err
 	}
 
@@ -103,20 +108,21 @@ func (action *GetAction) Run(
 		})
 	}
 
-	action.result = &VersionInfo{
+	action.versionInfo = VersionInfo{
 		Version:  versionedSource.Version(),
 		Metadata: versionedSource.Metadata(),
 	}
+	action.exitStatus = ExitStatus(0)
 
 	return nil
 }
 
-func (action *GetAction) Result() (VersionInfo, bool) {
-	if action.result != nil {
-		return *action.result, true
-	}
+func (action *GetAction) VersionInfo() VersionInfo {
+	return action.versionInfo
+}
 
-	return VersionInfo{}, false
+func (action *GetAction) ExitStatus() ExitStatus {
+	return action.exitStatus
 }
 
 type getArtifactSource struct {

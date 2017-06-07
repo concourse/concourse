@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc"
@@ -119,41 +118,41 @@ func (factory *gardenFactory) Put(
 
 func (factory *gardenFactory) Task(
 	logger lager.Logger,
+	plan atc.Plan,
+	configSource TaskConfigSource,
 	teamID int,
 	buildID int,
-	planID atc.PlanID,
-	sourceName worker.ArtifactName,
-	workerMetadata db.ContainerMetadata,
-	delegate TaskDelegate,
-	privileged Privileged,
-	tags atc.Tags,
-	configSource TaskConfigSource,
-	resourceTypes atc.VersionedResourceTypes,
-	inputMapping map[string]string,
-	outputMapping map[string]string,
-	imageArtifactName string,
-	clock clock.Clock,
+	containerMetadata db.ContainerMetadata,
+	buildDelegate BuildDelegate,
 ) StepFactory {
-	workingDirectory := factory.taskWorkingDirectory(sourceName)
-	workerMetadata.WorkingDirectory = workingDirectory
-	return newTaskStep(
-		logger,
-		workerMetadata,
-		tags,
-		teamID,
-		buildID,
-		planID,
-		delegate,
-		privileged,
-		configSource,
-		factory.workerClient,
-		workingDirectory,
-		resourceTypes,
-		inputMapping,
-		outputMapping,
-		imageArtifactName,
-		clock,
-	)
+	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
+	containerMetadata.WorkingDirectory = workingDirectory
+
+	imageFetchingDelegate := buildDelegate.ImageFetchingDelegate(plan.ID)
+	taskAction := &TaskAction{
+		privileged:    Privileged(plan.Task.Privileged),
+		configSource:  configSource,
+		tags:          plan.Task.Tags,
+		inputMapping:  plan.Task.InputMapping,
+		outputMapping: plan.Task.OutputMapping,
+
+		artifactsRoot:     workingDirectory,
+		imageArtifactName: plan.Task.ImageArtifactName,
+
+		imageFetchingDelegate: imageFetchingDelegate,
+		workerPool:            factory.workerClient,
+		teamID:                teamID,
+		buildID:               buildID,
+		planID:                plan.ID,
+		containerMetadata:     containerMetadata,
+
+		resourceTypes: plan.Task.VersionedResourceTypes,
+	}
+
+	actions := []Action{taskAction}
+
+	buildEventsDelegate := buildDelegate.TaskBuildEventsDelegate(plan.ID, *plan.Task, taskAction)
+	return newActionsStep(logger, actions, buildEventsDelegate)
 }
 
 func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {

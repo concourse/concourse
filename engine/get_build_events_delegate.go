@@ -13,7 +13,7 @@ type getBuildEventsDelegate struct {
 	build               db.Build
 	eventOrigin         event.Origin
 	plan                atc.GetPlan
-	implicitOutputsRepo ImplicitOutputsRepo
+	implicitOutputsRepo *implicitOutputsRepo
 	resultAction        exec.GetResultAction
 }
 
@@ -21,7 +21,7 @@ func NewGetBuildEventsDelegate(
 	build db.Build,
 	planID atc.PlanID,
 	plan atc.GetPlan,
-	implicitOutputsRepo ImplicitOutputsRepo,
+	implicitOutputsRepo *implicitOutputsRepo,
 	resultAction exec.GetResultAction,
 ) exec.BuildEventsDelegate {
 	return &getBuildEventsDelegate{
@@ -54,10 +54,11 @@ func (d *getBuildEventsDelegate) Failed(logger lager.Logger, errVal error) {
 	logger.Info("errored", lager.Data{"error": errVal.Error()})
 }
 
-func (d *getBuildEventsDelegate) Finished(logger lager.Logger, status exec.ExitStatus) {
-	versionInfo, resultPresent := d.resultAction.Result()
+func (d *getBuildEventsDelegate) Finished(logger lager.Logger) {
+	versionInfo := d.resultAction.VersionInfo()
+	exitStatus := d.resultAction.ExitStatus()
 
-	if resultPresent {
+	if exitStatus == exec.ExitStatus(0) {
 		err := d.build.SaveInput(db.BuildInput{
 			Name: d.plan.Name,
 			VersionedResource: db.VersionedResource{
@@ -70,6 +71,8 @@ func (d *getBuildEventsDelegate) Finished(logger lager.Logger, status exec.ExitS
 		if err != nil {
 			logger.Error("failed-to-save-input", err)
 		}
+
+		d.implicitOutputsRepo.Register(d.plan.Resource, implicitOutput{plan: d.plan, info: versionInfo})
 	}
 
 	eventPlan := event.GetPlan{
@@ -86,16 +89,12 @@ func (d *getBuildEventsDelegate) Finished(logger lager.Logger, status exec.ExitS
 	err := d.build.SaveEvent(event.FinishGet{
 		Origin:          d.eventOrigin,
 		Plan:            eventPlan,
-		ExitStatus:      int(status),
+		ExitStatus:      int(exitStatus),
 		FetchedVersion:  versionInfo.Version,
 		FetchedMetadata: versionInfo.Metadata,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-input-event", err)
-	}
-
-	if resultPresent {
-		d.implicitOutputsRepo.Register(d.plan.Resource, implicitOutput{plan: d.plan, info: versionInfo})
 	}
 
 	logger.Info("finished", lager.Data{"version-info": versionInfo})

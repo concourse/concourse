@@ -13,7 +13,7 @@ type putBuildEventsDelegate struct {
 	build               db.Build
 	eventOrigin         event.Origin
 	plan                atc.PutPlan
-	implicitOutputsRepo ImplicitOutputsRepo
+	implicitOutputsRepo *implicitOutputsRepo
 	resultAction        exec.PutResultAction
 }
 
@@ -21,7 +21,7 @@ func NewPutBuildEventsDelegate(
 	build db.Build,
 	planID atc.PlanID,
 	plan atc.PutPlan,
-	implicitOutputsRepo ImplicitOutputsRepo,
+	implicitOutputsRepo *implicitOutputsRepo,
 	resultAction exec.PutResultAction,
 ) exec.BuildEventsDelegate {
 	return &putBuildEventsDelegate{
@@ -54,10 +54,12 @@ func (d *putBuildEventsDelegate) Failed(logger lager.Logger, errVal error) {
 	logger.Info("errored", lager.Data{"error": errVal.Error()})
 }
 
-func (d *putBuildEventsDelegate) Finished(logger lager.Logger, status exec.ExitStatus) {
+func (d *putBuildEventsDelegate) Finished(logger lager.Logger) {
 	d.implicitOutputsRepo.Unregister(d.plan.Resource)
 
-	versionInfo, resultPresent := d.resultAction.Result()
+	versionInfo := d.resultAction.VersionInfo()
+	exitStatus := d.resultAction.ExitStatus()
+
 	err := d.build.SaveEvent(event.FinishPut{
 		Origin: d.eventOrigin,
 		Plan: event.PutPlan{
@@ -65,7 +67,7 @@ func (d *putBuildEventsDelegate) Finished(logger lager.Logger, status exec.ExitS
 			Resource: d.plan.Resource,
 			Type:     d.plan.Type,
 		},
-		ExitStatus:      int(status),
+		ExitStatus:      int(exitStatus),
 		CreatedVersion:  versionInfo.Version,
 		CreatedMetadata: versionInfo.Metadata,
 	})
@@ -73,7 +75,7 @@ func (d *putBuildEventsDelegate) Finished(logger lager.Logger, status exec.ExitS
 		logger.Error("failed-to-save-input-event", err)
 	}
 
-	if resultPresent {
+	if exitStatus == exec.ExitStatus(0) {
 		err := d.build.SaveOutput(
 			db.VersionedResource{
 				Resource: d.plan.Resource,

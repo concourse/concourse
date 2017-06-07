@@ -101,15 +101,15 @@ func (plan EnsurePlan) Public() *json.RawMessage {
 
 func (plan GetPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Type     string  `json:"type"`
-		Name     string  `json:"name,omitempty"`
-		Resource string  `json:"resource"`
-		Version  Version `json:"version,omitempty"`
+		Type     string   `json:"type"`
+		Name     string   `json:"name,omitempty"`
+		Resource string   `json:"resource"`
+		Version  *Version `json:"version,omitempty"`
 	}{
 		Type:     plan.Type,
 		Name:     plan.Name,
 		Resource: plan.Resource,
-		Version:  *plan.Version,
+		Version:  plan.Version,
 	})
 }
 

@@ -3,11 +3,9 @@ package exec
 import (
 	"io"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/worker"
 )
 
 //go:generate counterfeiter . Factory
@@ -36,23 +34,15 @@ type Factory interface {
 		BuildDelegate,
 	) StepFactory
 
-	// Task constructs a TaskStep factory.
+	// Task constructs a ActionsStep factory for Task.
 	Task(
-		lager.Logger,
-		int, // teamID
-		int, // buildID
-		atc.PlanID,
-		worker.ArtifactName,
-		db.ContainerMetadata,
-		TaskDelegate,
-		Privileged,
-		atc.Tags,
-		TaskConfigSource,
-		atc.VersionedResourceTypes,
-		map[string]string,
-		map[string]string,
-		string,
-		clock.Clock,
+		logger lager.Logger,
+		plan atc.Plan,
+		configSource TaskConfigSource,
+		teamID int,
+		buildID int,
+		containerMetadata db.ContainerMetadata,
+		delegate BuildDelegate,
 	) StepFactory
 }
 
@@ -63,16 +53,23 @@ type StepMetadata interface {
 }
 
 type GetResultAction interface {
-	Result() (VersionInfo, bool)
+	VersionInfo() VersionInfo
+	ExitStatus() ExitStatus
 }
 
 type PutResultAction interface {
-	Result() (VersionInfo, bool)
+	VersionInfo() VersionInfo
+	ExitStatus() ExitStatus
+}
+
+type TaskResultAction interface {
+	ExitStatus() ExitStatus
 }
 
 type BuildDelegate interface {
 	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan, GetResultAction) BuildEventsDelegate
 	PutBuildEventsDelegate(atc.PlanID, atc.PutPlan, PutResultAction) BuildEventsDelegate
+	TaskBuildEventsDelegate(atc.PlanID, atc.TaskPlan, TaskResultAction) BuildEventsDelegate
 	ImageFetchingDelegate(atc.PlanID) ImageFetchingDelegate
 }
 

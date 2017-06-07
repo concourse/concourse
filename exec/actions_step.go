@@ -24,6 +24,7 @@ type OutputRootFSSource struct {
 
 type Action interface {
 	Run(lager.Logger, *worker.ArtifactRepository, <-chan os.Signal, chan<- struct{}) error
+	ExitStatus() ExitStatus
 }
 
 func newActionsStep(
@@ -42,7 +43,7 @@ type BuildEventsDelegate interface {
 	Initializing(lager.Logger)
 
 	Failed(lager.Logger, error)
-	Finished(lager.Logger, ExitStatus)
+	Finished(lager.Logger)
 }
 
 type ActionsStep struct {
@@ -63,17 +64,13 @@ func (s ActionsStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	s.buildEventsDelegate.Initializing(s.logger)
 
+	succeeded := true
 	for _, action := range s.actions {
 		err := action.Run(s.logger, s.repository, signals, ready)
 		if err != nil {
-			if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-				s.logger.Error("resource-script-failed", err)
-				s.buildEventsDelegate.Finished(s.logger, ExitStatus(err.ExitStatus))
-				return nil
-			}
-
 			if err == resource.ErrAborted {
 				s.logger.Debug("resource-aborted")
+				s.buildEventsDelegate.Failed(s.logger, ErrInterrupted)
 				return ErrInterrupted
 			}
 
@@ -81,11 +78,15 @@ func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			s.buildEventsDelegate.Failed(s.logger, err)
 			return err
 		}
+
+		if action.ExitStatus() != 0 {
+			succeeded = false
+		}
 	}
 
-	s.buildEventsDelegate.Finished(s.logger, ExitStatus(0))
+	s.buildEventsDelegate.Finished(s.logger)
 
-	s.succeeded = true
+	s.succeeded = succeeded
 
 	return nil
 }
@@ -95,7 +96,6 @@ func (s *ActionsStep) Result(x interface{}) bool {
 	case *Success:
 		*v = Success(s.succeeded)
 		return true
-
 	default:
 		return false
 	}

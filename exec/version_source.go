@@ -42,8 +42,8 @@ type PutActionVersionSource struct {
 }
 
 func (p *PutActionVersionSource) GetVersion() (atc.Version, error) {
-	versionInfo, present := p.Action.Result()
-	if !present {
+	versionInfo := p.Action.VersionInfo()
+	if versionInfo.Version == nil {
 		return atc.Version{}, ErrPutActionVersionMissing
 	}
 

@@ -31,7 +31,8 @@ type PutAction struct {
 	// TODO: remove after all actions are introduced
 	resourceTypes atc.VersionedResourceTypes
 
-	result *VersionInfo
+	versionInfo VersionInfo
+	exitStatus  ExitStatus
 }
 
 func (action *PutAction) Run(
@@ -87,23 +88,28 @@ func (action *PutAction) Run(
 	)
 
 	if err != nil {
+		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
+			action.exitStatus = ExitStatus(err.ExitStatus)
+			return nil
+		}
 		return err
 	}
 
-	action.result = &VersionInfo{
+	action.versionInfo = VersionInfo{
 		Version:  versionedSource.Version(),
 		Metadata: versionedSource.Metadata(),
 	}
+	action.exitStatus = ExitStatus(0)
 
 	return nil
 }
 
-func (action *PutAction) Result() (VersionInfo, bool) {
-	if action.result != nil {
-		return *action.result, true
-	}
+func (action *PutAction) VersionInfo() VersionInfo {
+	return action.versionInfo
+}
 
-	return VersionInfo{}, false
+func (action *PutAction) ExitStatus() ExitStatus {
+	return action.exitStatus
 }
 
 type resourceSource struct {
