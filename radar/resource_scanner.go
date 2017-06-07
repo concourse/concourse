@@ -15,26 +15,29 @@ import (
 )
 
 type resourceScanner struct {
-	clock           clock.Clock
-	resourceFactory resource.ResourceFactory
-	defaultInterval time.Duration
-	dbPipeline      db.Pipeline
-	externalURL     string
+	clock                 clock.Clock
+	resourceFactory       resource.ResourceFactory
+	resourceConfigFactory db.ResourceConfigFactory
+	defaultInterval       time.Duration
+	dbPipeline            db.Pipeline
+	externalURL           string
 }
 
 func NewResourceScanner(
 	clock clock.Clock,
 	resourceFactory resource.ResourceFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
 ) Scanner {
 	return &resourceScanner{
-		clock:           clock,
-		resourceFactory: resourceFactory,
-		defaultInterval: defaultInterval,
-		dbPipeline:      dbPipeline,
-		externalURL:     externalURL,
+		clock:                 clock,
+		resourceFactory:       resourceFactory,
+		resourceConfigFactory: resourceConfigFactory,
+		defaultInterval:       defaultInterval,
+		dbPipeline:            dbPipeline,
+		externalURL:           externalURL,
 	}
 }
 
@@ -243,12 +246,27 @@ func (scanner *resourceScanner) scan(
 		Env:    metadata.Env(),
 	}
 
-	res, err := scanner.resourceFactory.NewCheckResource(
+	resourceConfig, err := scanner.resourceConfigFactory.FindOrCreateResourceConfig(
 		logger,
-		nil,
 		db.ForResource(savedResource.ID()),
 		savedResource.Type(),
 		savedResource.Source(),
+		resourceTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-find-or-create-resource-config", err)
+		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
+		if setErr != nil {
+			logger.Error("failed-to-set-check-error", err)
+		}
+		return err
+	}
+
+	res, err := scanner.resourceFactory.NewResource(
+		logger,
+		nil,
+		db.ForResource(savedResource.ID()),
+		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

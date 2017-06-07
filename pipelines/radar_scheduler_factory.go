@@ -24,31 +24,35 @@ type RadarSchedulerFactory interface {
 }
 
 type radarSchedulerFactory struct {
-	resourceFactory resource.ResourceFactory
-	interval        time.Duration
-	engine          engine.Engine
+	resourceFactory       resource.ResourceFactory
+	resourceConfigFactory db.ResourceConfigFactory
+	interval              time.Duration
+	engine                engine.Engine
 }
 
 func NewRadarSchedulerFactory(
 	resourceFactory resource.ResourceFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	interval time.Duration,
 	engine engine.Engine,
 ) RadarSchedulerFactory {
 	return &radarSchedulerFactory{
-		resourceFactory: resourceFactory,
-		interval:        interval,
-		engine:          engine,
+		resourceFactory:       resourceFactory,
+		resourceConfigFactory: resourceConfigFactory,
+		interval:              interval,
+		engine:                engine,
 	}
 }
 
 func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string) radar.ScanRunnerFactory {
-	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.interval, dbPipeline, clock.NewClock(), externalURL)
+	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.resourceConfigFactory, rsf.interval, dbPipeline, clock.NewClock(), externalURL)
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string) scheduler.BuildScheduler {
 	scanner := radar.NewResourceScanner(
 		clock.NewClock(),
 		rsf.resourceFactory,
+		rsf.resourceConfigFactory,
 		rsf.interval,
 		pipeline,
 		externalURL,

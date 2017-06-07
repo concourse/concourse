@@ -166,4 +166,5 @@ var Migrations = []migration.Migrator{
 	AddCreatingContainerIDAndStateToContainers,
 	ReplaceCreatingContainerIDWithImageCheckForContainerIDAndImageGetForContainerID,
 	DropWorkerResourceCacheFromContainers,
+	AddResourceConfigCheckSessions,
 }

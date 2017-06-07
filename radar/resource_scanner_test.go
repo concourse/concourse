@@ -25,10 +25,12 @@ var _ = Describe("ResourceScanner", func() {
 	var (
 		epoch time.Time
 
-		fakeResourceFactory *rfakes.FakeResourceFactory
-		fakeDBPipeline      *dbfakes.FakePipeline
-		fakeClock           *fakeclock.FakeClock
-		interval            time.Duration
+		fakeResourceFactory       *rfakes.FakeResourceFactory
+		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+		fakeResourceConfig        *db.UsedResourceConfig
+		fakeDBPipeline            *dbfakes.FakePipeline
+		fakeClock                 *fakeclock.FakeClock
+		interval                  time.Duration
 
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
@@ -45,6 +47,9 @@ var _ = Describe("ResourceScanner", func() {
 	BeforeEach(func() {
 		epoch = time.Unix(123, 456).UTC()
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
+		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
+		fakeResourceConfig = &db.UsedResourceConfig{}
+		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 		fakeDBPipeline = new(dbfakes.FakePipeline)
 		fakeDBResource = new(dbfakes.FakeResource)
 		fakeDBPipeline.IDReturns(42)
@@ -56,6 +61,7 @@ var _ = Describe("ResourceScanner", func() {
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakeResourceFactory,
+			fakeResourceConfigFactory,
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
@@ -109,7 +115,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceReturns(fakeResource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -141,12 +147,19 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, _, user, resourceType, resourceSource, metadata, resourceSpec, customTypes, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
+				_, user, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(user).To(Equal(db.ForResource(39)))
+				Expect(resourceType).To(Equal("git"))
+				Expect(resourceSource).To(Equal(atc.Source{"uri": "http://example.com"}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
+
+				_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(user).To(Equal(db.ForResource(39)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
-				Expect(customTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "git",
@@ -159,8 +172,7 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_NAME=some-resource",
 					},
 				}))
-				Expect(resourceType).To(Equal("git"))
-				Expect(resourceSource).To(Equal(atc.Source{"uri": "http://example.com"}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 			})
 
 			Context("when the resource config has a specified check interval", func() {
@@ -413,7 +425,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceReturns(fakeResource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -430,8 +442,16 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, _, user, resourceType, resourceSource, metadata, resourceSpec, _, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
+				_, user, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(user).To(Equal(db.ForResource(39)))
+				Expect(resourceType).To(Equal("git"))
+				Expect(resourceSource).To(Equal(atc.Source{"uri": "http://example.com"}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
+
+				_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(user).To(Equal(db.ForResource(39)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -447,8 +467,7 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_NAME=some-resource",
 					},
 				}))
-				Expect(resourceType).To(Equal("git"))
-				Expect(resourceSource).To(Equal(atc.Source{"uri": "http://example.com"}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
@@ -462,9 +481,24 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 			})
 
+			Context("when creating the resource config fails", func() {
+				BeforeEach(func() {
+					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, errors.New("catastrophe"))
+				})
+
+				It("sets the check error and returns the error", func() {
+					Expect(scanErr).To(HaveOccurred())
+					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+
+					savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+					Expect(savedResource.Name()).To(Equal("some-resource"))
+					Expect(resourceErr).To(MatchError("catastrophe"))
+				})
+			})
+
 			Context("when creating the resource checker fails", func() {
 				BeforeEach(func() {
-					fakeResourceFactory.NewCheckResourceReturns(fakeResource, errors.New("catastrophe"))
+					fakeResourceFactory.NewResourceReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {
@@ -719,7 +753,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceReturns(fakeResource, nil)
 			fromVersion = nil
 		})
 

@@ -9,15 +9,16 @@ type Collector interface {
 }
 
 type aggregateCollector struct {
-	logger                     lager.Logger
-	buildCollector             Collector
-	workerCollector            Collector
-	resourceCacheUseCollector  Collector
-	resourceConfigUseCollector Collector
-	resourceConfigCollector    Collector
-	resourceCacheCollector     Collector
-	volumeCollector            Collector
-	containerCollector         Collector
+	logger                              lager.Logger
+	buildCollector                      Collector
+	workerCollector                     Collector
+	resourceCacheUseCollector           Collector
+	resourceConfigUseCollector          Collector
+	resourceConfigCollector             Collector
+	resourceCacheCollector              Collector
+	volumeCollector                     Collector
+	containerCollector                  Collector
+	resourceConfigCheckSessionCollector Collector
 }
 
 func NewCollector(
@@ -30,17 +31,19 @@ func NewCollector(
 	resourceCaches Collector,
 	volumes Collector,
 	containers Collector,
+	resourceConfigCheckSessionCollector Collector,
 ) Collector {
 	return &aggregateCollector{
-		logger:                     logger,
-		buildCollector:             buildCollector,
-		workerCollector:            workers,
-		resourceCacheUseCollector:  resourceCacheUses,
-		resourceConfigUseCollector: resourceConfigUses,
-		resourceConfigCollector:    resourceConfigs,
-		resourceCacheCollector:     resourceCaches,
-		volumeCollector:            volumes,
-		containerCollector:         containers,
+		logger:                              logger,
+		buildCollector:                      buildCollector,
+		workerCollector:                     workers,
+		resourceCacheUseCollector:           resourceCacheUses,
+		resourceConfigUseCollector:          resourceConfigUses,
+		resourceConfigCollector:             resourceConfigs,
+		resourceCacheCollector:              resourceCaches,
+		volumeCollector:                     volumes,
+		containerCollector:                  containers,
+		resourceConfigCheckSessionCollector: resourceConfigCheckSessionCollector,
 	}
 }
 
@@ -75,6 +78,11 @@ func (c *aggregateCollector) Run() error {
 	err = c.resourceCacheCollector.Run()
 	if err != nil {
 		c.logger.Error("failed-to-run-resource-cache-collector", err)
+	}
+
+	err = c.resourceConfigCheckSessionCollector.Run()
+	if err != nil {
+		c.logger.Error("resource-config-check-session-collector", err)
 	}
 
 	err = c.containerCollector.Run()

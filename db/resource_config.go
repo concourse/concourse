@@ -53,6 +53,14 @@ type UsedResourceConfig struct {
 	CreatedByBaseResourceType *UsedBaseResourceType
 }
 
+func (resourceConfig *UsedResourceConfig) OriginBaseResourceType() *UsedBaseResourceType {
+	if resourceConfig.CreatedByBaseResourceType != nil {
+		return resourceConfig.CreatedByBaseResourceType
+	} else {
+		return resourceConfig.CreatedByResourceCache.ResourceConfig.OriginBaseResourceType()
+	}
+}
+
 func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, user ResourceUser, forColumnName string, forColumnID int) (*UsedResourceConfig, error) {
 	urc := &UsedResourceConfig{}
 

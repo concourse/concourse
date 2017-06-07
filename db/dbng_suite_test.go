@@ -27,17 +27,18 @@ var (
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
 
-	dbConn                        db.Conn
-	buildFactory                  db.BuildFactory
-	volumeFactory                 db.VolumeFactory
-	containerFactory              db.ContainerFactory
-	teamFactory                   db.TeamFactory
-	workerFactory                 db.WorkerFactory
-	workerLifecycle               db.WorkerLifecycle
-	resourceConfigFactory         db.ResourceConfigFactory
-	resourceCacheFactory          db.ResourceCacheFactory
-	baseResourceTypeFactory       db.BaseResourceTypeFactory
-	workerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory
+	dbConn                              db.Conn
+	buildFactory                        db.BuildFactory
+	volumeFactory                       db.VolumeFactory
+	containerFactory                    db.ContainerFactory
+	teamFactory                         db.TeamFactory
+	workerFactory                       db.WorkerFactory
+	workerLifecycle                     db.WorkerLifecycle
+	resourceConfigCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle
+	resourceConfigFactory               db.ResourceConfigFactory
+	resourceCacheFactory                db.ResourceCacheFactory
+	baseResourceTypeFactory             db.BaseResourceTypeFactory
+	workerBaseResourceTypeFactory       db.WorkerBaseResourceTypeFactory
 
 	defaultWorkerResourceType atc.WorkerResourceType
 	defaultTeam               db.Team
@@ -94,6 +95,7 @@ var _ = BeforeEach(func() {
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 	workerFactory = db.NewWorkerFactory(dbConn)
 	workerLifecycle = db.NewWorkerLifecycle(dbConn)
+	resourceConfigCheckSessionLifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
 	baseResourceTypeFactory = db.NewBaseResourceTypeFactory(dbConn)

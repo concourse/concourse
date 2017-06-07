@@ -159,16 +159,16 @@ var _ = Describe("Runner", func() {
 		It("starts scanning again eventually", func() {
 			Eventually(scanRunnerFactory.ScanResourceTypeRunnerCallCount).Should(Equal(2))
 
-			_, call1Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
-			_, call2Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
+			_, call1Resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(0)
+			_, call2Resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(1)
 			resources := []string{call1Resource, call2Resource}
 
 			fakeCancel()
 
 			Eventually(scanRunnerFactory.ScanResourceTypeRunnerCallCount, 10*syncInterval).Should(Equal(4))
 
-			_, call3Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(2)
-			_, call4Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(3)
+			_, call3Resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(2)
+			_, call4Resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(3)
 			resources = append(resources, call3Resource, call4Resource)
 			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource", "some-resource", "some-other-resource"}))
 		})

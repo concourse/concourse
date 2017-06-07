@@ -390,9 +390,9 @@ var _ = Describe("Team", func() {
 						)
 						Expect(err).NotTo(HaveOccurred())
 
-						resourceContainer, err = defaultTeam.CreateResourceCheckContainer(
+						resourceContainer, err = defaultTeam.CreateContainer(
 							"default-worker",
-							usedResourceConfig,
+							db.NewResourceConfigCheckSessionContainerOwner(usedResourceConfig),
 							db.ContainerMetadata{},
 						)
 						Expect(err).NotTo(HaveOccurred())
@@ -406,9 +406,9 @@ var _ = Describe("Team", func() {
 
 					Context("when another team has a container with the same resource config", func() {
 						BeforeEach(func() {
-							_, err := otherTeam.CreateResourceCheckContainer(
+							_, err := otherTeam.CreateContainer(
 								"default-worker",
-								usedResourceConfig,
+								db.NewResourceConfigCheckSessionContainerOwner(usedResourceConfig),
 								db.ContainerMetadata{},
 							)
 							Expect(err).NotTo(HaveOccurred())
@@ -765,10 +765,10 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			fakeOwner = new(dbfakes.FakeContainerOwner)
-			fakeOwner.SQLMapReturns(map[string]interface{}{
+			fakeOwner.FindReturns(sq.Eq{
 				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
-			})
+			}, true, nil)
 		})
 
 		Context("when there is a creating container", func() {
@@ -826,10 +826,10 @@ var _ = Describe("Team", func() {
 		Context("when there is no container", func() {
 			It("returns nil", func() {
 				bogusOwner := new(dbfakes.FakeContainerOwner)
-				bogusOwner.SQLMapReturns(map[string]interface{}{
+				bogusOwner.FindReturns(sq.Eq{
 					"build_id": build.ID() + 1,
 					"plan_id":  "how-could-this-happen-to-me",
-				})
+				}, true, nil)
 
 				worker, found, err := defaultTeam.FindWorkerForContainerByOwner(bogusOwner)
 				Expect(err).NotTo(HaveOccurred())
@@ -1931,10 +1931,10 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			fakeOwner = new(dbfakes.FakeContainerOwner)
-			fakeOwner.SQLMapReturns(map[string]interface{}{
+			fakeOwner.FindReturns(sq.Eq{
 				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
-			})
+			}, true, nil)
 
 			team = defaultTeam
 		})

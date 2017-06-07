@@ -25,21 +25,14 @@ func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContaine
 		LeftJoin("containers igc ON igc.id = c.image_get_container_id").
 		Where(sq.Or{
 			sq.Eq{
-				"c.build_id":                 nil,
-				"c.image_check_container_id": nil,
-				"c.image_get_container_id":   nil,
-				"c.resource_config_id":       nil,
+				"c.build_id":                         nil,
+				"c.image_check_container_id":         nil,
+				"c.image_get_container_id":           nil,
+				"c.resource_config_check_session_id": nil,
 			},
 			sq.And{
 				sq.NotEq{"c.build_id": nil},
 				sq.Eq{"b.interceptible": false},
-			},
-			sq.And{
-				sq.NotEq{"c.resource_config_id": nil},
-				sq.Or{
-					sq.Expr("(c.best_if_used_by < NOW())"),
-					sq.Eq{"c.worker_base_resource_type_id": nil},
-				},
 			},
 			sq.And{
 				sq.NotEq{"c.image_check_container_id": nil},

@@ -13,23 +13,26 @@ type ScannerFactory interface {
 }
 
 type scannerFactory struct {
-	resourceFactory resource.ResourceFactory
-	defaultInterval time.Duration
-	externalURL     string
+	resourceFactory       resource.ResourceFactory
+	resourceConfigFactory db.ResourceConfigFactory
+	defaultInterval       time.Duration
+	externalURL           string
 }
 
 func NewScannerFactory(
 	resourceFactory resource.ResourceFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	defaultInterval time.Duration,
 	externalURL string,
 ) ScannerFactory {
 	return &scannerFactory{
-		resourceFactory: resourceFactory,
-		defaultInterval: defaultInterval,
-		externalURL:     externalURL,
+		resourceFactory:       resourceFactory,
+		resourceConfigFactory: resourceConfigFactory,
+		defaultInterval:       defaultInterval,
+		externalURL:           externalURL,
 	}
 }
 
 func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
-	return NewResourceScanner(clock.NewClock(), f.resourceFactory, f.defaultInterval, dbPipeline, f.externalURL)
+	return NewResourceScanner(clock.NewClock(), f.resourceFactory, f.resourceConfigFactory, f.defaultInterval, dbPipeline, f.externalURL)
 }

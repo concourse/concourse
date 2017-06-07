@@ -248,8 +248,17 @@ func (t *team) FindWorkerForContainer(handle string) (Worker, bool, error) {
 }
 
 func (t *team) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool, error) {
+	ownerQuery, found, err := owner.Find(t.conn)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
 	ownerEq := sq.Eq{}
-	for k, v := range owner.SQLMap() {
+	for k, v := range ownerQuery {
 		ownerEq["c."+k] = v
 	}
 
@@ -260,9 +269,18 @@ func (t *team) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool
 }
 
 func (t *team) FindContainerOnWorker(workerName string, owner ContainerOwner) (CreatingContainer, CreatedContainer, error) {
+	ownerQuery, found, err := owner.Find(t.conn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !found {
+		return nil, nil, nil
+	}
+
 	return t.findContainer(sq.And{
 		sq.Eq{"worker_name": workerName},
-		sq.Eq(owner.SQLMap()),
+		ownerQuery,
 	})
 }
 
@@ -278,19 +296,31 @@ func (t *team) CreateContainer(workerName string, owner ContainerOwner, meta Con
 	metadata := &ContainerMetadata{}
 	cols = append(cols, metadata.ScanTargets()...)
 
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	insMap := meta.SQLMap()
 	insMap["worker_name"] = workerName
 	insMap["handle"] = handle.String()
 	insMap["team_id"] = t.id
 
-	for k, v := range owner.SQLMap() {
+	ownerCols, err := owner.Create(tx, workerName)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range ownerCols {
 		insMap[k] = v
 	}
 
 	err = psql.Insert("containers").
 		SetMap(insMap).
 		Suffix("RETURNING id, " + strings.Join(containerMetadataColumns, ", ")).
-		RunWith(t.conn).
+		RunWith(tx).
 		QueryRow().
 		Scan(cols...)
 	if err != nil {
@@ -298,6 +328,11 @@ func (t *team) CreateContainer(workerName string, owner ContainerOwner, meta Con
 			return nil, ErrBuildDisappeared
 		}
 
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 
@@ -402,10 +437,11 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		return []Container{}, nil
 	}
 
-	rows, err := selectContainers().
+	rows, err := selectContainers("c").
+		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Where(sq.Eq{
-			"resource_config_id": resourceConfig.ID,
-			"team_id":            t.id,
+			"rccs.resource_config_id": resourceConfig.ID,
+			"c.team_id":               t.id,
 		}).
 		RunWith(t.conn).
 		Query()

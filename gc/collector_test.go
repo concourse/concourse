@@ -16,14 +16,15 @@ var _ = Describe("Aggregate Collector", func() {
 	var (
 		subject Collector
 
-		fakeBuildCollector             *gcfakes.FakeCollector
-		fakeWorkerCollector            *gcfakes.FakeCollector
-		fakeResourceCacheUseCollector  *gcfakes.FakeCollector
-		fakeResourceConfigUseCollector *gcfakes.FakeCollector
-		fakeResourceConfigCollector    *gcfakes.FakeCollector
-		fakeResourceCacheCollector     *gcfakes.FakeCollector
-		fakeVolumeCollector            *gcfakes.FakeCollector
-		fakeContainerCollector         *gcfakes.FakeCollector
+		fakeBuildCollector                      *gcfakes.FakeCollector
+		fakeWorkerCollector                     *gcfakes.FakeCollector
+		fakeResourceCacheUseCollector           *gcfakes.FakeCollector
+		fakeResourceConfigUseCollector          *gcfakes.FakeCollector
+		fakeResourceConfigCollector             *gcfakes.FakeCollector
+		fakeResourceCacheCollector              *gcfakes.FakeCollector
+		fakeVolumeCollector                     *gcfakes.FakeCollector
+		fakeContainerCollector                  *gcfakes.FakeCollector
+		fakeResourceConfigCheckSessionCollector *gcfakes.FakeCollector
 
 		err      error
 		disaster error
@@ -39,6 +40,7 @@ var _ = Describe("Aggregate Collector", func() {
 		fakeResourceCacheCollector = new(gcfakes.FakeCollector)
 		fakeVolumeCollector = new(gcfakes.FakeCollector)
 		fakeContainerCollector = new(gcfakes.FakeCollector)
+		fakeResourceConfigCheckSessionCollector = new(gcfakes.FakeCollector)
 
 		subject = NewCollector(
 			logger,
@@ -50,6 +52,7 @@ var _ = Describe("Aggregate Collector", func() {
 			fakeResourceCacheCollector,
 			fakeVolumeCollector,
 			fakeContainerCollector,
+			fakeResourceConfigCheckSessionCollector,
 		)
 
 		disaster = errors.New("disaster")
@@ -81,6 +84,7 @@ var _ = Describe("Aggregate Collector", func() {
 				Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 				Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 				Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+				Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
 			})
 
 		})
@@ -106,6 +110,7 @@ var _ = Describe("Aggregate Collector", func() {
 					Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 					Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 					Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
 				})
 			})
 
@@ -130,6 +135,7 @@ var _ = Describe("Aggregate Collector", func() {
 						Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 						Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 						Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+						Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
 					})
 				})
 
@@ -154,6 +160,7 @@ var _ = Describe("Aggregate Collector", func() {
 							Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 							Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 							Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+							Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
 						})
 					})
 
@@ -178,6 +185,7 @@ var _ = Describe("Aggregate Collector", func() {
 								Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 								Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 								Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+								Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
 							})
 						})
 
@@ -202,6 +210,7 @@ var _ = Describe("Aggregate Collector", func() {
 									Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
 									Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 									Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+									Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
 								})
 							})
 
@@ -226,6 +235,7 @@ var _ = Describe("Aggregate Collector", func() {
 										Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
 										Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 										Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+										Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
 									})
 								})
 
@@ -250,6 +260,31 @@ var _ = Describe("Aggregate Collector", func() {
 											Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
 											Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 											Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
+											Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
+										})
+									})
+									Context("when the resource config check session collector succeeds", func() {
+										It("attempts to collect containers", func() {
+											Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
+										})
+
+										Context("when the container collector errors", func() {
+											BeforeEach(func() {
+												fakeResourceConfigCheckSessionCollector.RunReturns(disaster)
+											})
+
+											It("does not return an error", func() {
+												Expect(err).NotTo(HaveOccurred())
+											})
+
+											It("runs the rest of collectors", func() {
+												Expect(fakeWorkerCollector.RunCallCount()).To(Equal(1))
+												Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
+												Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
+												Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
+												Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
+												Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
+											})
 										})
 									})
 								})

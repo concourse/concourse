@@ -243,6 +243,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
+	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -267,12 +268,14 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceFactory,
+		dbResourceConfigFactory,
 		cmd.ResourceCheckingInterval,
 		engine,
 	)
 
 	radarScannerFactory := radar.NewScannerFactory(
 		resourceFactory,
+		dbResourceConfigFactory,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
 	)
@@ -472,6 +475,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 					dbContainerFactory,
 					dbWorkerFactory,
 					gc.NewGardenClientFactory(),
+				),
+				gc.NewResourceConfigCheckSessionCollector(
+					logger.Session("resource-config-check-session-collector"),
+					resourceConfigCheckSessionLifecycle,
 				),
 			),
 			"collector",

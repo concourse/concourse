@@ -4,68 +4,157 @@ package dbfakes
 import (
 	"sync"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc/db"
 )
 
 type FakeContainerOwner struct {
-	SQLMapStub        func() map[string]interface{}
-	sQLMapMutex       sync.RWMutex
-	sQLMapArgsForCall []struct{}
-	sQLMapReturns     struct {
-		result1 map[string]interface{}
+	FindStub        func(conn db.Conn) (sq.Eq, bool, error)
+	findMutex       sync.RWMutex
+	findArgsForCall []struct {
+		conn db.Conn
 	}
-	sQLMapReturnsOnCall map[int]struct {
+	findReturns struct {
+		result1 sq.Eq
+		result2 bool
+		result3 error
+	}
+	findReturnsOnCall map[int]struct {
+		result1 sq.Eq
+		result2 bool
+		result3 error
+	}
+	CreateStub        func(tx db.Tx, workerName string) (map[string]interface{}, error)
+	createMutex       sync.RWMutex
+	createArgsForCall []struct {
+		tx         db.Tx
+		workerName string
+	}
+	createReturns struct {
 		result1 map[string]interface{}
+		result2 error
+	}
+	createReturnsOnCall map[int]struct {
+		result1 map[string]interface{}
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerOwner) SQLMap() map[string]interface{} {
-	fake.sQLMapMutex.Lock()
-	ret, specificReturn := fake.sQLMapReturnsOnCall[len(fake.sQLMapArgsForCall)]
-	fake.sQLMapArgsForCall = append(fake.sQLMapArgsForCall, struct{}{})
-	fake.recordInvocation("SQLMap", []interface{}{})
-	fake.sQLMapMutex.Unlock()
-	if fake.SQLMapStub != nil {
-		return fake.SQLMapStub()
+func (fake *FakeContainerOwner) Find(conn db.Conn) (sq.Eq, bool, error) {
+	fake.findMutex.Lock()
+	ret, specificReturn := fake.findReturnsOnCall[len(fake.findArgsForCall)]
+	fake.findArgsForCall = append(fake.findArgsForCall, struct {
+		conn db.Conn
+	}{conn})
+	fake.recordInvocation("Find", []interface{}{conn})
+	fake.findMutex.Unlock()
+	if fake.FindStub != nil {
+		return fake.FindStub(conn)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.sQLMapReturns.result1
+	return fake.findReturns.result1, fake.findReturns.result2, fake.findReturns.result3
 }
 
-func (fake *FakeContainerOwner) SQLMapCallCount() int {
-	fake.sQLMapMutex.RLock()
-	defer fake.sQLMapMutex.RUnlock()
-	return len(fake.sQLMapArgsForCall)
+func (fake *FakeContainerOwner) FindCallCount() int {
+	fake.findMutex.RLock()
+	defer fake.findMutex.RUnlock()
+	return len(fake.findArgsForCall)
 }
 
-func (fake *FakeContainerOwner) SQLMapReturns(result1 map[string]interface{}) {
-	fake.SQLMapStub = nil
-	fake.sQLMapReturns = struct {
-		result1 map[string]interface{}
-	}{result1}
+func (fake *FakeContainerOwner) FindArgsForCall(i int) db.Conn {
+	fake.findMutex.RLock()
+	defer fake.findMutex.RUnlock()
+	return fake.findArgsForCall[i].conn
 }
 
-func (fake *FakeContainerOwner) SQLMapReturnsOnCall(i int, result1 map[string]interface{}) {
-	fake.SQLMapStub = nil
-	if fake.sQLMapReturnsOnCall == nil {
-		fake.sQLMapReturnsOnCall = make(map[int]struct {
-			result1 map[string]interface{}
+func (fake *FakeContainerOwner) FindReturns(result1 sq.Eq, result2 bool, result3 error) {
+	fake.FindStub = nil
+	fake.findReturns = struct {
+		result1 sq.Eq
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeContainerOwner) FindReturnsOnCall(i int, result1 sq.Eq, result2 bool, result3 error) {
+	fake.FindStub = nil
+	if fake.findReturnsOnCall == nil {
+		fake.findReturnsOnCall = make(map[int]struct {
+			result1 sq.Eq
+			result2 bool
+			result3 error
 		})
 	}
-	fake.sQLMapReturnsOnCall[i] = struct {
+	fake.findReturnsOnCall[i] = struct {
+		result1 sq.Eq
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeContainerOwner) Create(tx db.Tx, workerName string) (map[string]interface{}, error) {
+	fake.createMutex.Lock()
+	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
+	fake.createArgsForCall = append(fake.createArgsForCall, struct {
+		tx         db.Tx
+		workerName string
+	}{tx, workerName})
+	fake.recordInvocation("Create", []interface{}{tx, workerName})
+	fake.createMutex.Unlock()
+	if fake.CreateStub != nil {
+		return fake.CreateStub(tx, workerName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createReturns.result1, fake.createReturns.result2
+}
+
+func (fake *FakeContainerOwner) CreateCallCount() int {
+	fake.createMutex.RLock()
+	defer fake.createMutex.RUnlock()
+	return len(fake.createArgsForCall)
+}
+
+func (fake *FakeContainerOwner) CreateArgsForCall(i int) (db.Tx, string) {
+	fake.createMutex.RLock()
+	defer fake.createMutex.RUnlock()
+	return fake.createArgsForCall[i].tx, fake.createArgsForCall[i].workerName
+}
+
+func (fake *FakeContainerOwner) CreateReturns(result1 map[string]interface{}, result2 error) {
+	fake.CreateStub = nil
+	fake.createReturns = struct {
 		result1 map[string]interface{}
-	}{result1}
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerOwner) CreateReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
+	fake.CreateStub = nil
+	if fake.createReturnsOnCall == nil {
+		fake.createReturnsOnCall = make(map[int]struct {
+			result1 map[string]interface{}
+			result2 error
+		})
+	}
+	fake.createReturnsOnCall[i] = struct {
+		result1 map[string]interface{}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeContainerOwner) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.sQLMapMutex.RLock()
-	defer fake.sQLMapMutex.RUnlock()
+	fake.findMutex.RLock()
+	defer fake.findMutex.RUnlock()
+	fake.createMutex.RLock()
+	defer fake.createMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

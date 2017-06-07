@@ -398,10 +398,6 @@ var _ = Describe("Pool", func() {
 			fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 			fakeOwner = new(dbfakes.FakeContainerOwner)
-			fakeOwner.SQLMapReturns(map[string]interface{}{
-				"build_id": 42,
-				"plan_id":  atc.PlanID("some-plan-id"),
-			})
 
 			fakeInput1 := new(workerfakes.FakeInputSource)
 			fakeInput1AS := new(workerfakes.FakeArtifactSource)

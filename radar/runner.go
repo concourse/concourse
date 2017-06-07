@@ -49,6 +49,11 @@ func (r *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	scannerContext, cancel := context.WithCancel(context.Background())
 	close(ready)
 
+	if r.noop {
+		<-signals
+		return nil
+	}
+
 	err := r.tick(scannerContext)
 	if err != nil {
 		cancel()
