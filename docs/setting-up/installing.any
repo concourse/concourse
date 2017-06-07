@@ -77,12 +77,109 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       \reference{downloads}{downloads} section.
     }{
       For Linux you'll need kernel v3.19 or later, with user namespace support
-      enabled. Windows and Darwin don't really need anything special.
+      enabled. Windows and Darwin don't really need anything special, except fact that you will need Linux worker anyway for fetching resources.
+    }{
+      openssl
+    }{
+      ssh-keygen from any ssh client. For example, openssh
     }{
       PostgresSQL 9.3+
     }
   }
 
+  \section{Downloading Binaries}{download-binaries}{
+    Create your concourse directory and download desired release.
+    Linux example:
+
+	\codeblock{bash}{
+    mkdir concourse
+    cd concourse
+    wget -O concourse  https://github.com/concourse/concourse/releases/download/v2.6.0/concourse_linux_amd64
+    wget -O fly https://github.com/concourse/concourse/releases/download/v2.6.0/fly_linux_amd64
+    }
+	Winodws powershell example:
+	\codeblock{powershell}{
+    mkdir C:\\concourse
+    cd C:\\concourse
+    (New-Object System.Net.WebClient).DownloadFile("https://github.com/concourse/concourse/releases/download/v2.6.0/concourse_windows_amd64.exe", "C:\\concourse\\concourse.exe")
+    (New-Object System.Net.WebClient).DownloadFile("https://github.com/concourse/concourse/releases/download/v2.6.0/fly_windows_amd64.exe", "C:\\concourse\\fly.exe")
+    }
+    Deploy \code{fly} on Linux/Darwin:
+    \codeblock{bash}{
+    sudo mkdir -p /usr/local/bin
+    sudo mv fly /usr/local/bin
+    sudo chmod 0755 /usr/local/bin/fly
+    }
+    Deploy \code{fly} on Windows (run \code{cmd.exe} as administrator):
+    \codeblock{batch}{
+    move fly.exe %SystemRoot%\\{- -}system32
+    }
+  }
+
+  \section{Create Concourse User And Database in PostgresSQL}{create-users}{
+    Login to database using password you specified during installation of PostgresSQL:
+	\codeblock{bash}{
+    psql -U postgres
+    }
+	Execute following SQL:
+	\codeblock{sql}{
+    CREATE DATABASE CONCOURSE;
+    CREATE USER atc_user with password 'custom password';
+    GRANT ALL privileges ON DATABASE CONCOURSE to atc_user;
+    }
+  }
+
+  \section{Add SSL Authentication For Concourse Users in PostgresSQL}{enable-ssl-auth}{
+    Add following lines in PostgresSQL \code{pg_hba.conf} file:
+    \codeblock{bash}{
+    host concourse concourse 127.0.0.1/32 md5
+    host atc concourse 127.0.0.1/32 md5
+    }
+    Linux/Darwin example:
+    \codeblock{bash}{
+    sudo vi /var/lib/pgsql/9.x/data/pg_hba.conf
+    }
+    Windows example:
+    \codeblock{batch}{
+    notepad C:\\PostgreSQL\\{- -}9.x\\data\\pg_hba.conf
+    }
+  }
+
+  \section{Enable SSL in PostgresSQL}{enable-ssl-postgres}{
+    Generate certificates.
+    Linux/Darwin:
+    \codeblock{bash}{
+    cd /var/lib/pgsql/9.x/data
+    openssl req -new -text -out server.req
+    openssl rsa -in privkey.pem -out server.key
+    rm privkey.pem
+    openssl req -x509 -in server.req -text -key server.key -out server.crt
+    }
+    Windows:
+    \codeblock{batch}{
+    cd C:\\PostgreSQL\\{- -}9.x\\data
+    openssl req -new -text -out server.req
+    openssl rsa -in privkey.pem -out server.key
+    del privkey.pem
+    openssl req -x509 -in server.req -text -key server.key -out server.crt
+    }
+    Enable SSL in \code{postgresql.conf} file. Uncomment lines:
+    \codeblock{bash}{
+    ssl = on				# (change requires restart)
+    ssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL' # allowed SSL ciphers
+    ssl_cert_file = 'server.crt'		# (change requires restart)
+    ssl_key_file = 'server.key'		# (change requires restart)
+    }
+    Linux/Darwin example:
+    \codeblock{bash}{
+    sudo vi /var/lib/pgsql/9.x/data/postgresql.conf
+    }
+    Windows example:
+    \codeblock{batch}{
+    notepad C:\\PostgreSQL\\{- -}9.x\\data\\postgresql.conf
+    }
+    Restart PostgresSQL service
+  }
   \section{Generating Keys}{generating-keys}{
     To run Concourse securely you'll need to generate 3 private keys (well, 2,
     plus 1 for each worker):
@@ -106,20 +203,27 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       }
     }
 
-    To generate these keys, run:
+    Navigate to directory where concourse binaries are located and generate keys.
+    To generate these keys on Linux/Darwin, run:
 
     \codeblock{bash}{
     ssh-keygen -t rsa -f tsa_host_key -N ''
     ssh-keygen -t rsa -f worker_key -N ''
     ssh-keygen -t rsa -f session_signing_key -N ''
-    }
-
-    ...and we'll also start on an \code{authorized_keys} file, currently
-    listing this initial worker key:
-
-    \codeblock{bash}{
     cp worker_key.pub authorized_worker_keys
     }
+    
+    To generate these keys on Windows, run:
+	
+    \codeblock{batch}{
+    ssh-keygen -t rsa -f host_key -N ""
+    ssh-keygen -t rsa -f worker_key -N ""
+    ssh-keygen -t rsa -f session_signing_key -N ""
+    copy worker_key.pub authorized_worker_keys
+    }
+
+    ...note that we'll also start on an \code{authorized_keys} file, currently
+    listing this initial worker key.
   }
 
   \section{Starting the Web UI & Scheduler}{
@@ -139,6 +243,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       \code{8080}, with some basic auth configured, and a TSA listening on port
       \code{2222}.
 
+      To start ATC on Linux/Darwin run:
       \codeblock{bash}{
       concourse web \\
         --basic-auth-username myuser \\
@@ -146,7 +251,20 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
         --session-signing-key session_signing_key \\
         --tsa-host-key tsa_host_key \\
         --tsa-authorized-keys authorized_worker_keys \\
+        --postgres-data-source postgres://atc_user:atc_password@127.0.0.1/concourse \\
         --external-url http://my-ci.example.com
+      }
+
+      To start ATC on Windows run:
+      \codeblock{batch}{
+      concourse web ^
+      --basic-auth-username myuser ^
+      --basic-auth-password mypass ^
+      --session-signing-key session_signing_key ^
+      --tsa-host-key host_key ^
+      --tsa-authorized-keys authorized_worker_keys ^
+      --postgres-data-source postgres://atc_user:atc_password@127.0.0.1/concourse ^
+      --external-url http://my-ci.example.com
       }
 
       This assumes you have a local Postgres server running on the default port
@@ -187,7 +305,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
         i.e. the URL to your load balancer
       }
 
-      For example:
+      For example Linux/Darwin:
 
       Node 0:
 
@@ -216,6 +334,36 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
         --external-url https://ci.example.com \\
         --peer-url http://10.0.16.11:8080
       }
+
+      For example Windows:
+
+      Node 0:
+
+      \codeblock{batch}{
+      concourse web ^
+      --basic-auth-username myuser ^
+      --basic-auth-password mypass ^
+      --session-signing-key session_signing_key ^
+      --tsa-host-key host_key \\
+      --tsa-authorized-keys authorized_worker_keys ^
+      --postgres-data-source postgres://atc_user:atc_password@10.0.32.0/concourse ^
+      --external-url https://ci.example.com ^
+      --peer-url http://10.0.16.10:8080
+      }
+
+      Node 1 (only difference is \code{--peer-url}):
+
+      \codeblock{batch}{
+      concourse web ^
+      --basic-auth-username myuser ^
+      --basic-auth-password mypass ^
+      --session-signing-key session_signing_key ^
+      --tsa-host-key host_key ^
+      --tsa-authorized-keys authorized_worker_keys ^
+      --postgres-data-source postgres://atc_user:atc_password@10.0.32.0/concourse ^
+      --external-url https://ci.example.com ^
+      --peer-url http://10.0.16.11:8080
+      }
     }
   }
 
@@ -238,7 +386,9 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     Concourse requests of it.
 
     To spin up a worker and register it with your Concourse cluster running
-    locally, run:
+    locally, run commands below.
+
+    On Linux/Darwin:
 
     \codeblock{bash}{
     sudo concourse worker \\
@@ -246,6 +396,16 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       --tsa-host 127.0.0.1 \\
       --tsa-public-key tsa_host_key.pub \\
       --tsa-worker-private-key worker_key
+    }
+
+    On Windows:
+
+    \codeblock{batch}{
+    concourse worker ^
+    --work-dir C:\\concourse\\worker ^
+    --tsa-host 127.0.0.1 ^
+    --tsa-public-key host_key.pub ^
+    --tsa-worker-private-key worker_key
     }
 
     Note that the worker must be run as \code{root}, as it orchestrates
