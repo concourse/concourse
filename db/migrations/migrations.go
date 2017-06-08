@@ -168,4 +168,5 @@ var Migrations = []migration.Migrator{
 	DropWorkerResourceCacheFromContainers,
 	AddResourceConfigCheckSessions,
 	CreateContainerGCIndexes,
+	AddIndexesForBuildCollector,
 }
