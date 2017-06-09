@@ -60,14 +60,14 @@ type FakeCreatedVolume struct {
 		result1 db.DestroyingVolume
 		result2 error
 	}
-	WorkerStub        func() db.Worker
-	workerMutex       sync.RWMutex
-	workerArgsForCall []struct{}
-	workerReturns     struct {
-		result1 db.Worker
+	WorkerNameStub        func() string
+	workerNameMutex       sync.RWMutex
+	workerNameArgsForCall []struct{}
+	workerNameReturns     struct {
+		result1 string
 	}
-	workerReturnsOnCall map[int]struct {
-		result1 db.Worker
+	workerNameReturnsOnCall map[int]struct {
+		result1 string
 	}
 	SizeInBytesStub        func() int64
 	sizeInBytesMutex       sync.RWMutex
@@ -357,43 +357,43 @@ func (fake *FakeCreatedVolume) DestroyingReturnsOnCall(i int, result1 db.Destroy
 	}{result1, result2}
 }
 
-func (fake *FakeCreatedVolume) Worker() db.Worker {
-	fake.workerMutex.Lock()
-	ret, specificReturn := fake.workerReturnsOnCall[len(fake.workerArgsForCall)]
-	fake.workerArgsForCall = append(fake.workerArgsForCall, struct{}{})
-	fake.recordInvocation("Worker", []interface{}{})
-	fake.workerMutex.Unlock()
-	if fake.WorkerStub != nil {
-		return fake.WorkerStub()
+func (fake *FakeCreatedVolume) WorkerName() string {
+	fake.workerNameMutex.Lock()
+	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
+	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct{}{})
+	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.workerNameMutex.Unlock()
+	if fake.WorkerNameStub != nil {
+		return fake.WorkerNameStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.workerReturns.result1
+	return fake.workerNameReturns.result1
 }
 
-func (fake *FakeCreatedVolume) WorkerCallCount() int {
-	fake.workerMutex.RLock()
-	defer fake.workerMutex.RUnlock()
-	return len(fake.workerArgsForCall)
+func (fake *FakeCreatedVolume) WorkerNameCallCount() int {
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
+	return len(fake.workerNameArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) WorkerReturns(result1 db.Worker) {
-	fake.WorkerStub = nil
-	fake.workerReturns = struct {
-		result1 db.Worker
+func (fake *FakeCreatedVolume) WorkerNameReturns(result1 string) {
+	fake.WorkerNameStub = nil
+	fake.workerNameReturns = struct {
+		result1 string
 	}{result1}
 }
 
-func (fake *FakeCreatedVolume) WorkerReturnsOnCall(i int, result1 db.Worker) {
-	fake.WorkerStub = nil
-	if fake.workerReturnsOnCall == nil {
-		fake.workerReturnsOnCall = make(map[int]struct {
-			result1 db.Worker
+func (fake *FakeCreatedVolume) WorkerNameReturnsOnCall(i int, result1 string) {
+	fake.WorkerNameStub = nil
+	if fake.workerNameReturnsOnCall == nil {
+		fake.workerNameReturnsOnCall = make(map[int]struct {
+			result1 string
 		})
 	}
-	fake.workerReturnsOnCall[i] = struct {
-		result1 db.Worker
+	fake.workerNameReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 
@@ -699,8 +699,8 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.createChildForContainerMutex.RUnlock()
 	fake.destroyingMutex.RLock()
 	defer fake.destroyingMutex.RUnlock()
-	fake.workerMutex.RLock()
-	defer fake.workerMutex.RUnlock()
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
 	fake.sizeInBytesMutex.RLock()
 	defer fake.sizeInBytesMutex.RUnlock()
 	fake.initializeMutex.RLock()

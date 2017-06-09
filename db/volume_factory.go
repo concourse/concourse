@@ -13,15 +13,15 @@ import (
 type VolumeFactory interface {
 	GetTeamVolumes(teamID int) ([]CreatedVolume, error)
 
-	CreateContainerVolume(int, Worker, CreatingContainer, string) (CreatingVolume, error)
-	FindContainerVolume(int, Worker, CreatingContainer, string) (CreatingVolume, CreatedVolume, error)
+	CreateContainerVolume(int, string, CreatingContainer, string) (CreatingVolume, error)
+	FindContainerVolume(int, string, CreatingContainer, string) (CreatingVolume, CreatedVolume, error)
 
 	FindBaseResourceTypeVolume(int, *UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error)
 	CreateBaseResourceTypeVolume(int, *UsedWorkerBaseResourceType) (CreatingVolume, error)
 
-	FindResourceCacheVolume(Worker, *UsedResourceCache) (CreatingVolume, CreatedVolume, error)
-	FindResourceCacheInitializedVolume(Worker, *UsedResourceCache) (CreatedVolume, bool, error)
-	CreateResourceCacheVolume(Worker, *UsedResourceCache) (CreatingVolume, error)
+	FindResourceCacheVolume(string, *UsedResourceCache) (CreatingVolume, CreatedVolume, error)
+	FindResourceCacheInitializedVolume(string, *UsedResourceCache) (CreatedVolume, bool, error)
+	CreateResourceCacheVolume(string, *UsedResourceCache) (CreatingVolume, error)
 
 	FindVolumesForContainer(CreatedContainer) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
@@ -82,12 +82,12 @@ func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error
 	return createdVolumes, nil
 }
 
-func (factory *volumeFactory) CreateResourceCacheVolume(worker Worker, resourceCache *UsedResourceCache) (CreatingVolume, error) {
+func (factory *volumeFactory) CreateResourceCacheVolume(workerName string, resourceCache *UsedResourceCache) (CreatingVolume, error) {
 	var workerResourcCache *UsedWorkerResourceCache
 	err := safeFindOrCreate(factory.conn, func(tx Tx) error {
 		var err error
 		workerResourcCache, err = WorkerResourceCache{
-			WorkerName:    worker.Name(),
+			WorkerName:    workerName,
 			ResourceCache: resourceCache,
 		}.FindOrCreate(tx)
 		return err
@@ -98,7 +98,7 @@ func (factory *volumeFactory) CreateResourceCacheVolume(worker Worker, resourceC
 
 	volume, err := factory.createVolume(
 		0,
-		worker,
+		workerName,
 		map[string]interface{}{"worker_resource_cache_id": workerResourcCache.ID},
 		VolumeTypeResource,
 	)
@@ -110,7 +110,7 @@ func (factory *volumeFactory) CreateResourceCacheVolume(worker Worker, resourceC
 func (factory *volumeFactory) CreateBaseResourceTypeVolume(teamID int, uwbrt *UsedWorkerBaseResourceType) (CreatingVolume, error) {
 	volume, err := factory.createVolume(
 		teamID,
-		uwbrt.Worker,
+		uwbrt.WorkerName,
 		map[string]interface{}{
 			"worker_base_resource_type_id": uwbrt.ID,
 			"initialized":                  true,
@@ -125,10 +125,10 @@ func (factory *volumeFactory) CreateBaseResourceTypeVolume(teamID int, uwbrt *Us
 	return volume, nil
 }
 
-func (factory *volumeFactory) CreateContainerVolume(teamID int, worker Worker, container CreatingContainer, mountPath string) (CreatingVolume, error) {
+func (factory *volumeFactory) CreateContainerVolume(teamID int, workerName string, container CreatingContainer, mountPath string) (CreatingVolume, error) {
 	volume, err := factory.createVolume(
 		teamID,
-		worker,
+		workerName,
 		map[string]interface{}{
 			"container_id": container.ID(),
 			"path":         mountPath,
@@ -182,22 +182,22 @@ func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer
 	return createdVolumes, nil
 }
 
-func (factory *volumeFactory) FindContainerVolume(teamID int, worker Worker, container CreatingContainer, mountPath string) (CreatingVolume, CreatedVolume, error) {
-	return factory.findVolume(teamID, worker, map[string]interface{}{
+func (factory *volumeFactory) FindContainerVolume(teamID int, workerName string, container CreatingContainer, mountPath string) (CreatingVolume, CreatedVolume, error) {
+	return factory.findVolume(teamID, workerName, map[string]interface{}{
 		"v.container_id": container.ID(),
 		"v.path":         mountPath,
 	})
 }
 
 func (factory *volumeFactory) FindBaseResourceTypeVolume(teamID int, uwbrt *UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error) {
-	return factory.findVolume(teamID, uwbrt.Worker, map[string]interface{}{
+	return factory.findVolume(teamID, uwbrt.WorkerName, map[string]interface{}{
 		"v.worker_base_resource_type_id": uwbrt.ID,
 	})
 }
 
-func (factory *volumeFactory) FindResourceCacheVolume(worker Worker, resourceCache *UsedResourceCache) (CreatingVolume, CreatedVolume, error) {
+func (factory *volumeFactory) FindResourceCacheVolume(workerName string, resourceCache *UsedResourceCache) (CreatingVolume, CreatedVolume, error) {
 	workerResourceCache, found, err := WorkerResourceCache{
-		WorkerName:    worker.Name(),
+		WorkerName:    workerName,
 		ResourceCache: resourceCache,
 	}.Find(factory.conn)
 	if err != nil {
@@ -208,14 +208,14 @@ func (factory *volumeFactory) FindResourceCacheVolume(worker Worker, resourceCac
 		return nil, nil, nil
 	}
 
-	return factory.findVolume(0, worker, map[string]interface{}{
+	return factory.findVolume(0, workerName, map[string]interface{}{
 		"v.worker_resource_cache_id": workerResourceCache.ID,
 	})
 }
 
-func (factory *volumeFactory) FindResourceCacheInitializedVolume(worker Worker, resourceCache *UsedResourceCache) (CreatedVolume, bool, error) {
+func (factory *volumeFactory) FindResourceCacheInitializedVolume(workerName string, resourceCache *UsedResourceCache) (CreatedVolume, bool, error) {
 	workerResourceCache, found, err := WorkerResourceCache{
-		WorkerName:    worker.Name(),
+		WorkerName:    workerName,
 		ResourceCache: resourceCache,
 	}.Find(factory.conn)
 	if err != nil {
@@ -226,7 +226,7 @@ func (factory *volumeFactory) FindResourceCacheInitializedVolume(worker Worker, 
 		return nil, false, nil
 	}
 
-	_, createdVolume, err := factory.findVolume(0, worker, map[string]interface{}{
+	_, createdVolume, err := factory.findVolume(0, workerName, map[string]interface{}{
 		"v.worker_resource_cache_id": workerResourceCache.ID,
 		"v.initialized":              true,
 	})
@@ -242,7 +242,7 @@ func (factory *volumeFactory) FindResourceCacheInitializedVolume(worker Worker, 
 }
 
 func (factory *volumeFactory) FindCreatedVolume(handle string) (CreatedVolume, bool, error) {
-	_, createdVolume, err := factory.findVolume(0, nil, map[string]interface{}{
+	_, createdVolume, err := factory.findVolume(0, "", map[string]interface{}{
 		"v.handle": handle,
 	})
 	if err != nil {
@@ -378,7 +378,7 @@ var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer e
 // 4. commit tx
 func (factory *volumeFactory) createVolume(
 	teamID int,
-	worker Worker,
+	workerName string,
 	columns map[string]interface{},
 	volumeType VolumeType,
 ) (*creatingVolume, error) {
@@ -389,7 +389,7 @@ func (factory *volumeFactory) createVolume(
 	}
 
 	columnNames := []string{"worker_name", "handle"}
-	columnValues := []interface{}{worker.Name(), handle.String()}
+	columnValues := []interface{}{workerName, handle.String()}
 	for name, value := range columns {
 		columnNames = append(columnNames, name)
 		columnValues = append(columnValues, value)
@@ -412,7 +412,7 @@ func (factory *volumeFactory) createVolume(
 	}
 
 	return &creatingVolume{
-		worker: worker,
+		workerName: workerName,
 
 		id:     volumeID,
 		handle: handle.String(),
@@ -423,13 +423,13 @@ func (factory *volumeFactory) createVolume(
 	}, nil
 }
 
-func (factory *volumeFactory) findVolume(teamID int, worker Worker, columns map[string]interface{}) (CreatingVolume, CreatedVolume, error) {
+func (factory *volumeFactory) findVolume(teamID int, workerName string, columns map[string]interface{}) (CreatingVolume, CreatedVolume, error) {
 	whereClause := sq.Eq{}
 	if teamID != 0 {
 		whereClause["v.team_id"] = teamID
 	}
-	if worker != nil {
-		whereClause["v.worker_name"] = worker.Name()
+	if workerName != "" {
+		whereClause["v.worker_name"] = workerName
 	}
 
 	for name, value := range columns {
@@ -461,8 +461,6 @@ var volumeColumns = []string{
 	"v.handle",
 	"v.state",
 	"w.name",
-	"w.addr",
-	"w.baggageclaim_url",
 	"v.path",
 	"c.handle",
 	"pv.handle",
@@ -481,8 +479,6 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	var handle string
 	var state string
 	var workerName string
-	var sqWorkerAddress sql.NullString
-	var sqWorkerBaggageclaimURL sql.NullString
 	var sqPath sql.NullString
 	var sqContainerHandle sql.NullString
 	var sqParentHandle sql.NullString
@@ -497,8 +493,6 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		&handle,
 		&state,
 		&workerName,
-		&sqWorkerAddress,
-		&sqWorkerBaggageclaimURL,
 		&sqPath,
 		&sqContainerHandle,
 		&sqParentHandle,
@@ -526,16 +520,6 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		parentHandle = sqParentHandle.String
 	}
 
-	var workerBaggageclaimURL string
-	if sqWorkerBaggageclaimURL.Valid {
-		workerBaggageclaimURL = sqWorkerBaggageclaimURL.String
-	}
-
-	var workerAddress string
-	if sqWorkerAddress.Valid {
-		workerAddress = sqWorkerAddress.String
-	}
-
 	var teamID int
 	if sqTeamID.Valid {
 		teamID = int(sqTeamID.Int64)
@@ -554,16 +538,12 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	switch state {
 	case VolumeStateCreated:
 		return nil, &createdVolume{
-			id:     id,
-			handle: handle,
-			typ:    volumeType,
-			path:   path,
-			teamID: teamID,
-			worker: &worker{
-				name:            workerName,
-				gardenAddr:      &workerAddress,
-				baggageclaimURL: &workerBaggageclaimURL,
-			},
+			id:                       id,
+			handle:                   handle,
+			typ:                      volumeType,
+			path:                     path,
+			teamID:                   teamID,
+			workerName:               workerName,
 			containerHandle:          containerHandle,
 			parentHandle:             parentHandle,
 			resourceCacheID:          resourceCacheID,
@@ -572,16 +552,12 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		}, nil, nil
 	case VolumeStateCreating:
 		return &creatingVolume{
-			id:     id,
-			handle: handle,
-			typ:    volumeType,
-			path:   path,
-			teamID: teamID,
-			worker: &worker{
-				name:            workerName,
-				gardenAddr:      &workerAddress,
-				baggageclaimURL: &workerBaggageclaimURL,
-			},
+			id:                       id,
+			handle:                   handle,
+			typ:                      volumeType,
+			path:                     path,
+			teamID:                   teamID,
+			workerName:               workerName,
 			containerHandle:          containerHandle,
 			parentHandle:             parentHandle,
 			resourceCacheID:          resourceCacheID,
@@ -590,14 +566,10 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		}, nil, nil, nil
 	case VolumeStateDestroying:
 		return nil, nil, &destroyingVolume{
-			id:     id,
-			handle: handle,
-			worker: &worker{
-				name:            workerName,
-				gardenAddr:      &workerAddress,
-				baggageclaimURL: &workerBaggageclaimURL,
-			},
-			conn: conn,
+			id:         id,
+			handle:     handle,
+			workerName: workerName,
+			conn:       conn,
 		}, nil
 	}
 

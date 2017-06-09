@@ -224,9 +224,9 @@ var _ = Describe("VolumeClient", func() {
 
 			It("creates volume in creating state", func() {
 				Expect(fakeDBVolumeFactory.CreateContainerVolumeCallCount()).To(Equal(1))
-				actualTeamID, actualWorker, actualContainer, actualMountPath := fakeDBVolumeFactory.CreateContainerVolumeArgsForCall(0)
+				actualTeamID, actualWorkerName, actualContainer, actualMountPath := fakeDBVolumeFactory.CreateContainerVolumeArgsForCall(0)
 				Expect(actualTeamID).To(Equal(42))
-				Expect(actualWorker).To(Equal(dbWorker))
+				Expect(actualWorkerName).To(Equal(dbWorker.Name()))
 				Expect(actualContainer).To(Equal(container))
 				Expect(actualMountPath).To(Equal("some-mount-path"))
 			})
@@ -459,8 +459,8 @@ var _ = Describe("VolumeClient", func() {
 
 		It("creates volume in creating state", func() {
 			Expect(fakeDBVolumeFactory.CreateResourceCacheVolumeCallCount()).To(Equal(1))
-			actualWorker, actualResourceCache := fakeDBVolumeFactory.CreateResourceCacheVolumeArgsForCall(0)
-			Expect(actualWorker).To(Equal(dbWorker))
+			actualWorkerName, actualResourceCache := fakeDBVolumeFactory.CreateResourceCacheVolumeArgsForCall(0)
+			Expect(actualWorkerName).To(Equal(dbWorker.Name()))
 			Expect(actualResourceCache).To(Equal(resourcCache))
 		})
 

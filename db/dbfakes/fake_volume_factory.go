@@ -21,11 +21,11 @@ type FakeVolumeFactory struct {
 		result1 []db.CreatedVolume
 		result2 error
 	}
-	CreateContainerVolumeStub        func(int, db.Worker, db.CreatingContainer, string) (db.CreatingVolume, error)
+	CreateContainerVolumeStub        func(int, string, db.CreatingContainer, string) (db.CreatingVolume, error)
 	createContainerVolumeMutex       sync.RWMutex
 	createContainerVolumeArgsForCall []struct {
 		arg1 int
-		arg2 db.Worker
+		arg2 string
 		arg3 db.CreatingContainer
 		arg4 string
 	}
@@ -37,11 +37,11 @@ type FakeVolumeFactory struct {
 		result1 db.CreatingVolume
 		result2 error
 	}
-	FindContainerVolumeStub        func(int, db.Worker, db.CreatingContainer, string) (db.CreatingVolume, db.CreatedVolume, error)
+	FindContainerVolumeStub        func(int, string, db.CreatingContainer, string) (db.CreatingVolume, db.CreatedVolume, error)
 	findContainerVolumeMutex       sync.RWMutex
 	findContainerVolumeArgsForCall []struct {
 		arg1 int
-		arg2 db.Worker
+		arg2 string
 		arg3 db.CreatingContainer
 		arg4 string
 	}
@@ -85,10 +85,10 @@ type FakeVolumeFactory struct {
 		result1 db.CreatingVolume
 		result2 error
 	}
-	FindResourceCacheVolumeStub        func(db.Worker, *db.UsedResourceCache) (db.CreatingVolume, db.CreatedVolume, error)
+	FindResourceCacheVolumeStub        func(string, *db.UsedResourceCache) (db.CreatingVolume, db.CreatedVolume, error)
 	findResourceCacheVolumeMutex       sync.RWMutex
 	findResourceCacheVolumeArgsForCall []struct {
-		arg1 db.Worker
+		arg1 string
 		arg2 *db.UsedResourceCache
 	}
 	findResourceCacheVolumeReturns struct {
@@ -101,10 +101,10 @@ type FakeVolumeFactory struct {
 		result2 db.CreatedVolume
 		result3 error
 	}
-	FindResourceCacheInitializedVolumeStub        func(db.Worker, *db.UsedResourceCache) (db.CreatedVolume, bool, error)
+	FindResourceCacheInitializedVolumeStub        func(string, *db.UsedResourceCache) (db.CreatedVolume, bool, error)
 	findResourceCacheInitializedVolumeMutex       sync.RWMutex
 	findResourceCacheInitializedVolumeArgsForCall []struct {
-		arg1 db.Worker
+		arg1 string
 		arg2 *db.UsedResourceCache
 	}
 	findResourceCacheInitializedVolumeReturns struct {
@@ -117,10 +117,10 @@ type FakeVolumeFactory struct {
 		result2 bool
 		result3 error
 	}
-	CreateResourceCacheVolumeStub        func(db.Worker, *db.UsedResourceCache) (db.CreatingVolume, error)
+	CreateResourceCacheVolumeStub        func(string, *db.UsedResourceCache) (db.CreatingVolume, error)
 	createResourceCacheVolumeMutex       sync.RWMutex
 	createResourceCacheVolumeArgsForCall []struct {
-		arg1 db.Worker
+		arg1 string
 		arg2 *db.UsedResourceCache
 	}
 	createResourceCacheVolumeReturns struct {
@@ -242,12 +242,12 @@ func (fake *FakeVolumeFactory) GetTeamVolumesReturnsOnCall(i int, result1 []db.C
 	}{result1, result2}
 }
 
-func (fake *FakeVolumeFactory) CreateContainerVolume(arg1 int, arg2 db.Worker, arg3 db.CreatingContainer, arg4 string) (db.CreatingVolume, error) {
+func (fake *FakeVolumeFactory) CreateContainerVolume(arg1 int, arg2 string, arg3 db.CreatingContainer, arg4 string) (db.CreatingVolume, error) {
 	fake.createContainerVolumeMutex.Lock()
 	ret, specificReturn := fake.createContainerVolumeReturnsOnCall[len(fake.createContainerVolumeArgsForCall)]
 	fake.createContainerVolumeArgsForCall = append(fake.createContainerVolumeArgsForCall, struct {
 		arg1 int
-		arg2 db.Worker
+		arg2 string
 		arg3 db.CreatingContainer
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
@@ -268,7 +268,7 @@ func (fake *FakeVolumeFactory) CreateContainerVolumeCallCount() int {
 	return len(fake.createContainerVolumeArgsForCall)
 }
 
-func (fake *FakeVolumeFactory) CreateContainerVolumeArgsForCall(i int) (int, db.Worker, db.CreatingContainer, string) {
+func (fake *FakeVolumeFactory) CreateContainerVolumeArgsForCall(i int) (int, string, db.CreatingContainer, string) {
 	fake.createContainerVolumeMutex.RLock()
 	defer fake.createContainerVolumeMutex.RUnlock()
 	return fake.createContainerVolumeArgsForCall[i].arg1, fake.createContainerVolumeArgsForCall[i].arg2, fake.createContainerVolumeArgsForCall[i].arg3, fake.createContainerVolumeArgsForCall[i].arg4
@@ -296,12 +296,12 @@ func (fake *FakeVolumeFactory) CreateContainerVolumeReturnsOnCall(i int, result1
 	}{result1, result2}
 }
 
-func (fake *FakeVolumeFactory) FindContainerVolume(arg1 int, arg2 db.Worker, arg3 db.CreatingContainer, arg4 string) (db.CreatingVolume, db.CreatedVolume, error) {
+func (fake *FakeVolumeFactory) FindContainerVolume(arg1 int, arg2 string, arg3 db.CreatingContainer, arg4 string) (db.CreatingVolume, db.CreatedVolume, error) {
 	fake.findContainerVolumeMutex.Lock()
 	ret, specificReturn := fake.findContainerVolumeReturnsOnCall[len(fake.findContainerVolumeArgsForCall)]
 	fake.findContainerVolumeArgsForCall = append(fake.findContainerVolumeArgsForCall, struct {
 		arg1 int
-		arg2 db.Worker
+		arg2 string
 		arg3 db.CreatingContainer
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
@@ -322,7 +322,7 @@ func (fake *FakeVolumeFactory) FindContainerVolumeCallCount() int {
 	return len(fake.findContainerVolumeArgsForCall)
 }
 
-func (fake *FakeVolumeFactory) FindContainerVolumeArgsForCall(i int) (int, db.Worker, db.CreatingContainer, string) {
+func (fake *FakeVolumeFactory) FindContainerVolumeArgsForCall(i int) (int, string, db.CreatingContainer, string) {
 	fake.findContainerVolumeMutex.RLock()
 	defer fake.findContainerVolumeMutex.RUnlock()
 	return fake.findContainerVolumeArgsForCall[i].arg1, fake.findContainerVolumeArgsForCall[i].arg2, fake.findContainerVolumeArgsForCall[i].arg3, fake.findContainerVolumeArgsForCall[i].arg4
@@ -460,11 +460,11 @@ func (fake *FakeVolumeFactory) CreateBaseResourceTypeVolumeReturnsOnCall(i int, 
 	}{result1, result2}
 }
 
-func (fake *FakeVolumeFactory) FindResourceCacheVolume(arg1 db.Worker, arg2 *db.UsedResourceCache) (db.CreatingVolume, db.CreatedVolume, error) {
+func (fake *FakeVolumeFactory) FindResourceCacheVolume(arg1 string, arg2 *db.UsedResourceCache) (db.CreatingVolume, db.CreatedVolume, error) {
 	fake.findResourceCacheVolumeMutex.Lock()
 	ret, specificReturn := fake.findResourceCacheVolumeReturnsOnCall[len(fake.findResourceCacheVolumeArgsForCall)]
 	fake.findResourceCacheVolumeArgsForCall = append(fake.findResourceCacheVolumeArgsForCall, struct {
-		arg1 db.Worker
+		arg1 string
 		arg2 *db.UsedResourceCache
 	}{arg1, arg2})
 	fake.recordInvocation("FindResourceCacheVolume", []interface{}{arg1, arg2})
@@ -484,7 +484,7 @@ func (fake *FakeVolumeFactory) FindResourceCacheVolumeCallCount() int {
 	return len(fake.findResourceCacheVolumeArgsForCall)
 }
 
-func (fake *FakeVolumeFactory) FindResourceCacheVolumeArgsForCall(i int) (db.Worker, *db.UsedResourceCache) {
+func (fake *FakeVolumeFactory) FindResourceCacheVolumeArgsForCall(i int) (string, *db.UsedResourceCache) {
 	fake.findResourceCacheVolumeMutex.RLock()
 	defer fake.findResourceCacheVolumeMutex.RUnlock()
 	return fake.findResourceCacheVolumeArgsForCall[i].arg1, fake.findResourceCacheVolumeArgsForCall[i].arg2
@@ -515,11 +515,11 @@ func (fake *FakeVolumeFactory) FindResourceCacheVolumeReturnsOnCall(i int, resul
 	}{result1, result2, result3}
 }
 
-func (fake *FakeVolumeFactory) FindResourceCacheInitializedVolume(arg1 db.Worker, arg2 *db.UsedResourceCache) (db.CreatedVolume, bool, error) {
+func (fake *FakeVolumeFactory) FindResourceCacheInitializedVolume(arg1 string, arg2 *db.UsedResourceCache) (db.CreatedVolume, bool, error) {
 	fake.findResourceCacheInitializedVolumeMutex.Lock()
 	ret, specificReturn := fake.findResourceCacheInitializedVolumeReturnsOnCall[len(fake.findResourceCacheInitializedVolumeArgsForCall)]
 	fake.findResourceCacheInitializedVolumeArgsForCall = append(fake.findResourceCacheInitializedVolumeArgsForCall, struct {
-		arg1 db.Worker
+		arg1 string
 		arg2 *db.UsedResourceCache
 	}{arg1, arg2})
 	fake.recordInvocation("FindResourceCacheInitializedVolume", []interface{}{arg1, arg2})
@@ -539,7 +539,7 @@ func (fake *FakeVolumeFactory) FindResourceCacheInitializedVolumeCallCount() int
 	return len(fake.findResourceCacheInitializedVolumeArgsForCall)
 }
 
-func (fake *FakeVolumeFactory) FindResourceCacheInitializedVolumeArgsForCall(i int) (db.Worker, *db.UsedResourceCache) {
+func (fake *FakeVolumeFactory) FindResourceCacheInitializedVolumeArgsForCall(i int) (string, *db.UsedResourceCache) {
 	fake.findResourceCacheInitializedVolumeMutex.RLock()
 	defer fake.findResourceCacheInitializedVolumeMutex.RUnlock()
 	return fake.findResourceCacheInitializedVolumeArgsForCall[i].arg1, fake.findResourceCacheInitializedVolumeArgsForCall[i].arg2
@@ -570,11 +570,11 @@ func (fake *FakeVolumeFactory) FindResourceCacheInitializedVolumeReturnsOnCall(i
 	}{result1, result2, result3}
 }
 
-func (fake *FakeVolumeFactory) CreateResourceCacheVolume(arg1 db.Worker, arg2 *db.UsedResourceCache) (db.CreatingVolume, error) {
+func (fake *FakeVolumeFactory) CreateResourceCacheVolume(arg1 string, arg2 *db.UsedResourceCache) (db.CreatingVolume, error) {
 	fake.createResourceCacheVolumeMutex.Lock()
 	ret, specificReturn := fake.createResourceCacheVolumeReturnsOnCall[len(fake.createResourceCacheVolumeArgsForCall)]
 	fake.createResourceCacheVolumeArgsForCall = append(fake.createResourceCacheVolumeArgsForCall, struct {
-		arg1 db.Worker
+		arg1 string
 		arg2 *db.UsedResourceCache
 	}{arg1, arg2})
 	fake.recordInvocation("CreateResourceCacheVolume", []interface{}{arg1, arg2})
@@ -594,7 +594,7 @@ func (fake *FakeVolumeFactory) CreateResourceCacheVolumeCallCount() int {
 	return len(fake.createResourceCacheVolumeArgsForCall)
 }
 
-func (fake *FakeVolumeFactory) CreateResourceCacheVolumeArgsForCall(i int) (db.Worker, *db.UsedResourceCache) {
+func (fake *FakeVolumeFactory) CreateResourceCacheVolumeArgsForCall(i int) (string, *db.UsedResourceCache) {
 	fake.createResourceCacheVolumeMutex.RLock()
 	defer fake.createResourceCacheVolumeMutex.RUnlock()
 	return fake.createResourceCacheVolumeArgsForCall[i].arg1, fake.createResourceCacheVolumeArgsForCall[i].arg2

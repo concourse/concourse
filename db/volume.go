@@ -56,7 +56,7 @@ type CreatingVolume interface {
 
 type creatingVolume struct {
 	id                       int
-	worker                   Worker
+	workerName               string
 	handle                   string
 	path                     string
 	teamID                   int
@@ -88,7 +88,7 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 
 	return &createdVolume{
 		id:                       volume.id,
-		worker:                   volume.worker,
+		workerName:               volume.workerName,
 		typ:                      volume.typ,
 		handle:                   volume.handle,
 		path:                     volume.path,
@@ -109,7 +109,7 @@ type CreatedVolume interface {
 	Type() VolumeType
 	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
-	Worker() Worker
+	WorkerName() string
 	SizeInBytes() int64
 	Initialize() error
 	IsInitialized() (bool, error)
@@ -121,7 +121,7 @@ type CreatedVolume interface {
 
 type createdVolume struct {
 	id                       int
-	worker                   Worker
+	workerName               string
 	handle                   string
 	path                     string
 	teamID                   int
@@ -142,7 +142,7 @@ type VolumeResourceType struct {
 
 func (volume *createdVolume) Handle() string          { return volume.handle }
 func (volume *createdVolume) Path() string            { return volume.path }
-func (volume *createdVolume) Worker() Worker          { return volume.worker }
+func (volume *createdVolume) WorkerName() string      { return volume.workerName }
 func (volume *createdVolume) SizeInBytes() int64      { return volume.bytes }
 func (volume *createdVolume) Type() VolumeType        { return volume.typ }
 func (volume *createdVolume) ContainerHandle() string { return volume.containerHandle }
@@ -224,7 +224,7 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByID(workerBaseResourceTy
 		LeftJoin("base_resource_types brt ON brt.id = wbrt.base_resource_type_id").
 		Where(sq.Eq{
 			"wbrt.id":          workerBaseResourceTypeID,
-			"wbrt.worker_name": volume.worker.Name(),
+			"wbrt.worker_name": volume.workerName,
 		}).
 		RunWith(volume.conn).
 		QueryRow().
@@ -234,10 +234,10 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByID(workerBaseResourceTy
 	}
 
 	return &UsedWorkerBaseResourceType{
-		ID:      workerBaseResourceTypeID,
-		Name:    name,
-		Version: version,
-		Worker:  volume.worker,
+		ID:         workerBaseResourceTypeID,
+		Name:       name,
+		Version:    version,
+		WorkerName: volume.workerName,
 	}, nil
 }
 
@@ -251,7 +251,7 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(base
 		LeftJoin("base_resource_types brt ON brt.id = wbrt.base_resource_type_id").
 		Where(sq.Eq{
 			"brt.id":           baseResourceTypeID,
-			"wbrt.worker_name": volume.worker.Name(),
+			"wbrt.worker_name": volume.workerName,
 		}).
 		RunWith(volume.conn).
 		QueryRow().
@@ -261,10 +261,10 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(base
 	}
 
 	return &UsedWorkerBaseResourceType{
-		ID:      id,
-		Name:    name,
-		Version: version,
-		Worker:  volume.worker,
+		ID:         id,
+		Name:       name,
+		Version:    version,
+		WorkerName: volume.workerName,
 	}, nil
 }
 
@@ -342,7 +342,7 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 		"path",
 	}
 	columnValues := []interface{}{
-		volume.worker.Name(),
+		volume.workerName,
 		volume.id,
 		VolumeStateCreated,
 		handle.String(),
@@ -375,7 +375,7 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 
 	return &creatingVolume{
 		id:              volumeID,
-		worker:          volume.worker,
+		workerName:      volume.workerName,
 		handle:          handle.String(),
 		path:            mountPath,
 		teamID:          volume.teamID,
@@ -408,28 +408,28 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 	}
 
 	return &destroyingVolume{
-		id:     volume.id,
-		worker: volume.worker,
-		handle: volume.handle,
-		conn:   volume.conn,
+		id:         volume.id,
+		workerName: volume.workerName,
+		handle:     volume.handle,
+		conn:       volume.conn,
 	}, nil
 }
 
 type DestroyingVolume interface {
 	Handle() string
 	Destroy() (bool, error)
-	Worker() Worker
+	WorkerName() string
 }
 
 type destroyingVolume struct {
-	id     int
-	worker Worker
-	handle string
-	conn   Conn
+	id         int
+	workerName string
+	handle     string
+	conn       Conn
 }
 
-func (volume *destroyingVolume) Handle() string { return volume.handle }
-func (volume *destroyingVolume) Worker() Worker { return volume.worker }
+func (volume *destroyingVolume) Handle() string     { return volume.handle }
+func (volume *destroyingVolume) WorkerName() string { return volume.workerName }
 
 func (volume *destroyingVolume) Destroy() (bool, error) {
 	rows, err := psql.Delete("volumes").

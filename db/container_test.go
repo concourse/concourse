@@ -49,13 +49,13 @@ var _ = Describe("Container", func() {
 
 			Describe("Volumes", func() {
 				BeforeEach(func() {
-					creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path-1")
+					creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
 					Expect(err).NotTo(HaveOccurred())
 					_, err = creatingVolume1.Created()
 					Expect(err).NotTo(HaveOccurred())
 					expectedHandles = append(expectedHandles, creatingVolume1.Handle())
 
-					creatingVolume2, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path-2")
+					creatingVolume2, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-2")
 					Expect(err).NotTo(HaveOccurred())
 					_, err = creatingVolume2.Created()
 					Expect(err).NotTo(HaveOccurred())

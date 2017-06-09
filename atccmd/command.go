@@ -468,6 +468,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				gc.NewVolumeCollector(
 					logger.Session("volume-collector"),
 					dbVolumeFactory,
+					dbWorkerFactory,
 					gc.NewBaggageclaimClientFactory(dbWorkerFactory),
 				),
 				gc.NewContainerCollector(

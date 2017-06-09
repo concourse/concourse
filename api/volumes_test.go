@@ -68,7 +68,7 @@ var _ = Describe("Volumes API", func() {
 
 							volume1 := new(dbfakes.FakeCreatedVolume)
 							volume1.HandleReturns("some-resource-cache-handle")
-							volume1.WorkerReturns(fakeWorker)
+							volume1.WorkerNameReturns(fakeWorker.Name())
 							volume1.TypeReturns(db.VolumeTypeResource)
 							volume1.SizeInBytesReturns(1024)
 							volume1.ResourceTypeReturns(&db.VolumeResourceType{
@@ -83,7 +83,7 @@ var _ = Describe("Volumes API", func() {
 							}, nil)
 							volume2 := new(dbfakes.FakeCreatedVolume)
 							volume2.HandleReturns("some-import-handle")
-							volume2.WorkerReturns(fakeWorker)
+							volume2.WorkerNameReturns(fakeWorker.Name())
 							volume2.SizeInBytesReturns(2048)
 							volume2.TypeReturns(db.VolumeTypeResourceType)
 							volume2.BaseResourceTypeReturns(&db.UsedWorkerBaseResourceType{
@@ -92,7 +92,7 @@ var _ = Describe("Volumes API", func() {
 							}, nil)
 							volume3 := new(dbfakes.FakeCreatedVolume)
 							volume3.HandleReturns("some-output-handle")
-							volume3.WorkerReturns(someOtherFakeWorker)
+							volume3.WorkerNameReturns(someOtherFakeWorker.Name())
 							volume3.ContainerHandleReturns("some-container-handle")
 							volume3.PathReturns("some-path")
 							volume3.ParentHandleReturns("some-parent-handle")
@@ -100,7 +100,7 @@ var _ = Describe("Volumes API", func() {
 							volume3.TypeReturns(db.VolumeTypeContainer)
 							volume4 := new(dbfakes.FakeCreatedVolume)
 							volume4.HandleReturns("some-cow-handle")
-							volume4.WorkerReturns(fakeWorker)
+							volume4.WorkerNameReturns(fakeWorker.Name())
 							volume4.ContainerHandleReturns("some-container-handle")
 							volume4.PathReturns("some-path")
 							volume4.SizeInBytesReturns(8192)

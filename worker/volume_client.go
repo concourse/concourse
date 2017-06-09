@@ -91,10 +91,10 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 		logger.Session("find-or-create-volume-for-container"),
 		volumeSpec,
 		func() (db.CreatingVolume, db.CreatedVolume, error) {
-			return c.dbVolumeFactory.FindContainerVolume(teamID, c.dbWorker, container, mountPath)
+			return c.dbVolumeFactory.FindContainerVolume(teamID, c.dbWorker.Name(), container, mountPath)
 		},
 		func() (db.CreatingVolume, error) {
-			return c.dbVolumeFactory.CreateContainerVolume(teamID, c.dbWorker, container, mountPath)
+			return c.dbVolumeFactory.CreateContainerVolume(teamID, c.dbWorker.Name(), container, mountPath)
 		},
 	)
 }
@@ -111,7 +111,7 @@ func (c *volumeClient) FindOrCreateCOWVolumeForContainer(
 		logger.Session("find-or-create-cow-volume-for-container"),
 		volumeSpec,
 		func() (db.CreatingVolume, db.CreatedVolume, error) {
-			return c.dbVolumeFactory.FindContainerVolume(teamID, c.dbWorker, container, mountPath)
+			return c.dbVolumeFactory.FindContainerVolume(teamID, c.dbWorker.Name(), container, mountPath)
 		},
 		func() (db.CreatingVolume, error) {
 			return parent.CreateChildForContainer(container, mountPath)
@@ -158,7 +158,7 @@ func (c *volumeClient) CreateVolumeForResourceCache(
 			return nil, nil, nil
 		},
 		func() (db.CreatingVolume, error) {
-			return c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker, usedResourceCache)
+			return c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker.Name(), usedResourceCache)
 		},
 	)
 }
@@ -167,7 +167,7 @@ func (c *volumeClient) FindInitializedVolumeForResourceCache(
 	logger lager.Logger,
 	usedResourceCache *db.UsedResourceCache,
 ) (Volume, bool, error) {
-	dbVolume, found, err := c.dbVolumeFactory.FindResourceCacheInitializedVolume(c.dbWorker, usedResourceCache)
+	dbVolume, found, err := c.dbVolumeFactory.FindResourceCacheInitializedVolume(c.dbWorker.Name(), usedResourceCache)
 	if err != nil {
 		logger.Error("failed-to-lookup-initialized-volume-in-db", err)
 		return nil, false, err

@@ -31,7 +31,7 @@ var _ = Describe("Volume", func() {
 
 		BeforeEach(func() {
 			var err error
-			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -130,7 +130,7 @@ var _ = Describe("Volume", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, resourceCache)
+			creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			createdVolume, err = creatingVolume.Created()
@@ -148,7 +148,7 @@ var _ = Describe("Volume", func() {
 
 	Context("when volume type is VolumeTypeContainer", func() {
 		It("returns volume type, container handle, mount path", func() {
-			creatingVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			creatingVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume, err := creatingVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
@@ -157,7 +157,7 @@ var _ = Describe("Volume", func() {
 			Expect(createdVolume.ContainerHandle()).To(Equal(defaultCreatingContainer.Handle()))
 			Expect(createdVolume.Path()).To(Equal("/path/to/volume"))
 
-			_, createdVolume, err = volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			_, createdVolume, err = volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeContainer)))
 			Expect(createdVolume.ContainerHandle()).To(Equal(defaultCreatingContainer.Handle()))
@@ -167,7 +167,7 @@ var _ = Describe("Volume", func() {
 
 	Context("when volume has parent", func() {
 		It("returns parent handle", func() {
-			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
 			Expect(err).NotTo(HaveOccurred())
 			createdParentVolume, err := creatingParentVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
@@ -182,7 +182,7 @@ var _ = Describe("Volume", func() {
 			Expect(childVolume.Path()).To(Equal("/path/to/child/volume"))
 			Expect(childVolume.ParentHandle()).To(Equal(createdParentVolume.Handle()))
 
-			_, childVolume, err = volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/child/volume")
+			_, childVolume, err = volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/child/volume")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(childVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeContainer)))
 			Expect(childVolume.ContainerHandle()).To(Equal(defaultCreatingContainer.Handle()))
@@ -191,7 +191,7 @@ var _ = Describe("Volume", func() {
 		})
 
 		It("prevents the parent from being destroyed", func() {
-			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
 			Expect(err).NotTo(HaveOccurred())
 			createdParentVolume, err := creatingParentVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
@@ -230,7 +230,7 @@ var _ = Describe("Volume", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, resourceCache)
+			creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume, err := creatingVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
@@ -244,7 +244,7 @@ var _ = Describe("Volume", func() {
 			Expect(volumeResourceType.ResourceType.Version).To(Equal(atc.Version{"some-custom-type": "version"}))
 			Expect(volumeResourceType.Version).To(Equal(atc.Version{"some": "version"}))
 
-			_, createdVolume, err = volumeFactory.FindResourceCacheVolume(defaultWorker, resourceCache)
+			_, createdVolume, err = volumeFactory.FindResourceCacheVolume(defaultWorker.Name(), resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResource)))
 			volumeResourceType, err = createdVolume.ResourceType()
@@ -312,7 +312,7 @@ var _ = Describe("Volume", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			creatingParentVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+			creatingParentVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), usedResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			parentVolume, err = creatingParentVolume.Created()
@@ -363,7 +363,7 @@ var _ = Describe("Volume", func() {
 
 		BeforeEach(func() {
 			var err error
-			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -371,7 +371,7 @@ var _ = Describe("Volume", func() {
 			err := defaultWorker.Delete()
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingVolume, createdVolume, err := volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			creatingVolume, createdVolume, err := volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creatingVolume).To(BeNil())
 			Expect(createdVolume).To(BeNil())

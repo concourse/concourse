@@ -398,7 +398,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 				Context("when there is a volume for resource cache in creating state", func() {
 					BeforeEach(func() {
-						_, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+						_, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), usedResourceCache)
 						Expect(err).NotTo(HaveOccurred())
 					})
 
@@ -411,7 +411,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 				Context("when there is a volume for resource cache in created state", func() {
 					BeforeEach(func() {
-						creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+						creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), usedResourceCache)
 						Expect(err).NotTo(HaveOccurred())
 						_, err = creatingVolume.Created()
 						Expect(err).NotTo(HaveOccurred())
@@ -426,7 +426,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 				Context("when there is a volume for resource cache in destroying state", func() {
 					BeforeEach(func() {
-						creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+						creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), usedResourceCache)
 						Expect(err).NotTo(HaveOccurred())
 						createdVolume, err := creatingVolume.Created()
 						Expect(err).NotTo(HaveOccurred())

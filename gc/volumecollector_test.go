@@ -49,6 +49,7 @@ var _ = Describe("VolumeCollector", func() {
 		volumeCollector = gc.NewVolumeCollector(
 			logger,
 			volumeFactory,
+			workerFactory,
 			fakeBaggageclaimClientFactory,
 		)
 	})
@@ -81,15 +82,15 @@ var _ = Describe("VolumeCollector", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingVolume1, err := volumeFactory.CreateContainerVolume(team.ID(), worker, creatingContainer1, "some-path-1")
+			creatingVolume1, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-1")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume, err = creatingVolume1.Created()
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = volumeFactory.CreateContainerVolume(team.ID(), worker, creatingContainer2, "some-path-2")
+			_, err = volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer2, "some-path-2")
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingVolume3, err := volumeFactory.CreateContainerVolume(team.ID(), worker, creatingContainer1, "some-path-3")
+			creatingVolume3, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-3")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume3, err := creatingVolume3.Created()
 			Expect(err).NotTo(HaveOccurred())

@@ -13,6 +13,7 @@ import (
 type volumeCollector struct {
 	rootLogger                lager.Logger
 	volumeFactory             db.VolumeFactory
+	workerFactory             db.WorkerFactory
 	baggageclaimClientFactory BaggageclaimClientFactory
 }
 
@@ -44,11 +45,13 @@ func (f *baggageclaimClientFactory) NewClient(apiURL string, workerName string) 
 func NewVolumeCollector(
 	logger lager.Logger,
 	volumeFactory db.VolumeFactory,
+	workerFactory db.WorkerFactory,
 	baggageclaimClientFactory BaggageclaimClientFactory,
 ) Collector {
 	return &volumeCollector{
 		rootLogger:                logger,
 		volumeFactory:             volumeFactory,
+		workerFactory:             workerFactory,
 		baggageclaimClientFactory: baggageclaimClientFactory,
 	}
 }
@@ -65,6 +68,18 @@ func (vc *volumeCollector) Run() error {
 		destroyingVolumes []db.DestroyingVolume
 		err               error
 	)
+
+	workers, err := vc.workerFactory.Workers()
+	if err != nil {
+		logger.Error("failed-to-get-workers", err)
+		return err
+	}
+	baggageClaimClients := map[string]bclient.Client{}
+	for _, worker := range workers {
+		if worker.BaggageclaimURL() != nil {
+			baggageClaimClients[worker.Name()] = vc.baggageclaimClientFactory.NewClient(*worker.BaggageclaimURL(), worker.Name())
+		}
+	}
 
 	creatingVolumes, createdVolumes, destroyingVolumes, err = vc.volumeFactory.GetDuplicateResourceCacheVolumes()
 	if err != nil {
@@ -113,7 +128,7 @@ func (vc *volumeCollector) Run() error {
 	for _, createdVolume := range createdVolumes {
 		vLog := logger.Session("mark-created-as-destroying", lager.Data{
 			"volume": createdVolume.Handle(),
-			"worker": createdVolume.Worker().Name(),
+			"worker": createdVolume.WorkerName(),
 		})
 
 		destroyingVolume, err := createdVolume.Destroying()
@@ -128,17 +143,16 @@ func (vc *volumeCollector) Run() error {
 	for _, destroyingVolume := range destroyingVolumes {
 		vLog := logger.Session("destroy", lager.Data{
 			"handle": destroyingVolume.Handle(),
-			"worker": destroyingVolume.Worker().Name(),
+			"worker": destroyingVolume.WorkerName(),
 		})
 
-		if destroyingVolume.Worker().BaggageclaimURL() == nil {
-			vLog.Info("baggageclaim-url-is-missing")
+		baggageClaimClient, found := baggageClaimClients[destroyingVolume.WorkerName()]
+		if !found {
+			vLog.Info("baggageclaim-client-is-missing")
 			continue
 		}
 
-		baggageclaimClient := vc.baggageclaimClientFactory.NewClient(*destroyingVolume.Worker().BaggageclaimURL(), destroyingVolume.Worker().Name())
-
-		volume, found, err := baggageclaimClient.LookupVolume(vLog, destroyingVolume.Handle())
+		volume, found, err := baggageClaimClient.LookupVolume(vLog, destroyingVolume.Handle())
 		if err != nil {
 			vLog.Error("failed-to-lookup-volume-in-baggageclaim", err)
 			continue
