@@ -42,6 +42,9 @@ func (d *putBuildEventsDelegate) Initializing(logger lager.Logger) {
 	}
 }
 
+func (d *putBuildEventsDelegate) ActionCompleted(logger lager.Logger, action exec.Action) {
+}
+
 func (d *putBuildEventsDelegate) Failed(logger lager.Logger, errVal error) {
 	err := d.build.SaveEvent(event.Error{
 		Message: errVal.Error(),

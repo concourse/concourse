@@ -33,12 +33,29 @@ func NewTaskBuildEventsDelegate(
 }
 
 func (d *taskBuildEventsDelegate) Initializing(logger lager.Logger) {
-	// TODO: add task config
 	err := d.build.SaveEvent(event.InitializeTask{
 		Origin: d.eventOrigin,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-event", err)
+	}
+}
+
+func (d *taskBuildEventsDelegate) ActionCompleted(logger lager.Logger, action exec.Action) {
+	switch a := action.(type) {
+	case *exec.FetchConfigAction:
+		taskConfig := a.Result()
+		err := d.build.SaveEvent(event.StartTask{
+			Origin:     d.eventOrigin,
+			TaskConfig: event.ShadowTaskConfig(taskConfig),
+			Time:       time.Now().Unix(),
+		})
+		if err != nil {
+			logger.Error("failed-to-save-start-task-event", err)
+			return
+		}
+	default:
+		return
 	}
 }
 

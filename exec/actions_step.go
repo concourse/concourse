@@ -41,7 +41,7 @@ func newActionsStep(
 
 type BuildEventsDelegate interface {
 	Initializing(lager.Logger)
-
+	ActionCompleted(lager.Logger, Action)
 	Failed(lager.Logger, error)
 	Finished(lager.Logger)
 }
@@ -79,8 +79,7 @@ func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		// TODO: add action completed build delegate
-		//s.buildEventsDelegate.ActionCompleted(s.logger, action)
+		s.buildEventsDelegate.ActionCompleted(s.logger, action)
 
 		if action.ExitStatus() != 0 {
 			succeeded = false
