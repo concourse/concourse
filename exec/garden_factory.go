@@ -37,6 +37,35 @@ func NewGardenFactory(
 	}
 }
 
+type GetStepFactory struct {
+	ActionsStep
+}
+type GetStep Step
+
+func (s GetStepFactory) Using(repository *worker.ArtifactRepository) Step {
+	return GetStep(s.ActionsStep.Using(repository))
+}
+
+type PutStepFactory struct {
+	ActionsStep
+}
+
+type PutStep Step
+
+func (s PutStepFactory) Using(repository *worker.ArtifactRepository) Step {
+	return PutStep(s.ActionsStep.Using(repository))
+}
+
+type TaskStepFactory struct {
+	ActionsStep
+}
+
+type TaskStep Step
+
+func (s TaskStepFactory) Using(repository *worker.ArtifactRepository) Step {
+	return TaskStep(s.ActionsStep.Using(repository))
+}
+
 func (factory *gardenFactory) Get(
 	logger lager.Logger,
 	buildID int,
@@ -44,11 +73,11 @@ func (factory *gardenFactory) Get(
 	plan atc.Plan,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	buildDelegate BuildDelegate,
+	buildEventsDelegate BuildEventsDelegate,
+	imageFetchingDelegate ImageFetchingDelegate,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
-	imageFetchingDelegate := buildDelegate.ImageFetchingDelegate(plan.ID)
 	getAction := &GetAction{
 		Type:          plan.Get.Type,
 		Name:          plan.Get.Name,
@@ -74,8 +103,7 @@ func (factory *gardenFactory) Get(
 
 	actions := []Action{getAction}
 
-	buildEventsDelegate := buildDelegate.GetBuildEventsDelegate(plan.ID, *plan.Get)
-	return newActionsStep(logger, actions, buildEventsDelegate)
+	return GetStepFactory{newActionsStep(logger, actions, buildEventsDelegate)}
 }
 
 func (factory *gardenFactory) Put(
@@ -85,11 +113,11 @@ func (factory *gardenFactory) Put(
 	plan atc.Plan,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	buildDelegate BuildDelegate,
+	buildEventsDelegate BuildEventsDelegate,
+	imageFetchingDelegate ImageFetchingDelegate,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
-	imageFetchingDelegate := buildDelegate.ImageFetchingDelegate(plan.ID)
 	putAction := &PutAction{
 		Type:     plan.Put.Type,
 		Name:     plan.Put.Name,
@@ -112,8 +140,7 @@ func (factory *gardenFactory) Put(
 
 	actions := []Action{putAction}
 
-	buildEventsDelegate := buildDelegate.PutBuildEventsDelegate(plan.ID, *plan.Put)
-	return newActionsStep(logger, actions, buildEventsDelegate)
+	return PutStepFactory{newActionsStep(logger, actions, buildEventsDelegate)}
 }
 
 func (factory *gardenFactory) Task(
@@ -122,25 +149,21 @@ func (factory *gardenFactory) Task(
 	teamID int,
 	buildID int,
 	containerMetadata db.ContainerMetadata,
-	buildDelegate BuildDelegate,
+	buildEventsDelegate BuildEventsDelegate,
+	imageFetchingDelegate ImageFetchingDelegate,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
-	imageFetchingDelegate := buildDelegate.ImageFetchingDelegate(plan.ID)
-
 	var taskConfigFetcher TaskConfigFetcher
 	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
-		logger.Debug("config fetcher merge")
 		taskConfigFetcher = MergedConfigFetcher{
 			A: FileConfigFetcher{plan.Task.ConfigPath},
 			B: StaticConfigFetcher{Plan: *plan.Task},
 		}
 	} else if plan.Task.Config != nil {
-		logger.Debug("config fetcher static")
 		taskConfigFetcher = StaticConfigFetcher{Plan: *plan.Task}
 	} else if plan.Task.ConfigPath != "" {
-		logger.Debug("config fetcher config path")
 		taskConfigFetcher = FileConfigFetcher{plan.Task.ConfigPath}
 	}
 
@@ -180,8 +203,7 @@ func (factory *gardenFactory) Task(
 
 	actions := []Action{fetchConfigAction, taskAction}
 
-	buildEventsDelegate := buildDelegate.TaskBuildEventsDelegate(plan.ID, *plan.Task)
-	return newActionsStep(logger, actions, buildEventsDelegate)
+	return TaskStepFactory{newActionsStep(logger, actions, buildEventsDelegate)}
 }
 
 func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {

@@ -15,9 +15,7 @@ import (
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan) exec.BuildEventsDelegate
-	PutBuildEventsDelegate(atc.PlanID, atc.PutPlan) exec.BuildEventsDelegate
-	TaskBuildEventsDelegate(atc.PlanID, atc.TaskPlan) exec.BuildEventsDelegate
+	DBBuildEventsDelegate(atc.PlanID) exec.BuildEventsDelegate
 	ImageFetchingDelegate(atc.PlanID) exec.ImageFetchingDelegate
 
 	Finish(lager.Logger, error, exec.Success, bool)
@@ -55,25 +53,10 @@ func newBuildDelegate(build db.Build) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) GetBuildEventsDelegate(
+func (delegate *delegate) DBBuildEventsDelegate(
 	planID atc.PlanID,
-	plan atc.GetPlan,
 ) exec.BuildEventsDelegate {
-	return NewGetBuildEventsDelegate(delegate.build, planID, plan, delegate.implicitOutputsRepo)
-}
-
-func (delegate *delegate) PutBuildEventsDelegate(
-	planID atc.PlanID,
-	plan atc.PutPlan,
-) exec.BuildEventsDelegate {
-	return NewPutBuildEventsDelegate(delegate.build, planID, plan, delegate.implicitOutputsRepo)
-}
-
-func (delegate *delegate) TaskBuildEventsDelegate(
-	planID atc.PlanID,
-	plan atc.TaskPlan,
-) exec.BuildEventsDelegate {
-	return NewTaskBuildEventsDelegate(delegate.build, planID, plan)
+	return NewDBBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)}, delegate.implicitOutputsRepo)
 }
 
 func (delegate *delegate) ImageFetchingDelegate(planID atc.PlanID) exec.ImageFetchingDelegate {
@@ -97,8 +80,8 @@ func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.
 
 		implicits := logger.Session("implicit-outputs")
 
-		for _, o := range delegate.implicitOutputsRepo.outputs {
-			delegate.saveImplicitOutput(implicits.Session(o.plan.Name), o.plan, o.info)
+		for resourceName, o := range delegate.implicitOutputsRepo.outputs {
+			delegate.saveImplicitOutput(implicits.Session(resourceName), resourceName, o.resourceType, o.info)
 		}
 
 		logger.Info("succeeded")
@@ -116,7 +99,7 @@ func (delegate *delegate) saveStatus(logger lager.Logger, status atc.BuildStatus
 	}
 }
 
-func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
+func (delegate *delegate) saveImplicitOutput(logger lager.Logger, resourceName string, resourceType string, info exec.VersionInfo) {
 	metadata := make([]db.ResourceMetadataField, len(info.Metadata))
 	for i, md := range info.Metadata {
 		metadata[i] = db.ResourceMetadataField{
@@ -126,8 +109,8 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 	}
 
 	err := delegate.build.SaveOutput(db.VersionedResource{
-		Resource: plan.Resource,
-		Type:     plan.Type,
+		Resource: resourceName,
+		Type:     resourceType,
 		Version:  db.ResourceVersion(info.Version),
 		Metadata: metadata,
 	}, false)
@@ -136,7 +119,7 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 		return
 	}
 
-	logger.Info("saved", lager.Data{"resource": plan.Resource})
+	logger.Info("saved", lager.Data{"resource": resourceName})
 }
 
 func (delegate *delegate) eventWriter(origin event.Origin) io.Writer {
@@ -213,8 +196,8 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 }
 
 type implicitOutput struct {
-	plan atc.GetPlan
-	info exec.VersionInfo
+	resourceType string
+	info         exec.VersionInfo
 }
 
 type implicitOutputsRepo struct {

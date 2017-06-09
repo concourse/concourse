@@ -20,7 +20,8 @@ type Factory interface {
 		atc.Plan,
 		StepMetadata,
 		db.ContainerMetadata,
-		BuildDelegate,
+		BuildEventsDelegate,
+		ImageFetchingDelegate,
 	) StepFactory
 
 	// Put constructs a ActionsStep factory for Put.
@@ -31,17 +32,19 @@ type Factory interface {
 		atc.Plan,
 		StepMetadata,
 		db.ContainerMetadata,
-		BuildDelegate,
+		BuildEventsDelegate,
+		ImageFetchingDelegate,
 	) StepFactory
 
 	// Task constructs a ActionsStep factory for Task.
 	Task(
-		logger lager.Logger,
-		plan atc.Plan,
-		teamID int,
-		buildID int,
-		containerMetadata db.ContainerMetadata,
-		delegate BuildDelegate,
+		lager.Logger,
+		atc.Plan,
+		int, // teamID
+		int, // buildID
+		db.ContainerMetadata,
+		BuildEventsDelegate,
+		ImageFetchingDelegate,
 	) StepFactory
 }
 
@@ -51,56 +54,10 @@ type StepMetadata interface {
 	Env() []string
 }
 
-type BuildDelegate interface {
-	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan) BuildEventsDelegate
-	PutBuildEventsDelegate(atc.PlanID, atc.PutPlan) BuildEventsDelegate
-	TaskBuildEventsDelegate(atc.PlanID, atc.TaskPlan) BuildEventsDelegate
-	ImageFetchingDelegate(atc.PlanID) ImageFetchingDelegate
-}
-
 type ImageFetchingDelegate interface {
 	ImageVersionDetermined(*db.UsedResourceCache) error
 	Stdout() io.Writer
 	Stderr() io.Writer
-}
-
-//go:generate counterfeiter . TaskDelegate
-
-// TaskDelegate is used to record events related to a TaskStep's runtime
-// behavior.
-type TaskDelegate interface {
-	Initializing(atc.TaskConfig)
-	Started()
-
-	Finished(ExitStatus)
-	Failed(error)
-
-	ImageVersionDetermined(*db.UsedResourceCache) error
-
-	Stdout() io.Writer
-	Stderr() io.Writer
-}
-
-// ResourceDelegate is used to record events related to a resource's runtime
-// behavior.
-type ResourceDelegate interface {
-	Initializing()
-
-	Completed(ExitStatus, *VersionInfo)
-	Failed(error)
-
-	ImageVersionDetermined(*db.UsedResourceCache) error
-
-	Stdout() io.Writer
-	Stderr() io.Writer
-}
-
-//go:generate counterfeiter . PutDelegate
-
-// PutDelegate is used to record events related to a PutStep's runtime
-// behavior.
-type PutDelegate interface {
-	ResourceDelegate
 }
 
 // Privileged is used to indicate whether the given step should run with

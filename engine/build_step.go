@@ -93,7 +93,8 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		build.teamID,
 		build.buildID,
 		workerMetadata,
-		build.delegate,
+		build.delegate.DBBuildEventsDelegate(plan.ID),
+		build.delegate.ImageFetchingDelegate(plan.ID),
 	)
 }
 
@@ -116,7 +117,8 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		plan,
 		build.stepMetadata,
 		workerMetadata,
-		build.delegate,
+		build.delegate.DBBuildEventsDelegate(plan.ID),
+		build.delegate.ImageFetchingDelegate(plan.ID),
 	)
 }
 
@@ -139,7 +141,8 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		plan,
 		build.stepMetadata,
 		workerMetadata,
-		build.delegate,
+		build.delegate.DBBuildEventsDelegate(plan.ID),
+		build.delegate.ImageFetchingDelegate(plan.ID),
 	)
 }
 
