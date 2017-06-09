@@ -12,23 +12,20 @@ import (
 )
 
 type taskBuildEventsDelegate struct {
-	build            db.Build
-	eventOrigin      event.Origin
-	plan             atc.TaskPlan
-	taskResultAction exec.TaskResultAction
+	build       db.Build
+	eventOrigin event.Origin
+	plan        atc.TaskPlan
 }
 
 func NewTaskBuildEventsDelegate(
 	build db.Build,
 	planID atc.PlanID,
 	plan atc.TaskPlan,
-	taskResultAction exec.TaskResultAction,
 ) exec.BuildEventsDelegate {
 	return &taskBuildEventsDelegate{
-		build:            build,
-		eventOrigin:      event.Origin{ID: event.OriginID(planID)},
-		plan:             plan,
-		taskResultAction: taskResultAction,
+		build:       build,
+		eventOrigin: event.Origin{ID: event.OriginID(planID)},
+		plan:        plan,
 	}
 }
 
@@ -54,6 +51,18 @@ func (d *taskBuildEventsDelegate) ActionCompleted(logger lager.Logger, action ex
 			logger.Error("failed-to-save-start-task-event", err)
 			return
 		}
+	case *exec.TaskAction:
+		exitStatus := a.ExitStatus()
+		err := d.build.SaveEvent(event.FinishTask{
+			ExitStatus: int(exitStatus),
+			Time:       time.Now().Unix(),
+			Origin:     d.eventOrigin,
+		})
+		if err != nil {
+			logger.Error("failed-to-save-finish-event", err)
+		}
+
+		logger.Info("finished", lager.Data{"exit-status": exitStatus})
 	default:
 		return
 	}
@@ -69,18 +78,4 @@ func (d *taskBuildEventsDelegate) Failed(logger lager.Logger, errVal error) {
 	}
 
 	logger.Info("errored", lager.Data{"error": errVal.Error()})
-}
-
-func (d *taskBuildEventsDelegate) Finished(logger lager.Logger) {
-	exitStatus := d.taskResultAction.ExitStatus()
-	err := d.build.SaveEvent(event.FinishTask{
-		ExitStatus: int(exitStatus),
-		Time:       time.Now().Unix(),
-		Origin:     d.eventOrigin,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-finish-event", err)
-	}
-
-	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }

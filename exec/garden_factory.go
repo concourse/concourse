@@ -74,7 +74,7 @@ func (factory *gardenFactory) Get(
 
 	actions := []Action{getAction}
 
-	buildEventsDelegate := buildDelegate.GetBuildEventsDelegate(plan.ID, *plan.Get, getAction)
+	buildEventsDelegate := buildDelegate.GetBuildEventsDelegate(plan.ID, *plan.Get)
 	return newActionsStep(logger, actions, buildEventsDelegate)
 }
 
@@ -112,7 +112,7 @@ func (factory *gardenFactory) Put(
 
 	actions := []Action{putAction}
 
-	buildEventsDelegate := buildDelegate.PutBuildEventsDelegate(plan.ID, *plan.Put, putAction)
+	buildEventsDelegate := buildDelegate.PutBuildEventsDelegate(plan.ID, *plan.Put)
 	return newActionsStep(logger, actions, buildEventsDelegate)
 }
 
@@ -180,7 +180,7 @@ func (factory *gardenFactory) Task(
 
 	actions := []Action{fetchConfigAction, taskAction}
 
-	buildEventsDelegate := buildDelegate.TaskBuildEventsDelegate(plan.ID, *plan.Task, taskAction)
+	buildEventsDelegate := buildDelegate.TaskBuildEventsDelegate(plan.ID, *plan.Task)
 	return newActionsStep(logger, actions, buildEventsDelegate)
 }
 

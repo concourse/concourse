@@ -43,7 +43,6 @@ type BuildEventsDelegate interface {
 	Initializing(lager.Logger)
 	ActionCompleted(lager.Logger, Action)
 	Failed(lager.Logger, error)
-	Finished(lager.Logger)
 }
 
 type ActionsStep struct {
@@ -85,8 +84,6 @@ func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			succeeded = false
 		}
 	}
-
-	s.buildEventsDelegate.Finished(s.logger)
 
 	s.succeeded = succeeded
 

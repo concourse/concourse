@@ -51,24 +51,10 @@ type StepMetadata interface {
 	Env() []string
 }
 
-type GetResultAction interface {
-	VersionInfo() VersionInfo
-	ExitStatus() ExitStatus
-}
-
-type PutResultAction interface {
-	VersionInfo() VersionInfo
-	ExitStatus() ExitStatus
-}
-
-type TaskResultAction interface {
-	ExitStatus() ExitStatus
-}
-
 type BuildDelegate interface {
-	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan, GetResultAction) BuildEventsDelegate
-	PutBuildEventsDelegate(atc.PlanID, atc.PutPlan, PutResultAction) BuildEventsDelegate
-	TaskBuildEventsDelegate(atc.PlanID, atc.TaskPlan, TaskResultAction) BuildEventsDelegate
+	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan) BuildEventsDelegate
+	PutBuildEventsDelegate(atc.PlanID, atc.PutPlan) BuildEventsDelegate
+	TaskBuildEventsDelegate(atc.PlanID, atc.TaskPlan) BuildEventsDelegate
 	ImageFetchingDelegate(atc.PlanID) ImageFetchingDelegate
 }
 

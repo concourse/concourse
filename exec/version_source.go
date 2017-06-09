@@ -38,7 +38,7 @@ func (p *StaticVersionSource) GetVersion() (atc.Version, error) {
 var ErrPutActionVersionMissing = errors.New("version is missing from put action")
 
 type PutActionVersionSource struct {
-	Action PutResultAction
+	Action *PutAction
 }
 
 func (p *PutActionVersionSource) GetVersion() (atc.Version, error) {

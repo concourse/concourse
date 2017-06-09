@@ -11,12 +11,11 @@ import (
 )
 
 type FakeBuildDelegate struct {
-	GetBuildEventsDelegateStub        func(atc.PlanID, atc.GetPlan, exec.GetResultAction) exec.BuildEventsDelegate
+	GetBuildEventsDelegateStub        func(atc.PlanID, atc.GetPlan) exec.BuildEventsDelegate
 	getBuildEventsDelegateMutex       sync.RWMutex
 	getBuildEventsDelegateArgsForCall []struct {
 		arg1 atc.PlanID
 		arg2 atc.GetPlan
-		arg3 exec.GetResultAction
 	}
 	getBuildEventsDelegateReturns struct {
 		result1 exec.BuildEventsDelegate
@@ -24,12 +23,11 @@ type FakeBuildDelegate struct {
 	getBuildEventsDelegateReturnsOnCall map[int]struct {
 		result1 exec.BuildEventsDelegate
 	}
-	PutBuildEventsDelegateStub        func(atc.PlanID, atc.PutPlan, exec.PutResultAction) exec.BuildEventsDelegate
+	PutBuildEventsDelegateStub        func(atc.PlanID, atc.PutPlan) exec.BuildEventsDelegate
 	putBuildEventsDelegateMutex       sync.RWMutex
 	putBuildEventsDelegateArgsForCall []struct {
 		arg1 atc.PlanID
 		arg2 atc.PutPlan
-		arg3 exec.PutResultAction
 	}
 	putBuildEventsDelegateReturns struct {
 		result1 exec.BuildEventsDelegate
@@ -37,12 +35,11 @@ type FakeBuildDelegate struct {
 	putBuildEventsDelegateReturnsOnCall map[int]struct {
 		result1 exec.BuildEventsDelegate
 	}
-	TaskBuildEventsDelegateStub        func(atc.PlanID, atc.TaskPlan, exec.TaskResultAction) exec.BuildEventsDelegate
+	TaskBuildEventsDelegateStub        func(atc.PlanID, atc.TaskPlan) exec.BuildEventsDelegate
 	taskBuildEventsDelegateMutex       sync.RWMutex
 	taskBuildEventsDelegateArgsForCall []struct {
 		arg1 atc.PlanID
 		arg2 atc.TaskPlan
-		arg3 exec.TaskResultAction
 	}
 	taskBuildEventsDelegateReturns struct {
 		result1 exec.BuildEventsDelegate
@@ -73,18 +70,17 @@ type FakeBuildDelegate struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildDelegate) GetBuildEventsDelegate(arg1 atc.PlanID, arg2 atc.GetPlan, arg3 exec.GetResultAction) exec.BuildEventsDelegate {
+func (fake *FakeBuildDelegate) GetBuildEventsDelegate(arg1 atc.PlanID, arg2 atc.GetPlan) exec.BuildEventsDelegate {
 	fake.getBuildEventsDelegateMutex.Lock()
 	ret, specificReturn := fake.getBuildEventsDelegateReturnsOnCall[len(fake.getBuildEventsDelegateArgsForCall)]
 	fake.getBuildEventsDelegateArgsForCall = append(fake.getBuildEventsDelegateArgsForCall, struct {
 		arg1 atc.PlanID
 		arg2 atc.GetPlan
-		arg3 exec.GetResultAction
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("GetBuildEventsDelegate", []interface{}{arg1, arg2, arg3})
+	}{arg1, arg2})
+	fake.recordInvocation("GetBuildEventsDelegate", []interface{}{arg1, arg2})
 	fake.getBuildEventsDelegateMutex.Unlock()
 	if fake.GetBuildEventsDelegateStub != nil {
-		return fake.GetBuildEventsDelegateStub(arg1, arg2, arg3)
+		return fake.GetBuildEventsDelegateStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -98,10 +94,10 @@ func (fake *FakeBuildDelegate) GetBuildEventsDelegateCallCount() int {
 	return len(fake.getBuildEventsDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) GetBuildEventsDelegateArgsForCall(i int) (atc.PlanID, atc.GetPlan, exec.GetResultAction) {
+func (fake *FakeBuildDelegate) GetBuildEventsDelegateArgsForCall(i int) (atc.PlanID, atc.GetPlan) {
 	fake.getBuildEventsDelegateMutex.RLock()
 	defer fake.getBuildEventsDelegateMutex.RUnlock()
-	return fake.getBuildEventsDelegateArgsForCall[i].arg1, fake.getBuildEventsDelegateArgsForCall[i].arg2, fake.getBuildEventsDelegateArgsForCall[i].arg3
+	return fake.getBuildEventsDelegateArgsForCall[i].arg1, fake.getBuildEventsDelegateArgsForCall[i].arg2
 }
 
 func (fake *FakeBuildDelegate) GetBuildEventsDelegateReturns(result1 exec.BuildEventsDelegate) {
@@ -123,18 +119,17 @@ func (fake *FakeBuildDelegate) GetBuildEventsDelegateReturnsOnCall(i int, result
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) PutBuildEventsDelegate(arg1 atc.PlanID, arg2 atc.PutPlan, arg3 exec.PutResultAction) exec.BuildEventsDelegate {
+func (fake *FakeBuildDelegate) PutBuildEventsDelegate(arg1 atc.PlanID, arg2 atc.PutPlan) exec.BuildEventsDelegate {
 	fake.putBuildEventsDelegateMutex.Lock()
 	ret, specificReturn := fake.putBuildEventsDelegateReturnsOnCall[len(fake.putBuildEventsDelegateArgsForCall)]
 	fake.putBuildEventsDelegateArgsForCall = append(fake.putBuildEventsDelegateArgsForCall, struct {
 		arg1 atc.PlanID
 		arg2 atc.PutPlan
-		arg3 exec.PutResultAction
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("PutBuildEventsDelegate", []interface{}{arg1, arg2, arg3})
+	}{arg1, arg2})
+	fake.recordInvocation("PutBuildEventsDelegate", []interface{}{arg1, arg2})
 	fake.putBuildEventsDelegateMutex.Unlock()
 	if fake.PutBuildEventsDelegateStub != nil {
-		return fake.PutBuildEventsDelegateStub(arg1, arg2, arg3)
+		return fake.PutBuildEventsDelegateStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -148,10 +143,10 @@ func (fake *FakeBuildDelegate) PutBuildEventsDelegateCallCount() int {
 	return len(fake.putBuildEventsDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) PutBuildEventsDelegateArgsForCall(i int) (atc.PlanID, atc.PutPlan, exec.PutResultAction) {
+func (fake *FakeBuildDelegate) PutBuildEventsDelegateArgsForCall(i int) (atc.PlanID, atc.PutPlan) {
 	fake.putBuildEventsDelegateMutex.RLock()
 	defer fake.putBuildEventsDelegateMutex.RUnlock()
-	return fake.putBuildEventsDelegateArgsForCall[i].arg1, fake.putBuildEventsDelegateArgsForCall[i].arg2, fake.putBuildEventsDelegateArgsForCall[i].arg3
+	return fake.putBuildEventsDelegateArgsForCall[i].arg1, fake.putBuildEventsDelegateArgsForCall[i].arg2
 }
 
 func (fake *FakeBuildDelegate) PutBuildEventsDelegateReturns(result1 exec.BuildEventsDelegate) {
@@ -173,18 +168,17 @@ func (fake *FakeBuildDelegate) PutBuildEventsDelegateReturnsOnCall(i int, result
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) TaskBuildEventsDelegate(arg1 atc.PlanID, arg2 atc.TaskPlan, arg3 exec.TaskResultAction) exec.BuildEventsDelegate {
+func (fake *FakeBuildDelegate) TaskBuildEventsDelegate(arg1 atc.PlanID, arg2 atc.TaskPlan) exec.BuildEventsDelegate {
 	fake.taskBuildEventsDelegateMutex.Lock()
 	ret, specificReturn := fake.taskBuildEventsDelegateReturnsOnCall[len(fake.taskBuildEventsDelegateArgsForCall)]
 	fake.taskBuildEventsDelegateArgsForCall = append(fake.taskBuildEventsDelegateArgsForCall, struct {
 		arg1 atc.PlanID
 		arg2 atc.TaskPlan
-		arg3 exec.TaskResultAction
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("TaskBuildEventsDelegate", []interface{}{arg1, arg2, arg3})
+	}{arg1, arg2})
+	fake.recordInvocation("TaskBuildEventsDelegate", []interface{}{arg1, arg2})
 	fake.taskBuildEventsDelegateMutex.Unlock()
 	if fake.TaskBuildEventsDelegateStub != nil {
-		return fake.TaskBuildEventsDelegateStub(arg1, arg2, arg3)
+		return fake.TaskBuildEventsDelegateStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -198,10 +192,10 @@ func (fake *FakeBuildDelegate) TaskBuildEventsDelegateCallCount() int {
 	return len(fake.taskBuildEventsDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) TaskBuildEventsDelegateArgsForCall(i int) (atc.PlanID, atc.TaskPlan, exec.TaskResultAction) {
+func (fake *FakeBuildDelegate) TaskBuildEventsDelegateArgsForCall(i int) (atc.PlanID, atc.TaskPlan) {
 	fake.taskBuildEventsDelegateMutex.RLock()
 	defer fake.taskBuildEventsDelegateMutex.RUnlock()
-	return fake.taskBuildEventsDelegateArgsForCall[i].arg1, fake.taskBuildEventsDelegateArgsForCall[i].arg2, fake.taskBuildEventsDelegateArgsForCall[i].arg3
+	return fake.taskBuildEventsDelegateArgsForCall[i].arg1, fake.taskBuildEventsDelegateArgsForCall[i].arg2
 }
 
 func (fake *FakeBuildDelegate) TaskBuildEventsDelegateReturns(result1 exec.BuildEventsDelegate) {

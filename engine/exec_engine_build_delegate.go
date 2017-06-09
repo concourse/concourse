@@ -15,9 +15,9 @@ import (
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan, exec.GetResultAction) exec.BuildEventsDelegate
-	PutBuildEventsDelegate(atc.PlanID, atc.PutPlan, exec.PutResultAction) exec.BuildEventsDelegate
-	TaskBuildEventsDelegate(atc.PlanID, atc.TaskPlan, exec.TaskResultAction) exec.BuildEventsDelegate
+	GetBuildEventsDelegate(atc.PlanID, atc.GetPlan) exec.BuildEventsDelegate
+	PutBuildEventsDelegate(atc.PlanID, atc.PutPlan) exec.BuildEventsDelegate
+	TaskBuildEventsDelegate(atc.PlanID, atc.TaskPlan) exec.BuildEventsDelegate
 	ImageFetchingDelegate(atc.PlanID) exec.ImageFetchingDelegate
 
 	Finish(lager.Logger, error, exec.Success, bool)
@@ -58,25 +58,22 @@ func newBuildDelegate(build db.Build) BuildDelegate {
 func (delegate *delegate) GetBuildEventsDelegate(
 	planID atc.PlanID,
 	plan atc.GetPlan,
-	getResultAction exec.GetResultAction,
 ) exec.BuildEventsDelegate {
-	return NewGetBuildEventsDelegate(delegate.build, planID, plan, delegate.implicitOutputsRepo, getResultAction)
+	return NewGetBuildEventsDelegate(delegate.build, planID, plan, delegate.implicitOutputsRepo)
 }
 
 func (delegate *delegate) PutBuildEventsDelegate(
 	planID atc.PlanID,
 	plan atc.PutPlan,
-	putResultAction exec.PutResultAction,
 ) exec.BuildEventsDelegate {
-	return NewPutBuildEventsDelegate(delegate.build, planID, plan, delegate.implicitOutputsRepo, putResultAction)
+	return NewPutBuildEventsDelegate(delegate.build, planID, plan, delegate.implicitOutputsRepo)
 }
 
 func (delegate *delegate) TaskBuildEventsDelegate(
 	planID atc.PlanID,
 	plan atc.TaskPlan,
-	taskResultAction exec.TaskResultAction,
 ) exec.BuildEventsDelegate {
-	return NewTaskBuildEventsDelegate(delegate.build, planID, plan, taskResultAction)
+	return NewTaskBuildEventsDelegate(delegate.build, planID, plan)
 }
 
 func (delegate *delegate) ImageFetchingDelegate(planID atc.PlanID) exec.ImageFetchingDelegate {
