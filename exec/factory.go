@@ -38,7 +38,6 @@ type Factory interface {
 	Task(
 		logger lager.Logger,
 		plan atc.Plan,
-		configSource TaskConfigSource,
 		teamID int,
 		buildID int,
 		containerMetadata db.ContainerMetadata,

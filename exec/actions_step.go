@@ -79,6 +79,9 @@ func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
+		// TODO: add action completed build delegate
+		//s.buildEventsDelegate.ActionCompleted(s.logger, action)
+
 		if action.ExitStatus() != 0 {
 			succeeded = false
 		}

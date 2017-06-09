@@ -40,6 +40,19 @@ func (err MissingTaskImageSourceError) Error() string {
 make sure there's a corresponding 'get' step, or a task that produces it as an output`, err.SourceName)
 }
 
+type TaskConfigSource interface {
+	GetTaskConfig() (atc.TaskConfig, error)
+}
+
+type FetchConfigActionTaskConfigSource struct {
+	Action FetchConfigResultAction
+}
+
+func (s *FetchConfigActionTaskConfigSource) GetTaskConfig() (atc.TaskConfig, error) {
+	taskConfig := s.Action.Result()
+	return taskConfig, nil
+}
+
 type TaskAction struct {
 	privileged    Privileged
 	configSource  TaskConfigSource
@@ -73,12 +86,7 @@ func (action *TaskAction) Run(
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) error {
-	deprecationConfigSource := DeprecationConfigSource{
-		Delegate: action.configSource,
-		Stderr:   action.imageFetchingDelegate.Stderr(),
-	}
-
-	config, err := deprecationConfigSource.FetchConfig(repository)
+	config, err := action.configSource.GetTaskConfig()
 	if err != nil {
 		return err
 	}

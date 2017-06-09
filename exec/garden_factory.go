@@ -119,7 +119,6 @@ func (factory *gardenFactory) Put(
 func (factory *gardenFactory) Task(
 	logger lager.Logger,
 	plan atc.Plan,
-	configSource TaskConfigSource,
 	teamID int,
 	buildID int,
 	containerMetadata db.ContainerMetadata,
@@ -129,6 +128,36 @@ func (factory *gardenFactory) Task(
 	containerMetadata.WorkingDirectory = workingDirectory
 
 	imageFetchingDelegate := buildDelegate.ImageFetchingDelegate(plan.ID)
+
+	var taskConfigFetcher TaskConfigFetcher
+	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
+		logger.Debug("config fetcher merge")
+		taskConfigFetcher = MergedConfigFetcher{
+			A: FileConfigFetcher{plan.Task.ConfigPath},
+			B: StaticConfigFetcher{Plan: *plan.Task},
+		}
+	} else if plan.Task.Config != nil {
+		logger.Debug("config fetcher static")
+		taskConfigFetcher = StaticConfigFetcher{Plan: *plan.Task}
+	} else if plan.Task.ConfigPath != "" {
+		logger.Debug("config fetcher config path")
+		taskConfigFetcher = FileConfigFetcher{plan.Task.ConfigPath}
+	}
+
+	taskConfigFetcher = ValidatingConfigFetcher{ConfigFetcher: taskConfigFetcher}
+	taskConfigFetcher = DeprecationConfigFetcher{
+		Delegate: taskConfigFetcher,
+		Stderr:   imageFetchingDelegate.Stderr(),
+	}
+
+	fetchConfigAction := &FetchConfigAction{
+		configFetcher: taskConfigFetcher,
+	}
+
+	configSource := &FetchConfigActionTaskConfigSource{
+		Action: fetchConfigAction,
+	}
+
 	taskAction := &TaskAction{
 		privileged:    Privileged(plan.Task.Privileged),
 		configSource:  configSource,
@@ -149,7 +178,7 @@ func (factory *gardenFactory) Task(
 		resourceTypes: plan.Task.VersionedResourceTypes,
 	}
 
-	actions := []Action{taskAction}
+	actions := []Action{fetchConfigAction, taskAction}
 
 	buildEventsDelegate := buildDelegate.TaskBuildEventsDelegate(plan.ID, *plan.Task, taskAction)
 	return newActionsStep(logger, actions, buildEventsDelegate)

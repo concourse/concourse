@@ -45,12 +45,11 @@ type FakeFactory struct {
 	putReturnsOnCall map[int]struct {
 		result1 exec.StepFactory
 	}
-	TaskStub        func(logger lager.Logger, plan atc.Plan, configSource exec.TaskConfigSource, teamID int, buildID int, containerMetadata db.ContainerMetadata, delegate exec.BuildDelegate) exec.StepFactory
+	TaskStub        func(logger lager.Logger, plan atc.Plan, teamID int, buildID int, containerMetadata db.ContainerMetadata, delegate exec.BuildDelegate) exec.StepFactory
 	taskMutex       sync.RWMutex
 	taskArgsForCall []struct {
 		logger            lager.Logger
 		plan              atc.Plan
-		configSource      exec.TaskConfigSource
 		teamID            int
 		buildID           int
 		containerMetadata db.ContainerMetadata
@@ -174,22 +173,21 @@ func (fake *FakeFactory) PutReturnsOnCall(i int, result1 exec.StepFactory) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Task(logger lager.Logger, plan atc.Plan, configSource exec.TaskConfigSource, teamID int, buildID int, containerMetadata db.ContainerMetadata, delegate exec.BuildDelegate) exec.StepFactory {
+func (fake *FakeFactory) Task(logger lager.Logger, plan atc.Plan, teamID int, buildID int, containerMetadata db.ContainerMetadata, delegate exec.BuildDelegate) exec.StepFactory {
 	fake.taskMutex.Lock()
 	ret, specificReturn := fake.taskReturnsOnCall[len(fake.taskArgsForCall)]
 	fake.taskArgsForCall = append(fake.taskArgsForCall, struct {
 		logger            lager.Logger
 		plan              atc.Plan
-		configSource      exec.TaskConfigSource
 		teamID            int
 		buildID           int
 		containerMetadata db.ContainerMetadata
 		delegate          exec.BuildDelegate
-	}{logger, plan, configSource, teamID, buildID, containerMetadata, delegate})
-	fake.recordInvocation("Task", []interface{}{logger, plan, configSource, teamID, buildID, containerMetadata, delegate})
+	}{logger, plan, teamID, buildID, containerMetadata, delegate})
+	fake.recordInvocation("Task", []interface{}{logger, plan, teamID, buildID, containerMetadata, delegate})
 	fake.taskMutex.Unlock()
 	if fake.TaskStub != nil {
-		return fake.TaskStub(logger, plan, configSource, teamID, buildID, containerMetadata, delegate)
+		return fake.TaskStub(logger, plan, teamID, buildID, containerMetadata, delegate)
 	}
 	if specificReturn {
 		return ret.result1
@@ -203,10 +201,10 @@ func (fake *FakeFactory) TaskCallCount() int {
 	return len(fake.taskArgsForCall)
 }
 
-func (fake *FakeFactory) TaskArgsForCall(i int) (lager.Logger, atc.Plan, exec.TaskConfigSource, int, int, db.ContainerMetadata, exec.BuildDelegate) {
+func (fake *FakeFactory) TaskArgsForCall(i int) (lager.Logger, atc.Plan, int, int, db.ContainerMetadata, exec.BuildDelegate) {
 	fake.taskMutex.RLock()
 	defer fake.taskMutex.RUnlock()
-	return fake.taskArgsForCall[i].logger, fake.taskArgsForCall[i].plan, fake.taskArgsForCall[i].configSource, fake.taskArgsForCall[i].teamID, fake.taskArgsForCall[i].buildID, fake.taskArgsForCall[i].containerMetadata, fake.taskArgsForCall[i].delegate
+	return fake.taskArgsForCall[i].logger, fake.taskArgsForCall[i].plan, fake.taskArgsForCall[i].teamID, fake.taskArgsForCall[i].buildID, fake.taskArgsForCall[i].containerMetadata, fake.taskArgsForCall[i].delegate
 }
 
 func (fake *FakeFactory) TaskReturns(result1 exec.StepFactory) {

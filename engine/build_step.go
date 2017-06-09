@@ -81,22 +81,6 @@ func (build *execBuild) buildEnsureStep(logger lager.Logger, plan atc.Plan) exec
 func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("task")
 
-	var configSource exec.TaskConfigSource
-	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
-		configSource = exec.MergedConfigSource{
-			A: exec.FileConfigSource{plan.Task.ConfigPath},
-			B: exec.StaticConfigSource{*plan.Task},
-		}
-	} else if plan.Task.Config != nil {
-		configSource = exec.StaticConfigSource{*plan.Task}
-	} else if plan.Task.ConfigPath != "" {
-		configSource = exec.FileConfigSource{plan.Task.ConfigPath}
-	} else {
-		return exec.Identity{}
-	}
-
-	configSource = exec.ValidatingConfigSource{configSource}
-
 	workerMetadata := build.workerMetadata(
 		db.ContainerTypeTask,
 		plan.Task.Name,
@@ -106,7 +90,6 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 	return build.factory.Task(
 		logger,
 		plan,
-		configSource,
 		build.teamID,
 		build.buildID,
 		workerMetadata,
