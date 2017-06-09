@@ -163,7 +163,7 @@ var _ = Describe("Volume", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceCacheVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path")
+				resourceCacheVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path")
 				Expect(err).NotTo(HaveOccurred())
 
 				createdVolume, err = resourceCacheVolume.Created()
