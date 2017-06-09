@@ -25,14 +25,6 @@ type Session struct {
 	Metadata db.ContainerMetadata
 }
 
-//go:generate counterfeiter . Cache
-
-type Cache interface {
-	IsInitialized() (bool, error)
-	Initialize() error
-	Volume() worker.Volume
-}
-
 type Metadata interface {
 	Env() []string
 }

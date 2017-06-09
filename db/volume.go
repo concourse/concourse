@@ -111,8 +111,7 @@ type CreatedVolume interface {
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
 	SizeInBytes() int64
-	Initialize() error
-	IsInitialized() (bool, error)
+	InitializeResourceCache(*UsedResourceCache) error
 	ContainerHandle() string
 	ParentHandle() string
 	ResourceType() (*VolumeResourceType, error)
@@ -268,15 +267,28 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(base
 	}, nil
 }
 
-func (volume *createdVolume) Initialize() error {
+func (volume *createdVolume) InitializeResourceCache(resourceCache *UsedResourceCache) error {
+	var workerResourceCache *UsedWorkerResourceCache
+	err := safeFindOrCreate(volume.conn, func(tx Tx) error {
+		var err error
+		workerResourceCache, err = WorkerResourceCache{
+			WorkerName:    volume.WorkerName(),
+			ResourceCache: resourceCache,
+		}.FindOrCreate(tx)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
 	rows, err := psql.Update("volumes").
-		Set("initialized", sq.Expr("true")).
-		Where(sq.Eq{
-			"id": volume.id,
-		}).
+		Set("worker_resource_cache_id", workerResourceCache.ID).
+		Set("team_id", nil).
+		Where(sq.Eq{"id": volume.id}).
 		RunWith(volume.conn).
 		Exec()
 	if err != nil {
+		// XXX: swallow unique constraint
 		return err
 	}
 
@@ -284,27 +296,15 @@ func (volume *createdVolume) Initialize() error {
 	if err != nil {
 		return err
 	}
+
 	if affected == 0 {
 		return ErrVolumeMissing
 	}
 
+	volume.resourceCacheID = resourceCache.ID
+	volume.typ = VolumeTypeResource
+
 	return nil
-}
-
-func (volume *createdVolume) IsInitialized() (bool, error) {
-	var isInitialized bool
-	err := psql.Select("initialized").
-		From("volumes").
-		Where(sq.Eq{
-			"id": volume.id,
-		}).
-		RunWith(volume.conn).
-		QueryRow().Scan(&isInitialized)
-	if err != nil {
-		return false, err
-	}
-
-	return isInitialized, nil
 }
 
 func (volume *createdVolume) CreateChildForContainer(container CreatingContainer, mountPath string) (CreatingVolume, error) {
@@ -314,18 +314,6 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 	}
 
 	defer tx.Rollback()
-
-	var parentIsInitialized bool
-	err = psql.Select("initialized").
-		From("volumes").
-		Where(sq.Eq{
-			"id": volume.id,
-		}).
-		RunWith(tx).
-		QueryRow().Scan(&parentIsInitialized)
-	if err != nil {
-		return nil, err
-	}
 
 	handle, err := uuid.NewV4()
 	if err != nil {
@@ -338,7 +326,6 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 		"parent_state",
 		"handle",
 		"container_id",
-		"initialized",
 		"path",
 	}
 	columnValues := []interface{}{
@@ -347,7 +334,6 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 		VolumeStateCreated,
 		handle.String(),
 		container.ID(),
-		parentIsInitialized,
 		mountPath,
 	}
 

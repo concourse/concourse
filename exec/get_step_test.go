@@ -32,8 +32,6 @@ var _ = Describe("Get", func() {
 		fakeResourceFetcher        *resourcefakes.FakeFetcher
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
-		fakeCache           *resourcefakes.FakeCache
-		fakeVolume          *workerfakes.FakeVolume
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 
 		factory Factory
@@ -69,10 +67,6 @@ var _ = Describe("Get", func() {
 	BeforeEach(func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
-
-		fakeCache = new(resourcefakes.FakeCache)
-		fakeVolume = new(workerfakes.FakeVolume)
-		fakeCache.VolumeReturns(fakeVolume)
 
 		getDelegate = new(execfakes.FakeGetDelegate)
 

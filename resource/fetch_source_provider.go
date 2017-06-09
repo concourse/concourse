@@ -35,8 +35,8 @@ type FetchSourceProvider interface {
 
 type FetchSource interface {
 	LockName() (string, error)
-	FindInitialized() (VersionedSource, bool, error)
-	Initialize(signals <-chan os.Signal, ready chan<- struct{}) (VersionedSource, error)
+	Find() (VersionedSource, bool, error)
+	Create(signals <-chan os.Signal, ready chan<- struct{}) (VersionedSource, error)
 }
 
 type fetchSourceProviderFactory struct {

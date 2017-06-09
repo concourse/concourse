@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
@@ -54,26 +53,6 @@ type FakeWorkerProvider struct {
 		result3 error
 	}
 	findWorkerForContainerByOwnerReturnsOnCall map[int]struct {
-		result1 worker.Worker
-		result2 bool
-		result3 error
-	}
-	FindWorkerForResourceCheckContainerStub        func(logger lager.Logger, teamID int, resourceUser db.ResourceUser, resourceType string, resourceSource atc.Source, types atc.VersionedResourceTypes) (worker.Worker, bool, error)
-	findWorkerForResourceCheckContainerMutex       sync.RWMutex
-	findWorkerForResourceCheckContainerArgsForCall []struct {
-		logger         lager.Logger
-		teamID         int
-		resourceUser   db.ResourceUser
-		resourceType   string
-		resourceSource atc.Source
-		types          atc.VersionedResourceTypes
-	}
-	findWorkerForResourceCheckContainerReturns struct {
-		result1 worker.Worker
-		result2 bool
-		result3 error
-	}
-	findWorkerForResourceCheckContainerReturnsOnCall map[int]struct {
 		result1 worker.Worker
 		result2 bool
 		result3 error
@@ -245,65 +224,6 @@ func (fake *FakeWorkerProvider) FindWorkerForContainerByOwnerReturnsOnCall(i int
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainer(logger lager.Logger, teamID int, resourceUser db.ResourceUser, resourceType string, resourceSource atc.Source, types atc.VersionedResourceTypes) (worker.Worker, bool, error) {
-	fake.findWorkerForResourceCheckContainerMutex.Lock()
-	ret, specificReturn := fake.findWorkerForResourceCheckContainerReturnsOnCall[len(fake.findWorkerForResourceCheckContainerArgsForCall)]
-	fake.findWorkerForResourceCheckContainerArgsForCall = append(fake.findWorkerForResourceCheckContainerArgsForCall, struct {
-		logger         lager.Logger
-		teamID         int
-		resourceUser   db.ResourceUser
-		resourceType   string
-		resourceSource atc.Source
-		types          atc.VersionedResourceTypes
-	}{logger, teamID, resourceUser, resourceType, resourceSource, types})
-	fake.recordInvocation("FindWorkerForResourceCheckContainer", []interface{}{logger, teamID, resourceUser, resourceType, resourceSource, types})
-	fake.findWorkerForResourceCheckContainerMutex.Unlock()
-	if fake.FindWorkerForResourceCheckContainerStub != nil {
-		return fake.FindWorkerForResourceCheckContainerStub(logger, teamID, resourceUser, resourceType, resourceSource, types)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.findWorkerForResourceCheckContainerReturns.result1, fake.findWorkerForResourceCheckContainerReturns.result2, fake.findWorkerForResourceCheckContainerReturns.result3
-}
-
-func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerCallCount() int {
-	fake.findWorkerForResourceCheckContainerMutex.RLock()
-	defer fake.findWorkerForResourceCheckContainerMutex.RUnlock()
-	return len(fake.findWorkerForResourceCheckContainerArgsForCall)
-}
-
-func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerArgsForCall(i int) (lager.Logger, int, db.ResourceUser, string, atc.Source, atc.VersionedResourceTypes) {
-	fake.findWorkerForResourceCheckContainerMutex.RLock()
-	defer fake.findWorkerForResourceCheckContainerMutex.RUnlock()
-	return fake.findWorkerForResourceCheckContainerArgsForCall[i].logger, fake.findWorkerForResourceCheckContainerArgsForCall[i].teamID, fake.findWorkerForResourceCheckContainerArgsForCall[i].resourceUser, fake.findWorkerForResourceCheckContainerArgsForCall[i].resourceType, fake.findWorkerForResourceCheckContainerArgsForCall[i].resourceSource, fake.findWorkerForResourceCheckContainerArgsForCall[i].types
-}
-
-func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerReturns(result1 worker.Worker, result2 bool, result3 error) {
-	fake.FindWorkerForResourceCheckContainerStub = nil
-	fake.findWorkerForResourceCheckContainerReturns = struct {
-		result1 worker.Worker
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerReturnsOnCall(i int, result1 worker.Worker, result2 bool, result3 error) {
-	fake.FindWorkerForResourceCheckContainerStub = nil
-	if fake.findWorkerForResourceCheckContainerReturnsOnCall == nil {
-		fake.findWorkerForResourceCheckContainerReturnsOnCall = make(map[int]struct {
-			result1 worker.Worker
-			result2 bool
-			result3 error
-		})
-	}
-	fake.findWorkerForResourceCheckContainerReturnsOnCall[i] = struct {
-		result1 worker.Worker
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -313,8 +233,6 @@ func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	defer fake.findWorkerForContainerMutex.RUnlock()
 	fake.findWorkerForContainerByOwnerMutex.RLock()
 	defer fake.findWorkerForContainerByOwnerMutex.RUnlock()
-	fake.findWorkerForResourceCheckContainerMutex.RLock()
-	defer fake.findWorkerForResourceCheckContainerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

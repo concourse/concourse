@@ -14,17 +14,6 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateVolumeForResourceCache(
-		logger lager.Logger,
-		vs VolumeSpec,
-		resourceCache *db.UsedResourceCache,
-	) (Volume, error)
-
-	FindInitializedVolumeForResourceCache(
-		logger lager.Logger,
-		resourceCache *db.UsedResourceCache,
-	) (Volume, bool, error)
-
 	FindOrCreateContainer(
 		lager.Logger,
 		<-chan os.Signal,
@@ -35,6 +24,11 @@ type Client interface {
 		ContainerSpec,
 		atc.VersionedResourceTypes,
 	) (Container, error)
+
+	FindVolumeForResourceCache(
+		logger lager.Logger,
+		resourceCache *db.UsedResourceCache,
+	) (Volume, bool, error)
 
 	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)

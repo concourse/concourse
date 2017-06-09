@@ -129,7 +129,7 @@ func (f *fetcher) fetchWithLock(
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) (VersionedSource, error) {
-	versionedSource, found, err := source.FindInitialized()
+	versionedSource, found, err := source.Find()
 	if err != nil {
 		return nil, err
 	}
@@ -162,5 +162,5 @@ func (f *fetcher) fetchWithLock(
 
 	defer lock.Release()
 
-	return source.Initialize(signals, ready)
+	return source.Create(signals, ready)
 }

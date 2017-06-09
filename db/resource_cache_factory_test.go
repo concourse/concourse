@@ -379,6 +379,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 						},
 					},
 				}
+
 				usedResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, resourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
@@ -394,51 +395,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 					err := resourceCacheFactory.CleanUpInvalidCaches()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(countResourceCaches()).To(BeZero())
-				})
-
-				Context("when there is a volume for resource cache in creating state", func() {
-					BeforeEach(func() {
-						_, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), usedResourceCache)
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("does not delete the cache", func() {
-						err := resourceCacheFactory.CleanUpInvalidCaches()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(countResourceCaches()).To(Equal(1))
-					})
-				})
-
-				Context("when there is a volume for resource cache in created state", func() {
-					BeforeEach(func() {
-						creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), usedResourceCache)
-						Expect(err).NotTo(HaveOccurred())
-						_, err = creatingVolume.Created()
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("deletes the cache", func() {
-						err := resourceCacheFactory.CleanUpInvalidCaches()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(countResourceCaches()).To(Equal(0))
-					})
-				})
-
-				Context("when there is a volume for resource cache in destroying state", func() {
-					BeforeEach(func() {
-						creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), usedResourceCache)
-						Expect(err).NotTo(HaveOccurred())
-						createdVolume, err := creatingVolume.Created()
-						Expect(err).NotTo(HaveOccurred())
-						_, err = createdVolume.Destroying()
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("deletes the cache", func() {
-						err := resourceCacheFactory.CleanUpInvalidCaches()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(countResourceCaches()).To(Equal(0))
-					})
 				})
 			})
 		})

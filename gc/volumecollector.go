@@ -62,18 +62,12 @@ func (vc *volumeCollector) Run() error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	var (
-		creatingVolumes   []db.CreatingVolume
-		createdVolumes    []db.CreatedVolume
-		destroyingVolumes []db.DestroyingVolume
-		err               error
-	)
-
 	workers, err := vc.workerFactory.Workers()
 	if err != nil {
 		logger.Error("failed-to-get-workers", err)
 		return err
 	}
+
 	baggageClaimClients := map[string]bclient.Client{}
 	for _, worker := range workers {
 		if worker.BaggageclaimURL() != nil {
@@ -81,48 +75,17 @@ func (vc *volumeCollector) Run() error {
 		}
 	}
 
-	creatingVolumes, createdVolumes, destroyingVolumes, err = vc.volumeFactory.GetDuplicateResourceCacheVolumes()
-	if err != nil {
-		logger.Error("failed-to-get-duplicate-resource-cache-volumes", err)
-		return err
-	}
-
-	if len(creatingVolumes) > 0 || len(createdVolumes) > 0 || len(destroyingVolumes) > 0 {
-		logger.Debug("found-duplicate-resource-cache-volumes", lager.Data{
-			"creating":   len(creatingVolumes),
-			"created":    len(createdVolumes),
-			"destroying": len(destroyingVolumes),
-		})
-	}
-
-	orphanedCreatedVolumes, orphanedDestroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
+	createdVolumes, destroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
 	if err != nil {
 		logger.Error("failed-to-get-orphaned-volumes", err)
 		return err
 	}
 
-	if len(orphanedCreatedVolumes) > 0 || len(orphanedDestroyingVolumes) > 0 {
+	if len(createdVolumes) > 0 || len(destroyingVolumes) > 0 {
 		logger.Debug("found-orphaned-volumes", lager.Data{
-			"created":    len(orphanedCreatedVolumes),
-			"destroying": len(orphanedDestroyingVolumes),
+			"created":    len(createdVolumes),
+			"destroying": len(destroyingVolumes),
 		})
-	}
-
-	createdVolumes = append(createdVolumes, orphanedCreatedVolumes...)
-	destroyingVolumes = append(destroyingVolumes, orphanedDestroyingVolumes...)
-
-	for _, creatingVolume := range creatingVolumes {
-		vLog := logger.Session("mark-creating-as-created", lager.Data{
-			"volume": creatingVolume.Handle(),
-		})
-
-		createdVolume, err := creatingVolume.Created()
-		if err != nil {
-			vLog.Error("failed-to-transition-from-creating-to-created", err)
-			continue
-		}
-
-		createdVolumes = append(createdVolumes, createdVolume)
 	}
 
 	for _, createdVolume := range createdVolumes {

@@ -149,12 +149,8 @@ func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResou
 	return atc.WorkerResourceType{}, false
 }
 
-func (worker *gardenWorker) CreateVolumeForResourceCache(logger lager.Logger, volumeSpec VolumeSpec, resourceCache *db.UsedResourceCache) (Volume, error) {
-	return worker.volumeClient.CreateVolumeForResourceCache(logger, volumeSpec, resourceCache)
-}
-
-func (worker *gardenWorker) FindInitializedVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error) {
-	return worker.volumeClient.FindInitializedVolumeForResourceCache(logger, resourceCache)
+func (worker *gardenWorker) FindVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error) {
+	return worker.volumeClient.FindVolumeForResourceCache(logger, resourceCache)
 }
 
 func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {

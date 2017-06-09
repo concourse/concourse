@@ -100,17 +100,19 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
-	Describe("createdVolume.Initialize", func() {
+	Describe("createdVolume.InitializeResourceCache", func() {
 		var createdVolume db.CreatedVolume
-		var defaultBuild db.Build
+		var resourceCache *db.UsedResourceCache
+		var build db.Build
 
 		BeforeEach(func() {
 			var err error
-			defaultBuild, err = defaultTeam.CreateOneOffBuild()
+			build, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+
+			resourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				db.ForBuild(defaultBuild.ID()),
+				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -130,23 +132,31 @@ var _ = Describe("Volume", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), resourceCache)
+			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				Type:     "get",
+				StepName: "some-resource",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceCacheVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path")
 			Expect(err).NotTo(HaveOccurred())
 
-			createdVolume, err = creatingVolume.Created()
+			createdVolume, err = resourceCacheVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = createdVolume.InitializeResourceCache(resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("sets initialized", func() {
-			Expect(createdVolume.IsInitialized()).To(BeFalse())
-			err := createdVolume.Initialize()
+		It("associates the volume to the resource cache", func() {
+			foundVolume, found, err := volumeFactory.FindResourceCacheVolume(defaultWorker.Name(), resourceCache)
 			Expect(err).NotTo(HaveOccurred())
-
-			Expect(createdVolume.IsInitialized()).To(BeTrue())
+			Expect(foundVolume.Handle()).To(Equal(createdVolume.Handle()))
+			Expect(found).To(BeTrue())
 		})
 	})
 
-	Context("when volume type is VolumeTypeContainer", func() {
+	Describe("Container volumes", func() {
 		It("returns volume type, container handle, mount path", func() {
 			creatingVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
 			Expect(err).NotTo(HaveOccurred())
@@ -165,7 +175,7 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
-	Context("when volume has parent", func() {
+	Describe("Volumes created from a parent", func() {
 		It("returns parent handle", func() {
 			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
 			Expect(err).NotTo(HaveOccurred())
@@ -206,13 +216,13 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
-	Context("when volume type is VolumeTypeResource", func() {
+	Describe("Resource cache volumes", func() {
 		It("returns volume type, resource type, resource version", func() {
-			defaultBuild, err := defaultTeam.CreateOneOffBuild()
+			build, err := defaultTeam.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				db.ForBuild(defaultBuild.ID()),
+				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
@@ -230,9 +240,21 @@ var _ = Describe("Volume", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), resourceCache)
+			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				Type:     "get",
+				StepName: "some-resource",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path")
 			Expect(err).NotTo(HaveOccurred())
+
 			createdVolume, err := creatingVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeContainer)))
+
+			err = createdVolume.InitializeResourceCache(resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResource)))
@@ -244,8 +266,9 @@ var _ = Describe("Volume", func() {
 			Expect(volumeResourceType.ResourceType.Version).To(Equal(atc.Version{"some-custom-type": "version"}))
 			Expect(volumeResourceType.Version).To(Equal(atc.Version{"some": "version"}))
 
-			_, createdVolume, err = volumeFactory.FindResourceCacheVolume(defaultWorker.Name(), resourceCache)
+			createdVolume, found, err := volumeFactory.FindResourceCacheVolume(defaultWorker.Name(), resourceCache)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResource)))
 			volumeResourceType, err = createdVolume.ResourceType()
 			Expect(err).NotTo(HaveOccurred())
@@ -256,7 +279,7 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
-	Context("when volume type is VolumeTypeResourceType", func() {
+	Describe("Resource type volumes", func() {
 		It("returns volume type, base resource type name, base resource type version", func() {
 			usedWorkerBaseResourceType, found, err := workerBaseResourceTypeFactory.Find("some-base-resource-type", defaultWorker)
 			Expect(err).NotTo(HaveOccurred())
@@ -285,13 +308,12 @@ var _ = Describe("Volume", func() {
 	Describe("createdVolume.CreateChildForContainer", func() {
 		var parentVolume db.CreatedVolume
 		var creatingContainer db.CreatingContainer
-		var defaultBuild db.Build
 
 		BeforeEach(func() {
-			var err error
-			defaultBuild, err = defaultTeam.CreateOneOffBuild()
+			build, err := defaultTeam.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"), db.ContainerMetadata{
+
+			creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
@@ -308,14 +330,23 @@ var _ = Describe("Volume", func() {
 					},
 				},
 			}
-			usedResourceCache, err := db.ForBuild(defaultBuild.ID()).UseResourceCache(logger, setupTx, resourceCache)
+			usedResourceCache, err := db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			creatingParentVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker.Name(), usedResourceCache)
+			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				Type:     "get",
+				StepName: "some-resource",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path")
 			Expect(err).NotTo(HaveOccurred())
 
 			parentVolume, err = creatingParentVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = parentVolume.InitializeResourceCache(usedResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -340,21 +371,6 @@ var _ = Describe("Volume", func() {
 			destroyed, err = destroyingParentVolume.Destroy()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(destroyed).To(Equal(true))
-		})
-
-		Context("when parent volume is initialized", func() {
-			It("creates intiialized volume", func() {
-				err := parentVolume.Initialize()
-				Expect(err).NotTo(HaveOccurred())
-
-				creatingChildVolume, err := parentVolume.CreateChildForContainer(creatingContainer, "some-path-3")
-				Expect(err).NotTo(HaveOccurred())
-
-				createdChildVolume, err := creatingChildVolume.Created()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(createdChildVolume.IsInitialized()).To(BeTrue())
-			})
 		})
 	})
 

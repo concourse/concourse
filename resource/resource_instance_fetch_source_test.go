@@ -58,12 +58,18 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			return inProcess, nil
 		}
 
+		fakeVolume = new(workerfakes.FakeVolume)
+		fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+			{
+				Volume:    fakeVolume,
+				MountPath: resource.ResourcesDir("get"),
+			},
+		})
+
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
-		fakeVolume = new(workerfakes.FakeVolume)
 		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
-		fakeResourceInstance.CreateOnReturns(fakeVolume, nil)
 		fakeResourceInstance.ResourceUserReturns(db.ForBuild(43))
 		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id")))
 		resourceCache = &db.UsedResourceCache{
@@ -104,32 +110,32 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		)
 	})
 
-	Describe("FindInitialized", func() {
-		Context("when there is initialized volume", func() {
+	Describe("Find", func() {
+		Context("when there is volume", func() {
 			var expectedInitializedVersionedSource resource.VersionedSource
 			BeforeEach(func() {
 				expectedMetadata := []atc.MetadataField{
 					{Name: "some", Value: "metadata"},
 				}
 				expectedInitializedVersionedSource = resource.NewGetVersionedSource(fakeVolume, resourceOptions.Version(), expectedMetadata)
-				fakeResourceInstance.FindInitializedOnReturns(fakeVolume, true, nil)
+				fakeResourceInstance.FindOnReturns(fakeVolume, true, nil)
 			})
 
 			It("finds initialized volume and sets versioned source", func() {
-				versionedSource, found, err := fetchSource.FindInitialized()
+				versionedSource, found, err := fetchSource.Find()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versionedSource).To(Equal(expectedInitializedVersionedSource))
 			})
 		})
 
-		Context("when there is no initialized volume", func() {
+		Context("when there is no volume", func() {
 			BeforeEach(func() {
-				fakeResourceInstance.FindInitializedOnReturns(nil, false, nil)
+				fakeResourceInstance.FindOnReturns(nil, false, nil)
 			})
 
-			It("does not find initialized volume", func() {
-				versionedSource, found, err := fetchSource.FindInitialized()
+			It("does not find volume", func() {
+				versionedSource, found, err := fetchSource.Find()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(versionedSource).To(BeNil())
@@ -137,11 +143,11 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		})
 	})
 
-	Describe("Initialize", func() {
+	Describe("Create", func() {
 		var (
-			initErr                            error
-			versionedSource                    resource.VersionedSource
-			expectedInitializedVersionedSource resource.VersionedSource
+			initErr                 error
+			versionedSource         resource.VersionedSource
+			expectedVersionedSource resource.VersionedSource
 		)
 
 		BeforeEach(func() {
@@ -149,40 +155,32 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		})
 
 		JustBeforeEach(func() {
-			versionedSource, initErr = fetchSource.Initialize(signals, ready)
+			versionedSource, initErr = fetchSource.Create(signals, ready)
 		})
 
 		Context("when there is initialized volume", func() {
 			BeforeEach(func() {
-				fakeResourceInstance.FindInitializedOnReturns(fakeVolume, true, nil)
+				fakeResourceInstance.FindOnReturns(fakeVolume, true, nil)
 				expectedMetadata := []atc.MetadataField{
 					{Name: "some", Value: "metadata"},
 				}
-				expectedInitializedVersionedSource = resource.NewGetVersionedSource(fakeVolume, resourceOptions.Version(), expectedMetadata)
+				expectedVersionedSource = resource.NewGetVersionedSource(fakeVolume, resourceOptions.Version(), expectedMetadata)
 			})
 
 			It("does not fetch resource", func() {
 				Expect(initErr).NotTo(HaveOccurred())
-				Expect(fakeResourceInstance.CreateOnCallCount()).To(Equal(0))
-				Expect(fakeContainer.RunCallCount()).To(Equal(0))
+				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(0))
 			})
 
 			It("finds initialized volume and sets versioned source", func() {
 				Expect(initErr).NotTo(HaveOccurred())
-				Expect(versionedSource).To(Equal(expectedInitializedVersionedSource))
+				Expect(versionedSource).To(Equal(expectedVersionedSource))
 			})
 		})
 
 		Context("when there is no initialized volume", func() {
 			BeforeEach(func() {
-				fakeResourceInstance.FindInitializedOnReturns(nil, false, nil)
-			})
-
-			It("creates volume for resource instance on provided worker", func() {
-				Expect(initErr).NotTo(HaveOccurred())
-				Expect(fakeResourceInstance.CreateOnCallCount()).To(Equal(1))
-				_, worker := fakeResourceInstance.CreateOnArgsForCall(0)
-				Expect(worker).To(Equal(fakeWorker))
+				fakeResourceInstance.FindOnReturns(nil, false, nil)
 			})
 
 			It("creates container with volume and worker", func() {
@@ -199,9 +197,8 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "fake-resource-type",
 					},
-					ResourceCache: &worker.VolumeMount{
-						Volume:    fakeVolume,
-						MountPath: resource.ResourcesDir("get"),
+					Outputs: map[string]string{
+						"resource": resource.ResourcesDir("get"),
 					},
 				}))
 				Expect(types).To(Equal(resourceTypes))
@@ -214,7 +211,9 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 			It("initializes cache", func() {
 				Expect(initErr).NotTo(HaveOccurred())
-				Expect(fakeVolume.InitializeCallCount()).To(Equal(1))
+				Expect(fakeVolume.InitializeResourceCacheCallCount()).To(Equal(1))
+				rc := fakeVolume.InitializeResourceCacheArgsForCall(0)
+				Expect(rc).To(Equal(resourceCache))
 			})
 
 			It("updates resource cache metadata", func() {

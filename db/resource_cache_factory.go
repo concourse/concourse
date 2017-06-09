@@ -187,19 +187,6 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		return err
 	}
 
-	cacheIdsForVolumes, cacheIdsForVolumesArgs, err := sq.
-		Select("wrc.resource_cache_id").
-		Distinct().
-		From("volumes v").
-		LeftJoin("worker_resource_caches wrc ON v.worker_resource_cache_id = wrc.id").
-		Where(sq.NotEq{"v.worker_resource_cache_id": nil}).
-		Where(sq.NotEq{"v.state": string(VolumeStateCreated)}).
-		Where(sq.NotEq{"v.state": string(VolumeStateDestroying)}).
-		ToSql()
-	if err != nil {
-		return err
-	}
-
 	nextBuildInputsCacheIds, _, err := sq.
 		Select("rc.id").
 		Distinct().
@@ -218,9 +205,8 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	}
 
 	_, err = sq.Delete("resource_caches").
-		Where("id NOT IN ("+nextBuildInputsCacheIds+")").
-		Where("id NOT IN ("+stillInUseCacheIds+")").
-		Where("id NOT IN ("+cacheIdsForVolumes+")", cacheIdsForVolumesArgs...).
+		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
+		Where("id NOT IN (" + stillInUseCacheIds + ")").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(f.conn).
 		Exec()

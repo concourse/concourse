@@ -203,12 +203,8 @@ func (*pool) FindResourceTypeByPath(string) (atc.WorkerResourceType, bool) {
 	return atc.WorkerResourceType{}, false
 }
 
-func (*pool) CreateVolumeForResourceCache(lager.Logger, VolumeSpec, *db.UsedResourceCache) (Volume, error) {
-	return nil, errors.New("CreateVolumeForResourceCache not implemented for pool")
-}
-
-func (*pool) FindInitializedVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error) {
-	return nil, false, errors.New("FindInitializedVolumeForResourceCache not implemented for pool")
+func (*pool) FindVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error) {
+	return nil, false, errors.New("FindVolumeForResourceCache not implemented for pool")
 }
 
 func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {

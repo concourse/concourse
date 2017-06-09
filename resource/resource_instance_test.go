@@ -11,7 +11,6 @@ import (
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
-	"github.com/concourse/baggageclaim"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,7 +43,7 @@ var _ = Describe("ResourceInstance", func() {
 		)
 	})
 
-	Describe("FindInitializedOn", func() {
+	Describe("FindOn", func() {
 		var (
 			foundVolume worker.Volume
 			found       bool
@@ -52,7 +51,7 @@ var _ = Describe("ResourceInstance", func() {
 		)
 
 		JustBeforeEach(func() {
-			foundVolume, found, findErr = resourceInstance.FindInitializedOn(logger, fakeWorkerClient)
+			foundVolume, found, findErr = resourceInstance.FindOn(logger, fakeWorkerClient)
 		})
 
 		It("'find-or-create's the resource cache with the same user", func() {
@@ -75,7 +74,7 @@ var _ = Describe("ResourceInstance", func() {
 
 			BeforeEach(func() {
 				fakeVolume = new(workerfakes.FakeVolume)
-				fakeWorkerClient.FindInitializedVolumeForResourceCacheReturns(fakeVolume, true, nil)
+				fakeWorkerClient.FindVolumeForResourceCacheReturns(fakeVolume, true, nil)
 			})
 
 			It("returns found volume", func() {
@@ -87,7 +86,7 @@ var _ = Describe("ResourceInstance", func() {
 
 		Context("when initialized volume for resource cache does not exist on worker", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.FindInitializedVolumeForResourceCacheReturns(nil, false, nil)
+				fakeWorkerClient.FindVolumeForResourceCacheReturns(nil, false, nil)
 			})
 
 			It("does not return any volume", func() {
@@ -99,56 +98,13 @@ var _ = Describe("ResourceInstance", func() {
 
 		Context("when worker errors in finding the cache", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.FindInitializedVolumeForResourceCacheReturns(nil, false, disaster)
+				fakeWorkerClient.FindVolumeForResourceCacheReturns(nil, false, disaster)
 			})
 
 			It("returns the error", func() {
 				Expect(findErr).To(Equal(disaster))
 				Expect(found).To(BeFalse())
 				Expect(foundVolume).To(BeNil())
-			})
-		})
-	})
-
-	Context("CreateOn", func() {
-		var createdVolume worker.Volume
-		var createErr error
-
-		JustBeforeEach(func() {
-			createdVolume, createErr = resourceInstance.CreateOn(logger, fakeWorkerClient)
-		})
-
-		Context("when creating the volume succeeds", func() {
-			var volume *workerfakes.FakeVolume
-
-			BeforeEach(func() {
-				volume = new(workerfakes.FakeVolume)
-				fakeWorkerClient.CreateVolumeForResourceCacheReturns(volume, nil)
-			})
-
-			It("succeeds", func() {
-				Expect(createErr).ToNot(HaveOccurred())
-			})
-
-			It("returns the volume", func() {
-				Expect(createdVolume).To(Equal(volume))
-			})
-
-			It("created with the right strategy", func() {
-				_, spec, _ := fakeWorkerClient.CreateVolumeForResourceCacheArgsForCall(0)
-				Expect(spec).To(Equal(worker.VolumeSpec{
-					Strategy: baggageclaim.EmptyStrategy{},
-				}))
-			})
-		})
-
-		Context("when creating the volume fails", func() {
-			BeforeEach(func() {
-				fakeWorkerClient.CreateVolumeForResourceCacheReturns(nil, disaster)
-			})
-
-			It("returns the error", func() {
-				Expect(createErr).To(Equal(disaster))
 			})
 		})
 	})

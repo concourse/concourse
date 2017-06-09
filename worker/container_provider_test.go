@@ -57,7 +57,6 @@ var _ = Describe("ContainerProvider", func() {
 		fakeLocalVolume                *workerfakes.FakeVolume
 		fakeOutputVolume               *workerfakes.FakeVolume
 		fakeLocalCOWVolume             *workerfakes.FakeVolume
-		fakeResourceCacheVolume        *workerfakes.FakeVolume
 
 		cancel             <-chan os.Signal
 		containerSpec      ContainerSpec
@@ -161,9 +160,6 @@ var _ = Describe("ContainerProvider", func() {
 		fakeRemoteInputContainerVolume = new(workerfakes.FakeVolume)
 		fakeRemoteInputContainerVolume.PathReturns("/fake/remote/input/container/volume")
 
-		fakeResourceCacheVolume = new(workerfakes.FakeVolume)
-		fakeResourceCacheVolume.PathReturns("/fake/resource/cache/volume")
-
 		stubbedVolumes = map[string]*workerfakes.FakeVolume{
 			"/scratch":                    fakeScratchVolume,
 			"/some/work-dir":              fakeWorkdirVolume,
@@ -229,11 +225,6 @@ var _ = Describe("ContainerProvider", func() {
 
 			Outputs: OutputPaths{
 				"some-output": "/some/work-dir/output",
-			},
-
-			ResourceCache: &VolumeMount{
-				Volume:    fakeResourceCacheVolume,
-				MountPath: "/some/resource/cache",
 			},
 		}
 
@@ -410,11 +401,6 @@ var _ = Describe("ContainerProvider", func() {
 						DstPath: "/some/work-dir/output",
 						Mode:    garden.BindMountModeRW,
 					},
-					{
-						SrcPath: "/fake/resource/cache/volume",
-						DstPath: "/some/resource/cache",
-						Mode:    garden.BindMountModeRW,
-					},
 				},
 				Env: []string{
 					"IMAGE=ENV",
@@ -514,11 +500,6 @@ var _ = Describe("ContainerProvider", func() {
 					{
 						SrcPath: "/fake/output/volume",
 						DstPath: "/some/work-dir/output",
-						Mode:    garden.BindMountModeRW,
-					},
-					{
-						SrcPath: "/fake/resource/cache/volume",
-						DstPath: "/some/resource/cache",
 						Mode:    garden.BindMountModeRW,
 					},
 				}))

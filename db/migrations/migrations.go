@@ -169,4 +169,5 @@ var Migrations = []migration.Migrator{
 	AddResourceConfigCheckSessions,
 	CreateContainerGCIndexes,
 	AddIndexesForBuildCollector,
+	DropInitializedFromVolumes,
 }

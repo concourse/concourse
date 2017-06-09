@@ -19,13 +19,10 @@ type VolumeFactory interface {
 	FindBaseResourceTypeVolume(int, *UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error)
 	CreateBaseResourceTypeVolume(int, *UsedWorkerBaseResourceType) (CreatingVolume, error)
 
-	FindResourceCacheVolume(string, *UsedResourceCache) (CreatingVolume, CreatedVolume, error)
-	FindResourceCacheInitializedVolume(string, *UsedResourceCache) (CreatedVolume, bool, error)
-	CreateResourceCacheVolume(string, *UsedResourceCache) (CreatingVolume, error)
+	FindResourceCacheVolume(string, *UsedResourceCache) (CreatedVolume, bool, error)
 
 	FindVolumesForContainer(CreatedContainer) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
-	GetDuplicateResourceCacheVolumes() ([]CreatingVolume, []CreatedVolume, []DestroyingVolume, error)
 
 	FindCreatedVolume(handle string) (CreatedVolume, bool, error)
 }
@@ -82,38 +79,12 @@ func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error
 	return createdVolumes, nil
 }
 
-func (factory *volumeFactory) CreateResourceCacheVolume(workerName string, resourceCache *UsedResourceCache) (CreatingVolume, error) {
-	var workerResourcCache *UsedWorkerResourceCache
-	err := safeFindOrCreate(factory.conn, func(tx Tx) error {
-		var err error
-		workerResourcCache, err = WorkerResourceCache{
-			WorkerName:    workerName,
-			ResourceCache: resourceCache,
-		}.FindOrCreate(tx)
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	volume, err := factory.createVolume(
-		0,
-		workerName,
-		map[string]interface{}{"worker_resource_cache_id": workerResourcCache.ID},
-		VolumeTypeResource,
-	)
-
-	volume.resourceCacheID = resourceCache.ID
-	return volume, nil
-}
-
 func (factory *volumeFactory) CreateBaseResourceTypeVolume(teamID int, uwbrt *UsedWorkerBaseResourceType) (CreatingVolume, error) {
 	volume, err := factory.createVolume(
 		teamID,
 		uwbrt.WorkerName,
 		map[string]interface{}{
 			"worker_base_resource_type_id": uwbrt.ID,
-			"initialized":                  true,
 		},
 		VolumeTypeResourceType,
 	)
@@ -132,7 +103,6 @@ func (factory *volumeFactory) CreateContainerVolume(teamID int, workerName strin
 		map[string]interface{}{
 			"container_id": container.ID(),
 			"path":         mountPath,
-			"initialized":  true,
 		},
 		VolumeTypeContainer,
 	)
@@ -195,25 +165,7 @@ func (factory *volumeFactory) FindBaseResourceTypeVolume(teamID int, uwbrt *Used
 	})
 }
 
-func (factory *volumeFactory) FindResourceCacheVolume(workerName string, resourceCache *UsedResourceCache) (CreatingVolume, CreatedVolume, error) {
-	workerResourceCache, found, err := WorkerResourceCache{
-		WorkerName:    workerName,
-		ResourceCache: resourceCache,
-	}.Find(factory.conn)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if !found {
-		return nil, nil, nil
-	}
-
-	return factory.findVolume(0, workerName, map[string]interface{}{
-		"v.worker_resource_cache_id": workerResourceCache.ID,
-	})
-}
-
-func (factory *volumeFactory) FindResourceCacheInitializedVolume(workerName string, resourceCache *UsedResourceCache) (CreatedVolume, bool, error) {
+func (factory *volumeFactory) FindResourceCacheVolume(workerName string, resourceCache *UsedResourceCache) (CreatedVolume, bool, error) {
 	workerResourceCache, found, err := WorkerResourceCache{
 		WorkerName:    workerName,
 		ResourceCache: resourceCache,
@@ -228,7 +180,6 @@ func (factory *volumeFactory) FindResourceCacheInitializedVolume(workerName stri
 
 	_, createdVolume, err := factory.findVolume(0, workerName, map[string]interface{}{
 		"v.worker_resource_cache_id": workerResourceCache.ID,
-		"v.initialized":              true,
 	})
 	if err != nil {
 		return nil, false, err
@@ -264,7 +215,6 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
 		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(sq.Eq{
-			"v.initialized":                  true,
 			"v.worker_resource_cache_id":     nil,
 			"v.worker_base_resource_type_id": nil,
 			"v.container_id":                 nil,
@@ -305,68 +255,6 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 
 	return createdVolumes, destroyingVolumes, nil
 }
-
-func (factory *volumeFactory) GetDuplicateResourceCacheVolumes() ([]CreatingVolume, []CreatedVolume, []DestroyingVolume, error) {
-	query, args, err := psql.Select(volumeColumns...).
-		From("volumes v").
-		LeftJoin("workers w ON v.worker_name = w.name").
-		LeftJoin("containers c ON v.container_id = c.id").
-		LeftJoin("volumes pv ON v.parent_id = pv.id").
-		LeftJoin("volumes dv ON v.worker_resource_cache_id = dv.worker_resource_cache_id").
-		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
-		Where(sq.Eq{
-			"v.initialized":  false,
-			"dv.initialized": true,
-		}).
-		Where(sq.Or{
-			sq.Eq{"w.state": string(WorkerStateRunning)},
-			sq.Eq{"w.state": string(WorkerStateLanding)},
-			sq.Eq{"w.state": string(WorkerStateRetiring)},
-		}).
-		ToSql()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	rows, err := factory.conn.Query(query, args...)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	defer rows.Close()
-
-	creatingVolumes := []CreatingVolume{}
-	createdVolumes := []CreatedVolume{}
-	destroyingVolumes := []DestroyingVolume{}
-
-	for rows.Next() {
-		creatingVolume, createdVolume, destroyingVolume, err := scanVolume(rows, factory.conn)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		if creatingVolume != nil {
-			creatingVolumes = append(creatingVolumes, creatingVolume)
-		}
-
-		if createdVolume != nil {
-			createdVolumes = append(createdVolumes, createdVolume)
-		}
-
-		if destroyingVolume != nil {
-			destroyingVolumes = append(destroyingVolumes, destroyingVolume)
-		}
-	}
-
-	return creatingVolumes, createdVolumes, destroyingVolumes, nil
-}
-
-// 1. open tx
-// 2. lookup cache id
-//   * if not found, create.
-//     * if fails (unique violation; concurrent create), goto 1.
-// 3. insert into volumes in 'initializing' state
-//   * if fails (fkey violation; preexisting cache id was removed), goto 1.
-// 4. commit tx
 
 var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer exists (stale?)")
 
@@ -467,11 +355,12 @@ var volumeColumns = []string{
 	"v.team_id",
 	"wrc.resource_cache_id",
 	"v.worker_base_resource_type_id",
-	`case when v.container_id is not NULL then 'container'
-	  when v.worker_resource_cache_id is not NULL then 'resource'
-		when v.worker_base_resource_type_id is not NULL then 'resource-type'
-		else 'unknown'
-	end`,
+	`case
+	when v.worker_base_resource_type_id is not NULL then 'resource-type'
+	when v.worker_resource_cache_id is not NULL then 'resource'
+	when v.container_id is not NULL then 'container'
+	else 'unknown'
+end`,
 }
 
 func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, DestroyingVolume, error) {

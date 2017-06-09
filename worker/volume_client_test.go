@@ -411,66 +411,6 @@ var _ = Describe("VolumeClient", func() {
 		})
 	})
 
-	Describe("CreateVolumeForResourceCache", func() {
-		var foundOrCreatedVolume worker.Volume
-		var foundOrCreatedErr error
-
-		var fakeBaggageclaimVolume *baggageclaimfakes.FakeVolume
-		var fakeCreatingVolume *dbfakes.FakeCreatingVolume
-		var resourcCache *db.UsedResourceCache
-		var fakeCreatedVolume *dbfakes.FakeCreatedVolume
-
-		BeforeEach(func() {
-			fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
-			fakeBaggageclaimVolume.HandleReturns("created-volume")
-
-			fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
-
-			fakeCreatingVolume = new(dbfakes.FakeCreatingVolume)
-
-			resourcCache = &db.UsedResourceCache{ID: 52}
-
-			fakeCreatedVolume = new(dbfakes.FakeCreatedVolume)
-			fakeDBVolumeFactory.FindResourceCacheVolumeReturns(nil, nil, nil)
-			fakeDBVolumeFactory.CreateResourceCacheVolumeReturns(fakeCreatingVolume, nil)
-			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-			fakeCreatingVolume.CreatedReturns(fakeCreatedVolume, nil)
-		})
-
-		JustBeforeEach(func() {
-			foundOrCreatedVolume, foundOrCreatedErr = volumeClient.CreateVolumeForResourceCache(
-				testLogger,
-				worker.VolumeSpec{
-					Strategy: baggageclaim.ImportStrategy{
-						Path: "/some/path",
-					},
-					Properties: worker.VolumeProperties{
-						"some": "property",
-					},
-					Privileged: true,
-				},
-				resourcCache,
-			)
-		})
-
-		It("acquires the lock", func() {
-			Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
-		})
-
-		It("creates volume in creating state", func() {
-			Expect(fakeDBVolumeFactory.CreateResourceCacheVolumeCallCount()).To(Equal(1))
-			actualWorkerName, actualResourceCache := fakeDBVolumeFactory.CreateResourceCacheVolumeArgsForCall(0)
-			Expect(actualWorkerName).To(Equal(dbWorker.Name()))
-			Expect(actualResourceCache).To(Equal(resourcCache))
-		})
-
-		It("creates volume in baggageclaim", func() {
-			Expect(foundOrCreatedErr).NotTo(HaveOccurred())
-			Expect(foundOrCreatedVolume).To(Equal(worker.NewVolume(fakeBaggageclaimVolume, fakeCreatedVolume)))
-			Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-		})
-	})
-
 	Describe("LookupVolume", func() {
 		var handle string
 

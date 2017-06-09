@@ -80,9 +80,9 @@ var _ = Describe("Fetcher", func() {
 			fakeFetchSourceProvider.GetReturns(fakeFetchSource, nil)
 		})
 
-		Context("when initialized", func() {
+		Context("when found", func() {
 			BeforeEach(func() {
-				fakeFetchSource.FindInitializedReturns(fakeVersionedSource, true, nil)
+				fakeFetchSource.FindReturns(fakeVersionedSource, true, nil)
 			})
 
 			It("returns the source", func() {
@@ -109,9 +109,9 @@ var _ = Describe("Fetcher", func() {
 			})
 		})
 
-		Context("when not initialized", func() {
+		Context("when not found", func() {
 			BeforeEach(func() {
-				fakeFetchSource.FindInitializedReturns(nil, false, nil)
+				fakeFetchSource.FindReturns(nil, false, nil)
 				fakeFetchSource.LockNameReturns("fake-lock-name", nil)
 			})
 
@@ -134,8 +134,8 @@ var _ = Describe("Fetcher", func() {
 						Expect(fakeLockFactory.AcquireCallCount()).To(Equal(2))
 					})
 
-					It("initializes fetch source after lock is acquired", func() {
-						Expect(fakeFetchSource.InitializeCallCount()).To(Equal(1))
+					It("creates fetch source after lock is acquired", func() {
+						Expect(fakeFetchSource.CreateCallCount()).To(Equal(1))
 					})
 				})
 
@@ -157,8 +157,8 @@ var _ = Describe("Fetcher", func() {
 						Expect(fakeLockFactory.AcquireCallCount()).To(Equal(2))
 					})
 
-					It("initializes fetch source after lock is acquired", func() {
-						Expect(fakeFetchSource.InitializeCallCount()).To(Equal(1))
+					It("creates fetch source after lock is acquired", func() {
+						Expect(fakeFetchSource.CreateCallCount()).To(Equal(1))
 					})
 				})
 			})
@@ -169,7 +169,7 @@ var _ = Describe("Fetcher", func() {
 				BeforeEach(func() {
 					fakeLock = new(lockfakes.FakeLock)
 					fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-					fakeFetchSource.InitializeReturns(fakeVersionedSource, nil)
+					fakeFetchSource.CreateReturns(fakeVersionedSource, nil)
 				})
 
 				It("acquires a lock with source lock name", func() {
@@ -182,8 +182,8 @@ var _ = Describe("Fetcher", func() {
 					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
 
-				It("initializes source", func() {
-					Expect(fakeFetchSource.InitializeCallCount()).To(Equal(1))
+				It("creates source", func() {
+					Expect(fakeFetchSource.CreateCallCount()).To(Equal(1))
 				})
 
 				It("returns the source", func() {
@@ -192,12 +192,12 @@ var _ = Describe("Fetcher", func() {
 			})
 		})
 
-		Context("when checking if initialized fails", func() {
+		Context("when finding fails", func() {
 			var disaster error
 
 			BeforeEach(func() {
 				disaster = errors.New("fail")
-				fakeFetchSource.FindInitializedReturns(nil, false, disaster)
+				fakeFetchSource.FindReturns(nil, false, disaster)
 			})
 
 			It("returns an error", func() {

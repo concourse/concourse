@@ -78,25 +78,16 @@ type FakeCreatedVolume struct {
 	sizeInBytesReturnsOnCall map[int]struct {
 		result1 int64
 	}
-	InitializeStub        func() error
-	initializeMutex       sync.RWMutex
-	initializeArgsForCall []struct{}
-	initializeReturns     struct {
+	InitializeResourceCacheStub        func(*db.UsedResourceCache) error
+	initializeResourceCacheMutex       sync.RWMutex
+	initializeResourceCacheArgsForCall []struct {
+		arg1 *db.UsedResourceCache
+	}
+	initializeResourceCacheReturns struct {
 		result1 error
 	}
-	initializeReturnsOnCall map[int]struct {
+	initializeResourceCacheReturnsOnCall map[int]struct {
 		result1 error
-	}
-	IsInitializedStub        func() (bool, error)
-	isInitializedMutex       sync.RWMutex
-	isInitializedArgsForCall []struct{}
-	isInitializedReturns     struct {
-		result1 bool
-		result2 error
-	}
-	isInitializedReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
 	}
 	ContainerHandleStub        func() string
 	containerHandleMutex       sync.RWMutex
@@ -437,87 +428,52 @@ func (fake *FakeCreatedVolume) SizeInBytesReturnsOnCall(i int, result1 int64) {
 	}{result1}
 }
 
-func (fake *FakeCreatedVolume) Initialize() error {
-	fake.initializeMutex.Lock()
-	ret, specificReturn := fake.initializeReturnsOnCall[len(fake.initializeArgsForCall)]
-	fake.initializeArgsForCall = append(fake.initializeArgsForCall, struct{}{})
-	fake.recordInvocation("Initialize", []interface{}{})
-	fake.initializeMutex.Unlock()
-	if fake.InitializeStub != nil {
-		return fake.InitializeStub()
+func (fake *FakeCreatedVolume) InitializeResourceCache(arg1 *db.UsedResourceCache) error {
+	fake.initializeResourceCacheMutex.Lock()
+	ret, specificReturn := fake.initializeResourceCacheReturnsOnCall[len(fake.initializeResourceCacheArgsForCall)]
+	fake.initializeResourceCacheArgsForCall = append(fake.initializeResourceCacheArgsForCall, struct {
+		arg1 *db.UsedResourceCache
+	}{arg1})
+	fake.recordInvocation("InitializeResourceCache", []interface{}{arg1})
+	fake.initializeResourceCacheMutex.Unlock()
+	if fake.InitializeResourceCacheStub != nil {
+		return fake.InitializeResourceCacheStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.initializeReturns.result1
+	return fake.initializeResourceCacheReturns.result1
 }
 
-func (fake *FakeCreatedVolume) InitializeCallCount() int {
-	fake.initializeMutex.RLock()
-	defer fake.initializeMutex.RUnlock()
-	return len(fake.initializeArgsForCall)
+func (fake *FakeCreatedVolume) InitializeResourceCacheCallCount() int {
+	fake.initializeResourceCacheMutex.RLock()
+	defer fake.initializeResourceCacheMutex.RUnlock()
+	return len(fake.initializeResourceCacheArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) InitializeReturns(result1 error) {
-	fake.InitializeStub = nil
-	fake.initializeReturns = struct {
+func (fake *FakeCreatedVolume) InitializeResourceCacheArgsForCall(i int) *db.UsedResourceCache {
+	fake.initializeResourceCacheMutex.RLock()
+	defer fake.initializeResourceCacheMutex.RUnlock()
+	return fake.initializeResourceCacheArgsForCall[i].arg1
+}
+
+func (fake *FakeCreatedVolume) InitializeResourceCacheReturns(result1 error) {
+	fake.InitializeResourceCacheStub = nil
+	fake.initializeResourceCacheReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeCreatedVolume) InitializeReturnsOnCall(i int, result1 error) {
-	fake.InitializeStub = nil
-	if fake.initializeReturnsOnCall == nil {
-		fake.initializeReturnsOnCall = make(map[int]struct {
+func (fake *FakeCreatedVolume) InitializeResourceCacheReturnsOnCall(i int, result1 error) {
+	fake.InitializeResourceCacheStub = nil
+	if fake.initializeResourceCacheReturnsOnCall == nil {
+		fake.initializeResourceCacheReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.initializeReturnsOnCall[i] = struct {
+	fake.initializeResourceCacheReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeCreatedVolume) IsInitialized() (bool, error) {
-	fake.isInitializedMutex.Lock()
-	ret, specificReturn := fake.isInitializedReturnsOnCall[len(fake.isInitializedArgsForCall)]
-	fake.isInitializedArgsForCall = append(fake.isInitializedArgsForCall, struct{}{})
-	fake.recordInvocation("IsInitialized", []interface{}{})
-	fake.isInitializedMutex.Unlock()
-	if fake.IsInitializedStub != nil {
-		return fake.IsInitializedStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
-}
-
-func (fake *FakeCreatedVolume) IsInitializedCallCount() int {
-	fake.isInitializedMutex.RLock()
-	defer fake.isInitializedMutex.RUnlock()
-	return len(fake.isInitializedArgsForCall)
-}
-
-func (fake *FakeCreatedVolume) IsInitializedReturns(result1 bool, result2 error) {
-	fake.IsInitializedStub = nil
-	fake.isInitializedReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCreatedVolume) IsInitializedReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.IsInitializedStub = nil
-	if fake.isInitializedReturnsOnCall == nil {
-		fake.isInitializedReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.isInitializedReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeCreatedVolume) ContainerHandle() string {
@@ -703,10 +659,8 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.workerNameMutex.RUnlock()
 	fake.sizeInBytesMutex.RLock()
 	defer fake.sizeInBytesMutex.RUnlock()
-	fake.initializeMutex.RLock()
-	defer fake.initializeMutex.RUnlock()
-	fake.isInitializedMutex.RLock()
-	defer fake.isInitializedMutex.RUnlock()
+	fake.initializeResourceCacheMutex.RLock()
+	defer fake.initializeResourceCacheMutex.RUnlock()
 	fake.containerHandleMutex.RLock()
 	defer fake.containerHandleMutex.RUnlock()
 	fake.parentHandleMutex.RLock()

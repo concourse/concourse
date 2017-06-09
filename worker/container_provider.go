@@ -466,10 +466,6 @@ func (p *containerProvider) createGardenContainer(
 		})
 	}
 
-	if spec.ResourceCache != nil {
-		volumeMounts = append(volumeMounts, *spec.ResourceCache)
-	}
-
 	bindMounts := []garden.BindMount{}
 
 	volumeHandleMounts := map[string]string{}

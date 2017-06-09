@@ -16,11 +16,6 @@ const creatingVolumeRetryDelay = 1 * time.Second
 //go:generate counterfeiter . VolumeClient
 
 type VolumeClient interface {
-	CreateVolumeForResourceCache(
-		lager.Logger,
-		VolumeSpec,
-		*db.UsedResourceCache,
-	) (Volume, error)
 	FindOrCreateVolumeForContainer(
 		lager.Logger,
 		VolumeSpec,
@@ -42,7 +37,7 @@ type VolumeClient interface {
 		int,
 		string,
 	) (Volume, error)
-	FindInitializedVolumeForResourceCache(
+	FindVolumeForResourceCache(
 		lager.Logger,
 		*db.UsedResourceCache,
 	) (Volume, bool, error)
@@ -146,30 +141,13 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 	)
 }
 
-func (c *volumeClient) CreateVolumeForResourceCache(
-	logger lager.Logger,
-	volumeSpec VolumeSpec,
-	usedResourceCache *db.UsedResourceCache,
-) (Volume, error) {
-	return c.findOrCreateVolume(
-		logger.Session("find-or-create-volume-for-resource-cache"),
-		volumeSpec,
-		func() (db.CreatingVolume, db.CreatedVolume, error) {
-			return nil, nil, nil
-		},
-		func() (db.CreatingVolume, error) {
-			return c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker.Name(), usedResourceCache)
-		},
-	)
-}
-
-func (c *volumeClient) FindInitializedVolumeForResourceCache(
+func (c *volumeClient) FindVolumeForResourceCache(
 	logger lager.Logger,
 	usedResourceCache *db.UsedResourceCache,
 ) (Volume, bool, error) {
-	dbVolume, found, err := c.dbVolumeFactory.FindResourceCacheInitializedVolume(c.dbWorker.Name(), usedResourceCache)
+	dbVolume, found, err := c.dbVolumeFactory.FindResourceCacheVolume(c.dbWorker.Name(), usedResourceCache)
 	if err != nil {
-		logger.Error("failed-to-lookup-initialized-volume-in-db", err)
+		logger.Error("failed-to-lookup-resource-cache-volume-in-db", err)
 		return nil, false, err
 	}
 

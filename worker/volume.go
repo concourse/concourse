@@ -23,8 +23,7 @@ type Volume interface {
 
 	COWStrategy() baggageclaim.COWStrategy
 
-	IsInitialized() (bool, error)
-	Initialize() error
+	InitializeResourceCache(*db.UsedResourceCache) error
 
 	CreateChildForContainer(db.CreatingContainer, string) (db.CreatingVolume, error)
 
@@ -85,12 +84,8 @@ func (v *volume) COWStrategy() baggageclaim.COWStrategy {
 	}
 }
 
-func (v *volume) IsInitialized() (bool, error) {
-	return v.dbVolume.IsInitialized()
-}
-
-func (v *volume) Initialize() error {
-	return v.dbVolume.Initialize()
+func (v *volume) InitializeResourceCache(urc *db.UsedResourceCache) error {
+	return v.dbVolume.InitializeResourceCache(urc)
 }
 
 func (v *volume) CreateChildForContainer(creatingContainer db.CreatingContainer, mountPath string) (db.CreatingVolume, error) {

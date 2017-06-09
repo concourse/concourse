@@ -33,27 +33,6 @@ type FakeResourceFactory struct {
 		result1 resource.Resource
 		result2 error
 	}
-	NewCheckResourceStub        func(logger lager.Logger, signals <-chan os.Signal, resourceUser db.ResourceUser, resourceType string, resourceSource atc.Source, metadata db.ContainerMetadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error)
-	newCheckResourceMutex       sync.RWMutex
-	newCheckResourceArgsForCall []struct {
-		logger                lager.Logger
-		signals               <-chan os.Signal
-		resourceUser          db.ResourceUser
-		resourceType          string
-		resourceSource        atc.Source
-		metadata              db.ContainerMetadata
-		resourceSpec          worker.ContainerSpec
-		resourceTypes         atc.VersionedResourceTypes
-		imageFetchingDelegate worker.ImageFetchingDelegate
-	}
-	newCheckResourceReturns struct {
-		result1 resource.Resource
-		result2 error
-	}
-	newCheckResourceReturnsOnCall map[int]struct {
-		result1 resource.Resource
-		result2 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -116,72 +95,11 @@ func (fake *FakeResourceFactory) NewResourceReturnsOnCall(i int, result1 resourc
 	}{result1, result2}
 }
 
-func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, signals <-chan os.Signal, resourceUser db.ResourceUser, resourceType string, resourceSource atc.Source, metadata db.ContainerMetadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error) {
-	fake.newCheckResourceMutex.Lock()
-	ret, specificReturn := fake.newCheckResourceReturnsOnCall[len(fake.newCheckResourceArgsForCall)]
-	fake.newCheckResourceArgsForCall = append(fake.newCheckResourceArgsForCall, struct {
-		logger                lager.Logger
-		signals               <-chan os.Signal
-		resourceUser          db.ResourceUser
-		resourceType          string
-		resourceSource        atc.Source
-		metadata              db.ContainerMetadata
-		resourceSpec          worker.ContainerSpec
-		resourceTypes         atc.VersionedResourceTypes
-		imageFetchingDelegate worker.ImageFetchingDelegate
-	}{logger, signals, resourceUser, resourceType, resourceSource, metadata, resourceSpec, resourceTypes, imageFetchingDelegate})
-	fake.recordInvocation("NewCheckResource", []interface{}{logger, signals, resourceUser, resourceType, resourceSource, metadata, resourceSpec, resourceTypes, imageFetchingDelegate})
-	fake.newCheckResourceMutex.Unlock()
-	if fake.NewCheckResourceStub != nil {
-		return fake.NewCheckResourceStub(logger, signals, resourceUser, resourceType, resourceSource, metadata, resourceSpec, resourceTypes, imageFetchingDelegate)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.newCheckResourceReturns.result1, fake.newCheckResourceReturns.result2
-}
-
-func (fake *FakeResourceFactory) NewCheckResourceCallCount() int {
-	fake.newCheckResourceMutex.RLock()
-	defer fake.newCheckResourceMutex.RUnlock()
-	return len(fake.newCheckResourceArgsForCall)
-}
-
-func (fake *FakeResourceFactory) NewCheckResourceArgsForCall(i int) (lager.Logger, <-chan os.Signal, db.ResourceUser, string, atc.Source, db.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) {
-	fake.newCheckResourceMutex.RLock()
-	defer fake.newCheckResourceMutex.RUnlock()
-	return fake.newCheckResourceArgsForCall[i].logger, fake.newCheckResourceArgsForCall[i].signals, fake.newCheckResourceArgsForCall[i].resourceUser, fake.newCheckResourceArgsForCall[i].resourceType, fake.newCheckResourceArgsForCall[i].resourceSource, fake.newCheckResourceArgsForCall[i].metadata, fake.newCheckResourceArgsForCall[i].resourceSpec, fake.newCheckResourceArgsForCall[i].resourceTypes, fake.newCheckResourceArgsForCall[i].imageFetchingDelegate
-}
-
-func (fake *FakeResourceFactory) NewCheckResourceReturns(result1 resource.Resource, result2 error) {
-	fake.NewCheckResourceStub = nil
-	fake.newCheckResourceReturns = struct {
-		result1 resource.Resource
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeResourceFactory) NewCheckResourceReturnsOnCall(i int, result1 resource.Resource, result2 error) {
-	fake.NewCheckResourceStub = nil
-	if fake.newCheckResourceReturnsOnCall == nil {
-		fake.newCheckResourceReturnsOnCall = make(map[int]struct {
-			result1 resource.Resource
-			result2 error
-		})
-	}
-	fake.newCheckResourceReturnsOnCall[i] = struct {
-		result1 resource.Resource
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeResourceFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.newResourceMutex.RLock()
 	defer fake.newResourceMutex.RUnlock()
-	fake.newCheckResourceMutex.RLock()
-	defer fake.newCheckResourceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

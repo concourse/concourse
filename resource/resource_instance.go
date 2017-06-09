@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 )
 
 //go:generate counterfeiter . ResourceInstance
@@ -16,8 +15,7 @@ type ResourceInstance interface {
 	ResourceUser() db.ResourceUser
 	ContainerOwner() db.ContainerOwner
 
-	FindInitializedOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
-	CreateOn(lager.Logger, worker.Client) (worker.Volume, error)
+	FindOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
 
 	ResourceCacheIdentifier() worker.ResourceCacheIdentifier
 }
@@ -63,7 +61,7 @@ func (instance resourceInstance) ContainerOwner() db.ContainerOwner {
 	return instance.containerOwner
 }
 
-func (instance resourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
+func (instance resourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	resourceCache, err := instance.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
 		instance.resourceUser,
@@ -74,34 +72,11 @@ func (instance resourceInstance) CreateOn(logger lager.Logger, workerClient work
 		instance.resourceTypes,
 	)
 	if err != nil {
-		return nil, err
-	}
-
-	return workerClient.CreateVolumeForResourceCache(
-		logger,
-		worker.VolumeSpec{
-			Strategy: baggageclaim.EmptyStrategy{},
-		},
-		resourceCache,
-	)
-}
-
-func (instance resourceInstance) FindInitializedOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
-	resourceCache, err := instance.dbResourceCacheFactory.FindOrCreateResourceCache(
-		logger,
-		instance.resourceUser,
-		string(instance.resourceTypeName),
-		instance.version,
-		instance.source,
-		instance.params,
-		instance.resourceTypes,
-	)
-	if err != nil {
-		logger.Error("failed-to-find-or-initialized-volume-resource-cache-for-build", err)
+		logger.Error("failed-to-find-or-volume-resource-cache-for-build", err)
 		return nil, false, err
 	}
 
-	return workerClient.FindInitializedVolumeForResourceCache(
+	return workerClient.FindVolumeForResourceCache(
 		logger,
 		resourceCache,
 	)
