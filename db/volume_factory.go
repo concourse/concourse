@@ -374,7 +374,6 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	var sqTeamID sql.NullInt64
 	var sqResourceCacheID sql.NullInt64
 	var sqWorkerBaseResourceTypeID sql.NullInt64
-
 	var volumeType VolumeType
 
 	err := row.Scan(
@@ -424,7 +423,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		workerBaseResourceTypeID = int(sqWorkerBaseResourceTypeID.Int64)
 	}
 
-	switch state {
+	switch VolumeState(state) {
 	case VolumeStateCreated:
 		return nil, &createdVolume{
 			id:                       id,

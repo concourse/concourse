@@ -154,6 +154,27 @@ var _ = Describe("Volume", func() {
 			Expect(foundVolume.Handle()).To(Equal(createdVolume.Handle()))
 			Expect(found).To(BeTrue())
 		})
+
+		Context("when there's already an initialized resource cache on the same worker", func() {
+			It("leaves the volume owned by the the container", func() {
+				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+					Type:     "get",
+					StepName: "some-resource",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				resourceCacheVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path")
+				Expect(err).NotTo(HaveOccurred())
+
+				createdVolume, err = resourceCacheVolume.Created()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = createdVolume.InitializeResourceCache(resourceCache)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(createdVolume.Type()).To(Equal(db.VolumeTypeContainer))
+			})
+		})
 	})
 
 	Describe("Container volumes", func() {

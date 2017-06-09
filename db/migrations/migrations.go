@@ -170,4 +170,5 @@ var Migrations = []migration.Migrator{
 	CreateContainerGCIndexes,
 	AddIndexesForBuildCollector,
 	DropInitializedFromVolumes,
+	AddUniqueWorkerResourceCacheIDToVolumes,
 }

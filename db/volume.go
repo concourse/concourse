@@ -32,18 +32,18 @@ func (e ErrVolumeMarkCreatedFailed) Error() string {
 type VolumeState string
 
 const (
-	VolumeStateCreating   = "creating"
-	VolumeStateCreated    = "created"
-	VolumeStateDestroying = "destroying"
+	VolumeStateCreating   VolumeState = "creating"
+	VolumeStateCreated    VolumeState = "created"
+	VolumeStateDestroying VolumeState = "destroying"
 )
 
 type VolumeType string
 
 const (
-	VolumeTypeContainer    = "container"
-	VolumeTypeResource     = "resource"
-	VolumeTypeResourceType = "resource-type"
-	VolumeTypeUknown       = "unknown" // for migration to life
+	VolumeTypeContainer    VolumeType = "container"
+	VolumeTypeResource     VolumeType = "resource"
+	VolumeTypeResourceType VolumeType = "resource-type"
+	VolumeTypeUknown       VolumeType = "unknown" // for migration to life
 )
 
 //go:generate counterfeiter . CreatingVolume
@@ -288,7 +288,11 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache *UsedResource
 		RunWith(volume.conn).
 		Exec()
 	if err != nil {
-		// XXX: swallow unique constraint
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+			// leave it owned by the container
+			return nil
+		}
+
 		return err
 	}
 
