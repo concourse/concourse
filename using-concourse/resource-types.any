@@ -131,6 +131,8 @@ before using it!
   }{
     \hyperlink{https://github.com/dpb587/github-status-resource}{GitHub Commit Status}
   }{
+    \hyperlink{https://github.com/ahume/github-deployment-resource}{GitHub Deployment}
+  }{
     \hyperlink{https://github.com/jdub/ami-resource}{AMI Updates}
   }{
     \hyperlink{https://github.com/jdub/debian-sources-resource}{Debian/Ubuntu Sources Updates}
