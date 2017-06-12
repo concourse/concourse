@@ -247,6 +247,18 @@ var _ = Describe("Image", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
+			It("fetches image without custom resource type", func() {
+				worker, resourceUser, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				Expect(worker).To(Equal(fakeWorker))
+				Expect(resourceUser).To(Equal(db.ForBuild(42)))
+				Expect(imageResource.Type).To(Equal("some-image-resource-type"))
+				Expect(imageResource.Source).To(Equal(atc.Source{"some": "source"}))
+				Expect(version).To(BeNil())
+				Expect(teamID).To(Equal(42))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
+				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+			})
+
 			It("finds or creates cow volume", func() {
 				_, err := img.FetchForContainer(logger, signals, fakeContainer)
 				Expect(err).NotTo(HaveOccurred())
@@ -319,13 +331,14 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches unprivileged image without custom resource type", func() {
-				worker, resourceUser, imageResource, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, resourceUser, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(resourceUser).To(Equal(db.ForBuild(42)))
 				Expect(imageResource.Type).To(Equal("some-base-resource-type"))
 				Expect(imageResource.Source).To(Equal(atc.Source{
 					"some": "custom-resource-type-source",
 				}))
+				Expect(version).To(Equal(atc.Version{"some": "custom-resource-type-version"}))
 				Expect(teamID).To(Equal(42))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{
 					{
@@ -415,13 +428,14 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches image without custom resource type", func() {
-				worker, resourceUser, imageResource, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, resourceUser, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(resourceUser).To(Equal(db.ForBuild(42)))
 				Expect(imageResource.Type).To(Equal("some-base-image-resource-type"))
 				Expect(imageResource.Source).To(Equal(atc.Source{
 					"some": "custom-image-resource-type-source",
 				}))
+				Expect(version).To(Equal(atc.Version{"some": "custom-image-resource-type-version"}))
 				Expect(teamID).To(Equal(42))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{
 					{

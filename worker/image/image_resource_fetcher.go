@@ -33,6 +33,7 @@ type ImageResourceFetcherFactory interface {
 		worker.Worker,
 		db.ResourceUser,
 		atc.ImageResource,
+		atc.Version,
 		int,
 		atc.VersionedResourceTypes,
 		worker.ImageFetchingDelegate,
@@ -78,6 +79,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	worker worker.Worker,
 	resourceUser db.ResourceUser,
 	imageResource atc.ImageResource,
+	version atc.Version,
 	teamID int,
 	customTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -92,6 +94,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 		worker:                worker,
 		resourceUser:          resourceUser,
 		imageResource:         imageResource,
+		version:               version,
 		teamID:                teamID,
 		customTypes:           customTypes,
 		imageFetchingDelegate: imageFetchingDelegate,
@@ -108,6 +111,7 @@ type imageResourceFetcher struct {
 
 	resourceUser          db.ResourceUser
 	imageResource         atc.ImageResource
+	version               atc.Version
 	teamID                int
 	customTypes           atc.VersionedResourceTypes
 	imageFetchingDelegate worker.ImageFetchingDelegate
@@ -119,10 +123,14 @@ func (i *imageResourceFetcher) Fetch(
 	container db.CreatingContainer,
 	privileged bool,
 ) (worker.Volume, io.ReadCloser, atc.Version, error) {
-	version, err := i.getLatestVersion(logger, signals, container)
-	if err != nil {
-		logger.Error("failed-to-get-latest-image-version", err)
-		return nil, nil, nil, err
+	version := i.version
+	if version == nil {
+		var err error
+		version, err = i.getLatestVersion(logger, signals, container)
+		if err != nil {
+			logger.Error("failed-to-get-latest-image-version", err)
+			return nil, nil, nil, err
+		}
 	}
 
 	resourceInstance := resource.NewResourceInstance(
@@ -136,7 +144,7 @@ func (i *imageResourceFetcher) Fetch(
 		i.dbResourceCacheFactory,
 	)
 
-	err = i.imageFetchingDelegate.ImageVersionDetermined(
+	err := i.imageFetchingDelegate.ImageVersionDetermined(
 		resourceInstance.ResourceCacheIdentifier(),
 	)
 	if err != nil {
