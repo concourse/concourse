@@ -238,7 +238,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 	return exec.Identity{}
 }
 
-func (build *execBuild) workerMetadata(
+func (build *execBuild) containerMetadata(
 	containerType db.ContainerType,
 	stepName string,
 	attempts []int,

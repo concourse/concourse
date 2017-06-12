@@ -39,6 +39,8 @@ func newActionsStep(
 	}
 }
 
+//go:generate counterfeiter . BuildEventsDelegate
+
 type BuildEventsDelegate interface {
 	Initializing(lager.Logger)
 	ActionCompleted(lager.Logger, Action)

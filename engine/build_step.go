@@ -81,7 +81,7 @@ func (build *execBuild) buildEnsureStep(logger lager.Logger, plan atc.Plan) exec
 func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("task")
 
-	workerMetadata := build.workerMetadata(
+	containerMetadata := build.containerMetadata(
 		db.ContainerTypeTask,
 		plan.Task.Name,
 		plan.Attempts,
@@ -92,7 +92,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		plan,
 		build.teamID,
 		build.buildID,
-		workerMetadata,
+		containerMetadata,
 		build.delegate.DBBuildEventsDelegate(plan.ID),
 		build.delegate.ImageFetchingDelegate(plan.ID),
 	)
@@ -104,7 +104,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Get.Name,
 	})
 
-	workerMetadata := build.workerMetadata(
+	containerMetadata := build.containerMetadata(
 		db.ContainerTypeGet,
 		plan.Get.Name,
 		plan.Attempts,
@@ -116,7 +116,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		build.teamID,
 		plan,
 		build.stepMetadata,
-		workerMetadata,
+		containerMetadata,
 		build.delegate.DBBuildEventsDelegate(plan.ID),
 		build.delegate.ImageFetchingDelegate(plan.ID),
 	)
@@ -128,7 +128,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Put.Name,
 	})
 
-	workerMetadata := build.workerMetadata(
+	containerMetadata := build.containerMetadata(
 		db.ContainerTypePut,
 		plan.Put.Name,
 		plan.Attempts,
@@ -140,7 +140,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		build.buildID,
 		plan,
 		build.stepMetadata,
-		workerMetadata,
+		containerMetadata,
 		build.delegate.DBBuildEventsDelegate(plan.ID),
 		build.delegate.ImageFetchingDelegate(plan.ID),
 	)

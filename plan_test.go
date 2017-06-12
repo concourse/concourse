@@ -38,7 +38,7 @@ var _ = Describe("Plan", func() {
 						Resource: "resource",
 						Source:   atc.Source{"some": "source"},
 						Params:   atc.Params{"some": "params"},
-						Version:  atc.Version{"some": "version"},
+						Version:  &atc.Version{"some": "version"},
 						Tags:     atc.Tags{"tags"},
 					},
 				},

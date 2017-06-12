@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
-	"github.com/concourse/atc/worker"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -78,27 +77,24 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 			outputStepFactory *execfakes.FakeStepFactory
 			outputStep        *execfakes.FakeStep
-
-			dependentStepFactory *execfakes.FakeStepFactory
-			dependentStep        *execfakes.FakeStep
 		)
 
 		BeforeEach(func() {
 			taskStepFactory = new(execfakes.FakeStepFactory)
 			taskStep = new(execfakes.FakeStep)
-			taskStep.ResultStub = successResult(true)
+			taskStep.SucceededReturns(true)
 			taskStepFactory.UsingReturns(taskStep)
 			fakeFactory.TaskReturns(taskStepFactory)
 
 			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
-			inputStep.ResultStub = successResult(true)
+			inputStep.SucceededReturns(true)
 			inputStepFactory.UsingReturns(inputStep)
 			fakeFactory.GetReturns(inputStepFactory)
 
 			outputStepFactory = new(execfakes.FakeStepFactory)
 			outputStep = new(execfakes.FakeStep)
-			outputStep.ResultStub = successResult(true)
+			outputStep.SucceededReturns(true)
 			outputStepFactory.UsingReturns(outputStep)
 			fakeFactory.PutReturns(outputStepFactory)
 
@@ -109,20 +105,16 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 		Context("constructing steps", func() {
 			var (
-				fakeDelegate          *enginefakes.FakeBuildDelegate
-				fakeInputDelegate     *execfakes.FakeGetDelegate
-				fakeExecutionDelegate *execfakes.FakeTaskDelegate
+				fakeDelegate            *enginefakes.FakeBuildDelegate
+				fakeBuildEventsDelegate *execfakes.FakeBuildEventsDelegate
 			)
 
 			BeforeEach(func() {
 				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-				fakeInputDelegate = new(execfakes.FakeGetDelegate)
-				fakeDelegate.InputDelegateReturns(fakeInputDelegate)
-
-				fakeExecutionDelegate = new(execfakes.FakeTaskDelegate)
-				fakeDelegate.ExecutionDelegateReturns(fakeExecutionDelegate)
+				fakeBuildEventsDelegate = new(execfakes.FakeBuildEventsDelegate)
+				fakeDelegate.DBBuildEventsDelegateReturns(fakeBuildEventsDelegate)
 			})
 
 			Context("with all the hooks", func() {
@@ -179,14 +171,13 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the step correctly", func() {
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
-					logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, buildID, teamID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))
-					Expect(planID).To(Equal(inputPlan.ID))
-					Expect(metadata).To(Equal(expectedMetadata))
-					Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
-					Expect(workerMetadata).To(Equal(db.ContainerMetadata{
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(plan).To(Equal(inputPlan))
+					Expect(stepMetadata).To(Equal(expectedMetadata))
+					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						PipelineID:   expectedPipelineID,
 						PipelineName: "some-pipeline",
 						JobID:        expectedJobID,
@@ -196,21 +187,16 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						StepName:     "some-input",
 						Type:         db.ContainerTypeGet,
 					}))
-
-					Expect(delegate).To(Equal(fakeInputDelegate))
-					_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-					Expect(location).NotTo(BeNil())
 				})
 
 				It("constructs the completion hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(2)
 					Expect(logger).NotTo(BeNil())
 					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))
-					Expect(planID).To(Equal(completionTaskPlan.ID))
-					Expect(sourceName).To(Equal(worker.ArtifactName("some-completion-task")))
-					Expect(workerMetadata).To(Equal(db.ContainerMetadata{
+					Expect(plan).To(Equal(completionTaskPlan))
+					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						PipelineID:   expectedPipelineID,
 						PipelineName: "some-pipeline",
 						JobID:        expectedJobID,
@@ -220,22 +206,16 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						StepName:     "some-completion-task",
 						Type:         db.ContainerTypeTask,
 					}))
-
-					Expect(delegate).To(Equal(fakeExecutionDelegate))
-
-					_, _, location := fakeDelegate.ExecutionDelegateArgsForCall(2)
-					Expect(location).NotTo(BeNil())
 				})
 
 				It("constructs the failure hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))
-					Expect(planID).To(Equal(failureTaskPlan.ID))
-					Expect(sourceName).To(Equal(worker.ArtifactName("some-failure-task")))
-					Expect(workerMetadata).To(Equal(db.ContainerMetadata{
+					Expect(plan).To(Equal(failureTaskPlan))
+					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						PipelineID:   expectedPipelineID,
 						PipelineName: "some-pipeline",
 						JobID:        expectedJobID,
@@ -245,22 +225,16 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						StepName:     "some-failure-task",
 						Type:         db.ContainerTypeTask,
 					}))
-
-					Expect(delegate).To(Equal(fakeExecutionDelegate))
-
-					_, _, location := fakeDelegate.ExecutionDelegateArgsForCall(0)
-					Expect(location).NotTo(BeNil())
 				})
 
 				It("constructs the success hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))
-					Expect(planID).To(Equal(successTaskPlan.ID))
-					Expect(sourceName).To(Equal(worker.ArtifactName("some-success-task")))
-					Expect(workerMetadata).To(Equal(db.ContainerMetadata{
+					Expect(plan).To(Equal(successTaskPlan))
+					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						PipelineID:   expectedPipelineID,
 						PipelineName: "some-pipeline",
 						JobID:        expectedJobID,
@@ -270,22 +244,16 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						StepName:     "some-success-task",
 						Type:         db.ContainerTypeTask,
 					}))
-
-					Expect(delegate).To(Equal(fakeExecutionDelegate))
-
-					_, _, location := fakeDelegate.ExecutionDelegateArgsForCall(1)
-					Expect(location).NotTo(BeNil())
 				})
 
 				It("constructs the next step correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(3)
 					Expect(logger).NotTo(BeNil())
 					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))
-					Expect(planID).To(Equal(nextTaskPlan.ID))
-					Expect(sourceName).To(Equal(worker.ArtifactName("some-next-task")))
-					Expect(workerMetadata).To(Equal(db.ContainerMetadata{
+					Expect(plan).To(Equal(nextTaskPlan))
+					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						PipelineID:   expectedPipelineID,
 						PipelineName: "some-pipeline",
 						JobID:        expectedJobID,
@@ -295,10 +263,6 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						StepName:     "some-next-task",
 						Type:         db.ContainerTypeTask,
 					}))
-
-					Expect(delegate).To(Equal(fakeExecutionDelegate))
-					_, _, location := fakeDelegate.ExecutionDelegateArgsForCall(3)
-					Expect(location).NotTo(BeNil())
 				})
 			})
 		})
@@ -308,7 +272,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 			BeforeEach(func() {
 				planFactory = atc.NewPlanFactory(123)
-				inputStep.ResultStub = successResult(true)
+				inputStep.SucceededReturns(true)
 			})
 
 			It("runs the next step", func() {
@@ -360,18 +324,16 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				build.Resume(logger)
 
-				Expect(inputStep.RunCallCount()).To(Equal(1))
+				Expect(inputStep.RunCallCount()).To(Equal(2))
 
 				Expect(taskStep.RunCallCount()).To(Equal(1))
 
 				Expect(outputStep.RunCallCount()).To(Equal(1))
-
-				Expect(dependentStep.RunCallCount()).To(Equal(1))
 			})
 
 			Context("when the success hook fails, and has a failure hook", func() {
 				BeforeEach(func() {
-					taskStep.ResultStub = successResult(false)
+					taskStep.SucceededReturns(false)
 				})
 
 				It("does not run the next step", func() {
@@ -407,8 +369,6 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(taskStep.RunCallCount()).To(Equal(2))
 
 					Expect(outputStep.RunCallCount()).To(Equal(0))
-
-					Expect(dependentStep.RunCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -418,7 +378,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 			BeforeEach(func() {
 				planFactory = atc.NewPlanFactory(123)
-				inputStep.ResultStub = successResult(false)
+				inputStep.SucceededReturns(false)
 			})
 
 			It("only run the failure hooks", func() {
@@ -461,7 +421,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 			BeforeEach(func() {
 				planFactory = atc.NewPlanFactory(123)
-				inputStep.ResultStub = successResult(false)
+				inputStep.SucceededReturns(false)
 			})
 
 			It("only run the failure hooks", func() {
