@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"io"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -197,6 +198,24 @@ func (h *FlyHelper) Hijack(argv ...string) *gexec.Session {
 	)
 
 	return start(command)
+}
+
+func (h *FlyHelper) HijackInteractive(argv ...string) (*gexec.Session, io.Writer) {
+	args := append([]string{
+		"-t",
+		TargetedConcourse,
+		"hijack",
+	}, argv...)
+
+	command := exec.Command(
+		h.Path,
+		args...,
+	)
+
+	stdin, err := command.StdinPipe()
+	Expect(err).ToNot(HaveOccurred())
+
+	return start(command), stdin
 }
 
 func start(cmd *exec.Cmd) *gexec.Session {

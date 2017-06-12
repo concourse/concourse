@@ -64,7 +64,6 @@ var _ = Describe("A job with a step that retries", func() {
 			Eventually(hijackS).Should(gbytes.Say("[1-9]*: build #1, step: register-server-until-3-registrations, type: task, attempt: [1-3]"))
 			Eventually(hijackS).Should(gbytes.Say("[1-9]*: build #1, step: register-server-until-3-registrations, type: task, attempt: [1-3]"))
 			Eventually(hijackS).Should(gbytes.Say("[1-9]*: build #1, step: register-server-until-3-registrations, type: task, attempt: [1-3]"))
-			hijackS.Out.Write([]byte("2"))
 			Eventually(hijackS).Should(gexec.Exit())
 		})
 	})
