@@ -69,16 +69,13 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 	_, err := psql.Update("builds").
 		Prefix(latestBuildsPrefix).
 		Set("interceptible", false).
+		Where(sq.Eq{
+			"completed":     true,
+			"interceptible": true,
+		}).
 		Where(sq.Or{
 			sq.Expr("id NOT IN (select build_id FROM latest_builds)"),
-			sq.And{
-				sq.NotEq{"status": string(BuildStatusAborted)},
-				sq.NotEq{"status": string(BuildStatusFailed)},
-				sq.NotEq{"status": string(BuildStatusErrored)},
-			},
-		}).
-		Where(sq.Eq{
-			"completed": true,
+			sq.Eq{"status": string(BuildStatusSucceeded)},
 		}).
 		RunWith(f.conn).
 		Exec()
