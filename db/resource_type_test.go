@@ -26,9 +26,10 @@ var _ = Describe("ResourceType", func() {
 						Source: atc.Source{"some": "repository"},
 					},
 					{
-						Name:   "some-other-type",
-						Type:   "docker-image-ng",
-						Source: atc.Source{"some": "other-repository"},
+						Name:       "some-other-type",
+						Type:       "docker-image-ng",
+						Privileged: true,
+						Source:     atc.Source{"some": "other-repository"},
 					},
 				},
 			},
@@ -67,6 +68,7 @@ var _ = Describe("ResourceType", func() {
 					Expect(t.Type()).To(Equal("docker-image-ng"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "other-repository"}))
 					Expect(t.Version()).To(BeNil())
+					Expect(t.Privileged()).To(BeTrue())
 				}
 			}
 

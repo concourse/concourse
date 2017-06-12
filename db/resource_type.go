@@ -23,6 +23,7 @@ type ResourceType interface {
 	ID() int
 	Name() string
 	Type() string
+	Privileged() bool
 	Source() atc.Source
 
 	Version() atc.Version
@@ -39,9 +40,10 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 	for _, t := range resourceTypes {
 		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
-				Name:   t.Name(),
-				Type:   t.Type(),
-				Source: t.Source(),
+				Name:       t.Name(),
+				Type:       t.Type(),
+				Source:     t.Source(),
+				Privileged: t.Privileged(),
 			},
 			Version: t.Version(),
 		})
@@ -55,11 +57,12 @@ var resourceTypesQuery = psql.Select("id, name, type, config, version, nonce").
 	Where(sq.Eq{"active": true})
 
 type resourceType struct {
-	id      int
-	name    string
-	type_   string
-	source  atc.Source
-	version atc.Version
+	id         int
+	name       string
+	type_      string
+	privileged bool
+	source     atc.Source
+	version    atc.Version
 
 	conn Conn
 }
@@ -67,6 +70,7 @@ type resourceType struct {
 func (t *resourceType) ID() int            { return t.id }
 func (t *resourceType) Name() string       { return t.name }
 func (t *resourceType) Type() string       { return t.type_ }
+func (t *resourceType) Privileged() bool   { return t.privileged }
 func (t *resourceType) Source() atc.Source { return t.source }
 
 func (t *resourceType) Version() atc.Version { return t.version }
@@ -148,6 +152,7 @@ func scanResourceType(t *resourceType, row scannable) error {
 	}
 
 	t.source = config.Source
+	t.privileged = config.Privileged
 
 	return nil
 }

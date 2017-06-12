@@ -36,6 +36,15 @@ type FakeResourceType struct {
 	typeReturnsOnCall map[int]struct {
 		result1 string
 	}
+	PrivilegedStub        func() bool
+	privilegedMutex       sync.RWMutex
+	privilegedArgsForCall []struct{}
+	privilegedReturns     struct {
+		result1 bool
+	}
+	privilegedReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	SourceStub        func() atc.Source
 	sourceMutex       sync.RWMutex
 	sourceArgsForCall []struct{}
@@ -197,6 +206,46 @@ func (fake *FakeResourceType) TypeReturnsOnCall(i int, result1 string) {
 	}
 	fake.typeReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeResourceType) Privileged() bool {
+	fake.privilegedMutex.Lock()
+	ret, specificReturn := fake.privilegedReturnsOnCall[len(fake.privilegedArgsForCall)]
+	fake.privilegedArgsForCall = append(fake.privilegedArgsForCall, struct{}{})
+	fake.recordInvocation("Privileged", []interface{}{})
+	fake.privilegedMutex.Unlock()
+	if fake.PrivilegedStub != nil {
+		return fake.PrivilegedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.privilegedReturns.result1
+}
+
+func (fake *FakeResourceType) PrivilegedCallCount() int {
+	fake.privilegedMutex.RLock()
+	defer fake.privilegedMutex.RUnlock()
+	return len(fake.privilegedArgsForCall)
+}
+
+func (fake *FakeResourceType) PrivilegedReturns(result1 bool) {
+	fake.PrivilegedStub = nil
+	fake.privilegedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeResourceType) PrivilegedReturnsOnCall(i int, result1 bool) {
+	fake.PrivilegedStub = nil
+	if fake.privilegedReturnsOnCall == nil {
+		fake.privilegedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.privilegedReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -380,6 +429,8 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.nameMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
+	fake.privilegedMutex.RLock()
+	defer fake.privilegedMutex.RUnlock()
 	fake.sourceMutex.RLock()
 	defer fake.sourceMutex.RUnlock()
 	fake.versionMutex.RLock()
