@@ -502,6 +502,19 @@ func containersBy(condition, value string) []string {
 	return handles
 }
 
+func workersBy(condition, value string) []string {
+	containers := flyTable("workers")
+
+	var handles []string
+	for _, c := range containers {
+		if c[condition] == value {
+			handles = append(handles, c["name"])
+		}
+	}
+
+	return handles
+}
+
 func volumesByResourceType(name string) []string {
 	volumes := flyTable("volumes", "-d")
 
@@ -513,4 +526,19 @@ func volumesByResourceType(name string) []string {
 	}
 
 	return handles
+}
+
+func deleteDeploymentWithForcedDrain() {
+	delete := spawnBosh("stop")
+
+	var workers []string
+	Eventually(func() []string {
+		workers = workersBy("state", "retiring")
+		return workers
+	}).Should(HaveLen(1))
+
+	fly("prune-worker", "-w", workers[0])
+
+	<-delete.Exited
+	Expect(delete.ExitCode()).To(Equal(0))
 }
