@@ -2,6 +2,7 @@ package worker
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -45,8 +46,16 @@ type VolumeClient interface {
 }
 
 var ErrVolumeExpiredImmediately = errors.New("volume expired immediately after saving")
-var ErrCreatedVolumeNotFound = errors.New("failed-to-find-created-volume-in-baggageclaim")
-var ErrBaseResourceTypeNotFound = errors.New("base-resource-type-not-found")
+
+type ErrCreatedVolumeNotFound struct {
+	Handle string
+}
+
+func (e ErrCreatedVolumeNotFound) Error() string {
+	return fmt.Sprintf("failed to find created volume in baggageclaim. Volume handle: %s", e.Handle)
+}
+
+var ErrBaseResourceTypeNotFound = errors.New("base resource type not found")
 
 type volumeClient struct {
 	baggageclaimClient              baggageclaim.Client
@@ -218,7 +227,7 @@ func (c *volumeClient) findOrCreateVolume(
 
 		if !bcVolumeFound {
 			logger.Info("created-volume-not-found")
-			return nil, ErrCreatedVolumeNotFound
+			return nil, ErrCreatedVolumeNotFound{Handle: createdVolume.Handle()}
 		}
 
 		logger.Debug("found-created-volume")

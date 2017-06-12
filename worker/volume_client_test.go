@@ -180,6 +180,7 @@ var _ = Describe("VolumeClient", func() {
 		Context("when volume exists in created state", func() {
 			BeforeEach(func() {
 				fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
+				fakeCreatedVolume.HandleReturns("fake-handle")
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
 			})
 
@@ -201,7 +202,7 @@ var _ = Describe("VolumeClient", func() {
 
 				It("returns an error", func() {
 					Expect(foundOrCreatedErr).To(HaveOccurred())
-					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("failed-to-find-created-volume-in-baggageclaim"))
+					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("failed to find created volume in baggageclaim. Volume handle: fake-handle"))
 				})
 			})
 		})
@@ -360,6 +361,7 @@ var _ = Describe("VolumeClient", func() {
 		Context("when volume exists in created state", func() {
 			BeforeEach(func() {
 				fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
+				fakeCreatedVolume.HandleReturns("fake-handle")
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
 			})
 
@@ -381,7 +383,7 @@ var _ = Describe("VolumeClient", func() {
 
 				It("returns an error", func() {
 					Expect(foundOrCreatedErr).To(HaveOccurred())
-					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("failed-to-find-created-volume-in-baggageclaim"))
+					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("failed to find created volume in baggageclaim. Volume handle: fake-handle"))
 				})
 			})
 		})
