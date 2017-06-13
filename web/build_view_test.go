@@ -3,6 +3,8 @@ package web_test
 import (
 	"fmt"
 
+	yaml "gopkg.in/yaml.v2"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/sclevine/agouti/matchers"
@@ -15,7 +17,7 @@ var _ = Describe("Viewing builds", func() {
 		var build atc.Build
 
 		BeforeEach(func() {
-			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			config := atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -39,7 +41,12 @@ var _ = Describe("Viewing builds", func() {
 						},
 					},
 				},
-			})
+			}
+
+			byteConfig, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.UnpausePipeline(pipelineName)

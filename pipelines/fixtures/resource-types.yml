@@ -2,7 +2,7 @@
 resource_types:
 - name: custom-resource-type
   type: git
-  privileged: {{privileged}}
+  privileged: ((privileged))
   source:
     uri: {{origin-git-server}}
     branch: master

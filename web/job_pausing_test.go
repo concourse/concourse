@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	yaml "gopkg.in/yaml.v2"
+
 	"github.com/concourse/atc"
 
 	. "github.com/onsi/ginkgo"
@@ -19,11 +21,16 @@ var _ = Describe("JobPausing", func() {
 
 	Context("with a job in the configuration", func() {
 		BeforeEach(func() {
-			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			config := atc.Config{
 				Jobs: []atc.JobConfig{
 					{Name: "some-job"},
 				},
-			})
+			}
+
+			byteConfig, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.UnpausePipeline(pipelineName)

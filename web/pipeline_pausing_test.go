@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	yaml "gopkg.in/yaml.v2"
+
 	"github.com/concourse/atc"
 	uuid "github.com/nu7hatch/gouuid"
 
@@ -25,23 +27,34 @@ var _ = Describe("PipelinePausing", func() {
 			Expect(err).NotTo(HaveOccurred())
 			anotherPipelineName = "another-pipeline-" + guid.String()
 
-			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			config := atc.Config{
 				Jobs: []atc.JobConfig{
 					{Name: "some-job-name"},
 				},
-			})
+			}
+
+			byteConfig, err := yaml.Marshal(config)
 			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
+			Expect(err).NotTo(HaveOccurred())
+
 			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.DeletePipeline(anotherPipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, _, err = team.CreateOrUpdatePipelineConfig(anotherPipelineName, "0", atc.Config{
+			config = atc.Config{
 				Jobs: []atc.JobConfig{
 					{Name: "another-job-name"},
 				},
-			})
+			}
+
+			byteConfig, err = yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(anotherPipelineName, "0", byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.UnpausePipeline(anotherPipelineName)

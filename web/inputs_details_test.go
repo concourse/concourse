@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	yaml "gopkg.in/yaml.v2"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/testflight/gitserver"
 
@@ -27,7 +29,7 @@ var _ = Describe("InputDetails", func() {
 
 	Context("when pinned version is unavailable", func() {
 		BeforeEach(func() {
-			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			config := atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -49,7 +51,12 @@ var _ = Describe("InputDetails", func() {
 						},
 					},
 				},
-			})
+			}
+
+			byteConfig, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
@@ -69,7 +76,7 @@ var _ = Describe("InputDetails", func() {
 
 	Context("when no versions are available", func() {
 		BeforeEach(func() {
-			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			config := atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -90,7 +97,12 @@ var _ = Describe("InputDetails", func() {
 						},
 					},
 				},
-			})
+			}
+
+			byteConfig, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
@@ -110,7 +122,7 @@ var _ = Describe("InputDetails", func() {
 
 	Context("when no versions have passed constraints", func() {
 		BeforeEach(func() {
-			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			config := atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -140,7 +152,12 @@ var _ = Describe("InputDetails", func() {
 						},
 					},
 				},
-			})
+			}
+
+			byteConfig, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())

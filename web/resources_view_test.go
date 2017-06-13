@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	yaml "gopkg.in/yaml.v2"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	// . "github.com/sclevine/agouti/matchers"
@@ -16,7 +18,7 @@ var _ = Describe("Viewing resources", func() {
 		var brokenResource atc.Resource
 
 		BeforeEach(func() {
-			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			config := atc.Config{
 				Resources: []atc.ResourceConfig{
 					{
 						Name: "broken-resource",
@@ -36,7 +38,12 @@ var _ = Describe("Viewing resources", func() {
 						},
 					},
 				},
-			})
+			}
+
+			byteConfig, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.UnpausePipeline(pipelineName)

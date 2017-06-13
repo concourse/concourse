@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	yaml "gopkg.in/yaml.v2"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/testflight/gitserver"
 
@@ -22,7 +24,7 @@ var _ = Describe("BuildsView", func() {
 			originGitServer = gitserver.Start(client)
 			originGitServer.CommitResource()
 
-			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			config := atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -79,7 +81,12 @@ var _ = Describe("BuildsView", func() {
 						CheckEvery: "",
 					},
 				},
-			})
+			}
+
+			byteConfig, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.UnpausePipeline(pipelineName)
@@ -140,13 +147,18 @@ var _ = Describe("BuildsView", func() {
 		var manualTriggerDisabledBuild atc.Build
 
 		BeforeEach(func() {
-			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			config := atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "job-manual-trigger-disabled",
 					},
 				},
-			})
+			}
+
+			byteConfig, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.UnpausePipeline(pipelineName)
@@ -158,14 +170,19 @@ var _ = Describe("BuildsView", func() {
 			_, _, pipelineVersion, _, err := team.PipelineConfig(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, pipelineVersion, atc.Config{
+			config = atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name:                 "job-manual-trigger-disabled",
 						DisableManualTrigger: true,
 					},
 				},
-			})
+			}
+
+			byteConfig, err = yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, pipelineVersion, byteConfig)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
