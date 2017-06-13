@@ -1,6 +1,8 @@
 package emitter
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/metric"
 
@@ -36,6 +38,7 @@ func (config *InfluxDBConfig) NewEmitter() metric.Emitter {
 		Username:           config.Username,
 		Password:           config.Password,
 		InsecureSkipVerify: config.InsecureSkipVerify,
+		Timeout:            time.Minute,
 	})
 
 	return &InfluxDBEmitter{
