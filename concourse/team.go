@@ -27,7 +27,7 @@ type Team interface {
 	UnpauseResource(pipelineName string, resourceName string) (bool, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
-	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, []ConfigWarning, error)
+	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte) (bool, bool, []ConfigWarning, error)
 
 	BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error)
 

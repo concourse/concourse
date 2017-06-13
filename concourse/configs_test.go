@@ -172,7 +172,7 @@ var _ = Describe("ATC Handler Configs", func() {
 		var (
 			expectedPipelineName string
 			expectedVersion      string
-			expectedConfig       atc.Config
+			expectedConfig       []byte
 
 			returnHeader int
 			returnBody   []byte
@@ -181,12 +181,7 @@ var _ = Describe("ATC Handler Configs", func() {
 		BeforeEach(func() {
 			expectedPipelineName = "mypipeline"
 			expectedVersion = "42"
-			expectedConfig = atc.Config{
-				Groups:        atc.GroupConfigs{},
-				Jobs:          atc.JobConfigs{},
-				Resources:     atc.ResourceConfigs{},
-				ResourceTypes: atc.ResourceTypes{},
-			}
+			expectedConfig = []byte("")
 
 			expectedPath := "/api/v1/teams/some-team/pipelines/mypipeline/config"
 
@@ -198,7 +193,7 @@ var _ = Describe("ATC Handler Configs", func() {
 						bodyConfig, err := ioutil.ReadAll(r.Body)
 						Expect(err).NotTo(HaveOccurred())
 
-						receivedConfig := atc.Config{}
+						receivedConfig := []byte("")
 
 						err = yaml.Unmarshal(bodyConfig, &receivedConfig)
 						Expect(err).NotTo(HaveOccurred())

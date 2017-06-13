@@ -15,7 +15,7 @@ func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
 
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name": team.name,
+		"team_name":     team.name,
 	}
 
 	var jobs []atc.Job
@@ -28,7 +28,6 @@ func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
 
 	return jobs, err
 }
-
 
 func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	if pipelineName == "" {
