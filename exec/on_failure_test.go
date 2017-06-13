@@ -37,19 +37,17 @@ var _ = Describe("On Failure Step", func() {
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
 
-		previousStep = &execfakes.FakeStep{}
-
 		stepFactory.UsingReturns(step)
 		failureFactory.UsingReturns(hook)
 
 		repo = worker.NewArtifactRepository()
 
 		onFailureFactory = exec.OnFailure(stepFactory, failureFactory)
-		onFailureStep = onFailureFactory.Using(previousStep, repo)
+		onFailureStep = onFailureFactory.Using(repo)
 	})
 
 	It("runs the failure hook if step fails", func() {
-		step.ResultStub = successResult(false)
+		step.SucceededReturns(false)
 
 		process := ifrit.Background(onFailureStep)
 
@@ -60,15 +58,14 @@ var _ = Describe("On Failure Step", func() {
 	})
 
 	It("provides the step as the previous step to the hook", func() {
-		step.ResultStub = successResult(false)
+		step.SucceededReturns(false)
 
 		process := ifrit.Background(onFailureStep)
 
 		Eventually(step.RunCallCount).Should(Equal(1))
 		Eventually(failureFactory.UsingCallCount).Should(Equal(1))
 
-		argsPrev, argsRepo := failureFactory.UsingArgsForCall(0)
-		Expect(argsPrev).To(Equal(step))
+		argsRepo := failureFactory.UsingArgsForCall(0)
 		Expect(argsRepo).To(Equal(repo))
 
 		Eventually(process.Wait()).Should(Receive(noError()))
@@ -85,7 +82,7 @@ var _ = Describe("On Failure Step", func() {
 	})
 
 	It("does not run the failure hook if the step succeeds", func() {
-		step.ResultStub = successResult(true)
+		step.SucceededReturns(true)
 
 		process := ifrit.Background(onFailureStep)
 
@@ -112,7 +109,7 @@ var _ = Describe("On Failure Step", func() {
 	})
 
 	It("propagates signals to the hook when the hook is running", func() {
-		step.ResultStub = successResult(false)
+		step.SucceededReturns(false)
 
 		hook.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
@@ -142,82 +139,67 @@ var _ = Describe("On Failure Step", func() {
 
 			Context("when step fails and hook fails", func() {
 				BeforeEach(func() {
-					step.ResultStub = successResult(false)
-					hook.ResultStub = successResult(false)
+					step.SucceededReturns(false)
+					hook.SucceededReturns(false)
 				})
 
 				It("assigns the provided interface to false", func() {
-					var succeeded exec.Success
-					onFailureStep.Run(signals, ready)
-					onFailureStep.Succeeded(&succeeded)
-
-					Expect(bool(succeeded)).To(BeFalse())
+					Expect(onFailureStep.Succeeded()).To(BeFalse())
 				})
 			})
 
 			Context("when step fails and hook succeeds", func() {
 				BeforeEach(func() {
-					step.ResultStub = successResult(false)
-					hook.ResultStub = successResult(true)
+					step.SucceededReturns(false)
+					hook.SucceededReturns(true)
 				})
 
 				It("assigns the provided interface to false", func() {
-					var succeeded exec.Success
-					onFailureStep.Run(signals, ready)
-					onFailureStep.Succeeded(&succeeded)
-
-					Expect(bool(succeeded)).To(BeFalse())
+					Expect(onFailureStep.Succeeded()).To(BeFalse())
 				})
 			})
 
 			Context("when step succeeds", func() {
 				BeforeEach(func() {
-					step.ResultStub = successResult(true)
+					step.SucceededReturns(true)
 				})
 
 				It("never runs hook", func() {
-					var succeeded exec.Success
-					onFailureStep.Run(signals, ready)
-					onFailureStep.Succeeded(&succeeded)
 					Expect(hook.RunCallCount()).To(Equal(0))
-					Expect(hook.ResultCallCount()).To(Equal(0))
-					Expect(bool(succeeded)).To(BeTrue())
+					Expect(onFailureStep.Succeeded()).To(BeTrue())
 				})
 			})
 
 			Context("when step fails and hook fails", func() {
 				BeforeEach(func() {
-					step.ResultStub = successResult(false)
-					hook.ResultStub = successResult(false)
+					step.SucceededReturns(false)
+					hook.SucceededReturns(false)
 				})
 
 				It("doesn't indicate success", func() {
-					var succeeded exec.Success
 					onFailureStep.Run(signals, ready)
-					onFailureStep.Succeeded(&succeeded)
 					Expect(step.RunCallCount()).To(Equal(1))
-					Expect(step.ResultCallCount()).To(Equal(1))
+					Expect(step.SucceededCallCount()).To(Equal(1))
 					Expect(hook.RunCallCount()).To(Equal(1))
-					Expect(hook.ResultCallCount()).To(Equal(0))
-					Expect(bool(succeeded)).To(BeFalse())
+					Expect(step.SucceededCallCount()).To(Equal(0))
+					Expect(onFailureStep.Succeeded()).To(BeFalse())
 				})
 			})
 
 			Context("when step fails and hook succeeds", func() {
 				BeforeEach(func() {
-					step.ResultStub = successResult(false)
-					hook.ResultStub = successResult(true)
+					step.SucceededReturns(false)
+					hook.SucceededReturns(true)
 				})
 
 				It("doesn't indicate success", func() {
-					var succeeded exec.Success
+
 					onFailureStep.Run(signals, ready)
-					onFailureStep.Succeeded(&succeeded)
 					Expect(step.RunCallCount()).To(Equal(1))
-					Expect(step.ResultCallCount()).To(Equal(1))
+					Expect(step.SucceededCallCount()).To(Equal(1))
 					Expect(hook.RunCallCount()).To(Equal(1))
-					Expect(hook.ResultCallCount()).To(Equal(0))
-					Expect(bool(succeeded)).To(BeFalse())
+					Expect(step.SucceededCallCount()).To(Equal(0))
+					Expect(onFailureStep.Succeeded()).To(BeFalse())
 				})
 			})
 		})

@@ -54,6 +54,8 @@ type StepMetadata interface {
 	Env() []string
 }
 
+//go:generate counterfeiter . ImageFetchingDelegate
+
 type ImageFetchingDelegate interface {
 	ImageVersionDetermined(*db.UsedResourceCache) error
 	Stdout() io.Writer

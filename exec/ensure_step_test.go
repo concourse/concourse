@@ -45,11 +45,11 @@ var _ = Describe("Ensure Step", func() {
 		repo = worker.NewArtifactRepository()
 
 		ensureFactory = exec.Ensure(stepFactory, hookFactory)
-		ensureStep = ensureFactory.Using(previousStep, repo)
+		ensureStep = ensureFactory.Using(repo)
 	})
 
 	It("runs the ensure hook if the step succeeds", func() {
-		step.ResultStub = successResult(true)
+		step.SucceededReturns(true)
 
 		process := ifrit.Background(ensureStep)
 
@@ -60,7 +60,7 @@ var _ = Describe("Ensure Step", func() {
 	})
 
 	It("runs the ensure hook if the step fails", func() {
-		step.ResultStub = successResult(false)
+		step.SucceededReturns(false)
 
 		process := ifrit.Background(ensureStep)
 
@@ -76,8 +76,7 @@ var _ = Describe("Ensure Step", func() {
 		Eventually(step.RunCallCount).Should(Equal(1))
 		Eventually(hookFactory.UsingCallCount).Should(Equal(1))
 
-		argsPrev, argsRepo := hookFactory.UsingArgsForCall(0)
-		Expect(argsPrev).To(Equal(step))
+		argsRepo := hookFactory.UsingArgsForCall(0)
 		Expect(argsRepo).To(Equal(repo))
 
 		Eventually(process.Wait()).Should(Receive(noError()))
@@ -141,59 +140,46 @@ var _ = Describe("Ensure Step", func() {
 
 			Context("when both step and hook succeed", func() {
 				BeforeEach(func() {
-					step.ResultStub = successResult(true)
-					hook.ResultStub = successResult(true)
+					step.SucceededReturns(true)
+					hook.SucceededReturns(true)
 				})
 
-				It("assigns the provided interface to true", func() {
-					var succeeded exec.Success
+				It("succeeds", func() {
 					ensureStep.Run(signals, ready)
-					ensureStep.Succeeded(&succeeded)
-
-					Expect(bool(succeeded)).To(BeTrue())
+					Expect(ensureStep.Succeeded()).To(BeTrue())
 				})
 			})
 
 			Context("when step succeeds and hook fails", func() {
 				BeforeEach(func() {
-					step.ResultStub = successResult(true)
-					hook.ResultStub = successResult(false)
+					step.SucceededReturns(true)
+					hook.SucceededReturns(false)
 				})
 
-				It("assigns the provided interface to false", func() {
-					var succeeded exec.Success
-					ensureStep.Run(signals, ready)
-					ensureStep.Succeeded(&succeeded)
-					Expect(bool(succeeded)).To(BeFalse())
+				It("does not succeed", func() {
+					Expect(ensureStep.Succeeded()).To(BeFalse())
 				})
 			})
 
 			Context("when step fails and hook succeeds", func() {
 				BeforeEach(func() {
-					step.ResultStub = successResult(false)
-					hook.ResultStub = successResult(true)
+					step.SucceededReturns(false)
+					hook.SucceededReturns(true)
 				})
 
-				It("assigns the provided interface to false", func() {
-					var succeeded exec.Success
-					ensureStep.Run(signals, ready)
-					ensureStep.Succeeded(&succeeded)
-					Expect(bool(succeeded)).To(BeFalse())
+				It("does not succeed", func() {
+					Expect(ensureStep.Succeeded()).To(BeFalse())
 				})
 			})
 
 			Context("when step succeeds and hook fails", func() {
 				BeforeEach(func() {
-
-					step.ResultStub = successResult(false)
-					hook.ResultStub = successResult(false)
+					step.SucceededReturns(false)
+					hook.SucceededReturns(false)
 				})
 
-				It("assigns the provided interface to false", func() {
-					var succeeded exec.Success
-					ensureStep.Run(signals, ready)
-					ensureStep.Succeeded(&succeeded)
-					Expect(bool(succeeded)).To(BeFalse())
+				It("does not succeed", func() {
+					Expect(ensureStep.Succeeded()).To(BeFalse())
 				})
 			})
 		})
