@@ -143,8 +143,6 @@ var _ = Describe("Fly CLI", func() {
 						},
 					},
 
-					ResourceTypes: atc.ResourceTypes{},
-
 					Jobs: atc.JobConfigs{},
 				}
 
@@ -351,7 +349,7 @@ var _ = Describe("Fly CLI", func() {
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								config := getConfig(r)
-								Expect(config).To(Equal(payload))
+								Expect(config).To(MatchYAML(payload))
 							},
 							ghttp.RespondWith(http.StatusOK, "{}"),
 						),
@@ -484,7 +482,7 @@ var _ = Describe("Fly CLI", func() {
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								config := getConfig(r)
-								Expect(config).To(Equal(payload))
+								Expect(config).To(MatchYAML(payload))
 							},
 							ghttp.RespondWith(http.StatusCreated, "{}"),
 						))
@@ -530,7 +528,7 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 						func(w http.ResponseWriter, r *http.Request) {
 							config := getConfig(r)
-							Expect(config).To(Equal(payload))
+							Expect(config).To(MatchYAML(payload))
 						},
 						ghttp.RespondWith(http.StatusCreated, `{"warnings":[
 							{"type":"deprecation","message":"warning-1"},
@@ -579,7 +577,7 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 						func(w http.ResponseWriter, r *http.Request) {
 							config := getConfig(r)
-							Expect(config).To(Equal(payload))
+							Expect(config).To(MatchYAML(payload))
 						},
 						ghttp.RespondWith(http.StatusCreated, `{}`),
 					))
