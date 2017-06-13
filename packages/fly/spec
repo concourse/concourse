@@ -11,6 +11,14 @@ files:
   - code.cloudfoundry.org/urljoiner/*.go # gosub
   - github.com/aryann/difflib/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/director/template/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/bmatcuk/doublestar/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/charlievieth/fs/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/cloudfoundry/bosh-utils/errors/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/cloudfoundry/bosh-utils/logger/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/cloudfoundry/bosh-utils/system/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/cppforlife/go-patch/patch/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/gopkg.in/yaml.v2/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/auth/genericoauth/*.go # gosub
   - github.com/concourse/atc/auth/github/*.go # gosub
@@ -19,6 +27,7 @@ files:
   - github.com/concourse/atc/auth/uaa/*.go # gosub
   - github.com/concourse/atc/auth/verifier/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
+  - github.com/concourse/atc/template/*.go # gosub
   - github.com/concourse/atc/web/*.go # gosub
   - github.com/concourse/fly/*.go # gosub
   - github.com/concourse/fly/commands/*.go # gosub

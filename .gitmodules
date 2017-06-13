@@ -282,3 +282,6 @@
 [submodule "src/golang.org/x/sync"]
 	path = src/golang.org/x/sync
 	url = https://go.googlesource.com/sync
+[submodule "src/github.com/cloudfoundry/bosh-cli"]
+	path = src/github.com/cloudfoundry/bosh-cli
+	url = https://github.com/cloudfoundry/bosh-cli
