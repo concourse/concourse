@@ -1011,11 +1011,10 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		ResourceIDs:      map[string]int{},
 	}
 
-	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, j.id").
-		From("build_outputs o, builds b, versioned_resources v, jobs j, resources r").
+	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, b.job_id").
+		From("build_outputs o, builds b, versioned_resources v, resources r").
 		Where(sq.Expr("v.id = o.versioned_resource_id")).
 		Where(sq.Expr("b.id = o.build_id")).
-		Where(sq.Expr("j.id = b.job_id")).
 		Where(sq.Expr("r.id = v.resource_id")).
 		Where(sq.Eq{
 			"v.enabled":     true,
@@ -1042,11 +1041,10 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		db.BuildOutputs = append(db.BuildOutputs, output)
 	}
 
-	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, j.id").
-		From("build_inputs i, builds b, versioned_resources v, jobs j, resources r").
+	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id").
+		From("build_inputs i, builds b, versioned_resources v, resources r").
 		Where(sq.Expr("v.id = i.versioned_resource_id")).
 		Where(sq.Expr("b.id = i.build_id")).
-		Where(sq.Expr("j.id = b.job_id")).
 		Where(sq.Expr("r.id = v.resource_id")).
 		Where(sq.Eq{
 			"v.enabled":     true,
