@@ -5,17 +5,18 @@ import (
 	"io/ioutil"
 	"os"
 
+	yaml "gopkg.in/yaml.v2"
+
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/template"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/fly/template"
+	temp "github.com/concourse/fly/template"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/mitchellh/mapstructure"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-interact/interact"
-	"gopkg.in/yaml.v2"
 )
 
 type ATCConfig struct {
@@ -39,8 +40,8 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 	return confirm
 }
 
-func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables template.Variables, templateVariablesFiles []atc.PathFlag) error {
-	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
+func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables map[string]interface{}, oldTemplateVariables temp.Variables, templateVariablesFiles []atc.PathFlag) error {
+	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, oldTemplateVariables)
 	existingConfig, _, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
 	errorMessages := []string{}
 	if err != nil {
@@ -51,7 +52,13 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables templa
 		}
 	}
 
-	diff(existingConfig, newConfig)
+	var new atc.Config
+	err = yaml.Unmarshal([]byte(newConfig), &new)
+	if err != nil {
+		return err
+	}
+
+	diff(existingConfig, new)
 
 	if len(errorMessages) > 0 {
 		atcConfig.showPipelineConfigErrors(errorMessages)
@@ -79,57 +86,56 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables templa
 	return nil
 }
 
-func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables template.Variables) atc.Config {
-	configFile, err := ioutil.ReadFile(string(configPath))
+func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables map[string]interface{}, oldTemplateVariables temp.Variables) []byte {
+	evaluatedConfig, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
 		displayhelpers.FailWithErrorf("could not read config file", err)
 	}
 
-	var resultVars template.Variables
-
+	// This will evaluate the "{{}}" in order to keep backwards compatibility which we want to remove later on
+	var oldResultVars temp.Variables
 	for _, path := range templateVariablesFiles {
-		fileVars, templateErr := template.LoadVariablesFromFile(string(path))
+		fileVars, templateErr := temp.LoadVariablesFromFile(string(path))
 		if templateErr != nil {
 			displayhelpers.FailWithErrorf("failed to load variables from file (%s)", templateErr, string(path))
 		}
 
-		resultVars = resultVars.Merge(fileVars)
+		oldResultVars = oldResultVars.Merge(fileVars)
 	}
 
-	resultVars = resultVars.Merge(templateVariables)
+	oldResultVars = oldResultVars.Merge(oldTemplateVariables)
 
-	configFile, err = template.Evaluate(configFile, resultVars)
+	evaluatedConfig, err = temp.Evaluate(evaluatedConfig, oldResultVars)
 	if err != nil {
 		displayhelpers.FailWithErrorf("failed to evaluate variables into template", err)
 	}
 
-	var configStructure interface{}
-	err = yaml.Unmarshal(configFile, &configStructure)
+	var resultVars []string
+	for _, path := range templateVariablesFiles {
+		templateVars, err := ioutil.ReadFile(string(path))
+		if err != nil {
+			displayhelpers.FailWithErrorf("could not read template variables file (%s)", err, string(path))
+		}
+
+		resultVars = append(resultVars, string(templateVars))
+	}
+
+	variables, err := yaml.Marshal(templateVariables)
 	if err != nil {
-		displayhelpers.FailWithErrorf("failed to unmarshal configStructure", err)
+		displayhelpers.FailWithErrorf("could not yaml marshal template variables", err)
 	}
 
-	var newConfig atc.Config
-	msConfig := &mapstructure.DecoderConfig{
-		Result:           &newConfig,
-		WeaklyTypedInput: true,
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			atc.SanitizeDecodeHook,
-			atc.VersionConfigDecodeHook,
-			atc.LoadTaskConfigDecodeHook,
-		),
+	resultVars = append(resultVars, string(variables))
+
+	for _, vars := range resultVars {
+		source := &template.FileVarsSource{ParamsContent: []byte(vars)}
+		evaluatedConfig, err = source.Evaluate(evaluatedConfig)
+		if err != nil {
+			displayhelpers.FailWithErrorf("could not evaluate config", err)
+		}
 	}
 
-	decoder, err := mapstructure.NewDecoder(msConfig)
-	if err != nil {
-		displayhelpers.FailWithErrorf("failed to construct decoder", err)
-	}
-
-	if err := decoder.Decode(configStructure); err != nil {
-		displayhelpers.FailWithErrorf("failed to decode config", err)
-	}
-
-	return newConfig
+	return evaluatedConfig
 }
 
 func (atcConfig ATCConfig) showPipelineConfigErrors(errorMessages []string) {

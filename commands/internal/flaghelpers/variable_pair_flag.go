@@ -3,11 +3,15 @@ package flaghelpers
 import (
 	"fmt"
 	"strings"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 type VariablePairFlag struct {
 	Name  string
-	Value string
+	Value interface{}
+
+	OldValue string
 }
 
 func (pair *VariablePairFlag) UnmarshalFlag(value string) error {
@@ -17,7 +21,15 @@ func (pair *VariablePairFlag) UnmarshalFlag(value string) error {
 	}
 
 	pair.Name = vs[0]
-	pair.Value = vs[1]
+	pair.OldValue = vs[1]
+
+	var r interface{}
+	err := yaml.Unmarshal([]byte(vs[1]), &r)
+	if err != nil {
+		return err
+	}
+
+	pair.Value = r
 
 	return nil
 }
