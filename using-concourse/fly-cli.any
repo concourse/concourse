@@ -410,10 +410,10 @@ flag. Once you've learned what the commands do, you may want to consult
   If you accept then Concourse's pipeline configuration will switch to the
   pipeline definition in the YAML file specified.
 
-  \section{Using \code{\{\{parameters\}\}}}{parameters}{
-    The pipeline configuration can contain template variable in the form of
-    \code{\{\{foo-bar\}\}}. They will be replaced with string values populated
-    by repeated \code{--var} or \code{--load-vars-from} flags.
+  \section{Using \code{((parameters))}}{parameters}{
+    The pipeline configuration can contain template variables in the form of
+    \code{((foo-bar))}. They will be replaced with YAML values populated by
+    repeated \code{--var} or \code{--load-vars-from} flags.
 
     This allows for credentials to be extracted from a pipeline config, making it
     safe to check in to a public repository or pass around.
@@ -427,7 +427,7 @@ flag. Once you've learned what the commands do, you may want to consult
       source:
         uri: git@...
         branch: master
-        private_key: \{\{private-repo-key\}\}
+        private_key: ((private-repo-key))
     }
 
     ...you could then configure this pipeline like so:
@@ -454,9 +454,8 @@ flag. Once you've learned what the commands do, you may want to consult
     If both \code{--var} and \code{--load-vars-from} are specified, the \code{--var}
     flags take precedence.
 
-    Note that only strings are supported for these values, so that
-    interpolating them into the template is trivial. Other types of values, and
-    features like concatenation, are not supported.
+    Values other than strings (e.g. bools, arrays) may also be specified via
+    params. Concatenation is also supported in the form of \code{foo-((bar))}.
   }
 
   \section{Combining with \code{get-pipeline}}{
