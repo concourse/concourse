@@ -10,6 +10,10 @@ import (
 
 var templateFormatRegex = regexp.MustCompile(`\{\{([-\w\p{L}]+)\}\}`)
 
+func Present(content []byte) bool {
+	return templateFormatRegex.Match(content)
+}
+
 func Evaluate(content []byte, variables Variables) ([]byte, error) {
 	var variableErrors error
 

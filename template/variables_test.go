@@ -60,25 +60,4 @@ var _ = Describe("Variables", func() {
 
 		})
 	})
-
-	Describe("loading variables from a file", func() {
-		It("can load them from a file", func() {
-			variables, err := template.LoadVariablesFromFile("fixtures/vars.yml")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(variables).To(Equal(template.Variables{
-				"hello": "world",
-			}))
-
-		})
-
-		It("returns an error if the file does not exist", func() {
-			_, err := template.LoadVariablesFromFile("fixtures/missing.yml")
-			Expect(err).To(HaveOccurred())
-		})
-
-		It("returns an error if the file is in an invalid format", func() {
-			_, err := template.LoadVariablesFromFile("fixtures/invalid_vars.yml")
-			Expect(err).To(HaveOccurred())
-		})
-	})
 })

@@ -92,32 +92,14 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 		displayhelpers.FailWithErrorf("could not read config file", err)
 	}
 
-	// This will evaluate the "{{}}" in order to keep backwards compatibility which we want to remove later on
-	var oldResultVars temp.Variables
-	for _, path := range templateVariablesFiles {
-		fileVars, templateErr := temp.LoadVariablesFromFile(string(path))
-		if templateErr != nil {
-			displayhelpers.FailWithErrorf("failed to load variables from file (%s)", templateErr, string(path))
-		}
-
-		oldResultVars = oldResultVars.Merge(fileVars)
-	}
-
-	oldResultVars = oldResultVars.Merge(oldTemplateVariables)
-
-	evaluatedConfig, err = temp.Evaluate(evaluatedConfig, oldResultVars)
-	if err != nil {
-		displayhelpers.FailWithErrorf("failed to evaluate variables into template", err)
-	}
-
-	var resultVars []string
+	var paramPayloads [][]byte
 	for _, path := range templateVariablesFiles {
 		templateVars, err := ioutil.ReadFile(string(path))
 		if err != nil {
 			displayhelpers.FailWithErrorf("could not read template variables file (%s)", err, string(path))
 		}
 
-		resultVars = append(resultVars, string(templateVars))
+		paramPayloads = append(paramPayloads, templateVars)
 	}
 
 	variables, err := yaml.Marshal(templateVariables)
@@ -125,10 +107,17 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 		displayhelpers.FailWithErrorf("could not yaml marshal template variables", err)
 	}
 
-	resultVars = append(resultVars, string(variables))
+	paramPayloads = append(paramPayloads, variables)
 
-	for _, vars := range resultVars {
-		source := &template.FileVarsSource{ParamsContent: []byte(vars)}
+	if temp.Present(evaluatedConfig) {
+		evaluatedConfig, err = atcConfig.resolveDeprecatedTemplateStyle(evaluatedConfig, paramPayloads)
+		if err != nil {
+			displayhelpers.FailWithErrorf("could not resolve old-style template vars", err)
+		}
+	}
+
+	for _, vars := range paramPayloads {
+		source := &template.FileVarsSource{ParamsContent: vars}
 		evaluatedConfig, err = source.Evaluate(evaluatedConfig)
 		if err != nil {
 			displayhelpers.FailWithErrorf("could not evaluate config", err)
@@ -136,6 +125,22 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 	}
 
 	return evaluatedConfig
+}
+
+func (atcConfig ATCConfig) resolveDeprecatedTemplateStyle(configPayload []byte, paramPayloads [][]byte) ([]byte, error) {
+	// This will evaluate the "{{}}" in order to keep backwards compatibility which we want to remove later on
+	var vars temp.Variables
+	for _, payload := range paramPayloads {
+		var payloadVars temp.Variables
+		err := yaml.Unmarshal(payload, &payloadVars)
+		if err != nil {
+			return nil, err
+		}
+
+		vars = vars.Merge(payloadVars)
+	}
+
+	return temp.Evaluate(configPayload, vars)
 }
 
 func (atcConfig ATCConfig) showPipelineConfigErrors(errorMessages []string) {
