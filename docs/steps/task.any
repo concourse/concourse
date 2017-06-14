@@ -106,7 +106,7 @@ plan:
   }
 
   This is often used in combination with
-  \reference{parameters}{\code{\{\{parameters\}\}}} in the pipeline.
+  \reference{parameters}{\code{((parameters))}} in the pipeline.
 }
 
 \define-attribute{image: string}{task-image}{

@@ -4,29 +4,29 @@ resources:
   source:
     uri: git@github.com:my-user/my-product.git
     branch: master
-    private_key: {{my-product-github-private-key}}
+    private_key: ((my-product-github-private-key))
 - name: version
   type: semver
   source:
     bucket: my-product-pipeline-artifacts
     key: current-version
-    access_key_id: {{s3-access-key-id}}
-    secret_access_key: {{s3-secret-access-key}}
+    access_key_id: ((s3-access-key-id))
+    secret_access_key: ((s3-secret-access-key))
     initial_version: 1.0.0
 - name: my-product-rc
   type: s3
   source:
     bucket: my-product-pipeline-artifacts
     regexp: my-product-(.*).tgz
-    access_key_id: {{s3-access-key-id}}
-    secret_access_key: {{s3-secret-access-key}}
+    access_key_id: ((s3-access-key-id))
+    secret_access_key: ((s3-secret-access-key))
 - name: my-product-final
   type: s3
   source:
     bucket: my-product
     regexp: my-product-(.*).tgz
-    access_key_id: {{s3-access-key-id}}
-    secret_access_key: {{s3-secret-access-key}}
+    access_key_id: ((s3-access-key-id))
+    secret_access_key: ((s3-secret-access-key))
 jobs:
 - name: unit
   plan:
@@ -59,8 +59,8 @@ jobs:
   - task: integration
     file: my-product/ci/integration.yml
     params:
-      API_ENDPOINT: {{integration-api-endpoint}}
-      ACCESS_KEY: {{integration-access-key}}
+      API_ENDPOINT: ((integration-api-endpoint))
+      ACCESS_KEY: ((integration-access-key))
 - name: shipit
   serial_groups: [version]
   plan:

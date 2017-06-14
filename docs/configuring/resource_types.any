@@ -36,7 +36,7 @@ resources:
   type: pull-request
   source:
     repo: vito/atomy
-    access_token: \{\{access-token\}\}
+    access_token: ((access-token))
 
 jobs:
 - name: atomy-pr-unit
