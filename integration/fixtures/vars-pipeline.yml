@@ -1,0 +1,15 @@
+---
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    private_key: ((large-string-param))
+    config-a: ((param-a))
+    config-b: ((param-b))
+    bool: ((bool-param))
+  tags: ((array-param))
+
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource

@@ -162,6 +162,29 @@ var _ = Describe("Fly CLI", func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
+					config = atc.Config{
+						Groups: atc.GroupConfigs{},
+
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "template-type",
+								Source: atc.Source{
+									"source-config": "some-value",
+								},
+							},
+							{
+								Name: "some-other-resource",
+								Type: "some-other-type",
+								Source: atc.Source{
+									"secret_key": "overridden-secret",
+								},
+							},
+						},
+
+						Jobs: atc.JobConfigs{},
+					}
+
 					atcServer.RouteToHandler("PUT", path,
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
@@ -188,7 +211,7 @@ var _ = Describe("Fly CLI", func() {
 							"set-pipeline",
 							"--pipeline", "awesome-pipeline",
 							"-c", "fixtures/testConfig.yml",
-							"--var", "resource-key=verysecret",
+							"--var", "resource-key=overridden-secret",
 							"--load-vars-from", "fixtures/vars.yml",
 						)
 
@@ -217,7 +240,7 @@ var _ = Describe("Fly CLI", func() {
 								"set-pipeline",
 								"--pipeline", "awesome-pipeline",
 								"-c", "fixtures/testConfig.yml",
-								"--var", "resource-key=verysecret",
+								"--var", "resource-key=overridden-secret",
 								"--load-vars-from", "fixtures/vars.yml",
 								"--non-interactive",
 							)
@@ -234,6 +257,182 @@ var _ = Describe("Fly CLI", func() {
 							return len(atcServer.ReceivedRequests())
 						}).By(3))
 					})
+				})
+			})
+
+			Context("when a var is specified with -v", func() {
+				BeforeEach(func() {
+					config = atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+								Tags: atc.Tags{"val-1", "val-2"},
+								Source: atc.Source{
+									"private_key": `-----BEGIN SOME KEY-----
+this is super secure
+-----END SOME KEY-----
+`,
+									"config-a": "some-param-a",
+									"config-b": "some-param-b-via-v",
+									"bool":     true,
+								},
+							},
+						},
+
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								Plan: atc.PlanSequence{
+									{
+										Get: "some-resource",
+									},
+								},
+							},
+						},
+					}
+
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					Expect(err).NotTo(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path,
+						ghttp.CombineHandlers(
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+							func(w http.ResponseWriter, r *http.Request) {
+								bodyConfig := getConfig(r)
+
+								receivedConfig := atc.Config{}
+								err = yaml.Unmarshal(bodyConfig, &receivedConfig)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(receivedConfig).To(Equal(config))
+
+								w.WriteHeader(http.StatusOK)
+								w.Write([]byte(`{}`))
+							},
+						),
+					)
+				})
+
+				It("succeeds", func() {
+					Expect(func() {
+						flyCmd := exec.Command(
+							flyPath, "-t", targetName,
+							"set-pipeline",
+							"-n",
+							"--pipeline", "awesome-pipeline",
+							"-c", "fixtures/vars-pipeline.yml",
+							"-l", "fixtures/vars-pipeline-params-a.yml",
+							"-l", "fixtures/vars-pipeline-params-types.yml",
+							"-v", "param-b=some-param-b-via-v",
+						)
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
+				})
+			})
+
+			Context("when vars are overridden with -v, some with special types", func() {
+				BeforeEach(func() {
+					config = atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+								Tags: atc.Tags{"val-1", "val-2"},
+								Source: atc.Source{
+									"private_key": `-----BEGIN SOME KEY-----
+this is super secure
+-----END SOME KEY-----
+`,
+									"config-a": "some-param-a",
+									"config-b": "some-param-b-via-v",
+									"bool":     false,
+								},
+							},
+						},
+
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								Plan: atc.PlanSequence{
+									{
+										Get: "some-resource",
+									},
+								},
+							},
+						},
+					}
+
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					Expect(err).NotTo(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path,
+						ghttp.CombineHandlers(
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+							func(w http.ResponseWriter, r *http.Request) {
+								bodyConfig := getConfig(r)
+
+								receivedConfig := atc.Config{}
+								err = yaml.Unmarshal(bodyConfig, &receivedConfig)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(receivedConfig).To(Equal(config))
+
+								w.WriteHeader(http.StatusOK)
+								w.Write([]byte(`{}`))
+							},
+						),
+					)
+				})
+
+				It("succeeds", func() {
+					Expect(func() {
+						flyCmd := exec.Command(
+							flyPath, "-t", targetName,
+							"set-pipeline",
+							"-n",
+							"--pipeline", "awesome-pipeline",
+							"-c", "fixtures/vars-pipeline.yml",
+							"-l", "fixtures/vars-pipeline-params-a.yml",
+							"-l", "fixtures/vars-pipeline-params-b.yml",
+							"-l", "fixtures/vars-pipeline-params-types.yml",
+							"-v", "param-b=some-param-b-via-v",
+							"-v", "bool-param=false",
+						)
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
+				})
+			})
+
+			Context("when a var is not specified", func() {
+				It("fails", func() {
+					flyCmd := exec.Command(
+						flyPath, "-t", targetName,
+						"set-pipeline",
+						"-n",
+						"--pipeline", "awesome-pipeline",
+						"-c", "fixtures/vars-pipeline.yml",
+						"-l", "fixtures/vars-pipeline-params-a.yml",
+						"-l", "fixtures/vars-pipeline-params-types.yml",
+					)
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
+					Expect(sess.Err).To(gbytes.Say("param-b"))
 				})
 			})
 		})

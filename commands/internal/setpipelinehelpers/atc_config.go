@@ -7,8 +7,8 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/template"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	temp "github.com/concourse/fly/template"
@@ -40,8 +40,8 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 	return confirm
 }
 
-func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables map[string]interface{}, oldTemplateVariables temp.Variables, templateVariablesFiles []atc.PathFlag) error {
-	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, oldTemplateVariables)
+func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables map[string]interface{}, templateVariablesFiles []atc.PathFlag) error {
+	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
 	existingConfig, _, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
 	errorMessages := []string{}
 	if err != nil {
@@ -86,7 +86,7 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables map[st
 	return nil
 }
 
-func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables map[string]interface{}, oldTemplateVariables temp.Variables) []byte {
+func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables map[string]interface{}) []byte {
 	evaluatedConfig, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
 		displayhelpers.FailWithErrorf("could not read config file", err)
@@ -116,15 +116,38 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 		}
 	}
 
-	for _, vars := range paramPayloads {
-		source := &template.FileVarsSource{ParamsContent: vars}
-		evaluatedConfig, err = source.Evaluate(evaluatedConfig)
-		if err != nil {
-			displayhelpers.FailWithErrorf("could not evaluate config", err)
-		}
+	evaluatedConfig, err = atcConfig.resolveTemplates(evaluatedConfig, paramPayloads)
+	if err != nil {
+		displayhelpers.Failf("could not resolve template vars", err)
 	}
 
 	return evaluatedConfig
+}
+
+func (atcConfig ATCConfig) resolveTemplates(configPayload []byte, paramPayloads [][]byte) ([]byte, error) {
+	tpl := template.NewTemplate(configPayload)
+
+	var vars []template.Variables
+	for i := len(paramPayloads) - 1; i >= 0; i-- {
+		payload := paramPayloads[i]
+
+		var staticVars template.StaticVariables
+		err := yaml.Unmarshal(payload, &staticVars)
+		if err != nil {
+			return nil, err
+		}
+
+		vars = append(vars, staticVars)
+	}
+
+	bytes, err := tpl.Evaluate(template.NewMultiVars(vars), nil, template.EvaluateOpts{
+		ExpectAllKeys: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }
 
 func (atcConfig ATCConfig) resolveDeprecatedTemplateStyle(configPayload []byte, paramPayloads [][]byte) ([]byte, error) {

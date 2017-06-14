@@ -6,7 +6,6 @@ import (
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/fly/rc"
-	"github.com/concourse/fly/template"
 	"github.com/tedsuo/rata"
 )
 
@@ -24,10 +23,8 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	pipelineName := string(command.Pipeline)
 
 	templateVariables := map[string]interface{}{}
-	oldTemplateVariables := template.Variables{}
 	for _, v := range command.Var {
 		templateVariables[v.Name] = v.Value
-		oldTemplateVariables[v.Name] = v.OldValue
 	}
 
 	target, err := rc.LoadTarget(Fly.Target)
@@ -49,5 +46,5 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		SkipInteraction:     command.SkipInteractive,
 	}
 
-	return atcConfig.Set(configPath, templateVariables, oldTemplateVariables, templateVariablesFiles)
+	return atcConfig.Set(configPath, templateVariables, templateVariablesFiles)
 }
