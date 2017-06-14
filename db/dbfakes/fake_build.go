@@ -230,10 +230,10 @@ type FakeBuild struct {
 		result1 bool
 		result2 error
 	}
-	SaveStatusStub        func(s db.BuildStatus) error
+	SaveStatusStub        func(db.BuildStatus) error
 	saveStatusMutex       sync.RWMutex
 	saveStatusArgsForCall []struct {
-		s db.BuildStatus
+		arg1 db.BuildStatus
 	}
 	saveStatusReturns struct {
 		result1 error
@@ -345,12 +345,10 @@ type FakeBuild struct {
 		result1 db.SavedVersionedResources
 		result2 error
 	}
-	SaveImageResourceVersionStub        func(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error
+	SaveImageResourceVersionStub        func(*db.UsedResourceCache) error
 	saveImageResourceVersionMutex       sync.RWMutex
 	saveImageResourceVersionArgsForCall []struct {
-		planID          atc.PlanID
-		resourceVersion atc.Version
-		resourceHash    string
+		arg1 *db.UsedResourceCache
 	}
 	saveImageResourceVersionReturns struct {
 		result1 error
@@ -371,10 +369,10 @@ type FakeBuild struct {
 		result2 bool
 		result3 error
 	}
-	FinishStub        func(s db.BuildStatus) error
+	FinishStub        func(db.BuildStatus) error
 	finishMutex       sync.RWMutex
 	finishArgsForCall []struct {
-		s db.BuildStatus
+		arg1 db.BuildStatus
 	}
 	finishReturns struct {
 		result1 error
@@ -1347,16 +1345,16 @@ func (fake *FakeBuild) StartReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) SaveStatus(s db.BuildStatus) error {
+func (fake *FakeBuild) SaveStatus(arg1 db.BuildStatus) error {
 	fake.saveStatusMutex.Lock()
 	ret, specificReturn := fake.saveStatusReturnsOnCall[len(fake.saveStatusArgsForCall)]
 	fake.saveStatusArgsForCall = append(fake.saveStatusArgsForCall, struct {
-		s db.BuildStatus
-	}{s})
-	fake.recordInvocation("SaveStatus", []interface{}{s})
+		arg1 db.BuildStatus
+	}{arg1})
+	fake.recordInvocation("SaveStatus", []interface{}{arg1})
 	fake.saveStatusMutex.Unlock()
 	if fake.SaveStatusStub != nil {
-		return fake.SaveStatusStub(s)
+		return fake.SaveStatusStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1373,7 +1371,7 @@ func (fake *FakeBuild) SaveStatusCallCount() int {
 func (fake *FakeBuild) SaveStatusArgsForCall(i int) db.BuildStatus {
 	fake.saveStatusMutex.RLock()
 	defer fake.saveStatusMutex.RUnlock()
-	return fake.saveStatusArgsForCall[i].s
+	return fake.saveStatusArgsForCall[i].arg1
 }
 
 func (fake *FakeBuild) SaveStatusReturns(result1 error) {
@@ -1829,18 +1827,16 @@ func (fake *FakeBuild) GetVersionedResourcesReturnsOnCall(i int, result1 db.Save
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error {
+func (fake *FakeBuild) SaveImageResourceVersion(arg1 *db.UsedResourceCache) error {
 	fake.saveImageResourceVersionMutex.Lock()
 	ret, specificReturn := fake.saveImageResourceVersionReturnsOnCall[len(fake.saveImageResourceVersionArgsForCall)]
 	fake.saveImageResourceVersionArgsForCall = append(fake.saveImageResourceVersionArgsForCall, struct {
-		planID          atc.PlanID
-		resourceVersion atc.Version
-		resourceHash    string
-	}{planID, resourceVersion, resourceHash})
-	fake.recordInvocation("SaveImageResourceVersion", []interface{}{planID, resourceVersion, resourceHash})
+		arg1 *db.UsedResourceCache
+	}{arg1})
+	fake.recordInvocation("SaveImageResourceVersion", []interface{}{arg1})
 	fake.saveImageResourceVersionMutex.Unlock()
 	if fake.SaveImageResourceVersionStub != nil {
-		return fake.SaveImageResourceVersionStub(planID, resourceVersion, resourceHash)
+		return fake.SaveImageResourceVersionStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1854,10 +1850,10 @@ func (fake *FakeBuild) SaveImageResourceVersionCallCount() int {
 	return len(fake.saveImageResourceVersionArgsForCall)
 }
 
-func (fake *FakeBuild) SaveImageResourceVersionArgsForCall(i int) (atc.PlanID, atc.Version, string) {
+func (fake *FakeBuild) SaveImageResourceVersionArgsForCall(i int) *db.UsedResourceCache {
 	fake.saveImageResourceVersionMutex.RLock()
 	defer fake.saveImageResourceVersionMutex.RUnlock()
-	return fake.saveImageResourceVersionArgsForCall[i].planID, fake.saveImageResourceVersionArgsForCall[i].resourceVersion, fake.saveImageResourceVersionArgsForCall[i].resourceHash
+	return fake.saveImageResourceVersionArgsForCall[i].arg1
 }
 
 func (fake *FakeBuild) SaveImageResourceVersionReturns(result1 error) {
@@ -1925,16 +1921,16 @@ func (fake *FakeBuild) PipelineReturnsOnCall(i int, result1 db.Pipeline, result2
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuild) Finish(s db.BuildStatus) error {
+func (fake *FakeBuild) Finish(arg1 db.BuildStatus) error {
 	fake.finishMutex.Lock()
 	ret, specificReturn := fake.finishReturnsOnCall[len(fake.finishArgsForCall)]
 	fake.finishArgsForCall = append(fake.finishArgsForCall, struct {
-		s db.BuildStatus
-	}{s})
-	fake.recordInvocation("Finish", []interface{}{s})
+		arg1 db.BuildStatus
+	}{arg1})
+	fake.recordInvocation("Finish", []interface{}{arg1})
 	fake.finishMutex.Unlock()
 	if fake.FinishStub != nil {
-		return fake.FinishStub(s)
+		return fake.FinishStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1951,7 +1947,7 @@ func (fake *FakeBuild) FinishCallCount() int {
 func (fake *FakeBuild) FinishArgsForCall(i int) db.BuildStatus {
 	fake.finishMutex.RLock()
 	defer fake.finishMutex.RUnlock()
-	return fake.finishArgsForCall[i].s
+	return fake.finishArgsForCall[i].arg1
 }
 
 func (fake *FakeBuild) FinishReturns(result1 error) {

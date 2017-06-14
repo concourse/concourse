@@ -1,8 +1,6 @@
 package resource
 
 import (
-	"encoding/json"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -16,8 +14,6 @@ type ResourceInstance interface {
 	ContainerOwner() db.ContainerOwner
 
 	FindOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
-
-	ResourceCacheIdentifier() worker.ResourceCacheIdentifier
 }
 
 type resourceInstance struct {
@@ -80,16 +76,4 @@ func (instance resourceInstance) FindOn(logger lager.Logger, workerClient worker
 		logger,
 		resourceCache,
 	)
-}
-
-func (instance resourceInstance) ResourceCacheIdentifier() worker.ResourceCacheIdentifier {
-	return worker.ResourceCacheIdentifier{
-		ResourceVersion: instance.version,
-		ResourceHash:    GenerateResourceHash(instance.source, string(instance.resourceTypeName)),
-	}
-}
-
-func GenerateResourceHash(source atc.Source, resourceType string) string {
-	sourceJSON, _ := json.Marshal(source)
-	return resourceType + string(sourceJSON)
 }

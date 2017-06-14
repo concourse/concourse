@@ -65,7 +65,7 @@ type Build interface {
 	Preparation() (BuildPreparation, bool, error)
 
 	Start(string, string) (bool, error)
-	SaveStatus(s BuildStatus) error
+	SaveStatus(BuildStatus) error
 	SetInterceptible(bool) error
 	MarkAsFailed(cause error) error
 
@@ -78,11 +78,11 @@ type Build interface {
 
 	Resources() ([]BuildInput, []BuildOutput, error)
 	GetVersionedResources() (SavedVersionedResources, error)
-	SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error
+	SaveImageResourceVersion(*UsedResourceCache) error
 
 	Pipeline() (Pipeline, bool, error)
 
-	Finish(s BuildStatus) error
+	Finish(BuildStatus) error
 	Delete() (bool, error)
 	Abort() error
 	AbortNotifier() (Notifier, error)
@@ -254,9 +254,9 @@ func (b *build) Start(engine, metadata string) (bool, error) {
 	return true, nil
 }
 
-func (b *build) SaveStatus(s BuildStatus) error {
+func (b *build) SaveStatus(status BuildStatus) error {
 	rows, err := psql.Update("builds").
-		Set("status", string(s)).
+		Set("status", status).
 		Where(sq.Eq{
 			"id": b.id,
 		}).
@@ -289,7 +289,7 @@ func (b *build) MarkAsFailed(cause error) error {
 	return b.Finish(BuildStatusErrored)
 }
 
-func (b *build) Finish(s BuildStatus) error {
+func (b *build) Finish(status BuildStatus) error {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
@@ -300,7 +300,7 @@ func (b *build) Finish(s BuildStatus) error {
 	var endTime time.Time
 
 	err = psql.Update("builds").
-		Set("status", string(s)).
+		Set("status", status).
 		Set("end_time", sq.Expr("now()")).
 		Set("completed", true).
 		Where(sq.Eq{"id": b.id}).
@@ -313,7 +313,7 @@ func (b *build) Finish(s BuildStatus) error {
 	}
 
 	err = b.saveEvent(tx, event.Status{
-		Status: atc.BuildStatus(s),
+		Status: atc.BuildStatus(status),
 		Time:   endTime.Unix(),
 	})
 	if err != nil {
@@ -325,6 +325,18 @@ func (b *build) Finish(s BuildStatus) error {
 	`, buildEventSeq(b.id)))
 	if err != nil {
 		return err
+	}
+
+	if b.jobID != 0 && status == BuildStatusSucceeded {
+		_, err = psql.Delete("build_image_resource_caches birc USING builds b").
+			Where(sq.Expr("birc.build_id = b.id")).
+			Where(sq.Lt{"build_id": b.id}).
+			Where(sq.Eq{"b.job_id": b.jobID}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
 	}
 
 	err = tx.Commit()
@@ -435,33 +447,21 @@ func (b *build) Pipeline() (Pipeline, bool, error) {
 	return pipeline, true, nil
 }
 
-func (b *build) SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error {
-	version, err := json.Marshal(resourceVersion)
+func (b *build) SaveImageResourceVersion(rc *UsedResourceCache) error {
+	_, err := psql.Insert("build_image_resource_caches").
+		Columns("resource_cache_id", "build_id").
+		Values(rc.ID, b.id).
+		RunWith(b.conn).
+		Exec()
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+			return nil
+		}
+
 		return err
 	}
 
-	return safeCreateOrUpdate(
-		b.conn,
-		func(tx Tx) (sql.Result, error) {
-			return psql.Insert("image_resource_versions").
-				Columns("version", "build_id", "plan_id", "resource_hash").
-				Values(version, b.id, string(planID), resourceHash).
-				RunWith(tx).
-				Exec()
-		},
-		func(tx Tx) (sql.Result, error) {
-			return psql.Update("image_resource_versions").
-				Set("version", version).
-				Set("resource_hash", resourceHash).
-				Where(sq.Eq{
-					"build_id": b.id,
-					"plan_id":  string(planID),
-				}).
-				RunWith(tx).
-				Exec()
-		},
-	)
+	return nil
 }
 
 func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {

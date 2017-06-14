@@ -1759,10 +1759,6 @@ var _ = Describe("Pipeline", func() {
 			err = build.SaveEvent(event.StartTask{})
 			Expect(err).NotTo(HaveOccurred())
 
-			// populate image_resource_versions table
-			err = build.SaveImageResourceVersion("some-plan-id", atc.Version{"digest": "readers"}, `docker{"some":"source"}`)
-			Expect(err).NotTo(HaveOccurred())
-
 			err = pipeline.Destroy()
 			Expect(err).NotTo(HaveOccurred())
 

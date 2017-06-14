@@ -46,7 +46,7 @@ type Image interface {
 
 type ImageFetchingDelegate interface {
 	Stderr() io.Writer
-	ImageVersionDetermined(ResourceCacheIdentifier) error
+	ImageVersionDetermined(*db.UsedResourceCache) error
 }
 
 type ImageMetadata struct {
@@ -56,5 +56,5 @@ type ImageMetadata struct {
 
 type NoopImageFetchingDelegate struct{}
 
-func (NoopImageFetchingDelegate) Stderr() io.Writer                                    { return ioutil.Discard }
-func (NoopImageFetchingDelegate) ImageVersionDetermined(ResourceCacheIdentifier) error { return nil }
+func (NoopImageFetchingDelegate) Stderr() io.Writer                                  { return ioutil.Discard }
+func (NoopImageFetchingDelegate) ImageVersionDetermined(*db.UsedResourceCache) error { return nil }

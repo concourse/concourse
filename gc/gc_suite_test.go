@@ -84,6 +84,9 @@ var _ = BeforeEach(func() {
 			{
 				Name: "some-job",
 			},
+			{
+				Name: "some-other-job",
+			},
 		},
 	}
 

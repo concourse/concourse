@@ -171,4 +171,5 @@ var Migrations = []migration.Migrator{
 	AddIndexesForBuildCollector,
 	DropInitializedFromVolumes,
 	AddUniqueWorkerResourceCacheIDToVolumes,
+	AddBuildImageResourceCaches,
 }

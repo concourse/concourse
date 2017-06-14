@@ -65,6 +65,15 @@ type FakeResourceCacheFactory struct {
 	cleanUsesForPausedPipelineResourcesReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CleanBuildImageResourceCachesStub        func() error
+	cleanBuildImageResourceCachesMutex       sync.RWMutex
+	cleanBuildImageResourceCachesArgsForCall []struct{}
+	cleanBuildImageResourceCachesReturns     struct {
+		result1 error
+	}
+	cleanBuildImageResourceCachesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CleanUpInvalidCachesStub        func() error
 	cleanUpInvalidCachesMutex       sync.RWMutex
 	cleanUpInvalidCachesArgsForCall []struct{}
@@ -320,6 +329,46 @@ func (fake *FakeResourceCacheFactory) CleanUsesForPausedPipelineResourcesReturns
 	}{result1}
 }
 
+func (fake *FakeResourceCacheFactory) CleanBuildImageResourceCaches() error {
+	fake.cleanBuildImageResourceCachesMutex.Lock()
+	ret, specificReturn := fake.cleanBuildImageResourceCachesReturnsOnCall[len(fake.cleanBuildImageResourceCachesArgsForCall)]
+	fake.cleanBuildImageResourceCachesArgsForCall = append(fake.cleanBuildImageResourceCachesArgsForCall, struct{}{})
+	fake.recordInvocation("CleanBuildImageResourceCaches", []interface{}{})
+	fake.cleanBuildImageResourceCachesMutex.Unlock()
+	if fake.CleanBuildImageResourceCachesStub != nil {
+		return fake.CleanBuildImageResourceCachesStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.cleanBuildImageResourceCachesReturns.result1
+}
+
+func (fake *FakeResourceCacheFactory) CleanBuildImageResourceCachesCallCount() int {
+	fake.cleanBuildImageResourceCachesMutex.RLock()
+	defer fake.cleanBuildImageResourceCachesMutex.RUnlock()
+	return len(fake.cleanBuildImageResourceCachesArgsForCall)
+}
+
+func (fake *FakeResourceCacheFactory) CleanBuildImageResourceCachesReturns(result1 error) {
+	fake.CleanBuildImageResourceCachesStub = nil
+	fake.cleanBuildImageResourceCachesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceCacheFactory) CleanBuildImageResourceCachesReturnsOnCall(i int, result1 error) {
+	fake.CleanBuildImageResourceCachesStub = nil
+	if fake.cleanBuildImageResourceCachesReturnsOnCall == nil {
+		fake.cleanBuildImageResourceCachesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanBuildImageResourceCachesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceCacheFactory) CleanUpInvalidCaches() error {
 	fake.cleanUpInvalidCachesMutex.Lock()
 	ret, specificReturn := fake.cleanUpInvalidCachesReturnsOnCall[len(fake.cleanUpInvalidCachesArgsForCall)]
@@ -478,6 +527,8 @@ func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	defer fake.cleanUsesForInactiveResourcesMutex.RUnlock()
 	fake.cleanUsesForPausedPipelineResourcesMutex.RLock()
 	defer fake.cleanUsesForPausedPipelineResourcesMutex.RUnlock()
+	fake.cleanBuildImageResourceCachesMutex.RLock()
+	defer fake.cleanBuildImageResourceCachesMutex.RUnlock()
 	fake.cleanUpInvalidCachesMutex.RLock()
 	defer fake.cleanUpInvalidCachesMutex.RUnlock()
 	fake.updateResourceCacheMetadataMutex.RLock()

@@ -177,7 +177,8 @@ var _ = Describe("Image", func() {
 
 						Context("when fetching resource succeeds", func() {
 							var (
-								fakeVersionedSource *resourcefakes.FakeVersionedSource
+								fakeVersionedSource   *resourcefakes.FakeVersionedSource
+								fakeUsedResourceCache *db.UsedResourceCache
 							)
 
 							BeforeEach(func() {
@@ -187,6 +188,9 @@ var _ = Describe("Image", func() {
 								fakeVersionedSource.StreamOutReturns(tarStreamWith("some-tar-contents"), nil)
 								fakeVolume := new(workerfakes.FakeVolume)
 								fakeVersionedSource.VolumeReturns(fakeVolume)
+
+								fakeUsedResourceCache = new(db.UsedResourceCache)
+								fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
 							})
 
 							Context("when the resource has a volume", func() {
@@ -280,12 +284,8 @@ var _ = Describe("Image", func() {
 								})
 
 								It("saved the image resource version in the database", func() {
-									expectedIdentifier := worker.ResourceCacheIdentifier{
-										ResourceVersion: atc.Version{"v": "1"},
-										ResourceHash:    `docker{"some":"source"}`,
-									}
 									Expect(fakeImageFetchingDelegate.ImageVersionDeterminedCallCount()).To(Equal(1))
-									Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(expectedIdentifier))
+									Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(fakeUsedResourceCache))
 								})
 
 								It("fetches resource with correct session", func() {
@@ -486,7 +486,8 @@ var _ = Describe("Image", func() {
 
 			Context("when fetching resource succeeds", func() {
 				var (
-					fakeVersionedSource *resourcefakes.FakeVersionedSource
+					fakeVersionedSource   *resourcefakes.FakeVersionedSource
+					fakeUsedResourceCache *db.UsedResourceCache
 				)
 
 				BeforeEach(func() {
@@ -496,6 +497,9 @@ var _ = Describe("Image", func() {
 					fakeVersionedSource.StreamOutReturns(tarStreamWith("some-tar-contents"), nil)
 					fakeVolume := new(workerfakes.FakeVolume)
 					fakeVersionedSource.VolumeReturns(fakeVolume)
+
+					fakeUsedResourceCache = new(db.UsedResourceCache)
+					fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
 				})
 
 				Context("when the resource has a volume", func() {
@@ -544,12 +548,8 @@ var _ = Describe("Image", func() {
 					})
 
 					It("saved the image resource version in the database", func() {
-						expectedIdentifier := worker.ResourceCacheIdentifier{
-							ResourceVersion: atc.Version{"some": "version"},
-							ResourceHash:    `docker{"some":"source"}`,
-						}
 						Expect(fakeImageFetchingDelegate.ImageVersionDeterminedCallCount()).To(Equal(1))
-						Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(expectedIdentifier))
+						Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(fakeUsedResourceCache))
 					})
 
 					It("fetches resource with correct session", func() {

@@ -45,15 +45,6 @@ type FakeResourceInstance struct {
 		result2 bool
 		result3 error
 	}
-	ResourceCacheIdentifierStub        func() worker.ResourceCacheIdentifier
-	resourceCacheIdentifierMutex       sync.RWMutex
-	resourceCacheIdentifierArgsForCall []struct{}
-	resourceCacheIdentifierReturns     struct {
-		result1 worker.ResourceCacheIdentifier
-	}
-	resourceCacheIdentifierReturnsOnCall map[int]struct {
-		result1 worker.ResourceCacheIdentifier
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -193,46 +184,6 @@ func (fake *FakeResourceInstance) FindOnReturnsOnCall(i int, result1 worker.Volu
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceInstance) ResourceCacheIdentifier() worker.ResourceCacheIdentifier {
-	fake.resourceCacheIdentifierMutex.Lock()
-	ret, specificReturn := fake.resourceCacheIdentifierReturnsOnCall[len(fake.resourceCacheIdentifierArgsForCall)]
-	fake.resourceCacheIdentifierArgsForCall = append(fake.resourceCacheIdentifierArgsForCall, struct{}{})
-	fake.recordInvocation("ResourceCacheIdentifier", []interface{}{})
-	fake.resourceCacheIdentifierMutex.Unlock()
-	if fake.ResourceCacheIdentifierStub != nil {
-		return fake.ResourceCacheIdentifierStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.resourceCacheIdentifierReturns.result1
-}
-
-func (fake *FakeResourceInstance) ResourceCacheIdentifierCallCount() int {
-	fake.resourceCacheIdentifierMutex.RLock()
-	defer fake.resourceCacheIdentifierMutex.RUnlock()
-	return len(fake.resourceCacheIdentifierArgsForCall)
-}
-
-func (fake *FakeResourceInstance) ResourceCacheIdentifierReturns(result1 worker.ResourceCacheIdentifier) {
-	fake.ResourceCacheIdentifierStub = nil
-	fake.resourceCacheIdentifierReturns = struct {
-		result1 worker.ResourceCacheIdentifier
-	}{result1}
-}
-
-func (fake *FakeResourceInstance) ResourceCacheIdentifierReturnsOnCall(i int, result1 worker.ResourceCacheIdentifier) {
-	fake.ResourceCacheIdentifierStub = nil
-	if fake.resourceCacheIdentifierReturnsOnCall == nil {
-		fake.resourceCacheIdentifierReturnsOnCall = make(map[int]struct {
-			result1 worker.ResourceCacheIdentifier
-		})
-	}
-	fake.resourceCacheIdentifierReturnsOnCall[i] = struct {
-		result1 worker.ResourceCacheIdentifier
-	}{result1}
-}
-
 func (fake *FakeResourceInstance) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -242,8 +193,6 @@ func (fake *FakeResourceInstance) Invocations() map[string][][]interface{} {
 	defer fake.containerOwnerMutex.RUnlock()
 	fake.findOnMutex.RLock()
 	defer fake.findOnMutex.RUnlock()
-	fake.resourceCacheIdentifierMutex.RLock()
-	defer fake.resourceCacheIdentifierMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

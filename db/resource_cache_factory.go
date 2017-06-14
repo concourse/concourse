@@ -29,7 +29,7 @@ type ResourceCacheFactory interface {
 	CleanUsesForInactiveResourceTypes() error
 	CleanUsesForInactiveResources() error
 	CleanUsesForPausedPipelineResources() error
-
+	CleanBuildImageResourceCaches() error
 	CleanUpInvalidCaches() error
 
 	// changing resource cache to interface to allow updates on object is not feasible.
@@ -89,50 +89,26 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	return usedResourceCache, nil
 }
 
+func (f *resourceCacheFactory) CleanBuildImageResourceCaches() error {
+	_, err := sq.Delete("build_image_resource_caches birc USING builds b").
+		Where("birc.build_id = b.id").
+		Where(sq.Expr("((now() - b.end_time) > '24 HOURS'::INTERVAL)")).
+		Where(sq.Eq{"job_id": nil}).
+		RunWith(f.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
-	latestImageResourceBuildByJobQ, _, err := sq.
-		Select("MAX(b.id) AS max_build_id").
-		From("image_resource_versions irv").
-		Join("builds b ON b.id = irv.build_id").
-		Where(sq.NotEq{"b.job_id": nil}).
-		GroupBy("b.job_id").ToSql()
-	if err != nil {
-		return err
-	}
-
-	oneOffImagesUsedWithin24Hours, _, err := sq.
-		Select("b.id").
-		From("image_resource_versions irv").
-		Join("builds b ON b.id = irv.build_id").
-		Where(sq.Eq{"b.job_id": nil}).
-		Where(sq.Expr("(now() - b.end_time) < '24 HOURS'::INTERVAL")).
-		ToSql()
-	if err != nil {
-		return err
-	}
-
-	imageResourceCacheIds, imageResourceCacheArgs, err := sq.
-		Select("rc.id").
-		From("image_resource_versions irv").
-		Join("resource_caches rc ON rc.version = irv.version").
-		Join("resource_cache_uses rcu ON rcu.resource_cache_id = rc.id").
-		Where(sq.Expr("irv.build_id = rcu.build_id")).
-		Where(sq.Eq{"rc.params_hash": EmptyParamsHash}).
-		Where(sq.Or{
-			sq.Expr("irv.build_id IN (" + latestImageResourceBuildByJobQ + ")"),
-			sq.Expr("irv.build_id IN (" + oneOffImagesUsedWithin24Hours + ")"),
-		}).
-		ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Delete("resource_cache_uses rcu USING builds b").
+	_, err := psql.Delete("resource_cache_uses rcu USING builds b").
 		Where(sq.And{
 			sq.Expr("rcu.build_id = b.id"),
 			sq.Expr("b.interceptible = false"),
 		}).
-		Where("rcu.resource_cache_id NOT IN ("+imageResourceCacheIds+")", imageResourceCacheArgs...).
 		RunWith(f.conn).
 		Exec()
 	if err != nil {
@@ -187,6 +163,16 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		return err
 	}
 
+	buildImageCacheIds, _, err := sq.
+		Select("rc.id").
+		Distinct().
+		From("resource_caches rc").
+		Join("build_image_resource_caches birc ON rc.id = birc.resource_cache_id").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	nextBuildInputsCacheIds, _, err := sq.
 		Select("rc.id").
 		Distinct().
@@ -205,8 +191,9 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	}
 
 	_, err = sq.Delete("resource_caches").
-		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
 		Where("id NOT IN (" + stillInUseCacheIds + ")").
+		Where("id NOT IN (" + buildImageCacheIds + ")").
+		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(f.conn).
 		Exec()

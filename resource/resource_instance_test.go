@@ -108,21 +108,4 @@ var _ = Describe("ResourceInstance", func() {
 			})
 		})
 	})
-
-	Context("ResourceCacheIdentifier", func() {
-		It("returns a volume identifier corrsponding to the resource that the identifier is tracking", func() {
-			expectedIdentifier := worker.ResourceCacheIdentifier{
-				ResourceVersion: atc.Version{"some": "version"},
-				ResourceHash:    `some-resource-type{"some":"source"}`,
-			}
-
-			Expect(resourceInstance.ResourceCacheIdentifier()).To(Equal(expectedIdentifier))
-		})
-	})
-})
-
-var _ = Describe("GenerateResourceHash", func() {
-	It("returns a hash of the source and resource type", func() {
-		Expect(GenerateResourceHash(atc.Source{"some": "source"}, "git")).To(Equal(`git{"some":"source"}`))
-	})
 })

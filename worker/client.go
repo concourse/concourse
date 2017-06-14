@@ -88,9 +88,4 @@ type Container interface {
 	MarkAsHijacked() error
 }
 
-type ResourceCacheIdentifier struct {
-	ResourceVersion atc.Version
-	ResourceHash    string
-}
-
 type VolumeProperties map[string]string

@@ -21,7 +21,13 @@ func NewResourceCacheUseCollector(
 }
 
 func (rcuc *resourceCacheUseCollector) Run() error {
-	err := rcuc.cacheFactory.CleanUsesForFinishedBuilds()
+	err := rcuc.cacheFactory.CleanBuildImageResourceCaches()
+	if err != nil {
+		rcuc.logger.Error("unable-to-clean-up-for-builds", err)
+		return err
+	}
+
+	err = rcuc.cacheFactory.CleanUsesForFinishedBuilds()
 	if err != nil {
 		rcuc.logger.Error("unable-to-clean-up-for-builds", err)
 		return err

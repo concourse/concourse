@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/worker"
 )
 
 //go:generate counterfeiter . BuildDelegate
@@ -135,8 +134,8 @@ type imageFetchingDelegate struct {
 	planID atc.PlanID
 }
 
-func (delegate *imageFetchingDelegate) ImageVersionDetermined(resourceCacheIdentifier worker.ResourceCacheIdentifier) error {
-	return delegate.build.SaveImageResourceVersion(delegate.planID, resourceCacheIdentifier.ResourceVersion, resourceCacheIdentifier.ResourceHash)
+func (delegate *imageFetchingDelegate) ImageVersionDetermined(resourceCache *db.UsedResourceCache) error {
+	return delegate.build.SaveImageResourceVersion(resourceCache)
 }
 
 func (delegate *imageFetchingDelegate) Stdout() io.Writer {

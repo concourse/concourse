@@ -133,6 +133,20 @@ func (i *imageResourceFetcher) Fetch(
 		}
 	}
 
+	resourceCache, err := i.dbResourceCacheFactory.FindOrCreateResourceCache(
+		logger,
+		i.resourceUser,
+		i.imageResource.Type,
+		version,
+		i.imageResource.Source,
+		atc.Params{},
+		i.customTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-create-resource-cache", err)
+		return nil, nil, nil, err
+	}
+
 	resourceInstance := resource.NewResourceInstance(
 		resource.ResourceType(i.imageResource.Type),
 		version,
@@ -144,9 +158,7 @@ func (i *imageResourceFetcher) Fetch(
 		i.dbResourceCacheFactory,
 	)
 
-	err := i.imageFetchingDelegate.ImageVersionDetermined(
-		resourceInstance.ResourceCacheIdentifier(),
-	)
+	err = i.imageFetchingDelegate.ImageVersionDetermined(resourceCache)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -166,7 +178,6 @@ func (i *imageResourceFetcher) Fetch(
 		resourceType:          resourceType,
 	}
 
-	// we need resource cache for build
 	versionedSource, err := i.resourceFetcher.Fetch(
 		logger.Session("init-image"),
 		getSess,
