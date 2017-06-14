@@ -16,6 +16,9 @@ import (
 
 var _ = Describe("Ensure Step", func() {
 	var (
+		noError       = BeNil
+		errorMatching = MatchError
+
 		stepFactory *execfakes.FakeStepFactory
 		hookFactory *execfakes.FakeStepFactory
 
@@ -157,6 +160,7 @@ var _ = Describe("Ensure Step", func() {
 				})
 
 				It("does not succeed", func() {
+					ensureStep.Run(signals, ready)
 					Expect(ensureStep.Succeeded()).To(BeFalse())
 				})
 			})

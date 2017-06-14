@@ -103,7 +103,7 @@ func (factory *gardenFactory) Get(
 
 	actions := []Action{getAction}
 
-	return GetStepFactory{newActionsStep(logger, actions, buildEventsDelegate)}
+	return GetStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
 }
 
 func (factory *gardenFactory) Put(
@@ -140,7 +140,7 @@ func (factory *gardenFactory) Put(
 
 	actions := []Action{putAction}
 
-	return PutStepFactory{newActionsStep(logger, actions, buildEventsDelegate)}
+	return PutStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
 }
 
 func (factory *gardenFactory) Task(
@@ -203,7 +203,7 @@ func (factory *gardenFactory) Task(
 
 	actions := []Action{fetchConfigAction, taskAction}
 
-	return TaskStepFactory{newActionsStep(logger, actions, buildEventsDelegate)}
+	return TaskStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
 }
 
 func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {

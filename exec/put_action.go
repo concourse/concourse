@@ -10,16 +10,16 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
+// PutAction produces a resource version using preconfigured params and any data
+// available in the worker.ArtifactRepository.
 type PutAction struct {
-	Type         string
-	Name         string
-	Resource     string
-	Source       atc.Source
-	Params       atc.Params
-	Tags         atc.Tags
-	RootFSSource RootFSSource
+	Type     string
+	Name     string
+	Resource string
+	Source   atc.Source
+	Params   atc.Params
+	Tags     atc.Tags
 
-	// TODO: can we remove these dependencies?
 	imageFetchingDelegate ImageFetchingDelegate
 	resourceFactory       resource.ResourceFactory
 	teamID                int
@@ -28,13 +28,54 @@ type PutAction struct {
 	containerMetadata     db.ContainerMetadata
 	stepMetadata          StepMetadata
 
-	// TODO: remove after all actions are introduced
 	resourceTypes atc.VersionedResourceTypes
 
 	versionInfo VersionInfo
 	exitStatus  ExitStatus
 }
 
+func NewPutAction(
+	resourceType string,
+	name string,
+	resourceName string,
+	source atc.Source,
+	params atc.Params,
+	tags atc.Tags,
+	imageFetchingDelegate ImageFetchingDelegate,
+	resourceFactory resource.ResourceFactory,
+	teamID int,
+	buildID int,
+	planID atc.PlanID,
+	containerMetadata db.ContainerMetadata,
+	stepMetadata StepMetadata,
+	resourceTypes atc.VersionedResourceTypes,
+) *PutAction {
+	return &PutAction{
+		Type:     resourceType,
+		Name:     name,
+		Resource: resourceName,
+		Source:   source,
+		Params:   params,
+		Tags:     tags,
+		imageFetchingDelegate: imageFetchingDelegate,
+		resourceFactory:       resourceFactory,
+		teamID:                teamID,
+		buildID:               buildID,
+		planID:                planID,
+		containerMetadata:     containerMetadata,
+		stepMetadata:          stepMetadata,
+		resourceTypes:         resourceTypes,
+	}
+}
+
+// Run chooses a worker that supports the step's resource type and creates a
+// container.
+//
+// All worker.ArtifactSources present in the worker.ArtifactRepository are then brought into
+// the container, using volumes if possible, and streaming content over if not.
+//
+// The resource's put script is then invoked. The PutStep is ready as soon as
+// the resource's script starts, and signals will be forwarded to the script.
 func (action *PutAction) Run(
 	logger lager.Logger,
 	repository *worker.ArtifactRepository,
@@ -104,10 +145,13 @@ func (action *PutAction) Run(
 	return nil
 }
 
+// VersionInfo returns the produced resource's version
+// and metadata.
 func (action *PutAction) VersionInfo() VersionInfo {
 	return action.versionInfo
 }
 
+// ExitStatus returns exit status of resource put script.
 func (action *PutAction) ExitStatus() ExitStatus {
 	return action.exitStatus
 }

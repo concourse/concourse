@@ -40,6 +40,8 @@ func (err MissingTaskImageSourceError) Error() string {
 make sure there's a corresponding 'get' step, or a task that produces it as an output`, err.SourceName)
 }
 
+//go:generate counterfeiter . TaskConfigSource
+
 type TaskConfigSource interface {
 	GetTaskConfig() (atc.TaskConfig, error)
 }
@@ -53,6 +55,8 @@ func (s *FetchConfigActionTaskConfigSource) GetTaskConfig() (atc.TaskConfig, err
 	return taskConfig, nil
 }
 
+// TaskAction executes a TaskConfig, whose inputs will be fetched from the
+// worker.ArtifactRepository and outputs will be added to the worker.ArtifactRepository.
 type TaskAction struct {
 	privileged    Privileged
 	configSource  TaskConfigSource
@@ -64,7 +68,6 @@ type TaskAction struct {
 	artifactsRoot     string
 	imageArtifactName string
 
-	// TODO: can we remove these dependencies?
 	imageFetchingDelegate ImageFetchingDelegate
 	workerPool            worker.Client
 	teamID                int
@@ -72,12 +75,61 @@ type TaskAction struct {
 	planID                atc.PlanID
 	containerMetadata     db.ContainerMetadata
 
-	// TODO: remove after all actions are introduced
 	resourceTypes atc.VersionedResourceTypes
 
 	exitStatus ExitStatus
 }
 
+func NewTaskAction(
+	privileged Privileged,
+	configSource TaskConfigSource,
+	tags atc.Tags,
+	inputMapping map[string]string,
+	outputMapping map[string]string,
+	artifactsRoot string,
+	imageArtifactName string,
+	imageFetchingDelegate ImageFetchingDelegate,
+	workerPool worker.Client,
+	teamID int,
+	buildID int,
+	planID atc.PlanID,
+	containerMetadata db.ContainerMetadata,
+	resourceTypes atc.VersionedResourceTypes,
+) *TaskAction {
+	return &TaskAction{
+		privileged:            privileged,
+		configSource:          configSource,
+		tags:                  tags,
+		inputMapping:          inputMapping,
+		outputMapping:         outputMapping,
+		artifactsRoot:         artifactsRoot,
+		imageArtifactName:     imageArtifactName,
+		imageFetchingDelegate: imageFetchingDelegate,
+		workerPool:            workerPool,
+		teamID:                teamID,
+		buildID:               buildID,
+		planID:                planID,
+		containerMetadata:     containerMetadata,
+		resourceTypes:         resourceTypes,
+	}
+}
+
+// Run will first selects the worker based on the TaskConfig's platform, the
+// TaskStep's tags, and prioritized by availability of volumes for the TaskConfig's
+// inputs. Inputs that did not have volumes available on the worker will be streamed
+// in to the container.
+//
+// If any inputs are not available in the worker.ArtifactRepository, MissingInputsError
+// is returned.
+//
+// Once all the inputs are satisfies, the task's script will be executed, and
+// the RunStep indicates that it's ready, and any signals will be forwarded to
+// the script.
+//
+// If the script exits successfully, the outputs specified in the TaskConfig
+// are registered with the worker.ArtifactRepository. If no outputs are specified, the
+// task's entire working directory is registered as an ArtifactSource under the
+// name of the task.
 func (action *TaskAction) Run(
 	logger lager.Logger,
 	repository *worker.ArtifactRepository,
@@ -200,6 +252,7 @@ func (action *TaskAction) Run(
 	}
 }
 
+// ExitStatus returns exit status of task script.
 func (action *TaskAction) ExitStatus() ExitStatus {
 	return action.exitStatus
 }
@@ -286,26 +339,6 @@ func (action *TaskAction) registerSource(logger lager.Logger, repository *worker
 				repository.RegisterSource(worker.ArtifactName(outputName), source)
 			}
 		}
-	}
-}
-
-// Succeeded indicates Success as true if the script's exit status was 0.
-//
-// It also indicates ExitStatus as the exit status of the script.
-//
-// All other types are ignored.
-func (action *TaskAction) Result(x interface{}) bool {
-	switch v := x.(type) {
-	case *Success:
-		*v = action.exitStatus == 0
-		return true
-
-	case *ExitStatus:
-		*v = ExitStatus(action.exitStatus)
-		return true
-
-	default:
-		return false
 	}
 }
 

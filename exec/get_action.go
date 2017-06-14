@@ -15,6 +15,8 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
+// GetAction will fetch a version of a resource on a worker that supports the
+// resource type.
 type GetAction struct {
 	Type          string
 	Name          string
@@ -23,10 +25,8 @@ type GetAction struct {
 	Params        atc.Params
 	VersionSource VersionSource
 	Tags          atc.Tags
-	RootFSSource  RootFSSource
 	Outputs       []string
 
-	// TODO: can we remove these dependencies?
 	imageFetchingDelegate  ImageFetchingDelegate
 	resourceFetcher        resource.Fetcher
 	teamID                 int
@@ -36,13 +36,35 @@ type GetAction struct {
 	dbResourceCacheFactory db.ResourceCacheFactory
 	stepMetadata           StepMetadata
 
-	// TODO: remove after all actions are introduced
 	resourceTypes atc.VersionedResourceTypes
 
 	versionInfo VersionInfo
 	exitStatus  ExitStatus
 }
 
+// Run ultimately registers the configured resource version's ArtifactSource
+// under the configured SourceName. How it actually does this is determined by
+// a few factors.
+//
+// First, a worker that supports the given resource type is chosen, and a
+// container is created on the worker.
+//
+// If the worker has a VolumeManager, and its cache is already warmed, the
+// cache will be mounted into the container, and no fetching will be performed.
+// The container will be used to stream the contents of the cache to later
+// steps that require the artifact but are running on a worker that does not
+// have the cache.
+//
+// If the worker does not have a VolumeManager, or if the worker does have a
+// VolumeManager but a cache for the version of the resource is not present,
+// the specified version of the resource will be fetched. As long as running
+// the fetch script works, Run will return nil regardless of its exit status.
+//
+// If the worker has a VolumeManager but did not have the cache initially, the
+// fetched ArtifactSource is initialized, thus warming the worker's cache.
+//
+// At the end, the resulting ArtifactSource (either from using the cache or
+// fetching the resource) is registered under the step's SourceName.
 func (action *GetAction) Run(
 	logger lager.Logger,
 	repository *worker.ArtifactRepository,
@@ -56,7 +78,6 @@ func (action *GetAction) Run(
 		return err
 	}
 
-	// TODO: can we remove resource definition?
 	resourceDefinition := &getResource{
 		source:                action.Source,
 		resourceType:          resource.ResourceType(action.Type),
@@ -117,10 +138,13 @@ func (action *GetAction) Run(
 	return nil
 }
 
+// VersionInfo returns the fetched or cached resource's version
+// and metadata.
 func (action *GetAction) VersionInfo() VersionInfo {
 	return action.versionInfo
 }
 
+// ExitStatus returns exit status of resource get script.
 func (action *GetAction) ExitStatus() ExitStatus {
 	return action.exitStatus
 }

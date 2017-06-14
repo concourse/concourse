@@ -6,15 +6,13 @@ import (
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
 
-	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Identity", func() {
 	var (
-		inStep *execfakes.FakeStep
-		repo   *worker.ArtifactRepository
+		repo *worker.ArtifactRepository
 
 		identity Identity
 
@@ -24,12 +22,11 @@ var _ = Describe("Identity", func() {
 	BeforeEach(func() {
 		identity = Identity{}
 
-		inStep = new(execfakes.FakeStep)
 		repo = worker.NewArtifactRepository()
 	})
 
 	JustBeforeEach(func() {
-		step = identity.Using(inStep, repo)
+		step = identity.Using(repo)
 	})
 
 	Describe("Run", func() {
@@ -39,18 +36,12 @@ var _ = Describe("Identity", func() {
 
 			err := step.Run(signals, ready)
 			Expect(err).NotTo(HaveOccurred())
-
-			Expect(inStep.RunCallCount()).To(BeZero())
 		})
 	})
 
 	Describe("Succeeded", func() {
 		It("calls through to the input source", func() {
-			var result int
-			step.Succeeded(&result)
-
-			Expect(inStep.ResultCallCount()).To(Equal(1))
-			Expect(inStep.ResultArgsForCall(0)).To(Equal(&result))
+			Expect(step.Succeeded()).To(BeTrue())
 		})
 	})
 })

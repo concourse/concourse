@@ -14,18 +14,16 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-var noError = BeNil
-var errorMatching = MatchError
-
 var _ = Describe("On Success Step", func() {
 	var (
+		noError       = BeNil
+		errorMatching = MatchError
+
 		stepFactory    *execfakes.FakeStepFactory
 		successFactory *execfakes.FakeStepFactory
 
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
-
-		previousStep *execfakes.FakeStep
 
 		repo *worker.ArtifactRepository
 
@@ -167,20 +165,18 @@ var _ = Describe("On Success Step", func() {
 
 			Context("when step succeeds and hook fails", func() {
 				BeforeEach(func() {
-
 					step.SucceededReturns(true)
 					hook.SucceededReturns(false)
-
 				})
 
 				It("assigns the provided interface to false", func() {
-
 					onSuccessStep.Run(signals, ready)
+					Expect(onSuccessStep.Succeeded()).To(BeFalse())
+
 					Expect(step.RunCallCount()).To(Equal(1))
 					Expect(step.SucceededCallCount()).To(Equal(2))
 					Expect(hook.RunCallCount()).To(Equal(1))
 					Expect(hook.SucceededCallCount()).To(Equal(1))
-					Expect(onSuccessStep.Succeeded()).To(BeFalse())
 				})
 			})
 		})

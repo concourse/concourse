@@ -9,14 +9,14 @@ import (
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("ConfigSource", func() {
+var _ = Describe("TaskConfigFetcher", func() {
 	var (
 		taskConfig atc.TaskConfig
 		taskPlan   atc.TaskPlan
@@ -60,21 +60,21 @@ var _ = Describe("ConfigSource", func() {
 
 	Describe("DeprecationConfigSource", func() {
 		var (
-			configSource TaskConfigSource
-			stderrBuf    *gbytes.Buffer
+			configFetcher TaskConfigFetcher
+			stderrBuf     *gbytes.Buffer
 		)
 
 		JustBeforeEach(func() {
-			delegate := StaticConfigSource{Plan: taskPlan}
+			delegate := StaticConfigFetcher{Plan: taskPlan}
 			stderrBuf = gbytes.NewBuffer()
-			configSource = DeprecationConfigSource{
+			configFetcher = DeprecationConfigFetcher{
 				Delegate: &delegate,
 				Stderr:   stderrBuf,
 			}
 		})
 
 		It("merges task params prefering params in task plan", func() {
-			fetchedConfig, err := configSource.FetchConfig(repo)
+			fetchedConfig, err := configFetcher.FetchConfig(repo)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fetchedConfig.Params).To(Equal(map[string]string{
 				"task-plan-param-key":   "task-plan-param-val-1",
@@ -89,7 +89,7 @@ var _ = Describe("ConfigSource", func() {
 			})
 
 			It("uses params from task plan", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
+				fetchedConfig, err := configFetcher.FetchConfig(repo)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fetchedConfig.Params).To(Equal(map[string]string{
 					"task-plan-param-key": "task-plan-param-val-1",
@@ -108,7 +108,7 @@ var _ = Describe("ConfigSource", func() {
 			})
 
 			It("uses params from task config", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
+				fetchedConfig, err := configFetcher.FetchConfig(repo)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fetchedConfig.Params).To(Equal(map[string]string{
 					"task-config-param-key": "task-config-param-val-1",
@@ -123,20 +123,20 @@ var _ = Describe("ConfigSource", func() {
 			})
 
 			It("writes warning to stderr", func() {
-				_, err := configSource.FetchConfig(repo)
+				_, err := configFetcher.FetchConfig(repo)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(stderrBuf).To(gbytes.Say("DEPRECATION WARNING: Specifying both `file` and `config.params` in a task step is deprecated, use params on task step directly"))
 			})
 		})
 	})
 
-	Describe("StaticConfigSource", func() {
+	Describe("StaticConfigFetcher", func() {
 		var (
-			configSource TaskConfigSource
+			configFetcher TaskConfigFetcher
 		)
 
 		JustBeforeEach(func() {
-			configSource = StaticConfigSource{Plan: taskPlan}
+			configFetcher = StaticConfigFetcher{Plan: taskPlan}
 		})
 
 		Context("when the params contain a floating point value", func() {
@@ -146,7 +146,7 @@ var _ = Describe("ConfigSource", func() {
 			})
 
 			It("does the right thing", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
+				fetchedConfig, err := configFetcher.FetchConfig(repo)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fetchedConfig.Params).To(HaveKeyWithValue("int-val", "1059262"))
 				Expect(fetchedConfig.Params).To(HaveKeyWithValue("float-val", "1059262.987345987"))
@@ -154,7 +154,7 @@ var _ = Describe("ConfigSource", func() {
 		})
 
 		It("merges task params prefering params in task plan", func() {
-			fetchedConfig, err := configSource.FetchConfig(repo)
+			fetchedConfig, err := configFetcher.FetchConfig(repo)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fetchedConfig.Params).To(Equal(map[string]string{
 				"task-plan-param-key":   "task-plan-param-val-1",
@@ -169,7 +169,7 @@ var _ = Describe("ConfigSource", func() {
 			})
 
 			It("uses params from task plan", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
+				fetchedConfig, err := configFetcher.FetchConfig(repo)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fetchedConfig.Params).To(Equal(map[string]string{
 					"task-plan-param-key": "task-plan-param-val-1",
@@ -188,7 +188,7 @@ var _ = Describe("ConfigSource", func() {
 			})
 
 			It("uses params from task config", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
+				fetchedConfig, err := configFetcher.FetchConfig(repo)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fetchedConfig.Params).To(Equal(map[string]string{
 					"task-config-param-key": "task-config-param-val-1",
@@ -204,7 +204,7 @@ var _ = Describe("ConfigSource", func() {
 
 			Context("when plan has params", func() {
 				It("returns an config with plan params", func() {
-					fetchedConfig, err := configSource.FetchConfig(repo)
+					fetchedConfig, err := configFetcher.FetchConfig(repo)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(fetchedConfig).To(Equal(atc.TaskConfig{
 						Params: map[string]string{
@@ -221,7 +221,7 @@ var _ = Describe("ConfigSource", func() {
 				})
 
 				It("returns an empty config", func() {
-					fetchedConfig, err := configSource.FetchConfig(repo)
+					fetchedConfig, err := configFetcher.FetchConfig(repo)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(fetchedConfig).To(Equal(atc.TaskConfig{}))
 				})
@@ -229,25 +229,25 @@ var _ = Describe("ConfigSource", func() {
 		})
 	})
 
-	Describe("FileConfigSource", func() {
+	Describe("FileConfigFetcher", func() {
 		var (
-			configSource FileConfigSource
+			configFetcher FileConfigFetcher
 
 			fetchedConfig atc.TaskConfig
 			fetchErr      error
 		)
 
 		BeforeEach(func() {
-			configSource = FileConfigSource{Path: "some/build.yml"}
+			configFetcher = FileConfigFetcher{Path: "some/build.yml"}
 		})
 
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(repo)
+			fetchedConfig, fetchErr = configFetcher.FetchConfig(repo)
 		})
 
 		Context("when the path does not indicate an artifact source", func() {
 			BeforeEach(func() {
-				configSource.Path = "foo-bar.yml"
+				configFetcher.Path = "foo-bar.yml"
 			})
 
 			It("returns an error", func() {
@@ -384,10 +384,10 @@ run: {path: a/file}
 
 	Describe("MergedConfigSource", func() {
 		var (
-			fakeConfigSourceA *execfakes.FakeTaskConfigSource
-			fakeConfigSourceB *execfakes.FakeTaskConfigSource
+			fakeConfigFetcherA *execfakes.FakeTaskConfigFetcher
+			fakeConfigFetcherB *execfakes.FakeTaskConfigFetcher
 
-			configSource TaskConfigSource
+			configFetcher TaskConfigFetcher
 
 			fetchedConfig atc.TaskConfig
 			fetchErr      error
@@ -397,12 +397,12 @@ run: {path: a/file}
 		)
 
 		BeforeEach(func() {
-			fakeConfigSourceA = new(execfakes.FakeTaskConfigSource)
-			fakeConfigSourceB = new(execfakes.FakeTaskConfigSource)
+			fakeConfigFetcherA = new(execfakes.FakeTaskConfigFetcher)
+			fakeConfigFetcherB = new(execfakes.FakeTaskConfigFetcher)
 
-			configSource = MergedConfigSource{
-				A: fakeConfigSourceA,
-				B: fakeConfigSourceB,
+			configFetcher = MergedConfigFetcher{
+				A: fakeConfigFetcherA,
+				B: fakeConfigFetcherB,
 			}
 
 			configA = atc.TaskConfig{
@@ -420,22 +420,22 @@ run: {path: a/file}
 		})
 
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(repo)
+			fetchedConfig, fetchErr = configFetcher.FetchConfig(repo)
 		})
 
 		Context("when fetching via A succeeds", func() {
 			BeforeEach(func() {
-				fakeConfigSourceA.FetchConfigReturns(configA, nil)
+				fakeConfigFetcherA.FetchConfigReturns(configA, nil)
 			})
 
 			Context("and fetching via B succeeds", func() {
 				BeforeEach(func() {
-					fakeConfigSourceB.FetchConfigReturns(configB, nil)
+					fakeConfigFetcherB.FetchConfigReturns(configB, nil)
 				})
 
 				It("fetches via the input source", func() {
-					Expect(fakeConfigSourceA.FetchConfigArgsForCall(0)).To(Equal(repo))
-					Expect(fakeConfigSourceB.FetchConfigArgsForCall(0)).To(Equal(repo))
+					Expect(fakeConfigFetcherA.FetchConfigArgsForCall(0)).To(Equal(repo))
+					Expect(fakeConfigFetcherB.FetchConfigArgsForCall(0)).To(Equal(repo))
 				})
 
 				It("succeeds", func() {
@@ -460,7 +460,7 @@ run: {path: a/file}
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeConfigSourceB.FetchConfigReturns(atc.TaskConfig{}, disaster)
+					fakeConfigFetcherB.FetchConfigReturns(atc.TaskConfig{}, disaster)
 				})
 
 				It("returns the error", func() {
@@ -473,7 +473,7 @@ run: {path: a/file}
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeConfigSourceA.FetchConfigReturns(atc.TaskConfig{}, disaster)
+				fakeConfigFetcherA.FetchConfigReturns(atc.TaskConfig{}, disaster)
 			})
 
 			It("returns the error", func() {
@@ -481,29 +481,29 @@ run: {path: a/file}
 			})
 
 			It("does not fetch via B", func() {
-				Expect(fakeConfigSourceB.FetchConfigCallCount()).To(Equal(0))
+				Expect(fakeConfigFetcherB.FetchConfigCallCount()).To(Equal(0))
 			})
 		})
 	})
 
 	Describe("ValidatingConfigSource", func() {
 		var (
-			fakeConfigSource *execfakes.FakeTaskConfigSource
+			fakeConfigFetcher *execfakes.FakeTaskConfigFetcher
 
-			configSource TaskConfigSource
+			configFetcher TaskConfigFetcher
 
 			fetchedConfig atc.TaskConfig
 			fetchErr      error
 		)
 
 		BeforeEach(func() {
-			fakeConfigSource = new(execfakes.FakeTaskConfigSource)
+			fakeConfigFetcher = new(execfakes.FakeTaskConfigFetcher)
 
-			configSource = ValidatingConfigSource{fakeConfigSource}
+			configFetcher = ValidatingConfigFetcher{fakeConfigFetcher}
 		})
 
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(repo)
+			fetchedConfig, fetchErr = configFetcher.FetchConfig(repo)
 		})
 
 		Context("when the config is valid", func() {
@@ -518,7 +518,7 @@ run: {path: a/file}
 			}
 
 			BeforeEach(func() {
-				fakeConfigSource.FetchConfigReturns(config, nil)
+				fakeConfigFetcher.FetchConfigReturns(config, nil)
 			})
 
 			It("returns the config and no error", func() {
@@ -529,7 +529,7 @@ run: {path: a/file}
 
 		Context("when the config is invalid", func() {
 			BeforeEach(func() {
-				fakeConfigSource.FetchConfigReturns(atc.TaskConfig{
+				fakeConfigFetcher.FetchConfigReturns(atc.TaskConfig{
 					RootfsURI: "some-image",
 					Params:    map[string]string{"PARAM": "A"},
 					Run: atc.TaskRunConfig{
@@ -547,7 +547,7 @@ run: {path: a/file}
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeConfigSource.FetchConfigReturns(atc.TaskConfig{}, disaster)
+				fakeConfigFetcher.FetchConfigReturns(atc.TaskConfig{}, disaster)
 			})
 
 			It("returns the error", func() {

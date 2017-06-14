@@ -9,25 +9,14 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-type RootFSSource struct {
-	Base   *BaseResourceTypeRootFSSource
-	Output *OutputRootFSSource
-}
-
-type BaseResourceTypeRootFSSource struct {
-	Name string
-}
-
-type OutputRootFSSource struct {
-	Name string
-}
+//go:generate counterfeiter . Action
 
 type Action interface {
 	Run(lager.Logger, *worker.ArtifactRepository, <-chan os.Signal, chan<- struct{}) error
 	ExitStatus() ExitStatus
 }
 
-func newActionsStep(
+func NewActionsStep(
 	logger lager.Logger, // TODO: can we move that to method? need to change all steps though
 	actions []Action,
 	buildEventsDelegate BuildEventsDelegate,
@@ -47,6 +36,8 @@ type BuildEventsDelegate interface {
 	Failed(lager.Logger, error)
 }
 
+// ActionsStep will execute actions in specified order and notify build events
+// delegate about different execution events.
 type ActionsStep struct {
 	actions             []Action
 	buildEventsDelegate BuildEventsDelegate
@@ -62,6 +53,9 @@ func (s ActionsStep) Using(repo *worker.ArtifactRepository) Step {
 	return &s
 }
 
+// Run will first call Initializing on build events delegate. Then it will call
+// Run on every action. If any action fails it will notify delegate with Failed.
+// It will call ActionCompleted after each action run that succeeds.
 func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	s.buildEventsDelegate.Initializing(s.logger)
 
@@ -92,6 +86,7 @@ func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	return nil
 }
 
+// Succeeded will return true if all actions exited with exit status 0.
 func (s *ActionsStep) Succeeded() bool {
 	return s.succeeded
 }

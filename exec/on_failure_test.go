@@ -16,13 +16,14 @@ import (
 
 var _ = Describe("On Failure Step", func() {
 	var (
+		noError       = BeNil
+		errorMatching = MatchError
+
 		stepFactory    *execfakes.FakeStepFactory
 		failureFactory *execfakes.FakeStepFactory
 
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
-
-		previousStep *execfakes.FakeStep
 
 		repo *worker.ArtifactRepository
 
@@ -181,7 +182,7 @@ var _ = Describe("On Failure Step", func() {
 					Expect(step.RunCallCount()).To(Equal(1))
 					Expect(step.SucceededCallCount()).To(Equal(1))
 					Expect(hook.RunCallCount()).To(Equal(1))
-					Expect(step.SucceededCallCount()).To(Equal(0))
+					Expect(hook.SucceededCallCount()).To(Equal(0))
 					Expect(onFailureStep.Succeeded()).To(BeFalse())
 				})
 			})
@@ -198,7 +199,7 @@ var _ = Describe("On Failure Step", func() {
 					Expect(step.RunCallCount()).To(Equal(1))
 					Expect(step.SucceededCallCount()).To(Equal(1))
 					Expect(hook.RunCallCount()).To(Equal(1))
-					Expect(step.SucceededCallCount()).To(Equal(0))
+					Expect(hook.SucceededCallCount()).To(Equal(0))
 					Expect(onFailureStep.Succeeded()).To(BeFalse())
 				})
 			})
