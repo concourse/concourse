@@ -9,10 +9,12 @@ import EventSource
 
 type BuildEvent
     = BuildStatus Concourse.BuildStatus Date
-    | Initialize Origin
+    | InitializeTask Origin
     | StartTask Origin
     | FinishTask Origin Int
+    | InitializeGet Origin
     | FinishGet Origin Int Concourse.Version Concourse.Metadata
+    | InitializePut Origin
     | FinishPut Origin Int Concourse.Version Concourse.Metadata
     | Log Origin String
     | Error Origin String
@@ -100,8 +102,8 @@ decodeEvent e =
         "error" ->
             Json.Decode.decodeValue decodeErrorEvent e.value
 
-        "initialize" ->
-            Json.Decode.decodeValue (Json.Decode.map Initialize (Json.Decode.field "origin" decodeOrigin)) e.value
+        "initialize-task" ->
+            Json.Decode.decodeValue (Json.Decode.map InitializeTask (Json.Decode.field "origin" decodeOrigin)) e.value
 
         "start-task" ->
             Json.Decode.decodeValue (Json.Decode.map StartTask (Json.Decode.field "origin" decodeOrigin)) e.value
@@ -109,8 +111,14 @@ decodeEvent e =
         "finish-task" ->
             Json.Decode.decodeValue (Json.Decode.map2 FinishTask (Json.Decode.field "origin" decodeOrigin) (Json.Decode.field "exit_status" Json.Decode.int)) e.value
 
+        "initialize-get" ->
+            Json.Decode.decodeValue (Json.Decode.map InitializeGet (Json.Decode.field "origin" decodeOrigin)) e.value
+
         "finish-get" ->
             Json.Decode.decodeValue (decodeFinishResource FinishGet) e.value
+
+        "initialize-put" ->
+            Json.Decode.decodeValue (Json.Decode.map InitializePut (Json.Decode.field "origin" decodeOrigin)) e.value
 
         "finish-put" ->
             Json.Decode.decodeValue (decodeFinishResource FinishPut) e.value
