@@ -55,11 +55,12 @@ func CreateBuild(
 				Source: source,
 			}
 		} else {
+			version := input.BuildInput.Version
 			getPlan = atc.GetPlan{
 				Name:    input.Name,
 				Type:    input.BuildInput.Type,
 				Source:  input.BuildInput.Source,
-				Version: input.BuildInput.Version,
+				Version: &version,
 				Params:  input.BuildInput.Params,
 				Tags:    input.BuildInput.Tags,
 			}

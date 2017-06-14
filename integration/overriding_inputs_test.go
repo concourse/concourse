@@ -95,7 +95,7 @@ run:
 					Type:    "git",
 					Source:  atc.Source{"uri": "https://example.com"},
 					Params:  atc.Params{"some": "other-params"},
-					Version: atc.Version{"some": "other-version"},
+					Version: &atc.Version{"some": "other-version"},
 					Tags:    atc.Tags{"tag-1", "tag-2"},
 				}),
 			}),
