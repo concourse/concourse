@@ -14,7 +14,6 @@ type resourceInstanceFetchSource struct {
 	resourceCache          *db.UsedResourceCache
 	resourceInstance       ResourceInstance
 	worker                 worker.Worker
-	resourceOptions        ResourceOptions
 	resourceTypes          atc.VersionedResourceTypes
 	tags                   atc.Tags
 	teamID                 int
@@ -29,7 +28,6 @@ func NewResourceInstanceFetchSource(
 	resourceCache *db.UsedResourceCache,
 	resourceInstance ResourceInstance,
 	worker worker.Worker,
-	resourceOptions ResourceOptions,
 	resourceTypes atc.VersionedResourceTypes,
 	tags atc.Tags,
 	teamID int,
@@ -43,7 +41,6 @@ func NewResourceInstanceFetchSource(
 		resourceCache:          resourceCache,
 		resourceInstance:       resourceInstance,
 		worker:                 worker,
-		resourceOptions:        resourceOptions,
 		resourceTypes:          resourceTypes,
 		tags:                   tags,
 		teamID:                 teamID,
@@ -55,7 +52,7 @@ func NewResourceInstanceFetchSource(
 }
 
 func (s *resourceInstanceFetchSource) LockName() (string, error) {
-	return s.resourceOptions.LockName(s.worker.Name())
+	return s.resourceInstance.LockName(s.worker.Name())
 }
 
 func (s *resourceInstanceFetchSource) Find() (VersionedSource, bool, error) {
@@ -77,11 +74,11 @@ func (s *resourceInstanceFetchSource) Find() (VersionedSource, bool, error) {
 		return nil, false, err
 	}
 
-	s.logger.Debug("found-initialized-versioned-source", lager.Data{"version": s.resourceOptions.Version(), "metadata": metadata.ToATCMetadata()})
+	s.logger.Debug("found-initialized-versioned-source", lager.Data{"version": s.resourceInstance.Version(), "metadata": metadata.ToATCMetadata()})
 
 	return NewGetVersionedSource(
 		volume,
-		s.resourceOptions.Version(),
+		s.resourceInstance.Version(),
 		metadata.ToATCMetadata(),
 	), true, nil
 }
@@ -104,7 +101,7 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: string(s.resourceOptions.ResourceType()),
+			ResourceType: string(s.resourceInstance.ResourceType()),
 		},
 		Tags:   s.tags,
 		TeamID: s.teamID,
@@ -140,10 +137,13 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 
 	versionedSource, err = NewResourceForContainer(container).Get(
 		volume,
-		s.resourceOptions.IOConfig(),
-		s.resourceOptions.Source(),
-		s.resourceOptions.Params(),
-		s.resourceOptions.Version(),
+		IOConfig{
+			Stdout: s.imageFetchingDelegate.Stdout(),
+			Stderr: s.imageFetchingDelegate.Stderr(),
+		},
+		s.resourceInstance.Source(),
+		s.resourceInstance.Params(),
+		s.resourceInstance.Version(),
 		signals,
 		ready,
 	)

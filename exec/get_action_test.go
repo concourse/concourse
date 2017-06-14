@@ -109,7 +109,7 @@ var _ = Describe("GetAction", func() {
 
 	It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 		Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-		_, sid, tags, actualTeamID, actualResourceTypes, resourceInstance, sm, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+		_, sid, tags, actualTeamID, actualResourceTypes, resourceInstance, sm, delegate, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 		Expect(sm).To(Equal(stepMetadata))
 		Expect(sid).To(Equal(resource.Session{
 			Metadata: db.ContainerMetadata{
@@ -133,14 +133,13 @@ var _ = Describe("GetAction", func() {
 		)))
 		Expect(actualResourceTypes).To(Equal(resourceTypes))
 		Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-		Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("some-resource-type")))
 		expectedLockName := fmt.Sprintf("%x",
 			sha256.Sum256([]byte(
 				`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,
 			)),
 		)
 
-		Expect(resourceOptions.LockName("fake-worker")).To(Equal(expectedLockName))
+		Expect(resourceInstance.LockName("fake-worker")).To(Equal(expectedLockName))
 	})
 
 	Context("when fetching resource succeeds", func() {

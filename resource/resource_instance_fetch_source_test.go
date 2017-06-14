@@ -24,7 +24,6 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fetchSource resource.FetchSource
 
 		fakeContainer            *workerfakes.FakeContainer
-		resourceOptions          *resourcefakes.FakeResourceOptions
 		fakeVolume               *workerfakes.FakeVolume
 		fakeResourceInstance     *resourcefakes.FakeResourceInstance
 		fakeWorker               *workerfakes.FakeWorker
@@ -40,7 +39,6 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("test")
 		fakeContainer = new(workerfakes.FakeContainer)
-		resourceOptions = new(resourcefakes.FakeResourceOptions)
 		signals = make(<-chan os.Signal)
 		ready = make(chan<- struct{})
 
@@ -99,7 +97,6 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			resourceCache,
 			fakeResourceInstance,
 			fakeWorker,
-			resourceOptions,
 			resourceTypes,
 			atc.Tags{},
 			42,
@@ -117,7 +114,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				expectedMetadata := []atc.MetadataField{
 					{Name: "some", Value: "metadata"},
 				}
-				expectedInitializedVersionedSource = resource.NewGetVersionedSource(fakeVolume, resourceOptions.Version(), expectedMetadata)
+				expectedInitializedVersionedSource = resource.NewGetVersionedSource(fakeVolume, fakeResourceInstance.Version(), expectedMetadata)
 				fakeResourceInstance.FindOnReturns(fakeVolume, true, nil)
 			})
 
@@ -151,7 +148,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		)
 
 		BeforeEach(func() {
-			resourceOptions.ResourceTypeReturns(resource.ResourceType("fake-resource-type"))
+			fakeResourceInstance.ResourceTypeReturns(resource.ResourceType("fake-resource-type"))
 		})
 
 		JustBeforeEach(func() {
@@ -164,7 +161,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				expectedMetadata := []atc.MetadataField{
 					{Name: "some", Value: "metadata"},
 				}
-				expectedVersionedSource = resource.NewGetVersionedSource(fakeVolume, resourceOptions.Version(), expectedMetadata)
+				expectedVersionedSource = resource.NewGetVersionedSource(fakeVolume, fakeResourceInstance.Version(), expectedMetadata)
 			})
 
 			It("does not fetch resource", func() {

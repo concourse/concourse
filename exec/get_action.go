@@ -2,9 +2,6 @@ package exec
 
 import (
 	"archive/tar"
-	"crypto/sha256"
-	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 
@@ -78,13 +75,6 @@ func (action *GetAction) Run(
 		return err
 	}
 
-	resourceDefinition := &getResource{
-		source:                action.Source,
-		resourceType:          resource.ResourceType(action.Type),
-		imageFetchingDelegate: action.imageFetchingDelegate,
-		params:                action.Params,
-		version:               version,
-	}
 	resourceInstance := resource.NewResourceInstance(
 		resource.ResourceType(action.Type),
 		version,
@@ -107,7 +97,6 @@ func (action *GetAction) Run(
 		resourceInstance,
 		action.stepMetadata,
 		action.imageFetchingDelegate,
-		resourceDefinition,
 		signals,
 		ready,
 	)
@@ -191,59 +180,4 @@ func (s *getArtifactSource) StreamFile(path string) (io.ReadCloser, error) {
 		Reader: tarReader,
 		Closer: out,
 	}, nil
-}
-
-type getResource struct {
-	imageFetchingDelegate ImageFetchingDelegate
-	resourceType          resource.ResourceType
-	source                atc.Source
-	params                atc.Params
-	version               atc.Version
-}
-
-func (d *getResource) IOConfig() resource.IOConfig {
-	return resource.IOConfig{
-		Stdout: d.imageFetchingDelegate.Stdout(),
-		Stderr: d.imageFetchingDelegate.Stderr(),
-	}
-}
-
-func (d *getResource) Source() atc.Source {
-	return d.source
-}
-
-func (d *getResource) Params() atc.Params {
-	return d.params
-}
-
-func (d *getResource) Version() atc.Version {
-	return d.version
-}
-
-func (d *getResource) ResourceType() resource.ResourceType {
-	return d.resourceType
-}
-
-func (d *getResource) LockName(workerName string) (string, error) {
-	id := &getStepLockID{
-		Type:       d.resourceType,
-		Version:    d.version,
-		Source:     d.source,
-		Params:     d.params,
-		WorkerName: workerName,
-	}
-
-	taskNameJSON, err := json.Marshal(id)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
-}
-
-type getStepLockID struct {
-	Type       resource.ResourceType `json:"type"`
-	Version    atc.Version           `json:"version"`
-	Source     atc.Source            `json:"source"`
-	Params     atc.Params            `json:"params"`
-	WorkerName string                `json:"worker_name"`
 }
