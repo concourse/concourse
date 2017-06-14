@@ -40,7 +40,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			var resourceCacheUsesNum int
 			err = psql.Select("COUNT(*)").From("resource_cache_uses").RunWith(dbConn).QueryRow().Scan(&resourceCacheUsesNum)
 			Expect(err).ToNot(HaveOccurred())
-			// there is going to be one for image resource
+			// one for image resource, one for time
 			Expect(resourceCacheUsesNum).To(Equal(2))
 
 			By("updating pipeline and removing resource")
@@ -59,8 +59,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			By("expiring the resource caches uses")
 			err = psql.Select("COUNT(*)").From("resource_cache_uses").RunWith(dbConn).QueryRow().Scan(&resourceCacheUsesNum)
 			Expect(err).ToNot(HaveOccurred())
-			// there is going to be one for image resource
-			Expect(resourceCacheUsesNum).To(Equal(1))
+			Expect(resourceCacheUsesNum).To(BeZero())
 		})
 	})
 
@@ -83,7 +82,6 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			volumes := flyTable("volumes")
 			originalResourceVolumeHandles := []string{}
 			for _, volume := range volumes {
-				// there is going to be one for image resource
 				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
 					originalResourceVolumeHandles = append(originalResourceVolumeHandles, volume["handle"])
 				}
@@ -123,7 +121,6 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 		})
 
 		It("has its resource cache, resource cache uses and resource cache volumes cleared out", func() {
-
 			By("setting pipeline that creates resource cache")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
@@ -137,7 +134,6 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			volumes := flyTable("volumes")
 			resourceVolumeHandles := []string{}
 			for _, volume := range volumes {
-				// there is going to be one for image resource
 				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
 					resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 				}
@@ -154,7 +150,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			var resourceCacheUsesNum int
 			err = psql.Select("COUNT(*)").From("resource_cache_uses").RunWith(dbConn).QueryRow().Scan(&resourceCacheUsesNum)
 			Expect(err).ToNot(HaveOccurred())
-			// there is going to be one for image resource
+			// one for image resource, one for time
 			Expect(resourceCacheUsesNum).To(Equal(2))
 
 			By("pausing the pipeline")
@@ -173,8 +169,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			By("expiring the resource caches uses")
 			err = psql.Select("COUNT(*)").From("resource_cache_uses").RunWith(dbConn).QueryRow().Scan(&resourceCacheUsesNum)
 			Expect(err).ToNot(HaveOccurred())
-			// there is going to be one for image resource
-			Expect(resourceCacheUsesNum).To(Equal(1))
+			Expect(resourceCacheUsesNum).To(BeZero())
 		})
 	})
 
@@ -212,7 +207,6 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			volumes := flyTable("volumes")
 			originalResourceVolumeHandles := []string{}
 			for _, volume := range volumes {
-				// there is going to be one for image resource
 				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
 					originalResourceVolumeHandles = append(originalResourceVolumeHandles, volume["handle"])
 				}
@@ -235,7 +229,6 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 				volumes := flyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
-					// there is going to be one for image resource
 					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
