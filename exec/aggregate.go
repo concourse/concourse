@@ -13,11 +13,11 @@ import (
 type Aggregate []StepFactory
 
 // Using delegates to each StepFactory and returns an AggregateStep.
-func (a Aggregate) Using(repo *worker.ArtifactRepository) Step {
+func (a Aggregate) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	sources := AggregateStep{}
 
 	for _, step := range a {
-		sources = append(sources, step.Using(repo))
+		sources = append(sources, step.Using(prev, repo))
 	}
 
 	return sources
@@ -78,15 +78,38 @@ func (step AggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) e
 	return nil
 }
 
-// Succeeded is true if all of the steps' Succeeded is true
-func (step AggregateStep) Succeeded() bool {
-	succeeded := true
-
-	for _, src := range step {
-		if !src.Succeeded() {
-			succeeded = false
+// Result indicates Success as true if all of the steps indicate Success as
+// true, or if there were no steps at all. If none of the steps can indicate
+// Success, it will return false and not indicate success itself.
+//
+// All other result types are ignored, and Result will return false.
+func (step AggregateStep) Result(x interface{}) bool {
+	if success, ok := x.(*Success); ok {
+		if len(step) == 0 {
+			*success = Success(true)
+			return true
 		}
+
+		succeeded := true
+		anyIndicated := false
+		for _, src := range step {
+			var s Success
+			if !src.Result(&s) {
+				continue
+			}
+
+			anyIndicated = true
+			succeeded = succeeded && bool(s)
+		}
+
+		if !anyIndicated {
+			return false
+		}
+
+		*success = Success(succeeded)
+
+		return true
 	}
 
-	return succeeded
+	return false
 }

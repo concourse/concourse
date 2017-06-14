@@ -14,30 +14,30 @@ import (
 	"github.com/concourse/baggageclaim"
 )
 
-//go:generate counterfeiter . TaskConfigFetcher
+//go:generate counterfeiter . TaskConfigSource
 
-// TaskConfigFetcher is used to determine a Task step's TaskConfig.
-type TaskConfigFetcher interface {
+// TaskConfigSource is used to determine a Task step's TaskConfig.
+type TaskConfigSource interface {
 	// FetchConfig returns the TaskConfig, and may have to a task config file out
 	// of the worker.ArtifactRepository.
 	FetchConfig(*worker.ArtifactRepository) (atc.TaskConfig, error)
 	Warnings() []string
 }
 
-// StaticConfigFetcher represents a statically configured TaskConfig.
-type StaticConfigFetcher struct {
+// StaticConfigSource represents a statically configured TaskConfig.
+type StaticConfigSource struct {
 	Plan atc.TaskPlan
 }
 
 // FetchConfig returns the configuration.
-func (configFetcher StaticConfigFetcher) FetchConfig(*worker.ArtifactRepository) (atc.TaskConfig, error) {
+func (configSource StaticConfigSource) FetchConfig(*worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig := atc.TaskConfig{}
 
-	if configFetcher.Plan.Config != nil && configFetcher.Plan.Config.TaskConfig != nil {
-		taskConfig = *configFetcher.Plan.Config.TaskConfig
+	if configSource.Plan.Config != nil && configSource.Plan.Config.TaskConfig != nil {
+		taskConfig = *configSource.Plan.Config.TaskConfig
 	}
 
-	if configFetcher.Plan.Params == nil {
+	if configSource.Plan.Params == nil {
 		return taskConfig, nil
 	}
 
@@ -45,7 +45,7 @@ func (configFetcher StaticConfigFetcher) FetchConfig(*worker.ArtifactRepository)
 		taskConfig.Params = map[string]string{}
 	}
 
-	for key, val := range configFetcher.Plan.Params {
+	for key, val := range configSource.Plan.Params {
 		switch v := val.(type) {
 		case string:
 			taskConfig.Params[key] = v
@@ -67,42 +67,42 @@ func (configFetcher StaticConfigFetcher) FetchConfig(*worker.ArtifactRepository)
 	return taskConfig, nil
 }
 
-func (configFetcher StaticConfigFetcher) Warnings() []string {
+func (configSource StaticConfigSource) Warnings() []string {
 	warnings := []string{}
-	if configFetcher.Plan.ConfigPath != "" && configFetcher.Plan.Config != nil {
+	if configSource.Plan.ConfigPath != "" && configSource.Plan.Config != nil {
 		warnings = append(warnings, "\x1b[31mDEPRECATION WARNING: Specifying both `file` and `config.params` in a task step is deprecated, use params on task step directly\x1b[0m")
 	}
 
 	return warnings
 }
 
-// DeprecationConfigFetcher represents a statically configured TaskConfig.
-type DeprecationConfigFetcher struct {
-	Delegate TaskConfigFetcher
+// DeprecationConfigSource represents a statically configured TaskConfig.
+type DeprecationConfigSource struct {
+	Delegate TaskConfigSource
 	Stderr   io.Writer
 }
 
 // FetchConfig returns the configuration. It cannot fail.
-func (configFetcher DeprecationConfigFetcher) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	taskConfig, err := configFetcher.Delegate.FetchConfig(repo)
+func (configSource DeprecationConfigSource) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
+	taskConfig, err := configSource.Delegate.FetchConfig(repo)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}
 
-	for _, warning := range configFetcher.Delegate.Warnings() {
-		fmt.Fprintln(configFetcher.Stderr, warning)
+	for _, warning := range configSource.Delegate.Warnings() {
+		fmt.Fprintln(configSource.Stderr, warning)
 	}
 
 	return taskConfig, nil
 }
 
-func (configFetcher DeprecationConfigFetcher) Warnings() []string {
+func (configSource DeprecationConfigSource) Warnings() []string {
 	return []string{}
 }
 
-// FileConfigFetcher represents a dynamically configured TaskConfig, which will
+// FileConfigSource represents a dynamically configured TaskConfig, which will
 // be fetched from a specified file in the worker.ArtifactRepository.
-type FileConfigFetcher struct {
+type FileConfigSource struct {
 	Path string
 }
 
@@ -121,10 +121,10 @@ type FileConfigFetcher struct {
 //
 // If the task config file is not found, or is invalid YAML, or is an invalid
 // task configuration, the respective errors will be bubbled up.
-func (configFetcher FileConfigFetcher) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	segs := strings.SplitN(configFetcher.Path, "/", 2)
+func (configSource FileConfigSource) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
+	segs := strings.SplitN(configSource.Path, "/", 2)
 	if len(segs) != 2 {
-		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configFetcher.Path}
+		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.Path}
 	}
 
 	sourceName := worker.ArtifactName(segs[0])
@@ -152,32 +152,32 @@ func (configFetcher FileConfigFetcher) FetchConfig(repo *worker.ArtifactReposito
 
 	config, err := atc.NewTaskConfig(streamedFile)
 	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configFetcher.Path, err)
+		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.Path, err)
 	}
 
 	return config, nil
 }
 
-func (configFetcher FileConfigFetcher) Warnings() []string {
+func (configSource FileConfigSource) Warnings() []string {
 	return []string{}
 }
 
-// MergedConfigFetcher is used to join two config sources together.
-type MergedConfigFetcher struct {
-	A TaskConfigFetcher
-	B TaskConfigFetcher
+// MergedConfigSource is used to join two config sources together.
+type MergedConfigSource struct {
+	A TaskConfigSource
+	B TaskConfigSource
 }
 
 // FetchConfig fetches both config sources, and merges the second config source
 // into the first. This allows the user to set params required by a task loaded
 // from a file by providing them in static configuration.
-func (configFetcher MergedConfigFetcher) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	aConfig, err := configFetcher.A.FetchConfig(source)
+func (configSource MergedConfigSource) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
+	aConfig, err := configSource.A.FetchConfig(source)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}
 
-	bConfig, err := configFetcher.B.FetchConfig(source)
+	bConfig, err := configSource.B.FetchConfig(source)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}
@@ -185,24 +185,24 @@ func (configFetcher MergedConfigFetcher) FetchConfig(source *worker.ArtifactRepo
 	return aConfig.Merge(bConfig), nil
 }
 
-func (configFetcher MergedConfigFetcher) Warnings() []string {
+func (configSource MergedConfigSource) Warnings() []string {
 	warnings := []string{}
-	warnings = append(warnings, configFetcher.A.Warnings()...)
-	warnings = append(warnings, configFetcher.B.Warnings()...)
+	warnings = append(warnings, configSource.A.Warnings()...)
+	warnings = append(warnings, configSource.B.Warnings()...)
 
 	return warnings
 }
 
-// ValidatingConfigFetcher delegates to another ConfigFetcher, and validates its
+// ValidatingConfigSource delegates to another ConfigSource, and validates its
 // task config.
-type ValidatingConfigFetcher struct {
-	ConfigFetcher TaskConfigFetcher
+type ValidatingConfigSource struct {
+	ConfigSource TaskConfigSource
 }
 
-// FetchConfig fetches the config using the underlying ConfigFetcher, and checks
+// FetchConfig fetches the config using the underlying ConfigSource, and checks
 // that it's valid.
-func (configFetcher ValidatingConfigFetcher) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	config, err := configFetcher.ConfigFetcher.FetchConfig(source)
+func (configSource ValidatingConfigSource) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
+	config, err := configSource.ConfigSource.FetchConfig(source)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}
@@ -214,8 +214,8 @@ func (configFetcher ValidatingConfigFetcher) FetchConfig(source *worker.Artifact
 	return config, nil
 }
 
-func (configFetcher ValidatingConfigFetcher) Warnings() []string {
-	return configFetcher.ConfigFetcher.Warnings()
+func (configSource ValidatingConfigSource) Warnings() []string {
+	return configSource.ConfigSource.Warnings()
 }
 
 // UnknownArtifactSourceError is returned when the worker.ArtifactName specified by the

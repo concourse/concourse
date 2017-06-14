@@ -43,6 +43,8 @@ func (factory PlanFactory) NewPlan(step Step) Plan {
 		plan.OnFailure = &t
 	case TryPlan:
 		plan.Try = &t
+	case DependentGetPlan:
+		plan.DependentGet = &t
 	case TimeoutPlan:
 		plan.Timeout = &t
 	case RetryPlan:

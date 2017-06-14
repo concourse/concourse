@@ -154,7 +154,7 @@ handleEvent event model =
             , OutNoop
             )
 
-        Concourse.BuildEvents.Initialize origin ->
+        Concourse.BuildEvents.InitializeTask origin ->
             ( updateStep origin.id setRunning model
             , Cmd.none
             , OutNoop
@@ -172,8 +172,20 @@ handleEvent event model =
             , OutNoop
             )
 
+        Concourse.BuildEvents.InitializeGet origin ->
+            ( updateStep origin.id setRunning model
+            , Cmd.none
+            , OutNoop
+            )
+
         Concourse.BuildEvents.FinishGet origin exitStatus version metadata ->
             ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
+            , Cmd.none
+            , OutNoop
+            )
+
+        Concourse.BuildEvents.InitializePut origin ->
+            ( updateStep origin.id setRunning model
             , Cmd.none
             , OutNoop
             )

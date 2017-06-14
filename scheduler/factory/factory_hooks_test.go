@@ -17,7 +17,6 @@ var _ = Describe("Factory Hooks", func() {
 		resourceTypes       atc.VersionedResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
-		version             atc.Version
 	)
 
 	BeforeEach(func() {
@@ -450,7 +449,6 @@ var _ = Describe("Factory Hooks", func() {
 					Source: atc.Source{
 						"uri": "git://some-resource",
 					},
-					Version:                &version,
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -486,7 +484,6 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
-						Version:                &version,
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -524,7 +521,6 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
-						Version:                &version,
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -566,7 +562,6 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
-						Version:                &version,
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -657,7 +652,6 @@ var _ = Describe("Factory Hooks", func() {
 							Source: atc.Source{
 								"uri": "git://some-resource",
 							},
-							Version:                &version,
 							VersionedResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -673,7 +667,6 @@ var _ = Describe("Factory Hooks", func() {
 					Source: atc.Source{
 						"uri": "git://some-resource",
 					},
-					Version:                &version,
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})

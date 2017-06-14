@@ -41,7 +41,7 @@ var _ = Describe("Timeout Step", func() {
 
 	JustBeforeEach(func() {
 		timeout = Timeout(fakeStepFactoryStep, timeoutDuration, fakeClock)
-		step = timeout.Using(nil)
+		step = timeout.Using(nil, nil)
 		process = ifrit.Background(step)
 	})
 
@@ -87,7 +87,9 @@ var _ = Describe("Timeout Step", func() {
 
 				Expect(<-process.Wait()).To(Succeed())
 
-				Expect(step.Succeeded()).To(BeFalse())
+				var success Success
+				Expect(step.Result(&success)).To(BeTrue())
+				Expect(bool(success)).To(BeFalse())
 			})
 		})
 	})
@@ -97,7 +99,7 @@ var _ = Describe("Timeout Step", func() {
 
 		BeforeEach(func() {
 			someError = errors.New("some error")
-			runStep.SucceededReturns(false)
+			runStep.ResultStub = successResult(false)
 			runStep.RunReturns(someError)
 		})
 
@@ -133,25 +135,29 @@ var _ = Describe("Timeout Step", func() {
 
 		Context("when the step is successful", func() {
 			BeforeEach(func() {
-				runStep.SucceededReturns(true)
+				runStep.ResultStub = successResult(true)
 			})
 
 			It("is successful", func() {
 				Eventually(process.Wait()).Should(Receive(BeNil()))
 
-				Expect(step.Succeeded()).To(BeTrue())
+				var success Success
+				Expect(step.Result(&success)).To(BeTrue())
+				Expect(bool(success)).To(BeTrue())
 			})
 		})
 
 		Context("when the step fails", func() {
 			BeforeEach(func() {
-				runStep.SucceededReturns(false)
+				runStep.ResultStub = successResult(false)
 			})
 
 			It("is not successful", func() {
 				Eventually(process.Wait()).Should(Receive(BeNil()))
 
-				Expect(step.Succeeded()).To(BeFalse())
+				var success Success
+				Expect(step.Result(&success)).To(BeTrue())
+				Expect(bool(success)).To(BeFalse())
 			})
 		})
 

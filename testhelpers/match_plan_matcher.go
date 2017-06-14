@@ -133,12 +133,5 @@ func stripIDs(plan atc.Plan) (atc.Plan, []string) {
 		ids = append(ids, subIDs...)
 	}
 
-	if plan.Get != nil {
-		if plan.Get.VersionFrom != nil {
-			planID := atc.PlanID("<stripped>")
-			plan.Get.VersionFrom = &planID
-		}
-	}
-
 	return plan, ids
 }

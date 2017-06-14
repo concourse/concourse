@@ -41,12 +41,12 @@ var _ = Describe("Retry Step", func() {
 		attempt3Factory.UsingReturns(attempt3Step)
 
 		stepFactory = Retry{attempt1Factory, attempt2Factory, attempt3Factory}
-		step = stepFactory.Using(nil)
+		step = stepFactory.Using(nil, nil)
 	})
 
 	Context("when attempt 1 succeeds", func() {
 		BeforeEach(func() {
-			attempt1Step.SucceededReturns(true)
+			attempt1Step.ResultStub = successResult(true)
 		})
 
 		Describe("Run", func() {
@@ -64,18 +64,21 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3Step.RunCallCount()).To(Equal(0))
 			})
 
-			Describe("Succeeded", func() {
+			Describe("Result", func() {
 				It("delegates to attempt 1", func() {
 					<-process.Wait()
 
 					// internal check for success within retry loop
-					Expect(attempt1Step.SucceededCallCount()).To(Equal(1))
+					Expect(attempt1Step.ResultCallCount()).To(Equal(1))
 
-					attempt1Step.SucceededReturns(true)
+					attempt1Step.ResultReturns(true)
 
-					Expect(step.Succeeded()).To(BeTrue())
+					var foo interface{}
+					destination := &foo
+					Expect(step.Result(destination)).To(BeTrue())
 
-					Expect(attempt1Step.SucceededCallCount()).To(Equal(2))
+					Expect(attempt1Step.ResultCallCount()).To(Equal(2))
+					Expect(attempt1Step.ResultArgsForCall(1)).To(Equal(destination))
 				})
 			})
 		})
@@ -83,8 +86,8 @@ var _ = Describe("Retry Step", func() {
 
 	Context("when attempt 1 fails, and attempt 2 succeeds", func() {
 		BeforeEach(func() {
-			attempt1Step.SucceededReturns(false)
-			attempt2Step.SucceededReturns(true)
+			attempt1Step.ResultStub = successResult(false)
+			attempt2Step.ResultStub = successResult(true)
 		})
 
 		Describe("Run", func() {
@@ -102,18 +105,21 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3Step.RunCallCount()).To(Equal(0))
 			})
 
-			Describe("Succeeded", func() {
+			Describe("Result", func() {
 				It("delegates to attempt 2", func() {
 					<-process.Wait()
 
 					// internal check for success within retry loop
-					Expect(attempt2Step.SucceededCallCount()).To(Equal(1))
+					Expect(attempt2Step.ResultCallCount()).To(Equal(1))
 
-					attempt2Step.SucceededReturns(true)
+					attempt2Step.ResultReturns(true)
 
-					Expect(step.Succeeded()).To(BeTrue())
+					var foo interface{}
+					destination := &foo
+					Expect(step.Result(destination)).To(BeTrue())
 
-					Expect(attempt2Step.SucceededCallCount()).To(Equal(2))
+					Expect(attempt2Step.ResultCallCount()).To(Equal(2))
+					Expect(attempt2Step.ResultArgsForCall(1)).To(Equal(destination))
 				})
 			})
 		})
@@ -122,7 +128,7 @@ var _ = Describe("Retry Step", func() {
 	Context("when attempt 1 errors, and attempt 2 succeeds", func() {
 		BeforeEach(func() {
 			attempt1Step.RunReturns(errors.New("nope"))
-			attempt2Step.SucceededReturns(true)
+			attempt2Step.ResultStub = successResult(true)
 		})
 
 		Describe("Run", func() {
@@ -140,18 +146,21 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3Step.RunCallCount()).To(Equal(0))
 			})
 
-			Describe("Succeeded", func() {
+			Describe("Result", func() {
 				It("delegates to attempt 2", func() {
 					<-process.Wait()
 
 					// internal check for success within retry loop
-					Expect(attempt2Step.SucceededCallCount()).To(Equal(1))
+					Expect(attempt2Step.ResultCallCount()).To(Equal(1))
 
-					attempt2Step.SucceededReturns(true)
+					attempt2Step.ResultReturns(true)
 
-					Expect(step.Succeeded()).To(BeTrue())
+					var foo interface{}
+					destination := &foo
+					Expect(step.Result(destination)).To(BeTrue())
 
-					Expect(attempt2Step.SucceededCallCount()).To(Equal(2))
+					Expect(attempt2Step.ResultCallCount()).To(Equal(2))
+					Expect(attempt2Step.ResultArgsForCall(1)).To(Equal(destination))
 				})
 			})
 		})
@@ -187,18 +196,21 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3Step.RunCallCount()).To(Equal(0))
 			})
 
-			Describe("Succeeded", func() {
+			Describe("Result", func() {
 				It("delegates to attempt 2", func() {
 					<-process.Wait()
 
 					// internal check for success within retry loop
-					Expect(attempt2Step.SucceededCallCount()).To(Equal(0))
+					Expect(attempt2Step.ResultCallCount()).To(Equal(0))
 
-					attempt2Step.SucceededReturns(true)
+					attempt2Step.ResultReturns(true)
 
-					Expect(step.Succeeded()).To(BeTrue())
+					var foo interface{}
+					destination := &foo
+					Expect(step.Result(destination)).To(BeTrue())
 
-					Expect(attempt2Step.SucceededCallCount()).To(Equal(1))
+					Expect(attempt2Step.ResultCallCount()).To(Equal(1))
+					Expect(attempt2Step.ResultArgsForCall(0)).To(Equal(destination))
 				})
 			})
 		})
@@ -206,9 +218,9 @@ var _ = Describe("Retry Step", func() {
 
 	Context("when attempt 1 fails, attempt 2 fails, and attempt 3 succeeds", func() {
 		BeforeEach(func() {
-			attempt1Step.SucceededReturns(false)
-			attempt2Step.SucceededReturns(false)
-			attempt3Step.SucceededReturns(true)
+			attempt1Step.ResultStub = successResult(false)
+			attempt2Step.ResultStub = successResult(false)
+			attempt3Step.ResultStub = successResult(true)
 		})
 
 		Describe("Run", func() {
@@ -226,18 +238,21 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3Step.RunCallCount()).To(Equal(1))
 			})
 
-			Describe("Succeeded", func() {
+			Describe("Result", func() {
 				It("delegates to attempt 3", func() {
 					<-process.Wait()
 
 					// internal check for success within retry loop
-					Expect(attempt3Step.SucceededCallCount()).To(Equal(1))
+					Expect(attempt3Step.ResultCallCount()).To(Equal(1))
 
-					attempt3Step.SucceededReturns(true)
+					attempt3Step.ResultReturns(true)
 
-					Expect(step.Succeeded()).To(BeTrue())
+					var foo interface{}
+					destination := &foo
+					Expect(step.Result(destination)).To(BeTrue())
 
-					Expect(attempt3Step.SucceededCallCount()).To(Equal(2))
+					Expect(attempt3Step.ResultCallCount()).To(Equal(2))
+					Expect(attempt3Step.ResultArgsForCall(1)).To(Equal(destination))
 				})
 			})
 		})
@@ -247,8 +262,8 @@ var _ = Describe("Retry Step", func() {
 		disaster := errors.New("nope")
 
 		BeforeEach(func() {
-			attempt1Step.SucceededReturns(false)
-			attempt2Step.SucceededReturns(false)
+			attempt1Step.ResultStub = successResult(false)
+			attempt2Step.ResultStub = successResult(false)
 			attempt3Step.RunReturns(disaster)
 		})
 
@@ -267,18 +282,21 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3Step.RunCallCount()).To(Equal(1))
 			})
 
-			Describe("Succeeded", func() {
+			Describe("Result", func() {
 				It("delegates to attempt 3", func() {
 					<-process.Wait()
 
 					// no internal check for success within retry loop, since it errored
-					Expect(attempt3Step.SucceededCallCount()).To(Equal(0))
+					Expect(attempt3Step.ResultCallCount()).To(Equal(0))
 
-					attempt3Step.SucceededReturns(true)
+					attempt3Step.ResultReturns(true)
 
-					Expect(step.Succeeded()).To(BeTrue())
+					var foo interface{}
+					destination := &foo
+					Expect(step.Result(destination)).To(BeTrue())
 
-					Expect(attempt3Step.SucceededCallCount()).To(Equal(1))
+					Expect(attempt3Step.ResultCallCount()).To(Equal(1))
+					Expect(attempt3Step.ResultArgsForCall(0)).To(Equal(destination))
 				})
 			})
 		})
@@ -286,9 +304,9 @@ var _ = Describe("Retry Step", func() {
 
 	Context("when attempt 1 fails, attempt 2 fails, and attempt 3 fails", func() {
 		BeforeEach(func() {
-			attempt1Step.SucceededReturns(false)
-			attempt2Step.SucceededReturns(false)
-			attempt3Step.SucceededReturns(true)
+			attempt1Step.ResultStub = successResult(false)
+			attempt2Step.ResultStub = successResult(false)
+			attempt3Step.ResultStub = successResult(true)
 		})
 
 		Describe("Run", func() {
@@ -306,18 +324,21 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3Step.RunCallCount()).To(Equal(1))
 			})
 
-			Describe("Succeeded", func() {
+			Describe("Result", func() {
 				It("delegates to attempt 3", func() {
 					<-process.Wait()
 
 					// internal check for success within retry loop
-					Expect(attempt3Step.SucceededCallCount()).To(Equal(1))
+					Expect(attempt3Step.ResultCallCount()).To(Equal(1))
 
-					attempt3Step.SucceededReturns(true)
+					attempt3Step.ResultReturns(true)
 
-					Expect(step.Succeeded()).To(BeTrue())
+					var foo interface{}
+					destination := &foo
+					Expect(step.Result(destination)).To(BeTrue())
 
-					Expect(attempt3Step.SucceededCallCount()).To(Equal(2))
+					Expect(attempt3Step.ResultCallCount()).To(Equal(2))
+					Expect(attempt3Step.ResultArgsForCall(1)).To(Equal(destination))
 				})
 			})
 		})
