@@ -154,20 +154,18 @@ func (f *resourceCacheFactory) CleanUsesForInactiveResources() error {
 
 func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	stillInUseCacheIds, _, err := sq.
-		Select("rc.id").
+		Select("resource_cache_id").
 		Distinct().
-		From("resource_caches rc").
-		Join("resource_cache_uses rcu ON rc.id = rcu.resource_cache_id").
+		From("resource_cache_uses").
 		ToSql()
 	if err != nil {
 		return err
 	}
 
 	buildImageCacheIds, _, err := sq.
-		Select("rc.id").
+		Select("resource_cache_id").
 		Distinct().
-		From("resource_caches rc").
-		Join("build_image_resource_caches birc ON rc.id = birc.resource_cache_id").
+		From("build_image_resource_caches").
 		ToSql()
 	if err != nil {
 		return err
