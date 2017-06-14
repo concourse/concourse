@@ -27,7 +27,6 @@ files:
   - github.com/concourse/atc/auth/uaa/*.go # gosub
   - github.com/concourse/atc/auth/verifier/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
-  - github.com/concourse/atc/template/*.go # gosub
   - github.com/concourse/atc/web/*.go # gosub
   - github.com/concourse/fly/*.go # gosub
   - github.com/concourse/fly/commands/*.go # gosub
