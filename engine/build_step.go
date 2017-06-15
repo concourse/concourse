@@ -5,7 +5,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 )
 
 func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
@@ -77,34 +79,58 @@ func (build *execBuild) buildEnsureStep(logger lager.Logger, plan atc.Plan) exec
 	return exec.Ensure(step, next)
 }
 
-// needs rootfs
 func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("task")
 
-	containerMetadata := build.containerMetadata(
+	var configSource exec.TaskConfigSource
+	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
+		configSource = exec.MergedConfigSource{
+			A: exec.FileConfigSource{plan.Task.ConfigPath},
+			B: exec.StaticConfigSource{*plan.Task},
+		}
+	} else if plan.Task.Config != nil {
+		configSource = exec.StaticConfigSource{*plan.Task}
+	} else if plan.Task.ConfigPath != "" {
+		configSource = exec.FileConfigSource{plan.Task.ConfigPath}
+	} else {
+		return exec.Identity{}
+	}
+
+	configSource = exec.ValidatingConfigSource{configSource}
+
+	workerMetadata := build.workerMetadata(
 		db.ContainerTypeTask,
 		plan.Task.Name,
 		plan.Attempts,
 	)
 
+	clock := clock.NewClock()
+
 	return build.factory.Task(
 		logger,
-		plan,
 		build.teamID,
 		build.buildID,
-		containerMetadata,
-		build.delegate.DBBuildEventsDelegate(plan.ID),
-		build.delegate.ImageFetchingDelegate(plan.ID),
+		plan.ID,
+		worker.ArtifactName(plan.Task.Name),
+		workerMetadata,
+		build.delegate.ExecutionDelegate(logger, *plan.Task, event.OriginID(plan.ID)),
+		exec.Privileged(plan.Task.Privileged),
+		plan.Task.Tags,
+		configSource,
+		plan.Task.VersionedResourceTypes,
+		plan.Task.InputMapping,
+		plan.Task.OutputMapping,
+		plan.Task.ImageArtifactName,
+		clock,
 	)
 }
 
-// needs rootfs
 func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("get", lager.Data{
 		"name": plan.Get.Name,
 	})
 
-	containerMetadata := build.containerMetadata(
+	workerMetadata := build.workerMetadata(
 		db.ContainerTypeGet,
 		plan.Get.Name,
 		plan.Attempts,
@@ -112,23 +138,31 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 
 	return build.factory.Get(
 		logger,
-		build.buildID,
 		build.teamID,
-		plan,
+		build.buildID,
+		plan.ID,
 		build.stepMetadata,
-		containerMetadata,
-		build.delegate.DBBuildEventsDelegate(plan.ID),
-		build.delegate.ImageFetchingDelegate(plan.ID),
+		worker.ArtifactName(plan.Get.Name),
+		workerMetadata,
+		build.delegate.InputDelegate(logger, *plan.Get, event.OriginID(plan.ID)),
+		atc.ResourceConfig{
+			Name:   plan.Get.Resource,
+			Type:   plan.Get.Type,
+			Source: plan.Get.Source,
+		},
+		plan.Get.Tags,
+		plan.Get.Params,
+		plan.Get.Version,
+		plan.Get.VersionedResourceTypes,
 	)
 }
 
-// needs rootfs
 func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	logger = logger.Session("put", lager.Data{
 		"name": plan.Put.Name,
 	})
 
-	containerMetadata := build.containerMetadata(
+	workerMetadata := build.workerMetadata(
 		db.ContainerTypePut,
 		plan.Put.Name,
 		plan.Attempts,
@@ -138,11 +172,51 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		logger,
 		build.teamID,
 		build.buildID,
-		plan,
+		plan.ID,
 		build.stepMetadata,
-		containerMetadata,
-		build.delegate.DBBuildEventsDelegate(plan.ID),
-		build.delegate.ImageFetchingDelegate(plan.ID),
+		workerMetadata,
+		build.delegate.OutputDelegate(logger, *plan.Put, event.OriginID(plan.ID)),
+		atc.ResourceConfig{
+			Name:   plan.Put.Resource,
+			Type:   plan.Put.Type,
+			Source: plan.Put.Source,
+		},
+		plan.Put.Tags,
+		plan.Put.Params,
+		plan.Put.VersionedResourceTypes,
+	)
+}
+
+func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
+	logger = logger.Session("get", lager.Data{
+		"name": plan.DependentGet.Name,
+	})
+
+	getPlan := plan.DependentGet.GetPlan()
+
+	workerMetadata := build.workerMetadata(
+		db.ContainerTypeGet,
+		getPlan.Name,
+		plan.Attempts,
+	)
+
+	return build.factory.DependentGet(
+		logger,
+		build.teamID,
+		build.buildID,
+		plan.ID,
+		build.stepMetadata,
+		worker.ArtifactName(getPlan.Name),
+		workerMetadata,
+		build.delegate.InputDelegate(logger, getPlan, event.OriginID(plan.ID)),
+		atc.ResourceConfig{
+			Name:   getPlan.Resource,
+			Type:   getPlan.Type,
+			Source: getPlan.Source,
+		},
+		getPlan.Tags,
+		getPlan.Params,
+		getPlan.VersionedResourceTypes,
 	)
 }
 

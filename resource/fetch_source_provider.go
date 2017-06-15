@@ -20,6 +20,7 @@ type FetchSourceProviderFactory interface {
 		teamID int,
 		resourceTypes atc.VersionedResourceTypes,
 		resourceInstance ResourceInstance,
+		resourceOptions ResourceOptions,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) FetchSourceProvider
 }
@@ -61,6 +62,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 	teamID int,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceInstance ResourceInstance,
+	resourceOptions ResourceOptions,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) FetchSourceProvider {
 	return &fetchSourceProvider{
@@ -71,6 +73,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 		teamID:                 teamID,
 		resourceTypes:          resourceTypes,
 		resourceInstance:       resourceInstance,
+		resourceOptions:        resourceOptions,
 		imageFetchingDelegate:  imageFetchingDelegate,
 		workerClient:           f.workerClient,
 		dbResourceCacheFactory: f.dbResourceCacheFactory,
@@ -85,6 +88,7 @@ type fetchSourceProvider struct {
 	teamID                 int
 	resourceTypes          atc.VersionedResourceTypes
 	resourceInstance       ResourceInstance
+	resourceOptions        ResourceOptions
 	workerClient           worker.Client
 	imageFetchingDelegate  worker.ImageFetchingDelegate
 	dbResourceCacheFactory db.ResourceCacheFactory
@@ -92,7 +96,7 @@ type fetchSourceProvider struct {
 
 func (f *fetchSourceProvider) Get() (FetchSource, error) {
 	resourceSpec := worker.WorkerSpec{
-		ResourceType: string(f.resourceInstance.ResourceType()),
+		ResourceType: string(f.resourceOptions.ResourceType()),
 		Tags:         f.tags,
 		TeamID:       f.teamID,
 	}
@@ -106,10 +110,10 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 	resourceCache, err := f.dbResourceCacheFactory.FindOrCreateResourceCache(
 		f.logger,
 		f.resourceInstance.ResourceUser(),
-		string(f.resourceInstance.ResourceType()),
-		f.resourceInstance.Version(),
-		f.resourceInstance.Source(),
-		f.resourceInstance.Params(),
+		string(f.resourceOptions.ResourceType()),
+		f.resourceOptions.Version(),
+		f.resourceOptions.Source(),
+		f.resourceOptions.Params(),
 		f.resourceTypes,
 	)
 	if err != nil {
@@ -124,6 +128,7 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		resourceCache,
 		f.resourceInstance,
 		chosenWorker,
+		f.resourceOptions,
 		f.resourceTypes,
 		f.tags,
 		f.teamID,

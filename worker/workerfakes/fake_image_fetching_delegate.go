@@ -10,15 +10,6 @@ import (
 )
 
 type FakeImageFetchingDelegate struct {
-	StdoutStub        func() io.Writer
-	stdoutMutex       sync.RWMutex
-	stdoutArgsForCall []struct{}
-	stdoutReturns     struct {
-		result1 io.Writer
-	}
-	stdoutReturnsOnCall map[int]struct {
-		result1 io.Writer
-	}
 	StderrStub        func() io.Writer
 	stderrMutex       sync.RWMutex
 	stderrArgsForCall []struct{}
@@ -41,46 +32,6 @@ type FakeImageFetchingDelegate struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeImageFetchingDelegate) Stdout() io.Writer {
-	fake.stdoutMutex.Lock()
-	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
-	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct{}{})
-	fake.recordInvocation("Stdout", []interface{}{})
-	fake.stdoutMutex.Unlock()
-	if fake.StdoutStub != nil {
-		return fake.StdoutStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.stdoutReturns.result1
-}
-
-func (fake *FakeImageFetchingDelegate) StdoutCallCount() int {
-	fake.stdoutMutex.RLock()
-	defer fake.stdoutMutex.RUnlock()
-	return len(fake.stdoutArgsForCall)
-}
-
-func (fake *FakeImageFetchingDelegate) StdoutReturns(result1 io.Writer) {
-	fake.StdoutStub = nil
-	fake.stdoutReturns = struct {
-		result1 io.Writer
-	}{result1}
-}
-
-func (fake *FakeImageFetchingDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
-	fake.StdoutStub = nil
-	if fake.stdoutReturnsOnCall == nil {
-		fake.stdoutReturnsOnCall = make(map[int]struct {
-			result1 io.Writer
-		})
-	}
-	fake.stdoutReturnsOnCall[i] = struct {
-		result1 io.Writer
-	}{result1}
 }
 
 func (fake *FakeImageFetchingDelegate) Stderr() io.Writer {
@@ -174,8 +125,6 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturnsOnCall(i int
 func (fake *FakeImageFetchingDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.stdoutMutex.RLock()
-	defer fake.stdoutMutex.RUnlock()
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()

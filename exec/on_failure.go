@@ -12,9 +12,11 @@ type OnFailureStep struct {
 	stepFactory    StepFactory
 	failureFactory StepFactory
 
+	prev Step
 	repo *worker.ArtifactRepository
 
-	step Step
+	step    Step
+	failure Step
 }
 
 // OnFailure constructs an OnFailureStep factory.
@@ -26,10 +28,11 @@ func OnFailure(firstStep StepFactory, secondStep StepFactory) OnFailureStep {
 }
 
 // Using constructs an *OnFailureStep.
-func (o OnFailureStep) Using(repo *worker.ArtifactRepository) Step {
+func (o OnFailureStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	o.repo = repo
+	o.prev = prev
 
-	o.step = o.stepFactory.Using(o.repo)
+	o.step = o.stepFactory.Using(o.prev, o.repo)
 	return &o
 }
 
@@ -40,21 +43,42 @@ func (o OnFailureStep) Using(repo *worker.ArtifactRepository) Step {
 // If the first step fails (that is, its Success result is false), the second
 // step is executed. If the second step errors, its error is returned.
 func (o *OnFailureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	err := o.step.Run(signals, ready)
+	stepRunErr := o.step.Run(signals, ready)
 
-	if err != nil {
-		return err
+	if stepRunErr != nil {
+		return stepRunErr
 	}
 
-	if !o.step.Succeeded() {
-		return o.failureFactory.Using(o.repo).Run(signals, make(chan struct{}))
+	var success Success
+
+	// The contract of the Result method is such that it does not change the value
+	// of the provided pointer if it is not able to respond.
+	// Therefore there is no need to check the return value here.
+	_ = o.step.Result(&success)
+
+	if !success {
+		o.failure = o.failureFactory.Using(o.step, o.repo)
+		err := o.failure.Run(signals, make(chan struct{}))
+		return err
 	}
 
 	return nil
 }
 
-// Succeeded is true if the first step doesn't exist, or if it
-// completed successfully.
-func (o *OnFailureStep) Succeeded() bool {
-	return o.step.Succeeded()
+// Result indicates Success as true if the first step completed successfully.
+//
+// Any other type is ignored.
+func (o *OnFailureStep) Result(x interface{}) bool {
+	switch v := x.(type) {
+	case *Success:
+		if o.failure == nil {
+			*v = true
+			return true
+		}
+		*v = false
+		return true
+
+	default:
+		return false
+	}
 }

@@ -24,6 +24,7 @@ var _ = Describe("FetchSourceProvider", func() {
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
 		logger                   lager.Logger
+		resourceOptions          *resourcefakes.FakeResourceOptions
 		resourceInstance         *resourcefakes.FakeResourceInstance
 		metadata                 = resource.EmptyMetadata{}
 		session                  = resource.Session{}
@@ -51,7 +52,8 @@ var _ = Describe("FetchSourceProvider", func() {
 				Version: atc.Version{"some": "version"},
 			},
 		}
-		resourceInstance.ResourceTypeReturns("some-resource-type")
+		resourceOptions = new(resourcefakes.FakeResourceOptions)
+		resourceOptions.ResourceTypeReturns("some-resource-type")
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		resourceCache = &db.UsedResourceCache{ID: 42}
 		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(resourceCache, nil)
@@ -64,6 +66,7 @@ var _ = Describe("FetchSourceProvider", func() {
 			teamID,
 			resourceTypes,
 			resourceInstance,
+			resourceOptions,
 			fakeImageFetchingDelegate,
 		)
 	})
@@ -99,6 +102,7 @@ var _ = Describe("FetchSourceProvider", func() {
 					resourceCache,
 					resourceInstance,
 					fakeWorker,
+					resourceOptions,
 					resourceTypes,
 					tags,
 					teamID,

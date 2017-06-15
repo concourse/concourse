@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
+	"github.com/concourse/atc/worker"
 
 	"github.com/concourse/atc/exec/execfakes"
 
@@ -79,24 +80,24 @@ var _ = Describe("Exec Engine with Try", func() {
 		BeforeEach(func() {
 			taskStepFactory = new(execfakes.FakeStepFactory)
 			taskStep = new(execfakes.FakeStep)
-			taskStep.SucceededReturns(true)
+			taskStep.ResultStub = successResult(true)
 			taskStepFactory.UsingReturns(taskStep)
 			fakeFactory.TaskReturns(taskStepFactory)
 
 			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
-			inputStep.SucceededReturns(true)
+			inputStep.ResultStub = successResult(true)
 			inputStepFactory.UsingReturns(inputStep)
 			fakeFactory.GetReturns(inputStepFactory)
 		})
 
 		Context("constructing steps", func() {
 			var (
-				fakeDelegate     *enginefakes.FakeBuildDelegate
-				fakeGetDelegate  *execfakes.FakeBuildEventsDelegate
-				fakeTaskDelegate *execfakes.FakeBuildEventsDelegate
-				inputPlan        atc.Plan
-				planFactory      atc.PlanFactory
+				fakeDelegate          *enginefakes.FakeBuildDelegate
+				fakeInputDelegate     *execfakes.FakeGetDelegate
+				fakeExecutionDelegate *execfakes.FakeTaskDelegate
+				inputPlan             atc.Plan
+				planFactory           atc.PlanFactory
 			)
 
 			BeforeEach(func() {
@@ -104,11 +105,11 @@ var _ = Describe("Exec Engine with Try", func() {
 				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-				fakeGetDelegate = new(execfakes.FakeBuildEventsDelegate)
-				fakeTaskDelegate = new(execfakes.FakeBuildEventsDelegate)
+				fakeInputDelegate = new(execfakes.FakeGetDelegate)
+				fakeDelegate.InputDelegateReturns(fakeInputDelegate)
 
-				fakeDelegate.DBBuildEventsDelegateReturnsOnCall(0, fakeGetDelegate)
-				fakeDelegate.DBBuildEventsDelegateReturnsOnCall(1, fakeTaskDelegate)
+				fakeExecutionDelegate = new(execfakes.FakeTaskDelegate)
+				fakeDelegate.ExecutionDelegateReturns(fakeExecutionDelegate)
 
 				inputPlan = planFactory.NewPlan(atc.GetPlan{
 					Name: "some-input",
@@ -125,13 +126,14 @@ var _ = Describe("Exec Engine with Try", func() {
 
 			It("constructs the step correctly", func() {
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, buildID, teamID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(teamID).To(Equal(expectedTeamID))
 				Expect(buildID).To(Equal(expectedBuildID))
-				Expect(plan).To(Equal(inputPlan))
-				Expect(stepMetadata).To(Equal(expectedMetadata))
-				Expect(containerMetadata).To(Equal(db.ContainerMetadata{
+				Expect(planID).To(Equal(inputPlan.ID))
+				Expect(metadata).To(Equal(expectedMetadata))
+				Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
+				Expect(workerMetadata).To(Equal(db.ContainerMetadata{
 					Type:         db.ContainerTypeGet,
 					StepName:     "some-input",
 					PipelineID:   expectedPipelineID,
@@ -141,8 +143,9 @@ var _ = Describe("Exec Engine with Try", func() {
 					BuildID:      expectedBuildID,
 					BuildName:    "42",
 				}))
-				originID := fakeDelegate.DBBuildEventsDelegateArgsForCall(0)
-				Expect(originID).To(Equal(inputPlan.ID))
+				Expect(delegate).To(Equal(fakeInputDelegate))
+				_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
+				Expect(location).NotTo(BeNil())
 			})
 		})
 
@@ -151,7 +154,7 @@ var _ = Describe("Exec Engine with Try", func() {
 
 			BeforeEach(func() {
 				planFactory = atc.NewPlanFactory(123)
-				inputStep.SucceededReturns(false)
+				inputStep.ResultStub = successResult(false)
 			})
 
 			It("runs the next step", func() {

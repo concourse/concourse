@@ -3,7 +3,6 @@ package resource
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"time"
 
@@ -31,9 +30,21 @@ type Fetcher interface {
 		resourceInstance ResourceInstance,
 		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
+		resourceOptions ResourceOptions,
 		signals <-chan os.Signal,
 		ready chan<- struct{},
 	) (VersionedSource, error)
+}
+
+//go:generate counterfeiter . ResourceOptions
+
+type ResourceOptions interface {
+	IOConfig() IOConfig
+	Source() atc.Source
+	Params() atc.Params
+	Version() atc.Version
+	ResourceType() ResourceType
+	LockName(workerName string) (string, error)
 }
 
 func NewFetcher(
@@ -63,6 +74,7 @@ func (f *fetcher) Fetch(
 	resourceInstance ResourceInstance,
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
+	resourceOptions ResourceOptions,
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) (VersionedSource, error) {
@@ -74,6 +86,7 @@ func (f *fetcher) Fetch(
 		teamID,
 		resourceTypes,
 		resourceInstance,
+		resourceOptions,
 		imageFetchingDelegate,
 	)
 
@@ -85,7 +98,7 @@ func (f *fetcher) Fetch(
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
-	versionedSource, err := f.fetchWithLock(logger, source, imageFetchingDelegate.Stdout(), signals, ready)
+	versionedSource, err := f.fetchWithLock(logger, source, resourceOptions.IOConfig(), signals, ready)
 	if err != ErrFailedToGetLock {
 		return versionedSource, err
 	}
@@ -93,7 +106,7 @@ func (f *fetcher) Fetch(
 	for {
 		select {
 		case <-ticker.C():
-			versionedSource, err := f.fetchWithLock(logger, source, imageFetchingDelegate.Stdout(), signals, ready)
+			versionedSource, err := f.fetchWithLock(logger, source, resourceOptions.IOConfig(), signals, ready)
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break
@@ -112,7 +125,7 @@ func (f *fetcher) Fetch(
 func (f *fetcher) fetchWithLock(
 	logger lager.Logger,
 	source FetchSource,
-	stdout io.Writer,
+	ioConfig IOConfig,
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) (VersionedSource, error) {
@@ -122,8 +135,8 @@ func (f *fetcher) fetchWithLock(
 	}
 
 	if found {
-		if stdout != nil {
-			fmt.Fprintf(stdout, "using version of resource found in cache\n")
+		if ioConfig.Stdout != nil {
+			fmt.Fprintf(ioConfig.Stdout, "using version of resource found in cache\n")
 		}
 		close(ready)
 		return versionedSource, nil

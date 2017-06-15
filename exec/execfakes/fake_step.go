@@ -21,13 +21,15 @@ type FakeStep struct {
 	runReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SucceededStub        func() bool
-	succeededMutex       sync.RWMutex
-	succeededArgsForCall []struct{}
-	succeededReturns     struct {
+	ResultStub        func(interface{}) bool
+	resultMutex       sync.RWMutex
+	resultArgsForCall []struct {
+		arg1 interface{}
+	}
+	resultReturns struct {
 		result1 bool
 	}
-	succeededReturnsOnCall map[int]struct {
+	resultReturnsOnCall map[int]struct {
 		result1 bool
 	}
 	invocations      map[string][][]interface{}
@@ -83,42 +85,50 @@ func (fake *FakeStep) RunReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeStep) Succeeded() bool {
-	fake.succeededMutex.Lock()
-	ret, specificReturn := fake.succeededReturnsOnCall[len(fake.succeededArgsForCall)]
-	fake.succeededArgsForCall = append(fake.succeededArgsForCall, struct{}{})
-	fake.recordInvocation("Succeeded", []interface{}{})
-	fake.succeededMutex.Unlock()
-	if fake.SucceededStub != nil {
-		return fake.SucceededStub()
+func (fake *FakeStep) Result(arg1 interface{}) bool {
+	fake.resultMutex.Lock()
+	ret, specificReturn := fake.resultReturnsOnCall[len(fake.resultArgsForCall)]
+	fake.resultArgsForCall = append(fake.resultArgsForCall, struct {
+		arg1 interface{}
+	}{arg1})
+	fake.recordInvocation("Result", []interface{}{arg1})
+	fake.resultMutex.Unlock()
+	if fake.ResultStub != nil {
+		return fake.ResultStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.succeededReturns.result1
+	return fake.resultReturns.result1
 }
 
-func (fake *FakeStep) SucceededCallCount() int {
-	fake.succeededMutex.RLock()
-	defer fake.succeededMutex.RUnlock()
-	return len(fake.succeededArgsForCall)
+func (fake *FakeStep) ResultCallCount() int {
+	fake.resultMutex.RLock()
+	defer fake.resultMutex.RUnlock()
+	return len(fake.resultArgsForCall)
 }
 
-func (fake *FakeStep) SucceededReturns(result1 bool) {
-	fake.SucceededStub = nil
-	fake.succeededReturns = struct {
+func (fake *FakeStep) ResultArgsForCall(i int) interface{} {
+	fake.resultMutex.RLock()
+	defer fake.resultMutex.RUnlock()
+	return fake.resultArgsForCall[i].arg1
+}
+
+func (fake *FakeStep) ResultReturns(result1 bool) {
+	fake.ResultStub = nil
+	fake.resultReturns = struct {
 		result1 bool
 	}{result1}
 }
 
-func (fake *FakeStep) SucceededReturnsOnCall(i int, result1 bool) {
-	fake.SucceededStub = nil
-	if fake.succeededReturnsOnCall == nil {
-		fake.succeededReturnsOnCall = make(map[int]struct {
+func (fake *FakeStep) ResultReturnsOnCall(i int, result1 bool) {
+	fake.ResultStub = nil
+	if fake.resultReturnsOnCall == nil {
+		fake.resultReturnsOnCall = make(map[int]struct {
 			result1 bool
 		})
 	}
-	fake.succeededReturnsOnCall[i] = struct {
+	fake.resultReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
 }
@@ -128,8 +138,8 @@ func (fake *FakeStep) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	fake.succeededMutex.RLock()
-	defer fake.succeededMutex.RUnlock()
+	fake.resultMutex.RLock()
+	defer fake.resultMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

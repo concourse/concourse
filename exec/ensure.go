@@ -13,6 +13,7 @@ type EnsureStep struct {
 	stepFactory   StepFactory
 	ensureFactory StepFactory
 
+	prev Step
 	repo *worker.ArtifactRepository
 
 	step   Step
@@ -28,10 +29,11 @@ func Ensure(firstStep StepFactory, secondStep StepFactory) EnsureStep {
 }
 
 // Using constructs an *EnsureStep.
-func (o EnsureStep) Using(repo *worker.ArtifactRepository) Step {
+func (o EnsureStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	o.repo = repo
+	o.prev = prev
 
-	o.step = o.stepFactory.Using(o.repo)
+	o.step = o.stepFactory.Using(o.prev, o.repo)
 	return &o
 }
 
@@ -49,7 +51,7 @@ func (o *EnsureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		errors = multierror.Append(errors, originalErr)
 	}
 
-	o.ensure = o.ensureFactory.Using(o.repo)
+	o.ensure = o.ensureFactory.Using(o.step, o.repo)
 
 	hookErr := o.ensure.Run(signals, make(chan struct{}))
 	if hookErr != nil {
@@ -59,7 +61,30 @@ func (o *EnsureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return errors
 }
 
-// Succeeded is true if both of its steps are true
-func (o *EnsureStep) Succeeded() bool {
-	return o.step.Succeeded() && o.ensure.Succeeded()
+// Result indicates Success by and-ing together both step's Success results. If
+// either of them cannot indicate Success, it returns false.
+//
+// All other result types are ignored.
+func (o *EnsureStep) Result(x interface{}) bool {
+	switch v := x.(type) {
+	case *Success:
+		var aSuccess Success
+		stepResult := o.step.Result(&aSuccess)
+		if !stepResult {
+			return false
+		}
+
+		var bSuccess Success
+		ensureResult := o.ensure.Result(&bSuccess)
+		if !ensureResult {
+			return false
+		}
+
+		*v = aSuccess && bSuccess
+
+		return true
+
+	default:
+		return false
+	}
 }

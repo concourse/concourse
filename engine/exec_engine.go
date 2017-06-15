@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -158,14 +159,14 @@ func (build *execBuild) Abort(lager.Logger) error {
 
 func (build *execBuild) Resume(logger lager.Logger) {
 	stepFactory := build.buildStepFactory(logger, build.metadata.Plan)
-	source := stepFactory.Using(worker.NewArtifactRepository())
+	source := stepFactory.Using(&exec.NoopStep{}, worker.NewArtifactRepository())
 
 	process := ifrit.Background(source)
 
 	exited := process.Wait()
 
 	aborted := false
-	var succeeded bool
+	var succeeded exec.Success
 
 	for {
 		select {
@@ -173,11 +174,14 @@ func (build *execBuild) Resume(logger lager.Logger) {
 			logger.Info("releasing")
 			return
 		case err := <-exited:
-			if !aborted {
-				succeeded = source.Succeeded()
+			if aborted {
+				succeeded = false
+			} else if !source.Result(&succeeded) {
+				logger.Error("step-had-no-result", errors.New("step failed to provide us with a result"))
+				succeeded = false
 			}
 
-			build.delegate.Finish(logger.Session("finish"), err, exec.Success(succeeded), aborted)
+			build.delegate.Finish(logger.Session("finish"), err, succeeded, aborted)
 			return
 
 		case sig := <-build.signals:
@@ -231,6 +235,10 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 		return build.buildPutStep(logger, plan)
 	}
 
+	if plan.DependentGet != nil {
+		return build.buildDependentGetStep(logger, plan)
+	}
+
 	if plan.Retry != nil {
 		return build.buildRetryStep(logger, plan)
 	}
@@ -238,7 +246,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 	return exec.Identity{}
 }
 
-func (build *execBuild) containerMetadata(
+func (build *execBuild) workerMetadata(
 	containerType db.ContainerType,
 	stepName string,
 	attempts []int,

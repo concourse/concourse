@@ -2,6 +2,8 @@ package image
 
 import (
 	"archive/tar"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -167,6 +169,15 @@ func (i *imageResourceFetcher) Fetch(
 		},
 	}
 
+	resourceType := resource.ResourceType(i.imageResource.Type)
+
+	resourceOptions := &imageResourceOptions{
+		imageFetchingDelegate: i.imageFetchingDelegate,
+		source:                i.imageResource.Source,
+		version:               version,
+		resourceType:          resourceType,
+	}
+
 	versionedSource, err := i.resourceFetcher.Fetch(
 		logger.Session("init-image"),
 		getSess,
@@ -176,6 +187,7 @@ func (i *imageResourceFetcher) Fetch(
 		resourceInstance,
 		resource.EmptyMetadata{},
 		i.imageFetchingDelegate,
+		resourceOptions,
 		signals,
 		make(chan struct{}),
 	)
@@ -282,6 +294,51 @@ type leaseID struct {
 	Version    atc.Version           `json:"version"`
 	Source     atc.Source            `json:"source"`
 	WorkerName string                `json:"worker_name"`
+}
+
+type imageResourceOptions struct {
+	imageFetchingDelegate worker.ImageFetchingDelegate
+	source                atc.Source
+	version               atc.Version
+	resourceType          resource.ResourceType
+}
+
+func (d *imageResourceOptions) IOConfig() resource.IOConfig {
+	return resource.IOConfig{
+		Stderr: d.imageFetchingDelegate.Stderr(),
+	}
+}
+
+func (ir *imageResourceOptions) Source() atc.Source {
+	return ir.source
+}
+
+func (ir *imageResourceOptions) Params() atc.Params {
+	return nil
+}
+
+func (ir *imageResourceOptions) Version() atc.Version {
+	return ir.version
+}
+
+func (ir *imageResourceOptions) ResourceType() resource.ResourceType {
+	return ir.resourceType
+}
+
+func (ir *imageResourceOptions) LockName(workerName string) (string, error) {
+	id := &leaseID{
+		Type:       ir.resourceType,
+		Version:    ir.version,
+		Source:     ir.source,
+		WorkerName: workerName,
+	}
+
+	taskNameJSON, err := json.Marshal(id)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
 }
 
 type readCloser struct {
