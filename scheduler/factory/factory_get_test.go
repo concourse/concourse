@@ -17,6 +17,7 @@ var _ = Describe("Factory Get", func() {
 		input               atc.JobConfig
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
+		version             atc.Version
 	)
 
 	BeforeEach(func() {
@@ -67,6 +68,7 @@ var _ = Describe("Factory Get", func() {
 				Source: atc.Source{
 					"uri": "git://some-resource",
 				},
+				Version:                &version,
 				VersionedResourceTypes: resourceTypes,
 			})
 			Expect(actual).To(testhelpers.MatchPlan(expected))

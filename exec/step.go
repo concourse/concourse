@@ -2,7 +2,6 @@ package exec
 
 import (
 	"errors"
-	"os"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -20,8 +19,9 @@ var ErrInterrupted = errors.New("interrupted")
 //
 // Some steps, i.e. DependentGetStep, use information from the previous step to
 // determine how to run.
+// TODO: Remove Step in prev
 type StepFactory interface {
-	Using(Step, *worker.ArtifactRepository) Step
+	Using(*worker.ArtifactRepository) Step
 }
 
 //go:generate counterfeiter . Step
@@ -48,16 +48,9 @@ type Step interface {
 	// how far the step got.
 	ifrit.Runner
 
-	// Result is used to collect metadata from the step. Usually this is
-	// `Success`, but some steps support more types (e.g. `VersionInfo`).
-	//
-	// Result returns a bool indicating whether it was able to populate the
-	// destination. If the destination's type is unknown to the step, it must
-	// return false.
-	//
-	// Implementers of this method MUST not mutate the given pointer if they
-	// are unable to respond (i.e. returning false from this function).
-	Result(interface{}) bool
+	// Succeeded is true when the Step succeeded, and false otherwise.
+	// Succeeded is not guaranteed to be truthful until after you run Run()
+	Succeeded() bool
 }
 
 // Success indicates whether a step completed successfully.
@@ -68,23 +61,8 @@ type Success bool
 type ExitStatus int
 
 // VersionInfo is the version and metadata of a resource that was fetched or
-// produced. It is used by Put, Get, and DependentGet.
+// produced. It is used by Put and Get.
 type VersionInfo struct {
 	Version  atc.Version
 	Metadata []atc.MetadataField
-}
-
-// NoopStep implements a step that successfully does nothing.
-type NoopStep struct{}
-
-// Run returns nil immediately without doing anything. It does not bother
-// indicating that it's ready or listening for signals.
-func (NoopStep) Run(<-chan os.Signal, chan<- struct{}) error {
-	return nil
-}
-
-// Result returns false. Arguably it should at least be able to indicate
-// Success (as true), though it currently does not.
-func (NoopStep) Result(interface{}) bool {
-	return false
 }

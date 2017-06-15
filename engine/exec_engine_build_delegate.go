@@ -1,10 +1,7 @@
 package engine
 
 import (
-	"io"
 	"sync"
-	"time"
-	"unicode/utf8"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -13,17 +10,11 @@ import (
 	"github.com/concourse/atc/exec"
 )
 
-type implicitOutput struct {
-	plan atc.GetPlan
-	info exec.VersionInfo
-}
-
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	InputDelegate(lager.Logger, atc.GetPlan, event.OriginID) exec.GetDelegate
-	ExecutionDelegate(lager.Logger, atc.TaskPlan, event.OriginID) exec.TaskDelegate
-	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginID) exec.PutDelegate
+	DBBuildEventsDelegate(atc.PlanID) exec.BuildEventsDelegate
+	ImageFetchingDelegate(atc.PlanID) exec.ImageFetchingDelegate
 
 	Finish(lager.Logger, error, exec.Success, bool)
 }
@@ -45,48 +36,31 @@ func (factory buildDelegateFactory) Delegate(build db.Build) BuildDelegate {
 }
 
 type delegate struct {
-	build db.Build
-
-	implicitOutputs map[string]implicitOutput
-
-	lock sync.Mutex
+	build               db.Build
+	implicitOutputsRepo *implicitOutputsRepo
 }
 
 func newBuildDelegate(build db.Build) BuildDelegate {
 	return &delegate{
 		build: build,
 
-		implicitOutputs: make(map[string]implicitOutput),
+		implicitOutputsRepo: &implicitOutputsRepo{
+			outputs: make(map[string]implicitOutput),
+			lock:    &sync.Mutex{},
+		},
 	}
 }
 
-func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan, id event.OriginID) exec.GetDelegate {
-	return &inputDelegate{
-		logger: logger,
-
-		id:       id,
-		plan:     plan,
-		delegate: delegate,
-	}
+func (delegate *delegate) DBBuildEventsDelegate(
+	planID atc.PlanID,
+) exec.BuildEventsDelegate {
+	return NewDBBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)}, delegate.implicitOutputsRepo)
 }
 
-func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.PutPlan, id event.OriginID) exec.PutDelegate {
-	return &outputDelegate{
-		logger: logger,
-
-		id:       id,
-		plan:     plan,
-		delegate: delegate,
-	}
-}
-
-func (delegate *delegate) ExecutionDelegate(logger lager.Logger, plan atc.TaskPlan, id event.OriginID) exec.TaskDelegate {
-	return &executionDelegate{
-		logger: logger,
-
-		id:       id,
-		plan:     plan,
-		delegate: delegate,
+func (delegate *delegate) ImageFetchingDelegate(planID atc.PlanID) exec.ImageFetchingDelegate {
+	return &imageFetchingDelegate{
+		build:  delegate.build,
+		planID: planID,
 	}
 }
 
@@ -104,8 +78,8 @@ func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.
 
 		implicits := logger.Session("implicit-outputs")
 
-		for _, o := range delegate.implicitOutputs {
-			delegate.saveImplicitOutput(implicits.Session(o.plan.Name), o.plan, o.info)
+		for resourceName, o := range delegate.implicitOutputsRepo.outputs {
+			delegate.saveImplicitOutput(implicits.Session(resourceName), resourceName, o.resourceType, o.info)
 		}
 
 		logger.Info("succeeded")
@@ -116,67 +90,6 @@ func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.
 	}
 }
 
-func (delegate *delegate) registerImplicitOutput(resource string, output implicitOutput) {
-	delegate.lock.Lock()
-	delegate.implicitOutputs[resource] = output
-	delegate.lock.Unlock()
-}
-
-func (delegate *delegate) unregisterImplicitOutput(resource string) {
-	delegate.lock.Lock()
-	delete(delegate.implicitOutputs, resource)
-	delegate.lock.Unlock()
-}
-
-func (delegate *delegate) saveInitializeTask(logger lager.Logger, taskConfig atc.TaskConfig, origin event.Origin) {
-	err := delegate.build.SaveEvent(event.InitializeTask{
-		TaskConfig: event.ShadowTaskConfig(taskConfig),
-		Origin:     origin,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-initialize-event", err)
-	}
-}
-
-func (delegate *delegate) saveInitializeGet(logger lager.Logger, origin event.Origin) {
-	err := delegate.build.SaveEvent(event.InitializeGet{
-		Origin: origin,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-initialize-event", err)
-	}
-}
-
-func (delegate *delegate) saveInitializePut(logger lager.Logger, origin event.Origin) {
-	err := delegate.build.SaveEvent(event.InitializePut{
-		Origin: origin,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-initialize-event", err)
-	}
-}
-
-func (delegate *delegate) saveStart(logger lager.Logger, origin event.Origin) {
-	err := delegate.build.SaveEvent(event.StartTask{
-		Time:   time.Now().Unix(),
-		Origin: origin,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-start-event", err)
-	}
-}
-
-func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus, origin event.Origin) {
-	err := delegate.build.SaveEvent(event.FinishTask{
-		ExitStatus: int(status),
-		Time:       time.Now().Unix(),
-		Origin:     origin,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-finish-event", err)
-	}
-}
-
 func (delegate *delegate) saveStatus(logger lager.Logger, status atc.BuildStatus) {
 	err := delegate.build.Finish(db.BuildStatus(status))
 	if err != nil {
@@ -184,87 +97,7 @@ func (delegate *delegate) saveStatus(logger lager.Logger, status atc.BuildStatus
 	}
 }
 
-func (delegate *delegate) saveErr(logger lager.Logger, errVal error, origin event.Origin) {
-	err := delegate.build.SaveEvent(event.Error{
-		Message: errVal.Error(),
-		Origin:  origin,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-error-event", err)
-	}
-}
-
-func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus, plan atc.GetPlan, info *exec.VersionInfo, origin event.Origin) {
-	var version atc.Version
-	var metadata []atc.MetadataField
-
-	if info != nil {
-		err := delegate.build.SaveInput(db.BuildInput{
-			Name:              plan.Name,
-			VersionedResource: vrFromInput(plan, *info),
-		})
-		if err != nil {
-			logger.Error("failed-to-save-input", err)
-		}
-
-		version = info.Version
-		metadata = info.Metadata
-	}
-
-	ev := event.FinishGet{
-		Origin: origin,
-		Plan: event.GetPlan{
-			Name:     plan.Name,
-			Resource: plan.Resource,
-			Type:     plan.Type,
-			Version:  plan.Version,
-		},
-		ExitStatus:      int(status),
-		FetchedVersion:  version,
-		FetchedMetadata: metadata,
-	}
-
-	err := delegate.build.SaveEvent(ev)
-	if err != nil {
-		logger.Error("failed-to-save-input-event", err)
-	}
-}
-
-func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus, plan atc.PutPlan, info *exec.VersionInfo, origin event.Origin) {
-	var version atc.Version
-	var metadata []atc.MetadataField
-
-	if info != nil {
-		version = info.Version
-		metadata = info.Metadata
-	}
-
-	ev := event.FinishPut{
-		Origin: origin,
-		Plan: event.PutPlan{
-			Name:     plan.Name,
-			Resource: plan.Resource,
-			Type:     plan.Type,
-		},
-		ExitStatus:      int(status),
-		CreatedVersion:  version,
-		CreatedMetadata: metadata,
-	}
-
-	err := delegate.build.SaveEvent(ev)
-	if err != nil {
-		logger.Error("failed-to-save-output-event", err)
-	}
-
-	if info != nil {
-		err = delegate.build.SaveOutput(vrFromOutput(ev), true)
-		if err != nil {
-			logger.Error("failed-to-save-output", err)
-		}
-	}
-}
-
-func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
+func (delegate *delegate) saveImplicitOutput(logger lager.Logger, resourceName string, resourceType string, info exec.VersionInfo) {
 	metadata := make([]db.ResourceMetadataField, len(info.Metadata))
 	for i, md := range info.Metadata {
 		metadata[i] = db.ResourceMetadataField{
@@ -274,8 +107,8 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 	}
 
 	err := delegate.build.SaveOutput(db.VersionedResource{
-		Resource: plan.Resource,
-		Type:     plan.Type,
+		Resource: resourceName,
+		Type:     resourceType,
 		Version:  db.ResourceVersion(info.Version),
 		Metadata: metadata,
 	}, false)
@@ -284,229 +117,5 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 		return
 	}
 
-	logger.Info("saved", lager.Data{"resource": plan.Resource})
-}
-
-func (delegate *delegate) eventWriter(origin event.Origin) io.Writer {
-	return &dbEventWriter{
-		build:  delegate.build,
-		origin: origin,
-	}
-}
-
-type inputDelegate struct {
-	logger lager.Logger
-
-	plan     atc.GetPlan
-	id       event.OriginID
-	delegate *delegate
-}
-
-func (input *inputDelegate) Initializing() {
-	input.delegate.saveInitializeGet(input.logger, event.Origin{ID: input.id})
-}
-
-func (input *inputDelegate) Completed(status exec.ExitStatus, info *exec.VersionInfo) {
-	input.delegate.saveInput(input.logger, status, input.plan, info, event.Origin{
-		ID: input.id,
-	})
-
-	if info != nil {
-		input.delegate.registerImplicitOutput(input.plan.Resource, implicitOutput{input.plan, *info})
-	}
-
-	input.logger.Info("finished", lager.Data{"version-info": info})
-}
-
-func (input *inputDelegate) Failed(err error) {
-	input.delegate.saveErr(input.logger, err, event.Origin{
-		ID: input.id,
-	})
-
-	input.logger.Info("errored", lager.Data{"error": err.Error()})
-}
-
-func (input *inputDelegate) ImageVersionDetermined(resourceCache *db.UsedResourceCache) error {
-	return input.delegate.build.SaveImageResourceVersion(resourceCache)
-}
-
-func (input *inputDelegate) Stdout() io.Writer {
-	return input.delegate.eventWriter(event.Origin{
-		Source: event.OriginSourceStdout,
-		ID:     input.id,
-	})
-}
-
-func (input *inputDelegate) Stderr() io.Writer {
-	return input.delegate.eventWriter(event.Origin{
-		Source: event.OriginSourceStderr,
-		ID:     input.id,
-	})
-}
-
-type outputDelegate struct {
-	logger lager.Logger
-
-	plan atc.PutPlan
-	id   event.OriginID
-
-	delegate *delegate
-}
-
-func (output *outputDelegate) Initializing() {
-	output.delegate.saveInitializePut(output.logger, event.Origin{ID: output.id})
-}
-
-func (output *outputDelegate) Completed(status exec.ExitStatus, info *exec.VersionInfo) {
-	output.delegate.unregisterImplicitOutput(output.plan.Resource)
-	output.delegate.saveOutput(output.logger, status, output.plan, info, event.Origin{
-		ID: output.id,
-	})
-
-	output.logger.Info("finished", lager.Data{"version-info": info})
-}
-
-func (output *outputDelegate) Failed(err error) {
-	output.delegate.saveErr(output.logger, err, event.Origin{
-		ID: output.id,
-	})
-
-	output.logger.Info("errored", lager.Data{"error": err.Error()})
-}
-
-func (output *outputDelegate) ImageVersionDetermined(resourceCache *db.UsedResourceCache) error {
-	return output.delegate.build.SaveImageResourceVersion(resourceCache)
-}
-
-func (output *outputDelegate) Stdout() io.Writer {
-	return output.delegate.eventWriter(event.Origin{
-		Source: event.OriginSourceStdout,
-		ID:     output.id,
-	})
-}
-
-func (output *outputDelegate) Stderr() io.Writer {
-	return output.delegate.eventWriter(event.Origin{
-		Source: event.OriginSourceStderr,
-		ID:     output.id,
-	})
-}
-
-type executionDelegate struct {
-	logger lager.Logger
-
-	plan atc.TaskPlan
-	id   event.OriginID
-
-	delegate *delegate
-}
-
-func (execution *executionDelegate) Initializing(config atc.TaskConfig) {
-	execution.delegate.saveInitializeTask(execution.logger, config, event.Origin{
-		ID: execution.id,
-	})
-
-	execution.logger.Info("initializing")
-}
-
-func (execution *executionDelegate) Started() {
-	execution.delegate.saveStart(execution.logger, event.Origin{
-		ID: execution.id,
-	})
-
-	execution.logger.Info("started")
-}
-
-func (execution *executionDelegate) Finished(status exec.ExitStatus) {
-	execution.delegate.saveFinish(execution.logger, status, event.Origin{
-		ID: execution.id,
-	})
-
-	execution.logger.Info("finished", lager.Data{"exit-status": status})
-}
-
-func (execution *executionDelegate) Failed(err error) {
-	execution.delegate.saveErr(execution.logger, err, event.Origin{
-		ID: execution.id,
-	})
-
-	execution.logger.Info("errored", lager.Data{"error": err.Error()})
-}
-
-func (execution *executionDelegate) ImageVersionDetermined(resourceCache *db.UsedResourceCache) error {
-	return execution.delegate.build.SaveImageResourceVersion(resourceCache)
-}
-
-func (execution *executionDelegate) Stdout() io.Writer {
-	return execution.delegate.eventWriter(event.Origin{
-		Source: event.OriginSourceStdout,
-		ID:     execution.id,
-	})
-}
-
-func (execution *executionDelegate) Stderr() io.Writer {
-	return execution.delegate.eventWriter(event.Origin{
-		Source: event.OriginSourceStderr,
-		ID:     execution.id,
-	})
-}
-
-type dbEventWriter struct {
-	build db.Build
-
-	origin event.Origin
-
-	dangling []byte
-}
-
-func (writer *dbEventWriter) Write(data []byte) (int, error) {
-	text := append(writer.dangling, data...)
-
-	checkEncoding, _ := utf8.DecodeLastRune(text)
-	if checkEncoding == utf8.RuneError {
-		writer.dangling = text
-		return len(data), nil
-	}
-
-	writer.dangling = nil
-
-	err := writer.build.SaveEvent(event.Log{
-		Payload: string(text),
-		Origin:  writer.origin,
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	return len(data), nil
-}
-
-func vrFromInput(plan atc.GetPlan, fetchedInfo exec.VersionInfo) db.VersionedResource {
-	return db.VersionedResource{
-		Resource: plan.Resource,
-		Type:     plan.Type,
-		Version:  db.ResourceVersion(fetchedInfo.Version),
-		Metadata: atcMetadataToDBMetadata(fetchedInfo.Metadata),
-	}
-}
-
-func vrFromOutput(putted event.FinishPut) db.VersionedResource {
-	return db.VersionedResource{
-		Resource: putted.Plan.Resource,
-		Type:     putted.Plan.Type,
-		Version:  db.ResourceVersion(putted.CreatedVersion),
-		Metadata: atcMetadataToDBMetadata(putted.CreatedMetadata),
-	}
-}
-
-func atcMetadataToDBMetadata(atcm []atc.MetadataField) []db.ResourceMetadataField {
-	metadata := make([]db.ResourceMetadataField, len(atcm))
-	for i, md := range atcm {
-		metadata[i] = db.ResourceMetadataField{
-			Name:  md.Name,
-			Value: md.Value,
-		}
-	}
-
-	return metadata
+	logger.Info("saved", lager.Data{"resource": resourceName})
 }

@@ -5,30 +5,11 @@ import (
 	"io"
 	"sync"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 )
 
-type FakeTaskDelegate struct {
-	InitializingStub        func(atc.TaskConfig)
-	initializingMutex       sync.RWMutex
-	initializingArgsForCall []struct {
-		arg1 atc.TaskConfig
-	}
-	StartedStub         func()
-	startedMutex        sync.RWMutex
-	startedArgsForCall  []struct{}
-	FinishedStub        func(exec.ExitStatus)
-	finishedMutex       sync.RWMutex
-	finishedArgsForCall []struct {
-		arg1 exec.ExitStatus
-	}
-	FailedStub        func(error)
-	failedMutex       sync.RWMutex
-	failedArgsForCall []struct {
-		arg1 error
-	}
+type FakeImageFetchingDelegate struct {
 	ImageVersionDeterminedStub        func(*db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -62,95 +43,7 @@ type FakeTaskDelegate struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTaskDelegate) Initializing(arg1 atc.TaskConfig) {
-	fake.initializingMutex.Lock()
-	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
-		arg1 atc.TaskConfig
-	}{arg1})
-	fake.recordInvocation("Initializing", []interface{}{arg1})
-	fake.initializingMutex.Unlock()
-	if fake.InitializingStub != nil {
-		fake.InitializingStub(arg1)
-	}
-}
-
-func (fake *FakeTaskDelegate) InitializingCallCount() int {
-	fake.initializingMutex.RLock()
-	defer fake.initializingMutex.RUnlock()
-	return len(fake.initializingArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) atc.TaskConfig {
-	fake.initializingMutex.RLock()
-	defer fake.initializingMutex.RUnlock()
-	return fake.initializingArgsForCall[i].arg1
-}
-
-func (fake *FakeTaskDelegate) Started() {
-	fake.startedMutex.Lock()
-	fake.startedArgsForCall = append(fake.startedArgsForCall, struct{}{})
-	fake.recordInvocation("Started", []interface{}{})
-	fake.startedMutex.Unlock()
-	if fake.StartedStub != nil {
-		fake.StartedStub()
-	}
-}
-
-func (fake *FakeTaskDelegate) StartedCallCount() int {
-	fake.startedMutex.RLock()
-	defer fake.startedMutex.RUnlock()
-	return len(fake.startedArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) Finished(arg1 exec.ExitStatus) {
-	fake.finishedMutex.Lock()
-	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
-		arg1 exec.ExitStatus
-	}{arg1})
-	fake.recordInvocation("Finished", []interface{}{arg1})
-	fake.finishedMutex.Unlock()
-	if fake.FinishedStub != nil {
-		fake.FinishedStub(arg1)
-	}
-}
-
-func (fake *FakeTaskDelegate) FinishedCallCount() int {
-	fake.finishedMutex.RLock()
-	defer fake.finishedMutex.RUnlock()
-	return len(fake.finishedArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) exec.ExitStatus {
-	fake.finishedMutex.RLock()
-	defer fake.finishedMutex.RUnlock()
-	return fake.finishedArgsForCall[i].arg1
-}
-
-func (fake *FakeTaskDelegate) Failed(arg1 error) {
-	fake.failedMutex.Lock()
-	fake.failedArgsForCall = append(fake.failedArgsForCall, struct {
-		arg1 error
-	}{arg1})
-	fake.recordInvocation("Failed", []interface{}{arg1})
-	fake.failedMutex.Unlock()
-	if fake.FailedStub != nil {
-		fake.FailedStub(arg1)
-	}
-}
-
-func (fake *FakeTaskDelegate) FailedCallCount() int {
-	fake.failedMutex.RLock()
-	defer fake.failedMutex.RUnlock()
-	return len(fake.failedArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) FailedArgsForCall(i int) error {
-	fake.failedMutex.RLock()
-	defer fake.failedMutex.RUnlock()
-	return fake.failedArgsForCall[i].arg1
-}
-
-func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 *db.UsedResourceCache) error {
+func (fake *FakeImageFetchingDelegate) ImageVersionDetermined(arg1 *db.UsedResourceCache) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	ret, specificReturn := fake.imageVersionDeterminedReturnsOnCall[len(fake.imageVersionDeterminedArgsForCall)]
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
@@ -167,26 +60,26 @@ func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 *db.UsedResourceCache)
 	return fake.imageVersionDeterminedReturns.result1
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDeterminedCallCount() int {
+func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedCallCount() int {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) *db.UsedResourceCache {
+func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedArgsForCall(i int) *db.UsedResourceCache {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return fake.imageVersionDeterminedArgsForCall[i].arg1
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
+func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturns(result1 error) {
 	fake.ImageVersionDeterminedStub = nil
 	fake.imageVersionDeterminedReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
+func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
 	fake.ImageVersionDeterminedStub = nil
 	if fake.imageVersionDeterminedReturnsOnCall == nil {
 		fake.imageVersionDeterminedReturnsOnCall = make(map[int]struct {
@@ -198,7 +91,7 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1
 	}{result1}
 }
 
-func (fake *FakeTaskDelegate) Stdout() io.Writer {
+func (fake *FakeImageFetchingDelegate) Stdout() io.Writer {
 	fake.stdoutMutex.Lock()
 	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
 	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct{}{})
@@ -213,20 +106,20 @@ func (fake *FakeTaskDelegate) Stdout() io.Writer {
 	return fake.stdoutReturns.result1
 }
 
-func (fake *FakeTaskDelegate) StdoutCallCount() int {
+func (fake *FakeImageFetchingDelegate) StdoutCallCount() int {
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
 	return len(fake.stdoutArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) StdoutReturns(result1 io.Writer) {
+func (fake *FakeImageFetchingDelegate) StdoutReturns(result1 io.Writer) {
 	fake.StdoutStub = nil
 	fake.stdoutReturns = struct {
 		result1 io.Writer
 	}{result1}
 }
 
-func (fake *FakeTaskDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
+func (fake *FakeImageFetchingDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	fake.StdoutStub = nil
 	if fake.stdoutReturnsOnCall == nil {
 		fake.stdoutReturnsOnCall = make(map[int]struct {
@@ -238,7 +131,7 @@ func (fake *FakeTaskDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeTaskDelegate) Stderr() io.Writer {
+func (fake *FakeImageFetchingDelegate) Stderr() io.Writer {
 	fake.stderrMutex.Lock()
 	ret, specificReturn := fake.stderrReturnsOnCall[len(fake.stderrArgsForCall)]
 	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct{}{})
@@ -253,20 +146,20 @@ func (fake *FakeTaskDelegate) Stderr() io.Writer {
 	return fake.stderrReturns.result1
 }
 
-func (fake *FakeTaskDelegate) StderrCallCount() int {
+func (fake *FakeImageFetchingDelegate) StderrCallCount() int {
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	return len(fake.stderrArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) StderrReturns(result1 io.Writer) {
+func (fake *FakeImageFetchingDelegate) StderrReturns(result1 io.Writer) {
 	fake.StderrStub = nil
 	fake.stderrReturns = struct {
 		result1 io.Writer
 	}{result1}
 }
 
-func (fake *FakeTaskDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
+func (fake *FakeImageFetchingDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
 	fake.StderrStub = nil
 	if fake.stderrReturnsOnCall == nil {
 		fake.stderrReturnsOnCall = make(map[int]struct {
@@ -278,17 +171,9 @@ func (fake *FakeTaskDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
+func (fake *FakeImageFetchingDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.initializingMutex.RLock()
-	defer fake.initializingMutex.RUnlock()
-	fake.startedMutex.RLock()
-	defer fake.startedMutex.RUnlock()
-	fake.finishedMutex.RLock()
-	defer fake.finishedMutex.RUnlock()
-	fake.failedMutex.RLock()
-	defer fake.failedMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.stdoutMutex.RLock()
@@ -302,7 +187,7 @@ func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeTaskDelegate) recordInvocation(key string, args []interface{}) {
+func (fake *FakeImageFetchingDelegate) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -314,4 +199,4 @@ func (fake *FakeTaskDelegate) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ exec.TaskDelegate = new(FakeTaskDelegate)
+var _ exec.ImageFetchingDelegate = new(FakeImageFetchingDelegate)

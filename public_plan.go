@@ -58,10 +58,6 @@ func (plan Plan) Public() *json.RawMessage {
 		public.Try = plan.Try.Public()
 	}
 
-	if plan.DependentGet != nil {
-		public.DependentGet = plan.DependentGet.Public()
-	}
-
 	if plan.Timeout != nil {
 		public.Timeout = plan.Timeout.Public()
 	}
@@ -93,18 +89,6 @@ func (plan DoPlan) Public() *json.RawMessage {
 	return enc(public)
 }
 
-func (plan DependentGetPlan) Public() *json.RawMessage {
-	return enc(struct {
-		Type     string `json:"type"`
-		Name     string `json:"name,omitempty"`
-		Resource string `json:"resource"`
-	}{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
-	})
-}
-
 func (plan EnsurePlan) Public() *json.RawMessage {
 	return enc(struct {
 		Step *json.RawMessage `json:"step"`
@@ -117,10 +101,10 @@ func (plan EnsurePlan) Public() *json.RawMessage {
 
 func (plan GetPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Type     string  `json:"type"`
-		Name     string  `json:"name,omitempty"`
-		Resource string  `json:"resource"`
-		Version  Version `json:"version,omitempty"`
+		Type     string   `json:"type"`
+		Name     string   `json:"name,omitempty"`
+		Resource string   `json:"resource"`
+		Version  *Version `json:"version,omitempty"`
 	}{
 		Type:     plan.Type,
 		Name:     plan.Name,

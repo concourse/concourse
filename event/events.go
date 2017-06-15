@@ -19,13 +19,12 @@ type FinishTask struct {
 func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
 func (FinishTask) Version() atc.EventVersion { return "4.0" }
 
-type InitializeTask struct {
-	TaskConfig TaskConfig `json:"config"`
-	Origin     Origin     `json:"origin"`
+type Initialize struct {
+	Origin Origin `json:"origin"`
 }
 
-func (InitializeTask) EventType() atc.EventType  { return EventTypeInitializeTask }
-func (InitializeTask) Version() atc.EventVersion { return "4.0" }
+func (Initialize) EventType() atc.EventType  { return EventTypeInitialize }
+func (Initialize) Version() atc.EventVersion { return "1.0" }
 
 // shadow the real atc.TaskConfig
 type TaskConfig struct {
@@ -70,12 +69,13 @@ func ShadowTaskConfig(config atc.TaskConfig) TaskConfig {
 }
 
 type StartTask struct {
-	Time   int64  `json:"time"`
-	Origin Origin `json:"origin"`
+	Time       int64      `json:"time"`
+	Origin     Origin     `json:"origin"`
+	TaskConfig TaskConfig `json:"config"`
 }
 
 func (StartTask) EventType() atc.EventType  { return EventTypeStartTask }
-func (StartTask) Version() atc.EventVersion { return "4.0" }
+func (StartTask) Version() atc.EventVersion { return "5.0" }
 
 type Status struct {
 	Status atc.BuildStatus `json:"status"`
@@ -141,17 +141,3 @@ type PutPlan struct {
 	Resource string `json:"resource"`
 	Type     string `json:"type"`
 }
-
-type InitializeGet struct {
-	Origin Origin `json:"origin"`
-}
-
-func (InitializeGet) EventType() atc.EventType  { return EventTypeInitializeGet }
-func (InitializeGet) Version() atc.EventVersion { return "1.0" }
-
-type InitializePut struct {
-	Origin Origin `json:"origin"`
-}
-
-func (InitializePut) EventType() atc.EventType  { return EventTypeInitializePut }
-func (InitializePut) Version() atc.EventVersion { return "1.0" }

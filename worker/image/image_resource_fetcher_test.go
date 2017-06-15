@@ -290,7 +290,7 @@ var _ = Describe("Image", func() {
 
 								It("fetches resource with correct session", func() {
 									Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-									_, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+									_, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 									Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 									Expect(session).To(Equal(resource.Session{
 										Metadata: db.ContainerMetadata{
@@ -311,13 +311,12 @@ var _ = Describe("Image", func() {
 									)))
 									Expect(actualCustomTypes).To(Equal(customTypes))
 									Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-									Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("docker")))
 									expectedLockName := fmt.Sprintf("%x",
 										sha256.Sum256([]byte(
 											`{"type":"docker","version":{"v":"1"},"source":{"some":"source"},"worker_name":"fake-worker-name"}`,
 										)),
 									)
-									Expect(resourceOptions.LockName("fake-worker-name")).To(Equal(expectedLockName))
+									Expect(resourceInstance.LockName("fake-worker-name")).To(Equal(expectedLockName))
 								})
 
 								It("gets the volume", func() {
@@ -554,7 +553,7 @@ var _ = Describe("Image", func() {
 
 					It("fetches resource with correct session", func() {
 						Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-						_, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+						_, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 						Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 						Expect(session).To(Equal(resource.Session{
 							Metadata: db.ContainerMetadata{
@@ -575,7 +574,6 @@ var _ = Describe("Image", func() {
 						)))
 						Expect(actualCustomTypes).To(Equal(customTypes))
 						Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-						Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("docker")))
 					})
 
 					It("gets the volume", func() {

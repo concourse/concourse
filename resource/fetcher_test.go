@@ -22,14 +22,14 @@ import (
 
 var _ = Describe("Fetcher", func() {
 	var (
-		fakeFetchSourceProvider *resourcefakes.FakeFetchSourceProvider
-		fakeClock               *fakeclock.FakeClock
-		fakeLockFactory         *lockfakes.FakeLockFactory
-		fetcher                 resource.Fetcher
-		signals                 chan os.Signal
-		ready                   chan struct{}
-		resourceOptions         *resourcefakes.FakeResourceOptions
-		fakeVersionedSource     *resourcefakes.FakeVersionedSource
+		fakeFetchSourceProvider   *resourcefakes.FakeFetchSourceProvider
+		fakeClock                 *fakeclock.FakeClock
+		fakeLockFactory           *lockfakes.FakeLockFactory
+		fetcher                   resource.Fetcher
+		signals                   chan os.Signal
+		ready                     chan struct{}
+		fakeVersionedSource       *resourcefakes.FakeVersionedSource
+		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
 		versionedSource resource.VersionedSource
 		fetchErr        error
@@ -52,8 +52,9 @@ var _ = Describe("Fetcher", func() {
 
 		signals = make(chan os.Signal)
 		ready = make(chan struct{})
-		resourceOptions = new(resourcefakes.FakeResourceOptions)
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
+
+		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 	})
 
 	JustBeforeEach(func() {
@@ -65,8 +66,7 @@ var _ = Describe("Fetcher", func() {
 			atc.VersionedResourceTypes{},
 			new(resourcefakes.FakeResourceInstance),
 			resource.EmptyMetadata{},
-			new(workerfakes.FakeImageFetchingDelegate),
-			resourceOptions,
+			fakeImageFetchingDelegate,
 			signals,
 			ready,
 		)
@@ -98,9 +98,7 @@ var _ = Describe("Fetcher", func() {
 
 				BeforeEach(func() {
 					stdoutBuf = gbytes.NewBuffer()
-					resourceOptions.IOConfigReturns(resource.IOConfig{
-						Stdout: stdoutBuf,
-					})
+					fakeImageFetchingDelegate.StdoutReturns(stdoutBuf)
 				})
 
 				It("logs helpful message", func() {

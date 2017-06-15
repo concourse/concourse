@@ -3,83 +3,48 @@ package exec
 import (
 	"io"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/worker"
 )
 
 //go:generate counterfeiter . Factory
 
 // Factory is used when building up the steps for a build.
 type Factory interface {
-	// Get constructs a GetStep factory.
+	// Get constructs a ActionsStep factory for Get.
 	Get(
 		lager.Logger,
 		int, // teamID
 		int, // buildID
-		atc.PlanID,
+		atc.Plan,
 		StepMetadata,
-		worker.ArtifactName,
 		db.ContainerMetadata,
-		GetDelegate,
-		atc.ResourceConfig,
-		atc.Tags,
-		atc.Params,
-		atc.Version,
-		atc.VersionedResourceTypes,
+		BuildEventsDelegate,
+		ImageFetchingDelegate,
 	) StepFactory
 
-	// Put constructs a PutStep factory.
+	// Put constructs a ActionsStep factory for Put.
 	Put(
 		lager.Logger,
 		int, // teamID
 		int, // buildID
-		atc.PlanID,
+		atc.Plan,
 		StepMetadata,
 		db.ContainerMetadata,
-		PutDelegate,
-		atc.ResourceConfig,
-		atc.Tags,
-		atc.Params,
-		atc.VersionedResourceTypes,
+		BuildEventsDelegate,
+		ImageFetchingDelegate,
 	) StepFactory
 
-	// DependentGet constructs a GetStep factory whose version is determined by
-	// the previous step.
-	DependentGet(
-		lager.Logger,
-		int, // teamID
-		int, // buildID
-		atc.PlanID,
-		StepMetadata,
-		worker.ArtifactName,
-		db.ContainerMetadata,
-		GetDelegate,
-		atc.ResourceConfig,
-		atc.Tags,
-		atc.Params,
-		atc.VersionedResourceTypes,
-	) StepFactory
-
-	// Task constructs a TaskStep factory.
+	// Task constructs a ActionsStep factory for Task.
 	Task(
 		lager.Logger,
+		atc.Plan,
 		int, // teamID
 		int, // buildID
-		atc.PlanID,
-		worker.ArtifactName,
 		db.ContainerMetadata,
-		TaskDelegate,
-		Privileged,
-		atc.Tags,
-		TaskConfigSource,
-		atc.VersionedResourceTypes,
-		map[string]string,
-		map[string]string,
-		string,
-		clock.Clock,
+		BuildEventsDelegate,
+		ImageFetchingDelegate,
 	) StepFactory
 }
 
@@ -89,51 +54,12 @@ type StepMetadata interface {
 	Env() []string
 }
 
-//go:generate counterfeiter . TaskDelegate
+//go:generate counterfeiter . ImageFetchingDelegate
 
-// TaskDelegate is used to record events related to a TaskStep's runtime
-// behavior.
-type TaskDelegate interface {
-	Initializing(atc.TaskConfig)
-	Started()
-
-	Finished(ExitStatus)
-	Failed(error)
-
+type ImageFetchingDelegate interface {
 	ImageVersionDetermined(*db.UsedResourceCache) error
-
 	Stdout() io.Writer
 	Stderr() io.Writer
-}
-
-// ResourceDelegate is used to record events related to a resource's runtime
-// behavior.
-type ResourceDelegate interface {
-	Initializing()
-
-	Completed(ExitStatus, *VersionInfo)
-	Failed(error)
-
-	ImageVersionDetermined(*db.UsedResourceCache) error
-
-	Stdout() io.Writer
-	Stderr() io.Writer
-}
-
-//go:generate counterfeiter . GetDelegate
-
-// GetDelegate is used to record events related to a GetStep's runtime
-// behavior.
-type GetDelegate interface {
-	ResourceDelegate
-}
-
-//go:generate counterfeiter . PutDelegate
-
-// PutDelegate is used to record events related to a PutStep's runtime
-// behavior.
-type PutDelegate interface {
-	ResourceDelegate
 }
 
 // Privileged is used to indicate whether the given step should run with

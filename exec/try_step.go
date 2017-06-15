@@ -20,8 +20,8 @@ func Try(step StepFactory) TryStep {
 }
 
 // Using constructs a *TryStep.
-func (ts TryStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
-	ts.runStep = ts.step.Using(prev, repo)
+func (ts TryStep) Using(repo *worker.ArtifactRepository) Step {
+	ts.runStep = ts.step.Using(repo)
 	return &ts
 }
 
@@ -35,14 +35,7 @@ func (ts *TryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	return nil
 }
 
-// Result indicates Success as true, and delegates everything else to the
-// nested step.
-func (ts *TryStep) Result(x interface{}) bool {
-	switch v := x.(type) {
-	case *Success:
-		*v = Success(true)
-		return true
-	default:
-		return ts.runStep.Result(x)
-	}
+// Succeeded is true
+func (ts *TryStep) Succeeded() bool {
+	return true
 }

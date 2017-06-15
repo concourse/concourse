@@ -32,6 +32,18 @@ type ResourceMetadataField struct {
 
 type ResourceMetadataFields []ResourceMetadataField
 
+func NewResourceMetadataFields(atcm []atc.MetadataField) ResourceMetadataFields {
+	metadata := make([]ResourceMetadataField, len(atcm))
+	for i, md := range atcm {
+		metadata[i] = ResourceMetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	return metadata
+}
+
 func (rmf ResourceMetadataFields) ToATCMetadata() []atc.MetadataField {
 	metadata := make([]atc.MetadataField, len(rmf))
 	for i, md := range rmf {

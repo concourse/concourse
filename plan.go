@@ -4,45 +4,20 @@ type Plan struct {
 	ID       PlanID `json:"id"`
 	Attempts []int  `json:"attempts,omitempty"`
 
-	Aggregate    *AggregatePlan    `json:"aggregate,omitempty"`
-	Do           *DoPlan           `json:"do,omitempty"`
-	Get          *GetPlan          `json:"get,omitempty"`
-	Put          *PutPlan          `json:"put,omitempty"`
-	Task         *TaskPlan         `json:"task,omitempty"`
-	Ensure       *EnsurePlan       `json:"ensure,omitempty"`
-	OnSuccess    *OnSuccessPlan    `json:"on_success,omitempty"`
-	OnFailure    *OnFailurePlan    `json:"on_failure,omitempty"`
-	Try          *TryPlan          `json:"try,omitempty"`
-	DependentGet *DependentGetPlan `json:"dependent_get,omitempty"`
-	Timeout      *TimeoutPlan      `json:"timeout,omitempty"`
-	Retry        *RetryPlan        `json:"retry,omitempty"`
+	Aggregate *AggregatePlan `json:"aggregate,omitempty"`
+	Do        *DoPlan        `json:"do,omitempty"`
+	Get       *GetPlan       `json:"get,omitempty"`
+	Put       *PutPlan       `json:"put,omitempty"`
+	Task      *TaskPlan      `json:"task,omitempty"`
+	Ensure    *EnsurePlan    `json:"ensure,omitempty"`
+	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
+	OnFailure *OnFailurePlan `json:"on_failure,omitempty"`
+	Try       *TryPlan       `json:"try,omitempty"`
+	Timeout   *TimeoutPlan   `json:"timeout,omitempty"`
+	Retry     *RetryPlan     `json:"retry,omitempty"`
 }
 
 type PlanID string
-
-type DependentGetPlan struct {
-	Type     string `json:"type"`
-	Name     string `json:"name,omitempty"`
-	Resource string `json:"resource"`
-	Params   Params `json:"params,omitempty"`
-	Tags     Tags   `json:"tags,omitempty"`
-	Source   Source `json:"source"`
-
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
-}
-
-func (plan DependentGetPlan) GetPlan() GetPlan {
-	return GetPlan{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
-		Source:   plan.Source,
-		Tags:     plan.Tags,
-		Params:   plan.Params,
-
-		VersionedResourceTypes: plan.VersionedResourceTypes,
-	}
-}
 
 type OnFailurePlan struct {
 	Step Plan `json:"step"`
@@ -73,13 +48,14 @@ type AggregatePlan []Plan
 type DoPlan []Plan
 
 type GetPlan struct {
-	Type     string  `json:"type"`
-	Name     string  `json:"name,omitempty"`
-	Resource string  `json:"resource"`
-	Source   Source  `json:"source"`
-	Params   Params  `json:"params,omitempty"`
-	Version  Version `json:"version,omitempty"`
-	Tags     Tags    `json:"tags,omitempty"`
+	Type        string   `json:"type"`
+	Name        string   `json:"name,omitempty"`
+	Resource    string   `json:"resource"`
+	Source      Source   `json:"source"`
+	Params      Params   `json:"params,omitempty"`
+	Version     *Version `json:"version,omitempty"`
+	VersionFrom *PlanID  `json:"version_from,omitempty"`
+	Tags        Tags     `json:"tags,omitempty"`
 
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
