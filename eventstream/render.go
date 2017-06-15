@@ -12,6 +12,8 @@ import (
 )
 
 func Render(dst io.Writer, src eventstream.EventStream) int {
+	var buildConfig event.TaskConfig
+
 	exitStatus := 0
 
 	for {
@@ -29,8 +31,8 @@ func Render(dst io.Writer, src eventstream.EventStream) int {
 		case event.Log:
 			fmt.Fprintf(dst, "%s", e.Payload)
 
-		case event.StartTask:
-			buildConfig := e.TaskConfig
+		case event.InitializeTask:
+			buildConfig = e.TaskConfig
 
 			if buildConfig.Image != "" {
 				fmt.Fprintf(dst, "\x1b[1minitializing with %s\x1b[0m\n", buildConfig.Image)
@@ -38,6 +40,7 @@ func Render(dst io.Writer, src eventstream.EventStream) int {
 				fmt.Fprintf(dst, "\x1b[1minitializing\x1b[0m\n")
 			}
 
+		case event.StartTask:
 			argv := strings.Join(append([]string{buildConfig.Run.Path}, buildConfig.Run.Args...), " ")
 			fmt.Fprintf(dst, "\x1b[1mrunning %s\x1b[0m\n", argv)
 

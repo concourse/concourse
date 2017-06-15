@@ -74,22 +74,27 @@ var _ = Describe("V1.0 Renderer", func() {
 	})
 
 	Context("when an InitializeTask event is received", func() {
-		Context("and a StartTask event is received", func() {
+		BeforeEach(func() {
+			receivedEvents <- event.InitializeTask{
+				TaskConfig: event.TaskConfig{
+					Image: "some-image",
+					Run: event.TaskRunConfig{
+						Path: "/some/script",
+						Args: []string{"arg1", "arg2"},
+					},
+				},
+			}
+		})
+
+		It("prints the build's container", func() {
+			Expect(out.Contents()).To(ContainSubstring("\x1b[1minitializing with some-image\x1b[0m\n"))
+		})
+
+		Context("and a StartExecute event is received", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.StartTask{
 					Time: time.Now().Unix(),
-					TaskConfig: event.TaskConfig{
-						Image: "some-image",
-						Run: event.TaskRunConfig{
-							Path: "/some/script",
-							Args: []string{"arg1", "arg2"},
-						},
-					},
 				}
-			})
-
-			It("prints the build's image", func() {
-				Expect(out.Contents()).To(ContainSubstring("\x1b[1minitializing with some-image\x1b[0m\n"))
 			})
 
 			It("prints the build's run script", func() {
