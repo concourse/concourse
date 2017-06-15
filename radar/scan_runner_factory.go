@@ -3,6 +3,7 @@ package radar
 import (
 	"time"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
@@ -39,6 +40,7 @@ func NewScanRunnerFactory(
 	dbPipeline db.Pipeline,
 	clock clock.Clock,
 	externalURL string,
+	variablesSource template.Variables,
 ) ScanRunnerFactory {
 	resourceScanner := NewResourceScanner(
 		clock,
@@ -47,6 +49,7 @@ func NewScanRunnerFactory(
 		defaultInterval,
 		dbPipeline,
 		externalURL,
+		variablesSource,
 	)
 	resourceTypeScanner := NewResourceTypeScanner(
 		resourceFactory,

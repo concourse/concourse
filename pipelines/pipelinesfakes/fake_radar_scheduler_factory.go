@@ -4,6 +4,7 @@ package pipelinesfakes
 import (
 	"sync"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/radar"
@@ -11,11 +12,12 @@ import (
 )
 
 type FakeRadarSchedulerFactory struct {
-	BuildScanRunnerFactoryStub        func(dbPipeline db.Pipeline, externalURL string) radar.ScanRunnerFactory
+	BuildScanRunnerFactoryStub        func(dbPipeline db.Pipeline, externalURL string, variables template.Variables) radar.ScanRunnerFactory
 	buildScanRunnerFactoryMutex       sync.RWMutex
 	buildScanRunnerFactoryArgsForCall []struct {
 		dbPipeline  db.Pipeline
 		externalURL string
+		variables   template.Variables
 	}
 	buildScanRunnerFactoryReturns struct {
 		result1 radar.ScanRunnerFactory
@@ -23,11 +25,12 @@ type FakeRadarSchedulerFactory struct {
 	buildScanRunnerFactoryReturnsOnCall map[int]struct {
 		result1 radar.ScanRunnerFactory
 	}
-	BuildSchedulerStub        func(pipeline db.Pipeline, externalURL string) scheduler.BuildScheduler
+	BuildSchedulerStub        func(pipeline db.Pipeline, externalURL string, variables template.Variables) scheduler.BuildScheduler
 	buildSchedulerMutex       sync.RWMutex
 	buildSchedulerArgsForCall []struct {
 		pipeline    db.Pipeline
 		externalURL string
+		variables   template.Variables
 	}
 	buildSchedulerReturns struct {
 		result1 scheduler.BuildScheduler
@@ -39,17 +42,18 @@ type FakeRadarSchedulerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string) radar.ScanRunnerFactory {
+func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables template.Variables) radar.ScanRunnerFactory {
 	fake.buildScanRunnerFactoryMutex.Lock()
 	ret, specificReturn := fake.buildScanRunnerFactoryReturnsOnCall[len(fake.buildScanRunnerFactoryArgsForCall)]
 	fake.buildScanRunnerFactoryArgsForCall = append(fake.buildScanRunnerFactoryArgsForCall, struct {
 		dbPipeline  db.Pipeline
 		externalURL string
-	}{dbPipeline, externalURL})
-	fake.recordInvocation("BuildScanRunnerFactory", []interface{}{dbPipeline, externalURL})
+		variables   template.Variables
+	}{dbPipeline, externalURL, variables})
+	fake.recordInvocation("BuildScanRunnerFactory", []interface{}{dbPipeline, externalURL, variables})
 	fake.buildScanRunnerFactoryMutex.Unlock()
 	if fake.BuildScanRunnerFactoryStub != nil {
-		return fake.BuildScanRunnerFactoryStub(dbPipeline, externalURL)
+		return fake.BuildScanRunnerFactoryStub(dbPipeline, externalURL, variables)
 	}
 	if specificReturn {
 		return ret.result1
@@ -63,10 +67,10 @@ func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryCallCount() int {
 	return len(fake.buildScanRunnerFactoryArgsForCall)
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryArgsForCall(i int) (db.Pipeline, string) {
+func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryArgsForCall(i int) (db.Pipeline, string, template.Variables) {
 	fake.buildScanRunnerFactoryMutex.RLock()
 	defer fake.buildScanRunnerFactoryMutex.RUnlock()
-	return fake.buildScanRunnerFactoryArgsForCall[i].dbPipeline, fake.buildScanRunnerFactoryArgsForCall[i].externalURL
+	return fake.buildScanRunnerFactoryArgsForCall[i].dbPipeline, fake.buildScanRunnerFactoryArgsForCall[i].externalURL, fake.buildScanRunnerFactoryArgsForCall[i].variables
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryReturns(result1 radar.ScanRunnerFactory) {
@@ -88,17 +92,18 @@ func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryReturnsOnCall(i int
 	}{result1}
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string) scheduler.BuildScheduler {
+func (fake *FakeRadarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string, variables template.Variables) scheduler.BuildScheduler {
 	fake.buildSchedulerMutex.Lock()
 	ret, specificReturn := fake.buildSchedulerReturnsOnCall[len(fake.buildSchedulerArgsForCall)]
 	fake.buildSchedulerArgsForCall = append(fake.buildSchedulerArgsForCall, struct {
 		pipeline    db.Pipeline
 		externalURL string
-	}{pipeline, externalURL})
-	fake.recordInvocation("BuildScheduler", []interface{}{pipeline, externalURL})
+		variables   template.Variables
+	}{pipeline, externalURL, variables})
+	fake.recordInvocation("BuildScheduler", []interface{}{pipeline, externalURL, variables})
 	fake.buildSchedulerMutex.Unlock()
 	if fake.BuildSchedulerStub != nil {
-		return fake.BuildSchedulerStub(pipeline, externalURL)
+		return fake.BuildSchedulerStub(pipeline, externalURL, variables)
 	}
 	if specificReturn {
 		return ret.result1
@@ -112,10 +117,10 @@ func (fake *FakeRadarSchedulerFactory) BuildSchedulerCallCount() int {
 	return len(fake.buildSchedulerArgsForCall)
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipeline, string) {
+func (fake *FakeRadarSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipeline, string, template.Variables) {
 	fake.buildSchedulerMutex.RLock()
 	defer fake.buildSchedulerMutex.RUnlock()
-	return fake.buildSchedulerArgsForCall[i].pipeline, fake.buildSchedulerArgsForCall[i].externalURL
+	return fake.buildSchedulerArgsForCall[i].pipeline, fake.buildSchedulerArgsForCall[i].externalURL, fake.buildSchedulerArgsForCall[i].variables
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {

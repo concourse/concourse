@@ -14,6 +14,8 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 
+		variablesSource := s.variablesFactory.NewVariables(pipeline.TeamName(), pipeline.Name())
+
 		job, found, err := pipeline.Job(jobName)
 		if err != nil {
 			logger.Error("failed-to-get-job", err)
@@ -26,7 +28,7 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		scheduler := s.schedulerFactory.BuildScheduler(pipeline, s.externalURL)
+		scheduler := s.schedulerFactory.BuildScheduler(pipeline, s.externalURL, variablesSource)
 
 		err = scheduler.SaveNextInputMapping(logger, job)
 		if err != nil {
@@ -66,7 +68,14 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 				}
 			}
 
-			presentedBuildInputs[i] = present.BuildInput(input, config, resource.Source())
+			evaluatedSource, err := resource.EvaluatedSource(variablesSource)
+			if err != nil {
+				logger.Error("failed-to-evaluate-source", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			presentedBuildInputs[i] = present.BuildInput(input, config, evaluatedSource)
 		}
 
 		json.NewEncoder(w).Encode(presentedBuildInputs)

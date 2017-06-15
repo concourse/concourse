@@ -9,6 +9,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	uuid "github.com/nu7hatch/gouuid"
@@ -371,6 +372,17 @@ var _ = Describe("Team", func() {
 	})
 
 	Describe("FindCheckContainers", func() {
+		var (
+			fakeVariablesFactory *credsfakes.FakeVariablesFactory
+			fakeVariables        *credsfakes.FakeVariables
+		)
+
+		BeforeEach(func() {
+			fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
+			fakeVariables = new(credsfakes.FakeVariables)
+			fakeVariablesFactory.NewVariablesReturns(fakeVariables)
+		})
+
 		Context("when pipeline exists", func() {
 			Context("when resource exists", func() {
 				Context("when check container for resource exists", func() {
@@ -378,14 +390,18 @@ var _ = Describe("Team", func() {
 					var usedResourceConfig *db.UsedResourceConfig
 
 					BeforeEach(func() {
+
 						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
+						Expect(err).NotTo(HaveOccurred())
+
+						evaluatedSource, err := defaultResource.EvaluatedSource(fakeVariables)
 						Expect(err).NotTo(HaveOccurred())
 
 						usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 							logger,
 							db.ForResource(defaultResource.ID()),
 							defaultResource.Type(),
-							defaultResource.Source(),
+							evaluatedSource,
 							pipelineResourceTypes.Deserialize(),
 						)
 						Expect(err).NotTo(HaveOccurred())
@@ -399,7 +415,7 @@ var _ = Describe("Team", func() {
 					})
 
 					It("returns check container for resource", func() {
-						containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource")
+						containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource", fakeVariablesFactory)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(containers).To(ContainElement(resourceContainer))
 					})
@@ -415,7 +431,7 @@ var _ = Describe("Team", func() {
 						})
 
 						It("only returns container for current team", func() {
-							containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource")
+							containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource", fakeVariablesFactory)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(containers).To(HaveLen(1))
 							Expect(containers).To(ContainElement(resourceContainer))
@@ -425,7 +441,7 @@ var _ = Describe("Team", func() {
 
 				Context("when check container does not exist", func() {
 					It("returns empty list", func() {
-						containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource")
+						containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource", fakeVariablesFactory)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(containers).To(BeEmpty())
 					})
@@ -434,7 +450,7 @@ var _ = Describe("Team", func() {
 
 			Context("when resource does not exist", func() {
 				It("returns empty list", func() {
-					containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "non-existent-resource")
+					containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "non-existent-resource", fakeVariablesFactory)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(containers).To(BeEmpty())
 				})
@@ -443,7 +459,7 @@ var _ = Describe("Team", func() {
 
 		Context("when pipeline does not exist", func() {
 			It("returns empty list", func() {
-				containers, err := defaultTeam.FindCheckContainers(logger, "non-existent-pipeline", "some-resource")
+				containers, err := defaultTeam.FindCheckContainers(logger, "non-existent-pipeline", "some-resource", fakeVariablesFactory)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(containers).To(BeEmpty())
 			})
@@ -1291,7 +1307,7 @@ var _ = Describe("Team", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(resource.Type()).To(Equal("some-type"))
-				Expect(resource.Source()).To(Equal(atc.Source{
+				Expect(resource.RawSource()).To(Equal(atc.Source{
 					"source-config": "some-value",
 				}))
 			})
@@ -1311,7 +1327,7 @@ var _ = Describe("Team", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(resource.Type()).To(Equal("some-type"))
-				Expect(resource.Source()).To(Equal(atc.Source{
+				Expect(resource.RawSource()).To(Equal(atc.Source{
 					"source-other-config": "some-other-value",
 				}))
 			})

@@ -134,11 +134,11 @@ var _ = Describe("Runner", func() {
 		fakeResource1 = new(dbfakes.FakeResource)
 		fakeResource1.NameReturns("some-resource")
 		fakeResource1.TypeReturns("git")
-		fakeResource1.SourceReturns(atc.Source{"uri": "git://some-resource"})
+		fakeResource1.EvaluatedSourceReturns(atc.Source{"uri": "git://some-resource"}, nil)
 		fakeResource2 = new(dbfakes.FakeResource)
 		fakeResource2.NameReturns("some-dependant-resource")
 		fakeResource2.TypeReturns("git")
-		fakeResource2.SourceReturns(atc.Source{"uri": "git://some-dependant-resource"})
+		fakeResource2.EvaluatedSourceReturns(atc.Source{"uri": "git://some-dependant-resource"}, nil)
 
 		fakePipeline.JobsReturns([]db.Job{fakeJob1, fakeJob2}, nil)
 		fakePipeline.ResourcesReturns(db.Resources{fakeResource1, fakeResource2}, nil)

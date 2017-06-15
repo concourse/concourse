@@ -14,6 +14,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 	uuid "github.com/nu7hatch/gouuid"
@@ -55,7 +56,7 @@ type Team interface {
 
 	FindContainerByHandle(string) (Container, bool, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
-	FindCheckContainers(lager.Logger, string, string) ([]Container, error)
+	FindCheckContainers(lager.Logger, string, string, creds.VariablesFactory) ([]Container, error)
 
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 
@@ -294,7 +295,7 @@ func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container
 	return containers, nil
 }
 
-func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string) ([]Container, error) {
+func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, variablesFactory creds.VariablesFactory) ([]Container, error) {
 	pipeline, found, err := t.Pipeline(pipelineName)
 	if err != nil {
 		return nil, err
@@ -316,11 +317,18 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		return nil, err
 	}
 
+	variablesSource := variablesFactory.NewVariables(t.name, pipeline.Name())
+
+	source, err := resource.EvaluatedSource(variablesSource)
+	if err != nil {
+		return nil, err
+	}
+
 	resourceConfigFactory := NewResourceConfigFactory(t.conn, t.lockFactory)
 	resourceConfig, found, err := resourceConfigFactory.FindResourceConfig(
 		logger,
 		resource.Type(),
-		resource.Source(),
+		source,
 		pipelineResourceTypes.Deserialize(),
 	)
 	if err != nil {

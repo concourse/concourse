@@ -338,7 +338,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 									{
 										Name:   "another-resource",
 										Type:   usedResource.Type(),
-										Source: usedResource.Source(),
+										Source: usedResource.RawSource(),
 									},
 								},
 							},
@@ -358,7 +358,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							db.ForResource(anotherResource.ID()),
 							"some-type",
 							atc.Version{"some-type": "version"},
-							anotherResource.Source(),
+							anotherResource.RawSource(),
 							atc.Params{"some": "params"},
 							atc.VersionedResourceTypes{versionedResourceType},
 						)
@@ -403,7 +403,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							db.ForResource(usedResource.ID()),
 							"some-type",
 							atc.Version{"some-type": "version"},
-							usedResource.Source(),
+							usedResource.RawSource(),
 							atc.Params{"some": "params"},
 							atc.VersionedResourceTypes{versionedResourceType},
 						)

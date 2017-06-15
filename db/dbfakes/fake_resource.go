@@ -4,6 +4,7 @@ package dbfakes
 import (
 	"sync"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
@@ -45,13 +46,13 @@ type FakeResource struct {
 	typeReturnsOnCall map[int]struct {
 		result1 string
 	}
-	SourceStub        func() atc.Source
-	sourceMutex       sync.RWMutex
-	sourceArgsForCall []struct{}
-	sourceReturns     struct {
+	RawSourceStub        func() atc.Source
+	rawSourceMutex       sync.RWMutex
+	rawSourceArgsForCall []struct{}
+	rawSourceReturns     struct {
 		result1 atc.Source
 	}
-	sourceReturnsOnCall map[int]struct {
+	rawSourceReturnsOnCall map[int]struct {
 		result1 atc.Source
 	}
 	CheckEveryStub        func() string
@@ -107,6 +108,19 @@ type FakeResource struct {
 	}
 	failingToCheckReturnsOnCall map[int]struct {
 		result1 bool
+	}
+	EvaluatedSourceStub        func(template.Variables) (atc.Source, error)
+	evaluatedSourceMutex       sync.RWMutex
+	evaluatedSourceArgsForCall []struct {
+		arg1 template.Variables
+	}
+	evaluatedSourceReturns struct {
+		result1 atc.Source
+		result2 error
+	}
+	evaluatedSourceReturnsOnCall map[int]struct {
+		result1 atc.Source
+		result2 error
 	}
 	PauseStub        func() error
 	pauseMutex       sync.RWMutex
@@ -301,42 +315,42 @@ func (fake *FakeResource) TypeReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResource) Source() atc.Source {
-	fake.sourceMutex.Lock()
-	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
-	fake.sourceArgsForCall = append(fake.sourceArgsForCall, struct{}{})
-	fake.recordInvocation("Source", []interface{}{})
-	fake.sourceMutex.Unlock()
-	if fake.SourceStub != nil {
-		return fake.SourceStub()
+func (fake *FakeResource) RawSource() atc.Source {
+	fake.rawSourceMutex.Lock()
+	ret, specificReturn := fake.rawSourceReturnsOnCall[len(fake.rawSourceArgsForCall)]
+	fake.rawSourceArgsForCall = append(fake.rawSourceArgsForCall, struct{}{})
+	fake.recordInvocation("RawSource", []interface{}{})
+	fake.rawSourceMutex.Unlock()
+	if fake.RawSourceStub != nil {
+		return fake.RawSourceStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.sourceReturns.result1
+	return fake.rawSourceReturns.result1
 }
 
-func (fake *FakeResource) SourceCallCount() int {
-	fake.sourceMutex.RLock()
-	defer fake.sourceMutex.RUnlock()
-	return len(fake.sourceArgsForCall)
+func (fake *FakeResource) RawSourceCallCount() int {
+	fake.rawSourceMutex.RLock()
+	defer fake.rawSourceMutex.RUnlock()
+	return len(fake.rawSourceArgsForCall)
 }
 
-func (fake *FakeResource) SourceReturns(result1 atc.Source) {
-	fake.SourceStub = nil
-	fake.sourceReturns = struct {
+func (fake *FakeResource) RawSourceReturns(result1 atc.Source) {
+	fake.RawSourceStub = nil
+	fake.rawSourceReturns = struct {
 		result1 atc.Source
 	}{result1}
 }
 
-func (fake *FakeResource) SourceReturnsOnCall(i int, result1 atc.Source) {
-	fake.SourceStub = nil
-	if fake.sourceReturnsOnCall == nil {
-		fake.sourceReturnsOnCall = make(map[int]struct {
+func (fake *FakeResource) RawSourceReturnsOnCall(i int, result1 atc.Source) {
+	fake.RawSourceStub = nil
+	if fake.rawSourceReturnsOnCall == nil {
+		fake.rawSourceReturnsOnCall = make(map[int]struct {
 			result1 atc.Source
 		})
 	}
-	fake.sourceReturnsOnCall[i] = struct {
+	fake.rawSourceReturnsOnCall[i] = struct {
 		result1 atc.Source
 	}{result1}
 }
@@ -581,6 +595,57 @@ func (fake *FakeResource) FailingToCheckReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeResource) EvaluatedSource(arg1 template.Variables) (atc.Source, error) {
+	fake.evaluatedSourceMutex.Lock()
+	ret, specificReturn := fake.evaluatedSourceReturnsOnCall[len(fake.evaluatedSourceArgsForCall)]
+	fake.evaluatedSourceArgsForCall = append(fake.evaluatedSourceArgsForCall, struct {
+		arg1 template.Variables
+	}{arg1})
+	fake.recordInvocation("EvaluatedSource", []interface{}{arg1})
+	fake.evaluatedSourceMutex.Unlock()
+	if fake.EvaluatedSourceStub != nil {
+		return fake.EvaluatedSourceStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.evaluatedSourceReturns.result1, fake.evaluatedSourceReturns.result2
+}
+
+func (fake *FakeResource) EvaluatedSourceCallCount() int {
+	fake.evaluatedSourceMutex.RLock()
+	defer fake.evaluatedSourceMutex.RUnlock()
+	return len(fake.evaluatedSourceArgsForCall)
+}
+
+func (fake *FakeResource) EvaluatedSourceArgsForCall(i int) template.Variables {
+	fake.evaluatedSourceMutex.RLock()
+	defer fake.evaluatedSourceMutex.RUnlock()
+	return fake.evaluatedSourceArgsForCall[i].arg1
+}
+
+func (fake *FakeResource) EvaluatedSourceReturns(result1 atc.Source, result2 error) {
+	fake.EvaluatedSourceStub = nil
+	fake.evaluatedSourceReturns = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) EvaluatedSourceReturnsOnCall(i int, result1 atc.Source, result2 error) {
+	fake.EvaluatedSourceStub = nil
+	if fake.evaluatedSourceReturnsOnCall == nil {
+		fake.evaluatedSourceReturnsOnCall = make(map[int]struct {
+			result1 atc.Source
+			result2 error
+		})
+	}
+	fake.evaluatedSourceReturnsOnCall[i] = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResource) Pause() error {
 	fake.pauseMutex.Lock()
 	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
@@ -715,8 +780,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.pipelineNameMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
-	fake.sourceMutex.RLock()
-	defer fake.sourceMutex.RUnlock()
+	fake.rawSourceMutex.RLock()
+	defer fake.rawSourceMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
 	fake.tagsMutex.RLock()
@@ -729,6 +794,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.webhookTokenMutex.RUnlock()
 	fake.failingToCheckMutex.RLock()
 	defer fake.failingToCheckMutex.RUnlock()
+	fake.evaluatedSourceMutex.RLock()
+	defer fake.evaluatedSourceMutex.RUnlock()
 	fake.pauseMutex.RLock()
 	defer fake.pauseMutex.RUnlock()
 	fake.unpauseMutex.RLock()

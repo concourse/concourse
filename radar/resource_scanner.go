@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
@@ -21,6 +22,7 @@ type resourceScanner struct {
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
+	variablesSource       template.Variables
 }
 
 func NewResourceScanner(
@@ -30,6 +32,7 @@ func NewResourceScanner(
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
+	variablesSource template.Variables,
 ) Scanner {
 	return &resourceScanner{
 		clock:                 clock,
@@ -38,6 +41,7 @@ func NewResourceScanner(
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
+		variablesSource:       variablesSource,
 	}
 }
 
@@ -80,6 +84,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		savedResource,
 		interval,
 		false,
+		scanner.variablesSource,
 	)
 
 	if err != nil {
@@ -156,6 +161,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 			savedResource,
 			interval,
 			true,
+			scanner.variablesSource,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
@@ -246,11 +252,17 @@ func (scanner *resourceScanner) scan(
 		Env:    metadata.Env(),
 	}
 
+	evaluatedSource, err := savedResource.EvaluatedSource(scanner.variablesSource)
+	if err != nil {
+		logger.Error("failed-to-evaluate-resource-source", err)
+		return err
+	}
+
 	resourceConfig, err := scanner.resourceConfigFactory.FindOrCreateResourceConfig(
 		logger,
 		db.ForResource(savedResource.ID()),
 		savedResource.Type(),
-		savedResource.Source(),
+		evaluatedSource,
 		resourceTypes,
 	)
 	if err != nil {
@@ -287,7 +299,7 @@ func (scanner *resourceScanner) scan(
 		"from": fromVersion,
 	})
 
-	newVersions, err := res.Check(savedResource.Source(), fromVersion)
+	newVersions, err := res.Check(evaluatedSource, fromVersion)
 
 	setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
 	if setErr != nil {

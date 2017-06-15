@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc/db/lock"
 )
 
@@ -12,6 +13,7 @@ func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 	resource Resource,
 	interval time.Duration,
 	immediate bool,
+	variablesSource template.Variables,
 ) (lock.Lock, bool, error) {
 	resourceTypes, err := p.ResourceTypes()
 	if err != nil {
@@ -19,7 +21,13 @@ func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 		return nil, false, err
 	}
 
-	resourceConfig, err := constructResourceConfig(resource.Type(), resource.Source(), resourceTypes.Deserialize())
+	evaluatedSource, err := resource.EvaluatedSource(variablesSource)
+	if err != nil {
+		logger.Error("failed-to-evaluate-resource-source", err)
+		return nil, false, err
+	}
+
+	resourceConfig, err := constructResourceConfig(resource.Type(), evaluatedSource, resourceTypes.Deserialize())
 	if err != nil {
 		return nil, false, err
 	}

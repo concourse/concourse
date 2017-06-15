@@ -15,6 +15,7 @@ import (
 
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 
@@ -51,6 +52,7 @@ var (
 	dbTeam                        *dbfakes.FakeTeam
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
+	fakeVariablesFactory          *credsfakes.FakeVariablesFactory
 	configValidationErrorMessages []string
 	peerAddr                      string
 	drain                         chan struct{}
@@ -118,6 +120,8 @@ var _ = BeforeEach(func() {
 
 	fakeVolumeFactory = new(dbfakes.FakeVolumeFactory)
 	fakeContainerFactory = new(dbfakes.FakeContainerFactory)
+
+	fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
 
 	var err error
 
@@ -190,6 +194,7 @@ var _ = BeforeEach(func() {
 		cliDownloadsDir,
 		"1.2.3",
 		"4.5.6",
+		fakeVariablesFactory,
 	)
 	Expect(err).NotTo(HaveOccurred())
 

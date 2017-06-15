@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/db/dbfakes"
@@ -30,6 +31,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 		fakeScanner      *schedulerfakes.FakeScanner
 		fakeInputMapper  *inputmapperfakes.FakeInputMapper
 		fakeBuildStarter *schedulerfakes.FakeBuildStarter
+		fakeVariables    *credsfakes.FakeVariables
 
 		buildStarter scheduler.BuildStarter
 
@@ -44,8 +46,9 @@ var _ = Describe("I'm a BuildStarter", func() {
 		fakeScanner = new(schedulerfakes.FakeScanner)
 		fakeInputMapper = new(inputmapperfakes.FakeInputMapper)
 		fakeBuildStarter = new(schedulerfakes.FakeBuildStarter)
+		fakeVariables = new(credsfakes.FakeVariables)
 
-		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeUpdater, fakeFactory, fakeScanner, fakeInputMapper, fakeEngine)
+		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeUpdater, fakeFactory, fakeScanner, fakeInputMapper, fakeEngine, fakeVariables)
 
 		disaster = errors.New("bad thing")
 	})

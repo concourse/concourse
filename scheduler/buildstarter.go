@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -34,6 +35,7 @@ func NewBuildStarter(
 	scanner Scanner,
 	inputMapper inputmapper.InputMapper,
 	execEngine engine.Engine,
+	variablesSource template.Variables,
 ) BuildStarter {
 	return &buildStarter{
 		pipeline:           pipeline,
@@ -42,6 +44,7 @@ func NewBuildStarter(
 		scanner:            scanner,
 		inputMapper:        inputMapper,
 		execEngine:         execEngine,
+		variablesSource:    variablesSource,
 	}
 }
 
@@ -52,6 +55,7 @@ type buildStarter struct {
 	execEngine         engine.Engine
 	scanner            Scanner
 	inputMapper        inputmapper.InputMapper
+	variablesSource    template.Variables
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
@@ -161,10 +165,15 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 	resourceConfigs := atc.ResourceConfigs{}
 	for _, v := range resources {
+		evaluatedSource, err := v.EvaluatedSource(s.variablesSource)
+		if err != nil {
+			return false, err
+		}
+
 		resourceConfigs = append(resourceConfigs, atc.ResourceConfig{
 			Name:   v.Name(),
 			Type:   v.Type(),
-			Source: v.Source(),
+			Source: evaluatedSource,
 			Tags:   v.Tags(),
 		})
 	}

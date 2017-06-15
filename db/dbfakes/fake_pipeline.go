@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
@@ -283,13 +284,14 @@ type FakePipeline struct {
 		result2 bool
 		result3 error
 	}
-	AcquireResourceCheckingLockWithIntervalCheckStub        func(logger lager.Logger, resource db.Resource, interval time.Duration, immediate bool) (lock.Lock, bool, error)
+	AcquireResourceCheckingLockWithIntervalCheckStub        func(logger lager.Logger, resource db.Resource, interval time.Duration, immediate bool, variablesSource template.Variables) (lock.Lock, bool, error)
 	acquireResourceCheckingLockWithIntervalCheckMutex       sync.RWMutex
 	acquireResourceCheckingLockWithIntervalCheckArgsForCall []struct {
-		logger    lager.Logger
-		resource  db.Resource
-		interval  time.Duration
-		immediate bool
+		logger          lager.Logger
+		resource        db.Resource
+		interval        time.Duration
+		immediate       bool
+		variablesSource template.Variables
 	}
 	acquireResourceCheckingLockWithIntervalCheckReturns struct {
 		result1 lock.Lock
@@ -1563,19 +1565,20 @@ func (fake *FakePipeline) AcquireSchedulingLockReturnsOnCall(i int, result1 lock
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheck(logger lager.Logger, resource db.Resource, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheck(logger lager.Logger, resource db.Resource, interval time.Duration, immediate bool, variablesSource template.Variables) (lock.Lock, bool, error) {
 	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Lock()
 	ret, specificReturn := fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall[len(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall)]
 	fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall = append(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall, struct {
-		logger    lager.Logger
-		resource  db.Resource
-		interval  time.Duration
-		immediate bool
-	}{logger, resource, interval, immediate})
-	fake.recordInvocation("AcquireResourceCheckingLockWithIntervalCheck", []interface{}{logger, resource, interval, immediate})
+		logger          lager.Logger
+		resource        db.Resource
+		interval        time.Duration
+		immediate       bool
+		variablesSource template.Variables
+	}{logger, resource, interval, immediate, variablesSource})
+	fake.recordInvocation("AcquireResourceCheckingLockWithIntervalCheck", []interface{}{logger, resource, interval, immediate, variablesSource})
 	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Unlock()
 	if fake.AcquireResourceCheckingLockWithIntervalCheckStub != nil {
-		return fake.AcquireResourceCheckingLockWithIntervalCheckStub(logger, resource, interval, immediate)
+		return fake.AcquireResourceCheckingLockWithIntervalCheckStub(logger, resource, interval, immediate, variablesSource)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -1589,10 +1592,10 @@ func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckCallCount(
 	return len(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall)
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckArgsForCall(i int) (lager.Logger, db.Resource, time.Duration, bool) {
+func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckArgsForCall(i int) (lager.Logger, db.Resource, time.Duration, bool, template.Variables) {
 	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()
 	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.RUnlock()
-	return fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].logger, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].resource, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].interval, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].immediate
+	return fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].logger, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].resource, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].interval, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].immediate, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].variablesSource
 }
 
 func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckReturns(result1 lock.Lock, result2 bool, result3 error) {

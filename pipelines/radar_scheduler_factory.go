@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -19,8 +20,8 @@ import (
 //go:generate counterfeiter . RadarSchedulerFactory
 
 type RadarSchedulerFactory interface {
-	BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string) radar.ScanRunnerFactory
-	BuildScheduler(pipeline db.Pipeline, externalURL string) scheduler.BuildScheduler
+	BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables template.Variables) radar.ScanRunnerFactory
+	BuildScheduler(pipeline db.Pipeline, externalURL string, variables template.Variables) scheduler.BuildScheduler
 }
 
 type radarSchedulerFactory struct {
@@ -44,11 +45,11 @@ func NewRadarSchedulerFactory(
 	}
 }
 
-func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string) radar.ScanRunnerFactory {
-	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.resourceConfigFactory, rsf.interval, dbPipeline, clock.NewClock(), externalURL)
+func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables template.Variables) radar.ScanRunnerFactory {
+	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.resourceConfigFactory, rsf.interval, dbPipeline, clock.NewClock(), externalURL, variables)
 }
 
-func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string) scheduler.BuildScheduler {
+func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string, variables template.Variables) scheduler.BuildScheduler {
 	scanner := radar.NewResourceScanner(
 		clock.NewClock(),
 		rsf.resourceFactory,
@@ -56,6 +57,7 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 		rsf.interval,
 		pipeline,
 		externalURL,
+		variables,
 	)
 	inputMapper := inputmapper.NewInputMapper(
 		pipeline,
@@ -74,6 +76,7 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 			scanner,
 			inputMapper,
 			rsf.engine,
+			variables,
 		),
 		Scanner: scanner,
 	}

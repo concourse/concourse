@@ -25,6 +25,7 @@ import (
 	"github.com/concourse/atc/api/volumeserver"
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/mainredirect"
@@ -70,6 +71,7 @@ func NewHandler(
 	cliDownloadsDir string,
 	version string,
 	workerVersion string,
+	variablesFactory creds.VariablesFactory,
 ) (http.Handler, error) {
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
 	if err != nil {
@@ -103,7 +105,7 @@ func NewHandler(
 		drain,
 	)
 
-	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL)
+	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, externalURL, dbTeamFactory)
@@ -118,7 +120,7 @@ func NewHandler(
 
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 
-	containerServer := containerserver.NewServer(logger, workerClient)
+	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory)
 
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 

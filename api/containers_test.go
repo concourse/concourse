@@ -355,9 +355,10 @@ var _ = Describe("Containers API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					_, pipelineName, resourceName := dbTeam.FindCheckContainersArgsForCall(0)
+					_, pipelineName, resourceName, variablesFactory := dbTeam.FindCheckContainersArgsForCall(0)
 					Expect(pipelineName).To(Equal("some-pipeline"))
 					Expect(resourceName).To(Equal("some-resource"))
+					Expect(variablesFactory).To(Equal(fakeVariablesFactory))
 				})
 			})
 		})

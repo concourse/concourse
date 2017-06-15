@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/db/lock"
@@ -65,6 +66,7 @@ type Pipeline interface {
 		resource Resource,
 		interval time.Duration,
 		immediate bool,
+		variablesSource template.Variables,
 	) (lock.Lock, bool, error)
 
 	AcquireResourceTypeCheckingLockWithIntervalCheck(

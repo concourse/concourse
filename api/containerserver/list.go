@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 )
 
@@ -19,7 +20,7 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 			"params": params,
 		})
 
-		containerLocator, err := createContainerLocatorFromRequest(team, r)
+		containerLocator, err := createContainerLocatorFromRequest(team, r, s.variablesFactory)
 		if err != nil {
 			hLog.Error("failed-to-parse-request", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -53,14 +54,15 @@ type containerLocator interface {
 	Locate(logger lager.Logger) ([]db.Container, error)
 }
 
-func createContainerLocatorFromRequest(team db.Team, r *http.Request) (containerLocator, error) {
+func createContainerLocatorFromRequest(team db.Team, r *http.Request, variablesFactory creds.VariablesFactory) (containerLocator, error) {
 	query := r.URL.Query()
 
 	if query.Get("type") == "check" {
 		return &checkContainerLocator{
-			team:         team,
-			pipelineName: query.Get("pipeline_name"),
-			resourceName: query.Get("resource_name"),
+			team:             team,
+			pipelineName:     query.Get("pipeline_name"),
+			resourceName:     query.Get("resource_name"),
+			variablesFactory: variablesFactory,
 		}, nil
 	}
 
@@ -109,13 +111,14 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request) (container
 }
 
 type checkContainerLocator struct {
-	team         db.Team
-	pipelineName string
-	resourceName string
+	team             db.Team
+	pipelineName     string
+	resourceName     string
+	variablesFactory creds.VariablesFactory
 }
 
 func (l *checkContainerLocator) Locate(logger lager.Logger) ([]db.Container, error) {
-	return l.team.FindCheckContainers(logger, l.pipelineName, l.resourceName)
+	return l.team.FindCheckContainers(logger, l.pipelineName, l.resourceName, l.variablesFactory)
 }
 
 type stepContainerLocator struct {

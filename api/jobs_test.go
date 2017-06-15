@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
@@ -1408,15 +1409,16 @@ var _ = Describe("Jobs API", func() {
 
 						resource1 := new(dbfakes.FakeResource)
 						resource1.NameReturns("some-resource")
-						resource1.SourceReturns(atc.Source{"some": "source"})
+						resource1.EvaluatedSourceReturns(atc.Source{"some": "source"}, nil)
 
 						resource2 := new(dbfakes.FakeResource)
 						resource2.NameReturns("some-other-resource")
-						resource2.SourceReturns(atc.Source{"some": "other-source"})
+						resource2.EvaluatedSourceReturns(atc.Source{"some": "other-source"}, nil)
 						fakePipeline.ResourcesReturns([]db.Resource{resource1, resource2}, nil)
 					})
 
 					Context("when the input versions for the job can be determined", func() {
+						var fakeVariables *credsfakes.FakeVariables
 						BeforeEach(func() {
 							fakeJob.GetNextBuildInputsStub = func() ([]db.BuildInput, bool, error) {
 								defer GinkgoRecover()
@@ -1440,6 +1442,9 @@ var _ = Describe("Jobs API", func() {
 									},
 								}, true, nil
 							}
+
+							fakeVariables = new(credsfakes.FakeVariables)
+							fakeVariablesFactory.NewVariablesReturns(fakeVariables)
 						})
 
 						It("returns 200 OK", func() {
@@ -1447,9 +1452,10 @@ var _ = Describe("Jobs API", func() {
 						})
 
 						It("created the scheduler with the correct fakePipeline and external URL", func() {
-							actualPipeline, actualExternalURL := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
+							actualPipeline, actualExternalURL, variablesSource := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
 							Expect(actualPipeline.Name()).To(Equal(fakePipeline.Name()))
 							Expect(actualExternalURL).To(Equal(externalURL))
+							Expect(variablesSource).To(Equal(fakeVariables))
 						})
 
 						It("determined the inputs with the correct job config", func() {

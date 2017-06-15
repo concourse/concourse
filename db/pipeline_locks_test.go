@@ -3,6 +3,7 @@ package db_test
 import (
 	"time"
 
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -11,11 +12,18 @@ import (
 
 var _ = Describe("PipelineLocks", func() {
 	Describe("AcquireResourceCheckingLockWithIntervalCheck", func() {
-		var someResource db.Resource
+		var (
+			someResource  db.Resource
+			fakeVariables *credsfakes.FakeVariables
+		)
 
 		BeforeEach(func() {
 			var err error
 			var found bool
+
+			fakeVariables = new(credsfakes.FakeVariables)
+			//fakeVariables.GetReturns("some-variable", true, nil)
+
 			someResource, found, err = defaultPipeline.Resource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -24,13 +32,13 @@ var _ = Describe("PipelineLocks", func() {
 		Context("when there has been a check recently", func() {
 			Context("when acquiring immediately", func() {
 				It("gets the lock", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					lock.Release()
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -40,13 +48,13 @@ var _ = Describe("PipelineLocks", func() {
 
 			Context("when not acquiring immediately", func() {
 				It("does not get the lock", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					lock.Release()
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeFalse())
 				})
@@ -56,12 +64,12 @@ var _ = Describe("PipelineLocks", func() {
 		Context("when there has not been a check recently", func() {
 			Context("when acquiring immediately", func() {
 				It("gets and keeps the lock and stops others from periodically getting it", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					Consistently(func() bool {
-						_, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false)
+						_, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false, fakeVariables)
 						Expect(err).NotTo(HaveOccurred())
 
 						return acquired
@@ -71,7 +79,7 @@ var _ = Describe("PipelineLocks", func() {
 
 					time.Sleep(time.Second)
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -79,12 +87,12 @@ var _ = Describe("PipelineLocks", func() {
 				})
 
 				It("gets and keeps the lock and stops others from immediately getting it", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					Consistently(func() bool {
-						_, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true)
+						_, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true, fakeVariables)
 						Expect(err).NotTo(HaveOccurred())
 
 						return acquired
@@ -94,7 +102,7 @@ var _ = Describe("PipelineLocks", func() {
 
 					time.Sleep(time.Second)
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -104,12 +112,12 @@ var _ = Describe("PipelineLocks", func() {
 
 			Context("when not acquiring immediately", func() {
 				It("gets and keeps the lock and stops others from periodically getting it", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					Consistently(func() bool {
-						_, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false)
+						_, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false, fakeVariables)
 						Expect(err).NotTo(HaveOccurred())
 
 						return acquired
@@ -119,7 +127,7 @@ var _ = Describe("PipelineLocks", func() {
 
 					time.Sleep(time.Second)
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -127,13 +135,13 @@ var _ = Describe("PipelineLocks", func() {
 				})
 
 				It("gets and keeps the lock and stops others from immediately getting it", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false, fakeVariables)
 
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					Consistently(func() bool {
-						_, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true)
+						_, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, true, fakeVariables)
 						Expect(err).NotTo(HaveOccurred())
 
 						return acquired
@@ -143,7 +151,7 @@ var _ = Describe("PipelineLocks", func() {
 
 					time.Sleep(time.Second)
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLockWithIntervalCheck(logger, someResource, 1*time.Second, false, fakeVariables)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 

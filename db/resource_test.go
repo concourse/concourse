@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,6 +31,11 @@ var _ = Describe("Resource", func() {
 						Type:   "git",
 						Source: atc.Source{"some": "other-repository"},
 					},
+					{
+						Name:   "some-secret-resource",
+						Type:   "git",
+						Source: atc.Source{"some": "((secret-repository))"},
+					},
 				},
 			},
 			0,
@@ -49,7 +55,7 @@ var _ = Describe("Resource", func() {
 		})
 
 		It("returns the resources", func() {
-			Expect(resources).To(HaveLen(2))
+			Expect(resources).To(HaveLen(3))
 
 			ids := map[int]struct{}{}
 
@@ -57,14 +63,15 @@ var _ = Describe("Resource", func() {
 				ids[r.ID()] = struct{}{}
 
 				switch r.Name() {
-				case "some-type":
-					Expect(r.Name()).To(Equal("some-resource"))
+				case "some-resource":
 					Expect(r.Type()).To(Equal("docker-image"))
-					Expect(r.Source()).To(Equal(atc.Source{"some": "repository"}))
-				case "some-other-type":
-					Expect(r.Name()).To(Equal("some-other-resource"))
+					Expect(r.RawSource()).To(Equal(atc.Source{"some": "repository"}))
+				case "some-other-resource":
 					Expect(r.Type()).To(Equal("git"))
-					Expect(r.Source()).To(Equal(atc.Source{"some": "other-repository"}))
+					Expect(r.RawSource()).To(Equal(atc.Source{"some": "other-repository"}))
+				case "some-secret-resource":
+					Expect(r.Type()).To(Equal("git"))
+					Expect(r.RawSource()).To(Equal(atc.Source{"some": "((secret-repository))"}))
 				}
 			}
 		})
@@ -87,7 +94,7 @@ var _ = Describe("Resource", func() {
 				Expect(found).To(BeTrue())
 				Expect(resource.Name()).To(Equal("some-resource"))
 				Expect(resource.Type()).To(Equal("docker-image"))
-				Expect(resource.Source()).To(Equal(atc.Source{"some": "repository"}))
+				Expect(resource.RawSource()).To(Equal(atc.Source{"some": "repository"}))
 			})
 		})
 
@@ -158,6 +165,73 @@ var _ = Describe("Resource", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(resource.Paused()).To(BeFalse())
+		})
+	})
+
+	Describe("EvaluatedSource", func() {
+		var (
+			fakeVariables *credsfakes.FakeVariables
+			resource      db.Resource
+			err           error
+			source        atc.Source
+			found         bool
+		)
+
+		BeforeEach(func() {
+			fakeVariables = new(credsfakes.FakeVariables)
+		})
+
+		JustBeforeEach(func() {
+			source, err = resource.EvaluatedSource(fakeVariables)
+		})
+
+		Context("when the source needs to be told secrets", func() {
+			BeforeEach(func() {
+				resource, found, err = pipeline.Resource("some-secret-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			Context("and the credential manager doesn't have that secret", func() {
+				BeforeEach(func() {
+					fakeVariables.GetReturns(nil, false, nil)
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("and the credential manager has the secret", func() {
+				BeforeEach(func() {
+					fakeVariables.GetReturns("i-see-dead-people", true, nil)
+				})
+
+				It("asks vault what its secret is", func() {
+					Expect(fakeVariables.GetCallCount()).To(Equal(1))
+					varDef := fakeVariables.GetArgsForCall(0)
+					Expect(varDef.Name).To(Equal("secret-repository"))
+				})
+
+				It("puts the secrets in the config", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(source["some"]).To(Equal("i-see-dead-people"))
+				})
+			})
+		})
+
+		Context("when the source doesn't have any secrets", func() {
+			BeforeEach(func() {
+				resource, found, err = pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("does not ask credential manager for secrets", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fakeVariables.GetCallCount()).To(Equal(0))
+				Expect(source["some"]).To(Equal("repository"))
+			})
 		})
 	})
 })
