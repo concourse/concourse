@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -e -u
+
+source $(dirname $0)/common.bash
+
+cd $(dirname $0)/../..
+
+by "force-creating dev release..."
+bosh create-release --force
+
+by "uploading release..."
+bosh -e vbox upload-release
+
+by "running topgun..."
+cd ./src/github.com/concourse/topgun
+BOSH_ENVIRONMENT=vbox \
+  ginkgo -r -p -nodes=3 "$@"
