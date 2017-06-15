@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)
+
+source ./common.bash
+
+by "destroying the environment..."
+./bosh-env delete

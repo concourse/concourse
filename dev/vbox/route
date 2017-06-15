@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -e -u
+
+source $(dirname $0)/common.bash
+
+[ "$#" = "3" ] || abort "usage: $0 <cidr> <gw> <iface>"
+
+cidr=${1}
+gw=${2}
+iface=${3}
+
+function route_get() {
+  if [ `uname` = "Darwin" ]; then
+    route get "$1"
+  elif [ `uname` = "Linux" ]; then
+    ip route get "$1"
+  fi
+}
+
+function route_delete() {
+  if [ `uname` = "Darwin" ]; then
+    sudo route delete "$1"
+  elif [ `uname` = "Linux" ]; then
+    sudo ip route del "$@"
+  fi
+}
+
+function route_set() {
+  if [ `uname` = "Darwin" ]; then
+    sudo route add -net "$1" "$2"
+  elif [ `uname` = "Linux" ]; then
+    sudo ip route add "$1" via "$2"
+  fi
+}
+
+if route_get "$cidr" | grep "$iface" >/dev/null; then
+  if route_get "$cidr" | grep "$gw" >/dev/null; then
+    echo "already set"
+    exit 0
+  else
+    echo "clearing misdirected route"
+    route_delete "$cidr"
+  fi
+fi
+
+route_set "$cidr" "$gw"

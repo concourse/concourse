@@ -50,5 +50,10 @@ tags
 .bosh
 .gitconfig
 
-#fly binaries
+# fly binaries
 src/fly_binaries/*
+
+# dev setup
+dev/vbox/bosh-deployment/
+dev/vbox/creds.yml
+dev/vbox/state.json

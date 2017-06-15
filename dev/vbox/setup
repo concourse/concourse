@@ -1,0 +1,68 @@
+#!/bin/bash
+
+set -e -u
+
+source $(dirname $0)/common.bash
+
+if ! bosh --version | grep 2.0 >/dev/null; then
+  abort "requires BOSH CLI 2.0: https://bosh.io/docs/cli-v2.html"
+fi
+
+if ! VBoxManage --version | grep 5.1 >/dev/null; then
+  abort "requires VirtualBox 5.1.x: https://www.virtualbox.org/wiki/Downloads"
+fi
+
+if VBoxManage list hostonlyifs | grep vboxnet0 >/dev/null; then
+  if VBoxManage list hostonlyifs | grep -A3 vboxnet0 | grep 'DHCP:\s\+Enabled' >/dev/null; then
+    abort "'vboxnet0' interface has DHCP enabled; please disable it"
+  fi
+
+  if ! VBoxManage list hostonlyifs | grep -A3 vboxnet0 | grep 'IPAddress:\s\+192.168.50.1' >/dev/null; then
+    abort "'vboxnet0' interface has incorrect IP (must be 192.168.50.1); please remove the interface"
+  fi
+fi
+
+if VBoxManage list natnetworks | grep -A5 NatNetwork | grep 'DHCP Enabled:\s\+No' >/dev/null; then
+  abort "'NatNetwork' network has DHCP disabled; please enable it"
+fi
+
+cd $(dirname $0)
+
+by "fetching latest bosh-deployment..."
+if ! [ -e bosh-deployment ]; then
+  git clone https://github.com/cloudfoundry/bosh-deployment
+else
+  git -C bosh-deployment pull
+fi
+
+by "creating the environment..."
+./bosh-env create
+
+by "targeting..."
+bosh -e 192.168.50.6 \
+  --ca-cert <(bosh int ./creds.yml --path /director_ssl/ca) \
+  alias-env vbox
+
+by "logging in..."
+bosh -e vbox login \
+  --client admin \
+  --client-secret $(bosh int ./creds.yml --path /admin_password)
+
+by "setting cloud config..."
+bosh -n -e vbox update-cloud-config ./cloud_config.yml
+
+if ! bosh -e vbox stemcells | grep bosh-warden-boshlite-ubuntu-trusty-go_agent >/dev/null; then
+  by "uploading an initial ubuntu trusty stemcell..."
+  bosh -n -e vbox upload-stemcell "https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent"
+fi
+
+if ! bosh -e vbox releases | grep garden-runc >/dev/null; then
+  by "uploading an initial garden-runc release..."
+  bosh -n -e vbox upload-release "https://bosh.io/d/github.com/cloudfoundry/garden-runc-release"
+fi
+
+by "updating route table for testflight..."
+./route 10.244.0.0/16 192.168.50.6 vboxnet0
+
+by "updating route table for topgun..."
+./route 10.234.0.0/16 192.168.50.6 vboxnet0
