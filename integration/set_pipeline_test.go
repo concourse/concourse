@@ -420,7 +420,7 @@ this is super secure
 -----END SOME KEY-----
 `,
 									"config-a": "some-param-a",
-									"config-b": "some-param-b-via-v",
+									"config-b": "some\nmultiline\nbusiness\n",
 									"bool":     false,
 								},
 							},
@@ -471,8 +471,8 @@ this is super secure
 							"-l", "fixtures/vars-pipeline-params-a.yml",
 							"-l", "fixtures/vars-pipeline-params-b.yml",
 							"-l", "fixtures/vars-pipeline-params-types.yml",
-							"-v", "param-b=some-param-b-via-v",
-							"-v", "bool-param=false",
+							"-v", "param-b=some\nmultiline\nbusiness\n",
+							"-y", "bool-param=false",
 						)
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
