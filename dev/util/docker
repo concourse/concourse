@@ -1,6 +1,9 @@
 #!/bin/bash
 
-if [ -z "$DOCKER_HOST" ]; then
+if [[ $(docker version --format "{{.Server.KernelVersion}}") == *-moby ]]; then
+  # running Docker for Mac, no auth required
+  exec docker "$@"
+elif [ -z "$DOCKER_HOST" ]; then
   # assume locally running Docker on linux
   exec sudo docker "$@"
 else
