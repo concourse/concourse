@@ -11,7 +11,7 @@ import (
 )
 
 type FakeFactory struct {
-	GetStub        func(lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.BuildEventsDelegate, exec.ImageFetchingDelegate) exec.StepFactory
+	GetStub        func(lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.ActionsBuildEventsDelegate, exec.ImageFetchingDelegate) exec.StepFactory
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 lager.Logger
@@ -20,7 +20,7 @@ type FakeFactory struct {
 		arg4 atc.Plan
 		arg5 exec.StepMetadata
 		arg6 db.ContainerMetadata
-		arg7 exec.BuildEventsDelegate
+		arg7 exec.ActionsBuildEventsDelegate
 		arg8 exec.ImageFetchingDelegate
 	}
 	getReturns struct {
@@ -29,7 +29,7 @@ type FakeFactory struct {
 	getReturnsOnCall map[int]struct {
 		result1 exec.StepFactory
 	}
-	PutStub        func(lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.BuildEventsDelegate, exec.ImageFetchingDelegate) exec.StepFactory
+	PutStub        func(lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.ActionsBuildEventsDelegate, exec.ImageFetchingDelegate) exec.StepFactory
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 lager.Logger
@@ -38,7 +38,7 @@ type FakeFactory struct {
 		arg4 atc.Plan
 		arg5 exec.StepMetadata
 		arg6 db.ContainerMetadata
-		arg7 exec.BuildEventsDelegate
+		arg7 exec.ActionsBuildEventsDelegate
 		arg8 exec.ImageFetchingDelegate
 	}
 	putReturns struct {
@@ -47,7 +47,7 @@ type FakeFactory struct {
 	putReturnsOnCall map[int]struct {
 		result1 exec.StepFactory
 	}
-	TaskStub        func(lager.Logger, atc.Plan, int, int, db.ContainerMetadata, exec.BuildEventsDelegate, exec.ImageFetchingDelegate) exec.StepFactory
+	TaskStub        func(lager.Logger, atc.Plan, int, int, db.ContainerMetadata, exec.TaskBuildEventsDelegate, exec.ActionsBuildEventsDelegate, exec.ImageFetchingDelegate) exec.StepFactory
 	taskMutex       sync.RWMutex
 	taskArgsForCall []struct {
 		arg1 lager.Logger
@@ -55,8 +55,9 @@ type FakeFactory struct {
 		arg3 int
 		arg4 int
 		arg5 db.ContainerMetadata
-		arg6 exec.BuildEventsDelegate
-		arg7 exec.ImageFetchingDelegate
+		arg6 exec.TaskBuildEventsDelegate
+		arg7 exec.ActionsBuildEventsDelegate
+		arg8 exec.ImageFetchingDelegate
 	}
 	taskReturns struct {
 		result1 exec.StepFactory
@@ -68,7 +69,7 @@ type FakeFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.Plan, arg5 exec.StepMetadata, arg6 db.ContainerMetadata, arg7 exec.BuildEventsDelegate, arg8 exec.ImageFetchingDelegate) exec.StepFactory {
+func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.Plan, arg5 exec.StepMetadata, arg6 db.ContainerMetadata, arg7 exec.ActionsBuildEventsDelegate, arg8 exec.ImageFetchingDelegate) exec.StepFactory {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
@@ -78,7 +79,7 @@ func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.Pla
 		arg4 atc.Plan
 		arg5 exec.StepMetadata
 		arg6 db.ContainerMetadata
-		arg7 exec.BuildEventsDelegate
+		arg7 exec.ActionsBuildEventsDelegate
 		arg8 exec.ImageFetchingDelegate
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
@@ -98,7 +99,7 @@ func (fake *FakeFactory) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeFactory) GetArgsForCall(i int) (lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.BuildEventsDelegate, exec.ImageFetchingDelegate) {
+func (fake *FakeFactory) GetArgsForCall(i int) (lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.ActionsBuildEventsDelegate, exec.ImageFetchingDelegate) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5, fake.getArgsForCall[i].arg6, fake.getArgsForCall[i].arg7, fake.getArgsForCall[i].arg8
@@ -123,7 +124,7 @@ func (fake *FakeFactory) GetReturnsOnCall(i int, result1 exec.StepFactory) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.Plan, arg5 exec.StepMetadata, arg6 db.ContainerMetadata, arg7 exec.BuildEventsDelegate, arg8 exec.ImageFetchingDelegate) exec.StepFactory {
+func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.Plan, arg5 exec.StepMetadata, arg6 db.ContainerMetadata, arg7 exec.ActionsBuildEventsDelegate, arg8 exec.ImageFetchingDelegate) exec.StepFactory {
 	fake.putMutex.Lock()
 	ret, specificReturn := fake.putReturnsOnCall[len(fake.putArgsForCall)]
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
@@ -133,7 +134,7 @@ func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 int, arg3 int, arg4 atc.Pla
 		arg4 atc.Plan
 		arg5 exec.StepMetadata
 		arg6 db.ContainerMetadata
-		arg7 exec.BuildEventsDelegate
+		arg7 exec.ActionsBuildEventsDelegate
 		arg8 exec.ImageFetchingDelegate
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.recordInvocation("Put", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
@@ -153,7 +154,7 @@ func (fake *FakeFactory) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeFactory) PutArgsForCall(i int) (lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.BuildEventsDelegate, exec.ImageFetchingDelegate) {
+func (fake *FakeFactory) PutArgsForCall(i int) (lager.Logger, int, int, atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.ActionsBuildEventsDelegate, exec.ImageFetchingDelegate) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
 	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5, fake.putArgsForCall[i].arg6, fake.putArgsForCall[i].arg7, fake.putArgsForCall[i].arg8
@@ -178,7 +179,7 @@ func (fake *FakeFactory) PutReturnsOnCall(i int, result1 exec.StepFactory) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Task(arg1 lager.Logger, arg2 atc.Plan, arg3 int, arg4 int, arg5 db.ContainerMetadata, arg6 exec.BuildEventsDelegate, arg7 exec.ImageFetchingDelegate) exec.StepFactory {
+func (fake *FakeFactory) Task(arg1 lager.Logger, arg2 atc.Plan, arg3 int, arg4 int, arg5 db.ContainerMetadata, arg6 exec.TaskBuildEventsDelegate, arg7 exec.ActionsBuildEventsDelegate, arg8 exec.ImageFetchingDelegate) exec.StepFactory {
 	fake.taskMutex.Lock()
 	ret, specificReturn := fake.taskReturnsOnCall[len(fake.taskArgsForCall)]
 	fake.taskArgsForCall = append(fake.taskArgsForCall, struct {
@@ -187,13 +188,14 @@ func (fake *FakeFactory) Task(arg1 lager.Logger, arg2 atc.Plan, arg3 int, arg4 i
 		arg3 int
 		arg4 int
 		arg5 db.ContainerMetadata
-		arg6 exec.BuildEventsDelegate
-		arg7 exec.ImageFetchingDelegate
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
-	fake.recordInvocation("Task", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+		arg6 exec.TaskBuildEventsDelegate
+		arg7 exec.ActionsBuildEventsDelegate
+		arg8 exec.ImageFetchingDelegate
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("Task", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.taskMutex.Unlock()
 	if fake.TaskStub != nil {
-		return fake.TaskStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return fake.TaskStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1
@@ -207,10 +209,10 @@ func (fake *FakeFactory) TaskCallCount() int {
 	return len(fake.taskArgsForCall)
 }
 
-func (fake *FakeFactory) TaskArgsForCall(i int) (lager.Logger, atc.Plan, int, int, db.ContainerMetadata, exec.BuildEventsDelegate, exec.ImageFetchingDelegate) {
+func (fake *FakeFactory) TaskArgsForCall(i int) (lager.Logger, atc.Plan, int, int, db.ContainerMetadata, exec.TaskBuildEventsDelegate, exec.ActionsBuildEventsDelegate, exec.ImageFetchingDelegate) {
 	fake.taskMutex.RLock()
 	defer fake.taskMutex.RUnlock()
-	return fake.taskArgsForCall[i].arg1, fake.taskArgsForCall[i].arg2, fake.taskArgsForCall[i].arg3, fake.taskArgsForCall[i].arg4, fake.taskArgsForCall[i].arg5, fake.taskArgsForCall[i].arg6, fake.taskArgsForCall[i].arg7
+	return fake.taskArgsForCall[i].arg1, fake.taskArgsForCall[i].arg2, fake.taskArgsForCall[i].arg3, fake.taskArgsForCall[i].arg4, fake.taskArgsForCall[i].arg5, fake.taskArgsForCall[i].arg6, fake.taskArgsForCall[i].arg7, fake.taskArgsForCall[i].arg8
 }
 
 func (fake *FakeFactory) TaskReturns(result1 exec.StepFactory) {

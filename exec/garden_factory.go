@@ -73,7 +73,7 @@ func (factory *gardenFactory) Get(
 	plan atc.Plan,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	buildEventsDelegate BuildEventsDelegate,
+	buildEventsDelegate ActionsBuildEventsDelegate,
 	imageFetchingDelegate ImageFetchingDelegate,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
@@ -113,7 +113,7 @@ func (factory *gardenFactory) Put(
 	plan atc.Plan,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	buildEventsDelegate BuildEventsDelegate,
+	buildEventsDelegate ActionsBuildEventsDelegate,
 	imageFetchingDelegate ImageFetchingDelegate,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
@@ -149,7 +149,8 @@ func (factory *gardenFactory) Task(
 	teamID int,
 	buildID int,
 	containerMetadata db.ContainerMetadata,
-	buildEventsDelegate BuildEventsDelegate,
+	taskBuildEventsDelegate TaskBuildEventsDelegate,
+	buildEventsDelegate ActionsBuildEventsDelegate,
 	imageFetchingDelegate ImageFetchingDelegate,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
@@ -191,6 +192,7 @@ func (factory *gardenFactory) Task(
 		artifactsRoot:     workingDirectory,
 		imageArtifactName: plan.Task.ImageArtifactName,
 
+		buildEventsDelegate:   taskBuildEventsDelegate,
 		imageFetchingDelegate: imageFetchingDelegate,
 		workerPool:            factory.workerClient,
 		teamID:                teamID,

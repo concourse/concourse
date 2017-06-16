@@ -8,12 +8,7 @@ import (
 	"github.com/concourse/atc/exec"
 )
 
-type FakeBuildEventsDelegate struct {
-	InitializingStub        func(lager.Logger)
-	initializingMutex       sync.RWMutex
-	initializingArgsForCall []struct {
-		arg1 lager.Logger
-	}
+type FakeActionsBuildEventsDelegate struct {
 	ActionCompletedStub        func(lager.Logger, exec.Action)
 	actionCompletedMutex       sync.RWMutex
 	actionCompletedArgsForCall []struct {
@@ -30,31 +25,7 @@ type FakeBuildEventsDelegate struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildEventsDelegate) Initializing(arg1 lager.Logger) {
-	fake.initializingMutex.Lock()
-	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("Initializing", []interface{}{arg1})
-	fake.initializingMutex.Unlock()
-	if fake.InitializingStub != nil {
-		fake.InitializingStub(arg1)
-	}
-}
-
-func (fake *FakeBuildEventsDelegate) InitializingCallCount() int {
-	fake.initializingMutex.RLock()
-	defer fake.initializingMutex.RUnlock()
-	return len(fake.initializingArgsForCall)
-}
-
-func (fake *FakeBuildEventsDelegate) InitializingArgsForCall(i int) lager.Logger {
-	fake.initializingMutex.RLock()
-	defer fake.initializingMutex.RUnlock()
-	return fake.initializingArgsForCall[i].arg1
-}
-
-func (fake *FakeBuildEventsDelegate) ActionCompleted(arg1 lager.Logger, arg2 exec.Action) {
+func (fake *FakeActionsBuildEventsDelegate) ActionCompleted(arg1 lager.Logger, arg2 exec.Action) {
 	fake.actionCompletedMutex.Lock()
 	fake.actionCompletedArgsForCall = append(fake.actionCompletedArgsForCall, struct {
 		arg1 lager.Logger
@@ -67,19 +38,19 @@ func (fake *FakeBuildEventsDelegate) ActionCompleted(arg1 lager.Logger, arg2 exe
 	}
 }
 
-func (fake *FakeBuildEventsDelegate) ActionCompletedCallCount() int {
+func (fake *FakeActionsBuildEventsDelegate) ActionCompletedCallCount() int {
 	fake.actionCompletedMutex.RLock()
 	defer fake.actionCompletedMutex.RUnlock()
 	return len(fake.actionCompletedArgsForCall)
 }
 
-func (fake *FakeBuildEventsDelegate) ActionCompletedArgsForCall(i int) (lager.Logger, exec.Action) {
+func (fake *FakeActionsBuildEventsDelegate) ActionCompletedArgsForCall(i int) (lager.Logger, exec.Action) {
 	fake.actionCompletedMutex.RLock()
 	defer fake.actionCompletedMutex.RUnlock()
 	return fake.actionCompletedArgsForCall[i].arg1, fake.actionCompletedArgsForCall[i].arg2
 }
 
-func (fake *FakeBuildEventsDelegate) Failed(arg1 lager.Logger, arg2 error) {
+func (fake *FakeActionsBuildEventsDelegate) Failed(arg1 lager.Logger, arg2 error) {
 	fake.failedMutex.Lock()
 	fake.failedArgsForCall = append(fake.failedArgsForCall, struct {
 		arg1 lager.Logger
@@ -92,23 +63,21 @@ func (fake *FakeBuildEventsDelegate) Failed(arg1 lager.Logger, arg2 error) {
 	}
 }
 
-func (fake *FakeBuildEventsDelegate) FailedCallCount() int {
+func (fake *FakeActionsBuildEventsDelegate) FailedCallCount() int {
 	fake.failedMutex.RLock()
 	defer fake.failedMutex.RUnlock()
 	return len(fake.failedArgsForCall)
 }
 
-func (fake *FakeBuildEventsDelegate) FailedArgsForCall(i int) (lager.Logger, error) {
+func (fake *FakeActionsBuildEventsDelegate) FailedArgsForCall(i int) (lager.Logger, error) {
 	fake.failedMutex.RLock()
 	defer fake.failedMutex.RUnlock()
 	return fake.failedArgsForCall[i].arg1, fake.failedArgsForCall[i].arg2
 }
 
-func (fake *FakeBuildEventsDelegate) Invocations() map[string][][]interface{} {
+func (fake *FakeActionsBuildEventsDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.initializingMutex.RLock()
-	defer fake.initializingMutex.RUnlock()
 	fake.actionCompletedMutex.RLock()
 	defer fake.actionCompletedMutex.RUnlock()
 	fake.failedMutex.RLock()
@@ -120,7 +89,7 @@ func (fake *FakeBuildEventsDelegate) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeBuildEventsDelegate) recordInvocation(key string, args []interface{}) {
+func (fake *FakeActionsBuildEventsDelegate) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -132,4 +101,4 @@ func (fake *FakeBuildEventsDelegate) recordInvocation(key string, args []interfa
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ exec.BuildEventsDelegate = new(FakeBuildEventsDelegate)
+var _ exec.ActionsBuildEventsDelegate = new(FakeActionsBuildEventsDelegate)

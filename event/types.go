@@ -15,6 +15,9 @@ const (
 	// task execution started
 	EventTypeStartTask atc.EventType = "start-task"
 
+	// task initializing (all inputs fetched; fetching image)
+	EventTypeInitializeTask atc.EventType = "initialize-task"
+
 	// task execution finished
 	EventTypeFinishTask atc.EventType = "finish-task"
 

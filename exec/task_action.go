@@ -55,6 +55,13 @@ func (s *FetchConfigActionTaskConfigSource) GetTaskConfig() (atc.TaskConfig, err
 	return taskConfig, nil
 }
 
+//go:generate counterfeiter . TaskBuildEventsDelegate
+
+type TaskBuildEventsDelegate interface {
+	Initializing(lager.Logger, atc.TaskConfig)
+	Starting(lager.Logger, atc.TaskConfig)
+}
+
 // TaskAction executes a TaskConfig, whose inputs will be fetched from the
 // worker.ArtifactRepository and outputs will be added to the worker.ArtifactRepository.
 type TaskAction struct {
@@ -68,6 +75,7 @@ type TaskAction struct {
 	artifactsRoot     string
 	imageArtifactName string
 
+	buildEventsDelegate   TaskBuildEventsDelegate
 	imageFetchingDelegate ImageFetchingDelegate
 	workerPool            worker.Client
 	teamID                int
@@ -88,6 +96,7 @@ func NewTaskAction(
 	outputMapping map[string]string,
 	artifactsRoot string,
 	imageArtifactName string,
+	buildEventsDelegate TaskBuildEventsDelegate,
 	imageFetchingDelegate ImageFetchingDelegate,
 	workerPool worker.Client,
 	teamID int,
@@ -104,6 +113,7 @@ func NewTaskAction(
 		outputMapping:         outputMapping,
 		artifactsRoot:         artifactsRoot,
 		imageArtifactName:     imageArtifactName,
+		buildEventsDelegate:   buildEventsDelegate,
 		imageFetchingDelegate: imageFetchingDelegate,
 		workerPool:            workerPool,
 		teamID:                teamID,
@@ -142,6 +152,8 @@ func (action *TaskAction) Run(
 	if err != nil {
 		return err
 	}
+
+	action.buildEventsDelegate.Initializing(logger, config)
 
 	containerSpec, err := action.containerSpec(repository, config)
 	if err != nil {
@@ -193,6 +205,8 @@ func (action *TaskAction) Run(
 		logger.Info("already-running")
 	} else {
 		logger.Info("spawning")
+
+		action.buildEventsDelegate.Starting(logger, config)
 
 		process, err = container.Run(garden.ProcessSpec{
 			ID: taskProcessID,

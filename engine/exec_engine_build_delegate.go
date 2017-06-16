@@ -13,7 +13,8 @@ import (
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	DBBuildEventsDelegate(atc.PlanID) exec.BuildEventsDelegate
+	DBActionsBuildEventsDelegate(atc.PlanID) exec.ActionsBuildEventsDelegate
+	DBTaskBuildEventsDelegate(atc.PlanID) exec.TaskBuildEventsDelegate
 	ImageFetchingDelegate(atc.PlanID) exec.ImageFetchingDelegate
 
 	Finish(lager.Logger, error, exec.Success, bool)
@@ -51,10 +52,16 @@ func newBuildDelegate(build db.Build) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) DBBuildEventsDelegate(
+func (delegate *delegate) DBActionsBuildEventsDelegate(
 	planID atc.PlanID,
-) exec.BuildEventsDelegate {
-	return NewDBBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)}, delegate.implicitOutputsRepo)
+) exec.ActionsBuildEventsDelegate {
+	return NewDBActionsBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)}, delegate.implicitOutputsRepo)
+}
+
+func (delegate *delegate) DBTaskBuildEventsDelegate(
+	planID atc.PlanID,
+) exec.TaskBuildEventsDelegate {
+	return NewDBTaskBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)})
 }
 
 func (delegate *delegate) ImageFetchingDelegate(planID atc.PlanID) exec.ImageFetchingDelegate {

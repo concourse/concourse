@@ -19,7 +19,7 @@ type Action interface {
 func NewActionsStep(
 	logger lager.Logger, // TODO: can we move that to method? need to change all steps though
 	actions []Action,
-	buildEventsDelegate BuildEventsDelegate,
+	buildEventsDelegate ActionsBuildEventsDelegate,
 ) ActionsStep {
 	return ActionsStep{
 		logger:              logger,
@@ -28,10 +28,9 @@ func NewActionsStep(
 	}
 }
 
-//go:generate counterfeiter . BuildEventsDelegate
+//go:generate counterfeiter . ActionsBuildEventsDelegate
 
-type BuildEventsDelegate interface {
-	Initializing(lager.Logger)
+type ActionsBuildEventsDelegate interface {
 	ActionCompleted(lager.Logger, Action)
 	Failed(lager.Logger, error)
 }
@@ -40,7 +39,7 @@ type BuildEventsDelegate interface {
 // delegate about different execution events.
 type ActionsStep struct {
 	actions             []Action
-	buildEventsDelegate BuildEventsDelegate
+	buildEventsDelegate ActionsBuildEventsDelegate
 
 	logger lager.Logger // TODO: can we move that to method? need to change all steps though
 
@@ -57,8 +56,6 @@ func (s ActionsStep) Using(repo *worker.ArtifactRepository) Step {
 // Run on every action. If any action fails it will notify delegate with Failed.
 // It will call ActionCompleted after each action run that succeeds.
 func (s *ActionsStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	s.buildEventsDelegate.Initializing(s.logger)
-
 	succeeded := true
 	for _, action := range s.actions {
 		err := action.Run(s.logger, s.repository, signals, ready)

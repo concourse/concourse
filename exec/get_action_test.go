@@ -30,7 +30,7 @@ var _ = Describe("GetAction", func() {
 		fakeResourceFetcher        *resourcefakes.FakeFetcher
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeImageFetchingDelegate  *execfakes.FakeImageFetchingDelegate
-		fakeBuildEventsDelegate    *execfakes.FakeBuildEventsDelegate
+		fakeBuildEventsDelegate    *execfakes.FakeActionsBuildEventsDelegate
 
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 		resourceTypes       atc.VersionedResourceTypes
@@ -56,7 +56,7 @@ var _ = Describe("GetAction", func() {
 
 	BeforeEach(func() {
 		fakeImageFetchingDelegate = new(execfakes.FakeImageFetchingDelegate)
-		fakeBuildEventsDelegate = new(execfakes.FakeBuildEventsDelegate)
+		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)

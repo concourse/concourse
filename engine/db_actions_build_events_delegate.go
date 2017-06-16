@@ -10,46 +10,26 @@ import (
 	"github.com/concourse/atc/exec"
 )
 
-type dbBuildEventsDelegate struct {
+type dbActionsBuildEventsDelegate struct {
 	build               db.Build
 	eventOrigin         event.Origin
 	implicitOutputsRepo *implicitOutputsRepo
 }
 
-func NewDBBuildEventsDelegate(
+func NewDBActionsBuildEventsDelegate(
 	build db.Build,
 	eventOrigin event.Origin,
 	implicitOutputsRepo *implicitOutputsRepo,
-) exec.BuildEventsDelegate {
-	return &dbBuildEventsDelegate{
+) exec.ActionsBuildEventsDelegate {
+	return &dbActionsBuildEventsDelegate{
 		build:               build,
 		eventOrigin:         eventOrigin,
 		implicitOutputsRepo: implicitOutputsRepo,
 	}
 }
 
-func (d *dbBuildEventsDelegate) Initializing(logger lager.Logger) {
-	err := d.build.SaveEvent(event.Initialize{
-		Origin: d.eventOrigin,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-initialize-event", err)
-	}
-}
-
-func (d *dbBuildEventsDelegate) ActionCompleted(logger lager.Logger, action exec.Action) {
+func (d *dbActionsBuildEventsDelegate) ActionCompleted(logger lager.Logger, action exec.Action) {
 	switch a := action.(type) {
-	case *exec.FetchConfigAction:
-		taskConfig := a.Result()
-		err := d.build.SaveEvent(event.StartTask{
-			Origin:     d.eventOrigin,
-			TaskConfig: event.ShadowTaskConfig(taskConfig),
-			Time:       time.Now().Unix(),
-		})
-		if err != nil {
-			logger.Error("failed-to-save-start-task-event", err)
-			return
-		}
 	case *exec.TaskAction:
 		exitStatus := a.ExitStatus()
 		err := d.build.SaveEvent(event.FinishTask{
@@ -157,7 +137,7 @@ func (d *dbBuildEventsDelegate) ActionCompleted(logger lager.Logger, action exec
 	}
 }
 
-func (d *dbBuildEventsDelegate) Failed(logger lager.Logger, errVal error) {
+func (d *dbActionsBuildEventsDelegate) Failed(logger lager.Logger, errVal error) {
 	err := d.build.SaveEvent(event.Error{
 		Message: errVal.Error(),
 		Origin:  d.eventOrigin,

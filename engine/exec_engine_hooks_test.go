@@ -106,15 +106,15 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		Context("constructing steps", func() {
 			var (
 				fakeDelegate            *enginefakes.FakeBuildDelegate
-				fakeBuildEventsDelegate *execfakes.FakeBuildEventsDelegate
+				fakeBuildEventsDelegate *execfakes.FakeActionsBuildEventsDelegate
 			)
 
 			BeforeEach(func() {
 				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-				fakeBuildEventsDelegate = new(execfakes.FakeBuildEventsDelegate)
-				fakeDelegate.DBBuildEventsDelegateReturns(fakeBuildEventsDelegate)
+				fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
+				fakeDelegate.DBActionsBuildEventsDelegateReturns(fakeBuildEventsDelegate)
 			})
 
 			Context("with all the hooks", func() {
@@ -191,7 +191,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the completion hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(2)
+					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(2)
 					Expect(logger).NotTo(BeNil())
 					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))
@@ -210,7 +210,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the failure hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))
@@ -229,7 +229,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the success hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(1)
+					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))
@@ -248,7 +248,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the next step correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(3)
+					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(3)
 					Expect(logger).NotTo(BeNil())
 					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))

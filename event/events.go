@@ -19,12 +19,13 @@ type FinishTask struct {
 func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
 func (FinishTask) Version() atc.EventVersion { return "4.0" }
 
-type Initialize struct {
-	Origin Origin `json:"origin"`
+type InitializeTask struct {
+	Origin     Origin     `json:"origin"`
+	TaskConfig TaskConfig `json:"config"`
 }
 
-func (Initialize) EventType() atc.EventType  { return EventTypeInitialize }
-func (Initialize) Version() atc.EventVersion { return "1.0" }
+func (InitializeTask) EventType() atc.EventType  { return EventTypeInitializeTask }
+func (InitializeTask) Version() atc.EventVersion { return "4.0" }
 
 // shadow the real atc.TaskConfig
 type TaskConfig struct {

@@ -11,6 +11,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -36,8 +37,9 @@ var _ = Describe("TaskAction", func() {
 		imageArtifactName string
 		containerMetadata db.ContainerMetadata
 
-		fakeBuildEventsDelegate   *execfakes.FakeBuildEventsDelegate
-		fakeImageFetchingDelegate *execfakes.FakeImageFetchingDelegate
+		fakeBuildEventsDelegate     *execfakes.FakeActionsBuildEventsDelegate
+		fakeTaskBuildEventsDelegate *execfakes.FakeTaskBuildEventsDelegate
+		fakeImageFetchingDelegate   *execfakes.FakeImageFetchingDelegate
 
 		privileged    exec.Privileged
 		tags          []string
@@ -63,7 +65,8 @@ var _ = Describe("TaskAction", func() {
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 
-		fakeBuildEventsDelegate = new(execfakes.FakeBuildEventsDelegate)
+		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
+		fakeTaskBuildEventsDelegate = new(execfakes.FakeTaskBuildEventsDelegate)
 		fakeImageFetchingDelegate = new(execfakes.FakeImageFetchingDelegate)
 		fakeImageFetchingDelegate.StdoutReturns(stdoutBuf)
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
@@ -107,6 +110,7 @@ var _ = Describe("TaskAction", func() {
 			outputMapping,
 			"some-artifact-root",
 			imageArtifactName,
+			fakeTaskBuildEventsDelegate,
 			fakeImageFetchingDelegate,
 			fakeWorkerClient,
 			teamID,
@@ -155,6 +159,19 @@ var _ = Describe("TaskAction", func() {
 				fakeContainer = new(workerfakes.FakeContainer)
 				fakeContainer.HandleReturns("some-handle")
 				fakeWorkerClient.FindOrCreateContainerReturns(fakeContainer, nil)
+			})
+
+			Describe("before creating a container", func() {
+				BeforeEach(func() {
+					fakeTaskBuildEventsDelegate.InitializingStub = func(lager.Logger, atc.TaskConfig) {
+						defer GinkgoRecover()
+						Expect(fakeWorkerClient.FindOrCreateContainerCallCount()).To(BeZero())
+					}
+				})
+
+				It("invoked the delegate's Initializing callback", func() {
+					Expect(fakeTaskBuildEventsDelegate.InitializingCallCount()).To(Equal(1))
+				})
 			})
 
 			It("finds or creates a container", func() {
@@ -372,6 +389,19 @@ var _ = Describe("TaskAction", func() {
 
 					fakeProcess = new(gardenfakes.FakeProcess)
 					fakeContainer.RunReturns(fakeProcess, nil)
+				})
+
+				Describe("before running a process", func() {
+					BeforeEach(func() {
+						fakeTaskBuildEventsDelegate.StartingStub = func(lager.Logger, atc.TaskConfig) {
+							defer GinkgoRecover()
+							Expect(fakeContainer.RunCallCount()).To(BeZero())
+						}
+					})
+
+					It("invoked the delegate's Starting callback", func() {
+						Expect(fakeTaskBuildEventsDelegate.StartingCallCount()).To(Equal(1))
+					})
 				})
 
 				It("runs a process with the config's path and args, in the specified (default) build directory", func() {

@@ -433,14 +433,6 @@ type FinishPutV30 struct {
 func (FinishPutV30) EventType() atc.EventType  { return "finish-put" }
 func (FinishPutV30) Version() atc.EventVersion { return "3.0" }
 
-type InitializeTaskV40 struct {
-	Origin     Origin     `json:"origin"`
-	TaskConfig TaskConfig `json:"config"`
-}
-
-func (InitializeTaskV40) EventType() atc.EventType  { return "initialize-task" }
-func (InitializeTaskV40) Version() atc.EventVersion { return "4.0" }
-
 type InitializeGetV10 struct {
 	Origin Origin `json:"origin"`
 }

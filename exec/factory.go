@@ -20,7 +20,7 @@ type Factory interface {
 		atc.Plan,
 		StepMetadata,
 		db.ContainerMetadata,
-		BuildEventsDelegate,
+		ActionsBuildEventsDelegate,
 		ImageFetchingDelegate,
 	) StepFactory
 
@@ -32,7 +32,7 @@ type Factory interface {
 		atc.Plan,
 		StepMetadata,
 		db.ContainerMetadata,
-		BuildEventsDelegate,
+		ActionsBuildEventsDelegate,
 		ImageFetchingDelegate,
 	) StepFactory
 
@@ -43,7 +43,8 @@ type Factory interface {
 		int, // teamID
 		int, // buildID
 		db.ContainerMetadata,
-		BuildEventsDelegate,
+		TaskBuildEventsDelegate,
+		ActionsBuildEventsDelegate,
 		ImageFetchingDelegate,
 	) StepFactory
 }

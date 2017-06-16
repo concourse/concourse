@@ -64,7 +64,7 @@ var _ = Describe("BuildDelegate", func() {
 
 		Context("when build succeeded", func() {
 			BeforeEach(func() {
-				dbBuildDelegate1 := delegate.DBBuildEventsDelegate(atc.PlanID(1))
+				dbBuildDelegate1 := delegate.DBActionsBuildEventsDelegate(atc.PlanID(1))
 				dbBuildDelegate1.ActionCompleted(logger, &exec.GetAction{
 					Resource: "some-resource-1",
 					Type:     "some-resource-type-1",
@@ -72,7 +72,7 @@ var _ = Describe("BuildDelegate", func() {
 						Version: atc.Version{"version": "some-version-1"},
 					},
 				})
-				dbBuildDelegate2 := delegate.DBBuildEventsDelegate(atc.PlanID(2))
+				dbBuildDelegate2 := delegate.DBActionsBuildEventsDelegate(atc.PlanID(2))
 				dbBuildDelegate2.ActionCompleted(logger, &exec.GetAction{
 					Resource: "some-resource-2",
 					Type:     "some-resource-type-2",

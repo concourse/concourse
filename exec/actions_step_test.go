@@ -3,7 +3,6 @@ package exec_test
 import (
 	"errors"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/exec"
@@ -17,7 +16,7 @@ import (
 
 var _ = Describe("ActionsStep", func() {
 	var (
-		fakeBuildEventsDelegate *execfakes.FakeBuildEventsDelegate
+		fakeBuildEventsDelegate *execfakes.FakeActionsBuildEventsDelegate
 		fakeAction1             *execfakes.FakeAction
 		fakeAction2             *execfakes.FakeAction
 		artifactRepository      *worker.ArtifactRepository
@@ -25,7 +24,7 @@ var _ = Describe("ActionsStep", func() {
 	)
 
 	BeforeEach(func() {
-		fakeBuildEventsDelegate = new(execfakes.FakeBuildEventsDelegate)
+		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 		fakeAction1 = new(execfakes.FakeAction)
 		fakeAction2 = new(execfakes.FakeAction)
 		artifactRepository = worker.NewArtifactRepository()
@@ -39,20 +38,6 @@ var _ = Describe("ActionsStep", func() {
 
 	JustBeforeEach(func() {
 		ifrit.Invoke(actionsStep)
-	})
-
-	Describe("before calling an action", func() {
-		BeforeEach(func() {
-			fakeBuildEventsDelegate.InitializingStub = func(lager.Logger) {
-				defer GinkgoRecover()
-				Expect(fakeAction1.RunCallCount()).To(BeZero())
-				Expect(fakeAction2.RunCallCount()).To(BeZero())
-			}
-		})
-
-		It("invoked the delegate's Initializing callback", func() {
-			Expect(fakeBuildEventsDelegate.InitializingCallCount()).To(Equal(1))
-		})
 	})
 
 	Context("when actions return no error", func() {

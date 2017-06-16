@@ -36,7 +36,7 @@ var _ = Describe("PutAction", func() {
 		teamID                    = 123
 		buildID                   = 42
 		planID                    = 56
-		fakeBuildEventsDelegate   *execfakes.FakeBuildEventsDelegate
+		fakeBuildEventsDelegate   *execfakes.FakeActionsBuildEventsDelegate
 		fakeImageFetchingDelegate *execfakes.FakeImageFetchingDelegate
 
 		resourceTypes atc.VersionedResourceTypes
@@ -56,7 +56,7 @@ var _ = Describe("PutAction", func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
-		fakeBuildEventsDelegate = new(execfakes.FakeBuildEventsDelegate)
+		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 		fakeImageFetchingDelegate = new(execfakes.FakeImageFetchingDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()

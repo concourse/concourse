@@ -93,8 +93,8 @@ var _ = Describe("Exec Engine with Try", func() {
 		Context("constructing steps", func() {
 			var (
 				fakeDelegate     *enginefakes.FakeBuildDelegate
-				fakeGetDelegate  *execfakes.FakeBuildEventsDelegate
-				fakeTaskDelegate *execfakes.FakeBuildEventsDelegate
+				fakeGetDelegate  *execfakes.FakeActionsBuildEventsDelegate
+				fakeTaskDelegate *execfakes.FakeActionsBuildEventsDelegate
 				inputPlan        atc.Plan
 				planFactory      atc.PlanFactory
 			)
@@ -104,11 +104,11 @@ var _ = Describe("Exec Engine with Try", func() {
 				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-				fakeGetDelegate = new(execfakes.FakeBuildEventsDelegate)
-				fakeTaskDelegate = new(execfakes.FakeBuildEventsDelegate)
+				fakeGetDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
+				fakeTaskDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 
-				fakeDelegate.DBBuildEventsDelegateReturnsOnCall(0, fakeGetDelegate)
-				fakeDelegate.DBBuildEventsDelegateReturnsOnCall(1, fakeTaskDelegate)
+				fakeDelegate.DBActionsBuildEventsDelegateReturnsOnCall(0, fakeGetDelegate)
+				fakeDelegate.DBActionsBuildEventsDelegateReturnsOnCall(1, fakeTaskDelegate)
 
 				inputPlan = planFactory.NewPlan(atc.GetPlan{
 					Name: "some-input",
@@ -141,7 +141,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					BuildID:      expectedBuildID,
 					BuildName:    "42",
 				}))
-				originID := fakeDelegate.DBBuildEventsDelegateArgsForCall(0)
+				originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(0)
 				Expect(originID).To(Equal(inputPlan.ID))
 			})
 		})

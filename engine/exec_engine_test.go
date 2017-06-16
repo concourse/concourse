@@ -43,7 +43,7 @@ var _ = Describe("ExecEngine", func() {
 	Describe("Resume", func() {
 		var (
 			fakeDelegate            *enginefakes.FakeBuildDelegate
-			fakeBuildEventsDelegate *execfakes.FakeBuildEventsDelegate
+			fakeBuildEventsDelegate *execfakes.FakeActionsBuildEventsDelegate
 
 			dbBuild          *dbfakes.FakeBuild
 			expectedMetadata engine.StepMetadata
@@ -89,8 +89,8 @@ var _ = Describe("ExecEngine", func() {
 			fakeDelegate = new(enginefakes.FakeBuildDelegate)
 			fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-			fakeBuildEventsDelegate = new(execfakes.FakeBuildEventsDelegate)
-			fakeDelegate.DBBuildEventsDelegateReturns(fakeBuildEventsDelegate)
+			fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
+			fakeDelegate.DBActionsBuildEventsDelegateReturns(fakeBuildEventsDelegate)
 
 			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
@@ -300,7 +300,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(0)
+				logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(teamID).To(Equal(expectedTeamID))
 				Expect(buildID).To(Equal(expectedBuildID))
@@ -319,7 +319,7 @@ var _ = Describe("ExecEngine", func() {
 					Attempt:      "2.1",
 				}))
 
-				logger, plan, teamID, buildID, containerMetadata, _, _ = fakeFactory.TaskArgsForCall(1)
+				logger, plan, teamID, buildID, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
 				Expect(teamID).To(Equal(expectedTeamID))
 				Expect(buildID).To(Equal(expectedBuildID))
@@ -383,13 +383,13 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				_, _, _, _, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(0)
+				_, _, _, _, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, _, containerMetadata, _, _ = fakeFactory.TaskArgsForCall(1)
+				_, _, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, _, containerMetadata, _, _ = fakeFactory.TaskArgsForCall(2)
+				_, _, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(2)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, _, containerMetadata, _, _ = fakeFactory.TaskArgsForCall(3)
+				_, _, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(3)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
 			})
 		})
@@ -434,7 +434,7 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      expectedBuildID,
 						BuildName:    "42",
 					}))
-					originID := fakeDelegate.DBBuildEventsDelegateArgsForCall(0)
+					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(0)
 					Expect(originID).To(Equal(plan.ID))
 
 					planID := fakeDelegate.ImageFetchingDelegateArgsForCall(0)
@@ -473,7 +473,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-					logger, plan, teamID, buildID, containerMetadata, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(teamID).To(Equal(expectedTeamID))
 					Expect(buildID).To(Equal(expectedBuildID))
@@ -547,7 +547,7 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      expectedBuildID,
 						BuildName:    "42",
 					}))
-					originID := fakeDelegate.DBBuildEventsDelegateArgsForCall(0)
+					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(0)
 					Expect(originID).To(Equal(putPlan.ID))
 					planID := fakeDelegate.ImageFetchingDelegateArgsForCall(0)
 					Expect(planID).To(Equal(putPlan.ID))
@@ -577,7 +577,7 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      expectedBuildID,
 						BuildName:    "42",
 					}))
-					originID := fakeDelegate.DBBuildEventsDelegateArgsForCall(1)
+					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(1)
 					Expect(originID).To(Equal(dependentGetPlan.ID))
 					planID := fakeDelegate.ImageFetchingDelegateArgsForCall(1)
 					Expect(planID).To(Equal(dependentGetPlan.ID))
