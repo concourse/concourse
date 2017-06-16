@@ -1,6 +1,10 @@
 package gc
 
-import "code.cloudfoundry.org/lager"
+import (
+	"sync"
+
+	"code.cloudfoundry.org/lager"
+)
 
 //go:generate counterfeiter . Collector
 
@@ -85,15 +89,29 @@ func (c *aggregateCollector) Run() error {
 		c.logger.Error("resource-config-check-session-collector", err)
 	}
 
-	err = c.containerCollector.Run()
-	if err != nil {
-		c.logger.Error("container-collector", err)
-	}
+	wg := new(sync.WaitGroup)
 
-	err = c.volumeCollector.Run()
-	if err != nil {
-		c.logger.Error("volume-collector", err)
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		err := c.containerCollector.Run()
+		if err != nil {
+			c.logger.Error("container-collector", err)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		err := c.volumeCollector.Run()
+		if err != nil {
+			c.logger.Error("volume-collector", err)
+		}
+	}()
+
+	wg.Wait()
 
 	return nil
 }

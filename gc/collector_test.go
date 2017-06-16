@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"errors"
+	"sync"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -86,7 +87,6 @@ var _ = Describe("Aggregate Collector", func() {
 				Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
 				Expect(fakeResourceConfigCheckSessionCollector.RunCallCount()).To(Equal(1))
 			})
-
 		})
 
 		Context("when the build collector succeeds", func() {
@@ -217,6 +217,30 @@ var _ = Describe("Aggregate Collector", func() {
 							Context("when the config use collector succeeds", func() {
 								It("attempts to collect volumes", func() {
 									Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
+								})
+
+								Describe("running the container and volume collectors", func() {
+									BeforeEach(func() {
+										wg := new(sync.WaitGroup)
+										wg.Add(2)
+
+										fakeVolumeCollector.RunStub = func() error {
+											wg.Done()
+											wg.Wait()
+											return nil
+										}
+
+										fakeContainerCollector.RunStub = func() error {
+											wg.Done()
+											wg.Wait()
+											return nil
+										}
+									})
+
+									It("is done in parallel", func() {
+										Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
+										Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+									})
 								})
 
 								Context("when the volume collector errors", func() {
