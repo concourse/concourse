@@ -10,6 +10,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -257,8 +258,15 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 		return atc.Config{}, db.PipelineNoChange, ErrCouldNotDecode
 	}
 
-	if len(md.Unused) != 0 {
-		return atc.Config{}, db.PipelineNoChange, ExtraKeysError{extraKeys: md.Unused}
+	nestedUnused := []string{}
+	for _, unused := range md.Unused {
+		if strings.Contains(unused, ".") {
+			nestedUnused = append(nestedUnused, unused)
+		}
+	}
+
+	if len(nestedUnused) != 0 {
+		return atc.Config{}, db.PipelineNoChange, ExtraKeysError{extraKeys: nestedUnused}
 	}
 
 	return config, pausedState, nil

@@ -879,13 +879,66 @@ jobs:
 					})
 				})
 
-				Context("when the config contains extra keys", func() {
+				Context("when the config contains extra keys at the toplevel", func() {
 					BeforeEach(func() {
 						request.Header.Set("Content-Type", "application/json")
 
-						remoraPayload, err := json.Marshal(RemoraConfig{
-							Config: pipelineConfig,
-							Extra:  "noooooo",
+						remoraPayload, err := json.Marshal(map[string]interface{}{
+							"extra": "noooooo",
+
+							"meta": map[string]interface{}{
+								"whoa": "lol",
+							},
+
+							"jobs": []map[string]interface{}{
+								{
+									"name":   "some-job",
+									"public": true,
+									"plan":   atc.PlanSequence{},
+								},
+							},
+						})
+						Expect(err).NotTo(HaveOccurred())
+
+						request.Body = gbytes.BufferWithBytes(remoraPayload)
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("saves it", func() {
+						Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
+
+						name, savedConfig, id, _ := dbTeam.SavePipelineArgsForCall(0)
+						Expect(name).To(Equal("a-pipeline"))
+						Expect(savedConfig).To(Equal(atc.Config{
+							Jobs: atc.JobConfigs{
+								{
+									Name:   "some-job",
+									Public: true,
+									Plan:   atc.PlanSequence{},
+								},
+							},
+						}))
+						Expect(id).To(Equal(db.ConfigVersion(42)))
+					})
+				})
+
+				Context("when the config contains extra keys nested under a valid key", func() {
+					BeforeEach(func() {
+						request.Header.Set("Content-Type", "application/json")
+
+						remoraPayload, err := json.Marshal(map[string]interface{}{
+							"extra": "noooooo",
+
+							"jobs": []map[string]interface{}{
+								{
+									"name":  "some-job",
+									"pubic": true,
+									"plan":  atc.PlanSequence{},
+								},
+							},
 						})
 						Expect(err).NotTo(HaveOccurred())
 
@@ -900,7 +953,7 @@ jobs:
 						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
-									"unknown/extra keys:\n  - extra\n"
+									"unknown/extra keys:\n  - jobs[0].pubic\n"
 								]
 							}`))
 					})
