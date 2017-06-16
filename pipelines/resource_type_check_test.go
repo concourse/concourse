@@ -22,7 +22,7 @@ var _ = Describe("Updating resource types", func() {
 			pipelineName,
 			"-c", "fixtures/resource-types.yml",
 			"-v", "origin-git-server="+originGitServer.URI(),
-			"-v", "privileged=false",
+			"-y", "privileged=false",
 		)
 	})
 

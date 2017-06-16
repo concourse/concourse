@@ -29,7 +29,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 				pipelineName,
 				"-c", "fixtures/resource-types.yml",
 				"-v", "origin-git-server="+originGitServer.URI(),
-				"-v", "privileged=true",
+				"-y", "privileged=true",
 			)
 		})
 
@@ -86,7 +86,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 					pipelineName,
 					"-c", "fixtures/resource-types.yml",
 					"-v", "origin-git-server="+originGitServer.URI(),
-					"-v", "privileged=false",
+					"-y", "privileged=false",
 				)
 			})
 
