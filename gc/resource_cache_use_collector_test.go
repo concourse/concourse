@@ -321,7 +321,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 									{
 										Name:   "another-resource",
 										Type:   usedResource.Type(),
-										Source: usedResource.RawSource(),
+										Source: usedResource.Source(),
 									},
 								},
 							},

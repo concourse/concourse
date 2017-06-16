@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -18,6 +19,7 @@ type gardenFactory struct {
 	resourceFetcher        resource.Fetcher
 	resourceFactory        resource.ResourceFactory
 	dbResourceCacheFactory db.ResourceCacheFactory
+	variablesFactory       creds.VariablesFactory
 
 	putActions map[atc.PlanID]*PutAction
 }
@@ -27,12 +29,14 @@ func NewGardenFactory(
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
+	variablesFactory creds.VariablesFactory,
 ) Factory {
 	return &gardenFactory{
 		workerClient:           workerClient,
 		resourceFetcher:        resourceFetcher,
 		resourceFactory:        resourceFactory,
 		dbResourceCacheFactory: dbResourceCacheFactory,
+		variablesFactory:       variablesFactory,
 		putActions:             map[atc.PlanID]*PutAction{},
 	}
 }
@@ -68,9 +72,8 @@ func (s TaskStepFactory) Using(repository *worker.ArtifactRepository) Step {
 
 func (factory *gardenFactory) Get(
 	logger lager.Logger,
-	buildID int,
-	teamID int,
 	plan atc.Plan,
+	build db.Build,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
 	buildEventsDelegate ActionsBuildEventsDelegate,
@@ -78,11 +81,13 @@ func (factory *gardenFactory) Get(
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
+	source := creds.NewSource(factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName()), plan.Get.Source)
+
 	getAction := &GetAction{
 		Type:          plan.Get.Type,
 		Name:          plan.Get.Name,
 		Resource:      plan.Get.Resource,
-		Source:        plan.Get.Source,
+		Source:        source,
 		Params:        plan.Get.Params,
 		VersionSource: NewVersionSourceFromPlan(plan.Get, factory.putActions),
 		Tags:          plan.Get.Tags,
@@ -90,8 +95,8 @@ func (factory *gardenFactory) Get(
 
 		imageFetchingDelegate:  imageFetchingDelegate,
 		resourceFetcher:        factory.resourceFetcher,
-		teamID:                 teamID,
-		buildID:                buildID,
+		teamID:                 build.TeamID(),
+		buildID:                build.ID(),
 		planID:                 plan.ID,
 		containerMetadata:      workerMetadata,
 		dbResourceCacheFactory: factory.dbResourceCacheFactory,
@@ -108,9 +113,8 @@ func (factory *gardenFactory) Get(
 
 func (factory *gardenFactory) Put(
 	logger lager.Logger,
-	teamID int,
-	buildID int,
 	plan atc.Plan,
+	build db.Build,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
 	buildEventsDelegate ActionsBuildEventsDelegate,
@@ -118,18 +122,20 @@ func (factory *gardenFactory) Put(
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
+	source := creds.NewSource(factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName()), plan.Put.Source)
+
 	putAction := &PutAction{
 		Type:     plan.Put.Type,
 		Name:     plan.Put.Name,
 		Resource: plan.Put.Resource,
-		Source:   plan.Put.Source,
+		Source:   source,
 		Params:   plan.Put.Params,
 		Tags:     plan.Put.Tags,
 
 		imageFetchingDelegate: imageFetchingDelegate,
 		resourceFactory:       factory.resourceFactory,
-		teamID:                teamID,
-		buildID:               buildID,
+		teamID:                build.TeamID(),
+		buildID:               build.ID(),
 		planID:                plan.ID,
 		containerMetadata:     workerMetadata,
 		stepMetadata:          stepMetadata,
@@ -146,8 +152,7 @@ func (factory *gardenFactory) Put(
 func (factory *gardenFactory) Task(
 	logger lager.Logger,
 	plan atc.Plan,
-	teamID int,
-	buildID int,
+	build db.Build,
 	containerMetadata db.ContainerMetadata,
 	taskBuildEventsDelegate TaskBuildEventsDelegate,
 	buildEventsDelegate ActionsBuildEventsDelegate,
@@ -168,7 +173,11 @@ func (factory *gardenFactory) Task(
 		taskConfigFetcher = FileConfigFetcher{plan.Task.ConfigPath}
 	}
 
+	// XXX: Maybe we can add comments to why we are using the same variable or use new ones?
+	// Wrap the task config fetcher with a validator
 	taskConfigFetcher = ValidatingConfigFetcher{ConfigFetcher: taskConfigFetcher}
+	// XXX: Whats the purpose of this? Is this serving some deprecated or too-be-deprecated
+	// functionality?
 	taskConfigFetcher = DeprecationConfigFetcher{
 		Delegate: taskConfigFetcher,
 		Stderr:   imageFetchingDelegate.Stderr(),
@@ -195,8 +204,8 @@ func (factory *gardenFactory) Task(
 		buildEventsDelegate:   taskBuildEventsDelegate,
 		imageFetchingDelegate: imageFetchingDelegate,
 		workerPool:            factory.workerClient,
-		teamID:                teamID,
-		buildID:               buildID,
+		teamID:                build.TeamID(),
+		buildID:               build.ID(),
 		planID:                plan.ID,
 		containerMetadata:     containerMetadata,
 

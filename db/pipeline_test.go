@@ -932,7 +932,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(resource.PipelineName()).To(Equal("pipeline-name"))
 			Expect(resource.CheckError()).To(BeNil())
 			Expect(resource.Type()).To(Equal("some-type"))
-			Expect(resource.RawSource()).To(Equal(atc.Source{"source-config": "some-value"}))
+			Expect(resource.Source()).To(Equal(atc.Source{"source-config": "some-value"}))
 		})
 
 		It("can load up versioned resource information relevant to scheduling", func() {
@@ -1724,7 +1724,7 @@ var _ = Describe("Pipeline", func() {
 			err = pipeline.SaveResourceVersions(atc.ResourceConfig{
 				Name:   resource.Name(),
 				Type:   resource.Type(),
-				Source: resource.RawSource(),
+				Source: resource.Source(),
 			}, []atc.Version{
 				{
 					"key": "value",

@@ -315,62 +315,29 @@ func (f *resourceConfigFactory) AcquireResourceCheckingLock(
 	resourceSource atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
 ) (lock.Lock, bool, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, resourceSource, resourceTypes)
-	if err != nil {
-		return nil, false, err
-	}
 
-	logger.Debug("acquiring-resource-checking-lock", lager.Data{
-		"resource-config": resourceConfig,
-		"resource-type":   resourceType,
-		"resource-source": resourceSource,
-		"resource-types":  resourceTypes,
-	})
-
-	return acquireResourceCheckingLock(
-		logger.Session("lock", lager.Data{"resource-user": resourceUser}),
-		f.conn,
+	usedResourceConfig, err := f.FindOrCreateResourceConfig(
+		logger,
 		resourceUser,
-		resourceConfig,
-		f.lockFactory,
+		resourceType,
+		resourceSource,
+		resourceTypes,
 	)
-}
-
-func acquireResourceCheckingLock(
-	logger lager.Logger,
-	conn Conn,
-	user ResourceUser,
-	resourceConfig ResourceConfig,
-	lockFactory lock.LockFactory,
-) (lock.Lock, bool, error) {
-	var usedResourceConfig *UsedResourceConfig
-
-	err := safeFindOrCreate(conn, func(tx Tx) error {
-		var err error
-
-		usedResourceConfig, err = user.UseResourceConfig(logger, tx, resourceConfig)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
 
 	if err != nil {
 		return nil, false, err
 	}
 
-	lock, acquired, err := lockFactory.Acquire(
+	// XXX: Do we want to print out used resource config?
+	logger.Debug("acquiring-resource-checking-lock", lager.Data{
+		"used-resource-config": usedResourceConfig,
+		"resource-type":        resourceType,
+		"resource-source":      resourceSource,
+		"resource-types":       resourceTypes,
+	})
+
+	return f.lockFactory.Acquire(
 		logger,
 		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
 	)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	return lock, true, nil
 }

@@ -319,7 +319,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 
 	variablesSource := variablesFactory.NewVariables(t.name, pipeline.Name())
 
-	source, err := resource.EvaluatedSource(variablesSource)
+	source, err := creds.NewSource(variablesSource, resource.Source()).Evaluate()
 	if err != nil {
 		return nil, err
 	}

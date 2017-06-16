@@ -68,14 +68,7 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 				}
 			}
 
-			evaluatedSource, err := resource.EvaluatedSource(variablesSource)
-			if err != nil {
-				logger.Error("failed-to-evaluate-source", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			presentedBuildInputs[i] = present.BuildInput(input, config, evaluatedSource)
+			presentedBuildInputs[i] = present.BuildInput(input, config, resource.Source())
 		}
 
 		json.NewEncoder(w).Encode(presentedBuildInputs)

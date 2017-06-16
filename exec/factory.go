@@ -15,9 +15,8 @@ type Factory interface {
 	// Get constructs a ActionsStep factory for Get.
 	Get(
 		lager.Logger,
-		int, // teamID
-		int, // buildID
 		atc.Plan,
+		db.Build,
 		StepMetadata,
 		db.ContainerMetadata,
 		ActionsBuildEventsDelegate,
@@ -27,9 +26,8 @@ type Factory interface {
 	// Put constructs a ActionsStep factory for Put.
 	Put(
 		lager.Logger,
-		int, // teamID
-		int, // buildID
 		atc.Plan,
+		db.Build,
 		StepMetadata,
 		db.ContainerMetadata,
 		ActionsBuildEventsDelegate,
@@ -40,8 +38,7 @@ type Factory interface {
 	Task(
 		lager.Logger,
 		atc.Plan,
-		int, // teamID
-		int, // buildID
+		db.Build,
 		db.ContainerMetadata,
 		TaskBuildEventsDelegate,
 		ActionsBuildEventsDelegate,

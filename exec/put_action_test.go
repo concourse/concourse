@@ -7,6 +7,8 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec"
@@ -26,6 +28,7 @@ var _ = Describe("PutAction", func() {
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFactory        *resourcefakes.FakeResourceFactory
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+		fakeVariables              *credsfakes.FakeVariables
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
@@ -55,6 +58,7 @@ var _ = Describe("PutAction", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeVariables = new(credsfakes.FakeVariables)
 
 		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 		fakeImageFetchingDelegate = new(execfakes.FakeImageFetchingDelegate)
@@ -82,7 +86,7 @@ var _ = Describe("PutAction", func() {
 			"some-resource-type",
 			"some-resource",
 			"some-resource",
-			atc.Source{"some": "source"},
+			creds.NewSource(fakeVariables, atc.Source{"some": "source"}),
 			atc.Params{"some-param": "some-value"},
 			[]string{"some", "tags"},
 			fakeImageFetchingDelegate,

@@ -90,8 +90,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 	return build.factory.Task(
 		logger,
 		plan,
-		build.teamID,
-		build.buildID,
+		build.dbBuild,
 		containerMetadata,
 		build.delegate.DBTaskBuildEventsDelegate(plan.ID),
 		build.delegate.DBActionsBuildEventsDelegate(plan.ID),
@@ -113,9 +112,8 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 
 	return build.factory.Get(
 		logger,
-		build.buildID,
-		build.teamID,
 		plan,
+		build.dbBuild,
 		build.stepMetadata,
 		containerMetadata,
 		build.delegate.DBActionsBuildEventsDelegate(plan.ID),
@@ -137,9 +135,8 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 
 	return build.factory.Put(
 		logger,
-		build.teamID,
-		build.buildID,
 		plan,
+		build.dbBuild,
 		build.stepMetadata,
 		containerMetadata,
 		build.delegate.DBActionsBuildEventsDelegate(plan.ID),

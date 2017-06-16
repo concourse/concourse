@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -16,7 +17,7 @@ type PutAction struct {
 	Type     string
 	Name     string
 	Resource string
-	Source   atc.Source
+	Source   *creds.Source
 	Params   atc.Params
 	Tags     atc.Tags
 
@@ -38,7 +39,7 @@ func NewPutAction(
 	resourceType string,
 	name string,
 	resourceName string,
-	source atc.Source,
+	source *creds.Source,
 	params atc.Params,
 	tags atc.Tags,
 	imageFetchingDelegate ImageFetchingDelegate,
@@ -117,12 +118,17 @@ func (action *PutAction) Run(
 		return err
 	}
 
+	source, err := action.Source.Evaluate()
+	if err != nil {
+		return err
+	}
+
 	versionedSource, err := putResource.Put(
 		resource.IOConfig{
 			Stdout: action.imageFetchingDelegate.Stdout(),
 			Stderr: action.imageFetchingDelegate.Stderr(),
 		},
-		action.Source,
+		source,
 		action.Params,
 		signals,
 		ready,

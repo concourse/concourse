@@ -47,14 +47,7 @@ func (engine *execEngine) Name() string {
 
 func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	return &execBuild{
-		teamName:     build.TeamName(),
-		teamID:       build.TeamID(),
-		pipelineID:   build.PipelineID(),
-		pipelineName: build.PipelineName(),
-		jobID:        build.JobID(),
-		jobName:      build.JobName(),
-		buildID:      build.ID(),
-		buildName:    build.Name(),
+		dbBuild: build,
 
 		stepMetadata: buildMetadata(build, engine.externalURL),
 
@@ -78,14 +71,7 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 	}
 
 	return &execBuild{
-		teamName:     build.TeamName(),
-		teamID:       build.TeamID(),
-		pipelineID:   build.PipelineID(),
-		pipelineName: build.PipelineName(),
-		jobID:        build.JobID(),
-		jobName:      build.JobName(),
-		buildID:      build.ID(),
-		buildName:    build.Name(),
+		dbBuild: build,
 
 		stepMetadata: buildMetadata(build, engine.externalURL),
 
@@ -115,15 +101,7 @@ func buildMetadata(build db.Build, externalURL string) StepMetadata {
 }
 
 type execBuild struct {
-	teamID       int
-	teamName     string
-	pipelineID   int
-	pipelineName string
-	jobID        int
-	jobName      string
-	buildID      int
-	buildName    string
-
+	dbBuild      db.Build
 	stepMetadata StepMetadata
 
 	factory  exec.Factory
@@ -251,13 +229,13 @@ func (build *execBuild) containerMetadata(
 	return db.ContainerMetadata{
 		Type: containerType,
 
-		PipelineID: build.pipelineID,
-		JobID:      build.jobID,
-		BuildID:    build.buildID,
+		PipelineID: build.dbBuild.PipelineID(),
+		JobID:      build.dbBuild.JobID(),
+		BuildID:    build.dbBuild.ID(),
 
-		PipelineName: build.pipelineName,
-		JobName:      build.jobName,
-		BuildName:    build.buildName,
+		PipelineName: build.dbBuild.PipelineName(),
+		JobName:      build.dbBuild.JobName(),
+		BuildName:    build.dbBuild.Name(),
 
 		StepName: stepName,
 		Attempt:  strings.Join(attemptStrs, "."),

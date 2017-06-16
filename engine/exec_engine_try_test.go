@@ -125,10 +125,9 @@ var _ = Describe("Exec Engine with Try", func() {
 
 			It("constructs the step correctly", func() {
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, buildID, teamID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, plan, dbBuild, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
-				Expect(teamID).To(Equal(expectedTeamID))
-				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(dbBuild).To(Equal(build))
 				Expect(plan).To(Equal(inputPlan))
 				Expect(stepMetadata).To(Equal(expectedMetadata))
 				Expect(containerMetadata).To(Equal(db.ContainerMetadata{

@@ -1409,11 +1409,11 @@ var _ = Describe("Jobs API", func() {
 
 						resource1 := new(dbfakes.FakeResource)
 						resource1.NameReturns("some-resource")
-						resource1.EvaluatedSourceReturns(atc.Source{"some": "source"}, nil)
+						resource1.SourceReturns(atc.Source{"some": "source"})
 
 						resource2 := new(dbfakes.FakeResource)
 						resource2.NameReturns("some-other-resource")
-						resource2.EvaluatedSourceReturns(atc.Source{"some": "other-source"}, nil)
+						resource2.SourceReturns(atc.Source{"some": "other-source"})
 						fakePipeline.ResourcesReturns([]db.Resource{resource1, resource2}, nil)
 					})
 

@@ -4,42 +4,20 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc/db/lock"
 )
 
 func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 	logger lager.Logger,
-	resource Resource,
+	resourceName string,
+	usedResourceConfig *UsedResourceConfig,
 	interval time.Duration,
 	immediate bool,
-	variablesSource template.Variables,
 ) (lock.Lock, bool, error) {
-	resourceTypes, err := p.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resource-types", err)
-		return nil, false, err
-	}
-
-	evaluatedSource, err := resource.EvaluatedSource(variablesSource)
-	if err != nil {
-		logger.Error("failed-to-evaluate-resource-source", err)
-		return nil, false, err
-	}
-
-	resourceConfig, err := constructResourceConfig(resource.Type(), evaluatedSource, resourceTypes.Deserialize())
-	if err != nil {
-		return nil, false, err
-	}
-
-	lock, acquired, err := acquireResourceCheckingLock(
-		logger.Session("lock", lager.Data{"resource": resource.Name()}),
-		p.conn,
-		ForResource(resource.ID()),
-		resourceConfig,
-		p.lockFactory,
+	lock, acquired, err := p.lockFactory.Acquire(
+		logger,
+		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
 	)
-
 	if err != nil {
 		return nil, false, err
 	}
@@ -48,7 +26,7 @@ func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 		return nil, false, nil
 	}
 
-	intervalUpdated, err := p.checkIfResourceIntervalUpdated(resource.Name(), interval, immediate)
+	intervalUpdated, err := p.checkIfResourceIntervalUpdated(resourceName, interval, immediate)
 	if err != nil {
 		lock.Release()
 		return nil, false, err
@@ -65,36 +43,13 @@ func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 func (p *pipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(
 	logger lager.Logger,
 	resourceTypeName string,
+	usedResourceConfig *UsedResourceConfig,
 	interval time.Duration,
 	immediate bool,
 ) (lock.Lock, bool, error) {
-	resourceType, found, err := p.ResourceType(resourceTypeName)
-	if err != nil {
-		return nil, false, err
-	}
-	if !found {
-		return nil, false, ResourceTypeNotFoundError{Name: resourceTypeName}
-	}
-
-	resourceTypes, err := p.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resource-types", err)
-		return nil, false, err
-	}
-
-	deserializedResourceTypes := resourceTypes.Deserialize().Without(resourceTypeName)
-
-	resourceConfig, err := constructResourceConfig(resourceType.Type(), resourceType.Source(), deserializedResourceTypes)
-	if err != nil {
-		return nil, false, err
-	}
-
-	lock, acquired, err := acquireResourceCheckingLock(
-		logger.Session("lock", lager.Data{"resource-type": resourceTypeName}),
-		p.conn,
-		ForResourceType(resourceType.ID()),
-		resourceConfig,
-		p.lockFactory,
+	lock, acquired, err := p.lockFactory.Acquire(
+		logger,
+		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
 	)
 	if err != nil {
 		return nil, false, err

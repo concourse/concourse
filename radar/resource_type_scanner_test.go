@@ -192,9 +192,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
 				Expect(fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 
-				_, resourceTypeName, leaseInterval, immediate := fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckArgsForCall(0)
+				_, resourceTypeName, resourceConfig, leaseInterval, immediate := fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckArgsForCall(0)
 				Expect(resourceTypeName).To(Equal(fakeResourceType.Name()))
 				Expect(leaseInterval).To(Equal(interval))
+				Expect(resourceConfig).To(Equal(fakeResourceConfig))
 				Expect(immediate).To(BeFalse())
 
 				Eventually(fakeLock.ReleaseCallCount()).Should(Equal(1))

@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec"
@@ -31,6 +32,9 @@ var _ = Describe("GetAction", func() {
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeImageFetchingDelegate  *execfakes.FakeImageFetchingDelegate
 		fakeBuildEventsDelegate    *execfakes.FakeActionsBuildEventsDelegate
+		fakeVariablesFactory       *credsfakes.FakeVariablesFactory
+		fakeVariables              *credsfakes.FakeVariables
+		fakeBuild                  *dbfakes.FakeBuild
 
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 		resourceTypes       atc.VersionedResourceTypes
@@ -61,11 +65,19 @@ var _ = Describe("GetAction", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
+		fakeVariables = new(credsfakes.FakeVariables)
+		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
+		fakeVariablesFactory.NewVariablesReturns(fakeVariables)
+
 		artifactRepository = worker.NewArtifactRepository()
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 		fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
 		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
+
+		fakeBuild = new(dbfakes.FakeBuild)
+		fakeBuild.IDReturns(buildID)
+		fakeBuild.TeamIDReturns(teamID)
 
 		resourceTypes = atc.VersionedResourceTypes{
 			{
@@ -78,14 +90,12 @@ var _ = Describe("GetAction", func() {
 			},
 		}
 
-		factory = exec.NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
+		factory = exec.NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory, fakeVariablesFactory)
 	})
 
 	JustBeforeEach(func() {
 		getStep = factory.Get(
 			lagertest.NewTestLogger("get-action-test"),
-			buildID,
-			teamID,
 			atc.Plan{
 				ID: atc.PlanID(planID),
 				Get: &atc.GetPlan{
@@ -98,6 +108,7 @@ var _ = Describe("GetAction", func() {
 					VersionedResourceTypes: resourceTypes,
 				},
 			},
+			fakeBuild,
 			stepMetadata,
 			containerMetadata,
 			fakeBuildEventsDelegate,

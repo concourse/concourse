@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -18,7 +19,7 @@ type GetAction struct {
 	Type          string
 	Name          string
 	Resource      string
-	Source        atc.Source
+	Source        *creds.Source
 	Params        atc.Params
 	VersionSource VersionSource
 	Tags          atc.Tags
@@ -75,10 +76,15 @@ func (action *GetAction) Run(
 		return err
 	}
 
+	source, err := action.Source.Evaluate()
+	if err != nil {
+		return err
+	}
+
 	resourceInstance := resource.NewResourceInstance(
 		resource.ResourceType(action.Type),
 		version,
-		action.Source,
+		source,
 		action.Params,
 		db.ForBuild(action.buildID),
 		db.NewBuildStepContainerOwner(action.buildID, action.planID),

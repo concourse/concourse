@@ -171,10 +171,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the step correctly", func() {
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
-					logger, buildID, teamID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, plan, dbBuild, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
-					Expect(buildID).To(Equal(expectedBuildID))
-					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(inputPlan))
 					Expect(stepMetadata).To(Equal(expectedMetadata))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -191,10 +190,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the completion hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(2)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(completionTaskPlan))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						PipelineID:   expectedPipelineID,
@@ -210,10 +208,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the failure hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(failureTaskPlan))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						PipelineID:   expectedPipelineID,
@@ -229,10 +226,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the success hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(successTaskPlan))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						PipelineID:   expectedPipelineID,
@@ -248,10 +244,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the next step correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(3)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(nextTaskPlan))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						PipelineID:   expectedPipelineID,

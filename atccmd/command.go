@@ -61,7 +61,6 @@ import (
 	// dynamically registered auth providers
 	_ "github.com/concourse/atc/auth/genericoauth"
 	_ "github.com/concourse/atc/auth/github"
-	_ "github.com/concourse/atc/auth/gitlab"
 	_ "github.com/concourse/atc/auth/uaa"
 
 	// dynamically registered metric emitters
@@ -91,7 +90,7 @@ type ATCCommand struct {
 	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 
 	VaultClientToken string `long:"vault-client-token" description:"Vault client token for accessing secrets within vault server."`
-	VaultServerURL   string `long:"vault-server-url" description:"Vault server URL used to access secrets, for example, http://127.0.0.1:8200"`
+	VaultServerAddr  string `long:"vault-server-addr" description:"Vault server address used to access secrets, for example, http://127.0.0.1:8200"`
 
 	EncryptionKey    CipherFlag `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
 	OldEncryptionKey CipherFlag `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
@@ -220,13 +219,13 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	db.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
 
 	var variablesFactory creds.VariablesFactory
-	if cmd.VaultClientToken != "" && cmd.VaultServerURL != "" {
+	if cmd.VaultClientToken != "" && cmd.VaultServerAddr != "" {
 		client, err := vaultapi.NewClient(vaultapi.DefaultConfig())
 		if err != nil {
 			return nil, err
 		}
 
-		client.SetAddress(cmd.VaultServerURL)
+		client.SetAddress(cmd.VaultServerAddr)
 		client.SetToken(cmd.VaultClientToken)
 		c := client.Logical()
 
@@ -288,7 +287,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
 	resourceFactory := resourceFactoryFactory.FactoryFor(workerClient)
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory)
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceFactory,
@@ -844,12 +843,14 @@ func (cmd *ATCCommand) constructEngine(
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
+	variablesFactory creds.VariablesFactory,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
 		resourceFetcher,
 		resourceFactory,
 		dbResourceCacheFactory,
+		variablesFactory,
 	)
 
 	execV2Engine := engine.NewExecEngine(

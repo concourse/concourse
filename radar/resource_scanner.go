@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -56,6 +57,10 @@ func (e ResourceNotFoundError) Error() string {
 var ErrFailedToAcquireLock = errors.New("failed-to-acquire-lock")
 
 func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (time.Duration, error) {
+	lockLogger := logger.Session("lock", lager.Data{
+		"resource": resourceName,
+	})
+
 	savedResource, found, err := scanner.dbPipeline.Resource(resourceName)
 	if err != nil {
 		return 0, err
@@ -75,16 +80,42 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return 0, err
 	}
 
-	lockLogger := logger.Session("lock", lager.Data{
-		"resource": resourceName,
-	})
+	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resource-types", err)
+		return 0, err
+	}
+
+	versionedResourceTypes := resourceTypes.Deserialize()
+
+	source, err := creds.NewSource(scanner.variablesSource, savedResource.Source()).Evaluate()
+	if err != nil {
+		logger.Error("failed-to-evaluate-resource-source", err)
+		return 0, err
+	}
+
+	resourceConfig, err := scanner.resourceConfigFactory.FindOrCreateResourceConfig(
+		logger,
+		db.ForResource(savedResource.ID()),
+		savedResource.Type(),
+		source,
+		versionedResourceTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-find-or-create-resource-config", err)
+		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
+		if setErr != nil {
+			logger.Error("failed-to-set-check-error", err)
+		}
+		return 0, err
+	}
 
 	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLockWithIntervalCheck(
 		logger,
-		savedResource,
+		savedResource.Name(),
+		resourceConfig,
 		interval,
 		false,
-		scanner.variablesSource,
 	)
 
 	if err != nil {
@@ -107,18 +138,14 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return interval, err
 	}
 
-	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resource-types", err)
-		return 0, err
-	}
-
 	err = swallowErrResourceScriptFailed(
 		scanner.scan(
 			logger.Session("tick"),
 			savedResource,
+			resourceConfig,
 			atc.Version(vr.Version),
 			resourceTypes.Deserialize(),
+			source,
 		),
 	)
 	if err != nil {
@@ -155,13 +182,43 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		return err
 	}
 
+	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resource-types", err)
+		return err
+	}
+
+	versionedResourceTypes := resourceTypes.Deserialize()
+
+	source, err := creds.NewSource(scanner.variablesSource, savedResource.Source()).Evaluate()
+	if err != nil {
+		logger.Error("failed-to-evaluate-resource-source", err)
+		return err
+	}
+
+	resourceConfig, err := scanner.resourceConfigFactory.FindOrCreateResourceConfig(
+		logger,
+		db.ForResource(savedResource.ID()),
+		savedResource.Type(),
+		source,
+		versionedResourceTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-find-or-create-resource-config", err)
+		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
+		if setErr != nil {
+			logger.Error("failed-to-set-check-error", err)
+		}
+		return err
+	}
+
 	for {
 		lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLockWithIntervalCheck(
 			logger,
-			savedResource,
+			savedResource.Name(),
+			resourceConfig,
 			interval,
 			true,
-			scanner.variablesSource,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
@@ -182,15 +239,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		break
 	}
 
-	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resource-types", err)
-		return err
-	}
-
-	versionedResourceTypes := resourceTypes.Deserialize()
-
-	return scanner.scan(logger, savedResource, fromVersion, versionedResourceTypes)
+	return scanner.scan(logger, savedResource, resourceConfig, fromVersion, versionedResourceTypes, source)
 }
 
 func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) error {
@@ -208,8 +257,10 @@ func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) e
 func (scanner *resourceScanner) scan(
 	logger lager.Logger,
 	savedResource db.Resource,
+	resourceConfig *db.UsedResourceConfig,
 	fromVersion atc.Version,
 	resourceTypes atc.VersionedResourceTypes,
+	source atc.Source,
 ) error {
 	pipelinePaused, err := scanner.dbPipeline.CheckPaused()
 	if err != nil {
@@ -252,28 +303,6 @@ func (scanner *resourceScanner) scan(
 		Env:    metadata.Env(),
 	}
 
-	evaluatedSource, err := savedResource.EvaluatedSource(scanner.variablesSource)
-	if err != nil {
-		logger.Error("failed-to-evaluate-resource-source", err)
-		return err
-	}
-
-	resourceConfig, err := scanner.resourceConfigFactory.FindOrCreateResourceConfig(
-		logger,
-		db.ForResource(savedResource.ID()),
-		savedResource.Type(),
-		evaluatedSource,
-		resourceTypes,
-	)
-	if err != nil {
-		logger.Error("failed-to-find-or-create-resource-config", err)
-		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
-		if setErr != nil {
-			logger.Error("failed-to-set-check-error", err)
-		}
-		return err
-	}
-
 	res, err := scanner.resourceFactory.NewResource(
 		logger,
 		nil,
@@ -299,7 +328,7 @@ func (scanner *resourceScanner) scan(
 		"from": fromVersion,
 	})
 
-	newVersions, err := res.Check(evaluatedSource, fromVersion)
+	newVersions, err := res.Check(source, fromVersion)
 
 	setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
 	if setErr != nil {

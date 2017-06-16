@@ -157,10 +157,9 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
-					logger, teamID, buildID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.PutArgsForCall(0)
+					logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(putPlan))
 					Expect(stepMetadata).To(Equal(expectedMetadata))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -174,10 +173,9 @@ var _ = Describe("ExecEngine", func() {
 						BuildName:    "42",
 					}))
 
-					logger, teamID, buildID, plan, stepMetadata, containerMetadata, _, _ = fakeFactory.PutArgsForCall(1)
+					logger, plan, build, stepMetadata, containerMetadata, _, _ = fakeFactory.PutArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(otherPutPlan))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						Type:         db.ContainerTypePut,
@@ -252,10 +250,9 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs the first get correctly", func() {
-				logger, buildID, teamID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
-				Expect(teamID).To(Equal(expectedTeamID))
-				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(build).To(Equal(dbBuild))
 				expectedPlan := getPlan
 				expectedPlan.Attempts = []int{1}
 				Expect(plan).To(Equal(expectedPlan))
@@ -274,10 +271,9 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs the second get correctly", func() {
-				logger, buildID, teamID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(1)
+				logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
-				Expect(teamID).To(Equal(expectedTeamID))
-				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(build).To(Equal(dbBuild))
 				expectedPlan := getPlan
 				expectedPlan.Attempts = []int{3}
 				Expect(plan).To(Equal(expectedPlan))
@@ -300,10 +296,9 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				logger, plan, build, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
-				Expect(teamID).To(Equal(expectedTeamID))
-				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(build).To(Equal(dbBuild))
 				expectedPlan := taskPlan
 				expectedPlan.Attempts = []int{2, 1}
 				Expect(plan).To(Equal(expectedPlan))
@@ -319,10 +314,9 @@ var _ = Describe("ExecEngine", func() {
 					Attempt:      "2.1",
 				}))
 
-				logger, plan, teamID, buildID, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				logger, plan, build, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
-				Expect(teamID).To(Equal(expectedTeamID))
-				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(build).To(Equal(dbBuild))
 				expectedPlan = taskPlan
 				expectedPlan.Attempts = []int{2, 2}
 				Expect(plan).To(Equal(expectedPlan))
@@ -383,13 +377,13 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				_, _, _, _, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				_, _, _, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(2)
+				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(2)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(3)
+				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(3)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
 			})
 		})
@@ -418,10 +412,9 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-					logger, buildID, teamID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, plan, dBuild, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(dBuild).To(Equal(dbBuild))
 					Expect(plan).To(Equal(expectedPlan))
 					Expect(stepMetadata).To(Equal(expectedMetadata))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -473,10 +466,9 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-					logger, plan, teamID, buildID, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, plan, build, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(expectedPlan))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						Type:         db.ContainerTypeTask,
@@ -531,10 +523,9 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(1))
 
-					logger, teamID, buildID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.PutArgsForCall(0)
+					logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(putPlan))
 					Expect(stepMetadata).To(Equal(expectedMetadata))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -561,10 +552,9 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-					logger, buildID, teamID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
-					Expect(teamID).To(Equal(expectedTeamID))
-					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(dependentGetPlan))
 					Expect(stepMetadata).To(Equal(expectedMetadata))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -695,10 +685,9 @@ var _ = Describe("ExecEngine", func() {
 
 				foundBuild.Resume(logger)
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, buildID, teamID, plan, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
-				Expect(teamID).To(Equal(expectedTeamID))
-				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(build).To(Equal(dbBuild))
 				Expect(plan.ID).To(Equal(atc.PlanID("47")))
 				Expect(stepMetadata).To(Equal(engine.StepMetadata{
 					BuildID:      expectedBuildID,

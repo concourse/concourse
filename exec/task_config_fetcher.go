@@ -76,13 +76,13 @@ func (configFetcher StaticConfigFetcher) Warnings() []string {
 	return warnings
 }
 
-// DeprecationConfigFetcher represents a statically configured TaskConfig.
+// DeprecationConfigFetcher returns the Delegate TaskConfig and prints warnings to Stderr.
 type DeprecationConfigFetcher struct {
 	Delegate TaskConfigFetcher
 	Stderr   io.Writer
 }
 
-// FetchConfig returns the configuration. It cannot fail.
+// FetchConfig calls the Delegate's FetchConfig and prints warnings to Stderr
 func (configFetcher DeprecationConfigFetcher) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig, err := configFetcher.Delegate.FetchConfig(repo)
 	if err != nil {

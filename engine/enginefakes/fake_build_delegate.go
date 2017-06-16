@@ -11,17 +11,6 @@ import (
 )
 
 type FakeBuildDelegate struct {
-	DBTaskBuildEventsDelegateStub        func(atc.PlanID) exec.TaskBuildEventsDelegate
-	dBTaskBuildEventsDelegateMutex       sync.RWMutex
-	dBTaskBuildEventsDelegateArgsForCall []struct {
-		arg1 atc.PlanID
-	}
-	dBTaskBuildEventsDelegateReturns struct {
-		result1 exec.TaskBuildEventsDelegate
-	}
-	dBTaskBuildEventsDelegateReturnsOnCall map[int]struct {
-		result1 exec.TaskBuildEventsDelegate
-	}
 	DBActionsBuildEventsDelegateStub        func(atc.PlanID) exec.ActionsBuildEventsDelegate
 	dBActionsBuildEventsDelegateMutex       sync.RWMutex
 	dBActionsBuildEventsDelegateArgsForCall []struct {
@@ -32,6 +21,17 @@ type FakeBuildDelegate struct {
 	}
 	dBActionsBuildEventsDelegateReturnsOnCall map[int]struct {
 		result1 exec.ActionsBuildEventsDelegate
+	}
+	DBTaskBuildEventsDelegateStub        func(atc.PlanID) exec.TaskBuildEventsDelegate
+	dBTaskBuildEventsDelegateMutex       sync.RWMutex
+	dBTaskBuildEventsDelegateArgsForCall []struct {
+		arg1 atc.PlanID
+	}
+	dBTaskBuildEventsDelegateReturns struct {
+		result1 exec.TaskBuildEventsDelegate
+	}
+	dBTaskBuildEventsDelegateReturnsOnCall map[int]struct {
+		result1 exec.TaskBuildEventsDelegate
 	}
 	ImageFetchingDelegateStub        func(atc.PlanID) exec.ImageFetchingDelegate
 	imageFetchingDelegateMutex       sync.RWMutex
@@ -54,54 +54,6 @@ type FakeBuildDelegate struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegate(arg1 atc.PlanID) exec.TaskBuildEventsDelegate {
-	fake.dBTaskBuildEventsDelegateMutex.Lock()
-	ret, specificReturn := fake.dBTaskBuildEventsDelegateReturnsOnCall[len(fake.dBTaskBuildEventsDelegateArgsForCall)]
-	fake.dBTaskBuildEventsDelegateArgsForCall = append(fake.dBTaskBuildEventsDelegateArgsForCall, struct {
-		arg1 atc.PlanID
-	}{arg1})
-	fake.recordInvocation("DBTaskBuildEventsDelegate", []interface{}{arg1})
-	fake.dBTaskBuildEventsDelegateMutex.Unlock()
-	if fake.DBTaskBuildEventsDelegateStub != nil {
-		return fake.DBTaskBuildEventsDelegateStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.dBTaskBuildEventsDelegateReturns.result1
-}
-
-func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegateCallCount() int {
-	fake.dBTaskBuildEventsDelegateMutex.RLock()
-	defer fake.dBTaskBuildEventsDelegateMutex.RUnlock()
-	return len(fake.dBTaskBuildEventsDelegateArgsForCall)
-}
-
-func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegateArgsForCall(i int) atc.PlanID {
-	fake.dBTaskBuildEventsDelegateMutex.RLock()
-	defer fake.dBTaskBuildEventsDelegateMutex.RUnlock()
-	return fake.dBTaskBuildEventsDelegateArgsForCall[i].arg1
-}
-
-func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegateReturns(result1 exec.TaskBuildEventsDelegate) {
-	fake.DBTaskBuildEventsDelegateStub = nil
-	fake.dBTaskBuildEventsDelegateReturns = struct {
-		result1 exec.TaskBuildEventsDelegate
-	}{result1}
-}
-
-func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegateReturnsOnCall(i int, result1 exec.TaskBuildEventsDelegate) {
-	fake.DBTaskBuildEventsDelegateStub = nil
-	if fake.dBTaskBuildEventsDelegateReturnsOnCall == nil {
-		fake.dBTaskBuildEventsDelegateReturnsOnCall = make(map[int]struct {
-			result1 exec.TaskBuildEventsDelegate
-		})
-	}
-	fake.dBTaskBuildEventsDelegateReturnsOnCall[i] = struct {
-		result1 exec.TaskBuildEventsDelegate
-	}{result1}
 }
 
 func (fake *FakeBuildDelegate) DBActionsBuildEventsDelegate(arg1 atc.PlanID) exec.ActionsBuildEventsDelegate {
@@ -149,6 +101,54 @@ func (fake *FakeBuildDelegate) DBActionsBuildEventsDelegateReturnsOnCall(i int, 
 	}
 	fake.dBActionsBuildEventsDelegateReturnsOnCall[i] = struct {
 		result1 exec.ActionsBuildEventsDelegate
+	}{result1}
+}
+
+func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegate(arg1 atc.PlanID) exec.TaskBuildEventsDelegate {
+	fake.dBTaskBuildEventsDelegateMutex.Lock()
+	ret, specificReturn := fake.dBTaskBuildEventsDelegateReturnsOnCall[len(fake.dBTaskBuildEventsDelegateArgsForCall)]
+	fake.dBTaskBuildEventsDelegateArgsForCall = append(fake.dBTaskBuildEventsDelegateArgsForCall, struct {
+		arg1 atc.PlanID
+	}{arg1})
+	fake.recordInvocation("DBTaskBuildEventsDelegate", []interface{}{arg1})
+	fake.dBTaskBuildEventsDelegateMutex.Unlock()
+	if fake.DBTaskBuildEventsDelegateStub != nil {
+		return fake.DBTaskBuildEventsDelegateStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.dBTaskBuildEventsDelegateReturns.result1
+}
+
+func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegateCallCount() int {
+	fake.dBTaskBuildEventsDelegateMutex.RLock()
+	defer fake.dBTaskBuildEventsDelegateMutex.RUnlock()
+	return len(fake.dBTaskBuildEventsDelegateArgsForCall)
+}
+
+func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegateArgsForCall(i int) atc.PlanID {
+	fake.dBTaskBuildEventsDelegateMutex.RLock()
+	defer fake.dBTaskBuildEventsDelegateMutex.RUnlock()
+	return fake.dBTaskBuildEventsDelegateArgsForCall[i].arg1
+}
+
+func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegateReturns(result1 exec.TaskBuildEventsDelegate) {
+	fake.DBTaskBuildEventsDelegateStub = nil
+	fake.dBTaskBuildEventsDelegateReturns = struct {
+		result1 exec.TaskBuildEventsDelegate
+	}{result1}
+}
+
+func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegateReturnsOnCall(i int, result1 exec.TaskBuildEventsDelegate) {
+	fake.DBTaskBuildEventsDelegateStub = nil
+	if fake.dBTaskBuildEventsDelegateReturnsOnCall == nil {
+		fake.dBTaskBuildEventsDelegateReturnsOnCall = make(map[int]struct {
+			result1 exec.TaskBuildEventsDelegate
+		})
+	}
+	fake.dBTaskBuildEventsDelegateReturnsOnCall[i] = struct {
+		result1 exec.TaskBuildEventsDelegate
 	}{result1}
 }
 
@@ -230,10 +230,10 @@ func (fake *FakeBuildDelegate) FinishArgsForCall(i int) (lager.Logger, error, ex
 func (fake *FakeBuildDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.dBTaskBuildEventsDelegateMutex.RLock()
-	defer fake.dBTaskBuildEventsDelegateMutex.RUnlock()
 	fake.dBActionsBuildEventsDelegateMutex.RLock()
 	defer fake.dBActionsBuildEventsDelegateMutex.RUnlock()
+	fake.dBTaskBuildEventsDelegateMutex.RLock()
+	defer fake.dBTaskBuildEventsDelegateMutex.RUnlock()
 	fake.imageFetchingDelegateMutex.RLock()
 	defer fake.imageFetchingDelegateMutex.RUnlock()
 	fake.finishMutex.RLock()

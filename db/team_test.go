@@ -390,18 +390,14 @@ var _ = Describe("Team", func() {
 					var usedResourceConfig *db.UsedResourceConfig
 
 					BeforeEach(func() {
-
 						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
-						Expect(err).NotTo(HaveOccurred())
-
-						evaluatedSource, err := defaultResource.EvaluatedSource(fakeVariables)
 						Expect(err).NotTo(HaveOccurred())
 
 						usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 							logger,
 							db.ForResource(defaultResource.ID()),
 							defaultResource.Type(),
-							evaluatedSource,
+							defaultResource.Source(),
 							pipelineResourceTypes.Deserialize(),
 						)
 						Expect(err).NotTo(HaveOccurred())
@@ -1307,7 +1303,7 @@ var _ = Describe("Team", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(resource.Type()).To(Equal("some-type"))
-				Expect(resource.RawSource()).To(Equal(atc.Source{
+				Expect(resource.Source()).To(Equal(atc.Source{
 					"source-config": "some-value",
 				}))
 			})
@@ -1327,7 +1323,7 @@ var _ = Describe("Team", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(resource.Type()).To(Equal("some-type"))
-				Expect(resource.RawSource()).To(Equal(atc.Source{
+				Expect(resource.Source()).To(Equal(atc.Source{
 					"source-other-config": "some-other-value",
 				}))
 			})
