@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/fly/commands/internal/flaghelpers"
 	temp "github.com/concourse/fly/template"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
@@ -40,7 +41,7 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 	return confirm
 }
 
-func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables map[string]interface{}, templateVariablesFiles []atc.PathFlag) error {
+func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables []flaghelpers.VariablePairFlag, templateVariablesFiles []atc.PathFlag) error {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
 	existingConfig, _, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
 	errorMessages := []string{}
@@ -86,7 +87,7 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables map[st
 	return nil
 }
 
-func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables map[string]interface{}) []byte {
+func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables []flaghelpers.VariablePairFlag) []byte {
 	evaluatedConfig, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
 		displayhelpers.FailWithErrorf("could not read config file", err)
@@ -102,21 +103,14 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 		paramPayloads = append(paramPayloads, templateVars)
 	}
 
-	variables, err := yaml.Marshal(templateVariables)
-	if err != nil {
-		displayhelpers.FailWithErrorf("could not yaml marshal template variables", err)
-	}
-
-	paramPayloads = append(paramPayloads, variables)
-
 	if temp.Present(evaluatedConfig) {
-		evaluatedConfig, err = atcConfig.resolveDeprecatedTemplateStyle(evaluatedConfig, paramPayloads)
+		evaluatedConfig, err = atcConfig.resolveDeprecatedTemplateStyle(evaluatedConfig, paramPayloads, templateVariables)
 		if err != nil {
 			displayhelpers.FailWithErrorf("could not resolve old-style template vars", err)
 		}
 	}
 
-	evaluatedConfig, err = atcConfig.resolveTemplates(evaluatedConfig, paramPayloads)
+	evaluatedConfig, err = atcConfig.resolveTemplates(evaluatedConfig, paramPayloads, templateVariables)
 	if err != nil {
 		displayhelpers.Failf("could not resolve template vars", err)
 	}
@@ -124,10 +118,15 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 	return evaluatedConfig
 }
 
-func (atcConfig ATCConfig) resolveTemplates(configPayload []byte, paramPayloads [][]byte) ([]byte, error) {
+func (atcConfig ATCConfig) resolveTemplates(configPayload []byte, paramPayloads [][]byte, variables []flaghelpers.VariablePairFlag) ([]byte, error) {
 	tpl := template.NewTemplate(configPayload)
 
-	var vars []template.Variables
+	flagVars := template.StaticVariables{}
+	for _, f := range variables {
+		flagVars[f.Name] = f.Value
+	}
+
+	vars := []template.Variables{flagVars}
 	for i := len(paramPayloads) - 1; i >= 0; i-- {
 		payload := paramPayloads[i]
 
@@ -150,9 +149,8 @@ func (atcConfig ATCConfig) resolveTemplates(configPayload []byte, paramPayloads 
 	return bytes, nil
 }
 
-func (atcConfig ATCConfig) resolveDeprecatedTemplateStyle(configPayload []byte, paramPayloads [][]byte) ([]byte, error) {
-	// This will evaluate the "{{}}" in order to keep backwards compatibility which we want to remove later on
-	var vars temp.Variables
+func (atcConfig ATCConfig) resolveDeprecatedTemplateStyle(configPayload []byte, paramPayloads [][]byte, variables []flaghelpers.VariablePairFlag) ([]byte, error) {
+	vars := temp.Variables{}
 	for _, payload := range paramPayloads {
 		var payloadVars temp.Variables
 		err := yaml.Unmarshal(payload, &payloadVars)
@@ -162,6 +160,13 @@ func (atcConfig ATCConfig) resolveDeprecatedTemplateStyle(configPayload []byte, 
 
 		vars = vars.Merge(payloadVars)
 	}
+
+	flagVars := temp.Variables{}
+	for _, flag := range variables {
+		flagVars[flag.Name] = flag.OldValue
+	}
+
+	vars = vars.Merge(flagVars)
 
 	return temp.Evaluate(configPayload, vars)
 }

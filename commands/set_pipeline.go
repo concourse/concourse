@@ -22,11 +22,6 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	templateVariablesFiles := command.VarsFrom
 	pipelineName := string(command.Pipeline)
 
-	templateVariables := map[string]interface{}{}
-	for _, v := range command.Var {
-		templateVariables[v.Name] = v.Value
-	}
-
 	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
@@ -46,5 +41,5 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		SkipInteraction:     command.SkipInteractive,
 	}
 
-	return atcConfig.Set(configPath, templateVariables, templateVariablesFiles)
+	return atcConfig.Set(configPath, command.Var, templateVariablesFiles)
 }

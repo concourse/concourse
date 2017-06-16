@@ -157,7 +157,7 @@ var _ = Describe("Fly CLI", func() {
 				)
 			})
 
-			Context("when configuring with templated keys succeeds", func() {
+			Context("when configuring with old-style templated value succeeds", func() {
 				BeforeEach(func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
@@ -230,6 +230,75 @@ var _ = Describe("Fly CLI", func() {
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(3))
+				})
+
+				Context("when a non-stringy var is specified with -v", func() {
+					BeforeEach(func() {
+						config = atc.Config{
+							Groups: atc.GroupConfigs{},
+
+							Resources: atc.ResourceConfigs{
+								{
+									Name: "some-resource",
+									Type: "template-type",
+									Source: atc.Source{
+										"source-config": "some-value",
+									},
+								},
+								{
+									Name: "some-other-resource",
+									Type: "some-other-type",
+									Source: atc.Source{
+										"secret_key": `{"complicated": "secret"}`,
+									},
+								},
+							},
+
+							Jobs: atc.JobConfigs{},
+						}
+
+						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						Expect(err).NotTo(HaveOccurred())
+
+						atcServer.RouteToHandler("PUT", path,
+							ghttp.CombineHandlers(
+								ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+								func(w http.ResponseWriter, r *http.Request) {
+									bodyConfig := getConfig(r)
+
+									receivedConfig := atc.Config{}
+									err = yaml.Unmarshal(bodyConfig, &receivedConfig)
+									Expect(err).NotTo(HaveOccurred())
+
+									Expect(receivedConfig).To(Equal(config))
+
+									w.WriteHeader(http.StatusOK)
+									w.Write([]byte(`{}`))
+								},
+							),
+						)
+					})
+
+					It("succeeds", func() {
+						Expect(func() {
+							flyCmd := exec.Command(
+								flyPath, "-t", targetName,
+								"set-pipeline",
+								"-n",
+								"--pipeline", "awesome-pipeline",
+								"-c", "fixtures/testConfig.yml",
+								"--var", `resource-key={"complicated": "secret"}`,
+								"--load-vars-from", "fixtures/vars.yml",
+							)
+
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
+						}).To(Change(func() int {
+							return len(atcServer.ReceivedRequests())
+						}).By(3))
+					})
 				})
 
 				Context("when the --non-interactive is passed", func() {
