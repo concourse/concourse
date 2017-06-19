@@ -18,12 +18,12 @@ func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error
 		return nil, false, err
 	}
 
-	val, found := secret.Data[varDef.Name]
-	if !found {
-		return nil, false, err
+	val, found := secret.Data["value"]
+	if found {
+		return val, true, nil
 	}
 
-	return val, true, nil
+	return secret.Data, true, nil
 }
 
 func (v Vault) List() ([]template.VariableDefinition, error) {

@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
@@ -32,12 +33,15 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
+
+		fakeVariables *credsfakes.FakeVariables
 	)
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeResourceConfig = &db.UsedResourceConfig{}
+		fakeVariables = new(credsfakes.FakeVariables)
 		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
 		interval = 1 * time.Minute
@@ -50,6 +54,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
+			fakeVariables,
 		)
 
 		fakeDBPipeline.ReloadReturns(true, nil)

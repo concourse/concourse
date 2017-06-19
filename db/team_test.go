@@ -388,9 +388,15 @@ var _ = Describe("Team", func() {
 				Context("when check container for resource exists", func() {
 					var resourceContainer db.CreatingContainer
 					var usedResourceConfig *db.UsedResourceConfig
+					var fakeVariables *credsfakes.FakeVariables
 
 					BeforeEach(func() {
+						fakeVariables = new(credsfakes.FakeVariables)
+
 						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
+						Expect(err).NotTo(HaveOccurred())
+
+						versionedResourceTypes, err := pipelineResourceTypes.Deserialize(fakeVariables)
 						Expect(err).NotTo(HaveOccurred())
 
 						usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
@@ -398,7 +404,7 @@ var _ = Describe("Team", func() {
 							db.ForResource(defaultResource.ID()),
 							defaultResource.Type(),
 							defaultResource.Source(),
-							pipelineResourceTypes.Deserialize(),
+							versionedResourceTypes,
 						)
 						Expect(err).NotTo(HaveOccurred())
 

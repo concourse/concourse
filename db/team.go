@@ -319,6 +319,11 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 
 	variablesSource := variablesFactory.NewVariables(t.name, pipeline.Name())
 
+	versionedResourceTypes, err := pipelineResourceTypes.Deserialize(variablesSource)
+	if err != nil {
+		return nil, err
+	}
+
 	source, err := creds.NewSource(variablesSource, resource.Source()).Evaluate()
 	if err != nil {
 		return nil, err
@@ -329,7 +334,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		logger,
 		resource.Type(),
 		source,
-		pipelineResourceTypes.Deserialize(),
+		versionedResourceTypes,
 	)
 	if err != nil {
 		return nil, err

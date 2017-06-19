@@ -57,6 +57,7 @@ func NewScanRunnerFactory(
 		defaultInterval,
 		dbPipeline,
 		externalURL,
+		variablesSource,
 	)
 
 	return &scanRunnerFactory{

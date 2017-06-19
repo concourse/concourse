@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/atc/scheduler"
@@ -38,11 +39,14 @@ var _ = Describe("Runner", func() {
 		fakeJob2               *dbfakes.FakeJob
 		fakeResource1          *dbfakes.FakeResource
 		fakeResource2          *dbfakes.FakeResource
+		fakeVariables          *credsfakes.FakeVariables
 	)
 
 	BeforeEach(func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakePipeline.NameReturns("some-pipeline")
+
+		fakeVariables = new(credsfakes.FakeVariables)
 
 		versionedResourceTypes = atc.VersionedResourceTypes{
 			atc.VersionedResourceType{
@@ -150,11 +154,12 @@ var _ = Describe("Runner", func() {
 
 	JustBeforeEach(func() {
 		process = ginkgomon.Invoke(&Runner{
-			Logger:    lagertest.NewTestLogger("test"),
-			Pipeline:  fakePipeline,
-			Scheduler: scheduler,
-			Noop:      noop,
-			Interval:  100 * time.Millisecond,
+			Logger:          lagertest.NewTestLogger("test"),
+			Pipeline:        fakePipeline,
+			Scheduler:       scheduler,
+			Noop:            noop,
+			Interval:        100 * time.Millisecond,
+			VariablesSource: fakeVariables,
 		})
 	})
 

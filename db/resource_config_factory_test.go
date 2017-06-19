@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	. "github.com/onsi/ginkgo"
@@ -13,8 +14,11 @@ import (
 
 var _ = Describe("ResourceConfigFactory", func() {
 	var build db.Build
+	var fakeVariables *credsfakes.FakeVariables
 
 	BeforeEach(func() {
+		fakeVariables = new(credsfakes.FakeVariables)
+
 		var err error
 		job, found, err := defaultPipeline.Job("some-job")
 		Expect(err).NotTo(HaveOccurred())
@@ -29,12 +33,15 @@ var _ = Describe("ResourceConfigFactory", func() {
 			resourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
 
+			versionedResourceTypes, err := resourceTypes.Deserialize(fakeVariables)
+			Expect(err).NotTo(HaveOccurred())
+
 			usedResourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
 				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Source{"a": "b"},
-				resourceTypes.Deserialize(),
+				versionedResourceTypes,
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(usedResourceConfig).NotTo(BeNil())
@@ -74,6 +81,9 @@ var _ = Describe("ResourceConfigFactory", func() {
 			resourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
 
+			versionedResourceTypes, err := resourceTypes.Deserialize(fakeVariables)
+			Expect(err).NotTo(HaveOccurred())
+
 			acquiredLocks := []lock.Lock{}
 			var l sync.RWMutex
 
@@ -87,7 +97,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 						db.ForBuild(build.ID()),
 						"some-type",
 						atc.Source{"a": "b"},
-						resourceTypes.Deserialize(),
+						versionedResourceTypes,
 					)
 					Expect(err).NotTo(HaveOccurred())
 					if acquired {

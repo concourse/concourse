@@ -1190,8 +1190,14 @@ var _ = Describe("Jobs API", func() {
 		var fakeScheduler *schedulerfakes.FakeBuildScheduler
 		var fakeResource *dbfakes.FakeResource
 		var fakeResource2 *dbfakes.FakeResource
+		var fakeVariablesFactory *credsfakes.FakeVariablesFactory
+		var fakeVariables *credsfakes.FakeVariables
 
 		BeforeEach(func() {
+			fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
+			fakeVariables = new(credsfakes.FakeVariables)
+			fakeVariablesFactory.NewVariablesReturns(fakeVariables)
+
 			var err error
 
 			request, err = http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds", nil)

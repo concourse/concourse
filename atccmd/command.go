@@ -1028,15 +1028,12 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 				{
 					pipeline.ScopedName("scheduler"),
 					&scheduler.Runner{
-						Logger: logger.Session(pipeline.ScopedName("scheduler")),
-
-						Pipeline: pipeline,
-
-						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline, cmd.ExternalURL.String(), variables),
-
-						Noop: cmd.Developer.Noop,
-
-						Interval: 10 * time.Second,
+						Logger:          logger.Session(pipeline.ScopedName("scheduler")),
+						Pipeline:        pipeline,
+						Scheduler:       radarSchedulerFactory.BuildScheduler(pipeline, cmd.ExternalURL.String(), variables),
+						Noop:            cmd.Developer.Noop,
+						Interval:        10 * time.Second,
+						VariablesSource: variables,
 					},
 				},
 			})

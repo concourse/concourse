@@ -3,6 +3,7 @@ package db_test
 import (
 	"time"
 
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -14,9 +15,12 @@ var _ = Describe("PipelineLocks", func() {
 		var (
 			someResource       db.Resource
 			usedResourceConfig *db.UsedResourceConfig
+			fakeVariables      *credsfakes.FakeVariables
 		)
 
 		BeforeEach(func() {
+			fakeVariables = new(credsfakes.FakeVariables)
+
 			var err error
 			var found bool
 
@@ -27,12 +31,15 @@ var _ = Describe("PipelineLocks", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
 
+			versionedResourceTypes, err := pipelineResourceTypes.Deserialize(fakeVariables)
+			Expect(err).NotTo(HaveOccurred())
+
 			usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
 				db.ForResource(someResource.ID()),
 				someResource.Type(),
 				someResource.Source(),
-				pipelineResourceTypes.Deserialize(),
+				versionedResourceTypes,
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -172,9 +179,12 @@ var _ = Describe("PipelineLocks", func() {
 	Describe("AcquireResourceTypeCheckingLockWithIntervalCheck", func() {
 		var (
 			usedResourceConfig *db.UsedResourceConfig
+			fakeVariables      *credsfakes.FakeVariables
 		)
 
 		BeforeEach(func() {
+			fakeVariables = new(credsfakes.FakeVariables)
+
 			someResourceType, found, err := defaultPipeline.ResourceType("some-type")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -182,12 +192,15 @@ var _ = Describe("PipelineLocks", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
 
+			versionedResourceTypes, err := pipelineResourceTypes.Deserialize(fakeVariables)
+			Expect(err).NotTo(HaveOccurred())
+
 			usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
 				db.ForResourceType(someResourceType.ID()),
 				someResourceType.Type(),
 				someResourceType.Source(),
-				pipelineResourceTypes.Deserialize().Without(someResourceType.Name()),
+				versionedResourceTypes.Without(someResourceType.Name()),
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})

@@ -27,7 +27,7 @@ func (s *Source) Evaluate() (atc.Source, error) {
 	}
 
 	tpl := template.NewTemplate(byteSource)
-	bytes, err := tpl.Evaluate(s.variablesResolver, nil, template.EvaluateOpts{ExpectAllKeys: true, ExpectAllVarsUsed: true})
+	bytes, err := tpl.Evaluate(s.variablesResolver, nil, template.EvaluateOpts{ExpectAllKeys: true})
 	if err != nil {
 		return nil, err
 	}

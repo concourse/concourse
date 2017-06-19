@@ -41,6 +41,14 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
+		variablesSource := s.variablesFactory.NewVariables(pipeline.TeamName(), pipeline.Name())
+		versionedResourceTypes, err := resourceTypes.Deserialize(variablesSource)
+		if err != nil {
+			logger.Error("failed-to-deserialize-resource-types", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		resources, err := pipeline.Resources()
 		if err != nil {
 			logger.Error("failed-to-get-resources", err)
@@ -48,7 +56,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		build, _, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes.Deserialize())
+		build, _, err := scheduler.TriggerImmediately(logger, job, resources, versionedResourceTypes)
 		if err != nil {
 			logger.Error("failed-to-trigger", err)
 			w.WriteHeader(http.StatusInternalServerError)

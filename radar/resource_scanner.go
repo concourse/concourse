@@ -86,11 +86,19 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return 0, err
 	}
 
-	versionedResourceTypes := resourceTypes.Deserialize()
+	versionedResourceTypes, err := resourceTypes.Deserialize(scanner.variablesSource)
+	if err != nil {
+		logger.Error("failed-to-deserialize-resource-types", err)
+		return 0, err
+	}
 
 	source, err := creds.NewSource(scanner.variablesSource, savedResource.Source()).Evaluate()
 	if err != nil {
 		logger.Error("failed-to-evaluate-resource-source", err)
+		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
+		if setErr != nil {
+			logger.Error("failed-to-set-check-error", err)
+		}
 		return 0, err
 	}
 
@@ -144,7 +152,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 			savedResource,
 			resourceConfig,
 			atc.Version(vr.Version),
-			resourceTypes.Deserialize(),
+			versionedResourceTypes,
 			source,
 		),
 	)
@@ -188,7 +196,11 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		return err
 	}
 
-	versionedResourceTypes := resourceTypes.Deserialize()
+	versionedResourceTypes, err := resourceTypes.Deserialize(scanner.variablesSource)
+	if err != nil {
+		logger.Error("failed-to-deserialize-resource-types", err)
+		return err
+	}
 
 	source, err := creds.NewSource(scanner.variablesSource, savedResource.Source()).Evaluate()
 	if err != nil {
