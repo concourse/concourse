@@ -134,12 +134,7 @@ var _ = AfterEach(func() {
 	bosh("delete-deployment")
 })
 
-func StartDeploy(manifest string, operations ...string) *gexec.Session {
-	opFlags := []string{}
-	for _, op := range operations {
-		opFlags = append(opFlags, fmt.Sprintf("-o=%s", op))
-	}
-
+func StartDeploy(manifest string, args ...string) *gexec.Session {
 	return spawnBosh(
 		append([]string{
 			"deploy", manifest,
@@ -149,30 +144,40 @@ func StartDeploy(manifest string, operations ...string) *gexec.Session {
 
 			// 3363.10 becomes 3363.1 as it's floating point; quotes prevent that
 			"-v", "stemcell-version='" + stemcellVersion + "'",
-		}, opFlags...)...,
+		}, args...)...,
 	)
 }
 
-func Deploy(manifest string, operations ...string) {
-	wait(StartDeploy(manifest, operations...))
+func Deploy(manifest string, args ...string) {
+	if boshLogs != nil {
+		boshLogs.Signal(os.Interrupt)
+		<-boshLogs.Exited
+		boshLogs = nil
+	}
+
+	wait(StartDeploy(manifest, args...))
 
 	jobInstances = loadJobInstances()
 
 	atcInstance = JobInstance("atc")
-	atcExternalURL = fmt.Sprintf("http://%s:8080", atcInstance.IP)
+	if atcInstance != nil {
+		atcExternalURL = fmt.Sprintf("http://%s:8080", atcInstance.IP)
+
+		// give some time for atc to bootstrap (run migrations, etc)
+		Eventually(func() int {
+			flySession := spawnFly("login", "-c", atcExternalURL)
+			<-flySession.Exited
+			return flySession.ExitCode()
+		}, 2*time.Minute).Should(Equal(0))
+	}
 
 	dbInstance = JobInstance("postgresql")
 
-	var err error
-	dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
-	Expect(err).ToNot(HaveOccurred())
-
-	// give some time for atc to bootstrap (run migrations, etc)
-	Eventually(func() int {
-		flySession := spawnFly("login", "-c", atcExternalURL)
-		<-flySession.Exited
-		return flySession.ExitCode()
-	}, 2*time.Minute).Should(Equal(0))
+	if dbInstance != nil {
+		var err error
+		dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
+		Expect(err).ToNot(HaveOccurred())
+	}
 
 	boshLogs = spawnBosh("logs", "-f")
 }

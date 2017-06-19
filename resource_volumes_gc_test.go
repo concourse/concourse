@@ -180,7 +180,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 		)
 
 		BeforeEach(func() {
-			Deploy("deployments/single-vm.yml", "operations/add-git-server.yml")
+			Deploy("deployments/single-vm.yml", "-o", "operations/add-git-server.yml")
 
 			gitRepoURI = fmt.Sprintf("git://%s/some-repo", JobInstance("git_server").IP)
 			gitRepo = NewGitRepo(gitRepoURI)
