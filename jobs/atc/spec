@@ -413,9 +413,9 @@ properties:
 
   vault.server_addr:
     description: |
-      Vault server address to use for reading secrets in your pipeline config.
+      Vault server address to use for parameterizing credentials into your
+      pipeline config.
 
   vault.client_token:
     description: |
-      Vault client token to use for accessing your vault server.
-
+      Client token to use for accessing your Vault server.
