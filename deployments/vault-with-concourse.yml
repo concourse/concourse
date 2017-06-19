@@ -1,0 +1,87 @@
+---
+name: ((deployment-name))
+
+releases:
+- name: concourse
+  version: ((concourse-release-version))
+- name: garden-runc
+  version: ((garden-runc-release-version))
+- name: vault
+  version: latest
+
+instance_groups:
+- name: concourse
+  instances: 1
+  networks: [{name: topgun}]
+  azs: [z1]
+  persistent_disk: 10240
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
+  - release: concourse
+    name: atc
+    properties:
+      no_really_i_dont_want_any_auth: true
+      log_level: debug
+      postgresql_database: atc
+      vault:
+        server_addr: ((vault-addr))
+        client_token: ((vault-token))
+
+  - release: concourse
+    name: tsa
+    properties: {}
+
+  - release: concourse
+    name: postgresql
+    properties:
+      databases:
+      - name: atc
+        role: atc
+        password: dummy-password
+
+  - release: concourse
+    name: groundcrew
+    properties:
+      # prevent tests from hanging forever
+      drain_timeout: 10m
+
+  - release: concourse
+    name: baggageclaim
+    properties: {}
+
+  - release: garden-runc
+    name: garden
+    properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+        allow_host_access: true
+        network_mtu: 1460
+
+- name: vault
+  instances: 1
+  networks: [{name: topgun}]
+  azs: [z1]
+  persistent_disk: 10240
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
+  - release: vault
+    name: vault
+    properties:
+      vault:
+        backend:
+          use_file: true
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: ((stemcell-version))
+
+update:
+  canaries: 1
+  max_in_flight: 3
+  serial: false
+  canary_watch_time: 1000-300000
+  update_watch_time: 1000-300000

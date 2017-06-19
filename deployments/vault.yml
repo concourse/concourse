@@ -1,0 +1,34 @@
+---
+name: ((deployment-name))
+
+releases:
+- name: vault
+  version: latest
+
+instance_groups:
+- name: vault
+  instances: 1
+  networks: [{name: topgun}]
+  azs: [z1]
+  persistent_disk: 10240
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
+  - release: vault
+    name: vault
+    properties:
+      vault:
+        backend:
+          use_file: true
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: ((stemcell-version))
+
+update:
+  canaries: 1
+  max_in_flight: 3
+  serial: false
+  canary_watch_time: 1000-300000
+  update_watch_time: 1000-300000

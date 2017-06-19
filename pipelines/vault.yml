@@ -1,0 +1,32 @@
+resource_types:
+- name: fake-resource-type
+  type: docker-image
+  source:
+    repository: ((resource-type-repository))
+
+resources:
+- name: fake-resource
+  type: fake-resource-type
+  source:
+    interval: ((time-resource-interval))
+
+jobs:
+- name: simple-job
+  plan:
+  - get: fake-resource
+  - task: simple-task
+    params:
+      SECRET: ((job-secret))
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source: {repository: ((image-resource-repository))}
+
+      params:
+        SECRET:
+
+      run:
+        path: sh
+        args: ['-c', 'echo SECRET: $SECRET']
