@@ -410,3 +410,12 @@ properties:
     description: |
       Skip SSL verification when emitting to InfluxDB.
     default: false
+
+  vault.server_addr:
+    description: |
+      Vault server address to use for reading secrets in your pipeline config.
+
+  vault.client_token:
+    description: |
+      Vault client token to use for accessing your vault server.
+

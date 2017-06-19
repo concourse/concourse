@@ -22,6 +22,14 @@ files:
   - github.com/The-Cloud-Source/goryman/proto/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cenkalti/backoff/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/director/template/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/bmatcuk/doublestar/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/charlievieth/fs/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/cloudfoundry/bosh-utils/errors/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/cloudfoundry/bosh-utils/logger/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/cloudfoundry/bosh-utils/system/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/github.com/cppforlife/go-patch/patch/*.go # gosub
+  - github.com/cloudfoundry/bosh-cli/vendor/gopkg.in/yaml.v2/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/api/*.go # gosub
   - github.com/concourse/atc/api/authserver/*.go # gosub
@@ -53,6 +61,9 @@ files:
   - github.com/concourse/atc/auth/verifier/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
   - github.com/concourse/atc/cmd/atc/*.go # gosub
+  - github.com/concourse/atc/creds/*.go # gosub
+  - github.com/concourse/atc/creds/noop/*.go # gosub
+  - github.com/concourse/atc/creds/vault/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
   - github.com/concourse/atc/db/lock/*.go # gosub
@@ -102,6 +113,34 @@ files:
   - github.com/gorilla/websocket/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.go # gosub
+  - github.com/hashicorp/vault/api/*.go # gosub
+  - github.com/hashicorp/vault/helper/compressutil/*.go # gosub
+  - github.com/hashicorp/vault/helper/jsonutil/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/fatih/structs/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/errwrap/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/go-cleanhttp/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/go-multierror/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/go-rootcerts/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/hcl/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/hcl/hcl/ast/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/hcl/hcl/parser/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/hcl/hcl/scanner/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/hcl/hcl/strconv/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/hcl/hcl/token/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/hcl/json/parser/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/hcl/json/scanner/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/hashicorp/hcl/json/token/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/mitchellh/go-homedir/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/mitchellh/mapstructure/*.go # gosub
+  - github.com/hashicorp/vault/vendor/github.com/sethgrid/pester/*.go # gosub
+  - github.com/hashicorp/vault/vendor/golang.org/x/net/http2/*.go # gosub
+  - github.com/hashicorp/vault/vendor/golang.org/x/net/http2/hpack/*.go # gosub
+  - github.com/hashicorp/vault/vendor/golang.org/x/net/idna/*.go # gosub
+  - github.com/hashicorp/vault/vendor/golang.org/x/net/lex/httplex/*.go # gosub
+  - github.com/hashicorp/vault/vendor/golang.org/x/text/secure/bidirule/*.go # gosub
+  - github.com/hashicorp/vault/vendor/golang.org/x/text/transform/*.go # gosub
+  - github.com/hashicorp/vault/vendor/golang.org/x/text/unicode/bidi/*.go # gosub
+  - github.com/hashicorp/vault/vendor/golang.org/x/text/unicode/norm/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/lann/builder/*.go # gosub
   - github.com/lann/ps/*.go # gosub
