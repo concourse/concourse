@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/creds/credsfakes"
@@ -86,7 +87,11 @@ var _ = Describe("PutAction", func() {
 			"some-resource-type",
 			"some-resource",
 			"some-resource",
-			creds.NewSource(fakeVariables, atc.Source{"some": "source"}),
+			creds.NewSource(template.StaticVariables{
+				"source-param": "super-secret-source",
+			}, atc.Source{
+				"some": "((source-param))",
+			}),
 			atc.Params{"some-param": "some-value"},
 			[]string{"some", "tags"},
 			fakeImageFetchingDelegate,
@@ -174,7 +179,7 @@ var _ = Describe("PutAction", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 
 				_, putSource, putParams, _, _ := fakeResource.PutArgsForCall(0)
-				Expect(putSource).To(Equal(atc.Source{"some": "source"}))
+				Expect(putSource).To(Equal(atc.Source{"some": "super-secret-source"}))
 				Expect(putParams).To(Equal(atc.Params{"some-param": "some-value"}))
 			})
 

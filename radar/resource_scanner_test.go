@@ -7,8 +7,8 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock"
@@ -43,8 +43,6 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
-
-		fakeVariables *credsfakes.FakeVariables
 	)
 
 	BeforeEach(func() {
@@ -60,7 +58,6 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBPipeline.TeamIDReturns(teamID)
 		fakeClock = fakeclock.NewFakeClock(epoch)
 		interval = 1 * time.Minute
-		fakeVariables = new(credsfakes.FakeVariables)
 
 		scanner = NewResourceScanner(
 			fakeClock,
@@ -69,13 +66,15 @@ var _ = Describe("ResourceScanner", func() {
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
-			fakeVariables,
+			template.StaticVariables{
+				"source-params": "some-secret-sauce",
+			},
 		)
 
 		resourceConfig = atc.ResourceConfig{
 			Name:   "some-resource",
 			Type:   "git",
-			Source: atc.Source{"uri": "http://example.com"},
+			Source: atc.Source{"uri": "some-secret-sauce"},
 			Tags:   atc.Tags{"some-tag"},
 		}
 
@@ -85,7 +84,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceType.IDReturns(1)
 		fakeResourceType.NameReturns("some-custom-resource")
 		fakeResourceType.TypeReturns("docker-image")
-		fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
+		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
 		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
 
@@ -93,7 +92,7 @@ var _ = Describe("ResourceScanner", func() {
 			ResourceType: atc.ResourceType{
 				Name:   "some-custom-resource",
 				Type:   "docker-image",
-				Source: atc.Source{"custom": "source"},
+				Source: atc.Source{"custom": "some-secret-sauce"},
 			},
 			Version: atc.Version{"custom": "version"},
 		}
@@ -103,7 +102,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.PipelineNameReturns("some-pipeline")
 		fakeDBResource.PausedReturns(false)
 		fakeDBResource.TypeReturns("git")
-		fakeDBResource.SourceReturns(atc.Source{"uri": "http://example.com"})
+		fakeDBResource.SourceReturns(atc.Source{"uri": "((source-params))"})
 		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
 
 		fakeLock = &lockfakes.FakeLock{}
@@ -156,7 +155,7 @@ var _ = Describe("ResourceScanner", func() {
 				_, user, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(user).To(Equal(db.ForResource(39)))
 				Expect(resourceType).To(Equal("git"))
-				Expect(resourceSource).To(Equal(atc.Source{"uri": "http://example.com"}))
+				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 
 				_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
@@ -453,7 +452,7 @@ var _ = Describe("ResourceScanner", func() {
 				_, user, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(user).To(Equal(db.ForResource(39)))
 				Expect(resourceType).To(Equal("git"))
-				Expect(resourceSource).To(Equal(atc.Source{"uri": "http://example.com"}))
+				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 
 				_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)

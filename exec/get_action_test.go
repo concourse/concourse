@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
@@ -33,7 +34,6 @@ var _ = Describe("GetAction", func() {
 		fakeImageFetchingDelegate  *execfakes.FakeImageFetchingDelegate
 		fakeBuildEventsDelegate    *execfakes.FakeActionsBuildEventsDelegate
 		fakeVariablesFactory       *credsfakes.FakeVariablesFactory
-		fakeVariables              *credsfakes.FakeVariables
 		fakeBuild                  *dbfakes.FakeBuild
 
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
@@ -65,9 +65,10 @@ var _ = Describe("GetAction", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
-		fakeVariables = new(credsfakes.FakeVariables)
 		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-		fakeVariablesFactory.NewVariablesReturns(fakeVariables)
+		fakeVariablesFactory.NewVariablesReturns(template.StaticVariables{
+			"source-param": "super-secret-source",
+		})
 
 		artifactRepository = worker.NewArtifactRepository()
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
@@ -101,7 +102,7 @@ var _ = Describe("GetAction", func() {
 				Get: &atc.GetPlan{
 					Type:                   "some-resource-type",
 					Name:                   "some-resource",
-					Source:                 atc.Source{"some": "source"},
+					Source:                 atc.Source{"some": "((source-param))"},
 					Params:                 atc.Params{"some-param": "some-value"},
 					Tags:                   []string{"some", "tags"},
 					Version:                &atc.Version{"some-version": "some-value"},
@@ -135,7 +136,7 @@ var _ = Describe("GetAction", func() {
 		Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
 			"some-resource-type",
 			atc.Version{"some-version": "some-value"},
-			atc.Source{"some": "source"},
+			atc.Source{"some": "super-secret-source"},
 			atc.Params{"some-param": "some-value"},
 			db.ForBuild(buildID),
 			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID)),
@@ -146,7 +147,7 @@ var _ = Describe("GetAction", func() {
 		Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 		expectedLockName := fmt.Sprintf("%x",
 			sha256.Sum256([]byte(
-				`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,
+				`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"super-secret-source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,
 			)),
 		)
 

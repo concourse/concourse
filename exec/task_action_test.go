@@ -13,8 +13,8 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec"
@@ -57,12 +57,9 @@ var _ = Describe("TaskAction", func() {
 		taskAction *exec.TaskAction
 		actionStep exec.Step
 		process    ifrit.Process
-
-		fakeVariables *credsfakes.FakeVariables
 	)
 
 	BeforeEach(func() {
-		fakeVariables = new(credsfakes.FakeVariables)
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
@@ -122,7 +119,9 @@ var _ = Describe("TaskAction", func() {
 			planID,
 			containerMetadata,
 			resourceTypes,
-			fakeVariables,
+			template.StaticVariables{
+				"source-param": "super-secret-source",
+			},
 		)
 
 		actionStep = exec.NewActionsStep(
@@ -142,7 +141,7 @@ var _ = Describe("TaskAction", func() {
 				Platform: "some-platform",
 				ImageResource: &atc.ImageResource{
 					Type:   "docker",
-					Source: atc.Source{"some": "source"},
+					Source: atc.Source{"some": "((source-param))"},
 				},
 				Params: map[string]string{"SOME": "params"},
 				Run: atc.TaskRunConfig{
@@ -198,7 +197,7 @@ var _ = Describe("TaskAction", func() {
 					ImageSpec: worker.ImageSpec{
 						ImageResource: &atc.ImageResource{
 							Type:   "docker",
-							Source: atc.Source{"some": "source"},
+							Source: atc.Source{"some": "super-secret-source"},
 						},
 						Privileged: false,
 					},
@@ -1060,7 +1059,7 @@ var _ = Describe("TaskAction", func() {
 											Platform: "some-platform",
 											ImageResource: &atc.ImageResource{
 												Type:   "docker",
-												Source: atc.Source{"some": "source"},
+												Source: atc.Source{"some": "super-secret-source"},
 											},
 											Params: map[string]string{"SOME": "params"},
 											Run: atc.TaskRunConfig{
@@ -1088,7 +1087,7 @@ var _ = Describe("TaskAction", func() {
 											RootfsURI: "some-image",
 											ImageResource: &atc.ImageResource{
 												Type:   "docker",
-												Source: atc.Source{"some": "source"},
+												Source: atc.Source{"some": "super-secret-source"},
 											},
 											Params: map[string]string{"SOME": "params"},
 											Run: atc.TaskRunConfig{

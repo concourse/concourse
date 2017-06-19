@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
@@ -33,15 +33,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
-
-		fakeVariables *credsfakes.FakeVariables
 	)
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeResourceConfig = &db.UsedResourceConfig{}
-		fakeVariables = new(credsfakes.FakeVariables)
 		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
 		interval = 1 * time.Minute
@@ -54,7 +51,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
-			fakeVariables,
+			template.StaticVariables{
+				"source-params": "some-secret-sauce",
+			},
 		)
 
 		fakeDBPipeline.ReloadReturns(true, nil)
@@ -69,7 +68,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceType.IDReturns(39)
 		fakeResourceType.NameReturns("some-custom-resource")
 		fakeResourceType.TypeReturns("docker-image")
-		fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
+		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
 
 		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
@@ -79,7 +78,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			ResourceType: atc.ResourceType{
 				Name:   "some-custom-resource",
 				Type:   "docker-image",
-				Source: atc.Source{"custom": "source"},
+				Source: atc.Source{"custom": "some-secret-sauce"},
 			},
 			Version: atc.Version{"custom": "version"},
 		}
@@ -130,7 +129,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				_, user, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(user).To(Equal(db.ForResourceType(39)))
 				Expect(resourceType).To(Equal("docker-image"))
-				Expect(resourceSource).To(Equal(atc.Source{"custom": "source"}))
+				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
@@ -158,7 +157,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					fakeResourceType.IDReturns(40)
 					fakeResourceType.NameReturns("docker-image")
 					fakeResourceType.TypeReturns("docker-image")
-					fakeResourceType.SourceReturns(atc.Source{"custom": "image-source"})
+					fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 					fakeResourceType.VersionReturns(atc.Version{"custom": "image-version"})
 
 					fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{
@@ -173,7 +172,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					_, user, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 					Expect(user).To(Equal(db.ForResourceType(40)))
 					Expect(resourceType).To(Equal("docker-image"))
-					Expect(resourceSource).To(Equal(atc.Source{"custom": "image-source"}))
+					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
@@ -251,7 +250,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					fakeResource.CheckStub = func(source atc.Source, from atc.Version) ([]atc.Version, error) {
 						defer GinkgoRecover()
 
-						Expect(source).To(Equal(atc.Source{"custom": "source"}))
+						Expect(source).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 
 						checkedFrom <- from
 						result := checkResults[check]
