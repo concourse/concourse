@@ -66,6 +66,10 @@ func (plan Plan) Public() *json.RawMessage {
 		public.Retry = plan.Retry.Public()
 	}
 
+	if plan.DependentGet != nil {
+		public.DependentGet = plan.DependentGet.Public()
+	}
+
 	return enc(public)
 }
 
@@ -110,6 +114,18 @@ func (plan GetPlan) Public() *json.RawMessage {
 		Name:     plan.Name,
 		Resource: plan.Resource,
 		Version:  plan.Version,
+	})
+}
+
+func (plan DependentGetPlan) Public() *json.RawMessage {
+	return enc(struct {
+		Type     string `json:"type"`
+		Name     string `json:"name,omitempty"`
+		Resource string `json:"resource"`
+	}{
+		Type:     plan.Type,
+		Name:     plan.Name,
+		Resource: plan.Resource,
 	})
 }
 

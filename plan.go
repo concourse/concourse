@@ -15,6 +15,9 @@ type Plan struct {
 	Try       *TryPlan       `json:"try,omitempty"`
 	Timeout   *TimeoutPlan   `json:"timeout,omitempty"`
 	Retry     *RetryPlan     `json:"retry,omitempty"`
+
+	// deprecated, kept for backwards compatibility to be able to show old builds
+	DependentGet *DependentGetPlan `json:"dependent_get,omitempty"`
 }
 
 type PlanID string
@@ -89,3 +92,9 @@ type TaskPlan struct {
 }
 
 type RetryPlan []Plan
+
+type DependentGetPlan struct {
+	Type     string `json:"type"`
+	Name     string `json:"name,omitempty"`
+	Resource string `json:"resource"`
+}
