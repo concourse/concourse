@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec"
@@ -56,9 +57,12 @@ var _ = Describe("TaskAction", func() {
 		taskAction *exec.TaskAction
 		actionStep exec.Step
 		process    ifrit.Process
+
+		fakeVariables *credsfakes.FakeVariables
 	)
 
 	BeforeEach(func() {
+		fakeVariables = new(credsfakes.FakeVariables)
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
@@ -118,6 +122,7 @@ var _ = Describe("TaskAction", func() {
 			planID,
 			containerMetadata,
 			resourceTypes,
+			fakeVariables,
 		)
 
 		actionStep = exec.NewActionsStep(
@@ -134,8 +139,7 @@ var _ = Describe("TaskAction", func() {
 
 		BeforeEach(func() {
 			fetchedConfig = atc.TaskConfig{
-				Platform:  "some-platform",
-				RootfsURI: "some-image",
+				Platform: "some-platform",
 				ImageResource: &atc.ImageResource{
 					Type:   "docker",
 					Source: atc.Source{"some": "source"},
@@ -192,7 +196,6 @@ var _ = Describe("TaskAction", func() {
 					Tags:     []string{"step", "tags"},
 					TeamID:   teamID,
 					ImageSpec: worker.ImageSpec{
-						ImageURL: "some-image",
 						ImageResource: &atc.ImageResource{
 							Type:   "docker",
 							Source: atc.Source{"some": "source"},
@@ -206,6 +209,52 @@ var _ = Describe("TaskAction", func() {
 				}))
 
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
+			})
+
+			Context("when rootfs uri is set instead of image resource", func() {
+				BeforeEach(func() {
+					fetchedConfig = atc.TaskConfig{
+						Platform:  "some-platform",
+						RootfsURI: "some-image",
+						Params:    map[string]string{"SOME": "params"},
+						Run: atc.TaskRunConfig{
+							Path: "ls",
+							Args: []string{"some", "args"},
+						},
+					}
+
+					configSource.GetTaskConfigReturns(fetchedConfig, nil)
+				})
+
+				It("finds or creates a container", func() {
+					Expect(fakeWorkerClient.FindOrCreateContainerCallCount()).To(Equal(1))
+					_, cancel, delegate, user, owner, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+					Expect(cancel).ToNot(BeNil())
+					Expect(user).To(Equal(db.ForBuild(buildID)))
+					Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID)))
+					Expect(createdMetadata).To(Equal(db.ContainerMetadata{
+						Type:     db.ContainerTypeTask,
+						StepName: "some-step",
+					}))
+
+					Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+
+					Expect(spec).To(Equal(worker.ContainerSpec{
+						Platform: "some-platform",
+						Tags:     []string{"step", "tags"},
+						TeamID:   teamID,
+						ImageSpec: worker.ImageSpec{
+							ImageURL:   "some-image",
+							Privileged: false,
+						},
+						Dir:     "some-artifact-root",
+						Env:     []string{"SOME=params"},
+						Inputs:  []worker.InputSource{},
+						Outputs: worker.OutputPaths{},
+					}))
+
+					Expect(actualResourceTypes).To(Equal(resourceTypes))
+				})
 			})
 
 			Context("when an exit status is already saved off", func() {

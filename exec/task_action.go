@@ -11,7 +11,9 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
@@ -37,7 +39,16 @@ type MissingTaskImageSourceError struct {
 
 func (err MissingTaskImageSourceError) Error() string {
 	return fmt.Sprintf(`missing image artifact source: %s
+
 make sure there's a corresponding 'get' step, or a task that produces it as an output`, err.SourceName)
+}
+
+type TaskImageSourceParametersError struct {
+	Err error
+}
+
+func (err TaskImageSourceParametersError) Error() string {
+	return fmt.Sprintf("failed to evaluate image resource parameters: %s", err.Err)
 }
 
 //go:generate counterfeiter . TaskConfigSource
@@ -85,6 +96,8 @@ type TaskAction struct {
 
 	resourceTypes atc.VersionedResourceTypes
 
+	variablesSource template.Variables
+
 	exitStatus ExitStatus
 }
 
@@ -104,6 +117,7 @@ func NewTaskAction(
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	resourceTypes atc.VersionedResourceTypes,
+	variablesSource template.Variables,
 ) *TaskAction {
 	return &TaskAction{
 		privileged:            privileged,
@@ -121,6 +135,7 @@ func NewTaskAction(
 		planID:                planID,
 		containerMetadata:     containerMetadata,
 		resourceTypes:         resourceTypes,
+		variablesSource:       variablesSource,
 	}
 }
 
@@ -275,6 +290,7 @@ func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, c
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(action.privileged),
 	}
+
 	if action.imageArtifactName != "" {
 		source, found := repository.SourceFor(worker.ArtifactName(action.imageArtifactName))
 		if !found {
@@ -283,9 +299,21 @@ func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, c
 
 		imageSpec.ImageArtifactSource = source
 		imageSpec.ImageArtifactName = worker.ArtifactName(action.imageArtifactName)
-	} else {
+	} else if config.ImageResource != nil {
+		source, err := creds.NewSource(
+			action.variablesSource,
+			config.ImageResource.Source,
+		).Evaluate()
+		if err != nil {
+			return worker.ContainerSpec{}, TaskImageSourceParametersError{err}
+		}
+
+		imageSpec.ImageResource = &atc.ImageResource{
+			Type:   config.ImageResource.Type,
+			Source: source,
+		}
+	} else if config.RootfsURI != "" {
 		imageSpec.ImageURL = config.RootfsURI
-		imageSpec.ImageResource = config.ImageResource
 	}
 
 	containerSpec := worker.ContainerSpec{

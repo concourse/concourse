@@ -210,6 +210,8 @@ func (factory *gardenFactory) Task(
 		containerMetadata:     containerMetadata,
 
 		resourceTypes: plan.Task.VersionedResourceTypes,
+
+		variablesSource: factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName()),
 	}
 
 	actions := []Action{fetchConfigAction, taskAction}
