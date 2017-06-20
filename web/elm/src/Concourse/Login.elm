@@ -26,10 +26,11 @@ parseResponse response =
     let
         authToken =
             Json.Decode.decodeString Concourse.decodeAuthToken response.body
+
         csrfToken =
-          Concourse.retrieveCSRFToken response.headers
+            Concourse.retrieveCSRFToken response.headers
     in
-      Result.map2 (\a b -> { authToken = a, csrfToken = b }) authToken csrfToken
+        Result.map2 (\a b -> { authToken = a, csrfToken = b }) authToken csrfToken
 
 
 basicAuth : String -> String -> String -> Task Http.Error Concourse.AuthSession
@@ -40,7 +41,7 @@ basicAuth teamName username password =
             , url = "/api/v1/teams/" ++ teamName ++ "/auth/token"
             , headers = [ encodedAuthHeader username password ]
             , body = Http.emptyBody
-            , expect =  Http.expectStringResponse parseResponse
+            , expect = Http.expectStringResponse parseResponse
             , timeout = Nothing
             , withCredentials = False
             }
