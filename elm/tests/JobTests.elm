@@ -1,32 +1,34 @@
 module JobTests exposing (..)
 
-import ElmTest exposing (..)
-import Concourse.BuildStatus exposing (BuildStatus(..))
+import Test exposing (..)
+import Expect exposing (..)
+import Concourse exposing (BuildStatus(..), BuildId, Build, Job)
 import Concourse.Pagination exposing (Direction(..))
-import Job exposing (update, Action(..))
+import Job exposing (update, Msg(..))
 import Date
 import Array
 import Http
 import Dict
 
-
 all : Test
 all =
-    suite "Job"
-        [ suite "update" <|
+    describe "Job"
+        [ describe "update" <|
             let
                 someJobInfo =
-                    { name = "some-job"
+                    { jobName = "some-job"
                     , pipelineName = "some-pipeline"
                     , teamName = "some-team"
                     }
             in
                 let
+                    someBuild : Build
                     someBuild =
                         { id = 123
+                        , url = ""
                         , name = "45"
                         , job = Just someJobInfo
-                        , status = Succeeded
+                        , status = BuildStatusSucceeded
                         , duration =
                             { startedAt = Just (Date.fromTime 0)
                             , finishedAt = Just (Date.fromTime 0)
@@ -35,65 +37,73 @@ all =
                         }
                 in
                     let
+                        someJob : Concourse.Job
                         someJob =
                             { name = "some-job"
-                            , pipelineName = "some-pipeline"
-                            , teamName = "some-team"
+                            , pipeline = {pipelineName = "some-pipeline", teamName = "some-team"}
+                            , url = ""
+                            , nextBuild = Nothing
                             , finishedBuild = Just someBuild
                             , paused = False
                             , disableManualTrigger = False
+                            , inputs = []
+                            , outputs = []
+                            , groups = []
                             }
 
+                        defaultModel : Job.Model
                         defaultModel =
-                            { jobInfo = someJobInfo
+                            { ports = {title = (\_ -> Cmd.none)}
+                            , jobIdentifier = someJobInfo
                             , job = Nothing
                             , pausedChanging = False
-                            , buildsWithResources = Nothing
+                            , buildsWithResources = {content = [], pagination = { previousPage = Nothing, nextPage = Nothing }}
+                            , currentPage = Nothing -- { direction = Concourse.Pagination.Since 0, limit = 100 }
                             , now = 0
-                            , page = { direction = Concourse.Pagination.Since 0, limit = 100 }
-                            , pagination = { previousPage = Nothing, nextPage = Nothing }
+                            , csrfToken = ""
                             }
                     in
-                        [ test "JobBuildsFetched" <|
-                            assertEqual
-                                { defaultModel
-                                    | buildsWithResources =
-                                        Just <|
-                                            Array.fromList
-                                                [ { buildWithResources = Nothing, nextBuild = someBuild } ]
-                                    , page = { direction = Concourse.Pagination.Since 124, limit = 1 }
-                                }
-                            <|
-                                Tuple.first <|
-                                    update
-                                        (JobBuildsFetched <|
-                                            Ok
-                                                { content = [ someBuild ]
-                                                , pagination = { previousPage = Nothing, nextPage = Nothing }
-                                                }
-                                        )
-                                        defaultModel
-                        , test "JobBuildsFetched error" <|
-                            assertEqual
+                        [ test "JobBuildsFetched" <| \_ ->
+
+                            let
+                                bwr = defaultModel.buildsWithResources
+                            in
+                                Expect.equal
+                                    { defaultModel
+                                        | currentPage = Just { direction = Concourse.Pagination.Since 124, limit = 1 }
+                                        , buildsWithResources = {bwr | content = [{build = someBuild, resources = Nothing}]}
+                                    }
+                                <|
+                                    Tuple.first <|
+                                        update
+                                            (JobBuildsFetched <|
+                                                Ok
+                                                    { content = [ someBuild ]
+                                                    , pagination = { previousPage = Nothing, nextPage = Nothing }
+                                                    }
+                                            )
+                                            defaultModel
+                        , test "JobBuildsFetched error" <| \_ ->
+                            Expect.equal
                                 defaultModel
                             <|
                                 Tuple.first <|
                                     update (JobBuildsFetched <| Err Http.NetworkError) defaultModel
-                        , test "JobFetched" <|
-                            assertEqual
+                        , test "JobFetched" <| \_ ->
+                            Expect.equal
                                 { defaultModel
                                     | job = (Just someJob)
                                 }
                             <|
                                 Tuple.first <|
                                     update (JobFetched <| Ok someJob) defaultModel
-                        , test "JobFetched error" <|
-                            assertEqual
+                        , test "JobFetched error" <| \_ ->
+                            Expect.equal
                                 defaultModel
                             <|
                                 Tuple.first <|
                                     update (JobFetched <| Err Http.NetworkError) defaultModel
-                        , test "BuildResourcesFetched" <|
+                        , test "BuildResourcesFetched" <| \_ ->
                             let
                                 buildInput =
                                     { name = "some-input"
@@ -110,77 +120,46 @@ all =
                                     }
                             in
                                 let
+
                                     buildResources =
                                         { inputs = [ buildInput ], outputs = [ buildOutput ] }
                                 in
-                                    let
-                                        fetchedBuildResources =
-                                            { index = 1, result = Ok buildResources }
-                                    in
-                                        assertEqual
-                                            { defaultModel
-                                                | buildsWithResources =
-                                                    Just <|
-                                                        Array.fromList
-                                                            [ { buildWithResources = Nothing, nextBuild = someBuild }
-                                                            , { buildWithResources = Just { build = someBuild, resources = buildResources }, nextBuild = someBuild }
-                                                            ]
-                                            }
-                                        <|
-                                            Tuple.first <|
-                                                update (BuildResourcesFetched fetchedBuildResources)
-                                                    { defaultModel
-                                                        | buildsWithResources =
-                                                            Just <|
-                                                                Array.fromList
-                                                                    [ { buildWithResources = Nothing, nextBuild = someBuild }
-                                                                    , { buildWithResources = Nothing, nextBuild = someBuild }
-                                                                    ]
-                                                    }
-                        , test "BuildResourcesFetched error" <|
-                            assertEqual
-                                { defaultModel
-                                    | buildsWithResources =
-                                        Just <|
-                                            Array.fromList
-                                                [ { buildWithResources = Nothing, nextBuild = someBuild }
-                                                , { buildWithResources = Nothing, nextBuild = someBuild }
-                                                ]
-                                }
+                                    Expect.equal
+                                        defaultModel
+                                    <|
+                                        Tuple.first <|
+                                            update (BuildResourcesFetched 1 (Ok buildResources))
+                                                defaultModel
+                        , test "BuildResourcesFetched error" <| \_ ->
+                            Expect.equal
+                                defaultModel
                             <|
                                 Tuple.first <|
-                                    update (BuildResourcesFetched { index = 1, result = Err Http.NetworkError })
-                                        { defaultModel
-                                            | buildsWithResources =
-                                                Just <|
-                                                    Array.fromList
-                                                        [ { buildWithResources = Nothing, nextBuild = someBuild }
-                                                        , { buildWithResources = Nothing, nextBuild = someBuild }
-                                                        ]
-                                        }
-                        , test "TogglePaused" <|
-                            assertEqual
+                                    update (BuildResourcesFetched 1 (Err Http.NetworkError))
+                                        defaultModel
+                        , test "TogglePaused" <| \_ ->
+                            Expect.equal
                                 { defaultModel | job = Just { someJob | paused = True }, pausedChanging = True }
                             <|
                                 Tuple.first <|
                                     update TogglePaused { defaultModel | job = Just someJob }
-                        , test "PausedToggled" <|
-                            assertEqual
+                        , test "PausedToggled" <| \_ ->
+                            Expect.equal
                                 { defaultModel | job = Just someJob, pausedChanging = False }
                             <|
                                 Tuple.first <|
                                     update (PausedToggled <| Ok ()) { defaultModel | job = Just someJob }
-                        , test "PausedToggled error" <|
-                            assertEqual
+                        , test "PausedToggled error" <| \_ ->
+                            Expect.equal
                                 { defaultModel | job = Just someJob }
                             <|
                                 Tuple.first <|
                                     update (PausedToggled <| Err Http.NetworkError) { defaultModel | job = Just someJob }
-                        , test "PausedToggled unauthorized" <|
-                            assertEqual
+                        , test "PausedToggled unauthorized" <| \_ ->
+                            Expect.equal
                                 { defaultModel | job = Just someJob }
                             <|
                                 Tuple.first <|
-                                    update (PausedToggled <| Err <| Http.BadResponse 401 "") { defaultModel | job = Just someJob }
+                                    update (PausedToggled <| Err <| Http.BadStatus { url = "http://example.com", status = {code = 401, message = ""}, headers = Dict.empty, body = ""}) { defaultModel | job = Just someJob }
                         ]
         ]

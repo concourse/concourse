@@ -2,19 +2,19 @@ module StepTreeTests exposing (..)
 
 import Array
 import Dict
-import ElmTest exposing (..)
+import Test exposing (..)
+import Expect exposing (..)
 import Focus
 import Regex
 import String
 import Ansi.Log
-import Concourse.BuildPlan exposing (BuildPlan)
-import Concourse.Version exposing (Version)
+import Concourse exposing (BuildStep(..), HookedPlan)
 import StepTree
 
 
 all : Test
 all =
-    suite "StepTree"
+    describe "StepTree"
         [ initTask
         , initGet
         , initPut
@@ -34,7 +34,7 @@ someStep =
     someVersionedStep Nothing
 
 
-someVersionedStep : Maybe Version -> StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
+someVersionedStep : Maybe StepTree.Version -> StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
 someVersionedStep version id name state =
     { id = id
     , name = name
@@ -55,18 +55,18 @@ emptyResources =
 initTask : Test
 initTask =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "some-id"
-                , step = Concourse.BuildPlan.Task "some-name"
+                , step = BuildStepTask "some-name"
                 }
     in
-        suite "init with Task"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with Task"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.Task (someStep "some-id" "some-name" StepTree.StepStatePending))
                     tree
-            , test "using the focus" <|
+            , test "using the focus" <| \_ ->
                 assertFocus "some-id"
                     foci
                     tree
@@ -81,18 +81,18 @@ initGet =
         version =
             Dict.fromList [ ( "some", "version" ) ]
 
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "some-id"
-                , step = Concourse.BuildPlan.Get "some-name" (Just version)
+                , step = BuildStepGet "some-name" (Just version)
                 }
     in
-        suite "init with Get"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with Get"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.Get (someVersionedStep (Just version) "some-id" "some-name" StepTree.StepStatePending))
                     tree
-            , test "using the focus" <|
+            , test "using the focus" <| \_ ->
                 assertFocus "some-id"
                     foci
                     tree
@@ -104,18 +104,18 @@ initGet =
 initPut : Test
 initPut =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "some-id"
-                , step = Concourse.BuildPlan.Put "some-name"
+                , step = BuildStepPut "some-name"
                 }
     in
-        suite "init with Put"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with Put"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.Put (someStep "some-id" "some-name" StepTree.StepStatePending))
                     tree
-            , test "using the focus" <|
+            , test "using the focus" <| \_ ->
                 assertFocus "some-id"
                     foci
                     tree
@@ -127,18 +127,18 @@ initPut =
 initDependentGet : Test
 initDependentGet =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "some-id"
-                , step = Concourse.BuildPlan.DependentGet "some-name"
+                , step = BuildStepDependentGet "some-name"
                 }
     in
-        suite "init with DependentGet"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with DependentGet"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.DependentGet (someStep "some-id" "some-name" StepTree.StepStatePending))
                     tree
-            , test "using the focus" <|
+            , test "using the focus" <| \_ ->
                 assertFocus "some-id"
                     foci
                     tree
@@ -150,21 +150,21 @@ initDependentGet =
 initAggregate : Test
 initAggregate =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "aggregate-id"
                 , step =
-                    Concourse.BuildPlan.Aggregate
+                    BuildStepAggregate
                         << Array.fromList
                     <|
-                        [ { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
-                        , { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
+                        [ { id = "task-a-id", step = BuildStepTask "task-a" }
+                        , { id = "task-b-id", step = BuildStepTask "task-b" }
                         ]
                 }
     in
-        suite "init with Aggregate"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with Aggregate"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.Aggregate
                         << Array.fromList
                      <|
@@ -173,7 +173,7 @@ initAggregate =
                         ]
                     )
                     tree
-            , test "using the focus" <|
+            , test "using the focus" <| \_ ->
                 assertFocus "task-a-id"
                     foci
                     tree
@@ -191,30 +191,30 @@ initAggregate =
 initAggregateNested : Test
 initAggregateNested =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "aggregate-id"
                 , step =
-                    Concourse.BuildPlan.Aggregate
+                    BuildStepAggregate
                         << Array.fromList
                     <|
-                        [ { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
-                        , { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
+                        [ { id = "task-a-id", step = BuildStepTask "task-a" }
+                        , { id = "task-b-id", step = BuildStepTask "task-b" }
                         , { id = "nested-aggregate-id"
                           , step =
-                                Concourse.BuildPlan.Aggregate
+                                BuildStepAggregate
                                     << Array.fromList
                                 <|
-                                    [ { id = "task-c-id", step = Concourse.BuildPlan.Task "task-c" }
-                                    , { id = "task-d-id", step = Concourse.BuildPlan.Task "task-d" }
+                                    [ { id = "task-c-id", step = BuildStepTask "task-c" }
+                                    , { id = "task-d-id", step = BuildStepTask "task-d" }
                                     ]
                           }
                         ]
                 }
     in
-        suite "init with Aggregate"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with Aggregate nested"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.Aggregate
                         << Array.fromList
                      <|
@@ -229,7 +229,7 @@ initAggregateNested =
                         ]
                     )
                     tree
-            , test "using the focuses for nested elements" <|
+            , test "using the focuses for nested elements" <| \_ ->
                 assertFocus "task-c-id"
                     foci
                     tree
@@ -253,26 +253,26 @@ initAggregateNested =
 initOnSuccess : Test
 initOnSuccess =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "on-success-id"
                 , step =
-                    Concourse.BuildPlan.OnSuccess <|
-                        Concourse.BuildPlan.HookedPlan
-                            { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
-                            { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
+                    BuildStepOnSuccess <|
+                        HookedPlan
+                            { id = "task-a-id", step = BuildStepTask "task-a" }
+                            { id = "task-b-id", step = BuildStepTask "task-b" }
                 }
     in
-        suite "init with OnSuccess"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with OnSuccess"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.OnSuccess <|
                         StepTree.HookedStep
                             (StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStatePending))
                             (StepTree.Task (someStep "task-b-id" "task-b" StepTree.StepStatePending))
                     )
                     tree
-            , test "updating a step via the focus" <|
+            , test "updating a step via the focus" <| \_ ->
                 assertFocus "task-a-id"
                     foci
                     tree
@@ -282,7 +282,7 @@ initOnSuccess =
                             (StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStateSucceeded))
                             (StepTree.Task (someStep "task-b-id" "task-b" StepTree.StepStatePending))
                     )
-            , test "updating a hook via the focus" <|
+            , test "updating a hook via the focus" <| \_ ->
                 assertFocus "task-b-id"
                     foci
                     tree
@@ -298,26 +298,26 @@ initOnSuccess =
 initOnFailure : Test
 initOnFailure =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "on-success-id"
                 , step =
-                    Concourse.BuildPlan.OnFailure <|
-                        Concourse.BuildPlan.HookedPlan
-                            { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
-                            { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
+                    BuildStepOnFailure <|
+                        HookedPlan
+                            { id = "task-a-id", step = BuildStepTask "task-a" }
+                            { id = "task-b-id", step = BuildStepTask "task-b" }
                 }
     in
-        suite "init with OnFailure"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with OnFailure"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.OnFailure <|
                         StepTree.HookedStep
                             (StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStatePending))
                             (StepTree.Task (someStep "task-b-id" "task-b" StepTree.StepStatePending))
                     )
                     tree
-            , test "updating a step via the focus" <|
+            , test "updating a step via the focus" <| \_ ->
                 assertFocus "task-a-id"
                     foci
                     tree
@@ -327,7 +327,7 @@ initOnFailure =
                             (StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStateSucceeded))
                             (StepTree.Task (someStep "task-b-id" "task-b" StepTree.StepStatePending))
                     )
-            , test "updating a hook via the focus" <|
+            , test "updating a hook via the focus" <| \_ ->
                 assertFocus "task-b-id"
                     foci
                     tree
@@ -343,26 +343,26 @@ initOnFailure =
 initEnsure : Test
 initEnsure =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "on-success-id"
                 , step =
-                    Concourse.BuildPlan.Ensure <|
-                        Concourse.BuildPlan.HookedPlan
-                            { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
-                            { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
+                    BuildStepEnsure <|
+                        HookedPlan
+                            { id = "task-a-id", step = BuildStepTask "task-a" }
+                            { id = "task-b-id", step = BuildStepTask "task-b" }
                 }
     in
-        suite "init with Ensure"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with Ensure"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.Ensure <|
                         StepTree.HookedStep
                             (StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStatePending))
                             (StepTree.Task (someStep "task-b-id" "task-b" StepTree.StepStatePending))
                     )
                     tree
-            , test "updating a step via the focus" <|
+            , test "updating a step via the focus" <| \_ ->
                 assertFocus "task-a-id"
                     foci
                     tree
@@ -372,7 +372,7 @@ initEnsure =
                             (StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStateSucceeded))
                             (StepTree.Task (someStep "task-b-id" "task-b" StepTree.StepStatePending))
                     )
-            , test "updating a hook via the focus" <|
+            , test "updating a hook via the focus" <| \_ ->
                 assertFocus "task-b-id"
                     foci
                     tree
@@ -388,21 +388,21 @@ initEnsure =
 initTry : Test
 initTry =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "on-success-id"
                 , step =
-                    Concourse.BuildPlan.Try { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
+                    BuildStepTry { id = "task-a-id", step = BuildStepTask "task-a" }
                 }
     in
-        suite "init with Try"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with Try"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.Try <|
                         StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStatePending)
                     )
                     tree
-            , test "updating a step via the focus" <|
+            , test "updating a step via the focus" <| \_ ->
                 assertFocus "task-a-id"
                     foci
                     tree
@@ -416,21 +416,21 @@ initTry =
 initTimeout : Test
 initTimeout =
     let
-        { tree, foci } =
+        { tree, foci, finished } =
             StepTree.init emptyResources
                 { id = "on-success-id"
                 , step =
-                    Concourse.BuildPlan.Timeout { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
+                    BuildStepTimeout { id = "task-a-id", step = BuildStepTask "task-a" }
                 }
     in
-        suite "init with Timeout"
-            [ test "the tree" <|
-                assertEqual
+        describe "init with Timeout"
+            [ test "the tree" <| \_ ->
+                Expect.equal
                     (StepTree.Timeout <|
                         StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStatePending)
                     )
                     tree
-            , test "updating a step via the focus" <|
+            , test "updating a step via the focus" <| \_ ->
                 assertFocus "task-a-id"
                     foci
                     tree
@@ -459,14 +459,14 @@ updateStep f tree =
         _ ->
             tree
 
-
+assertFocus : StepTree.StepID -> Dict.Dict StepTree.StepID StepTree.StepFocus -> StepTree.StepTree -> (StepTree.Step -> StepTree.Step) -> StepTree.StepTree -> Expectation
 assertFocus id foci tree update expected =
     case Dict.get id foci of
         Nothing ->
-            assert False
+            Expect.true "failed" False
 
         Just focus ->
-            assertEqual
+            Expect.equal
                 expected
                 (Focus.update focus (updateStep update) tree)
 
