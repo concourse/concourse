@@ -316,6 +316,11 @@ func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, c
 		imageSpec.ImageURL = config.RootfsURI
 	}
 
+	params, err := creds.NewTaskParams(action.variablesSource, config.Params).Evaluate()
+	if err != nil {
+		return worker.ContainerSpec{}, err
+	}
+
 	containerSpec := worker.ContainerSpec{
 		Platform:  config.Platform,
 		Tags:      action.tags,
@@ -323,7 +328,7 @@ func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, c
 		ImageSpec: imageSpec,
 		User:      config.Run.User,
 		Dir:       action.artifactsRoot,
-		Env:       action.envForParams(config.Params),
+		Env:       action.envForParams(params),
 
 		Inputs:  []worker.InputSource{},
 		Outputs: worker.OutputPaths{},

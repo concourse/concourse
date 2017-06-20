@@ -121,6 +121,7 @@ var _ = Describe("TaskAction", func() {
 			resourceTypes,
 			template.StaticVariables{
 				"source-param": "super-secret-source",
+				"task-param":   "super-secret-param",
 			},
 		)
 
@@ -143,7 +144,9 @@ var _ = Describe("TaskAction", func() {
 					Type:   "docker",
 					Source: atc.Source{"some": "((source-param))"},
 				},
-				Params: map[string]string{"SOME": "params"},
+				Params: map[string]string{
+					"SECURE": "((task-param))",
+				},
 				Run: atc.TaskRunConfig{
 					Path: "ls",
 					Args: []string{"some", "args"},
@@ -202,7 +205,7 @@ var _ = Describe("TaskAction", func() {
 						Privileged: false,
 					},
 					Dir:     "some-artifact-root",
-					Env:     []string{"SOME=params"},
+					Env:     []string{"SECURE=super-secret-param"},
 					Inputs:  []worker.InputSource{},
 					Outputs: worker.OutputPaths{},
 				}))
