@@ -106,13 +106,13 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 	if temp.Present(evaluatedConfig) {
 		evaluatedConfig, err = atcConfig.resolveDeprecatedTemplateStyle(evaluatedConfig, paramPayloads, templateVariables, yamlTemplateVariables)
 		if err != nil {
-			displayhelpers.FailWithErrorf("could not resolve old-style template vars", err)
+			displayhelpers.FailWithErrorf("could not resolve old-style template vars: %s", err)
 		}
 	}
 
 	evaluatedConfig, err = atcConfig.resolveTemplates(evaluatedConfig, paramPayloads, templateVariables, yamlTemplateVariables)
 	if err != nil {
-		displayhelpers.Failf("could not resolve template vars", err)
+		displayhelpers.Failf("could not resolve template vars: %s", err)
 	}
 
 	return evaluatedConfig
@@ -143,9 +143,7 @@ func (atcConfig ATCConfig) resolveTemplates(configPayload []byte, paramPayloads 
 		vars = append(vars, staticVars)
 	}
 
-	bytes, err := tpl.Evaluate(template.NewMultiVars(vars), nil, template.EvaluateOpts{
-		ExpectAllKeys: true,
-	})
+	bytes, err := tpl.Evaluate(template.NewMultiVars(vars), nil, template.EvaluateOpts{})
 	if err != nil {
 		return nil, err
 	}
