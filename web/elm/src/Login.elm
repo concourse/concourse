@@ -30,6 +30,7 @@ type alias Model =
     , hasTeamSelectionInBrowserHistory : Bool
     , redirect : Maybe String
     , basicAuthInput : Maybe BasicAuthFields
+    , loginFailed : Bool
     }
 
 
@@ -51,6 +52,7 @@ init ports teamName redirect =
       , hasTeamSelectionInBrowserHistory = False
       , redirect = redirect
       , basicAuthInput = Nothing
+      , loginFailed = False
       }
     , Cmd.batch
         [ Task.attempt AuthFetched <|
@@ -97,8 +99,12 @@ update action model =
             )
 
         AuthSessionReceived (Err err) ->
-            flip always (Debug.log ("login failed") (err)) <|
-                ( model, Cmd.none )
+          flip always (Debug.log ("login failed") (err)) <|
+                ( { model
+                    | loginFailed = True
+                  }
+                , Cmd.none
+                )
 
         BasicAuthUsernameChanged un ->
             ( case model.basicAuthInput of
@@ -218,25 +224,29 @@ view model =
                     [ Html.text model.teamName ]
                 ]
             ]
-                ++ case model.authMethods of
-                    Nothing ->
-                        [ viewLoading ]
+                ++ loginMethods model
+            ]
 
-                    Just methods ->
-                        case ( viewBasicAuthForm methods, viewOAuthButtons model.redirect methods ) of
-                            ( Just basicForm, Just buttons ) ->
-                                [ buttons, viewOrBar, basicForm ]
 
-                            ( Just basicForm, Nothing ) ->
-                                [ basicForm ]
+loginMethods : Model -> List (Html Msg)
+loginMethods model =
+    case model.authMethods of
+      Nothing ->
+          [ viewLoading ]
 
-                            ( Nothing, Just buttons ) ->
-                                [ buttons ]
+      Just methods ->
+          case ( viewBasicAuthForm methods model.loginFailed, viewOAuthButtons model.redirect methods ) of
+              ( Just basicForm, Just buttons ) ->
+                  [ buttons, viewOrBar, basicForm ]
 
-                            ( Nothing, Nothing ) ->
-                                [ viewNoAuthButton ]
-        ]
+              ( Just basicForm, Nothing ) ->
+                  [ basicForm ]
 
+              ( Nothing, Just buttons ) ->
+                  [ buttons ]
+
+              ( Nothing, Nothing ) ->
+                  [ viewNoAuthButton ]
 
 viewLoading : Html Msg
 viewLoading =
@@ -244,6 +254,12 @@ viewLoading =
         [ Html.i [ class "fa fa-fw fa-spin fa-circle-o-notch" ] []
         ]
 
+loginErrMessage : Bool -> Html Msg
+loginErrMessage loginFailed =
+  if loginFailed then
+    Html.div [class "login-error"] [Html.text "login error: not authorized"]
+  else
+    Html.div [] []
 
 viewOrBar : Html Msg
 viewOrBar =
@@ -265,8 +281,8 @@ viewNoAuthButton =
         ]
 
 
-viewBasicAuthForm : List Concourse.AuthMethod -> Maybe (Html Msg)
-viewBasicAuthForm methods =
+viewBasicAuthForm : List Concourse.AuthMethod -> Bool -> Maybe (Html Msg)
+viewBasicAuthForm methods loginFailed =
     if List.member Concourse.AuthMethodBasic methods then
         Just <|
             Html.form
@@ -300,6 +316,7 @@ viewBasicAuthForm methods =
                         ]
                         []
                     ]
+                , loginErrMessage loginFailed
                 , Html.div
                     [ class "login-button" ]
                     [ Html.button

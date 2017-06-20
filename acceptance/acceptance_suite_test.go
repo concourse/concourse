@@ -124,10 +124,14 @@ func Login(page *agouti.Page, baseUrl string) {
 }
 
 func FillLoginFormAndSubmit(page *agouti.Page) {
-	Eventually(page.FindByName("username")).Should(BeFound())
-	Expect(page.FindByName("username").Fill("admin")).To(Succeed())
-	Expect(page.FindByName("password").Fill("password")).To(Succeed())
+	FillLoginFormWithCredentials(page, "admin", "password")
 	Expect(page.FindByButton("login").Click()).To(Succeed())
+}
+
+func FillLoginFormWithCredentials(page *agouti.Page, username string, password string) {
+	Eventually(page.FindByName("username")).Should(BeFound())
+	Expect(page.FindByName("username").Fill(username)).To(Succeed())
+	Expect(page.FindByName("password").Fill(password)).To(Succeed())
 }
 
 func LoginWithNoAuth(page *agouti.Page, baseUrl string) {

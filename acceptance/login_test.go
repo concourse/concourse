@@ -57,9 +57,24 @@ var _ = Describe("Logging In", func() {
 				Expect(page.Destroy()).To(Succeed())
 			})
 
+			Describe("log in with bad credentials", func() {
+				BeforeEach(func() {
+					Expect(page.Navigate(homepage() + "/teams/main/login")).To(Succeed())
+					FillLoginFormWithCredentials(page, "some-user", "bad-password")
+				})
+
+				It("shows an error message", func() {
+					Expect(page.FindByButton("login").Click()).To(Succeed())
+					Eventually(page.FindByClass("login-error")).Should(BeVisible())
+				})
+			})
+
 			Describe("after the user logs in", func() {
-				It("should display the pipelines the user has access to in the sidebar", func() {
+				BeforeEach(func() {
 					Login(page, homepage())
+				})
+
+				It("should display the pipelines the user has access to in the sidebar", func() {
 					Expect(page.FindByClass("sidebar-toggle").Click()).To(Succeed())
 					Eventually(page.FindByLink("main")).Should(BeVisible())
 				})
