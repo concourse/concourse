@@ -2,12 +2,22 @@ module EventSource.LowLevel exposing (..)
 
 {-| This library provides a Task-based interface for attaching to EventSource
 endpoints and subscribing to events.
+
+
 # Creating an EventSource
+
 @docs EventSource, open
+
+
 # Subscribing to events
+
 @docs Event, on
+
+
 # Closing the event source
+
 @docs close
+
 -}
 
 import Task exposing (Task)
@@ -30,8 +40,10 @@ type alias Event =
 
 
 {-| Configure the EventSource with callbacks.
-  * `onOpen` corresponds to the EventSource `onopen` callback.
-  * `onError` corresponds to the EventSource `onerror` callback.
+
+  - `onOpen` corresponds to the EventSource `onopen` callback.
+  - `onError` corresponds to the EventSource `onerror` callback.
+
 -}
 type alias Settings =
     { events : List String

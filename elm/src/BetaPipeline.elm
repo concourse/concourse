@@ -87,7 +87,7 @@ changeToPipelineAndGroups flags model =
             }
     in
         if model.pipelineLocator == pid then
-            ({ model | selectedGroups = queryGroupsForRoute flags.route }, Cmd.none)
+            ( { model | selectedGroups = queryGroupsForRoute flags.route }, Cmd.none )
         else
             init model.ports flags
 
@@ -107,7 +107,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+    Sub.none
 
 
 view : Model -> Html Msg
@@ -279,8 +279,8 @@ viewOutputNode resourceName =
 
 fetchJobs : Concourse.PipelineIdentifier -> Cmd Msg
 fetchJobs pid =
-  Task.attempt JobsFetched <|
-    Concourse.Job.fetchJobs pid
+    Task.attempt JobsFetched <|
+        Concourse.Job.fetchJobs pid
 
 
 type alias ByName a =
@@ -370,7 +370,7 @@ jobId nodes job =
         [] ->
             Debug.crash "impossible: job index not found"
 
+
 queryGroupsForRoute : Routes.ConcourseRoute -> List String
 queryGroupsForRoute route =
     QueryString.all "groups" route.queries
-

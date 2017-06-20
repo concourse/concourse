@@ -99,7 +99,7 @@ update action model =
             )
 
         AuthSessionReceived (Err err) ->
-          flip always (Debug.log ("login failed") (err)) <|
+            flip always (Debug.log ("login failed") (err)) <|
                 ( { model
                     | loginFailed = True
                   }
@@ -225,28 +225,29 @@ view model =
                 ]
             ]
                 ++ loginMethods model
-            ]
+        ]
 
 
 loginMethods : Model -> List (Html Msg)
 loginMethods model =
     case model.authMethods of
-      Nothing ->
-          [ viewLoading ]
+        Nothing ->
+            [ viewLoading ]
 
-      Just methods ->
-          case ( viewBasicAuthForm methods model.loginFailed, viewOAuthButtons model.redirect methods ) of
-              ( Just basicForm, Just buttons ) ->
-                  [ buttons, viewOrBar, basicForm ]
+        Just methods ->
+            case ( viewBasicAuthForm methods model.loginFailed, viewOAuthButtons model.redirect methods ) of
+                ( Just basicForm, Just buttons ) ->
+                    [ buttons, viewOrBar, basicForm ]
 
-              ( Just basicForm, Nothing ) ->
-                  [ basicForm ]
+                ( Just basicForm, Nothing ) ->
+                    [ basicForm ]
 
-              ( Nothing, Just buttons ) ->
-                  [ buttons ]
+                ( Nothing, Just buttons ) ->
+                    [ buttons ]
 
-              ( Nothing, Nothing ) ->
-                  [ viewNoAuthButton ]
+                ( Nothing, Nothing ) ->
+                    [ viewNoAuthButton ]
+
 
 viewLoading : Html Msg
 viewLoading =
@@ -254,12 +255,14 @@ viewLoading =
         [ Html.i [ class "fa fa-fw fa-spin fa-circle-o-notch" ] []
         ]
 
+
 loginErrMessage : Bool -> Html Msg
 loginErrMessage loginFailed =
-  if loginFailed then
-    Html.div [class "login-error"] [Html.text "login error: not authorized"]
-  else
-    Html.div [] []
+    if loginFailed then
+        Html.div [ class "login-error" ] [ Html.text "login error: not authorized" ]
+    else
+        Html.div [] []
+
 
 viewOrBar : Html Msg
 viewOrBar =
