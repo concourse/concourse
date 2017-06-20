@@ -13,6 +13,8 @@ module StepTree
         , view
         , update
         , updateAt
+        , Version
+        , StepFocus
         )
 
 import Debug

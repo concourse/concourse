@@ -1,10 +1,11 @@
 {
-    "version": "0.0.1",
-    "summary": "ATC web UI NG",
+    "version": "1.0.0",
+    "summary": "Test Suites",
     "repository": "https://github.com/concourse/atc.git",
     "license": "Apache-2.0",
     "source-directories": [
-        "src"
+        "../src",
+        "."
     ],
     "exposed-modules": [],
     "native-modules": true,
@@ -12,6 +13,8 @@
         "Bogdanp/elm-querystring": "1.0.0 <= v < 2.0.0",
         "Bogdanp/elm-route": "4.0.0 <= v < 5.0.0",
         "chendrix/elm-matrix": "3.1.3 <= v < 4.0.0",
+        "eeue56/elm-html-test": "4.1.0 <= v < 5.0.0",
+        "elm-community/elm-test": "4.0.0 <= v < 5.0.0",
         "elm-community/graph": "2.0.0 <= v < 3.0.0",
         "elm-community/intdict": "2.0.0 <= v < 3.0.0",
         "elm-community/json-extra": "2.1.0 <= v < 3.0.0",

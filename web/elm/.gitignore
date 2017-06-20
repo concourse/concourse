@@ -1,2 +1,7 @@
-/elm-stuff
+### Elm ###
+# elm-package generated files
+elm-stuff
+# elm-repl generated files
+repl-temp-*
 elm.js
+index.html
