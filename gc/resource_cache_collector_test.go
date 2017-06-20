@@ -3,6 +3,7 @@ package gc_test
 import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/gc"
@@ -45,7 +46,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						"some": "source",
 					},
 					nil,
-					atc.VersionedResourceTypes{},
+					creds.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -61,7 +62,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						"some": "source",
 					},
 					nil,
-					atc.VersionedResourceTypes{},
+					creds.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -160,7 +161,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									"some": "source",
 								},
 								nil,
-								atc.VersionedResourceTypes{},
+								creds.VersionedResourceTypes{},
 							)
 							Expect(err).NotTo(HaveOccurred())
 
@@ -211,7 +212,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									"some": "source",
 								},
 								nil,
-								atc.VersionedResourceTypes{},
+								creds.VersionedResourceTypes{},
 							)
 							Expect(err).NotTo(HaveOccurred())
 

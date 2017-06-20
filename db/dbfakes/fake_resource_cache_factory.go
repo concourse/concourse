@@ -6,11 +6,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 )
 
 type FakeResourceCacheFactory struct {
-	FindOrCreateResourceCacheStub        func(logger lager.Logger, resourceUser db.ResourceUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, resourceTypes atc.VersionedResourceTypes) (*db.UsedResourceCache, error)
+	FindOrCreateResourceCacheStub        func(logger lager.Logger, resourceUser db.ResourceUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceCache, error)
 	findOrCreateResourceCacheMutex       sync.RWMutex
 	findOrCreateResourceCacheArgsForCall []struct {
 		logger           lager.Logger
@@ -19,7 +20,7 @@ type FakeResourceCacheFactory struct {
 		version          atc.Version
 		source           atc.Source
 		params           atc.Params
-		resourceTypes    atc.VersionedResourceTypes
+		resourceTypes    creds.VersionedResourceTypes
 	}
 	findOrCreateResourceCacheReturns struct {
 		result1 *db.UsedResourceCache
@@ -112,7 +113,7 @@ type FakeResourceCacheFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(logger lager.Logger, resourceUser db.ResourceUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, resourceTypes atc.VersionedResourceTypes) (*db.UsedResourceCache, error) {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(logger lager.Logger, resourceUser db.ResourceUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceCache, error) {
 	fake.findOrCreateResourceCacheMutex.Lock()
 	ret, specificReturn := fake.findOrCreateResourceCacheReturnsOnCall[len(fake.findOrCreateResourceCacheArgsForCall)]
 	fake.findOrCreateResourceCacheArgsForCall = append(fake.findOrCreateResourceCacheArgsForCall, struct {
@@ -122,7 +123,7 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(logger lager.Log
 		version          atc.Version
 		source           atc.Source
 		params           atc.Params
-		resourceTypes    atc.VersionedResourceTypes
+		resourceTypes    creds.VersionedResourceTypes
 	}{logger, resourceUser, resourceTypeName, version, source, params, resourceTypes})
 	fake.recordInvocation("FindOrCreateResourceCache", []interface{}{logger, resourceUser, resourceTypeName, version, source, params, resourceTypes})
 	fake.findOrCreateResourceCacheMutex.Unlock()
@@ -141,7 +142,7 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheCallCount() int {
 	return len(fake.findOrCreateResourceCacheArgsForCall)
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheArgsForCall(i int) (lager.Logger, db.ResourceUser, string, atc.Version, atc.Source, atc.Params, atc.VersionedResourceTypes) {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheArgsForCall(i int) (lager.Logger, db.ResourceUser, string, atc.Version, atc.Source, atc.Params, creds.VersionedResourceTypes) {
 	fake.findOrCreateResourceCacheMutex.RLock()
 	defer fake.findOrCreateResourceCacheMutex.RUnlock()
 	return fake.findOrCreateResourceCacheArgsForCall[i].logger, fake.findOrCreateResourceCacheArgsForCall[i].resourceUser, fake.findOrCreateResourceCacheArgsForCall[i].resourceTypeName, fake.findOrCreateResourceCacheArgsForCall[i].version, fake.findOrCreateResourceCacheArgsForCall[i].source, fake.findOrCreateResourceCacheArgsForCall[i].params, fake.findOrCreateResourceCacheArgsForCall[i].resourceTypes

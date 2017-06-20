@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -30,10 +31,10 @@ type ImageResourceFetcherFactory interface {
 	NewImageResourceFetcher(
 		worker.Worker,
 		db.ResourceUser,
-		atc.ImageResource,
+		worker.ImageResource,
 		atc.Version,
 		int,
-		atc.VersionedResourceTypes,
+		creds.VersionedResourceTypes,
 		worker.ImageFetchingDelegate,
 	) ImageResourceFetcher
 }
@@ -76,10 +77,10 @@ func NewImageResourceFetcherFactory(
 func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	worker worker.Worker,
 	resourceUser db.ResourceUser,
-	imageResource atc.ImageResource,
+	imageResource worker.ImageResource,
 	version atc.Version,
 	teamID int,
-	customTypes atc.VersionedResourceTypes,
+	customTypes creds.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) ImageResourceFetcher {
 	return &imageResourceFetcher{
@@ -108,11 +109,12 @@ type imageResourceFetcher struct {
 	clock                   clock.Clock
 
 	resourceUser          db.ResourceUser
-	imageResource         atc.ImageResource
+	imageResource         worker.ImageResource
 	version               atc.Version
 	teamID                int
-	customTypes           atc.VersionedResourceTypes
+	customTypes           creds.VersionedResourceTypes
 	imageFetchingDelegate worker.ImageFetchingDelegate
+	variables             creds.Variables
 }
 
 func (i *imageResourceFetcher) Fetch(
@@ -131,12 +133,17 @@ func (i *imageResourceFetcher) Fetch(
 		}
 	}
 
+	source, err := i.imageResource.Source.Evaluate()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	resourceCache, err := i.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
 		i.resourceUser,
 		i.imageResource.Type,
 		version,
-		i.imageResource.Source,
+		source,
 		atc.Params{},
 		i.customTypes,
 	)
@@ -148,7 +155,7 @@ func (i *imageResourceFetcher) Fetch(
 	resourceInstance := resource.NewResourceInstance(
 		resource.ResourceType(i.imageResource.Type),
 		version,
-		i.imageResource.Source,
+		source,
 		atc.Params{},
 		i.resourceUser,
 		db.NewImageGetContainerOwner(container),
@@ -222,12 +229,17 @@ func (i *imageResourceFetcher) getLatestVersion(
 		TeamID: i.teamID,
 	}
 
+	source, err := i.imageResource.Source.Evaluate()
+	if err != nil {
+		return nil, err
+	}
+
 	for {
 		lock, acquired, err := i.dbResourceConfigFactory.AcquireResourceCheckingLock(
 			logger,
 			i.resourceUser,
 			i.imageResource.Type,
-			i.imageResource.Source,
+			source,
 			i.customTypes,
 		)
 		if err != nil {
@@ -265,7 +277,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 		return nil, err
 	}
 
-	versions, err := checkingResource.Check(i.imageResource.Source, nil)
+	versions, err := checkingResource.Check(source, nil)
 	if err != nil {
 		return nil, err
 	}

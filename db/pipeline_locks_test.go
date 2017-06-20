@@ -3,7 +3,8 @@ package db_test
 import (
 	"time"
 
-	"github.com/concourse/atc/creds/credsfakes"
+	"github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -15,11 +16,11 @@ var _ = Describe("PipelineLocks", func() {
 		var (
 			someResource       db.Resource
 			usedResourceConfig *db.UsedResourceConfig
-			fakeVariables      *credsfakes.FakeVariables
+			variables          creds.Variables
 		)
 
 		BeforeEach(func() {
-			fakeVariables = new(credsfakes.FakeVariables)
+			variables = template.StaticVariables{}
 
 			var err error
 			var found bool
@@ -31,15 +32,12 @@ var _ = Describe("PipelineLocks", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
 
-			versionedResourceTypes, err := pipelineResourceTypes.Deserialize(fakeVariables)
-			Expect(err).NotTo(HaveOccurred())
-
 			usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
 				db.ForResource(someResource.ID()),
 				someResource.Type(),
 				someResource.Source(),
-				versionedResourceTypes,
+				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -179,11 +177,11 @@ var _ = Describe("PipelineLocks", func() {
 	Describe("AcquireResourceTypeCheckingLockWithIntervalCheck", func() {
 		var (
 			usedResourceConfig *db.UsedResourceConfig
-			fakeVariables      *credsfakes.FakeVariables
+			variables          creds.Variables
 		)
 
 		BeforeEach(func() {
-			fakeVariables = new(credsfakes.FakeVariables)
+			variables = template.StaticVariables{}
 
 			someResourceType, found, err := defaultPipeline.ResourceType("some-type")
 			Expect(err).NotTo(HaveOccurred())
@@ -192,15 +190,12 @@ var _ = Describe("PipelineLocks", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
 
-			versionedResourceTypes, err := pipelineResourceTypes.Deserialize(fakeVariables)
-			Expect(err).NotTo(HaveOccurred())
-
 			usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
 				db.ForResourceType(someResourceType.ID()),
 				someResourceType.Type(),
 				someResourceType.Source(),
-				versionedResourceTypes.Without(someResourceType.Name()),
+				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize().Without(someResourceType.Name())),
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})

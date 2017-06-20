@@ -6,9 +6,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds"
 )
 
 type ResourceTypeNotFoundError struct {
@@ -36,27 +34,22 @@ type ResourceType interface {
 
 type ResourceTypes []ResourceType
 
-func (resourceTypes ResourceTypes) Deserialize(variablesSource template.Variables) (atc.VersionedResourceTypes, error) {
+func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 	var versionedResourceTypes atc.VersionedResourceTypes
 
 	for _, t := range resourceTypes {
-		source, err := creds.NewSource(variablesSource, t.Source()).Evaluate()
-		if err != nil {
-			return nil, err
-		}
-
 		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
 				Name:       t.Name(),
 				Type:       t.Type(),
-				Source:     source,
+				Source:     t.Source(),
 				Privileged: t.Privileged(),
 			},
 			Version: t.Version(),
 		})
 	}
 
-	return versionedResourceTypes, nil
+	return versionedResourceTypes
 }
 
 var resourceTypesQuery = psql.Select("id, name, type, config, version, nonce").

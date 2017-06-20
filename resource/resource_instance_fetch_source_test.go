@@ -7,7 +7,9 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/resource"
@@ -30,7 +32,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		resourceCache            *db.UsedResourceCache
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeDelegate             *workerfakes.FakeImageFetchingDelegate
-		resourceTypes            atc.VersionedResourceTypes
+		resourceTypes            creds.VersionedResourceTypes
 
 		signals <-chan os.Signal
 		ready   chan<- struct{}
@@ -81,16 +83,20 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 		fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
-		resourceTypes = atc.VersionedResourceTypes{
+		variables := template.StaticVariables{
+			"secret-custom": "source",
+		}
+
+		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
 					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "source"},
+					Source: atc.Source{"some-custom": "((secret-custom))"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
-		}
+		})
 
 		fetchSource = resource.NewResourceInstanceFetchSource(
 			logger,

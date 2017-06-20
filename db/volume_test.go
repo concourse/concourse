@@ -1,7 +1,9 @@
 package db_test
 
 import (
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -12,7 +14,7 @@ var _ = Describe("Volume", func() {
 	var defaultCreatedContainer db.CreatedContainer
 
 	BeforeEach(func() {
-		config, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForResource(defaultResource.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+		config, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForResource(defaultResource.ID()), "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
 		Expect(err).NotTo(HaveOccurred())
 
 		defaultCreatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(config), db.ContainerMetadata{Type: "check"})
@@ -119,16 +121,18 @@ var _ = Describe("Volume", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					{
-						ResourceType: atc.ResourceType{
-							Name:   "some-type",
-							Type:   "some-base-resource-type",
-							Source: atc.Source{"some-type": "source"},
+				creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+					atc.VersionedResourceTypes{
+						{
+							ResourceType: atc.ResourceType{
+								Name:   "some-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some-type": "((source-param))"},
+							},
+							Version: atc.Version{"some-type": "version"},
 						},
-						Version: atc.Version{"some-type": "version"},
 					},
-				},
+				),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -248,16 +252,18 @@ var _ = Describe("Volume", func() {
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					{
-						ResourceType: atc.ResourceType{
-							Name:   "some-type",
-							Type:   "some-base-resource-type",
-							Source: atc.Source{"some-type": "source"},
+				creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+					atc.VersionedResourceTypes{
+						{
+							ResourceType: atc.ResourceType{
+								Name:   "some-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some-type": "((source-param))"},
+							},
+							Version: atc.Version{"some-custom-type": "version"},
 						},
-						Version: atc.Version{"some-custom-type": "version"},
 					},
-				},
+				),
 			)
 			Expect(err).NotTo(HaveOccurred())
 

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
@@ -37,12 +36,11 @@ type BuildScheduler interface {
 var errPipelineRemoved = errors.New("pipeline removed")
 
 type Runner struct {
-	Logger          lager.Logger
-	Pipeline        db.Pipeline
-	Scheduler       BuildScheduler
-	Noop            bool
-	Interval        time.Duration
-	VariablesSource template.Variables
+	Logger    lager.Logger
+	Pipeline  db.Pipeline
+	Scheduler BuildScheduler
+	Noop      bool
+	Interval  time.Duration
 }
 
 func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -140,12 +138,6 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return err
 	}
 
-	versionedResourceTypes, err := resourceTypes.Deserialize(runner.VariablesSource)
-	if err != nil {
-		logger.Error("failed-to-deserialize-resource-types", err)
-		return err
-	}
-
 	sLog := logger.Session("scheduling")
 
 	schedulingTimes, err := runner.Scheduler.Schedule(
@@ -153,7 +145,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		versions,
 		jobs,
 		resources,
-		versionedResourceTypes,
+		resourceTypes.Deserialize(),
 	)
 
 	for jobName, duration := range schedulingTimes {

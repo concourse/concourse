@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock"
@@ -32,6 +33,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBPipeline            *dbfakes.FakePipeline
 		fakeClock                 *fakeclock.FakeClock
 		interval                  time.Duration
+		variables                 creds.Variables
 
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
@@ -58,6 +60,9 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBPipeline.TeamIDReturns(teamID)
 		fakeClock = fakeclock.NewFakeClock(epoch)
 		interval = 1 * time.Minute
+		variables = template.StaticVariables{
+			"source-params": "some-secret-sauce",
+		}
 
 		scanner = NewResourceScanner(
 			fakeClock,
@@ -66,9 +71,7 @@ var _ = Describe("ResourceScanner", func() {
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
-			template.StaticVariables{
-				"source-params": "some-secret-sauce",
-			},
+			variables,
 		)
 
 		resourceConfig = atc.ResourceConfig{
@@ -92,7 +95,7 @@ var _ = Describe("ResourceScanner", func() {
 			ResourceType: atc.ResourceType{
 				Name:   "some-custom-resource",
 				Type:   "docker-image",
-				Source: atc.Source{"custom": "some-secret-sauce"},
+				Source: atc.Source{"custom": "((source-params))"},
 			},
 			Version: atc.Version{"custom": "version"},
 		}
@@ -156,7 +159,9 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(user).To(Equal(db.ForResource(39)))
 				Expect(resourceType).To(Equal("git"))
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
-				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
+				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+					versionedResourceType,
+				})))
 
 				_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(user).To(Equal(db.ForResource(39)))
@@ -176,7 +181,9 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_NAME=some-resource",
 					},
 				}))
-				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
+				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+					versionedResourceType,
+				})))
 			})
 
 			Context("when the resource config has a specified check interval", func() {
@@ -453,7 +460,9 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(user).To(Equal(db.ForResource(39)))
 				Expect(resourceType).To(Equal("git"))
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
-				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
+				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+					versionedResourceType,
+				})))
 
 				_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(user).To(Equal(db.ForResource(39)))
@@ -473,7 +482,9 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_NAME=some-resource",
 					},
 				}))
-				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
+				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+					versionedResourceType,
+				})))
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {

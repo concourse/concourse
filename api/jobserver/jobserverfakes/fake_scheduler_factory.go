@@ -4,19 +4,19 @@ package jobserverfakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc/api/jobserver"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
 )
 
 type FakeSchedulerFactory struct {
-	BuildSchedulerStub        func(db.Pipeline, string, template.Variables) scheduler.BuildScheduler
+	BuildSchedulerStub        func(db.Pipeline, string, creds.Variables) scheduler.BuildScheduler
 	buildSchedulerMutex       sync.RWMutex
 	buildSchedulerArgsForCall []struct {
 		arg1 db.Pipeline
 		arg2 string
-		arg3 template.Variables
+		arg3 creds.Variables
 	}
 	buildSchedulerReturns struct {
 		result1 scheduler.BuildScheduler
@@ -28,13 +28,13 @@ type FakeSchedulerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.Pipeline, arg2 string, arg3 template.Variables) scheduler.BuildScheduler {
+func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.Pipeline, arg2 string, arg3 creds.Variables) scheduler.BuildScheduler {
 	fake.buildSchedulerMutex.Lock()
 	ret, specificReturn := fake.buildSchedulerReturnsOnCall[len(fake.buildSchedulerArgsForCall)]
 	fake.buildSchedulerArgsForCall = append(fake.buildSchedulerArgsForCall, struct {
 		arg1 db.Pipeline
 		arg2 string
-		arg3 template.Variables
+		arg3 creds.Variables
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("BuildScheduler", []interface{}{arg1, arg2, arg3})
 	fake.buildSchedulerMutex.Unlock()
@@ -53,7 +53,7 @@ func (fake *FakeSchedulerFactory) BuildSchedulerCallCount() int {
 	return len(fake.buildSchedulerArgsForCall)
 }
 
-func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipeline, string, template.Variables) {
+func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipeline, string, creds.Variables) {
 	fake.buildSchedulerMutex.RLock()
 	defer fake.buildSchedulerMutex.RUnlock()
 	return fake.buildSchedulerArgsForCall[i].arg1, fake.buildSchedulerArgsForCall[i].arg2, fake.buildSchedulerArgsForCall[i].arg3

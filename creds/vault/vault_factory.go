@@ -3,7 +3,7 @@ package vault
 import (
 	"fmt"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/atc/creds"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
@@ -17,7 +17,7 @@ func NewVaultFactory(v vaultapi.Logical) *vaultFactory {
 	}
 }
 
-func (v vaultFactory) NewVariables(teamName string, pipelineName string) template.Variables {
+func (v vaultFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
 	return &Vault{
 		PathPrefix:  fmt.Sprintf("%s/%s", teamName, pipelineName),
 		VaultClient: &v.vaultClient,

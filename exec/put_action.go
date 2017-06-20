@@ -17,7 +17,7 @@ type PutAction struct {
 	Type     string
 	Name     string
 	Resource string
-	Source   *creds.Source
+	Source   creds.Source
 	Params   atc.Params
 	Tags     atc.Tags
 
@@ -29,7 +29,7 @@ type PutAction struct {
 	containerMetadata     db.ContainerMetadata
 	stepMetadata          StepMetadata
 
-	resourceTypes atc.VersionedResourceTypes
+	resourceTypes creds.VersionedResourceTypes
 
 	versionInfo VersionInfo
 	exitStatus  ExitStatus
@@ -39,7 +39,7 @@ func NewPutAction(
 	resourceType string,
 	name string,
 	resourceName string,
-	source *creds.Source,
+	source creds.Source,
 	params atc.Params,
 	tags atc.Tags,
 	imageFetchingDelegate ImageFetchingDelegate,
@@ -49,7 +49,7 @@ func NewPutAction(
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	stepMetadata StepMetadata,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 ) *PutAction {
 	return &PutAction{
 		Type:     resourceType,

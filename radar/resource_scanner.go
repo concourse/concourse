@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
@@ -23,7 +22,7 @@ type resourceScanner struct {
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
-	variablesSource       template.Variables
+	variables             creds.Variables
 }
 
 func NewResourceScanner(
@@ -33,7 +32,7 @@ func NewResourceScanner(
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
-	variablesSource template.Variables,
+	variables creds.Variables,
 ) Scanner {
 	return &resourceScanner{
 		clock:                 clock,
@@ -42,7 +41,7 @@ func NewResourceScanner(
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
-		variablesSource:       variablesSource,
+		variables:             variables,
 	}
 }
 
@@ -86,13 +85,12 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return 0, err
 	}
 
-	versionedResourceTypes, err := resourceTypes.Deserialize(scanner.variablesSource)
-	if err != nil {
-		logger.Error("failed-to-deserialize-resource-types", err)
-		return 0, err
-	}
+	versionedResourceTypes := creds.NewVersionedResourceTypes(
+		scanner.variables,
+		resourceTypes.Deserialize(),
+	)
 
-	source, err := creds.NewSource(scanner.variablesSource, savedResource.Source()).Evaluate()
+	source, err := creds.NewSource(scanner.variables, savedResource.Source()).Evaluate()
 	if err != nil {
 		logger.Error("failed-to-evaluate-resource-source", err)
 		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
@@ -196,13 +194,12 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		return err
 	}
 
-	versionedResourceTypes, err := resourceTypes.Deserialize(scanner.variablesSource)
-	if err != nil {
-		logger.Error("failed-to-deserialize-resource-types", err)
-		return err
-	}
+	versionedResourceTypes := creds.NewVersionedResourceTypes(
+		scanner.variables,
+		resourceTypes.Deserialize(),
+	)
 
-	source, err := creds.NewSource(scanner.variablesSource, savedResource.Source()).Evaluate()
+	source, err := creds.NewSource(scanner.variables, savedResource.Source()).Evaluate()
 	if err != nil {
 		logger.Error("failed-to-evaluate-resource-source", err)
 		return err
@@ -271,7 +268,7 @@ func (scanner *resourceScanner) scan(
 	savedResource db.Resource,
 	resourceConfig *db.UsedResourceConfig,
 	fromVersion atc.Version,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 	source atc.Source,
 ) error {
 	pipelinePaused, err := scanner.dbPipeline.CheckPaused()

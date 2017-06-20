@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
@@ -29,7 +29,7 @@ type FakeContainerProvider struct {
 		result2 bool
 		result3 error
 	}
-	FindOrCreateContainerStub        func(logger lager.Logger, cancel <-chan os.Signal, resourceUser db.ResourceUser, owner db.ContainerOwner, delegate worker.ImageFetchingDelegate, metadata db.ContainerMetadata, spec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes) (worker.Container, error)
+	FindOrCreateContainerStub        func(logger lager.Logger, cancel <-chan os.Signal, resourceUser db.ResourceUser, owner db.ContainerOwner, delegate worker.ImageFetchingDelegate, metadata db.ContainerMetadata, spec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes) (worker.Container, error)
 	findOrCreateContainerMutex       sync.RWMutex
 	findOrCreateContainerArgsForCall []struct {
 		logger        lager.Logger
@@ -39,7 +39,7 @@ type FakeContainerProvider struct {
 		delegate      worker.ImageFetchingDelegate
 		metadata      db.ContainerMetadata
 		spec          worker.ContainerSpec
-		resourceTypes atc.VersionedResourceTypes
+		resourceTypes creds.VersionedResourceTypes
 	}
 	findOrCreateContainerReturns struct {
 		result1 worker.Container
@@ -109,7 +109,7 @@ func (fake *FakeContainerProvider) FindCreatedContainerByHandleReturnsOnCall(i i
 	}{result1, result2, result3}
 }
 
-func (fake *FakeContainerProvider) FindOrCreateContainer(logger lager.Logger, cancel <-chan os.Signal, resourceUser db.ResourceUser, owner db.ContainerOwner, delegate worker.ImageFetchingDelegate, metadata db.ContainerMetadata, spec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes) (worker.Container, error) {
+func (fake *FakeContainerProvider) FindOrCreateContainer(logger lager.Logger, cancel <-chan os.Signal, resourceUser db.ResourceUser, owner db.ContainerOwner, delegate worker.ImageFetchingDelegate, metadata db.ContainerMetadata, spec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes) (worker.Container, error) {
 	fake.findOrCreateContainerMutex.Lock()
 	ret, specificReturn := fake.findOrCreateContainerReturnsOnCall[len(fake.findOrCreateContainerArgsForCall)]
 	fake.findOrCreateContainerArgsForCall = append(fake.findOrCreateContainerArgsForCall, struct {
@@ -120,7 +120,7 @@ func (fake *FakeContainerProvider) FindOrCreateContainer(logger lager.Logger, ca
 		delegate      worker.ImageFetchingDelegate
 		metadata      db.ContainerMetadata
 		spec          worker.ContainerSpec
-		resourceTypes atc.VersionedResourceTypes
+		resourceTypes creds.VersionedResourceTypes
 	}{logger, cancel, resourceUser, owner, delegate, metadata, spec, resourceTypes})
 	fake.recordInvocation("FindOrCreateContainer", []interface{}{logger, cancel, resourceUser, owner, delegate, metadata, spec, resourceTypes})
 	fake.findOrCreateContainerMutex.Unlock()
@@ -139,7 +139,7 @@ func (fake *FakeContainerProvider) FindOrCreateContainerCallCount() int {
 	return len(fake.findOrCreateContainerArgsForCall)
 }
 
-func (fake *FakeContainerProvider) FindOrCreateContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, db.ResourceUser, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes) {
+func (fake *FakeContainerProvider) FindOrCreateContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, db.ResourceUser, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) {
 	fake.findOrCreateContainerMutex.RLock()
 	defer fake.findOrCreateContainerMutex.RUnlock()
 	return fake.findOrCreateContainerArgsForCall[i].logger, fake.findOrCreateContainerArgsForCall[i].cancel, fake.findOrCreateContainerArgsForCall[i].resourceUser, fake.findOrCreateContainerArgsForCall[i].owner, fake.findOrCreateContainerArgsForCall[i].delegate, fake.findOrCreateContainerArgsForCall[i].metadata, fake.findOrCreateContainerArgsForCall[i].spec, fake.findOrCreateContainerArgsForCall[i].resourceTypes

@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -20,7 +21,7 @@ var _ = Describe("WorkerResourceCache", func() {
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{},
-				atc.VersionedResourceTypes{},
+				creds.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -83,7 +84,7 @@ var _ = Describe("WorkerResourceCache", func() {
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{},
-				atc.VersionedResourceTypes{},
+				creds.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -130,7 +131,7 @@ var _ = Describe("WorkerResourceCache", func() {
 					atc.Version{"some": "version"},
 					atc.Source{"some": "source"},
 					atc.Params{},
-					atc.VersionedResourceTypes{},
+					creds.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 

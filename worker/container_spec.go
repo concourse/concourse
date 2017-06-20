@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 )
 
 type WorkerSpec struct {
@@ -42,10 +42,15 @@ type OutputPaths map[string]string
 type ImageSpec struct {
 	ResourceType        string
 	ImageURL            string
-	ImageResource       *atc.ImageResource
+	ImageResource       *ImageResource
 	ImageArtifactSource ArtifactSource
 	ImageArtifactName   ArtifactName
 	Privileged          bool
+}
+
+type ImageResource struct {
+	Type   string
+	Source creds.Source
 }
 
 func (spec ContainerSpec) WorkerSpec() WorkerSpec {

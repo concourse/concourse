@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds/credsfakes"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
@@ -22,6 +23,7 @@ var _ = Describe("Jobs API", func() {
 	var fakeJob *dbfakes.FakeJob
 	var versionedResourceTypes atc.VersionedResourceTypes
 	var fakePipeline *dbfakes.FakePipeline
+	var variables creds.Variables
 
 	BeforeEach(func() {
 		fakeJob = new(dbfakes.FakeJob)
@@ -29,6 +31,11 @@ var _ = Describe("Jobs API", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
+
+		variables = template.StaticVariables{
+			"some-param": "lol",
+		}
+		fakeVariablesFactory.NewVariablesReturns(variables)
 
 		versionedResourceTypes = atc.VersionedResourceTypes{
 			atc.VersionedResourceType{
@@ -1190,14 +1197,8 @@ var _ = Describe("Jobs API", func() {
 		var fakeScheduler *schedulerfakes.FakeBuildScheduler
 		var fakeResource *dbfakes.FakeResource
 		var fakeResource2 *dbfakes.FakeResource
-		var fakeVariablesFactory *credsfakes.FakeVariablesFactory
-		var fakeVariables *credsfakes.FakeVariables
 
 		BeforeEach(func() {
-			fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-			fakeVariables = new(credsfakes.FakeVariables)
-			fakeVariablesFactory.NewVariablesReturns(fakeVariables)
-
 			var err error
 
 			request, err = http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds", nil)
@@ -1424,7 +1425,6 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					Context("when the input versions for the job can be determined", func() {
-						var fakeVariables *credsfakes.FakeVariables
 						BeforeEach(func() {
 							fakeJob.GetNextBuildInputsStub = func() ([]db.BuildInput, bool, error) {
 								defer GinkgoRecover()
@@ -1448,9 +1448,6 @@ var _ = Describe("Jobs API", func() {
 									},
 								}, true, nil
 							}
-
-							fakeVariables = new(credsfakes.FakeVariables)
-							fakeVariablesFactory.NewVariablesReturns(fakeVariables)
 						})
 
 						It("returns 200 OK", func() {
@@ -1458,10 +1455,10 @@ var _ = Describe("Jobs API", func() {
 						})
 
 						It("created the scheduler with the correct fakePipeline and external URL", func() {
-							actualPipeline, actualExternalURL, variablesSource := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
+							actualPipeline, actualExternalURL, actualVariables := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
 							Expect(actualPipeline.Name()).To(Equal(fakePipeline.Name()))
 							Expect(actualExternalURL).To(Equal(externalURL))
-							Expect(variablesSource).To(Equal(fakeVariables))
+							Expect(actualVariables).To(Equal(variables))
 						})
 
 						It("determined the inputs with the correct job config", func() {

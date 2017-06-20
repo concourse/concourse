@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
 )
@@ -22,7 +23,7 @@ type Client interface {
 		db.ContainerOwner,
 		db.ContainerMetadata,
 		ContainerSpec,
-		atc.VersionedResourceTypes,
+		creds.VersionedResourceTypes,
 	) (Container, error)
 
 	FindVolumeForResourceCache(
@@ -34,8 +35,8 @@ type Client interface {
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 
-	Satisfying(lager.Logger, WorkerSpec, atc.VersionedResourceTypes) (Worker, error)
-	AllSatisfying(lager.Logger, WorkerSpec, atc.VersionedResourceTypes) ([]Worker, error)
+	Satisfying(lager.Logger, WorkerSpec, creds.VersionedResourceTypes) (Worker, error)
+	AllSatisfying(lager.Logger, WorkerSpec, creds.VersionedResourceTypes) ([]Worker, error)
 	RunningWorkers(lager.Logger) ([]Worker, error)
 }
 

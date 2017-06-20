@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/lib/pq"
 )
 
@@ -22,7 +23,7 @@ type ResourceCacheFactory interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		resourceTypes atc.VersionedResourceTypes,
+		resourceTypes creds.VersionedResourceTypes,
 	) (*UsedResourceCache, error)
 
 	CleanUsesForFinishedBuilds() error
@@ -57,7 +58,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 ) (*UsedResourceCache, error) {
 	resourceConfig, err := constructResourceConfig(resourceTypeName, source, resourceTypes)
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
@@ -94,9 +93,9 @@ type TaskAction struct {
 	planID                atc.PlanID
 	containerMetadata     db.ContainerMetadata
 
-	resourceTypes atc.VersionedResourceTypes
+	resourceTypes creds.VersionedResourceTypes
 
-	variablesSource template.Variables
+	variables creds.Variables
 
 	exitStatus ExitStatus
 }
@@ -116,8 +115,8 @@ func NewTaskAction(
 	buildID int,
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
-	resourceTypes atc.VersionedResourceTypes,
-	variablesSource template.Variables,
+	resourceTypes creds.VersionedResourceTypes,
+	variables creds.Variables,
 ) *TaskAction {
 	return &TaskAction{
 		privileged:            privileged,
@@ -135,7 +134,7 @@ func NewTaskAction(
 		planID:                planID,
 		containerMetadata:     containerMetadata,
 		resourceTypes:         resourceTypes,
-		variablesSource:       variablesSource,
+		variables:             variables,
 	}
 }
 
@@ -300,23 +299,15 @@ func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, c
 		imageSpec.ImageArtifactSource = source
 		imageSpec.ImageArtifactName = worker.ArtifactName(action.imageArtifactName)
 	} else if config.ImageResource != nil {
-		source, err := creds.NewSource(
-			action.variablesSource,
-			config.ImageResource.Source,
-		).Evaluate()
-		if err != nil {
-			return worker.ContainerSpec{}, TaskImageSourceParametersError{err}
-		}
-
-		imageSpec.ImageResource = &atc.ImageResource{
+		imageSpec.ImageResource = &worker.ImageResource{
 			Type:   config.ImageResource.Type,
-			Source: source,
+			Source: creds.NewSource(action.variables, config.ImageResource.Source),
 		}
 	} else if config.RootfsURI != "" {
 		imageSpec.ImageURL = config.RootfsURI
 	}
 
-	params, err := creds.NewTaskParams(action.variablesSource, config.Params).Evaluate()
+	params, err := creds.NewTaskParams(action.variables, config.Params).Evaluate()
 	if err != nil {
 		return worker.ContainerSpec{}, err
 	}

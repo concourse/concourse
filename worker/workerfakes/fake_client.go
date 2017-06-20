@@ -7,12 +7,13 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeClient struct {
-	FindOrCreateContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, db.ResourceUser, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes) (worker.Container, error)
+	FindOrCreateContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, db.ResourceUser, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) (worker.Container, error)
 	findOrCreateContainerMutex       sync.RWMutex
 	findOrCreateContainerArgsForCall []struct {
 		arg1 lager.Logger
@@ -22,7 +23,7 @@ type FakeClient struct {
 		arg5 db.ContainerOwner
 		arg6 db.ContainerMetadata
 		arg7 worker.ContainerSpec
-		arg8 atc.VersionedResourceTypes
+		arg8 creds.VersionedResourceTypes
 	}
 	findOrCreateContainerReturns struct {
 		result1 worker.Container
@@ -94,12 +95,12 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	SatisfyingStub        func(lager.Logger, worker.WorkerSpec, atc.VersionedResourceTypes) (worker.Worker, error)
+	SatisfyingStub        func(lager.Logger, worker.WorkerSpec, creds.VersionedResourceTypes) (worker.Worker, error)
 	satisfyingMutex       sync.RWMutex
 	satisfyingArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 worker.WorkerSpec
-		arg3 atc.VersionedResourceTypes
+		arg3 creds.VersionedResourceTypes
 	}
 	satisfyingReturns struct {
 		result1 worker.Worker
@@ -109,12 +110,12 @@ type FakeClient struct {
 		result1 worker.Worker
 		result2 error
 	}
-	AllSatisfyingStub        func(lager.Logger, worker.WorkerSpec, atc.VersionedResourceTypes) ([]worker.Worker, error)
+	AllSatisfyingStub        func(lager.Logger, worker.WorkerSpec, creds.VersionedResourceTypes) ([]worker.Worker, error)
 	allSatisfyingMutex       sync.RWMutex
 	allSatisfyingArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 worker.WorkerSpec
-		arg3 atc.VersionedResourceTypes
+		arg3 creds.VersionedResourceTypes
 	}
 	allSatisfyingReturns struct {
 		result1 []worker.Worker
@@ -141,7 +142,7 @@ type FakeClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClient) FindOrCreateContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 db.ResourceUser, arg5 db.ContainerOwner, arg6 db.ContainerMetadata, arg7 worker.ContainerSpec, arg8 atc.VersionedResourceTypes) (worker.Container, error) {
+func (fake *FakeClient) FindOrCreateContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 db.ResourceUser, arg5 db.ContainerOwner, arg6 db.ContainerMetadata, arg7 worker.ContainerSpec, arg8 creds.VersionedResourceTypes) (worker.Container, error) {
 	fake.findOrCreateContainerMutex.Lock()
 	ret, specificReturn := fake.findOrCreateContainerReturnsOnCall[len(fake.findOrCreateContainerArgsForCall)]
 	fake.findOrCreateContainerArgsForCall = append(fake.findOrCreateContainerArgsForCall, struct {
@@ -152,7 +153,7 @@ func (fake *FakeClient) FindOrCreateContainer(arg1 lager.Logger, arg2 <-chan os.
 		arg5 db.ContainerOwner
 		arg6 db.ContainerMetadata
 		arg7 worker.ContainerSpec
-		arg8 atc.VersionedResourceTypes
+		arg8 creds.VersionedResourceTypes
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.recordInvocation("FindOrCreateContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.findOrCreateContainerMutex.Unlock()
@@ -171,7 +172,7 @@ func (fake *FakeClient) FindOrCreateContainerCallCount() int {
 	return len(fake.findOrCreateContainerArgsForCall)
 }
 
-func (fake *FakeClient) FindOrCreateContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, db.ResourceUser, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes) {
+func (fake *FakeClient) FindOrCreateContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, db.ResourceUser, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) {
 	fake.findOrCreateContainerMutex.RLock()
 	defer fake.findOrCreateContainerMutex.RUnlock()
 	return fake.findOrCreateContainerArgsForCall[i].arg1, fake.findOrCreateContainerArgsForCall[i].arg2, fake.findOrCreateContainerArgsForCall[i].arg3, fake.findOrCreateContainerArgsForCall[i].arg4, fake.findOrCreateContainerArgsForCall[i].arg5, fake.findOrCreateContainerArgsForCall[i].arg6, fake.findOrCreateContainerArgsForCall[i].arg7, fake.findOrCreateContainerArgsForCall[i].arg8
@@ -416,13 +417,13 @@ func (fake *FakeClient) LookupVolumeReturnsOnCall(i int, result1 worker.Volume, 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) Satisfying(arg1 lager.Logger, arg2 worker.WorkerSpec, arg3 atc.VersionedResourceTypes) (worker.Worker, error) {
+func (fake *FakeClient) Satisfying(arg1 lager.Logger, arg2 worker.WorkerSpec, arg3 creds.VersionedResourceTypes) (worker.Worker, error) {
 	fake.satisfyingMutex.Lock()
 	ret, specificReturn := fake.satisfyingReturnsOnCall[len(fake.satisfyingArgsForCall)]
 	fake.satisfyingArgsForCall = append(fake.satisfyingArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.WorkerSpec
-		arg3 atc.VersionedResourceTypes
+		arg3 creds.VersionedResourceTypes
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("Satisfying", []interface{}{arg1, arg2, arg3})
 	fake.satisfyingMutex.Unlock()
@@ -441,7 +442,7 @@ func (fake *FakeClient) SatisfyingCallCount() int {
 	return len(fake.satisfyingArgsForCall)
 }
 
-func (fake *FakeClient) SatisfyingArgsForCall(i int) (lager.Logger, worker.WorkerSpec, atc.VersionedResourceTypes) {
+func (fake *FakeClient) SatisfyingArgsForCall(i int) (lager.Logger, worker.WorkerSpec, creds.VersionedResourceTypes) {
 	fake.satisfyingMutex.RLock()
 	defer fake.satisfyingMutex.RUnlock()
 	return fake.satisfyingArgsForCall[i].arg1, fake.satisfyingArgsForCall[i].arg2, fake.satisfyingArgsForCall[i].arg3
@@ -469,13 +470,13 @@ func (fake *FakeClient) SatisfyingReturnsOnCall(i int, result1 worker.Worker, re
 	}{result1, result2}
 }
 
-func (fake *FakeClient) AllSatisfying(arg1 lager.Logger, arg2 worker.WorkerSpec, arg3 atc.VersionedResourceTypes) ([]worker.Worker, error) {
+func (fake *FakeClient) AllSatisfying(arg1 lager.Logger, arg2 worker.WorkerSpec, arg3 creds.VersionedResourceTypes) ([]worker.Worker, error) {
 	fake.allSatisfyingMutex.Lock()
 	ret, specificReturn := fake.allSatisfyingReturnsOnCall[len(fake.allSatisfyingArgsForCall)]
 	fake.allSatisfyingArgsForCall = append(fake.allSatisfyingArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.WorkerSpec
-		arg3 atc.VersionedResourceTypes
+		arg3 creds.VersionedResourceTypes
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("AllSatisfying", []interface{}{arg1, arg2, arg3})
 	fake.allSatisfyingMutex.Unlock()
@@ -494,7 +495,7 @@ func (fake *FakeClient) AllSatisfyingCallCount() int {
 	return len(fake.allSatisfyingArgsForCall)
 }
 
-func (fake *FakeClient) AllSatisfyingArgsForCall(i int) (lager.Logger, worker.WorkerSpec, atc.VersionedResourceTypes) {
+func (fake *FakeClient) AllSatisfyingArgsForCall(i int) (lager.Logger, worker.WorkerSpec, creds.VersionedResourceTypes) {
 	fake.allSatisfyingMutex.RLock()
 	defer fake.allSatisfyingMutex.RUnlock()
 	return fake.allSatisfyingArgsForCall[i].arg1, fake.allSatisfyingArgsForCall[i].arg2, fake.allSatisfyingArgsForCall[i].arg3

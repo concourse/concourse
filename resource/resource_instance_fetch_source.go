@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
@@ -14,7 +15,7 @@ type resourceInstanceFetchSource struct {
 	resourceCache          *db.UsedResourceCache
 	resourceInstance       ResourceInstance
 	worker                 worker.Worker
-	resourceTypes          atc.VersionedResourceTypes
+	resourceTypes          creds.VersionedResourceTypes
 	tags                   atc.Tags
 	teamID                 int
 	session                Session
@@ -28,7 +29,7 @@ func NewResourceInstanceFetchSource(
 	resourceCache *db.UsedResourceCache,
 	resourceInstance ResourceInstance,
 	worker worker.Worker,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 	tags atc.Tags,
 	teamID int,
 	session Session,

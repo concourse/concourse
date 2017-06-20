@@ -81,13 +81,13 @@ func (factory *gardenFactory) Get(
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
-	source := creds.NewSource(factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName()), plan.Get.Source)
+	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
 	getAction := &GetAction{
 		Type:          plan.Get.Type,
 		Name:          plan.Get.Name,
 		Resource:      plan.Get.Resource,
-		Source:        source,
+		Source:        creds.NewSource(variables, plan.Get.Source),
 		Params:        plan.Get.Params,
 		VersionSource: NewVersionSourceFromPlan(plan.Get, factory.putActions),
 		Tags:          plan.Get.Tags,
@@ -103,7 +103,7 @@ func (factory *gardenFactory) Get(
 		stepMetadata:           stepMetadata,
 
 		// TODO: remove after all actions are introduced
-		resourceTypes: plan.Get.VersionedResourceTypes,
+		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
 	}
 
 	actions := []Action{getAction}
@@ -122,13 +122,13 @@ func (factory *gardenFactory) Put(
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
-	source := creds.NewSource(factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName()), plan.Put.Source)
+	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
 	putAction := &PutAction{
 		Type:     plan.Put.Type,
 		Name:     plan.Put.Name,
 		Resource: plan.Put.Resource,
-		Source:   source,
+		Source:   creds.NewSource(variables, plan.Put.Source),
 		Params:   plan.Put.Params,
 		Tags:     plan.Put.Tags,
 
@@ -140,7 +140,7 @@ func (factory *gardenFactory) Put(
 		containerMetadata:     workerMetadata,
 		stepMetadata:          stepMetadata,
 
-		resourceTypes: plan.Put.VersionedResourceTypes,
+		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
 	}
 	factory.putActions[plan.ID] = putAction
 
@@ -173,11 +173,8 @@ func (factory *gardenFactory) Task(
 		taskConfigFetcher = FileConfigFetcher{plan.Task.ConfigPath}
 	}
 
-	// XXX: Maybe we can add comments to why we are using the same variable or use new ones?
-	// Wrap the task config fetcher with a validator
 	taskConfigFetcher = ValidatingConfigFetcher{ConfigFetcher: taskConfigFetcher}
-	// XXX: Whats the purpose of this? Is this serving some deprecated or too-be-deprecated
-	// functionality?
+
 	taskConfigFetcher = DeprecationConfigFetcher{
 		Delegate: taskConfigFetcher,
 		Stderr:   imageFetchingDelegate.Stderr(),
@@ -190,6 +187,8 @@ func (factory *gardenFactory) Task(
 	configSource := &FetchConfigActionTaskConfigSource{
 		Action: fetchConfigAction,
 	}
+
+	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
 	taskAction := &TaskAction{
 		privileged:    Privileged(plan.Task.Privileged),
@@ -209,9 +208,9 @@ func (factory *gardenFactory) Task(
 		planID:                plan.ID,
 		containerMetadata:     containerMetadata,
 
-		resourceTypes: plan.Task.VersionedResourceTypes,
+		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Task.VersionedResourceTypes),
 
-		variablesSource: factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName()),
+		variables: variables,
 	}
 
 	actions := []Action{fetchConfigAction, taskAction}

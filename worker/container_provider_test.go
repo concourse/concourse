@@ -13,7 +13,9 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
@@ -63,7 +65,7 @@ var _ = Describe("ContainerProvider", func() {
 		resourceUser       db.ResourceUser
 		fakeContainerOwner *dbfakes.FakeContainerOwner
 		containerMetadata  db.ContainerMetadata
-		resourceTypes      atc.VersionedResourceTypes
+		resourceTypes      creds.VersionedResourceTypes
 
 		findOrCreateErr       error
 		findOrCreateContainer Container
@@ -203,13 +205,18 @@ var _ = Describe("ContainerProvider", func() {
 			StepName: "some-step",
 		}
 
+		variables := template.StaticVariables{
+			"secret-image":  "super-secret-image",
+			"secret-source": "super-secret-source",
+		}
+
 		containerSpec = ContainerSpec{
 			TeamID: 73410,
 
 			ImageSpec: ImageSpec{
-				ImageResource: &atc.ImageResource{
+				ImageResource: &ImageResource{
 					Type:   "docker-image",
-					Source: atc.Source{"some": "image"},
+					Source: creds.NewSource(variables, atc.Source{"some": "((secret-image))"}),
 				},
 			},
 
@@ -228,15 +235,15 @@ var _ = Describe("ContainerProvider", func() {
 			},
 		}
 
-		resourceTypes = atc.VersionedResourceTypes{
+		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Type:   "some-type",
-					Source: atc.Source{"some": "source"},
+					Source: atc.Source{"some": "((secret-source))"},
 				},
 				Version: atc.Version{"some": "version"},
 			},
-		}
+		})
 	})
 
 	ItHandlesContainerInCreatingState := func() {

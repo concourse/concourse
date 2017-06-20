@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 )
 
@@ -71,7 +72,7 @@ func (pool *pool) RunningWorkers(logger lager.Logger) ([]Worker, error) {
 	return pool.provider.RunningWorkers(logger)
 }
 
-func (pool *pool) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) ([]Worker, error) {
+func (pool *pool) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) ([]Worker, error) {
 	workers, err := pool.provider.RunningWorkers(logger)
 	if err != nil {
 		return nil, err
@@ -108,7 +109,7 @@ func (pool *pool) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTy
 	}
 }
 
-func (pool *pool) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) (Worker, error) {
+func (pool *pool) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) (Worker, error) {
 	compatibleWorkers, err := pool.AllSatisfying(logger, spec, resourceTypes)
 	if err != nil {
 		return nil, err
@@ -125,7 +126,7 @@ func (pool *pool) FindOrCreateContainer(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
 	worker, found, err := pool.provider.FindWorkerForContainerByOwner(
 		logger.Session("find-worker"),

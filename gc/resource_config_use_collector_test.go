@@ -5,7 +5,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 
@@ -26,9 +28,10 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 	Describe("Run", func() {
 		Describe("config uses", func() {
 			var (
-				pipelineWithTypes     db.Pipeline
-				versionedResourceType atc.VersionedResourceType
-				dbResourceType        db.ResourceType
+				pipelineWithTypes      db.Pipeline
+				versionedResourceType  atc.VersionedResourceType
+				versionedResourceTypes creds.VersionedResourceTypes
+				dbResourceType         db.ResourceType
 			)
 
 			countResourceConfigUses := func() int {
@@ -53,11 +56,19 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						Name: "some-type",
 						Type: "some-base-type",
 						Source: atc.Source{
-							"some-type": "source",
+							"some-type": "((secret-source))",
 						},
 					},
 					Version: atc.Version{"some-type": "version"},
 				}
+
+				variables := template.StaticVariables{
+					"secret-source": "source",
+				}
+
+				versionedResourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+					versionedResourceType,
+				})
 
 				var created bool
 				var err error
@@ -89,7 +100,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						atc.Source{
 							"some": "source",
 						},
-						atc.VersionedResourceTypes{versionedResourceType},
+						versionedResourceTypes,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -242,7 +253,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						atc.Source{
 							"cache": "source",
 						},
-						atc.VersionedResourceTypes{versionedResourceType},
+						versionedResourceTypes,
 					)
 					Expect(err).NotTo(HaveOccurred())
 					setActiveResourceType(true)
@@ -296,7 +307,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{versionedResourceType},
+						versionedResourceTypes,
 					)
 					Expect(err).NotTo(HaveOccurred())
 					setActiveResource(usedResource, true)
@@ -360,7 +371,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							atc.Version{"some-type": "version"},
 							anotherResource.Source(),
 							atc.Params{"some": "params"},
-							atc.VersionedResourceTypes{versionedResourceType},
+							versionedResourceTypes,
 						)
 						Expect(err).NotTo(HaveOccurred())
 						setActiveResource(anotherResource, true)
@@ -405,7 +416,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							atc.Version{"some-type": "version"},
 							usedResource.Source(),
 							atc.Params{"some": "params"},
-							atc.VersionedResourceTypes{versionedResourceType},
+							versionedResourceTypes,
 						)
 						Expect(err).NotTo(HaveOccurred())
 					})

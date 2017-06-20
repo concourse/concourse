@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
@@ -34,6 +35,7 @@ var _ = Describe("GetAction", func() {
 		fakeImageFetchingDelegate  *execfakes.FakeImageFetchingDelegate
 		fakeBuildEventsDelegate    *execfakes.FakeActionsBuildEventsDelegate
 		fakeVariablesFactory       *credsfakes.FakeVariablesFactory
+		variables                  creds.Variables
 		fakeBuild                  *dbfakes.FakeBuild
 
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
@@ -66,9 +68,10 @@ var _ = Describe("GetAction", func() {
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-		fakeVariablesFactory.NewVariablesReturns(template.StaticVariables{
+		variables = template.StaticVariables{
 			"source-param": "super-secret-source",
-		})
+		}
+		fakeVariablesFactory.NewVariablesReturns(variables)
 
 		artifactRepository = worker.NewArtifactRepository()
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
@@ -140,10 +143,10 @@ var _ = Describe("GetAction", func() {
 			atc.Params{"some-param": "some-value"},
 			db.ForBuild(buildID),
 			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID)),
-			resourceTypes,
+			creds.NewVersionedResourceTypes(variables, resourceTypes),
 			fakeDBResourceCacheFactory,
 		)))
-		Expect(actualResourceTypes).To(Equal(resourceTypes))
+		Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
 		Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 		expectedLockName := fmt.Sprintf("%x",
 			sha256.Sum256([]byte(

@@ -8,7 +8,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
@@ -374,13 +376,13 @@ var _ = Describe("Team", func() {
 	Describe("FindCheckContainers", func() {
 		var (
 			fakeVariablesFactory *credsfakes.FakeVariablesFactory
-			fakeVariables        *credsfakes.FakeVariables
+			variables            creds.Variables
 		)
 
 		BeforeEach(func() {
 			fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-			fakeVariables = new(credsfakes.FakeVariables)
-			fakeVariablesFactory.NewVariablesReturns(fakeVariables)
+			variables = template.StaticVariables{}
+			fakeVariablesFactory.NewVariablesReturns(variables)
 		})
 
 		Context("when pipeline exists", func() {
@@ -388,15 +390,9 @@ var _ = Describe("Team", func() {
 				Context("when check container for resource exists", func() {
 					var resourceContainer db.CreatingContainer
 					var usedResourceConfig *db.UsedResourceConfig
-					var fakeVariables *credsfakes.FakeVariables
 
 					BeforeEach(func() {
-						fakeVariables = new(credsfakes.FakeVariables)
-
 						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
-						Expect(err).NotTo(HaveOccurred())
-
-						versionedResourceTypes, err := pipelineResourceTypes.Deserialize(fakeVariables)
 						Expect(err).NotTo(HaveOccurred())
 
 						usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
@@ -404,7 +400,7 @@ var _ = Describe("Team", func() {
 							db.ForResource(defaultResource.ID()),
 							defaultResource.Type(),
 							defaultResource.Source(),
-							versionedResourceTypes,
+							creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()),
 						)
 						Expect(err).NotTo(HaveOccurred())
 

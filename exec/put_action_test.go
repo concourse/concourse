@@ -9,7 +9,6 @@ import (
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec"
@@ -29,7 +28,7 @@ var _ = Describe("PutAction", func() {
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFactory        *resourcefakes.FakeResourceFactory
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeVariables              *credsfakes.FakeVariables
+		variables                  creds.Variables
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
@@ -43,7 +42,7 @@ var _ = Describe("PutAction", func() {
 		fakeBuildEventsDelegate   *execfakes.FakeActionsBuildEventsDelegate
 		fakeImageFetchingDelegate *execfakes.FakeImageFetchingDelegate
 
-		resourceTypes atc.VersionedResourceTypes
+		resourceTypes creds.VersionedResourceTypes
 
 		artifactRepository *worker.ArtifactRepository
 
@@ -59,7 +58,10 @@ var _ = Describe("PutAction", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
-		fakeVariables = new(credsfakes.FakeVariables)
+		variables = template.StaticVariables{
+			"custom-param": "source",
+			"source-param": "super-secret-source",
+		}
 
 		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 		fakeImageFetchingDelegate = new(execfakes.FakeImageFetchingDelegate)
@@ -70,16 +72,16 @@ var _ = Describe("PutAction", func() {
 
 		artifactRepository = worker.NewArtifactRepository()
 
-		resourceTypes = atc.VersionedResourceTypes{
+		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
 					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "source"},
+					Source: atc.Source{"some-custom": "((custom-param))"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
-		}
+		})
 	})
 
 	JustBeforeEach(func() {
@@ -87,11 +89,7 @@ var _ = Describe("PutAction", func() {
 			"some-resource-type",
 			"some-resource",
 			"some-resource",
-			creds.NewSource(template.StaticVariables{
-				"source-param": "super-secret-source",
-			}, atc.Source{
-				"some": "((source-param))",
-			}),
+			creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
 			atc.Params{"some-param": "some-value"},
 			[]string{"some", "tags"},
 			fakeImageFetchingDelegate,

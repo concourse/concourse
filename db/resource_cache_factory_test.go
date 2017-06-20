@@ -8,7 +8,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -66,7 +68,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				Name: "some-type-type",
 				Type: "some-base-type",
 				Source: atc.Source{
-					"some-type-type": "source",
+					"some-type-type": "((source-param))",
 				},
 			},
 			Version: atc.Version{"some-type-type": "version"},
@@ -152,11 +154,14 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					resourceType1,
-					resourceType2,
-					resourceType3,
-				},
+				creds.NewVersionedResourceTypes(
+					template.StaticVariables{"source-param": "some-secret-sauce"},
+					atc.VersionedResourceTypes{
+						resourceType1,
+						resourceType2,
+						resourceType3,
+					},
+				),
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(usedResourceCache.Version).To(Equal(atc.Version{"some": "version"}))
@@ -205,7 +210,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					Version:          `{"some-type-type":"version"}`,
 					ParamsHash:       toHash(`{}`),
 					BaseResourceName: "some-base-type",
-					SourceHash:       toHash(`{"some-type-type":"source"}`),
+					SourceHash:       toHash(`{"some-type-type":"some-secret-sauce"}`),
 				},
 				resourceCache{
 					Version:    `{"some-type":"version"}`,
@@ -230,10 +235,13 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					resourceType1,
-					resourceTypeUsingBogusBaseType,
-				},
+				creds.NewVersionedResourceTypes(
+					template.StaticVariables{"source-param": "some-secret-sauce"},
+					atc.VersionedResourceTypes{
+						resourceType1,
+						resourceTypeUsingBogusBaseType,
+					},
+				),
 			)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(db.ErrBaseResourceTypeNotFound))
@@ -249,9 +257,12 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					resourceTypeOverridingBaseType,
-				},
+				creds.NewVersionedResourceTypes(
+					template.StaticVariables{"source-param": "some-secret-sauce"},
+					atc.VersionedResourceTypes{
+						resourceTypeOverridingBaseType,
+					},
+				),
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -277,9 +288,12 @@ var _ = Describe("ResourceCacheFactory", func() {
 						"some": "source",
 					},
 					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{
-						resourceTypeOverridingBaseType,
-					},
+					creds.NewVersionedResourceTypes(
+						template.StaticVariables{"source-param": "some-secret-sauce"},
+						atc.VersionedResourceTypes{
+							resourceTypeOverridingBaseType,
+						},
+					),
 				)
 				Expect(err).To(Equal(db.UserDisappearedError{user}))
 				Expect(err.Error()).To(Equal("resource user disappeared: build #1"))
@@ -335,7 +349,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 							atc.Version{"some": "version"},
 							atc.Source{"some": "source"},
 							atc.Params{"some": "params"},
-							atc.VersionedResourceTypes{},
+							creds.VersionedResourceTypes{},
 						)
 						Expect(err).ToNot(HaveOccurred())
 					}

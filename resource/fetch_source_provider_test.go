@@ -5,7 +5,9 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/resource"
@@ -28,7 +30,7 @@ var _ = Describe("FetchSourceProvider", func() {
 		metadata                 = resource.EmptyMetadata{}
 		session                  = resource.Session{}
 		tags                     atc.Tags
-		resourceTypes            atc.VersionedResourceTypes
+		resourceTypes            creds.VersionedResourceTypes
 		teamID                   = 3
 		resourceCache            *db.UsedResourceCache
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
@@ -41,16 +43,22 @@ var _ = Describe("FetchSourceProvider", func() {
 		logger = lagertest.NewTestLogger("test")
 		resourceInstance = new(resourcefakes.FakeResourceInstance)
 		tags = atc.Tags{"some", "tags"}
-		resourceTypes = atc.VersionedResourceTypes{
+
+		variables := template.StaticVariables{
+			"secret-repository": "repository",
+		}
+
+		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
-					Name:   "some-resource-type",
-					Type:   "docker-image",
-					Source: atc.Source{"some": "repository"},
+					Name:   "some-resource",
+					Type:   "some-resource",
+					Source: atc.Source{"some": "((secret-source))"},
 				},
 				Version: atc.Version{"some": "version"},
 			},
-		}
+		})
+
 		resourceInstance.ResourceTypeReturns("some-resource-type")
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		resourceCache = &db.UsedResourceCache{ID: 42}

@@ -1,6 +1,6 @@
 package noop
 
-import "github.com/cloudfoundry/bosh-cli/director/template"
+import "github.com/concourse/atc/creds"
 
 type noopFactory struct{}
 
@@ -8,6 +8,6 @@ func NewNoopFactory() *noopFactory {
 	return &noopFactory{}
 }
 
-func (*noopFactory) NewVariables(string, string) template.Variables {
+func (*noopFactory) NewVariables(string, string) creds.Variables {
 	return &Noop{}
 }

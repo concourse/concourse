@@ -15,6 +15,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec"
@@ -48,9 +49,10 @@ var _ = Describe("TaskAction", func() {
 		buildID       int
 		planID        atc.PlanID
 		configSource  *execfakes.FakeTaskConfigSource
-		resourceTypes atc.VersionedResourceTypes
+		resourceTypes creds.VersionedResourceTypes
 		inputMapping  map[string]string
 		outputMapping map[string]string
+		variables     creds.Variables
 
 		artifactRepository *worker.ArtifactRepository
 
@@ -81,7 +83,7 @@ var _ = Describe("TaskAction", func() {
 
 		artifactRepository = worker.NewArtifactRepository()
 
-		resourceTypes = atc.VersionedResourceTypes{
+		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
@@ -90,11 +92,16 @@ var _ = Describe("TaskAction", func() {
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
-		}
+		})
 
 		inputMapping = nil
 		outputMapping = nil
 		imageArtifactName = ""
+
+		variables = template.StaticVariables{
+			"source-param": "super-secret-source",
+			"task-param":   "super-secret-param",
+		}
 
 		containerMetadata = db.ContainerMetadata{
 			Type:     db.ContainerTypeTask,
@@ -119,10 +126,7 @@ var _ = Describe("TaskAction", func() {
 			planID,
 			containerMetadata,
 			resourceTypes,
-			template.StaticVariables{
-				"source-param": "super-secret-source",
-				"task-param":   "super-secret-param",
-			},
+			variables,
 		)
 
 		actionStep = exec.NewActionsStep(
@@ -198,9 +202,9 @@ var _ = Describe("TaskAction", func() {
 					Tags:     []string{"step", "tags"},
 					TeamID:   teamID,
 					ImageSpec: worker.ImageSpec{
-						ImageResource: &atc.ImageResource{
+						ImageResource: &worker.ImageResource{
 							Type:   "docker",
-							Source: atc.Source{"some": "super-secret-source"},
+							Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
 						},
 						Privileged: false,
 					},
@@ -209,7 +213,6 @@ var _ = Describe("TaskAction", func() {
 					Inputs:  []worker.InputSource{},
 					Outputs: worker.OutputPaths{},
 				}))
-
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
 			})
 

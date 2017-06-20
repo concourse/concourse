@@ -3,6 +3,7 @@ package gc_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 
@@ -44,7 +45,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 					atc.Source{
 						"some": "source",
 					},
-					atc.VersionedResourceTypes{},
+					creds.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -78,7 +79,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 							"some": "source",
 						},
 						nil,
-						atc.VersionedResourceTypes{},
+						creds.VersionedResourceTypes{},
 					)
 					Expect(err).NotTo(HaveOccurred())
 

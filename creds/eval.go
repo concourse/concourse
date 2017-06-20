@@ -7,7 +7,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func evaluate(variablesResolver template.Variables, in, out interface{}) error {
+func evaluate(variablesResolver Variables, in, out interface{}) error {
 	byteParams, err := json.Marshal(in)
 	if err != nil {
 		return err

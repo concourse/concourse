@@ -5,7 +5,9 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/worker"
@@ -36,7 +38,7 @@ var _ = Describe("Pool", func() {
 
 			satisfyingErr    error
 			satisfyingWorker Worker
-			resourceTypes    atc.VersionedResourceTypes
+			resourceTypes    creds.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -44,16 +46,21 @@ var _ = Describe("Pool", func() {
 				Platform: "some-platform",
 				Tags:     []string{"step", "tags"},
 			}
-			resourceTypes = atc.VersionedResourceTypes{
+
+			variables := template.StaticVariables{
+				"secret-source": "super-secret-source",
+			}
+
+			resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "some-resource-type",
 						Type:   "some-underlying-type",
-						Source: atc.Source{"some": "source"},
+						Source: atc.Source{"some": "((secret-source))"},
 					},
 					Version: atc.Version{"some": "version"},
 				},
-			}
+			})
 		})
 
 		JustBeforeEach(func() {
@@ -156,7 +163,7 @@ var _ = Describe("Pool", func() {
 
 			satisfyingErr     error
 			satisfyingWorkers []Worker
-			resourceTypes     atc.VersionedResourceTypes
+			resourceTypes     creds.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -164,16 +171,21 @@ var _ = Describe("Pool", func() {
 				Platform: "some-platform",
 				Tags:     []string{"step", "tags"},
 			}
-			resourceTypes = atc.VersionedResourceTypes{
+
+			variables := template.StaticVariables{
+				"secret-source": "super-secret-source",
+			}
+
+			resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "some-resource-type",
 						Type:   "some-underlying-type",
-						Source: atc.Source{"some": "source"},
+						Source: atc.Source{"some": "((secret-source))"},
 					},
 					Version: atc.Version{"some": "version"},
 				},
-			}
+			})
 		})
 
 		JustBeforeEach(func() {
@@ -378,7 +390,7 @@ var _ = Describe("Pool", func() {
 			fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 			metadata                  db.ContainerMetadata
 			spec                      ContainerSpec
-			resourceTypes             atc.VersionedResourceTypes
+			resourceTypes             creds.VersionedResourceTypes
 			fakeOwner                 *dbfakes.FakeContainerOwner
 
 			fakeContainer *workerfakes.FakeContainer
@@ -434,17 +446,20 @@ var _ = Describe("Pool", func() {
 				},
 			}
 
-			resourceTypes = atc.VersionedResourceTypes{
+			variables := template.StaticVariables{
+				"secret-source": "super-secret-source",
+			}
+
+			resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "custom-type-b",
 						Type:   "custom-type-a",
-						Source: atc.Source{"some": "source"},
+						Source: atc.Source{"some": "((secret-source))"},
 					},
 					Version: atc.Version{"some": "version"},
 				},
-			}
-
+			})
 			fakeContainer = new(workerfakes.FakeContainer)
 
 			incompatibleWorker = new(workerfakes.FakeWorker)

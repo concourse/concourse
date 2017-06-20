@@ -3,6 +3,7 @@ package db_test
 import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -24,7 +25,7 @@ var _ = Describe("ContainerFactory", func() {
 					db.ForResource(defaultResource.ID()),
 					"some-base-resource-type",
 					atc.Source{"some": "source"},
-					atc.VersionedResourceTypes{},
+					creds.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 

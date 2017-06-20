@@ -6,7 +6,9 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -203,7 +205,7 @@ var _ = Describe("Worker", func() {
 			satisfyingWorker Worker
 			satisfyingErr    error
 
-			customTypes atc.VersionedResourceTypes
+			customTypes creds.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -212,7 +214,9 @@ var _ = Describe("Worker", func() {
 				TeamID: teamID,
 			}
 
-			customTypes = atc.VersionedResourceTypes{
+			variables := template.StaticVariables{}
+
+			customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "custom-type-b",
@@ -253,7 +257,7 @@ var _ = Describe("Worker", func() {
 					},
 					Version: atc.Version{"some": "version"},
 				},
-			}
+			})
 		})
 
 		JustBeforeEach(func() {
@@ -399,13 +403,17 @@ var _ = Describe("Worker", func() {
 
 		Context("when the resource type is a custom type that overrides one supported by the worker", func() {
 			BeforeEach(func() {
-				customTypes = append(customTypes, atc.VersionedResourceType{
-					ResourceType: atc.ResourceType{
-						Name:   "some-resource",
-						Type:   "some-resource",
-						Source: atc.Source{"some": "source"},
+				variables := template.StaticVariables{}
+
+				customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:   "some-resource",
+							Type:   "some-resource",
+							Source: atc.Source{"some": "source"},
+						},
+						Version: atc.Version{"some": "version"},
 					},
-					Version: atc.Version{"some": "version"},
 				})
 
 				spec.ResourceType = "some-resource"
@@ -422,27 +430,31 @@ var _ = Describe("Worker", func() {
 
 		Context("when the resource type is a custom type that results in a circular dependency", func() {
 			BeforeEach(func() {
-				customTypes = append(customTypes, atc.VersionedResourceType{
-					ResourceType: atc.ResourceType{
-						Name:   "circle-a",
-						Type:   "circle-b",
-						Source: atc.Source{"some": "source"},
+				variables := template.StaticVariables{}
+
+				customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+					atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:   "circle-a",
+							Type:   "circle-b",
+							Source: atc.Source{"some": "source"},
+						},
+						Version: atc.Version{"some": "version"},
+					}, atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:   "circle-b",
+							Type:   "circle-c",
+							Source: atc.Source{"some": "source"},
+						},
+						Version: atc.Version{"some": "version"},
+					}, atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:   "circle-c",
+							Type:   "circle-a",
+							Source: atc.Source{"some": "source"},
+						},
+						Version: atc.Version{"some": "version"},
 					},
-					Version: atc.Version{"some": "version"},
-				}, atc.VersionedResourceType{
-					ResourceType: atc.ResourceType{
-						Name:   "circle-b",
-						Type:   "circle-c",
-						Source: atc.Source{"some": "source"},
-					},
-					Version: atc.Version{"some": "version"},
-				}, atc.VersionedResourceType{
-					ResourceType: atc.ResourceType{
-						Name:   "circle-c",
-						Type:   "circle-a",
-						Source: atc.Source{"some": "source"},
-					},
-					Version: atc.Version{"some": "version"},
 				})
 
 				spec.ResourceType = "circle-a"

@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
@@ -26,14 +27,14 @@ type ResourceConfigFactory interface {
 		user ResourceUser,
 		resourceType string,
 		source atc.Source,
-		resourceTypes atc.VersionedResourceTypes,
+		resourceTypes creds.VersionedResourceTypes,
 	) (*UsedResourceConfig, error)
 
 	FindResourceConfig(
 		logger lager.Logger,
 		resourceType string,
 		source atc.Source,
-		resourceTypes atc.VersionedResourceTypes,
+		resourceTypes creds.VersionedResourceTypes,
 	) (*UsedResourceConfig, bool, error)
 
 	CleanConfigUsesForFinishedBuilds() error
@@ -48,7 +49,7 @@ type ResourceConfigFactory interface {
 		resourceUser ResourceUser,
 		resourceType string,
 		resourceSource atc.Source,
-		resourceTypes atc.VersionedResourceTypes,
+		resourceTypes creds.VersionedResourceTypes,
 	) (lock.Lock, bool, error)
 }
 
@@ -68,7 +69,7 @@ func (f *resourceConfigFactory) FindResourceConfig(
 	logger lager.Logger,
 	resourceType string,
 	source atc.Source,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 ) (*UsedResourceConfig, bool, error) {
 	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
 	if err != nil {
@@ -105,7 +106,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	user ResourceUser,
 	resourceType string,
 	source atc.Source,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 ) (*UsedResourceConfig, error) {
 	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
 	if err != nil {
@@ -138,7 +139,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 func constructResourceConfig(
 	resourceTypeName string,
 	source atc.Source,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 ) (ResourceConfig, error) {
 	resourceConfig := ResourceConfig{
 		Source: source,
@@ -146,9 +147,14 @@ func constructResourceConfig(
 
 	customType, found := resourceTypes.Lookup(resourceTypeName)
 	if found {
+		source, err := customType.Source.Evaluate()
+		if err != nil {
+			return ResourceConfig{}, err
+		}
+
 		customTypeResourceConfig, err := constructResourceConfig(
 			customType.Type,
-			customType.Source,
+			source,
 			resourceTypes.Without(customType.Name),
 		)
 		if err != nil {
@@ -313,9 +319,8 @@ func (f *resourceConfigFactory) AcquireResourceCheckingLock(
 	resourceUser ResourceUser,
 	resourceType string,
 	resourceSource atc.Source,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 ) (lock.Lock, bool, error) {
-
 	usedResourceConfig, err := f.FindOrCreateResourceConfig(
 		logger,
 		resourceUser,

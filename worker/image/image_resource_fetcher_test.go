@@ -13,7 +13,9 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock"
@@ -44,13 +46,13 @@ var _ = Describe("Image", func() {
 	var stderrBuf *gbytes.Buffer
 
 	var logger lager.Logger
-	var imageResource atc.ImageResource
+	var imageResource worker.ImageResource
 	var version atc.Version
 	var signals <-chan os.Signal
 	var fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 	var fakeWorker *workerfakes.FakeWorker
 	var fakeClock *fakeclock.FakeClock
-	var customTypes atc.VersionedResourceTypes
+	var customTypes creds.VersionedResourceTypes
 	var privileged bool
 
 	var fetchedVolume worker.Volume
@@ -72,10 +74,16 @@ var _ = Describe("Image", func() {
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 		stderrBuf = gbytes.NewBuffer()
 
+		variables := template.StaticVariables{
+			"source-param":   "super-secret-sauce",
+			"a-source-param": "super-secret-a-source",
+			"b-source-param": "super-secret-b-source",
+		}
+
 		logger = lagertest.NewTestLogger("test")
-		imageResource = atc.ImageResource{
+		imageResource = worker.ImageResource{
 			Type:   "docker",
-			Source: atc.Source{"some": "source"},
+			Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
 		}
 		version = nil
 		signals = make(chan os.Signal)
@@ -85,12 +93,12 @@ var _ = Describe("Image", func() {
 		fakeWorker.TagsReturns(atc.Tags{"worker", "tags"})
 		teamID = 123
 
-		customTypes = atc.VersionedResourceTypes{
+		customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-type-a",
 					Type:   "base-type",
-					Source: atc.Source{"some": "a-source"},
+					Source: atc.Source{"some": "((a-source-param))"},
 				},
 				Version: atc.Version{"some": "a-version"},
 			},
@@ -98,11 +106,11 @@ var _ = Describe("Image", func() {
 				ResourceType: atc.ResourceType{
 					Name:   "custom-type-b",
 					Type:   "custom-type-a",
-					Source: atc.Source{"some": "b-source"},
+					Source: atc.Source{"some": "((b-source-param))"},
 				},
 				Version: atc.Version{"some": "b-version"},
 			},
-		}
+		})
 
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 	})
@@ -280,7 +288,7 @@ var _ = Describe("Image", func() {
 									Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
 									checkSource, checkVersion := fakeCheckResource.CheckArgsForCall(0)
 									Expect(checkVersion).To(BeNil())
-									Expect(checkSource).To(Equal(imageResource.Source))
+									Expect(checkSource).To(Equal(atc.Source{"some": "super-secret-sauce"}))
 								})
 
 								It("saved the image resource version in the database", func() {
@@ -302,7 +310,7 @@ var _ = Describe("Image", func() {
 									Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
 										"docker",
 										atc.Version{"v": "1"},
-										atc.Source{"some": "source"},
+										atc.Source{"some": "super-secret-sauce"},
 										atc.Params{},
 										db.ForBuild(42),
 										db.NewImageGetContainerOwner(fakeCreatingContainer),
@@ -313,7 +321,7 @@ var _ = Describe("Image", func() {
 									Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 									expectedLockName := fmt.Sprintf("%x",
 										sha256.Sum256([]byte(
-											`{"type":"docker","version":{"v":"1"},"source":{"some":"source"},"worker_name":"fake-worker-name"}`,
+											`{"type":"docker","version":{"v":"1"},"source":{"some":"super-secret-sauce"},"worker_name":"fake-worker-name"}`,
 										)),
 									)
 									Expect(resourceInstance.LockName("fake-worker-name")).To(Equal(expectedLockName))
@@ -428,7 +436,7 @@ var _ = Describe("Image", func() {
 
 				fakeLock = new(lockfakes.FakeLock)
 				callCount := 0
-				fakeResourceConfigFactory.AcquireResourceCheckingLockStub = func(lager.Logger, db.ResourceUser, string, atc.Source, atc.VersionedResourceTypes) (lock.Lock, bool, error) {
+				fakeResourceConfigFactory.AcquireResourceCheckingLockStub = func(lager.Logger, db.ResourceUser, string, atc.Source, creds.VersionedResourceTypes) (lock.Lock, bool, error) {
 					callCount++
 
 					if callCount == 5 {
@@ -565,7 +573,7 @@ var _ = Describe("Image", func() {
 						Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
 							"docker",
 							atc.Version{"some": "version"},
-							atc.Source{"some": "source"},
+							atc.Source{"some": "super-secret-sauce"},
 							atc.Params{},
 							db.ForBuild(42),
 							db.NewImageGetContainerOwner(fakeCreatingContainer),

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
@@ -18,7 +17,7 @@ type resourceTypeScanner struct {
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
-	variablesSource       template.Variables
+	variables             creds.Variables
 }
 
 func NewResourceTypeScanner(
@@ -27,7 +26,7 @@ func NewResourceTypeScanner(
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
-	variablesSource template.Variables,
+	variables creds.Variables,
 ) Scanner {
 	return &resourceTypeScanner{
 		resourceFactory:       resourceFactory,
@@ -35,7 +34,7 @@ func NewResourceTypeScanner(
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
-		variablesSource:       variablesSource,
+		variables:             variables,
 	}
 }
 
@@ -71,13 +70,12 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 		return 0, err
 	}
 
-	versionedResourceTypes, err := resourceTypes.Deserialize(scanner.variablesSource)
-	if err != nil {
-		logger.Error("failed-to-deserialize-resource-types", err)
-		return 0, err
-	}
+	versionedResourceTypes := creds.NewVersionedResourceTypes(
+		scanner.variables,
+		resourceTypes.Deserialize(),
+	)
 
-	source, err := creds.NewSource(scanner.variablesSource, savedResourceType.Source()).Evaluate()
+	source, err := creds.NewSource(scanner.variables, savedResourceType.Source()).Evaluate()
 	if err != nil {
 		logger.Error("failed-to-evaluate-resource-type-source", err)
 		return 0, err
@@ -126,7 +124,7 @@ func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourc
 	return nil
 }
 
-func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceTypeName string, savedResourceType db.ResourceType, resourceConfig *db.UsedResourceConfig, versionedResourceTypes atc.VersionedResourceTypes, source atc.Source) error {
+func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceTypeName string, savedResourceType db.ResourceType, resourceConfig *db.UsedResourceConfig, versionedResourceTypes creds.VersionedResourceTypes, source atc.Source) error {
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResourceType.Type(),

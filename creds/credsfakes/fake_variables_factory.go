@@ -4,28 +4,27 @@ package credsfakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc/creds"
 )
 
 type FakeVariablesFactory struct {
-	NewVariablesStub        func(string, string) template.Variables
+	NewVariablesStub        func(string, string) creds.Variables
 	newVariablesMutex       sync.RWMutex
 	newVariablesArgsForCall []struct {
 		arg1 string
 		arg2 string
 	}
 	newVariablesReturns struct {
-		result1 template.Variables
+		result1 creds.Variables
 	}
 	newVariablesReturnsOnCall map[int]struct {
-		result1 template.Variables
+		result1 creds.Variables
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeVariablesFactory) NewVariables(arg1 string, arg2 string) template.Variables {
+func (fake *FakeVariablesFactory) NewVariables(arg1 string, arg2 string) creds.Variables {
 	fake.newVariablesMutex.Lock()
 	ret, specificReturn := fake.newVariablesReturnsOnCall[len(fake.newVariablesArgsForCall)]
 	fake.newVariablesArgsForCall = append(fake.newVariablesArgsForCall, struct {
@@ -55,22 +54,22 @@ func (fake *FakeVariablesFactory) NewVariablesArgsForCall(i int) (string, string
 	return fake.newVariablesArgsForCall[i].arg1, fake.newVariablesArgsForCall[i].arg2
 }
 
-func (fake *FakeVariablesFactory) NewVariablesReturns(result1 template.Variables) {
+func (fake *FakeVariablesFactory) NewVariablesReturns(result1 creds.Variables) {
 	fake.NewVariablesStub = nil
 	fake.newVariablesReturns = struct {
-		result1 template.Variables
+		result1 creds.Variables
 	}{result1}
 }
 
-func (fake *FakeVariablesFactory) NewVariablesReturnsOnCall(i int, result1 template.Variables) {
+func (fake *FakeVariablesFactory) NewVariablesReturnsOnCall(i int, result1 creds.Variables) {
 	fake.NewVariablesStub = nil
 	if fake.newVariablesReturnsOnCall == nil {
 		fake.newVariablesReturnsOnCall = make(map[int]struct {
-			result1 template.Variables
+			result1 creds.Variables
 		})
 	}
 	fake.newVariablesReturnsOnCall[i] = struct {
-		result1 template.Variables
+		result1 creds.Variables
 	}{result1}
 }
 

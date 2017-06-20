@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
@@ -18,7 +19,7 @@ type FetchSourceProviderFactory interface {
 		metadata Metadata,
 		tags atc.Tags,
 		teamID int,
-		resourceTypes atc.VersionedResourceTypes,
+		resourceTypes creds.VersionedResourceTypes,
 		resourceInstance ResourceInstance,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) FetchSourceProvider
@@ -59,7 +60,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 	metadata Metadata,
 	tags atc.Tags,
 	teamID int,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 	resourceInstance ResourceInstance,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) FetchSourceProvider {
@@ -83,7 +84,7 @@ type fetchSourceProvider struct {
 	metadata               Metadata
 	tags                   atc.Tags
 	teamID                 int
-	resourceTypes          atc.VersionedResourceTypes
+	resourceTypes          creds.VersionedResourceTypes
 	resourceInstance       ResourceInstance
 	workerClient           worker.Client
 	imageFetchingDelegate  worker.ImageFetchingDelegate

@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
@@ -37,7 +37,7 @@ type ResourceFactory interface {
 		owner db.ContainerOwner,
 		metadata db.ContainerMetadata,
 		containerSpec worker.ContainerSpec,
-		resourceTypes atc.VersionedResourceTypes,
+		resourceTypes creds.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (Resource, error)
 }
@@ -53,7 +53,7 @@ func (f *resourceFactory) NewResource(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec worker.ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, error) {
 	container, err := f.workerClient.FindOrCreateContainer(

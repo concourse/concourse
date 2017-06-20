@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
@@ -25,6 +26,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceConfig        *db.UsedResourceConfig
 		fakeDBPipeline            *dbfakes.FakePipeline
 		interval                  time.Duration
+		variables                 creds.Variables
 
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
@@ -43,6 +45,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		interval = 1 * time.Minute
 
+		variables = template.StaticVariables{
+			"source-params": "some-secret-sauce",
+		}
+
 		fakeDBPipeline = new(dbfakes.FakePipeline)
 
 		scanner = NewResourceTypeScanner(
@@ -51,9 +57,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
-			template.StaticVariables{
-				"source-params": "some-secret-sauce",
-			},
+			variables,
 		)
 
 		fakeDBPipeline.ReloadReturns(true, nil)
@@ -78,7 +82,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			ResourceType: atc.ResourceType{
 				Name:   "some-custom-resource",
 				Type:   "docker-image",
-				Source: atc.Source{"custom": "some-secret-sauce"},
+				Source: atc.Source{"custom": "((source-params))"},
 			},
 			Version: atc.Version{"custom": "version"},
 		}
@@ -130,7 +134,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(user).To(Equal(db.ForResourceType(39)))
 				Expect(resourceType).To(Equal("docker-image"))
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
+				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 				_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
@@ -146,7 +150,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Tags:   []string{},
 					TeamID: 123,
 				}))
-				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
+				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 			})
 
 			Context("when the resource type overrides a base resource type", func() {
@@ -173,7 +177,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(user).To(Equal(db.ForResourceType(40)))
 					Expect(resourceType).To(Equal("docker-image"))
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
+					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+						versionedResourceType,
+					})))
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 					_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
@@ -189,7 +195,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 						Tags:   []string{},
 						TeamID: 123,
 					}))
-					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
+					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+						versionedResourceType,
+					})))
 				})
 			})
 

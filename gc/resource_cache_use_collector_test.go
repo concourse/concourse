@@ -3,7 +3,9 @@ package gc_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 
@@ -51,7 +53,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						Name: "some-type",
 						Type: "some-base-type",
 						Source: atc.Source{
-							"some-type": "source",
+							"some-type": "((source-param))",
 						},
 					},
 					Version: atc.Version{"some-type": "version"},
@@ -89,9 +91,11 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{
-							versionedResourceType,
-						},
+						creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+							atc.VersionedResourceTypes{
+								versionedResourceType,
+							},
+						),
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -223,9 +227,11 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{
-							versionedResourceType,
-						},
+						creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+							atc.VersionedResourceTypes{
+								versionedResourceType,
+							},
+						),
 					)
 					Expect(err).NotTo(HaveOccurred())
 					setActiveResourceType(true)
@@ -278,9 +284,11 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{
-							versionedResourceType,
-						},
+						creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+							atc.VersionedResourceTypes{
+								versionedResourceType,
+							},
+						),
 					)
 					Expect(err).NotTo(HaveOccurred())
 					setActiveResource(usedResource, true)
@@ -345,7 +353,11 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								"cache": "source",
 							},
 							atc.Params{"some": "params"},
-							atc.VersionedResourceTypes{versionedResourceType},
+							creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+								atc.VersionedResourceTypes{
+									versionedResourceType,
+								},
+							),
 						)
 						Expect(err).NotTo(HaveOccurred())
 						setActiveResource(anotherResource, true)

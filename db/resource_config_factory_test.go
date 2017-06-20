@@ -3,8 +3,9 @@ package db_test
 import (
 	"sync"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds/credsfakes"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	. "github.com/onsi/ginkgo"
@@ -14,10 +15,10 @@ import (
 
 var _ = Describe("ResourceConfigFactory", func() {
 	var build db.Build
-	var fakeVariables *credsfakes.FakeVariables
+	var variables creds.Variables
 
 	BeforeEach(func() {
-		fakeVariables = new(credsfakes.FakeVariables)
+		variables = template.StaticVariables{}
 
 		var err error
 		job, found, err := defaultPipeline.Job("some-job")
@@ -33,15 +34,12 @@ var _ = Describe("ResourceConfigFactory", func() {
 			resourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
 
-			versionedResourceTypes, err := resourceTypes.Deserialize(fakeVariables)
-			Expect(err).NotTo(HaveOccurred())
-
 			usedResourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
 				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Source{"a": "b"},
-				versionedResourceTypes,
+				creds.NewVersionedResourceTypes(variables, resourceTypes.Deserialize()),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(usedResourceConfig).NotTo(BeNil())
@@ -55,8 +53,8 @@ var _ = Describe("ResourceConfigFactory", func() {
 					db.ForBuild(build.ID()),
 					"some-type",
 					atc.Source{"a": "b"},
-					[]atc.VersionedResourceType{
-						{
+					creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+						atc.VersionedResourceType{
 							ResourceType: atc.ResourceType{
 								Name: "some-type",
 								Type: "some-base-resource-type",
@@ -66,6 +64,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 							},
 						},
 					},
+					),
 				)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("ustom resource type 'some-type' version not found"))
@@ -81,9 +80,6 @@ var _ = Describe("ResourceConfigFactory", func() {
 			resourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
 
-			versionedResourceTypes, err := resourceTypes.Deserialize(fakeVariables)
-			Expect(err).NotTo(HaveOccurred())
-
 			acquiredLocks := []lock.Lock{}
 			var l sync.RWMutex
 
@@ -97,7 +93,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 						db.ForBuild(build.ID()),
 						"some-type",
 						atc.Source{"a": "b"},
-						versionedResourceTypes,
+						creds.NewVersionedResourceTypes(variables, resourceTypes.Deserialize()),
 					)
 					Expect(err).NotTo(HaveOccurred())
 					if acquired {
@@ -124,7 +120,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 			err := build.SetInterceptible(i)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForBuild(build.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForBuild(build.ID()), "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
 			var (
@@ -153,7 +149,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 		It("returns UserDisappearedError", func() {
 			user := db.ForBuild(build.ID())
 
-			_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, user, "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+			_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, user, "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).To(Equal(db.UserDisappearedError{user}))
 			Expect(err.Error()).To(Equal("resource user disappeared: build #1"))
 		})
@@ -197,7 +193,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				defer wg.Done()
 
 				for i := 0; i < 100; i++ {
-					_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForBuild(build.ID()), "some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
+					_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForBuild(build.ID()), "some-base-resource-type", atc.Source{"some": "unique-source"}, creds.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 				}
 			}()

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
@@ -25,16 +25,16 @@ func NewImageFactory(
 
 func (f *imageFactory) GetImage(
 	logger lager.Logger,
-	worker worker.Worker,
+	workerClient worker.Worker,
 	volumeClient worker.VolumeClient,
 	imageSpec worker.ImageSpec,
 	teamID int,
 	delegate worker.ImageFetchingDelegate,
 	resourceUser db.ResourceUser,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
-		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(worker)
+		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(workerClient)
 		if err != nil {
 			logger.Error("failed-to-check-if-volume-exists-on-worker", err)
 			return nil, err
@@ -56,35 +56,39 @@ func (f *imageFactory) GetImage(
 		}, nil
 	}
 
-	// check if custom resource type
-	for _, resourceType := range resourceTypes {
-		if resourceType.Name == imageSpec.ResourceType {
-			imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
-				worker,
-				resourceUser,
-				atc.ImageResource{
-					Type:   resourceType.Type,
-					Source: resourceType.Source,
-				},
-				resourceType.Version,
-				teamID,
-				resourceTypes.Without(imageSpec.ResourceType),
-				delegate,
-			)
+	// check if custom resource
+	resourceType, found := resourceTypes.Lookup(imageSpec.ResourceType)
+	if found {
+		// source, err := resourceType.Source.Evaluate()
+		// if err != nil {
+		// 	return nil, err
+		// }
+		//
+		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
+			workerClient,
+			resourceUser,
+			worker.ImageResource{
+				Type:   resourceType.Type,
+				Source: resourceType.Source,
+			},
+			resourceType.Version,
+			teamID,
+			resourceTypes.Without(imageSpec.ResourceType),
+			delegate,
+		)
 
-			return &imageFromResource{
-				imageResourceFetcher: imageResourceFetcher,
+		return &imageFromResource{
+			imageResourceFetcher: imageResourceFetcher,
 
-				privileged:   resourceType.Privileged,
-				teamID:       teamID,
-				volumeClient: volumeClient,
-			}, nil
-		}
+			privileged:   resourceType.Privileged,
+			teamID:       teamID,
+			volumeClient: volumeClient,
+		}, nil
 	}
 
 	if imageSpec.ImageResource != nil {
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
-			worker,
+			workerClient,
 			resourceUser,
 			*imageSpec.ImageResource,
 			nil,
@@ -104,7 +108,7 @@ func (f *imageFactory) GetImage(
 
 	if imageSpec.ResourceType != "" {
 		return &imageFromBaseResourceType{
-			worker:           worker,
+			worker:           workerClient,
 			resourceTypeName: imageSpec.ResourceType,
 			teamID:           teamID,
 			volumeClient:     volumeClient,

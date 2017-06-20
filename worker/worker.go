@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
@@ -165,7 +166,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	spec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
 
@@ -190,7 +191,7 @@ func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
 }
 
-func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) (Worker, error) {
+func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) (Worker, error) {
 	if spec.TeamID != worker.teamID && worker.teamID != 0 {
 		return nil, ErrTeamMismatch
 	}
@@ -224,8 +225,8 @@ func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec, res
 	return worker, nil
 }
 
-func determineUnderlyingTypeName(typeName string, resourceTypes atc.VersionedResourceTypes) string {
-	resourceTypesMap := make(map[string]atc.VersionedResourceType)
+func determineUnderlyingTypeName(typeName string, resourceTypes creds.VersionedResourceTypes) string {
+	resourceTypesMap := make(map[string]creds.VersionedResourceType)
 	for _, resourceType := range resourceTypes {
 		resourceTypesMap[resourceType.Name] = resourceType
 	}
@@ -239,7 +240,7 @@ func determineUnderlyingTypeName(typeName string, resourceTypes atc.VersionedRes
 	return underlyingTypeName
 }
 
-func (worker *gardenWorker) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) ([]Worker, error) {
+func (worker *gardenWorker) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) ([]Worker, error) {
 	return nil, ErrNotImplemented
 }
 

@@ -19,7 +19,7 @@ type GetAction struct {
 	Type          string
 	Name          string
 	Resource      string
-	Source        *creds.Source
+	Source        creds.Source
 	Params        atc.Params
 	VersionSource VersionSource
 	Tags          atc.Tags
@@ -34,7 +34,7 @@ type GetAction struct {
 	dbResourceCacheFactory db.ResourceCacheFactory
 	stepMetadata           StepMetadata
 
-	resourceTypes atc.VersionedResourceTypes
+	resourceTypes creds.VersionedResourceTypes
 
 	versionInfo VersionInfo
 	exitStatus  ExitStatus
