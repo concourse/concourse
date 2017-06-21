@@ -98,8 +98,8 @@ case $1 in
       --postgres-ca-cert /var/vcap/jobs/atc/config/postgres_ca_cert \
       <% end %> \
       <% if_p("postgresql.client_cert", "postgresql.client_key") do |*_| %> \
-      --postgres-client-cert /var/vcap/jobs/atc/config/postges_client_cert \
-      --postgres-client-key /var/vcap/jobs/atc/config/postges_client_key \
+      --postgres-client-cert /var/vcap/jobs/atc/config/postgres_client_cert \
+      --postgres-client-key /var/vcap/jobs/atc/config/postgres_client_key \
       <% end %> \
       --postgres-connect-timeout <%= p("postgresql.connect_timeout") %> \
       <% if_p("encryption_key") do |key| %> \
@@ -203,10 +203,20 @@ case $1 in
       --metrics-attribute <%= esc(k) %>:<%= esc(v) %> \
       <% end %> \
       --x-frame-options <%= esc(p("x_frame_options")) %> \
-      <% if_p("vault.url", "vault.client_token") do |addr, token| %> \
-      --vault-server-url <%= esc(addr) %> \
+      <% if_p("vault.url") do |url| %> \
+      --vault-url <%= esc(url) %> \
+        <% if_p("vault.client_token") do |token| %> \
       --vault-client-token <%= esc(token) %> \
-      --vault-path-prefix <%= esc(p("vault.path_prefix")) %> \
+        <% end %> \
+        <% if_p("vault.ca_cert") do |ca_cert| %> \
+      --vault-ca-cert /var/vcap/jobs/atc/config/vault_ca_cert \
+        <% end %> \
+        <% if_p("vault.client_cert", "vault.client_key") do |cert, key| %> \
+      --vault-client-cert /var/vcap/jobs/atc/config/vault_client_cert \
+      --vault-client-key /var/vcap/jobs/atc/config/vault_client_key \
+        <% end %> \
+      --vault-server-name <%= esc(p("vault.server_name")) %> \
+      --vault-insecure-skip-verify <%= p("vault.insecure_skip_verify") %> \
       <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log

@@ -13,6 +13,9 @@ templates:
   postgres_ca_cert.erb: config/postgres_ca_cert
   postgres_client_cert.erb: config/postgres_client_cert
   postgres_client_key.erb: config/postgres_client_key
+  vault_ca_cert.erb: config/vault_ca_cert
+  vault_client_cert.erb: config/vault_client_cert
+  vault_client_key.erb: config/vault_client_key
 
 packages:
   - pid_utils
@@ -390,22 +393,18 @@ properties:
     description: |
       If configured, detailed metrics will be emitted to the specified InfluxDB
       server.
-
   influxdb.database:
     description: |
       InfluxDB database to which metrics will be emitted.
     default: ""
-
   influxdb.username:
     description: |
       InfluxDB username for authorizing access.
     default: ""
-
   influxdb.password:
     description: |
       InfluxDB password for authorizing access.
     default: ""
-
   influxdb.insecure_skip_verify:
     description: |
       Skip SSL verification when emitting to InfluxDB.
@@ -414,12 +413,27 @@ properties:
   vault.url:
     description: |
       Vault server URL to use for parameterizing credentials.
-
-  vault.client_token:
-    description: |
-      Client token to use for accessing your Vault server.
-
   vault.path_prefix:
     description: |
       Path under which to namespace team/pipeline credentials.
     default: /concourse
+  vault.client_token:
+    description: |
+      Client token to use for accessing your Vault server.
+  vault.ca_cert:
+    description: |
+      A PEM-encoded CA cert to use to verify the Vault server SSL cert.
+  vault.client_cert:
+    description: |
+      Client certificate for Vault communication.
+  vault.client_key:
+    description: |
+      Client private key for Vault communication.
+  vault.server_name:
+    description: |
+      If set, is used to set the SNI host when connecting via TLS.
+    default: ""
+  vault.insecure_skip_verify:
+    description: |
+      Enable insecure SSL verification.
+    default: false
