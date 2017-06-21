@@ -21,6 +21,7 @@ export STEMCELL_VERSION="$(cat stemcell/version)"
 bosh upload-release concourse-release/*.tgz
 bosh upload-release garden-runc-release/*.tgz
 bosh upload-release git-server-release/*.tgz
+bosh upload-release vault-release/*.tgz
 bosh upload-stemcell stemcell/*.tgz
 
 cd concourse/src/github.com/concourse/topgun/

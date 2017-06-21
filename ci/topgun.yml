@@ -21,6 +21,7 @@ inputs:
 - name: concourse-release
 - name: garden-runc-release
 - name: git-server-release
+- name: vault-release
 - name: stemcell
 - name: bosh-cli
 
