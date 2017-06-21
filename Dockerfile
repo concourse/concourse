@@ -1,9 +1,5 @@
-FROM node
+FROM node:7.2.0-slim
 
-RUN npm install -g phantomjs
+RUN npm install -g elm@0.18.0
 
-RUN apt-get update && apt-get -y install locales && \
-      echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen && \
-      locale-gen
-
-ENV LANG en_US.UTF-8
+RUN npm install -g elm-test@0.18.6
