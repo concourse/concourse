@@ -94,10 +94,19 @@ type ATCCommand struct {
 	OldEncryptionKey CipherFlag `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
 
 	Vault struct {
-		ServerURL   URLFlag `long:"server-url"   description:"Vault server address used to access secrets."`
+		URL         URLFlag `long:"url"   description:"Vault server address used to access secrets."`
 		ClientToken string  `long:"client-token" description:"Vault client token for accessing secrets within the Vault server."`
 
 		PathPrefix string `long:"path-prefix"   default:"/concourse"  description:"Path under which to namespace credential lookup."`
+
+		TLS struct {
+			CACert     string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
+			CAPath     string `long:"ca-path"              description:"Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert."`
+			ClientCert string `long:"client-cert"          description:"Path to the certificate for Vault communication."`
+			ClientKey  string `long:"client-key"           description:"Path to the private key for Vault communication."`
+			ServerName string `long:"server-name"          description:"If set, is used to set the SNI host when connecting via TLS."`
+			Insecure   bool   `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
+		}
 	} `group:"Vault Options" namespace:"vault"`
 
 	Postgres PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
@@ -224,14 +233,35 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	db.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
 
 	var variablesFactory creds.VariablesFactory
-	if cmd.Vault.ClientToken != "" && cmd.Vault.ServerURL.URL() != nil {
-		client, err := vaultapi.NewClient(vaultapi.DefaultConfig())
+	if cmd.Vault.URL.URL() != nil {
+		config := vaultapi.DefaultConfig()
+
+		err := config.ConfigureTLS(&vaultapi.TLSConfig{
+			CACert:        cmd.Vault.TLS.CACert,
+			CAPath:        cmd.Vault.TLS.CAPath,
+			ClientCert:    cmd.Vault.TLS.ClientCert,
+			ClientKey:     cmd.Vault.TLS.ClientKey,
+			TLSServerName: cmd.Vault.TLS.ServerName,
+			Insecure:      cmd.Vault.TLS.Insecure,
+		})
 		if err != nil {
 			return nil, err
 		}
 
-		client.SetAddress(cmd.Vault.ServerURL.String())
-		client.SetToken(cmd.Vault.ClientToken)
+		client, err := vaultapi.NewClient(config)
+		if err != nil {
+			return nil, err
+		}
+
+		err = client.SetAddress(cmd.Vault.URL.String())
+		if err != nil {
+			return nil, err
+		}
+
+		if cmd.Vault.ClientToken != "" {
+			client.SetToken(cmd.Vault.ClientToken)
+		}
+
 		c := client.Logical()
 
 		variablesFactory = vault.NewVaultFactory(*c, cmd.Vault.PathPrefix)
