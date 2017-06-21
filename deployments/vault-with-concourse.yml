@@ -25,7 +25,7 @@ instance_groups:
       log_level: debug
       postgresql_database: atc
       vault:
-        server_addr: ((vault-addr))
+        url: ((vault-url))
         client_token: ((vault-token))
 
   - release: concourse

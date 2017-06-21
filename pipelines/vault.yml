@@ -17,6 +17,7 @@ jobs:
   - task: simple-task
     params:
       SECRET: ((job-secret))
+      TEAM_SECRET: ((team-secret))
     config:
       platform: linux
 
@@ -29,4 +30,4 @@ jobs:
 
       run:
         path: sh
-        args: ['-c', 'echo SECRET: $SECRET']
+        args: ['-c', 'echo SECRET: $SECRET, TEAM SECRET: $TEAM_SECRET']

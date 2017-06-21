@@ -32,12 +32,12 @@ var _ = Describe("Vault", func() {
 	}
 
 	Describe("A deployment with vault", func() {
-		var vaultAddr string
+		var vaultURL string
 		var vaultToken string
 
 		vault := func(command string, args ...string) *gexec.Session {
 			cmd := exec.Command("vault", append([]string{command}, args...)...)
-			cmd.Env = append(os.Environ(), "VAULT_ADDR="+vaultAddr, "VAULT_TOKEN="+vaultToken)
+			cmd.Env = append(os.Environ(), "VAULT_ADDR="+vaultURL, "VAULT_TOKEN="+vaultToken)
 			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 			wait(session)
@@ -48,7 +48,7 @@ var _ = Describe("Vault", func() {
 			Deploy("deployments/vault.yml")
 
 			vaultInstance := JobInstance("vault")
-			vaultAddr = "http://" + vaultInstance.IP + ":8200"
+			vaultURL = "http://" + vaultInstance.IP + ":8200"
 
 			init := vault("init")
 			content := string(init.Out.Contents())
@@ -62,44 +62,72 @@ var _ = Describe("Vault", func() {
 			vault("unseal", key2)
 			vault("unseal", key3)
 
-			vault("mount", "-path", "main", "generic")
-			vault("write", "main/pipeline-vault-test/resource-type-repository", "value=concourse/time-resource")
-			vault("write", "main/pipeline-vault-test/time-resource-interval", "value=10m")
-			vault("write", "main/pipeline-vault-test/job-secret", "value=Hello")
-			vault("write", "main/pipeline-vault-test/image-resource-repository", "value=busybox")
+			vault("mount", "-path", "concourse/main", "generic")
 
 			Deploy(
 				"deployments/vault-with-concourse.yml",
-				"-v", "vault-addr="+vaultAddr,
+				"-v", "vault-url="+vaultURL,
 				"-v", "vault-token="+vaultToken,
 			)
 		})
 
-		It("parameterizes via Vault and leaves the pipeline uninterpolated", func() {
-			By("setting a pipeline that contains vault secrets")
-			fly("set-pipeline", "-n", "-c", "pipelines/vault.yml", "-p", "pipeline-vault-test")
+		Context("with a pipeline build", func() {
+			BeforeEach(func() {
+				vault("write", "concourse/main/pipeline-vault-test/resource-type-repository", "value=concourse/time-resource")
+				vault("write", "concourse/main/pipeline-vault-test/time-resource-interval", "value=10m")
+				vault("write", "concourse/main/pipeline-vault-test/job-secret", "value=Hello")
+				vault("write", "concourse/main/team-secret", "value=Sauce")
+				vault("write", "concourse/main/pipeline-vault-test/image-resource-repository", "value=busybox")
+			})
 
-			By("getting the pipeline config")
-			session := getPipeline()
-			Expect(string(session.Out.Contents())).ToNot(ContainSubstring("concourse/time-resource"))
-			Expect(string(session.Out.Contents())).ToNot(ContainSubstring("10m"))
-			Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Hello"))
-			Expect(string(session.Out.Contents())).ToNot(ContainSubstring("busybox"))
+			It("parameterizes via Vault and leaves the pipeline uninterpolated", func() {
+				By("setting a pipeline that contains vault secrets")
+				fly("set-pipeline", "-n", "-c", "pipelines/vault.yml", "-p", "pipeline-vault-test")
 
-			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "pipeline-vault-test")
+				By("getting the pipeline config")
+				session := getPipeline()
+				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("concourse/time-resource"))
+				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("10m"))
+				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Hello"))
+				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Sauce"))
+				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("busybox"))
 
-			By("triggering job")
-			watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/simple-job")
-			wait(watch)
-			Expect(watch).To(gbytes.Say("SECRET: Hello"))
+				By("unpausing the pipeline")
+				fly("unpause-pipeline", "-p", "pipeline-vault-test")
 
-			By("taking a dump")
-			session = pgDump()
-			Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-			Expect(session).ToNot(gbytes.Say("10m"))
-			Expect(session).To(gbytes.Say("Hello")) // we do not encrypt build events
-			Expect(session).ToNot(gbytes.Say("busybox"))
+				By("triggering job")
+				watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/simple-job")
+				wait(watch)
+				Expect(watch).To(gbytes.Say("SECRET: Hello"))
+				Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
+
+				By("taking a dump")
+				session = pgDump()
+				Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
+				Expect(session).ToNot(gbytes.Say("10m"))
+				Expect(session).To(gbytes.Say("Hello")) // build echoed it; nothing we can do
+				Expect(session).To(gbytes.Say("Sauce")) // build echoed it; nothing we can do
+				Expect(session).ToNot(gbytes.Say("busybox"))
+			})
+		})
+
+		Context("with a one-off build", func() {
+			BeforeEach(func() {
+				vault("write", "concourse/main/task-secret", "value=Hello")
+				vault("write", "concourse/main/image-resource-repository", "value=busybox")
+			})
+
+			It("parameterizes image_resource and params in a task config", func() {
+				By("executing a task that parameterizes image_resource")
+				watch := spawnFly("execute", "-c", "tasks/vault.yml")
+				wait(watch)
+				Expect(watch).To(gbytes.Say("SECRET: Hello"))
+
+				By("taking a dump")
+				session := pgDump()
+				Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
+				Expect(session).To(gbytes.Say("Hello")) // build echoed it; nothing we can do
+			})
 		})
 	})
 })
