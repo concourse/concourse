@@ -411,11 +411,15 @@ properties:
       Skip SSL verification when emitting to InfluxDB.
     default: false
 
-  vault.server_addr:
+  vault.url:
     description: |
-      Vault server address to use for parameterizing credentials into your
-      pipeline config.
+      Vault server URL to use for parameterizing credentials.
 
   vault.client_token:
     description: |
       Client token to use for accessing your Vault server.
+
+  vault.path_prefix:
+    description: |
+      Path under which to namespace team/pipeline credentials.
+    default: /concourse
