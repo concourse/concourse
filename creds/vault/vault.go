@@ -1,21 +1,41 @@
 package vault
 
 import (
-	"fmt"
+	"path"
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
 type Vault struct {
-	PathPrefix  string
 	VaultClient *vaultapi.Logical
+
+	PathPrefix   string
+	TeamName     string
+	PipelineName string
 }
 
 func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error) {
-	secret, err := v.VaultClient.Read(fmt.Sprintf("%s/%s", v.PathPrefix, varDef.Name))
-	if err != nil || secret == nil {
-		return nil, false, err
+	var secret *vaultapi.Secret
+	var found bool
+	var err error
+
+	if v.PipelineName != "" {
+		secret, found, err = v.findSecret(v.path(v.TeamName, v.PipelineName, varDef.Name))
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	if !found {
+		secret, found, err = v.findSecret(v.path(v.TeamName, varDef.Name))
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	if !found {
+		return nil, false, nil
 	}
 
 	val, found := secret.Data["value"]
@@ -24,6 +44,23 @@ func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error
 	}
 
 	return secret.Data, true, nil
+}
+
+func (v Vault) findSecret(path string) (*vaultapi.Secret, bool, error) {
+	secret, err := v.VaultClient.Read(path)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if secret != nil {
+		return secret, true, nil
+	}
+
+	return nil, false, nil
+}
+
+func (v Vault) path(segments ...string) string {
+	return path.Join(append([]string{v.PathPrefix}, segments...)...)
 }
 
 func (v Vault) List() ([]template.VariableDefinition, error) {

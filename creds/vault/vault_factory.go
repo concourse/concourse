@@ -1,25 +1,28 @@
 package vault
 
 import (
-	"fmt"
-
 	"github.com/concourse/atc/creds"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
 type vaultFactory struct {
 	vaultClient vaultapi.Logical
+	prefix      string
 }
 
-func NewVaultFactory(v vaultapi.Logical) *vaultFactory {
+func NewVaultFactory(v vaultapi.Logical, prefix string) *vaultFactory {
 	return &vaultFactory{
 		vaultClient: v,
+		prefix:      prefix,
 	}
 }
 
 func (v vaultFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
 	return &Vault{
-		PathPrefix:  fmt.Sprintf("%s/%s", teamName, pipelineName),
 		VaultClient: &v.vaultClient,
+
+		PathPrefix:   v.prefix,
+		TeamName:     teamName,
+		PipelineName: pipelineName,
 	}
 }

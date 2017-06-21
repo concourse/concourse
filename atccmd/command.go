@@ -90,11 +90,15 @@ type ATCCommand struct {
 
 	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 
-	VaultClientToken string `long:"vault-client-token" description:"Vault client token for accessing secrets within vault server."`
-	VaultServerAddr  string `long:"vault-server-addr" description:"Vault server address used to access secrets, for example, http://127.0.0.1:8200"`
-
 	EncryptionKey    CipherFlag `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
 	OldEncryptionKey CipherFlag `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
+
+	Vault struct {
+		ServerURL   URLFlag `long:"server-url"   description:"Vault server address used to access secrets."`
+		ClientToken string  `long:"client-token" description:"Vault client token for accessing secrets within the Vault server."`
+
+		PathPrefix string `long:"path-prefix"   default:"/concourse"  description:"Path under which to namespace credential lookup."`
+	} `group:"Vault Options" namespace:"vault"`
 
 	Postgres PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -220,17 +224,17 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	db.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
 
 	var variablesFactory creds.VariablesFactory
-	if cmd.VaultClientToken != "" && cmd.VaultServerAddr != "" {
+	if cmd.Vault.ClientToken != "" && cmd.Vault.ServerURL.URL() != nil {
 		client, err := vaultapi.NewClient(vaultapi.DefaultConfig())
 		if err != nil {
 			return nil, err
 		}
 
-		client.SetAddress(cmd.VaultServerAddr)
-		client.SetToken(cmd.VaultClientToken)
+		client.SetAddress(cmd.Vault.ServerURL.String())
+		client.SetToken(cmd.Vault.ClientToken)
 		c := client.Logical()
 
-		variablesFactory = vault.NewVaultFactory(*c)
+		variablesFactory = vault.NewVaultFactory(*c, cmd.Vault.PathPrefix)
 	} else {
 		variablesFactory = noop.NewNoopFactory()
 	}
