@@ -235,8 +235,10 @@ func loadJobInstances() map[string][]boshInstance {
 	return jobInstances
 }
 
-func bosh(argv ...string) {
-	wait(spawnBosh(argv...))
+func bosh(argv ...string) *gexec.Session {
+	session := spawnBosh(argv...)
+	wait(session)
+	return session
 }
 
 func spawnBosh(argv ...string) *gexec.Session {

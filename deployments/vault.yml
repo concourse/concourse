@@ -16,10 +16,7 @@ instance_groups:
   jobs:
   - release: vault
     name: vault
-    properties:
-      vault:
-        backend:
-          use_file: true
+    properties: {}
 
 stemcells:
 - alias: trusty

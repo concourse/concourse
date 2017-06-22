@@ -2,6 +2,8 @@ package topgun_test
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -34,10 +36,24 @@ var _ = Describe("Vault", func() {
 	Describe("A deployment with vault", func() {
 		var vaultURL string
 		var vaultToken string
+		var vaultCACert string
 
 		vault := func(command string, args ...string) *gexec.Session {
 			cmd := exec.Command("vault", append([]string{command}, args...)...)
-			cmd.Env = append(os.Environ(), "VAULT_ADDR="+vaultURL, "VAULT_TOKEN="+vaultToken)
+			cmd.Env = append(
+				os.Environ(),
+				"VAULT_ADDR="+vaultURL,
+				"VAULT_TOKEN="+vaultToken,
+			)
+
+			if vaultCACert != "" {
+				cmd.Env = append(
+					cmd.Env,
+					"VAULT_CACERT="+vaultCACert,
+					"VAULT_SKIP_VERIFY=true",
+				)
+			}
+
 			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 			wait(session)
@@ -45,7 +61,20 @@ var _ = Describe("Vault", func() {
 		}
 
 		BeforeEach(func() {
-			Deploy("deployments/vault.yml")
+			vaultURL = ""
+			vaultToken = ""
+			vaultCACert = ""
+
+			varsStore, err := ioutil.TempFile("", "vars-store.yml")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(varsStore.Close()).To(Succeed())
+
+			defer os.Remove(varsStore.Name())
+
+			Deploy(
+				"deployments/vault.yml",
+				"--vars-store", varsStore.Name(),
+			)
 
 			vaultInstance := JobInstance("vault")
 			vaultURL = "http://" + vaultInstance.IP + ":8200"
@@ -66,9 +95,61 @@ var _ = Describe("Vault", func() {
 
 			Deploy(
 				"deployments/vault-with-concourse.yml",
+				"--vars-store", varsStore.Name(),
 				"-v", "vault-url="+vaultURL,
-				"-v", "vault-token="+vaultToken,
+				"-v", "vault_ip="+vaultInstance.IP,
+				"-v", "instances=0",
 			)
+
+			vaultURL = "https://" + vaultInstance.IP + ":8200"
+
+			vaultCACertFile, err := ioutil.TempFile("", "vault-ca.cert")
+			Expect(err).ToNot(HaveOccurred())
+
+			vaultCACert = vaultCACertFile.Name()
+
+			session := bosh("interpolate", "--path", "/vault_ca/certificate", varsStore.Name())
+			_, err = fmt.Fprintf(vaultCACertFile, "%s", session.Out.Contents())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(vaultCACertFile.Close()).To(Succeed())
+
+			vault("unseal", key1)
+			vault("unseal", key2)
+			vault("unseal", key3)
+
+			policyFile, err := ioutil.TempFile("", "vault-policy.hcl")
+			Expect(err).ToNot(HaveOccurred())
+
+			defer os.Remove(policyFile.Name())
+
+			_, err = fmt.Fprintf(policyFile, "%s", `path "concourse/*" { policy = "read" }`)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(policyFile.Close()).To(Succeed())
+
+			vault("policy-write", "concourse", policyFile.Name())
+
+			vault("auth-enable", "cert")
+
+			vault(
+				"write",
+				"auth/cert/certs/concourse",
+				"display_name=concourse",
+				"certificate=@"+vaultCACert,
+				"policies=concourse",
+			)
+
+			Deploy(
+				"deployments/vault-with-concourse.yml",
+				"--vars-store", varsStore.Name(),
+				"-v", "vault-url="+vaultURL,
+				"-v", "vault_ip="+vaultInstance.IP,
+				"-v", "instances=1",
+			)
+		})
+
+		AfterEach(func() {
+			Expect(os.Remove(vaultCACert)).To(Succeed())
 		})
 
 		Context("with a pipeline build", func() {
