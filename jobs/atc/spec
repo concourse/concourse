@@ -417,18 +417,9 @@ properties:
     description: |
       Path under which to namespace team/pipeline credentials.
     default: /concourse
-  vault.client_token:
-    description: |
-      Client token to use for accessing your Vault server.
   vault.ca_cert:
     description: |
       A PEM-encoded CA cert to use to verify the Vault server SSL cert.
-  vault.client_cert:
-    description: |
-      Client certificate for Vault communication.
-  vault.client_key:
-    description: |
-      Client private key for Vault communication.
   vault.server_name:
     description: |
       If set, is used to set the SNI host when connecting via TLS.
@@ -437,3 +428,23 @@ properties:
     description: |
       Enable insecure SSL verification.
     default: false
+  vault.auth.method:
+    description: |
+      Auth method to use if no token is provided. Defaults to the backend for
+      the auth specified, e.g. 'cert'.
+    default: ""
+  vault.auth.client_token:
+    description: |
+      Client token to use for accessing your Vault server.
+    default: ""
+  vault.auth.tls.client_cert:
+    description: |
+      Client certificate for Vault communication.
+  vault.auth.tls.client_key:
+    description: |
+      Client private key for Vault communication.
+  vault.auth.tls.role_name:
+    description: |
+      Certificate role name with which to authenticate. If not specified, the
+      auth backend will try to authenticate against all trusted certificates.
+    default: ""

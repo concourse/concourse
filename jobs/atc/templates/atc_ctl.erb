@@ -205,18 +205,18 @@ case $1 in
       --x-frame-options <%= esc(p("x_frame_options")) %> \
       <% if_p("vault.url") do |url| %> \
       --vault-url <%= esc(url) %> \
-        <% if_p("vault.client_token") do |token| %> \
-      --vault-client-token <%= esc(token) %> \
-        <% end %> \
-        <% if_p("vault.ca_cert") do |ca_cert| %> \
-      --vault-ca-cert /var/vcap/jobs/atc/config/vault_ca_cert \
-        <% end %> \
-        <% if_p("vault.client_cert", "vault.client_key") do |cert, key| %> \
-      --vault-client-cert /var/vcap/jobs/atc/config/vault_client_cert \
-      --vault-client-key /var/vcap/jobs/atc/config/vault_client_key \
-        <% end %> \
       --vault-server-name <%= esc(p("vault.server_name")) %> \
       --vault-insecure-skip-verify <%= p("vault.insecure_skip_verify") %> \
+      <% if_p("vault.ca_cert") do |ca_cert| %> \
+      --vault-ca-cert /var/vcap/jobs/atc/config/vault_ca_cert \
+      <% end %> \
+      --vault-auth-method <%= esc(p("vault.auth.method")) %> \
+      --vault-client-token <%= esc(p("vault.auth.client_token")) %> \
+      <% if_p("vault.auth.tls.client_cert", "vault.auth.tls.client_key") do %> \
+      --vault-auth-tls-client-cert /var/vcap/jobs/atc/config/vault_client_cert \
+      --vault-auth-tls-client-key /var/vcap/jobs/atc/config/vault_client_key \
+      <% end %> \
+      --vault-auth-tls-role-name <%= esc(p("vault.auth.tls.role_name")) %>  \
       <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
