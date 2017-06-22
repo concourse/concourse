@@ -13,7 +13,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
-	"strings"
+	"path"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -94,18 +94,27 @@ type ATCCommand struct {
 	OldEncryptionKey CipherFlag `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
 
 	Vault struct {
-		URL         URLFlag `long:"url"   description:"Vault server address used to access secrets."`
-		ClientToken string  `long:"client-token" description:"Vault client token for accessing secrets within the Vault server."`
+		URL URLFlag `long:"url" description:"Vault server address used to access secrets."`
 
-		PathPrefix string `long:"path-prefix"   default:"/concourse"  description:"Path under which to namespace credential lookup."`
+		PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 
 		TLS struct {
 			CACert     string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
 			CAPath     string `long:"ca-path"              description:"Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert."`
-			ClientCert string `long:"client-cert"          description:"Path to the certificate for Vault communication."`
-			ClientKey  string `long:"client-key"           description:"Path to the private key for Vault communication."`
 			ServerName string `long:"server-name"          description:"If set, is used to set the SNI host when connecting via TLS."`
 			Insecure   bool   `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
+		}
+
+		Auth struct {
+			Method string `long:"auth-method" description:"Auth method to use if no token is provided. Defaults to the backend for the auth specified, e.g. 'cert'."`
+
+			ClientToken string `long:"client-token" description:"Vault client token for accessing secrets within the Vault server."`
+
+			TLS struct {
+				RoleName   string `long:"auth-tls-role-name"   description:"Role name to which to authenticate if a token is not specified."`
+				ClientCert string `long:"auth-tls-client-cert" description:"Path to the certificate for Vault communication."`
+				ClientKey  string `long:"auth-tls-client-key"  description:"Path to the private key for Vault communication."`
+			}
 		}
 	} `group:"Vault Options" namespace:"vault"`
 
@@ -239,10 +248,11 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		err := config.ConfigureTLS(&vaultapi.TLSConfig{
 			CACert:        cmd.Vault.TLS.CACert,
 			CAPath:        cmd.Vault.TLS.CAPath,
-			ClientCert:    cmd.Vault.TLS.ClientCert,
-			ClientKey:     cmd.Vault.TLS.ClientKey,
 			TLSServerName: cmd.Vault.TLS.ServerName,
 			Insecure:      cmd.Vault.TLS.Insecure,
+
+			ClientCert: cmd.Vault.Auth.TLS.ClientCert,
+			ClientKey:  cmd.Vault.Auth.TLS.ClientKey,
 		})
 		if err != nil {
 			return nil, err
@@ -258,11 +268,38 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			return nil, err
 		}
 
-		if cmd.Vault.ClientToken != "" {
-			client.SetToken(cmd.Vault.ClientToken)
+		c := client.Logical()
+
+		token := cmd.Vault.Auth.ClientToken
+		if token == "" {
+			method := cmd.Vault.Auth.Method
+			params := map[string]interface{}{}
+
+			if cmd.Vault.Auth.TLS.ClientCert != "" && cmd.Vault.Auth.TLS.ClientKey != "" {
+				method = "cert"
+
+				if cmd.Vault.Auth.TLS.RoleName != "" {
+					params["name"] = cmd.Vault.Auth.TLS.RoleName
+				}
+			} else {
+				return nil, fmt.Errorf("no token specified and no auth backend configured for Vault")
+			}
+
+			secret, err := c.Write(path.Join("auth", method, "login"), params)
+			if err != nil {
+				return nil, fmt.Errorf("failed to log in to vault: %s", err)
+			}
+
+			logger.Info("logged-in-to-vault", lager.Data{
+				"token-accessor": secret.Auth.Accessor,
+				"lease-duration": secret.Auth.LeaseDuration,
+				"policies":       secret.Auth.Policies,
+			})
+
+			token = secret.Auth.ClientToken
 		}
 
-		c := client.Logical()
+		client.SetToken(token)
 
 		variablesFactory = vault.NewVaultFactory(*c, cmd.Vault.PathPrefix)
 	} else {
