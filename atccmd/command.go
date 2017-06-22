@@ -700,18 +700,6 @@ func (cmd *ATCCommand) tlsBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.TLSBindPort)
 }
 
-func (cmd *ATCCommand) internalURL() string {
-	if cmd.isTLSEnabled() {
-		if strings.Contains(cmd.ExternalURL.String(), ":") {
-			return cmd.ExternalURL.String()
-		} else {
-			return fmt.Sprintf("%s:%d", cmd.ExternalURL, cmd.TLSBindPort)
-		}
-	} else {
-		return fmt.Sprintf("http://127.0.0.1:%d", cmd.BindPort)
-	}
-}
-
 func (cmd *ATCCommand) debugBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
 }
