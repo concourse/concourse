@@ -4,6 +4,7 @@ import Json.Encode
 import Html exposing (Html)
 import Http
 import Login
+import NotFound
 import String
 import Task
 import Autoscroll
@@ -39,6 +40,7 @@ type Model
     | PipelineModel Pipeline.Model
     | BetaPipelineModel BetaPipeline.Model
     | SelectTeamModel TeamSelection.Model
+    | NotFoundModel NotFound.Model
 
 
 type Msg
@@ -160,8 +162,8 @@ init turbulencePath route =
             )
 
 
-update : String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
-update turbulence csrfToken msg mdl =
+update : String ->  String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
+update turbulence notFound csrfToken msg mdl =
     case ( msg, mdl ) of
         ( NoPipelineMsg msg, model ) ->
             ( model, fetchPipelines )
@@ -176,7 +178,6 @@ update turbulence csrfToken msg mdl =
             in
                 ( BuildModel { scrollModel | subModel = newBuildModel }, buildCmd |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg)) )
 
-        -- superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update <| (Build.NewCSRFToken c) scrollModel
         ( BuildMsg message, BuildModel scrollModel ) ->
             let
                 subModel =
@@ -197,7 +198,12 @@ update turbulence csrfToken msg mdl =
             superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
 
         ( PipelineMsg message, PipelineModel model ) ->
-            superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.update message model
+            let
+                (mdl, cmd, outMessage) = Pipeline.update message model
+            in
+                case outMessage of
+                    Just Pipeline.NotFound -> (NotFoundModel { notFoundImgSrc = notFound }, setTitle "Not Found ")
+                    Nothing -> superDupleWrap ( PipelineModel, PipelineMsg ) <| (mdl, cmd)
 
         ( BetaPipelineMsg message, BetaPipelineModel model ) ->
             superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <| BetaPipeline.update message model
@@ -331,6 +337,9 @@ view mdl =
         NoPipelineModel ->
             Html.map NoPipelineMsg <| NoPipeline.view
 
+        NotFoundModel model ->
+            NotFound.view model
+
 
 subscriptions : Model -> Sub Msg
 subscriptions mdl =
@@ -361,6 +370,11 @@ subscriptions mdl =
 
         WaitingModel _ ->
             Sub.none
+
+        NotFoundModel _ ->
+            Sub.none
+
+
 
 
 fetchPipelines : Cmd Msg

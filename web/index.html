@@ -19,6 +19,7 @@
       var node = document.getElementById("elm-app-embed");
       var app = Elm.Main.embed(node, {
         turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+        notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
         csrfToken: {{ .CSRFToken }}
       });
 
