@@ -17,6 +17,7 @@ port newUrl : (String -> msg) -> Sub msg
 
 type alias Flags =
     { turbulenceImgSrc : String
+    , notFoundImgSrc: String
     , csrfToken : String
     }
 
@@ -46,6 +47,7 @@ type alias Model =
     , sideModel : SideBar.Model
     , sidebarVisible : Bool
     , turbulenceImgSrc : String
+    , notFoundImgSrc: String
     , csrfToken : String
     , route : Routes.ConcourseRoute
     }
@@ -89,6 +91,7 @@ init flags location =
             , sideModel = sideModel
             , sidebarVisible = False
             , turbulenceImgSrc = flags.turbulenceImgSrc
+            , notFoundImgSrc = flags.notFoundImgSrc
             , route = route
             , csrfToken = flags.csrfToken
             }
@@ -154,7 +157,7 @@ update msg model =
         TokenReceived (Just tokenValue) ->
             let
                 ( newSubModel, subCmd ) =
-                    SubPage.update model.turbulenceImgSrc tokenValue (SubPage.NewCSRFToken tokenValue) model.subModel
+                    SubPage.update model.turbulenceImgSrc model.notFoundImgSrc tokenValue (SubPage.NewCSRFToken tokenValue) model.subModel
 
                 ( newSideModel, sideCmd ) =
                     SideBar.update (SideBar.NewCSRFToken tokenValue) model.sideModel
@@ -176,7 +179,7 @@ update msg model =
                     update (SaveToken val.csrfToken) model
 
                 ( subModel, subCmd ) =
-                    SubPage.update model.turbulenceImgSrc val.csrfToken (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) model.subModel
+                    SubPage.update model.turbulenceImgSrc model.notFoundImgSrc val.csrfToken (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) model.subModel
 
                 ( sideModel, sideCmd ) =
                     SideBar.update (SideBar.NewCSRFToken val.csrfToken) model.sideModel
@@ -203,6 +206,7 @@ update msg model =
                 ( subModel, subCmd ) =
                     SubPage.update
                         model.turbulenceImgSrc
+                        model.notFoundImgSrc
                         model.csrfToken
                         (SubPage.DefaultPipelineFetched pipeline)
                         model.subModel
@@ -237,7 +241,7 @@ update msg model =
             if (validNavIndex model.navIndex navIndex) then
                 let
                     ( subModel, subCmd ) =
-                        SubPage.update model.turbulenceImgSrc model.csrfToken m model.subModel
+                        SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
                 in
                     ( { model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd )
             else

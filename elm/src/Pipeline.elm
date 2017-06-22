@@ -1,4 +1,4 @@
-port module Pipeline exposing (Model, Msg(..), Flags, init, update, view, subscriptions, changeToPipelineAndGroups)
+port module Pipeline exposing (Model, Msg(..), OutMessage(..), Flags, init, update, view, subscriptions, changeToPipelineAndGroups)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, style, src, width, height)
@@ -60,6 +60,8 @@ type Msg
     | VersionFetched (Result Http.Error String)
     | PipelineFetched (Result Http.Error Concourse.Pipeline)
 
+type OutMessage
+    = NotFound
 
 queryGroupsForRoute : Routes.ConcourseRoute -> List String
 queryGroupsForRoute route =
@@ -118,22 +120,23 @@ loadPipeline pipelineLocator model =
     )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg , Maybe OutMessage )
 update msg model =
     case msg of
         Noop ->
-            ( model, Cmd.none )
+            ( model, Cmd.none, Nothing )
 
         AutoupdateTimerTicked timestamp ->
             ( model
             , fetchPipeline model.pipelineLocator
+            , Nothing
             )
 
         PipelineIdentifierFetched pipelineIdentifier ->
-            ( model, fetchPipeline pipelineIdentifier )
+            ( model, fetchPipeline pipelineIdentifier, Nothing )
 
         AutoupdateVersionTicked _ ->
-            ( model, fetchVersion )
+            ( model, fetchVersion, Nothing )
 
         PipelineFetched (Ok pipeline) ->
             ( { model | pipeline = Just pipeline }
@@ -141,53 +144,58 @@ update msg model =
                 [ fetchJobs model.pipelineLocator
                 , fetchResources model.pipelineLocator
                 ]
+            , Nothing
             )
 
         PipelineFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, LoginRedirect.requestLoginRedirect "", Nothing )
+                    else if status.code == 404 then
+                        ( model, Cmd.none, Just NotFound)
                     else
-                        ( model, Cmd.none )
+                        ( model, Cmd.none, Nothing )
 
                 _ ->
-                    renderIfNeeded { model | experiencingTurbulence = True }
+                    renderWithMessage { model | experiencingTurbulence = True } Nothing
 
         JobsFetched (Ok fetchedJobs) ->
-            renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
+            renderWithMessage { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False } Nothing
 
         JobsFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, LoginRedirect.requestLoginRedirect "", Nothing )
+                    else if status.code == 404 then
+                        ( model, Cmd.none, Just NotFound )
                     else
-                        ( model, Cmd.none )
+                        ( model, Cmd.none, Nothing )
 
                 _ ->
-                    renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
+                    renderWithMessage { model | fetchedJobs = Nothing, experiencingTurbulence = True } Nothing
 
         ResourcesFetched (Ok fetchedResources) ->
-            renderIfNeeded { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }
+            renderWithMessage { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False } Nothing
 
         ResourcesFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, LoginRedirect.requestLoginRedirect "", Nothing )
                     else
-                        ( model, Cmd.none )
+                        ( model, Cmd.none, Nothing )
 
                 _ ->
-                    renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
+                    renderWithMessage { model | fetchedResources = Nothing, experiencingTurbulence = True } Nothing
 
         VersionFetched (Ok version) ->
-            ( { model | concourseVersion = version, experiencingTurbulence = False }, Cmd.none )
+            ( { model | concourseVersion = version, experiencingTurbulence = False }, Cmd.none, Nothing )
 
         VersionFetched (Err err) ->
             flip always (Debug.log ("failed to fetch version") (err)) <|
-                ( { model | experiencingTurbulence = True }, Cmd.none )
+                ( { model | experiencingTurbulence = True }, Cmd.none, Nothing )
 
 
 subscriptions : Model -> Sub Msg
@@ -364,6 +372,12 @@ renderIfNeeded model =
         _ ->
             ( model, Cmd.none )
 
+renderWithMessage : Model -> Maybe OutMessage -> (Model, Cmd Msg, Maybe OutMessage)
+renderWithMessage model outMessage =
+    let
+        (mdl, msg) = renderIfNeeded model
+    in
+        (mdl, msg, outMessage)
 
 fetchResources : Concourse.PipelineIdentifier -> Cmd Msg
 fetchResources pid =

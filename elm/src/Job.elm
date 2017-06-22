@@ -1,4 +1,4 @@
-port module Job exposing (Flags, Model, changeToJob, subscriptions, init, update, view, Msg(..))
+port module Job exposing (Flags, Model, changeToJob, subscriptions, init, update, view, Msg(..), OutMessage(..))
 
 import Dict exposing (Dict)
 import Html exposing (Html)
@@ -50,6 +50,9 @@ type Msg
     | NavTo String
     | SubscriptionTick Time
 
+
+type OutMessage
+    = NotFound
 
 type alias BuildWithResources =
     { build : Concourse.Build
