@@ -21,7 +21,8 @@
     on_success:
       try:
         put: test-logs
-        from: run-tests/*.log
+        params:
+          from: run-tests/*.log
   - task: do-something-else
     config: # ...
   }
