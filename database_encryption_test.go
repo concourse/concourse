@@ -11,10 +11,11 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Database secrets encryption", func() {
-	configurePipelineAndTeam := func() {
+var _ = FDescribe("Database secrets encryption", func() {
+	configurePipelineAndTeamAndTriggerJob := func() {
 		By("setting a pipeline that contains secrets")
 		fly("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "pipeline-secrets-test")
+		fly("unpause-pipeline", "-p", "pipeline-secrets-test")
 
 		By("creating a team with auth")
 		setTeamSession := spawnFlyInteractive(
@@ -26,6 +27,10 @@ var _ = Describe("Database secrets encryption", func() {
 			"--github-auth-client-secret", "victorias_secret",
 		)
 		<-setTeamSession.Exited
+
+		buildSession := spawnFly("trigger-job", "-w", "-j", "pipeline-secrets-test/simple-job")
+		<-buildSession.Exited
+		Expect(buildSession.ExitCode()).To(Equal(0))
 	}
 
 	pgDump := func() *gexec.Session {
@@ -52,13 +57,13 @@ var _ = Describe("Database secrets encryption", func() {
 		})
 
 		It("encrypts pipeline credentials and team auth config", func() {
-			configurePipelineAndTeam()
+			configurePipelineAndTeamAndTriggerJob()
 
 			By("taking a dump")
 			session := pgDump()
 			Expect(session).ToNot(gbytes.Say("victorias_secret"))
-			Expect(session).ToNot(gbytes.Say("resource_secret"))
-			Expect(session).ToNot(gbytes.Say("resource_type_secret"))
+			Expect(session).ToNot(gbytes.Say("1s"))
+			Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 			Expect(session).ToNot(gbytes.Say("job_secret"))
 		})
 	})
@@ -70,13 +75,13 @@ var _ = Describe("Database secrets encryption", func() {
 
 		Context("with credentials and team auth in plaintext", func() {
 			BeforeEach(func() {
-				configurePipelineAndTeam()
+				configurePipelineAndTeamAndTriggerJob()
 
 				By("taking a dump")
 				session := pgDump()
 				Expect(string(session.Out.Contents())).To(ContainSubstring("victorias_secret"))
-				Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
-				Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
+				Expect(string(session.Out.Contents())).To(ContainSubstring("1s"))
+				Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 				Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
 			})
 
@@ -89,15 +94,16 @@ var _ = Describe("Database secrets encryption", func() {
 					By("taking a dump")
 					session := pgDump()
 					Expect(session).ToNot(gbytes.Say("victorias_secret"))
-					Expect(session).ToNot(gbytes.Say("resource_secret"))
-					Expect(session).ToNot(gbytes.Say("resource_type_secret"))
+					Expect(session).ToNot(gbytes.Say("1s"))
+					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 					Expect(session).ToNot(gbytes.Say("job_secret"))
 
 					By("getting the pipeline config")
 					session = getPipeline()
-					Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
-					Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
+					Expect(string(session.Out.Contents())).To(ContainSubstring("1s"))
+					Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 					Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
+					Expect(string(session.Out.Contents())).To(ContainSubstring("busybox"))
 				})
 
 				Context("when the encryption key is rotated", func() {
@@ -109,24 +115,26 @@ var _ = Describe("Database secrets encryption", func() {
 						By("taking a dump")
 						session := pgDump()
 						Expect(session).ToNot(gbytes.Say("victorias_secret"))
-						Expect(session).ToNot(gbytes.Say("resource_secret"))
-						Expect(session).ToNot(gbytes.Say("resource_type_secret"))
+						Expect(session).ToNot(gbytes.Say("1s"))
+						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 						Expect(session).ToNot(gbytes.Say("job_secret"))
 
 						By("getting the pipeline config")
 						session = getPipeline()
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("1s"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("busybox"))
 
 						By("setting the pipeline again")
 						fly("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "pipeline-secrets-test")
 
 						By("getting the pipeline config again")
 						session = getPipeline()
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("1s"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("busybox"))
 					})
 				})
 
@@ -139,24 +147,26 @@ var _ = Describe("Database secrets encryption", func() {
 						By("taking a dump")
 						session := pgDump()
 						Expect(session).ToNot(gbytes.Say("victorias_secret"))
-						Expect(session).ToNot(gbytes.Say("resource_secret"))
-						Expect(session).ToNot(gbytes.Say("resource_type_secret"))
+						Expect(session).ToNot(gbytes.Say("1s"))
+						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 						Expect(session).ToNot(gbytes.Say("job_secret"))
 
 						By("getting the pipeline config")
 						session = getPipeline()
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("1s"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("busybox"))
 
 						By("setting the pipeline again")
 						fly("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "pipeline-secrets-test")
 
 						By("getting the pipeline config again")
 						session = getPipeline()
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("1s"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("busybox"))
 					})
 				})
 
@@ -188,15 +198,16 @@ var _ = Describe("Database secrets encryption", func() {
 						By("taking a dump")
 						session := pgDump()
 						Expect(string(session.Out.Contents())).To(ContainSubstring("victorias_secret"))
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("1s"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
 
 						By("getting the pipeline config")
 						session = getPipeline()
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
-						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("1s"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("busybox"))
 					})
 				})
 			})
