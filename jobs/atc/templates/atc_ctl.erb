@@ -16,6 +16,9 @@ LOG_DIR=/var/vcap/sys/log/atc
 SIGNING_KEY=/var/vcap/packages/generated_signing_key/id_rsa
 PIDFILE=$RUN_DIR/atc.pid
 CF_CA_CERT=/var/vcap/jobs/atc/config/cf_ca_cert
+POSTGRESQL_CA_CERT=/var/vcap/jobs/atc/config/postgres_ca_cert
+POSTGRESQL_CLIENT_CERT=/var/vcap/jobs/atc/config/postgres_client_cert
+POSTGRESQL_CLIENT_KEY=/var/vcap/jobs/atc/config/postgres_client_key
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
@@ -76,6 +79,15 @@ case $1 in
     chown vcap:vcap $CF_CA_CERT
     chmod 0400 $CF_CA_CERT
 
+    chown vcap:vcap $POSTGRESQL_CA_CERT
+    chmod 0400 $POSTGRESQL_CA_CERT
+
+    chown vcap:vcap $POSTGRESQL_CLIENT_CERT
+    chmod 0400 $POSTGRESQL_CLIENT_CERT
+
+    chown vcap:vcap $POSTGRESQL_CLIENT_KEY
+    chmod 0400 $POSTGRESQL_CLIENT_KEY
+
     setcap cap_net_bind_service=+ep /var/vcap/packages/atc/bin/atc
 
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
@@ -95,11 +107,11 @@ case $1 in
       --postgres-user <%= esc(postgres_role_name) %> \
       --postgres-password <%= esc(postgres_role_password) %> \
       <% if_p("postgresql.ca_cert") do |_| %> \
-      --postgres-ca-cert /var/vcap/jobs/atc/config/postgres_ca_cert \
+      --postgres-ca-cert $POSTGRESQL_CA_CERT \
       <% end %> \
       <% if_p("postgresql.client_cert", "postgresql.client_key") do |*_| %> \
-      --postgres-client-cert /var/vcap/jobs/atc/config/postgres_client_cert \
-      --postgres-client-key /var/vcap/jobs/atc/config/postgres_client_key \
+      --postgres-client-cert $POSTGRESQL_CLIENT_CERT \
+      --postgres-client-key $POSTGRESQL_CLIENT_KEY \
       <% end %> \
       --postgres-connect-timeout <%= p("postgresql.connect_timeout") %> \
       <% if_p("encryption_key") do |key| %> \
