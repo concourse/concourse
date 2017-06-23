@@ -1336,15 +1336,17 @@ var _ = Describe("Builds API", func() {
 
 	Describe("GET /api/v1/builds/:build_id/plan", func() {
 		var publicPlan atc.PublicBuildPlan
+		var plan *json.RawMessage
 
 		var response *http.Response
 
 		BeforeEach(func() {
-			var plan json.RawMessage = []byte(`"some-plan"`)
+			data := []byte(`{"some":"plan"}`)
+			plan = (*json.RawMessage)(&data)
 
 			publicPlan = atc.PublicBuildPlan{
 				Schema: "some-schema",
-				Plan:   &plan,
+				Plan:   plan,
 			}
 		})
 
@@ -1448,7 +1450,8 @@ var _ = Describe("Builds API", func() {
 
 				Context("when the build returns a plan", func() {
 					BeforeEach(func() {
-						engineBuild.PublicPlanReturns(publicPlan, nil)
+						build.PublicPlanReturns(plan)
+						build.EngineReturns("some-schema")
 					})
 
 					It("returns OK", func() {
@@ -1461,18 +1464,8 @@ var _ = Describe("Builds API", func() {
 
 						Expect(body).To(MatchJSON(`{
 						"schema": "some-schema",
-						"plan": "some-plan"
+						"plan": {"some":"plan"}
 					}`))
-					})
-				})
-
-				Context("when the build fails to return a plan", func() {
-					BeforeEach(func() {
-						engineBuild.PublicPlanReturns(atc.PublicBuildPlan{}, errors.New("nope"))
-					})
-
-					It("returns 500 Internal Server Error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})

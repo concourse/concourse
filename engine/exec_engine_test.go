@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -576,65 +575,6 @@ var _ = Describe("ExecEngine", func() {
 		})
 	})
 
-	Describe("PublicPlan", func() {
-		var build engine.Build
-		var logger lager.Logger
-
-		var plan atc.Plan
-
-		var publicPlan atc.PublicBuildPlan
-		var publicPlanErr error
-
-		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("test")
-
-			planFactory := atc.NewPlanFactory(123)
-
-			putPlan := planFactory.NewPlan(atc.PutPlan{
-				Name:     "some-put",
-				Resource: "some-output-resource",
-				Tags:     []string{"some", "putget", "tags"},
-				Type:     "some-type",
-				Source:   atc.Source{"some": "source"},
-				Params:   atc.Params{"some": "params"},
-			})
-
-			plan = planFactory.NewPlan(atc.OnSuccessPlan{
-				Step: putPlan,
-				Next: planFactory.NewPlan(atc.GetPlan{
-					Name:        "some-put",
-					Resource:    "some-output-resource",
-					Tags:        []string{"some", "putget", "tags"},
-					Type:        "some-type",
-					VersionFrom: &putPlan.ID,
-					Source:      atc.Source{"some": "source"},
-					Params:      atc.Params{"another": "params"},
-				}),
-			})
-
-			var err error
-			dbBuild := new(dbfakes.FakeBuild)
-			build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		JustBeforeEach(func() {
-			publicPlan, publicPlanErr = build.PublicPlan(logger)
-		})
-
-		It("returns the plan successfully", func() {
-			Expect(publicPlanErr).ToNot(HaveOccurred())
-		})
-
-		It("has the engine name as the schema", func() {
-			Expect(publicPlan.Schema).To(Equal("exec.v2"))
-		})
-
-		It("cleans out sensitive/irrelevant information from the original plan", func() {
-			Expect(publicPlan.Plan).To(Equal(plan.Public()))
-		})
-	})
-
 	Describe("LookupBuild", func() {
 		var dbBuild *dbfakes.FakeBuild
 
@@ -651,7 +591,6 @@ var _ = Describe("ExecEngine", func() {
 		})
 
 		Context("when the build has a get step", func() {
-
 			BeforeEach(func() {
 				dbBuild.EngineMetadataReturns(`{
 							"Plan": {
@@ -708,6 +647,26 @@ var _ = Describe("ExecEngine", func() {
 					BuildName:    "42",
 					Attempt:      "1",
 				}))
+			})
+		})
+
+		Context("when engine metadata is empty", func() {
+			BeforeEach(func() {
+				dbBuild.EngineMetadataReturns("{}")
+
+				fakeDelegate := new(enginefakes.FakeBuildDelegate)
+				fakeDelegateFactory.DelegateReturns(fakeDelegate)
+
+				inputStepFactory := new(execfakes.FakeStepFactory)
+				inputStep := new(execfakes.FakeStep)
+				inputStep.SucceededReturns(true)
+				inputStepFactory.UsingReturns(inputStep)
+				fakeFactory.GetReturns(inputStepFactory)
+			})
+
+			It("does not error", func() {
+				_, err := execEngine.LookupBuild(logger, dbBuild)
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 	})

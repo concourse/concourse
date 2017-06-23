@@ -2076,7 +2076,9 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
 
 			By("returning a job's most recent started build")
-			jobBuildOldDB.Start("engine", "metadata")
+			found, err = jobBuildOldDB.Start("engine", `{"meta":"data"}`, atc.Plan{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			found, err = jobBuildOldDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
@@ -2091,7 +2093,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
 			Expect(actualDashboard[0].NextBuild.Status()).To(Equal(db.BuildStatusStarted))
 			Expect(actualDashboard[0].NextBuild.Engine()).To(Equal("engine"))
-			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal("metadata"))
+			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal(`{"meta":"data"}`))
 
 			By("returning a job's most recent started build even if there is a newer pending build")
 			job, found, err = pipeline.Job("job-name")
@@ -2134,7 +2136,7 @@ var _ = Describe("Pipeline", func() {
 
 			jobBuildNewDB, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
-			jobBuildNewDB.Start("engine", "metadata")
+			jobBuildNewDB.Start("engine", "metadata", atc.Plan{})
 			found, err = jobBuildNewDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())

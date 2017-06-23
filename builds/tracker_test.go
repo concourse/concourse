@@ -79,16 +79,16 @@ var _ = Describe("Tracker", func() {
 			It("saves its status as errored", func() {
 				tracker.Track()
 
-				Expect(inFlightBuilds[0].MarkAsFailedCallCount()).To(Equal(1))
-				savedErr1 := inFlightBuilds[0].MarkAsFailedArgsForCall(0)
+				Expect(inFlightBuilds[0].FinishWithErrorCallCount()).To(Equal(1))
+				savedErr1 := inFlightBuilds[0].FinishWithErrorArgsForCall(0)
 				Expect(savedErr1).To(Equal(errors.New("nope")))
 
-				Expect(inFlightBuilds[1].MarkAsFailedCallCount()).To(Equal(1))
-				savedErr2 := inFlightBuilds[1].MarkAsFailedArgsForCall(0)
+				Expect(inFlightBuilds[1].FinishWithErrorCallCount()).To(Equal(1))
+				savedErr2 := inFlightBuilds[1].FinishWithErrorArgsForCall(0)
 				Expect(savedErr2).To(Equal(errors.New("nope")))
 
-				Expect(inFlightBuilds[2].MarkAsFailedCallCount()).To(Equal(1))
-				savedErr3 := inFlightBuilds[2].MarkAsFailedArgsForCall(0)
+				Expect(inFlightBuilds[2].FinishWithErrorCallCount()).To(Equal(1))
+				savedErr3 := inFlightBuilds[2].FinishWithErrorArgsForCall(0)
 				Expect(savedErr3).To(Equal(errors.New("nope")))
 			})
 		})

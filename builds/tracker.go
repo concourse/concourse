@@ -47,7 +47,7 @@ func (bt *Tracker) Track() {
 		if err != nil {
 			btLog.Error("failed-to-lookup-build", err)
 
-			err := build.MarkAsFailed(err)
+			err := build.FinishWithError(err)
 			if err != nil {
 				btLog.Error("failed-to-mark-build-as-errored", err)
 			}

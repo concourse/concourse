@@ -135,9 +135,15 @@ var _ = Describe("Worker Lifecycle", func() {
 					dbBuild, err := defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 
-					err = dbBuild.SaveStatus(s)
-					Expect(err).NotTo(HaveOccurred())
-
+					switch s {
+					case db.BuildStatusPending:
+					case db.BuildStatusStarted:
+						_, err = dbBuild.Start("exec.v2", "{}", atc.Plan{})
+						Expect(err).NotTo(HaveOccurred())
+					default:
+						err = dbBuild.Finish(s)
+						Expect(err).NotTo(HaveOccurred())
+					}
 					_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -161,10 +167,17 @@ var _ = Describe("Worker Lifecycle", func() {
 			)
 
 			ItRetiresWorkerWithState := func(s db.BuildStatus, expectedExistence bool) {
-				err := dbBuild.SaveStatus(s)
-				Expect(err).NotTo(HaveOccurred())
+				switch s {
+				case db.BuildStatusPending:
+				case db.BuildStatusStarted:
+					_, err := dbBuild.Start("exec.v2", "{}", atc.Plan{})
+					Expect(err).NotTo(HaveOccurred())
+				default:
+					err := dbBuild.Finish(s)
+					Expect(err).NotTo(HaveOccurred())
+				}
 
-				_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+				_, err := defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
 				Expect(err).NotTo(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -355,8 +368,15 @@ var _ = Describe("Worker Lifecycle", func() {
 					dbBuild, err := defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 
-					err = dbBuild.SaveStatus(s)
-					Expect(err).NotTo(HaveOccurred())
+					switch s {
+					case db.BuildStatusPending:
+					case db.BuildStatusStarted:
+						_, err := dbBuild.Start("exec.v2", "{}", atc.Plan{})
+						Expect(err).NotTo(HaveOccurred())
+					default:
+						err := dbBuild.Finish(s)
+						Expect(err).NotTo(HaveOccurred())
+					}
 
 					_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
@@ -382,10 +402,17 @@ var _ = Describe("Worker Lifecycle", func() {
 			)
 
 			ItLandsWorkerWithExpectedState := func(s db.BuildStatus, expectedState db.WorkerState) {
-				err := dbBuild.SaveStatus(s)
-				Expect(err).NotTo(HaveOccurred())
+				switch s {
+				case db.BuildStatusPending:
+				case db.BuildStatusStarted:
+					_, err := dbBuild.Start("exec.v2", "{}", atc.Plan{})
+					Expect(err).NotTo(HaveOccurred())
+				default:
+					err := dbBuild.Finish(s)
+					Expect(err).NotTo(HaveOccurred())
+				}
 
-				_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+				_, err := defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
 				Expect(err).NotTo(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)

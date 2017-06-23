@@ -41,7 +41,7 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 		RunWith(f.conn).
 		QueryRow()
 
-	err := scanBuild(build, row)
+	err := scanBuild(build, row, f.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -101,7 +101,7 @@ func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
 
 	for rows.Next() {
 		b := &build{conn: f.conn, lockFactory: f.lockFactory}
-		err := scanBuild(b, rows)
+		err := scanBuild(b, rows, f.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +137,7 @@ func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn,
 
 	for rows.Next() {
 		build := &build{conn: conn, lockFactory: lockFactory}
-		err = scanBuild(build, rows)
+		err = scanBuild(build, rows, conn.EncryptionStrategy())
 		if err != nil {
 			return nil, Pagination{}, err
 		}

@@ -277,6 +277,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
 		QueryRow(),
+		p.conn.EncryptionStrategy(),
 	)
 	if err != nil {
 		return nil, err
@@ -360,7 +361,7 @@ func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
 
 	for rows.Next() {
 		build := &build{conn: p.conn, lockFactory: p.lockFactory}
-		err = scanBuild(build, rows)
+		err = scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
 		}
@@ -691,7 +692,7 @@ func (p *pipeline) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build
 	builds := []Build{}
 	for rows.Next() {
 		build := &build{conn: p.conn, lockFactory: p.lockFactory}
-		err = scanBuild(build, rows)
+		err = scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
 		}
@@ -717,7 +718,7 @@ func (p *pipeline) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Buil
 	builds := []Build{}
 	for rows.Next() {
 		build := &build{conn: p.conn, lockFactory: p.lockFactory}
-		err = scanBuild(build, rows)
+		err = scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
 		}
@@ -1682,7 +1683,7 @@ func (p *pipeline) getLastJobBuildsSatisfying(bRequirement string) (map[string]B
 
 	for rows.Next() {
 		build := &build{conn: p.conn, lockFactory: p.lockFactory}
-		err := scanBuild(build, rows)
+		err := scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
 		}

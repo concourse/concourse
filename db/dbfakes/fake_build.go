@@ -2,6 +2,7 @@
 package dbfakes
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -101,6 +102,15 @@ type FakeBuild struct {
 	}
 	engineMetadataReturnsOnCall map[int]struct {
 		result1 string
+	}
+	PublicPlanStub        func() *json.RawMessage
+	publicPlanMutex       sync.RWMutex
+	publicPlanArgsForCall []struct{}
+	publicPlanReturns     struct {
+		result1 *json.RawMessage
+	}
+	publicPlanReturnsOnCall map[int]struct {
+		result1 *json.RawMessage
 	}
 	StatusStub        func() db.BuildStatus
 	statusMutex       sync.RWMutex
@@ -216,11 +226,12 @@ type FakeBuild struct {
 		result2 bool
 		result3 error
 	}
-	StartStub        func(string, string) (bool, error)
+	StartStub        func(string, string, atc.Plan) (bool, error)
 	startMutex       sync.RWMutex
 	startArgsForCall []struct {
 		arg1 string
 		arg2 string
+		arg3 atc.Plan
 	}
 	startReturns struct {
 		result1 bool
@@ -230,15 +241,26 @@ type FakeBuild struct {
 		result1 bool
 		result2 error
 	}
-	SaveStatusStub        func(db.BuildStatus) error
-	saveStatusMutex       sync.RWMutex
-	saveStatusArgsForCall []struct {
-		arg1 db.BuildStatus
+	FinishWithErrorStub        func(cause error) error
+	finishWithErrorMutex       sync.RWMutex
+	finishWithErrorArgsForCall []struct {
+		cause error
 	}
-	saveStatusReturns struct {
+	finishWithErrorReturns struct {
 		result1 error
 	}
-	saveStatusReturnsOnCall map[int]struct {
+	finishWithErrorReturnsOnCall map[int]struct {
+		result1 error
+	}
+	FinishStub        func(db.BuildStatus) error
+	finishMutex       sync.RWMutex
+	finishArgsForCall []struct {
+		arg1 db.BuildStatus
+	}
+	finishReturns struct {
+		result1 error
+	}
+	finishReturnsOnCall map[int]struct {
 		result1 error
 	}
 	SetInterceptibleStub        func(bool) error
@@ -250,17 +272,6 @@ type FakeBuild struct {
 		result1 error
 	}
 	setInterceptibleReturnsOnCall map[int]struct {
-		result1 error
-	}
-	MarkAsFailedStub        func(cause error) error
-	markAsFailedMutex       sync.RWMutex
-	markAsFailedArgsForCall []struct {
-		cause error
-	}
-	markAsFailedReturns struct {
-		result1 error
-	}
-	markAsFailedReturnsOnCall map[int]struct {
 		result1 error
 	}
 	EventsStub        func(uint) (db.EventSource, error)
@@ -369,17 +380,6 @@ type FakeBuild struct {
 		result2 bool
 		result3 error
 	}
-	FinishStub        func(db.BuildStatus) error
-	finishMutex       sync.RWMutex
-	finishArgsForCall []struct {
-		arg1 db.BuildStatus
-	}
-	finishReturns struct {
-		result1 error
-	}
-	finishReturnsOnCall map[int]struct {
-		result1 error
-	}
 	DeleteStub        func() (bool, error)
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct{}
@@ -391,13 +391,13 @@ type FakeBuild struct {
 		result1 bool
 		result2 error
 	}
-	AbortStub        func() error
-	abortMutex       sync.RWMutex
-	abortArgsForCall []struct{}
-	abortReturns     struct {
+	MarkAsAbortedStub        func() error
+	markAsAbortedMutex       sync.RWMutex
+	markAsAbortedArgsForCall []struct{}
+	markAsAbortedReturns     struct {
 		result1 error
 	}
-	abortReturnsOnCall map[int]struct {
+	markAsAbortedReturnsOnCall map[int]struct {
 		result1 error
 	}
 	AbortNotifierStub        func() (db.Notifier, error)
@@ -823,6 +823,46 @@ func (fake *FakeBuild) EngineMetadataReturnsOnCall(i int, result1 string) {
 	}
 	fake.engineMetadataReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) PublicPlan() *json.RawMessage {
+	fake.publicPlanMutex.Lock()
+	ret, specificReturn := fake.publicPlanReturnsOnCall[len(fake.publicPlanArgsForCall)]
+	fake.publicPlanArgsForCall = append(fake.publicPlanArgsForCall, struct{}{})
+	fake.recordInvocation("PublicPlan", []interface{}{})
+	fake.publicPlanMutex.Unlock()
+	if fake.PublicPlanStub != nil {
+		return fake.PublicPlanStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.publicPlanReturns.result1
+}
+
+func (fake *FakeBuild) PublicPlanCallCount() int {
+	fake.publicPlanMutex.RLock()
+	defer fake.publicPlanMutex.RUnlock()
+	return len(fake.publicPlanArgsForCall)
+}
+
+func (fake *FakeBuild) PublicPlanReturns(result1 *json.RawMessage) {
+	fake.PublicPlanStub = nil
+	fake.publicPlanReturns = struct {
+		result1 *json.RawMessage
+	}{result1}
+}
+
+func (fake *FakeBuild) PublicPlanReturnsOnCall(i int, result1 *json.RawMessage) {
+	fake.PublicPlanStub = nil
+	if fake.publicPlanReturnsOnCall == nil {
+		fake.publicPlanReturnsOnCall = make(map[int]struct {
+			result1 *json.RawMessage
+		})
+	}
+	fake.publicPlanReturnsOnCall[i] = struct {
+		result1 *json.RawMessage
 	}{result1}
 }
 
@@ -1293,17 +1333,18 @@ func (fake *FakeBuild) PreparationReturnsOnCall(i int, result1 db.BuildPreparati
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuild) Start(arg1 string, arg2 string) (bool, error) {
+func (fake *FakeBuild) Start(arg1 string, arg2 string, arg3 atc.Plan) (bool, error) {
 	fake.startMutex.Lock()
 	ret, specificReturn := fake.startReturnsOnCall[len(fake.startArgsForCall)]
 	fake.startArgsForCall = append(fake.startArgsForCall, struct {
 		arg1 string
 		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("Start", []interface{}{arg1, arg2})
+		arg3 atc.Plan
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Start", []interface{}{arg1, arg2, arg3})
 	fake.startMutex.Unlock()
 	if fake.StartStub != nil {
-		return fake.StartStub(arg1, arg2)
+		return fake.StartStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1317,10 +1358,10 @@ func (fake *FakeBuild) StartCallCount() int {
 	return len(fake.startArgsForCall)
 }
 
-func (fake *FakeBuild) StartArgsForCall(i int) (string, string) {
+func (fake *FakeBuild) StartArgsForCall(i int) (string, string, atc.Plan) {
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
-	return fake.startArgsForCall[i].arg1, fake.startArgsForCall[i].arg2
+	return fake.startArgsForCall[i].arg1, fake.startArgsForCall[i].arg2, fake.startArgsForCall[i].arg3
 }
 
 func (fake *FakeBuild) StartReturns(result1 bool, result2 error) {
@@ -1345,50 +1386,98 @@ func (fake *FakeBuild) StartReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) SaveStatus(arg1 db.BuildStatus) error {
-	fake.saveStatusMutex.Lock()
-	ret, specificReturn := fake.saveStatusReturnsOnCall[len(fake.saveStatusArgsForCall)]
-	fake.saveStatusArgsForCall = append(fake.saveStatusArgsForCall, struct {
-		arg1 db.BuildStatus
-	}{arg1})
-	fake.recordInvocation("SaveStatus", []interface{}{arg1})
-	fake.saveStatusMutex.Unlock()
-	if fake.SaveStatusStub != nil {
-		return fake.SaveStatusStub(arg1)
+func (fake *FakeBuild) FinishWithError(cause error) error {
+	fake.finishWithErrorMutex.Lock()
+	ret, specificReturn := fake.finishWithErrorReturnsOnCall[len(fake.finishWithErrorArgsForCall)]
+	fake.finishWithErrorArgsForCall = append(fake.finishWithErrorArgsForCall, struct {
+		cause error
+	}{cause})
+	fake.recordInvocation("FinishWithError", []interface{}{cause})
+	fake.finishWithErrorMutex.Unlock()
+	if fake.FinishWithErrorStub != nil {
+		return fake.FinishWithErrorStub(cause)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.saveStatusReturns.result1
+	return fake.finishWithErrorReturns.result1
 }
 
-func (fake *FakeBuild) SaveStatusCallCount() int {
-	fake.saveStatusMutex.RLock()
-	defer fake.saveStatusMutex.RUnlock()
-	return len(fake.saveStatusArgsForCall)
+func (fake *FakeBuild) FinishWithErrorCallCount() int {
+	fake.finishWithErrorMutex.RLock()
+	defer fake.finishWithErrorMutex.RUnlock()
+	return len(fake.finishWithErrorArgsForCall)
 }
 
-func (fake *FakeBuild) SaveStatusArgsForCall(i int) db.BuildStatus {
-	fake.saveStatusMutex.RLock()
-	defer fake.saveStatusMutex.RUnlock()
-	return fake.saveStatusArgsForCall[i].arg1
+func (fake *FakeBuild) FinishWithErrorArgsForCall(i int) error {
+	fake.finishWithErrorMutex.RLock()
+	defer fake.finishWithErrorMutex.RUnlock()
+	return fake.finishWithErrorArgsForCall[i].cause
 }
 
-func (fake *FakeBuild) SaveStatusReturns(result1 error) {
-	fake.SaveStatusStub = nil
-	fake.saveStatusReturns = struct {
+func (fake *FakeBuild) FinishWithErrorReturns(result1 error) {
+	fake.FinishWithErrorStub = nil
+	fake.finishWithErrorReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeBuild) SaveStatusReturnsOnCall(i int, result1 error) {
-	fake.SaveStatusStub = nil
-	if fake.saveStatusReturnsOnCall == nil {
-		fake.saveStatusReturnsOnCall = make(map[int]struct {
+func (fake *FakeBuild) FinishWithErrorReturnsOnCall(i int, result1 error) {
+	fake.FinishWithErrorStub = nil
+	if fake.finishWithErrorReturnsOnCall == nil {
+		fake.finishWithErrorReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.saveStatusReturnsOnCall[i] = struct {
+	fake.finishWithErrorReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) Finish(arg1 db.BuildStatus) error {
+	fake.finishMutex.Lock()
+	ret, specificReturn := fake.finishReturnsOnCall[len(fake.finishArgsForCall)]
+	fake.finishArgsForCall = append(fake.finishArgsForCall, struct {
+		arg1 db.BuildStatus
+	}{arg1})
+	fake.recordInvocation("Finish", []interface{}{arg1})
+	fake.finishMutex.Unlock()
+	if fake.FinishStub != nil {
+		return fake.FinishStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.finishReturns.result1
+}
+
+func (fake *FakeBuild) FinishCallCount() int {
+	fake.finishMutex.RLock()
+	defer fake.finishMutex.RUnlock()
+	return len(fake.finishArgsForCall)
+}
+
+func (fake *FakeBuild) FinishArgsForCall(i int) db.BuildStatus {
+	fake.finishMutex.RLock()
+	defer fake.finishMutex.RUnlock()
+	return fake.finishArgsForCall[i].arg1
+}
+
+func (fake *FakeBuild) FinishReturns(result1 error) {
+	fake.FinishStub = nil
+	fake.finishReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) FinishReturnsOnCall(i int, result1 error) {
+	fake.FinishStub = nil
+	if fake.finishReturnsOnCall == nil {
+		fake.finishReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.finishReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -1437,54 +1526,6 @@ func (fake *FakeBuild) SetInterceptibleReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.setInterceptibleReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) MarkAsFailed(cause error) error {
-	fake.markAsFailedMutex.Lock()
-	ret, specificReturn := fake.markAsFailedReturnsOnCall[len(fake.markAsFailedArgsForCall)]
-	fake.markAsFailedArgsForCall = append(fake.markAsFailedArgsForCall, struct {
-		cause error
-	}{cause})
-	fake.recordInvocation("MarkAsFailed", []interface{}{cause})
-	fake.markAsFailedMutex.Unlock()
-	if fake.MarkAsFailedStub != nil {
-		return fake.MarkAsFailedStub(cause)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.markAsFailedReturns.result1
-}
-
-func (fake *FakeBuild) MarkAsFailedCallCount() int {
-	fake.markAsFailedMutex.RLock()
-	defer fake.markAsFailedMutex.RUnlock()
-	return len(fake.markAsFailedArgsForCall)
-}
-
-func (fake *FakeBuild) MarkAsFailedArgsForCall(i int) error {
-	fake.markAsFailedMutex.RLock()
-	defer fake.markAsFailedMutex.RUnlock()
-	return fake.markAsFailedArgsForCall[i].cause
-}
-
-func (fake *FakeBuild) MarkAsFailedReturns(result1 error) {
-	fake.MarkAsFailedStub = nil
-	fake.markAsFailedReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) MarkAsFailedReturnsOnCall(i int, result1 error) {
-	fake.MarkAsFailedStub = nil
-	if fake.markAsFailedReturnsOnCall == nil {
-		fake.markAsFailedReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.markAsFailedReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -1921,54 +1962,6 @@ func (fake *FakeBuild) PipelineReturnsOnCall(i int, result1 db.Pipeline, result2
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuild) Finish(arg1 db.BuildStatus) error {
-	fake.finishMutex.Lock()
-	ret, specificReturn := fake.finishReturnsOnCall[len(fake.finishArgsForCall)]
-	fake.finishArgsForCall = append(fake.finishArgsForCall, struct {
-		arg1 db.BuildStatus
-	}{arg1})
-	fake.recordInvocation("Finish", []interface{}{arg1})
-	fake.finishMutex.Unlock()
-	if fake.FinishStub != nil {
-		return fake.FinishStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.finishReturns.result1
-}
-
-func (fake *FakeBuild) FinishCallCount() int {
-	fake.finishMutex.RLock()
-	defer fake.finishMutex.RUnlock()
-	return len(fake.finishArgsForCall)
-}
-
-func (fake *FakeBuild) FinishArgsForCall(i int) db.BuildStatus {
-	fake.finishMutex.RLock()
-	defer fake.finishMutex.RUnlock()
-	return fake.finishArgsForCall[i].arg1
-}
-
-func (fake *FakeBuild) FinishReturns(result1 error) {
-	fake.FinishStub = nil
-	fake.finishReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) FinishReturnsOnCall(i int, result1 error) {
-	fake.FinishStub = nil
-	if fake.finishReturnsOnCall == nil {
-		fake.finishReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.finishReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeBuild) Delete() (bool, error) {
 	fake.deleteMutex.Lock()
 	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
@@ -2012,42 +2005,42 @@ func (fake *FakeBuild) DeleteReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) Abort() error {
-	fake.abortMutex.Lock()
-	ret, specificReturn := fake.abortReturnsOnCall[len(fake.abortArgsForCall)]
-	fake.abortArgsForCall = append(fake.abortArgsForCall, struct{}{})
-	fake.recordInvocation("Abort", []interface{}{})
-	fake.abortMutex.Unlock()
-	if fake.AbortStub != nil {
-		return fake.AbortStub()
+func (fake *FakeBuild) MarkAsAborted() error {
+	fake.markAsAbortedMutex.Lock()
+	ret, specificReturn := fake.markAsAbortedReturnsOnCall[len(fake.markAsAbortedArgsForCall)]
+	fake.markAsAbortedArgsForCall = append(fake.markAsAbortedArgsForCall, struct{}{})
+	fake.recordInvocation("MarkAsAborted", []interface{}{})
+	fake.markAsAbortedMutex.Unlock()
+	if fake.MarkAsAbortedStub != nil {
+		return fake.MarkAsAbortedStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.abortReturns.result1
+	return fake.markAsAbortedReturns.result1
 }
 
-func (fake *FakeBuild) AbortCallCount() int {
-	fake.abortMutex.RLock()
-	defer fake.abortMutex.RUnlock()
-	return len(fake.abortArgsForCall)
+func (fake *FakeBuild) MarkAsAbortedCallCount() int {
+	fake.markAsAbortedMutex.RLock()
+	defer fake.markAsAbortedMutex.RUnlock()
+	return len(fake.markAsAbortedArgsForCall)
 }
 
-func (fake *FakeBuild) AbortReturns(result1 error) {
-	fake.AbortStub = nil
-	fake.abortReturns = struct {
+func (fake *FakeBuild) MarkAsAbortedReturns(result1 error) {
+	fake.MarkAsAbortedStub = nil
+	fake.markAsAbortedReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeBuild) AbortReturnsOnCall(i int, result1 error) {
-	fake.AbortStub = nil
-	if fake.abortReturnsOnCall == nil {
-		fake.abortReturnsOnCall = make(map[int]struct {
+func (fake *FakeBuild) MarkAsAbortedReturnsOnCall(i int, result1 error) {
+	fake.MarkAsAbortedStub = nil
+	if fake.markAsAbortedReturnsOnCall == nil {
+		fake.markAsAbortedReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.abortReturnsOnCall[i] = struct {
+	fake.markAsAbortedReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -2161,6 +2154,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.engineMutex.RUnlock()
 	fake.engineMetadataMutex.RLock()
 	defer fake.engineMetadataMutex.RUnlock()
+	fake.publicPlanMutex.RLock()
+	defer fake.publicPlanMutex.RUnlock()
 	fake.statusMutex.RLock()
 	defer fake.statusMutex.RUnlock()
 	fake.startTimeMutex.RLock()
@@ -2185,12 +2180,12 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.preparationMutex.RUnlock()
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
-	fake.saveStatusMutex.RLock()
-	defer fake.saveStatusMutex.RUnlock()
+	fake.finishWithErrorMutex.RLock()
+	defer fake.finishWithErrorMutex.RUnlock()
+	fake.finishMutex.RLock()
+	defer fake.finishMutex.RUnlock()
 	fake.setInterceptibleMutex.RLock()
 	defer fake.setInterceptibleMutex.RUnlock()
-	fake.markAsFailedMutex.RLock()
-	defer fake.markAsFailedMutex.RUnlock()
 	fake.eventsMutex.RLock()
 	defer fake.eventsMutex.RUnlock()
 	fake.saveEventMutex.RLock()
@@ -2209,12 +2204,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.saveImageResourceVersionMutex.RUnlock()
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
-	fake.finishMutex.RLock()
-	defer fake.finishMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
-	fake.abortMutex.RLock()
-	defer fake.abortMutex.RUnlock()
+	fake.markAsAbortedMutex.RLock()
+	defer fake.markAsAbortedMutex.RUnlock()
 	fake.abortNotifierMutex.RLock()
 	defer fake.abortNotifierMutex.RUnlock()
 	fake.scheduleMutex.RLock()

@@ -129,7 +129,7 @@ func (j *job) FinishedAndNextBuild() (Build, Build, error) {
 	var finished, next Build
 
 	finishedBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err := scanBuild(finishedBuild, row)
+	err := scanBuild(finishedBuild, row, j.conn.EncryptionStrategy())
 	if err == nil {
 		finished = finishedBuild
 	} else if err != sql.ErrNoRows {
@@ -148,7 +148,7 @@ func (j *job) FinishedAndNextBuild() (Build, Build, error) {
 		QueryRow()
 
 	nextBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err = scanBuild(nextBuild, row)
+	err = scanBuild(nextBuild, row, j.conn.EncryptionStrategy())
 	if err == nil {
 		next = nextBuild
 	} else if err != sql.ErrNoRows {
@@ -250,7 +250,7 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 
 	for rows.Next() {
 		build := &build{conn: j.conn, lockFactory: j.lockFactory}
-		err = scanBuild(build, rows)
+		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, Pagination{}, err
 		}
@@ -306,7 +306,7 @@ func (j *job) Build(name string) (Build, bool, error) {
 
 	build := &build{conn: j.conn, lockFactory: j.lockFactory}
 
-	err := scanBuild(build, row)
+	err := scanBuild(build, row, j.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -332,7 +332,7 @@ func (j *job) GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bo
 	}
 
 	row := j.conn.QueryRow(`
-		SELECT DISTINCT `+qualifiedBuildColumns+`
+		SELECT DISTINCT ON (b.id) `+qualifiedBuildColumns+`
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
@@ -347,7 +347,7 @@ func (j *job) GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bo
 	`, args...)
 
 	build := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err = scanBuild(build, row)
+	err = scanBuild(build, row, j.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -373,7 +373,7 @@ func (j *job) GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, err
 	}
 
 	rows, err := j.conn.Query(`
-		SELECT DISTINCT `+qualifiedBuildColumns+`
+		SELECT DISTINCT ON (b.id) `+qualifiedBuildColumns+`
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
@@ -398,7 +398,7 @@ func (j *job) GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, err
 
 	for rows.Next() {
 		build := &build{conn: j.conn, lockFactory: j.lockFactory}
-		err = scanBuild(build, rows)
+		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
 		}
@@ -582,7 +582,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 
 	for rows.Next() {
 		build := &build{conn: j.conn, lockFactory: j.lockFactory}
-		err = scanBuild(build, rows)
+		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
 		}
@@ -623,6 +623,7 @@ func (j *job) CreateBuild() (Build, error) {
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
 		QueryRow(),
+		j.conn.EncryptionStrategy(),
 	)
 	if err != nil {
 		return nil, err

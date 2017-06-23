@@ -164,7 +164,7 @@ var _ = Describe("BuildFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(i).To(BeTrue())
 
-				err = b.SaveStatus(db.BuildStatusStarted)
+				_, err = b.Start("exec.v2", `{"so":"meta"}`, atc.Plan{})
 				Expect(err).NotTo(HaveOccurred())
 
 				err = buildFactory.MarkNonInterceptibleBuilds()
@@ -241,11 +241,11 @@ var _ = Describe("BuildFactory", func() {
 			_, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			started, err := build1DB.Start("some-engine", "so-meta")
+			started, err := build1DB.Start("some-engine", `{"so":"meta"}`, atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
-			started, err = build2DB.Start("some-engine", "so-meta")
+			started, err = build2DB.Start("some-engine", `{"so":"meta"}`, atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 		})

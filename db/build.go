@@ -27,14 +27,14 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name, p.id, p.name, t.name").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name, p.id, p.name, t.name, b.nonce").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id")
 
 // XXX not something we want to keep
-const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
+const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name, b.nonce"
 
 //go:generate counterfeiter . Build
 
@@ -49,6 +49,7 @@ type Build interface {
 	TeamName() string
 	Engine() string
 	EngineMetadata() string
+	PublicPlan() *json.RawMessage
 	Status() BuildStatus
 	StartTime() time.Time
 	EndTime() time.Time
@@ -64,10 +65,11 @@ type Build interface {
 	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
 	Preparation() (BuildPreparation, bool, error)
 
-	Start(string, string) (bool, error)
-	SaveStatus(BuildStatus) error
+	Start(string, string, atc.Plan) (bool, error)
+	FinishWithError(cause error) error
+	Finish(BuildStatus) error
+
 	SetInterceptible(bool) error
-	MarkAsFailed(cause error) error
 
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
@@ -82,9 +84,8 @@ type Build interface {
 
 	Pipeline() (Pipeline, bool, error)
 
-	Finish(BuildStatus) error
 	Delete() (bool, error)
-	Abort() error
+	MarkAsAborted() error
 	AbortNotifier() (Notifier, error)
 	Schedule() (bool, error)
 }
@@ -107,6 +108,7 @@ type build struct {
 
 	engine         string
 	engineMetadata string
+	publicPlan     *json.RawMessage
 
 	startTime time.Time
 	endTime   time.Time
@@ -118,22 +120,23 @@ type build struct {
 
 var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
 
-func (b *build) ID() int                   { return b.id }
-func (b *build) Name() string              { return b.name }
-func (b *build) JobID() int                { return b.jobID }
-func (b *build) JobName() string           { return b.jobName }
-func (b *build) PipelineID() int           { return b.pipelineID }
-func (b *build) PipelineName() string      { return b.pipelineName }
-func (b *build) TeamID() int               { return b.teamID }
-func (b *build) TeamName() string          { return b.teamName }
-func (b *build) IsManuallyTriggered() bool { return b.isManuallyTriggered }
-func (b *build) Engine() string            { return b.engine }
-func (b *build) EngineMetadata() string    { return b.engineMetadata }
-func (b *build) StartTime() time.Time      { return b.startTime }
-func (b *build) EndTime() time.Time        { return b.endTime }
-func (b *build) ReapTime() time.Time       { return b.reapTime }
-func (b *build) Status() BuildStatus       { return b.status }
-func (b *build) IsScheduled() bool         { return b.scheduled }
+func (b *build) ID() int                      { return b.id }
+func (b *build) Name() string                 { return b.name }
+func (b *build) JobID() int                   { return b.jobID }
+func (b *build) JobName() string              { return b.jobName }
+func (b *build) PipelineID() int              { return b.pipelineID }
+func (b *build) PipelineName() string         { return b.pipelineName }
+func (b *build) TeamID() int                  { return b.teamID }
+func (b *build) TeamName() string             { return b.teamName }
+func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
+func (b *build) Engine() string               { return b.engine }
+func (b *build) EngineMetadata() string       { return b.engineMetadata }
+func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
+func (b *build) StartTime() time.Time         { return b.startTime }
+func (b *build) EndTime() time.Time           { return b.endTime }
+func (b *build) ReapTime() time.Time          { return b.reapTime }
+func (b *build) Status() BuildStatus          { return b.status }
+func (b *build) IsScheduled() bool            { return b.scheduled }
 
 func (b *build) IsRunning() bool {
 	switch b.status {
@@ -149,7 +152,7 @@ func (b *build) Reload() (bool, error) {
 		RunWith(b.conn).
 		QueryRow()
 
-	err := scanBuild(b, row)
+	err := scanBuild(b, row, b.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
@@ -203,7 +206,7 @@ func (b *build) SetInterceptible(i bool) error {
 
 }
 
-func (b *build) Start(engine, metadata string) (bool, error) {
+func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return false, err
@@ -211,13 +214,20 @@ func (b *build) Start(engine, metadata string) (bool, error) {
 
 	defer tx.Rollback()
 
+	encryptedMetadata, nonce, err := b.conn.EncryptionStrategy().Encrypt([]byte(metadata))
+	if err != nil {
+		return false, err
+	}
+
 	var startTime time.Time
 
 	err = psql.Update("builds").
 		Set("status", "started").
 		Set("start_time", sq.Expr("now()")).
 		Set("engine", engine).
-		Set("engine_metadata", metadata).
+		Set("engine_metadata", encryptedMetadata).
+		Set("public_plan", plan.Public()).
+		Set("nonce", nonce).
 		Where(sq.Eq{
 			"id":     b.id,
 			"status": "pending",
@@ -254,31 +264,7 @@ func (b *build) Start(engine, metadata string) (bool, error) {
 	return true, nil
 }
 
-func (b *build) SaveStatus(status BuildStatus) error {
-	rows, err := psql.Update("builds").
-		Set("status", status).
-		Where(sq.Eq{
-			"id": b.id,
-		}).
-		RunWith(b.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if affected == 0 {
-		return ErrBuildDisappeared
-	}
-
-	return nil
-}
-
-func (b *build) MarkAsFailed(cause error) error {
+func (b *build) FinishWithError(cause error) error {
 	err := b.SaveEvent(event.Error{
 		Message: cause.Error(),
 	})
@@ -303,6 +289,8 @@ func (b *build) Finish(status BuildStatus) error {
 		Set("status", status).
 		Set("end_time", sq.Expr("now()")).
 		Set("completed", true).
+		Set("engine_metadata", nil).
+		Set("nonce", nil).
 		Where(sq.Eq{"id": b.id}).
 		Suffix("RETURNING end_time").
 		RunWith(tx).
@@ -375,7 +363,13 @@ func (b *build) Delete() (bool, error) {
 	return true, nil
 }
 
-func (b *build) Abort() error {
+// MarkAsAborted will send the abort notification to all build abort
+// channel listeners. It will set the status to aborted that will make
+// AbortNotifier send notification in case if tracking ATC misses the first
+// notification on abort channel.
+// Setting status as aborted will also make Start() return false in case where
+// build was aborted before it was started.
+func (b *build) MarkAsAborted() error {
 	_, err := psql.Update("builds").
 		Set("status", string(BuildStatusAborted)).
 		Where(sq.Eq{"id": b.id}).
@@ -393,6 +387,9 @@ func (b *build) Abort() error {
 	return nil
 }
 
+// AbortNotifier returns a Notifier that can be watched for when the build
+// is marked as aborted. Once the build is marked as aborted it will send a
+// notification to finish the build to ATC that is tracking this build.
 func (b *build) AbortNotifier() (Notifier, error) {
 	return newConditionNotifier(b.conn.Bus(), buildAbortChannel(b.id), func() (bool, error) {
 		var aborted bool
@@ -964,16 +961,17 @@ func buildEventSeq(buildid int) string {
 	return fmt.Sprintf("build_event_id_seq_%d", buildid)
 }
 
-func scanBuild(b *build, row scannable) error {
+func scanBuild(b *build, row scannable, encryptionStrategy EncryptionStrategy) error {
 	var (
-		jobID, pipelineID                             sql.NullInt64
-		engine, engineMetadata, jobName, pipelineName sql.NullString
-		startTime, endTime, reapTime                  pq.NullTime
+		jobID, pipelineID                                         sql.NullInt64
+		engine, engineMetadata, jobName, pipelineName, publicPlan sql.NullString
+		startTime, endTime, reapTime                              pq.NullTime
+		nonce                                                     sql.NullString
 
 		status string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &engine, &engineMetadata, &publicPlan, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce)
 	if err != nil {
 		return err
 	}
@@ -984,10 +982,28 @@ func scanBuild(b *build, row scannable) error {
 	b.pipelineName = pipelineName.String
 	b.pipelineID = int(pipelineID.Int64)
 	b.engine = engine.String
-	b.engineMetadata = engineMetadata.String
 	b.startTime = startTime.Time
 	b.endTime = endTime.Time
 	b.reapTime = reapTime.Time
+
+	var noncense *string
+	if nonce.Valid {
+		noncense = &nonce.String
+		decryptedEngineMetadata, err := encryptionStrategy.Decrypt(string(engineMetadata.String), noncense)
+		if err != nil {
+			return err
+		}
+		b.engineMetadata = string(decryptedEngineMetadata)
+	} else {
+		b.engineMetadata = engineMetadata.String
+	}
+
+	if publicPlan.Valid {
+		err = json.Unmarshal([]byte(publicPlan.String), &b.publicPlan)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

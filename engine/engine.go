@@ -21,8 +21,6 @@ type Engine interface {
 type Build interface {
 	Metadata() string
 
-	PublicPlan(lager.Logger) (atc.PublicBuildPlan, error)
-
 	Abort(lager.Logger) error
 	Resume(lager.Logger)
 }

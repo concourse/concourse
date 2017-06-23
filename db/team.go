@@ -760,6 +760,7 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
 		QueryRow(),
+		t.conn.EncryptionStrategy(),
 	)
 	if err != nil {
 		return nil, err

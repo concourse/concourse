@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -103,7 +102,7 @@ var _ = Describe("DBEngine", func() {
 			It("starts the build in the database", func() {
 				Expect(dbBuild.StartCallCount()).To(Equal(1))
 
-				engine, metadata := dbBuild.StartArgsForCall(0)
+				engine, metadata, _ := dbBuild.StartArgsForCall(0)
 				Expect(engine).To(Equal("fake-engine-a"))
 				Expect(metadata).To(Equal("some-metadata"))
 			})
@@ -178,7 +177,7 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("marks the build as aborted", func() {
-					Expect(dbBuild.AbortCallCount()).To(Equal(1))
+					Expect(dbBuild.MarkAsAbortedCallCount()).To(Equal(1))
 				})
 			})
 
@@ -192,7 +191,7 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("marks the build as aborted", func() {
-					Expect(dbBuild.AbortCallCount()).To(Equal(1))
+					Expect(dbBuild.MarkAsAbortedCallCount()).To(Equal(1))
 				})
 			})
 
@@ -206,7 +205,7 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("does not mark the build as aborted", func() {
-					Expect(dbBuild.AbortCallCount()).To(Equal(0))
+					Expect(dbBuild.MarkAsAbortedCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -241,7 +240,7 @@ var _ = Describe("DBEngine", func() {
 						dbBuild.ReloadReturns(true, nil)
 						dbBuild.EngineReturns("fake-engine-b")
 
-						dbBuild.AbortStub = func() error {
+						dbBuild.MarkAsAbortedStub = func() error {
 							Expect(dbBuild.AcquireTrackingLockCallCount()).To(Equal(1))
 
 							_, interval := dbBuild.AcquireTrackingLockArgsForCall(0)
@@ -265,7 +264,7 @@ var _ = Describe("DBEngine", func() {
 
 						Context("when aborting the db build succeeds", func() {
 							BeforeEach(func() {
-								dbBuild.AbortReturns(nil)
+								dbBuild.MarkAsAbortedReturns(nil)
 							})
 
 							It("succeeds", func() {
@@ -277,7 +276,7 @@ var _ = Describe("DBEngine", func() {
 							})
 
 							It("aborts the build via the db", func() {
-								Expect(dbBuild.AbortCallCount()).To(Equal(1))
+								Expect(dbBuild.MarkAsAbortedCallCount()).To(Equal(1))
 							})
 
 							It("aborts the real build", func() {
@@ -289,7 +288,7 @@ var _ = Describe("DBEngine", func() {
 							disaster := errors.New("oh no!")
 
 							BeforeEach(func() {
-								dbBuild.AbortReturns(disaster)
+								dbBuild.MarkAsAbortedReturns(disaster)
 							})
 
 							It("returns the error", func() {
@@ -351,7 +350,7 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("aborts the build in the db", func() {
-						Expect(dbBuild.AbortCallCount()).To(Equal(1))
+						Expect(dbBuild.MarkAsAbortedCallCount()).To(Equal(1))
 					})
 
 					It("finishes the build in the db so that the aborted event is emitted", func() {
@@ -376,7 +375,7 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("aborts the build in the db", func() {
-						Expect(dbBuild.AbortCallCount()).To(Equal(1))
+						Expect(dbBuild.MarkAsAbortedCallCount()).To(Equal(1))
 					})
 
 					It("does not finish the build", func() {
@@ -399,7 +398,7 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("does not abort the build in the db", func() {
-					Expect(dbBuild.AbortCallCount()).To(Equal(0))
+					Expect(dbBuild.MarkAsAbortedCallCount()).To(Equal(0))
 				})
 			})
 
@@ -410,7 +409,7 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when aborting the build in the db succeeds", func() {
 					BeforeEach(func() {
-						dbBuild.AbortReturns(nil)
+						dbBuild.MarkAsAbortedReturns(nil)
 					})
 
 					It("succeeds", func() {
@@ -418,7 +417,7 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("aborts the build in the db", func() {
-						Expect(dbBuild.AbortCallCount()).To(Equal(1))
+						Expect(dbBuild.MarkAsAbortedCallCount()).To(Equal(1))
 					})
 
 					It("does not abort the real build", func() {
@@ -431,7 +430,7 @@ var _ = Describe("DBEngine", func() {
 					disaster := errors.New("oh no!")
 
 					BeforeEach(func() {
-						dbBuild.AbortReturns(disaster)
+						dbBuild.MarkAsAbortedReturns(disaster)
 					})
 
 					It("fails", func() {
@@ -616,9 +615,9 @@ var _ = Describe("DBEngine", func() {
 						})
 
 						It("marks the build as errored", func() {
-							Expect(dbBuild.FinishCallCount()).To(Equal(1))
-							buildStatus := dbBuild.FinishArgsForCall(0)
-							Expect(buildStatus).To(Equal(db.BuildStatusErrored))
+							Expect(dbBuild.FinishWithErrorCallCount()).To(Equal(1))
+							finishErr := dbBuild.FinishWithErrorArgsForCall(0)
+							Expect(finishErr).To(Equal(disaster))
 						})
 					})
 				})
@@ -631,9 +630,9 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("marks the build as errored", func() {
-						Expect(dbBuild.FinishCallCount()).To(Equal(1))
-						buildStatus := dbBuild.FinishArgsForCall(0)
-						Expect(buildStatus).To(Equal(db.BuildStatusErrored))
+						Expect(dbBuild.FinishWithErrorCallCount()).To(Equal(1))
+						finishErr := dbBuild.FinishWithErrorArgsForCall(0)
+						Expect(finishErr).To(Equal(UnknownEngineError{Engine: "bogus"}))
 					})
 				})
 
@@ -690,124 +689,6 @@ var _ = Describe("DBEngine", func() {
 
 				It("does not look up the build", func() {
 					Expect(dbBuild.ReloadCallCount()).To(BeZero())
-					Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
-				})
-			})
-		})
-
-		Describe("PublicPlan", func() {
-			var logger lager.Logger
-
-			var publicPlan atc.PublicBuildPlan
-			var publicPlanErr error
-
-			BeforeEach(func() {
-				logger = lagertest.NewTestLogger("test")
-			})
-
-			JustBeforeEach(func() {
-				publicPlan, publicPlanErr = build.PublicPlan(logger)
-			})
-
-			var fakeLock *lockfakes.FakeLock
-
-			BeforeEach(func() {
-				fakeLock = new(lockfakes.FakeLock)
-				dbBuild.AcquireTrackingLockReturns(fakeLock, true, nil)
-			})
-
-			Context("when the build is active", func() {
-				BeforeEach(func() {
-					dbBuild.EngineReturns("fake-engine-b")
-					dbBuild.ReloadReturns(true, nil)
-				})
-
-				Context("when the engine build exists", func() {
-					var realBuild *enginefakes.FakeBuild
-
-					BeforeEach(func() {
-						realBuild = new(enginefakes.FakeBuild)
-
-						fakeEngineB.LookupBuildReturns(realBuild, nil)
-					})
-
-					Context("when getting the plan via the engine succeeds", func() {
-						BeforeEach(func() {
-							var plan json.RawMessage = []byte("lol")
-
-							realBuild.PublicPlanReturns(atc.PublicBuildPlan{
-								Schema: "some-schema",
-								Plan:   &plan,
-							}, nil)
-						})
-
-						It("succeeds", func() {
-							Expect(publicPlanErr).ToNot(HaveOccurred())
-						})
-
-						It("returns the public plan from the engine", func() {
-							var plan json.RawMessage = []byte("lol")
-
-							Expect(publicPlan).To(Equal(atc.PublicBuildPlan{
-								Schema: "some-schema",
-								Plan:   &plan,
-							}))
-						})
-					})
-
-					Context("when getting the plan via the engine fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							realBuild.PublicPlanReturns(atc.PublicBuildPlan{}, disaster)
-						})
-
-						It("returns the error", func() {
-							Expect(publicPlanErr).To(Equal(disaster))
-						})
-					})
-				})
-
-				Context("when looking up the engine build fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeEngineB.LookupBuildReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(publicPlanErr).To(Equal(disaster))
-					})
-				})
-			})
-
-			Context("when the build's engine is unknown", func() {
-				BeforeEach(func() {
-					dbBuild.EngineReturns("bogus")
-				})
-
-				It("returns an UnknownEngineError", func() {
-					Expect(publicPlanErr).To(Equal(UnknownEngineError{"bogus"}))
-				})
-			})
-
-			Context("when the build is not yet active", func() {
-				BeforeEach(func() {
-					dbBuild.ReloadReturns(true, nil)
-					dbBuild.EngineReturns("")
-				})
-
-				It("does not look up the build in the engine", func() {
-					Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
-				})
-			})
-
-			Context("when the build is no longer in the database", func() {
-				BeforeEach(func() {
-					dbBuild.ReloadReturns(false, nil)
-				})
-
-				It("does not look up the build in the engine", func() {
 					Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 				})
 			})

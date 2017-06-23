@@ -172,4 +172,5 @@ var Migrations = []migration.Migrator{
 	DropInitializedFromVolumes,
 	AddUniqueWorkerResourceCacheIDToVolumes,
 	AddBuildImageResourceCaches,
+	AddNonceAndPublicPlanToBuilds,
 }

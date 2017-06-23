@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/engine"
 )
 
@@ -18,19 +17,6 @@ type FakeBuild struct {
 	}
 	metadataReturnsOnCall map[int]struct {
 		result1 string
-	}
-	PublicPlanStub        func(lager.Logger) (atc.PublicBuildPlan, error)
-	publicPlanMutex       sync.RWMutex
-	publicPlanArgsForCall []struct {
-		arg1 lager.Logger
-	}
-	publicPlanReturns struct {
-		result1 atc.PublicBuildPlan
-		result2 error
-	}
-	publicPlanReturnsOnCall map[int]struct {
-		result1 atc.PublicBuildPlan
-		result2 error
 	}
 	AbortStub        func(lager.Logger) error
 	abortMutex       sync.RWMutex
@@ -90,57 +76,6 @@ func (fake *FakeBuild) MetadataReturnsOnCall(i int, result1 string) {
 	fake.metadataReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
-}
-
-func (fake *FakeBuild) PublicPlan(arg1 lager.Logger) (atc.PublicBuildPlan, error) {
-	fake.publicPlanMutex.Lock()
-	ret, specificReturn := fake.publicPlanReturnsOnCall[len(fake.publicPlanArgsForCall)]
-	fake.publicPlanArgsForCall = append(fake.publicPlanArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("PublicPlan", []interface{}{arg1})
-	fake.publicPlanMutex.Unlock()
-	if fake.PublicPlanStub != nil {
-		return fake.PublicPlanStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.publicPlanReturns.result1, fake.publicPlanReturns.result2
-}
-
-func (fake *FakeBuild) PublicPlanCallCount() int {
-	fake.publicPlanMutex.RLock()
-	defer fake.publicPlanMutex.RUnlock()
-	return len(fake.publicPlanArgsForCall)
-}
-
-func (fake *FakeBuild) PublicPlanArgsForCall(i int) lager.Logger {
-	fake.publicPlanMutex.RLock()
-	defer fake.publicPlanMutex.RUnlock()
-	return fake.publicPlanArgsForCall[i].arg1
-}
-
-func (fake *FakeBuild) PublicPlanReturns(result1 atc.PublicBuildPlan, result2 error) {
-	fake.PublicPlanStub = nil
-	fake.publicPlanReturns = struct {
-		result1 atc.PublicBuildPlan
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) PublicPlanReturnsOnCall(i int, result1 atc.PublicBuildPlan, result2 error) {
-	fake.PublicPlanStub = nil
-	if fake.publicPlanReturnsOnCall == nil {
-		fake.publicPlanReturnsOnCall = make(map[int]struct {
-			result1 atc.PublicBuildPlan
-			result2 error
-		})
-	}
-	fake.publicPlanReturnsOnCall[i] = struct {
-		result1 atc.PublicBuildPlan
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeBuild) Abort(arg1 lager.Logger) error {
@@ -220,8 +155,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.metadataMutex.RLock()
 	defer fake.metadataMutex.RUnlock()
-	fake.publicPlanMutex.RLock()
-	defer fake.publicPlanMutex.RUnlock()
 	fake.abortMutex.RLock()
 	defer fake.abortMutex.RUnlock()
 	fake.resumeMutex.RLock()

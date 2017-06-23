@@ -11,13 +11,5 @@ func AddNonceToPipelines(tx migration.LimitedTx) error {
 		return err
 	}
 
-	_, err = tx.Exec(`
-		ALTER TABLE pipelines
-		ALTER COLUMN config TYPE text;
-`)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
