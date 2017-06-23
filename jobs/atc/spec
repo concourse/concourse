@@ -437,10 +437,10 @@ properties:
     description: |
       Client token to use for accessing your Vault server.
     default: ""
-  vault.auth.tls.client_cert:
+  vault.auth.tls.client.certificate:
     description: |
       Client certificate for Vault communication.
-  vault.auth.tls.client_key:
+  vault.auth.tls.client.private_key:
     description: |
       Client private key for Vault communication.
   vault.auth.tls.role_name:

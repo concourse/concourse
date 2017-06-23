@@ -212,7 +212,7 @@ case $1 in
       <% end %> \
       --vault-auth-method <%= esc(p("vault.auth.method")) %> \
       --vault-client-token <%= esc(p("vault.auth.client_token")) %> \
-      <% if_p("vault.auth.tls.client_cert", "vault.auth.tls.client_key") do %> \
+      <% if_p("vault.auth.tls.client.certificate", "vault.auth.tls.client.private_key") do %> \
       --vault-auth-tls-client-cert /var/vcap/jobs/atc/config/vault_client_cert \
       --vault-auth-tls-client-key /var/vcap/jobs/atc/config/vault_client_key \
       <% end %> \
