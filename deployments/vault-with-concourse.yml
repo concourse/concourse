@@ -7,7 +7,7 @@ releases:
 - name: garden-runc
   version: ((garden-runc-release-version))
 - name: vault
-  version: latest
+  version: ((vault-release-version))
 
 instance_groups:
 - name: vault

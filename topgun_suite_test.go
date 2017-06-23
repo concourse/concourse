@@ -44,6 +44,7 @@ var (
 	atcExternalURL string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion string
+	gitServerReleaseVersion, vaultReleaseVersion      string
 	stemcellVersion                                   string
 
 	pipelineName string
@@ -104,6 +105,16 @@ var _ = BeforeEach(func() {
 		gardenRuncReleaseVersion = "latest"
 	}
 
+	gitServerReleaseVersion = os.Getenv("GIT_SERVER_RELEASE_VERSION")
+	if gitServerReleaseVersion == "" {
+		gitServerReleaseVersion = "latest"
+	}
+
+	vaultReleaseVersion = os.Getenv("VAULT_RELEASE_VERSION")
+	if vaultReleaseVersion == "" {
+		vaultReleaseVersion = "latest"
+	}
+
 	stemcellVersion = os.Getenv("STEMCELL_VERSION")
 	if stemcellVersion == "" {
 		stemcellVersion = "latest"
@@ -141,6 +152,8 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 			"-v", "deployment-name=" + deploymentName,
 			"-v", "concourse-release-version=" + concourseReleaseVersion,
 			"-v", "garden-runc-release-version=" + gardenRuncReleaseVersion,
+			"-v", "vault-release-version=" + vaultReleaseVersion,
+			"-v", "git-server-release-version=" + gitServerReleaseVersion,
 
 			// 3363.10 becomes 3363.1 as it's floating point; quotes prevent that
 			"-v", "stemcell-version='" + stemcellVersion + "'",
