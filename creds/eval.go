@@ -22,10 +22,5 @@ func evaluate(variablesResolver Variables, in, out interface{}) error {
 		return err
 	}
 
-	err = yaml.Unmarshal(bytes, out)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return yaml.Unmarshal(bytes, out)
 }

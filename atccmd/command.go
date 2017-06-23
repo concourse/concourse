@@ -13,7 +13,6 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
-	"path"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -25,7 +24,6 @@ import (
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/creds/noop"
-	"github.com/concourse/atc/creds/vault"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/engine"
@@ -47,7 +45,6 @@ import (
 	"github.com/cppforlife/go-semi-semantic/version"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
-	vaultapi "github.com/hashicorp/vault/api"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -66,15 +63,13 @@ import (
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/atc/metric/emitter"
+
+	// dynamically registered credential managers
+	_ "github.com/concourse/atc/creds/vault"
 )
 
 type ATCCommand struct {
 	Logger LagerFlag
-
-	Authentication atc.AuthFlags `group:"Authentication"`
-
-	// populated by main.go as providers inject their flags dynamically
-	ProviderAuth map[string]provider.AuthConfig
 
 	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
@@ -86,39 +81,20 @@ type ATCCommand struct {
 	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
 
-	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
+	Authentication atc.AuthFlags `group:"Authentication"`
+	ProviderAuth   provider.AuthConfigs
 
 	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 
-	EncryptionKey    CipherFlag `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
-	OldEncryptionKey CipherFlag `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
-
-	Vault struct {
-		URL URLFlag `long:"url" description:"Vault server address used to access secrets."`
-
-		PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
-
-		TLS struct {
-			CACert     string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
-			CAPath     string `long:"ca-path"              description:"Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert."`
-			ServerName string `long:"server-name"          description:"If set, is used to set the SNI host when connecting via TLS."`
-			Insecure   bool   `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
-		}
-
-		Auth struct {
-			Method string `long:"auth-method" description:"Auth method to use if no token is provided. Defaults to the backend for the auth specified, e.g. 'cert'."`
-
-			ClientToken string `long:"client-token" description:"Vault client token for accessing secrets within the Vault server."`
-
-			TLS struct {
-				RoleName   string `long:"auth-tls-role-name"   description:"Role name to which to authenticate if a token is not specified."`
-				ClientCert string `long:"auth-tls-client-cert" description:"Path to the certificate for Vault communication."`
-				ClientKey  string `long:"auth-tls-client-key"  description:"Path to the private key for Vault communication."`
-			}
-		}
-	} `group:"Vault Options" namespace:"vault"`
+	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
 
 	Postgres PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
+
+	CredentialManagement struct{} `group:"Credential Management"`
+	CredentialManagers   creds.Managers
+
+	EncryptionKey    CipherFlag `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey CipherFlag `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
 
 	DebugBindIP   IPFlag `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16 `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
@@ -165,6 +141,7 @@ type ATCCommand struct {
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	var authGroup *flags.Group
 	var metricsGroup *flags.Group
+	var credsGroup *flags.Group
 
 	groups := commandFlags.Groups()
 	for i := 0; i < len(groups); i++ {
@@ -174,11 +151,15 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 			authGroup = group
 		}
 
+		if credsGroup == nil && group.ShortDescription == "Credential Management" {
+			credsGroup = group
+		}
+
 		if metricsGroup == nil && group.ShortDescription == "Metrics & Diagnostics" {
 			metricsGroup = group
 		}
 
-		if metricsGroup != nil && authGroup != nil {
+		if metricsGroup != nil && authGroup != nil && credsGroup != nil {
 			break
 		}
 
@@ -190,16 +171,24 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	}
 
 	if metricsGroup == nil {
-		panic("could not find Metrics & Diagnostics group for registering providers")
+		panic("could not find Metrics & Diagnostics group for registering emitters")
+	}
+
+	if credsGroup == nil {
+		panic("could not find Credential Management group for registering managers")
 	}
 
 	authConfigs := make(provider.AuthConfigs)
-
 	for name, p := range provider.GetProviders() {
 		authConfigs[name] = p.AddAuthGroup(authGroup)
 	}
-
 	cmd.ProviderAuth = authConfigs
+
+	managerConfigs := make(creds.Managers)
+	for name, p := range creds.ManagerFactories() {
+		managerConfigs[name] = p.AddConfig(authGroup)
+	}
+	cmd.CredentialManagers = managerConfigs
 
 	metric.WireEmitters(metricsGroup)
 }
@@ -241,69 +230,25 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	retryingDriverName := "too-many-connections-retrying"
 	db.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
 
-	var variablesFactory creds.VariablesFactory
-	if cmd.Vault.URL.URL() != nil {
-		config := vaultapi.DefaultConfig()
+	var variablesFactory creds.VariablesFactory = noop.NewNoopFactory()
+	for name, manager := range cmd.CredentialManagers {
+		if !manager.IsConfigured() {
+			continue
+		}
 
-		err := config.ConfigureTLS(&vaultapi.TLSConfig{
-			CACert:        cmd.Vault.TLS.CACert,
-			CAPath:        cmd.Vault.TLS.CAPath,
-			TLSServerName: cmd.Vault.TLS.ServerName,
-			Insecure:      cmd.Vault.TLS.Insecure,
+		err := manager.Validate()
+		if err != nil {
+			return nil, fmt.Errorf("credential manager '%s' misconfigured: %s", name, err)
+		}
 
-			ClientCert: cmd.Vault.Auth.TLS.ClientCert,
-			ClientKey:  cmd.Vault.Auth.TLS.ClientKey,
-		})
+		variablesFactory, err = manager.NewVariablesFactory(logger.Session("credential-manager", lager.Data{
+			"name": name,
+		}))
 		if err != nil {
 			return nil, err
 		}
 
-		client, err := vaultapi.NewClient(config)
-		if err != nil {
-			return nil, err
-		}
-
-		err = client.SetAddress(cmd.Vault.URL.String())
-		if err != nil {
-			return nil, err
-		}
-
-		c := client.Logical()
-
-		token := cmd.Vault.Auth.ClientToken
-		if token == "" {
-			method := cmd.Vault.Auth.Method
-			params := map[string]interface{}{}
-
-			if cmd.Vault.Auth.TLS.ClientCert != "" && cmd.Vault.Auth.TLS.ClientKey != "" {
-				method = "cert"
-
-				if cmd.Vault.Auth.TLS.RoleName != "" {
-					params["name"] = cmd.Vault.Auth.TLS.RoleName
-				}
-			} else {
-				return nil, fmt.Errorf("no token specified and no auth backend configured for Vault")
-			}
-
-			secret, err := c.Write(path.Join("auth", method, "login"), params)
-			if err != nil {
-				return nil, fmt.Errorf("failed to log in to vault: %s", err)
-			}
-
-			logger.Info("logged-in-to-vault", lager.Data{
-				"token-accessor": secret.Auth.Accessor,
-				"lease-duration": secret.Auth.LeaseDuration,
-				"policies":       secret.Auth.Policies,
-			})
-
-			token = secret.Auth.ClientToken
-		}
-
-		client.SetToken(token)
-
-		variablesFactory = vault.NewVaultFactory(*c, cmd.Vault.PathPrefix)
-	} else {
-		variablesFactory = noop.NewNoopFactory()
+		break
 	}
 
 	var newKey *db.EncryptionKey
