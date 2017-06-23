@@ -14,71 +14,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-type vault struct {
-	ip               string
-	key1, key2, key3 string
-	token            string
-	caCert           string
-}
-
-func newVault(ip string) *vault {
-	v := &vault{
-		ip: ip,
-	}
-	v.init()
-	return v
-}
-
-func (v *vault) SetCA(filename string) { v.caCert = filename }
-func (v *vault) IP() string            { return v.ip }
-func (v *vault) ClientToken() string   { return v.token }
-func (v *vault) URI() string {
-	if v.caCert == "" {
-		return "http://" + v.ip + ":8200"
-	}
-
-	return "https://" + v.ip + ":8200"
-}
-
-func (v *vault) Run(command string, args ...string) *gexec.Session {
-	cmd := exec.Command("vault", append([]string{command}, args...)...)
-	cmd.Env = append(
-		os.Environ(),
-		"VAULT_ADDR="+v.URI(),
-		"VAULT_TOKEN="+v.token,
-	)
-
-	if v.caCert != "" {
-		cmd.Env = append(
-			cmd.Env,
-			"VAULT_CACERT="+v.caCert,
-			"VAULT_SKIP_VERIFY=true",
-		)
-	}
-
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-	wait(session)
-	return session
-}
-
-func (v *vault) init() {
-	init := v.Run("init")
-	content := string(init.Out.Contents())
-	v.key1 = regexp.MustCompile(`Unseal Key 1: (.*)`).FindStringSubmatch(content)[1]
-	v.key2 = regexp.MustCompile(`Unseal Key 2: (.*)`).FindStringSubmatch(content)[1]
-	v.key3 = regexp.MustCompile(`Unseal Key 3: (.*)`).FindStringSubmatch(content)[1]
-	v.token = regexp.MustCompile(`Initial Root Token: (.*)`).FindStringSubmatch(content)[1]
-	v.Unseal()
-	v.Run("mount", "-path", "concourse/main", "generic")
-}
-
-func (v *vault) Unseal() {
-	v.Run("unseal", v.key1)
-	v.Run("unseal", v.key2)
-	v.Run("unseal", v.key3)
-}
-
 var _ = Describe("Vault", func() {
 	pgDump := func() *gexec.Session {
 		dump := exec.Command("pg_dump", "-U", "atc", "-h", dbInstance.IP, "atc")
@@ -258,3 +193,68 @@ var _ = Describe("Vault", func() {
 		})
 	})
 })
+
+type vault struct {
+	ip               string
+	key1, key2, key3 string
+	token            string
+	caCert           string
+}
+
+func newVault(ip string) *vault {
+	v := &vault{
+		ip: ip,
+	}
+	v.init()
+	return v
+}
+
+func (v *vault) SetCA(filename string) { v.caCert = filename }
+func (v *vault) IP() string            { return v.ip }
+func (v *vault) ClientToken() string   { return v.token }
+func (v *vault) URI() string {
+	if v.caCert == "" {
+		return "http://" + v.ip + ":8200"
+	}
+
+	return "https://" + v.ip + ":8200"
+}
+
+func (v *vault) Run(command string, args ...string) *gexec.Session {
+	cmd := exec.Command("vault", append([]string{command}, args...)...)
+	cmd.Env = append(
+		os.Environ(),
+		"VAULT_ADDR="+v.URI(),
+		"VAULT_TOKEN="+v.token,
+	)
+
+	if v.caCert != "" {
+		cmd.Env = append(
+			cmd.Env,
+			"VAULT_CACERT="+v.caCert,
+			"VAULT_SKIP_VERIFY=true",
+		)
+	}
+
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).ToNot(HaveOccurred())
+	wait(session)
+	return session
+}
+
+func (v *vault) init() {
+	init := v.Run("init")
+	content := string(init.Out.Contents())
+	v.key1 = regexp.MustCompile(`Unseal Key 1: (.*)`).FindStringSubmatch(content)[1]
+	v.key2 = regexp.MustCompile(`Unseal Key 2: (.*)`).FindStringSubmatch(content)[1]
+	v.key3 = regexp.MustCompile(`Unseal Key 3: (.*)`).FindStringSubmatch(content)[1]
+	v.token = regexp.MustCompile(`Initial Root Token: (.*)`).FindStringSubmatch(content)[1]
+	v.Unseal()
+	v.Run("mount", "-path", "concourse/main", "generic")
+}
+
+func (v *vault) Unseal() {
+	v.Run("unseal", v.key1)
+	v.Run("unseal", v.key2)
+	v.Run("unseal", v.key3)
+}
