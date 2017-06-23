@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"path"
 
 	"code.cloudfoundry.org/lager"
 
@@ -94,36 +93,5 @@ func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.Vari
 		return nil, err
 	}
 
-	c := client.Logical()
-
-	token := manager.Auth.ClientToken
-	if token == "" {
-		method := manager.Auth.Method
-		params := map[string]interface{}{}
-
-		if manager.Auth.TLS.ClientCert != "" && manager.Auth.TLS.ClientKey != "" {
-			method = "cert"
-
-			if manager.Auth.TLS.RoleName != "" {
-				params["name"] = manager.Auth.TLS.RoleName
-			}
-		}
-
-		secret, err := c.Write(path.Join("auth", method, "login"), params)
-		if err != nil {
-			return nil, fmt.Errorf("failed to log in to vault: %s", err)
-		}
-
-		logger.Info("logged-in-to-vault", lager.Data{
-			"token-accessor": secret.Auth.Accessor,
-			"lease-duration": secret.Auth.LeaseDuration,
-			"policies":       secret.Auth.Policies,
-		})
-
-		token = secret.Auth.ClientToken
-	}
-
-	client.SetToken(token)
-
-	return NewVaultFactory(*c, manager.PathPrefix), nil
+	return NewVaultFactory(logger, client, manager.Auth, manager.PathPrefix), nil
 }
