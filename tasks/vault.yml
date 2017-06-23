@@ -3,10 +3,10 @@ platform: linux
 
 image_resource:
   type: docker-image
-  source: {repository: ((image-resource-repository))}
+  source: {repository: ((image_resource_repository))}
 
 params:
-  SECRET: ((task-secret))
+  SECRET: ((task_secret))
 
 run:
   path: sh

@@ -1,11 +1,11 @@
 ---
-name: ((deployment-name))
+name: ((deployment_name))
 
 releases:
 - name: concourse
-  version: ((concourse-release-version))
+  version: ((concourse_release_version))
 - name: garden-runc
-  version: ((garden-runc-release-version))
+  version: ((garden_runc_release_version))
 
 instance_groups:
 - name: concourse
@@ -57,7 +57,7 @@ instance_groups:
 stemcells:
 - alias: trusty
   os: ubuntu-trusty
-  version: ((stemcell-version))
+  version: ((stemcell_version))
 
 update:
   canaries: 1

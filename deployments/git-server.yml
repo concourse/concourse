@@ -3,7 +3,7 @@ name: git-server
 
 releases:
 - name: git-server
-  version: ((git-server-release-version))
+  version: ((git_server_release_version))
 
 instance_groups:
 - name: git-server
@@ -22,7 +22,7 @@ instance_groups:
 stemcells:
 - alias: trusty
   os: ubuntu-trusty
-  version: ((stemcell-version))
+  version: ((stemcell_version))
 
 update:
   canaries: 1

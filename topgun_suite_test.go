@@ -149,14 +149,12 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 	return spawnBosh(
 		append([]string{
 			"deploy", manifest,
-			"-v", "deployment-name=" + deploymentName,
-			"-v", "concourse-release-version=" + concourseReleaseVersion,
-			"-v", "garden-runc-release-version=" + gardenRuncReleaseVersion,
-			"-v", "vault-release-version=" + vaultReleaseVersion,
-			"-v", "git-server-release-version=" + gitServerReleaseVersion,
-
-			// 3363.10 becomes 3363.1 as it's floating point; quotes prevent that
-			"-v", "stemcell-version='" + stemcellVersion + "'",
+			"-v", "deployment_name='" + deploymentName + "'",
+			"-v", "concourse_release_version='" + concourseReleaseVersion + "'",
+			"-v", "garden_runc_release_version='" + gardenRuncReleaseVersion + "'",
+			"-v", "vault_release_version='" + vaultReleaseVersion + "'",
+			"-v", "git_server_release_version='" + gitServerReleaseVersion + "'",
+			"-v", "stemcell_version='" + stemcellVersion + "'",
 		}, args...)...,
 	)
 }

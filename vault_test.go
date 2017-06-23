@@ -62,11 +62,11 @@ var _ = Describe("Vault", func() {
 		testVaultIntegration := func() {
 			Context("with a pipeline build", func() {
 				BeforeEach(func() {
-					v.Run("write", "concourse/main/pipeline-vault-test/resource-type-repository", "value=concourse/time-resource")
-					v.Run("write", "concourse/main/pipeline-vault-test/time-resource-interval", "value=10m")
-					v.Run("write", "concourse/main/pipeline-vault-test/job-secret", "value=Hello")
-					v.Run("write", "concourse/main/team-secret", "value=Sauce")
-					v.Run("write", "concourse/main/pipeline-vault-test/image-resource-repository", "value=busybox")
+					v.Run("write", "concourse/main/pipeline-vault-test/resource_type_repository", "value=concourse/time-resource")
+					v.Run("write", "concourse/main/pipeline-vault-test/time_resource_interval", "value=10m")
+					v.Run("write", "concourse/main/pipeline-vault-test/job_secret", "value=Hello")
+					v.Run("write", "concourse/main/team_secret", "value=Sauce")
+					v.Run("write", "concourse/main/pipeline-vault-test/image_resource_repository", "value=busybox")
 				})
 
 				It("parameterizes via Vault and leaves the pipeline uninterpolated", func() {
@@ -102,8 +102,8 @@ var _ = Describe("Vault", func() {
 
 			Context("with a one-off build", func() {
 				BeforeEach(func() {
-					v.Run("write", "concourse/main/task-secret", "value=Hello")
-					v.Run("write", "concourse/main/image-resource-repository", "value=busybox")
+					v.Run("write", "concourse/main/task_secret", "value=Hello")
+					v.Run("write", "concourse/main/image_resource_repository", "value=busybox")
 				})
 
 				It("parameterizes image_resource and params in a task config", func() {

@@ -2,13 +2,13 @@ resource_types:
 - name: fake-resource-type
   type: docker-image
   source:
-    repository: ((resource-type-repository))
+    repository: ((resource_type_repository))
 
 resources:
 - name: fake-resource
   type: fake-resource-type
   source:
-    interval: ((time-resource-interval))
+    interval: ((time_resource_interval))
 
 jobs:
 - name: simple-job
@@ -16,14 +16,14 @@ jobs:
   - get: fake-resource
   - task: simple-task
     params:
-      SECRET: ((job-secret))
-      TEAM_SECRET: ((team-secret))
+      SECRET: ((job_secret))
+      TEAM_SECRET: ((team_secret))
     config:
       platform: linux
 
       image_resource:
         type: docker-image
-        source: {repository: ((image-resource-repository))}
+        source: {repository: ((image_resource_repository))}
 
       params:
         SECRET:
