@@ -20,9 +20,7 @@ instance_groups:
   jobs:
   - release: vault
     name: vault
-    properties:
-      tls_cert: ((vault_tls.certificate))
-      tls_key: ((vault_tls.private_key))
+    properties: {}
 
 - name: concourse
   instances: ((instances))
@@ -39,12 +37,10 @@ instance_groups:
       log_level: debug
       postgresql_database: atc
       vault:
-        url: ((vault-url))
+        url: ((vault_url))
         ca_cert: ((vault_ca.certificate))
         auth:
-          tls:
-            client_cert: ((vault_client.certificate))
-            client_key: ((vault_client.private_key))
+          client_token: ((vault_client_token))
 
   - release: concourse
     name: tsa

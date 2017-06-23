@@ -163,7 +163,7 @@ func Deploy(manifest string, args ...string) {
 	if atcInstance != nil {
 		atcExternalURL = fmt.Sprintf("http://%s:8080", atcInstance.IP)
 
-		// give some time for atc to bootstrap (run migrations, etc)
+		// give some time for atc to bootstrap (Run migrations, etc)
 		Eventually(func() int {
 			flySession := spawnFly("login", "-c", atcExternalURL)
 			<-flySession.Exited

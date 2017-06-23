@@ -1,0 +1,17 @@
+- type: replace
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/vault/auth/client_token?
+  value: ""
+
+- type: replace
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/vault/auth/tls?
+  value:
+    client_cert: ((vault_client.certificate))
+    client_key: ((vault_client.private_key))
+
+- type: replace
+  path: /instance_groups/name=vault/jobs/name=vault/properties/tls_cert?
+  value: ((vault_tls.certificate))
+
+- type: replace
+  path: /instance_groups/name=vault/jobs/name=vault/properties/tls_key?
+  value: ((vault_tls.private_key))
