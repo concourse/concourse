@@ -192,14 +192,20 @@ update turbulence notFound csrfToken msg mdl =
             ( JobModel { model | csrfToken = c }, Cmd.none )
 
         ( JobMsg message, JobModel model ) ->
-            superDupleWrap ( JobModel, JobMsg ) <| Job.update message { model | csrfToken = csrfToken }
+            let
+                (mdl, cmd, outMessage) = Job.updateWithMessage message { model | csrfToken = csrfToken }
+            in
+                case outMessage of
+                    Just Job.NotFound -> (NotFoundModel { notFoundImgSrc = notFound }, setTitle "Not Found ")
+                    Nothing -> superDupleWrap ( JobModel, JobMsg ) <| Job.update message { model | csrfToken = csrfToken }
 
         ( LoginMsg message, LoginModel model ) ->
+
             superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
 
         ( PipelineMsg message, PipelineModel model ) ->
             let
-                (mdl, cmd, outMessage) = Pipeline.update message model
+                (mdl, cmd, outMessage) = Pipeline.updateWithMessage message model
             in
                 case outMessage of
                     Just Pipeline.NotFound -> (NotFoundModel { notFoundImgSrc = notFound }, setTitle "Not Found ")

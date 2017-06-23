@@ -1,4 +1,4 @@
-port module Pipeline exposing (Model, Msg(..), OutMessage(..), Flags, init, update, view, subscriptions, changeToPipelineAndGroups)
+port module Pipeline exposing (Model, Msg(..), OutMessage(..), Flags, init, update, updateWithMessage, view, subscriptions, changeToPipelineAndGroups)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, style, src, width, height)
@@ -19,7 +19,7 @@ import Concourse.Pipeline
 import QueryString
 import Routes
 import LoginRedirect
-
+import RemoteData exposing (..)
 
 type alias Ports =
     { render : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd Msg
@@ -30,7 +30,7 @@ type alias Ports =
 type alias Model =
     { ports : Ports
     , pipelineLocator : Concourse.PipelineIdentifier
-    , pipeline : Maybe Concourse.Pipeline
+    , pipeline : WebData Concourse.Pipeline
     , fetchedJobs : Maybe Json.Encode.Value
     , fetchedResources : Maybe Json.Encode.Value
     , renderedJobs : Maybe Json.Encode.Value
@@ -81,7 +81,7 @@ init ports flags =
             , concourseVersion = ""
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , pipelineLocator = pipelineLocator
-            , pipeline = Nothing
+            , pipeline = RemoteData.NotAsked
             , fetchedJobs = Nothing
             , fetchedResources = Nothing
             , renderedJobs = Nothing
@@ -119,83 +119,90 @@ loadPipeline pipelineLocator model =
         ]
     )
 
+updateWithMessage : Msg -> Model -> (Model, Cmd Msg, Maybe OutMessage)
+updateWithMessage message model =
+    let
+        (mdl, msg) = update message model
+    in
+        case mdl.pipeline of
+            RemoteData.Failure _ ->
+                (mdl, msg, Just NotFound)
+            _ ->
+                (mdl, msg, Nothing)
 
-update : Msg -> Model -> ( Model, Cmd Msg , Maybe OutMessage )
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Noop ->
-            ( model, Cmd.none, Nothing )
+            ( model, Cmd.none )
 
         AutoupdateTimerTicked timestamp ->
             ( model
             , fetchPipeline model.pipelineLocator
-            , Nothing
             )
 
         PipelineIdentifierFetched pipelineIdentifier ->
-            ( model, fetchPipeline pipelineIdentifier, Nothing )
+            ( model, fetchPipeline pipelineIdentifier )
 
         AutoupdateVersionTicked _ ->
-            ( model, fetchVersion, Nothing )
+            ( model, fetchVersion )
 
         PipelineFetched (Ok pipeline) ->
-            ( { model | pipeline = Just pipeline }
+            ( { model | pipeline = RemoteData.Success pipeline }
             , Cmd.batch
                 [ fetchJobs model.pipelineLocator
                 , fetchResources model.pipelineLocator
                 ]
-            , Nothing
             )
 
         PipelineFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "", Nothing )
+                        ( model, LoginRedirect.requestLoginRedirect "" )
                     else if status.code == 404 then
-                        ( model, Cmd.none, Just NotFound)
+                        ( {model | pipeline = RemoteData.Failure err}, Cmd.none)
                     else
-                        ( model, Cmd.none, Nothing )
+                        ( model, Cmd.none )
 
                 _ ->
-                    renderWithMessage { model | experiencingTurbulence = True } Nothing
+                    renderIfNeeded { model | experiencingTurbulence = True }
 
         JobsFetched (Ok fetchedJobs) ->
-            renderWithMessage { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False } Nothing
+            renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
 
         JobsFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "", Nothing )
-                    else if status.code == 404 then
-                        ( model, Cmd.none, Just NotFound )
+                        ( model, LoginRedirect.requestLoginRedirect "" )
                     else
-                        ( model, Cmd.none, Nothing )
+                        ( model, Cmd.none )
 
                 _ ->
-                    renderWithMessage { model | fetchedJobs = Nothing, experiencingTurbulence = True } Nothing
+                    renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
 
         ResourcesFetched (Ok fetchedResources) ->
-            renderWithMessage { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False } Nothing
+            renderIfNeeded { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }
 
         ResourcesFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "", Nothing )
+                        ( model, LoginRedirect.requestLoginRedirect "")
                     else
-                        ( model, Cmd.none, Nothing )
+                        ( model, Cmd.none )
 
                 _ ->
-                    renderWithMessage { model | fetchedResources = Nothing, experiencingTurbulence = True } Nothing
+                    renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
 
         VersionFetched (Ok version) ->
-            ( { model | concourseVersion = version, experiencingTurbulence = False }, Cmd.none, Nothing )
+            ( { model | concourseVersion = version, experiencingTurbulence = False }, Cmd.none )
 
         VersionFetched (Err err) ->
             flip always (Debug.log ("failed to fetch version") (err)) <|
-                ( { model | experiencingTurbulence = True }, Cmd.none, Nothing )
+                ( { model | experiencingTurbulence = True }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -327,7 +334,7 @@ filterJobs model value =
 
 activeGroups : Model -> List String
 activeGroups model =
-    case ( model.selectedGroups, model.pipeline |> Maybe.andThen (List.head << .groups) ) of
+    case ( model.selectedGroups, model.pipeline |> RemoteData.toMaybe |> Maybe.andThen (List.head << .groups) ) of
         ( [], Just firstGroup ) ->
             [ firstGroup.name ]
 
@@ -371,13 +378,6 @@ renderIfNeeded model =
 
         _ ->
             ( model, Cmd.none )
-
-renderWithMessage : Model -> Maybe OutMessage -> (Model, Cmd Msg, Maybe OutMessage)
-renderWithMessage model outMessage =
-    let
-        (mdl, msg) = renderIfNeeded model
-    in
-        (mdl, msg, outMessage)
 
 fetchResources : Concourse.PipelineIdentifier -> Cmd Msg
 fetchResources pid =

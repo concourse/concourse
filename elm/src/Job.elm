@@ -1,4 +1,4 @@
-port module Job exposing (Flags, Model, changeToJob, subscriptions, init, update, view, Msg(..), OutMessage(..))
+port module Job exposing (Flags, Model, changeToJob, subscriptions, init, update, updateWithMessage, view, Msg(..), OutMessage(..))
 
 import Dict exposing (Dict)
 import Html exposing (Html)
@@ -18,6 +18,7 @@ import DictView
 import Navigation
 import StrictEvents exposing (onLeftClick)
 import LoginRedirect
+import RemoteData exposing (WebData)
 
 
 type alias Ports =
@@ -28,7 +29,7 @@ type alias Ports =
 type alias Model =
     { ports : Ports
     , jobIdentifier : Concourse.JobIdentifier
-    , job : Maybe Concourse.Job
+    , job : WebData Concourse.Job
     , pausedChanging : Bool
     , buildsWithResources : Paginated BuildWithResources
     , currentPage : Maybe Page
@@ -84,7 +85,7 @@ init ports flags =
                     , teamName = flags.teamName
                     , pipelineName = flags.pipelineName
                     }
-                , job = Nothing
+                , job = RemoteData.NotAsked
                 , pausedChanging = False
                 , buildsWithResources =
                     { content = []
@@ -123,6 +124,17 @@ changeToJob flags model =
     , fetchJobBuilds model.jobIdentifier flags.paging
     )
 
+
+updateWithMessage: Msg -> Model -> ( Model, Cmd Msg, Maybe OutMessage)
+updateWithMessage message model =
+    let
+        (mdl, msg) = update message model
+    in
+        case mdl.job of
+            RemoteData.Failure _ ->
+                (mdl, msg, Just NotFound)
+            _ ->
+                (mdl, msg, Nothing)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
@@ -177,7 +189,7 @@ update action model =
                     ( model, Cmd.none )
 
         JobFetched (Ok job) ->
-            ( { model | job = Just job }
+            ( { model | job = RemoteData.Success job }
             , model.ports.title <| job.name ++ " - "
             )
 
@@ -186,6 +198,8 @@ update action model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+                    else if status.code == 404 then
+                        ({ model | job = RemoteData.Failure err}, Cmd.none)
                     else
                         ( model, Cmd.none )
 
@@ -231,14 +245,14 @@ update action model =
             ( { model | now = now }, Cmd.none )
 
         TogglePaused ->
-            case model.job of
+            case model.job |> RemoteData.toMaybe of
                 Nothing ->
                     ( model, Cmd.none )
 
                 Just j ->
                     ( { model
                         | pausedChanging = True
-                        , job = Just { j | paused = not j.paused }
+                        , job = RemoteData.Success { j | paused = not j.paused }
                       }
                     , if j.paused then
                         unpauseJob model.jobIdentifier model.csrfToken
@@ -366,7 +380,7 @@ isRunning build =
 view : Model -> Html Msg
 view model =
     Html.div [ class "with-fixed-header" ]
-        [ case model.job of
+        [ case model.job |> RemoteData.toMaybe of
             Nothing ->
                 loadSpinner
 
