@@ -520,6 +520,17 @@ var _ = Describe("Job", func() {
 			Expect(found).To(BeTrue())
 			Expect(build.ID()).To(Equal(buildOne.ID()))
 
+			err = job1.Pause()
+			Expect(err).NotTo(HaveOccurred())
+
+			build, found, err = job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.ID()).To(Equal(buildThree.ID()))
+
+			err = job1.Unpause()
+			Expect(err).NotTo(HaveOccurred())
+
 			build, found, err = job2.GetNextPendingBuildBySerialGroup([]string{"serial-group", "really-different-group"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())

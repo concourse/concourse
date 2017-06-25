@@ -340,6 +340,7 @@ func (j *job) GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bo
 		INNER JOIN jobs_serial_groups jsg ON j.id = jsg.job_id
 				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
 		WHERE b.status = 'pending'
+			AND j.paused = false
 			AND j.inputs_determined = true
 			AND j.pipeline_id = $1
 		ORDER BY b.id ASC
