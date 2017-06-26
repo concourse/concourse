@@ -11,8 +11,8 @@
   * [Invitation](http://slack.concourse.ci)
   * [#general](https://concourseci.slack.com) for help and chit-chat
 * Roadmap:
+  * [GitHub Milestones](https://github.com/concourse/concourse/milestones)
   * [GitHub Issues](https://github.com/concourse/concourse/issues)
-  * [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
 
 ## Contributing
 
