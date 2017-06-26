@@ -111,8 +111,6 @@ type ATCCommand struct {
 		Noop bool `short:"n" long:"noop"              description:"Don't actually do any automatic scheduling or checking."`
 	} `group:"Developer Options"`
 
-	AllowSelfSignedCertificates bool `long:"allow-self-signed-certificates" description:"Allow self signed certificates."`
-
 	Worker struct {
 		GardenURL       URLFlag           `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
 		BaggageclaimURL URLFlag           `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
