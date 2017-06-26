@@ -38,8 +38,6 @@ instance_groups:
       postgresql_database: atc
       vault:
         url: ((vault_url))
-        tls:
-          ca_cert: ((vault_ca.certificate))
         auth:
           client_token: ((vault_client_token))
           backend: ((vault_auth_backend))
@@ -80,29 +78,6 @@ stemcells:
 - alias: trusty
   os: ubuntu-trusty
   version: ((stemcell_version))
-
-variables:
-- name: vault_ca
-  type: certificate
-  options:
-    is_ca: true
-    common_name: vaultCA
-- name: vault_tls
-  type: certificate
-  options:
-    ca: vault_ca
-    common_name: ((vault_ip))
-    alternative_names:
-    - ((vault_ip))
-    extended_key_usage:
-    - server_auth
-- name: vault_client
-  type: certificate
-  options:
-    ca: vault_ca
-    common_name: concourse
-    extended_key_usage:
-    - client_auth
 
 update:
   canaries: 1
