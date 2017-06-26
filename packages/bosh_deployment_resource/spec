@@ -2,4 +2,4 @@
 name: bosh_deployment_resource
 
 files:
-  - resources/bosh-deployment-resource.tar.gz
+  - resources/bosh-deployment-resource*.tar.gz

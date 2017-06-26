@@ -9,6 +9,7 @@ image_resource:
 inputs:
 - name: concourse
 - name: resource-image
+- name: resource-repo
 
 outputs:
 - name: bumped-concourse

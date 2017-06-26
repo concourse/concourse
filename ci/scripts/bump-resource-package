@@ -3,6 +3,10 @@
 
 set -e -x
 
+pushd resource-repo
+  COMMIT_SHA=$(git rev-parse --short=7 HEAD)
+popd
+
 if [ -z "$RESOURCE_NAME" ]; then
   echo "must specify \$RESOURCE_NAME" >&2
   exit 1
@@ -25,7 +29,9 @@ export HOME=$PWD
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
 
-bosh -n add-blob ../${RESOURCE_NAME}.tar.gz resources/${RESOURCE_NAME}.tar.gz
+bosh blobs --column="path"  | grep "resources/${RESOURCE_NAME}" | xargs bosh remove-blob
+
+bosh -n add-blob ../${RESOURCE_NAME}.tar.gz resources/${RESOURCE_NAME}-${COMMIT_SHA}.tar.gz
 bosh -n upload-blobs
 
 if ! git diff-index --quiet HEAD; then

@@ -2,4 +2,4 @@
 name: time_resource
 
 files:
-  - resources/time-resource.tar.gz
+  - resources/time-resource*.tar.gz

@@ -2,4 +2,4 @@
 name: archive_resource
 
 files:
-  - resources/archive-resource.tar.gz
+  - resources/archive-resource*.tar.gz

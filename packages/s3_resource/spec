@@ -2,4 +2,4 @@
 name: s3_resource
 
 files:
-  - resources/s3-resource.tar.gz
+  - resources/s3-resource*.tar.gz

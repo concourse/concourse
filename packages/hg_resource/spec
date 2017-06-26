@@ -2,4 +2,4 @@
 name: hg_resource
 
 files:
-  - resources/hg-resource.tar.gz
+  - resources/hg-resource*.tar.gz

@@ -2,4 +2,4 @@
 name: pool_resource
 
 files:
-  - resources/pool-resource.tar.gz
+  - resources/pool-resource*.tar.gz

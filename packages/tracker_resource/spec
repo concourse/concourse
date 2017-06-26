@@ -2,4 +2,4 @@
 name: tracker_resource
 
 files:
-  - resources/tracker-resource.tar.gz
+  - resources/tracker-resource*.tar.gz
