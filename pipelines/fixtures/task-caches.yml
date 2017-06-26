@@ -1,0 +1,44 @@
+---
+resources:
+- name: some-git-resource
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+jobs:
+- name: simple
+  plan:
+  - get: some-git-resource
+  - task: first-task
+    config:
+      inputs:
+      - name: some-git-resource
+      outputs:
+      - name: first-task-output
+      image_resource:
+        type: docker-image
+        source:
+          repository: busybox
+      platform: linux
+      run:
+        path: sh
+        args:
+        - some-git-resource/first-script.sh
+  - task: second-task
+    config:
+      inputs:
+      - name: some-git-resource
+      - name: first-task-output
+      caches:
+      - path: first-task-output/blobs
+      - path: second-task-cache
+      image_resource:
+        type: docker-image
+        source:
+          repository: busybox
+      platform: linux
+      run:
+        path: sh
+        args:
+        - some-git-resource/second-script.sh
