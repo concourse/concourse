@@ -333,16 +333,14 @@ properties:
       or `postgresql.host` is provided. Otherwise, defaults to `disable`.
 
   postgresql.ca_cert:
+    type: certificate
     description: |
       CA certificate to verify the server against.
 
   postgresql.client_cert:
+    type: certificate
     description: |
       Client certificate to use when connecting with the server.
-
-  postgresql.client_key:
-    description: |
-      Client key to use when connecting with the server.
 
   postgresql.connect_timeout:
     description: |
@@ -413,6 +411,7 @@ properties:
       Path under which to namespace team/pipeline credentials.
     default: /concourse
   vault.tls.ca_cert:
+    type: certificate
     description: |
       A PEM-encoded CA cert to use to verify the Vault server SSL cert.
   vault.tls.server_name:
@@ -423,12 +422,10 @@ properties:
     description: |
       Enable insecure SSL verification.
     default: false
-  vault.tls.client.certificate:
+  vault.tls.client_cert:
+    type: certificate
     description: |
       Client certificate for Vault TLS auth.
-  vault.tls.client.private_key:
-    description: |
-      Client private key for Vault TLS auth.
   vault.auth.client_token:
     description: |
       Client token to use for accessing your Vault server.

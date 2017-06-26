@@ -219,7 +219,7 @@ case $1 in
       <% end %> \
       --vault-server-name <%= esc(p("vault.tls.server_name")) %> \
       --vault-insecure-skip-verify <%= p("vault.tls.insecure_skip_verify") %> \
-      <% if_p("vault.tls.client.certificate", "vault.tls.client.private_key") do %> \
+      <% if_p("vault.tls.client_cert") do %> \
       --vault-client-cert /var/vcap/jobs/atc/config/vault_client_cert \
       --vault-client-key /var/vcap/jobs/atc/config/vault_client_key \
       <% end %> \
