@@ -86,18 +86,14 @@ func (factory *vaultFactory) login(logger lager.Logger, config AuthConfig) (stri
 		return config.ClientToken, 0
 	}
 
-	method := config.Method
+	backend := config.Backend
+
 	params := map[string]interface{}{}
-
-	if config.TLS.ClientCert != "" && config.TLS.ClientKey != "" {
-		method = "cert"
-
-		if config.TLS.RoleName != "" {
-			params["name"] = config.TLS.RoleName
-		}
+	for _, param := range config.Params {
+		params[param.Name] = param.Value
 	}
 
-	secret, err := factory.vaultClient.Logical().Write(path.Join("auth", method, "login"), params)
+	secret, err := factory.vaultClient.Logical().Write(path.Join("auth", backend, "login"), params)
 	if err != nil {
 		logger.Error("failed", err)
 		return "", time.Second
