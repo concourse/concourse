@@ -653,7 +653,7 @@ viewBuildHeader build { now, job, history } =
                                 Just job ->
                                     job.disableManualTrigger
                     in
-                        Html.button
+                        Html.span
                             [ class "build-action fr"
                             , disabled buttonDisabled
                             , attribute "aria-label" "Trigger Build"
@@ -668,7 +668,11 @@ viewBuildHeader build { now, job, history } =
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
                 Html.span
-                    [ class "build-action build-action-abort fr", onLeftClick (AbortBuild build.id), attribute "aria-label" "Abort Build" ]
+                    [ class "build-action build-action-abort fr"
+                    , onLeftClick (AbortBuild build.id)
+                    , attribute "aria-label" "Abort Build" 
+                    , attribute "title" "Abort Build"
+                    ]
                     [ Html.i [ class "fa fa-times-circle" ] [] ]
             else
                 Html.span [] []
