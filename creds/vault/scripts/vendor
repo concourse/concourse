@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e -u -x
+
+govendor fetch github.com/hashicorp/vault/api
