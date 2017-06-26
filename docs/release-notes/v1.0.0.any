@@ -48,8 +48,9 @@
   }
 
   \note{feature}{
-    Custom resource types can now be added via \reference{resource_types} in
-    the pipeline, rather than reconfiguring your workers.
+    Custom resource types can now be added via
+    \reference{configuring-resource-types} in the pipeline, rather than
+    reconfiguring your workers.
   }
 
   \note{fix}{
@@ -93,10 +94,10 @@
 
   \note{fix}{
     Resources backed by a resource type defined in
-    \reference{resource_types} will now periodically check for new
-    versions of the resource type and use the latest one for
-    checking. Previously the same container would be reused forever
-    even if a new version of the resource type was released.
+    \reference{configuring-resource-types} will now periodically check for new
+    versions of the resource type and use the latest one for checking.
+    Previously the same container would be reused forever even if a new version
+    of the resource type was released.
   }
 
   \note{feature}{

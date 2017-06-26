@@ -126,7 +126,7 @@ added to your workers.
     \italic{Optional.} The number of containers currently running on the worker.
   }
 
-  \define-attribute{resource_types: [\{type,image\}]}{
+  \define-attribute{resource_types: [\{type,image\}]}{worker-resource-types}{
     \italic{Optional.} The set of resource types supported by the worker. If
     specified, the worker may be used for running resource containers of the
     given type, using the specified image URI.
