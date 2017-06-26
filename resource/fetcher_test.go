@@ -18,7 +18,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Fetcher", func() {
@@ -92,19 +91,6 @@ var _ = Describe("Fetcher", func() {
 
 			It("closes the ready channel", func() {
 				Expect(ready).To(BeClosed())
-			})
-
-			Context("when ioConfig has stdout", func() {
-				var stdoutBuf *gbytes.Buffer
-
-				BeforeEach(func() {
-					stdoutBuf = gbytes.NewBuffer()
-					fakeImageFetchingDelegate.StdoutReturns(stdoutBuf)
-				})
-
-				It("logs helpful message", func() {
-					Expect(stdoutBuf).To(gbytes.Say("using version of resource found in cache\n"))
-				})
 			})
 		})
 

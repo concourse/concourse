@@ -2,7 +2,6 @@ package resource
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"time"
@@ -123,9 +122,6 @@ func (f *fetcher) fetchWithLock(
 	}
 
 	if found {
-		if stdout != nil {
-			fmt.Fprintf(stdout, "using version of resource found in cache\n")
-		}
 		close(ready)
 		return versionedSource, nil
 	}
