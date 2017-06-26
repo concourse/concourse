@@ -35,6 +35,8 @@ var _ = Describe("Vault", func() {
 		return session
 	}
 
+	var tokenDuration = 30 * time.Second
+
 	Describe("A deployment with vault", func() {
 		var (
 			v         *vault
@@ -63,7 +65,73 @@ var _ = Describe("Vault", func() {
 			Expect(os.Remove(varsStore.Name())).To(Succeed())
 		})
 
-		testVaultIntegration := func() {
+		testTokenRenewal := func() {
+			Context("when enough time has passed such that token would have expired", func() {
+				BeforeEach(func() {
+					v.Run("write", "concourse/main/task_secret", "value=Hello")
+					v.Run("write", "concourse/main/image_resource_repository", "value=busybox")
+
+					By("waiting for long enough that the initial token would have expired")
+					time.Sleep(tokenDuration)
+				})
+
+				It("renews the token", func() {
+					By("executing a task that parameterizes image_resource")
+					watch := spawnFly("execute", "-c", "tasks/vault.yml")
+					wait(watch)
+					Expect(watch).To(gbytes.Say("SECRET: Hello"))
+
+					By("taking a dump")
+					session := pgDump()
+					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
+					Expect(session).To(gbytes.Say("Hello")) // build echoed it; nothing we can do
+				})
+			})
+		}
+
+		Context("with token auth", func() {
+			BeforeEach(func() {
+				By("creating a periodic token")
+				create := v.Run("token-create", "-period", tokenDuration.String(), "-policy", "concourse")
+				content := string(create.Out.Contents())
+				token := regexp.MustCompile(`token\s+(.*)`).FindStringSubmatch(content)[1]
+
+				By("renewing the token throughout the deploy")
+				renewing := new(sync.WaitGroup)
+				stopRenewing := make(chan struct{})
+				renewTicker := time.NewTicker(5 * time.Second)
+				renewing.Add(1)
+				go func() {
+					defer renewing.Done()
+					defer GinkgoRecover()
+
+					for {
+						select {
+						case <-renewTicker.C:
+							v.Run("token-renew", token)
+						case <-stopRenewing:
+							return
+						}
+					}
+				}()
+
+				By("deploying concourse with the token")
+				Deploy(
+					"deployments/vault-with-concourse.yml",
+					"--vars-store", varsStore.Name(),
+					"-v", "vault_url="+v.URI(),
+					"-v", "vault_ip="+v.IP(),
+					"-v", "instances=1",
+					"-v", "vault_client_token="+token,
+					"-v", `vault_auth_backend=""`,
+					"-v", "vault_auth_params={}",
+				)
+
+				By("not renewing the token anymore, leaving it to Concourse")
+				close(stopRenewing)
+				renewing.Wait()
+			})
+
 			Context("with a pipeline build", func() {
 				BeforeEach(func() {
 					v.Run("write", "concourse/main/pipeline-vault-test/resource_type_repository", "value=concourse/time-resource")
@@ -123,35 +191,8 @@ var _ = Describe("Vault", func() {
 				})
 			})
 
-			Context("when the token is configured with a short ttl", func() {
-				BeforeEach(func() {
-					// ok, ok, the context is *actually* set up in the surrounding thing that sets up the deploy
-
-					v.Run("write", "concourse/main/task_secret", "value=Hello")
-					v.Run("write", "concourse/main/image_resource_repository", "value=busybox")
-				})
-
-				It("parameterizes image_resource and params in a task config", func() {
-					By("executing a task that parameterizes image_resource")
-					watch := spawnFly("execute", "-c", "tasks/vault.yml")
-					wait(watch)
-					Expect(watch).To(gbytes.Say("SECRET: Hello"))
-
-					By("waiting for long enough that the initial token would have expired")
-					time.Sleep(30 * time.Second)
-
-					By("executing a task that parameterizes image_resource")
-					watch = spawnFly("execute", "-c", "tasks/vault.yml")
-					wait(watch)
-					Expect(watch).To(gbytes.Say("SECRET: Hello"))
-
-					By("taking a dump")
-					session := pgDump()
-					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-					Expect(session).To(gbytes.Say("Hello")) // build echoed it; nothing we can do
-				})
-			})
-		}
+			testTokenRenewal()
+		})
 
 		Context("with TLS auth", func() {
 			BeforeEach(func() {
@@ -184,7 +225,7 @@ var _ = Describe("Vault", func() {
 					"display_name=concourse",
 					"certificate=@"+vaultCACert,
 					"policies=concourse",
-					"ttl=30",
+					fmt.Sprintf("ttl=%d", tokenDuration/time.Second),
 				)
 
 				Deploy(
@@ -200,7 +241,7 @@ var _ = Describe("Vault", func() {
 				)
 			})
 
-			testVaultIntegration()
+			testTokenRenewal()
 		})
 
 		Context("with approle auth", func() {
@@ -211,7 +252,7 @@ var _ = Describe("Vault", func() {
 					"write",
 					"auth/approle/role/concourse",
 					"policies=concourse",
-					"period=30",
+					fmt.Sprintf("period=%d", tokenDuration/time.Second),
 				)
 
 				getRole := v.Run("read", "auth/approle/role/concourse/role-id")
@@ -234,53 +275,7 @@ var _ = Describe("Vault", func() {
 				)
 			})
 
-			testVaultIntegration()
-		})
-
-		Context("with token auth", func() {
-			BeforeEach(func() {
-				By("creating a periodic token")
-				create := v.Run("token-create", "-period", "30s", "-policy", "concourse")
-				content := string(create.Out.Contents())
-				token := regexp.MustCompile(`token\s+(.*)`).FindStringSubmatch(content)[1]
-
-				By("renewing the token throughout the deploy")
-				renewing := new(sync.WaitGroup)
-				stopRenewing := make(chan struct{})
-				renewTicker := time.NewTicker(5 * time.Second)
-				renewing.Add(1)
-				go func() {
-					defer renewing.Done()
-					defer GinkgoRecover()
-
-					for {
-						select {
-						case <-renewTicker.C:
-							v.Run("token-renew", token)
-						case <-stopRenewing:
-							return
-						}
-					}
-				}()
-
-				By("deploying concourse with the token")
-				Deploy(
-					"deployments/vault-with-concourse.yml",
-					"--vars-store", varsStore.Name(),
-					"-v", "vault_url="+v.URI(),
-					"-v", "vault_ip="+v.IP(),
-					"-v", "instances=1",
-					"-v", "vault_client_token="+token,
-					"-v", `vault_auth_backend=""`,
-					"-v", "vault_auth_params={}",
-				)
-
-				By("not renewing the token anymore, leaving it to Concourse")
-				close(stopRenewing)
-				renewing.Wait()
-			})
-
-			testVaultIntegration()
+			testTokenRenewal()
 		})
 	})
 })
