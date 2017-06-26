@@ -285,3 +285,7 @@
 [submodule "src/github.com/cloudfoundry/bosh-cli"]
 	path = src/github.com/cloudfoundry/bosh-cli
 	url = https://github.com/cloudfoundry/bosh-cli
+[submodule "src/github.com/hashicorp/vault"]
+	path = src/github.com/hashicorp/vault
+	url = https://github.com/hashicorp/vault
+	branch = master

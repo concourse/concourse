@@ -69,6 +69,8 @@ files:
   - github.com/concourse/atc/db/lock/*.go # gosub
   - github.com/concourse/atc/db/migration/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
+  - github.com/concourse/atc/db/migrations/internal/163/*.go # gosub
+  - github.com/concourse/atc/db/migrations/internal/26/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
