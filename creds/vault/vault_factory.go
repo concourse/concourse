@@ -63,7 +63,7 @@ func (factory *vaultFactory) authLoop(logger lager.Logger, config AuthConfig) {
 		var token string
 		var delay time.Duration
 		if currentToken == "" {
-			token, delay = factory.login(logger.Session("log-in"), config)
+			token, delay = factory.login(logger.Session("login"), config)
 		} else {
 			token, delay = factory.renew(logger.Session("renew"), currentToken)
 		}
