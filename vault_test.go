@@ -68,7 +68,7 @@ var _ = Describe("Vault", func() {
 		testTokenRenewal := func() {
 			Context("when enough time has passed such that token would have expired", func() {
 				BeforeEach(func() {
-					v.Run("write", "concourse/main/task_secret", "value=Hello")
+					v.Run("write", "concourse/main/task_secret", "value=Hiii")
 					v.Run("write", "concourse/main/image_resource_repository", "value=busybox")
 
 					By("waiting for long enough that the initial token would have expired")
@@ -79,12 +79,12 @@ var _ = Describe("Vault", func() {
 					By("executing a task that parameterizes image_resource")
 					watch := spawnFly("execute", "-c", "tasks/vault.yml")
 					wait(watch)
-					Expect(watch).To(gbytes.Say("SECRET: Hello"))
+					Expect(watch).To(gbytes.Say("SECRET: Hiii"))
 
 					By("taking a dump")
 					session := pgDump()
 					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-					Expect(session).To(gbytes.Say("Hello")) // build echoed it; nothing we can do
+					Expect(session).To(gbytes.Say("Hiii")) // build echoed it; nothing we can do
 				})
 			})
 		}
@@ -139,7 +139,7 @@ var _ = Describe("Vault", func() {
 				BeforeEach(func() {
 					v.Run("write", "concourse/main/pipeline-vault-test/resource_type_repository", "value=concourse/time-resource")
 					v.Run("write", "concourse/main/pipeline-vault-test/time_resource_interval", "value=10m")
-					v.Run("write", "concourse/main/pipeline-vault-test/job_secret", "value=Hello")
+					v.Run("write", "concourse/main/pipeline-vault-test/job_secret", "username=Hello", "password=World")
 					v.Run("write", "concourse/main/team_secret", "value=Sauce")
 					v.Run("write", "concourse/main/pipeline-vault-test/image_resource_repository", "value=busybox")
 				})
@@ -152,7 +152,7 @@ var _ = Describe("Vault", func() {
 					session := getPipeline()
 					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("concourse/time-resource"))
 					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("10m"))
-					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Hello"))
+					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Hello/World"))
 					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Sauce"))
 					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("busybox"))
 
@@ -162,22 +162,22 @@ var _ = Describe("Vault", func() {
 					By("triggering job")
 					watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/simple-job")
 					wait(watch)
-					Expect(watch).To(gbytes.Say("SECRET: Hello"))
+					Expect(watch).To(gbytes.Say("SECRET: Hello/World"))
 					Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
 
 					By("taking a dump")
 					session = pgDump()
 					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 					Expect(session).ToNot(gbytes.Say("10m"))
-					Expect(session).To(gbytes.Say("Hello")) // build echoed it; nothing we can do
-					Expect(session).To(gbytes.Say("Sauce")) // build echoed it; nothing we can do
+					Expect(session).To(gbytes.Say("Hello/World")) // build echoed it; nothing we can do
+					Expect(session).To(gbytes.Say("Sauce"))       // build echoed it; nothing we can do
 					Expect(session).ToNot(gbytes.Say("busybox"))
 				})
 			})
 
 			Context("with a one-off build", func() {
 				BeforeEach(func() {
-					v.Run("write", "concourse/main/task_secret", "value=Hello")
+					v.Run("write", "concourse/main/task_secret", "value=Hiii")
 					v.Run("write", "concourse/main/image_resource_repository", "value=busybox")
 				})
 
@@ -185,12 +185,12 @@ var _ = Describe("Vault", func() {
 					By("executing a task that parameterizes image_resource")
 					watch := spawnFly("execute", "-c", "tasks/vault.yml")
 					wait(watch)
-					Expect(watch).To(gbytes.Say("SECRET: Hello"))
+					Expect(watch).To(gbytes.Say("SECRET: Hiii"))
 
 					By("taking a dump")
 					session := pgDump()
 					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-					Expect(session).To(gbytes.Say("Hello")) // build echoed it; nothing we can do
+					Expect(session).To(gbytes.Say("Hiii")) // build echoed it; nothing we can do
 				})
 			})
 

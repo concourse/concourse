@@ -16,7 +16,8 @@ jobs:
   - get: fake-resource
   - task: simple-task
     params:
-      SECRET: ((job_secret))
+      SECRET_USERNAME: ((job_secret.username))
+      SECRET_PASSWORD: ((job_secret.password))
       TEAM_SECRET: ((team_secret))
     config:
       platform: linux
@@ -30,4 +31,4 @@ jobs:
 
       run:
         path: sh
-        args: ['-c', 'echo SECRET: $SECRET, TEAM SECRET: $TEAM_SECRET']
+        args: ['-c', 'echo SECRET: $SECRET_USERNAME/$SECRET_PASSWORD, TEAM SECRET: $TEAM_SECRET']
