@@ -173,4 +173,5 @@ var Migrations = []migration.Migrator{
 	AddUniqueWorkerResourceCacheIDToVolumes,
 	AddBuildImageResourceCaches,
 	AddNonceAndPublicPlanToBuilds,
+	AddWorkerTaskCaches,
 }

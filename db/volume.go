@@ -107,11 +107,13 @@ type CreatedVolume interface {
 	Handle() string
 	Path() string
 	Type() VolumeType
+	TeamID() int
 	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
 	SizeInBytes() int64
 	InitializeResourceCache(*UsedResourceCache) error
+	InitializeTaskCache(int, string, string) error
 	ContainerHandle() string
 	ParentHandle() string
 	ResourceType() (*VolumeResourceType, error)
@@ -144,6 +146,7 @@ func (volume *createdVolume) Path() string            { return volume.path }
 func (volume *createdVolume) WorkerName() string      { return volume.workerName }
 func (volume *createdVolume) SizeInBytes() int64      { return volume.bytes }
 func (volume *createdVolume) Type() VolumeType        { return volume.typ }
+func (volume *createdVolume) TeamID() int             { return volume.teamID }
 func (volume *createdVolume) ContainerHandle() string { return volume.containerHandle }
 func (volume *createdVolume) ParentHandle() string    { return volume.parentHandle }
 
@@ -309,6 +312,66 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache *UsedResource
 	volume.typ = VolumeTypeResource
 
 	return nil
+}
+
+func (volume *createdVolume) InitializeTaskCache(jobID int, stepName string, path string) error {
+	var usedWorkerTaskCache *UsedWorkerTaskCache
+
+	err := safeFindOrCreate(volume.conn, func(tx Tx) error {
+		var err error
+		usedWorkerTaskCache, err = WorkerTaskCache{
+			JobID:      jobID,
+			StepName:   stepName,
+			WorkerName: volume.WorkerName(),
+			Path:       path,
+		}.FindOrCreate(tx)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	// release other old volumes for gc
+	_, err = psql.Update("volumes").
+		Set("worker_task_cache_id", nil).
+		Where(sq.Eq{"worker_task_cache_id": usedWorkerTaskCache.ID}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rows, err := psql.Update("volumes").
+		Set("worker_task_cache_id", usedWorkerTaskCache.ID).
+		Where(sq.Eq{"id": volume.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+			// leave it owned by the container
+			return nil
+		}
+
+		return err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		return ErrVolumeMissing
+	}
+
+	return tx.Commit()
 }
 
 func (volume *createdVolume) CreateChildForContainer(container CreatingContainer, mountPath string) (CreatingVolume, error) {

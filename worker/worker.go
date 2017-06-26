@@ -52,6 +52,9 @@ type Worker interface {
 	Uptime() time.Duration
 	IsOwnedByTeam() bool
 	IsVersionCompatible(lager.Logger, *version.Version) bool
+
+	FindVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error)
+	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
 }
 
 type gardenWorker struct {
@@ -152,6 +155,10 @@ func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResou
 
 func (worker *gardenWorker) FindVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error) {
 	return worker.volumeClient.FindVolumeForResourceCache(logger, resourceCache)
+}
+
+func (worker *gardenWorker) FindVolumeForTaskCache(logger lager.Logger, teamID int, jobID int, stepName string, path string) (Volume, bool, error) {
+	return worker.volumeClient.FindVolumeForTaskCache(logger, teamID, jobID, stepName, path)
 }
 
 func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {

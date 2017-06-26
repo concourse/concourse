@@ -31,6 +31,9 @@ type TaskConfig struct {
 
 	// The set of (logical, name-only) outputs provided by the task.
 	Outputs []TaskOutputConfig `json:"outputs,omitempty" yaml:"outputs,omitempty" mapstructure:"outputs"`
+
+	// Path to cached directory that will be shared between builds for the same task.
+	Caches []CacheConfig `json:"caches,omitempty" yaml:"caches,omitempty" mapstructure:"caches"`
 }
 
 type ImageResource struct {
@@ -363,4 +366,8 @@ func (output TaskOutputConfig) resolvePath() string {
 type MetadataField struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type CacheConfig struct {
+	Path string `json:"path,omitempty" yaml:"path,omitempty" mapstructure:"path"`
 }

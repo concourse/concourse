@@ -205,6 +205,8 @@ func (factory *gardenFactory) Task(
 		workerPool:            factory.workerClient,
 		teamID:                build.TeamID(),
 		buildID:               build.ID(),
+		jobID:                 build.JobID(),
+		stepName:              plan.Task.Name,
 		planID:                plan.ID,
 		containerMetadata:     containerMetadata,
 

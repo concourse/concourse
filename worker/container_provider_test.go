@@ -129,7 +129,6 @@ var _ = Describe("ContainerProvider", func() {
 		containerProvider = containerProviderFactory.ContainerProviderFor(fakeWorker)
 
 		fakeLocalInput = new(workerfakes.FakeInputSource)
-		fakeLocalInput.NameReturns("local-input")
 		fakeLocalInput.DestinationPathReturns("/some/work-dir/local-input")
 		fakeLocalInputAS := new(workerfakes.FakeArtifactSource)
 		fakeLocalVolume = new(workerfakes.FakeVolume)
@@ -141,7 +140,6 @@ var _ = Describe("ContainerProvider", func() {
 		fakeLocalInput.SourceReturns(fakeLocalInputAS)
 
 		fakeRemoteInput = new(workerfakes.FakeInputSource)
-		fakeRemoteInput.NameReturns("remote-input")
 		fakeRemoteInput.DestinationPathReturns("/some/work-dir/remote-input")
 		fakeRemoteInputAS = new(workerfakes.FakeArtifactSource)
 		fakeRemoteInputAS.VolumeOnReturns(nil, false, nil)
@@ -637,43 +635,43 @@ var _ = Describe("ContainerProvider", func() {
 
 			Context("when the concourse:volumes property is present", func() {
 				var (
-					handle1Volume         *baggageclaimfakes.FakeVolume
-					handle2Volume         *baggageclaimfakes.FakeVolume
-					expectedHandle1Volume Volume
-					expectedHandle2Volume Volume
+					expectedHandle1Volume *workerfakes.FakeVolume
+					expectedHandle2Volume *workerfakes.FakeVolume
 				)
 
 				BeforeEach(func() {
-					handle1Volume = new(baggageclaimfakes.FakeVolume)
-					handle2Volume = new(baggageclaimfakes.FakeVolume)
+					expectedHandle1Volume = new(workerfakes.FakeVolume)
+					expectedHandle2Volume = new(workerfakes.FakeVolume)
 
-					fakeVolume1 := new(dbfakes.FakeCreatedVolume)
-					fakeVolume2 := new(dbfakes.FakeCreatedVolume)
+					expectedHandle1Volume.HandleReturns("handle-1")
+					expectedHandle2Volume.HandleReturns("handle-2")
 
-					expectedHandle1Volume = NewVolume(handle1Volume, fakeVolume1)
-					expectedHandle2Volume = NewVolume(handle2Volume, fakeVolume2)
+					expectedHandle1Volume.PathReturns("/handle-1/path")
+					expectedHandle2Volume.PathReturns("/handle-2/path")
 
-					fakeVolume1.HandleReturns("handle-1")
-					fakeVolume2.HandleReturns("handle-2")
-
-					fakeVolume1.PathReturns("/handle-1/path")
-					fakeVolume2.PathReturns("/handle-2/path")
-
-					fakeDBVolumeFactory.FindVolumesForContainerReturns([]db.CreatedVolume{fakeVolume1, fakeVolume2}, nil)
-
-					fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
+					fakeVolumeClient.LookupVolumeStub = func(logger lager.Logger, handle string) (Volume, bool, error) {
 						if handle == "handle-1" {
-							return handle1Volume, true, nil
+							return expectedHandle1Volume, true, nil
 						} else if handle == "handle-2" {
-							return handle2Volume, true, nil
+							return expectedHandle2Volume, true, nil
 						} else {
 							panic("unknown handle: " + handle)
 						}
 					}
+
+					dbVolume1 := new(dbfakes.FakeCreatedVolume)
+					dbVolume2 := new(dbfakes.FakeCreatedVolume)
+					fakeDBVolumeFactory.FindVolumesForContainerReturns([]db.CreatedVolume{dbVolume1, dbVolume2}, nil)
+					dbVolume1.HandleReturns("handle-1")
+					dbVolume2.HandleReturns("handle-2")
+					dbVolume1.PathReturns("/handle-1/path")
+					dbVolume2.PathReturns("/handle-2/path")
 				})
 
 				Describe("VolumeMounts", func() {
 					It("returns all bound volumes based on properties on the container", func() {
+						Expect(findErr).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
 						Expect(foundContainer.VolumeMounts()).To(ConsistOf([]VolumeMount{
 							{Volume: expectedHandle1Volume, MountPath: "/handle-1/path"},
 							{Volume: expectedHandle2Volume, MountPath: "/handle-2/path"},
@@ -684,7 +682,7 @@ var _ = Describe("ContainerProvider", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeBaggageclaimClient.LookupVolumeReturns(nil, false, disaster)
+							fakeVolumeClient.LookupVolumeReturns(nil, false, disaster)
 						})
 
 						It("returns the error on lookup", func() {

@@ -21,14 +21,14 @@ var _ = Describe("ResourceInstance", func() {
 	var (
 		logger                   lager.Logger
 		resourceInstance         ResourceInstance
-		fakeWorkerClient         *workerfakes.FakeClient
+		fakeWorker               *workerfakes.FakeWorker
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		disaster                 error
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
-		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		disaster = errors.New("disaster")
 
@@ -52,7 +52,7 @@ var _ = Describe("ResourceInstance", func() {
 		)
 
 		JustBeforeEach(func() {
-			foundVolume, found, findErr = resourceInstance.FindOn(logger, fakeWorkerClient)
+			foundVolume, found, findErr = resourceInstance.FindOn(logger, fakeWorker)
 		})
 
 		It("'find-or-create's the resource cache with the same user", func() {
@@ -75,7 +75,7 @@ var _ = Describe("ResourceInstance", func() {
 
 			BeforeEach(func() {
 				fakeVolume = new(workerfakes.FakeVolume)
-				fakeWorkerClient.FindVolumeForResourceCacheReturns(fakeVolume, true, nil)
+				fakeWorker.FindVolumeForResourceCacheReturns(fakeVolume, true, nil)
 			})
 
 			It("returns found volume", func() {
@@ -87,7 +87,7 @@ var _ = Describe("ResourceInstance", func() {
 
 		Context("when initialized volume for resource cache does not exist on worker", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.FindVolumeForResourceCacheReturns(nil, false, nil)
+				fakeWorker.FindVolumeForResourceCacheReturns(nil, false, nil)
 			})
 
 			It("does not return any volume", func() {
@@ -99,7 +99,7 @@ var _ = Describe("ResourceInstance", func() {
 
 		Context("when worker errors in finding the cache", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.FindVolumeForResourceCacheReturns(nil, false, disaster)
+				fakeWorker.FindVolumeForResourceCacheReturns(nil, false, disaster)
 			})
 
 			It("returns the error", func() {

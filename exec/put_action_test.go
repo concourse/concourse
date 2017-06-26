@@ -160,15 +160,15 @@ var _ = Describe("PutAction", func() {
 				Expect(containerSpec.Env).To(Equal([]string{"a=1", "b=2"}))
 				Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
 				Expect(containerSpec.Inputs).To(HaveLen(3))
-				Expect([]worker.ArtifactName{
-					containerSpec.Inputs[0].Name(),
-					containerSpec.Inputs[1].Name(),
-					containerSpec.Inputs[2].Name(),
-				}).To(ConsistOf([]worker.ArtifactName{
-					"some-source",
-					"some-other-source",
-					"some-mounted-source",
-				}))
+				Expect([]worker.ArtifactSource{
+					containerSpec.Inputs[0].Source(),
+					containerSpec.Inputs[1].Source(),
+					containerSpec.Inputs[2].Source(),
+				}).To(ConsistOf(
+					exec.PutResourceSource{fakeSource},
+					exec.PutResourceSource{fakeOtherSource},
+					exec.PutResourceSource{fakeMountedSource},
+				))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 			})

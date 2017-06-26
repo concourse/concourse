@@ -21,6 +21,9 @@ type VolumeFactory interface {
 
 	FindResourceCacheVolume(string, *UsedResourceCache) (CreatedVolume, bool, error)
 
+	FindTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, CreatedVolume, error)
+	CreateTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, error)
+
 	FindVolumesForContainer(CreatedContainer) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
 
@@ -112,7 +115,6 @@ func (factory *volumeFactory) CreateContainerVolume(teamID int, workerName strin
 
 	volume.path = mountPath
 	volume.containerHandle = container.Handle()
-	volume.teamID = teamID
 	return volume, nil
 }
 
@@ -163,6 +165,23 @@ func (factory *volumeFactory) FindBaseResourceTypeVolume(teamID int, uwbrt *Used
 	return factory.findVolume(teamID, uwbrt.WorkerName, map[string]interface{}{
 		"v.worker_base_resource_type_id": uwbrt.ID,
 	})
+}
+
+func (factory *volumeFactory) FindTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, CreatedVolume, error) {
+	return factory.findVolume(teamID, uwtc.WorkerName, map[string]interface{}{
+		"v.worker_task_cache_id": uwtc.ID,
+	})
+}
+
+func (factory *volumeFactory) CreateTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, error) {
+	return factory.createVolume(
+		teamID,
+		uwtc.WorkerName,
+		map[string]interface{}{
+			"worker_task_cache_id": uwtc.ID,
+		},
+		VolumeTypeContainer,
+	)
 }
 
 func (factory *volumeFactory) FindResourceCacheVolume(workerName string, resourceCache *UsedResourceCache) (CreatedVolume, bool, error) {
@@ -218,6 +237,7 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 			"v.worker_resource_cache_id":     nil,
 			"v.worker_base_resource_type_id": nil,
 			"v.container_id":                 nil,
+			"v.worker_task_cache_id":         nil,
 		}).
 		Where(sq.Or{
 			sq.Eq{"w.state": string(WorkerStateRunning)},

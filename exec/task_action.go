@@ -2,6 +2,7 @@ package exec
 
 import (
 	"archive/tar"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -90,6 +91,8 @@ type TaskAction struct {
 	workerPool            worker.Client
 	teamID                int
 	buildID               int
+	jobID                 int
+	stepName              string
 	planID                atc.PlanID
 	containerMetadata     db.ContainerMetadata
 
@@ -113,6 +116,8 @@ func NewTaskAction(
 	workerPool worker.Client,
 	teamID int,
 	buildID int,
+	jobID int,
+	stepName string,
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	resourceTypes creds.VersionedResourceTypes,
@@ -131,6 +136,8 @@ func NewTaskAction(
 		workerPool:            workerPool,
 		teamID:                teamID,
 		buildID:               buildID,
+		jobID:                 jobID,
+		stepName:              stepName,
 		planID:                planID,
 		containerMetadata:     containerMetadata,
 		resourceTypes:         resourceTypes,
@@ -169,7 +176,7 @@ func (action *TaskAction) Run(
 
 	action.buildEventsDelegate.Initializing(logger, config)
 
-	containerSpec, err := action.containerSpec(repository, config)
+	containerSpec, err := action.containerSpec(logger, repository, config)
 	if err != nil {
 		return err
 	}
@@ -197,7 +204,10 @@ func (action *TaskAction) Run(
 			return err
 		}
 
-		action.registerSource(logger, repository, config, container)
+		err = action.registerOutputs(logger, repository, config, container)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -251,7 +261,10 @@ func (action *TaskAction) Run(
 
 	select {
 	case <-signals:
-		action.registerSource(logger, repository, config, container)
+		err = action.registerOutputs(logger, repository, config, container)
+		if err != nil {
+			return err
+		}
 
 		err = container.Stop(false)
 		if err != nil {
@@ -267,11 +280,14 @@ func (action *TaskAction) Run(
 			return processErr
 		}
 
-		action.registerSource(logger, repository, config, container)
+		err = action.registerOutputs(logger, repository, config, container)
+		if err != nil {
+			return err
+		}
 
 		action.exitStatus = ExitStatus(processStatus)
 
-		err := container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
+		err = container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
 		if err != nil {
 			return err
 		}
@@ -285,7 +301,7 @@ func (action *TaskAction) ExitStatus() ExitStatus {
 	return action.exitStatus
 }
 
-func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ContainerSpec, error) {
+func (action *TaskAction) containerSpec(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ContainerSpec, error) {
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(action.privileged),
 	}
@@ -339,7 +355,6 @@ func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, c
 		}
 
 		containerSpec.Inputs = append(containerSpec.Inputs, &taskInputSource{
-			name:          worker.ArtifactName(inputName),
 			config:        input,
 			source:        source,
 			artifactsRoot: action.artifactsRoot,
@@ -350,6 +365,15 @@ func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, c
 		return worker.ContainerSpec{}, MissingInputsError{missingInputs}
 	}
 
+	for _, cacheConfig := range config.Caches {
+		source := newTaskCacheSource(logger, action.teamID, action.jobID, action.stepName, cacheConfig.Path)
+		containerSpec.Inputs = append(containerSpec.Inputs, &taskCacheInputSource{
+			source:        source,
+			artifactsRoot: action.artifactsRoot,
+			cachePath:     cacheConfig.Path,
+		})
+	}
+
 	for _, output := range config.Outputs {
 		path := artifactsPath(output, action.artifactsRoot)
 		containerSpec.Outputs[output.Name] = path
@@ -358,10 +382,10 @@ func (action *TaskAction) containerSpec(repository *worker.ArtifactRepository, c
 	return containerSpec, nil
 }
 
-func (action *TaskAction) registerSource(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig, container worker.Container) {
+func (action *TaskAction) registerOutputs(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig, container worker.Container) error {
 	volumeMounts := container.VolumeMounts()
 
-	logger.Debug("registering-outputs", lager.Data{"config": config})
+	logger.Debug("registering-outputs", lager.Data{"outputs": config.Outputs})
 
 	for _, output := range config.Outputs {
 		outputName := output.Name
@@ -373,11 +397,30 @@ func (action *TaskAction) registerSource(logger lager.Logger, repository *worker
 
 		for _, mount := range volumeMounts {
 			if mount.MountPath == outputPath {
-				source := newVolumeSource(logger, mount.Volume)
+				source := newTaskArtifactSource(logger, mount.Volume)
 				repository.RegisterSource(worker.ArtifactName(outputName), source)
 			}
 		}
 	}
+
+	logger.Debug("initializing-caches", lager.Data{"caches": config.Caches})
+
+	for _, cacheConfig := range config.Caches {
+		for _, volumeMount := range volumeMounts {
+			if volumeMount.MountPath == filepath.Join(action.artifactsRoot, cacheConfig.Path) {
+				logger.Debug("initializing-cache", lager.Data{"path": volumeMount.MountPath})
+
+				err := volumeMount.Volume.InitializeTaskCache(logger, action.jobID, action.stepName, cacheConfig.Path, bool(action.privileged))
+				if err != nil {
+					return err
+				}
+
+				continue
+			}
+		}
+	}
+
+	return nil
 }
 
 func (TaskAction) envForParams(params map[string]string) []string {
@@ -390,22 +433,22 @@ func (TaskAction) envForParams(params map[string]string) []string {
 	return env
 }
 
-type volumeSource struct {
+type taskArtifactSource struct {
 	logger lager.Logger
 	volume worker.Volume
 }
 
-func newVolumeSource(
+func newTaskArtifactSource(
 	logger lager.Logger,
 	volume worker.Volume,
-) *volumeSource {
-	return &volumeSource{
+) *taskArtifactSource {
+	return &taskArtifactSource{
 		logger: logger,
 		volume: volume,
 	}
 }
 
-func (src *volumeSource) StreamTo(destination worker.ArtifactDestination) error {
+func (src *taskArtifactSource) StreamTo(destination worker.ArtifactDestination) error {
 	out, err := src.volume.StreamOut(".")
 	if err != nil {
 		return err
@@ -416,7 +459,7 @@ func (src *volumeSource) StreamTo(destination worker.ArtifactDestination) error 
 	return destination.StreamIn(".", out)
 }
 
-func (src *volumeSource) StreamFile(filename string) (io.ReadCloser, error) {
+func (src *taskArtifactSource) StreamFile(filename string) (io.ReadCloser, error) {
 	out, err := src.volume.StreamOut(filename)
 	if err != nil {
 		return nil, err
@@ -435,18 +478,16 @@ func (src *volumeSource) StreamFile(filename string) (io.ReadCloser, error) {
 	}, nil
 }
 
-func (src *volumeSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
+func (src *taskArtifactSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
 	return w.LookupVolume(src.logger, src.volume.Handle())
 }
 
 type taskInputSource struct {
-	name          worker.ArtifactName
 	config        atc.TaskInputConfig
 	source        worker.ArtifactSource
 	artifactsRoot string
 }
 
-func (s *taskInputSource) Name() worker.ArtifactName     { return s.name }
 func (s *taskInputSource) Source() worker.ArtifactSource { return s.source }
 
 func (s *taskInputSource) DestinationPath() string {
@@ -465,4 +506,53 @@ func artifactsPath(outputConfig atc.TaskOutputConfig, artifactsRoot string) stri
 	}
 
 	return path.Join(artifactsRoot, outputSrc) + "/"
+}
+
+type taskCacheInputSource struct {
+	source        worker.ArtifactSource
+	artifactsRoot string
+	cachePath     string
+}
+
+func (s *taskCacheInputSource) Source() worker.ArtifactSource { return s.source }
+
+func (s *taskCacheInputSource) DestinationPath() string {
+	return filepath.Join(s.artifactsRoot, s.cachePath)
+}
+
+type taskCacheSource struct {
+	logger   lager.Logger
+	teamID   int
+	jobID    int
+	stepName string
+	path     string
+}
+
+func newTaskCacheSource(
+	logger lager.Logger,
+	teamID int,
+	jobID int,
+	stepName string,
+	path string,
+) *taskCacheSource {
+	return &taskCacheSource{
+		logger:   logger,
+		teamID:   teamID,
+		jobID:    jobID,
+		stepName: stepName,
+		path:     path,
+	}
+}
+
+func (src *taskCacheSource) StreamTo(destination worker.ArtifactDestination) error {
+	// cache will be initialized every time on a new worker
+	return nil
+}
+
+func (src *taskCacheSource) StreamFile(filename string) (io.ReadCloser, error) {
+	return nil, errors.New("taskCacheSource.StreamFile not implemented")
+}
+
+func (src *taskCacheSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
+	return w.FindVolumeForTaskCache(src.logger, src.teamID, src.jobID, src.stepName, src.path)
 }

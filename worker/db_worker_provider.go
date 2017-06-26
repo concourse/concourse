@@ -26,6 +26,7 @@ type dbWorkerProvider struct {
 	dbResourceCacheFactory          db.ResourceCacheFactory
 	dbResourceConfigFactory         db.ResourceConfigFactory
 	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory
+	dbWorkerTaskCacheFactory        db.WorkerTaskCacheFactory
 	dbVolumeFactory                 db.VolumeFactory
 	dbTeamFactory                   db.TeamFactory
 	dbWorkerFactory                 db.WorkerFactory
@@ -39,6 +40,7 @@ func NewDBWorkerProvider(
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
+	dbWorkerTaskCacheFactory db.WorkerTaskCacheFactory,
 	dbVolumeFactory db.VolumeFactory,
 	dbTeamFactory db.TeamFactory,
 	workerFactory db.WorkerFactory,
@@ -51,6 +53,7 @@ func NewDBWorkerProvider(
 		dbResourceCacheFactory:          dbResourceCacheFactory,
 		dbResourceConfigFactory:         dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory: dbWorkerBaseResourceTypeFactory,
+		dbWorkerTaskCacheFactory:        dbWorkerTaskCacheFactory,
 		dbVolumeFactory:                 dbVolumeFactory,
 		dbTeamFactory:                   dbTeamFactory,
 		dbWorkerFactory:                 workerFactory,
@@ -159,6 +162,7 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 		provider.lockFactory,
 		provider.dbVolumeFactory,
 		provider.dbWorkerBaseResourceTypeFactory,
+		provider.dbWorkerTaskCacheFactory,
 		clock.NewClock(),
 		savedWorker,
 	)

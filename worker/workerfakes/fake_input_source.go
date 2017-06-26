@@ -8,15 +8,6 @@ import (
 )
 
 type FakeInputSource struct {
-	NameStub        func() worker.ArtifactName
-	nameMutex       sync.RWMutex
-	nameArgsForCall []struct{}
-	nameReturns     struct {
-		result1 worker.ArtifactName
-	}
-	nameReturnsOnCall map[int]struct {
-		result1 worker.ArtifactName
-	}
 	SourceStub        func() worker.ArtifactSource
 	sourceMutex       sync.RWMutex
 	sourceArgsForCall []struct{}
@@ -37,46 +28,6 @@ type FakeInputSource struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeInputSource) Name() worker.ArtifactName {
-	fake.nameMutex.Lock()
-	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
-	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
-	fake.recordInvocation("Name", []interface{}{})
-	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.nameReturns.result1
-}
-
-func (fake *FakeInputSource) NameCallCount() int {
-	fake.nameMutex.RLock()
-	defer fake.nameMutex.RUnlock()
-	return len(fake.nameArgsForCall)
-}
-
-func (fake *FakeInputSource) NameReturns(result1 worker.ArtifactName) {
-	fake.NameStub = nil
-	fake.nameReturns = struct {
-		result1 worker.ArtifactName
-	}{result1}
-}
-
-func (fake *FakeInputSource) NameReturnsOnCall(i int, result1 worker.ArtifactName) {
-	fake.NameStub = nil
-	if fake.nameReturnsOnCall == nil {
-		fake.nameReturnsOnCall = make(map[int]struct {
-			result1 worker.ArtifactName
-		})
-	}
-	fake.nameReturnsOnCall[i] = struct {
-		result1 worker.ArtifactName
-	}{result1}
 }
 
 func (fake *FakeInputSource) Source() worker.ArtifactSource {
@@ -162,8 +113,6 @@ func (fake *FakeInputSource) DestinationPathReturnsOnCall(i int, result1 string)
 func (fake *FakeInputSource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.nameMutex.RLock()
-	defer fake.nameMutex.RUnlock()
 	fake.sourceMutex.RLock()
 	defer fake.sourceMutex.RUnlock()
 	fake.destinationPathMutex.RLock()

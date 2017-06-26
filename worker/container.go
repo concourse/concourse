@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/baggageclaim"
 )
 
 var ErrMissingVolume = errors.New("volume mounted to container is missing")
@@ -34,7 +33,7 @@ func newGardenWorkerContainer(
 	dbContainer db.CreatedContainer,
 	dbContainerVolumes []db.CreatedVolume,
 	gardenClient garden.Client,
-	baggageclaimClient baggageclaim.Client,
+	volumeClient VolumeClient,
 	workerName string,
 ) (Container, error) {
 	logger = logger.WithData(lager.Data{"container": container.Handle()})
@@ -49,7 +48,7 @@ func newGardenWorkerContainer(
 		workerName: workerName,
 	}
 
-	err := workerContainer.initializeVolumes(logger, baggageclaimClient)
+	err := workerContainer.initializeVolumes(logger, volumeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +90,7 @@ func (container *gardenWorkerContainer) VolumeMounts() []VolumeMount {
 
 func (container *gardenWorkerContainer) initializeVolumes(
 	logger lager.Logger,
-	baggageclaimClient baggageclaim.Client,
+	volumeClient VolumeClient,
 ) error {
 
 	volumeMounts := []VolumeMount{}
@@ -101,7 +100,7 @@ func (container *gardenWorkerContainer) initializeVolumes(
 			"handle": dbVolume.Handle(),
 		})
 
-		baggageClaimVolume, volumeFound, err := baggageclaimClient.LookupVolume(logger, dbVolume.Handle())
+		volume, volumeFound, err := volumeClient.LookupVolume(logger, dbVolume.Handle())
 		if err != nil {
 			volumeLogger.Error("failed-to-lookup-volume", err)
 			return err
@@ -113,7 +112,7 @@ func (container *gardenWorkerContainer) initializeVolumes(
 		}
 
 		volumeMounts = append(volumeMounts, VolumeMount{
-			Volume:    NewVolume(baggageClaimVolume, dbVolume),
+			Volume:    volume,
 			MountPath: dbVolume.Path(),
 		})
 	}

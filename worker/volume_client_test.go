@@ -30,6 +30,7 @@ var _ = Describe("VolumeClient", func() {
 		fakeLockFactory                   *lockfakes.FakeLockFactory
 		fakeDBVolumeFactory               *dbfakes.FakeVolumeFactory
 		fakeWorkerBaseResourceTypeFactory *dbfakes.FakeWorkerBaseResourceTypeFactory
+		fakeWorkerTaskCacheFactory        *dbfakes.FakeWorkerTaskCacheFactory
 		fakeClock                         *fakeclock.FakeClock
 		dbWorker                          *dbfakes.FakeWorker
 
@@ -47,6 +48,7 @@ var _ = Describe("VolumeClient", func() {
 
 		fakeDBVolumeFactory = new(dbfakes.FakeVolumeFactory)
 		fakeWorkerBaseResourceTypeFactory = new(dbfakes.FakeWorkerBaseResourceTypeFactory)
+		fakeWorkerTaskCacheFactory = new(dbfakes.FakeWorkerTaskCacheFactory)
 		fakeLock = new(lockfakes.FakeLock)
 
 		volumeClient = worker.NewVolumeClient(
@@ -54,6 +56,7 @@ var _ = Describe("VolumeClient", func() {
 			fakeLockFactory,
 			fakeDBVolumeFactory,
 			fakeWorkerBaseResourceTypeFactory,
+			fakeWorkerTaskCacheFactory,
 			fakeClock,
 			dbWorker,
 		)
@@ -234,7 +237,7 @@ var _ = Describe("VolumeClient", func() {
 
 			It("creates volume in baggageclaim", func() {
 				Expect(foundOrCreatedErr).NotTo(HaveOccurred())
-				Expect(foundOrCreatedVolume).To(Equal(worker.NewVolume(fakeBaggageclaimVolume, fakeCreatedVolume)))
+				Expect(foundOrCreatedVolume).To(Equal(worker.NewVolume(fakeBaggageclaimVolume, fakeCreatedVolume, volumeClient)))
 				Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
 			})
 		})
@@ -407,8 +410,83 @@ var _ = Describe("VolumeClient", func() {
 
 			It("creates volume in baggageclaim", func() {
 				Expect(foundOrCreatedErr).NotTo(HaveOccurred())
-				Expect(foundOrCreatedVolume).To(Equal(worker.NewVolume(fakeBaggageclaimVolume, fakeCreatedVolume)))
+				Expect(foundOrCreatedVolume).To(Equal(worker.NewVolume(fakeBaggageclaimVolume, fakeCreatedVolume, volumeClient)))
 				Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+			})
+		})
+	})
+
+	Describe("FindVolumeForTaskCache", func() {
+		Context("when worker task cache does not exist", func() {
+			BeforeEach(func() {
+				fakeWorkerTaskCacheFactory.FindReturns(nil, false, nil)
+			})
+
+			It("returns false", func() {
+				_, found, err := volumeClient.FindVolumeForTaskCache(testLogger, 123, 456, "some-step", "some-cache-path")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when worker task cache exists", func() {
+			var taskCache *db.UsedWorkerTaskCache
+			BeforeEach(func() {
+				taskCache = &db.UsedWorkerTaskCache{
+					ID: 123,
+				}
+
+				fakeWorkerTaskCacheFactory.FindReturns(taskCache, true, nil)
+			})
+
+			Context("when task cache volume does not exist in db", func() {
+				BeforeEach(func() {
+					fakeDBVolumeFactory.FindTaskCacheVolumeReturns(nil, nil, nil)
+				})
+
+				It("returns false", func() {
+					_, found, err := volumeClient.FindVolumeForTaskCache(testLogger, 123, 456, "some-step", "some-cache-path")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
+			})
+
+			Context("when task cache volume exists in db", func() {
+				var dbVolume db.CreatedVolume
+
+				BeforeEach(func() {
+					dbVolume = new(dbfakes.FakeCreatedVolume)
+					fakeDBVolumeFactory.FindTaskCacheVolumeReturns(nil, dbVolume, nil)
+				})
+
+				Context("when task cache volume does not exist in baggageclaim", func() {
+					BeforeEach(func() {
+						fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
+					})
+
+					It("returns false", func() {
+						_, found, err := volumeClient.FindVolumeForTaskCache(testLogger, 123, 456, "some-step", "some-cache-path")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeFalse())
+					})
+				})
+
+				Context("when task cache volume exists in baggageclaim", func() {
+					var bcVolume *baggageclaimfakes.FakeVolume
+
+					BeforeEach(func() {
+						bcVolume = new(baggageclaimfakes.FakeVolume)
+						fakeBaggageclaimClient.LookupVolumeReturns(bcVolume, true, nil)
+					})
+
+					It("returns volume", func() {
+						volume, found, err := volumeClient.FindVolumeForTaskCache(testLogger, 123, 456, "some-step", "some-cache-path")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						Expect(volume).To(Equal(worker.NewVolume(bcVolume, dbVolume, volumeClient)))
+					})
+				})
 			})
 		})
 	})
@@ -432,6 +510,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeLockFactory,
 				fakeDBVolumeFactory,
 				fakeWorkerBaseResourceTypeFactory,
+				fakeWorkerTaskCacheFactory,
 				fakeClock,
 				dbWorker,
 			).LookupVolume(testLogger, handle)

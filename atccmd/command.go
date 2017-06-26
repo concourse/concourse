@@ -285,6 +285,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
+	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
 	workerClient := cmd.constructWorkerPool(
 		logger,
@@ -294,6 +295,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
+		dbWorkerTaskCacheFactory,
 		dbVolumeFactory,
 		dbWorkerFactory,
 		teamFactory,
@@ -745,6 +747,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
+	dbWorkerTaskCacheFactory db.WorkerTaskCacheFactory,
 	dbVolumeFactory db.VolumeFactory,
 	dbWorkerFactory db.WorkerFactory,
 	teamFactory db.TeamFactory,
@@ -765,6 +768,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			dbResourceCacheFactory,
 			dbResourceConfigFactory,
 			dbWorkerBaseResourceTypeFactory,
+			dbWorkerTaskCacheFactory,
 			dbVolumeFactory,
 			teamFactory,
 			dbWorkerFactory,

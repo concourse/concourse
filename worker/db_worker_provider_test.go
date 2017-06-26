@@ -44,6 +44,7 @@ var _ = Describe("DBProvider", func() {
 		fakeDBWorkerFactory                 *dbfakes.FakeWorkerFactory
 		fakeDBTeamFactory                   *dbfakes.FakeTeamFactory
 		fakeDBWorkerBaseResourceTypeFactory *dbfakes.FakeWorkerBaseResourceTypeFactory
+		fakeDBWorkerTaskCacheFactory        *dbfakes.FakeWorkerTaskCacheFactory
 		fakeDBResourceCacheFactory          *dbfakes.FakeResourceCacheFactory
 		fakeDBResourceConfigFactory         *dbfakes.FakeResourceConfigFactory
 		fakeCreatingContainer               *dbfakes.FakeCreatingContainer
@@ -127,6 +128,7 @@ var _ = Describe("DBProvider", func() {
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeDBResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeDBWorkerBaseResourceTypeFactory = new(dbfakes.FakeWorkerBaseResourceTypeFactory)
+		fakeDBWorkerTaskCacheFactory = new(dbfakes.FakeWorkerTaskCacheFactory)
 		fakeLock := new(lockfakes.FakeLock)
 
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
@@ -144,6 +146,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDBResourceCacheFactory,
 			fakeDBResourceConfigFactory,
 			fakeDBWorkerBaseResourceTypeFactory,
+			fakeDBWorkerTaskCacheFactory,
 			fakeDBVolumeFactory,
 			fakeDBTeamFactory,
 			fakeDBWorkerFactory,

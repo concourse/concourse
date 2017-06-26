@@ -181,6 +181,60 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
+	Describe("createdVolume.InitializeTaskCache", func() {
+		Context("when there is a volume that belongs to worker task cache", func() {
+			var (
+				existingTaskCacheVolume db.CreatedVolume
+				volume                  db.CreatedVolume
+			)
+
+			BeforeEach(func() {
+				build, err := defaultTeam.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{})
+				Expect(err).ToNot(HaveOccurred())
+
+				v, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path")
+				Expect(err).NotTo(HaveOccurred())
+
+				existingTaskCacheVolume, err = v.Created()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = existingTaskCacheVolume.InitializeTaskCache(defaultJob.ID(), "some-step", "some-cache-path")
+				Expect(err).NotTo(HaveOccurred())
+
+				v, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-other-path")
+				Expect(err).NotTo(HaveOccurred())
+
+				volume, err = v.Created()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("sets current volume as worker task cache volume", func() {
+				uwtc, err := workerTaskCacheFactory.FindOrCreate(defaultJob.ID(), "some-step", "some-cache-path", defaultWorker.Name())
+				Expect(err).NotTo(HaveOccurred())
+
+				creatingVolume, createdVolume, err := volumeFactory.FindTaskCacheVolume(defaultTeam.ID(), uwtc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creatingVolume).To(BeNil())
+				Expect(createdVolume).NotTo(BeNil())
+				Expect(createdVolume.Handle()).To(Equal(existingTaskCacheVolume.Handle()))
+
+				err = volume.InitializeTaskCache(defaultJob.ID(), "some-step", "some-cache-path")
+				Expect(err).NotTo(HaveOccurred())
+
+				creatingVolume, createdVolume, err = volumeFactory.FindTaskCacheVolume(defaultTeam.ID(), uwtc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creatingVolume).To(BeNil())
+				Expect(createdVolume).NotTo(BeNil())
+				Expect(createdVolume.Handle()).To(Equal(volume.Handle()))
+
+				Expect(existingTaskCacheVolume.Handle()).NotTo(Equal(volume.Handle()))
+			})
+		})
+	})
+
 	Describe("Container volumes", func() {
 		It("returns volume type, container handle, mount path", func() {
 			creatingVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")

@@ -26,11 +26,6 @@ type Client interface {
 		creds.VersionedResourceTypes,
 	) (Container, error)
 
-	FindVolumeForResourceCache(
-		logger lager.Logger,
-		resourceCache *db.UsedResourceCache,
-	) (Volume, bool, error)
-
 	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
@@ -43,7 +38,6 @@ type Client interface {
 //go:generate counterfeiter . InputSource
 
 type InputSource interface {
-	Name() ArtifactName
 	Source() ArtifactSource
 	DestinationPath() string
 }

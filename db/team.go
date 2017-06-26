@@ -568,6 +568,11 @@ func (t *team) SavePipeline(
 		}
 	}
 
+	err = removeUnusedWorkerTaskCaches(tx, pipelineID, config.Jobs)
+	if err != nil {
+		return nil, false, err
+	}
+
 	pipeline := newPipeline(t.conn, t.lockFactory)
 
 	err = scanPipeline(

@@ -313,7 +313,7 @@ func (p *containerProvider) FindCreatedContainerByHandle(
 		createdContainer,
 		createdVolumes,
 		p.gardenClient,
-		p.baggageclaimClient,
+		p.volumeClient,
 		p.worker.Name(),
 	)
 
@@ -342,7 +342,7 @@ func (p *containerProvider) constructGardenWorkerContainer(
 		createdContainer,
 		createdVolumes,
 		p.gardenClient,
-		p.baggageclaimClient,
+		p.volumeClient,
 		p.worker.Name(),
 	)
 }

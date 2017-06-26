@@ -48,6 +48,7 @@ var _ = Describe("TaskAction", func() {
 		teamID        int
 		buildID       int
 		planID        atc.PlanID
+		jobID         int
 		configSource  *execfakes.FakeTaskConfigSource
 		resourceTypes creds.VersionedResourceTypes
 		inputMapping  map[string]string
@@ -79,6 +80,7 @@ var _ = Describe("TaskAction", func() {
 		teamID = 123
 		planID = atc.PlanID(42)
 		buildID = 1234
+		jobID = 12345
 		configSource = new(execfakes.FakeTaskConfigSource)
 
 		artifactRepository = worker.NewArtifactRepository()
@@ -123,6 +125,8 @@ var _ = Describe("TaskAction", func() {
 			fakeWorkerClient,
 			teamID,
 			buildID,
+			jobID,
+			"some-task",
 			planID,
 			containerMetadata,
 			resourceTypes,
@@ -536,15 +540,13 @@ var _ = Describe("TaskAction", func() {
 							_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 							Expect(spec.Inputs).To(HaveLen(2))
 							for _, input := range spec.Inputs {
-								switch input.Name() {
-								case "some-input":
-									Expect(input.DestinationPath()).To(Equal("some-artifact-root/some-input-configured-path"))
+								switch input.DestinationPath() {
+								case "some-artifact-root/some-input-configured-path":
 									Expect(input.Source()).To(Equal(inputSource))
-								case "some-other-input":
-									Expect(input.DestinationPath()).To(Equal("some-artifact-root/some-other-input"))
+								case "some-artifact-root/some-other-input":
 									Expect(input.Source()).To(Equal(otherInputSource))
 								default:
-									panic("unknown input: " + input.Name())
+									panic("unknown input: " + input.DestinationPath())
 								}
 							}
 						})
@@ -589,7 +591,6 @@ var _ = Describe("TaskAction", func() {
 						It("uses remapped input", func() {
 							_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 							Expect(spec.Inputs).To(HaveLen(1))
-							Expect(spec.Inputs[0].Name()).To(Equal(worker.ArtifactName("remapped-input-src")))
 							Expect(spec.Inputs[0].Source()).To(Equal(remappedInputSource))
 							Expect(spec.Inputs[0].DestinationPath()).To(Equal("some-artifact-root/remapped-input"))
 							Eventually(process.Wait()).Should(Receive(BeNil()))
@@ -603,6 +604,74 @@ var _ = Describe("TaskAction", func() {
 							Expect(err).To(BeAssignableToTypeOf(exec.MissingInputsError{}))
 							Expect(err.(exec.MissingInputsError).Inputs).To(ConsistOf("remapped-input-src"))
 						})
+					})
+				})
+
+				Context("when the configuration specifies paths for caches", func() {
+					var (
+						inputSource      *workerfakes.FakeArtifactSource
+						otherInputSource *workerfakes.FakeArtifactSource
+
+						fakeVolume1 *workerfakes.FakeVolume
+						fakeVolume2 *workerfakes.FakeVolume
+					)
+
+					BeforeEach(func() {
+						inputSource = new(workerfakes.FakeArtifactSource)
+						otherInputSource = new(workerfakes.FakeArtifactSource)
+
+						configSource.GetTaskConfigReturns(atc.TaskConfig{
+							Platform:  "some-platform",
+							RootfsURI: "some-image",
+							Run:       atc.TaskRunConfig{},
+							Caches: []atc.CacheConfig{
+								{Path: "some-path-1"},
+								{Path: "some-path-2"},
+							},
+						}, nil)
+
+						fakeVolume1 = new(workerfakes.FakeVolume)
+						fakeVolume2 = new(workerfakes.FakeVolume)
+						fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+							worker.VolumeMount{
+								Volume:    fakeVolume1,
+								MountPath: "some-artifact-root/some-path-1",
+							},
+							worker.VolumeMount{
+								Volume:    fakeVolume2,
+								MountPath: "some-artifact-root/some-path-2",
+							},
+						})
+					})
+
+					It("creates the container with the caches in the inputs", func() {
+						_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+						Expect(spec.Inputs).To(HaveLen(2))
+						Expect([]string{
+							spec.Inputs[0].DestinationPath(),
+							spec.Inputs[1].DestinationPath(),
+						}).To(ConsistOf(
+							"some-artifact-root/some-path-1",
+							"some-artifact-root/some-path-2",
+						))
+					})
+
+					It("registers cache volumes as task caches", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+
+						Expect(fakeVolume1.InitializeTaskCacheCallCount()).To(Equal(1))
+						_, jID, stepName, cachePath, p := fakeVolume1.InitializeTaskCacheArgsForCall(0)
+						Expect(jID).To(Equal(jobID))
+						Expect(stepName).To(Equal("some-task"))
+						Expect(cachePath).To(Equal("some-path-1"))
+						Expect(p).To(Equal(bool(privileged)))
+
+						Expect(fakeVolume2.InitializeTaskCacheCallCount()).To(Equal(1))
+						_, jID, stepName, cachePath, p = fakeVolume2.InitializeTaskCacheArgsForCall(0)
+						Expect(jID).To(Equal(jobID))
+						Expect(stepName).To(Equal("some-task"))
+						Expect(cachePath).To(Equal("some-path-2"))
+						Expect(p).To(Equal(bool(privileged)))
 					})
 				})
 

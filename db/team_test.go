@@ -1142,8 +1142,11 @@ var _ = Describe("Team", func() {
 			JobID int
 			Name  string
 		}
-		var config atc.Config
-		var otherConfig atc.Config
+		var (
+			config       atc.Config
+			otherConfig  atc.Config
+			pipelineName string
+		)
 
 		BeforeEach(func() {
 			config = atc.Config{
@@ -1240,266 +1243,351 @@ var _ = Describe("Team", func() {
 					},
 				},
 			}
+
+			pipelineName = "some-pipeline"
 		})
 
-		Context("on initial create", func() {
-			var pipelineName string
-			BeforeEach(func() {
-				pipelineName = "some-pipeline"
-			})
+		It("returns true for created", func() {
+			_, created, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(created).To(BeTrue())
+		})
 
-			It("returns true for created", func() {
-				_, created, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+		It("caches the team id", func() {
+			_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, found, err := team.Pipeline(pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline.TeamID()).To(Equal(team.ID()))
+		})
+
+		It("can be saved as paused", func() {
+			_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelinePaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, found, err := team.Pipeline(pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(pipeline.Paused()).To(BeTrue())
+		})
+
+		It("can be saved as unpaused", func() {
+			_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, found, err := team.Pipeline(pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(pipeline.Paused()).To(BeFalse())
+		})
+
+		It("defaults to paused", func() {
+			_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, found, err := team.Pipeline(pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(pipeline.Paused()).To(BeTrue())
+		})
+
+		It("creates all of the resources from the pipeline in the database", func() {
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			resource, found, err := savedPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.Type()).To(Equal("some-type"))
+			Expect(resource.Source()).To(Equal(atc.Source{
+				"source-config": "some-value",
+			}))
+		})
+
+		It("updates resource config", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.Resources[0].Source = atc.Source{
+				"source-other-config": "some-other-value",
+			}
+
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			resource, found, err := savedPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.Type()).To(Equal("some-type"))
+			Expect(resource.Source()).To(Equal(atc.Source{
+				"source-other-config": "some-other-value",
+			}))
+		})
+
+		It("marks resource as inactive if it is no longer in config", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.Resources = []atc.ResourceConfig{}
+
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err := savedPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
+		It("creates all of the resource types from the pipeline in the database", func() {
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			resourceType, found, err := savedPipeline.ResourceType("some-resource-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resourceType.Type()).To(Equal("some-type"))
+			Expect(resourceType.Source()).To(Equal(atc.Source{
+				"source-config": "some-value",
+			}))
+		})
+
+		It("updates resource type config from the pipeline in the database", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.ResourceTypes[0].Source = atc.Source{
+				"source-other-config": "some-other-value",
+			}
+
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			resourceType, found, err := savedPipeline.ResourceType("some-resource-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resourceType.Type()).To(Equal("some-type"))
+			Expect(resourceType.Source()).To(Equal(atc.Source{
+				"source-other-config": "some-other-value",
+			}))
+		})
+
+		It("marks resource type as inactive if it is no longer in config", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.ResourceTypes = []atc.ResourceType{}
+
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err := savedPipeline.ResourceType("some-resource-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
+		It("creates all of the jobs from the pipeline in the database", func() {
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			job, found, err := savedPipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(job.Config()).To(Equal(config.Jobs[0]))
+		})
+
+		It("updates job config", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.Jobs[0].Public = false
+
+			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(job.Config().Public).To(BeFalse())
+		})
+
+		It("marks job inactive when it is no longer in pipeline", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.Jobs = []atc.JobConfig{}
+
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err := savedPipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
+		It("removes worker task caches for jobs that are no longer in pipeline", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			_, err = workerTaskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path", defaultWorker.Name())
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err = workerTaskCacheFactory.Find(job.ID(), "some-task", "some-path", defaultWorker.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			config.Jobs = []atc.JobConfig{}
+
+			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err = workerTaskCacheFactory.Find(job.ID(), "some-task", "some-path", defaultWorker.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
+		It("removes worker task caches for tasks that are no longer exist", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			_, err = workerTaskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path", defaultWorker.Name())
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err = workerTaskCacheFactory.Find(job.ID(), "some-task", "some-path", defaultWorker.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			config.Jobs = []atc.JobConfig{
+				{
+					Name: "some-job",
+					Plan: atc.PlanSequence{
+						{
+							Task:           "some-other-task",
+							TaskConfigPath: "some/config/path.yml",
+						},
+					},
+				},
+			}
+
+			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err = workerTaskCacheFactory.Find(job.ID(), "some-task", "some-path", defaultWorker.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
+		It("creates all of the serial groups from the jobs in the database", func() {
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			serialGroups := []SerialGroup{}
+			rows, err := dbConn.Query("SELECT job_id, serial_group FROM jobs_serial_groups")
+			Expect(err).NotTo(HaveOccurred())
+
+			for rows.Next() {
+				var serialGroup SerialGroup
+				err = rows.Scan(&serialGroup.JobID, &serialGroup.Name)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(created).To(BeTrue())
-			})
+				serialGroups = append(serialGroups, serialGroup)
+			}
 
-			It("caches the team id", func() {
-				_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
+			job, found, err := savedPipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-				pipeline, found, err := team.Pipeline(pipelineName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(pipeline.TeamID()).To(Equal(team.ID()))
-			})
+			Expect(serialGroups).To(ConsistOf([]SerialGroup{
+				{
+					JobID: job.ID(),
+					Name:  "serial-group-1",
+				},
+				{
+					JobID: job.ID(),
+					Name:  "serial-group-2",
+				},
+			}))
+		})
 
-			It("can be saved as paused", func() {
+		It("it returns created as false when updated", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, created, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(created).To(BeFalse())
+		})
+
+		It("updating from paused to unpaused", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelinePaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, found, err := team.Pipeline(pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline.Paused()).To(BeTrue())
+
+			_, _, configVersion, err := pipeline.Config()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, err = team.SavePipeline(pipelineName, config, configVersion, db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, found, err = team.Pipeline(pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline.Paused()).To(BeFalse())
+		})
+
+		It("updating from unpaused to paused", func() {
+			_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, found, err := team.Pipeline(pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline.Paused()).To(BeFalse())
+
+			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelinePaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, found, err = team.Pipeline(pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline.Paused()).To(BeTrue())
+		})
+
+		Context("updating with no change", func() {
+			It("maintains paused if the pipeline is paused", func() {
 				_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelinePaused)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, found, err := team.Pipeline(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-
 				Expect(pipeline.Paused()).To(BeTrue())
-			})
-
-			It("can be saved as unpaused", func() {
-				_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				pipeline, found, err := team.Pipeline(pipelineName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(pipeline.Paused()).To(BeFalse())
-			})
-
-			It("defaults to paused", func() {
-				_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				pipeline, found, err := team.Pipeline(pipelineName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(pipeline.Paused()).To(BeTrue())
-			})
-
-			It("creates all of the resources from the pipeline in the database", func() {
-				savedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				resource, found, err := savedPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(resource.Type()).To(Equal("some-type"))
-				Expect(resource.Source()).To(Equal(atc.Source{
-					"source-config": "some-value",
-				}))
-			})
-
-			It("updates resource config", func() {
-				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				config.Resources[0].Source = atc.Source{
-					"source-other-config": "some-other-value",
-				}
-
-				savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				resource, found, err := savedPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(resource.Type()).To(Equal("some-type"))
-				Expect(resource.Source()).To(Equal(atc.Source{
-					"source-other-config": "some-other-value",
-				}))
-			})
-
-			It("marks resource as inactive if it is no longer in config", func() {
-				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				config.Resources = []atc.ResourceConfig{}
-
-				savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, found, err := savedPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
-			})
-
-			It("creates all of the resource types from the pipeline in the database", func() {
-				savedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				resourceType, found, err := savedPipeline.ResourceType("some-resource-type")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(resourceType.Type()).To(Equal("some-type"))
-				Expect(resourceType.Source()).To(Equal(atc.Source{
-					"source-config": "some-value",
-				}))
-			})
-
-			It("updates resource type config from the pipeline in the database", func() {
-				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				config.ResourceTypes[0].Source = atc.Source{
-					"source-other-config": "some-other-value",
-				}
-
-				savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				resourceType, found, err := savedPipeline.ResourceType("some-resource-type")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(resourceType.Type()).To(Equal("some-type"))
-				Expect(resourceType.Source()).To(Equal(atc.Source{
-					"source-other-config": "some-other-value",
-				}))
-			})
-
-			It("marks resource type as inactive if it is no longer in config", func() {
-				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				config.ResourceTypes = []atc.ResourceType{}
-
-				savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, found, err := savedPipeline.ResourceType("some-resource-type")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
-			})
-
-			It("creates all of the jobs from the pipeline in the database", func() {
-				savedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				job, found, err := savedPipeline.Job("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(job.Config()).To(Equal(config.Jobs[0]))
-			})
-
-			It("updates job config", func() {
-				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				config.Jobs[0].Public = false
 
 				_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
 				Expect(err).NotTo(HaveOccurred())
 
-				job, found, err := pipeline.Job("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(job.Config().Public).To(BeFalse())
-			})
-
-			It("marks job inactive", func() {
-				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				config.Jobs = []atc.JobConfig{}
-
-				savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, found, err := savedPipeline.Job("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
-			})
-
-			It("creates all of the serial groups from the jobs in the database", func() {
-				savedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				serialGroups := []SerialGroup{}
-				rows, err := dbConn.Query("SELECT job_id, serial_group FROM jobs_serial_groups")
-				Expect(err).NotTo(HaveOccurred())
-
-				for rows.Next() {
-					var serialGroup SerialGroup
-					err = rows.Scan(&serialGroup.JobID, &serialGroup.Name)
-					Expect(err).NotTo(HaveOccurred())
-					serialGroups = append(serialGroups, serialGroup)
-				}
-
-				job, found, err := savedPipeline.Job("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(serialGroups).To(ConsistOf([]SerialGroup{
-					{
-						JobID: job.ID(),
-						Name:  "serial-group-1",
-					},
-					{
-						JobID: job.ID(),
-						Name:  "serial-group-2",
-					},
-				}))
-			})
-		})
-
-		Context("on updates", func() {
-			var pipelineName string
-
-			BeforeEach(func() {
-				pipelineName = "a-pipeline-name"
-			})
-
-			It("it returns created as false", func() {
-				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, created, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(created).To(BeFalse())
-			})
-
-			It("updating from paused to unpaused", func() {
-				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelinePaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				pipeline, found, err := team.Pipeline(pipelineName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(pipeline.Paused()).To(BeTrue())
-
-				_, _, configVersion, err := pipeline.Config()
-				Expect(err).NotTo(HaveOccurred())
-
-				_, _, err = team.SavePipeline(pipelineName, config, configVersion, db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
 				pipeline, found, err = team.Pipeline(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(pipeline.Paused()).To(BeFalse())
+				Expect(pipeline.Paused()).To(BeTrue())
 			})
 
-			It("updating from unpaused to paused", func() {
+			It("maintains unpaused if the pipeline is unpaused", func() {
 				_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -1508,51 +1596,13 @@ var _ = Describe("Team", func() {
 				Expect(found).To(BeTrue())
 				Expect(pipeline.Paused()).To(BeFalse())
 
-				_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelinePaused)
+				_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, found, err = team.Pipeline(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(pipeline.Paused()).To(BeTrue())
-			})
-
-			Context("updating with no change", func() {
-				It("maintains paused if the pipeline is paused", func() {
-					_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelinePaused)
-					Expect(err).NotTo(HaveOccurred())
-
-					pipeline, found, err := team.Pipeline(pipelineName)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(pipeline.Paused()).To(BeTrue())
-
-					_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-					Expect(err).NotTo(HaveOccurred())
-
-					pipeline, found, err = team.Pipeline(pipelineName)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(pipeline.Paused()).To(BeTrue())
-				})
-
-				It("maintains unpaused if the pipeline is unpaused", func() {
-					_, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineUnpaused)
-					Expect(err).NotTo(HaveOccurred())
-
-					pipeline, found, err := team.Pipeline(pipelineName)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(pipeline.Paused()).To(BeFalse())
-
-					_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-					Expect(err).NotTo(HaveOccurred())
-
-					pipeline, found, err = team.Pipeline(pipelineName)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(pipeline.Paused()).To(BeFalse())
-				})
+				Expect(pipeline.Paused()).To(BeFalse())
 			})
 		})
 
@@ -1685,10 +1735,10 @@ var _ = Describe("Team", func() {
 
 			plaintext := []byte("bad-json")
 			dbConn.Exec(`
-		UPDATE pipelines
-		SET config = $1
-		WHERE name = 'invalid-config'
-		`, plaintext)
+			UPDATE pipelines
+			SET config = $1
+			WHERE name = 'invalid-config'
+			`, plaintext)
 
 			_, _, invalidConfigVersion, err := invalidPipeline.Config()
 			Expect(err).To(BeAssignableToTypeOf(atc.MalformedConfigError{}))

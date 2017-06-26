@@ -79,11 +79,11 @@ type FakeResourceInstance struct {
 		result1 string
 		result2 error
 	}
-	FindOnStub        func(lager.Logger, worker.Client) (worker.Volume, bool, error)
+	FindOnStub        func(lager.Logger, worker.Worker) (worker.Volume, bool, error)
 	findOnMutex       sync.RWMutex
 	findOnArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 worker.Client
+		arg2 worker.Worker
 	}
 	findOnReturns struct {
 		result1 worker.Volume
@@ -390,12 +390,12 @@ func (fake *FakeResourceInstance) LockNameReturnsOnCall(i int, result1 string, r
 	}{result1, result2}
 }
 
-func (fake *FakeResourceInstance) FindOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, bool, error) {
+func (fake *FakeResourceInstance) FindOn(arg1 lager.Logger, arg2 worker.Worker) (worker.Volume, bool, error) {
 	fake.findOnMutex.Lock()
 	ret, specificReturn := fake.findOnReturnsOnCall[len(fake.findOnArgsForCall)]
 	fake.findOnArgsForCall = append(fake.findOnArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 worker.Client
+		arg2 worker.Worker
 	}{arg1, arg2})
 	fake.recordInvocation("FindOn", []interface{}{arg1, arg2})
 	fake.findOnMutex.Unlock()
@@ -414,7 +414,7 @@ func (fake *FakeResourceInstance) FindOnCallCount() int {
 	return len(fake.findOnArgsForCall)
 }
 
-func (fake *FakeResourceInstance) FindOnArgsForCall(i int) (lager.Logger, worker.Client) {
+func (fake *FakeResourceInstance) FindOnArgsForCall(i int) (lager.Logger, worker.Worker) {
 	fake.findOnMutex.RLock()
 	defer fake.findOnMutex.RUnlock()
 	return fake.findOnArgsForCall[i].arg1, fake.findOnArgsForCall[i].arg2

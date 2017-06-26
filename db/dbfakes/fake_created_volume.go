@@ -35,6 +35,15 @@ type FakeCreatedVolume struct {
 	typeReturnsOnCall map[int]struct {
 		result1 db.VolumeType
 	}
+	TeamIDStub        func() int
+	teamIDMutex       sync.RWMutex
+	teamIDArgsForCall []struct{}
+	teamIDReturns     struct {
+		result1 int
+	}
+	teamIDReturnsOnCall map[int]struct {
+		result1 int
+	}
 	CreateChildForContainerStub        func(db.CreatingContainer, string) (db.CreatingVolume, error)
 	createChildForContainerMutex       sync.RWMutex
 	createChildForContainerArgsForCall []struct {
@@ -87,6 +96,19 @@ type FakeCreatedVolume struct {
 		result1 error
 	}
 	initializeResourceCacheReturnsOnCall map[int]struct {
+		result1 error
+	}
+	InitializeTaskCacheStub        func(int, string, string) error
+	initializeTaskCacheMutex       sync.RWMutex
+	initializeTaskCacheArgsForCall []struct {
+		arg1 int
+		arg2 string
+		arg3 string
+	}
+	initializeTaskCacheReturns struct {
+		result1 error
+	}
+	initializeTaskCacheReturnsOnCall map[int]struct {
 		result1 error
 	}
 	ContainerHandleStub        func() string
@@ -250,6 +272,46 @@ func (fake *FakeCreatedVolume) TypeReturnsOnCall(i int, result1 db.VolumeType) {
 	}
 	fake.typeReturnsOnCall[i] = struct {
 		result1 db.VolumeType
+	}{result1}
+}
+
+func (fake *FakeCreatedVolume) TeamID() int {
+	fake.teamIDMutex.Lock()
+	ret, specificReturn := fake.teamIDReturnsOnCall[len(fake.teamIDArgsForCall)]
+	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct{}{})
+	fake.recordInvocation("TeamID", []interface{}{})
+	fake.teamIDMutex.Unlock()
+	if fake.TeamIDStub != nil {
+		return fake.TeamIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.teamIDReturns.result1
+}
+
+func (fake *FakeCreatedVolume) TeamIDCallCount() int {
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
+	return len(fake.teamIDArgsForCall)
+}
+
+func (fake *FakeCreatedVolume) TeamIDReturns(result1 int) {
+	fake.TeamIDStub = nil
+	fake.teamIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeCreatedVolume) TeamIDReturnsOnCall(i int, result1 int) {
+	fake.TeamIDStub = nil
+	if fake.teamIDReturnsOnCall == nil {
+		fake.teamIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.teamIDReturnsOnCall[i] = struct {
+		result1 int
 	}{result1}
 }
 
@@ -476,6 +538,56 @@ func (fake *FakeCreatedVolume) InitializeResourceCacheReturnsOnCall(i int, resul
 	}{result1}
 }
 
+func (fake *FakeCreatedVolume) InitializeTaskCache(arg1 int, arg2 string, arg3 string) error {
+	fake.initializeTaskCacheMutex.Lock()
+	ret, specificReturn := fake.initializeTaskCacheReturnsOnCall[len(fake.initializeTaskCacheArgsForCall)]
+	fake.initializeTaskCacheArgsForCall = append(fake.initializeTaskCacheArgsForCall, struct {
+		arg1 int
+		arg2 string
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("InitializeTaskCache", []interface{}{arg1, arg2, arg3})
+	fake.initializeTaskCacheMutex.Unlock()
+	if fake.InitializeTaskCacheStub != nil {
+		return fake.InitializeTaskCacheStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.initializeTaskCacheReturns.result1
+}
+
+func (fake *FakeCreatedVolume) InitializeTaskCacheCallCount() int {
+	fake.initializeTaskCacheMutex.RLock()
+	defer fake.initializeTaskCacheMutex.RUnlock()
+	return len(fake.initializeTaskCacheArgsForCall)
+}
+
+func (fake *FakeCreatedVolume) InitializeTaskCacheArgsForCall(i int) (int, string, string) {
+	fake.initializeTaskCacheMutex.RLock()
+	defer fake.initializeTaskCacheMutex.RUnlock()
+	return fake.initializeTaskCacheArgsForCall[i].arg1, fake.initializeTaskCacheArgsForCall[i].arg2, fake.initializeTaskCacheArgsForCall[i].arg3
+}
+
+func (fake *FakeCreatedVolume) InitializeTaskCacheReturns(result1 error) {
+	fake.InitializeTaskCacheStub = nil
+	fake.initializeTaskCacheReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCreatedVolume) InitializeTaskCacheReturnsOnCall(i int, result1 error) {
+	fake.InitializeTaskCacheStub = nil
+	if fake.initializeTaskCacheReturnsOnCall == nil {
+		fake.initializeTaskCacheReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.initializeTaskCacheReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeCreatedVolume) ContainerHandle() string {
 	fake.containerHandleMutex.Lock()
 	ret, specificReturn := fake.containerHandleReturnsOnCall[len(fake.containerHandleArgsForCall)]
@@ -651,6 +763,8 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.pathMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
 	fake.createChildForContainerMutex.RLock()
 	defer fake.createChildForContainerMutex.RUnlock()
 	fake.destroyingMutex.RLock()
@@ -661,6 +775,8 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.sizeInBytesMutex.RUnlock()
 	fake.initializeResourceCacheMutex.RLock()
 	defer fake.initializeResourceCacheMutex.RUnlock()
+	fake.initializeTaskCacheMutex.RLock()
+	defer fake.initializeTaskCacheMutex.RUnlock()
 	fake.containerHandleMutex.RLock()
 	defer fake.containerHandleMutex.RUnlock()
 	fake.parentHandleMutex.RLock()

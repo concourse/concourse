@@ -100,7 +100,7 @@ func (action *PutAction) Run(
 	for name, source := range repository.AsMap() {
 		containerSpec.Inputs = append(containerSpec.Inputs, &putInputSource{
 			name:   name,
-			source: resourceSource{source},
+			source: PutResourceSource{source},
 		})
 	}
 
@@ -162,11 +162,11 @@ func (action *PutAction) ExitStatus() ExitStatus {
 	return action.exitStatus
 }
 
-type resourceSource struct {
+type PutResourceSource struct {
 	worker.ArtifactSource
 }
 
-func (source resourceSource) StreamTo(dest worker.ArtifactDestination) error {
+func (source PutResourceSource) StreamTo(dest worker.ArtifactDestination) error {
 	return source.ArtifactSource.StreamTo(worker.ArtifactDestination(dest))
 }
 
@@ -175,7 +175,6 @@ type putInputSource struct {
 	source worker.ArtifactSource
 }
 
-func (s *putInputSource) Name() worker.ArtifactName     { return s.name }
 func (s *putInputSource) Source() worker.ArtifactSource { return s.source }
 
 func (s *putInputSource) DestinationPath() string {

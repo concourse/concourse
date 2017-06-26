@@ -39,6 +39,7 @@ var (
 	resourceCacheFactory                db.ResourceCacheFactory
 	baseResourceTypeFactory             db.BaseResourceTypeFactory
 	workerBaseResourceTypeFactory       db.WorkerBaseResourceTypeFactory
+	workerTaskCacheFactory              db.WorkerTaskCacheFactory
 
 	defaultWorkerResourceType atc.WorkerResourceType
 	defaultTeam               db.Team
@@ -100,6 +101,7 @@ var _ = BeforeEach(func() {
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
 	baseResourceTypeFactory = db.NewBaseResourceTypeFactory(dbConn)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
+	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 
 	var err error
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})

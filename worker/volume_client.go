@@ -42,6 +42,21 @@ type VolumeClient interface {
 		lager.Logger,
 		*db.UsedResourceCache,
 	) (Volume, bool, error)
+	FindVolumeForTaskCache(
+		logger lager.Logger,
+		teamID int,
+		jobID int,
+		stepName string,
+		path string,
+	) (Volume, bool, error)
+	CreateVolumeForTaskCache(
+		logger lager.Logger,
+		volumeSpec VolumeSpec,
+		teamID int,
+		jobID int,
+		stepName string,
+		path string,
+	) (Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
 
@@ -62,6 +77,7 @@ type volumeClient struct {
 	lockFactory                     lock.LockFactory
 	dbVolumeFactory                 db.VolumeFactory
 	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory
+	dbWorkerTaskCacheFactory        db.WorkerTaskCacheFactory
 	clock                           clock.Clock
 	dbWorker                        db.Worker
 }
@@ -71,6 +87,7 @@ func NewVolumeClient(
 	lockFactory lock.LockFactory,
 	dbVolumeFactory db.VolumeFactory,
 	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
+	dbWorkerTaskCacheFactory db.WorkerTaskCacheFactory,
 	clock clock.Clock,
 	dbWorker db.Worker,
 ) VolumeClient {
@@ -79,6 +96,7 @@ func NewVolumeClient(
 		lockFactory:                     lockFactory,
 		dbVolumeFactory:                 dbVolumeFactory,
 		dbWorkerBaseResourceTypeFactory: dbWorkerBaseResourceTypeFactory,
+		dbWorkerTaskCacheFactory:        dbWorkerTaskCacheFactory,
 		clock:    clock,
 		dbWorker: dbWorker,
 	}
@@ -174,7 +192,73 @@ func (c *volumeClient) FindVolumeForResourceCache(
 		return nil, false, nil
 	}
 
-	return NewVolume(bcVolume, dbVolume), true, nil
+	return NewVolume(bcVolume, dbVolume, c), true, nil
+}
+
+func (c *volumeClient) CreateVolumeForTaskCache(
+	logger lager.Logger,
+	volumeSpec VolumeSpec,
+	teamID int,
+	jobID int,
+	stepName string,
+	path string,
+) (Volume, error) {
+	taskCache, err := c.dbWorkerTaskCacheFactory.FindOrCreate(jobID, stepName, path, c.dbWorker.Name())
+	if err != nil {
+		logger.Error("failed-to-find-or-create-task-cache-in-db", err)
+		return nil, err
+	}
+
+	return c.findOrCreateVolume(
+		logger.Session("find-or-create-volume-for-container"),
+		volumeSpec,
+		func() (db.CreatingVolume, db.CreatedVolume, error) {
+			return nil, nil, nil
+		},
+		func() (db.CreatingVolume, error) {
+			return c.dbVolumeFactory.CreateTaskCacheVolume(teamID, taskCache)
+		},
+	)
+}
+
+func (c *volumeClient) FindVolumeForTaskCache(
+	logger lager.Logger,
+	teamID int,
+	jobID int,
+	stepName string,
+	path string,
+) (Volume, bool, error) {
+	taskCache, found, err := c.dbWorkerTaskCacheFactory.Find(jobID, stepName, path, c.dbWorker.Name())
+	if err != nil {
+		logger.Error("failed-to-lookup-task-cache-in-db", err)
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	_, dbVolume, err := c.dbVolumeFactory.FindTaskCacheVolume(teamID, taskCache)
+	if err != nil {
+		logger.Error("failed-to-lookup-tasl-cache-volume-in-db", err)
+		return nil, false, err
+	}
+
+	if dbVolume == nil {
+		return nil, false, nil
+	}
+
+	bcVolume, found, err := c.baggageclaimClient.LookupVolume(logger, dbVolume.Handle())
+	if err != nil {
+		logger.Error("failed-to-lookup-volume-in-bc", err)
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return NewVolume(bcVolume, dbVolume, c), true, nil
 }
 
 func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
@@ -198,7 +282,7 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 		return nil, false, nil
 	}
 
-	return NewVolume(bcVolume, dbVolume), true, nil
+	return NewVolume(bcVolume, dbVolume, c), true, nil
 }
 
 func (c *volumeClient) findOrCreateVolume(
@@ -232,7 +316,7 @@ func (c *volumeClient) findOrCreateVolume(
 
 		logger.Debug("found-created-volume")
 
-		return NewVolume(bcVolume, createdVolume), nil
+		return NewVolume(bcVolume, createdVolume, c), nil
 	}
 
 	if creatingVolume != nil {
@@ -296,5 +380,5 @@ func (c *volumeClient) findOrCreateVolume(
 
 	logger.Debug("created")
 
-	return NewVolume(bcVolume, createdVolume), nil
+	return NewVolume(bcVolume, createdVolume, c), nil
 }

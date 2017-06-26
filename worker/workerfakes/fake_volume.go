@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
@@ -106,6 +107,21 @@ type FakeVolume struct {
 		result1 error
 	}
 	initializeResourceCacheReturnsOnCall map[int]struct {
+		result1 error
+	}
+	InitializeTaskCacheStub        func(lager.Logger, int, string, string, bool) error
+	initializeTaskCacheMutex       sync.RWMutex
+	initializeTaskCacheArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 int
+		arg3 string
+		arg4 string
+		arg5 bool
+	}
+	initializeTaskCacheReturns struct {
+		result1 error
+	}
+	initializeTaskCacheReturnsOnCall map[int]struct {
 		result1 error
 	}
 	CreateChildForContainerStub        func(db.CreatingContainer, string) (db.CreatingVolume, error)
@@ -543,6 +559,58 @@ func (fake *FakeVolume) InitializeResourceCacheReturnsOnCall(i int, result1 erro
 	}{result1}
 }
 
+func (fake *FakeVolume) InitializeTaskCache(arg1 lager.Logger, arg2 int, arg3 string, arg4 string, arg5 bool) error {
+	fake.initializeTaskCacheMutex.Lock()
+	ret, specificReturn := fake.initializeTaskCacheReturnsOnCall[len(fake.initializeTaskCacheArgsForCall)]
+	fake.initializeTaskCacheArgsForCall = append(fake.initializeTaskCacheArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 int
+		arg3 string
+		arg4 string
+		arg5 bool
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("InitializeTaskCache", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.initializeTaskCacheMutex.Unlock()
+	if fake.InitializeTaskCacheStub != nil {
+		return fake.InitializeTaskCacheStub(arg1, arg2, arg3, arg4, arg5)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.initializeTaskCacheReturns.result1
+}
+
+func (fake *FakeVolume) InitializeTaskCacheCallCount() int {
+	fake.initializeTaskCacheMutex.RLock()
+	defer fake.initializeTaskCacheMutex.RUnlock()
+	return len(fake.initializeTaskCacheArgsForCall)
+}
+
+func (fake *FakeVolume) InitializeTaskCacheArgsForCall(i int) (lager.Logger, int, string, string, bool) {
+	fake.initializeTaskCacheMutex.RLock()
+	defer fake.initializeTaskCacheMutex.RUnlock()
+	return fake.initializeTaskCacheArgsForCall[i].arg1, fake.initializeTaskCacheArgsForCall[i].arg2, fake.initializeTaskCacheArgsForCall[i].arg3, fake.initializeTaskCacheArgsForCall[i].arg4, fake.initializeTaskCacheArgsForCall[i].arg5
+}
+
+func (fake *FakeVolume) InitializeTaskCacheReturns(result1 error) {
+	fake.InitializeTaskCacheStub = nil
+	fake.initializeTaskCacheReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolume) InitializeTaskCacheReturnsOnCall(i int, result1 error) {
+	fake.InitializeTaskCacheStub = nil
+	if fake.initializeTaskCacheReturnsOnCall == nil {
+		fake.initializeTaskCacheReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.initializeTaskCacheReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeVolume) CreateChildForContainer(arg1 db.CreatingContainer, arg2 string) (db.CreatingVolume, error) {
 	fake.createChildForContainerMutex.Lock()
 	ret, specificReturn := fake.createChildForContainerReturnsOnCall[len(fake.createChildForContainerArgsForCall)]
@@ -656,6 +724,8 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.cOWStrategyMutex.RUnlock()
 	fake.initializeResourceCacheMutex.RLock()
 	defer fake.initializeResourceCacheMutex.RUnlock()
+	fake.initializeTaskCacheMutex.RLock()
+	defer fake.initializeTaskCacheMutex.RUnlock()
 	fake.createChildForContainerMutex.RLock()
 	defer fake.createChildForContainerMutex.RUnlock()
 	fake.destroyMutex.RLock()

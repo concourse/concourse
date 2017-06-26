@@ -101,6 +101,36 @@ type FakeVolumeFactory struct {
 		result2 bool
 		result3 error
 	}
+	FindTaskCacheVolumeStub        func(teamID int, uwtc *db.UsedWorkerTaskCache) (db.CreatingVolume, db.CreatedVolume, error)
+	findTaskCacheVolumeMutex       sync.RWMutex
+	findTaskCacheVolumeArgsForCall []struct {
+		teamID int
+		uwtc   *db.UsedWorkerTaskCache
+	}
+	findTaskCacheVolumeReturns struct {
+		result1 db.CreatingVolume
+		result2 db.CreatedVolume
+		result3 error
+	}
+	findTaskCacheVolumeReturnsOnCall map[int]struct {
+		result1 db.CreatingVolume
+		result2 db.CreatedVolume
+		result3 error
+	}
+	CreateTaskCacheVolumeStub        func(teamID int, uwtc *db.UsedWorkerTaskCache) (db.CreatingVolume, error)
+	createTaskCacheVolumeMutex       sync.RWMutex
+	createTaskCacheVolumeArgsForCall []struct {
+		teamID int
+		uwtc   *db.UsedWorkerTaskCache
+	}
+	createTaskCacheVolumeReturns struct {
+		result1 db.CreatingVolume
+		result2 error
+	}
+	createTaskCacheVolumeReturnsOnCall map[int]struct {
+		result1 db.CreatingVolume
+		result2 error
+	}
 	FindVolumesForContainerStub        func(db.CreatedContainer) ([]db.CreatedVolume, error)
 	findVolumesForContainerMutex       sync.RWMutex
 	findVolumesForContainerArgsForCall []struct {
@@ -470,6 +500,113 @@ func (fake *FakeVolumeFactory) FindResourceCacheVolumeReturnsOnCall(i int, resul
 	}{result1, result2, result3}
 }
 
+func (fake *FakeVolumeFactory) FindTaskCacheVolume(teamID int, uwtc *db.UsedWorkerTaskCache) (db.CreatingVolume, db.CreatedVolume, error) {
+	fake.findTaskCacheVolumeMutex.Lock()
+	ret, specificReturn := fake.findTaskCacheVolumeReturnsOnCall[len(fake.findTaskCacheVolumeArgsForCall)]
+	fake.findTaskCacheVolumeArgsForCall = append(fake.findTaskCacheVolumeArgsForCall, struct {
+		teamID int
+		uwtc   *db.UsedWorkerTaskCache
+	}{teamID, uwtc})
+	fake.recordInvocation("FindTaskCacheVolume", []interface{}{teamID, uwtc})
+	fake.findTaskCacheVolumeMutex.Unlock()
+	if fake.FindTaskCacheVolumeStub != nil {
+		return fake.FindTaskCacheVolumeStub(teamID, uwtc)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.findTaskCacheVolumeReturns.result1, fake.findTaskCacheVolumeReturns.result2, fake.findTaskCacheVolumeReturns.result3
+}
+
+func (fake *FakeVolumeFactory) FindTaskCacheVolumeCallCount() int {
+	fake.findTaskCacheVolumeMutex.RLock()
+	defer fake.findTaskCacheVolumeMutex.RUnlock()
+	return len(fake.findTaskCacheVolumeArgsForCall)
+}
+
+func (fake *FakeVolumeFactory) FindTaskCacheVolumeArgsForCall(i int) (int, *db.UsedWorkerTaskCache) {
+	fake.findTaskCacheVolumeMutex.RLock()
+	defer fake.findTaskCacheVolumeMutex.RUnlock()
+	return fake.findTaskCacheVolumeArgsForCall[i].teamID, fake.findTaskCacheVolumeArgsForCall[i].uwtc
+}
+
+func (fake *FakeVolumeFactory) FindTaskCacheVolumeReturns(result1 db.CreatingVolume, result2 db.CreatedVolume, result3 error) {
+	fake.FindTaskCacheVolumeStub = nil
+	fake.findTaskCacheVolumeReturns = struct {
+		result1 db.CreatingVolume
+		result2 db.CreatedVolume
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeVolumeFactory) FindTaskCacheVolumeReturnsOnCall(i int, result1 db.CreatingVolume, result2 db.CreatedVolume, result3 error) {
+	fake.FindTaskCacheVolumeStub = nil
+	if fake.findTaskCacheVolumeReturnsOnCall == nil {
+		fake.findTaskCacheVolumeReturnsOnCall = make(map[int]struct {
+			result1 db.CreatingVolume
+			result2 db.CreatedVolume
+			result3 error
+		})
+	}
+	fake.findTaskCacheVolumeReturnsOnCall[i] = struct {
+		result1 db.CreatingVolume
+		result2 db.CreatedVolume
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeVolumeFactory) CreateTaskCacheVolume(teamID int, uwtc *db.UsedWorkerTaskCache) (db.CreatingVolume, error) {
+	fake.createTaskCacheVolumeMutex.Lock()
+	ret, specificReturn := fake.createTaskCacheVolumeReturnsOnCall[len(fake.createTaskCacheVolumeArgsForCall)]
+	fake.createTaskCacheVolumeArgsForCall = append(fake.createTaskCacheVolumeArgsForCall, struct {
+		teamID int
+		uwtc   *db.UsedWorkerTaskCache
+	}{teamID, uwtc})
+	fake.recordInvocation("CreateTaskCacheVolume", []interface{}{teamID, uwtc})
+	fake.createTaskCacheVolumeMutex.Unlock()
+	if fake.CreateTaskCacheVolumeStub != nil {
+		return fake.CreateTaskCacheVolumeStub(teamID, uwtc)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createTaskCacheVolumeReturns.result1, fake.createTaskCacheVolumeReturns.result2
+}
+
+func (fake *FakeVolumeFactory) CreateTaskCacheVolumeCallCount() int {
+	fake.createTaskCacheVolumeMutex.RLock()
+	defer fake.createTaskCacheVolumeMutex.RUnlock()
+	return len(fake.createTaskCacheVolumeArgsForCall)
+}
+
+func (fake *FakeVolumeFactory) CreateTaskCacheVolumeArgsForCall(i int) (int, *db.UsedWorkerTaskCache) {
+	fake.createTaskCacheVolumeMutex.RLock()
+	defer fake.createTaskCacheVolumeMutex.RUnlock()
+	return fake.createTaskCacheVolumeArgsForCall[i].teamID, fake.createTaskCacheVolumeArgsForCall[i].uwtc
+}
+
+func (fake *FakeVolumeFactory) CreateTaskCacheVolumeReturns(result1 db.CreatingVolume, result2 error) {
+	fake.CreateTaskCacheVolumeStub = nil
+	fake.createTaskCacheVolumeReturns = struct {
+		result1 db.CreatingVolume
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolumeFactory) CreateTaskCacheVolumeReturnsOnCall(i int, result1 db.CreatingVolume, result2 error) {
+	fake.CreateTaskCacheVolumeStub = nil
+	if fake.createTaskCacheVolumeReturnsOnCall == nil {
+		fake.createTaskCacheVolumeReturnsOnCall = make(map[int]struct {
+			result1 db.CreatingVolume
+			result2 error
+		})
+	}
+	fake.createTaskCacheVolumeReturnsOnCall[i] = struct {
+		result1 db.CreatingVolume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeFactory) FindVolumesForContainer(arg1 db.CreatedContainer) ([]db.CreatedVolume, error) {
 	fake.findVolumesForContainerMutex.Lock()
 	ret, specificReturn := fake.findVolumesForContainerReturnsOnCall[len(fake.findVolumesForContainerArgsForCall)]
@@ -636,6 +773,10 @@ func (fake *FakeVolumeFactory) Invocations() map[string][][]interface{} {
 	defer fake.createBaseResourceTypeVolumeMutex.RUnlock()
 	fake.findResourceCacheVolumeMutex.RLock()
 	defer fake.findResourceCacheVolumeMutex.RUnlock()
+	fake.findTaskCacheVolumeMutex.RLock()
+	defer fake.findTaskCacheVolumeMutex.RUnlock()
+	fake.createTaskCacheVolumeMutex.RLock()
+	defer fake.createTaskCacheVolumeMutex.RUnlock()
 	fake.findVolumesForContainerMutex.RLock()
 	defer fake.findVolumesForContainerMutex.RUnlock()
 	fake.getOrphanedVolumesMutex.RLock()
