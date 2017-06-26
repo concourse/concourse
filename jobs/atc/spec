@@ -417,34 +417,33 @@ properties:
     description: |
       Path under which to namespace team/pipeline credentials.
     default: /concourse
-  vault.ca_cert:
+  vault.tls.ca_cert:
     description: |
       A PEM-encoded CA cert to use to verify the Vault server SSL cert.
-  vault.server_name:
+  vault.tls.server_name:
     description: |
       If set, is used to set the SNI host when connecting via TLS.
     default: ""
-  vault.insecure_skip_verify:
+  vault.tls.insecure_skip_verify:
     description: |
       Enable insecure SSL verification.
     default: false
-  vault.auth.method:
+  vault.tls.client.certificate:
     description: |
-      Auth method to use if no token is provided. Defaults to the backend for
-      the auth specified, e.g. 'cert'.
-    default: ""
+      Client certificate for Vault TLS auth.
+  vault.tls.client.private_key:
+    description: |
+      Client private key for Vault TLS auth.
   vault.auth.client_token:
     description: |
       Client token to use for accessing your Vault server.
     default: ""
-  vault.auth.tls.client.certificate:
+  vault.auth.backend:
     description: |
-      Client certificate for Vault communication.
-  vault.auth.tls.client.private_key:
-    description: |
-      Client private key for Vault communication.
-  vault.auth.tls.role_name:
-    description: |
-      Certificate role name with which to authenticate. If not specified, the
-      auth backend will try to authenticate against all trusted certificates.
+      Auth backend to use for logging in to Vault.
     default: ""
+  vault.auth.params:
+    description: |
+      Key-value parameters to provide when logging in with the backend.
+    default: {}
+    example: {role_id: abc123, secret_id: def456}

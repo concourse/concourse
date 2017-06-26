@@ -217,18 +217,20 @@ case $1 in
       --x-frame-options <%= esc(p("x_frame_options")) %> \
       <% if_p("vault.url") do |url| %> \
       --vault-url <%= esc(url) %> \
-      --vault-server-name <%= esc(p("vault.server_name")) %> \
-      --vault-insecure-skip-verify <%= p("vault.insecure_skip_verify") %> \
-      <% if_p("vault.ca_cert") do |ca_cert| %> \
+      <% if_p("vault.tls.ca_cert") do |ca_cert| %> \
       --vault-ca-cert /var/vcap/jobs/atc/config/vault_ca_cert \
       <% end %> \
-      --vault-auth-method <%= esc(p("vault.auth.method")) %> \
-      --vault-client-token <%= esc(p("vault.auth.client_token")) %> \
-      <% if_p("vault.auth.tls.client.certificate", "vault.auth.tls.client.private_key") do %> \
-      --vault-auth-tls-client-cert /var/vcap/jobs/atc/config/vault_client_cert \
-      --vault-auth-tls-client-key /var/vcap/jobs/atc/config/vault_client_key \
+      --vault-server-name <%= esc(p("vault.tls.server_name")) %> \
+      --vault-insecure-skip-verify <%= p("vault.tls.insecure_skip_verify") %> \
+      <% if_p("vault.tls.client.certificate", "vault.tls.client.private_key") do %> \
+      --vault-client-cert /var/vcap/jobs/atc/config/vault_client_cert \
+      --vault-client-key /var/vcap/jobs/atc/config/vault_client_key \
       <% end %> \
-      --vault-auth-tls-role-name <%= esc(p("vault.auth.tls.role_name")) %>  \
+      --vault-client-token <%= esc(p("vault.auth.client_token")) %> \
+      --vault-auth-backend <%= esc(p("vault.auth.backend")) %> \
+      <% p("vault.auth.params").each do |k, v| %> \
+      --vault-auth-param <%= esc("#{k}=#{v.to_json}") %> \
+      <% end %> \
       <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
