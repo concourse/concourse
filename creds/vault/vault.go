@@ -43,7 +43,12 @@ func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error
 		return val, true, nil
 	}
 
-	return secret.Data, true, nil
+	evenLessTyped := map[interface{}]interface{}{}
+	for k, v := range secret.Data {
+		evenLessTyped[k] = v
+	}
+
+	return evenLessTyped, true, nil
 }
 
 func (v Vault) findSecret(path string) (*vaultapi.Secret, bool, error) {
