@@ -47,7 +47,6 @@ var _ = Describe("We shouldn't reclone cached resources", func() {
 		<-watch.Exited
 		Expect(watch).To(gbytes.Say("Cloning into"))
 		Expect(watch).NotTo(gbytes.Say("Cloning into"))
-		Expect(watch).To(gbytes.Say("using version of resource found in cache"))
 		Expect(watch).To(gbytes.Say("succeeded"))
 		Expect(watch).To(gexec.Exit(0))
 	})

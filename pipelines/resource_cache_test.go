@@ -34,10 +34,10 @@ var _ = Describe("[#139960779] resource caching", func() {
 
 		watch = flyHelper.TriggerJob(pipelineName, "without-params")
 		<-watch.Exited
-		Expect(watch).To(gbytes.Say("using version of resource found in cache"))
+		Expect(watch).ToNot(gbytes.Say("Cloning"))
 
 		watch = flyHelper.TriggerJob(pipelineName, "with-params")
 		<-watch.Exited
-		Expect(watch).ToNot(gbytes.Say("using version of resource found in cache"))
+		Expect(watch).To(gbytes.Say("Cloning"))
 	})
 })
