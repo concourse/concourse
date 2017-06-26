@@ -1,0 +1,7 @@
+- type: replace
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/vault/tls/client?
+  value: ((vault_client))
+
+- type: replace
+  path: /instance_groups/name=vault/jobs/name=vault/properties/tls?
+  value: ((vault_tls))

@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sync"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,6 +55,8 @@ var _ = Describe("Vault", func() {
 
 			vaultInstance := JobInstance("vault")
 			v = newVault(vaultInstance.IP)
+
+			v.Run("policy-write", "concourse", "vault/concourse-policy.hcl")
 		})
 
 		AfterEach(func() {
@@ -118,6 +122,35 @@ var _ = Describe("Vault", func() {
 					Expect(session).To(gbytes.Say("Hello")) // build echoed it; nothing we can do
 				})
 			})
+
+			Context("when the token is configured with a short ttl", func() {
+				BeforeEach(func() {
+					// ok, ok, the context is *actually* set up in the surrounding thing that sets up the deploy
+
+					v.Run("write", "concourse/main/task_secret", "value=Hello")
+					v.Run("write", "concourse/main/image_resource_repository", "value=busybox")
+				})
+
+				It("parameterizes image_resource and params in a task config", func() {
+					By("executing a task that parameterizes image_resource")
+					watch := spawnFly("execute", "-c", "tasks/vault.yml")
+					wait(watch)
+					Expect(watch).To(gbytes.Say("SECRET: Hello"))
+
+					By("waiting for long enough that the initial token would have expired")
+					time.Sleep(30 * time.Second)
+
+					By("executing a task that parameterizes image_resource")
+					watch = spawnFly("execute", "-c", "tasks/vault.yml")
+					wait(watch)
+					Expect(watch).To(gbytes.Say("SECRET: Hello"))
+
+					By("taking a dump")
+					session := pgDump()
+					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
+					Expect(session).To(gbytes.Say("Hello")) // build echoed it; nothing we can do
+				})
+			})
 		}
 
 		Context("with TLS auth", func() {
@@ -125,7 +158,7 @@ var _ = Describe("Vault", func() {
 				Deploy(
 					"deployments/vault-with-concourse.yml",
 					"--vars-store", varsStore.Name(),
-					"-o", "deployments/ops/enable-tls.yml",
+					"-o", "operations/enable-vault-tls.yml",
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
 					"-v", "instances=0",
@@ -144,17 +177,6 @@ var _ = Describe("Vault", func() {
 				v.SetCA(vaultCACert)
 				v.Unseal()
 
-				policyFile, err := ioutil.TempFile("", "vault-policy.hcl")
-				Expect(err).ToNot(HaveOccurred())
-
-				defer os.Remove(policyFile.Name())
-
-				_, err = fmt.Fprintf(policyFile, "%s", `path "concourse/*" { policy = "read" }`)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(policyFile.Close()).To(Succeed())
-
-				v.Run("policy-write", "concourse", policyFile.Name())
 				v.Run("auth-enable", "cert")
 				v.Run(
 					"write",
@@ -162,15 +184,53 @@ var _ = Describe("Vault", func() {
 					"display_name=concourse",
 					"certificate=@"+vaultCACert,
 					"policies=concourse",
+					"ttl=30",
 				)
 
 				Deploy(
 					"deployments/vault-with-concourse.yml",
 					"--vars-store", varsStore.Name(),
-					"-o", "deployments/ops/enable-tls.yml",
+					"-o", "operations/enable-vault-tls.yml",
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
 					"-v", "instances=1",
+					"-v", `vault_client_token=""`,
+					"-v", "vault_auth_backend=cert",
+					"-v", "vault_auth_params={}",
+				)
+			})
+
+			testVaultIntegration()
+		})
+
+		Context("with approle auth", func() {
+			BeforeEach(func() {
+				v.Run("auth-enable", "approle")
+
+				v.Run(
+					"write",
+					"auth/approle/role/concourse",
+					"policies=concourse",
+					"period=30",
+				)
+
+				getRole := v.Run("read", "auth/approle/role/concourse/role-id")
+				content := string(getRole.Out.Contents())
+				roleID := regexp.MustCompile(`role_id\s+(.*)`).FindStringSubmatch(content)[1]
+
+				createSecret := v.Run("write", "-f", "auth/approle/role/concourse/secret-id")
+				content = string(createSecret.Out.Contents())
+				secretID := regexp.MustCompile(`secret_id\s+(.*)`).FindStringSubmatch(content)[1]
+
+				Deploy(
+					"deployments/vault-with-concourse.yml",
+					"--vars-store", varsStore.Name(),
+					"-v", "vault_url="+v.URI(),
+					"-v", "vault_ip="+v.IP(),
+					"-v", "instances=1",
+					"-v", `vault_client_token=""`,
+					"-v", "vault_auth_backend=approle",
+					"-v", `vault_auth_params={"role_id":"`+roleID+`","secret_id":"`+secretID+`"}`,
 				)
 			})
 
@@ -179,14 +239,45 @@ var _ = Describe("Vault", func() {
 
 		Context("with token auth", func() {
 			BeforeEach(func() {
+				By("creating a periodic token")
+				create := v.Run("token-create", "-period", "30s", "-policy", "concourse")
+				content := string(create.Out.Contents())
+				token := regexp.MustCompile(`token\s+(.*)`).FindStringSubmatch(content)[1]
+
+				By("renewing the token throughout the deploy")
+				renewing := new(sync.WaitGroup)
+				stopRenewing := make(chan struct{})
+				renewTicker := time.NewTicker(5 * time.Second)
+				renewing.Add(1)
+				go func() {
+					defer renewing.Done()
+					defer GinkgoRecover()
+
+					for {
+						select {
+						case <-renewTicker.C:
+							v.Run("token-renew", token)
+						case <-stopRenewing:
+							return
+						}
+					}
+				}()
+
+				By("deploying concourse with the token")
 				Deploy(
 					"deployments/vault-with-concourse.yml",
 					"--vars-store", varsStore.Name(),
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
 					"-v", "instances=1",
-					"-v", "vault_client_token="+v.ClientToken(),
+					"-v", "vault_client_token="+token,
+					"-v", `vault_auth_backend=""`,
+					"-v", "vault_auth_params={}",
 				)
+
+				By("not renewing the token anymore, leaving it to Concourse")
+				close(stopRenewing)
+				renewing.Wait()
 			})
 
 			testVaultIntegration()

@@ -38,9 +38,12 @@ instance_groups:
       postgresql_database: atc
       vault:
         url: ((vault_url))
-        ca_cert: ((vault_ca.certificate))
+        tls:
+          ca_cert: ((vault_ca.certificate))
         auth:
           client_token: ((vault_client_token))
+          backend: ((vault_auth_backend))
+          params: ((vault_auth_params))
 
   - release: concourse
     name: tsa
