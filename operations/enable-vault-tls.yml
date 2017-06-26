@@ -1,8 +1,8 @@
 - type: replace
   path: /instance_groups/name=concourse/jobs/name=atc/properties/vault/tls?
   value:
-    ca_cert: ((vault_ca.certificate))
-    client: ((vault_client))
+    ca_cert: ((vault_ca))
+    client_cert: ((vault_client))
 
 - type: replace
   path: /instance_groups/name=vault/jobs/name=vault/properties/tls?
