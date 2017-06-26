@@ -126,10 +126,6 @@ func (wtc WorkerTaskCache) FindOrCreate(
 				QueryRow().
 				Scan(&id)
 			if err != nil {
-				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-					return nil, ErrSafeRetryFindOrCreate
-				}
-
 				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
 					return nil, ErrSafeRetryFindOrCreate
 				}

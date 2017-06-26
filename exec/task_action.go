@@ -403,19 +403,22 @@ func (action *TaskAction) registerOutputs(logger lager.Logger, repository *worke
 		}
 	}
 
-	logger.Debug("initializing-caches", lager.Data{"caches": config.Caches})
+	// Do not initialize caches for one-off builds
+	if action.jobID != 0 {
+		logger.Debug("initializing-caches", lager.Data{"caches": config.Caches})
 
-	for _, cacheConfig := range config.Caches {
-		for _, volumeMount := range volumeMounts {
-			if volumeMount.MountPath == filepath.Join(action.artifactsRoot, cacheConfig.Path) {
-				logger.Debug("initializing-cache", lager.Data{"path": volumeMount.MountPath})
+		for _, cacheConfig := range config.Caches {
+			for _, volumeMount := range volumeMounts {
+				if volumeMount.MountPath == filepath.Join(action.artifactsRoot, cacheConfig.Path) {
+					logger.Debug("initializing-cache", lager.Data{"path": volumeMount.MountPath})
 
-				err := volumeMount.Volume.InitializeTaskCache(logger, action.jobID, action.stepName, cacheConfig.Path, bool(action.privileged))
-				if err != nil {
-					return err
+					err := volumeMount.Volume.InitializeTaskCache(logger, action.jobID, action.stepName, cacheConfig.Path, bool(action.privileged))
+					if err != nil {
+						return err
+					}
+
+					continue
 				}
-
-				continue
 			}
 		}
 	}

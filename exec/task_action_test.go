@@ -673,6 +673,18 @@ var _ = Describe("TaskAction", func() {
 						Expect(cachePath).To(Equal("some-path-2"))
 						Expect(p).To(Equal(bool(privileged)))
 					})
+
+					Context("when task does not belong to job (one-off build)", func() {
+						BeforeEach(func() {
+							jobID = 0
+						})
+
+						It("does not initialize caches", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+							Expect(fakeVolume1.InitializeTaskCacheCallCount()).To(Equal(0))
+							Expect(fakeVolume2.InitializeTaskCacheCallCount()).To(Equal(0))
+						})
+					})
 				})
 
 				Context("when the configuration specifies paths for outputs", func() {
