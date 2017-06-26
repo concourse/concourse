@@ -84,11 +84,6 @@ properties:
 
       You should otherwise leave this value blank.
 
-  allow_self_signed_certificates:
-    description: |
-      Allow self-signed certificates.
-    default: false
-
   x_frame_options:
     description: |
         The value to set for X-Frame-Options.
