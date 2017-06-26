@@ -99,6 +99,13 @@ var _ = Describe("Vault", func() {
 				By("renewing the token throughout the deploy")
 				renewing := new(sync.WaitGroup)
 				stopRenewing := make(chan struct{})
+
+				defer func() {
+					By("not renewing the token anymore, leaving it to Concourse")
+					close(stopRenewing)
+					renewing.Wait()
+				}()
+
 				renewTicker := time.NewTicker(5 * time.Second)
 				renewing.Add(1)
 				go func() {
@@ -126,10 +133,6 @@ var _ = Describe("Vault", func() {
 					"-v", `vault_auth_backend=""`,
 					"-v", "vault_auth_params={}",
 				)
-
-				By("not renewing the token anymore, leaving it to Concourse")
-				close(stopRenewing)
-				renewing.Wait()
 			})
 
 			Context("with a pipeline build", func() {
