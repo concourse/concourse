@@ -3,8 +3,8 @@ package migrations
 import (
 	"encoding/json"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/migration"
+	internal "github.com/concourse/atc/db/migrations/internal/163"
 )
 
 func AddNonceAndPublicPlanToBuilds(tx migration.LimitedTx) error {
@@ -36,7 +36,7 @@ func AddNonceAndPublicPlanToBuilds(tx migration.LimitedTx) error {
 	defer rows.Close()
 
 	//create public plans
-	plans := map[int]atc.Plan{}
+	plans := map[int]internal.Plan{}
 
 	for rows.Next() {
 		var buildID int
@@ -80,13 +80,10 @@ func AddNonceAndPublicPlanToBuilds(tx migration.LimitedTx) error {
 			  engine = 'exec.v2' AND
 				status IN ('succeeded','aborted','failed','errored')
 	`)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 type execV2Metadata struct {
-	Plan atc.Plan
+	Plan internal.Plan
 }
