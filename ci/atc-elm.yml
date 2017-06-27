@@ -6,12 +6,12 @@ image_resource:
   source:
     repository: concourse/atc-ci-elm
 
+inputs:
+- name: concourse
+
 caches:
 - path: concourse/src/github.com/concourse/atc/web/elm/elm-stuff
 - path: concourse/src/github.com/concourse/atc/web/elm/tests/elm-stuff
-
-inputs:
-- name: concourse
 
 run:
   path: concourse/ci/scripts/atc-elm
