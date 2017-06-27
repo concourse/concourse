@@ -204,7 +204,7 @@ update turbulence notFound csrfToken msg mdl =
             ( JobModel { model | csrfToken = c }, Cmd.none )
 
         ( JobMsg message, JobModel model ) ->
-            handleNotFound notFound ( JobModel, JobMsg ) (Job.updateWithMessage message model)
+            handleNotFound notFound ( JobModel, JobMsg ) (Job.updateWithMessage message { model | csrfToken = csrfToken })
 
         ( LoginMsg message, LoginModel model ) ->
             let
@@ -223,7 +223,7 @@ update turbulence notFound csrfToken msg mdl =
             ( ResourceModel { model | csrfToken = c }, Cmd.none )
 
         ( ResourceMsg message, ResourceModel model ) ->
-            handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message model)
+            handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
 
         ( SelectTeamMsg message, SelectTeamModel model ) ->
             superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <| TeamSelection.update message model

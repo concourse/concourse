@@ -68,7 +68,7 @@
         localStorage.setItem(storageKey, value);
       });
       app.ports.loadToken.subscribe(function() {
-          app.ports.tokenReceived.send(localStorage.getItem(storageKey));
+        app.ports.tokenReceived.send(localStorage.getItem(storageKey));
       });
       window.addEventListener('storage', function(event) {
         if (event.key == storageKey) {
