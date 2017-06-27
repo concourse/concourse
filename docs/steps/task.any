@@ -92,6 +92,9 @@ plan:
   configured in \code{config} or \code{file}. This is useful for passing in
   credentials or other configuration to the task from the pipeline.
 
+  If it provides parameters not specified in \code{config} or \code{file},
+  those also get passed in.
+
   For example:
 
   \codeblock{yaml}{
