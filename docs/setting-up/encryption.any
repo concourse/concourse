@@ -121,16 +121,3 @@ credential manager once we support it.
   alone. With no new encryption key, the \reference{architecture-atc} will
   decrypt all existing data on start.
 }
-
-\section{Next Steps for Concourse}{encryption-next-steps}{
-  Ideally, Concourse would never be the source of truth for these credentials
-  in the first place. It would only generate or fetch a credential for long
-  enough to pass it to a resource or task, keeping it in its head as briefly as
-  possible, and never on disk, encrypted or not.
-
-  To this end, we're planning to implement support for credential managers like
-  \hyperlink{https://www.vaultproject.io/}{Vault} and
-  \hyperlink{https://github.com/cloudfoundry-incubator/credhub}{CredHub}. The
-  GitHub issue tracking this is \ghissue{291}. We're still planning out what
-  this looks like, and how the credential management itself is configured.
-}
