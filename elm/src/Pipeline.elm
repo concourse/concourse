@@ -1,4 +1,4 @@
-port module Pipeline exposing (Model, Msg(..), OutMessage(..), Flags, init, update, updateWithMessage, view, subscriptions, changeToPipelineAndGroups)
+port module Pipeline exposing (Model, Msg(..), Flags, init, update, updateWithMessage, view, subscriptions, changeToPipelineAndGroups)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, style, src, width, height)
@@ -20,6 +20,7 @@ import QueryString
 import Routes
 import LoginRedirect
 import RemoteData exposing (..)
+import UpdateMsg exposing (UpdateMsg)
 
 type alias Ports =
     { render : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd Msg
@@ -59,9 +60,6 @@ type Msg
     | ResourcesFetched (Result Http.Error Json.Encode.Value)
     | VersionFetched (Result Http.Error String)
     | PipelineFetched (Result Http.Error Concourse.Pipeline)
-
-type OutMessage
-    = NotFound
 
 queryGroupsForRoute : Routes.ConcourseRoute -> List String
 queryGroupsForRoute route =
@@ -119,19 +117,19 @@ loadPipeline pipelineLocator model =
         ]
     )
 
-updateWithMessage : Msg -> Model -> (Model, Cmd Msg, Maybe OutMessage)
+updateWithMessage : Msg -> Model -> (Model, Cmd Msg, Maybe UpdateMsg)
 updateWithMessage message model =
     let
         (mdl, msg) = update message model
     in
         case mdl.pipeline of
             RemoteData.Failure _ ->
-                (mdl, msg, Just NotFound)
+                (mdl, msg, Just UpdateMsg.NotFound)
             _ ->
                 (mdl, msg, Nothing)
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg)
 update msg model =
     case msg of
         Noop ->
@@ -162,7 +160,7 @@ update msg model =
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
                     else if status.code == 404 then
-                        ( {model | pipeline = RemoteData.Failure err}, Cmd.none)
+                         ( {model | pipeline = RemoteData.Failure err}, Cmd.none)
                     else
                         ( model, Cmd.none )
 

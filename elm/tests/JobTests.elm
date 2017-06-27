@@ -1,5 +1,6 @@
 module JobTests exposing (..)
 
+import RemoteData
 import Test exposing (..)
 import Expect exposing (..)
 import Concourse exposing (BuildStatus(..), BuildId, Build, Job)
@@ -56,10 +57,10 @@ all =
                         defaultModel =
                             { ports = { title = (\_ -> Cmd.none) }
                             , jobIdentifier = someJobInfo
-                            , job = Nothing
+                            , job = RemoteData.NotAsked
                             , pausedChanging = False
                             , buildsWithResources = { content = [], pagination = { previousPage = Nothing, nextPage = Nothing } }
-                            , currentPage = Nothing -- { direction = Concourse.Pagination.Since 0, limit = 100 }
+                            , currentPage = Nothing
                             , now = 0
                             , csrfToken = ""
                             }
@@ -96,7 +97,7 @@ all =
                             \_ ->
                                 Expect.equal
                                     { defaultModel
-                                        | job = (Just someJob)
+                                        | job = (RemoteData.Success someJob)
                                     }
                                 <|
                                     Tuple.first <|
@@ -146,30 +147,30 @@ all =
                         , test "TogglePaused" <|
                             \_ ->
                                 Expect.equal
-                                    { defaultModel | job = Just { someJob | paused = True }, pausedChanging = True }
+                                    { defaultModel | job = RemoteData.Success { someJob | paused = True }, pausedChanging = True }
                                 <|
                                     Tuple.first <|
-                                        update TogglePaused { defaultModel | job = Just someJob }
+                                        update TogglePaused { defaultModel | job = RemoteData.Success someJob }
                         , test "PausedToggled" <|
                             \_ ->
                                 Expect.equal
-                                    { defaultModel | job = Just someJob, pausedChanging = False }
+                                    { defaultModel | job = RemoteData.Success someJob, pausedChanging = False }
                                 <|
                                     Tuple.first <|
-                                        update (PausedToggled <| Ok ()) { defaultModel | job = Just someJob }
+                                        update (PausedToggled <| Ok ()) { defaultModel | job = RemoteData.Success someJob }
                         , test "PausedToggled error" <|
                             \_ ->
                                 Expect.equal
-                                    { defaultModel | job = Just someJob }
+                                    { defaultModel | job = RemoteData.Success someJob }
                                 <|
                                     Tuple.first <|
-                                        update (PausedToggled <| Err Http.NetworkError) { defaultModel | job = Just someJob }
+                                        update (PausedToggled <| Err Http.NetworkError) { defaultModel | job = RemoteData.Success someJob }
                         , test "PausedToggled unauthorized" <|
                             \_ ->
                                 Expect.equal
-                                    { defaultModel | job = Just someJob }
+                                    { defaultModel | job = RemoteData.Success someJob }
                                 <|
                                     Tuple.first <|
-                                        update (PausedToggled <| Err <| Http.BadStatus { url = "http://example.com", status = { code = 401, message = "" }, headers = Dict.empty, body = "" }) { defaultModel | job = Just someJob }
+                                        update (PausedToggled <| Err <| Http.BadStatus { url = "http://example.com", status = { code = 401, message = "" }, headers = Dict.empty, body = "" }) { defaultModel | job = RemoteData.Success someJob }
                         ]
         ]

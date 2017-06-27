@@ -1,4 +1,4 @@
-port module Job exposing (Flags, Model, changeToJob, subscriptions, init, update, updateWithMessage, view, Msg(..), OutMessage(..))
+port module Job exposing (Flags, Model, changeToJob, subscriptions, init, update, updateWithMessage, view, Msg(..))
 
 import Dict exposing (Dict)
 import Html exposing (Html)
@@ -19,6 +19,7 @@ import Navigation
 import StrictEvents exposing (onLeftClick)
 import LoginRedirect
 import RemoteData exposing (WebData)
+import UpdateMsg exposing (UpdateMsg)
 
 
 type alias Ports =
@@ -51,9 +52,6 @@ type Msg
     | NavTo String
     | SubscriptionTick Time
 
-
-type OutMessage
-    = NotFound
 
 type alias BuildWithResources =
     { build : Concourse.Build
@@ -125,14 +123,14 @@ changeToJob flags model =
     )
 
 
-updateWithMessage: Msg -> Model -> ( Model, Cmd Msg, Maybe OutMessage)
+updateWithMessage: Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg)
 updateWithMessage message model =
     let
         (mdl, msg) = update message model
     in
         case mdl.job of
             RemoteData.Failure _ ->
-                (mdl, msg, Just NotFound)
+                (mdl, msg, Just UpdateMsg.NotFound)
             _ ->
                 (mdl, msg, Nothing)
 

@@ -2,6 +2,7 @@ module Build
     exposing
         ( init
         , update
+        , updateWithMessage
         , view
         , subscriptions
         , Model
@@ -40,6 +41,8 @@ import LoadingIndicator
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import Scroll
 import LoginRedirect
+import RemoteData exposing (WebData)
+import UpdateMsg exposing (UpdateMsg)
 
 
 type alias Ports =
@@ -73,7 +76,7 @@ type alias Model =
     { now : Maybe Time.Time
     , job : Maybe Concourse.Job
     , history : List Concourse.Build
-    , currentBuild : Maybe CurrentBuild
+    , currentBuild : WebData CurrentBuild
     , browsingIndex : Int
     , autoScroll : Bool
     , ports : Ports
@@ -122,7 +125,7 @@ init ports flags page =
                 { now = Nothing
                 , job = Nothing
                 , history = []
-                , currentBuild = Nothing
+                , currentBuild = RemoteData.NotAsked
                 , browsingIndex = 0
                 , autoScroll = True
                 , ports = ports
@@ -137,7 +140,7 @@ subscriptions model =
     Sub.batch
         [ Time.every Time.second ClockTick
         , Scroll.fromWindowBottom WindowScrolled
-        , case model.currentBuild |> Maybe.andThen .output of
+        , case model.currentBuild |> RemoteData.toMaybe |> Maybe.andThen .output of
             Nothing ->
                 Sub.none
 
@@ -153,7 +156,7 @@ changeToBuild page model =
             model.browsingIndex + 1
 
         newBuild =
-            Maybe.map (\cb -> { cb | prep = Nothing, output = Nothing })
+            RemoteData.map (\cb -> { cb | prep = Nothing, output = Nothing })
                 model.currentBuild
     in
         ( { model
@@ -172,16 +175,24 @@ changeToBuild page model =
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.currentBuild, model.job ) of
+    case ( model.currentBuild |> RemoteData.toMaybe, model.job ) of
         ( Just build, Just job ) ->
             job.name ++ ((" #" ++ build.build.name) ++ " - ")
-
         ( Just build, Nothing ) ->
             "#" ++ (build.build.name ++ " - ")
-
         _ ->
             ""
 
+updateWithMessage : Msg -> Model -> (Model, Cmd Msg, Maybe UpdateMsg)
+updateWithMessage message model =
+    let
+        (mdl, msg) = update message model
+    in
+        case mdl.currentBuild of
+            RemoteData.Failure _ ->
+                (mdl, msg, Just UpdateMsg.NotFound)
+            _ ->
+                (mdl, msg, Nothing)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
@@ -226,6 +237,8 @@ update action model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+                    else if status.code == 404 then
+                        ({model | currentBuild = RemoteData.Failure err}, Cmd.none )
                     else
                         ( model, Cmd.none )
 
@@ -258,28 +271,29 @@ update action model =
 
         BuildOutputMsg browsingIndex action ->
             if browsingIndex == model.browsingIndex then
-                case ( model.currentBuild, model.currentBuild |> Maybe.andThen .output ) of
-                    ( Just currentBuild, Just output ) ->
-                        let
-                            ( newOutput, cmd, outMsg ) =
-                                BuildOutput.update action output
+                let
+                    currentBuild = model.currentBuild |> RemoteData.toMaybe
+                in
+                    case ( currentBuild, currentBuild |> Maybe.andThen .output ) of
+                        ( Just currentBuild, Just output ) ->
+                            let
+                                ( newOutput, cmd, outMsg ) =
+                                    BuildOutput.update action output
 
-                            ( newModel, newCmd ) =
-                                handleOutMsg outMsg
-                                    { model
-                                        | currentBuild =
-                                            Just { currentBuild | output = Just newOutput }
-                                    }
-                        in
-                            ( newModel
-                            , Cmd.batch
-                                [ newCmd
-                                , Cmd.map (BuildOutputMsg browsingIndex) cmd
-                                ]
-                            )
-
-                    _ ->
-                        Debug.crash "impossible (received action for missing BuildOutput)"
+                                ( newModel, newCmd ) =
+                                    handleOutMsg outMsg
+                                        { model
+                                            | currentBuild = RemoteData.Success { currentBuild | output = Just newOutput }
+                                        }
+                            in
+                                ( newModel
+                                , Cmd.batch
+                                    [ newCmd
+                                    , Cmd.map (BuildOutputMsg browsingIndex) cmd
+                                    ]
+                                )
+                        _ ->
+                            Debug.crash "impossible (received action for missing BuildOutput)"
             else
                 ( model, Cmd.none )
 
@@ -327,7 +341,7 @@ handleBuildFetched browsingIndex build model =
     if browsingIndex == model.browsingIndex then
         let
             currentBuild =
-                case model.currentBuild of
+                case model.currentBuild |> RemoteData.toMaybe of
                     Nothing ->
                         { build = build
                         , prep = Nothing
@@ -339,7 +353,7 @@ handleBuildFetched browsingIndex build model =
 
             withBuild =
                 { model
-                    | currentBuild = Just currentBuild
+                    | currentBuild = RemoteData.Success currentBuild
                     , history = updateHistory build model.history
                 }
 
@@ -358,7 +372,7 @@ handleBuildFetched browsingIndex build model =
                 if build.status == Concourse.BuildStatusPending then
                     ( withBuild, pollUntilStarted browsingIndex build.id )
                 else if build.reapTime == Nothing then
-                    case model.currentBuild |> Maybe.andThen .prep of
+                    case model.currentBuild |> RemoteData.toMaybe |> Maybe.andThen .prep of
                         Nothing ->
                             initBuildOutput build withBuild
 
@@ -402,7 +416,7 @@ initBuildOutput build model =
     in
         ( { model
             | currentBuild =
-                Maybe.map
+                RemoteData.map
                     (\info -> { info | output = Just output })
                     model.currentBuild
           }
@@ -424,8 +438,10 @@ handleHistoryFetched history model =
     let
         withBuilds =
             { model | history = List.append model.history history.content }
+        currentBuild =
+           model.currentBuild |> RemoteData.toMaybe
     in
-        case ( history.pagination.nextPage, model.currentBuild |> Maybe.andThen (.job << .build) ) of
+        case ( history.pagination.nextPage, currentBuild |> Maybe.andThen (.job << .build) ) of
             ( Nothing, _ ) ->
                 ( withBuilds, Cmd.none )
 
@@ -441,7 +457,7 @@ handleBuildPrepFetched browsingIndex buildPrep model =
     if browsingIndex == model.browsingIndex then
         ( { model
             | currentBuild =
-                Maybe.map
+                RemoteData.map
                     (\info -> { info | prep = Just buildPrep })
                     model.currentBuild
           }
@@ -459,7 +475,7 @@ abortBuild buildId csrfToken =
 
 view : Model -> Html Msg
 view model =
-    case model.currentBuild of
+    case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
             Html.div [ class "with-fixed-header" ]
                 [ viewBuildHeader currentBuild.build model
@@ -794,7 +810,7 @@ scrollToCurrentBuildInHistory =
 
 getScrollBehavior : Model -> Autoscroll.ScrollBehavior
 getScrollBehavior model =
-    case ( model.autoScroll, model.currentBuild ) of
+    case ( model.autoScroll, model.currentBuild |> RemoteData.toMaybe ) of
         ( False, _ ) ->
             Autoscroll.NoScroll
 
@@ -820,7 +836,7 @@ handleOutMsg outMsg model =
             ( model, Cmd.none )
 
         BuildOutput.OutBuildStatus status date ->
-            case model.currentBuild of
+            case model.currentBuild |> RemoteData.toMaybe of
                 Nothing ->
                     ( model, Cmd.none )
 
@@ -849,7 +865,7 @@ handleOutMsg outMsg model =
                     in
                         ( { model
                             | history = updateHistory newBuild model.history
-                            , currentBuild = Just { currentBuild | build = newBuild }
+                            , currentBuild = RemoteData.Success { currentBuild | build = newBuild }
                           }
                         , if Concourse.BuildStatus.isRunning build.status then
                             setFavicon status

@@ -1,4 +1,4 @@
-module Resource exposing (Flags, Msg(..), Model, init, changeToResource, update, view, subscriptions)
+module Resource exposing (Flags, Msg(..), Model, init, changeToResource, update, updateWithMessage, view, subscriptions, PauseChangingOrErrored(..))
 
 import Concourse
 import Concourse.BuildStatus
@@ -17,6 +17,8 @@ import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
 import LoginRedirect
+import RemoteData exposing (WebData)
+import UpdateMsg exposing (UpdateMsg)
 
 
 type alias Ports =
@@ -27,7 +29,7 @@ type alias Ports =
 type alias Model =
     { ports : Ports
     , resourceIdentifier : Concourse.ResourceIdentifier
-    , resource : Maybe Concourse.Resource
+    , resource : WebData Concourse.Resource
     , pausedChanging : PauseChangingOrErrored
     , versionedResources : Paginated Concourse.VersionedResource
     , currentPage : Maybe Page
@@ -49,7 +51,6 @@ type PauseChangingOrErrored
     | Changing
     | Errored
 
-
 type Msg
     = Noop
     | AutoupdateTimerTicked Time
@@ -64,7 +65,6 @@ type Msg
     | InputToFetched Int (Result Http.Error (List Concourse.Build))
     | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
     | NavTo String
-
 
 type alias Flags =
     { teamName : String
@@ -85,7 +85,7 @@ init ports flags =
                     , pipelineName = flags.pipelineName
                     , resourceName = flags.resourceName
                     }
-                , resource = Nothing
+                , resource = RemoteData.NotAsked
                 , pausedChanging = Stable
                 , currentPage = Nothing
                 , versionedResources =
@@ -124,6 +124,17 @@ changeToResource flags model =
     )
 
 
+updateWithMessage : Msg -> Model -> (Model, Cmd Msg, Maybe UpdateMsg)
+updateWithMessage message model =
+    let
+        (mdl, msg) = update message model
+    in
+        case mdl.resource of
+            RemoteData.Failure _ ->
+                (mdl, msg, Just UpdateMsg.NotFound)
+            _ ->
+                (mdl, msg, Nothing)
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
@@ -142,23 +153,31 @@ update action model =
             )
 
         ResourceFetched (Ok resource) ->
-            ( { model | resource = Just resource }
+            ( { model | resource = RemoteData.Success resource }
             , model.ports.title <| resource.name ++ " - "
             )
 
         ResourceFetched (Err err) ->
-            flip always (Debug.log ("failed to fetch resource") (err)) <|
-                ( model, Cmd.none )
+            case Debug.log ("failed to fetch resource") (err) of
+                Http.BadStatus {status} ->
+                    if status.code == 401 then
+                        (model, LoginRedirect.requestLoginRedirect "" )
+                    else if status.code == 404 then
+                        ({model | resource = RemoteData.Failure err}, Cmd.none)
+                    else
+                        (model, Cmd.none)
+                _ ->
+                    ( model, Cmd.none )
 
         TogglePaused ->
-            case model.resource of
+            case model.resource |> RemoteData.toMaybe of
                 Nothing ->
                     ( model, Cmd.none )
 
                 Just r ->
                     ( { model
                         | pausedChanging = Changing
-                        , resource = Just { r | paused = not r.paused }
+                        , resource = RemoteData.Success { r | paused = not r.paused }
                       }
                     , if r.paused then
                         unpauseResource model.resourceIdentifier model.csrfToken
@@ -178,14 +197,14 @@ update action model =
                         ( model, Cmd.none )
 
                 _ ->
-                    case model.resource of
+                    case model.resource |> RemoteData.toMaybe of
                         Nothing ->
                             ( model, Cmd.none )
 
                         Just r ->
                             ( { model
                                 | pausedChanging = Errored
-                                , resource = Just { r | paused = not r.paused }
+                                , resource = RemoteData.Success { r | paused = not r.paused }
                               }
                             , Cmd.none
                             )
@@ -448,7 +467,7 @@ paginationRoute rid page =
 
 view : Model -> Html Msg
 view model =
-    case model.resource of
+    case model.resource |> RemoteData.toMaybe of
         Just resource ->
             let
                 ( checkStatus, checkMessage, stepBody ) =
