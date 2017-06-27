@@ -9,9 +9,5 @@ image_resource:
 inputs:
 - name: concourse
 
-caches:
-- path: concourse/src/github.com/concourse/atc/web/elm/elm-stuff
-- path: concourse/src/github.com/concourse/atc/web/elm/tests/elm-stuff
-
 run:
   path: concourse/ci/scripts/atc-elm
