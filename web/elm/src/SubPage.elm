@@ -19,7 +19,7 @@ import QueryString
 import Pipeline
 import BetaPipeline
 import TeamSelection
-
+import UpdateMsg exposing (UpdateMsg)
 
 -- TODO: move ports somewhere else
 
@@ -162,6 +162,17 @@ init turbulencePath route =
             )
 
 
+--updateWithMsg String -> a msg -> b mdl -> Maybe UpdateMsg -> ( model, Cmd msg )
+--updateWithMsg notFoundSrc message model outMessage=
+--    case outMessage of
+--        Just Job.NotFound -> (NotFoundModel { notFoundImgSrc = notFoundSrc }, setTitle "Not Found ")
+--        Nothing -> superDupleWrap ( mdl, msg) <| (model, message)
+handleNotFound : String -> (a -> Model, c -> Msg) -> (a, Cmd c, Maybe UpdateMsg) -> ( Model, Cmd Msg )
+handleNotFound notFound (mdlFunc, msgFunc) (mdl, msg, outMessage) =
+    case outMessage of
+        Just UpdateMsg.NotFound -> (NotFoundModel { notFoundImgSrc = notFound }, setTitle "Not Found ")
+        Nothing -> superDupleWrap ( mdlFunc, msgFunc ) <| (mdl, msg)
+
 update : String ->  String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
 update turbulence notFound csrfToken msg mdl =
     case ( msg, mdl ) of
@@ -179,6 +190,7 @@ update turbulence notFound csrfToken msg mdl =
                 ( BuildModel { scrollModel | subModel = newBuildModel }, buildCmd |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg)) )
 
         ( BuildMsg message, BuildModel scrollModel ) ->
+
             let
                 subModel =
                     scrollModel.subModel
@@ -186,30 +198,23 @@ update turbulence notFound csrfToken msg mdl =
                 model =
                     { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
             in
-                superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update message model
+                  handleNotFound notFound ( BuildModel, BuildMsg ) (Autoscroll.update Build.updateWithMessage message model)
 
         ( NewCSRFToken c, JobModel model ) ->
             ( JobModel { model | csrfToken = c }, Cmd.none )
 
         ( JobMsg message, JobModel model ) ->
-            let
-                (mdl, cmd, outMessage) = Job.updateWithMessage message { model | csrfToken = csrfToken }
-            in
-                case outMessage of
-                    Just Job.NotFound -> (NotFoundModel { notFoundImgSrc = notFound }, setTitle "Not Found ")
-                    Nothing -> superDupleWrap ( JobModel, JobMsg ) <| Job.update message { model | csrfToken = csrfToken }
+            handleNotFound notFound ( JobModel, JobMsg ) (Job.updateWithMessage message model)
 
         ( LoginMsg message, LoginModel model ) ->
-
-            superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
+            let
+                (mdl, msg) = Login.update message model
+--            superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
+            in
+                (LoginModel mdl, Cmd.map LoginMsg msg)
 
         ( PipelineMsg message, PipelineModel model ) ->
-            let
-                (mdl, cmd, outMessage) = Pipeline.updateWithMessage message model
-            in
-                case outMessage of
-                    Just Pipeline.NotFound -> (NotFoundModel { notFoundImgSrc = notFound }, setTitle "Not Found ")
-                    Nothing -> superDupleWrap ( PipelineModel, PipelineMsg ) <| (mdl, cmd)
+            handleNotFound notFound ( PipelineModel, PipelineMsg ) (Pipeline.updateWithMessage message model)
 
         ( BetaPipelineMsg message, BetaPipelineModel model ) ->
             superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <| BetaPipeline.update message model
@@ -218,7 +223,7 @@ update turbulence notFound csrfToken msg mdl =
             ( ResourceModel { model | csrfToken = c }, Cmd.none )
 
         ( ResourceMsg message, ResourceModel model ) ->
-            superDupleWrap ( ResourceModel, ResourceMsg ) <| Resource.update message { model | csrfToken = csrfToken }
+            handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message model)
 
         ( SelectTeamMsg message, SelectTeamModel model ) ->
             superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <| TeamSelection.update message model

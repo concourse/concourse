@@ -1,4 +1,4 @@
-module NotFound exposing (Model, view)
+port module NotFound exposing (Model, view)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, src)

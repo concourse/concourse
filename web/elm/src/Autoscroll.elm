@@ -14,6 +14,7 @@ import AnimationFrame
 import Html exposing (Html)
 import Task
 import Scroll
+import UpdateMsg exposing (UpdateMsg)
 
 
 type alias Model subModel =
@@ -39,15 +40,15 @@ init toScrollMsg ( subModel, subCmd ) =
     ( Model subModel toScrollMsg, Cmd.map SubMsg subCmd )
 
 
-update : (subMsg -> subModel -> ( subModel, Cmd subMsg )) -> Msg subMsg -> Model subModel -> ( Model subModel, Cmd (Msg subMsg) )
+update : (subMsg -> subModel -> ( subModel, Cmd subMsg, Maybe UpdateMsg )) -> Msg subMsg -> Model subModel -> ( Model subModel, Cmd (Msg subMsg), Maybe UpdateMsg )
 update subUpdate action model =
     case action of
         SubMsg subMsg ->
             let
-                ( subModel, subCmd ) =
+                ( subModel, subCmd, subUpdateMsg ) =
                     subUpdate subMsg model.subModel
             in
-                ( { model | subModel = subModel }, Cmd.map SubMsg subCmd )
+                ( { model | subModel = subModel }, Cmd.map SubMsg subCmd, subUpdateMsg )
 
         ScrollDown ->
             ( model
@@ -60,10 +61,11 @@ update subUpdate action model =
 
                 NoScroll ->
                     Cmd.none
+            , Nothing
             )
 
         ScrolledDown ->
-            ( model, Cmd.none )
+            ( model, Cmd.none, Nothing)
 
 
 urlUpdate : (pageResult -> subModel -> ( subModel, Cmd subMsg )) -> pageResult -> Model subModel -> ( Model subModel, Cmd (Msg subMsg) )
