@@ -16,23 +16,28 @@
   GitHub. \hyperlink{https://github.com/concourse/concourse/issues}{Issues} and
   \hyperlink{https://github.com/concourse/concourse/pulls}{pull requests}
   welcome!
+
+  We also use Github \hyperlink{https://github.com/concourse/concourse/milestones}{milestones}
+  and \hyperlink{https://github.com/concourse/concourse/labels}{labels} to provide
+  visibility into what our team at Pivotal is working on, and what things are
+  coming soon.
+}
+
+\section{Stackoverflow}{stackoverflow-blurb}{
+  \community-image{community_stackoverflow}
+
+  We use \hyperlink{https://stackoverflow.com/questions/tagged/concourse}{Stackoverflow}
+  for support. Please post questions here and search for existing answers before
+  asking for help in Slack.
 }
 
 \section{Slack}{slack-blurb}{
   \community-image{community_slack}
 
-  We use \hyperlink{https://slack.com}{Slack} for public discussions and
-  support. To chit chat, ask for help, or offer your own, join us in the
+  We use \hyperlink{https://slack.com}{Slack} for public discussions.
+  To chit chat with us or the rest of the community, join us in the
   \hyperlink{http://concourseci.slack.com}{Concourse Slack team}. To sign up,
   use our \hyperlink{http://slack.concourse.ci}{Slack inviter}.
-}
-
-\section{Pivotal Tracker}{tracker-blurb}{
-  \community-image{community_tracker}
-
-  We use \hyperlink{https://www.pivotaltracker.com/n/projects/1059262}{Pivotal
-  Tracker} to provide visibility into what our team at Pivotal is working on,
-  and what things are coming soon.
 }
 
 \section{Security}{security-blurb}{
