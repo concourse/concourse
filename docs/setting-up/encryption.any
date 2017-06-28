@@ -25,11 +25,10 @@ reaches the database. This way the plaintext credentials only exist in memory
 for as long as they need to, and if someone gains access to your database, they
 can't so easily gain the keys to the kingdom.
 
-We strongly encourage anyone running Concourse to configure encryption. In the
-long run, Concourse shouldn't be storing these credentials in the first place,
-which is the \reference{encryption-next-steps}{long term plan}, but encryption
-will still be necessary in the future if not just to store the keys to a
-credential manager once we support it.
+We strongly encourage anyone running Concourse to configure encryption. Going
+further, it's best to have Concourse not store the credentials in the first
+place, in which case you may want to configure \reference{creds}{credential
+management} as well.
 
 \section{What's encrypted?}{
   The following values are expected to contain credentials, and so will be
