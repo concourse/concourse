@@ -17,6 +17,13 @@
     place.
   }
 
+  \note{fix}{breaking}{
+    As part of our params rejigger, we no longer support specifying maps as
+    arrays of maps. We have no idea how or why this worked previously, but we
+    never intentionally supported it, and won't be bringing this back. For
+    slightly more context, see \ghissue{1307}.
+  }
+
   \note{feature}{
     The \reference{docker-repository} now supports resolving addresses within
     Concourse containers via Docker's magic local DNS server! This fixes a
