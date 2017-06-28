@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2017-6-16}{3.3.0}{1.6.0}{
+\release{2017-6-28}{3.3.0}{1.6.0}{
   \note{feature}{
     Our first pass at support for \reference{creds}{credential management} has
     landed! With this you can externalize all of your credentials in to Vault
@@ -37,6 +37,11 @@
     unwedge your pipeline.
 
     It...doesn't do that now, thanks to a PR by \ghuser{jmcarp}!
+  }
+
+  \note{fix}{
+    A previous release broke rendering of older builds. They'll now render
+    properly.
   }
 
   \note{feature}{
