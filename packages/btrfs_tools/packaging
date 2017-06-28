@@ -2,4 +2,4 @@ set -e
 
 mkdir -p ${BOSH_INSTALL_TARGET}/sbin
 
-tar xzf btrfs/btrfs-tools.tar.gz -C ${BOSH_INSTALL_TARGET}/sbin
+tar xzf btrfs/btrfs-tools*.tar.gz -C ${BOSH_INSTALL_TARGET}/sbin

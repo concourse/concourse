@@ -2,4 +2,4 @@
 name: btrfs_tools
 
 files:
-- btrfs/btrfs-tools.tar.gz
+- btrfs/btrfs-tools*.tar.gz
