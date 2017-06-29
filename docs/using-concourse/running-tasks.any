@@ -256,7 +256,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
       - name: project-src
 
       caches:
-      - path: project-src/.node_modules
+      - path: project-src/node_modules
 
       run:
         path: project-src/ci/build
@@ -275,7 +275,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
       # ...
       }
 
-      ...this task would cache the contents of \code{project-src/.node_modules} between runs of this
+      ...this task would cache the contents of \code{project-src/node_modules} between runs of this
       task on the same worker.
     }
 
