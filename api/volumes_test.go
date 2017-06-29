@@ -105,12 +105,19 @@ var _ = Describe("Volumes API", func() {
 							volume4.PathReturns("some-path")
 							volume4.SizeInBytesReturns(8192)
 							volume4.TypeReturns(db.VolumeTypeContainer)
+							volume5 := new(dbfakes.FakeCreatedVolume)
+							volume5.HandleReturns("some-task-cache-handle")
+							volume5.WorkerNameReturns(fakeWorker.Name())
+							volume5.SizeInBytesReturns(12345)
+							volume5.TypeReturns(db.VolumeTypeTaskCache)
+							volume5.TaskIdentifierReturns("some-pipeline", "some-job", "some-task", nil)
 
 							return []db.CreatedVolume{
 								volume1,
 								volume2,
 								volume3,
 								volume4,
+								volume5,
 							}, nil
 						}
 					})
@@ -144,7 +151,10 @@ var _ = Describe("Volumes API", func() {
 									"base_resource_type": null,
 									"version": {"some": "version"}
 								},
-								"base_resource_type": null
+								"base_resource_type": null,
+								"pipeline_name": "",
+								"job_name": "",
+								"step_name": ""
 							},
 							{
 								"id": "some-import-handle",
@@ -158,7 +168,10 @@ var _ = Describe("Volumes API", func() {
 								"base_resource_type": {
 									"name": "some-base-resource-type",
 									"version": "some-base-version"
-								}
+								},
+								"pipeline_name": "",
+								"job_name": "",
+								"step_name": ""
 							},
 							{
 								"id": "some-output-handle",
@@ -169,7 +182,10 @@ var _ = Describe("Volumes API", func() {
 								"path": "some-path",
 								"parent_handle": "some-parent-handle",
 								"resource_type": null,
-								"base_resource_type": null
+								"base_resource_type": null,
+								"pipeline_name": "",
+								"job_name": "",
+								"step_name": ""
 							},
 							{
 								"id": "some-cow-handle",
@@ -180,7 +196,24 @@ var _ = Describe("Volumes API", func() {
 								"parent_handle": "",
 								"path": "some-path",
 								"resource_type": null,
-								"base_resource_type": null
+								"base_resource_type": null,
+								"pipeline_name": "",
+								"job_name": "",
+								"step_name": ""
+							},
+							{
+								"id": "some-task-cache-handle",
+								"worker_name": "some-worker",
+								"type": "task-cache",
+								"size_in_bytes": 12345,
+								"container_handle": "",
+								"parent_handle": "",
+								"path": "",
+								"resource_type": null,
+								"base_resource_type": null,
+								"pipeline_name": "some-pipeline",
+								"job_name": "some-job",
+								"step_name": "some-task"
 							}
 						]`,
 						))

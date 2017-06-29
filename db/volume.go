@@ -43,6 +43,7 @@ const (
 	VolumeTypeContainer    VolumeType = "container"
 	VolumeTypeResource     VolumeType = "resource"
 	VolumeTypeResourceType VolumeType = "resource-type"
+	VolumeTypeTaskCache    VolumeType = "task-cache"
 	VolumeTypeUknown       VolumeType = "unknown" // for migration to life
 )
 
@@ -65,6 +66,7 @@ type creatingVolume struct {
 	parentHandle             string
 	resourceCacheID          int
 	workerBaseResourceTypeID int
+	workerTaskCacheID        int
 	conn                     Conn
 }
 
@@ -98,6 +100,7 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 		parentHandle:             volume.parentHandle,
 		resourceCacheID:          volume.resourceCacheID,
 		workerBaseResourceTypeID: volume.workerBaseResourceTypeID,
+		workerTaskCacheID:        volume.workerTaskCacheID,
 	}, nil
 }
 
@@ -118,6 +121,7 @@ type CreatedVolume interface {
 	ParentHandle() string
 	ResourceType() (*VolumeResourceType, error)
 	BaseResourceType() (*UsedWorkerBaseResourceType, error)
+	TaskIdentifier() (string, string, string, error)
 }
 
 type createdVolume struct {
@@ -132,6 +136,7 @@ type createdVolume struct {
 	parentHandle             string
 	resourceCacheID          int
 	workerBaseResourceTypeID int
+	workerTaskCacheID        int
 	conn                     Conn
 }
 
@@ -164,6 +169,32 @@ func (volume *createdVolume) BaseResourceType() (*UsedWorkerBaseResourceType, er
 	}
 
 	return volume.findWorkerBaseResourceTypeByID(volume.workerBaseResourceTypeID)
+}
+
+func (volume *createdVolume) TaskIdentifier() (string, string, string, error) {
+	if volume.workerTaskCacheID == 0 {
+		return "", "", "", nil
+	}
+
+	var pipelineName string
+	var jobName string
+	var stepName string
+
+	err := psql.Select("p.name, j.name, wtc.step_name").
+		From("worker_task_caches wtc").
+		LeftJoin("jobs j ON j.id = wtc.job_id").
+		LeftJoin("pipelines p ON p.id = j.pipeline_id").
+		Where(sq.Eq{
+			"wtc.id": volume.workerTaskCacheID,
+		}).
+		RunWith(volume.conn).
+		QueryRow().
+		Scan(&pipelineName, &jobName, &stepName)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return pipelineName, jobName, stepName, nil
 }
 
 func (volume *createdVolume) findVolumeResourceTypeByCacheID(resourceCacheID int) (*VolumeResourceType, error) {

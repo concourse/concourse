@@ -16,6 +16,11 @@ func Volume(volume db.CreatedVolume) (atc.Volume, error) {
 		return atc.Volume{}, err
 	}
 
+	pipelineName, jobName, stepName, err := volume.TaskIdentifier()
+	if err != nil {
+		return atc.Volume{}, err
+	}
+
 	return atc.Volume{
 		ID:               volume.Handle(),
 		Type:             string(volume.Type()),
@@ -24,6 +29,9 @@ func Volume(volume db.CreatedVolume) (atc.Volume, error) {
 		ContainerHandle:  volume.ContainerHandle(),
 		Path:             volume.Path(),
 		ParentHandle:     volume.ParentHandle(),
+		PipelineName:     pipelineName,
+		JobName:          jobName,
+		StepName:         stepName,
 		ResourceType:     toVolumeResourceType(resourceType),
 		BaseResourceType: toVolumeBaseResourceType(baseResourceType),
 	}, nil

@@ -47,67 +47,58 @@ var _ = Describe("VolumeFactory", func() {
 			team2handles []string
 		)
 
-		JustBeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
-				Type:     "task",
-				StepName: "some-task",
-			})
-			Expect(err).ToNot(HaveOccurred())
+		It("returns task cache volumes", func() {
+			taskCache, err := workerTaskCacheFactory.FindOrCreate(defaultJob.ID(), "some-step", "some-path", defaultWorker.Name())
+			Expect(err).NotTo(HaveOccurred())
 
-			team1handles = []string{}
-			team2handles = []string{}
+			creatingVolume, err := volumeFactory.CreateTaskCacheVolume(defaultTeam.ID(), taskCache)
+			Expect(err).NotTo(HaveOccurred())
 
-			team2, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-defaultTeam"})
-			Expect(err).ToNot(HaveOccurred())
+			createdVolume, err := creatingVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
 
-			creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
+			volumes, err := volumeFactory.GetTeamVolumes(defaultTeam.ID())
 			Expect(err).NotTo(HaveOccurred())
-			createdVolume1, err := creatingVolume1.Created()
-			Expect(err).NotTo(HaveOccurred())
-			team1handles = append(team1handles, createdVolume1.Handle())
 
-			creatingVolume2, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-2")
-			Expect(err).NotTo(HaveOccurred())
-			createdVolume2, err := creatingVolume2.Created()
-			Expect(err).NotTo(HaveOccurred())
-			team1handles = append(team1handles, createdVolume2.Handle())
-
-			creatingVolume3, err := volumeFactory.CreateContainerVolume(team2.ID(), defaultWorker.Name(), creatingContainer, "some-path-3")
-			Expect(err).NotTo(HaveOccurred())
-			createdVolume3, err := creatingVolume3.Created()
-			Expect(err).NotTo(HaveOccurred())
-			team2handles = append(team2handles, createdVolume3.Handle())
+			Expect(volumes).To(HaveLen(1))
+			Expect(volumes[0].Handle()).To(Equal(createdVolume.Handle()))
+			Expect(volumes[0].Type()).To(Equal(db.VolumeTypeTaskCache))
 		})
 
-		It("returns only the matching defaultTeam's volumes", func() {
-			createdVolumes, err := volumeFactory.GetTeamVolumes(defaultTeam.ID())
-			Expect(err).NotTo(HaveOccurred())
-			createdHandles := []string{}
-			for _, vol := range createdVolumes {
-				createdHandles = append(createdHandles, vol.Handle())
-			}
-			Expect(createdHandles).To(Equal(team1handles))
+		Context("with container volumes", func() {
+			JustBeforeEach(func() {
+				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+					Type:     "task",
+					StepName: "some-task",
+				})
+				Expect(err).ToNot(HaveOccurred())
 
-			createdVolumes2, err := volumeFactory.GetTeamVolumes(team2.ID())
-			Expect(err).NotTo(HaveOccurred())
-			createdHandles2 := []string{}
-			for _, vol := range createdVolumes2 {
-				createdHandles2 = append(createdHandles2, vol.Handle())
-			}
-			Expect(createdHandles2).To(Equal(team2handles))
-		})
+				team1handles = []string{}
+				team2handles = []string{}
 
-		Context("when worker is stalled", func() {
-			BeforeEach(func() {
-				var err error
-				defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
+				team2, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-defaultTeam"})
+				Expect(err).ToNot(HaveOccurred())
+
+				creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
 				Expect(err).NotTo(HaveOccurred())
-				stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
+				createdVolume1, err := creatingVolume1.Created()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(stalledWorkers).To(ContainElement(defaultWorker.Name()))
+				team1handles = append(team1handles, createdVolume1.Handle())
+
+				creatingVolume2, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-2")
+				Expect(err).NotTo(HaveOccurred())
+				createdVolume2, err := creatingVolume2.Created()
+				Expect(err).NotTo(HaveOccurred())
+				team1handles = append(team1handles, createdVolume2.Handle())
+
+				creatingVolume3, err := volumeFactory.CreateContainerVolume(team2.ID(), defaultWorker.Name(), creatingContainer, "some-path-3")
+				Expect(err).NotTo(HaveOccurred())
+				createdVolume3, err := creatingVolume3.Created()
+				Expect(err).NotTo(HaveOccurred())
+				team2handles = append(team2handles, createdVolume3.Handle())
 			})
 
-			It("returns volumes", func() {
+			It("returns only the matching defaultTeam's volumes", func() {
 				createdVolumes, err := volumeFactory.GetTeamVolumes(defaultTeam.ID())
 				Expect(err).NotTo(HaveOccurred())
 				createdHandles := []string{}
@@ -123,6 +114,35 @@ var _ = Describe("VolumeFactory", func() {
 					createdHandles2 = append(createdHandles2, vol.Handle())
 				}
 				Expect(createdHandles2).To(Equal(team2handles))
+			})
+
+			Context("when worker is stalled", func() {
+				BeforeEach(func() {
+					var err error
+					defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+					stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(stalledWorkers).To(ContainElement(defaultWorker.Name()))
+				})
+
+				It("returns volumes", func() {
+					createdVolumes, err := volumeFactory.GetTeamVolumes(defaultTeam.ID())
+					Expect(err).NotTo(HaveOccurred())
+					createdHandles := []string{}
+					for _, vol := range createdVolumes {
+						createdHandles = append(createdHandles, vol.Handle())
+					}
+					Expect(createdHandles).To(Equal(team1handles))
+
+					createdVolumes2, err := volumeFactory.GetTeamVolumes(team2.ID())
+					Expect(err).NotTo(HaveOccurred())
+					createdHandles2 := []string{}
+					for _, vol := range createdVolumes2 {
+						createdHandles2 = append(createdHandles2, vol.Handle())
+					}
+					Expect(createdHandles2).To(Equal(team2handles))
+				})
 			})
 		})
 	})

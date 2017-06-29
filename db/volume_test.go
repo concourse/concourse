@@ -386,6 +386,28 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
+	Describe("Task cache volumes", func() {
+		It("returns volume type and task identifier", func() {
+			uwtc, err := workerTaskCacheFactory.FindOrCreate(defaultJob.ID(), "some-task", "some-path", defaultWorker.Name())
+			Expect(err).NotTo(HaveOccurred())
+
+			creatingVolume, err := volumeFactory.CreateTaskCacheVolume(defaultTeam.ID(), uwtc)
+			Expect(err).NotTo(HaveOccurred())
+
+			createdVolume, err := creatingVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(createdVolume.Type()).To(Equal(db.VolumeTypeTaskCache))
+
+			pipelineName, jobName, stepName, err := createdVolume.TaskIdentifier()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(pipelineName).To(Equal(defaultPipeline.Name()))
+			Expect(jobName).To(Equal(defaultJob.Name()))
+			Expect(stepName).To(Equal("some-task"))
+		})
+	})
+
 	Describe("createdVolume.CreateChildForContainer", func() {
 		var parentVolume db.CreatedVolume
 		var creatingContainer db.CreatingContainer

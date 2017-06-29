@@ -151,6 +151,21 @@ type FakeCreatedVolume struct {
 		result1 *db.UsedWorkerBaseResourceType
 		result2 error
 	}
+	TaskIdentifierStub        func() (string, string, string, error)
+	taskIdentifierMutex       sync.RWMutex
+	taskIdentifierArgsForCall []struct{}
+	taskIdentifierReturns     struct {
+		result1 string
+		result2 string
+		result3 string
+		result4 error
+	}
+	taskIdentifierReturnsOnCall map[int]struct {
+		result1 string
+		result2 string
+		result3 string
+		result4 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -754,6 +769,55 @@ func (fake *FakeCreatedVolume) BaseResourceTypeReturnsOnCall(i int, result1 *db.
 	}{result1, result2}
 }
 
+func (fake *FakeCreatedVolume) TaskIdentifier() (string, string, string, error) {
+	fake.taskIdentifierMutex.Lock()
+	ret, specificReturn := fake.taskIdentifierReturnsOnCall[len(fake.taskIdentifierArgsForCall)]
+	fake.taskIdentifierArgsForCall = append(fake.taskIdentifierArgsForCall, struct{}{})
+	fake.recordInvocation("TaskIdentifier", []interface{}{})
+	fake.taskIdentifierMutex.Unlock()
+	if fake.TaskIdentifierStub != nil {
+		return fake.TaskIdentifierStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3, ret.result4
+	}
+	return fake.taskIdentifierReturns.result1, fake.taskIdentifierReturns.result2, fake.taskIdentifierReturns.result3, fake.taskIdentifierReturns.result4
+}
+
+func (fake *FakeCreatedVolume) TaskIdentifierCallCount() int {
+	fake.taskIdentifierMutex.RLock()
+	defer fake.taskIdentifierMutex.RUnlock()
+	return len(fake.taskIdentifierArgsForCall)
+}
+
+func (fake *FakeCreatedVolume) TaskIdentifierReturns(result1 string, result2 string, result3 string, result4 error) {
+	fake.TaskIdentifierStub = nil
+	fake.taskIdentifierReturns = struct {
+		result1 string
+		result2 string
+		result3 string
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeCreatedVolume) TaskIdentifierReturnsOnCall(i int, result1 string, result2 string, result3 string, result4 error) {
+	fake.TaskIdentifierStub = nil
+	if fake.taskIdentifierReturnsOnCall == nil {
+		fake.taskIdentifierReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 string
+			result3 string
+			result4 error
+		})
+	}
+	fake.taskIdentifierReturnsOnCall[i] = struct {
+		result1 string
+		result2 string
+		result3 string
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
 func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -785,6 +849,8 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.resourceTypeMutex.RUnlock()
 	fake.baseResourceTypeMutex.RLock()
 	defer fake.baseResourceTypeMutex.RUnlock()
+	fake.taskIdentifierMutex.RLock()
+	defer fake.taskIdentifierMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -21,4 +21,7 @@ type Volume struct {
 	ParentHandle     string                  `json:"parent_handle"`
 	ResourceType     *VolumeResourceType     `json:"resource_type"`
 	BaseResourceType *VolumeBaseResourceType `json:"base_resource_type"`
+	PipelineName     string                  `json:"pipeline_name"`
+	JobName          string                  `json:"job_name"`
+	StepName         string                  `json:"step_name"`
 }
