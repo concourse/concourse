@@ -81,6 +81,8 @@ func (command *VolumesCommand) volumeIdentifier(volume atc.Volume) string {
 		}
 
 		return volume.ContainerHandle
+	case "task-cache":
+		return fmt.Sprintf("%s/%s/%s", volume.PipelineName, volume.JobName, volume.StepName)
 	case "resource":
 		if command.Details {
 			return presentResourceType(volume.ResourceType)
