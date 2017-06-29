@@ -23,6 +23,7 @@ type Container interface {
 	ID() int
 	Handle() string
 	WorkerName() string
+	TeamID() int
 	Metadata() ContainerMetadata
 }
 
@@ -38,6 +39,7 @@ type creatingContainer struct {
 	id         int
 	handle     string
 	workerName string
+	teamID     int
 	metadata   ContainerMetadata
 	conn       Conn
 }
@@ -46,6 +48,7 @@ func newCreatingContainer(
 	id int,
 	handle string,
 	workerName string,
+	teamID int,
 	metadata ContainerMetadata,
 	conn Conn,
 ) *creatingContainer {
@@ -53,6 +56,7 @@ func newCreatingContainer(
 		id:         id,
 		handle:     handle,
 		workerName: workerName,
+		teamID:     teamID,
 		metadata:   metadata,
 		conn:       conn,
 	}
@@ -61,6 +65,7 @@ func newCreatingContainer(
 func (container *creatingContainer) ID() int                     { return container.id }
 func (container *creatingContainer) Handle() string              { return container.handle }
 func (container *creatingContainer) WorkerName() string          { return container.workerName }
+func (container *creatingContainer) TeamID() int                 { return container.teamID }
 func (container *creatingContainer) Metadata() ContainerMetadata { return container.metadata }
 
 func (container *creatingContainer) Created() (CreatedContainer, error) {
@@ -92,6 +97,7 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 		container.id,
 		container.handle,
 		container.workerName,
+		container.teamID,
 		container.metadata,
 		false,
 		container.conn,
@@ -113,6 +119,7 @@ type createdContainer struct {
 	id         int
 	handle     string
 	workerName string
+	teamID     int
 	metadata   ContainerMetadata
 
 	hijacked bool
@@ -124,6 +131,7 @@ func newCreatedContainer(
 	id int,
 	handle string,
 	workerName string,
+	teamID int,
 	metadata ContainerMetadata,
 	hijacked bool,
 	conn Conn,
@@ -132,6 +140,7 @@ func newCreatedContainer(
 		id:         id,
 		handle:     handle,
 		workerName: workerName,
+		teamID:     teamID,
 		metadata:   metadata,
 		hijacked:   hijacked,
 		conn:       conn,
@@ -141,6 +150,7 @@ func newCreatedContainer(
 func (container *createdContainer) ID() int                     { return container.id }
 func (container *createdContainer) Handle() string              { return container.handle }
 func (container *createdContainer) WorkerName() string          { return container.workerName }
+func (container *createdContainer) TeamID() int                 { return container.teamID }
 func (container *createdContainer) Metadata() ContainerMetadata { return container.metadata }
 
 func (container *createdContainer) IsHijacked() bool { return container.hijacked }
@@ -173,6 +183,7 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 		container.id,
 		container.handle,
 		container.workerName,
+		container.teamID,
 		container.metadata,
 		isDiscontinued,
 		container.conn,
@@ -209,6 +220,7 @@ func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
 		container.id,
 		container.handle,
 		container.workerName,
+		container.teamID,
 		container.metadata,
 		true,
 		container.conn,
@@ -257,6 +269,7 @@ type destroyingContainer struct {
 	id         int
 	handle     string
 	workerName string
+	teamID     int
 	metadata   ContainerMetadata
 
 	isDiscontinued bool
@@ -268,6 +281,7 @@ func newDestroyingContainer(
 	id int,
 	handle string,
 	workerName string,
+	teamID int,
 	metadata ContainerMetadata,
 	isDiscontinued bool,
 	conn Conn,
@@ -276,6 +290,7 @@ func newDestroyingContainer(
 		id:             id,
 		handle:         handle,
 		workerName:     workerName,
+		teamID:         teamID,
 		metadata:       metadata,
 		isDiscontinued: isDiscontinued,
 		conn:           conn,
@@ -285,6 +300,7 @@ func newDestroyingContainer(
 func (container *destroyingContainer) ID() int                     { return container.id }
 func (container *destroyingContainer) Handle() string              { return container.handle }
 func (container *destroyingContainer) WorkerName() string          { return container.workerName }
+func (container *destroyingContainer) TeamID() int                 { return container.teamID }
 func (container *destroyingContainer) Metadata() ContainerMetadata { return container.metadata }
 
 func (container *destroyingContainer) IsDiscontinued() bool { return container.isDiscontinued }

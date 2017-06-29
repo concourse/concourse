@@ -86,7 +86,7 @@ func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContaine
 }
 
 func selectContainers(asOptional ...string) sq.SelectBuilder {
-	columns := []string{"id", "handle", "worker_name", "hijacked", "discontinued", "state"}
+	columns := []string{"id", "handle", "worker_name", "team_id", "hijacked", "discontinued", "state"}
 	columns = append(columns, containerMetadataColumns...)
 
 	table := "containers"
@@ -108,6 +108,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 		id             int
 		handle         string
 		workerName     string
+		teamID         int
 		isDiscontinued bool
 		isHijacked     bool
 		state          string
@@ -115,7 +116,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 		metadata ContainerMetadata
 	)
 
-	columns := []interface{}{&id, &handle, &workerName, &isHijacked, &isDiscontinued, &state}
+	columns := []interface{}{&id, &handle, &workerName, &teamID, &isHijacked, &isDiscontinued, &state}
 	columns = append(columns, metadata.ScanTargets()...)
 
 	err := row.Scan(columns...)
@@ -129,6 +130,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 			id,
 			handle,
 			workerName,
+			teamID,
 			metadata,
 			conn,
 		), nil, nil, nil
@@ -137,6 +139,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 			id,
 			handle,
 			workerName,
+			teamID,
 			metadata,
 			isHijacked,
 			conn,
@@ -146,6 +149,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 			id,
 			handle,
 			workerName,
+			teamID,
 			metadata,
 			isDiscontinued,
 			conn,

@@ -233,6 +233,7 @@ func (t *team) CreateContainer(workerName string, owner ContainerOwner, meta Con
 		containerID,
 		handle.String(),
 		workerName,
+		t.id,
 		*metadata,
 		t.conn,
 	), nil

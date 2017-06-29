@@ -27,8 +27,10 @@ type Client interface {
 	) (Container, error)
 
 	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)
-	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
+
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
+
+	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 
 	Satisfying(lager.Logger, WorkerSpec, creds.VersionedResourceTypes) (Worker, error)
 	AllSatisfying(lager.Logger, WorkerSpec, creds.VersionedResourceTypes) ([]Worker, error)

@@ -52,19 +52,6 @@ type FakeWorker struct {
 		result2 bool
 		result3 error
 	}
-	FindResourceTypeByPathStub        func(path string) (atc.WorkerResourceType, bool)
-	findResourceTypeByPathMutex       sync.RWMutex
-	findResourceTypeByPathArgsForCall []struct {
-		path string
-	}
-	findResourceTypeByPathReturns struct {
-		result1 atc.WorkerResourceType
-		result2 bool
-	}
-	findResourceTypeByPathReturnsOnCall map[int]struct {
-		result1 atc.WorkerResourceType
-		result2 bool
-	}
 	LookupVolumeStub        func(lager.Logger, string) (worker.Volume, bool, error)
 	lookupVolumeMutex       sync.RWMutex
 	lookupVolumeArgsForCall []struct {
@@ -80,6 +67,19 @@ type FakeWorker struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error
+	}
+	FindResourceTypeByPathStub        func(path string) (atc.WorkerResourceType, bool)
+	findResourceTypeByPathMutex       sync.RWMutex
+	findResourceTypeByPathArgsForCall []struct {
+		path string
+	}
+	findResourceTypeByPathReturns struct {
+		result1 atc.WorkerResourceType
+		result2 bool
+	}
+	findResourceTypeByPathReturnsOnCall map[int]struct {
+		result1 atc.WorkerResourceType
+		result2 bool
 	}
 	SatisfyingStub        func(lager.Logger, worker.WorkerSpec, creds.VersionedResourceTypes) (worker.Worker, error)
 	satisfyingMutex       sync.RWMutex
@@ -352,57 +352,6 @@ func (fake *FakeWorker) FindContainerByHandleReturnsOnCall(i int, result1 worker
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {
-	fake.findResourceTypeByPathMutex.Lock()
-	ret, specificReturn := fake.findResourceTypeByPathReturnsOnCall[len(fake.findResourceTypeByPathArgsForCall)]
-	fake.findResourceTypeByPathArgsForCall = append(fake.findResourceTypeByPathArgsForCall, struct {
-		path string
-	}{path})
-	fake.recordInvocation("FindResourceTypeByPath", []interface{}{path})
-	fake.findResourceTypeByPathMutex.Unlock()
-	if fake.FindResourceTypeByPathStub != nil {
-		return fake.FindResourceTypeByPathStub(path)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.findResourceTypeByPathReturns.result1, fake.findResourceTypeByPathReturns.result2
-}
-
-func (fake *FakeWorker) FindResourceTypeByPathCallCount() int {
-	fake.findResourceTypeByPathMutex.RLock()
-	defer fake.findResourceTypeByPathMutex.RUnlock()
-	return len(fake.findResourceTypeByPathArgsForCall)
-}
-
-func (fake *FakeWorker) FindResourceTypeByPathArgsForCall(i int) string {
-	fake.findResourceTypeByPathMutex.RLock()
-	defer fake.findResourceTypeByPathMutex.RUnlock()
-	return fake.findResourceTypeByPathArgsForCall[i].path
-}
-
-func (fake *FakeWorker) FindResourceTypeByPathReturns(result1 atc.WorkerResourceType, result2 bool) {
-	fake.FindResourceTypeByPathStub = nil
-	fake.findResourceTypeByPathReturns = struct {
-		result1 atc.WorkerResourceType
-		result2 bool
-	}{result1, result2}
-}
-
-func (fake *FakeWorker) FindResourceTypeByPathReturnsOnCall(i int, result1 atc.WorkerResourceType, result2 bool) {
-	fake.FindResourceTypeByPathStub = nil
-	if fake.findResourceTypeByPathReturnsOnCall == nil {
-		fake.findResourceTypeByPathReturnsOnCall = make(map[int]struct {
-			result1 atc.WorkerResourceType
-			result2 bool
-		})
-	}
-	fake.findResourceTypeByPathReturnsOnCall[i] = struct {
-		result1 atc.WorkerResourceType
-		result2 bool
-	}{result1, result2}
-}
-
 func (fake *FakeWorker) LookupVolume(arg1 lager.Logger, arg2 string) (worker.Volume, bool, error) {
 	fake.lookupVolumeMutex.Lock()
 	ret, specificReturn := fake.lookupVolumeReturnsOnCall[len(fake.lookupVolumeArgsForCall)]
@@ -456,6 +405,57 @@ func (fake *FakeWorker) LookupVolumeReturnsOnCall(i int, result1 worker.Volume, 
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeWorker) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {
+	fake.findResourceTypeByPathMutex.Lock()
+	ret, specificReturn := fake.findResourceTypeByPathReturnsOnCall[len(fake.findResourceTypeByPathArgsForCall)]
+	fake.findResourceTypeByPathArgsForCall = append(fake.findResourceTypeByPathArgsForCall, struct {
+		path string
+	}{path})
+	fake.recordInvocation("FindResourceTypeByPath", []interface{}{path})
+	fake.findResourceTypeByPathMutex.Unlock()
+	if fake.FindResourceTypeByPathStub != nil {
+		return fake.FindResourceTypeByPathStub(path)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.findResourceTypeByPathReturns.result1, fake.findResourceTypeByPathReturns.result2
+}
+
+func (fake *FakeWorker) FindResourceTypeByPathCallCount() int {
+	fake.findResourceTypeByPathMutex.RLock()
+	defer fake.findResourceTypeByPathMutex.RUnlock()
+	return len(fake.findResourceTypeByPathArgsForCall)
+}
+
+func (fake *FakeWorker) FindResourceTypeByPathArgsForCall(i int) string {
+	fake.findResourceTypeByPathMutex.RLock()
+	defer fake.findResourceTypeByPathMutex.RUnlock()
+	return fake.findResourceTypeByPathArgsForCall[i].path
+}
+
+func (fake *FakeWorker) FindResourceTypeByPathReturns(result1 atc.WorkerResourceType, result2 bool) {
+	fake.FindResourceTypeByPathStub = nil
+	fake.findResourceTypeByPathReturns = struct {
+		result1 atc.WorkerResourceType
+		result2 bool
+	}{result1, result2}
+}
+
+func (fake *FakeWorker) FindResourceTypeByPathReturnsOnCall(i int, result1 atc.WorkerResourceType, result2 bool) {
+	fake.FindResourceTypeByPathStub = nil
+	if fake.findResourceTypeByPathReturnsOnCall == nil {
+		fake.findResourceTypeByPathReturnsOnCall = make(map[int]struct {
+			result1 atc.WorkerResourceType
+			result2 bool
+		})
+	}
+	fake.findResourceTypeByPathReturnsOnCall[i] = struct {
+		result1 atc.WorkerResourceType
+		result2 bool
+	}{result1, result2}
 }
 
 func (fake *FakeWorker) Satisfying(arg1 lager.Logger, arg2 worker.WorkerSpec, arg3 creds.VersionedResourceTypes) (worker.Worker, error) {
@@ -1064,10 +1064,10 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.findOrCreateContainerMutex.RUnlock()
 	fake.findContainerByHandleMutex.RLock()
 	defer fake.findContainerByHandleMutex.RUnlock()
-	fake.findResourceTypeByPathMutex.RLock()
-	defer fake.findResourceTypeByPathMutex.RUnlock()
 	fake.lookupVolumeMutex.RLock()
 	defer fake.lookupVolumeMutex.RUnlock()
+	fake.findResourceTypeByPathMutex.RLock()
+	defer fake.findResourceTypeByPathMutex.RUnlock()
 	fake.satisfyingMutex.RLock()
 	defer fake.satisfyingMutex.RUnlock()
 	fake.allSatisfyingMutex.RLock()

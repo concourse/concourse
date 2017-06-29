@@ -89,6 +89,7 @@ func (vc *volumeCollector) Run() error {
 	}
 
 	for _, createdVolume := range createdVolumes {
+		// queue
 		vLog := logger.Session("mark-created-as-destroying", lager.Data{
 			"volume": createdVolume.Handle(),
 			"worker": createdVolume.WorkerName(),
@@ -104,6 +105,8 @@ func (vc *volumeCollector) Run() error {
 	}
 
 	for _, destroyingVolume := range destroyingVolumes {
+		// chuck volume into worker pool
+
 		vLog := logger.Session("destroy", lager.Data{
 			"handle": destroyingVolume.Handle(),
 			"worker": destroyingVolume.WorkerName(),
