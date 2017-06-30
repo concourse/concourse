@@ -1,6 +1,9 @@
 package creds
 
-import "github.com/concourse/atc"
+import (
+	"github.com/concourse/atc"
+	"github.com/mitchellh/mapstructure"
+)
 
 type Source struct {
 	variablesResolver Variables
@@ -15,9 +18,29 @@ func NewSource(variables Variables, source atc.Source) Source {
 }
 
 func (s Source) Evaluate() (atc.Source, error) {
-	var source atc.Source
-	err := evaluate(s.variablesResolver, s.rawSource, &source)
+	var untypedInput interface{}
+
+	err := evaluate(s.variablesResolver, s.rawSource, &untypedInput)
 	if err != nil {
+		return nil, err
+	}
+
+	var metadata mapstructure.Metadata
+	var source atc.Source
+
+	msConfig := &mapstructure.DecoderConfig{
+		Metadata:         &metadata,
+		Result:           &source,
+		WeaklyTypedInput: true,
+		DecodeHook:       atc.SanitizeDecodeHook,
+	}
+
+	decoder, err := mapstructure.NewDecoder(msConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := decoder.Decode(untypedInput); err != nil {
 		return nil, err
 	}
 
