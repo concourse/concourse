@@ -72,6 +72,23 @@ func (resources Resources) Lookup(name string) (Resource, bool) {
 	return nil, false
 }
 
+func (resources Resources) Configs() atc.ResourceConfigs {
+	var configs atc.ResourceConfigs
+
+	for _, r := range resources {
+		configs = append(configs, atc.ResourceConfig{
+			Name:         r.Name(),
+			WebhookToken: r.WebhookToken(),
+			Type:         r.Type(),
+			Source:       r.Source(),
+			CheckEvery:   r.CheckEvery(),
+			Tags:         r.Tags(),
+		})
+	}
+
+	return configs
+}
+
 func (r *resource) ID() int              { return r.id }
 func (r *resource) Name() string         { return r.name }
 func (r *resource) PipelineID() int      { return r.pipelineID }

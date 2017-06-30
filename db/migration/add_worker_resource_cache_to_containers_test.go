@@ -3,6 +3,7 @@ package migration_test
 import (
 	"database/sql"
 
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migration"
 	"github.com/concourse/atc/db/migrations"
 
@@ -20,7 +21,7 @@ var _ = Describe("AddWorkerResourceCacheToContainers", func() {
 	BeforeEach(func() {
 		migrator = migrations.AddWorkerResourceCacheToContainers
 		migrationsBefore = []migration.Migrator{}
-		for i, m := range migrations.Migrations {
+		for i, m := range migrations.New(db.NewNoEncryption()) {
 			if i > 144 { // unfortunately you cannot compare functions
 				break
 			}

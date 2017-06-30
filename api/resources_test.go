@@ -71,19 +71,16 @@ var _ = Describe("Resources API", func() {
 					resource1, resource2, resource3,
 				}, nil)
 
-				fakePipeline.ConfigReturns(atc.Config{
-					Groups: []atc.GroupConfig{
-						{
-							Name:      "group-1",
-							Resources: []string{"resource-1"},
-						},
-						{
-							Name:      "group-2",
-							Resources: []string{"resource-1", "resource-2"},
-						},
+				fakePipeline.GroupsReturns([]atc.GroupConfig{
+					{
+						Name:      "group-1",
+						Resources: []string{"resource-1"},
 					},
-				}, "", 0, nil)
-
+					{
+						Name:      "group-2",
+						Resources: []string{"resource-1", "resource-2"},
+					},
+				})
 			})
 
 			Context("when not authorized", func() {
@@ -203,16 +200,6 @@ var _ = Describe("Resources API", func() {
 						})
 					})
 				})
-
-				Context("when getting the pipeline config fails", func() {
-					BeforeEach(func() {
-						fakePipeline.ConfigReturns(atc.Config{}, "", 0, errors.New("fail"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
 			})
 		})
 	})
@@ -327,18 +314,16 @@ var _ = Describe("Resources API", func() {
 					resource1.TypeReturns("type-1")
 
 					fakePipeline.ResourceReturns(resource1, true, nil)
-					fakePipeline.ConfigReturns(atc.Config{
-						Groups: []atc.GroupConfig{
-							{
-								Name:      "group-1",
-								Resources: []string{"resource-1"},
-							},
-							{
-								Name:      "group-2",
-								Resources: []string{"resource-1", "resource-2"},
-							},
+					fakePipeline.GroupsReturns([]atc.GroupConfig{
+						{
+							Name:      "group-1",
+							Resources: []string{"resource-1"},
 						},
-					}, "", 0, nil)
+						{
+							Name:      "group-2",
+							Resources: []string{"resource-1", "resource-2"},
+						},
+					})
 				})
 
 				It("returns 200 ok", func() {
@@ -359,15 +344,6 @@ var _ = Describe("Resources API", func() {
 								"failing_to_check": true,
 								"check_error": "sup"
 							}`))
-				})
-				Context("when getting the pipeline config fails", func() {
-					BeforeEach(func() {
-						fakePipeline.ConfigReturns(atc.Config{}, "", 0, errors.New("fail"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
 				})
 			})
 		})

@@ -79,6 +79,18 @@ type job struct {
 	lockFactory lock.LockFactory
 }
 
+type Jobs []Job
+
+func (jobs Jobs) Configs() atc.JobConfigs {
+	var configs atc.JobConfigs
+
+	for _, j := range jobs {
+		configs = append(configs, j.Config())
+	}
+
+	return configs
+}
+
 func (j *job) ID() int                 { return j.id }
 func (j *job) Name() string            { return j.name }
 func (j *job) Paused() bool            { return j.paused }
@@ -888,10 +900,10 @@ func scanJob(j *job, row scannable) error {
 	return nil
 }
 
-func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Job, error) {
+func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) (Jobs, error) {
 	defer rows.Close()
 
-	jobs := []Job{}
+	jobs := Jobs{}
 
 	for rows.Next() {
 		job := &job{conn: conn, lockFactory: lockFactory}

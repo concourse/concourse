@@ -23,20 +23,13 @@ func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
 		showCheckErr := auth.IsAuthenticated(r)
 		teamName := r.FormValue(":team_name")
 
-		config, _, _, err := pipeline.Config()
-		if err != nil {
-			logger.Error("failed-to-get-pipeline-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		var presentedResources []atc.Resource
 		for _, resource := range resources {
 			presentedResources = append(
 				presentedResources,
 				present.Resource(
 					resource,
-					config.Groups,
+					pipeline.Groups(),
 					showCheckErr,
 					teamName,
 				),

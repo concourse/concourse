@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -70,7 +71,7 @@ func migrationsBefore(migrator migration.Migrator) []migration.Migrator {
 	migratorName := migrationFunctionName(migrator)
 	migrationsBefore := []migration.Migrator{}
 
-	for _, m := range migrations.Migrations {
+	for _, m := range migrations.New(db.NewNoEncryption()) {
 		if migratorName == migrationFunctionName(m) {
 			break
 		}

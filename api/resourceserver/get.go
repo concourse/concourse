@@ -29,16 +29,9 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		config, _, _, err := pipeline.Config()
-		if err != nil {
-			logger.Error("failed-to-get-pipeline-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		resource := present.Resource(
 			dbResource,
-			config.Groups,
+			pipeline.Groups(),
 			auth.IsAuthenticated(r),
 			teamName,
 		)

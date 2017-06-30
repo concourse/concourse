@@ -100,7 +100,7 @@ func (runner *Runner) OpenDB() *sql.DB {
 	dbConn, err := migration.Open(
 		"postgres",
 		runner.DataSourceName(),
-		migrations.Migrations,
+		migrations.New(db.NewNoEncryption()),
 	)
 	Expect(err).NotTo(HaveOccurred())
 

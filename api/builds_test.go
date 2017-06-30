@@ -264,32 +264,8 @@ var _ = Describe("Builds API", func() {
 							build.PipelineReturns(fakePipeline, true, nil)
 						})
 
-						Context("when job is private", func() {
-							BeforeEach(func() {
-								fakePipeline.ConfigReturns(atc.Config{
-									Jobs: atc.JobConfigs{
-										{Name: "job1", Public: false},
-									},
-								}, "", 0, nil)
-							})
-
-							It("returns 200", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-							})
-						})
-
-						Context("when job is public", func() {
-							BeforeEach(func() {
-								fakePipeline.ConfigReturns(atc.Config{
-									Jobs: atc.JobConfigs{
-										{Name: "job1", Public: true},
-									},
-								}, "", 0, nil)
-							})
-
-							It("returns 200", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-							})
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 					})
 				})
@@ -381,32 +357,8 @@ var _ = Describe("Builds API", func() {
 						build.PipelineReturns(fakePipeline, true, nil)
 					})
 
-					Context("when job is private", func() {
-						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{
-								Jobs: atc.JobConfigs{
-									{Name: "job1", Public: false},
-								},
-							}, "", 0, nil)
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
-					})
-
-					Context("when job is public", func() {
-						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{
-								Jobs: atc.JobConfigs{
-									{Name: "job1", Public: true},
-								},
-							}, "", 0, nil)
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 				})
 			})
@@ -940,43 +892,70 @@ var _ = Describe("Builds API", func() {
 						fakePipeline.PublicReturns(true)
 					})
 
-					Context("and the job is private", func() {
+					Context("when the job is found", func() {
+						var fakeJob *dbfakes.FakeJob
+
 						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{
-								Jobs: atc.JobConfigs{
-									{Name: "some-job", Public: false},
-								},
-							}, "", 0, nil)
+							fakeJob = new(dbfakes.FakeJob)
+							fakePipeline.JobReturns(fakeJob, true, nil)
 						})
 
-						It("returns 401", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						Context("and the job is private", func() {
+							BeforeEach(func() {
+								fakeJob.ConfigReturns(atc.JobConfig{
+									Name:   "some-job",
+									Public: false,
+								})
+							})
+
+							It("returns 401", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+							})
+						})
+
+						Context("and the job is public", func() {
+							BeforeEach(func() {
+								fakeJob.ConfigReturns(atc.JobConfig{
+									Name:   "some-job",
+									Public: true,
+								})
+							})
+
+							It("returns 200", func() {
+								Expect(response.StatusCode).To(Equal(200))
+							})
+
+							It("serves the request via the event handler", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(string(body)).To(Equal("fake event handler factory was here"))
+
+								Expect(constructedEventHandler.build).To(Equal(build))
+								Expect(dbBuildFactory.BuildCallCount()).To(Equal(1))
+								buildID := dbBuildFactory.BuildArgsForCall(0)
+								Expect(buildID).To(Equal(128))
+							})
 						})
 					})
 
-					Context("and the job is public", func() {
+					Context("when finding the job fails", func() {
 						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{
-								Jobs: atc.JobConfigs{
-									{Name: "some-job", Public: true},
-								},
-							}, "", 0, nil)
+							fakePipeline.JobReturns(nil, false, errors.New("nope"))
 						})
 
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(200))
+						It("returns Internal Server Error", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when the job cannot be found", func() {
+						BeforeEach(func() {
+							fakePipeline.JobReturns(nil, false, nil)
 						})
 
-						It("serves the request via the event handler", func() {
-							body, err := ioutil.ReadAll(response.Body)
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(string(body)).To(Equal("fake event handler factory was here"))
-
-							Expect(constructedEventHandler.build).To(Equal(build))
-							Expect(dbBuildFactory.BuildCallCount()).To(Equal(1))
-							buildID := dbBuildFactory.BuildArgsForCall(0)
-							Expect(buildID).To(Equal(128))
+						It("returns Not Found", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 						})
 					})
 				})
@@ -1225,31 +1204,57 @@ var _ = Describe("Builds API", func() {
 						fakePipeline.PublicReturns(true)
 					})
 
-					Context("when job is private", func() {
+					Context("when the job is found", func() {
+						var fakeJob *dbfakes.FakeJob
 						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{
-								Jobs: atc.JobConfigs{
-									{Name: "job1", Public: false},
-								},
-							}, "", 0, nil)
+							fakeJob = new(dbfakes.FakeJob)
+							fakePipeline.JobReturns(fakeJob, true, nil)
 						})
 
-						It("returns 401", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						Context("when job is private", func() {
+							BeforeEach(func() {
+								fakeJob.ConfigReturns(atc.JobConfig{
+									Name:   "job1",
+									Public: false,
+								})
+							})
+
+							It("returns 401", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+							})
+						})
+
+						Context("when job is public", func() {
+							BeforeEach(func() {
+								fakeJob.ConfigReturns(atc.JobConfig{
+									Name:   "job1",
+									Public: true,
+								})
+							})
+
+							It("returns 200", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
 						})
 					})
 
-					Context("when job is public", func() {
+					Context("when finding the job fails", func() {
 						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{
-								Jobs: atc.JobConfigs{
-									{Name: "job1", Public: true},
-								},
-							}, "", 0, nil)
+							fakePipeline.JobReturns(nil, false, errors.New("nope"))
 						})
 
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						It("returns Internal Server Error", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when the job cannot be found", func() {
+						BeforeEach(func() {
+							fakePipeline.JobReturns(nil, false, nil)
+						})
+
+						It("returns Not Found", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 						})
 					})
 				})
@@ -1412,32 +1417,8 @@ var _ = Describe("Builds API", func() {
 						fakePipeline.PublicReturns(true)
 					})
 
-					Context("when job is private", func() {
-						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{
-								Jobs: atc.JobConfigs{
-									{Name: "job1", Public: false},
-								},
-							}, "", 0, nil)
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
-					})
-
-					Context("when job is public", func() {
-						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{
-								Jobs: atc.JobConfigs{
-									{Name: "job1", Public: true},
-								},
-							}, "", 0, nil)
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 				})
 			})

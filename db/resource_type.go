@@ -52,6 +52,21 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 	return versionedResourceTypes
 }
 
+func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
+	var configs atc.ResourceTypes
+
+	for _, r := range resourceTypes {
+		configs = append(configs, atc.ResourceType{
+			Name:       r.Name(),
+			Type:       r.Type(),
+			Source:     r.Source(),
+			Privileged: r.Privileged(),
+		})
+	}
+
+	return configs
+}
+
 var resourceTypesQuery = psql.Select("id, name, type, config, version, nonce").
 	From("resource_types").
 	Where(sq.Eq{"active": true})

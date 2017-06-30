@@ -17,11 +17,6 @@ func Pipeline(savedPipeline db.Pipeline) atc.Pipeline {
 		panic("failed to generate url: " + err.Error())
 	}
 
-	config, _, _, err := savedPipeline.Config()
-	if err != nil {
-		panic("failed to get config: " + err.Error())
-	}
-
 	return atc.Pipeline{
 		ID:       savedPipeline.ID(),
 		Name:     savedPipeline.Name(),
@@ -29,6 +24,6 @@ func Pipeline(savedPipeline db.Pipeline) atc.Pipeline {
 		URL:      pathForRoute,
 		Paused:   savedPipeline.Paused(),
 		Public:   savedPipeline.Public(),
-		Groups:   config.Groups,
+		Groups:   savedPipeline.Groups(),
 	}
 }

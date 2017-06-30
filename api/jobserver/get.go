@@ -32,13 +32,6 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		config, _, _, err := pipeline.Config()
-		if err != nil {
-			logger.Error("failed-to-get-pipeline-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		teamName := r.FormValue(":team_name")
 
 		w.WriteHeader(http.StatusOK)
@@ -46,7 +39,7 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 		json.NewEncoder(w).Encode(present.Job(
 			teamName,
 			job,
-			config.Groups,
+			pipeline.Groups(),
 			finished,
 			next,
 		))

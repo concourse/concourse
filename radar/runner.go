@@ -76,12 +76,20 @@ func (r *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 }
 
 func (r *Runner) tick(ctx context.Context) error {
-	config, err := r.reloadPipelineConfig()
+	resourceTypes, err := r.pipeline.ResourceTypes()
 	if err != nil {
+		r.logger.Error("failed-to-get-resource-types", err)
 		return err
 	}
-	r.scanResourceTypes(config.ResourceTypes, ctx)
-	r.scanResources(config.Resources, ctx)
+
+	resources, err := r.pipeline.Resources()
+	if err != nil {
+		r.logger.Error("failed-to-get-resources", err)
+		return err
+	}
+
+	r.scanResourceTypes(resourceTypes.Configs(), ctx)
+	r.scanResources(resources.Configs(), ctx)
 	return nil
 }
 
@@ -133,25 +141,4 @@ func (r *Runner) scanResourceTypes(resourceTypes atc.ResourceTypes, ctx context.
 			r.scanning.Delete(scopedName)
 		}(resourceType.Name, scopedName)
 	}
-}
-
-func (r *Runner) reloadPipelineConfig() (atc.Config, error) {
-	found, err := r.pipeline.Reload()
-	if err != nil {
-		r.logger.Error("failed-to-reload-pipeline", err)
-		return atc.Config{}, err
-	}
-
-	if !found {
-		r.logger.Info("pipeline-removed")
-		return atc.Config{}, err
-	}
-
-	config, _, _, err := r.pipeline.Config()
-	if err != nil {
-		r.logger.Error("failed-to-get-config", err)
-		return atc.Config{}, err
-	}
-
-	return config, nil
 }

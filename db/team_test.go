@@ -1538,10 +1538,7 @@ var _ = Describe("Team", func() {
 			Expect(found).To(BeTrue())
 			Expect(pipeline.Paused()).To(BeTrue())
 
-			_, _, configVersion, err := pipeline.Config()
-			Expect(err).NotTo(HaveOccurred())
-
-			_, _, err = team.SavePipeline(pipelineName, config, configVersion, db.PipelineUnpaused)
+			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, found, err = team.Pipeline(pipelineName)
@@ -1620,18 +1617,37 @@ var _ = Describe("Team", func() {
 			Expect(found).To(BeTrue())
 			Expect(pipeline.Name()).To(Equal(pipelineName))
 			Expect(pipeline.ID()).NotTo(Equal(0))
-			configPipeline, _, _, err := pipeline.Config()
+			resourceTypes, err := pipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(configPipeline).To(Equal(config))
+			resources, err := pipeline.Resources()
+			Expect(err).NotTo(HaveOccurred())
+			jobs, err := pipeline.Jobs()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(atc.Config{
+				Groups:        pipeline.Groups(),
+				Resources:     resources.Configs(),
+				ResourceTypes: resourceTypes.Configs(),
+				Jobs:          jobs.Configs(),
+			}).To(Equal(config))
 
 			otherPipeline, found, err := team.Pipeline(otherPipelineName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(otherPipeline.Name()).To(Equal(otherPipelineName))
 			Expect(otherPipeline.ID()).NotTo(Equal(0))
-			configPipeline, _, _, err = otherPipeline.Config()
+			otherResourceTypes, err := otherPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(configPipeline).To(Equal(otherConfig))
+			otherResources, err := otherPipeline.Resources()
+			Expect(err).NotTo(HaveOccurred())
+			otherJobs, err := otherPipeline.Jobs()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(atc.Config{
+				Groups:        otherPipeline.Groups(),
+				Resources:     otherResources.Configs(),
+				ResourceTypes: otherResourceTypes.Configs(),
+				Jobs:          otherJobs.Configs(),
+			}).To(Equal(otherConfig))
+
 		})
 
 		It("can manage multiple pipeline configurations", func() {
@@ -1646,21 +1662,38 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the saved config to later gets")
-			returnedConfig, returnedRawConfig, configVersion, err := pipeline.Config()
+			resourceTypes, err := pipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(returnedConfig).To(Equal(config))
-			jsonBytes, err := json.Marshal(config)
+			resources, err := pipeline.Resources()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(returnedRawConfig).To(MatchJSON(jsonBytes))
-			Expect(configVersion).NotTo(Equal(db.ConfigVersion(0)))
+			jobs, err := pipeline.Jobs()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(atc.Config{
+				Groups:        pipeline.Groups(),
+				Resources:     resources.Configs(),
+				ResourceTypes: resourceTypes.Configs(),
+				Jobs:          jobs.Configs(),
+			}).To(Equal(config))
 
-			otherReturnedConfig, otherReturnedRawConfig, otherConfigVersion, err := otherPipeline.Config()
+			otherResourceTypes, err := otherPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(otherReturnedConfig).To(Equal(otherConfig))
-			jsonBytes, err = json.Marshal(otherConfig)
+			otherResources, err := otherPipeline.Resources()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(otherReturnedRawConfig).To(MatchJSON(jsonBytes))
-			Expect(otherConfigVersion).NotTo(Equal(db.ConfigVersion(0)))
+			otherJobs, err := otherPipeline.Jobs()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(atc.Config{
+				Groups:        otherPipeline.Groups(),
+				Resources:     otherResources.Configs(),
+				ResourceTypes: otherResourceTypes.Configs(),
+				Jobs:          otherJobs.Configs(),
+			}).To(Equal(otherConfig))
+
+			By("returning the saved groups")
+			returnedGroups := pipeline.Groups()
+			Expect(returnedGroups).To(Equal(config.Groups))
+
+			otherReturnedGroups := otherPipeline.Groups()
+			Expect(otherReturnedGroups).To(Equal(otherConfig.Groups))
 
 			updatedConfig := config
 
@@ -1714,36 +1747,38 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the updated config")
-			returnedConfig, returnedRawConfig, newConfigVersion, err := pipeline.Config()
+			resourceTypes, err = pipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(returnedConfig).To(Equal(updatedConfig))
-			rawConfigJSONBytes, err := json.Marshal(updatedConfig)
+			resources, err = pipeline.Resources()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(returnedRawConfig).To(MatchJSON(rawConfigJSONBytes))
-			Expect(newConfigVersion).NotTo(Equal(configVersion))
-
-			otherReturnedConfig, _, newOtherConfigVersion, err := otherPipeline.Config()
+			jobs, err = pipeline.Jobs()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(otherReturnedConfig).To(Equal(updatedConfig))
-			Expect(returnedRawConfig).To(MatchJSON(rawConfigJSONBytes))
-			Expect(newOtherConfigVersion).NotTo(Equal(otherConfigVersion))
+			Expect(atc.Config{
+				Groups:        pipeline.Groups(),
+				Resources:     resources.Configs(),
+				ResourceTypes: resourceTypes.Configs(),
+				Jobs:          jobs.Configs(),
+			}).To(Equal(updatedConfig))
 
-			By("being able to retrieve invalid config")
-			invalidPipelineName := "invalid-config"
-			invalidPipeline, _, err := team.SavePipeline(invalidPipelineName, config, 1, db.PipelineUnpaused)
+			otherResourceTypes, err = otherPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
+			otherResources, err = otherPipeline.Resources()
+			Expect(err).NotTo(HaveOccurred())
+			otherJobs, err = otherPipeline.Jobs()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(atc.Config{
+				Groups:        otherPipeline.Groups(),
+				Resources:     otherResources.Configs(),
+				ResourceTypes: otherResourceTypes.Configs(),
+				Jobs:          otherJobs.Configs(),
+			}).To(Equal(updatedConfig))
 
-			plaintext := []byte("bad-json")
-			dbConn.Exec(`
-			UPDATE pipelines
-			SET config = $1
-			WHERE name = 'invalid-config'
-			`, plaintext)
+			By("returning the saved groups")
+			returnedGroups = pipeline.Groups()
+			Expect(returnedGroups).To(Equal(updatedConfig.Groups))
 
-			_, _, invalidConfigVersion, err := invalidPipeline.Config()
-			Expect(err).To(BeAssignableToTypeOf(atc.MalformedConfigError{}))
-			Expect(err.Error()).To(ContainSubstring("malformed config:"))
-			Expect(invalidConfigVersion).NotTo(Equal(db.ConfigVersion(1)))
+			otherReturnedGroups = otherPipeline.Groups()
+			Expect(otherReturnedGroups).To(Equal(updatedConfig.Groups))
 		})
 
 		Context("when there are multiple teams", func() {

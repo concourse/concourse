@@ -181,18 +181,16 @@ var _ = Describe("Jobs API", func() {
 						})
 
 						fakePipeline.JobReturns(fakeJob, true, nil)
-						fakePipeline.ConfigReturns(atc.Config{
-							Groups: []atc.GroupConfig{
-								{
-									Name: "group-1",
-									Jobs: []string{"some-job"},
-								},
-								{
-									Name: "group-2",
-									Jobs: []string{"some-job"},
-								},
+						fakePipeline.GroupsReturns([]atc.GroupConfig{
+							{
+								Name: "group-1",
+								Jobs: []string{"some-job"},
 							},
-						}, "", 0, nil)
+							{
+								Name: "group-2",
+								Jobs: []string{"some-job"},
+							},
+						})
 
 						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 					})
@@ -289,16 +287,6 @@ var _ = Describe("Jobs API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
 					})
-
-					Context("when getting the config fails", func() {
-						BeforeEach(func() {
-							fakePipeline.ConfigReturns(atc.Config{}, "", 0, errors.New("oh no!"))
-						})
-
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-					})
 				})
 			})
 
@@ -324,121 +312,80 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when getting the job config succeeds", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
-				fakePipeline.ConfigReturns(atc.Config{
-					Groups: []atc.GroupConfig{
-						{
-							Name: "group-1",
-							Jobs: []string{"some-job"},
-						},
-						{
-							Name: "group-2",
-							Jobs: []string{"some-job"},
-						},
-					},
-
-					Jobs: []atc.JobConfig{
-						{
-							Name: "some-job",
-							Plan: atc.PlanSequence{
-								{
-									Get: "some-input",
-								},
-								{
-									Get:      "some-name",
-									Resource: "some-other-input",
-									Params:   atc.Params{"secret": "params"},
-									Passed:   []string{"a", "b"},
-									Trigger:  true,
-								},
-								{
-									Put: "some-output",
-								},
-								{
-									Put:    "some-other-output",
-									Params: atc.Params{"secret": "params"},
-								},
-							},
-						},
-					},
-				}, "", 0, nil)
+				authValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("", false, false)
 			})
 
-			Context("when not authorized", func() {
+			Context("and the pipeline is private", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(false)
-					userContextReader.GetTeamReturns("", false, false)
+					fakePipeline.PublicReturns(false)
 				})
 
-				Context("and the pipeline is private", func() {
-					BeforeEach(func() {
-						fakePipeline.PublicReturns(false)
-					})
-
-					It("returns 401", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-					})
-				})
-
-				Context("and the pipeline is public", func() {
-					BeforeEach(func() {
-						fakePipeline.PublicReturns(true)
-						fakePipeline.JobReturns(fakeJob, true, nil)
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 				})
 			})
 
-			Context("when authorized", func() {
+			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", true, true)
+					fakePipeline.PublicReturns(true)
 					fakePipeline.JobReturns(fakeJob, true, nil)
-					fakeJob.NameReturns("some-job")
 				})
 
-				It("fetches by job", func() {
-					Expect(fakeJob.FinishedAndNextBuildCallCount()).To(Equal(1))
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+		})
+
+		Context("when authorized", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", true, true)
+				fakePipeline.JobReturns(fakeJob, true, nil)
+				fakeJob.NameReturns("some-job")
+			})
+
+			It("fetches by job", func() {
+				Expect(fakeJob.FinishedAndNextBuildCallCount()).To(Equal(1))
+			})
+
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			Context("when the finished build is successful", func() {
+				BeforeEach(func() {
+					build1 := new(dbfakes.FakeBuild)
+					build1.IDReturns(1)
+					build1.NameReturns("1")
+					build1.JobNameReturns("some-job")
+					build1.PipelineNameReturns("some-pipeline")
+					build1.StartTimeReturns(time.Unix(1, 0))
+					build1.EndTimeReturns(time.Unix(100, 0))
+					build1.StatusReturns(db.BuildStatusSucceeded)
+
+					build2 := new(dbfakes.FakeBuild)
+					build2.IDReturns(3)
+					build2.NameReturns("2")
+					build2.JobNameReturns("some-job")
+					build2.PipelineNameReturns("some-pipeline")
+					build2.StatusReturns(db.BuildStatusStarted)
+
+					fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 				})
 
 				It("returns 200 OK", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				Context("when the finished build is successful", func() {
-					BeforeEach(func() {
-						build1 := new(dbfakes.FakeBuild)
-						build1.IDReturns(1)
-						build1.NameReturns("1")
-						build1.JobNameReturns("some-job")
-						build1.PipelineNameReturns("some-pipeline")
-						build1.StartTimeReturns(time.Unix(1, 0))
-						build1.EndTimeReturns(time.Unix(100, 0))
-						build1.StatusReturns(db.BuildStatusSucceeded)
+				It("returns some SVG showing that the job is successful", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
 
-						build2 := new(dbfakes.FakeBuild)
-						build2.IDReturns(3)
-						build2.NameReturns("2")
-						build2.JobNameReturns("some-job")
-						build2.PipelineNameReturns("some-pipeline")
-						build2.StatusReturns(db.BuildStatusStarted)
-
-						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("returns some SVG showing that the job is successful", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="88" height="20">
    <linearGradient id="b" x2="0" y2="100%">
       <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
@@ -459,39 +406,39 @@ var _ = Describe("Jobs API", func() {
       <text x="61.5" y="14">passing</text>
    </g>
 </svg>`))
-					})
+				})
+			})
+
+			Context("when the finished build is failed", func() {
+				BeforeEach(func() {
+					build1 := new(dbfakes.FakeBuild)
+					build1.IDReturns(1)
+					build1.NameReturns("1")
+					build1.JobNameReturns("some-job")
+					build1.PipelineNameReturns("some-pipeline")
+					build1.StartTimeReturns(time.Unix(1, 0))
+					build1.EndTimeReturns(time.Unix(100, 0))
+					build1.StatusReturns(db.BuildStatusFailed)
+
+					build2 := new(dbfakes.FakeBuild)
+					build2.IDReturns(3)
+					build2.NameReturns("2")
+					build2.JobNameReturns("some-job")
+					build2.PipelineNameReturns("some-pipeline")
+					build2.StatusReturns(db.BuildStatusStarted)
+
+					fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 				})
 
-				Context("when the finished build is failed", func() {
-					BeforeEach(func() {
-						build1 := new(dbfakes.FakeBuild)
-						build1.IDReturns(1)
-						build1.NameReturns("1")
-						build1.JobNameReturns("some-job")
-						build1.PipelineNameReturns("some-pipeline")
-						build1.StartTimeReturns(time.Unix(1, 0))
-						build1.EndTimeReturns(time.Unix(100, 0))
-						build1.StatusReturns(db.BuildStatusFailed)
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
 
-						build2 := new(dbfakes.FakeBuild)
-						build2.IDReturns(3)
-						build2.NameReturns("2")
-						build2.JobNameReturns("some-job")
-						build2.PipelineNameReturns("some-pipeline")
-						build2.StatusReturns(db.BuildStatusStarted)
+				It("returns some SVG showing that the job has failed", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
 
-						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("returns some SVG showing that the job has failed", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="80" height="20">
    <linearGradient id="b" x2="0" y2="100%">
       <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
@@ -512,39 +459,39 @@ var _ = Describe("Jobs API", func() {
       <text x="57.5" y="14">failing</text>
    </g>
 </svg>`))
-					})
+				})
+			})
+
+			Context("when the finished build was aborted", func() {
+				BeforeEach(func() {
+					build1 := new(dbfakes.FakeBuild)
+					build1.IDReturns(1)
+					build1.NameReturns("1")
+					build1.JobNameReturns("some-job")
+					build1.PipelineNameReturns("some-pipeline")
+					build1.StatusReturns(db.BuildStatusAborted)
+
+					build2 := new(dbfakes.FakeBuild)
+					build2.IDReturns(1)
+					build2.NameReturns("1")
+					build2.JobNameReturns("some-job")
+					build2.PipelineNameReturns("some-pipeline")
+					build2.StartTimeReturns(time.Unix(1, 0))
+					build2.EndTimeReturns(time.Unix(100, 0))
+					build2.StatusReturns(db.BuildStatusAborted)
+
+					fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 				})
 
-				Context("when the finished build was aborted", func() {
-					BeforeEach(func() {
-						build1 := new(dbfakes.FakeBuild)
-						build1.IDReturns(1)
-						build1.NameReturns("1")
-						build1.JobNameReturns("some-job")
-						build1.PipelineNameReturns("some-pipeline")
-						build1.StatusReturns(db.BuildStatusAborted)
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
 
-						build2 := new(dbfakes.FakeBuild)
-						build2.IDReturns(1)
-						build2.NameReturns("1")
-						build2.JobNameReturns("some-job")
-						build2.PipelineNameReturns("some-pipeline")
-						build2.StartTimeReturns(time.Unix(1, 0))
-						build2.EndTimeReturns(time.Unix(100, 0))
-						build2.StatusReturns(db.BuildStatusAborted)
+				It("returns some SVG showing that the job was aborted", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
 
-						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("returns some SVG showing that the job was aborted", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="90" height="20">
    <linearGradient id="b" x2="0" y2="100%">
       <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
@@ -565,39 +512,39 @@ var _ = Describe("Jobs API", func() {
       <text x="62.5" y="14">aborted</text>
    </g>
 </svg>`))
-					})
+				})
+			})
+
+			Context("when the finished build errored", func() {
+				BeforeEach(func() {
+					build1 := new(dbfakes.FakeBuild)
+					build1.IDReturns(1)
+					build1.NameReturns("1")
+					build1.JobNameReturns("some-job")
+					build1.PipelineNameReturns("some-pipeline")
+					build1.StartTimeReturns(time.Unix(1, 0))
+					build1.EndTimeReturns(time.Unix(100, 0))
+					build1.StatusReturns(db.BuildStatusErrored)
+
+					build2 := new(dbfakes.FakeBuild)
+					build2.IDReturns(3)
+					build2.NameReturns("2")
+					build2.JobNameReturns("some-job")
+					build2.PipelineNameReturns("some-pipeline")
+					build2.StatusReturns(db.BuildStatusStarted)
+
+					fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 				})
 
-				Context("when the finished build errored", func() {
-					BeforeEach(func() {
-						build1 := new(dbfakes.FakeBuild)
-						build1.IDReturns(1)
-						build1.NameReturns("1")
-						build1.JobNameReturns("some-job")
-						build1.PipelineNameReturns("some-pipeline")
-						build1.StartTimeReturns(time.Unix(1, 0))
-						build1.EndTimeReturns(time.Unix(100, 0))
-						build1.StatusReturns(db.BuildStatusErrored)
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
 
-						build2 := new(dbfakes.FakeBuild)
-						build2.IDReturns(3)
-						build2.NameReturns("2")
-						build2.JobNameReturns("some-job")
-						build2.PipelineNameReturns("some-pipeline")
-						build2.StatusReturns(db.BuildStatusStarted)
+				It("returns some SVG showing that the job has errored", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
 
-						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("returns some SVG showing that the job has errored", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="88" height="20">
    <linearGradient id="b" x2="0" y2="100%">
       <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
@@ -618,18 +565,18 @@ var _ = Describe("Jobs API", func() {
       <text x="61.5" y="14">errored</text>
    </g>
 </svg>`))
-					})
+				})
+			})
+
+			Context("when there are no running or finished builds", func() {
+				BeforeEach(func() {
+					fakeJob.FinishedAndNextBuildReturns(nil, nil, nil)
 				})
 
-				Context("when there are no running or finished builds", func() {
-					BeforeEach(func() {
-						fakeJob.FinishedAndNextBuildReturns(nil, nil, nil)
-					})
-
-					It("returns an unknown badge", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+				It("returns an unknown badge", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="98" height="20">
    <linearGradient id="b" x2="0" y2="100%">
       <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
@@ -650,27 +597,26 @@ var _ = Describe("Jobs API", func() {
       <text x="66.5" y="14">unknown</text>
    </g>
 </svg>`))
-					})
+				})
+			})
+
+			Context("when getting the job's builds fails", func() {
+				BeforeEach(func() {
+					fakeJob.FinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
 				})
 
-				Context("when getting the job's builds fails", func() {
-					BeforeEach(func() {
-						fakeJob.FinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
-					})
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
 
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
+			Context("when the job is not present", func() {
+				BeforeEach(func() {
+					fakePipeline.JobReturns(nil, false, nil)
 				})
 
-				Context("when the job is not present in the config", func() {
-					BeforeEach(func() {
-						fakePipeline.JobReturns(nil, false, nil)
-					})
-
-					It("returns 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 		})

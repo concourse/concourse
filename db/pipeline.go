@@ -31,12 +31,11 @@ type Pipeline interface {
 	Name() string
 	TeamID() int
 	TeamName() string
+	Groups() atc.GroupConfigs
 	ConfigVersion() ConfigVersion
 	Public() bool
 	Paused() bool
 	ScopedName(string) string
-
-	Config() (atc.Config, atc.RawConfig, ConfigVersion, error)
 
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
@@ -85,7 +84,7 @@ type Pipeline interface {
 	ResourceType(name string) (ResourceType, bool, error)
 
 	Job(name string) (Job, bool, error)
-	Jobs() ([]Job, error)
+	Jobs() (Jobs, error)
 	Dashboard() (Dashboard, atc.GroupConfigs, error)
 
 	Expose() error
@@ -103,6 +102,7 @@ type pipeline struct {
 	name          string
 	teamID        int
 	teamName      string
+	groups        atc.GroupConfigs
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
@@ -122,6 +122,7 @@ type PipelinePausedState string
 var pipelinesQuery = psql.Select(`
 		p.id,
 		p.name,
+		p.groups,
 		p.version,
 		p.team_id,
 		t.name,
@@ -164,54 +165,13 @@ func (p *pipeline) ID() int                      { return p.id }
 func (p *pipeline) Name() string                 { return p.name }
 func (p *pipeline) TeamID() int                  { return p.teamID }
 func (p *pipeline) TeamName() string             { return p.teamName }
+func (p *pipeline) Groups() atc.GroupConfigs     { return p.groups }
 func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
 func (p *pipeline) Public() bool                 { return p.public }
 func (p *pipeline) Paused() bool                 { return p.paused }
 
 func (p *pipeline) ScopedName(n string) string {
 	return p.name + ":" + n
-}
-
-func (p *pipeline) Config() (atc.Config, atc.RawConfig, ConfigVersion, error) {
-	var configBlob []byte
-	var version int
-	var nonce sql.NullString
-
-	err := p.conn.QueryRow(`
-		SELECT config, version, nonce
-		FROM pipelines
-		WHERE name = $1 AND team_id = (
-			SELECT id
-			FROM teams
-			WHERE LOWER(name) = LOWER($2)
-		)
-	`, p.name, p.teamName).Scan(&configBlob, &version, &nonce)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return atc.Config{}, atc.RawConfig(""), 0, nil
-		}
-		return atc.Config{}, atc.RawConfig(""), 0, err
-	}
-
-	es := p.conn.EncryptionStrategy()
-
-	var noncense *string
-	if nonce.Valid {
-		noncense = &nonce.String
-	}
-
-	decryptedConfig, err := es.Decrypt(string(configBlob), noncense)
-	if err != nil {
-		return atc.Config{}, atc.RawConfig(""), 0, err
-	}
-
-	var config atc.Config
-	err = json.Unmarshal(decryptedConfig, &config)
-	if err != nil {
-		return atc.Config{}, atc.RawConfig(string(decryptedConfig)), ConfigVersion(version), atc.MalformedConfigError{err}
-	}
-
-	return config, atc.RawConfig(string(decryptedConfig)), ConfigVersion(version), nil
 }
 
 // Write test
@@ -833,7 +793,7 @@ func (p *pipeline) Job(name string) (Job, bool, error) {
 	return job, true, nil
 }
 
-func (p *pipeline) Jobs() ([]Job, error) {
+func (p *pipeline) Jobs() (Jobs, error) {
 	rows, err := jobsQuery.
 		Where(sq.Eq{
 			"pipeline_id": p.id,
@@ -903,12 +863,7 @@ func (p *pipeline) Dashboard() (Dashboard, atc.GroupConfigs, error) {
 		dashboard = append(dashboard, dashboardJob)
 	}
 
-	config, _, _, err := p.Config()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return dashboard, config.Groups, nil
+	return dashboard, p.groups, nil
 }
 
 func (p *pipeline) Pause() error {

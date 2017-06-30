@@ -36,15 +36,13 @@ var _ = Describe("Pipelines API", func() {
 		publicPipeline.PublicReturns(true)
 		publicPipeline.TeamNameReturns("main")
 		publicPipeline.NameReturns("public-pipeline")
-		publicPipeline.ConfigReturns(atc.Config{
-			Groups: atc.GroupConfigs{
-				{
-					Name:      "group2",
-					Jobs:      []string{"job3", "job4"},
-					Resources: []string{"resource3", "resource4"},
-				},
+		publicPipeline.GroupsReturns(atc.GroupConfigs{
+			{
+				Name:      "group2",
+				Jobs:      []string{"job3", "job4"},
+				Resources: []string{"resource3", "resource4"},
 			},
-		}, "", 0, nil)
+		})
 
 		anotherPublicPipeline = new(dbfakes.FakePipeline)
 		anotherPublicPipeline.IDReturns(2)
@@ -59,15 +57,13 @@ var _ = Describe("Pipelines API", func() {
 		privatePipeline.PublicReturns(false)
 		privatePipeline.TeamNameReturns("main")
 		privatePipeline.NameReturns("private-pipeline")
-		privatePipeline.ConfigReturns(atc.Config{
-			Groups: atc.GroupConfigs{
-				{
-					Name:      "group1",
-					Jobs:      []string{"job1", "job2"},
-					Resources: []string{"resource1", "resource2"},
-				},
+		privatePipeline.GroupsReturns(atc.GroupConfigs{
+			{
+				Name:      "group1",
+				Jobs:      []string{"job1", "job2"},
+				Resources: []string{"resource1", "resource2"},
 			},
-		}, "", 0, nil)
+		})
 
 		fakeTeam.PipelinesReturns([]db.Pipeline{
 			privatePipeline,
@@ -370,20 +366,18 @@ var _ = Describe("Pipelines API", func() {
 			fakePipeline.PausedReturns(false)
 			fakePipeline.PublicReturns(true)
 			fakePipeline.TeamNameReturns("a-team")
-			fakePipeline.ConfigReturns(atc.Config{
-				Groups: atc.GroupConfigs{
-					{
-						Name:      "group1",
-						Jobs:      []string{"job1", "job2"},
-						Resources: []string{"resource1", "resource2"},
-					},
-					{
-						Name:      "group2",
-						Jobs:      []string{"job3", "job4"},
-						Resources: []string{"resource3", "resource4"},
-					},
+			fakePipeline.GroupsReturns(atc.GroupConfigs{
+				{
+					Name:      "group1",
+					Jobs:      []string{"job1", "job2"},
+					Resources: []string{"resource1", "resource2"},
 				},
-			}, "", 0, nil)
+				{
+					Name:      "group2",
+					Jobs:      []string{"job3", "job4"},
+					Resources: []string{"resource3", "resource4"},
+				},
+			})
 		})
 
 		JustBeforeEach(func() {

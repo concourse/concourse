@@ -51,7 +51,14 @@ type Tx interface {
 
 func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *EncryptionKey, oldKey *EncryptionKey) (Conn, error) {
 	for {
-		sqlDb, err := migration.Open(sqlDriver, sqlDataSource, migrations.Migrations)
+		var strategy EncryptionStrategy
+		if newKey != nil {
+			strategy = newKey
+		} else {
+			strategy = NewNoEncryption()
+		}
+
+		sqlDb, err := migration.Open(sqlDriver, sqlDataSource, migrations.New(strategy))
 		if err != nil {
 			if strings.Contains(err.Error(), "dial ") {
 				logger.Error("failed-to-open-db-retrying", err)
@@ -60,13 +67,6 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *E
 			}
 
 			return nil, err
-		}
-
-		var strategy EncryptionStrategy
-		if newKey != nil {
-			strategy = newKey
-		} else {
-			strategy = NewNoEncryption()
 		}
 
 		switch {
@@ -102,7 +102,6 @@ var encryptedColumns = map[string]string{
 	"resources":      "config",
 	"jobs":           "config",
 	"resource_types": "config",
-	"pipelines":      "config",
 	"builds":         "engine_metadata",
 }
 

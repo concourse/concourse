@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/radar"
@@ -24,13 +23,14 @@ var _ = Describe("Runner", func() {
 		noop              bool
 		syncInterval      time.Duration
 
-		config atc.Config
-
 		process                ifrit.Process
 		fakeResourceRunner     *radarfakes.FakeIntervalRunner
 		fakeResourceTypeRunner *radarfakes.FakeIntervalRunner
 		fakeContext            context.Context
 		fakeCancel             context.CancelFunc
+
+		fakeResource1 *dbfakes.FakeResource
+		fakeResource2 *dbfakes.FakeResource
 	)
 
 	BeforeEach(func() {
@@ -39,31 +39,20 @@ var _ = Describe("Runner", func() {
 		noop = false
 		syncInterval = 100 * time.Millisecond
 
-		config = atc.Config{
-			Resources: atc.ResourceConfigs{
-				{
-					Name: "some-resource",
-				},
-				{
-					Name: "some-other-resource",
-				},
-			},
-			ResourceTypes: atc.ResourceTypes{
-				{
-					Name: "some-resource",
-				},
-				{
-					Name: "some-other-resource",
-				},
-			},
-		}
+		fakeResource1 = new(dbfakes.FakeResource)
+		fakeResource1.NameReturns("some-resource")
+		fakeResource2 = new(dbfakes.FakeResource)
+		fakeResource2.NameReturns("some-other-resource")
+		fakePipeline.ResourcesReturns(db.Resources{fakeResource1, fakeResource2}, nil)
+
+		fakeResourceType1 := new(dbfakes.FakeResourceType)
+		fakeResourceType1.NameReturns("some-resource")
+		fakeResourceType2 := new(dbfakes.FakeResourceType)
+		fakeResourceType2.NameReturns("some-other-resource")
+		fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeResourceType1, fakeResourceType2}, nil)
 
 		fakePipeline.ScopedNameStub = func(thing string) string {
 			return "pipeline:" + thing
-		}
-		fakePipeline.ReloadReturns(true, nil)
-		fakePipeline.ConfigStub = func() (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
-			return config, "", 0, nil
 		}
 
 		fakeResourceRunner = new(radarfakes.FakeIntervalRunner)
@@ -119,9 +108,9 @@ var _ = Describe("Runner", func() {
 			resources := []string{call1Resource, call2Resource}
 			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource"}))
 
-			config.Resources = append(config.Resources, atc.ResourceConfig{
-				Name: "another-resource",
-			})
+			fakeResource3 := new(dbfakes.FakeResource)
+			fakeResource3.NameReturns("another-resource")
+			fakePipeline.ResourcesReturns(db.Resources{fakeResource1, fakeResource2, fakeResource3}, nil)
 
 			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount, time.Second).Should(Equal(3))
 

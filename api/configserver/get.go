@@ -42,35 +42,45 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, rawConfig, id, err := pipeline.Config()
+	jobs, err := pipeline.Jobs()
 	if err != nil {
-		if malformedErr, ok := err.(atc.MalformedConfigError); ok {
-			getConfigResponse := atc.ConfigResponse{
-				Errors:    []string{malformedErr.Error()},
-				RawConfig: rawConfig,
-			}
-
-			responseJSON, err := json.Marshal(getConfigResponse)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-
-			w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", id))
-			w.Write(responseJSON)
-
-			return
-		}
-
-		logger.Error("failed-to-get-config", err)
+		logger.Error("failed-to-get-jobs", err)
 		w.WriteHeader(http.StatusInternalServerError)
-
 		return
 	}
 
-	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", id))
+	resources, err := pipeline.Resources()
+	if err != nil {
+		logger.Error("failed-to-get-resources", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resourceTypes, err := pipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resourceTypes", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	config := atc.Config{
+		Groups:        pipeline.Groups(),
+		Resources:     resources.Configs(),
+		ResourceTypes: resourceTypes.Configs(),
+		Jobs:          jobs.Configs(),
+	}
+
+	rawConfig, err := json.Marshal(config)
+	if err != nil {
+		logger.Error("failed-to-marshal-config", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", pipeline.ConfigVersion()))
 
 	json.NewEncoder(w).Encode(atc.ConfigResponse{
 		Config:    &config,
-		RawConfig: rawConfig,
+		RawConfig: atc.RawConfig(rawConfig),
 	})
 }

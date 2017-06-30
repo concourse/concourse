@@ -398,13 +398,7 @@ func (t *team) SavePipeline(
 	from ConfigVersion,
 	pausedState PipelinePausedState,
 ) (Pipeline, bool, error) {
-	payload, err := json.Marshal(config)
-	if err != nil {
-		return nil, false, err
-	}
-
-	es := t.conn.EncryptionStrategy()
-	encryptedPayload, nonce, err := es.Encrypt(payload)
+	groupsPayload, err := json.Marshal(config.Groups)
 	if err != nil {
 		return nil, false, err
 	}
@@ -438,12 +432,11 @@ func (t *team) SavePipeline(
 		err = psql.Insert("pipelines").
 			SetMap(map[string]interface{}{
 				"name":     pipelineName,
-				"config":   encryptedPayload,
+				"groups":   groupsPayload,
 				"version":  sq.Expr("nextval('config_version_seq')"),
 				"ordering": sq.Expr("(SELECT COUNT(1) + 1 FROM pipelines)"),
 				"paused":   pausedState.Bool(),
 				"team_id":  t.id,
-				"nonce":    nonce,
 			}).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -477,9 +470,8 @@ func (t *team) SavePipeline(
 		}
 	} else {
 		update := psql.Update("pipelines").
-			Set("config", encryptedPayload).
+			Set("groups", groupsPayload).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
-			Set("nonce", nonce).
 			Where(sq.Eq{
 				"name":    pipelineName,
 				"version": from,
@@ -1085,8 +1077,23 @@ func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, Created
 }
 
 func scanPipeline(p *pipeline, scan scannable) error {
-	err := scan.Scan(&p.id, &p.name, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public)
-	return err
+	var groups sql.NullString
+	err := scan.Scan(&p.id, &p.name, &groups, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public)
+	if err != nil {
+		return err
+	}
+
+	if groups.Valid {
+		var pipelineGroups atc.GroupConfigs
+		err = json.Unmarshal([]byte(groups.String), &pipelineGroups)
+		if err != nil {
+			return err
+		}
+
+		p.groups = pipelineGroups
+	}
+
+	return nil
 }
 
 func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
