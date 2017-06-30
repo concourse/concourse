@@ -20,7 +20,7 @@ fi
 
 blob_dir=$PWD/blob-dir
 
-if [ -n $BLOB_VERSION_FILE ]; then
+if [ -n "$BLOB_VERSION_FILE" ]; then
   BLOB_VERSION=`cat ${blob_dir}/${BLOB_VERSION_FILE}`
 fi
 
