@@ -99,19 +99,18 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		}
 
 		if !h.allowPrivateJob {
-			config, _, _, err := pipeline.Config()
+			job, found, err := pipeline.Job(build.JobName())
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			isJobPublic, err := config.JobIsPublic(build.JobName())
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+			if !found {
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
 
-			if !isJobPublic {
+			if !job.Config().Public {
 				if IsAuthenticated(r) {
 					h.rejector.Forbidden(w, r)
 					return

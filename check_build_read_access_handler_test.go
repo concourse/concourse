@@ -177,14 +177,16 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 	})
 
 	Context("CheckIfPrivateJobHandler", func() {
+		var fakeJob *dbfakes.FakeJob
+
 		BeforeEach(func() {
+			fakeJob = new(dbfakes.FakeJob)
 			checkBuildReadAccessHandler := handlerFactory.CheckIfPrivateJobHandler(delegate, auth.UnauthorizedRejector{})
 			handler = auth.WrapHandler(checkBuildReadAccessHandler, authValidator, userContextReader)
 		})
 
 		ItChecksIfJobIsPrivate := func(status int) {
 			Context("when pipeline is public", func() {
-				var config atc.Config
 				BeforeEach(func() {
 					pipeline.PublicReturns(true)
 					build.PipelineReturns(pipeline, true, nil)
@@ -192,15 +194,13 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 				Context("and job is public", func() {
 					BeforeEach(func() {
-						config = atc.Config{
-							Jobs: []atc.JobConfig{
-								{
-									Name:   "some-job",
-									Public: true,
-								},
-							},
-						}
-						pipeline.ConfigReturns(config, "", 0, nil)
+						fakeJob.NameReturns("some-job")
+						fakeJob.ConfigReturns(atc.JobConfig{
+							Name:   "some-job",
+							Public: true,
+						})
+
+						pipeline.JobReturns(fakeJob, true, nil)
 					})
 
 					ItReturnsTheBuild()
@@ -208,15 +208,13 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 				Context("and job is private", func() {
 					BeforeEach(func() {
-						config = atc.Config{
-							Jobs: []atc.JobConfig{
-								{
-									Name:   "some-job",
-									Public: false,
-								},
-							},
-						}
-						pipeline.ConfigReturns(config, "", 0, nil)
+						fakeJob.NameReturns("some-job")
+						fakeJob.ConfigReturns(atc.JobConfig{
+							Name:   "some-job",
+							Public: false,
+						})
+
+						pipeline.JobReturns(fakeJob, true, nil)
 					})
 
 					It("returns "+string(status), func() {
@@ -224,9 +222,9 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 					})
 				})
 
-				Context("checking job is public fails", func() {
+				Context("getting the job fails", func() {
 					BeforeEach(func() {
-						pipeline.ConfigReturns(atc.Config{}, "", 0, nil)
+						pipeline.JobReturns(nil, false, errors.New("error"))
 					})
 
 					It("returns 500", func() {
@@ -234,13 +232,13 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 					})
 				})
 
-				Context("getting config fails", func() {
+				Context("when the job is not found", func() {
 					BeforeEach(func() {
-						pipeline.ConfigReturns(atc.Config{}, "", 0, errors.New("error"))
+						pipeline.JobReturns(nil, false, nil)
 					})
 
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					It("returns not found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 			})
