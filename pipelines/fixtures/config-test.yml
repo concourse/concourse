@@ -1,0 +1,16 @@
+---
+resources:
+  - name: git-repo
+    type: git
+    source:
+      uri: {{git-server}}
+      branch: master
+      git_config:
+        - name: core.bigFileThreshold
+          value: 10m
+
+jobs:
+- name: config-test
+  plan:
+  - get: git-repo
+    trigger: true
