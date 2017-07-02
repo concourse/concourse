@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -168,6 +169,58 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 				Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore))
+			})
+		})
+
+		Context("completion", func() {
+			BeforeEach(func() {
+				os.Setenv("GO_FLAGS_COMPLETION", "1")
+			})
+
+			AfterEach(func() {
+				os.Unsetenv("GO_FLAGS_COMPLETION")
+			})
+
+			It("returns all matching pipelines", func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+							{Name: "some-pipeline-1", URL: "/pipelines/some-pipeline-1", Paused: false, Public: false},
+							{Name: "some-pipeline-2", URL: "/pipelines/some-pipeline-2", Paused: false, Public: false},
+							{Name: "another-pipeline", URL: "/pipelines/another-pipeline", Paused: false, Public: false},
+						}),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "some-")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(sess).Should(gexec.Exit(0))
+				Eventually(sess.Out).Should(gbytes.Say("some-pipeline-1/"))
+				Eventually(sess.Out).Should(gbytes.Say("some-pipeline-2/"))
+				Eventually(sess.Out).ShouldNot(gbytes.Say("another-pipeline/"))
+			})
+
+			It("returns all matching jobs", func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Job{
+							{Name: "some-job-1"},
+							{Name: "some-job-2"},
+							{Name: "another-job"},
+						}),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "some-pipeline/some-")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(sess).Should(gexec.Exit(0))
+				Eventually(sess.Out).Should(gbytes.Say("some-pipeline/some-job-1"))
+				Eventually(sess.Out).Should(gbytes.Say("some-pipeline/some-job-2"))
+				Eventually(sess.Out).ShouldNot(gbytes.Say("some-pipeline/another-job"))
 			})
 		})
 	})
