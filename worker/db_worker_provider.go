@@ -31,6 +31,7 @@ type dbWorkerProvider struct {
 	dbTeamFactory                   db.TeamFactory
 	dbWorkerFactory                 db.WorkerFactory
 	workerVersion                   *version.Version
+	gardenResponseHeaderTimeout     time.Duration
 }
 
 func NewDBWorkerProvider(
@@ -45,6 +46,7 @@ func NewDBWorkerProvider(
 	dbTeamFactory db.TeamFactory,
 	workerFactory db.WorkerFactory,
 	workerVersion *version.Version,
+	gardenResponseHeaderTimeout time.Duration,
 ) WorkerProvider {
 	return &dbWorkerProvider{
 		lockFactory:                     lockFactory,
@@ -58,6 +60,7 @@ func NewDBWorkerProvider(
 		dbTeamFactory:                   dbTeamFactory,
 		dbWorkerFactory:                 workerFactory,
 		workerVersion:                   workerVersion,
+		gardenResponseHeaderTimeout:     gardenResponseHeaderTimeout,
 	}
 }
 
@@ -153,7 +156,7 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 		provider.dbWorkerFactory,
 		&http.Transport{
 			DisableKeepAlives:     true,
-			ResponseHeaderTimeout: 10 * time.Minute,
+			ResponseHeaderTimeout: provider.gardenResponseHeaderTimeout,
 		},
 	))
 
