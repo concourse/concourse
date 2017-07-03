@@ -101,10 +101,10 @@ type ATCCommand struct {
 
 	SessionSigningKey FileFlag `long:"session-signing-key" description:"File containing an RSA private key, used to sign session tokens."`
 
-	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
-	OldResourceGracePeriod       time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
-	ResourceCacheCleanupInterval time.Duration `long:"resource-cache-cleanup-interval" default:"30s" description:"Interval on which to cleanup old caches of resources."`
-	GardenResponseHeaderTimeout  time.Duration `long:"garden-response-header-timeout" default:"10m" description:"How long to wait for Garden to send the response header."`
+	ResourceCheckingInterval          time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	OldResourceGracePeriod            time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
+	ResourceCacheCleanupInterval      time.Duration `long:"resource-cache-cleanup-interval" default:"30s" description:"Interval on which to cleanup old caches of resources."`
+	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"10m" description:"How long to wait for Baggageclaim to send the response header."`
 
 	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
@@ -301,7 +301,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		dbWorkerFactory,
 		teamFactory,
 		workerVersion,
-		cmd.GardenResponseHeaderTimeout,
+		cmd.BaggageclaimResponseHeaderTimeout,
 	)
 
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
@@ -754,7 +754,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	dbWorkerFactory db.WorkerFactory,
 	teamFactory db.TeamFactory,
 	workerVersion *version.Version,
-	gardenResponseHeaderTimeout time.Duration,
+	baggageclaimResponseHeaderTimeout time.Duration,
 ) worker.Client {
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
@@ -776,7 +776,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			teamFactory,
 			dbWorkerFactory,
 			workerVersion,
-			gardenResponseHeaderTimeout,
+			baggageclaimResponseHeaderTimeout,
 		),
 	)
 }
