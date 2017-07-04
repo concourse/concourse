@@ -31,7 +31,7 @@ type Emitter interface {
 type EmitterFactory interface {
 	Description() string
 	IsConfigured() bool
-	NewEmitter() Emitter
+	NewEmitter() (Emitter, error)
 }
 
 var emitterFactories []EmitterFactory
@@ -60,15 +60,19 @@ type eventEmission struct {
 
 var emissions = make(chan eventEmission, 1000)
 
-func Initialize(logger lager.Logger, host string, attributes map[string]string) {
+func Initialize(logger lager.Logger, host string, attributes map[string]string) error {
+	var err error
 	for _, factory := range emitterFactories {
 		if factory.IsConfigured() {
-			emitter = factory.NewEmitter()
+			emitter, err = factory.NewEmitter()
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	if emitter == nil {
-		return
+		return nil
 	}
 
 	emitter = emitter
@@ -76,6 +80,8 @@ func Initialize(logger lager.Logger, host string, attributes map[string]string) 
 	eventAttributes = attributes
 
 	go emitLoop()
+
+	return nil
 }
 
 func emit(logger lager.Logger, event Event) {
