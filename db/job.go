@@ -316,6 +316,13 @@ func (j *job) Build(name string) (Build, bool, error) {
 		RunWith(j.conn).
 		QueryRow()
 
+	statement, _, _ := buildsQuery.Where(sq.Eq{
+		"b.job_id": j.id,
+		"b.name":   name,
+	}).ToSql()
+
+	fmt.Printf("SQL: %s\n", statement)
+
 	build := &build{conn: j.conn, lockFactory: j.lockFactory}
 
 	err := scanBuild(build, row, j.conn.EncryptionStrategy())
@@ -621,8 +628,8 @@ func (j *job) CreateBuild() (Build, error) {
 
 	var buildID int
 	err = psql.Insert("builds").
-		Columns("name", "job_id", "team_id", "status", "manually_triggered").
-		Values(buildName, j.id, j.teamID, BuildStatusPending, true).
+		Columns("name", "job_id", "pipeline_id", "team_id", "status", "manually_triggered").
+		Values(buildName, j.id, j.pipelineID, j.teamID, BuildStatusPending, true).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
