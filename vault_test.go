@@ -142,9 +142,7 @@ var _ = Describe("Vault", func() {
 					v.Run("write", "concourse/main/pipeline-vault-test/job_secret", "username=Hello", "password=World")
 					v.Run("write", "concourse/main/team_secret", "value=Sauce")
 					v.Run("write", "concourse/main/pipeline-vault-test/image_resource_repository", "value=busybox")
-				})
 
-				It("parameterizes via Vault and leaves the pipeline uninterpolated", func() {
 					By("setting a pipeline that contains vault secrets")
 					fly("set-pipeline", "-n", "-c", "pipelines/vault.yml", "-p", "pipeline-vault-test")
 
@@ -158,20 +156,43 @@ var _ = Describe("Vault", func() {
 
 					By("unpausing the pipeline")
 					fly("unpause-pipeline", "-p", "pipeline-vault-test")
+				})
 
+				It("parameterizes via Vault and leaves the pipeline uninterpolated", func() {
 					By("triggering job")
-					watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/simple-job")
+					watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/job-with-custom-input")
 					wait(watch)
 					Expect(watch).To(gbytes.Say("SECRET: Hello/World"))
 					Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
 
 					By("taking a dump")
-					session = pgDump()
+					session := pgDump()
 					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 					Expect(session).ToNot(gbytes.Say("10m"))
 					Expect(session).To(gbytes.Say("Hello/World")) // build echoed it; nothing we can do
 					Expect(session).To(gbytes.Say("Sauce"))       // build echoed it; nothing we can do
 					Expect(session).ToNot(gbytes.Say("busybox"))
+				})
+
+				Context("when the job's inputs are used for a one-off build", func() {
+					It("parameterizes the values using the job's pipeline scope", func() {
+						By("triggering job to populate its inputs")
+						watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/job-with-input")
+						wait(watch)
+						Expect(watch).To(gbytes.Say("SECRET: Hello/World"))
+						Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
+
+						By("executing a task that parameterizes image_resource")
+						watch = spawnFly("execute", "-c", "tasks/vault-with-job-inputs.yml", "-j", "pipeline-vault-test/job-with-input")
+						wait(watch)
+						Expect(watch).To(gbytes.Say("./some-resource/input"))
+
+						By("taking a dump")
+						session := pgDump()
+						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
+						Expect(session).ToNot(gbytes.Say("10m"))
+						Expect(session).To(gbytes.Say("./some-resource/input")) // build echoed it; nothing we can do
+					})
 				})
 			})
 

@@ -1,19 +1,46 @@
 resource_types:
-- name: fake-resource-type
+- name: custom-resource-type
   type: docker-image
   source:
     repository: ((resource_type_repository))
 
 resources:
-- name: fake-resource
-  type: fake-resource-type
+- name: custom-resource
+  type: custom-resource-type
+  source:
+    interval: ((time_resource_interval))
+
+- name: some-resource
+  type: time
   source:
     interval: ((time_resource_interval))
 
 jobs:
-- name: simple-job
+- name: job-with-input
   plan:
-  - get: fake-resource
+  - get: some-resource
+  - task: simple-task
+    params:
+      SECRET_USERNAME: ((job_secret.username))
+      SECRET_PASSWORD: ((job_secret.password))
+      TEAM_SECRET: ((team_secret))
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source: {repository: ((image_resource_repository))}
+
+      params:
+        SECRET:
+
+      run:
+        path: sh
+        args: ['-c', 'echo SECRET: $SECRET_USERNAME/$SECRET_PASSWORD, TEAM SECRET: $TEAM_SECRET']
+
+- name: job-with-custom-input
+  plan:
+  - get: custom-resource
   - task: simple-task
     params:
       SECRET_USERNAME: ((job_secret.username))
