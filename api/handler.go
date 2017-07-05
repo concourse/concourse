@@ -110,7 +110,7 @@ func NewHandler(
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, externalURL, dbTeamFactory)
 
-	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory)
+	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, engine)
 
 	configServer := configserver.NewServer(logger, dbTeamFactory)
 
@@ -155,17 +155,18 @@ func NewHandler(
 		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
 		atc.MainJobBadge:   mainredirect.Handler{atc.Routes, atc.JobBadge},
 
-		atc.ListAllPipelines: http.HandlerFunc(pipelineServer.ListAllPipelines),
-		atc.ListPipelines:    http.HandlerFunc(pipelineServer.ListPipelines),
-		atc.GetPipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline),
-		atc.DeletePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline),
-		atc.OrderPipelines:   http.HandlerFunc(pipelineServer.OrderPipelines),
-		atc.PausePipeline:    pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline),
-		atc.UnpausePipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline),
-		atc.ExposePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.ExposePipeline),
-		atc.HidePipeline:     pipelineHandlerFactory.HandlerFor(pipelineServer.HidePipeline),
-		atc.GetVersionsDB:    pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
-		atc.RenamePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
+		atc.ListAllPipelines:    http.HandlerFunc(pipelineServer.ListAllPipelines),
+		atc.ListPipelines:       http.HandlerFunc(pipelineServer.ListPipelines),
+		atc.GetPipeline:         pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline),
+		atc.DeletePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline),
+		atc.OrderPipelines:      http.HandlerFunc(pipelineServer.OrderPipelines),
+		atc.PausePipeline:       pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline),
+		atc.UnpausePipeline:     pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline),
+		atc.ExposePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.ExposePipeline),
+		atc.HidePipeline:        pipelineHandlerFactory.HandlerFor(pipelineServer.HidePipeline),
+		atc.GetVersionsDB:       pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
+		atc.RenamePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
+		atc.CreatePipelineBuild: pipelineHandlerFactory.HandlerFor(pipelineServer.CreateBuild),
 
 		atc.ListResources:        pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
 		atc.GetResource:          pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),

@@ -626,30 +626,15 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	var buildID int
-	err = psql.Insert("builds").
-		Columns("name", "job_id", "pipeline_id", "team_id", "status", "manually_triggered").
-		Values(buildName, j.id, j.pipelineID, j.teamID, BuildStatusPending, true).
-		Suffix("RETURNING id").
-		RunWith(tx).
-		QueryRow().
-		Scan(&buildID)
-	if err != nil {
-		return nil, err
-	}
-
 	build := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err = scanBuild(build, buildsQuery.
-		Where(sq.Eq{"b.id": buildID}).
-		RunWith(tx).
-		QueryRow(),
-		j.conn.EncryptionStrategy(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = createBuildEventSeq(tx, buildID)
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":               buildName,
+		"job_id":             j.id,
+		"pipeline_id":        j.pipelineID,
+		"team_id":            j.teamID,
+		"status":             BuildStatusPending,
+		"manually_triggered": true,
+	})
 	if err != nil {
 		return nil, err
 	}

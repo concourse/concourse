@@ -21,7 +21,6 @@ import (
 )
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
-var ErrTeamDisappeared = errors.New("team disappeared")
 
 //go:generate counterfeiter . Team
 
@@ -737,33 +736,12 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 
 	defer tx.Rollback()
 
-	var buildID int
-	err = psql.Insert("builds").
-		Columns("team_id", "name", "status").
-		Values(t.id, sq.Expr("nextval('one_off_name')"), "pending").
-		Suffix("RETURNING id").
-		RunWith(tx).
-		QueryRow().
-		Scan(&buildID)
-	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-			return nil, ErrTeamDisappeared
-		}
-		return nil, err
-	}
-
 	build := &build{conn: t.conn, lockFactory: t.lockFactory}
-	err = scanBuild(build, buildsQuery.
-		Where(sq.Eq{"b.id": buildID}).
-		RunWith(tx).
-		QueryRow(),
-		t.conn.EncryptionStrategy(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = createBuildEventSeq(tx, buildID)
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":    sq.Expr("nextval('one_off_name')"),
+		"team_id": t.id,
+		"status":  BuildStatusPending,
+	})
 	if err != nil {
 		return nil, err
 	}

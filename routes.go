@@ -40,16 +40,17 @@ const (
 	ListBuildsWithVersionAsInput  = "ListBuildsWithVersionAsInput"
 	ListBuildsWithVersionAsOutput = "ListBuildsWithVersionAsOutput"
 
-	ListAllPipelines = "ListAllPipelines"
-	ListPipelines    = "ListPipelines"
-	GetPipeline      = "GetPipeline"
-	DeletePipeline   = "DeletePipeline"
-	OrderPipelines   = "OrderPipelines"
-	PausePipeline    = "PausePipeline"
-	UnpausePipeline  = "UnpausePipeline"
-	ExposePipeline   = "ExposePipeline"
-	HidePipeline     = "HidePipeline"
-	RenamePipeline   = "RenamePipeline"
+	ListAllPipelines    = "ListAllPipelines"
+	ListPipelines       = "ListPipelines"
+	GetPipeline         = "GetPipeline"
+	DeletePipeline      = "DeletePipeline"
+	OrderPipelines      = "OrderPipelines"
+	PausePipeline       = "PausePipeline"
+	UnpausePipeline     = "UnpausePipeline"
+	ExposePipeline      = "ExposePipeline"
+	HidePipeline        = "HidePipeline"
+	RenamePipeline      = "RenamePipeline"
+	CreatePipelineBuild = "CreatePipelineBuild"
 
 	CreatePipe = "CreatePipe"
 	WritePipe  = "WritePipe"
@@ -119,6 +120,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/hide", Method: "PUT", Name: HidePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/versions-db", Method: "GET", Name: GetVersionsDB},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/rename", Method: "PUT", Name: RenamePipeline},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/builds", Method: "POST", Name: CreatePipelineBuild},
 
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name", Method: "GET", Name: GetResource},

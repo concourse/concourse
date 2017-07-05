@@ -473,6 +473,17 @@ type FakePipeline struct {
 	renameReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CreateOneOffBuildStub        func() (db.Build, error)
+	createOneOffBuildMutex       sync.RWMutex
+	createOneOffBuildArgsForCall []struct{}
+	createOneOffBuildReturns     struct {
+		result1 db.Build
+		result2 error
+	}
+	createOneOffBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -2294,6 +2305,49 @@ func (fake *FakePipeline) RenameReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakePipeline) CreateOneOffBuild() (db.Build, error) {
+	fake.createOneOffBuildMutex.Lock()
+	ret, specificReturn := fake.createOneOffBuildReturnsOnCall[len(fake.createOneOffBuildArgsForCall)]
+	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct{}{})
+	fake.recordInvocation("CreateOneOffBuild", []interface{}{})
+	fake.createOneOffBuildMutex.Unlock()
+	if fake.CreateOneOffBuildStub != nil {
+		return fake.CreateOneOffBuildStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
+}
+
+func (fake *FakePipeline) CreateOneOffBuildCallCount() int {
+	fake.createOneOffBuildMutex.RLock()
+	defer fake.createOneOffBuildMutex.RUnlock()
+	return len(fake.createOneOffBuildArgsForCall)
+}
+
+func (fake *FakePipeline) CreateOneOffBuildReturns(result1 db.Build, result2 error) {
+	fake.CreateOneOffBuildStub = nil
+	fake.createOneOffBuildReturns = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) CreateOneOffBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
+	fake.CreateOneOffBuildStub = nil
+	if fake.createOneOffBuildReturnsOnCall == nil {
+		fake.createOneOffBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 error
+		})
+	}
+	fake.createOneOffBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -2375,6 +2429,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.destroyMutex.RUnlock()
 	fake.renameMutex.RLock()
 	defer fake.renameMutex.RUnlock()
+	fake.createOneOffBuildMutex.RLock()
+	defer fake.createOneOffBuildMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

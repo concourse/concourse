@@ -26,6 +26,13 @@ var _ = Describe("Team", func() {
 		otherTeam db.Team
 	)
 
+	expectConfigsEqual := func(config, expectedConfig atc.Config) {
+		ExpectWithOffset(1, config.Groups).To(ConsistOf(expectedConfig.Groups))
+		ExpectWithOffset(1, config.Resources).To(ConsistOf(expectedConfig.Resources))
+		ExpectWithOffset(1, config.ResourceTypes).To(ConsistOf(expectedConfig.ResourceTypes))
+		ExpectWithOffset(1, config.Jobs).To(ConsistOf(expectedConfig.Jobs))
+	}
+
 	BeforeEach(func() {
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
@@ -1623,12 +1630,12 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			jobs, err := pipeline.Jobs()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(atc.Config{
+			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
 				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
 				Jobs:          jobs.Configs(),
-			}).To(Equal(config))
+			}, config)
 
 			otherPipeline, found, err := team.Pipeline(otherPipelineName)
 			Expect(err).NotTo(HaveOccurred())
@@ -1641,12 +1648,12 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			otherJobs, err := otherPipeline.Jobs()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(atc.Config{
+			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
 				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
 				Jobs:          otherJobs.Configs(),
-			}).To(Equal(otherConfig))
+			}, otherConfig)
 
 		})
 
@@ -1668,12 +1675,12 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			jobs, err := pipeline.Jobs()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(atc.Config{
+			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
 				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
 				Jobs:          jobs.Configs(),
-			}).To(Equal(config))
+			}, config)
 
 			otherResourceTypes, err := otherPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
@@ -1681,12 +1688,12 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			otherJobs, err := otherPipeline.Jobs()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(atc.Config{
+			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
 				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
 				Jobs:          otherJobs.Configs(),
-			}).To(Equal(otherConfig))
+			}, otherConfig)
 
 			By("returning the saved groups")
 			returnedGroups := pipeline.Groups()
@@ -1753,12 +1760,12 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			jobs, err = pipeline.Jobs()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(atc.Config{
+			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
 				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
 				Jobs:          jobs.Configs(),
-			}).To(Equal(updatedConfig))
+			}, updatedConfig)
 
 			otherResourceTypes, err = otherPipeline.ResourceTypes()
 			Expect(err).NotTo(HaveOccurred())
@@ -1766,12 +1773,12 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			otherJobs, err = otherPipeline.Jobs()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(atc.Config{
+			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
 				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
 				Jobs:          otherJobs.Configs(),
-			}).To(Equal(updatedConfig))
+			}, updatedConfig)
 
 			By("returning the saved groups")
 			returnedGroups = pipeline.Groups()

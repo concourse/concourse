@@ -97,7 +97,6 @@ var _ = Describe("Job Builds", func() {
 					Expect(page.First(".pagination .fa-arrow-left")).Should(BeFound())
 					Expect(page.First(".pagination .fa-arrow-left").Click()).To(Succeed())
 
-
 					Eventually(page.All(".js-build").Count).Should(Equal(100))
 				})
 			})

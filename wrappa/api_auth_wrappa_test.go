@@ -291,6 +291,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.UnpauseResource:        authorized(inputHandlers[atc.UnpauseResource]),
 				atc.ExposePipeline:         authorized(inputHandlers[atc.ExposePipeline]),
 				atc.HidePipeline:           authorized(inputHandlers[atc.HidePipeline]),
+				atc.CreatePipelineBuild:    authorized(inputHandlers[atc.CreatePipelineBuild]),
 			}
 		})
 

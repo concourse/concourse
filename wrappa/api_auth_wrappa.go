@@ -117,6 +117,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		// authorized (requested team matches resource team)
 		case atc.CheckResource,
 			atc.CreateJobBuild,
+			atc.CreatePipelineBuild,
 			atc.DeletePipeline,
 			atc.DisableResourceVersion,
 			atc.EnableResourceVersion,

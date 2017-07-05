@@ -95,6 +95,8 @@ type Pipeline interface {
 
 	Destroy() error
 	Rename(string) error
+
+	CreateOneOffBuild() (Build, error)
 }
 
 type pipeline struct {
@@ -1245,6 +1247,33 @@ func (p *pipeline) saveOutput(buildID int, vr VersionedResource, explicit bool) 
 	}
 
 	return nil
+}
+
+func (p *pipeline) CreateOneOffBuild() (Build, error) {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	build := &build{conn: p.conn, lockFactory: p.lockFactory}
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":        sq.Expr("nextval('one_off_name')"),
+		"pipeline_id": p.id,
+		"team_id":     p.teamID,
+		"status":      BuildStatusPending,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return build, nil
 }
 
 func (p *pipeline) saveInputTx(tx Tx, buildID int, input BuildInput) error {

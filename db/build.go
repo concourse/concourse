@@ -1030,6 +1030,36 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 	return nil
 }
 
+func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
+	var buildID int
+	err := psql.Insert("builds").
+		SetMap(vals).
+		Suffix("RETURNING id").
+		RunWith(tx).
+		QueryRow().
+		Scan(&buildID)
+	if err != nil {
+		return err
+	}
+
+	err = scanBuild(build, buildsQuery.
+		Where(sq.Eq{"b.id": buildID}).
+		RunWith(tx).
+		QueryRow(),
+		build.conn.EncryptionStrategy(),
+	)
+	if err != nil {
+		return err
+	}
+
+	err = createBuildEventSeq(tx, buildID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func buildEventsChannel(buildID int) string {
 	return fmt.Sprintf("build_events_%d", buildID)
 }
