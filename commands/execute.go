@@ -67,7 +67,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
-	build, err := executehelpers.CreateBuild(
+	plan, err := executehelpers.CreateBuildPlan(
 		client,
 		command.Privileged,
 		inputs,
@@ -76,6 +76,16 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		command.Tags,
 		Fly.Target,
 	)
+	if err != nil {
+		return err
+	}
+
+	var build atc.Build
+	if command.InputsFrom.PipelineName != "" {
+		build, err = target.Team().CreatePipelineBuild(command.InputsFrom.PipelineName, plan)
+	} else {
+		build, err = client.CreateBuild(plan)
+	}
 	if err != nil {
 		return err
 	}

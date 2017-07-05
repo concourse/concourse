@@ -167,9 +167,9 @@ run:
 				}),
 			),
 		)
-		atcServer.RouteToHandler("POST", "/api/v1/builds",
+		atcServer.RouteToHandler("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds",
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/builds"),
+				ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds"),
 				VerifyPlan(expectedPlan),
 				func(w http.ResponseWriter, r *http.Request) {
 					http.SetCookie(w, &http.Cookie{

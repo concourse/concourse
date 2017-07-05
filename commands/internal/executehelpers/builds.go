@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/go-concourse/concourse"
 )
 
-func CreateBuild(
+func CreateBuildPlan(
 	client concourse.Client,
 	privileged bool,
 	inputs []Input,
@@ -16,16 +16,16 @@ func CreateBuild(
 	config atc.TaskConfig,
 	tags []string,
 	targetName rc.TargetName,
-) (atc.Build, error) {
+) (atc.Plan, error) {
 	fact := atc.NewPlanFactory(time.Now().Unix())
 
 	if err := config.Validate(); err != nil {
-		return atc.Build{}, err
+		return atc.Plan{}, err
 	}
 
 	target, err := rc.LoadTarget(targetName)
 	if err != nil {
-		return atc.Build{}, err
+		return atc.Plan{}, err
 	}
 
 	buildInputs := atc.AggregatePlan{}
@@ -126,5 +126,5 @@ func CreateBuild(
 		})
 	}
 
-	return client.CreateBuild(plan)
+	return plan, nil
 }
