@@ -396,4 +396,53 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 		})
 	})
+
+	Describe("CreatePipelineBuild", func() {
+		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/builds"
+
+		var (
+			plan          atc.Plan
+			expectedBuild atc.Build
+		)
+		Context("When the build is created", func() {
+			BeforeEach(func() {
+				plan = atc.Plan{
+					OnSuccess: &atc.OnSuccessPlan{
+						Step: atc.Plan{
+							Aggregate: &atc.AggregatePlan{},
+						},
+						Next: atc.Plan{
+							ID: "some-guid",
+							Task: &atc.TaskPlan{
+								Name:       "one-off",
+								Privileged: true,
+								Config:     &atc.LoadTaskConfig{},
+							},
+						},
+					},
+				}
+
+				expectedBuild = atc.Build{
+					ID:           123,
+					Name:         "mybuild",
+					Status:       "succeeded",
+					PipelineName: "mypipeline",
+					URL:          "/builds/123",
+					APIURL:       "/api/v1/builds/123",
+				}
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedBuild),
+					),
+				)
+			})
+
+			It("returns the build and no error", func() {
+				build, err := team.CreatePipelineBuild("mypipeline", plan)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(build).To(Equal(expectedBuild))
+			})
+		})
+	})
 })

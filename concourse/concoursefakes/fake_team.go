@@ -239,6 +239,20 @@ type FakeTeam struct {
 		result3 []concourse.ConfigWarning
 		result4 error
 	}
+	CreatePipelineBuildStub        func(pipelineName string, plan atc.Plan) (atc.Build, error)
+	createPipelineBuildMutex       sync.RWMutex
+	createPipelineBuildArgsForCall []struct {
+		pipelineName string
+		plan         atc.Plan
+	}
+	createPipelineBuildReturns struct {
+		result1 atc.Build
+		result2 error
+	}
+	createPipelineBuildReturnsOnCall map[int]struct {
+		result1 atc.Build
+		result2 error
+	}
 	BuildInputsForJobStub        func(pipelineName string, jobName string) ([]atc.BuildInput, bool, error)
 	buildInputsForJobMutex       sync.RWMutex
 	buildInputsForJobArgsForCall []struct {
@@ -1313,6 +1327,58 @@ func (fake *FakeTeam) CreateOrUpdatePipelineConfigReturnsOnCall(i int, result1 b
 	}{result1, result2, result3, result4}
 }
 
+func (fake *FakeTeam) CreatePipelineBuild(pipelineName string, plan atc.Plan) (atc.Build, error) {
+	fake.createPipelineBuildMutex.Lock()
+	ret, specificReturn := fake.createPipelineBuildReturnsOnCall[len(fake.createPipelineBuildArgsForCall)]
+	fake.createPipelineBuildArgsForCall = append(fake.createPipelineBuildArgsForCall, struct {
+		pipelineName string
+		plan         atc.Plan
+	}{pipelineName, plan})
+	fake.recordInvocation("CreatePipelineBuild", []interface{}{pipelineName, plan})
+	fake.createPipelineBuildMutex.Unlock()
+	if fake.CreatePipelineBuildStub != nil {
+		return fake.CreatePipelineBuildStub(pipelineName, plan)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createPipelineBuildReturns.result1, fake.createPipelineBuildReturns.result2
+}
+
+func (fake *FakeTeam) CreatePipelineBuildCallCount() int {
+	fake.createPipelineBuildMutex.RLock()
+	defer fake.createPipelineBuildMutex.RUnlock()
+	return len(fake.createPipelineBuildArgsForCall)
+}
+
+func (fake *FakeTeam) CreatePipelineBuildArgsForCall(i int) (string, atc.Plan) {
+	fake.createPipelineBuildMutex.RLock()
+	defer fake.createPipelineBuildMutex.RUnlock()
+	return fake.createPipelineBuildArgsForCall[i].pipelineName, fake.createPipelineBuildArgsForCall[i].plan
+}
+
+func (fake *FakeTeam) CreatePipelineBuildReturns(result1 atc.Build, result2 error) {
+	fake.CreatePipelineBuildStub = nil
+	fake.createPipelineBuildReturns = struct {
+		result1 atc.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) CreatePipelineBuildReturnsOnCall(i int, result1 atc.Build, result2 error) {
+	fake.CreatePipelineBuildStub = nil
+	if fake.createPipelineBuildReturnsOnCall == nil {
+		fake.createPipelineBuildReturnsOnCall = make(map[int]struct {
+			result1 atc.Build
+			result2 error
+		})
+	}
+	fake.createPipelineBuildReturnsOnCall[i] = struct {
+		result1 atc.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error) {
 	fake.buildInputsForJobMutex.Lock()
 	ret, specificReturn := fake.buildInputsForJobReturnsOnCall[len(fake.buildInputsForJobArgsForCall)]
@@ -2061,6 +2127,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.pipelineConfigMutex.RUnlock()
 	fake.createOrUpdatePipelineConfigMutex.RLock()
 	defer fake.createOrUpdatePipelineConfigMutex.RUnlock()
+	fake.createPipelineBuildMutex.RLock()
+	defer fake.createPipelineBuildMutex.RUnlock()
 	fake.buildInputsForJobMutex.RLock()
 	defer fake.buildInputsForJobMutex.RUnlock()
 	fake.jobMutex.RLock()

@@ -29,6 +29,8 @@ type Team interface {
 	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
 	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte) (bool, bool, []ConfigWarning, error)
 
+	CreatePipelineBuild(pipelineName string, plan atc.Plan) (atc.Build, error)
+
 	BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error)
 
 	Job(pipelineName, jobName string) (atc.Job, bool, error)

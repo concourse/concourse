@@ -3,6 +3,7 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/concourse/atc"
@@ -61,6 +62,31 @@ func (client *client) ListPipelines() ([]atc.Pipeline, error) {
 	return pipelines, err
 }
 
+func (team *team) CreatePipelineBuild(pipelineName string, plan atc.Plan) (atc.Build, error) {
+	var build atc.Build
+
+	buffer := &bytes.Buffer{}
+	err := json.NewEncoder(buffer).Encode(plan)
+	if err != nil {
+		return build, fmt.Errorf("Unable to marshal plan: %s", err)
+	}
+
+	err = team.connection.Send(internal.Request{
+		RequestName: atc.CreatePipelineBuild,
+		Body:        buffer,
+		Params: rata.Params{
+			"team_name":     team.name,
+			"pipeline_name": pipelineName,
+		},
+		Header: http.Header{
+			"Content-Type": {"application/json"},
+		},
+	}, &internal.Response{
+		Result: &build,
+	})
+
+	return build, err
+}
 func (team *team) DeletePipeline(pipelineName string) (bool, error) {
 	return team.managePipeline(pipelineName, atc.DeletePipeline)
 }
