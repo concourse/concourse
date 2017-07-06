@@ -29,11 +29,9 @@ var _ = Describe("Builds API", func() {
 		BeforeEach(func() {
 			plan = atc.Plan{
 				Task: &atc.TaskPlan{
-					Config: &atc.LoadTaskConfig{
-						TaskConfig: &atc.TaskConfig{
-							Run: atc.TaskRunConfig{
-								Path: "ls",
-							},
+					Config: &atc.TaskConfig{
+						Run: atc.TaskRunConfig{
+							Path: "ls",
 						},
 					},
 				},

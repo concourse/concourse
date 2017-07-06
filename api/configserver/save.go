@@ -245,7 +245,6 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			atc.SanitizeDecodeHook,
 			atc.VersionConfigDecodeHook,
-			atc.LoadTaskConfigDecodeHook,
 		),
 	}
 

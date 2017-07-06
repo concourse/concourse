@@ -33,8 +33,8 @@ type StaticConfigFetcher struct {
 func (configFetcher StaticConfigFetcher) FetchConfig(*worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig := atc.TaskConfig{}
 
-	if configFetcher.Plan.Config != nil && configFetcher.Plan.Config.TaskConfig != nil {
-		taskConfig = *configFetcher.Plan.Config.TaskConfig
+	if configFetcher.Plan.Config != nil {
+		taskConfig = *configFetcher.Plan.Config
 	}
 
 	if configFetcher.Plan.Params == nil {

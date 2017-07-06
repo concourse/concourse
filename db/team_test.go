@@ -1208,10 +1208,8 @@ var _ = Describe("Team", func() {
 								Task:           "some-task",
 								Privileged:     true,
 								TaskConfigPath: "some/config/path.yml",
-								TaskConfig: &atc.LoadTaskConfig{
-									TaskConfig: &atc.TaskConfig{
-										RootfsURI: "some-image",
-									},
+								TaskConfig: &atc.TaskConfig{
+									RootfsURI: "some-image",
 								},
 							},
 							{

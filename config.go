@@ -238,7 +238,7 @@ type PlanConfig struct {
 	// task config path, e.g. foo/build.yml
 	TaskConfigPath string `yaml:"file,omitempty" json:"file,omitempty" mapstructure:"file"`
 	// inlined task config
-	TaskConfig *LoadTaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
+	TaskConfig *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
 	// used by Get and Put for specifying params to the resource
 	Params Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`

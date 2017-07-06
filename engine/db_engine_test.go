@@ -57,19 +57,17 @@ var _ = Describe("DBEngine", func() {
 			planFactory = atc.NewPlanFactory(123)
 
 			plan = planFactory.NewPlan(atc.TaskPlan{
-				Config: &atc.LoadTaskConfig{
-					TaskConfig: &atc.TaskConfig{
-						RootfsURI: "some-image",
+				Config: &atc.TaskConfig{
+					RootfsURI: "some-image",
 
-						Params: map[string]string{
-							"FOO": "1",
-							"BAR": "2",
-						},
+					Params: map[string]string{
+						"FOO": "1",
+						"BAR": "2",
+					},
 
-						Run: atc.TaskRunConfig{
-							Path: "some-script",
-							Args: []string{"arg1", "arg2"},
-						},
+					Run: atc.TaskRunConfig{
+						Path: "some-script",
+						Args: []string{"arg1", "arg2"},
 					},
 				},
 			})

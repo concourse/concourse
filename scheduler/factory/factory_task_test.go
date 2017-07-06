@@ -85,17 +85,15 @@ var _ = Describe("Factory Task", func() {
 							InputMapping: map[string]string{
 								"bosh-release": "concourse-release",
 							},
-							TaskConfig: &atc.LoadTaskConfig{
-								TaskConfig: &atc.TaskConfig{
-									Inputs: []atc.TaskInputConfig{
-										{
-											Name: "bosh-release",
-											Path: "fake-bosh-release-path",
-										},
-										{
-											Name: "other-input",
-											Path: "fake-other-input-path",
-										},
+							TaskConfig: &atc.TaskConfig{
+								Inputs: []atc.TaskInputConfig{
+									{
+										Name: "bosh-release",
+										Path: "fake-bosh-release-path",
+									},
+									{
+										Name: "other-input",
+										Path: "fake-other-input-path",
 									},
 								},
 							},
@@ -114,17 +112,15 @@ var _ = Describe("Factory Task", func() {
 					InputMapping: map[string]string{
 						"bosh-release": "concourse-release",
 					},
-					Config: &atc.LoadTaskConfig{
-						TaskConfig: &atc.TaskConfig{
-							Inputs: []atc.TaskInputConfig{
-								{
-									Name: "bosh-release",
-									Path: "fake-bosh-release-path",
-								},
-								{
-									Name: "other-input",
-									Path: "fake-other-input-path",
-								},
+					Config: &atc.TaskConfig{
+						Inputs: []atc.TaskInputConfig{
+							{
+								Name: "bosh-release",
+								Path: "fake-bosh-release-path",
+							},
+							{
+								Name: "other-input",
+								Path: "fake-other-input-path",
 							},
 						},
 					},
@@ -142,17 +138,15 @@ var _ = Describe("Factory Task", func() {
 							OutputMapping: map[string]string{
 								"bosh-release": "concourse-release",
 							},
-							TaskConfig: &atc.LoadTaskConfig{
-								TaskConfig: &atc.TaskConfig{
-									Outputs: []atc.TaskOutputConfig{
-										{
-											Name: "bosh-release",
-											Path: "fake-bosh-release-path",
-										},
-										{
-											Name: "other-input",
-											Path: "fake-other-input-path",
-										},
+							TaskConfig: &atc.TaskConfig{
+								Outputs: []atc.TaskOutputConfig{
+									{
+										Name: "bosh-release",
+										Path: "fake-bosh-release-path",
+									},
+									{
+										Name: "other-input",
+										Path: "fake-other-input-path",
 									},
 								},
 							},
@@ -171,17 +165,15 @@ var _ = Describe("Factory Task", func() {
 					OutputMapping: map[string]string{
 						"bosh-release": "concourse-release",
 					},
-					Config: &atc.LoadTaskConfig{
-						TaskConfig: &atc.TaskConfig{
-							Outputs: []atc.TaskOutputConfig{
-								{
-									Name: "bosh-release",
-									Path: "fake-bosh-release-path",
-								},
-								{
-									Name: "other-input",
-									Path: "fake-other-input-path",
-								},
+					Config: &atc.TaskConfig{
+						Outputs: []atc.TaskOutputConfig{
+							{
+								Name: "bosh-release",
+								Path: "fake-bosh-release-path",
+							},
+							{
+								Name: "other-input",
+								Path: "fake-other-input-path",
 							},
 						},
 					},

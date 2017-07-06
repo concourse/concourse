@@ -622,11 +622,9 @@ var _ = Describe("ValidateConfig", func() {
 					job.Plan = append(job.Plan, PlanConfig{
 						Task:           "lol",
 						TaskConfigPath: "task.yml",
-						TaskConfig: &LoadTaskConfig{
-							TaskConfig: &TaskConfig{
-								Params: map[string]string{
-									"param1": "value1",
-								},
+						TaskConfig: &TaskConfig{
+							Params: map[string]string{
+								"param1": "value1",
 							},
 						},
 					})
