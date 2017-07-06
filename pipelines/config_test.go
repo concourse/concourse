@@ -13,7 +13,8 @@ var _ = Describe("Configuring a resource with nested configuration", func() {
 
 	BeforeEach(func() {
 		gitServer = gitserver.Start(client)
-		gitServer.Commit()
+		gitServer.CommitResource()
+		gitServer.CommitFileToBranch("initial", "initial", "trigger")
 
 		flyHelper.ConfigurePipeline(
 			pipelineName,

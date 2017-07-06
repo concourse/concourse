@@ -1,4 +1,14 @@
 ---
+resource_types:
+  - name: custom-type-with-nested-params
+    type: git
+    source:
+      uri: {{git-server}}
+      branch: master
+      git_config:
+        - name: core.bigFileThreshold
+          value: 10m
+
 resources:
   - name: git-repo
     type: git
@@ -8,9 +18,27 @@ resources:
       git_config:
         - name: core.bigFileThreshold
           value: 10m
+  - name: resource-with-custom-type
+    type: custom-type-with-nested-params
 
 jobs:
 - name: config-test
   plan:
-  - get: git-repo
-    trigger: true
+  - aggregate:
+    - get: resource-with-custom-type
+    - task: test-nested-params
+      config:
+        platform: linux
+        image_resource:
+          type: git
+          source:
+            uri: {{git-server}}
+            branch: master
+            git_config:
+              - name: core.bigFileThreshold
+                value: 10m
+        run:
+          path: echo
+          args: [ "123" ]
+    - get: git-repo
+      trigger: true
