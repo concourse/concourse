@@ -539,12 +539,12 @@ func (j *job) EnsurePendingBuildExists() error {
 	}
 
 	rows, err := tx.Query(`
-		INSERT INTO builds (name, job_id, team_id, status)
-		SELECT $1, $2, $3, 'pending'
+		INSERT INTO builds (name, job_id, pipeline_id, team_id, status)
+		SELECT $1, $2, $3, $4, 'pending'
 		WHERE NOT EXISTS
 			(SELECT id FROM builds WHERE job_id = $2 AND status = 'pending')
 		RETURNING id
-	`, buildName, j.id, j.teamID)
+	`, buildName, j.id, j.pipelineID, j.teamID)
 	if err != nil {
 		return err
 	}

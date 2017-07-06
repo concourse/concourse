@@ -308,9 +308,9 @@ func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
 
 	rows, err := buildsQuery.
 		Where(sq.Eq{
-			"b.status": BuildStatusPending,
-			"j.active": true,
-			"p.id":     p.id,
+			"b.status":      BuildStatusPending,
+			"j.active":      true,
+			"b.pipeline_id": p.id,
 		}).
 		OrderBy("b.id").
 		RunWith(p.conn).
