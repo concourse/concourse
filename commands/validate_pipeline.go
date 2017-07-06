@@ -41,7 +41,6 @@ func (command *ValidatePipelineCommand) Execute(args []string) error {
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			atc.SanitizeDecodeHook,
 			atc.VersionConfigDecodeHook,
-			atc.LoadTaskConfigDecodeHook,
 		),
 	}
 
