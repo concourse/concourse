@@ -416,7 +416,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 							Task: &atc.TaskPlan{
 								Name:       "one-off",
 								Privileged: true,
-								Config:     &atc.LoadTaskConfig{},
+								Config:     &atc.TaskConfig{},
 							},
 						},
 					},
