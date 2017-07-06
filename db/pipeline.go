@@ -832,17 +832,17 @@ func (p *pipeline) Dashboard() (Dashboard, atc.GroupConfigs, error) {
 		return nil, nil, err
 	}
 
-	startedBuilds, err := p.getLastJobBuildsSatisfying("b.status = 'started'")
+	startedBuilds, err := p.getLastJobBuildsSatisfying(sq.Eq{"b.status": BuildStatusStarted})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pendingBuilds, err := p.getLastJobBuildsSatisfying("b.status = 'pending'")
+	pendingBuilds, err := p.getLastJobBuildsSatisfying(sq.Eq{"b.status": BuildStatusPending})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	finishedBuilds, err := p.getLastJobBuildsSatisfying("b.status NOT IN ('pending', 'started')")
+	finishedBuilds, err := p.getLastJobBuildsSatisfying(sq.NotEq{"b.status": []BuildStatus{BuildStatusPending, BuildStatusStarted}})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1639,24 +1639,26 @@ func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
 	return max_modified_time, err
 }
 
-func (p *pipeline) getLastJobBuildsSatisfying(bRequirement string) (map[string]Build, error) {
-	rows, err := p.conn.Query(`
-		 SELECT `+qualifiedBuildColumns+`
-		 FROM builds b, jobs j, pipelines p, teams t,
-			 (
-				 SELECT b.job_id AS job_id, MAX(b.id) AS id
-				 FROM builds b, jobs j
-				 WHERE b.job_id = j.id
-					 AND `+bRequirement+`
-					 AND j.pipeline_id = $1
-				 GROUP BY b.job_id
-			 ) max
-		 WHERE b.job_id = j.id
-			 AND b.id = max.id
-			 AND p.id = $1
-			 AND j.pipeline_id = p.id
-			 AND b.team_id = t.id
-  `, p.id)
+func (p *pipeline) getLastJobBuildsSatisfying(buildCondition sq.Sqlizer) (map[string]Build, error) {
+	maxQ, maxArgs, err := psql.Select("MAX(b.id) AS id").
+		From("builds b").
+		Join("jobs j ON j.id = b.job_id").
+		Where(buildCondition).
+		Where(sq.Eq{"j.pipeline_id": p.id}).
+		GroupBy("b.job_id").
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	buildsQ, _, err := buildsQuery.
+		Where(sq.Expr(`b.id IN (` + maxQ + `)`)).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := p.conn.Query(buildsQ, maxArgs...)
 	if err != nil {
 		return nil, err
 	}

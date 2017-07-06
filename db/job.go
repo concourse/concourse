@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
@@ -201,59 +200,23 @@ func (j *job) UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error {
 }
 
 func (j *job) Builds(page Page) ([]Build, Pagination, error) {
-	var (
-		err        error
-		maxID      int
-		minID      int
-		firstBuild Build
-		lastBuild  Build
-		pagination Pagination
+	query := buildsQuery.Where(sq.Eq{"j.id": j.id})
 
-		rows *sql.Rows
-	)
+	limit := uint64(page.Limit)
 
-	query := fmt.Sprintf(`
-		SELECT ` + qualifiedBuildColumns + `
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
-		INNER JOIN teams t ON b.team_id = t.id
-		WHERE j.name = $1
-			AND j.pipeline_id = $2
-	`)
-
+	var reverse bool
 	if page.Since == 0 && page.Until == 0 {
-		rows, err = j.conn.Query(fmt.Sprintf(`
-			%s
-			ORDER BY b.id DESC
-			LIMIT $3
-		`, query), j.name, j.pipelineID, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, err
-		}
+		query = query.OrderBy("b.id DESC").Limit(limit)
 	} else if page.Until != 0 {
-		rows, err = j.conn.Query(fmt.Sprintf(`
-			SELECT sub.*
-			FROM (%s
-					AND b.id > $3
-				ORDER BY b.id ASC
-				LIMIT $4
-			) sub
-			ORDER BY sub.id DESC
-		`, query), j.name, j.pipelineID, page.Until, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, err
-		}
+		query = query.Where(sq.Gt{"b.id": page.Until}).OrderBy("b.id ASC").Limit(limit)
+		reverse = true
 	} else {
-		rows, err = j.conn.Query(fmt.Sprintf(`
-				%s
-				AND b.id < $3
-			ORDER BY b.id DESC
-			LIMIT $4
-		`, query), j.name, j.pipelineID, page.Since, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, err
-		}
+		query = query.Where(sq.Lt{"b.id": page.Since}).OrderBy("b.id DESC").Limit(limit)
+	}
+
+	rows, err := query.RunWith(j.conn).Query()
+	if err != nil {
+		return nil, Pagination{}, err
 	}
 
 	defer rows.Close()
@@ -267,13 +230,18 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 			return nil, Pagination{}, err
 		}
 
-		builds = append(builds, build)
+		if reverse {
+			builds = append([]Build{build}, builds...)
+		} else {
+			builds = append(builds, build)
+		}
 	}
 
 	if len(builds) == 0 {
 		return []Build{}, Pagination{}, nil
 	}
 
+	var maxID, minID int
 	err = psql.Select("COALESCE(MAX(b.id), 0) as maxID", "COALESCE(MIN(b.id), 0) as minID").
 		From("builds b").
 		Join("jobs j ON b.job_id = j.id").
@@ -288,8 +256,10 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 		return nil, Pagination{}, err
 	}
 
-	firstBuild = builds[0]
-	lastBuild = builds[len(builds)-1]
+	firstBuild := builds[0]
+	lastBuild := builds[len(builds)-1]
+
+	var pagination Pagination
 
 	if firstBuild.ID() < maxID {
 		pagination.Previous = &Page{
@@ -316,13 +286,6 @@ func (j *job) Build(name string) (Build, bool, error) {
 		RunWith(j.conn).
 		QueryRow()
 
-	statement, _, _ := buildsQuery.Where(sq.Eq{
-		"b.job_id": j.id,
-		"b.name":   name,
-	}).ToSql()
-
-	fmt.Printf("SQL: %s\n", statement)
-
 	build := &build{conn: j.conn, lockFactory: j.lockFactory}
 
 	err := scanBuild(build, row, j.conn.EncryptionStrategy())
@@ -342,29 +305,18 @@ func (j *job) GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bo
 		return nil, false, err
 	}
 
-	args := []interface{}{j.pipelineID}
-	refs := make([]string, len(serialGroups))
-
-	for i, serialGroup := range serialGroups {
-		args = append(args, serialGroup)
-		refs[i] = fmt.Sprintf("$%d", i+2)
-	}
-
-	row := j.conn.QueryRow(`
-		SELECT DISTINCT ON (b.id) `+qualifiedBuildColumns+`
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
-		INNER JOIN teams t ON b.team_id = t.id
-		INNER JOIN jobs_serial_groups jsg ON j.id = jsg.job_id
-				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
-		WHERE b.status = 'pending'
-			AND j.paused = false
-			AND j.inputs_determined = true
-			AND j.pipeline_id = $1
-		ORDER BY b.id ASC
-		LIMIT 1
-	`, args...)
+	row := buildsQuery.Options(`DISTINCT ON (b.id)`).
+		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
+		Where(sq.Eq{
+			"jsg.serial_group":    serialGroups,
+			"b.status":            BuildStatusPending,
+			"j.paused":            false,
+			"j.inputs_determined": true,
+			"j.pipeline_id":       j.pipelineID}).
+		OrderBy("b.id ASC").
+		Limit(1).
+		RunWith(j.conn).
+		QueryRow()
 
 	build := &build{conn: j.conn, lockFactory: j.lockFactory}
 	err = scanBuild(build, row, j.conn.EncryptionStrategy())
@@ -384,30 +336,18 @@ func (j *job) GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, err
 		return nil, err
 	}
 
-	args := []interface{}{j.pipelineID}
-	refs := make([]string, len(serialGroups))
-
-	for i, serialGroup := range serialGroups {
-		args = append(args, serialGroup)
-		refs[i] = fmt.Sprintf("$%d", i+2)
-	}
-
-	rows, err := j.conn.Query(`
-		SELECT DISTINCT ON (b.id) `+qualifiedBuildColumns+`
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
-		INNER JOIN teams t ON b.team_id = t.id
-		INNER JOIN jobs_serial_groups jsg ON j.id = jsg.job_id
-				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
-		WHERE (
-				b.status = 'started'
-				OR
-				(b.scheduled = true AND b.status = 'pending')
-			)
-			AND j.pipeline_id = $1
-	`, args...)
-
+	rows, err := buildsQuery.Options(`DISTINCT ON (b.id)`).
+		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
+		Where(sq.Eq{
+			"jsg.serial_group": serialGroups,
+			"j.pipeline_id":    j.pipelineID,
+		}).
+		Where(sq.Or{
+			sq.Eq{"b.status": BuildStatusStarted},
+			sq.Eq{"b.status": BuildStatusPending, "b.scheduled": true},
+		}).
+		RunWith(j.conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
