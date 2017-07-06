@@ -34,23 +34,21 @@ var _ = Describe("BuildsView", func() {
 							},
 							{
 								Task: "some-task",
-								TaskConfig: &atc.LoadTaskConfig{
-									TaskConfig: &atc.TaskConfig{
-										Platform: "linux",
-										ImageResource: &atc.ImageResource{
-											Type:   "docker-image",
-											Source: atc.Source{"repository": "busybox"},
-										},
-										Inputs: []atc.TaskInputConfig{
-											{Name: "some-input-resource"},
-										},
-										Outputs: []atc.TaskOutputConfig{
-											{Name: "some-output-src"},
-										},
-										Run: atc.TaskRunConfig{
-											Path: "cp",
-											Args: []string{"-r", "some-input-resource/.", "some-output-src"},
-										},
+								TaskConfig: &atc.TaskConfig{
+									Platform: "linux",
+									ImageResource: &atc.ImageResource{
+										Type:   "docker-image",
+										Source: atc.Source{"repository": "busybox"},
+									},
+									Inputs: []atc.TaskInputConfig{
+										{Name: "some-input-resource"},
+									},
+									Outputs: []atc.TaskOutputConfig{
+										{Name: "some-output-src"},
+									},
+									Run: atc.TaskRunConfig{
+										Path: "cp",
+										Args: []string{"-r", "some-input-resource/.", "some-output-src"},
 									},
 								},
 							},
