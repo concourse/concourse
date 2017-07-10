@@ -14,7 +14,7 @@ jobs:
     tags: ["tagged"]
     config:
       platform: linux
-      image: docker:///ignored          # this should be overriden
+      rootfs_uri: docker:///ignored     # this should be overriden
       image_resource:                   # this should also be overriden
         type: docker-image
         source: {repository: ignored}
@@ -29,7 +29,7 @@ jobs:
     image: a-docker-resource-with-bash  # this should override images specified below
     config:
       platform: linux
-      image: docker:///ignored          # this should be overriden
+      rootfs_uri: docker:///ignored     # this should be overriden
       image_resource:                   # this should also be overriden
         type: docker-image
         source: {repository: ignored}
