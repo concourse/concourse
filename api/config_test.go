@@ -137,7 +137,7 @@ var _ = Describe("Config API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
@@ -349,7 +349,7 @@ var _ = Describe("Config API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -381,7 +381,7 @@ var _ = Describe("Config API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
@@ -1073,7 +1073,7 @@ jobs:
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {

@@ -33,7 +33,7 @@ var _ = Describe("Workers API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				userContextReader.GetTeamReturns("some-team", false, true)
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 			})
 
 			It("fetches workers by team name from user context", func() {
@@ -106,7 +106,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -158,7 +158,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 			})
 
 			It("tries to save the worker", func() {
@@ -360,7 +360,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -395,7 +395,7 @@ var _ = Describe("Workers API", func() {
 			fakeWorker.TeamNameReturns("some-team")
 			fakeWorker.LandReturns(nil)
 
-			authValidator.IsAuthenticatedReturns(true)
+			jwtValidator.IsAuthenticatedReturns(true)
 			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 		})
 
@@ -460,7 +460,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -494,7 +494,7 @@ var _ = Describe("Workers API", func() {
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.TeamNameReturns("some-team")
 
-			authValidator.IsAuthenticatedReturns(true)
+			jwtValidator.IsAuthenticatedReturns(true)
 
 			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			fakeWorker.RetireReturns(nil)
@@ -562,7 +562,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -597,7 +597,7 @@ var _ = Describe("Workers API", func() {
 			fakeWorker.TeamNameReturns("some-team")
 
 			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
-			authValidator.IsAuthenticatedReturns(true)
+			jwtValidator.IsAuthenticatedReturns(true)
 			userContextReader.GetTeamReturns("some-team", false, true)
 			fakeWorker.PruneReturns(nil)
 		})
@@ -647,7 +647,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -691,7 +691,7 @@ var _ = Describe("Workers API", func() {
 				ActiveContainers: 2,
 			}
 
-			authValidator.IsAuthenticatedReturns(true)
+			jwtValidator.IsAuthenticatedReturns(true)
 			dbWorkerFactory.HeartbeatWorkerReturns(fakeWorker, nil)
 		})
 
@@ -781,7 +781,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -814,7 +814,7 @@ var _ = Describe("Workers API", func() {
 			workerName = "some-worker"
 			fakeWorker.NameReturns(workerName)
 
-			authValidator.IsAuthenticatedReturns(true)
+			jwtValidator.IsAuthenticatedReturns(true)
 			fakeWorker.DeleteReturns(nil)
 			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 		})
@@ -845,7 +845,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {

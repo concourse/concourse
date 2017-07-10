@@ -33,7 +33,7 @@ var _ = Describe("Volumes API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -43,7 +43,7 @@ var _ = Describe("Volumes API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("some-team", true, true)
 			})
 

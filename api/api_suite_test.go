@@ -33,7 +33,8 @@ var (
 	externalURL  = "https://example.com"
 	oAuthBaseURL = "https://oauth.example.com"
 
-	authValidator                 *authfakes.FakeValidator
+	jwtValidator                  *authfakes.FakeValidator
+	getTokenValidator             *authfakes.FakeValidator
 	userContextReader             *authfakes.FakeUserContextReader
 	fakeAuthTokenGenerator        *authfakes.FakeAuthTokenGenerator
 	fakeCSRFTokenGenerator        *authfakes.FakeCSRFTokenGenerator
@@ -103,7 +104,9 @@ var _ = BeforeEach(func() {
 	dbWorkerFactory = new(dbfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
 
-	authValidator = new(authfakes.FakeValidator)
+	jwtValidator = new(authfakes.FakeValidator)
+	getTokenValidator = new(authfakes.FakeValidator)
+
 	userContextReader = new(authfakes.FakeUserContextReader)
 	fakeAuthTokenGenerator = new(authfakes.FakeAuthTokenGenerator)
 	fakeCSRFTokenGenerator = new(authfakes.FakeCSRFTokenGenerator)
@@ -154,8 +157,8 @@ var _ = BeforeEach(func() {
 		externalURL,
 
 		wrappa.NewAPIAuthWrappa(
-			authValidator,
-			authValidator,
+			jwtValidator,
+			getTokenValidator,
 			userContextReader,
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,

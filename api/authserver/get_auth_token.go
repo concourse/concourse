@@ -9,13 +9,13 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/db"
 )
 
 func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-auth-token")
 	logger.Debug("getting-auth-token")
 
-	var token atc.AuthToken
 	teamName := r.FormValue(":team_name")
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
@@ -31,18 +31,32 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	authTeam, found := auth.GetTeam(r)
+	if found && authTeam.Name() != teamName {
+		rejector := auth.UnauthorizedRejector{}
+		rejector.Forbidden(w, r)
+		return
+	}
+
+	err = s.generateToken(logger, w, r, team)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *Server) generateToken(logger lager.Logger, w http.ResponseWriter, r *http.Request, team db.Team) error {
+	var token atc.AuthToken
+
 	csrfToken, err := s.csrfTokenGenerator.GenerateToken()
 	if err != nil {
 		logger.Error("generate-csrf-token", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
 
 	tokenType, tokenValue, err := s.authTokenGenerator.GenerateToken(time.Now().Add(s.expire), team.Name(), team.Admin(), csrfToken)
 	if err != nil {
 		logger.Error("generate-auth-token", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	token.Type = string(tokenType)
@@ -66,5 +80,10 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set(auth.CSRFHeaderName, csrfToken)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(token)
+	err = json.NewEncoder(w).Encode(token)
+	if err != nil {
+		logger.Error("encode-auth-token", err)
+		return err
+	}
+	return nil
 }

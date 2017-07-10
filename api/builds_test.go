@@ -53,7 +53,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("some-team", false, true)
 			})
 
@@ -158,7 +158,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -232,7 +232,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when not authenticated", func() {
 					BeforeEach(func() {
-						authValidator.IsAuthenticatedReturns(false)
+						jwtValidator.IsAuthenticatedReturns(false)
 					})
 
 					Context("and build is one off", func() {
@@ -270,7 +270,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when authenticated", func() {
 					BeforeEach(func() {
-						authValidator.IsAuthenticatedReturns(true)
+						jwtValidator.IsAuthenticatedReturns(true)
 					})
 
 					It("returns 200 OK", func() {
@@ -325,7 +325,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(false)
+					jwtValidator.IsAuthenticatedReturns(false)
 				})
 
 				Context("and build is one off", func() {
@@ -363,7 +363,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
 
@@ -374,7 +374,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("some-team", false, true)
 				})
 
@@ -566,7 +566,7 @@ var _ = Describe("Builds API", func() {
 
 			returnedBuilds = []db.Build{build1, build2}
 
-			authValidator.IsAuthenticatedReturns(false)
+			jwtValidator.IsAuthenticatedReturns(false)
 		})
 
 		JustBeforeEach(func() {
@@ -578,7 +578,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", false, false)
 			})
 
@@ -689,7 +689,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("some-team", false, true)
 			})
 
@@ -836,7 +836,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
 
@@ -847,7 +847,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("some-team", false, true)
 				})
 
@@ -870,7 +870,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(false)
+					jwtValidator.IsAuthenticatedReturns(false)
 				})
 
 				Context("and the pipeline is private", func() {
@@ -1022,7 +1022,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 			})
 
 			Context("when the build can be found", func() {
@@ -1114,7 +1114,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -1160,7 +1160,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					build.PipelineReturns(fakePipeline, true, nil)
 					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
@@ -1172,7 +1172,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(false)
+					jwtValidator.IsAuthenticatedReturns(false)
 				})
 
 				Context("and build is one off", func() {
@@ -1260,7 +1260,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("some-team", false, true)
 				})
 
@@ -1373,7 +1373,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					build.PipelineReturns(fakePipeline, true, nil)
 					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
@@ -1385,7 +1385,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(false)
+					jwtValidator.IsAuthenticatedReturns(false)
 				})
 
 				Context("and build is one off", func() {
@@ -1423,7 +1423,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("some-team", false, true)
 				})
 

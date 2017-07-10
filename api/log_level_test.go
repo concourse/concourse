@@ -33,7 +33,7 @@ var _ = Describe("Log Level API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 			})
 
 			Context("is admin", func() {
@@ -101,7 +101,7 @@ var _ = Describe("Log Level API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {

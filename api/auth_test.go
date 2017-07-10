@@ -44,74 +44,84 @@ var _ = Describe("Auth API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when the request's authorization is basic auth", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				getTokenValidator.IsAuthenticatedReturns(true)
+				request.Header.Add("Authorization", "Basic grylls")
 			})
 
-			Context("when the request's authorization is some other form", func() {
+			Context("when generating the token succeeds", func() {
 				BeforeEach(func() {
-					request.Header.Add("Authorization", "Basic grylls")
+					fakeAuthTokenGenerator.GenerateTokenReturns("some type", "some value", nil)
+					fakeCSRFTokenGenerator.GenerateTokenReturns("some-csrf-token", nil)
 				})
 
-				Context("when generating the token succeeds", func() {
-					BeforeEach(func() {
-						fakeAuthTokenGenerator.GenerateTokenReturns("some type", "some value", nil)
-						fakeCSRFTokenGenerator.GenerateTokenReturns("some-csrf-token", nil)
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("returns application/json", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-					})
-
-					It("returns CSRF token", func() {
-						Expect(response.Header.Get("X-Csrf-Token")).To(Equal("some-csrf-token"))
-					})
-
-					It("returns a token valid for 1 day", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(body).To(MatchJSON(`{"type":"some type","value":"some value"}`))
-
-						expiration, teamName, isAdmin, csrfToken := fakeAuthTokenGenerator.GenerateTokenArgsForCall(0)
-						Expect(expiration).To(BeTemporally("~", time.Now().Add(24*time.Hour), time.Minute))
-						Expect(teamName).To(Equal("some-team"))
-						Expect(isAdmin).To(Equal(true))
-						Expect(csrfToken).To(Equal("some-csrf-token"))
-					})
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				Context("when generating the token fails", func() {
-					BeforeEach(func() {
-						fakeAuthTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
-					})
-
-					It("returns Internal Server Error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 				})
 
-				Context("when the team can't be found", func() {
-					BeforeEach(func() {
-						fakeAuthTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
-						dbTeamFactory.FindTeamReturns(nil, false, nil)
-					})
-
-					It("returns unauthorized", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-					})
+				It("returns CSRF token", func() {
+					Expect(response.Header.Get("X-Csrf-Token")).To(Equal("some-csrf-token"))
 				})
+
+				It("returns a token valid for 1 day", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{"type":"some type","value":"some value"}`))
+
+					expiration, teamName, isAdmin, csrfToken := fakeAuthTokenGenerator.GenerateTokenArgsForCall(0)
+					Expect(expiration).To(BeTemporally("~", time.Now().Add(24*time.Hour), time.Minute))
+					Expect(teamName).To(Equal("some-team"))
+					Expect(isAdmin).To(Equal(true))
+					Expect(csrfToken).To(Equal("some-csrf-token"))
+				})
+			})
+
+			Context("when generating the token fails", func() {
+				BeforeEach(func() {
+					fakeAuthTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
+				})
+
+				It("returns Internal Server Error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the team can't be found", func() {
+				BeforeEach(func() {
+					fakeAuthTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
+					dbTeamFactory.FindTeamReturns(nil, false, nil)
+				})
+
+				It("returns unauthorized", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+		})
+
+		Context("when the request's authorization is bearer token", func() {
+			BeforeEach(func() {
+				jwtValidator.IsAuthenticatedReturns(true)
+				getTokenValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not generate a token", func() {
+				Expect(fakeAuthTokenGenerator.GenerateTokenCallCount()).To(Equal(0))
 			})
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Unauthorized", func() {
@@ -296,7 +306,7 @@ var _ = Describe("Auth API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 			})
 
 			Context("as system", func() {
@@ -384,7 +394,7 @@ var _ = Describe("Auth API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {

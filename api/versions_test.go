@@ -43,7 +43,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", false, false)
 			})
 
@@ -71,7 +71,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
@@ -254,7 +254,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
@@ -285,7 +285,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Unauthorized", func() {
@@ -309,7 +309,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
@@ -340,7 +340,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Unauthorized", func() {
@@ -369,7 +369,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", false, false)
 			})
 
@@ -396,7 +396,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
@@ -516,7 +516,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", false, false)
 			})
 
@@ -543,7 +543,7 @@ var _ = Describe("Versions API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 

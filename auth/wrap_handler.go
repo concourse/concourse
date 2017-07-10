@@ -5,10 +5,11 @@ import (
 	"net/http"
 )
 
-var authenticated = "authenticated"
-var teamNameKey = "teamName"
-var isAdminKey = "isAdmin"
-var isSystemKey = "system"
+const authenticated = "authenticated"
+const teamNameKey = "teamName"
+const isAdminKey = "isAdmin"
+const isSystemKey = "system"
+const CSRFTokenKey = "csrfToken"
 
 func WrapHandler(
 	handler http.Handler,

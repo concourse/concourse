@@ -305,7 +305,7 @@ var _ = Describe("Teams API", func() {
 
 		Context("when the requester team is authorized as an admin team", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("magic-admin-team", true, true)
 			})
 
@@ -341,7 +341,7 @@ var _ = Describe("Teams API", func() {
 
 		Context("when the requester team is authorized as the team being set", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("some-team", false, true)
 			})
 
@@ -390,7 +390,7 @@ var _ = Describe("Teams API", func() {
 			})
 
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns(atc.DefaultTeamName, true, true)
 			})
 
@@ -468,7 +468,7 @@ var _ = Describe("Teams API", func() {
 			})
 
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns(atc.DefaultTeamName, false, true)
 			})
 
@@ -490,7 +490,7 @@ var _ = Describe("Teams API", func() {
 			})
 
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("", false, false)
 			})
 

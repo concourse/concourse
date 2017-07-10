@@ -924,7 +924,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		PublicKey: &signingKey.PublicKey,
 	}
 
-	getTokenValidator := auth.NewTeamAuthValidator(teamFactory, authValidator)
+	getTokenValidator := auth.NewGetTokenValidator(teamFactory)
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(
 		teamFactory,

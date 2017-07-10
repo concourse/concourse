@@ -121,7 +121,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				userContextReader.GetTeamReturns("", false, false)
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns only public pipelines", func() {
@@ -159,7 +159,7 @@ var _ = Describe("Pipelines API", func() {
 			BeforeEach(func() {
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				userContextReader.GetTeamReturns("main", false, true)
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 			})
 
 			It("returns all pipelines of the team + all public pipelines", func() {
@@ -234,7 +234,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when authenticated as requested team", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("main", false, true)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 			})
@@ -302,7 +302,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when authenticated as another team", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("another-team", false, true)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 			})
@@ -332,7 +332,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", false, false)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 			})
@@ -398,7 +398,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", false, false)
 			})
 
@@ -409,7 +409,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when authenticated as requested team", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				fakeTeam.PipelineReturns(fakePipeline, true, nil)
@@ -453,7 +453,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when authenticated as another team", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("another-team", true, true)
 				fakeTeam.PipelineReturns(fakePipeline, true, nil)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
@@ -483,7 +483,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated at all", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", true, false)
 				dbTeam.PipelineReturns(fakePipeline, true, nil)
 			})
@@ -527,7 +527,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("a-team", true, true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 					dbPipeline.NameReturns("a-pipeline-name")
@@ -567,7 +567,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
@@ -579,7 +579,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when the user is not logged in", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -604,7 +604,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("a-team", true, true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
@@ -644,7 +644,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
@@ -656,7 +656,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -681,7 +681,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("a-team", true, true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 					fakeTeam.PipelineReturns(dbPipeline, true, nil)
@@ -722,7 +722,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
@@ -734,7 +734,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -759,7 +759,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("a-team", true, true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
@@ -799,7 +799,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
@@ -811,7 +811,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -836,7 +836,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("a-team", true, true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
@@ -876,7 +876,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
@@ -888,7 +888,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -926,7 +926,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			Context("when requester belonbgs to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("a-team", true, true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
@@ -985,7 +985,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
@@ -997,7 +997,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -1021,7 +1021,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+				jwtValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("a-team", true, true)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				fakeTeam.PipelineReturns(dbPipeline, true, nil)
@@ -1126,7 +1126,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -1151,7 +1151,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("a-team", true, true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 					fakeTeam.PipelineReturns(dbPipeline, true, nil)
@@ -1190,7 +1190,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
@@ -1202,7 +1202,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
+				jwtValidator.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {

@@ -62,7 +62,7 @@ var _ = Describe("Pipes API", func() {
 
 	Context("when authenticated", func() {
 		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(true)
+			jwtValidator.IsAuthenticatedReturns(true)
 		})
 
 		Describe("POST /api/v1/pipes", func() {
@@ -77,7 +77,7 @@ var _ = Describe("Pipes API", func() {
 
 			Context("when team is found", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
+					jwtValidator.IsAuthenticatedReturns(true)
 				})
 
 				var pipe atc.Pipe
@@ -290,7 +290,7 @@ var _ = Describe("Pipes API", func() {
 
 	Context("when not authenticated", func() {
 		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(false)
+			jwtValidator.IsAuthenticatedReturns(false)
 		})
 
 		Describe("POST /api/v1/pipes", func() {
