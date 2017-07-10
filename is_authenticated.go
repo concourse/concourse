@@ -3,6 +3,6 @@ package auth
 import "net/http"
 
 func IsAuthenticated(r *http.Request) bool {
-	isAuthenticated, present := r.Context().Value(authenticated).(bool)
-	return present && isAuthenticated
+	isAuthenticated, _ := r.Context().Value(authenticated).(bool)
+	return isAuthenticated
 }
