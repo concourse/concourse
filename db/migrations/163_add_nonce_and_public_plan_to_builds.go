@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/concourse/atc/db/migration"
 	internal "github.com/concourse/atc/db/migrations/internal/163"
@@ -24,51 +25,66 @@ func AddNonceAndPublicPlanToBuilds(tx migration.LimitedTx) error {
 		return err
 	}
 
-	rows, err := tx.Query(`
+	offset := 0
+	for {
+		rows, err := tx.Query(fmt.Sprintf(`
 		SELECT id, engine_metadata
 		FROM builds
 		WHERE engine='exec.v2'
-	`)
-	if err != nil {
-		return err
-	}
-
-	defer rows.Close()
-
-	//create public plans
-	plans := map[int]internal.Plan{}
-
-	for rows.Next() {
-		var buildID int
-		var engineMetadataJSON []byte
-		err := rows.Scan(&buildID, &engineMetadataJSON)
+		ORDER BY id ASC
+		LIMIT 500
+		OFFSET %d
+	`, offset))
 		if err != nil {
 			return err
 		}
 
-		if engineMetadataJSON == nil {
-			continue
+		defer rows.Close()
+
+		//create public plans
+		plans := map[int]internal.Plan{}
+
+		totalRows := 0
+		for rows.Next() {
+			totalRows++
+
+			var buildID int
+			var engineMetadataJSON []byte
+			err := rows.Scan(&buildID, &engineMetadataJSON)
+			if err != nil {
+				return err
+			}
+
+			if engineMetadataJSON == nil {
+				continue
+			}
+
+			var execEngineMetadata execV2Metadata
+			err = json.Unmarshal(engineMetadataJSON, &execEngineMetadata)
+			if err != nil {
+				return err
+			}
+
+			plans[buildID] = execEngineMetadata.Plan
 		}
 
-		var execEngineMetadata execV2Metadata
-		err = json.Unmarshal(engineMetadataJSON, &execEngineMetadata)
-		if err != nil {
-			return err
+		if totalRows == 0 {
+			break
+		} else {
+			offset += totalRows
 		}
 
-		plans[buildID] = execEngineMetadata.Plan
-	}
-
-	for buildID, plan := range plans {
-		_, err := tx.Exec(`
+		for buildID, plan := range plans {
+			_, err := tx.Exec(`
 				UPDATE builds
 				SET
 				  public_plan = $1
 				WHERE
 					id = $2
 			`, plan.Public(), buildID)
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
 		}
 	}
 
