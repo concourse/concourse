@@ -1,0 +1,24 @@
+#language anatomy
+
+\use{\load{concourse/docs}}
+
+\release{2017-7-11}{3.3.2}{1.6.0}{
+  \note{fix}{security}{
+    Fixed a vulnerability affecting installations using untrusted multi-tenancy
+    (i.e. multiple teams who may be jerks).
+
+    If you are running a single-tenant Concourse installation, or an
+    installation where all team members are "trusted" (i.e. part of your small
+    org), you probably don't have much to worry about. Otherwise, you'll want
+    to upgrade to this as soon as possible.
+  }
+
+  \note{feature}{
+    The \reference{fly-execute} command with \code{-j} can now resolve the
+    Vault credentials configured in the job's inputs.
+  }
+
+  \note{fix}{
+    ECR support is now fixed in the \resource{docker-image}.
+  }
+}
