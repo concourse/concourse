@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+	"time"
 )
 
 var _ = Describe("DBProvider", func() {
@@ -30,13 +31,14 @@ var _ = Describe("DBProvider", func() {
 
 		logger *lagertest.TestLogger
 
-		fakeGardenBackend  *gfakes.FakeBackend
-		gardenAddr         string
-		baggageclaimURL    string
-		wantWorkerVersion  version.Version
-		baggageclaimServer *ghttp.Server
-		gardenServer       *server.GardenServer
-		provider           WorkerProvider
+		fakeGardenBackend                 *gfakes.FakeBackend
+		gardenAddr                        string
+		baggageclaimURL                   string
+		wantWorkerVersion                 version.Version
+		baggageclaimServer                *ghttp.Server
+		gardenServer                      *server.GardenServer
+		provider                          WorkerProvider
+		baggageclaimResponseHeaderTimeout time.Duration
 
 		fakeImageFactory                    *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
@@ -83,6 +85,7 @@ var _ = Describe("DBProvider", func() {
 		fakeGardenBackend = new(gfakes.FakeBackend)
 		logger = lagertest.NewTestLogger("test")
 		gardenServer = server.New("tcp", gardenAddr, 0, fakeGardenBackend, logger)
+		baggageclaimResponseHeaderTimeout = 10 * time.Minute
 		err := gardenServer.Start()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -151,6 +154,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDBTeamFactory,
 			fakeDBWorkerFactory,
 			&wantWorkerVersion,
+			baggageclaimResponseHeaderTimeout,
 		)
 		baggageclaimURL = baggageclaimServer.URL()
 	})
