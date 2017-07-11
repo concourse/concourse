@@ -3,6 +3,7 @@ package gc
 import (
 	"time"
 
+	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
@@ -19,18 +20,18 @@ type containerFactory interface {
 type containerCollector struct {
 	rootLogger       lager.Logger
 	containerFactory containerFactory
-	workerPool       *WorkerPool
+	jobRunner        WorkerJobRunner
 }
 
 func NewContainerCollector(
 	logger lager.Logger,
 	containerFactory containerFactory,
-	workerPool *WorkerPool,
+	jobRunner WorkerJobRunner,
 ) Collector {
 	return &containerCollector{
 		rootLogger:       logger,
 		containerFactory: containerFactory,
-		workerPool:       workerPool,
+		jobRunner:        jobRunner,
 	}
 }
 
@@ -92,7 +93,7 @@ func (c *containerCollector) Run() error {
 		// prevent closure from capturing last value of loop
 		container := createdContainer
 
-		c.workerPool.Queue(logger, container.WorkerName(), JobFunc(func(workerClient worker.Worker) {
+		c.jobRunner.Try(logger, container.WorkerName(), JobFunc(func(workerClient worker.Worker) {
 			var destroyingContainer db.DestroyingContainer
 			var cLog lager.Logger
 
@@ -103,7 +104,7 @@ func (c *containerCollector) Run() error {
 				})
 
 				var err error
-				destroyingContainer, err = c.markHijackedContainerAsDestroying(cLog, container, workerClient)
+				destroyingContainer, err = markHijackedContainerAsDestroying(cLog, container, workerClient.GardenClient())
 				if err != nil {
 					cLog.Error("failed-to-transition", err)
 					return
@@ -123,7 +124,7 @@ func (c *containerCollector) Run() error {
 			}
 
 			if destroyingContainer != nil {
-				c.tryToDestroyContainer(cLog, destroyingContainer, workerClient)
+				tryToDestroyContainer(cLog, destroyingContainer, workerClient.GardenClient())
 			}
 		}))
 	}
@@ -132,27 +133,27 @@ func (c *containerCollector) Run() error {
 		// prevent closure from capturing last value of loop
 		container := destroyingContainer
 
-		c.workerPool.Queue(logger, container.WorkerName(), JobFunc(func(workerClient worker.Worker) {
+		c.jobRunner.Try(logger, container.WorkerName(), JobFunc(func(workerClient worker.Worker) {
 			cLog := logger.Session("destroy-container", lager.Data{
 				"container": container.Handle(),
 				"worker":    workerClient.Name(),
 			})
 
-			c.tryToDestroyContainer(cLog, container, workerClient)
+			tryToDestroyContainer(cLog, container, workerClient.GardenClient())
 		}))
 	}
 
 	return nil
 }
 
-func (c *containerCollector) markHijackedContainerAsDestroying(
+func markHijackedContainerAsDestroying(
 	logger lager.Logger,
 	hijackedContainer db.CreatedContainer,
-	workerClient worker.Client,
+	gardenClient garden.Client,
 ) (db.DestroyingContainer, error) {
-	gardenContainer, found, err := workerClient.FindContainerByHandle(logger, hijackedContainer.TeamID(), hijackedContainer.Handle())
+	gardenContainer, found, err := findContainer(gardenClient, hijackedContainer.Handle())
 	if err != nil {
-		logger.Error("failed-to-lookup-garden-container", err)
+		logger.Error("failed-to-lookup-container-in-garden", err)
 		return nil, err
 	}
 
@@ -183,31 +184,41 @@ func (c *containerCollector) markHijackedContainerAsDestroying(
 	return nil, nil
 }
 
-func (c *containerCollector) tryToDestroyContainer(logger lager.Logger, container db.DestroyingContainer, workerClient worker.Client) {
+func tryToDestroyContainer(
+	logger lager.Logger,
+	container db.DestroyingContainer,
+	gardenClient garden.Client,
+) {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	gardenContainer, found, err := workerClient.FindContainerByHandle(logger, container.TeamID(), container.Handle())
-	if err != nil {
-		logger.Error("failed-to-lookup-container-in-garden", err)
-		return
-	}
+	if container.IsDiscontinued() {
+		logger.Debug("discontinued")
 
-	if !found {
-		logger.Debug("container-no-longer-present-in-garden")
-	} else {
-		if container.IsDiscontinued() {
-			logger.Debug("waiting-for-garden-to-reap-it")
+		_, found, err := findContainer(gardenClient, container.Handle())
+		if err != nil {
+			logger.Error("failed-to-lookup-container-in-garden", err)
+			return
+		}
+
+		if found {
+			logger.Debug("still-present-in-garden")
 			return
 		} else {
-			err := gardenContainer.Destroy()
-			if err != nil {
+			logger.Debug("container-no-longer-present-in-garden")
+		}
+	} else {
+		err := gardenClient.Destroy(container.Handle())
+		if err != nil {
+			if _, ok := err.(garden.ContainerNotFoundError); ok {
+				logger.Debug("container-no-longer-present-in-garden")
+			} else {
 				logger.Error("failed-to-destroy-garden-container", err)
 				return
 			}
-
-			logger.Debug("destroyed-in-garden")
 		}
+
+		logger.Debug("destroyed-in-garden")
 	}
 
 	ok, err := container.Destroy()
@@ -222,4 +233,17 @@ func (c *containerCollector) tryToDestroyContainer(logger lager.Logger, containe
 	}
 
 	logger.Debug("destroyed-in-db")
+}
+
+func findContainer(gardenClient garden.Client, handle string) (garden.Container, bool, error) {
+	gardenContainer, err := gardenClient.Lookup(handle)
+	if err != nil {
+		if _, ok := err.(garden.ContainerNotFoundError); ok {
+			return nil, false, nil
+		} else {
+			return nil, false, err
+		}
+	}
+
+	return gardenContainer, true, nil
 }

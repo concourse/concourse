@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/baggageclaim"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
@@ -55,12 +57,17 @@ type Worker interface {
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
+
+	GardenClient() garden.Client
+	BaggageclaimClient() baggageclaim.Client
 }
 
 type gardenWorker struct {
 	containerProviderFactory ContainerProviderFactory
+	gardenClient             garden.Client
 
-	volumeClient VolumeClient
+	volumeClient       VolumeClient
+	baggageclaimClient baggageclaim.Client
 
 	provider WorkerProvider
 
@@ -89,11 +96,15 @@ func NewGardenWorker(
 	name string,
 	startTime int64,
 	version *string,
+	gardenClient garden.Client,
+	baggageclaimClient baggageclaim.Client,
 ) Worker {
 	return &gardenWorker{
 		containerProviderFactory: containerProviderFactory,
+		gardenClient:             gardenClient,
 
-		volumeClient: volumeClient,
+		volumeClient:       volumeClient,
+		baggageclaimClient: baggageclaimClient,
 
 		provider:         provider,
 		clock:            clock,
@@ -106,6 +117,14 @@ func NewGardenWorker(
 		startTime:        startTime,
 		version:          version,
 	}
+}
+
+func (worker *gardenWorker) GardenClient() garden.Client {
+	return worker.gardenClient
+}
+
+func (worker *gardenWorker) BaggageclaimClient() baggageclaim.Client {
+	return worker.baggageclaimClient
 }
 
 func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVersion *version.Version) bool {

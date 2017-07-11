@@ -6,11 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
@@ -233,6 +235,24 @@ type FakeWorker struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error
+	}
+	GardenClientStub        func() garden.Client
+	gardenClientMutex       sync.RWMutex
+	gardenClientArgsForCall []struct{}
+	gardenClientReturns     struct {
+		result1 garden.Client
+	}
+	gardenClientReturnsOnCall map[int]struct {
+		result1 garden.Client
+	}
+	BaggageclaimClientStub        func() baggageclaim.Client
+	baggageclaimClientMutex       sync.RWMutex
+	baggageclaimClientArgsForCall []struct{}
+	baggageclaimClientReturns     struct {
+		result1 baggageclaim.Client
+	}
+	baggageclaimClientReturnsOnCall map[int]struct {
+		result1 baggageclaim.Client
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -1057,6 +1077,86 @@ func (fake *FakeWorker) FindVolumeForTaskCacheReturnsOnCall(i int, result1 worke
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorker) GardenClient() garden.Client {
+	fake.gardenClientMutex.Lock()
+	ret, specificReturn := fake.gardenClientReturnsOnCall[len(fake.gardenClientArgsForCall)]
+	fake.gardenClientArgsForCall = append(fake.gardenClientArgsForCall, struct{}{})
+	fake.recordInvocation("GardenClient", []interface{}{})
+	fake.gardenClientMutex.Unlock()
+	if fake.GardenClientStub != nil {
+		return fake.GardenClientStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.gardenClientReturns.result1
+}
+
+func (fake *FakeWorker) GardenClientCallCount() int {
+	fake.gardenClientMutex.RLock()
+	defer fake.gardenClientMutex.RUnlock()
+	return len(fake.gardenClientArgsForCall)
+}
+
+func (fake *FakeWorker) GardenClientReturns(result1 garden.Client) {
+	fake.GardenClientStub = nil
+	fake.gardenClientReturns = struct {
+		result1 garden.Client
+	}{result1}
+}
+
+func (fake *FakeWorker) GardenClientReturnsOnCall(i int, result1 garden.Client) {
+	fake.GardenClientStub = nil
+	if fake.gardenClientReturnsOnCall == nil {
+		fake.gardenClientReturnsOnCall = make(map[int]struct {
+			result1 garden.Client
+		})
+	}
+	fake.gardenClientReturnsOnCall[i] = struct {
+		result1 garden.Client
+	}{result1}
+}
+
+func (fake *FakeWorker) BaggageclaimClient() baggageclaim.Client {
+	fake.baggageclaimClientMutex.Lock()
+	ret, specificReturn := fake.baggageclaimClientReturnsOnCall[len(fake.baggageclaimClientArgsForCall)]
+	fake.baggageclaimClientArgsForCall = append(fake.baggageclaimClientArgsForCall, struct{}{})
+	fake.recordInvocation("BaggageclaimClient", []interface{}{})
+	fake.baggageclaimClientMutex.Unlock()
+	if fake.BaggageclaimClientStub != nil {
+		return fake.BaggageclaimClientStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.baggageclaimClientReturns.result1
+}
+
+func (fake *FakeWorker) BaggageclaimClientCallCount() int {
+	fake.baggageclaimClientMutex.RLock()
+	defer fake.baggageclaimClientMutex.RUnlock()
+	return len(fake.baggageclaimClientArgsForCall)
+}
+
+func (fake *FakeWorker) BaggageclaimClientReturns(result1 baggageclaim.Client) {
+	fake.BaggageclaimClientStub = nil
+	fake.baggageclaimClientReturns = struct {
+		result1 baggageclaim.Client
+	}{result1}
+}
+
+func (fake *FakeWorker) BaggageclaimClientReturnsOnCall(i int, result1 baggageclaim.Client) {
+	fake.BaggageclaimClientStub = nil
+	if fake.baggageclaimClientReturnsOnCall == nil {
+		fake.baggageclaimClientReturnsOnCall = make(map[int]struct {
+			result1 baggageclaim.Client
+		})
+	}
+	fake.baggageclaimClientReturnsOnCall[i] = struct {
+		result1 baggageclaim.Client
+	}{result1}
+}
+
 func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1094,6 +1194,10 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.findVolumeForResourceCacheMutex.RUnlock()
 	fake.findVolumeForTaskCacheMutex.RLock()
 	defer fake.findVolumeForTaskCacheMutex.RUnlock()
+	fake.gardenClientMutex.RLock()
+	defer fake.gardenClientMutex.RUnlock()
+	fake.baggageclaimClientMutex.RLock()
+	defer fake.baggageclaimClientMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

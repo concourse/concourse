@@ -132,7 +132,10 @@ type ATCCommand struct {
 
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 
-	GCInterval time.Duration `long:"gc-interval" default:"30s" description:"Interval on which to perform garbage collection."`
+	GC struct {
+		Interval          time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
+		WorkerConcurrency int           `long:"worker-concurrency" default:"50" description:"Maximum number of delete operations to have in flight per worker."`
+	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
 }
@@ -519,7 +522,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				gc.NewContainerCollector(
 					logger.Session("container-collector"),
 					dbContainerFactory,
-					gc.NewWorkerPool(logger.Session("worker-pool"), workerClient, 5),
+					gc.NewWorkerJobRunner(
+						logger.Session("worker-job-runner"),
+						workerClient,
+						time.Minute,
+						cmd.GC.WorkerConcurrency,
+					),
 				),
 				gc.NewResourceConfigCheckSessionCollector(
 					logger.Session("resource-config-check-session-collector"),
@@ -529,7 +537,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			"collector",
 			lockFactory,
 			clock.NewClock(),
-			cmd.GCInterval,
+			cmd.GC.Interval,
 		)},
 
 		{"build-reaper", lockrunner.NewRunner(

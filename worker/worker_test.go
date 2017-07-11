@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/garden/gardenfakes"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
@@ -12,6 +13,7 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
 
 	. "github.com/onsi/ginkgo"
@@ -39,6 +41,8 @@ var _ = Describe("Worker", func() {
 		workerUptime                 uint64
 		gardenWorker                 Worker
 		workerVersion                string
+		fakeGardenClient             *gardenfakes.FakeClient
+		fakeBaggageClaimClient       *baggageclaimfakes.FakeClient
 	)
 
 	BeforeEach(func() {
@@ -68,6 +72,8 @@ var _ = Describe("Worker", func() {
 		fakeContainerProvider = new(wfakes.FakeContainerProvider)
 		fakeContainerProviderFactory = new(wfakes.FakeContainerProviderFactory)
 		fakeContainerProviderFactory.ContainerProviderForReturns(fakeContainerProvider)
+		fakeGardenClient = new(gardenfakes.FakeClient)
+		fakeBaggageClaimClient = new(baggageclaimfakes.FakeClient)
 	})
 
 	JustBeforeEach(func() {
@@ -84,6 +90,8 @@ var _ = Describe("Worker", func() {
 			workerName,
 			workerStartTime,
 			&workerVersion,
+			fakeGardenClient,
+			fakeBaggageClaimClient,
 		)
 
 		fakeClock.IncrementBySeconds(workerUptime)

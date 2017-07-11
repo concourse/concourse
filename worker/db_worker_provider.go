@@ -148,7 +148,7 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 		provider.retryBackOffFactory,
 	)
 
-	connection := NewRetryableConnection(gcf.BuildConnection())
+	gClient := gclient.New(NewRetryableConnection(gcf.BuildConnection()))
 
 	bClient := bclient.New("", transport.NewBaggageclaimRoundTripper(
 		savedWorker.Name(),
@@ -171,7 +171,7 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 	)
 
 	containerProviderFactory := NewContainerProviderFactory(
-		gclient.New(connection),
+		gClient,
 		bClient,
 		volumeClient,
 		provider.imageFactory,
@@ -199,5 +199,7 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 		savedWorker.Name(),
 		savedWorker.StartTime(),
 		savedWorker.Version(),
+		gClient,
+		bClient,
 	)
 }

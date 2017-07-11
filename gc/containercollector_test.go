@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 	"github.com/concourse/atc/gc/gcfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
@@ -19,12 +20,10 @@ import (
 
 var _ = Describe("ContainerCollector", func() {
 	var (
-		fakeWorkerProvider      *dbfakes.FakeWorkerFactory
-		fakeContainerFactory    *gcfakes.FakeContainerFactory
-		fakeGardenClientFactory gc.GardenClientFactory
+		fakeContainerFactory *gcfakes.FakeContainerFactory
+		fakeJobRunner        *gcfakes.FakeWorkerJobRunner
 
-		fakeGardenClient *gardenfakes.FakeClient
-		logger           *lagertest.TestLogger
+		logger *lagertest.TestLogger
 
 		creatingContainer               *dbfakes.FakeCreatingContainer
 		createdContainerFromCreating    *dbfakes.FakeCreatedContainer
@@ -35,42 +34,24 @@ var _ = Describe("ContainerCollector", func() {
 
 		destroyingContainer *dbfakes.FakeDestroyingContainer
 
-		fakeWorker1 *dbfakes.FakeWorker
-		fakeWorker2 *dbfakes.FakeWorker
-
-		gardenAddr string
-
-		gardenClientFactoryCallCount int
-		gardenClientFactoryArgs      []db.Worker
+		fakeWorker       *workerfakes.FakeWorker
+		fakeGardenClient *gardenfakes.FakeClient
 
 		collector gc.Collector
 	)
 
 	BeforeEach(func() {
-		fakeWorkerProvider = new(dbfakes.FakeWorkerFactory)
 		fakeContainerFactory = new(gcfakes.FakeContainerFactory)
 
+		fakeWorker = new(workerfakes.FakeWorker)
 		fakeGardenClient = new(gardenfakes.FakeClient)
-		gardenClientFactoryCallCount = 0
-		gardenClientFactoryArgs = nil
-		fakeGardenClientFactory = func(worker db.Worker, logger lager.Logger) (garden.Client, error) {
-			gardenClientFactoryCallCount++
-			gardenClientFactoryArgs = append(gardenClientFactoryArgs, worker)
-
-			return fakeGardenClient, nil
+		fakeWorker.GardenClientReturns(fakeGardenClient)
+		fakeJobRunner = new(gcfakes.FakeWorkerJobRunner)
+		fakeJobRunner.TryStub = func(logger lager.Logger, workerName string, job gc.Job) {
+			job.Run(fakeWorker)
 		}
 
 		logger = lagertest.NewTestLogger("test")
-
-		gardenAddr = "127.0.0.1"
-
-		fakeWorker1 = new(dbfakes.FakeWorker)
-		fakeWorker1.NameReturns("foo")
-		fakeWorker1.GardenAddrReturns(&gardenAddr)
-
-		fakeWorker2 = new(dbfakes.FakeWorker)
-		fakeWorker2.NameReturns("bar")
-		fakeWorker2.GardenAddrReturns(&gardenAddr)
 
 		creatingContainer = new(dbfakes.FakeCreatingContainer)
 		creatingContainer.HandleReturns("some-handle-1")
@@ -78,6 +59,7 @@ var _ = Describe("ContainerCollector", func() {
 		createdContainerFromCreating = new(dbfakes.FakeCreatedContainer)
 		creatingContainer.CreatedReturns(createdContainerFromCreating, nil)
 		createdContainerFromCreating.HandleReturns("some-handle-1")
+		createdContainerFromCreating.WorkerNameReturns("foo")
 
 		destroyingContainerFromCreating = new(dbfakes.FakeDestroyingContainer)
 		createdContainerFromCreating.DestroyingReturns(destroyingContainerFromCreating, nil)
@@ -109,7 +91,6 @@ var _ = Describe("ContainerCollector", func() {
 			},
 			nil,
 		)
-		fakeWorkerProvider.WorkersReturns([]db.Worker{fakeWorker1, fakeWorker2}, nil)
 
 		destroyingContainerFromCreating.DestroyReturns(true, nil)
 		destroyingContainerFromCreated.DestroyReturns(true, nil)
@@ -118,8 +99,7 @@ var _ = Describe("ContainerCollector", func() {
 		collector = gc.NewContainerCollector(
 			logger,
 			fakeContainerFactory,
-			fakeWorkerProvider,
-			fakeGardenClientFactory,
+			fakeJobRunner,
 		)
 	})
 
@@ -189,15 +169,18 @@ var _ = Describe("ContainerCollector", func() {
 
 			Expect(destroyingContainer.DestroyCallCount()).To(Equal(1))
 
-			Expect(gardenClientFactoryCallCount).To(Equal(3))
-			Expect(gardenClientFactoryArgs[0]).To(Equal(fakeWorker2))
-			Expect(gardenClientFactoryArgs[1]).To(Equal(fakeWorker1))
-			Expect(gardenClientFactoryArgs[2]).To(Equal(fakeWorker1))
+			Expect(fakeJobRunner.TryCallCount()).To(Equal(3))
+			_, try1Worker, _ := fakeJobRunner.TryArgsForCall(0)
+			Expect(try1Worker).To(Equal("foo"))
+			_, try2Worker, _ := fakeJobRunner.TryArgsForCall(1)
+			Expect(try2Worker).To(Equal("foo"))
+			_, try3Worker, _ := fakeJobRunner.TryArgsForCall(2)
+			Expect(try3Worker).To(Equal("bar"))
 
 			Expect(fakeGardenClient.DestroyCallCount()).To(Equal(3))
-			Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle-3"))
-			Expect(fakeGardenClient.DestroyArgsForCall(1)).To(Equal("some-handle-2"))
-			Expect(fakeGardenClient.DestroyArgsForCall(2)).To(Equal("some-handle-1"))
+			Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle-2"))
+			Expect(fakeGardenClient.DestroyArgsForCall(1)).To(Equal("some-handle-1"))
+			Expect(fakeGardenClient.DestroyArgsForCall(2)).To(Equal("some-handle-3"))
 		})
 
 		Context("when there are destroying containers that are discontinued", func() {
@@ -242,113 +225,7 @@ var _ = Describe("ContainerCollector", func() {
 			It("returns and logs the error", func() {
 				Expect(err).To(MatchError("some-error"))
 				Expect(fakeContainerFactory.FindContainersForDeletionCallCount()).To(Equal(1))
-				Expect(gardenClientFactoryCallCount).To(Equal(0))
-				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("when getting workers errors", func() {
-			BeforeEach(func() {
-				fakeWorkerProvider.WorkersReturns(nil, errors.New("some-error"))
-			})
-
-			It("returns and logs the error", func() {
-				Expect(err).To(MatchError("some-error"))
-				Expect(fakeContainerFactory.FindContainersForDeletionCallCount()).To(Equal(0))
-				Expect(gardenClientFactoryCallCount).To(Equal(0))
-				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("when a container's worker is not found", func() {
-			BeforeEach(func() {
-				fakeWorkerProvider.WorkersReturns([]db.Worker{fakeWorker2}, nil)
-			})
-
-			It("continues destroying the rest of the containers", func() {
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(gardenClientFactoryCallCount).To(Equal(1))
-				Expect(gardenClientFactoryArgs[0]).To(Equal(fakeWorker2))
-				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
-				Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle-3"))
-				Expect(destroyingContainerFromCreating.DestroyCallCount()).To(Equal(0))
-				Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(0))
-				Expect(destroyingContainer.DestroyCallCount()).To(Equal(1))
-			})
-		})
-
-		Context("when a container's worker is stalled", func() {
-			BeforeEach(func() {
-				fakeWorker1.StateReturns(db.WorkerStateStalled)
-			})
-
-			It("continues destroying the rest of the containers", func() {
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(gardenClientFactoryCallCount).To(Equal(1))
-				Expect(gardenClientFactoryArgs[0]).To(Equal(fakeWorker2))
-				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
-				Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle-3"))
-				Expect(destroyingContainerFromCreating.DestroyCallCount()).To(Equal(0))
-				Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(0))
-				Expect(destroyingContainer.DestroyCallCount()).To(Equal(1))
-			})
-		})
-
-		Context("when a container's worker is landed", func() {
-			BeforeEach(func() {
-				fakeWorker1.StateReturns(db.WorkerStateLanded)
-			})
-
-			It("continues destroying the rest of the containers", func() {
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(gardenClientFactoryCallCount).To(Equal(1))
-				Expect(gardenClientFactoryArgs[0]).To(Equal(fakeWorker2))
-				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
-				Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle-3"))
-				Expect(destroyingContainerFromCreating.DestroyCallCount()).To(Equal(0))
-				Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(0))
-				Expect(destroyingContainer.DestroyCallCount()).To(Equal(1))
-			})
-		})
-
-		Context("when getting a garden client for a worker errors", func() {
-			BeforeEach(func() {
-				fakeGardenClientFactory = func(worker db.Worker, logger lager.Logger) (garden.Client, error) {
-					gardenClientFactoryCallCount++
-					gardenClientFactoryArgs = append(gardenClientFactoryArgs, worker)
-
-					if gardenClientFactoryCallCount == 1 {
-						return nil, errors.New("some-error")
-					}
-
-					return fakeGardenClient, nil
-				}
-
-				collector = gc.NewContainerCollector(
-					logger,
-					fakeContainerFactory,
-					fakeWorkerProvider,
-					fakeGardenClientFactory,
-				)
-			})
-
-			It("continues destroying the rest of the containers", func() {
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(gardenClientFactoryCallCount).To(Equal(3))
-				Expect(gardenClientFactoryArgs[0]).To(Equal(fakeWorker2))
-				Expect(gardenClientFactoryArgs[1]).To(Equal(fakeWorker1))
-				Expect(gardenClientFactoryArgs[2]).To(Equal(fakeWorker1))
-
-				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(2))
-				Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle-2"))
-				Expect(fakeGardenClient.DestroyArgsForCall(1)).To(Equal("some-handle-1"))
-				Expect(destroyingContainerFromCreating.DestroyCallCount()).To(Equal(1))
-				Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(1))
-				Expect(destroyingContainer.DestroyCallCount()).To(Equal(0))
+				Expect(fakeJobRunner.TryCallCount()).To(Equal(0))
 			})
 		})
 
@@ -371,7 +248,7 @@ var _ = Describe("ContainerCollector", func() {
 			It("continues destroying the rest of the containers", func() {
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(gardenClientFactoryCallCount).To(Equal(3))
+				Expect(fakeJobRunner.TryCallCount()).To(Equal(3))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(3))
 
 				Expect(destroyingContainerFromCreating.DestroyCallCount()).To(Equal(0))
@@ -399,7 +276,7 @@ var _ = Describe("ContainerCollector", func() {
 			It("deletes container from database", func() {
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(gardenClientFactoryCallCount).To(Equal(3))
+				Expect(fakeJobRunner.TryCallCount()).To(Equal(3))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(3))
 
 				Expect(destroyingContainerFromCreating.DestroyCallCount()).To(Equal(1))
@@ -416,7 +293,7 @@ var _ = Describe("ContainerCollector", func() {
 			It("continues destroying the rest of the containers", func() {
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(gardenClientFactoryCallCount).To(Equal(3))
+				Expect(fakeJobRunner.TryCallCount()).To(Equal(3))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(3))
 				Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(1))
 				Expect(destroyingContainer.DestroyCallCount()).To(Equal(1))
@@ -431,7 +308,7 @@ var _ = Describe("ContainerCollector", func() {
 			It("continues destroying the rest of the containers", func() {
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(gardenClientFactoryCallCount).To(Equal(3))
+				Expect(fakeJobRunner.TryCallCount()).To(Equal(3))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(3))
 				Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(1))
 				Expect(destroyingContainer.DestroyCallCount()).To(Equal(1))
