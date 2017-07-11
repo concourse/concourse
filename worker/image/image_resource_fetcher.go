@@ -144,7 +144,7 @@ func (i *imageResourceFetcher) Fetch(
 		i.imageResource.Type,
 		version,
 		source,
-		atc.Params{},
+		i.imageResource.Params,
 		i.customTypes,
 	)
 	if err != nil {
@@ -156,7 +156,7 @@ func (i *imageResourceFetcher) Fetch(
 		resource.ResourceType(i.imageResource.Type),
 		version,
 		source,
-		atc.Params{},
+		i.imageResource.Params,
 		i.resourceUser,
 		db.NewImageGetContainerOwner(container),
 		i.customTypes,

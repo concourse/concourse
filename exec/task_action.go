@@ -318,6 +318,7 @@ func (action *TaskAction) containerSpec(logger lager.Logger, repository *worker.
 		imageSpec.ImageResource = &worker.ImageResource{
 			Type:   config.ImageResource.Type,
 			Source: creds.NewSource(action.variables, config.ImageResource.Source),
+			Params: config.ImageResource.Params,
 		}
 	} else if config.RootfsURI != "" {
 		imageSpec.ImageURL = config.RootfsURI

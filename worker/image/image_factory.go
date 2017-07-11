@@ -59,11 +59,6 @@ func (f *imageFactory) GetImage(
 	// check if custom resource
 	resourceType, found := resourceTypes.Lookup(imageSpec.ResourceType)
 	if found {
-		// source, err := resourceType.Source.Evaluate()
-		// if err != nil {
-		// 	return nil, err
-		// }
-		//
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
 			workerClient,
 			resourceUser,

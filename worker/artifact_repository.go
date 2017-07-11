@@ -43,7 +43,7 @@ func (repo *ArtifactRepository) RegisterSource(name ArtifactName, source Artifac
 	repo.repoL.Unlock()
 }
 
-// SourceFor looks up an Source for the given ArtifactName. Consumers of
+// SourceFor looks up a Source for the given ArtifactName. Consumers of
 // artifacts, e.g. the Task step, will call this to locate their dependencies.
 func (repo *ArtifactRepository) SourceFor(name ArtifactName) (ArtifactSource, bool) {
 	repo.repoL.RLock()

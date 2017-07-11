@@ -151,6 +151,7 @@ var _ = Describe("TaskAction", func() {
 				ImageResource: &atc.ImageResource{
 					Type:   "docker",
 					Source: atc.Source{"some": "((source-param))"},
+					Params: atc.Params{"some": "params"},
 				},
 				Params: map[string]string{
 					"SECURE": "((task-param))",
@@ -209,6 +210,7 @@ var _ = Describe("TaskAction", func() {
 						ImageResource: &worker.ImageResource{
 							Type:   "docker",
 							Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
+							Params: atc.Params{"some": "params"},
 						},
 						Privileged: false,
 					},
@@ -1147,6 +1149,7 @@ var _ = Describe("TaskAction", func() {
 											ImageResource: &atc.ImageResource{
 												Type:   "docker",
 												Source: atc.Source{"some": "super-secret-source"},
+												Params: atc.Params{"some": "params"},
 											},
 											Params: map[string]string{"SOME": "params"},
 											Run: atc.TaskRunConfig{
@@ -1175,6 +1178,7 @@ var _ = Describe("TaskAction", func() {
 											ImageResource: &atc.ImageResource{
 												Type:   "docker",
 												Source: atc.Source{"some": "super-secret-source"},
+												Params: atc.Params{"some": "params"},
 											},
 											Params: map[string]string{"SOME": "params"},
 											Run: atc.TaskRunConfig{

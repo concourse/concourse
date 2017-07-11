@@ -39,6 +39,7 @@ type TaskConfig struct {
 type ImageResource struct {
 	Type   string `yaml:"type" json:"type" mapstructure:"type"`
 	Source Source `yaml:"source" json:"source" mapstructure:"source"`
+	Params Params `yaml:"params" json:"params" mapstructure:"params"`
 }
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {

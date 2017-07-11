@@ -84,6 +84,7 @@ var _ = Describe("Image", func() {
 		imageResource = worker.ImageResource{
 			Type:   "docker",
 			Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
+			Params: atc.Params{"some": "params"},
 		}
 		version = nil
 		signals = make(chan os.Signal)
@@ -311,7 +312,7 @@ var _ = Describe("Image", func() {
 										"docker",
 										atc.Version{"v": "1"},
 										atc.Source{"some": "super-secret-sauce"},
-										atc.Params{},
+										atc.Params{"some": "params"},
 										db.ForBuild(42),
 										db.NewImageGetContainerOwner(fakeCreatingContainer),
 										customTypes,
@@ -321,7 +322,7 @@ var _ = Describe("Image", func() {
 									Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 									expectedLockName := fmt.Sprintf("%x",
 										sha256.Sum256([]byte(
-											`{"type":"docker","version":{"v":"1"},"source":{"some":"super-secret-sauce"},"worker_name":"fake-worker-name"}`,
+											`{"type":"docker","version":{"v":"1"},"source":{"some":"super-secret-sauce"},"params":{"some":"params"},"worker_name":"fake-worker-name"}`,
 										)),
 									)
 									Expect(resourceInstance.LockName("fake-worker-name")).To(Equal(expectedLockName))
@@ -574,7 +575,7 @@ var _ = Describe("Image", func() {
 							"docker",
 							atc.Version{"some": "version"},
 							atc.Source{"some": "super-secret-sauce"},
-							atc.Params{},
+							atc.Params{"some": "params"},
 							db.ForBuild(42),
 							db.NewImageGetContainerOwner(fakeCreatingContainer),
 							customTypes,

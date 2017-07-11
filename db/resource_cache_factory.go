@@ -11,8 +11,6 @@ import (
 	"github.com/lib/pq"
 )
 
-var EmptyParamsHash = mapHash(atc.Params{})
-
 //go:generate counterfeiter . ResourceCacheFactory
 
 type ResourceCacheFactory interface {
