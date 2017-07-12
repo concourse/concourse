@@ -74,6 +74,20 @@ var _ = Describe("AddNonceAndPublicPlanToBuilds", func() {
 			engineMetadataJSON, err = json.Marshal(engineMetadata)
 			Expect(err).NotTo(HaveOccurred())
 
+			//put 1000 entries in the table to make sure batching works
+			for i := 0; i < 1000; i++ {
+				err = dbConn.
+					QueryRow(
+						`INSERT INTO builds (name, status, team_id, engine, engine_metadata) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+						fmt.Sprintf("%d", i),
+						db.BuildStatusSucceeded,
+						teamID,
+						"exec.v2",
+						engineMetadataJSON,
+					).Scan(&buildID)
+				Expect(err).NotTo(HaveOccurred())
+			}
+
 			statuses := []db.BuildStatus{
 				db.BuildStatusStarted,
 				db.BuildStatusSucceeded,
@@ -193,6 +207,21 @@ var _ = Describe("AddNonceAndPublicPlanToBuilds", func() {
 
 				Expect(publicPlanJSON).To(Equal([]byte("{}")))
 			})
+		})
+
+		It("Creates a public plan for all builds", func() {
+			var count int
+			err := dbConn.QueryRow(`
+				SELECT COUNT(*)
+				FROM builds
+				WHERE public_plan IS NOT NULL
+				AND status='succeeded'
+				AND engine='exec.v2'
+				`).
+				Scan(&count)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(count).To(BeNumerically(">", 1000))
 		})
 	})
 })
