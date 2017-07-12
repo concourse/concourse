@@ -516,14 +516,18 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				gc.NewVolumeCollector(
 					logger.Session("volume-collector"),
 					dbVolumeFactory,
-					dbWorkerFactory,
-					gc.NewBaggageclaimClientFactory(dbWorkerFactory),
+					gc.NewWorkerJobRunner(
+						logger.Session("volume-collector-worker-job-runner"),
+						workerClient,
+						time.Minute,
+						cmd.GC.WorkerConcurrency,
+					),
 				),
 				gc.NewContainerCollector(
 					logger.Session("container-collector"),
 					dbContainerFactory,
 					gc.NewWorkerJobRunner(
-						logger.Session("worker-job-runner"),
+						logger.Session("container-collector-worker-job-runner"),
 						workerClient,
 						time.Minute,
 						cmd.GC.WorkerConcurrency,

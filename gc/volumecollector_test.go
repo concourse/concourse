@@ -4,11 +4,13 @@ import (
 	"errors"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 	"github.com/concourse/atc/gc/gcfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -18,17 +20,20 @@ import (
 var _ = Describe("VolumeCollector", func() {
 	var (
 		volumeCollector gc.Collector
+		fakeJobRunner   *gcfakes.FakeWorkerJobRunner
 
-		volumeFactory          db.VolumeFactory
-		containerFactory       db.ContainerFactory
-		workerFactory          db.WorkerFactory
-		fakeBCVolume           *baggageclaimfakes.FakeVolume
+		volumeFactory      db.VolumeFactory
+		containerFactory   db.ContainerFactory
+		workerFactory      db.WorkerFactory
+		fakeBCVolume       *baggageclaimfakes.FakeVolume
+		createdVolume      db.CreatedVolume
+		creatingContainer1 db.CreatingContainer
+		creatingContainer2 db.CreatingContainer
+		team               db.Team
+		worker             db.Worker
+
+		fakeWorker             *workerfakes.FakeWorker
 		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
-		createdVolume          db.CreatedVolume
-		creatingContainer1     db.CreatingContainer
-		creatingContainer2     db.CreatingContainer
-		team                   db.Team
-		worker                 db.Worker
 	)
 
 	BeforeEach(func() {
@@ -39,18 +44,23 @@ var _ = Describe("VolumeCollector", func() {
 		workerFactory = db.NewWorkerFactory(dbConn)
 
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
-		fakeBaggageclaimClientFactory := new(gcfakes.FakeBaggageclaimClientFactory)
-		fakeBaggageclaimClientFactory.NewClientReturns(fakeBaggageclaimClient)
 
 		fakeBCVolume = new(baggageclaimfakes.FakeVolume)
+
+		fakeWorker = new(workerfakes.FakeWorker)
 		fakeBaggageclaimClient.LookupVolumeReturns(fakeBCVolume, true, nil)
+		fakeWorker.BaggageclaimClientReturns(fakeBaggageclaimClient)
+
+		fakeJobRunner = new(gcfakes.FakeWorkerJobRunner)
+		fakeJobRunner.TryStub = func(logger lager.Logger, workerName string, job gc.Job) {
+			job.Run(fakeWorker)
+		}
 
 		logger := lagertest.NewTestLogger("volume-collector")
 		volumeCollector = gc.NewVolumeCollector(
 			logger,
 			volumeFactory,
-			workerFactory,
-			fakeBaggageclaimClientFactory,
+			fakeJobRunner,
 		)
 	})
 
