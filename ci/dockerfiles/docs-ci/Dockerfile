@@ -1,11 +1,8 @@
-FROM rubinius/docker
+FROM golang:1
 
-RUN locale-gen en_US.UTF-8
-RUN dpkg-reconfigure locales
-ENV LANG en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
+RUN go version
+RUN apt-get update && apt-get -y install python3 python3-pip
+RUN pip3 install pygments
+RUN pygmentize -V
 
-RUN apt-get update && apt-get -y install libedit-dev build-essential ca-certificates
-
-RUN gem install anatomy
-RUN anatomy --version
+RUN go get github.com/vito/booklit/cmd/booklit
