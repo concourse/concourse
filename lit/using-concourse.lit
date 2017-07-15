@@ -1,0 +1,22 @@
+\title{Using Concourse}{using-concourse}
+
+Now that you're all \reference{setting-up}{set up} and have a Concourse
+running, it's time to see what this thing can do.
+
+As per tradition, there is a pretty useless \reference{hello-world}{Hello,
+world!} tutorial. This will at least show the basics of \code{fly}, which you
+can read more about in great detail at \reference{fly-cli}, so it's still worth
+a read.
+
+
+\include-section{./using-concourse/hello-world.lit}
+\include-section{./using-concourse/tutorials.lit}
+\include-section{./using-concourse/fly-cli.lit}
+\include-section{./using-concourse/running-tasks.lit}
+\include-section{./using-concourse/pipelines.lit}
+\include-section{./using-concourse/build-plans.lit}
+\include-section{./using-concourse/resource-types.lit}
+\include-section{./using-concourse/teams.lit}
+\include-section{./using-concourse/implementing-resources.lit}
+
+\split-sections

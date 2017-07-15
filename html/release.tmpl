@@ -1,0 +1,63 @@
+{{$downloadURL := "https://github.com/concourse/concourse/releases/download"}}
+
+<div class="section">
+  <div class="version-header">
+    <h1>
+      <a name="{{.PrimaryTag.Name}}"></a>
+      <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+    </h1>
+    <div class="version-info">{{.Partial "ReleaseDate" | render}}</div>
+  </div>
+
+  <div class="release">
+    <div class="notes">
+      <h2>Release Notes</h2>
+
+      {{.Body | render}}
+    </div>
+
+    <div class="downloads">
+      <h2>
+        Downloads
+        {{.Partial "VersionLabel" | render}}
+      </h2>
+
+      <div class="download-links">
+        <h3>Concourse Binaries</h3>
+
+        <ul>
+          <li><a href="{{$downloadURL}}/{{.Title.String}}/concourse_linux_amd64"><i class="fa fa-download"></i> Linux</a></li>
+          <li><a href="{{$downloadURL}}/{{.Title.String}}/concourse_windows_amd64.exe"><i class="fa fa-download"></i> Windows</a></li>
+          <li><a href="{{$downloadURL}}/{{.Title.String}}/concourse_darwin_amd64"><i class="fa fa-download"></i> OS X</a></li>
+        </ul>
+      </div>
+
+      {{if .Partial "HasFlyBinaries"}}
+      <div class="download-links">
+        <h3>Fly Binaries</h3>
+
+        <ul>
+          <li><a href="{{$downloadURL}}/{{.Title.String}}/fly_linux_amd64"><i class="fa fa-download"></i> Linux</a></li>
+          <li><a href="{{$downloadURL}}/{{.Title.String}}/fly_windows_amd64.exe"><i class="fa fa-download"></i> Windows</a></li>
+          <li><a href="{{$downloadURL}}/{{.Title.String}}/fly_darwin_amd64"><i class="fa fa-download"></i> OS X</a></li>
+        </ul>
+      </div>
+      {{end}}
+
+      <div class="download-links">
+        <h3>BOSH Releases</h3>
+
+        <ul>
+          <li>
+            <a href="{{$downloadURL}}/{{.Title.String}}/concourse-{{.Partial "Version" | render}}.tgz"><i class="fa fa-download"></i> Concourse</a>
+            {{.Partial "VersionLabel" | render}}
+          </li>
+          <li>
+            <a href="{{$downloadURL}}/{{.Title.String}}/{{.Partial "GardenReleaseFilename" | render}}-{{.Partial "GardenVersion" | render}}.tgz"><i class="fa fa-download"></i> {{.Partial "GardenReleaseName" | render}}</a>
+            {{.Partial "GardenVersionLabel" | render}}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

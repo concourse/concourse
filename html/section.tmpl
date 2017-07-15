@@ -1,0 +1,13 @@
+<div class="section" id="section_{{.PrimaryTag.Name}}">
+  <h{{headerDepth .}} class="section-header"><a name="{{.PrimaryTag.Name}}"></a>
+    {{.Title | render -}}
+  </h{{headerDepth .}}>
+
+  {{.Body | render}}
+
+  {{if not .SplitSections}}
+    {{range .Children}}
+      {{template "section.tmpl" .}}
+    {{end}}
+  {{end}}
+</div>

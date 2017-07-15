@@ -1,0 +1,41 @@
+\title{Tutorials}{tutorials}
+
+\use-plugin{concourse-docs}
+
+It can be hard to learn a new tool without having something you want to
+accomplish. These tutorials will at least guide you through particular use
+cases to show you how you'd use Concourse in real-world scenarios.
+
+\list{
+  \reference{flight-school}: an interactive example of testing and deploying a
+  Rails app
+}{
+  \reference{versioned-s3-artifacts}: a demonstration of how to semantically
+  version and publish a product
+}{
+  \link{Concourse
+  Tutorial}{https://github.com/starkandwayne/concourse-tutorial} by \link{Stark
+  & Wayne}{https://starkandwayne.com/}, which starts simple and iteratively
+  builds into more complex (and realistic) examples.
+}
+
+You may also want to just dive right in to some living, breathing Concourse pipelines. These aren't accompanied by documentation explaining them, but it may be useful just to see some real-world use cases:
+
+\list{
+  \link{Concourse's own CI pipelines}{https://github.com/concourse/pipelines}
+}{
+  \link{Cloud Foundry buildpacks CI}{https://github.com/cloudfoundry/buildpacks-ci}
+}{
+  \link{cloud.gov deployment pipelines}{https://github.com/18F?query=cg-deploy}
+}{
+  \link{18F's Compliance Toolkit pipelines}{https://github.com/18F/concourse-compliance-testing}
+}{
+  \link{Stark & Wayne's pipelines}{https://github.com/starkandwayne/?query=pipeline}
+}{
+  \link{More on GitHub}{https://github.com/search?q=concourse+pipeline&type=Repositories}
+}
+
+\split-sections
+
+\include-section{./tutorials/flight-school.lit}
+\include-section{./tutorials/versioned-s3-artifacts.lit}

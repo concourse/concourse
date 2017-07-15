@@ -1,0 +1,11 @@
+{{if and .Children (not .OmitChildrenFromTableOfContents)}}
+<ol{{if or .SplitSections (not .Parent)}} id="table-of-contents" class="toc"{{end}}>
+{{range .Children}}
+  <li>
+    <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+
+    {{template "toc.tmpl" .}}
+  </li>
+{{end}}
+</ol>
+{{end}}

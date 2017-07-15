@@ -1,0 +1,222 @@
+\title{Resource Types}{resource-types}
+
+\use-plugin{concourse-docs}
+
+The following is a list of both officially supported resource types that
+Concourse includes out of the box, and third-party resource types contributed
+by the community. At some point we'd like to put together some sort of
+registry. We're not there yet though, so a list will have to do.
+
+Be sure to read the \code{README} file for a resource to know what it does
+before using it!
+
+\section{
+  \title{Resources Provided With Concourse}
+
+  The following resource types come with Concourse out of the box, and are
+  officially supported by the Concourse team:
+
+  \list{
+    The \link{\code{git}}{https://github.com/concourse/git-resource} resource can
+    pull and push to git repositories.
+  }{
+    The \link{\code{hg}}{https://github.com/concourse/hg-resource} resource can
+    pull and push to Mercurial repositories.
+  }{
+    The \link{\code{time}}{https://github.com/concourse/time-resource} resource
+    can start jobs on a schedule or timestamp outputs.
+  }{
+    The \link{\code{s3}}{https://github.com/concourse/s3-resource} resource can
+    fetch from and upload to S3 buckets.
+  }{
+    The \link{\code{archive}}{https://github.com/concourse/archive-resource}
+    resource can fetch and extract .tar.gz archives.
+  }{
+    The \link{\code{semver}}{https://github.com/concourse/semver-resource}
+    resource can set or bump version numbers.
+  }{
+    The
+    \link{\code{github-release}}{https://github.com/concourse/github-release-resource}
+    resource can fetch and publish versioned GitHub resources.
+  }{
+    The
+    \link{\code{docker-image}}{https://github.com/concourse/docker-image-resource}
+    resource can fetch, build, and push Docker images
+  }{
+    The \link{\code{tracker}}{https://github.com/concourse/tracker-resource}
+    resource can deliver stories and bugs on Pivotal Tracker
+  }{
+    The \link{\code{pool}}{https://github.com/concourse/pool-resource} resource
+    allows you to configure how to serialize use of an external system. This
+    lets you prevent test interference or overwork on shared systems.
+  }{
+    The \link{\code{cf}}{https://github.com/concourse/cf-resource}
+    resource can deploy an application to Cloud Foundry.
+  }{
+    The
+    \link{\code{bosh-io-release}}{https://github.com/concourse/bosh-io-release-resource}
+    resource can track and fetch new BOSH releases from bosh.io.
+  }{
+    The
+    \link{\code{bosh-io-stemcell}}{https://github.com/concourse/bosh-io-stemcell-resource}
+    resource can track and fetch new BOSH stemcells from bosh.io.
+  }{
+    The
+    \link{\code{vagrant-cloud}}{https://github.com/concourse/vagrant-cloud-resource}
+    resource can fetch and publish Vagrant boxes to Atlas.
+  }
+}
+
+\section{
+  \title{Deprecated Resources Provided With Concourse}
+
+  The following resource types come with Concourse out of the box, but are deprecated:
+
+  \list{
+    The
+    \link{\code{bosh-deployment}}{https://github.com/concourse/bosh-deployment-resource}
+    resource can deploy BOSH stemcells and releases. (Please use \link{\code{cloudfoundry/bosh-deployment-resource}}{https://github.com/cloudfoundry/bosh-deployment-resource})
+  }
+}
+
+\section{
+  \title{Unsupported Community Resources}{community-resources}
+
+  \warn{
+    These are third-party resources. Use at your own risk!
+  }
+
+  \list{
+    \link{Slack notifications}{https://github.com/cloudfoundry-community/slack-notification-resource}
+  }{
+    \link{Pull Requests}{https://github.com/jtarchie/pullrequest-resource}
+  }{
+    \link{GitLab Merge Requests}{https://github.com/swisscom/gitlab-merge-request-resource}
+  }{
+    \link{OpenStack Swift}{https://github.com/sapcc/concourse-swift-resource}
+  }{
+    \link{Flowdock notifications}{https://github.com/starkandwayne/flowdock-concourse-notification-resource}
+  }{
+    \link{Email}{https://github.com/pivotal-cf/email-resource}
+  }{
+    \link{Formatted Email}{https://github.com/santoshjpawar/concourse-email-notification}
+  }{
+    \link{Email with integrated MTA}{https://github.com/mdomke/concourse-email-resource}
+  }{
+    \link{Bintray}{https://github.com/jamiemonserrate/bintray-resource}
+  }{
+    \link{Perforce}{https://github.com/olhtbr/p4-resource}
+  }{
+    \link{BOSH Errands}{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}
+  }{
+    \link{BOSH Config: cloud-config and runtime-config}{https://github.com/EMC-Dojo/bosh-config-resource}
+  }{
+    \link{Pool Trigger}{https://github.com/cfmobile/pool-trigger-resource}
+  }{
+    \link{Pivotal Network}{https://github.com/pivotal-cf-experimental/pivnet-resource}
+  }{
+    \link{FTP}{https://github.com/aequitas/concourse-ftp-resource}
+  }{
+    \link{Cloudformation}{https://github.com/pivotal-cf-experimental/cloudformation-resource}
+  }{
+    \link{Generic HTTP API}{https://github.com/aequitas/concourse-http-api-resource}
+  }{
+    \link{Hockey App}{https://github.com/seadowg/hockey-resource}
+  }{
+    \link{Concourse Pipelines}{https://github.com/robdimsdale/concourse-pipeline-resource}
+  }{
+    \link{Twitter}{https://github.com/ECSTeam/twitter-resource}
+  }{
+    \link{HipChat Notifications}{https://github.com/hpcloud/hipchat-notification-resource}
+  }{
+    \link{Matrix Notifications}{https://github.com/freelock/matrix-notification-resource}
+  }{
+    \link{Smuggler: generic resource framework}{https://github.com/redfactorlabs/concourse-smuggler-resource}
+  }{
+    \link{GitHub Commit Status}{https://github.com/dpb587/github-status-resource}
+  }{
+    \link{GitHub Deployment}{https://github.com/ahume/github-deployment-resource}
+  }{
+    \link{AMI Updates}{https://github.com/jdub/ami-resource}
+  }{
+    \link{Debian/Ubuntu Sources Updates}{https://github.com/jdub/debian-sources-resource}
+  }{
+    \link{Open Build Service}{https://github.com/SUSE/open-build-service-resource}
+  }{
+    \link{Travis-ci}{https://github.com/Orange-OpenSource/travis-resource}
+  }{
+    \link{Bitbucket Notifications}{https://github.com/karunamon/concourse-resource-bitbucket}
+  }{
+    \link{Terraform}{https://github.com/ljfranklin/terraform-resource}
+  }{
+    \link{Azure Blobstore}{https://github.com/pivotal-cloudops/azure-blobstore-concourse-resource}
+  }{
+    \link{Rsync}{https://github.com/mrsixw/concourse-rsync-resource}
+  }{
+    \link{Rsync: rsyncd, for local net}{https://github.com/chemist/rsync-resource}
+  }{
+    \link{PyPI Packages}{https://github.com/cf-platform-eng/concourse-pypi-resource}
+  }{
+    \link{Devpi Server: PyPI mirror and package server}{https://github.com/mdomke/concourse-devpi-resource}
+  }{
+    \link{Jira Integration}{https://github.com/danrspencer/jira-resource}
+  }{
+    \link{Google Drive}{https://github.com/jpatel-pivotal/google-drive-concourse-resource}
+  }{
+    \link{Google Calendar}{https://github.com/henrytk/calendar-resource}
+  }{
+    \link{pagerduty Notifications}{https://github.com/FidelityInternational/concourse-pagerduty-notification-resource}
+  }{
+    \link{Telegram}{https://github.com/w32blaster/telegram-notification-resource}
+  }{
+    \link{Telegram}{https://github.com/carlo-colombo/telegram-resource}
+  }{
+    \link{Google Cloud Storage}{https://github.com/frodenas/gcs-resource}
+  }{
+    \link{Fly}{https://github.com/troykinsella/concourse-fly-resource}
+  }{
+    \link{Kubernetes}{https://github.com/jcderr/concourse-kubernetes-resource}
+  }{
+    \link{Kubernetes Helm}{https://github.com/linkyard/concourse-helm-resource}
+  }{
+    \link{Vault}{https://github.com/Docurated/concourse-vault-resource}
+  }{
+    \link{AWS Key Management Service}{https://github.com/everpeace/aws-kms-resource}
+  }{
+    \link{Marathon}{https://github.com/ckaznocha/marathon-resource}
+  }{
+    \link{RSS}{https://github.com/suhlig/concourse-rss-resource}
+  }{
+    \link{Maven Resource}{https://github.com/Pivotal-Field-Engineering/maven-resource}
+  }{
+    \link{cURL File Resource}{https://github.com/pivotalservices/concourse-curl-resource}
+  link
+    \link{Pivnet Resource (rsamban)}{https://github.com/rsamban/pivnet-resource}
+  }{
+    \link{Cloud Foundry Events}{https://github.com/mevansam/cf-event-resource-type}
+  }{
+    \link{Apache Directory Index}{https://github.com/mastertinner/apache-directory-index-resource}
+  }{
+    \link{Cloud Foundry CLI Resource}{https://github.com/Pivotal-Field-Engineering/cf-cli-resource}
+  }{
+    \link{Counter}{https://github.com/jinlee/counter-resource}
+  }{
+    \link{Capistrano}{https://github.com/SHyx0rmZ/capistrano-resource}
+  }{
+    \link{aptly CLI}{https://github.com/SHyx0rmZ/aptly-cli-resource}
+  }{
+    \link{Prometheus Alertmanager}{https://github.com/frodenas/alertmanager-resource}
+  }{
+    \link{Git Bitbucket Pull Request Resource}{https://github.com/zarplata/concourse-git-bitbucket-pr-resource}
+  }
+
+  \section{
+    \title{Adding to this list}
+
+    Fork the
+    \link{\code{concourse/concourse}}{https://github.com/concourse/concourse}
+    repository, edit
+    \code{concourse/docs/using-concourse/resource-types.any},
+    then make a pull request.
+  }
+}

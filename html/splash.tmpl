@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>{{.Title.String}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link type="text/css" rel="stylesheet" href="css/font-awesome.min.css">
+    <link type="text/css" rel="stylesheet" href="css/normalize.css">
+    <link type="text/css" rel="stylesheet" href="css/skeleton.css">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/fonts.css">
+    <link type="text/css" rel="stylesheet" href="css/highlight.css">
+    <link type="text/css" rel="stylesheet" href="css/splash.css">
+    <link type="text/css" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700">
+    <script async="" src="//www.google-analytics.com/analytics.js"></script>
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/bootstrap.min.js"></script>
+  </head>
+  <body class="split_sections toc">
+    <div id="everything">
+      <div id="header" class="u-full-width top-intro docs-header">
+        <a name="page-top"></a>
+        <div class="navbar navbar-default navbar-static-top">
+          <div class="container-fluid">
+            <div class="navbar-header page-scroll">
+              <button class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button>
+              <a href="#page-top" class="navbar-brand"><img src="images/logo_mobile_top.svg"></a>
+            </div>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav">
+                <li class="navbar-link"><a href="introduction.html" class="inactive">Documentation</a></li>
+                <li class="navbar-link"><a href="community.html" class="inactive">Community</a></li>
+                <li class="home-button">
+                  <a href="index.html" class="active"><img src="images/concourse_white.svg" width="174px" data_pin_nopin="true"></a>
+                </li>
+                <li class="navbar-link"><a href="downloads.html" class="inactive">Downloads</a></li>
+                <li class="navbar-link"><a href="https://github.com/concourse/concourse">GitHub</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="white-text txt-c">
+          <div class="row">
+            <div class="twelve columns">
+              <h1 class="intro-slogan"><span class="soft-line">CI that scales with </span><span class="soft-line">your project.</span></h1></div>
+          </div>
+        </div>
+        <div class="pipes txt-c">
+          <div class="splash-pipeline-image">
+            <a class="concourse-pipeline-link" href="https://ci.concourse.ci" alt="Concourse Pipeline"></a>
+            <object data="images/pipes.svg" type="image/svg+xml" width="100%" height="100%">
+              <param name="src" value="images/pipes.svg">
+            </object>
+          </div>
+        </div>
+      </div>
+      <div id="middle">{{.Body | render}}</div>
+      {{template "footer.tmpl" .}}
+    </div>
+  </body>
+</html>
