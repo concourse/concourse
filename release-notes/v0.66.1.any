@@ -1,7 +1,0 @@
-#language anatomy
-
-\title{v0.66.1}
-
-\list{
-  Fixed the default value for Fly's \code{--target} flag.
-}

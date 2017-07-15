@@ -1,8 +1,0 @@
-#language anatomy
-
-\title{v0.65.1}
-
-\list{
-  Fixed an issue with the \code{tsa_ctl}, \code{baggageclaim_ctl}, and
-  \code{jettison-ctl} BOSH templates.
-}
