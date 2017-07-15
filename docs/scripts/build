@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)/..
+
+export GOPATH=$GOPATH:$PWD
+
+booklit -i lit/index.lit -o . \
+  --html-templates html/ \
+  --plugin concourse-lit/splash \
+  --plugin concourse-lit/resources-table \
+  --plugin concourse-lit/docs \
+  --plugin concourse-lit/community
+
+booklit -i lit/single-page.lit -o . \
+  --html-templates html/ \
+  --plugin concourse-lit/splash \
+  --plugin concourse-lit/resources-table \
+  --plugin concourse-lit/docs \
+  --plugin concourse-lit/community \
+  --allow-broken-references

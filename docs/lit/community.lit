@@ -1,0 +1,68 @@
+\title{Community}{community}
+
+\use-plugin{concourse-community}
+
+\omit-children-from-table-of-contents
+
+\section{
+  \title{GitHub}{github-blurb}
+
+  \community-image{./images/community_github.svg}
+
+  Concourse is completely open source. All of the source code lives under the
+  \link{Concourse organization}{https://github.com/concourse/concourse} on
+  GitHub. \link{Issues}{https://github.com/concourse/concourse/issues} and
+  \link{pull requests}{https://github.com/concourse/concourse/pulls}
+  welcome!
+
+  We also use Github \link{milestones}{https://github.com/concourse/concourse/milestones}
+  and \link{labels}{https://github.com/concourse/concourse/labels} to provide
+  visibility into what our team at Pivotal is working on, and what things are
+  coming soon.
+}
+
+\section{
+  \title{Stackoverflow}{stackoverflow-blurb}
+
+  \community-image{./images/community_stackoverflow.svg}
+
+  We use \link{Stackoverflow}{https://stackoverflow.com/questions/tagged/concourse}
+  for support. Please post questions here and search for existing answers before
+  asking for help in Slack.
+}
+
+\section{
+  \title{Slack}{slack-blurb}
+
+  \community-image{./images/community_slack.svg}
+
+  We use \link{Slack}{https://slack.com} for public discussions.
+  To chit chat with us or the rest of the community, join us in the
+  \link{Concourse Slack team}{http://concourseci.slack.com}. To sign up,
+  use our \link{Slack inviter}{http://slack.concourse.ci}.
+}
+
+\section{
+  \title{Security}{security-blurb}
+
+  \community-image{./images/community_mail.svg}
+
+  To be notified of any security issues or vulnerabilities, join the
+  \link{Concourse Security mailing
+  list}{https://groups.google.com/group/concourse-security}. To report a
+  security issue, send an email to
+  \link{security@concourse.ci}{mailto:security@concourse.ci}.
+}
+
+\section{
+  \title{Talks}{talks-blurb}
+
+  \community-image{./images/community_talks.svg}
+
+  To see introductory Concourse material and to check out what folks in the
+  community are using Concourse for, check out \reference{talks}.
+
+  \split-sections
+
+  \include-section{./community/talks.lit}
+}

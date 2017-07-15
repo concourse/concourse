@@ -1,0 +1,15 @@
+{{if eq .PrimaryTag.Name "index"}}
+{{template "splash.tmpl" .}}
+{{else if eq .PrimaryTag.Name "community"}}
+{{template "full-width-page.tmpl" .}}
+{{else if eq .PrimaryTag.Name "downloads"}}
+{{template "downloads.tmpl" .}}
+{{else if eq .PrimaryTag.Name "talks"}}
+{{template "full-width-page.tmpl" .}}
+{{else if eq .PrimaryTag.Name "trademarks"}}
+{{template "trademarks.tmpl" .}}
+{{else if eq .PrimaryTag.Name "single-page"}}
+{{template "single-page.tmpl" .}}
+{{else}}
+{{template "docs.tmpl" .}}
+{{end}}

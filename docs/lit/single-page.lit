@@ -1,0 +1,8 @@
+\title{Concourse Documentation}{single-page}
+
+\single-page
+\split-sections
+
+\include-section{./introduction.lit}
+\include-section{./setting-up.lit}
+\include-section{./using-concourse.lit}

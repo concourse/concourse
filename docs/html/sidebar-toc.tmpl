@@ -1,0 +1,11 @@
+{{if and .Section.Children (not .Section.OmitChildrenFromTableOfContents)}}
+<ol{{if not .Section.Parent}} id="toc" class="toc"{{end}}>
+  {{range .Section.Children}}
+  <li class="{{if .Contains $.Current}}active{{if eq .PrimaryTag.Name $.Current.PrimaryTag.Name}} current{{end}}{{end}}">
+    <a href="{{.PrimaryTag | url}}">{{.Title | stripAux | render}}</a>
+
+    {{template "sidebar-toc.tmpl" walkContext $.Current .}}
+  </li>
+  {{end}}
+</ol>
+{{end}}
