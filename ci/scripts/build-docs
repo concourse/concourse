@@ -4,11 +4,7 @@ set -e -x
 
 BUILT_DOCS=$PWD/built-docs
 
-cd concourse/docs/
+cp -a concourse/docs/* $BUILT_DOCS
 
-bundle install
-bundle exec anatomy -i single-page.any -o $BUILT_DOCS
-bundle exec anatomy -i index.any -o $BUILT_DOCS
-
-cp Staticfile $BUILT_DOCS
-cp manifest.yml $BUILT_DOCS
+cd $BUILT_DOCS
+./scripts/build
