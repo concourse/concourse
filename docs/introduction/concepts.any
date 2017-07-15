@@ -38,6 +38,9 @@ becomes more involved.
 
   To learn more about configuring and running tasks, see
   \reference{running-tasks}.
+
+  To learn more about tasks in the context of jobs and pipelines, see
+  \reference{task-step}.
 }
 
 \section{Resources}{resources}{
