@@ -289,3 +289,6 @@
 	path = src/github.com/hashicorp/vault
 	url = https://github.com/hashicorp/vault
 	branch = master
+[submodule "docs/src/github.com/blang/semver"]
+	path = docs/src/github.com/blang/semver
+	url = https://github.com/blang/semver
