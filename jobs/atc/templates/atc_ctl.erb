@@ -229,6 +229,9 @@ case $1 in
       <% p("vault.auth.params").each do |k, v| %> \
       --vault-auth-param <%= esc("#{k}=#{v.to_json}") %> \
       <% end %> \
+      <% if_p("vault.path_prefix") do %> \
+      --vault-path-prefix <%= esc(p("vault.path_prefix")) %> \
+      <% end %> \
       <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
