@@ -1,16 +1,15 @@
 package auth
 
 import (
-	"crypto/rsa"
-	"net/http"
-	"time"
-
 	"code.cloudfoundry.org/lager"
+	"crypto/rsa"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/db"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/tedsuo/rata"
+	"net/http"
+	"time"
 )
 
 var SigningMethod = jwt.SigningMethodRS256
@@ -50,6 +49,13 @@ func NewOAuthHandler(
 			),
 			routes.LogOut: NewLogOutHandler(
 				logger.Session("logout"),
+			),
+			routes.Token: NewTokenHandler(
+				logger.Session("token"),
+				providerFactory,
+				signingKey,
+				teamFactory,
+				expire,
 			),
 		},
 	)
