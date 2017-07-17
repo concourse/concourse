@@ -63,6 +63,7 @@ files:
   - github.com/inconshreveable/go-update/internal/osext/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/kr/pty/*.go # gosub
+  - github.com/krishicks/yaml-patch/*.go # gosub
   - github.com/mattn/go-colorable/*.go # gosub
   - github.com/mattn/go-isatty/*.go # gosub
   - github.com/mgutz/ansi/*.go # gosub
