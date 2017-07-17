@@ -3,7 +3,7 @@
 \use-plugin{concourse-splash}
 
 \value-prop-left{Simple and Scalable}{value_prop_simple_f2}{
-  Rather than a myriad of checkboxes, pipelines are defined as a single
+  Rather than myriad checkboxes, pipelines are defined as a single
   declarative config file, composing together just \reference{concepts}{three
   core concepts}.
 
