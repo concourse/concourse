@@ -2,14 +2,15 @@ package auth
 
 import (
 	"bytes"
-	"code.cloudfoundry.org/lager"
 	"context"
 	"crypto/rsa"
-	"github.com/concourse/atc/db"
-	"golang.org/x/oauth2"
 	"io"
 	"net/http"
 	"time"
+
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
+	"golang.org/x/oauth2"
 )
 
 type TokenHandler struct {
@@ -44,7 +45,9 @@ func (handler *TokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	providerName := r.FormValue(":provider")
 	teamName := r.FormValue("team_name")
 
-	token := StreamToString(r.Body)
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r.Body)
+	token := buf.String()
 
 	if token == "" {
 		handler.logger.Info("failed-to-find-token-in-body")
@@ -129,10 +132,4 @@ func (handler *TokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tokenStr := string(tokenType) + " " + string(signedToken)
 
 	io.WriteString(w, tokenStr)
-}
-
-func StreamToString(stream io.Reader) string {
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(stream)
-	return buf.String()
 }
