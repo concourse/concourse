@@ -14,6 +14,7 @@ import (
 
 	_ "github.com/concourse/atc/auth/genericoauth"
 	_ "github.com/concourse/atc/auth/github"
+	_ "github.com/concourse/atc/auth/gitlab"
 	_ "github.com/concourse/atc/auth/uaa"
 )
 

@@ -164,6 +164,60 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
+		Describe("gitlab auth", func() {
+			Context("ClientID omitted", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--gitlab-auth-client-secret", "brock123"}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("must specify --gitlab-auth-client-id and --gitlab-auth-client-secret to use GitLab OAuth."))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("ClientSecret omitted", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--gitlab-auth-client-id", "Brock Samson"}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("must specify --gitlab-auth-client-id and --gitlab-auth-client-secret to use GitLab OAuth."))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("ClientID and ClientSecret omitted", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--gitlab-auth-group", "my-gitlab-group"}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("must specify --gitlab-auth-client-id and --gitlab-auth-client-secret to use GitLab OAuth."))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("group is omitted", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--gitlab-auth-client-id", "Brock Samson", "--gitlab-auth-client-secret", "brock123"}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("the following is required for gitlab-auth: groups"))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+		})
+
 		Describe("uaa auth", func() {
 			Context("ClientID omitted", func() {
 				BeforeEach(func() {
