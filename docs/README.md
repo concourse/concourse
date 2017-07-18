@@ -1,14 +1,14 @@
-#Concourse Docs
+# Concourse Docs
 This is where you will find the source for the Concourse website and overall documentation. All of our docs are written using the Booklit documentation engine. You can read more about its formal specification [here](https://vito.github.io/booklit/), and you can read through its source code [here](https://github.com/vito/booklit). 
 
-#Building the Docs Locally
-##Prerequisites
+# Building the Docs Locally
+## Prerequisites
 * Have Go v1.8+ installed and configured. You can find the relevant instructions for your platform of choice here: [Go Getting Started](https://golang.org/doc/install) 
 * Python2 or Python3 installed and configured
 * (Optional) Install Python [VirtualEnv](https://virtualenv.pypa.io/en/stable/) and [VirtualEnvWrapper ](https://virtualenvwrapper.readthedocs.io/)
 * Make a clone of the `concourse` repository: [https://github.com/concourse/concourse](https://github.com/concourse/concourse)
 
-##Install the Packages
+## Install the Packages
 Install [**booklit**](https://github.com/vito/booklit): 
 
 ```
@@ -35,7 +35,7 @@ workon concourse-docs
 pip install pygments
 ```
 
-##Compiling the Docs
+## Compiling the Docs
 Move up a level from the `concourse/` directory:
 
 `cd ..`
