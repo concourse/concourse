@@ -263,6 +263,9 @@ func (p *containerProvider) FindOrCreateContainer(
 		createdContainer, err = creatingContainer.Created()
 		if err != nil {
 			logger.Error("failed-to-mark-container-as-created", err)
+
+			_ = p.gardenClient.Destroy(creatingContainer.Handle())
+
 			return nil, err
 		}
 
