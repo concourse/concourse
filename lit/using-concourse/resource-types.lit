@@ -208,6 +208,8 @@ before using it!
     \link{Prometheus Alertmanager}{https://github.com/frodenas/alertmanager-resource}
   }{
     \link{Git Bitbucket Pull Request Resource}{https://github.com/zarplata/concourse-git-bitbucket-pr-resource}
+  }{
+    \link{NPM Cache Resource}{https://github.com/ymedlop/npm-cache-resource}
   }
 
   \section{
