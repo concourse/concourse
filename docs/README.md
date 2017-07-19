@@ -36,25 +36,24 @@ pip install pygments
 ```
 
 ## Compiling the Docs
-Move up a level from the `concourse/` directory:
+From project root, we're going to move into the `docs` folder:
 
-`cd ..`
+`cd docs`
 
-Next, we're going to copy the contents of `concourse/docs` into a new folder, `built-docs`
-
-```
-mkdir built-docs
-cp -a concourse/docs/* ./built-docs
-```
-
-Finally, we're going to execute the build script:
+and from here we'll use the build script to compile our `.lit` files:
 
 ```
-cd built-docs
+# If you installed pygments under a virtualenv, make sure to switch 
+# into it now before you execute the script
+
 ./scripts/build
 ```
 
-Once booklit finishes compiling the source files, you can render the page using a simple Python http server
+The `build` script will instruct booklit to compile all the files under `lit/` as `html` files.
+The files will then be dumped into your current working directory, in this case its `docs/`
+
+## Viewing the docs in your browser
+Once booklit finishes compiling the source files, you can render the page by running a simple Python http server from within the `docs/` folder
 
 ```
 #Python 2
@@ -65,4 +64,9 @@ python -m http.server
 ```
 
 You will be now be able to see the rendered site if you navigate to [http://localhost:8000](http://localhost:8000)
+
+## Cleanup
+You should probably clean up your compiled `html` before committing your changes. The `build` script only generates `.html` files, so you can clean up your `docs/` folder by simply running: 
+
+`rm *.html`
 
