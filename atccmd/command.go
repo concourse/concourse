@@ -224,7 +224,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
 
-	cmd.configureMetrics(logger)
+	if err := cmd.configureMetrics(logger); err != nil {
+		return nil, err
+	}
 
 	connectionCountingDriverName := "connection-counting"
 	metric.SetupConnectionCountingDriver("postgres", cmd.Postgres.ConnectionString(), connectionCountingDriverName)
@@ -710,13 +712,13 @@ func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSin
 	return logger, reconfigurableSink
 }
 
-func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
+func (cmd *ATCCommand) configureMetrics(logger lager.Logger) error {
 	host := cmd.Metrics.HostName
 	if host == "" {
 		host, _ = os.Hostname()
 	}
 
-	metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
+	return metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
 }
 
 func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, newKey *db.EncryptionKey, oldKey *db.EncryptionKey) (db.Conn, error) {

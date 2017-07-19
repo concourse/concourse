@@ -33,14 +33,14 @@ func init() {
 func (config *RiemannConfig) Description() string { return "Riemann" }
 func (config *RiemannConfig) IsConfigured() bool  { return config.Host != "" }
 
-func (config *RiemannConfig) NewEmitter() metric.Emitter {
+func (config *RiemannConfig) NewEmitter() (metric.Emitter, error) {
 	return &RiemannEmitter{
 		client:    goryman.NewGorymanClient(net.JoinHostPort(config.Host, fmt.Sprintf("%d", config.Port))),
 		connected: false,
 
 		servicePrefix: config.ServicePrefix,
 		tags:          config.Tags,
-	}
+	}, nil
 }
 
 func (emitter *RiemannEmitter) Emit(logger lager.Logger, event metric.Event) {
