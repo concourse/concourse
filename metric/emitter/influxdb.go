@@ -32,19 +32,22 @@ func init() {
 func (config *InfluxDBConfig) Description() string { return "InfluxDB" }
 func (config *InfluxDBConfig) IsConfigured() bool  { return config.URL != "" }
 
-func (config *InfluxDBConfig) NewEmitter() metric.Emitter {
-	client, _ := influxclient.NewHTTPClient(influxclient.HTTPConfig{
+func (config *InfluxDBConfig) NewEmitter() (metric.Emitter, error) {
+	client, err := influxclient.NewHTTPClient(influxclient.HTTPConfig{
 		Addr:               config.URL,
 		Username:           config.Username,
 		Password:           config.Password,
 		InsecureSkipVerify: config.InsecureSkipVerify,
 		Timeout:            time.Minute,
 	})
+	if err != nil {
+		return &InfluxDBEmitter{}, err
+	}
 
 	return &InfluxDBEmitter{
 		client:   client,
 		database: config.Database,
-	}
+	}, nil
 }
 
 func (emitter *InfluxDBEmitter) Emit(logger lager.Logger, event metric.Event) {
