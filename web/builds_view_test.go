@@ -194,7 +194,7 @@ var _ = Describe("BuildsView", func() {
 				pipelineName,
 				manualTriggerDisabledBuild.Name,
 			))))
-			Eventually(page.Find("button.build-action"), 10*time.Second).Should(HaveAttribute("disabled", "true"))
+			Eventually(page.Find("span.build-action"), 10*time.Second).Should(HaveAttribute("disabled", "true"))
 		})
 
 		It("should have a disabled button in the job details view", func() {
