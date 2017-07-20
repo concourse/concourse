@@ -290,12 +290,6 @@ properties:
       resource is found. Use Go duration format (1m = 1 minute).
     default: 5m
 
-  baggageclaim_response_header_timeout:
-    description: |
-      How long to wait for Baggageclaim to send the response header. Use Go duration
-      format (1m = 1 minute).
-    default: 10m
-
   postgresql_database:
     description: |
       Name of the database to use from the `postgresql` link.
