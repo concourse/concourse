@@ -22,6 +22,9 @@ files:
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/auth/genericoauth/*.go # gosub
   - github.com/concourse/atc/auth/github/*.go # gosub
+  - github.com/concourse/atc/auth/gitlab/*.go # gosub
+  - github.com/concourse/atc/auth/gitlab/vendor/github.com/google/go-querystring/query/*.go # gosub
+  - github.com/concourse/atc/auth/gitlab/vendor/github.com/xanzy/go-gitlab/*.go # gosub
   - github.com/concourse/atc/auth/provider/*.go # gosub
   - github.com/concourse/atc/auth/routes/*.go # gosub
   - github.com/concourse/atc/auth/uaa/*.go # gosub
@@ -60,6 +63,7 @@ files:
   - github.com/inconshreveable/go-update/internal/osext/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/kr/pty/*.go # gosub
+  - github.com/krishicks/yaml-patch/*.go # gosub
   - github.com/mattn/go-colorable/*.go # gosub
   - github.com/mattn/go-isatty/*.go # gosub
   - github.com/mgutz/ansi/*.go # gosub

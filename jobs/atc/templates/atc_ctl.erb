@@ -186,6 +186,7 @@ case $1 in
       --resource-cache-cleanup-interval <%= p("resource_cache_cleanup_interval") %> \
       --gc-interval <%= p("gc_interval") %> \
       --build-tracker-interval <%= p("build_tracker_interval") %> \
+      --baggageclaim-response-header-timeout <%= p("baggageclaim_response_header_timeout") %> \
       --cli-artifacts-dir /var/vcap/packages/fly \
       --yeller-api-key <%= esc(p("yeller.api_key")) %> \
       --yeller-environment <%= esc(p("yeller.environment_name")) %> \
@@ -227,6 +228,9 @@ case $1 in
       --vault-auth-backend <%= esc(p("vault.auth.backend")) %> \
       <% p("vault.auth.params").each do |k, v| %> \
       --vault-auth-param <%= esc("#{k}=#{v.to_json}") %> \
+      <% end %> \
+      <% if_p("vault.path_prefix") do %> \
+      --vault-path-prefix <%= esc(p("vault.path_prefix")) %> \
       <% end %> \
       <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
