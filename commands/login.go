@@ -9,6 +9,7 @@ import (
 
 	"net"
 
+	"crypto/tls"
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
@@ -21,6 +22,7 @@ type LoginCommand struct {
 	Username string       `short:"u" long:"username" description:"Username for basic auth"`
 	Password string       `short:"p" long:"password" description:"Password for basic auth"`
 	TeamName string       `short:"n" long:"team-name" description:"Team to authenticate with"`
+	Token    string       `long:"token" description:"Token for OAuth login"`
 	CACert   atc.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
 }
 
@@ -182,35 +184,50 @@ func (command *LoginCommand) loginWith(
 	case atc.AuthTypeOAuth:
 		var tokenStr string
 
-		stdinChannel := make(chan string)
-		tokenChannel := make(chan string)
-		errorChannel := make(chan error)
-		portChannel := make(chan string)
+		if command.Token != "" {
+			fmt.Println("Yeah, who needs the web auth flow anyway? Token FTW!")
 
-		go listenForTokenCallback(tokenChannel, errorChannel, portChannel, targetUrl)
+			tradedToken, err := usePersonalToken(method.TokenURL, command.Token, command.Insecure)
 
-		port := <-portChannel
+			if err != nil {
+				return nil, err
+			}
 
-		fmt.Println("navigate to the following URL in your browser:")
-		fmt.Println("")
-		fmt.Printf("    %s&fly_local_port=%s\n", method.AuthURL, port)
-		fmt.Println("")
+			segments := strings.SplitN(tradedToken, " ", 2)
 
-		go waitForTokenInput(stdinChannel, errorChannel)
+			token.Type = segments[0]
+			token.Value = segments[1]
 
-		select {
-		case tokenStrMsg := <-tokenChannel:
-			tokenStr = tokenStrMsg
-		case tokenStrMsg := <-stdinChannel:
-			tokenStr = tokenStrMsg
-		case errorMsg := <-errorChannel:
-			return nil, errorMsg
+		} else {
+			stdinChannel := make(chan string)
+			tokenChannel := make(chan string)
+			errorChannel := make(chan error)
+			portChannel := make(chan string)
+
+			go listenForTokenCallback(tokenChannel, errorChannel, portChannel, targetUrl)
+
+			port := <-portChannel
+
+			fmt.Println("navigate to the following URL in your browser:")
+			fmt.Println("")
+			fmt.Printf("    %s&fly_local_port=%s\n", method.AuthURL, port)
+			fmt.Println("")
+
+			go waitForTokenInput(stdinChannel, errorChannel, method.TokenURL, command.Insecure)
+
+			select {
+			case tokenStrMsg := <-tokenChannel:
+				tokenStr = tokenStrMsg
+			case tokenStrMsg := <-stdinChannel:
+				tokenStr = tokenStrMsg
+			case errorMsg := <-errorChannel:
+				return nil, errorMsg
+			}
+			segments := strings.SplitN(tokenStr, " ", 2)
+
+			token.Type = segments[0]
+			token.Value = segments[1]
 		}
-
-		segments := strings.SplitN(tokenStr, " ", 2)
-
-		token.Type = segments[0]
-		token.Value = segments[1]
 
 	case atc.AuthTypeBasic:
 		var username string
@@ -257,14 +274,27 @@ func (command *LoginCommand) loginWith(
 	return &token, nil
 }
 
-func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
+func waitForTokenInput(tokenChannel chan string, errorChannel chan error, tokenUrl string, insecure bool) {
 	for {
-		fmt.Printf("or enter token manually: ")
+		fmt.Printf("or enter one of the following token types:\n")
+		fmt.Printf("    - Personal access token (e.g. '1234567890')\n")
+		fmt.Printf("    - Bearer token (e.g. 'Bearer 1234567890')\n\n")
+		fmt.Printf("Token: ")
 
 		var tokenType string
 		var tokenValue string
 		count, err := fmt.Scanf("%s %s", &tokenType, &tokenValue)
 		if err != nil {
+			if count == 1 {
+				// assume it is a token...
+				tradedToken, err := usePersonalToken(tokenUrl, tokenType, insecure)
+				if err != nil {
+					fmt.Println(err.Error())
+					continue
+				}
+				tokenChannel <- tradedToken
+				break
+			}
 			if count != 2 {
 				fmt.Println("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
 				continue
@@ -277,6 +307,30 @@ func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
 		tokenChannel <- tokenType + " " + tokenValue
 		break
 	}
+}
+
+func usePersonalToken(tokenUrl string, token string, insecure bool) (string, error) {
+	httpTransport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
+	}
+	client := &http.Client{Transport: httpTransport}
+
+	response, err := client.Post(tokenUrl, "text/plain", strings.NewReader(token))
+
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if response.StatusCode != 200 {
+		return "", errors.New(string(body))
+	}
+	return string(body), nil
 }
 
 func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCert string) error {

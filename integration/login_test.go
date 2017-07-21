@@ -356,11 +356,13 @@ var _ = Describe("login Command", func() {
 								Type:        atc.AuthTypeOAuth,
 								DisplayName: "OAuth Type 1",
 								AuthURL:     "https://example.com/auth/oauth-1?team_name=main",
+								TokenURL:    fmt.Sprintf("%s/auth/oauth-1/token?team_name=main", loginATCServer.URL()),
 							},
 							{
 								Type:        atc.AuthTypeOAuth,
 								DisplayName: "OAuth Type 2",
 								AuthURL:     "https://example.com/auth/oauth-2?team_name=main",
+								TokenURL:    fmt.Sprintf("%s/auth/oauth-2/token?team_name=main", loginATCServer.URL()),
 							},
 						}),
 					),
@@ -405,6 +407,70 @@ var _ = Describe("login Command", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
 
+					loginATCServer.AppendHandlers(
+						infoHandler(),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+							ghttp.VerifyHeaderKV("Authorization", "Bearer the-token"),
+							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+								{Name: "pipeline-1"},
+							}),
+						),
+					)
+
+					otherCmd := exec.Command(flyPath, "-t", "some-target", "pipelines")
+
+					sess, err = gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+
+					Expect(sess).To(gbytes.Say("pipeline-1"))
+
+					Expect(sess.ExitCode()).To(Equal(0))
+
+				})
+
+				It("logs into fly with a personal access token", func() {
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("1. Basic"))
+					Eventually(sess.Out).Should(gbytes.Say("2. OAuth Type 1"))
+					Eventually(sess.Out).Should(gbytes.Say("3. OAuth Type 2"))
+					Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
+
+					_, err = fmt.Fprintf(stdin, "3\n")
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("navigate to the following URL in your browser:"))
+					Eventually(sess.Out).Should(gbytes.Say(`.*`))
+					Eventually(sess.Out).Should(gbytes.Say(`or enter one of the following token types:\n`))
+					Eventually(sess.Out).Should(gbytes.Say(`    - Personal access token \(e.g. '1234567890'\)\n`))
+					Eventually(sess.Out).Should(gbytes.Say(`    - Bearer token \(e.g. 'Bearer 1234567890'\)\n`))
+					Eventually(sess.Out).Should(gbytes.Say(`\n`))
+					Eventually(sess.Out).Should(gbytes.Say(`Token: `))
+
+					loginATCServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("POST", "/auth/oauth-2/token"),
+							ghttp.VerifyBody([]byte("11223344556677889900")),
+							ghttp.RespondWith(200, "Bearer the-token"),
+						),
+					)
+
+					_, err = fmt.Fprintf(stdin, "11223344556677889900\n")
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("target saved"))
+
+					err = stdin.Close()
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+l
 					loginATCServer.AppendHandlers(
 						infoHandler(),
 						ghttp.CombineHandlers(
@@ -685,6 +751,72 @@ var _ = Describe("login Command", func() {
 			})
 		})
 
+		Context("when only one oauth method is returned from the API", func() {
+			BeforeEach(func() {
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
+							{
+								Type:        atc.AuthTypeOAuth,
+								DisplayName: "OAuth Type 1",
+								AuthURL:     "https://example.com/auth/oauth-1?team_name=main",
+								TokenURL:    fmt.Sprintf("%s/auth/oauth-1/token?team_name=main", loginATCServer.URL()),
+							},
+						}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/auth/oauth-1/token"),
+						ghttp.VerifyBody([]byte("11223344556677889900")),
+						ghttp.RespondWith(200, "Bearer the-token"),
+					),
+				)
+			})
+
+			It("logs in with a personal access token", func() {
+
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "--token", "11223344556677889900")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say(`logging in to team 'main'\n\n`))
+				Eventually(sess.Out).Should(gbytes.Say(`Yeah, who needs the web auth flow anyway\? Token FTW!\n\n`))
+				Eventually(sess.Out).Should(gbytes.Say(`target saved`))
+
+				err = stdin.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+						ghttp.VerifyHeaderKV("Authorization", "Bearer the-token"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+							{Name: "pipeline-1"},
+						}),
+					),
+				)
+
+				otherCmd := exec.Command(flyPath, "-t", "some-target", "pipelines")
+
+				sess, err = gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+
+				Expect(sess).To(gbytes.Say("pipeline-1"))
+
+				Expect(sess.ExitCode()).To(Equal(0))
+
+			})
+
+		})
+
 		Context("when only one auth method is returned from the API", func() {
 			BeforeEach(func() {
 				loginATCServer.AppendHandlers(
@@ -734,6 +866,7 @@ var _ = Describe("login Command", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 			})
+
 		})
 
 		Context("when no auth methods are returned from the API", func() {
