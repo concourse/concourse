@@ -27,6 +27,7 @@ var _ = Describe("GitLab Provider", func() {
 				Type:        atc.AuthTypeOAuth,
 				DisplayName: "GitLab",
 				AuthURL:     "http://bum-bum-bum.com/auth/gitlab?team_name=dudududum",
+				TokenURL:    "http://bum-bum-bum.com/auth/gitlab/token?team_name=dudududum",
 			}))
 		})
 	})

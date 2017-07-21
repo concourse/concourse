@@ -149,6 +149,7 @@ K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
 				Type:        atc.AuthTypeOAuth,
 				DisplayName: "UAA",
 				AuthURL:     "http://bum-bum-bum.com/auth/uaa?team_name=dudududum",
+				TokenURL:    "http://bum-bum-bum.com/auth/uaa/token?team_name=dudududum",
 			}))
 		})
 	})
