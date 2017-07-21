@@ -163,6 +163,7 @@ func (GitHubTeamProvider) ProviderConstructor(
 func (GitHubProvider) PreTokenClient() (*http.Client, error) {
 	return &http.Client{
 		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
 		},
 	}, nil
