@@ -271,7 +271,7 @@ func (p Plugin) release(
 	gardenVersion string,
 	content booklit.Content,
 ) (booklit.Content, error) {
-	t, err := time.Parse("2006-Jan-02", date)
+	t, err := time.Parse("2006-1-2", date)
 	if err != nil {
 		return nil, err
 	}
