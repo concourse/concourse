@@ -271,7 +271,7 @@ func (p Plugin) release(
 	gardenVersion string,
 	content booklit.Content,
 ) (booklit.Content, error) {
-	t, err := time.Parse("2006-1-2", date)
+	t, err := time.Parse("2006-Jan-02", date)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +292,7 @@ func (p Plugin) release(
 
 	p.section.SetPartial("ReleaseDate", booklit.Element{
 		Class:   "release-date",
-		Content: booklit.String(t.Format("January 1, 2006")),
+		Content: booklit.String(t.Format("January 2, 2006")),
 	})
 
 	cv, err := semver.Parse(concourseVersion)
