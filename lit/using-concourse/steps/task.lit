@@ -111,7 +111,7 @@ plan:
 
   For example:
 
-  \codeblock{yaml}{
+  \codeblock{yaml}{{
   plan:
   - get: my-repo
   - task: integration
@@ -120,7 +120,7 @@ plan:
       REMOTE_SERVER: 10.20.30.40:8080
       USERNAME: ((integration-username))
       PASSWORD: ((integration-password))
-  }
+  }}
 
   Looking into the task.yml, a common pattern is to list the param in the task
   definition with no value. This indicates that you expect the pipeline to
@@ -128,23 +128,22 @@ plan:
 
   For example, in the task.yml:
 
-  \codeblock{yaml}{
+  \codeblock{yaml}{{
   params:
     FOO: fizzbuzz
     BAR:
-  }
+  }}
 
   And in the pipeline.yml:
 
-  \codeblock{yaml}{
+  \codeblock{yaml}{{
   params:
     BAR: qux
-  }
+  }}
 
   If the pipeline used this task.yml but did not set \code{BAR}, the value of
   \code{$BAR} would be set to the empty string in the task container.
-}
->>>>>>> documentation: Clarify interaction between params pipeline vs task.yml:docs/steps/task.any
+}{task-params}
 
 \define-attribute{image: string}{
   \italic{Optional.} Names an artifact source within the plan containing an
