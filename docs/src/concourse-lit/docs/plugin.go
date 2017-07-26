@@ -13,7 +13,7 @@ import (
 var flyBinariesVersion = semver.MustParse("2.2.0")
 
 func init() {
-	booklit.RegisterPlugin("concourse-docs", booklit.PluginFactoryFunc(NewPlugin))
+	booklit.RegisterPlugin("concourse-docs", NewPlugin)
 }
 
 type Plugin struct {

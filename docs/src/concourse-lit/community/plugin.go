@@ -3,7 +3,7 @@ package docs
 import "github.com/vito/booklit"
 
 func init() {
-	booklit.RegisterPlugin("concourse-community", booklit.PluginFactoryFunc(NewPlugin))
+	booklit.RegisterPlugin("concourse-community", NewPlugin)
 }
 
 type Plugin struct {

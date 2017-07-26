@@ -3,7 +3,7 @@ package resourcestable
 import "github.com/vito/booklit"
 
 func init() {
-	booklit.RegisterPlugin("concourse-resources-table", booklit.PluginFactoryFunc(NewPlugin))
+	booklit.RegisterPlugin("concourse-resources-table", NewPlugin)
 }
 
 type Plugin struct {

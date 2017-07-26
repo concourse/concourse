@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	booklit.RegisterPlugin("concourse-splash", booklit.PluginFactoryFunc(NewPlugin))
+	booklit.RegisterPlugin("concourse-splash", NewPlugin)
 }
 
 type Plugin struct {
