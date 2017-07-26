@@ -46,14 +46,25 @@ func main() {
 	_, err := parser.Parse()
 	if err != nil {
 		if err == concourse.ErrUnauthorized {
-			fmt.Fprintf(ui.Stderr, unauthorizedErrorTemplate, ui.Embolden("fly -t %s login", commands.Fly.Target))
+			fmt.Fprintln(ui.Stderr, "not authorized. run the following to log in:")
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s login", commands.Fly.Target))
+			fmt.Fprintln(ui.Stderr, "")
 		} else if err == rc.ErrNoTargetSpecified {
-			fmt.Fprintf(ui.Stderr, noTargetSpecifiedErrorTemplate, ui.Embolden("fly -t (alias) login -c (concourse url)"))
+			fmt.Fprintln(ui.Stderr, "no target specified. specify the target with "+ui.Embolden("-t")+" or log in like so:")
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t (alias) login -c (concourse url)"))
+			fmt.Fprintln(ui.Stderr, "")
 		} else if versionErr, ok := err.(rc.ErrVersionMismatch); ok {
 			fmt.Fprintln(ui.Stderr, versionErr.Error())
 			fmt.Fprintln(ui.Stderr, ui.WarningColor("cowardly refusing to run due to significant version discrepancy"))
 		} else if netErr, ok := err.(net.Error); ok {
-			fmt.Fprintf(ui.Stderr, couldNotReachConcourse, ui.Embolden("%s", commands.Fly.Target), ui.Embolden("%s", netErr))
+			fmt.Fprintf(ui.Stderr, "could not reach the Concourse server called %s:\n", ui.Embolden("%s", commands.Fly.Target))
+
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("%s", netErr))
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "is the targeted Concourse running? better go catch it lol")
 		} else if err == commands.ErrShowHelpMessage {
 			helpParser.ParseArgs([]string{"-h"})
 			helpParser.WriteHelp(os.Stdout)
@@ -69,25 +80,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-
-var unauthorizedErrorTemplate = `
-not authorized. run the following to log in:
-
-    %s
-
-`
-
-var noTargetSpecifiedErrorTemplate = `
-no target specified. specify the target with -t or log in like so:
-
-    %s
-
-`
-
-var couldNotReachConcourse = `
-could not reach the Concourse server called %s:
-
-    %s
-
-is the targeted Concourse running? better go catch it lol
-`
