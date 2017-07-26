@@ -40,6 +40,9 @@ func main() {
 
 	commands.Fly.SetTeam.ProviderAuth = authConfigs
 
+	helpParser := flags.NewParser(&commands.Fly, flags.HelpFlag)
+	helpParser.NamespaceDelimiter = "-"
+
 	_, err := parser.Parse()
 	if err != nil {
 		if err == concourse.ErrUnauthorized {
@@ -63,8 +66,10 @@ func main() {
 			fmt.Fprintln(ui.Stderr, "")
 			fmt.Fprintln(ui.Stderr, "is the targeted Concourse running? better go catch it lol")
 		} else if err == commands.ErrShowHelpMessage {
-			helpParser := flags.NewParser(&commands.Fly, flags.HelpFlag)
-			helpParser.NamespaceDelimiter = "-"
+			helpParser.ParseArgs([]string{"-h"})
+			helpParser.WriteHelp(os.Stdout)
+			os.Exit(0)
+		} else if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrCommandRequired {
 			helpParser.ParseArgs([]string{"-h"})
 			helpParser.WriteHelp(os.Stdout)
 			os.Exit(0)
