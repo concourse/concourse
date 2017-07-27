@@ -177,6 +177,7 @@ func (provider Provider) Client(ctx context.Context, t *oauth2.Token) *http.Clie
 func (Provider) PreTokenClient() (*http.Client, error) {
 	return &http.Client{
 		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
 		},
 	}, nil
