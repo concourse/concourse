@@ -178,21 +178,27 @@ extractTitle model =
     case ( model.currentBuild |> RemoteData.toMaybe, model.job ) of
         ( Just build, Just job ) ->
             job.name ++ ((" #" ++ build.build.name) ++ " - ")
+
         ( Just build, Nothing ) ->
             "#" ++ (build.build.name ++ " - ")
+
         _ ->
             ""
 
-updateWithMessage : Msg -> Model -> (Model, Cmd Msg, Maybe UpdateMsg)
+
+updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
 updateWithMessage message model =
     let
-        (mdl, msg) = update message model
+        ( mdl, msg ) =
+            update message model
     in
         case mdl.currentBuild of
             RemoteData.Failure _ ->
-                (mdl, msg, Just UpdateMsg.NotFound)
+                ( mdl, msg, Just UpdateMsg.NotFound )
+
             _ ->
-                (mdl, msg, Nothing)
+                ( mdl, msg, Nothing )
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
@@ -238,7 +244,7 @@ update action model =
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
                     else if status.code == 404 then
-                        ({model | currentBuild = RemoteData.Failure err}, Cmd.none )
+                        ( { model | currentBuild = RemoteData.Failure err }, Cmd.none )
                     else
                         ( model, Cmd.none )
 
@@ -272,7 +278,8 @@ update action model =
         BuildOutputMsg browsingIndex action ->
             if browsingIndex == model.browsingIndex then
                 let
-                    currentBuild = model.currentBuild |> RemoteData.toMaybe
+                    currentBuild =
+                        model.currentBuild |> RemoteData.toMaybe
                 in
                     case ( currentBuild, currentBuild |> Maybe.andThen .output ) of
                         ( Just currentBuild, Just output ) ->
@@ -292,6 +299,7 @@ update action model =
                                     , Cmd.map (BuildOutputMsg browsingIndex) cmd
                                     ]
                                 )
+
                         _ ->
                             Debug.crash "impossible (received action for missing BuildOutput)"
             else
@@ -438,8 +446,9 @@ handleHistoryFetched history model =
     let
         withBuilds =
             { model | history = List.append model.history history.content }
+
         currentBuild =
-           model.currentBuild |> RemoteData.toMaybe
+            model.currentBuild |> RemoteData.toMaybe
     in
         case ( history.pagination.nextPage, currentBuild |> Maybe.andThen (.job << .build) ) of
             ( Nothing, _ ) ->

@@ -51,6 +51,7 @@ type PauseChangingOrErrored
     | Changing
     | Errored
 
+
 type Msg
     = Noop
     | AutoupdateTimerTicked Time
@@ -65,6 +66,7 @@ type Msg
     | InputToFetched Int (Result Http.Error (List Concourse.Build))
     | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
     | NavTo String
+
 
 type alias Flags =
     { teamName : String
@@ -124,16 +126,19 @@ changeToResource flags model =
     )
 
 
-updateWithMessage : Msg -> Model -> (Model, Cmd Msg, Maybe UpdateMsg)
+updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
 updateWithMessage message model =
     let
-        (mdl, msg) = update message model
+        ( mdl, msg ) =
+            update message model
     in
         case mdl.resource of
             RemoteData.Failure _ ->
-                (mdl, msg, Just UpdateMsg.NotFound)
+                ( mdl, msg, Just UpdateMsg.NotFound )
+
             _ ->
-                (mdl, msg, Nothing)
+                ( mdl, msg, Nothing )
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
@@ -159,13 +164,14 @@ update action model =
 
         ResourceFetched (Err err) ->
             case Debug.log ("failed to fetch resource") (err) of
-                Http.BadStatus {status} ->
+                Http.BadStatus { status } ->
                     if status.code == 401 then
-                        (model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, LoginRedirect.requestLoginRedirect "" )
                     else if status.code == 404 then
-                        ({model | resource = RemoteData.Failure err}, Cmd.none)
+                        ( { model | resource = RemoteData.Failure err }, Cmd.none )
                     else
-                        (model, Cmd.none)
+                        ( model, Cmd.none )
+
                 _ ->
                     ( model, Cmd.none )
 
