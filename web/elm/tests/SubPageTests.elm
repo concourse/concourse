@@ -122,6 +122,8 @@ all =
                                 , renderedResources = Nothing
                                 , experiencingTurbulence = False
                                 , selectedGroups = []
+                                , hideLegend = False
+                                , hideLegendCounter = 0
                                 }
                         in
                             Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg"}) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (PipelineMsg msg) (PipelineModel model)
