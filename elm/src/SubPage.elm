@@ -21,6 +21,7 @@ import BetaPipeline
 import TeamSelection
 import UpdateMsg exposing (UpdateMsg)
 
+
 -- TODO: move ports somewhere else
 
 
@@ -162,18 +163,25 @@ init turbulencePath route =
             )
 
 
+
 --updateWithMsg String -> a msg -> b mdl -> Maybe UpdateMsg -> ( model, Cmd msg )
 --updateWithMsg notFoundSrc message model outMessage=
 --    case outMessage of
 --        Just Job.NotFound -> (NotFoundModel { notFoundImgSrc = notFoundSrc }, setTitle "Not Found ")
 --        Nothing -> superDupleWrap ( mdl, msg) <| (model, message)
-handleNotFound : String -> (a -> Model, c -> Msg) -> (a, Cmd c, Maybe UpdateMsg) -> ( Model, Cmd Msg )
-handleNotFound notFound (mdlFunc, msgFunc) (mdl, msg, outMessage) =
-    case outMessage of
-        Just UpdateMsg.NotFound -> (NotFoundModel { notFoundImgSrc = notFound }, setTitle "Not Found ")
-        Nothing -> superDupleWrap ( mdlFunc, msgFunc ) <| (mdl, msg)
 
-update : String ->  String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
+
+handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
+handleNotFound notFound ( mdlFunc, msgFunc ) ( mdl, msg, outMessage ) =
+    case outMessage of
+        Just UpdateMsg.NotFound ->
+            ( NotFoundModel { notFoundImgSrc = notFound }, setTitle "Not Found " )
+
+        Nothing ->
+            superDupleWrap ( mdlFunc, msgFunc ) <| ( mdl, msg )
+
+
+update : String -> String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
 update turbulence notFound csrfToken msg mdl =
     case ( msg, mdl ) of
         ( NoPipelineMsg msg, model ) ->
@@ -190,7 +198,6 @@ update turbulence notFound csrfToken msg mdl =
                 ( BuildModel { scrollModel | subModel = newBuildModel }, buildCmd |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg)) )
 
         ( BuildMsg message, BuildModel scrollModel ) ->
-
             let
                 subModel =
                     scrollModel.subModel
@@ -198,7 +205,7 @@ update turbulence notFound csrfToken msg mdl =
                 model =
                     { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
             in
-                  handleNotFound notFound ( BuildModel, BuildMsg ) (Autoscroll.update Build.updateWithMessage message model)
+                handleNotFound notFound ( BuildModel, BuildMsg ) (Autoscroll.update Build.updateWithMessage message model)
 
         ( NewCSRFToken c, JobModel model ) ->
             ( JobModel { model | csrfToken = c }, Cmd.none )
@@ -208,10 +215,12 @@ update turbulence notFound csrfToken msg mdl =
 
         ( LoginMsg message, LoginModel model ) ->
             let
-                (mdl, msg) = Login.update message model
---            superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
+                ( mdl, msg ) =
+                    Login.update message model
+
+                --            superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
             in
-                (LoginModel mdl, Cmd.map LoginMsg msg)
+                ( LoginModel mdl, Cmd.map LoginMsg msg )
 
         ( PipelineMsg message, PipelineModel model ) ->
             handleNotFound notFound ( PipelineModel, PipelineMsg ) (Pipeline.updateWithMessage message model)
@@ -384,8 +393,6 @@ subscriptions mdl =
 
         NotFoundModel _ ->
             Sub.none
-
-
 
 
 fetchPipelines : Cmd Msg

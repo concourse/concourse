@@ -65,7 +65,7 @@ update subUpdate action model =
             )
 
         ScrolledDown ->
-            ( model, Cmd.none, Nothing)
+            ( model, Cmd.none, Nothing )
 
 
 urlUpdate : (pageResult -> subModel -> ( subModel, Cmd subMsg )) -> pageResult -> Model subModel -> ( Model subModel, Cmd (Msg subMsg) )

@@ -198,7 +198,7 @@ update msg model =
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
                     else if status.code == 404 then
-                         ( {model | pipeline = RemoteData.Failure err}, Cmd.none)
+                        ( { model | pipeline = RemoteData.Failure err }, Cmd.none )
                     else
                         ( model, Cmd.none )
 
@@ -226,7 +226,7 @@ update msg model =
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "")
+                        ( model, LoginRedirect.requestLoginRedirect "" )
                     else
                         ( model, Cmd.none )
 

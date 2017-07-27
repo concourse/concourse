@@ -17,7 +17,7 @@ port newUrl : (String -> msg) -> Sub msg
 
 type alias Flags =
     { turbulenceImgSrc : String
-    , notFoundImgSrc: String
+    , notFoundImgSrc : String
     , csrfToken : String
     }
 
@@ -47,7 +47,7 @@ type alias Model =
     , sideModel : SideBar.Model
     , sidebarVisible : Bool
     , turbulenceImgSrc : String
-    , notFoundImgSrc: String
+    , notFoundImgSrc : String
     , csrfToken : String
     , route : Routes.ConcourseRoute
     }
