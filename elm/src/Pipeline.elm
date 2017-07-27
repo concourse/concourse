@@ -21,6 +21,9 @@ import Routes
 import LoginRedirect
 import RemoteData exposing (..)
 import UpdateMsg exposing (UpdateMsg)
+import Keyboard
+import Mouse
+
 
 type alias Ports =
     { render : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd Msg
@@ -40,6 +43,8 @@ type alias Model =
     , turbulenceImgSrc : String
     , experiencingTurbulence : Bool
     , selectedGroups : List String
+    , hideLegend : Bool
+    , hideLegendCounter : Time
     }
 
 
@@ -55,11 +60,14 @@ type Msg
     = Noop
     | AutoupdateVersionTicked Time
     | AutoupdateTimerTicked Time
+    | HideLegendTimerTicked Time
+    | ShowLegend
     | PipelineIdentifierFetched Concourse.PipelineIdentifier
     | JobsFetched (Result Http.Error Json.Encode.Value)
     | ResourcesFetched (Result Http.Error Json.Encode.Value)
     | VersionFetched (Result Http.Error String)
     | PipelineFetched (Result Http.Error Concourse.Pipeline)
+
 
 queryGroupsForRoute : Routes.ConcourseRoute -> List String
 queryGroupsForRoute route =
@@ -86,6 +94,8 @@ init ports flags =
             , renderedResources = Nothing
             , experiencingTurbulence = False
             , selectedGroups = queryGroupsForRoute flags.route
+            , hideLegend = False
+            , hideLegendCounter = 0
             }
     in
         loadPipeline pipelineLocator model
@@ -117,23 +127,51 @@ loadPipeline pipelineLocator model =
         ]
     )
 
-updateWithMessage : Msg -> Model -> (Model, Cmd Msg, Maybe UpdateMsg)
+
+updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
 updateWithMessage message model =
     let
-        (mdl, msg) = update message model
+        ( mdl, msg ) =
+            update message model
     in
         case mdl.pipeline of
             RemoteData.Failure _ ->
-                (mdl, msg, Just UpdateMsg.NotFound)
+                ( mdl, msg, Just UpdateMsg.NotFound )
+
             _ ->
-                (mdl, msg, Nothing)
+                ( mdl, msg, Nothing )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg)
+timeUntilHidden : Time
+timeUntilHidden =
+    10 * Time.second
+
+
+timeUntilHiddenCheckInterval : Time
+timeUntilHiddenCheckInterval =
+    1 * Time.second
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Noop ->
             ( model, Cmd.none )
+
+        HideLegendTimerTicked _ ->
+            if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
+                ( { model | hideLegend = True }
+                , Cmd.none
+                )
+            else
+                ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
+                , Cmd.none
+                )
+
+        ShowLegend ->
+            ( { model | hideLegend = False, hideLegendCounter = 0 }
+            , Cmd.none
+            )
 
         AutoupdateTimerTicked timestamp ->
             ( model
@@ -208,6 +246,10 @@ subscriptions model =
     Sub.batch
         [ autoupdateVersionTimer
         , Time.every (5 * Time.second) AutoupdateTimerTicked
+        , Time.every (timeUntilHiddenCheckInterval) HideLegendTimerTicked
+        , Mouse.moves (\_ -> ShowLegend)
+        , Keyboard.presses (\_ -> ShowLegend)
+        , Mouse.clicks (\_ -> ShowLegend)
         ]
 
 
@@ -232,7 +274,12 @@ view model =
                 , Html.p [ class "explanation" ] []
                 ]
             ]
-        , Html.dl [ class "legend" ]
+        , Html.dl
+            [ if model.hideLegend then
+                class "legend hidden"
+              else
+                class "legend"
+            ]
             [ Html.dt [ class "succeeded" ] []
             , Html.dd [] [ Html.text "succeeded" ]
             , Html.dt [ class "errored" ] []
@@ -376,6 +423,7 @@ renderIfNeeded model =
 
         _ ->
             ( model, Cmd.none )
+
 
 fetchResources : Concourse.PipelineIdentifier -> Cmd Msg
 fetchResources pid =
