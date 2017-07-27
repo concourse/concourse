@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"os/exec"
 
 	"github.com/concourse/atc"
@@ -34,6 +35,19 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when jobs are returned from the API", func() {
+			createJob := func(num int, paused bool, status string) atc.Job {
+				var build *atc.Build
+				if status != "" {
+					build = &atc.Build{Status: status}
+				}
+
+				return atc.Job{
+					Name:          fmt.Sprintf("job-%d", num),
+					URL:           fmt.Sprintf("/teams/main/pipelines/pipeline/jobs/job-%d", num),
+					Paused:        paused,
+					FinishedBuild: build,
+				}
+			}
 			BeforeEach(func() {
 				pipelineName := "pipeline"
 				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "--pipeline", pipelineName)
@@ -41,9 +55,9 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/jobs"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Job{
-							{Name: "job-1", URL: "/teams/main/pipelines/pipeline/jobs/job-1", Paused: false},
-							{Name: "job-2", URL: "/teams/main/pipelines/pipeline/jobs/job-2", Paused: true},
-							{Name: "job-3", URL: "/teams/main/pipelines/pipeline/jobs/job-3", Paused: false},
+							createJob(1, false, "started"),
+							createJob(2, true, "failed"),
+							createJob(3, false, ""),
 						}),
 					),
 				)
@@ -55,14 +69,10 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
-					Headers: ui.TableRow{
-						{Contents: "name", Color: color.New(color.Bold)},
-						{Contents: "paused", Color: color.New(color.Bold)},
-					},
 					Data: []ui.TableRow{
-						{{Contents: "job-1"}, {Contents: "no"}},
-						{{Contents: "job-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
-						{{Contents: "job-3"}, {Contents: "no"}},
+						{{Contents: "job-1"}, {Contents: "no"}, {Contents: "started"}},
+						{{Contents: "job-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "failed"}},
+						{{Contents: "job-3"}, {Contents: "no"}, {Contents: "n/a"}},
 					},
 				}))
 			})
