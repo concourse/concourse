@@ -13,20 +13,27 @@ import Job exposing (..)
 import RemoteData exposing (WebData)
 import Resource
 
+
 all : Test
 all =
     describe "SubPage"
         [ describe "not found" <|
-
             let
-                turbulenceAsset = ""
-                notfoundAsset   = "notfound.svg"
-                csrfToken       = ""
+                turbulenceAsset =
+                    ""
+
+                notfoundAsset =
+                    "notfound.svg"
+
+                csrfToken =
+                    ""
+
                 someJobInfo =
                     { jobName = "some-job"
                     , pipelineName = "some-pipeline"
                     , teamName = "some-team"
                     }
+
                 notFoundStatus : Http.Response String
                 notFoundStatus =
                     { url = ""
@@ -35,11 +42,12 @@ all =
                     , body = ""
                     }
             in
-                [test "JobNotFound" <|
+                [ test "JobNotFound" <|
                     \_ ->
                         let
                             msg : Job.Msg
-                            msg = (Job.JobFetched <| Err <| Http.BadStatus notFoundStatus)
+                            msg =
+                                (Job.JobFetched <| Err <| Http.BadStatus notFoundStatus)
 
                             model : Job.Model
                             model =
@@ -53,18 +61,19 @@ all =
                                 , csrfToken = ""
                                 }
                         in
-                            Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg"}) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (JobMsg msg) (JobModel model)
-                ,test "Resource not found" <|
+                            Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (JobMsg msg) (JobModel model)
+                , test "Resource not found" <|
                     \_ ->
                         let
                             msg : Resource.Msg
-                            msg = (Resource.ResourceFetched <| Err <| Http.BadStatus notFoundStatus)
-    
+                            msg =
+                                (Resource.ResourceFetched <| Err <| Http.BadStatus notFoundStatus)
+
                             model : Resource.Model
                             model =
                                 { ports = { title = (\_ -> Cmd.none) }
-                                , resourceIdentifier = { teamName = "", pipelineName = "", resourceName = ""}
-                                , resource = RemoteData.Success { name = "", paused = False, failingToCheck = False, checkError = ""}
+                                , resourceIdentifier = { teamName = "", pipelineName = "", resourceName = "" }
+                                , resource = RemoteData.Success { name = "", paused = False, failingToCheck = False, checkError = "" }
                                 , pausedChanging = Resource.Stable
                                 , versionedResources = { content = [], pagination = { previousPage = Nothing, nextPage = Nothing } }
                                 , currentPage = Nothing
@@ -72,13 +81,13 @@ all =
                                 , csrfToken = ""
                                 }
                         in
-                            Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg"}) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (ResourceMsg msg) (ResourceModel model)
-                    
-                ,test "Build not found" <|
+                            Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (ResourceMsg msg) (ResourceModel model)
+                , test "Build not found" <|
                     \_ ->
                         let
                             msg : Build.Msg
-                            msg = (Build.BuildFetched 1 <| Err <| Http.BadStatus notFoundStatus)
+                            msg =
+                                (Build.BuildFetched 1 <| Err <| Http.BadStatus notFoundStatus)
 
                             subModel : Build.Model
                             subModel =
@@ -91,18 +100,19 @@ all =
                                 , autoScroll = False
                                 , csrfToken = ""
                                 }
+
                             model =
                                 { subModel = subModel
                                 , scrollBehaviorFunc = \_ -> Autoscroll.NoScroll
                                 }
                         in
-                            Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg"}) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (BuildMsg <| Autoscroll.SubMsg msg) (BuildModel model)
-
-                ,test "Pipeline not found" <|
+                            Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (BuildMsg <| Autoscroll.SubMsg msg) (BuildModel model)
+                , test "Pipeline not found" <|
                     \_ ->
                         let
                             msg : Pipeline.Msg
-                            msg = (Pipeline.PipelineFetched <| Err <| Http.BadStatus notFoundStatus)
+                            msg =
+                                (Pipeline.PipelineFetched <| Err <| Http.BadStatus notFoundStatus)
 
                             pipelineLocator =
                                 { teamName = ""
@@ -111,7 +121,7 @@ all =
 
                             model : Pipeline.Model
                             model =
-                                { ports = { title = (\_ -> Cmd.none), render = (\(_,_) -> Cmd.none) }
+                                { ports = { title = (\_ -> Cmd.none), render = (\( _, _ ) -> Cmd.none) }
                                 , concourseVersion = ""
                                 , turbulenceImgSrc = ""
                                 , pipelineLocator = pipelineLocator
@@ -126,7 +136,6 @@ all =
                                 , hideLegendCounter = 0
                                 }
                         in
-                            Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg"}) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (PipelineMsg msg) (PipelineModel model)
-
+                            Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (PipelineMsg msg) (PipelineModel model)
                 ]
         ]
