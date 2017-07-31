@@ -10,8 +10,7 @@ import (
 )
 
 type KubernetesManager struct {
-	ConfigPath       string `long:"config-path" description:"Path to kubernetes config. Leave empty for in-cluster ATC."`
-	DefaultNamespace string `long:"default-namespace" description:"Default namespace to look secrets in."`
+	ConfigPath string `long:"config-path" description:"Path to kubernetes config. Leave empty for in-cluster ATC."`
 }
 
 func (manager KubernetesManager) IsConfigured() bool {
@@ -48,5 +47,5 @@ func (manager KubernetesManager) NewVariablesFactory(logger lager.Logger) (creds
 		return nil, err
 	}
 
-	return NewKubernetesFactory(logger, clientset, manager.DefaultNamespace), nil
+	return NewKubernetesFactory(logger, clientset), nil
 }

@@ -12,11 +12,10 @@ import (
 )
 
 type Kubernetes struct {
-	Clientset        *kubernetes.Clientset
-	TeamName         string
-	PipelineName     string
-	DefaultNamespace string
-	Logger           lager.Logger
+	Clientset    *kubernetes.Clientset
+	TeamName     string
+	PipelineName string
+	Logger       lager.Logger
 }
 
 func (k Kubernetes) Get(varDef template.VariableDefinition) (interface{}, bool, error) {
@@ -35,21 +34,6 @@ func (k Kubernetes) Get(varDef template.VariableDefinition) (interface{}, bool, 
 		"error":     err.Error(),
 	})
 
-	// Look up secret ${DefaultNamespace}/${PipelineName}-concourse-secrets
-	secret, err = k.findSecret(k.DefaultNamespace, k.defautSecretName())
-	if err == nil {
-		// Look up key ${varDef.Name} in secret
-		if value, exists := secret.Data[varDef.Name]; exists {
-			return string(value), true, nil
-		}
-		err = fmt.Errorf("key '%s' not found in secret", varDef.Name)
-	}
-	k.Logger.Debug("failed-to-load-k8s-secret", lager.Data{
-		"namespace": k.DefaultNamespace,
-		"name":      k.defautSecretName(),
-		"error":     err.Error(),
-	})
-
 	// Look up secret ${TeamName}/${varDef.Name}
 	secret, err = k.findSecret(k.TeamName, varDef.Name)
 	if err == nil {
@@ -62,22 +46,6 @@ func (k Kubernetes) Get(varDef template.VariableDefinition) (interface{}, bool, 
 	}
 	k.Logger.Debug("failed-to-load-k8s-secret", lager.Data{
 		"namespace": k.TeamName,
-		"name":      varDef.Name,
-		"error":     err.Error(),
-	})
-
-	// Look up secret ${DefaultNamespace}/${varDef.Name}
-	secret, err = k.findSecret(k.DefaultNamespace, varDef.Name)
-	if err == nil {
-		// Can't look up nested path
-		stringMap := map[string]string{}
-		for k, v := range secret.Data {
-			stringMap[k] = string(v)
-		}
-		return stringMap, true, nil
-	}
-	k.Logger.Debug("failed-to-load-k8s-secret", lager.Data{
-		"namespace": k.DefaultNamespace,
 		"name":      varDef.Name,
 		"error":     err.Error(),
 	})
