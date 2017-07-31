@@ -23,11 +23,13 @@ import RemoteData exposing (..)
 import UpdateMsg exposing (UpdateMsg)
 import Keyboard
 import Mouse
+import Char
 
 
 type alias Ports =
     { render : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd Msg
     , title : String -> Cmd Msg
+    , resetFocus : Bool -> Cmd Msg
     }
 
 
@@ -62,6 +64,7 @@ type Msg
     | AutoupdateTimerTicked Time
     | HideLegendTimerTicked Time
     | ShowLegend
+    | KeyPressed Keyboard.KeyCode
     | PipelineIdentifierFetched Concourse.PipelineIdentifier
     | JobsFetched (Result Http.Error Json.Encode.Value)
     | ResourcesFetched (Result Http.Error Json.Encode.Value)
@@ -173,6 +176,16 @@ update msg model =
             , Cmd.none
             )
 
+        KeyPressed keycode ->
+            if (Char.fromCode keycode |> Char.toLower) == 'f' then
+                ( model
+                , model.ports.resetFocus True
+                )
+            else
+                ( model
+                , Cmd.none
+                )
+
         AutoupdateTimerTicked timestamp ->
             ( model
             , fetchPipeline model.pipelineLocator
@@ -250,6 +263,7 @@ subscriptions model =
         , Mouse.moves (\_ -> ShowLegend)
         , Keyboard.presses (\_ -> ShowLegend)
         , Mouse.clicks (\_ -> ShowLegend)
+        , Keyboard.presses KeyPressed
         ]
 
 

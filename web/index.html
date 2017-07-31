@@ -33,7 +33,9 @@
             draw(svg, jobs, resources, app.ports.newUrl);
           }
         }, 0)
-      })
+      });
+
+      app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
 
       var teamNameRegExp =  /\/teams\/([^/]+)\/.*/;
 

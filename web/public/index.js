@@ -241,6 +241,14 @@ function redrawFunction(svg, jobs, resources, newUrl) {
   }
 };
 
+var zoom = (function() {
+  var z;
+  return function() {
+    z = z || d3.behavior.zoom();
+    return z;
+  }
+})();
+
 function createPipelineSvg(svg) {
   var g = d3.select("g.test")
   if (g.empty()) {
@@ -255,11 +263,22 @@ function createPipelineSvg(svg) {
       var ev = d3.event;
       if (ev.button || ev.ctrlKey)
         ev.stopImmediatePropagation();
-    }).call(d3.behavior.zoom().scaleExtent([0.5, 10]).on("zoom", function() {
+    }).call(zoom().scaleExtent([0.5, 10]).on("zoom", function() {
       var ev = d3.event;
       g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
     }));
   }
+  return g
+}
+
+function resetPipelineFocus() {
+  var g = d3.select("g.test")
+
+  if (!g.empty()) {
+    g.attr("transform", "")
+    zoom().translate([0,0]).scale(1).scaleExtent([0.5, 10]);
+  }
+
   return g
 }
 
