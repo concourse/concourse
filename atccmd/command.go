@@ -71,6 +71,7 @@ import (
 	// dynamically registered credential managers
 	_ "github.com/concourse/atc/creds/credhub"
 	_ "github.com/concourse/atc/creds/vault"
+	_ "github.com/concourse/atc/creds/kubernetes"
 )
 
 var defaultDriverName = "postgres"
