@@ -1,6 +1,6 @@
 # Contributing
 
-You can work on the ATC without a full Concourse deployment. This is useful for testing changes to the web UI. The only limitation is that any builds you run will fail with the `no workers` error. To test your local changes with a full deployment, follow the instructions in the [concourse/concourse CONTRIBUTING.md](https://github.com/concourse/concourse/blob/develop/CONTRIBUTING.md) instead.
+You can work on the ATC without a full Concourse deployment. This is useful for testing changes to the web UI. The only limitation is that any builds you run will fail with the `no workers` error. To test your local changes with a full deployment, follow the instructions in the [concourse/concourse CONTRIBUTING.md](https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md) instead.
 
 ## Checkout the code
 You need to checkout the `concourse/concourse` repo. `atc` will be picked up as a submodule. The `develop` branch is for active work:
