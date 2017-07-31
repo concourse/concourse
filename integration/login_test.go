@@ -470,7 +470,7 @@ var _ = Describe("login Command", func() {
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
-l
+
 					loginATCServer.AppendHandlers(
 						infoHandler(),
 						ghttp.CombineHandlers(
