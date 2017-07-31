@@ -101,7 +101,7 @@ func (handler *TokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	verified, err := provider.Verify(handler.logger, tc)
 	if err != nil {
 		handler.logger.Error("error-while-verifying-user", err)
-		http.Error(w, "error durring verification", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !verified {
