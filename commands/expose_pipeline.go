@@ -12,7 +12,16 @@ type ExposePipelineCommand struct {
 	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Pipeline to expose"`
 }
 
+func (command *ExposePipelineCommand) Validate() error {
+	return command.Pipeline.Validate()
+}
+
 func (command *ExposePipelineCommand) Execute(args []string) error {
+	err := command.Validate()
+	if err != nil {
+		return err
+	}
+
 	pipelineName := string(command.Pipeline)
 
 	target, err := rc.LoadTarget(Fly.Target)

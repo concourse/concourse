@@ -49,6 +49,20 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
+		Context("when specifying a pipeline name with a '/' character", func() {
+			It("fails and says '/' characters are not allowed", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "destroy-pipeline", "-p", "forbidden/pipelinename")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+
+				Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
+			})
+		})
+
 		Context("when a pipeline name is specified", func() {
 			BeforeEach(func() {
 				args = append(args, "-p", "some-pipeline")

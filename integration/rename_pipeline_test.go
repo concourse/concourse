@@ -41,6 +41,20 @@ var _ = Describe("RenamePipeline", func() {
 		})
 	})
 
+	Context("when specifying a pipeline name with a '/' character in it", func() {
+		It("fails and says '/' characters are not allowed", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline", "-n", "forbidden/pipelinename")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
+		})
+	})
+
 	Context("when not specifying a new name", func() {
 		It("fails and says you should provide a new name for the pipeline", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline")

@@ -618,6 +618,20 @@ this is super secure
 				})
 			})
 
+			Context("when specifying a pipeline name with a '/' character in it", func() {
+				It("fails and says '/' characters are not allowed", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "forbidden/pipelinename", "-c", configFile.Name())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
+
+					Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
+				})
+			})
+
 			Context("when not specifying a config file", func() {
 				It("fails and says you should give a config file", func() {
 					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline")

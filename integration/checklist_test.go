@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 
@@ -58,6 +59,20 @@ var _ = Describe("Fly CLI", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
+			})
+		})
+
+		Context("when specifying a pipeline name with a '/' character in it", func() {
+			It("fails and says '/' characters are not allowed", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "checklist", "-p", "forbidden/pipelinename")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+
+				Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
 			})
 		})
 

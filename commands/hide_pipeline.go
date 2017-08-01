@@ -12,7 +12,16 @@ type HidePipelineCommand struct {
 	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Pipeline to ide"`
 }
 
+func (command *HidePipelineCommand) Validate() error {
+	return command.Pipeline.Validate()
+}
+
 func (command *HidePipelineCommand) Execute(args []string) error {
+	err := command.Validate()
+	if err != nil {
+		return err
+	}
+
 	pipelineName := string(command.Pipeline)
 
 	target, err := rc.LoadTarget(Fly.Target)

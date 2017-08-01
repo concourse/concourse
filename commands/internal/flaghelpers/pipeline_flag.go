@@ -1,6 +1,7 @@
 package flaghelpers
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
@@ -9,6 +10,13 @@ import (
 )
 
 type PipelineFlag string
+
+func (flag *PipelineFlag) Validate() error {
+	if strings.Contains(string(*flag), "/") {
+		return errors.New("pipeline name cannot contain '/'")
+	}
+	return nil
+}
 
 func (flag *PipelineFlag) Complete(match string) []flags.Completion {
 	fly := parseFlags()

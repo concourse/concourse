@@ -14,7 +14,16 @@ type DestroyPipelineCommand struct {
 	SkipInteractive bool                     `short:"n"  long:"non-interactive"          description:"Destroy the pipeline without confirmation"`
 }
 
+func (command *DestroyPipelineCommand) Validate() error {
+	return command.Pipeline.Validate()
+}
+
 func (command *DestroyPipelineCommand) Execute(args []string) error {
+	err := command.Validate()
+	if err != nil {
+		return err
+
+	}
 	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err

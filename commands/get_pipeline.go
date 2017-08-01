@@ -21,7 +21,16 @@ type GetPipelineCommand struct {
 	JSON     bool                     `short:"j" long:"json"                     description:"Print config as json instead of yaml"`
 }
 
+func (command *GetPipelineCommand) Validate() error {
+	return command.Pipeline.Validate()
+}
+
 func (command *GetPipelineCommand) Execute(args []string) error {
+	err := command.Validate()
+	if err != nil {
+		return err
+	}
+
 	asJSON := command.JSON
 	pipelineName := string(command.Pipeline)
 

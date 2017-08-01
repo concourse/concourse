@@ -21,7 +21,15 @@ type SetPipelineCommand struct {
 	VarsFrom []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
 }
 
+func (command *SetPipelineCommand) Validate() error {
+	return command.Pipeline.Validate()
+}
+
 func (command *SetPipelineCommand) Execute(args []string) error {
+	err := command.Validate()
+	if err != nil {
+		return err
+	}
 	configPath := command.Config
 	templateVariablesFiles := command.VarsFrom
 	pipelineName := string(command.Pipeline)

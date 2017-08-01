@@ -13,7 +13,16 @@ type ChecklistCommand struct {
 	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"The pipeline from which to generate the Checkfile"`
 }
 
+func (command *ChecklistCommand) Validate() error {
+	return command.Pipeline.Validate()
+}
+
 func (command *ChecklistCommand) Execute([]string) error {
+	err := command.Validate()
+	if err != nil {
+		return err
+	}
+
 	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
