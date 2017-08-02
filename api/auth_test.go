@@ -280,6 +280,13 @@ var _ = Describe("Auth API", func() {
 			It("returns Not Found", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
+
+			It("returns a JSONAPI error for the team not being found", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`{"errors": [{"title": "Team Not Found Error", "detail": "Team with name 'some-team' not found.", "status": "404"}]}`))
+			})
 		})
 	})
 

@@ -3,6 +3,7 @@ package authserver
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"sort"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
+	"github.com/google/jsonapi"
 	"github.com/tedsuo/rata"
 )
 
@@ -17,6 +19,8 @@ const BasicAuthDisplayName = "Basic Auth"
 
 func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-auth-methods")
+
+	w.Header().Set("Content-Type", "application/json")
 
 	teamName := r.FormValue(":team_name")
 	team, found, err := s.teamFactory.FindTeam(teamName)
@@ -28,6 +32,11 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		logger.Info("team-not-found")
 		w.WriteHeader(http.StatusNotFound)
+		jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
+			Title:  "Team Not Found Error",
+			Detail: fmt.Sprintf("Team with name '%s' not found.", teamName),
+			Status: "404",
+		}})
 		return
 	}
 
@@ -39,8 +48,6 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sort.Sort(byTypeAndName(methods))
-
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(methods)
 }
 
