@@ -296,3 +296,7 @@
 	path = src/github.com/krishicks/yaml-patch
 	url = https://github.com/krishicks/yaml-patch
 	branch = master
+[submodule "src/github.com/google/jsonapi"]
+	path = src/github.com/google/jsonapi
+	url = https://github.com/google/jsonapi
+	branch = master

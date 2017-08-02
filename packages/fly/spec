@@ -55,6 +55,7 @@ files:
   - github.com/fatih/color/*.go # gosub
   - github.com/google/go-github/github/*.go # gosub
   - github.com/google/go-querystring/query/*.go # gosub
+  - github.com/google/jsonapi/*.go # gosub
   - github.com/gorilla/websocket/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.go # gosub
