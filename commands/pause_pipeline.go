@@ -24,7 +24,7 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 
 	pipelineName := string(command.Pipeline)
 
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}

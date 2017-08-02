@@ -28,7 +28,7 @@ type ExecuteCommand struct {
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}
@@ -68,14 +68,14 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	}
 
 	plan, err := executehelpers.CreateBuildPlan(
-		client,
+		target,
 		command.Privileged,
 		inputs,
 		outputs,
 		taskConfig,
 		command.Tags,
-		Fly.Target,
 	)
+
 	if err != nil {
 		return err
 	}

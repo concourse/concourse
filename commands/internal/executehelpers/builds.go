@@ -5,26 +5,19 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
-	"github.com/concourse/go-concourse/concourse"
 )
 
 func CreateBuildPlan(
-	client concourse.Client,
+	target rc.Target,
 	privileged bool,
 	inputs []Input,
 	outputs []Output,
 	config atc.TaskConfig,
 	tags []string,
-	targetName rc.TargetName,
 ) (atc.Plan, error) {
 	fact := atc.NewPlanFactory(time.Now().Unix())
 
 	if err := config.Validate(); err != nil {
-		return atc.Plan{}, err
-	}
-
-	target, err := rc.LoadTarget(targetName)
-	if err != nil {
 		return atc.Plan{}, err
 	}
 

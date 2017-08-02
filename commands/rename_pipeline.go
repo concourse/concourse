@@ -28,7 +28,7 @@ func (command *RenamePipelineCommand) Execute([]string) error {
 		return err
 	}
 
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}

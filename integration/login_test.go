@@ -170,6 +170,56 @@ var _ = Describe("login Command", func() {
 			Expect(sess.ExitCode()).To(Equal(0))
 		})
 
+		Context("when tracing is not enabled", func() {
+			It("does not print out API calls", func() {
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+					),
+					tokenHandler("some-team"),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Consistently(sess.Err).ShouldNot(gbytes.Say("GET /api/v1/teams/some-team/auth/methods HTTP/1.1"))
+				Consistently(sess.Out).ShouldNot(gbytes.Say("GET /api/v1/teams/some-team/auth/methods HTTP/1.1"))
+				Consistently(sess.Err).ShouldNot(gbytes.Say("HTTP/1.1 200 OK"))
+				Consistently(sess.Out).ShouldNot(gbytes.Say("HTTP/1.1 200 OK"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+			})
+		})
+
+		Context("when tracing is enabled", func() {
+			It("prints out API calls", func() {
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+					),
+					tokenHandler("some-team"),
+				)
+
+				flyCmd := exec.Command(flyPath, "--verbose", "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("GET /api/v1/teams/some-team/auth/methods HTTP/1.1"))
+				Eventually(sess.Err).Should(gbytes.Say("HTTP/1.1 200 OK"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+			})
+		})
+
 		Context("when already logged in as different team", func() {
 			BeforeEach(func() {
 				loginATCServer.AppendHandlers(

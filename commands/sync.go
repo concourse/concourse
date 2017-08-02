@@ -17,7 +17,7 @@ import (
 type SyncCommand struct{}
 
 func (command *SyncCommand) Execute(args []string) error {
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}

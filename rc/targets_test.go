@@ -76,7 +76,7 @@ var _ = Describe("Targets", func() {
 				})
 
 				It("returns the rc empty ca-cert", func() {
-					returnedTarget, err := rc.LoadTarget(targetName)
+					returnedTarget, err := rc.LoadTarget(targetName, false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(returnedTarget.CACert()).To(BeEmpty())
 				})
@@ -99,7 +99,7 @@ var _ = Describe("Targets", func() {
 				})
 
 				It("returns the rc insecure flag as true", func() {
-					returnedTarget, err := rc.LoadTarget(targetName)
+					returnedTarget, err := rc.LoadTarget(targetName, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(returnedTarget.CACert()).To(Equal(rsaCertPEM))
 				})
@@ -124,7 +124,7 @@ var _ = Describe("Targets", func() {
 				})
 
 				It("returns the rc insecure flag as false", func() {
-					returnedTarget, err := rc.LoadTarget(targetName)
+					returnedTarget, err := rc.LoadTarget(targetName, false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(returnedTarget.TLSConfig().InsecureSkipVerify).To(BeFalse())
 				})
@@ -147,7 +147,7 @@ var _ = Describe("Targets", func() {
 				})
 
 				It("returns the rc insecure flag as true", func() {
-					returnedTarget, err := rc.LoadTarget(targetName)
+					returnedTarget, err := rc.LoadTarget(targetName, false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(returnedTarget.TLSConfig().InsecureSkipVerify).To(BeTrue())
 				})
@@ -156,14 +156,14 @@ var _ = Describe("Targets", func() {
 
 		Context("when selecting a target that does not exist", func() {
 			It("returns UnknownTargetError", func() {
-				_, err := rc.LoadTarget("bogus")
+				_, err := rc.LoadTarget("bogus", false)
 				Expect(err).To(Equal(rc.UnknownTargetError{"bogus"}))
 			})
 		})
 
 		Context("when a target is not specified", func() {
 			It("returns ErrNoTargetSpecified", func() {
-				_, err := rc.LoadTarget("")
+				_, err := rc.LoadTarget("", false)
 				Expect(err).To(Equal(rc.ErrNoTargetSpecified))
 			})
 		})

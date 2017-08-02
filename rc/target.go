@@ -87,7 +87,7 @@ func newTarget(
 	}
 }
 
-func LoadTarget(selectedTarget TargetName) (Target, error) {
+func LoadTarget(selectedTarget TargetName, tracing bool) (Target, error) {
 	targetProps, err := selectTarget(selectedTarget)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func LoadTarget(selectedTarget TargetName) (Target, error) {
 	}
 
 	httpClient := defaultHttpClient(targetProps.Token, targetProps.Insecure, caCertPool)
-	client := concourse.NewClient(targetProps.API, httpClient)
+	client := concourse.NewClient(targetProps.API, httpClient, tracing)
 
 	return newTarget(
 		selectedTarget,
@@ -118,6 +118,7 @@ func LoadTargetWithInsecure(
 	teamName string,
 	commandInsecure bool,
 	caCert string,
+	tracing bool,
 ) (Target, error) {
 	targetProps, err := selectTarget(selectedTarget)
 	if err != nil {
@@ -151,7 +152,7 @@ func LoadTargetWithInsecure(
 		caCert,
 		caCertPool,
 		targetProps.Insecure,
-		concourse.NewClient(targetProps.API, httpClient),
+		concourse.NewClient(targetProps.API, httpClient, tracing),
 	), nil
 }
 
@@ -161,6 +162,7 @@ func NewUnauthenticatedTarget(
 	teamName string,
 	insecure bool,
 	caCert string,
+	tracing bool,
 ) (Target, error) {
 	caCertPool, err := loadCACertPool(caCert)
 	if err != nil {
@@ -168,7 +170,7 @@ func NewUnauthenticatedTarget(
 	}
 
 	httpClient := unauthenticatedHttpClient(insecure, caCertPool)
-	client := concourse.NewClient(url, httpClient)
+	client := concourse.NewClient(url, httpClient, tracing)
 	return newTarget(
 		name,
 		teamName,
@@ -189,13 +191,14 @@ func NewBasicAuthTarget(
 	username string,
 	password string,
 	caCert string,
+	tracing bool,
 ) (Target, error) {
 	caCertPool, err := loadCACertPool(caCert)
 	if err != nil {
 		return nil, err
 	}
 	httpClient := basicAuthHttpClient(username, password, insecure, caCertPool)
-	client := concourse.NewClient(url, httpClient)
+	client := concourse.NewClient(url, httpClient, tracing)
 
 	return newTarget(
 		name,
@@ -215,6 +218,7 @@ func NewNoAuthTarget(
 	teamName string,
 	insecure bool,
 	caCert string,
+	tracing bool,
 ) (Target, error) {
 	caCertPool, err := loadCACertPool(caCert)
 	if err != nil {
@@ -222,7 +226,7 @@ func NewNoAuthTarget(
 	}
 
 	httpClient := &http.Client{Transport: transport(insecure, caCertPool)}
-	client := concourse.NewClient(url, httpClient)
+	client := concourse.NewClient(url, httpClient, tracing)
 
 	return newTarget(
 		name,

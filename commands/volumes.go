@@ -20,7 +20,7 @@ type VolumesCommand struct {
 }
 
 func (command *VolumesCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}

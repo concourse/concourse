@@ -16,7 +16,7 @@ type JobsCommand struct {
 func (command *JobsCommand) Execute([]string) error {
 	pipelineName := command.Pipeline
 
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}

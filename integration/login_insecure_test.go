@@ -288,7 +288,7 @@ var _ = Describe("login -k Command", func() {
 					Expect(sess.ExitCode()).To(Equal(0))
 
 					By("saving the CA cert to the .flyrc", func() {
-						returnedTarget, err := rc.LoadTarget("some-target")
+						returnedTarget, err := rc.LoadTarget("some-target", false)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(returnedTarget.CACert()).To(Equal(sslCert))
 					})
@@ -366,7 +366,7 @@ var _ = Describe("login -k Command", func() {
 						Expect(sess.ExitCode()).To(Equal(0))
 
 						By("saving the CA cert to the .flyrc", func() {
-							returnedTarget, err := rc.LoadTarget("some-target")
+							returnedTarget, err := rc.LoadTarget("some-target", false)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(returnedTarget.CACert()).To(Equal(""))
 						})

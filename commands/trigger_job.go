@@ -20,7 +20,7 @@ type TriggerJobCommand struct {
 func (command *TriggerJobCommand) Execute(args []string) error {
 	pipelineName, jobName := command.Job.PipelineName, command.Job.JobName
 
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}

@@ -12,6 +12,8 @@ type FlyCommand struct {
 
 	Version func() `short:"v" long:"version" description:"Print the version of Fly and exit"`
 
+	Verbose bool `long:"verbose" description:"Print API requests and responses"`
+
 	PrintTableHeaders bool `long:"print-table-headers" description:"Print table headers even for redirected output"`
 
 	Login  LoginCommand  `command:"login" alias:"l" description:"Authenticate with the target"`

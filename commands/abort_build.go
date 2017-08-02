@@ -15,7 +15,7 @@ type AbortBuildCommand struct {
 }
 
 func (command *AbortBuildCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}

@@ -90,7 +90,7 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 			})
 
 			It("loads target with correct transport", func() {
-				target, err := rc.LoadTarget("some-target")
+				target, err := rc.LoadTarget("some-target", false)
 				Expect(err).NotTo(HaveOccurred())
 				transport, ok := target.Client().HTTPClient().Transport.(*oauth2.Transport)
 				Expect(ok).To(BeTrue())
@@ -133,7 +133,7 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 			})
 
 			It("loads target with correct transport", func() {
-				target, err := rc.LoadTarget("some-target")
+				target, err := rc.LoadTarget("some-target", false)
 				Expect(err).NotTo(HaveOccurred())
 				transport, ok := target.Client().HTTPClient().Transport.(*oauth2.Transport)
 				Expect(ok).To(BeTrue())

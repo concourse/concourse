@@ -34,7 +34,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	templateVariablesFiles := command.VarsFrom
 	pipelineName := string(command.Pipeline)
 
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}

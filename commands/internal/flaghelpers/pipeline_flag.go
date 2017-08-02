@@ -21,7 +21,7 @@ func (flag *PipelineFlag) Validate() error {
 func (flag *PipelineFlag) Complete(match string) []flags.Completion {
 	fly := parseFlags()
 
-	target, err := rc.LoadTarget(fly.Target)
+	target, err := rc.LoadTarget(fly.Target, false)
 	if err != nil {
 		return []flags.Completion{}
 	}

@@ -10,6 +10,7 @@ import (
 	"net"
 
 	"crypto/tls"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
@@ -54,6 +55,7 @@ func (command *LoginCommand) Execute(args []string) error {
 			command.TeamName,
 			command.Insecure,
 			caCert,
+			Fly.Verbose,
 		)
 	} else {
 		target, err = rc.LoadTargetWithInsecure(
@@ -61,6 +63,7 @@ func (command *LoginCommand) Execute(args []string) error {
 			command.TeamName,
 			command.Insecure,
 			caCert,
+			Fly.Verbose,
 		)
 	}
 	if err != nil {
@@ -102,6 +105,7 @@ func (command *LoginCommand) Execute(args []string) error {
 				command.TeamName,
 				command.Insecure,
 				target.CACert(),
+				Fly.Verbose,
 			)
 			if err != nil {
 				return err
@@ -260,6 +264,7 @@ func (command *LoginCommand) loginWith(
 			username,
 			password,
 			caCert,
+			Fly.Verbose,
 		)
 		if err != nil {
 			return nil, err

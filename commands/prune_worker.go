@@ -13,7 +13,7 @@ type PruneWorkerCommand struct {
 func (command *PruneWorkerCommand) Execute(args []string) error {
 	workerName := command.Worker
 
-	target, err := rc.LoadTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}
