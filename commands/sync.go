@@ -35,7 +35,7 @@ func (command *SyncCommand) Execute(args []string) error {
 	err = updateOptions.CheckPermissions()
 	if err != nil {
 
-		displayhelpers.FailWithErrorf("update failed:", err)
+		displayhelpers.FailWithErrorf("update failed", err)
 	}
 
 	client := target.Client()
@@ -55,7 +55,7 @@ func (command *SyncCommand) Execute(args []string) error {
 
 	err = update.Apply(reader, updateOptions)
 	if err != nil {
-		displayhelpers.FailWithErrorf("update failed:", err)
+		displayhelpers.FailWithErrorf("update failed", err)
 	}
 
 	return nil
