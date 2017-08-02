@@ -40,8 +40,10 @@ type client struct {
 	connection internal.Connection
 }
 
-func NewClient(apiURL string, httpClient *http.Client) Client {
-	return &client{connection: internal.NewConnection(apiURL, httpClient)}
+func NewClient(apiURL string, httpClient *http.Client, tracing bool) Client {
+	return &client{
+		connection: internal.NewConnection(apiURL, httpClient, tracing),
+	}
 }
 
 func (client *client) URL() string {

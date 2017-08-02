@@ -22,6 +22,7 @@ var (
 	atcServer *ghttp.Server
 	client    concourse.Client
 	team      concourse.Team
+	tracing   bool
 )
 
 var _ = BeforeEach(func() {
@@ -30,6 +31,7 @@ var _ = BeforeEach(func() {
 	client = concourse.NewClient(
 		atcServer.URL(),
 		&http.Client{},
+		tracing,
 	)
 
 	team = client.Team("some-team")

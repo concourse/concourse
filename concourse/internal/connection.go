@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"strings"
 	"time"
+
+	"log"
 
 	"github.com/concourse/atc"
 	"github.com/tedsuo/rata"
@@ -42,11 +45,12 @@ type Response struct {
 type connection struct {
 	url        string
 	httpClient *http.Client
+	tracing    bool
 
 	requestGenerator *rata.RequestGenerator
 }
 
-func NewConnection(apiURL string, httpClient *http.Client) Connection {
+func NewConnection(apiURL string, httpClient *http.Client, tracing bool) Connection {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -56,6 +60,7 @@ func NewConnection(apiURL string, httpClient *http.Client) Connection {
 	return &connection{
 		url:        apiURL,
 		httpClient: httpClient,
+		tracing:    tracing,
 
 		requestGenerator: rata.NewRequestGenerator(apiURL, atc.Routes),
 	}
@@ -75,9 +80,27 @@ func (connection *connection) Send(passedRequest Request, passedResponse *Respon
 		return err
 	}
 
+	if connection.tracing {
+		b, err := httputil.DumpRequestOut(req, true)
+		if err != nil {
+			return err
+		}
+
+		log.Println(string(b))
+	}
+
 	response, err := connection.httpClient.Do(req)
 	if err != nil {
 		return err
+	}
+
+	if connection.tracing {
+		b, err := httputil.DumpResponse(response, true)
+		if err != nil {
+			return err
+		}
+
+		log.Println(string(b))
 	}
 
 	if !passedRequest.ReturnResponseBody {

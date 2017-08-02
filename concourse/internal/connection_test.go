@@ -24,17 +24,19 @@ var _ = Describe("ATC Connection", func() {
 		atcServer *ghttp.Server
 
 		connection Connection
+
+		tracing bool
 	)
 
 	BeforeEach(func() {
 		atcServer = ghttp.NewServer()
 
-		connection = NewConnection(atcServer.URL(), nil)
+		connection = NewConnection(atcServer.URL(), nil, tracing)
 	})
 
 	Describe("#Send", func() {
 		It("is robust to trailing slash in the target", func() {
-			badConnection := NewConnection(atcServer.URL()+"/", nil)
+			badConnection := NewConnection(atcServer.URL()+"/", nil, tracing)
 			expectedURL := "/api/v1/builds/foo"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -55,7 +57,7 @@ var _ = Describe("ATC Connection", func() {
 		})
 
 		It("can ignore responses", func() {
-			badConnection := NewConnection(atcServer.URL(), nil)
+			badConnection := NewConnection(atcServer.URL(), nil, tracing)
 
 			expectedURL := "/api/v1/builds/foo"
 			atcServer.AppendHandlers(
@@ -83,6 +85,7 @@ var _ = Describe("ATC Connection", func() {
 						Password: "some password",
 					},
 				},
+				tracing,
 			)
 
 			expectedURL := "/api/v1/builds/foo"
@@ -203,7 +206,7 @@ var _ = Describe("ATC Connection", func() {
 			BeforeEach(func() {
 				atcServer = ghttp.NewServer()
 
-				connection = NewConnection(atcServer.URL(), nil)
+				connection = NewConnection(atcServer.URL(), nil, tracing)
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -234,7 +237,7 @@ var _ = Describe("ATC Connection", func() {
 			BeforeEach(func() {
 				atcServer = ghttp.NewServer()
 
-				connection = NewConnection(atcServer.URL(), nil)
+				connection = NewConnection(atcServer.URL(), nil, tracing)
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -265,7 +268,7 @@ var _ = Describe("ATC Connection", func() {
 				BeforeEach(func() {
 					atcServer = ghttp.NewServer()
 
-					connection = NewConnection(atcServer.URL(), nil)
+					connection = NewConnection(atcServer.URL(), nil, tracing)
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -292,7 +295,7 @@ var _ = Describe("ATC Connection", func() {
 				BeforeEach(func() {
 					atcServer = ghttp.NewServer()
 
-					connection = NewConnection(atcServer.URL(), nil)
+					connection = NewConnection(atcServer.URL(), nil, tracing)
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -323,7 +326,7 @@ var _ = Describe("ATC Connection", func() {
 				BeforeEach(func() {
 					atcServer = ghttp.NewServer()
 
-					connection = NewConnection(atcServer.URL(), nil)
+					connection = NewConnection(atcServer.URL(), nil, tracing)
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -350,7 +353,7 @@ var _ = Describe("ATC Connection", func() {
 				BeforeEach(func() {
 					atcServer = ghttp.NewServer()
 
-					connection = NewConnection(atcServer.URL(), nil)
+					connection = NewConnection(atcServer.URL(), nil, tracing)
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -377,7 +380,7 @@ var _ = Describe("ATC Connection", func() {
 				BeforeEach(func() {
 					atcServer = ghttp.NewServer()
 
-					connection = NewConnection(atcServer.URL(), nil)
+					connection = NewConnection(atcServer.URL(), nil, tracing)
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
