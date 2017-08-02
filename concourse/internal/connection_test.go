@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/atc/event"
 	"github.com/concourse/go-concourse/concourse/eventstream"
 	. "github.com/concourse/go-concourse/concourse/internal"
+	"github.com/google/jsonapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -377,32 +378,68 @@ var _ = Describe("ATC Connection", func() {
 			})
 
 			Describe("404 response", func() {
-				BeforeEach(func() {
-					atcServer = ghttp.NewServer()
+				Context("when the response does not contain JSONAPI errors", func() {
+					BeforeEach(func() {
+						atcServer = ghttp.NewServer()
 
-					connection = NewConnection(atcServer.URL(), nil, tracing)
+						connection = NewConnection(atcServer.URL(), nil, tracing)
 
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
-							ghttp.RespondWith(http.StatusNotFound, "problem"),
-						),
-					)
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
+								ghttp.RespondWith(http.StatusNotFound, "problem"),
+							),
+						)
+					})
+
+					It("returns back ResourceNotFoundError", func() {
+						err := connection.Send(Request{
+							RequestName: atc.DeletePipeline,
+							Params: rata.Params{
+								"pipeline_name": "foo",
+								"team_name":     atc.DefaultTeamName,
+							},
+						}, nil)
+
+						Expect(err).To(HaveOccurred())
+						_, ok := err.(ResourceNotFoundError)
+						Expect(ok).To(BeTrue())
+						Expect(err.Error()).To(Equal("resource not found"))
+					})
 				})
 
-				It("returns back ResourceNotFoundError", func() {
-					err := connection.Send(Request{
-						RequestName: atc.DeletePipeline,
-						Params: rata.Params{
-							"pipeline_name": "foo",
-							"team_name":     atc.DefaultTeamName,
-						},
-					}, nil)
+				Context("when the response contains JSONAPI errors", func() {
+					BeforeEach(func() {
+						atcServer = ghttp.NewServer()
 
-					Expect(err).To(HaveOccurred())
-					_, ok := err.(ResourceNotFoundError)
-					Expect(ok).To(BeTrue())
-					Expect(err.Error()).To(Equal("resource not found"))
+						connection = NewConnection(atcServer.URL(), nil, tracing)
+
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
+								ghttp.RespondWithJSONEncoded(http.StatusNotFound, jsonapi.ErrorsPayload{[]*jsonapi.ErrorObject{
+									{Detail: "One error message's detail."},
+									{Detail: "Some other error message detail."},
+								}}),
+							),
+						)
+					})
+
+					It("returns back a ResourceNotFoundError with the given error details", func() {
+						err := connection.Send(Request{
+							RequestName: atc.DeletePipeline,
+							Params: rata.Params{
+								"pipeline_name": "foo",
+								"team_name":     atc.DefaultTeamName,
+							},
+						}, nil)
+
+						Expect(err).To(HaveOccurred())
+						_, ok := err.(ResourceNotFoundError)
+						Expect(ok).To(BeTrue())
+						Expect(err.Error()).To(Equal("One error message's detail. Some other error message detail."))
+					})
+
 				})
 			})
 		})

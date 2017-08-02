@@ -171,7 +171,10 @@ func (connection *connection) getBody(passedRequest Request) *bytes.Buffer {
 
 func (connection *connection) populateResponse(response *http.Response, returnResponseBody bool, passedResponse *Response) error {
 	if response.StatusCode == http.StatusNotFound {
-		return ResourceNotFoundError{}
+		var errors ResourceNotFoundError
+
+		json.NewDecoder(response.Body).Decode(&errors)
+		return errors
 	}
 
 	if response.StatusCode == http.StatusUnauthorized {
