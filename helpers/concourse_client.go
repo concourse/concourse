@@ -16,7 +16,7 @@ import (
 func ConcourseClient(atcURL string) concourse.Client {
 	authToken, _, _ := GetATCToken(atcURL)
 	httpClient := oauthClient(authToken)
-	return concourse.NewClient(atcURL, httpClient)
+	return concourse.NewClient(atcURL, httpClient, false)
 }
 
 func GetATCToken(atcURL string) (*atc.AuthToken, string, error) {
