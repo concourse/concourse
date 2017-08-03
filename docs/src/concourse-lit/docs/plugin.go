@@ -27,9 +27,9 @@ func NewPlugin(section *booklit.Section) booklit.Plugin {
 }
 
 func (p Plugin) FontAwesome(class string) booklit.Content {
-	return booklit.Element{
-		Class:   "fa " + class,
-		Content: booklit.Empty,
+	return booklit.Styled{
+		Style:   "font-awesome",
+		Content: booklit.String(class),
 	}
 }
 
@@ -39,8 +39,8 @@ func (p Plugin) Codeblock(language string, code booklit.Content) (booklit.Conten
 		return nil, err
 	}
 
-	return booklit.Block{
-		Class:   "code",
+	return booklit.Styled{
+		Style:   "codeblock",
 		Content: code,
 	}, nil
 }
@@ -51,24 +51,23 @@ func (p Plugin) TitledCodeblock(title booklit.Content, language string, code boo
 		return nil, err
 	}
 
-	return booklit.Block{
-		Class: "titled-codeblock",
-		Content: booklit.Sequence{
-			booklit.Block{
-				Class: "codeblock-title",
-				Content: booklit.Styled{
-					Style:   booklit.StyleVerbatim,
-					Content: title,
-				},
+	return booklit.Styled{
+		Style: "titled-codeblock",
+
+		Content: codeblock,
+
+		Partials: booklit.Partials{
+			"Title": booklit.Styled{
+				Style:   booklit.StyleVerbatim,
+				Content: title,
 			},
-			codeblock,
 		},
 	}, nil
 }
 
 func (p Plugin) Warn(content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class:   "warning",
+	return booklit.Styled{
+		Style:   "warning",
 		Content: content,
 	}
 }
@@ -97,55 +96,43 @@ func (p Plugin) DefineAttribute(attribute string, content booklit.Content, tags 
 		})
 	}
 
-	return booklit.Block{
-		Class: "definition",
-		Content: booklit.Sequence{
-			booklit.Block{
-				Class: "thumb",
-				Content: booklit.Sequence{
-					targets,
-					booklit.Styled{
-						Style: booklit.StyleVerbatim,
-						Content: booklit.Preformatted{
-							booklit.Sequence{
-								&booklit.Reference{
-									TagName: tags[0],
-									Content: booklit.Styled{
-										Style:   booklit.StyleBold,
-										Content: booklit.String(attrName),
-									},
-								},
-								booklit.String(":" + attrSplit[1]),
+	return booklit.Styled{
+		Style:   "definition",
+		Content: content,
+		Partials: booklit.Partials{
+			"Targets": targets,
+			"Thumb": booklit.Styled{
+				Style: booklit.StyleVerbatim,
+				Content: booklit.Preformatted{
+					booklit.Sequence{
+						&booklit.Reference{
+							TagName: tags[0],
+							Content: booklit.Styled{
+								Style:   booklit.StyleBold,
+								Content: booklit.String(attrName),
 							},
 						},
+						booklit.String(":" + attrSplit[1]),
 					},
 				},
 			},
-			content,
 		},
 	}, nil
 }
 
 func (p Plugin) DefineMetric(metric string, content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "definition",
-		Content: booklit.Sequence{
-			booklit.Block{
-				Class: "thumb",
-				Content: booklit.Sequence{
-					booklit.Target{
-						TagName: metric,
-						Display: booklit.String(metric),
-					},
-					booklit.Styled{
-						Style: booklit.StyleVerbatim,
-						Content: booklit.Block{
-							Content: booklit.String(metric),
-						},
-					},
-				},
+	return booklit.Styled{
+		Style:   "definition",
+		Content: content,
+		Partials: booklit.Partials{
+			"Targets": booklit.Target{
+				TagName: metric,
+				Display: booklit.String(metric),
 			},
-			content,
+			"Thumb": booklit.Styled{
+				Style:   booklit.StyleVerbatim,
+				Content: booklit.Block{Content: booklit.String(metric)},
+			},
 		},
 	}
 }
@@ -206,12 +193,13 @@ func (p Plugin) Resource(resource string, optionalName ...string) booklit.Conten
 }
 
 func (p Plugin) TutorialImage(path string) booklit.Content {
-	return booklit.Block{
-		Class: "tutorial-image",
+	return booklit.Styled{
+		Style: "classed-image",
 		Content: booklit.Image{
 			Path:        path,
 			Description: "tutorial image",
 		},
+		Partials: booklit.Partials{"Class": booklit.String("tutorial-image")},
 	}
 }
 
@@ -228,17 +216,11 @@ func (p Plugin) LiterateSegment(parasAndFinalCode ...booklit.Content) (booklit.C
 		code = booklit.Empty
 	}
 
-	return booklit.Block{
-		Class: "literate-segment",
-		Content: booklit.Block{
-			Class: "literate-entry",
-			Content: booklit.Sequence{
-				booklit.Block{
-					Class:   "prose",
-					Content: booklit.Sequence(paras),
-				},
-				code,
-			},
+	return booklit.Styled{
+		Style:   "literate-segment",
+		Content: booklit.Sequence(paras),
+		Partials: booklit.Partials{
+			"Code": code,
 		},
 	}, nil
 }
@@ -279,19 +261,19 @@ func (p Plugin) release(
 	p.section.SetTitle(booklit.String("v" + concourseVersion))
 
 	p.section.SetPartial("Version", booklit.String(concourseVersion))
-	p.section.SetPartial("VersionLabel", booklit.Element{
-		Class:   "version-number",
+	p.section.SetPartial("VersionLabel", booklit.Styled{
+		Style:   "release-version-number",
 		Content: booklit.String("v" + concourseVersion),
 	})
 
 	p.section.SetPartial("GardenVersion", booklit.String(gardenVersion))
-	p.section.SetPartial("GardenVersionLabel", booklit.Element{
-		Class:   "version-number",
+	p.section.SetPartial("GardenVersionLabel", booklit.Styled{
+		Style:   "release-version-number",
 		Content: booklit.String("v" + gardenVersion),
 	})
 
-	p.section.SetPartial("ReleaseDate", booklit.Element{
-		Class:   "release-date",
+	p.section.SetPartial("ReleaseDate", booklit.Styled{
+		Style:   "release-date",
 		Content: booklit.String(t.Format("January 2, 2006")),
 	})
 
@@ -312,22 +294,17 @@ func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit
 
 	tagNotes := []booklit.Content{}
 	for _, t := range tags {
-		tagNotes = append(tagNotes, booklit.Block{
-			Class:   "note-tag " + t,
+		tagNotes = append(tagNotes, booklit.Styled{
+			Style:   "release-note-tag",
 			Content: booklit.String(t),
 		})
 	}
 
-	return booklit.Block{
-		Class: "release-note",
-		Content: booklit.Sequence{
-			booklit.Block{
-				Class: "tags",
-				Content: booklit.List{
-					Items: tagNotes,
-				},
-			},
-			content,
+	return booklit.Styled{
+		Style:   "release-note",
+		Content: content,
+		Partials: booklit.Partials{
+			"Tags": booklit.List{Items: tagNotes},
 		},
 	}
 }

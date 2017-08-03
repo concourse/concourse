@@ -21,22 +21,22 @@ func NewPlugin(section *booklit.Section) booklit.Plugin {
 }
 
 func (p Plugin) SoftLine(content booklit.Content) booklit.Content {
-	return booklit.Element{
-		Class:   "soft-line",
+	return booklit.Styled{
+		Style:   "soft-line",
 		Content: content,
 	}
 }
 
 func (p Plugin) LightButton(content booklit.Content) booklit.Content {
-	return booklit.Element{
-		Class:   "button button-primary button-light",
+	return booklit.Styled{
+		Style:   "light-button",
 		Content: content,
 	}
 }
 
 func (p Plugin) BlueButton(content booklit.Content) booklit.Content {
-	return booklit.Element{
-		Class:   "button button-primary button-blue",
+	return booklit.Styled{
+		Style:   "blue-button",
 		Content: content,
 	}
 }
