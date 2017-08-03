@@ -264,7 +264,7 @@ func concourseClient() concourse.Client {
 	token, err := getATCToken(atcExternalURL)
 	Expect(err).NotTo(HaveOccurred())
 	httpClient := oauthClient(token)
-	return concourse.NewClient(atcExternalURL, httpClient)
+	return concourse.NewClient(atcExternalURL, httpClient, false)
 }
 
 func deleteAllContainers() {
