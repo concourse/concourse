@@ -2,7 +2,16 @@
 name: docs
 instances: 2
 memory: 64M
-domains: [concourse.ci, concourse-ci.org, concourse-ci.net, concourse-ci.com, concourse.cl]
-host: ''
+routes:
+- route: concourse-ci.org
+- route: concourse-ci.net
+- route: concourse-ci.com
+- route: concourse.ci
+- route: concourse.cl
+- route: www.concourse-ci.org
+- route: www.concourse-ci.net
+- route: www.concourse-ci.com
+- route: www.concourse.ci
+- route: www.concourse.cl
 path: .
 buildpack: "https://github.com/cloudfoundry/staticfile-buildpack#v1.3.2"
