@@ -42,88 +42,45 @@ func (p Plugin) BlueButton(content booklit.Content) booklit.Content {
 }
 
 func (p Plugin) ValuePropLeft(title booklit.Content, image string, content booklit.Content) booklit.Content {
-	prop := booklit.Sequence{
-		booklit.Block{
-			Class:   "h4 value-prop-title",
-			Content: title,
-		},
-		content,
-	}
+	return booklit.Styled{
+		Style: "value-prop-left",
 
-	vis := booklit.Element{
-		Class: "value-pics",
-		Content: booklit.Image{
-			Path: "images/" + image + ".svg",
-		},
-	}
+		Content: content,
 
-	return booklit.Block{
-		Class: "container value-props",
-		Content: booklit.Block{
-			Class: "row",
-			Content: booklit.Block{
-				Class: "twelve columns value-prop-a center-columns",
-				Content: booklit.Sequence{
-					booklit.Block{Class: "six columns", Content: prop},
-					booklit.Block{Class: "six columns", Content: vis},
-				},
+		Partials: booklit.Partials{
+			"Title": title,
+			"Image": booklit.Image{
+				Path:        "images/" + image + ".svg",
+				Description: "value prop",
 			},
 		},
 	}
 }
 
 func (p Plugin) ValuePropRight(title booklit.Content, image string, content booklit.Content) booklit.Content {
-	prop := booklit.Sequence{
-		booklit.Block{
-			Class:   "h4 value-prop-title",
-			Content: title,
-		},
-		content,
-	}
+	return booklit.Styled{
+		Style: "value-prop-right",
 
-	vis := booklit.Element{
-		Class: "value-pics",
-		Content: booklit.Image{
-			Path: "images/" + image + ".svg",
-		},
-	}
+		Content: content,
 
-	return booklit.Block{
-		Class: "u-full-width value-prop-b",
-		Content: booklit.Block{
-			Class: "container",
-			Content: booklit.Block{
-				Class: "row",
-				Content: booklit.Block{
-					Class: "twelve columns value-prop-b-flex center-columns",
-					Content: booklit.Sequence{
-						booklit.Block{Class: "six columns", Content: vis},
-						booklit.Block{Class: "six columns", Content: prop},
-					},
-				},
+		Partials: booklit.Partials{
+			"Title": title,
+			"Image": booklit.Image{
+				Path:        "images/" + image + ".svg",
+				Description: "value prop",
 			},
 		},
 	}
 }
 
 func (p Plugin) GettingStarted(title, content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "u-full-width get-started",
-		Content: booklit.Block{
-			Class: "container",
-			Content: booklit.Block{
-				Class: "row",
-				Content: booklit.Block{
-					Class: "twelve columns",
-					Content: booklit.Sequence{
-						booklit.Block{
-							Class:   "h3 started-title",
-							Content: title,
-						},
-						content,
-					},
-				},
-			},
+	return booklit.Styled{
+		Style: "getting-started",
+
+		Content: content,
+
+		Partials: booklit.Partials{
+			"Title": title,
 		},
 	}
 }
@@ -133,64 +90,35 @@ func (p Plugin) Newline() booklit.Content {
 }
 
 func (p Plugin) StepWithLine(duration, title, content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "steps",
-		Content: booklit.Sequence{
-			booklit.Block{
-				Class: "time-circle",
-				Content: booklit.Sequence{
-					booklit.Block{
-						Class:   "time",
-						Content: duration,
-					},
-					booklit.Element{
-						Class: "line",
-						Content: booklit.Image{
-							Path: "images/line_simple.svg",
-						},
-					},
-				},
+	return booklit.Styled{
+		Style: "step-with-line",
+
+		Content: content,
+
+		Partials: booklit.Partials{
+			"Title":    title,
+			"Duration": duration,
+			"Line": booklit.Image{
+				Path: "images/line_simple.svg",
 			},
-			booklit.Block{
-				Class:   "h4 step-header",
-				Content: title,
-			},
-			content,
 		},
 	}
 }
 
 func (p Plugin) Step(duration, title, content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "steps",
-		Content: booklit.Sequence{
-			booklit.Block{
-				Class: "time-circle",
-				Content: booklit.Sequence{
-					booklit.Block{
-						Class:   "time",
-						Content: duration,
-					},
-				},
-			},
-			booklit.Block{
-				Class:   "h4 step-header",
-				Content: title,
-			},
-			content,
+	return booklit.Styled{
+		Style: "step",
+
+		Content: content,
+
+		Partials: booklit.Partials{
+			"Title":    title,
+			"Duration": duration,
 		},
 	}
 }
 
 func (p Plugin) CodeLines(language string, lines ...booklit.Content) (booklit.Content, error) {
-	buttons := booklit.Sequence{}
-	for i := 0; i < 3; i++ {
-		buttons = append(buttons, booklit.Block{
-			Class:   "window-buttons",
-			Content: booklit.Empty,
-		})
-	}
-
 	codeLines := booklit.Sequence{}
 	for _, line := range lines {
 		code, err := pygmentize.Block(language, line.String())
@@ -198,123 +126,60 @@ func (p Plugin) CodeLines(language string, lines ...booklit.Content) (booklit.Co
 			return nil, err
 		}
 
-		codeLines = append(codeLines, booklit.Block{
-			Class:   "code-line",
-			Content: code,
-		})
+		codeLines = append(codeLines, code)
 	}
 
-	return booklit.Block{
-		Class: "code-step",
-		Content: booklit.Sequence{
-			buttons,
-			booklit.Block{
-				Class: "window-frame",
-				Content: booklit.Block{
-					Class:   "code-lines",
-					Content: codeLines,
-				},
-			},
-		},
+	return booklit.Styled{
+		Style: "code-lines",
+
+		Content: codeLines,
 	}, nil
 }
 
 func (p Plugin) CodeWindow(language string, content booklit.Content) (booklit.Content, error) {
-	buttons := booklit.Sequence{}
-	for i := 0; i < 3; i++ {
-		buttons = append(buttons, booklit.Block{
-			Class:   "window-buttons",
-			Content: booklit.Empty,
-		})
-	}
-
 	code, err := pygmentize.Block(language, content.String())
 	if err != nil {
 		return nil, err
 	}
 
-	return booklit.Block{
-		Class: "code-step",
-		Content: booklit.Sequence{
-			buttons,
-			booklit.Block{
-				Class:   "window-frame",
-				Content: code,
-			},
-		},
+	return booklit.Styled{
+		Style: "code-window",
+
+		Content: code,
 	}, nil
 }
 
 func (p Plugin) Coffee() booklit.Content {
-	return booklit.Block{
-		Class: "u-full-width",
-		Content: booklit.Block{
-			Class: "time-circle coffee",
-			Content: booklit.Block{
-				Class: "txt-c",
-				Content: booklit.Element{
-					Class: "coffee-icon",
-					Content: booklit.Image{
-						Path:        "images/coffee.svg",
-						Description: "coffee",
-					},
-				},
+	return booklit.Styled{
+		Style: "coffee",
+
+		Content: booklit.Paragraph{},
+
+		Partials: booklit.Partials{
+			"Image": booklit.Image{
+				Path:        "images/coffee.svg",
+				Description: "coffee",
 			},
 		},
 	}
 }
 
 func (p Plugin) Truitt(title, content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "u-full-width come-fly",
-		Content: booklit.Block{
-			Class: "container",
-			Content: booklit.Block{
-				Class: "row",
-				Content: booklit.Block{
-					Class: "twelve columns",
-					Content: booklit.Sequence{
-						booklit.Element{
-							Class:   "line-path",
-							Content: booklit.Empty,
-						},
-						booklit.Block{
-							Class: "fly-tagline",
-							Content: booklit.Sequence{
-								booklit.Block{
-									Class:   "h4 fly-tagline-header",
-									Content: title,
-								},
-								content,
-							},
-						},
-					},
-				},
-			},
+	return booklit.Styled{
+		Style: "truitt",
+
+		Content: content,
+
+		Partials: booklit.Partials{
+			"Title": title,
 		},
 	}
 }
 
 func (p Plugin) Slack(content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "u-full-width slack-section",
-		Content: booklit.Block{
-			Class: "container",
-			Content: booklit.Block{
-				Class: "row",
-				Content: booklit.Block{
-					Class: "twelve columns center-columns",
-					Content: booklit.Block{
-						Class: "h6 slack-intro-text",
-						Content: booklit.Sequence{
-							booklit.Image{
-								Path: "images/slack.png",
-							},
-							content,
-						},
-					},
-				},
-			},
-		},
+	return booklit.Styled{
+		Style: "slack-blurb",
+
+		Content: content,
 	}
 }

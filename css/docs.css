@@ -142,8 +142,7 @@ html, body, #everything {
   margin-bottom: 30px;
 }
 
-#content h1, #content h2, #content h3, #content h4, #content h5, #content h6 ,
-#content .h1, #content .h2, #content .h3, #content .h4, #content .h5, #content .h6 {
+#content h1, #content h2, #content h3, #content h4, #content h5, #content h6 {
   font-family: 'Open Sans', "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 500;
   -webkit-font-smoothing: antialiased;
@@ -161,7 +160,7 @@ html, body, #everything {
   font-size: 30px;
 }
 
-#content h2, #content .h2 {
+#content h2 {
   margin: 40px 0 20px;
   font-size: 26px;
   line-height: 26px;

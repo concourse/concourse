@@ -4,19 +4,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4,
-.h1, .h2, .h3, .h4 {
+h1, h2, h3, h4 {
   font-family: 'Montserrat', arial;
   font-weight: 300;
   letter-spacing: -.1rem;
 }
 
-h5, h6, .h5, .h6, .nav, .bottom-nav {
+h5, h6, .nav, .bottom-nav {
   font-family: 'Montserrat', arial;
   font-weight: 500;
 }
 
-h6, .h6 {
+h6 {
   font-size: 1.5rem;
 }
 
@@ -466,7 +465,7 @@ code {
   margin-top: -45px;
 }
 
-.fly-tagline .h4 {
+.fly-tagline h4 {
   color: #379ADC;
   font-family: 'Montserrat', arial;
   font-weight: 300;
@@ -487,7 +486,7 @@ code {
   z-index: 101;
 }
 
-.slack-section .h6 {
+.slack-section p {
   font-family: 'Montserrat', arial;
   font-weight: 300;
   text-align: center;
