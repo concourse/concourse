@@ -17,15 +17,15 @@ func NewPlugin(section *booklit.Section) booklit.Plugin {
 }
 
 func (p Plugin) ResourcesTable(body booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class:   "resources-table",
+	return booklit.Styled{
+		Style:   "resources-table",
 		Content: body,
 	}
 }
 
 func (p Plugin) Column(name booklit.Content, resources ...booklit.Content) booklit.Content {
-	header := booklit.Block{
-		Class:   "header",
+	header := booklit.Styled{
+		Style:   "resources-table-header",
 		Content: name,
 	}
 
@@ -35,51 +35,41 @@ func (p Plugin) Column(name booklit.Content, resources ...booklit.Content) bookl
 }
 
 func (p Plugin) Normal(content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "normal",
-		Content: booklit.Block{
-			Class:   "cell",
-			Content: content,
-		},
+	return booklit.Styled{
+		Style:    "resources-table-cell",
+		Content:  booklit.Block{Content: content},
+		Partials: booklit.Partials{"State": booklit.String("normal")},
 	}
 }
 
 func (p Plugin) Good(content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "good",
-		Content: booklit.Block{
-			Class:   "cell",
-			Content: content,
-		},
+	return booklit.Styled{
+		Style:    "resources-table-cell",
+		Content:  booklit.Block{Content: content},
+		Partials: booklit.Partials{"State": booklit.String("good")},
 	}
 }
 
 func (p Plugin) Bad(content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "bad",
-		Content: booklit.Block{
-			Class:   "cell",
-			Content: content,
-		},
+	return booklit.Styled{
+		Style:    "resources-table-cell",
+		Content:  booklit.Block{Content: content},
+		Partials: booklit.Partials{"State": booklit.String("bad")},
 	}
 }
 
 func (p Plugin) Gap(content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "gap",
-		Content: booklit.Block{
-			Class:   "cell",
-			Content: content,
-		},
+	return booklit.Styled{
+		Style:    "resources-table-cell",
+		Content:  booklit.Block{Content: content},
+		Partials: booklit.Partials{"State": booklit.String("gap")},
 	}
 }
 
 func (p Plugin) Disabled(content booklit.Content) booklit.Content {
-	return booklit.Block{
-		Class: "disabled",
-		Content: booklit.Block{
-			Class:   "cell",
-			Content: content,
-		},
+	return booklit.Styled{
+		Style:    "resources-table-cell",
+		Content:  booklit.Block{Content: content},
+		Partials: booklit.Partials{"State": booklit.String("disabled")},
 	}
 }
