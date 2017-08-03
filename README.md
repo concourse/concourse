@@ -11,25 +11,25 @@ This is where you will find the source for the Concourse website and overall doc
 ## Install the Packages
 Install [**booklit**](https://github.com/vito/booklit): 
 
-```
+```bash
 go get github.com/vito/booklit/cmd/booklit
 ```
 
 Install [**semver**](https://github.com/blang/semver)
 
-```
+```bash
 go get github.com/blang/semver
 ```
 
 Install [**pygments**](http://pygments.org/)
 
-```
+```bash
 sudo pip install pygments
 ```
 
 or, if you have `virtualenv` and `virtualenvwrapper` installed
 
-```
+```bash
 mkvirtualenv concourse-docs
 workon concourse-docs
 pip install pygments
@@ -38,11 +38,13 @@ pip install pygments
 ## Compiling the Docs
 From project root, we're going to move into the `docs` folder:
 
-`cd docs`
+```bash
+cd docs
+```
 
 and from here we'll use the build script to compile our `.lit` files:
 
-```
+```bash
 # If you installed pygments under a virtualenv, make sure to switch 
 # into it now before you execute the script
 
@@ -53,20 +55,11 @@ The `build` script will instruct booklit to compile all the files under `lit/` a
 The files will then be dumped into your current working directory, in this case its `docs/`
 
 ## Viewing the docs in your browser
-Once booklit finishes compiling the source files, you can render the page by running a simple Python http server from within the `docs/` folder
 
-```
-#Python 2
-python -m SimpleHTTPServer 8000
+To run a server that will rebuild the docs as needed, pass `-s (port)` like so:
 
-#Python 3
-python -m http.server
+```bash
+./scripts/build -s 8000
 ```
 
 You will be now be able to see the rendered site if you navigate to [http://localhost:8000](http://localhost:8000)
-
-## Cleanup
-You should probably clean up your compiled `html` before committing your changes. The `build` script only generates `.html` files, so you can clean up your `docs/` folder by simply running: 
-
-`rm *.html`
-
