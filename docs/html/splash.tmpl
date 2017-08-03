@@ -3,8 +3,7 @@
   <head>
     {{template "header.tmpl" .}}
 
-    <link type="text/css" rel="stylesheet" href="css/splash.css">
-
+    <link type="text/css" rel="stylesheet" href="css/splash.css" />
   </head>
   <body class="split_sections toc">
     <div id="everything">
@@ -44,7 +43,9 @@
           </div>
         </div>
       </div>
-      <div id="middle">{{.Body | render}}</div>
+      <div id="middle">
+        {{.Body | render}}
+      </div>
       {{template "footer.tmpl" .}}
     </div>
   </body>
