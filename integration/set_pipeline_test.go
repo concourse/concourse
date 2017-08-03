@@ -157,6 +157,28 @@ var _ = Describe("Fly CLI", func() {
 				)
 			})
 
+			Context("when configuring with old-style templated value that fails", func() {
+				It("shows helpful error messages", func() {
+					flyCmd := exec.Command(
+						flyPath, "-t", targetName,
+						"set-pipeline",
+						"--pipeline", "awesome-pipeline",
+						"-c", "fixtures/testConfig.yml",
+					)
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Err).Should(gbytes.Say(`could not resolve old-style template vars`))
+					Eventually(sess.Err).Should(gbytes.Say(`2 errors occurred:`))
+					Eventually(sess.Err).Should(gbytes.Say(`\* unbound variable in template: 'resource-type'`))
+					Eventually(sess.Err).Should(gbytes.Say(`\* unbound variable in template: 'resource-key'`))
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).NotTo(Equal(0))
+				})
+			})
+
 			Context("when configuring with old-style templated value succeeds", func() {
 				BeforeEach(func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})

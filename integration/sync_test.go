@@ -100,7 +100,7 @@ var _ = Describe("Syncing", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
-				Expect(sess.Err).To(gbytes.Say(".*permission denied"))
+				Expect(sess.Err).To(gbytes.Say("update failed.*permission denied"))
 
 				expectBinaryToMatch(flyPath, expectedBinary)
 			})
