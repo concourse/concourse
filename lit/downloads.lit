@@ -1,5 +1,7 @@
 \title{Downloads}{downloads}
 
+\styled{downloads}
+
 \omit-children-from-table-of-contents
 
 \include-section{./release-notes/v3.3.4.lit}

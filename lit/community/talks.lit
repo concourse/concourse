@@ -1,5 +1,7 @@
 \title{Talks}{talks}
 
+\styled{full-width}
+
 \use-plugin{concourse-community}
 
 \talk{CI that scales with your project}{Alex Suraci}{images/talks/ci-that-scales-with-your-project-thumb.png}{https://www.youtube.com/watch?v=mYTn3qBxPhQ}{https://docs.google.com/presentation/d/13pEbkTs9--d2eYHSnzM9dUo7JJpdv8Xt6a2lWu1aa68/pub}{
