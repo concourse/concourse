@@ -16,6 +16,10 @@ type highlightedHTML struct {
 }
 
 func Inline(language string, content string) (booklit.Content, error) {
+	if os.Getenv("SKIP_PYGMENTS") != "" {
+		return booklit.String(content), nil
+	}
+
 	html := new(bytes.Buffer)
 
 	pygmentize := exec.Command("pygmentize", "-l", language, "-f", "html", "-O", "encoding=utf-8")
