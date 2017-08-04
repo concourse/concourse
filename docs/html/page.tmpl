@@ -1,15 +1,35 @@
-{{if eq .PrimaryTag.Name "index"}}
-{{template "splash.tmpl" .}}
-{{else if eq .PrimaryTag.Name "community"}}
-{{template "full-width-page.tmpl" .}}
-{{else if eq .PrimaryTag.Name "downloads"}}
-{{template "downloads.tmpl" .}}
-{{else if eq .PrimaryTag.Name "talks"}}
-{{template "full-width-page.tmpl" .}}
-{{else if eq .PrimaryTag.Name "trademarks"}}
-{{template "trademarks.tmpl" .}}
-{{else if eq .PrimaryTag.Name "single-page"}}
-{{template "single-page.tmpl" .}}
-{{else}}
-{{template "docs.tmpl" .}}
-{{end}}
+<!DOCTYPE html>
+<html>
+  <head>
+    {{template "header.tmpl" .}}
+
+    <link type="text/css" rel="stylesheet" href="css/docs.css">
+    <link type="text/css" rel="stylesheet" href="css/resources-table.css">
+    <link type="text/css" rel="stylesheet" href="css/literate.css">
+    <link type="text/css" rel="stylesheet" href="css/flex-pipeline-image.css">
+  </head>
+  <body class="split_sections toc">
+    <div id="everything">
+      {{template "docs-header.tmpl" .}}
+      <div id="middle">
+        <div id="page">
+          <div id="sidebar">
+            <div class="sidebar-spacing">
+              <div class="single-page-link">
+                <a href="single-page.html">view all docs on one page</a>
+              </div>
+
+              {{template "sidebar-toc.tmpl" walkContext . .Top}}
+            </div>
+          </div>
+          <div id="content">
+            <div class="content-spacing">
+              {{template "section.tmpl" .}}
+            </div>
+          </div>
+        </div>
+      </div>
+      {{template "footer.tmpl" .}}
+    </div>
+  </body>
+</html>

@@ -1,5 +1,7 @@
 \title{Concourse: CI that scales with your project}{index}
 
+\styled{splash}
+
 \use-plugin{concourse-splash}
 
 \value-prop-left{Simple and Scalable}{value_prop_simple_f2}{
