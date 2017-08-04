@@ -137,7 +137,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		logger,
 		nil,
 		db.ForResourceType(savedResourceType.ID()),
-		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig),
+		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ContainerExpiries),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

@@ -316,7 +316,7 @@ func (scanner *resourceScanner) scan(
 		logger,
 		nil,
 		db.ForResource(savedResource.ID()),
-		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig),
+		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ContainerExpiries),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"time"
+
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -17,7 +19,13 @@ var _ = Describe("Volume", func() {
 		config, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForResource(defaultResource.ID()), "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
 		Expect(err).NotTo(HaveOccurred())
 
-		defaultCreatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(config), db.ContainerMetadata{Type: "check"})
+		expiries := db.ContainerOwnerExpiries{
+			GraceTime: 2 * time.Minute,
+			Min:       5 * time.Minute,
+			Max:       1 * time.Hour,
+		}
+
+		defaultCreatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(config, expiries), db.ContainerMetadata{Type: "check"})
 		Expect(err).NotTo(HaveOccurred())
 
 		defaultCreatedContainer, err = defaultCreatingContainer.Created()

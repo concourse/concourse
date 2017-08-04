@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"time"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -29,7 +31,13 @@ var _ = Describe("ContainerFactory", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfig), fullMetadata)
+				expiries := db.ContainerOwnerExpiries{
+					GraceTime: 2 * time.Minute,
+					Min:       5 * time.Minute,
+					Max:       1 * time.Hour,
+				}
+
+				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiries), fullMetadata)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
