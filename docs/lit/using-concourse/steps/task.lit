@@ -102,10 +102,6 @@ plan:
       PASSWORD: my-pass
   }}
 
-  If this \code{params:} block provides parameters not specified in
-  \code{config:} nor within the \code{file:} task.yml, the params in this
-  build-plan do still get passed in to the container that will run the task.
-
   This is often used in combination with
   \reference{parameters}{\code{((parameters))}} in the pipeline.
 
@@ -122,11 +118,11 @@ plan:
       PASSWORD: ((integration-password))
   }}
 
-  Looking into the task.yml, a common pattern is to list the param in the task
-  definition with no value. This indicates that you expect the pipeline to
-  provide the value.
+  Looking into the \code{task.yml}, a common pattern is to list the param in
+  the task definition with no value. This indicates that you expect the
+  pipeline to provide the value.
 
-  For example, in the task.yml:
+  For example, in the \code{task.yml}:
 
   \codeblock{yaml}{{
   params:
@@ -134,15 +130,15 @@ plan:
     BAR:
   }}
 
-  And in the pipeline.yml:
+  And in the \code{pipeline.yml}:
 
   \codeblock{yaml}{{
   params:
     BAR: qux
   }}
 
-  If the pipeline used this task.yml but did not set \code{BAR}, the value of
-  \code{$BAR} would be set to the empty string in the task container.
+  If the pipeline used this \code{task.yml} but did not set \code{BAR}, the
+  value of \code{$BAR} would be set to the empty string in the task container.
 }{task-params}
 
 \define-attribute{image: string}{
