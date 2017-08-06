@@ -37,7 +37,8 @@ func (p Plugin) Column(name booklit.Content, resources ...booklit.Content) bookl
 func (p Plugin) Normal(content booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style:    "resources-table-cell",
-		Content:  booklit.Block{Content: content},
+		Content:  content,
+		Block:    true,
 		Partials: booklit.Partials{"State": booklit.String("normal")},
 	}
 }
@@ -45,7 +46,8 @@ func (p Plugin) Normal(content booklit.Content) booklit.Content {
 func (p Plugin) Good(content booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style:    "resources-table-cell",
-		Content:  booklit.Block{Content: content},
+		Content:  content,
+		Block:    true,
 		Partials: booklit.Partials{"State": booklit.String("good")},
 	}
 }
@@ -53,7 +55,8 @@ func (p Plugin) Good(content booklit.Content) booklit.Content {
 func (p Plugin) Bad(content booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style:    "resources-table-cell",
-		Content:  booklit.Block{Content: content},
+		Content:  content,
+		Block:    true,
 		Partials: booklit.Partials{"State": booklit.String("bad")},
 	}
 }
@@ -61,7 +64,8 @@ func (p Plugin) Bad(content booklit.Content) booklit.Content {
 func (p Plugin) Gap(content booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style:    "resources-table-cell",
-		Content:  booklit.Block{Content: content},
+		Content:  content,
+		Block:    true,
 		Partials: booklit.Partials{"State": booklit.String("gap")},
 	}
 }
@@ -69,7 +73,8 @@ func (p Plugin) Gap(content booklit.Content) booklit.Content {
 func (p Plugin) Disabled(content booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style:    "resources-table-cell",
-		Content:  booklit.Block{Content: content},
+		Content:  content,
+		Block:    true,
 		Partials: booklit.Partials{"State": booklit.String("disabled")},
 	}
 }
