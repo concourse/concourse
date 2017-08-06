@@ -131,7 +131,7 @@ func (p Plugin) DefineMetric(metric string, content booklit.Content) booklit.Con
 			},
 			"Thumb": booklit.Styled{
 				Style:   booklit.StyleVerbatim,
-				Content: booklit.Block{Content: booklit.String(metric)},
+				Content: booklit.Preformatted{booklit.String(metric)},
 			},
 		},
 	}
