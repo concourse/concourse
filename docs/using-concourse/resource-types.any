@@ -143,7 +143,10 @@ before using it!
     \hyperlink{https://github.com/w32blaster/telegram-notification-resource}{Telegram}
   }{
     \hyperlink{https://github.com/frodenas/gcs-resource}{Google Cloud Storage}
+  }{
+    \hyperlink{https://github.com/mborges-pivotal/artifactory-resource}{Artifactory}
   }
+
 
   \section{Adding to this list}{
     Fork the
