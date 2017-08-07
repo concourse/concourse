@@ -14,14 +14,14 @@ func Present(content []byte) bool {
 	return templateFormatRegex.Match(content)
 }
 
-func Evaluate(content []byte, variables Variables) ([]byte, error) {
+func Evaluate(content []byte, variables Variables, allowEmpty bool) ([]byte, error) {
 	var variableErrors error
 
 	return templateFormatRegex.ReplaceAllFunc(content, func(match []byte) []byte {
 		key := string(templateFormatRegex.FindSubmatch(match)[1])
 
 		value, found := variables[key]
-		if !found {
+		if !found && !allowEmpty {
 			variableErrors = multierror.Append(variableErrors, fmt.Errorf("unbound variable in template: '%s'", key))
 			return match
 		}
@@ -30,8 +30,4 @@ func Evaluate(content []byte, variables Variables) ([]byte, error) {
 
 		return []byte(saveValue)
 	}), variableErrors
-}
-
-func EvaluateEmpty(content []byte) []byte {
-	return templateFormatRegex.ReplaceAll(content, []byte(`""`))
 }

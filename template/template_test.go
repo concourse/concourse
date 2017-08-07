@@ -14,7 +14,7 @@ var _ = Describe("Template", func() {
 			"key": "foo",
 		}
 
-		result, err := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"foo"`)))
 	})
@@ -26,7 +26,7 @@ var _ = Describe("Template", func() {
 			"value": "bar",
 		}
 
-		result, err := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"foo"="bar"`)))
 	})
@@ -37,7 +37,7 @@ var _ = Describe("Template", func() {
 			"Ω": "☃",
 		}
 
-		result, err := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"☃"`)))
 	})
@@ -49,7 +49,7 @@ var _ = Describe("Template", func() {
 			"with_an_underscore": "underscore",
 		}
 
-		result, err := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"dash" = "underscore"`)))
 	})
@@ -60,7 +60,7 @@ var _ = Describe("Template", func() {
 			"key": "foo",
 		}
 
-		result, err := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"foo"="foo"`)))
 	})
@@ -71,7 +71,7 @@ var _ = Describe("Template", func() {
 			"key": "this\nhas\nmany\nlines",
 		}
 
-		result, err := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"this\nhas\nmany\nlines"`)))
 	})
@@ -84,7 +84,7 @@ var _ = Describe("Template", func() {
 * unbound variable in template: 'not-specified-one'
 * unbound variable in template: 'not-specified-two'`
 
-		_, err := template.Evaluate(byteSlice, variables)
+		_, err := template.Evaluate(byteSlice, variables, false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(errorMsg))
 	})
@@ -93,7 +93,7 @@ var _ = Describe("Template", func() {
 		byteSlice := []byte("{{}")
 		variables := template.Variables{}
 
-		result, err := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte("{{}")))
 	})

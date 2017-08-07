@@ -41,8 +41,45 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 	return confirm
 }
 
+func (atcConfig ATCConfig) Validate(
+	configPath atc.PathFlag,
+	templateVariables []flaghelpers.VariablePairFlag,
+	yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag,
+	templateVariablesFiles []atc.PathFlag,
+	strict bool,
+) error {
+	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, true)
+
+	var new atc.Config
+	if err := yaml.Unmarshal([]byte(newConfig), &new); err != nil {
+		return err
+	}
+
+	warnings, errorMessages := new.Validate()
+
+	if len(warnings) > 0 {
+		configWarnings := make([]concourse.ConfigWarning, len(warnings))
+		for idx, warning := range warnings {
+			configWarnings[idx] = concourse.ConfigWarning(warning)
+		}
+		atcConfig.showWarnings(configWarnings)
+	}
+
+	if len(errorMessages) > 0 {
+		atcConfig.showPipelineConfigErrors(errorMessages)
+	}
+
+	if len(errorMessages) > 0 || (strict && len(warnings) > 0) {
+		displayhelpers.Failf("configuration invalid")
+	}
+
+	fmt.Println("looks good")
+
+	return nil
+}
+
 func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables []flaghelpers.VariablePairFlag, yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag, templateVariablesFiles []atc.PathFlag) error {
-	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables)
+	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, false)
 	existingConfig, _, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
 	errorMessages := []string{}
 	if err != nil {
@@ -87,7 +124,13 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables []flag
 	return nil
 }
 
-func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables []flaghelpers.VariablePairFlag, yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag) []byte {
+func (atcConfig ATCConfig) newConfig(
+	configPath atc.PathFlag,
+	templateVariablesFiles []atc.PathFlag,
+	templateVariables []flaghelpers.VariablePairFlag,
+	yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag,
+	allowEmpty bool,
+) []byte {
 	evaluatedConfig, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
 		displayhelpers.FailWithErrorf("could not read config file", err)
@@ -104,7 +147,7 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 	}
 
 	if temp.Present(evaluatedConfig) {
-		evaluatedConfig, err = atcConfig.resolveDeprecatedTemplateStyle(evaluatedConfig, paramPayloads, templateVariables, yamlTemplateVariables)
+		evaluatedConfig, err = atcConfig.resolveDeprecatedTemplateStyle(evaluatedConfig, paramPayloads, templateVariables, yamlTemplateVariables, allowEmpty)
 		if err != nil {
 			displayhelpers.FailWithErrorf("could not resolve old-style template vars", err)
 		}
@@ -151,7 +194,13 @@ func (atcConfig ATCConfig) resolveTemplates(configPayload []byte, paramPayloads 
 	return bytes, nil
 }
 
-func (atcConfig ATCConfig) resolveDeprecatedTemplateStyle(configPayload []byte, paramPayloads [][]byte, variables []flaghelpers.VariablePairFlag, yamlVariables []flaghelpers.YAMLVariablePairFlag) ([]byte, error) {
+func (atcConfig ATCConfig) resolveDeprecatedTemplateStyle(
+	configPayload []byte,
+	paramPayloads [][]byte,
+	variables []flaghelpers.VariablePairFlag,
+	yamlVariables []flaghelpers.YAMLVariablePairFlag,
+	allowEmpty bool,
+) ([]byte, error) {
 	vars := temp.Variables{}
 	for _, payload := range paramPayloads {
 		var payloadVars temp.Variables
@@ -170,7 +219,7 @@ func (atcConfig ATCConfig) resolveDeprecatedTemplateStyle(configPayload []byte, 
 
 	vars = vars.Merge(flagVars)
 
-	return temp.Evaluate(configPayload, vars)
+	return temp.Evaluate(configPayload, vars, allowEmpty)
 }
 
 func (atcConfig ATCConfig) showPipelineConfigErrors(errorMessages []string) {
