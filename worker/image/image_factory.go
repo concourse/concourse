@@ -86,7 +86,7 @@ func (f *imageFactory) GetImage(
 			workerClient,
 			resourceUser,
 			*imageSpec.ImageResource,
-			nil,
+			imageSpec.ImageResource.Version,
 			teamID,
 			resourceTypes,
 			delegate,

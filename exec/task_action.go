@@ -316,9 +316,10 @@ func (action *TaskAction) containerSpec(logger lager.Logger, repository *worker.
 		imageSpec.ImageArtifactName = worker.ArtifactName(action.imageArtifactName)
 	} else if config.ImageResource != nil {
 		imageSpec.ImageResource = &worker.ImageResource{
-			Type:   config.ImageResource.Type,
-			Source: creds.NewSource(action.variables, config.ImageResource.Source),
-			Params: config.ImageResource.Params,
+			Type:    config.ImageResource.Type,
+			Source:  creds.NewSource(action.variables, config.ImageResource.Source),
+			Params:  config.ImageResource.Params,
+			Version: config.ImageResource.Version,
 		}
 	} else if config.RootfsURI != "" {
 		imageSpec.ImageURL = config.RootfsURI
