@@ -7,6 +7,7 @@ image_resource:
     repository: concourse/bosh-cli
 
 inputs:
+- name: concourse
 - name: release
 - name: stemcell
 
