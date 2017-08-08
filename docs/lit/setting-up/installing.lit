@@ -9,8 +9,8 @@ equivalent in feature set, the only difference being operational concerns like
 scaling up your workers, and how quickly you can bootstrap.
 
 For the quickest introduction, you may want to spin up a
-\reference{vagrant}{local VM with Vagrant}. This should take only a few
-minutes, depending on how quickly you can download the image.
+\reference{concourse-lite}{single VM}. This should take only a few minutes,
+depending on how quickly you can download the image.
 
 Once you're ready to install Concourse somewhere more proper, have a look at
 the \reference{binaries}{standalone binary} or the
@@ -23,40 +23,53 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
 \split-sections
 
 \section{
-  \title{Local VM with Vagrant}{vagrant}
+  \title{Single VM}{concourse-lite}
 
   \omit-children-from-table-of-contents
 
-  The quickest way to spin up a fully functioning Concourse is with
-  \link{Vagrant}{https://vagrantup.com}.
+  The quickest way to spin up a fully functioning Concourse is by using
+  \link{BOSH}{http://bosh.io/} to spin up a single-VM deployment, which we call
+  Concourse Lite.
 
-  Just run the following in any directory:
+  First, install the \link{\code{bosh} CLI}{https://bosh.io/docs/cli-v2.html}.
+  Next, download the Concourse Lite deployment manifest,
+  \code{concourse-lite.yml}, from the \link{latest Concourse
+  release}{https://github.com/concourse/concourse/releases/latest}.
+
+  Run the following in the directory where the manifest was saved:
 
   \codeblock{bash}{{
-  vagrant init concourse/lite # creates ./Vagrantfile
-  vagrant up                  # downloads the box and spins up the VM
+  bosh create-env concourse-lite.yml
   }}
 
-  The web server will be running at
+  The Concourse web server will be running at
   \link{192.168.100.4:8080}{http://192.168.100.4:8080}.
 
   While this isn't exactly production ready, it may be enough depending on your
   project's needs. Given that Concourse is stateless, you can always hoist your
   pipeline onto a bigger installation when you're ready, so there's little risk
-  in sticking with the Vagrant boxes while you figure things out.
+  in sticking with the Concourse Lite VM while you figure things out.
 
   \section{
-    \title{Upgrading}
+    \title{Managing the VM}
 
-    Note that upgrading Concourse in Vagrant unfortunately requires re-creating
-    the machine, which will wipe out all of your submitted pipelines, build
-    history, etc. If Vagrant gives a warning of \code{A newer version of the
-    box 'concourse/lite' is available!}, run the following:
+    The \code{create-env} command will have created a file called
+    \code{concourse-lite-state.json} in your working directory. This file is used by BOSH
+    for keeping track of the VM, whether it's deleting it or updating it. You
+    can read more about this in the \link{BOSH docs for \code{env}
+    management}{https://bosh.io/docs/cli-envs.html}.
+
+    To upgrade the VM, you'll just need to download the
+    \code{concourse-lite.yml} from the new release and run the following:
 
     \codeblock{bash}{{
-    vagrant box update --box concourse/lite # gets the newest Vagrant box
-    vagrant destroy                         # remove the old Vagrant box
-    vagrant up                              # re-create the machine with the newer box
+    bosh delete-env concourse-lite.yml --state concourse-lite-state.json
+    }}
+
+    To destroy the VM, however, you'll run \code{delete-env} like so:
+
+    \codeblock{bash}{{
+    bosh delete-env concourse-lite.yml --state concourse-lite-state.json
     }}
   }
 }

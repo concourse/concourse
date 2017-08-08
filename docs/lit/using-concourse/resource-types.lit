@@ -60,10 +60,6 @@ before using it!
     The
     \link{\code{bosh-io-stemcell}}{https://github.com/concourse/bosh-io-stemcell-resource}
     resource can track and fetch new BOSH stemcells from bosh.io.
-  }{
-    The
-    \link{\code{vagrant-cloud}}{https://github.com/concourse/vagrant-cloud-resource}
-    resource can fetch and publish Vagrant boxes to Atlas.
   }
 }
 

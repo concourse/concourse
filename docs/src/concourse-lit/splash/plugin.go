@@ -1,6 +1,7 @@
 package splash
 
 import (
+	"os"
 	"pygmentize"
 
 	"github.com/vito/booklit"
@@ -73,6 +74,19 @@ func (p Plugin) ValuePropRight(title booklit.Content, image string, content book
 	}
 }
 
+func (p Plugin) ReleaseLink(file string) booklit.Content {
+	version := os.Getenv("CONCOURSE_VERSION")
+	if version == "" {
+		version = "0.0.0"
+	}
+
+	url := "https://github.com/concourse/concourse/releases/download/v" + version + "/" + file
+	return booklit.Link{
+		Target:  url,
+		Content: booklit.String(url),
+	}
+}
+
 func (p Plugin) GettingStarted(title, content booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style: "getting-started",
@@ -118,15 +132,13 @@ func (p Plugin) Step(duration, title, content booklit.Content) booklit.Content {
 	}
 }
 
-func (p Plugin) CodeLines(language string, lines ...booklit.Content) (booklit.Content, error) {
+func (p Plugin) CodeLines(lines ...booklit.Content) (booklit.Content, error) {
 	codeLines := booklit.Sequence{}
 	for _, line := range lines {
-		code, err := pygmentize.Block(language, line.String())
-		if err != nil {
-			return nil, err
-		}
-
-		codeLines = append(codeLines, code)
+		codeLines = append(codeLines, booklit.Styled{
+			Style:   booklit.StyleVerbatim,
+			Content: line,
+		})
 	}
 
 	return booklit.Styled{

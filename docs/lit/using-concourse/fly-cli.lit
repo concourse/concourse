@@ -53,8 +53,8 @@ flag. Once you've learned what the commands do, you may want to consult
   paste into the prompt.
 
   Note that if no authentication methods are configured (e.g. when targeting a
-  \code{concourse/lite} Vagrant box), \code{fly} will acquire a token without
-  any prompting. You can then use the alias like normal.
+  \reference{concourse-lite}{Concourse Lite VM}), \code{fly} will acquire a
+  token without any prompting. You can then use the alias like normal.
 
   In any case, a token is saved in your \code{~/.flyrc}, which will expire
   after one day.
