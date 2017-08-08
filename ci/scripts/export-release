@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e -u -x
+
+exported_release=$PWD/exported-release
+
+RELEASE_VERSION=$(cat release/version)
+
+bosh export-release \
+  --dir ${exported_release} \
+  ${RELEASE_NAME}/${RELEASE_VERSION} \
+  ${STEMCELL_NAME}/$(cat stemcell/version)
+
+mv ${exported_release}/*.tgz ${exported_release}/${RELEASE_NAME}-${RELEASE_VERSION}.tgz
