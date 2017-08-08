@@ -16,7 +16,7 @@ inputs:
 - name: exported-release
 
 outputs:
-- name: create-env-manifest
+- name: concourse-lite-manifest
 
 run:
-  path: concourse/ci/scripts/create-env-bump
+  path: concourse/ci/scripts/generate-concourse-lite-manifest
