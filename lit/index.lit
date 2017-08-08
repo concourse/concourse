@@ -46,11 +46,13 @@
 
 \getting-started{Getting Started Takes 5 Minutes}{
   \list{
-    \step-with-line{3{\newline}min}{Vagrant Up}{
-      \code-lines{bash}{{
-        vagrant init concourse/lite  # creates ./Vagrantfile
+    \step-with-line{3{\newline}min}{Spin Up a Concourse}{
+      Install the \link{BOSH CLI}{https://bosh.io/docs/cli-v2.html}, then run:
+
+      \code-lines{{
+        wget \release-link{concourse-lite.yml}
       }}{{
-        vagrant up                   # downloads the box and spins up the VM
+        bosh create-env concourse-lite.yml
       }}
 
       The web server will be running at
@@ -75,7 +77,7 @@
     }
 
     \step{1{\newline}sec}{Push to Concourse}{
-      \code-lines{bash}{{
+      \code-lines{{
         fly -t lite login -c http://192.168.100.4:8080
       }}{{
         fly -t lite set-pipeline -p hello-world -c hello.yml

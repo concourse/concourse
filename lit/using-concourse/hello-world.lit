@@ -14,9 +14,9 @@ can be done in one fell swoop with \code{install path/to/fly
 /usr/local/bin/fly}
 
 Throughout this page we'll assume you've spun up the
-\reference{vagrant}{\code{concourse/lite} Vagrant box}, but if you've set up
-Concourse in some other way, everything still applies; just use your URL
-instead of \code{http://192.168.100.4:8080}.
+\reference{concourse-lite}{Concourse Lite VM}, but if you've set up Concourse
+in some other way, everything still applies; just use your URL instead of
+\code{http://192.168.100.4:8080}.
 
 Once you have \code{fly}, you'll want to target your local VirtualBox like so:
 
