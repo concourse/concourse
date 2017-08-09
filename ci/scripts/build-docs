@@ -2,6 +2,8 @@
 
 set -e -x
 
+export CONCOURSE_VERSION=$(cat version/version)
+
 BUILT_DOCS=$PWD/built-docs
 
 cp -a concourse/docs/* $BUILT_DOCS
