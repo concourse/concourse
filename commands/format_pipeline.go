@@ -13,12 +13,12 @@ import (
 	yamlpatch "github.com/krishicks/yaml-patch"
 )
 
-type FmtCommand struct {
+type FormatPipelineCommand struct {
 	Config atc.PathFlag `short:"c" long:"config" required:"true" description:"Pipeline configuration file"`
 	Write  bool         `short:"w" long:"write" description:"Do not print to stdout; overwrite the file in place"`
 }
 
-func (command *FmtCommand) Execute(args []string) error {
+func (command *FormatPipelineCommand) Execute(args []string) error {
 	configPath := string(command.Config)
 	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {

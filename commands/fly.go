@@ -5,8 +5,6 @@ import "github.com/concourse/fly/rc"
 type FlyCommand struct {
 	Help HelpCommand `command:"help" description:"Print this help message"`
 
-	Fmt FmtCommand `command:"fmt" description:"Format a pipeline config"`
-
 	Target  rc.TargetName  `short:"t" long:"target" description:"Concourse target name"`
 	Targets TargetsCommand `command:"targets" alias:"ts" description:"List saved targets"`
 
@@ -38,7 +36,6 @@ type FlyCommand struct {
 
 	Pipelines        PipelinesCommand        `command:"pipelines"         alias:"ps" description:"List the configured pipelines"`
 	DestroyPipeline  DestroyPipelineCommand  `command:"destroy-pipeline"  alias:"dp" description:"Destroy a pipeline"`
-	ValidatePipeline ValidatePipelineCommand `command:"validate-pipeline" alias:"vp" description:"Validate a pipeline's current configuration"`
 	GetPipeline      GetPipelineCommand      `command:"get-pipeline"      alias:"gp" description:"Get a pipeline's current configuration"`
 	SetPipeline      SetPipelineCommand      `command:"set-pipeline"      alias:"sp" description:"Create or update a pipeline's configuration"`
 	PausePipeline    PausePipelineCommand    `command:"pause-pipeline"    alias:"pp" description:"Pause a pipeline"`
@@ -46,6 +43,8 @@ type FlyCommand struct {
 	ExposePipeline   ExposePipelineCommand   `command:"expose-pipeline"   alias:"ep" description:"Make a pipeline publicly viewable"`
 	HidePipeline     HidePipelineCommand     `command:"hide-pipeline"     alias:"hp" description:"Hide a pipeline from the public"`
 	RenamePipeline   RenamePipelineCommand   `command:"rename-pipeline"   alias:"rp" description:"Rename a pipeline"`
+	ValidatePipeline ValidatePipelineCommand `command:"validate-pipeline" alias:"vp" description:"Validate a pipeline config"`
+	FormatPipeline   FormatPipelineCommand   `command:"format-pipeline"   alias:"fp" description:"Format a pipeline config"`
 
 	CheckResource   CheckResourceCommand   `command:"check-resource"    alias:"cr" description:"Check a resource"`
 	PauseResource   PauseResourceCommand   `command:"pause-resource"    alias:"pr" description:"Pause a resource"`
