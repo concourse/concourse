@@ -4,6 +4,7 @@
 
 \omit-children-from-table-of-contents
 
+\include-section{./release-notes/v3.4.0.lit}
 \include-section{./release-notes/v3.3.4.lit}
 \include-section{./release-notes/v3.3.3.lit}
 \include-section{./release-notes/v3.3.2.lit}
