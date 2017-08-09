@@ -63,7 +63,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     \code{concourse-lite.yml} from the new release and run the following:
 
     \codeblock{bash}{{
-    bosh delete-env concourse-lite.yml --state concourse-lite-state.json
+    bosh create-env concourse-lite.yml --state concourse-lite-state.json
     }}
 
     To destroy the VM, however, you'll run \code{delete-env} like so:

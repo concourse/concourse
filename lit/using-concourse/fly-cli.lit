@@ -526,7 +526,22 @@ flag. Once you've learned what the commands do, you may want to consult
 }
 
 \section{
-  \title{\code{validate-pipeline}\aux{: Validate a pipeline's configuration}}{fly-validate-pipeline}
+  \title{\code{destroy-pipeline}\aux{: Removing Pipelines}}{fly-destroy-pipeline}
+
+  Every now and then you just don't want a pipeline to be around anymore.
+  Running \code{fly destroy-pipeline} will stop the pipeline activity and remove
+  all data collected by the pipeline, including build history and collected
+  versions.
+
+  For example, to destroy the \code{my-pipeline} pipeline, you would run:
+
+  \codeblock{bash}{{
+  $ fly -t example destroy-pipeline --pipeline my-pipeline
+  }}
+}
+
+\section{
+  \title{\code{validate-pipeline}\aux{: Validate a pipeline config}}{fly-validate-pipeline}
 
   To validate a local pipeline configuration without submitting it to Concourse,
   run \code{validate-pipeline}:
@@ -540,18 +555,17 @@ flag. Once you've learned what the commands do, you may want to consult
 }
 
 \section{
-  \title{\code{destroy-pipeline}\aux{: Removing Pipelines}}{fly-destroy-pipeline}
+  \title{\code{format-pipeline}\aux{: Canonically format a pipeline config}}{fly-format-pipeline}
 
-  Every now and then you just don't want a pipeline to be around anymore.
-  Running \code{fly destroy-pipeline} will stop the pipeline activity and remove
-  all data collected by the pipeline, including build history and collected
-  versions.
-
-  For example, to destroy the \code{my-pipeline} pipeline, you would run:
+  To format a pipeline config in a "canonical" form (i.e. keys are in normal
+  order, with \code{name} first for example), run:
 
   \codeblock{bash}{{
-  $ fly -t example destroy-pipeline --pipeline my-pipeline
+  $ fly format-pipeline --config pipeline.yml
   }}
+
+  This will print the formatted pipeline config to \code{stdout}. To update the
+  file in-place, pass \code{--write/-w}.
 }
 
 \section{
