@@ -48,8 +48,8 @@
   }
 
   \note{feature}{
-    Paused pending jobs now have a static halo to better represent it's waiting
-    state, thanks to a PR by \ghuser{d}!
+    Jobs with a pending build now have a static halo to better represent its
+    waiting state, thanks to a PR by \ghuser{d}!
   }
 
   \note{feature}{
