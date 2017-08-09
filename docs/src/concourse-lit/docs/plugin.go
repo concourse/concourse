@@ -152,7 +152,7 @@ func (p Plugin) Ghuser(user string) booklit.Content {
 		Target: fmt.Sprintf("http://github.com/%s", user),
 		Content: booklit.Styled{
 			Style:   booklit.StyleBold,
-			Content: booklit.String(user),
+			Content: booklit.String("@" + user),
 		},
 	}
 }
