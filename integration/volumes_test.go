@@ -33,15 +33,13 @@ var _ = Describe("Fly CLI", func() {
 								ID:              "bbbbbb",
 								WorkerName:      "cccccc",
 								Type:            "container",
-								SizeInBytes:     1024 * 1024,
 								ContainerHandle: "container-handle-b",
 								Path:            "container-path-b",
 							},
 							{
-								ID:          "aaaaaa",
-								WorkerName:  "dddddd",
-								Type:        "resource",
-								SizeInBytes: 1741 * 1024,
+								ID:         "aaaaaa",
+								WorkerName: "dddddd",
+								Type:       "resource",
 								ResourceType: &atc.VolumeResourceType{
 									ResourceType: &atc.VolumeResourceType{
 										BaseResourceType: &atc.VolumeBaseResourceType{
@@ -54,10 +52,9 @@ var _ = Describe("Fly CLI", func() {
 								},
 							},
 							{
-								ID:          "aaabbb",
-								WorkerName:  "cccccc",
-								Type:        "resource-type",
-								SizeInBytes: 4096 * 1024,
+								ID:         "aaabbb",
+								WorkerName: "cccccc",
+								Type:       "resource-type",
 								BaseResourceType: &atc.VolumeBaseResourceType{
 									Name:    "base-resource-type",
 									Version: "base-resource-version",
@@ -67,7 +64,6 @@ var _ = Describe("Fly CLI", func() {
 								ID:              "eeeeee",
 								WorkerName:      "ffffff",
 								Type:            "container",
-								SizeInBytes:     8294 * 1024,
 								ContainerHandle: "container-handle-e",
 								Path:            "container-path-e",
 							},
