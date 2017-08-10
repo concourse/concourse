@@ -144,6 +144,37 @@ var _ = Describe("ContainerOwner", func() {
 							It("doesn't find it", func() {
 								Expect(found).To(BeFalse())
 							})
+
+						})
+
+						Context("when creating another session overlapping the grace time", func() {
+							BeforeEach(func() {
+								time.Sleep(2 * time.Second)
+
+								dupeOwner := db.NewResourceConfigCheckSessionContainerOwner(
+									resourceConfig,
+									db.ContainerOwnerExpiries{
+										GraceTime: 2 * time.Second,
+										Min:       15 * time.Second,
+										Max:       30 * time.Second,
+									},
+								)
+
+								tx, err := dbConn.Begin()
+								Expect(err).ToNot(HaveOccurred())
+
+								createdColumns, err := dupeOwner.Create(tx, worker.Name())
+								Expect(err).ToNot(HaveOccurred())
+								Expect(createdColumns).ToNot(BeEmpty())
+
+								Expect(tx.Commit()).To(Succeed())
+							})
+
+							It("finds the new one in subsequent calls", func() {
+								_, newOwnerFound, err := owner.Find(dbConn)
+								Expect(newOwnerFound).To(BeTrue())
+								Expect(err).ToNot(HaveOccurred())
+							})
 						})
 					})
 				})

@@ -177,9 +177,12 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 	var rccsID int
 	err = psql.Select("id").
 		From("resource_config_check_sessions").
-		Where(sq.Eq{
-			"resource_config_id":           c.UsedResourceConfig.ID,
-			"worker_base_resource_type_id": wbrtID,
+		Where(sq.And{
+			sq.Eq{
+				"resource_config_id":           c.UsedResourceConfig.ID,
+				"worker_base_resource_type_id": wbrtID,
+			},
+			sq.Expr(fmt.Sprintf("expires_at > NOW() + interval '%d seconds'", int(c.Expiries.GraceTime.Seconds()))),
 		}).
 		RunWith(tx).
 		QueryRow().
