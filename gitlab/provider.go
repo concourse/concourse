@@ -156,7 +156,7 @@ func (GitLabTeamProvider) ProviderConstructor(
 func (GitLabProvider) PreTokenClient() (*http.Client, error) {
 	return &http.Client{
 		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
+			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
 		},
 	}, nil

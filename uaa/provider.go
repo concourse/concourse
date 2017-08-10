@@ -192,7 +192,7 @@ func (UAATeamProvider) ProviderConstructor(
 
 func (p UAAProvider) PreTokenClient() (*http.Client, error) {
 	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:             http.ProxyFromEnvironment,
 		DisableKeepAlives: true,
 	}
 
