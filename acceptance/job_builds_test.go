@@ -16,7 +16,7 @@ var _ = Describe("Job Builds", func() {
 	var atcCommand *ATCCommand
 
 	BeforeEach(func() {
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, BASIC_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 	})

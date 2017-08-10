@@ -138,6 +138,8 @@ type ATCCommand struct {
 	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
+
+	TelemetryOptIn bool `long:"telemetry-opt-in" description:"Enable anonymous concourse version reporting."`
 }
 
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
@@ -558,6 +560,16 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			clock.NewClock(),
 			30*time.Second,
 		)},
+	}
+
+	if cmd.TelemetryOptIn {
+		url := fmt.Sprintf("http://telemetry.concourse.ci/?version=%s", Version)
+		go func() {
+			_, err := http.Get(url)
+			if err != nil {
+				logger.Error("telemetry-version", err)
+			}
+		}()
 	}
 
 	if cmd.Worker.GardenURL.URL() != nil {

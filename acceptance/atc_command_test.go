@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/tedsuo/ifrit"
@@ -47,6 +48,7 @@ type ATCCommand struct {
 	atcBin                 string
 	atcServerNumber        uint16
 	tlsFlags               []string
+	telemetryOptIn         bool
 	authTypes              []string
 	postgresDataSourceName string
 	pemPrivateKeyFile      string
@@ -93,6 +95,7 @@ func NewATCCommand(
 	atcServerNumber uint16,
 	postgresDataSourceName string,
 	tlsFlags []string,
+	telemetryOptIn bool,
 	authTypes ...string,
 ) *ATCCommand {
 	return &ATCCommand{
@@ -101,6 +104,7 @@ func NewATCCommand(
 		postgresDataSourceName:     postgresDataSourceName,
 		tlsFlags:                   tlsFlags,
 		authTypes:                  authTypes,
+		telemetryOptIn:             telemetryOptIn,
 		tlsCertificateOrganization: "Acme Co",
 	}
 }
@@ -328,6 +332,10 @@ func (a *ATCCommand) getATCCommand() *exec.Cmd {
 				params = append(params, "--tls-key", filepath.Join(a.tmpDir, "server.key"))
 			}
 		}
+	}
+
+	if a.telemetryOptIn {
+		params = append(params, "--telemetry-opt-in", strconv.FormatBool(a.telemetryOptIn))
 	}
 
 	return exec.Command(a.atcBin, params...)

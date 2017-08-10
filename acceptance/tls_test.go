@@ -76,7 +76,7 @@ var _ = Describe("TLS", func() {
 	}
 
 	It("accepts HTTPS requests", func() {
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, NO_AUTH)
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, false, NO_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -100,7 +100,7 @@ var _ = Describe("TLS", func() {
 	})
 
 	It("does not redirect HTTP API traffic to HTTPS", func() {
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, NO_AUTH)
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, false, NO_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -116,7 +116,7 @@ var _ = Describe("TLS", func() {
 	})
 
 	It("redirects HTTP web traffic to HTTPS", func() {
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, NO_AUTH)
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, false, NO_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -143,7 +143,7 @@ var _ = Describe("TLS", func() {
 	})
 
 	It("redirects HTTP oauth traffic to HTTPS", func() {
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, GITHUB_AUTH)
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, false, GITHUB_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -170,7 +170,7 @@ var _ = Describe("TLS", func() {
 
 	Describe("CSRF and Auth cookies", func() {
 		It("generates secure auth token cookie and csrf cookie", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, NO_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, false, NO_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
 

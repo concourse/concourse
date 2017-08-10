@@ -18,11 +18,11 @@ var _ = Describe("Multiple ATCs", func() {
 	var atcTwoCommand *ATCCommand
 
 	BeforeEach(func() {
-		atcOneCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
+		atcOneCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, NO_AUTH)
 		err := atcOneCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		atcTwoCommand = NewATCCommand(atcBin, 2, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
+		atcTwoCommand = NewATCCommand(atcBin, 2, postgresRunner.DataSourceName(), []string{}, false, NO_AUTH)
 		err = atcTwoCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 	})

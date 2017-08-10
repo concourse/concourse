@@ -23,7 +23,7 @@ var _ = Describe("Auth Session", func() {
 	var pipeline db.Pipeline
 
 	BeforeEach(func() {
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, NO_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 

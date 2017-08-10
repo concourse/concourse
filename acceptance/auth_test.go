@@ -30,7 +30,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("GitHub Auth", func() {
 		It("requires client id and client secret to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH_NO_CLIENT_SECRET)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, GITHUB_AUTH_NO_CLIENT_SECRET)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -38,7 +38,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires organizations, teams or users to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH_NO_TEAM)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, GITHUB_AUTH_NO_TEAM)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -48,7 +48,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("GitHub Enterprise Auth", func() {
 		BeforeEach(func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_ENTERPRISE_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, GITHUB_ENTERPRISE_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -68,7 +68,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("Basic Auth", func() {
 		It("errors when only username is specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_PASSWORD)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, BASIC_AUTH_NO_PASSWORD)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -76,7 +76,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("errors when only password is specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_USERNAME)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, BASIC_AUTH_NO_USERNAME)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -86,7 +86,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("No authentication via no auth flag", func() {
 		BeforeEach(func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, NO_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -102,7 +102,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("when auth is not configured", func() {
 		It("returns an error", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NOT_CONFIGURED_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, NOT_CONFIGURED_AUTH)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -112,7 +112,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("UAA Auth", func() {
 		It("forces a redirect to UAA auth URL", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, UAA_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
 			request, err := http.NewRequest("GET", atcCommand.URL("/auth/uaa?redirect=%2F&team_name=main"), nil)
@@ -128,7 +128,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires client id and client secret to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_CLIENT_SECRET)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, UAA_AUTH_NO_CLIENT_SECRET)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -136,7 +136,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires space guid to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_SPACE)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, UAA_AUTH_NO_SPACE)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -144,7 +144,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires auth, token and api url to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_TOKEN_URL)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, UAA_AUTH_NO_TOKEN_URL)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -154,7 +154,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("Generic OAuth Auth", func() {
 		It("forces a redirect to the auth URL", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, GENERIC_OAUTH_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -171,7 +171,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("shows the option on the login page", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, GENERIC_OAUTH_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -185,7 +185,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("can pass parameters to the auth URL", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_PARAMS)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, GENERIC_OAUTH_AUTH_PARAMS)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -204,7 +204,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires client id and client secret to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -212,7 +212,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires authorization url and token url to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_TOKEN_URL)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, GENERIC_OAUTH_AUTH_NO_TOKEN_URL)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -220,7 +220,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires display name to be specified", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME)
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))

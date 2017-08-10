@@ -37,7 +37,7 @@ var _ = Describe("Resource Pausing", func() {
 		}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, false, BASIC_AUTH)
 		err = atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
