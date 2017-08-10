@@ -104,7 +104,6 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "worker", Color: color.New(color.Bold)},
 						{Contents: "type", Color: color.New(color.Bold)},
 						{Contents: "identifier", Color: color.New(color.Bold)},
-						{Contents: "size", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
 						{
@@ -112,42 +111,36 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "cccccc"},
 							{Contents: "resource-type"},
 							{Contents: "base-resource-type"},
-							{Contents: "4.0 MiB"},
 						},
 						{
 							{Contents: "bbbbbb"},
 							{Contents: "cccccc"},
 							{Contents: "container"},
 							{Contents: "container-handle-b"},
-							{Contents: "1.0 MiB"},
 						},
 						{
 							{Contents: "aaaaaa"},
 							{Contents: "dddddd"},
 							{Contents: "resource"},
 							{Contents: "a:b,c:d"},
-							{Contents: "1.7 MiB"},
 						},
 						{
 							{Contents: "eeeeee"},
 							{Contents: "ffffff"},
 							{Contents: "container"},
 							{Contents: "container-handle-e"},
-							{Contents: "8.1 MiB"},
 						},
 						{
 							{Contents: "ihavenosize"},
 							{Contents: "ffffff"},
 							{Contents: "container"},
 							{Contents: "container-handle-i"},
-							{Contents: "unknown"},
 						},
 						{
 							{Contents: "task-cache-id"},
 							{Contents: "gggggg"},
 							{Contents: "task-cache"},
 							{Contents: "some-pipeline/some-job/some-step"},
-							{Contents: "unknown"},
 						},
 					},
 				}))
@@ -170,7 +163,6 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "worker", Color: color.New(color.Bold)},
 							{Contents: "type", Color: color.New(color.Bold)},
 							{Contents: "identifier", Color: color.New(color.Bold)},
-							{Contents: "size", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
 							{
@@ -178,42 +170,36 @@ var _ = Describe("Fly CLI", func() {
 								{Contents: "cccccc"},
 								{Contents: "resource-type"},
 								{Contents: "name:base-resource-type,version:base-resource-version"},
-								{Contents: "4.0 MiB"},
 							},
 							{
 								{Contents: "bbbbbb"},
 								{Contents: "cccccc"},
 								{Contents: "container"},
 								{Contents: "container:container-handle-b,path:container-path-b"},
-								{Contents: "1.0 MiB"},
 							},
 							{
 								{Contents: "aaaaaa"},
 								{Contents: "dddddd"},
 								{Contents: "resource"},
 								{Contents: "type:resource(name:base-resource-type,version:base-resource-version),version:a:b,c:d"},
-								{Contents: "1.7 MiB"},
 							},
 							{
 								{Contents: "eeeeee"},
 								{Contents: "ffffff"},
 								{Contents: "container"},
 								{Contents: "container:container-handle-e,path:container-path-e"},
-								{Contents: "8.1 MiB"},
 							},
 							{
 								{Contents: "ihavenosize"},
 								{Contents: "ffffff"},
 								{Contents: "container"},
 								{Contents: "container:container-handle-i,path:container-path-i,parent:parent-handle-i"},
-								{Contents: "unknown"},
 							},
 							{
 								{Contents: "task-cache-id"},
 								{Contents: "gggggg"},
 								{Contents: "task-cache"},
 								{Contents: "some-pipeline/some-job/some-step"},
-								{Contents: "unknown"},
 							},
 						},
 					}))

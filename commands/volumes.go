@@ -41,26 +41,17 @@ func (command *VolumesCommand) Execute([]string) error {
 			{Contents: "worker", Color: color.New(color.Bold)},
 			{Contents: "type", Color: color.New(color.Bold)},
 			{Contents: "identifier", Color: color.New(color.Bold)},
-			{Contents: "size", Color: color.New(color.Bold)},
 		},
 	}
 
 	sort.Sort(volumesByWorkerAndHandle(volumes))
 
 	for _, c := range volumes {
-		var size string
-		if c.SizeInBytes == 0 {
-			size = "unknown"
-		} else {
-			size = fmt.Sprintf("%.1f MiB", float64(c.SizeInBytes)/float64(1024*1024))
-		}
-
 		row := ui.TableRow{
 			{Contents: c.ID},
 			{Contents: c.WorkerName},
 			{Contents: c.Type},
 			{Contents: command.volumeIdentifier(c)},
-			{Contents: size},
 		}
 
 		table.Data = append(table.Data, row)
