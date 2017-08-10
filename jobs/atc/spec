@@ -445,3 +445,10 @@ properties:
       Key-value parameters to provide when logging in with the backend.
     default: {}
     example: {role_id: abc123, secret_id: def456}
+
+  telemetry.opt_in:
+    description: |
+      Send anonymous usage information back to concourse. This sends no identifying
+      information about the user. The only metric collected is the version of
+      concourse.
+    default: false

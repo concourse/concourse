@@ -199,6 +199,9 @@ case $1 in
       <% if p("influxdb.insecure_skip_verify") %> \
       --influxdb-insecure-skip-verify \
       <% end %> \
+      <% if p("telemetry.opt_in") %> \
+      --telemetry-opt-in \
+      <% end %> \
       <% if_p("riemann.host", "riemann.port") do |host, port| %> \
       --riemann-host <%= esc(host) %> \
       --riemann-port <%= port.to_i %> \
