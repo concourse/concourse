@@ -15,7 +15,6 @@ type Volume struct {
 	ID               string                  `json:"id"`
 	WorkerName       string                  `json:"worker_name"`
 	Type             string                  `json:"type"`
-	SizeInBytes      int64                   `json:"size_in_bytes"`
 	ContainerHandle  string                  `json:"container_handle"`
 	Path             string                  `json:"path"`
 	ParentHandle     string                  `json:"parent_handle"`

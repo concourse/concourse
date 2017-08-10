@@ -19,10 +19,11 @@ import (
 	"github.com/concourse/retryhttp/retryhttpfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
 
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"time"
 )
 
 var _ = Describe("DBProvider", func() {
@@ -75,10 +76,6 @@ var _ = Describe("DBProvider", func() {
 		baggageclaimServer.RouteToHandler("GET", "/volumes/vol-handle", ghttp.RespondWithJSONEncoded(
 			http.StatusOK,
 			baggageclaim.VolumeResponse{Handle: "vol-handle"},
-		))
-		baggageclaimServer.RouteToHandler("GET", "/volumes/vol-handle/stats", ghttp.RespondWithJSONEncoded(
-			http.StatusOK,
-			baggageclaim.VolumeStatsResponse{SizeInBytes: 1024},
 		))
 
 		gardenAddr = fmt.Sprintf("0.0.0.0:%d", 8888+GinkgoParallelNode())

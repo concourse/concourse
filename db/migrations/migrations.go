@@ -183,5 +183,6 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		AddGroupsAndRemoveConfigFromPipeline(strategy),
 		AddPipelineIdToBuilds,
 		UseMd5ForVersions,
+		RemoveSizeInBytesFromVolumes,
 	}
 }

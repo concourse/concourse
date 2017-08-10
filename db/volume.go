@@ -114,7 +114,6 @@ type CreatedVolume interface {
 	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
-	SizeInBytes() int64
 	InitializeResourceCache(*UsedResourceCache) error
 	InitializeTaskCache(int, string, string) error
 	ContainerHandle() string
@@ -149,7 +148,6 @@ type VolumeResourceType struct {
 func (volume *createdVolume) Handle() string          { return volume.handle }
 func (volume *createdVolume) Path() string            { return volume.path }
 func (volume *createdVolume) WorkerName() string      { return volume.workerName }
-func (volume *createdVolume) SizeInBytes() int64      { return volume.bytes }
 func (volume *createdVolume) Type() VolumeType        { return volume.typ }
 func (volume *createdVolume) TeamID() int             { return volume.teamID }
 func (volume *createdVolume) ContainerHandle() string { return volume.containerHandle }

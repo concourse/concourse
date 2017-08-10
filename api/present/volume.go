@@ -25,7 +25,6 @@ func Volume(volume db.CreatedVolume) (atc.Volume, error) {
 		ID:               volume.Handle(),
 		Type:             string(volume.Type()),
 		WorkerName:       volume.WorkerName(),
-		SizeInBytes:      volume.SizeInBytes(),
 		ContainerHandle:  volume.ContainerHandle(),
 		Path:             volume.Path(),
 		ParentHandle:     volume.ParentHandle(),

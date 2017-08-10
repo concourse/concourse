@@ -70,7 +70,6 @@ var _ = Describe("Volumes API", func() {
 							volume1.HandleReturns("some-resource-cache-handle")
 							volume1.WorkerNameReturns(fakeWorker.Name())
 							volume1.TypeReturns(db.VolumeTypeResource)
-							volume1.SizeInBytesReturns(1024)
 							volume1.ResourceTypeReturns(&db.VolumeResourceType{
 								ResourceType: &db.VolumeResourceType{
 									WorkerBaseResourceType: &db.UsedWorkerBaseResourceType{
@@ -84,7 +83,6 @@ var _ = Describe("Volumes API", func() {
 							volume2 := new(dbfakes.FakeCreatedVolume)
 							volume2.HandleReturns("some-import-handle")
 							volume2.WorkerNameReturns(fakeWorker.Name())
-							volume2.SizeInBytesReturns(2048)
 							volume2.TypeReturns(db.VolumeTypeResourceType)
 							volume2.BaseResourceTypeReturns(&db.UsedWorkerBaseResourceType{
 								Name:    "some-base-resource-type",
@@ -96,19 +94,16 @@ var _ = Describe("Volumes API", func() {
 							volume3.ContainerHandleReturns("some-container-handle")
 							volume3.PathReturns("some-path")
 							volume3.ParentHandleReturns("some-parent-handle")
-							volume3.SizeInBytesReturns(4096)
 							volume3.TypeReturns(db.VolumeTypeContainer)
 							volume4 := new(dbfakes.FakeCreatedVolume)
 							volume4.HandleReturns("some-cow-handle")
 							volume4.WorkerNameReturns(fakeWorker.Name())
 							volume4.ContainerHandleReturns("some-container-handle")
 							volume4.PathReturns("some-path")
-							volume4.SizeInBytesReturns(8192)
 							volume4.TypeReturns(db.VolumeTypeContainer)
 							volume5 := new(dbfakes.FakeCreatedVolume)
 							volume5.HandleReturns("some-task-cache-handle")
 							volume5.WorkerNameReturns(fakeWorker.Name())
-							volume5.SizeInBytesReturns(12345)
 							volume5.TypeReturns(db.VolumeTypeTaskCache)
 							volume5.TaskIdentifierReturns("some-pipeline", "some-job", "some-task", nil)
 
@@ -135,7 +130,6 @@ var _ = Describe("Volumes API", func() {
 								"id": "some-resource-cache-handle",
 								"worker_name": "some-worker",
 								"type": "resource",
-								"size_in_bytes": 1024,
 								"container_handle": "",
 								"path": "",
 								"parent_handle": "",
@@ -160,7 +154,6 @@ var _ = Describe("Volumes API", func() {
 								"id": "some-import-handle",
 								"worker_name": "some-worker",
 								"type": "resource-type",
-								"size_in_bytes": 2048,
 								"container_handle": "",
 								"path": "",
 								"parent_handle": "",
@@ -177,7 +170,6 @@ var _ = Describe("Volumes API", func() {
 								"id": "some-output-handle",
 								"worker_name": "some-other-worker",
 								"type": "container",
-								"size_in_bytes": 4096,
 								"container_handle": "some-container-handle",
 								"path": "some-path",
 								"parent_handle": "some-parent-handle",
@@ -191,7 +183,6 @@ var _ = Describe("Volumes API", func() {
 								"id": "some-cow-handle",
 								"worker_name": "some-worker",
 								"type": "container",
-								"size_in_bytes": 8192,
 								"container_handle": "some-container-handle",
 								"parent_handle": "",
 								"path": "some-path",
@@ -205,7 +196,6 @@ var _ = Describe("Volumes API", func() {
 								"id": "some-task-cache-handle",
 								"worker_name": "some-worker",
 								"type": "task-cache",
-								"size_in_bytes": 12345,
 								"container_handle": "",
 								"parent_handle": "",
 								"path": "",
