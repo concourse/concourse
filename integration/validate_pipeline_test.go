@@ -32,8 +32,8 @@ var _ = Describe("Fly CLI", func() {
 			flyCmd := exec.Command(
 				flyPath,
 				"validate-pipeline",
-				"-c", "fixtures/testConfigParams.yml",
-				"-l", "fixtures/testVariables.yml",
+				"-c", "fixtures/vars-pipeline.yml",
+				"-l", "fixtures/vars-pipeline-params-types.yml",
 			)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
