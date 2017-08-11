@@ -50,9 +50,10 @@ type ImageSpec struct {
 }
 
 type ImageResource struct {
-	Type   string
-	Source creds.Source
-	Params atc.Params
+	Type    string
+	Source  creds.Source
+	Params  atc.Params
+	Version atc.Version
 }
 
 func (spec ContainerSpec) WorkerSpec() WorkerSpec {
