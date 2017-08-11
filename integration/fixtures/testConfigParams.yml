@@ -1,0 +1,10 @@
+groups: []
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    source-config: {{source-config}}
+jobs:
+- name: job
+  plan:
+  - get: ((resource))
