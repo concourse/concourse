@@ -138,13 +138,18 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
+	var params atc.Params
+	if i.imageResource.Params != nil {
+		params = *i.imageResource.Params
+	}
+
 	resourceCache, err := i.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
 		i.resourceUser,
 		i.imageResource.Type,
 		version,
 		source,
-		i.imageResource.Params,
+		params,
 		i.customTypes,
 	)
 	if err != nil {
@@ -156,7 +161,7 @@ func (i *imageResourceFetcher) Fetch(
 		resource.ResourceType(i.imageResource.Type),
 		version,
 		source,
-		i.imageResource.Params,
+		params,
 		i.resourceUser,
 		db.NewImageGetContainerOwner(container),
 		i.customTypes,

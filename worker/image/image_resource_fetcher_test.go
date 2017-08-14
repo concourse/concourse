@@ -84,7 +84,7 @@ var _ = Describe("Image", func() {
 		imageResource = worker.ImageResource{
 			Type:   "docker",
 			Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
-			Params: atc.Params{"some": "params"},
+			Params: &atc.Params{"some": "params"},
 		}
 		version = nil
 		signals = make(chan os.Signal)
