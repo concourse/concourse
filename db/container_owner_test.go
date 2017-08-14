@@ -148,7 +148,9 @@ var _ = Describe("ContainerOwner", func() {
 						})
 
 						Context("when creating another session overlapping the grace time", func() {
-							BeforeEach(func() {
+							var createdColumns map[string]interface{}
+
+							JustBeforeEach(func() {
 								time.Sleep(2 * time.Second)
 
 								dupeOwner := db.NewResourceConfigCheckSessionContainerOwner(
@@ -163,7 +165,7 @@ var _ = Describe("ContainerOwner", func() {
 								tx, err := dbConn.Begin()
 								Expect(err).ToNot(HaveOccurred())
 
-								createdColumns, err := dupeOwner.Create(tx, worker.Name())
+								createdColumns, err = dupeOwner.Create(tx, worker.Name())
 								Expect(err).ToNot(HaveOccurred())
 								Expect(createdColumns).ToNot(BeEmpty())
 
@@ -171,8 +173,12 @@ var _ = Describe("ContainerOwner", func() {
 							})
 
 							It("finds the new one in subsequent calls", func() {
-								_, newOwnerFound, err := owner.Find(dbConn)
+								newOwnerCols, newOwnerFound, err := owner.Find(dbConn)
 								Expect(newOwnerFound).To(BeTrue())
+
+								Expect(newOwnerCols["resource_config_check_session_id"]).To(Equal(createdColumns["resource_config_check_session_id"]))
+								Expect(foundColumns["resource_config_check_session_id"]).ToNot(Equal(createdColumns["resource_config_check_session_id"]))
+
 								Expect(err).ToNot(HaveOccurred())
 							})
 						})
