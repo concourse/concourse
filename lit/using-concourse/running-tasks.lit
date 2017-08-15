@@ -59,9 +59,36 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   \define-attribute{image_resource: object}{
     \italic{Optional.} The base image of the container. This style of
     specifying the base image has the same effect as \code{image:} above but
-    uses Concourse resources to download the image.  The contents of this field
-    should be the same as a resource configuration in your pipeline (without
-    the \code{name}).
+    uses Concourse resources to download the image.
+
+    The configuration has the following attributes:
+
+    \inset{
+      \define-attribute{type: string}{
+        \italic{Required.} The type of the resource. Usually
+        \code{docker-image}.
+      }{image-resource-type}
+
+      \define-attribute{source: object}{
+        \italic{Required.} The configuration for the resource; see \reference{source}.
+        specified, the input's \code{name} is used.
+
+        Paths are relative to the working directory of the task. Absolute paths
+        are not respected.
+      }{image-resource-source}
+
+      \define-attribute{params: object}{
+        \italic{Optional.} A map of arbitrary configuration to forward to the
+        resource. Refer to the resource type's documentation to see what it
+        supports.
+      }{image-resource-params}
+
+      \define-attribute{version: object}{
+        \italic{Optional.} A specific version of the resource to fetch. This
+        should be a map with string keys and values. If not specified, the
+        latest version will be fetched.
+      }{image-resource-version}
+    }
 
     The following example configures the task to use the \code{golang:1.6}
     Docker image:
