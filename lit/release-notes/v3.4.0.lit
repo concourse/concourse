@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\release{2017-8-8}{3.4.0}{1.6.0}{
+\release{2017-8-15}{3.4.0}{1.6.0}{
   \note{feature}{
     We've deprecated our \code{concourse/lite} Vagrant box in favor of a
     \reference{concourse-lite}{\code{bosh create-env}} flow. This will be much
