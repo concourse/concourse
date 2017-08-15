@@ -33,6 +33,22 @@
   }
 
   \note{feature}{
+    You can now set \reference{image-resource-version} on an
+    \reference{image_resource}, thanks to a PR by \ghuser{krishicks}!
+  }
+
+  \note{fix}{
+    We've removed the volume size column from \reference{fly-cli} ...
+    previously it was always empty and no one seemed to care.
+  }
+
+  \note{fix}{
+    The \reference{fly-validate-pipeline} command can now be provided with
+    variables in the same way that \reference{fly-set-pipeline} can, thanks to
+    a PR by \ghuser{jmcarp}!
+  }
+
+  \note{feature}{
     The \resource{bosh-deployment} now uses the latest BOSH CLI, thanks to a PR
     by \ghuser{selzoc}!
   }
