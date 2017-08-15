@@ -13,7 +13,7 @@ bosh interpolate concourse-deployment/concourse.yml \
   -v concourse_version="'$(cat version/version)'" \
   -v concourse_sha1=$(shasum exported-release/concourse-*.tgz | awk '{print $1}') \
   -v garden_runc_version="'$(cat garden-runc/version)'" \
-  -v garden_runc_sha1=$(shasum garden-runc/garden-runc-*.tgz | awk '{print $1}') \
+  -v garden_runc_sha1=$(shasum garden-runc/*.tgz | awk '{print $1}') \
   -v bosh_virtualbox_cpi_version="'$(cat bosh-virtualbox-cpi/version)'" \
   -v bosh_virtualbox_cpi_sha1=$(cat bosh-virtualbox-cpi/sha1) \
   -v stemcell_version="'$(cat vsphere-stemcell/version)'" \
