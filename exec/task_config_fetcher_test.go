@@ -31,8 +31,8 @@ var _ = Describe("TaskConfigFetcher", func() {
 			ImageResource: &atc.ImageResource{
 				Type:    "docker",
 				Source:  atc.Source{"a": "b"},
-				Params:  atc.Params{"some": "params"},
-				Version: atc.Version{"some": "version"},
+				Params:  &atc.Params{"some": "params"},
+				Version: &atc.Version{"some": "version"},
 			},
 			Params: map[string]string{
 				"task-config-param-key": "task-config-param-val-1",
