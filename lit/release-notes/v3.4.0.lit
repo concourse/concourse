@@ -54,8 +54,8 @@
   }
 
   \note{feature}{
-    The \resource{s3} now supports Server Side Encryption, thanks to a PR by
-    \ghuser{miromode}!
+    The \resource{semver} now supports Server Side Encryption, thanks to a PR
+    by \ghuser{miromode}!
   }
 
   \note{feature}{
