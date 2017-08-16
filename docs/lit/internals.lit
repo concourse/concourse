@@ -21,48 +21,81 @@
     \title{Core}
 
     \define-table{pipelines}{
-      TODO
+      The \italic{pipelines} table contains details about a pipeline; its name, which team it belongs to,
+      whether it is paused, and whether it is public.
     }
 
     \define-table{jobs}{
-      TODO
+      The \italic{jobs} table tracks the details of all jobs in a Concourse
+      deployment.  Jobs reference the \reference{pipelines-table}{pipeline}
+      they belong to, their \reference{jobs}{Job} configuration, and their name
+      in the pipeline.
+
+      There are also a number of attributes which are used by the runtime:
+      \inset{
+        \define-attribute{paused: boolean}{
+          The build scheduler does not schedule builds for jobs which are \code{paused}.
+        }
+        \define-attribute{inputs_determined: boolean}{
+          The build scheduler does not schedule builds for jobs which have not yet had their \code{inputs_determined}.
+        }
+        \define-attribute{max_in_flight_reached: boolean}{
+          The build scheduler does not schedule builds for jobs that have had their build \code{max_in_flight_reached}.
+        }
+        \define-attribute{interruptible: boolean}{
+          Workers trying to \reference{Worker Lifecycle}{land} will wait until
+          all builds are finished, unless the build is for an
+          \code{interruptible} job.
+        }
+      }
+
     }
 
     \define-table{builds}{
-      TODO
+      The \italic{builds} table tracks the details of every run of every
+      \reference{jobs-table}{job}, including its name, the status of the build,
+      whether the build has been scheduled or completed, and information about
+      the start and end times of the build.
     }
 
-    \define-table{resources}{
-      TODO
-    }
-
-    \define-table{resource_types}{
-      TODO
-    }
-
-    \define-table{versioned_resources}{
-      TODO
-    }
   }
 
   \section{
     \title{Resources}
 
-    \define-table{resource_configs}{
-      A \italic{resource config} is analogous to an entry under
-      \code{resources:} in a pipeline - it's just a \italic{type} and a
-      \italic{source}.
+    Concourse's database manages the abstractions around resources, resource
+    configuration, resource versioning, and resource types.  These tables help
+    make the \reference{resources} concept operate as expected, scale across
+    many pipelines, and to many different types.
 
-      A resource config's \italic{type} is either a
-      \reference{base_resource_types-table}{base resource type} or, in the case
-      of a custom resource type, the \reference{resource_caches-table}{resource
-      cache} of its custom type's image resource.
+    \define-table{resources}{
+      An entry in the \italic{resources} table represents a resource defined in
+      a \reference{pipelines}.  The \italic{resources} table has columns for
+      configuration, name, type, and details about resource version checking.
+    }
+
+    \define-table{versioned_resources}{
+      This table contains versions of \reference{resources-table}{resources}
+      discovered by checking.  \italic{Versioned resources} have attributes
+      describing their version, metadata, resource type, and whether the
+      version is enabled in the pipeline.
+    }
+
+
+    \define-table{resource_configs}{
+      A \italic{resource config} is a distinct configuration of a resource
+      type, not specific to any pipeline resource.
 
       A resource config is used for discovering versions. Unlike
       \reference{resources-table}{pipeline resources}, they have no name, and
       are identified entirely by their type and source. Resource configs are
       shared across pipelines and teams, since identical resource
       configurations can be reused.
+
+      A resource config's \italic{type} is either a
+      \reference{base_resource_types-table}{base resource type} or, in the case
+      of a custom resource type, the \reference{resource_caches-table}{resource
+      cache} of its custom type's image resource.
     }
 
     \define-table{resource_caches}{
@@ -121,8 +154,8 @@
     }
 
     \define-table{base_resource_types}{
-      A \italic{base resource type} is simply the name of any resource type
-      provided by any worker. It is used to keep
+      An entry in the \italic{base resource types} table represents a resource
+      type which can be provided by any worker. It is used to keep
       \reference{resource_configs-table} as general as possible, and not tied
       to particular workers. This in turn allows
       \reference{resource_caches-table} to also be general, as is desired for
@@ -130,10 +163,24 @@
     }
 
     \define-table{worker_base_resource_types}{
-      A \italic{worker base resource type} is a particular version of a
-      resource type as provided by a worker. When a worker registers, its base
-      resource types are synced by first removing old versions and then
-      inserting new ones.
+      An entry in the \italic{worker base resource type} table represents a
+      location on a particular worker where the rootFS for a specific version
+      of a \reference{base_resource_types-table}{base_resource_type} is found.
+      When a worker registers, its \reference{base_resource_types-table} are
+      synced by first removing old versions and then inserting new ones.
+    }
+
+    \define-table{resource_types}{
+      An entry in the \italic{resource types} table represents a custom
+      resource type defined in a pipleine, and all of the information
+      neccessary to pull the image bits for a custom resource type.  This
+      includes the \italic{resource type} used to fetch the resource type's
+      image (eiher a \reference{base_resource_types-table}{base_resource_type}
+      or another custom resource) , the version of the image to fetch using
+      that resource, and the configuration of the custom resource type.
+
+      {- Maybe this should be called "custom resource types" and just point to
+      a resource config? -}
     }
 
     \define-table{worker_resource_caches}{
@@ -165,29 +212,31 @@
           The name of the worker where the container is located.
         }{containers-worker_name}
         \define-attribute{state: \code{CREATING}, \code{CREATED}, or \code{DESTROYING}}{
-          The stage in the lifecycle of the container. See \reference{containers}
+          The stage in the lifecycle of the container. See
+          \reference{containers}
         }{containers-state}
 
         Containers can be one of four types, each with individual references
         to their relating object.
 
         \define-attribute{image_check_container_id: fkey}{
-          This signifies that the container is dependant on another container which
-          is busy checking for the image this container will be based on. This is
-          used in the case of custom resource types, or tasks with image_resource.
-          This container will be in the \code{CREATING} \reference{containers-state}{state}
-          until the image is fetched later.
+          This signifies that the container is dependant on another container
+          which is busy checking for the image this container will be based on.
+          This is used in the case of custom resource types, or tasks with
+          image_resource.  This container will be in the \code{CREATING}
+          \reference{containers-state}{state} until the image is fetched later.
         }{containers-image_check_container_id}
         \define-attribute{image_get_container_id: fkey}{
           This signifies that the container is dependant on another container which
-          is busy downloading the bits for the image this container will be based on.
-          This is used in the case of custom resource types, or tasks with image_resource.
-          This container will be in the \code{CREATING} \reference{containers-state}{state}
-          until the image is fetched.
+          is busy downloading the bits for the image this container will be
+          based on.  This is used in the case of custom resource types, or
+          tasks with image_resource.  This container will be in the
+          \code{CREATING} \reference{containers-state}{state} until the image
+          is fetched.
         }{containers-image_get_container_id}
         \define-attribute{build_id: fkey}{
-          If this container is for a build step, this column refers to the id of the build
-          this container is related to.
+          If this container is for a build step, this column refers to the id
+          of the build this container is related to.
         }{containers-build_id}
         \define-attribute{resource_id: fkey}{
           If this container is for running the check script for a resource, this column
@@ -234,28 +283,32 @@
       The \italic{workers} table represents all of the workers that have registered
       with the Concourse cluster.
 
-      \define-attribute{name: string}{
-        The unique name for the worker used to identify it in the cluster.
-      }{worker-addr}
-      \define-attribute{addr: string}{
-        The full address of the Garden server running for the worker.
-      }{worker-addr}
-      \define-attribute{state: RUNNING, STALLED, LANDING, LANDED, RETIRING, RETIRED }{
-        The current state of the worker. This keeps track of the worker's
-        lifecycle in order to handle the lifecycle of workers and their
-        ability to have new containers or volumes created on them.
-      }{worker-state}
-      \define-attribute{baggageclaim_url: string}{
-        The full address of the worker's baggageclaim server; used to store volumes
-        on the worker.
+      \inset{
+        \define-attribute{name: string}{
+          The unique name for the worker used to identify it in the cluster.
+        }{worker-addr}
+        \define-attribute{addr: string}{
+          The full address of the Garden server running for the worker.
+        }{worker-addr}
+        \define-attribute{state: RUNNING, STALLED, LANDING, LANDED, RETIRING, RETIRED }{
+          The current state of the worker. This keeps track of the worker's
+          lifecycle in order to handle the lifecycle of workers and their
+          ability to have new containers or volumes created on them.
+        }{worker-state}
+        \define-attribute{baggageclaim_url: string}{
+          The full address of the worker's baggageclaim server; used to store volumes
+          on the worker.
+        }
       }
     }
     \define-table{worker_task_caches}{
-      The \italic{worker task caches} table tracks all of the details of a \reference{caches}{task cache}
-      for a specific worker. \italic{Worker task caches} are created for any \reference{task-step} in a
-      job for all of the paths specified \reference{caches}{task cache}.
+      The \italic{worker task caches} table tracks all of the details of a
+      \reference{caches}{task cache} for a specific worker. \italic{Worker task
+      caches} are created for any \reference{task-step} in a job for all of the
+      paths specified \reference{caches}{task cache}.
 
-      This table is used to identify worker task cache volumes by their \reference{volumes-worker_task_cache_id}{id}.
+      This table is used to identify worker task cache volumes by their
+      \reference{volumes-worker_task_cache_id}{id}.
     }
   }
 }
@@ -339,33 +392,93 @@
       \section{
         \title{Resource Get Container}
 
-        \italic{Resource Get Container} are created when a \reference{get-step} is exectuted in a build plan.
-        They are based on the resource type's image and are used to download the bits for a given version of resource.
+        \italic{Resource Get Container} are created when a \reference{get-step}
+        is exectuted in a build plan.  They are based on the resource type's
+        image and are used to download the bits for a given version of
+        resource.
 
-        There will be one per \reference{resource_configs-table}{resource config}
+        There will be one per \reference{resource_configs-table}{resource
+        config}
       }
   }
 
   \section{
     \title{Container Garbage Collection}
 
-      There is a periodic process which runs on the ATC, and performs a mark-and-sweep
-      style garbage collection of containers. The Container GC performs the following steps:
+      There is a periodic process which runs on the ATC, and performs a
+      mark-and-sweep style garbage collection of containers. The Container GC
+      performs the following steps:
       \ordered-list{
-        Finds \code{CREATING} and \code{CREATED} containers which can be marked for removal.
+        Finds \code{CREATING} and \code{CREATED} containers which can be marked
+        for removal.
       }{
-        Marks them for removal by transitioning them to the \code{DESTROYING} state.
+        Marks them for removal by transitioning them to the \code{DESTROYING}
+        state.
       }{
-        Tells the Garden server to destroy containers which are in the \code{DESTROYING} state.
+        Tells the Garden server to destroy containers which are in the
+        \code{DESTROYING} state.
       }
   }
-
- }
+}
 
 \section{
   \title{Workers}
 
-  * What makes a worker?
-  * Worker lifecycle
+  \section{
+    \title{What makes a worker?}
+    Workers
+  }
 
+
+  \section{
+    \title{Worker Lifecycle}
+
+    \define-table{RUNNING}{
+      A worker in this state is registered with the cluster and ready to start
+      running containers and storing volumes.
+    }
+
+    \define-table{STALLED}{
+      A worker in this state was previously registered with the cluster, but
+      stopped advertising itself for some reason.  Ususally this is due to
+      network connectivity issues, or the worker stopping unexpectedly.
+
+      If the worker remains in this state and cannot be recovered, it can be
+      removed using the \reference{fly-prune-worker} command.
+    }
+
+    \define-table{LANDING}{
+      The \code{concourse land-worker} command will put a worker in the LANDING
+      state to safely drain its assignments for temporary downtime.
+
+      This worker will wait for running \reference{jobs-table} which aren't
+      interruptible to finsh before putting it into the
+      \reference{LANDED-table} state.
+    }
+
+    \define-table{LANDED}{
+      A worker in this state has successfully waited for all non-interruptible
+      \reference{jobs-table} on it after having \code{concourse land-worker}
+      called. It will no longer be used to schedule any new containers or
+      create volumes until it registers as \reference{RUNNING-table} again.
+    }
+
+    \define-table{RETIRING}{
+      The \code{concourse retire-worker} command will put a worker in the
+      RETIRING state to remove it from the cluster permanently.
+
+
+      This worker will wait for running \reference{jobs-table} which aren't
+      interruptible to finsh before putting it into the
+      \reference{RETIRED-table} state.
+    }
+
+    \define-table{RETIRED}{
+      A worker in this state has successfully waited for all non-interruptible
+      \reference{jobs-table} on it after having \code{concourse retire-worker}
+      called. A worker in this state is not expected to ever return to the
+      \reference{RUNNING-table} state, and can be removed using the
+      \reference{fly-prune-worker} command.
+    }
+  }
 }
