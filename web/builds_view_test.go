@@ -141,6 +141,60 @@ var _ = Describe("BuildsView", func() {
 		})
 	})
 
+	Context("when a job and a resource in the configuration have names that need be escaped", func() {
+		var pipelineUrl string
+		var buildsUrl string
+		var resourceUrl string
+
+		BeforeEach(func() {
+			config := atc.Config{
+				Jobs: []atc.JobConfig{
+					{
+						Name: "some/job",
+						Plan: atc.PlanSequence{
+							{
+								Get: "some/resource",
+							},
+						},
+					},
+				},
+				Resources: []atc.ResourceConfig{
+					{
+						Name: "some/resource",
+						Type: "time",
+					},
+				},
+			}
+
+			byteConfig, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, _, err = team.CreateOrUpdatePipelineConfig(pipelineName, "0", byteConfig)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = team.UnpausePipeline(pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipelineUrl = atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s", teamName, pipelineName))
+			Expect(page.Navigate(pipelineUrl)).To(Succeed())
+
+			buildsUrl = fmt.Sprintf("%s/jobs/some%%2Fjob", pipelineUrl)
+			resourceUrl = fmt.Sprintf("%s/resources/some%%2Fresource", pipelineUrl)
+		})
+
+		It("displays the unescaped names in the pipeline view", func() {
+			Expect(page.Find(".job")).To(HaveText("some/job"))
+			Expect(page.Find(".input")).To(HaveText("some/resource"))
+		})
+
+		It("can navigate to the escaped links", func() {
+			Expect(page.Navigate(buildsUrl)).To(Succeed())
+			Expect(page.Find("button.build-action")).To(BeFound())
+			Expect(page.Navigate(resourceUrl)).To(Succeed())
+			Expect(page.Find("div.resource-check-status")).To(BeFound())
+		})
+	})
+
 	Context("when manual triggering of the job is disabled", func() {
 		var manualTriggerDisabledBuild atc.Build
 
