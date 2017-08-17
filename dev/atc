@@ -21,6 +21,9 @@ until createdb -U postgres -p ${pg_port} atc 2>&1 | grep 'already exists' >/dev/
   sleep 1
 done
 
+# run from atc dir so that an atc built with 'make DEV=-dev' can find the assets
+cd $ROOT/src/github.com/concourse/atc
+
 atc \
   --no-really-i-dont-want-any-auth \
   --log-level debug \
