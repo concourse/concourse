@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="22px" height="19px" viewBox="0 0 22 19" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 46.1 (44463) - http://www.bohemiancoding.com/sketch -->
+    <title>ic_failing_red</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Screens" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="dashboard_by_team_1462" transform="translate(-118.000000, -222.000000)" fill-rule="nonzero" fill="#ED4B35">
+            <path d="M118,241 L140,241 L129,222 L118,241 Z M130,238 L128,238 L128,236 L130,236 L130,238 Z M130,234 L128,234 L128,230 L130,230 L130,234 Z" id="ic_failing_red"></path>
+        </g>
+    </g>
+</svg>
