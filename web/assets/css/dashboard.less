@@ -1,0 +1,55 @@
+.dashboard {
+  padding: 50px;
+  padding-right: (50px - 28px); /* account for tiling illusion */
+}
+
+.dashboard-team-group {
+  margin-top: 38px;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+}
+
+.dashboard-team-name {
+  color: @dashboard-grey;
+  border-top: 1px solid @dashboard-grey;
+  padding-top: 8px;
+  font-size: 16px;
+  margin-right: 28px;
+  margin-bottom: 38px;
+}
+
+.dashboard-pipeline {
+  box-sizing: border-box;
+  border-top: 3px solid @dashboard-green;
+  display: inline-block;
+  margin-right: 28px;
+  margin-bottom: 28px;
+  vertical-align: top;
+}
+
+.dashboard-pipeline-icon, .dashboard-pipeline-name {
+  display: inline-block;
+}
+
+.dashboard-pipeline-icon {
+  width: 20px;
+  height: 20px;
+  margin-left: 25px;
+  vertical-align: top;
+  margin-top: 15px;
+
+  &.paused {
+    background: url('images/ic_pause_grey.svg');
+  }
+}
+
+.dashboard-pipeline-name {
+  font-size: 20px;
+  margin-left: 15px;
+  word-wrap: break-word;
+  width: 276px;
+  box-sizing: border-box;
+  padding: 11px 15px 11px 0;
+}

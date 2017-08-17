@@ -16,6 +16,7 @@ type Route
     | BetaPipeline String String
     | SelectTeam
     | TeamLogin String
+    | Dashboard
 
 
 type alias ConcourseRoute =
@@ -69,6 +70,11 @@ teamLogin =
     TeamLogin := static "teams" </> string </> static "login"
 
 
+dashboard : Route.Route Route
+dashboard =
+    Dashboard := static "dashboard"
+
+
 
 -- router
 
@@ -84,6 +90,7 @@ sitemap =
         , pipeline
         , betaPipeline
         , teamLogin
+        , dashboard
         ]
 
 
@@ -119,6 +126,9 @@ toString route =
 
         TeamLogin teamName ->
             reverse teamLogin [ teamName ]
+
+        Dashboard ->
+            reverse dashboard []
 
         Home ->
             "/"

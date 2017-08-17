@@ -215,6 +215,9 @@ extractPidFromRoute route =
         Routes.Home ->
             Nothing
 
+        Routes.Dashboard ->
+            Nothing
+
 
 setGroups : List String -> Model -> ( Model, Cmd Msg )
 setGroups newGroups model =
