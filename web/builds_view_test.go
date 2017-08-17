@@ -188,10 +188,13 @@ var _ = Describe("BuildsView", func() {
 		})
 
 		It("can navigate to the escaped links", func() {
-			Expect(page.Navigate(buildsUrl)).To(Succeed())
-			Expect(page.Find("button.build-action")).To(BeFound())
-			Expect(page.Navigate(resourceUrl)).To(Succeed())
-			Expect(page.Find("div.resource-check-status")).To(BeFound())
+			Eventually(page.FindByLink("some/job")).Should(BeFound())
+			Expect(page.FindByLink("some/job").Click()).To(Succeed())
+			Eventually(page.URL).Should(Equal(buildsUrl))
+			Expect(page.Navigate(atcURL)).Should(Succeed())
+			Eventually(page.FindByLink("some/resource")).Should(BeFound())
+			Expect(page.FindByLink("some/resource").Click()).To(Succeed())
+			Eventually(page.URL).Should(Equal(resourceUrl))
 		})
 	})
 
