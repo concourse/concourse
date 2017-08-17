@@ -1,4 +1,4 @@
-\title{Concepts}{concepts}
+\title{Concepts (Discussions)}{concepts}
 
 Concourse's end goal is to provide an expressive system with as few distinct
 moving parts as possible.
@@ -15,6 +15,11 @@ fanning out and in, etc.).
 There are no more nooks and crannies of Concourse introduced as your pipeline
 becomes more involved.
 
+
+\split-sections
+\table-of-contents
+
+\include-section{./concepts/architecture.lit}
 \section{
   \title{Tasks}{tasks}
 
