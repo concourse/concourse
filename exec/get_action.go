@@ -81,15 +81,28 @@ func (action *GetAction) Run(
 		return err
 	}
 
+	resourceCache, err := action.dbResourceCacheFactory.FindOrCreateResourceCache(
+		logger,
+		db.ForBuild(action.buildID),
+		action.Type,
+		version,
+		source,
+		action.Params,
+		action.resourceTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-create-resource-cache", err)
+		return err
+	}
+
 	resourceInstance := resource.NewResourceInstance(
 		resource.ResourceType(action.Type),
 		version,
 		source,
 		action.Params,
-		db.ForBuild(action.buildID),
-		db.NewBuildStepContainerOwner(action.buildID, action.planID),
 		action.resourceTypes,
-		action.dbResourceCacheFactory,
+		resourceCache,
+		db.NewBuildStepContainerOwner(action.buildID, action.planID),
 	)
 
 	versionedSource, err := action.resourceFetcher.Fetch(

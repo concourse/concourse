@@ -21,7 +21,6 @@ type ImageFactory interface {
 		imageSpec ImageSpec,
 		teamID int,
 		delegate ImageFetchingDelegate,
-		resourceUser db.ResourceUser,
 		resourceTypes creds.VersionedResourceTypes,
 	) (Image, error)
 }

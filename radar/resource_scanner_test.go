@@ -27,13 +27,13 @@ var _ = Describe("ResourceScanner", func() {
 	var (
 		epoch time.Time
 
-		fakeResourceFactory       *rfakes.FakeResourceFactory
-		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-		fakeResourceConfig        *db.UsedResourceConfig
-		fakeDBPipeline            *dbfakes.FakePipeline
-		fakeClock                 *fakeclock.FakeClock
-		interval                  time.Duration
-		variables                 creds.Variables
+		fakeResourceFactory                   *rfakes.FakeResourceFactory
+		fakeResourceConfigCheckSessionFactory *dbfakes.FakeResourceConfigCheckSessionFactory
+		fakeResourceConfigCheckSession        db.ResourceConfigCheckSession
+		fakeDBPipeline                        *dbfakes.FakePipeline
+		fakeClock                             *fakeclock.FakeClock
+		interval                              time.Duration
+		variables                             creds.Variables
 
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
@@ -50,9 +50,9 @@ var _ = Describe("ResourceScanner", func() {
 	BeforeEach(func() {
 		epoch = time.Unix(123, 456).UTC()
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
-		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
+		fakeResourceConfigCheckSessionFactory = new(dbfakes.FakeResourceConfigCheckSessionFactory)
 		fakeResourceConfig = &db.UsedResourceConfig{}
-		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
+		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
 		fakeDBPipeline = new(dbfakes.FakePipeline)
 		fakeDBResource = new(dbfakes.FakeResource)
 		fakeDBPipeline.IDReturns(42)
@@ -67,7 +67,7 @@ var _ = Describe("ResourceScanner", func() {
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakeResourceFactory,
-			fakeResourceConfigFactory,
+			fakeResourceConfigCheckSessionFactory,
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
@@ -155,16 +155,14 @@ var _ = Describe("ResourceScanner", func() {
 
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, user, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-				Expect(user).To(Equal(db.ForResource(39)))
+				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(resourceType).To(Equal("git"))
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
 				})))
 
-				_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(user).To(Equal(db.ForResource(39)))
+				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
@@ -456,16 +454,14 @@ var _ = Describe("ResourceScanner", func() {
 
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, user, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-				Expect(user).To(Equal(db.ForResource(39)))
+				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(resourceType).To(Equal("git"))
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
 				})))
 
-				_, _, user, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(user).To(Equal(db.ForResource(39)))
+				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,

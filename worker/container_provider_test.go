@@ -62,7 +62,6 @@ var _ = Describe("ContainerProvider", func() {
 
 		cancel             <-chan os.Signal
 		containerSpec      ContainerSpec
-		resourceUser       db.ResourceUser
 		fakeContainerOwner *dbfakes.FakeContainerOwner
 		containerMetadata  db.ContainerMetadata
 		resourceTypes      creds.VersionedResourceTypes
@@ -196,7 +195,6 @@ var _ = Describe("ContainerProvider", func() {
 
 		cancel = make(chan os.Signal)
 
-		resourceUser = db.ForBuild(42)
 		fakeContainerOwner = new(dbfakes.FakeContainerOwner)
 
 		containerMetadata = db.ContainerMetadata{
@@ -347,7 +345,7 @@ var _ = Describe("ContainerProvider", func() {
 	ItHandlesNonExistentContainer := func(createDatabaseCallCountFunc func() int) {
 		It("gets image", func() {
 			Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
-			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualDelegate, actualResourceUser, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
+			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualDelegate, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
 			Expect(actualWorker).To(Equal(fakeWorker))
 			Expect(actualVolumeClient).To(Equal(fakeVolumeClient))
 			Expect(actualImageSpec).To(Equal(containerSpec.ImageSpec))
@@ -355,7 +353,6 @@ var _ = Describe("ContainerProvider", func() {
 			Expect(actualTeamID).To(Equal(containerSpec.TeamID))
 			Expect(actualTeamID).ToNot(BeZero())
 			Expect(actualDelegate).To(Equal(fakeImageFetchingDelegate))
-			Expect(actualResourceUser).To(Equal(resourceUser))
 			Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 			Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
@@ -554,7 +551,6 @@ var _ = Describe("ContainerProvider", func() {
 			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateContainer(
 				logger,
 				cancel,
-				resourceUser,
 				fakeContainerOwner,
 				fakeImageFetchingDelegate,
 				containerMetadata,

@@ -37,7 +37,6 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Version{"some": "version"},
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
-			db.ForBuild(42),
 			db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")),
 			creds.VersionedResourceTypes{},
 			fakeResourceCacheFactory,
@@ -53,11 +52,6 @@ var _ = Describe("ResourceInstance", func() {
 
 		JustBeforeEach(func() {
 			foundVolume, found, findErr = resourceInstance.FindOn(logger, fakeWorker)
-		})
-
-		It("'find-or-create's the resource cache with the same user", func() {
-			_, user, _, _, _, _, _ := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
-			Expect(user).To(Equal(db.ForBuild(42)))
 		})
 
 		Context("when failing to find or create cache in database", func() {

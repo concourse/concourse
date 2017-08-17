@@ -12,7 +12,6 @@ import (
 
 type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
-	resourceCache          *db.UsedResourceCache
 	resourceInstance       ResourceInstance
 	worker                 worker.Worker
 	resourceTypes          creds.VersionedResourceTypes
@@ -26,7 +25,6 @@ type resourceInstanceFetchSource struct {
 
 func NewResourceInstanceFetchSource(
 	logger lager.Logger,
-	resourceCache *db.UsedResourceCache,
 	resourceInstance ResourceInstance,
 	worker worker.Worker,
 	resourceTypes creds.VersionedResourceTypes,
@@ -39,7 +37,6 @@ func NewResourceInstanceFetchSource(
 ) FetchSource {
 	return &resourceInstanceFetchSource{
 		logger:                 logger,
-		resourceCache:          resourceCache,
 		resourceInstance:       resourceInstance,
 		worker:                 worker,
 		resourceTypes:          resourceTypes,
@@ -69,7 +66,7 @@ func (s *resourceInstanceFetchSource) Find() (VersionedSource, bool, error) {
 		return nil, false, nil
 	}
 
-	metadata, err := s.dbResourceCacheFactory.ResourceCacheMetadata(s.resourceCache)
+	metadata, err := s.dbResourceCacheFactory.ResourceCacheMetadata(s.resourceInstance.ResourceCache())
 	if err != nil {
 		sLog.Error("failed-to-get-resource-cache-metadata", err)
 		return nil, false, err
@@ -117,7 +114,6 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 		s.logger,
 		nil,
 		s.imageFetchingDelegate,
-		s.resourceInstance.ResourceUser(),
 		s.resourceInstance.ContainerOwner(),
 		s.session.Metadata,
 		containerSpec,
@@ -164,15 +160,15 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 		return nil, err
 	}
 
-	err = volume.InitializeResourceCache(s.resourceCache)
+	err = volume.InitializeResourceCache(s.resourceInstance.ResourceCache())
 	if err != nil {
 		sLog.Error("failed-to-initialize-cache", err)
 		return nil, err
 	}
 
-	err = s.dbResourceCacheFactory.UpdateResourceCacheMetadata(s.resourceCache, versionedSource.Metadata())
+	err = s.dbResourceCacheFactory.UpdateResourceCacheMetadata(s.resourceInstance.ResourceCache(), versionedSource.Metadata())
 	if err != nil {
-		s.logger.Error("failed-to-update-resource-cache-metadata", err, lager.Data{"resource-cache": s.resourceCache})
+		s.logger.Error("failed-to-update-resource-cache-metadata", err, lager.Data{"resource-cache": s.resourceInstance.ResourceCache()})
 		return nil, err
 	}
 

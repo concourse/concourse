@@ -33,7 +33,6 @@ type ResourceFactory interface {
 	NewResource(
 		logger lager.Logger,
 		signals <-chan os.Signal,
-		user db.ResourceUser,
 		owner db.ContainerOwner,
 		metadata db.ContainerMetadata,
 		containerSpec worker.ContainerSpec,
@@ -49,7 +48,6 @@ type resourceFactory struct {
 func (f *resourceFactory) NewResource(
 	logger lager.Logger,
 	signals <-chan os.Signal,
-	user db.ResourceUser,
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec worker.ContainerSpec,
@@ -60,7 +58,6 @@ func (f *resourceFactory) NewResource(
 		logger,
 		signals,
 		imageFetchingDelegate,
-		user,
 		owner,
 		metadata,
 		containerSpec,

@@ -154,7 +154,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 							secondJobCache, err = resourceCacheFactory.FindOrCreateResourceCache(
 								logger,
-								db.ForBuild(jobBuild.ID()),
+								db.ForBuild(secondJobBuild.ID()),
 								"some-base-type",
 								atc.Version{"some": "new-version"},
 								atc.Source{
@@ -205,7 +205,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 							secondJobCache, err = resourceCacheFactory.FindOrCreateResourceCache(
 								logger,
-								db.ForBuild(jobBuild.ID()),
+								db.ForBuild(secondJobBuild.ID()),
 								"some-base-type",
 								atc.Version{"some": "new-version"},
 								atc.Source{

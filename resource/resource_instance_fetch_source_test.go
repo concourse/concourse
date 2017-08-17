@@ -189,9 +189,8 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			It("creates container with volume and worker", func() {
 				Expect(initErr).NotTo(HaveOccurred())
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, _, delegate, user, owner, metadata, spec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, _, delegate, owner, metadata, spec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(delegate).To(Equal(fakeDelegate))
-				Expect(user).To(Equal(db.ForBuild(43)))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"))))
 				Expect(metadata).To(BeZero())
 				Expect(spec).To(Equal(worker.ContainerSpec{

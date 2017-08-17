@@ -22,9 +22,14 @@ var _ = Describe("ContainerOwner", func() {
 			ownerExpiries db.ContainerOwnerExpiries
 			found         bool
 
-			resourceConfig      *db.UsedResourceConfig
-			otherResourceConfig *db.UsedResourceConfig
+			resourceConfigCheckSession db.ResourceConfigCheckSession
 		)
+
+		ownerExpiries = db.ContainerOwnerExpiries{
+			GraceTime: 1 * time.Minute,
+			Min:       5 * time.Minute,
+			Max:       5 * time.Minute,
+		}
 
 		BeforeEach(func() {
 			workerPayload := atc.Worker{
@@ -38,37 +43,20 @@ var _ = Describe("ContainerOwner", func() {
 			worker, err = workerFactory.SaveWorker(workerPayload, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger,
-				db.ForResource(defaultResource.ID()),
+			resourceConfigCheckSession, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger,
 				defaultWorkerResourceType.Type,
 				atc.Source{
 					"some-type": "source",
 				},
 				creds.VersionedResourceTypes{},
+				ownerExpiries,
 			)
 			Expect(err).ToNot(HaveOccurred())
-
-			otherResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger,
-				db.ForResource(defaultResource.ID()),
-				defaultWorkerResourceType.Type,
-				atc.Source{
-					"some-type": "other-source",
-				},
-				creds.VersionedResourceTypes{},
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			ownerExpiries = db.ContainerOwnerExpiries{
-				GraceTime: 1 * time.Minute,
-				Min:       5 * time.Minute,
-				Max:       5 * time.Minute,
-			}
 		})
 
 		JustBeforeEach(func() {
 			owner = db.NewResourceConfigCheckSessionContainerOwner(
-				resourceConfig,
-				ownerExpiries,
+				resourceConfigCheckSession,
 			)
 		})
 
@@ -84,127 +72,24 @@ var _ = Describe("ContainerOwner", func() {
 			Context("when a resource config check session exists", func() {
 				var createdColumns map[string]interface{}
 
-				Context("and the GraceTime is 1 minute", func() {
-					Context("and it will not expire in the next minute", func() {
-						BeforeEach(func() {
-							existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
-								resourceConfig,
-								ownerExpiries,
-							)
+				BeforeEach(func() {
+					existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
+						resourceConfigCheckSession,
+					)
 
-							tx, err := dbConn.Begin()
-							Expect(err).ToNot(HaveOccurred())
+					tx, err := dbConn.Begin()
+					Expect(err).ToNot(HaveOccurred())
 
-							createdColumns, err = existingOwner.Create(tx, worker.Name())
-							Expect(err).ToNot(HaveOccurred())
-							Expect(createdColumns).ToNot(BeEmpty())
+					createdColumns, err = existingOwner.Create(tx, worker.Name())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(createdColumns).ToNot(BeEmpty())
 
-							Expect(tx.Commit()).To(Succeed())
-						})
-
-						It("finds the resource config check session", func() {
-							Expect(foundColumns).To(BeEquivalentTo(createdColumns))
-							Expect(found).To(BeTrue())
-						})
-					})
-
-					Context("and it expires in 3 seconds", func() {
-						BeforeEach(func() {
-							ownerExpiries = db.ContainerOwnerExpiries{
-								GraceTime: 1 * time.Second,
-								Min:       3 * time.Second,
-								Max:       3 * time.Second,
-							}
-
-							existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
-								resourceConfig,
-								ownerExpiries,
-							)
-
-							tx, err := dbConn.Begin()
-							Expect(err).ToNot(HaveOccurred())
-
-							createdColumns, err = existingOwner.Create(tx, worker.Name())
-							Expect(err).ToNot(HaveOccurred())
-							Expect(createdColumns).ToNot(BeEmpty())
-
-							Expect(tx.Commit()).To(Succeed())
-						})
-
-						It("finds a resource config check session within the grace time", func() {
-							Expect(foundColumns).To(BeEquivalentTo(createdColumns))
-							Expect(found).To(BeTrue())
-						})
-
-						Context("when searched within the grace time", func() {
-							BeforeEach(func() {
-								time.Sleep(2 * time.Second)
-							})
-
-							It("doesn't find it", func() {
-								Expect(found).To(BeFalse())
-							})
-
-						})
-
-						Context("when creating another session overlapping the grace time", func() {
-							var createdColumns map[string]interface{}
-
-							JustBeforeEach(func() {
-								time.Sleep(2 * time.Second)
-
-								dupeOwner := db.NewResourceConfigCheckSessionContainerOwner(
-									resourceConfig,
-									db.ContainerOwnerExpiries{
-										GraceTime: 2 * time.Second,
-										Min:       15 * time.Second,
-										Max:       30 * time.Second,
-									},
-								)
-
-								tx, err := dbConn.Begin()
-								Expect(err).ToNot(HaveOccurred())
-
-								createdColumns, err = dupeOwner.Create(tx, worker.Name())
-								Expect(err).ToNot(HaveOccurred())
-								Expect(createdColumns).ToNot(BeEmpty())
-
-								Expect(tx.Commit()).To(Succeed())
-							})
-
-							It("finds the new one in subsequent calls", func() {
-								newOwnerCols, newOwnerFound, err := owner.Find(dbConn)
-								Expect(newOwnerFound).To(BeTrue())
-
-								Expect(newOwnerCols["resource_config_check_session_id"]).To(Equal(createdColumns["resource_config_check_session_id"]))
-								Expect(foundColumns["resource_config_check_session_id"]).ToNot(Equal(createdColumns["resource_config_check_session_id"]))
-
-								Expect(err).ToNot(HaveOccurred())
-							})
-						})
-					})
+					Expect(tx.Commit()).To(Succeed())
 				})
 
-				Context("for a different resource config", func() {
-					BeforeEach(func() {
-						existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
-							otherResourceConfig,
-							ownerExpiries,
-						)
-
-						tx, err := dbConn.Begin()
-						Expect(err).ToNot(HaveOccurred())
-
-						createdColumns, err = existingOwner.Create(tx, worker.Name())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(createdColumns).ToNot(BeEmpty())
-
-						Expect(tx.Commit()).To(Succeed())
-					})
-
-					It("doesn't find a resource config check session", func() {
-						Expect(found).To(BeFalse())
-					})
+				It("finds the worker resource config check session", func() {
+					Expect(foundColumns).To(BeEquivalentTo(createdColumns))
+					Expect(found).To(BeTrue())
 				})
 			})
 

@@ -85,110 +85,110 @@ var _ = Describe("ResourceCache", func() {
 		})
 	})
 
-	Describe("creating for a resource", func() {
-		var resource db.Resource
+	// Describe("creating for a resource", func() {
+	// 	var resource db.Resource
 
-		BeforeEach(func() {
-			var found bool
-			var err error
-			resource, found, err = defaultPipeline.Resource("some-resource")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
+	// 	BeforeEach(func() {
+	// 		var found bool
+	// 		var err error
+	// 		resource, found, err = defaultPipeline.Resource("some-resource")
+	// 		Expect(err).NotTo(HaveOccurred())
+	// 		Expect(found).To(BeTrue())
 
-			tx, err = dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-		})
+	// 		tx, err = dbConn.Begin()
+	// 		Expect(err).ToNot(HaveOccurred())
+	// 	})
 
-		AfterEach(func() {
-			err := tx.Rollback()
-			Expect(err).NotTo(HaveOccurred())
-		})
+	// 	AfterEach(func() {
+	// 		err := tx.Rollback()
+	// 		Expect(err).NotTo(HaveOccurred())
+	// 	})
 
-		It("can be created and used", func() {
-			urc, err := db.ForResource(resource.ID()).UseResourceCache(logger, tx, cache)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(urc.ID).ToNot(BeZero())
+	// 	It("can be created and used", func() {
+	// 		urc, err := db.ForResource(resource.ID()).UseResourceCache(logger, tx, cache)
+	// 		Expect(err).ToNot(HaveOccurred())
+	// 		Expect(urc.ID).ToNot(BeZero())
 
-			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
-			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
-			Expect(err).To(HaveOccurred())
-			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
-		})
+	// 		// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
+	// 		_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
+	// 		Expect(err).To(HaveOccurred())
+	// 		Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
+	// 	})
 
-		Context("when it already exists", func() {
-			var existingResourceCache *db.UsedResourceCache
+	// 	Context("when it already exists", func() {
+	// 		var existingResourceCache *db.UsedResourceCache
 
-			BeforeEach(func() {
-				var err error
-				existingResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, tx, cache)
-				Expect(err).ToNot(HaveOccurred())
-			})
+	// 		BeforeEach(func() {
+	// 			var err error
+	// 			existingResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, tx, cache)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 		})
 
-			It("returns the same used resource cache", func() {
-				urc, err := db.ForResource(resource.ID()).UseResourceCache(logger, tx, cache)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(urc.ID).To(Equal(existingResourceCache.ID))
-			})
-		})
-	})
+	// 		It("returns the same used resource cache", func() {
+	// 			urc, err := db.ForResource(resource.ID()).UseResourceCache(logger, tx, cache)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(urc.ID).To(Equal(existingResourceCache.ID))
+	// 		})
+	// 	})
+	// })
 
-	Describe("creating for a resource type", func() {
-		BeforeEach(func() {
-			var err error
-			tx, err = dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-		})
+	// Describe("creating for a resource type", func() {
+	// 	BeforeEach(func() {
+	// 		var err error
+	// 		tx, err = dbConn.Begin()
+	// 		Expect(err).ToNot(HaveOccurred())
+	// 	})
 
-		AfterEach(func() {
-			err := tx.Rollback()
-			Expect(err).NotTo(HaveOccurred())
-		})
+	// 	AfterEach(func() {
+	// 		err := tx.Rollback()
+	// 		Expect(err).NotTo(HaveOccurred())
+	// 	})
 
-		It("can be created and used", func() {
-			urc, err := db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(urc.ID).ToNot(BeZero())
+	// 	It("can be created and used", func() {
+	// 		urc, err := db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
+	// 		Expect(err).ToNot(HaveOccurred())
+	// 		Expect(urc.ID).ToNot(BeZero())
 
-			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
-			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
-			Expect(err).To(HaveOccurred())
-			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
-		})
+	// 		// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
+	// 		_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
+	// 		Expect(err).To(HaveOccurred())
+	// 		Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
+	// 	})
 
-		Context("when it already exists", func() {
-			var existingResourceCache *db.UsedResourceCache
+	// 	Context("when it already exists", func() {
+	// 		var existingResourceCache *db.UsedResourceCache
 
-			BeforeEach(func() {
-				var err error
-				existingResourceCache, err = db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-				Expect(err).ToNot(HaveOccurred())
-			})
+	// 		BeforeEach(func() {
+	// 			var err error
+	// 			existingResourceCache, err = db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 		})
 
-			It("returns the same used resource cache", func() {
-				urc, err := db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(urc.ID).To(Equal(existingResourceCache.ID))
-			})
-		})
+	// 		It("returns the same used resource cache", func() {
+	// 			urc, err := db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(urc.ID).To(Equal(existingResourceCache.ID))
+	// 		})
+	// 	})
 
-		Context("when it already exists but with different params", func() {
-			var existingResourceCache *db.UsedResourceCache
+	// 	Context("when it already exists but with different params", func() {
+	// 		var existingResourceCache *db.UsedResourceCache
 
-			BeforeEach(func() {
-				var err error
-				existingResourceCache, err = db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-				Expect(err).ToNot(HaveOccurred())
-			})
+	// 		BeforeEach(func() {
+	// 			var err error
+	// 			existingResourceCache, err = db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 		})
 
-			It("creates it, and does not use the existing one [#139960779]", func() {
-				cache.Params = atc.Params{
-					"foo": "bar",
-				}
+	// 		It("creates it, and does not use the existing one [#139960779]", func() {
+	// 			cache.Params = atc.Params{
+	// 				"foo": "bar",
+	// 			}
 
-				urc, err := db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(urc.ID).NotTo(Equal(existingResourceCache.ID))
-			})
-		})
-	})
+	// 			urc, err := db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(urc.ID).NotTo(Equal(existingResourceCache.ID))
+	// 		})
+	// 	})
+	// })
 })

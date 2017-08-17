@@ -21,5 +21,5 @@ func NewResourceConfigCollector(
 }
 
 func (rcuc *resourceConfigCollector) Run() error {
-	return rcuc.configFactory.CleanUselessConfigs()
+	return rcuc.configFactory.CleanUnreferencedConfigs()
 }

@@ -35,6 +35,7 @@ var (
 	workerFactory                       db.WorkerFactory
 	workerLifecycle                     db.WorkerLifecycle
 	resourceConfigCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle
+	resourceConfigCheckSessionFactory   db.ResourceConfigCheckSessionFactory
 	resourceConfigFactory               db.ResourceConfigFactory
 	resourceCacheFactory                db.ResourceCacheFactory
 	baseResourceTypeFactory             db.BaseResourceTypeFactory
@@ -97,6 +98,7 @@ var _ = BeforeEach(func() {
 	workerFactory = db.NewWorkerFactory(dbConn)
 	workerLifecycle = db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
+	resourceConfigCheckSessionFactory = db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
 	baseResourceTypeFactory = db.NewBaseResourceTypeFactory(dbConn)

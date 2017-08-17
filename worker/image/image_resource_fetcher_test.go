@@ -125,7 +125,6 @@ var _ = Describe("Image", func() {
 			fakeClock,
 		).NewImageResourceFetcher(
 			fakeWorker,
-			db.ForBuild(42),
 			imageResource,
 			version,
 			teamID,
@@ -225,9 +224,8 @@ var _ = Describe("Image", func() {
 
 									It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 										Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-										_, csig, user, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+										_, csig, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 										Expect(csig).To(Equal(signals))
-										Expect(user).To(Equal(db.ForBuild(42)))
 										Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer)))
 										Expect(metadata).To(Equal(db.ContainerMetadata{
 											Type: db.ContainerTypeCheck,
@@ -267,9 +265,8 @@ var _ = Describe("Image", func() {
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 									Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-									_, csig, user, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+									_, csig, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 									Expect(csig).To(Equal(signals))
-									Expect(user).To(Equal(db.ForBuild(42)))
 									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
@@ -313,7 +310,6 @@ var _ = Describe("Image", func() {
 										atc.Version{"v": "1"},
 										atc.Source{"some": "super-secret-sauce"},
 										atc.Params{"some": "params"},
-										db.ForBuild(42),
 										db.NewImageGetContainerOwner(fakeCreatingContainer),
 										customTypes,
 										fakeResourceCacheFactory,
@@ -437,7 +433,7 @@ var _ = Describe("Image", func() {
 
 				fakeLock = new(lockfakes.FakeLock)
 				callCount := 0
-				fakeResourceConfigFactory.AcquireResourceCheckingLockStub = func(lager.Logger, db.ResourceUser, string, atc.Source, creds.VersionedResourceTypes) (lock.Lock, bool, error) {
+				fakeResourceConfigFactory.AcquireResourceCheckingLockStub = func(lager.Logger, string, atc.Source, creds.VersionedResourceTypes) (lock.Lock, bool, error) {
 					callCount++
 
 					if callCount == 5 {
@@ -576,7 +572,6 @@ var _ = Describe("Image", func() {
 							atc.Version{"some": "version"},
 							atc.Source{"some": "super-secret-sauce"},
 							atc.Params{"some": "params"},
-							db.ForBuild(42),
 							db.NewImageGetContainerOwner(fakeCreatingContainer),
 							customTypes,
 							fakeResourceCacheFactory,

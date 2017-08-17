@@ -292,6 +292,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
+	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
@@ -317,14 +318,14 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceFactory,
-		dbResourceConfigFactory,
+		dbResourceConfigCheckSessionFactory,
 		cmd.ResourceCheckingInterval,
 		engine,
 	)
 
 	radarScannerFactory := radar.NewScannerFactory(
 		resourceFactory,
-		dbResourceConfigFactory,
+		dbResourceConfigCheckSessionFactory,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
 		variablesFactory,
@@ -504,10 +505,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				gc.NewResourceCacheUseCollector(
 					logger.Session("resource-cache-use-collector"),
 					dbResourceCacheFactory,
-				),
-				gc.NewResourceConfigUseCollector(
-					logger.Session("resource-config-use-collector"),
-					dbResourceConfigFactory,
 				),
 				gc.NewResourceConfigCollector(
 					logger.Session("resource-config-collector"),

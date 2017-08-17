@@ -12,29 +12,29 @@ import (
 )
 
 type resourceTypeScanner struct {
-	resourceFactory       resource.ResourceFactory
-	resourceConfigFactory db.ResourceConfigFactory
-	defaultInterval       time.Duration
-	dbPipeline            db.Pipeline
-	externalURL           string
-	variables             creds.Variables
+	resourceFactory                   resource.ResourceFactory
+	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory
+	defaultInterval                   time.Duration
+	dbPipeline                        db.Pipeline
+	externalURL                       string
+	variables                         creds.Variables
 }
 
 func NewResourceTypeScanner(
 	resourceFactory resource.ResourceFactory,
-	resourceConfigFactory db.ResourceConfigFactory,
+	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory,
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
 	variables creds.Variables,
 ) Scanner {
 	return &resourceTypeScanner{
-		resourceFactory:       resourceFactory,
-		resourceConfigFactory: resourceConfigFactory,
-		defaultInterval:       defaultInterval,
-		dbPipeline:            dbPipeline,
-		externalURL:           externalURL,
-		variables:             variables,
+		resourceFactory:                   resourceFactory,
+		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,
+		defaultInterval:                   defaultInterval,
+		dbPipeline:                        dbPipeline,
+		externalURL:                       externalURL,
+		variables:                         variables,
 	}
 }
 
@@ -81,19 +81,19 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 		return 0, err
 	}
 
-	resourceConfig, err := scanner.resourceConfigFactory.FindOrCreateResourceConfig(
+	resourceConfigCheckSession, err := scanner.resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
 		logger,
-		db.ForResourceType(savedResourceType.ID()),
 		savedResourceType.Type(),
 		source,
 		versionedResourceTypes.Without(savedResourceType.Name()),
+		ContainerExpiries,
 	)
 	if err != nil {
 		logger.Error("failed-to-find-or-create-resource-config", err)
 		return 0, err
 	}
 
-	lock, acquired, err := scanner.dbPipeline.AcquireResourceTypeCheckingLockWithIntervalCheck(logger, resourceTypeName, resourceConfig, scanner.defaultInterval, false)
+	lock, acquired, err := scanner.dbPipeline.AcquireResourceTypeCheckingLockWithIntervalCheck(logger, resourceTypeName, resourceConfigCheckSession.ResourceConfig(), scanner.defaultInterval, false)
 	if err != nil {
 		lockLogger.Error("failed-to-get-lock", err, lager.Data{
 			"resource-type": resourceTypeName,
@@ -108,7 +108,7 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 
 	defer lock.Release()
 
-	err = scanner.resourceTypeScan(logger.Session("tick"), resourceTypeName, savedResourceType, resourceConfig, versionedResourceTypes, source)
+	err = scanner.resourceTypeScan(logger.Session("tick"), resourceTypeName, savedResourceType, resourceConfigCheckSession, versionedResourceTypes, source)
 	if err != nil {
 		return 0, err
 	}
@@ -124,7 +124,7 @@ func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourc
 	return nil
 }
 
-func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceTypeName string, savedResourceType db.ResourceType, resourceConfig *db.UsedResourceConfig, versionedResourceTypes creds.VersionedResourceTypes, source atc.Source) error {
+func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceTypeName string, savedResourceType db.ResourceType, resourceConfigCheckSession db.ResourceConfigCheckSession, versionedResourceTypes creds.VersionedResourceTypes, source atc.Source) error {
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResourceType.Type(),
@@ -136,8 +136,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	res, err := scanner.resourceFactory.NewResource(
 		logger,
 		nil,
-		db.ForResourceType(savedResourceType.ID()),
-		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ContainerExpiries),
+		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -30,7 +29,6 @@ var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not prod
 type ImageResourceFetcherFactory interface {
 	NewImageResourceFetcher(
 		worker.Worker,
-		db.ResourceUser,
 		worker.ImageResource,
 		atc.Version,
 		int,
@@ -76,7 +74,6 @@ func NewImageResourceFetcherFactory(
 
 func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	worker worker.Worker,
-	resourceUser db.ResourceUser,
 	imageResource worker.ImageResource,
 	version atc.Version,
 	teamID int,
@@ -91,7 +88,6 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 		clock: f.clock,
 
 		worker:                worker,
-		resourceUser:          resourceUser,
 		imageResource:         imageResource,
 		version:               version,
 		teamID:                teamID,
@@ -108,7 +104,6 @@ type imageResourceFetcher struct {
 	dbResourceConfigFactory db.ResourceConfigFactory
 	clock                   clock.Clock
 
-	resourceUser          db.ResourceUser
 	imageResource         worker.ImageResource
 	version               atc.Version
 	teamID                int
@@ -145,7 +140,7 @@ func (i *imageResourceFetcher) Fetch(
 
 	resourceCache, err := i.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
-		i.resourceUser,
+		db.ForContainer(container.ID()),
 		i.imageResource.Type,
 		version,
 		source,
@@ -162,10 +157,9 @@ func (i *imageResourceFetcher) Fetch(
 		version,
 		source,
 		params,
-		i.resourceUser,
-		db.NewImageGetContainerOwner(container),
 		i.customTypes,
-		i.dbResourceCacheFactory,
+		resourceCache,
+		db.NewImageGetContainerOwner(container),
 	)
 
 	err = i.imageFetchingDelegate.ImageVersionDetermined(resourceCache)
@@ -239,37 +233,9 @@ func (i *imageResourceFetcher) getLatestVersion(
 		return nil, err
 	}
 
-	for {
-		lock, acquired, err := i.dbResourceConfigFactory.AcquireResourceCheckingLock(
-			logger,
-			i.resourceUser,
-			i.imageResource.Type,
-			source,
-			i.customTypes,
-		)
-		if err != nil {
-			logger.Error("failed-to-get-lock", err, lager.Data{
-				"resource-user": i.resourceUser,
-			})
-
-			return nil, err
-		}
-
-		if !acquired {
-			logger.Debug("did-not-get-lock")
-			i.clock.Sleep(time.Second)
-			continue
-		}
-
-		defer lock.Release()
-
-		break
-	}
-
 	checkingResource, err := i.resourceFactory.NewResource(
 		logger,
 		signals,
-		i.resourceUser,
 		db.NewImageCheckContainerOwner(container),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,

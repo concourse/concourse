@@ -198,29 +198,25 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				})
 			})
 
-			Describe("for resource types", func() {
-				setActiveResourceType := func(active bool) {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-					defer tx.Rollback()
-
-					var id int
-					err = psql.Update("resource_types").
-						Set("active", active).
-						Where(sq.Eq{"id": dbResourceType.ID()}).
-						Suffix("RETURNING id").
-						RunWith(tx).
-						QueryRow().Scan(&id)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = tx.Commit()
-					Expect(err).NotTo(HaveOccurred())
-				}
+			Describe("for containers", func() {
+				var container db.CreatingContainer
 
 				BeforeEach(func() {
+					worker, err := defaultTeam.SaveWorker(atc.Worker{
+						Name: "some-worker",
+					}, 0)
+					Expect(err).ToNot(HaveOccurred())
+
+					container, err = defaultTeam.CreateContainer(
+						worker.Name(),
+						db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"),
+						db.ContainerMetadata{},
+					)
+					Expect(err).ToNot(HaveOccurred())
+
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						db.ForResourceType(dbResourceType.ID()),
+						db.ForContainer(container.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
@@ -234,10 +230,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						),
 					)
 					Expect(err).NotTo(HaveOccurred())
-					setActiveResourceType(true)
 				})
 
-				Context("while the resource type is still active", func() {
+				Context("while the container is still in use", func() {
 					It("does not clean up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 						Expect(collector.Run()).To(Succeed())
@@ -245,130 +240,16 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					})
 				})
 
-				Context("once the resource type is made inactive", func() {
-					It("cleans up the uses", func() {
+				Context("when the container is removed", func() {
+					It("cleans up the uses (except it was actually a cascade delete, not the GC, lol)", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						setActiveResourceType(false)
-						Expect(collector.Run()).To(Succeed())
-						Expect(countResourceCacheUses()).To(BeZero())
-					})
-				})
-			})
-
-			Describe("for resources", func() {
-				setActiveResource := func(resource db.Resource, active bool) {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-					defer tx.Rollback()
-
-					var id int
-					err = psql.Update("resources").
-						Set("active", active).
-						Where(sq.Eq{"id": resource.ID()}).
-						Suffix("RETURNING id").
-						RunWith(tx).
-						QueryRow().Scan(&id)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = tx.Commit()
-					Expect(err).NotTo(HaveOccurred())
-				}
-
-				BeforeEach(func() {
-					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						logger,
-						db.ForResource(usedResource.ID()),
-						"some-type",
-						atc.Version{"some-type": "version"},
-						atc.Source{
-							"cache": "source",
-						},
-						atc.Params{"some": "params"},
-						creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
-							atc.VersionedResourceTypes{
-								versionedResourceType,
-							},
-						),
-					)
-					Expect(err).NotTo(HaveOccurred())
-					setActiveResource(usedResource, true)
-				})
-
-				Context("while the resource is still active", func() {
-					It("does not clean up the uses", func() {
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-						Expect(collector.Run()).To(Succeed())
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-					})
-				})
-
-				Context("once the resource is made inactive", func() {
-					It("cleans up the uses", func() {
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-						setActiveResource(usedResource, false)
-						Expect(collector.Run()).To(Succeed())
-						Expect(countResourceCacheUses()).To(BeZero())
-					})
-				})
-
-				Context("when the associated pipeline is paused", func() {
-					It("cleans up the uses", func() {
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-						err := defaultPipeline.Pause()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(collector.Run()).To(Succeed())
-						Expect(countResourceCacheUses()).To(BeZero())
-					})
-				})
-				Context("when a portion of pipelines referencing config are paused", func() {
-					BeforeEach(func() {
-						anotherPipeline, created, err := defaultTeam.SavePipeline(
-							"another-pipeline",
-							atc.Config{
-								Resources: []atc.ResourceConfig{
-									{
-										Name:   "another-resource",
-										Type:   usedResource.Type(),
-										Source: usedResource.Source(),
-									},
-								},
-							},
-							0,
-							db.PipelineUnpaused,
-						)
-
+						created, err := container.Created()
 						Expect(err).ToNot(HaveOccurred())
-						Expect(created).To(BeTrue())
-
-						anotherResource, found, err := anotherPipeline.Resource("another-resource")
+						destroying, err := created.Destroying()
 						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-
-						_, err = resourceCacheFactory.FindOrCreateResourceCache(
-							logger,
-							db.ForResource(anotherResource.ID()),
-							"some-type",
-							atc.Version{"some-type": "version"},
-							atc.Source{
-								"cache": "source",
-							},
-							atc.Params{"some": "params"},
-							creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
-								atc.VersionedResourceTypes{
-									versionedResourceType,
-								},
-							),
-						)
-						Expect(err).NotTo(HaveOccurred())
-						setActiveResource(anotherResource, true)
-					})
-
-					It("does not clean up the uses for unpaused pipeline resources", func() {
-						Expect(countResourceCacheUses()).To(Equal(4))
-						err := defaultPipeline.Pause()
-						Expect(err).NotTo(HaveOccurred())
+						Expect(destroying.Destroy()).To(BeTrue())
 						Expect(collector.Run()).To(Succeed())
-						Expect(countResourceCacheUses()).To(Equal(2))
+						Expect(countResourceCacheUses()).To(BeZero())
 					})
 				})
 			})

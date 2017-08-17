@@ -141,7 +141,6 @@ var _ = Describe("GetAction", func() {
 			atc.Version{"some-version": "some-value"},
 			atc.Source{"some": "super-secret-source"},
 			atc.Params{"some-param": "some-value"},
-			db.ForBuild(buildID),
 			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID)),
 			creds.NewVersionedResourceTypes(variables, resourceTypes),
 			fakeDBResourceCacheFactory,

@@ -148,9 +148,8 @@ var _ = Describe("PutAction", func() {
 			It("initializes the resource with the correct type, session, and sources", func() {
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 
-				_, _, user, owner, cm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, _, owner, cm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(cm).To(Equal(containerMetadata))
-				Expect(user).To(Equal(db.ForBuild(42)))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID))))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "some-resource-type",

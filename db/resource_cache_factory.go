@@ -16,7 +16,7 @@ import (
 type ResourceCacheFactory interface {
 	FindOrCreateResourceCache(
 		logger lager.Logger,
-		resourceUser ResourceUser,
+		resourceCacheUser ResourceCacheUser,
 		resourceTypeName string,
 		version atc.Version,
 		source atc.Source,
@@ -25,9 +25,6 @@ type ResourceCacheFactory interface {
 	) (*UsedResourceCache, error)
 
 	CleanUsesForFinishedBuilds() error
-	CleanUsesForInactiveResourceTypes() error
-	CleanUsesForInactiveResources() error
-	CleanUsesForPausedPipelineResources() error
 	CleanBuildImageResourceCaches() error
 	CleanUpInvalidCaches() error
 
@@ -51,7 +48,7 @@ func NewResourceCacheFactory(conn Conn) ResourceCacheFactory {
 
 func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	logger lager.Logger,
-	resourceUser ResourceUser,
+	resourceCacheUser ResourceCacheUser,
 	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
@@ -73,7 +70,12 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 
 	err = safeFindOrCreate(f.conn, func(tx Tx) error {
 		var err error
-		usedResourceCache, err = resourceUser.UseResourceCache(logger, tx, resourceCache)
+		usedResourceCache, err = resourceCache.findOrCreate(logger, tx)
+		if err != nil {
+			return err
+		}
+
+		err = resourceCache.use(logger, tx, usedResourceCache, resourceCacheUser)
 		if err != nil {
 			return err
 		}
@@ -117,45 +119,20 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 	return nil
 }
 
-func (f *resourceCacheFactory) CleanUsesForInactiveResourceTypes() error {
-	_, err := psql.Delete("resource_cache_uses rcu USING resource_types t").
-		Where(sq.And{
-			sq.Expr("rcu.resource_type_id = t.id"),
-			sq.Eq{
-				"t.active": false,
-			},
-		}).
-		RunWith(f.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *resourceCacheFactory) CleanUsesForInactiveResources() error {
-	_, err := psql.Delete("resource_cache_uses rcu USING resources r").
-		Where(sq.And{
-			sq.Expr("rcu.resource_id = r.id"),
-			sq.Eq{
-				"r.active": false,
-			},
-		}).
-		RunWith(f.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	stillInUseCacheIds, _, err := sq.
 		Select("resource_cache_id").
 		Distinct().
 		From("resource_cache_uses").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	resourceConfigCacheIds, _, err := sq.
+		Select("resource_cache_id").
+		Distinct().
+		From("resource_configs").
 		ToSql()
 	if err != nil {
 		return err
@@ -189,6 +166,7 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 
 	_, err = sq.Delete("resource_caches").
 		Where("id NOT IN (" + stillInUseCacheIds + ")").
+		Where("id NOT IN (" + resourceConfigCacheIds + ")").
 		Where("id NOT IN (" + buildImageCacheIds + ")").
 		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
 		PlaceholderFormat(sq.Dollar).

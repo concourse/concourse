@@ -402,24 +402,24 @@ var _ = Describe("Team", func() {
 			Context("when resource exists", func() {
 				Context("when check container for resource exists", func() {
 					var resourceContainer db.CreatingContainer
-					var usedResourceConfig *db.UsedResourceConfig
+					var resourceConfigCheckSession db.ResourceConfigCheckSession
 
 					BeforeEach(func() {
 						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 						Expect(err).NotTo(HaveOccurred())
 
-						usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
+						resourceConfigCheckSession, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
 							logger,
-							db.ForResource(defaultResource.ID()),
 							defaultResource.Type(),
 							defaultResource.Source(),
 							creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()),
+							expiries,
 						)
 						Expect(err).NotTo(HaveOccurred())
 
 						resourceContainer, err = defaultTeam.CreateContainer(
 							"default-worker",
-							db.NewResourceConfigCheckSessionContainerOwner(usedResourceConfig, expiries),
+							db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession),
 							db.ContainerMetadata{},
 						)
 						Expect(err).NotTo(HaveOccurred())
@@ -435,7 +435,7 @@ var _ = Describe("Team", func() {
 						BeforeEach(func() {
 							_, err := otherTeam.CreateContainer(
 								"default-worker",
-								db.NewResourceConfigCheckSessionContainerOwner(usedResourceConfig, expiries),
+								db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession),
 								db.ContainerMetadata{},
 							)
 							Expect(err).NotTo(HaveOccurred())
@@ -1902,13 +1902,16 @@ var _ = Describe("Team", func() {
 				},
 			}, 1*time.Hour)
 
-			owner = db.NewResourceConfigCheckSessionContainerOwner(&db.UsedResourceConfig{
-				ID: 1,
-				CreatedByBaseResourceType: &db.UsedBaseResourceType{
-					ID:   1,
-					Name: "fake-resource-type",
-				},
-			}, expiries)
+			resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				logger,
+				defaultResource.Type(),
+				defaultResource.Source(),
+				creds.VersionedResourceTypes{},
+				expiries,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			owner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
 		})
 
 		JustBeforeEach(func() {

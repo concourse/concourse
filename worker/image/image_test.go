@@ -9,7 +9,6 @@ import (
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
@@ -90,7 +89,6 @@ var _ = Describe("Image", func() {
 				},
 				42,
 				fakeImageFetchingDelegate,
-				db.ForBuild(42),
 				creds.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -158,7 +156,6 @@ var _ = Describe("Image", func() {
 				},
 				42,
 				fakeImageFetchingDelegate,
-				db.ForBuild(42),
 				creds.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -248,16 +245,14 @@ var _ = Describe("Image", func() {
 					},
 					42,
 					fakeImageFetchingDelegate,
-					db.ForBuild(42),
 					creds.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("fetches image without custom resource type", func() {
-				worker, resourceUser, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
-				Expect(resourceUser).To(Equal(db.ForBuild(42)))
 				Expect(imageResource.Type).To(Equal("some-image-resource-type"))
 				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{"some": "source"})))
 				Expect(version).To(BeNil())
@@ -309,7 +304,6 @@ var _ = Describe("Image", func() {
 					},
 					42,
 					fakeImageFetchingDelegate,
-					db.ForBuild(42),
 					creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						{
 							ResourceType: atc.ResourceType{
@@ -338,9 +332,8 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches unprivileged image without custom resource type", func() {
-				worker, resourceUser, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
-				Expect(resourceUser).To(Equal(db.ForBuild(42)))
 				Expect(imageResource.Type).To(Equal("some-base-resource-type"))
 				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{
 					"some": "custom-resource-type-source",
@@ -406,7 +399,6 @@ var _ = Describe("Image", func() {
 					},
 					42,
 					fakeImageFetchingDelegate,
-					db.ForBuild(42),
 					creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						{
 							ResourceType: atc.ResourceType{
@@ -435,9 +427,8 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches image without custom resource type", func() {
-				worker, resourceUser, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
-				Expect(resourceUser).To(Equal(db.ForBuild(42)))
 				Expect(imageResource.Type).To(Equal("some-base-image-resource-type"))
 				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{
 					"some": "custom-image-resource-type-source",
@@ -530,7 +521,6 @@ var _ = Describe("Image", func() {
 				},
 				42,
 				fakeImageFetchingDelegate,
-				db.ForBuild(42),
 				creds.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -640,7 +630,6 @@ var _ = Describe("Image", func() {
 				},
 				42,
 				fakeImageFetchingDelegate,
-				db.ForBuild(42),
 				creds.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())

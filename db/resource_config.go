@@ -47,6 +47,8 @@ type ResourceConfig struct {
 //
 // See FindOrCreateForBuild, FindOrCreateForResource, and
 // FindOrCreateForResourceType for more information on when it becomes unused.
+//
+// XXX: don't call this Used
 type UsedResourceConfig struct {
 	ID                        int
 	CreatedByResourceCache    *UsedResourceCache
@@ -61,7 +63,7 @@ func (resourceConfig *UsedResourceConfig) OriginBaseResourceType() *UsedBaseReso
 	}
 }
 
-func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, user ResourceUser, forColumnName string, forColumnID int) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx) (*UsedResourceConfig, error) {
 	urc := &UsedResourceConfig{}
 
 	var parentID int
@@ -69,7 +71,7 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, us
 	if resourceConfig.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
 
-		resourceCache, err := user.UseResourceCache(logger, tx, *resourceConfig.CreatedByResourceCache)
+		resourceCache, err := resourceConfig.CreatedByResourceCache.findOrCreate(logger, tx)
 		if err != nil {
 			return nil, err
 		}
@@ -129,47 +131,6 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, us
 	}
 
 	urc.ID = id
-
-	var resourceConfigUseExists int
-	err = psql.Select("1").
-		From("resource_config_uses").
-		Where(sq.Eq{
-			"resource_config_id": id,
-			forColumnName:        forColumnID,
-		}).
-		RunWith(tx).
-		QueryRow().
-		Scan(&resourceConfigUseExists)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			_, err = psql.Insert("resource_config_uses").
-				Columns(
-					"resource_config_id",
-					forColumnName,
-				).
-				Values(
-					id,
-					forColumnID,
-				).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-					if pqErr.Constraint == "resource_config_uses_resource_config_id_fkey" {
-						return nil, ErrSafeRetryFindOrCreate
-					} else {
-						return nil, UserDisappearedError{user}
-					}
-				}
-
-				return nil, err
-			}
-
-			return urc, nil
-		}
-
-		return nil, err
-	}
 
 	return urc, nil
 }
@@ -240,7 +201,7 @@ func (resourceConfig ResourceConfig) findWithParentID(tx Tx, parentColumnName st
 	err := psql.Select("id").From("resource_configs").Where(sq.Eq{
 		parentColumnName: parentID,
 		"source_hash":    mapHash(resourceConfig.Source),
-	}).RunWith(tx).QueryRow().Scan(&id)
+	}).Suffix("FOR SHARE").RunWith(tx).QueryRow().Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, false, nil

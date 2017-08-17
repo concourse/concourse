@@ -34,7 +34,6 @@ var _ = Describe("PipelineLocks", func() {
 
 			usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
-				db.ForResource(someResource.ID()),
 				someResource.Type(),
 				someResource.Source(),
 				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
@@ -192,7 +191,6 @@ var _ = Describe("PipelineLocks", func() {
 
 			usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
-				db.ForResourceType(someResourceType.ID()),
 				someResourceType.Type(),
 				someResourceType.Source(),
 				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize().Without(someResourceType.Name())),

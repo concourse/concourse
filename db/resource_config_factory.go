@@ -22,14 +22,6 @@ func (e ErrCustomResourceTypeVersionNotFound) Error() string {
 //go:generate counterfeiter . ResourceConfigFactory
 
 type ResourceConfigFactory interface {
-	FindOrCreateResourceConfig(
-		logger lager.Logger,
-		user ResourceUser,
-		resourceType string,
-		source atc.Source,
-		resourceTypes creds.VersionedResourceTypes,
-	) (*UsedResourceConfig, error)
-
 	FindResourceConfig(
 		logger lager.Logger,
 		resourceType string,
@@ -37,20 +29,7 @@ type ResourceConfigFactory interface {
 		resourceTypes creds.VersionedResourceTypes,
 	) (*UsedResourceConfig, bool, error)
 
-	CleanConfigUsesForFinishedBuilds() error
-	CleanConfigUsesForInactiveResourceTypes() error
-	CleanConfigUsesForInactiveResources() error
-	CleanConfigUsesForPausedPipelinesResources() error
-	CleanConfigUsesForOutdatedResourceConfigs() error
-	CleanUselessConfigs() error
-
-	AcquireResourceCheckingLock(
-		logger lager.Logger,
-		resourceUser ResourceUser,
-		resourceType string,
-		resourceSource atc.Source,
-		resourceTypes creds.VersionedResourceTypes,
-	) (lock.Lock, bool, error)
+	CleanUnreferencedConfigs() error
 }
 
 type resourceConfigFactory struct {
@@ -101,38 +80,6 @@ func (f *resourceConfigFactory) FindResourceConfig(
 	return usedResourceConfig, true, nil
 }
 
-func (f *resourceConfigFactory) FindOrCreateResourceConfig(
-	logger lager.Logger,
-	user ResourceUser,
-	resourceType string,
-	source atc.Source,
-	resourceTypes creds.VersionedResourceTypes,
-) (*UsedResourceConfig, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	var usedResourceConfig *UsedResourceConfig
-
-	err = safeFindOrCreate(f.conn, func(tx Tx) error {
-		var err error
-
-		usedResourceConfig, err = user.UseResourceConfig(logger, tx, resourceConfig)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return usedResourceConfig, nil
-}
-
 // constructResourceConfig cannot be called for constructing a resource type's
 // resource config while also containing the same resource type in the list of
 // resource types, because that results in a circular dependency.
@@ -178,99 +125,11 @@ func constructResourceConfig(
 	return resourceConfig, nil
 }
 
-func (f *resourceConfigFactory) CleanConfigUsesForFinishedBuilds() error {
-	_, err := psql.Delete("resource_config_uses rcu USING builds b").
-		Where(sq.Expr("rcu.build_id = b.id")).
-		Where(sq.Expr("NOT b.interceptible")).
-		RunWith(f.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *resourceConfigFactory) CleanConfigUsesForInactiveResourceTypes() error {
-	_, err := psql.Delete("resource_config_uses rcu USING resource_types t").
-		Where(sq.And{
-			sq.Expr("rcu.resource_type_id = t.id"),
-			sq.Eq{
-				"t.active": false,
-			},
-		}).
-		RunWith(f.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *resourceConfigFactory) CleanConfigUsesForInactiveResources() error {
-	_, err := psql.Delete("resource_config_uses rcu USING resources r").
-		Where(sq.And{
-			sq.Expr("rcu.resource_id = r.id"),
-			sq.Eq{
-				"r.active": false,
-			},
-		}).
-		RunWith(f.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *resourceConfigFactory) CleanConfigUsesForPausedPipelinesResources() error {
-	pausedPipelineIds, _, err := sq.
-		Select("id").
-		Distinct().
-		From("pipelines").
-		Where(sq.Expr("paused = false")).
-		ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Delete("resource_config_uses rcu USING resources r").
-		Where(sq.And{
-			sq.Expr("r.pipeline_id NOT IN (" + pausedPipelineIds + ")"),
-			sq.Expr("rcu.resource_id = r.id"),
-		}).
-		RunWith(f.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *resourceConfigFactory) CleanConfigUsesForOutdatedResourceConfigs() error {
-	_, err := psql.Delete("resource_config_uses rcu USING resources r, resource_configs rc").
-		Where(sq.And{
-			sq.Expr("rcu.resource_id = r.id"),
-			sq.Expr("rcu.resource_config_id = rc.id"),
-			sq.Expr("r.source_hash != rc.source_hash"),
-		}).
-		RunWith(f.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *resourceConfigFactory) CleanUselessConfigs() error {
-	stillInUseConfigIds, _, err := sq.
+func (f *resourceConfigFactory) CleanUnreferencedConfigs() error {
+	usedByResourceConfigCheckSessionIds, _, err := sq.
 		Select("resource_config_id").
 		Distinct().
-		From("resource_config_uses").
+		From("resource_config_check_sessions").
 		ToSql()
 	if err != nil {
 		return err
@@ -286,7 +145,7 @@ func (f *resourceConfigFactory) CleanUselessConfigs() error {
 	}
 
 	_, err = psql.Delete("resource_configs").
-		Where("id NOT IN (" + stillInUseConfigIds + ")").
+		Where("id NOT IN (" + usedByResourceConfigCheckSessionIds + ")").
 		Where("id NOT IN (" + usedByResourceCachesIds + ")").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(f.conn).Exec()
@@ -312,37 +171,4 @@ func resourceTypesList(resourceTypeName string, allResourceTypes []atc.ResourceT
 	}
 
 	return resultResourceTypes
-}
-
-func (f *resourceConfigFactory) AcquireResourceCheckingLock(
-	logger lager.Logger,
-	resourceUser ResourceUser,
-	resourceType string,
-	resourceSource atc.Source,
-	resourceTypes creds.VersionedResourceTypes,
-) (lock.Lock, bool, error) {
-	usedResourceConfig, err := f.FindOrCreateResourceConfig(
-		logger,
-		resourceUser,
-		resourceType,
-		resourceSource,
-		resourceTypes,
-	)
-
-	if err != nil {
-		return nil, false, err
-	}
-
-	// XXX: Do we want to print out used resource config?
-	logger.Debug("acquiring-resource-checking-lock", lager.Data{
-		"used-resource-config": usedResourceConfig,
-		"resource-type":        resourceType,
-		"resource-source":      resourceSource,
-		"resource-types":       resourceTypes,
-	})
-
-	return f.lockFactory.Acquire(
-		logger,
-		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
-	)
 }

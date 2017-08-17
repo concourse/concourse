@@ -323,9 +323,8 @@ var _ = Describe("VolumeFactory", func() {
 		var usedResourceCache *db.UsedResourceCache
 
 		BeforeEach(func() {
-			resource, found, err := defaultPipeline.Resource("some-resource")
+			build, err := defaultPipeline.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
@@ -340,7 +339,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, setupTx, cache)
+			usedResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())

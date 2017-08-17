@@ -16,16 +16,16 @@ var _ = Describe("Volume", func() {
 	var defaultCreatedContainer db.CreatedContainer
 
 	BeforeEach(func() {
-		config, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForResource(defaultResource.ID()), "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
-		Expect(err).NotTo(HaveOccurred())
-
 		expiries := db.ContainerOwnerExpiries{
 			GraceTime: 2 * time.Minute,
 			Min:       5 * time.Minute,
 			Max:       1 * time.Hour,
 		}
 
-		defaultCreatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(config, expiries), db.ContainerMetadata{Type: "check"})
+		resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger, "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{}, expiries)
+		Expect(err).NotTo(HaveOccurred())
+
+		defaultCreatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession), db.ContainerMetadata{Type: "check"})
 		Expect(err).NotTo(HaveOccurred())
 
 		defaultCreatedContainer, err = defaultCreatingContainer.Created()
@@ -122,7 +122,6 @@ var _ = Describe("Volume", func() {
 
 			resourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -309,7 +308,6 @@ var _ = Describe("Volume", func() {
 			Expect(err).NotTo(HaveOccurred())
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},

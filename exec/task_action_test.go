@@ -192,9 +192,8 @@ var _ = Describe("TaskAction", func() {
 
 			It("finds or creates a container", func() {
 				Expect(fakeWorkerClient.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, cancel, delegate, user, owner, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+				_, cancel, delegate, owner, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 				Expect(cancel).ToNot(BeNil())
-				Expect(user).To(Equal(db.ForBuild(buildID)))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID)))
 				Expect(createdMetadata).To(Equal(db.ContainerMetadata{
 					Type:     db.ContainerTypeTask,
@@ -241,9 +240,8 @@ var _ = Describe("TaskAction", func() {
 
 				It("finds or creates a container", func() {
 					Expect(fakeWorkerClient.FindOrCreateContainerCallCount()).To(Equal(1))
-					_, cancel, delegate, user, owner, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+					_, cancel, delegate, owner, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 					Expect(cancel).ToNot(BeNil())
-					Expect(user).To(Equal(db.ForBuild(buildID)))
 					Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID)))
 					Expect(createdMetadata).To(Equal(db.ContainerMetadata{
 						Type:     db.ContainerTypeTask,
@@ -493,7 +491,7 @@ var _ = Describe("TaskAction", func() {
 
 					It("creates the container privileged", func() {
 						Expect(fakeWorkerClient.FindOrCreateContainerCallCount()).To(Equal(1))
-						_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+						_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 						Expect(spec.ImageSpec.Privileged).To(BeTrue())
 					})
 
@@ -541,7 +539,7 @@ var _ = Describe("TaskAction", func() {
 						})
 
 						It("creates the container with the inputs configured correctly", func() {
-							_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+							_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 							Expect(spec.Inputs).To(HaveLen(2))
 							for _, input := range spec.Inputs {
 								switch input.DestinationPath() {
@@ -593,7 +591,7 @@ var _ = Describe("TaskAction", func() {
 						})
 
 						It("uses remapped input", func() {
-							_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+							_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 							Expect(spec.Inputs).To(HaveLen(1))
 							Expect(spec.Inputs[0].Source()).To(Equal(remappedInputSource))
 							Expect(spec.Inputs[0].DestinationPath()).To(Equal("some-artifact-root/remapped-input"))
@@ -649,7 +647,7 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					It("creates the container with the caches in the inputs", func() {
-						_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+						_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 						Expect(spec.Inputs).To(HaveLen(2))
 						Expect([]string{
 							spec.Inputs[0].DestinationPath(),
@@ -710,7 +708,7 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					It("configures them appropriately in the container spec", func() {
-						_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+						_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 						Expect(spec.Outputs).To(Equal(worker.OutputPaths{
 							"some-output":                "some-artifact-root/some-output-configured-path/",
 							"some-other-output":          "some-artifact-root/some-other-output/",
@@ -804,7 +802,7 @@ var _ = Describe("TaskAction", func() {
 								})
 
 								It("passes existing output volumes to the resource", func() {
-									_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+									_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 									Expect(spec.Outputs).To(Equal(worker.OutputPaths{
 										"some-output":                "some-artifact-root/some-output-configured-path/",
 										"some-other-output":          "some-artifact-root/some-other-output/",
@@ -1101,7 +1099,7 @@ var _ = Describe("TaskAction", func() {
 						})
 
 						It("creates the container with the image artifact source", func() {
-							_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+							_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 							Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 								ImageArtifactSource: imageArtifactSource,
 								ImageArtifactName:   worker.ArtifactName(imageArtifactName),
@@ -1136,7 +1134,7 @@ var _ = Describe("TaskAction", func() {
 									})
 
 									It("still creates the container with the volume and a metadata stream", func() {
-										_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+										_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 										Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 											ImageArtifactSource: imageArtifactSource,
 											ImageArtifactName:   worker.ArtifactName(imageArtifactName),
@@ -1165,7 +1163,7 @@ var _ = Describe("TaskAction", func() {
 									})
 
 									It("still creates the container with the volume and a metadata stream", func() {
-										_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+										_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 										Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 											ImageArtifactSource: imageArtifactSource,
 											ImageArtifactName:   worker.ArtifactName(imageArtifactName),
@@ -1195,7 +1193,7 @@ var _ = Describe("TaskAction", func() {
 									})
 
 									It("still creates the container with the volume and a metadata stream", func() {
-										_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+										_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 										Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 											ImageArtifactSource: imageArtifactSource,
 											ImageArtifactName:   worker.ArtifactName(imageArtifactName),
@@ -1232,7 +1230,7 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					It("adds the user to the container spec", func() {
-						_, _, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+						_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 						Expect(spec.User).To(Equal("some-user"))
 					})
 

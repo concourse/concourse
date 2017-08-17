@@ -19,7 +19,6 @@ type Client interface {
 		lager.Logger,
 		<-chan os.Signal,
 		ImageFetchingDelegate,
-		db.ResourceUser,
 		db.ContainerOwner,
 		db.ContainerMetadata,
 		ContainerSpec,

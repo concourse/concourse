@@ -40,7 +40,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 			BeforeEach(func() {
 				_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
-					db.ForBuild(defaultBuild.ID()),
 					"some-base-type",
 					atc.Source{
 						"some": "source",

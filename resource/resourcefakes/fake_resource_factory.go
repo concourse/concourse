@@ -13,12 +13,11 @@ import (
 )
 
 type FakeResourceFactory struct {
-	NewResourceStub        func(logger lager.Logger, signals <-chan os.Signal, user db.ResourceUser, owner db.ContainerOwner, metadata db.ContainerMetadata, containerSpec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error)
+	NewResourceStub        func(logger lager.Logger, signals <-chan os.Signal, owner db.ContainerOwner, metadata db.ContainerMetadata, containerSpec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error)
 	newResourceMutex       sync.RWMutex
 	newResourceArgsForCall []struct {
 		logger                lager.Logger
 		signals               <-chan os.Signal
-		user                  db.ResourceUser
 		owner                 db.ContainerOwner
 		metadata              db.ContainerMetadata
 		containerSpec         worker.ContainerSpec
@@ -37,23 +36,22 @@ type FakeResourceFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceFactory) NewResource(logger lager.Logger, signals <-chan os.Signal, user db.ResourceUser, owner db.ContainerOwner, metadata db.ContainerMetadata, containerSpec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error) {
+func (fake *FakeResourceFactory) NewResource(logger lager.Logger, signals <-chan os.Signal, owner db.ContainerOwner, metadata db.ContainerMetadata, containerSpec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error) {
 	fake.newResourceMutex.Lock()
 	ret, specificReturn := fake.newResourceReturnsOnCall[len(fake.newResourceArgsForCall)]
 	fake.newResourceArgsForCall = append(fake.newResourceArgsForCall, struct {
 		logger                lager.Logger
 		signals               <-chan os.Signal
-		user                  db.ResourceUser
 		owner                 db.ContainerOwner
 		metadata              db.ContainerMetadata
 		containerSpec         worker.ContainerSpec
 		resourceTypes         creds.VersionedResourceTypes
 		imageFetchingDelegate worker.ImageFetchingDelegate
-	}{logger, signals, user, owner, metadata, containerSpec, resourceTypes, imageFetchingDelegate})
-	fake.recordInvocation("NewResource", []interface{}{logger, signals, user, owner, metadata, containerSpec, resourceTypes, imageFetchingDelegate})
+	}{logger, signals, owner, metadata, containerSpec, resourceTypes, imageFetchingDelegate})
+	fake.recordInvocation("NewResource", []interface{}{logger, signals, owner, metadata, containerSpec, resourceTypes, imageFetchingDelegate})
 	fake.newResourceMutex.Unlock()
 	if fake.NewResourceStub != nil {
-		return fake.NewResourceStub(logger, signals, user, owner, metadata, containerSpec, resourceTypes, imageFetchingDelegate)
+		return fake.NewResourceStub(logger, signals, owner, metadata, containerSpec, resourceTypes, imageFetchingDelegate)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -67,10 +65,10 @@ func (fake *FakeResourceFactory) NewResourceCallCount() int {
 	return len(fake.newResourceArgsForCall)
 }
 
-func (fake *FakeResourceFactory) NewResourceArgsForCall(i int) (lager.Logger, <-chan os.Signal, db.ResourceUser, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes, worker.ImageFetchingDelegate) {
+func (fake *FakeResourceFactory) NewResourceArgsForCall(i int) (lager.Logger, <-chan os.Signal, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes, worker.ImageFetchingDelegate) {
 	fake.newResourceMutex.RLock()
 	defer fake.newResourceMutex.RUnlock()
-	return fake.newResourceArgsForCall[i].logger, fake.newResourceArgsForCall[i].signals, fake.newResourceArgsForCall[i].user, fake.newResourceArgsForCall[i].owner, fake.newResourceArgsForCall[i].metadata, fake.newResourceArgsForCall[i].containerSpec, fake.newResourceArgsForCall[i].resourceTypes, fake.newResourceArgsForCall[i].imageFetchingDelegate
+	return fake.newResourceArgsForCall[i].logger, fake.newResourceArgsForCall[i].signals, fake.newResourceArgsForCall[i].owner, fake.newResourceArgsForCall[i].metadata, fake.newResourceArgsForCall[i].containerSpec, fake.newResourceArgsForCall[i].resourceTypes, fake.newResourceArgsForCall[i].imageFetchingDelegate
 }
 
 func (fake *FakeResourceFactory) NewResourceReturns(result1 resource.Resource, result2 error) {

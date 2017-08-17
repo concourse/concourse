@@ -16,28 +16,28 @@ var _ = Describe("ContainerFactory", func() {
 	Describe("FindContainersForDeletion", func() {
 		Describe("check containers", func() {
 			var (
-				creatingContainer db.CreatingContainer
-				resourceConfig    *db.UsedResourceConfig
+				creatingContainer          db.CreatingContainer
+				resourceConfigCheckSession db.ResourceConfigCheckSession
 			)
+
+			expiries := db.ContainerOwnerExpiries{
+				GraceTime: 2 * time.Minute,
+				Min:       5 * time.Minute,
+				Max:       1 * time.Hour,
+			}
 
 			BeforeEach(func() {
 				var err error
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
+				resourceConfigCheckSession, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
 					logger,
-					db.ForResource(defaultResource.ID()),
 					"some-base-resource-type",
 					atc.Source{"some": "source"},
 					creds.VersionedResourceTypes{},
+					expiries,
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				expiries := db.ContainerOwnerExpiries{
-					GraceTime: 2 * time.Minute,
-					Min:       5 * time.Minute,
-					Max:       1 * time.Hour,
-				}
-
-				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiries), fullMetadata)
+				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession), fullMetadata)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -50,7 +50,7 @@ var _ = Describe("ContainerFactory", func() {
 				BeforeEach(func() {
 					_, err := psql.Update("resource_config_check_sessions").
 						Set("expires_at", sq.Expr("NOW() - '1 second'::INTERVAL")).
-						Where(sq.Eq{"resource_config_id": resourceConfig.ID}).
+						Where(sq.Eq{"id": resourceConfigCheckSession.ID()}).
 						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -108,7 +108,7 @@ var _ = Describe("ContainerFactory", func() {
 				BeforeEach(func() {
 					_, err := psql.Update("resource_config_check_sessions").
 						Set("expires_at", sq.Expr("NOW() + '1 hour'::INTERVAL")).
-						Where(sq.Eq{"resource_config_id": resourceConfig.ID}).
+						Where(sq.Eq{"id": resourceConfigCheckSession.ID()}).
 						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
 				})

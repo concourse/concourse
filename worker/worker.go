@@ -188,7 +188,6 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	user db.ResourceUser,
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	spec ContainerSpec,
@@ -199,7 +198,6 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	return containerProvider.FindOrCreateContainer(
 		logger,
 		cancel,
-		user,
 		owner,
 		delegate,
 		metadata,

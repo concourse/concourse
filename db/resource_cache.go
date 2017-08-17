@@ -85,11 +85,8 @@ func (cache ResourceCache) Find(tx Tx) (*UsedResourceCache, bool, error) {
 func (cache ResourceCache) findOrCreate(
 	logger lager.Logger,
 	tx Tx,
-	user ResourceUser,
-	forColumnName string,
-	forColumnID int,
 ) (*UsedResourceCache, error) {
-	usedResourceConfig, err := user.UseResourceConfig(logger, tx, cache.ResourceConfig)
+	usedResourceConfig, err := cache.ResourceConfig.findOrCreate(logger, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -135,48 +132,48 @@ func (cache ResourceCache) findOrCreate(
 		}
 	}
 
+	return rc, nil
+}
+
+// XXX: this will soon only be used by builds; should it live somewhere else?
+// XXX: note that this needs to run in the same transaction that the resource
+// cache was find(-with-select-for-share)-or-created
+func (cache ResourceCache) use(
+	logger lager.Logger,
+	tx Tx,
+	rc *UsedResourceCache,
+	user ResourceCacheUser,
+) error {
+	cols := user.SqlMap()
+	cols["resource_cache_id"] = rc.ID
+
 	var resourceCacheUseExists int
-	err = psql.Select("1").
+	err := psql.Select("1").
 		From("resource_cache_uses").
-		Where(sq.Eq{
-			"resource_cache_id": rc.ID,
-			forColumnName:       forColumnID,
-		}).
+		Where(sq.Eq(cols)).
 		RunWith(tx).
 		QueryRow().
 		Scan(&resourceCacheUseExists)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			_, err = psql.Insert("resource_cache_uses").
-				Columns(
-					"resource_cache_id",
-					forColumnName,
-				).
-				Values(
-					rc.ID,
-					forColumnID,
-				).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-					if pqErr.Constraint == "resource_cache_uses_resource_cache_id_fkey" {
-						return nil, ErrSafeRetryFindOrCreate
-					} else {
-						return nil, UserDisappearedError{user}
-					}
-				}
-
-				return nil, err
-			}
-
-			return rc, nil
+		if err != sql.ErrNoRows {
+			return err
 		}
-
-		return nil, err
 	}
 
-	return rc, nil
+	if err == nil {
+		// use already exists
+		return nil
+	}
+
+	_, err = psql.Insert("resource_cache_uses").
+		SetMap(cols).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (cache ResourceCache) lockName() (string, error) {
@@ -193,7 +190,7 @@ func (cache ResourceCache) findWithResourceConfig(tx Tx, resourceConfig *UsedRes
 		"resource_config_id": resourceConfig.ID,
 		"version":            cache.version(),
 		"params_hash":        paramsHash(cache.Params),
-	}).RunWith(tx).QueryRow().Scan(&id)
+	}).Suffix("FOR SHARE").RunWith(tx).QueryRow().Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil

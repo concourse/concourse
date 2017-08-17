@@ -341,7 +341,8 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 	}
 
 	rows, err := selectContainers("c").
-		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
+		Join("worker_resource_config_check_sessions wrccs ON wrccs.id = c.worker_resource_config_check_session_id").
+		Join("resource_config_check_sessions rccs ON rccs.id = wrccs.resource_config_check_session_id").
 		Where(sq.Eq{
 			"rccs.resource_config_id": resourceConfig.ID,
 			"c.team_id":               t.id,

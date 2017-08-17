@@ -36,7 +36,6 @@ var _ = Describe("ResourceConfigFactory", func() {
 
 			usedResourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
-				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Source{"a": "b"},
 				creds.NewVersionedResourceTypes(variables, resourceTypes.Deserialize()),
@@ -50,7 +49,6 @@ var _ = Describe("ResourceConfigFactory", func() {
 			It("returns an error", func() {
 				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
-					db.ForBuild(build.ID()),
 					"some-type",
 					atc.Source{"a": "b"},
 					creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
@@ -90,7 +88,6 @@ var _ = Describe("ResourceConfigFactory", func() {
 					<-start
 					lock, acquired, err := resourceConfigFactory.AcquireResourceCheckingLock(
 						logger,
-						db.ForBuild(build.ID()),
 						"some-type",
 						atc.Source{"a": "b"},
 						creds.NewVersionedResourceTypes(variables, resourceTypes.Deserialize()),
@@ -120,7 +117,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 			err := build.SetInterceptible(i)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForBuild(build.ID()), "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
+			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
 			var (
@@ -149,7 +146,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 		It("returns UserDisappearedError", func() {
 			user := db.ForBuild(build.ID())
 
-			_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, user, "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
+			_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).To(Equal(db.UserDisappearedError{user}))
 			Expect(err.Error()).To(Equal("resource user disappeared: build #1"))
 		})
@@ -193,7 +190,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				defer wg.Done()
 
 				for i := 0; i < 100; i++ {
-					_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, db.ForBuild(build.ID()), "some-base-resource-type", atc.Source{"some": "unique-source"}, creds.VersionedResourceTypes{})
+					_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-base-resource-type", atc.Source{"some": "unique-source"}, creds.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 				}
 			}()

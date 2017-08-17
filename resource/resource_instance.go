@@ -15,11 +15,13 @@ import (
 //go:generate counterfeiter . ResourceInstance
 
 type ResourceInstance interface {
+	// XXX: do we need these?
 	Source() atc.Source
 	Params() atc.Params
 	Version() atc.Version
 	ResourceType() ResourceType
-	ResourceUser() db.ResourceUser
+
+	ResourceCache() *db.UsedResourceCache
 	ContainerOwner() db.ContainerOwner
 
 	LockName(string) (string, error)
@@ -28,14 +30,14 @@ type ResourceInstance interface {
 }
 
 type resourceInstance struct {
-	resourceTypeName       ResourceType
-	version                atc.Version
-	source                 atc.Source
-	params                 atc.Params
-	resourceUser           db.ResourceUser
-	containerOwner         db.ContainerOwner
-	resourceTypes          creds.VersionedResourceTypes
-	dbResourceCacheFactory db.ResourceCacheFactory
+	resourceTypeName ResourceType
+	version          atc.Version
+	source           atc.Source
+	params           atc.Params
+	resourceTypes    creds.VersionedResourceTypes
+
+	resourceCache  *db.UsedResourceCache
+	containerOwner db.ContainerOwner
 }
 
 func NewResourceInstance(
@@ -43,29 +45,29 @@ func NewResourceInstance(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceUser db.ResourceUser,
-	containerOwner db.ContainerOwner,
 	resourceTypes creds.VersionedResourceTypes,
-	dbResourceCacheFactory db.ResourceCacheFactory,
+
+	resourceCache *db.UsedResourceCache,
+	containerOwner db.ContainerOwner,
 ) ResourceInstance {
 	return &resourceInstance{
-		resourceTypeName:       resourceTypeName,
-		version:                version,
-		source:                 source,
-		params:                 params,
-		resourceUser:           resourceUser,
-		containerOwner:         containerOwner,
-		resourceTypes:          resourceTypes,
-		dbResourceCacheFactory: dbResourceCacheFactory,
-	}
-}
+		resourceTypeName: resourceTypeName,
+		version:          version,
+		source:           source,
+		params:           params,
+		resourceTypes:    resourceTypes,
 
-func (instance resourceInstance) ResourceUser() db.ResourceUser {
-	return instance.resourceUser
+		resourceCache:  resourceCache,
+		containerOwner: containerOwner,
+	}
 }
 
 func (instance resourceInstance) ContainerOwner() db.ContainerOwner {
 	return instance.containerOwner
+}
+
+func (instance resourceInstance) ResourceCache() *db.UsedResourceCache {
+	return instance.resourceCache
 }
 
 func (instance resourceInstance) Source() atc.Source {
@@ -84,6 +86,7 @@ func (instance resourceInstance) ResourceType() ResourceType {
 	return instance.resourceTypeName
 }
 
+// XXX: this is weird
 func (instance resourceInstance) LockName(workerName string) (string, error) {
 	id := &resourceInstanceLockID{
 		Type:       instance.resourceTypeName,
@@ -101,23 +104,9 @@ func (instance resourceInstance) LockName(workerName string) (string, error) {
 }
 
 func (instance resourceInstance) FindOn(logger lager.Logger, workerClient worker.Worker) (worker.Volume, bool, error) {
-	resourceCache, err := instance.dbResourceCacheFactory.FindOrCreateResourceCache(
-		logger,
-		instance.resourceUser,
-		string(instance.resourceTypeName),
-		instance.version,
-		instance.source,
-		instance.params,
-		instance.resourceTypes,
-	)
-	if err != nil {
-		logger.Error("failed-to-find-or-volume-resource-cache-for-build", err)
-		return nil, false, err
-	}
-
 	return workerClient.FindVolumeForResourceCache(
 		logger,
-		resourceCache,
+		instance.resourceCache,
 	)
 }
 

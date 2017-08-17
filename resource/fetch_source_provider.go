@@ -104,25 +104,8 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		return nil, err
 	}
 
-	resourceCache, err := f.dbResourceCacheFactory.FindOrCreateResourceCache(
-		f.logger,
-		f.resourceInstance.ResourceUser(),
-		string(f.resourceInstance.ResourceType()),
-		f.resourceInstance.Version(),
-		f.resourceInstance.Source(),
-		f.resourceInstance.Params(),
-		f.resourceTypes,
-	)
-	if err != nil {
-		f.logger.Error("failed-to-get-resource-cache", err, lager.Data{"user": f.resourceInstance.ResourceUser()})
-		return nil, err
-	}
-
-	f.logger.Debug("initializing-resource-instance-fetch-source", lager.Data{"resource-cache": resourceCache})
-
 	return NewResourceInstanceFetchSource(
 		f.logger,
-		resourceCache,
 		f.resourceInstance,
 		chosenWorker,
 		f.resourceTypes,

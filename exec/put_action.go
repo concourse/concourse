@@ -107,7 +107,6 @@ func (action *PutAction) Run(
 	putResource, err := action.resourceFactory.NewResource(
 		logger,
 		signals,
-		db.ForBuild(action.buildID),
 		db.NewBuildStepContainerOwner(action.buildID, action.planID),
 		action.containerMetadata,
 		containerSpec,
