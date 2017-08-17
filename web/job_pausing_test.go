@@ -68,7 +68,7 @@ var _ = Describe("JobPausing", func() {
 			Eventually(page.Find("#job-state.btn-pause.enabled"), loadingTimeout).Should(BeFound())
 			Eventually(page.Find("#job-state.btn-pause.disabled"), loadingTimeout).ShouldNot(BeFound())
 
-			page.Refresh()
+			Expect(page.Refresh()).To(Succeed())
 
 			Eventually(page.Find("#job-state.btn-pause.enabled"), loadingTimeout).Should(BeFound())
 			Eventually(page.Find("#job-state.btn-pause.disabled"), loadingTimeout).ShouldNot(BeFound())

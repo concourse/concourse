@@ -94,7 +94,7 @@ var _ = Describe("PipelinePausing", func() {
 			Eventually(page.Find(".top-bar.test.paused"), loadingTimeout).Should(BeFound())
 
 			By("refreshing the page")
-			page.Refresh()
+			Expect(page.Refresh()).To(Succeed())
 
 			Eventually(page.Find(".top-bar.test.paused"), loadingTimeout).Should(BeFound())
 			Expect(page.Find(".sidebar-toggle.test").Click()).To(Succeed())

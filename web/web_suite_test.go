@@ -66,7 +66,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 }, func() {
 	Expect(agoutiDriver.Stop()).To(Succeed())
-	os.RemoveAll(tmpHome)
+	Expect(os.RemoveAll(tmpHome)).To(Succeed())
 })
 
 var _ = BeforeEach(func() {
