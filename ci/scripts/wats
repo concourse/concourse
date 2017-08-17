@@ -6,6 +6,9 @@ set -e
 export GOPATH=${PWD}/concourse
 export PATH=${PWD}/concourse/bin:$PATH
 
+export GEM_HOME=${PWD}/gems
+export BUNDLE_PATH=${PWD}/gems
+
 go install github.com/concourse/fly
 
 cd concourse/src/github.com/concourse/atc/web/acceptance/

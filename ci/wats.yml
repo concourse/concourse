@@ -12,5 +12,9 @@ params:
 inputs:
 - name: concourse
 
+caches:
+- path: gems
+- path: concourse/pkg
+
 run:
   path: concourse/ci/scripts/wats
