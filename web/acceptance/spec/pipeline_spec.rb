@@ -5,7 +5,7 @@ describe 'pipeline', type: :feature do
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
-    fly('set-pipeline -n -p test-pipeline -c fixtures/test-pipeline.yml')
+    fly('set-pipeline -n -p test-pipeline -c fixtures/pipeline-with-slashes.yml')
     fly('expose-pipeline -p test-pipeline')
     visit dash_route("/teams/#{team_name}/pipelines/test-pipeline")
   end

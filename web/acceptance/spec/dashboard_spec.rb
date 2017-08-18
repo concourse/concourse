@@ -18,13 +18,13 @@ describe 'dashboard', type: :feature do
     fly_with_input("set-team -n #{other_team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
-    fly('set-pipeline -n -p some-pipeline -c fixtures/test-pipeline.yml')
+    fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml')
     fly('unpause-pipeline -p some-pipeline')
 
     fly_login other_team_name
-    fly('set-pipeline -n -p other-pipeline-private -c fixtures/test-pipeline.yml')
+    fly('set-pipeline -n -p other-pipeline-private -c fixtures/states-pipeline.yml')
     fly('unpause-pipeline -p other-pipeline-private')
-    fly('set-pipeline -n -p other-pipeline-public -c fixtures/test-pipeline.yml')
+    fly('set-pipeline -n -p other-pipeline-public -c fixtures/states-pipeline.yml')
     fly('unpause-pipeline -p other-pipeline-public')
     fly('expose-pipeline -p other-pipeline-public')
 
@@ -59,6 +59,22 @@ describe 'dashboard', type: :feature do
       pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
       border_color = by_rgba(pipeline.native.css_value('border-top-color'))
       expect(border_color.closest_match(palette)).to eq(blue)
+    end
+  end
+
+  context 'when a pipeline has a failed build' do
+    before do
+      fly_fail('trigger-job -w -j some-pipeline/failing')
+    end
+
+    it 'is shown in red' do
+      dash_login team_name
+
+      visit dash_route('/dashboard')
+
+      pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
+      border_color = by_rgba(pipeline.native.css_value('border-top-color'))
+      expect(border_color.closest_match(palette)).to eq(red)
     end
   end
 

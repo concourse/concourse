@@ -1,8 +1,17 @@
 require 'open3'
 
 module Fly
+  class FlyError < RuntimeError; end
+
   def fly(command)
     run "fly -t testpilot #{command}"
+  end
+
+  def fly_fail(command)
+    run "fly -t testpilot #{command}"
+  rescue FlyError
+  else
+    raise "expected '#{command}' to not succeed"
   end
 
   def fly_login(team_name)
@@ -55,7 +64,7 @@ module Fly
   def run(command)
     output, status = Open3.capture2e command
 
-    raise "'#{command}' failed (status #{status.exitstatus}):\n\n#{output}" \
+    raise FlyError, "'#{command}' failed (status #{status.exitstatus}):\n\n#{output}" \
       unless status.success?
 
     output
