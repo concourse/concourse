@@ -1,0 +1,49 @@
+---
+jobs:
+- name: failing
+  plan:
+  - task: fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+
+      run: {path: 'false'}
+
+- name: passing
+  plan:
+  - task: fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+
+      run: {path: 'true'}
+
+- name: erroring
+  plan:
+  - task: fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+
+      run: {path: 'banana'}
+
+- name: running
+  plan:
+  - task: fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+
+      run: {path: 'sleep', args: ['9999999']}
