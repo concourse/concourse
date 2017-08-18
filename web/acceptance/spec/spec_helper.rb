@@ -15,6 +15,10 @@ RSpec.configure do |config|
     cleanup_teams
   end
 
+  config.before(:each) do
+    fly_login 'main'
+  end
+
   config.after(:suite) do
     fly_login 'main'
     cleanup_teams

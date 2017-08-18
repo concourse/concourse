@@ -22,11 +22,19 @@
 
 .dashboard-pipeline {
   box-sizing: border-box;
-  border-top: 3px solid @dashboard-green;
+  border-top: 3px solid @dashboard-grey;
   display: inline-block;
   margin-right: 28px;
   margin-bottom: 28px;
   vertical-align: top;
+
+  &.dashboard-paused {
+    border-top-color: @dashboard-blue;
+
+    .dashboard-pipeline-icon {
+      background: url('images/ic_pause_blue.svg');
+    }
+  }
 }
 
 .dashboard-pipeline-icon, .dashboard-pipeline-name {
@@ -39,10 +47,6 @@
   margin-left: 25px;
   vertical-align: top;
   margin-top: 15px;
-
-  &.paused {
-    background: url('images/ic_pause_grey.svg');
-  }
 }
 
 .dashboard-pipeline-name {
