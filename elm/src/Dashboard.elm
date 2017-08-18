@@ -4,7 +4,7 @@ import Concourse
 import Concourse.Pipeline
 import Dict
 import Html exposing (Html)
-import Html.Attributes exposing (class, href)
+import Html.Attributes exposing (class, classList, href)
 import RemoteData
 
 
@@ -68,8 +68,13 @@ viewGroup teamName pipelines =
 
 viewPipeline : Concourse.Pipeline -> Html msg
 viewPipeline pipeline =
-    Html.div [ class "dashboard-pipeline" ]
-        [ Html.div [ class "dashboard-pipeline-icon paused" ]
+    Html.div
+        [ classList
+            [ ( "dashboard-pipeline", True )
+            , ( "dashboard-paused", pipeline.paused )
+            ]
+        ]
+        [ Html.div [ class "dashboard-pipeline-icon" ]
             []
         , Html.div [ class "dashboard-pipeline-name" ]
             [ Html.a [ href pipeline.url ] [ Html.text pipeline.name ] ]
