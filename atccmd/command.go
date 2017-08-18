@@ -65,6 +65,7 @@ import (
 	_ "github.com/concourse/atc/metric/emitter"
 
 	// dynamically registered credential managers
+	_ "github.com/concourse/atc/creds/credhub"
 	_ "github.com/concourse/atc/creds/vault"
 )
 
