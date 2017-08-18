@@ -71,26 +71,26 @@ var _ = Describe("ResourceConfigCheckSessionContainerOwner", func() {
 					Expect(resourceConfigCheckSession.ID()).ToNot(Equal(existingRCCS.ID()))
 				})
 			})
+		})
 
-			Context("for a different resource config", func() {
-				var otherRCCS db.ResourceConfigCheckSession
+		Context("when a different resource config exists", func() {
+			var otherRCCS db.ResourceConfigCheckSession
 
-				BeforeEach(func() {
-					var err error
-					otherRCCS, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger,
-						defaultWorkerResourceType.Type,
-						atc.Source{
-							"some-type": "different-source",
-						},
-						creds.VersionedResourceTypes{},
-						ownerExpiries,
-					)
-					Expect(err).ToNot(HaveOccurred())
-				})
+			BeforeEach(func() {
+				var err error
+				otherRCCS, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger,
+					defaultWorkerResourceType.Type,
+					atc.Source{
+						"some-type": "different-source",
+					},
+					creds.VersionedResourceTypes{},
+					ownerExpiries,
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
 
-				It("makes a new one", func() {
-					Expect(resourceConfigCheckSession.ID()).ToNot(Equal(existingRCCS.ID()))
-				})
+			It("makes a new one", func() {
+				Expect(resourceConfigCheckSession.ID()).ToNot(Equal(otherRCCS.ID()))
 			})
 		})
 	})

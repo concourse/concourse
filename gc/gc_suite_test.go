@@ -29,11 +29,12 @@ var (
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
 
-	dbConn                db.Conn
-	err                   error
-	resourceCacheFactory  db.ResourceCacheFactory
-	resourceConfigFactory db.ResourceConfigFactory
-	buildFactory          db.BuildFactory
+	dbConn                            db.Conn
+	err                               error
+	resourceCacheFactory              db.ResourceCacheFactory
+	resourceConfigFactory             db.ResourceConfigFactory
+	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory
+	buildFactory                      db.BuildFactory
 
 	teamFactory db.TeamFactory
 
@@ -117,6 +118,7 @@ var _ = BeforeEach(func() {
 
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
+	resourceConfigCheckSessionFactory = db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 })
 
 var _ = AfterEach(func() {

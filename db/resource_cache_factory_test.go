@@ -147,6 +147,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("creates resource cache in database", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
+				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -227,6 +228,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("returns an error if base resource type does not exist", func() {
 			_, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
+				db.ForBuild(build.ID()),
 				"some-type-using-bogus-base-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -248,6 +250,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("allows a base resource type to be overridden using itself", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
+				db.ForBuild(build.ID()),
 				"some-image-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -266,34 +269,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(usedResourceCache.Version).To(Equal(atc.Version{"some": "version"}))
 			Expect(usedResourceCache.ResourceConfig.CreatedByResourceCache.Version).To(Equal(atc.Version{"some-image-type": "version"}))
 			Expect(usedResourceCache.ResourceConfig.CreatedByResourceCache.ResourceConfig.CreatedByBaseResourceType.ID).To(Equal(usedImageBaseResourceType.ID))
-		})
-
-		Context("when the user no longer exists", func() {
-			BeforeEach(func() {
-				Expect(defaultTeam.Delete()).To(Succeed())
-			})
-
-			It("returns UserDisappearedError", func() {
-				user := db.ForBuild(build.ID())
-
-				_, err := resourceCacheFactory.FindOrCreateResourceCache(
-					logger,
-					"some-image-type",
-					atc.Version{"some": "version"},
-					atc.Source{
-						"some": "source",
-					},
-					atc.Params{"some": "params"},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{
-							resourceTypeOverridingBaseType,
-						},
-					),
-				)
-				Expect(err).To(Equal(db.UserDisappearedError{user}))
-				Expect(err.Error()).To(Equal("resource user disappeared: build #1"))
-			})
 		})
 
 		Context("when the resource cache is concurrently deleted and created", func() {
@@ -323,9 +298,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 								return
 							default:
 								Expect(resourceCacheFactory.CleanUsesForFinishedBuilds()).To(Succeed())
-								Expect(resourceConfigFactory.CleanConfigUsesForFinishedBuilds()).To(Succeed())
 								Expect(resourceCacheFactory.CleanUpInvalidCaches()).To(Succeed())
-								Expect(resourceConfigFactory.CleanUselessConfigs()).To(Succeed())
+								Expect(resourceConfigFactory.CleanUnreferencedConfigs()).To(Succeed())
 							}
 						}
 					}()
@@ -340,6 +314,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					for i := 0; i < 100; i++ {
 						_, err := resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
+							db.ForBuild(build.ID()),
 							"some-base-resource-type",
 							atc.Version{"some": "version"},
 							atc.Source{"some": "source"},
@@ -377,21 +352,21 @@ var _ = Describe("ResourceCacheFactory", func() {
 				build, err = defaultTeam.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
 
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-				defer setupTx.Rollback()
-
-				resourceCache := db.ResourceCache{
-					ResourceConfig: db.ResourceConfig{
-						CreatedByBaseResourceType: &db.BaseResourceType{
-							Name: "some-base-resource-type",
-						},
+				usedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+					logger,
+					db.ForBuild(build.ID()),
+					"some-base-type",
+					atc.Version{"some": "version"},
+					atc.Source{
+						"some": "source",
 					},
-				}
-
-				usedResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, resourceCache)
+					atc.Params{"some": "params"},
+					creds.NewVersionedResourceTypes(
+						template.StaticVariables{"source-param": "some-secret-sauce"},
+						atc.VersionedResourceTypes{},
+					),
+				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
 			})
 
 			Context("when resource cache is not used any more", func() {

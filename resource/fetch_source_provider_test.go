@@ -104,7 +104,6 @@ var _ = Describe("FetchSourceProvider", func() {
 
 				expectedSource := resource.NewResourceInstanceFetchSource(
 					logger,
-					resourceCache,
 					resourceInstance,
 					fakeWorker,
 					resourceTypes,

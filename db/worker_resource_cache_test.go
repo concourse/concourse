@@ -14,8 +14,12 @@ var _ = Describe("WorkerResourceCache", func() {
 
 	Describe("FindOrCreate", func() {
 		BeforeEach(func() {
+			build, err := defaultTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
+				db.ForBuild(build.ID()),
 				"some-base-resource-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
@@ -76,8 +80,12 @@ var _ = Describe("WorkerResourceCache", func() {
 		var findErr error
 
 		BeforeEach(func() {
+			build, err := defaultTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
+				db.ForBuild(build.ID()),
 				"some-base-resource-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
@@ -122,8 +130,12 @@ var _ = Describe("WorkerResourceCache", func() {
 				err = tx.Commit()
 				Expect(err).NotTo(HaveOccurred())
 
+				build, err := defaultTeam.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+
 				resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 					logger,
+					db.ForBuild(build.ID()),
 					"some-bogus-resource-type",
 					atc.Version{"some": "version"},
 					atc.Source{"some": "source"},

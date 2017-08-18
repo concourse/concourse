@@ -141,9 +141,9 @@ var _ = Describe("GetAction", func() {
 			atc.Version{"some-version": "some-value"},
 			atc.Source{"some": "super-secret-source"},
 			atc.Params{"some-param": "some-value"},
-			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID)),
 			creds.NewVersionedResourceTypes(variables, resourceTypes),
-			fakeDBResourceCacheFactory,
+			nil,
+			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID)),
 		)))
 		Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
 		Expect(delegate).To(Equal(fakeImageFetchingDelegate))

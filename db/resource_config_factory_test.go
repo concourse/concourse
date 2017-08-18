@@ -2,14 +2,13 @@ package db_test
 
 import (
 	"sync"
+	"time"
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
@@ -29,134 +28,17 @@ var _ = Describe("ResourceConfigFactory", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Describe("FindOrCreateResourceConfig", func() {
-		It("returns finds resource config", func() {
-			resourceTypes, err := defaultPipeline.ResourceTypes()
-			Expect(err).NotTo(HaveOccurred())
-
-			usedResourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-				logger,
-				"some-type",
-				atc.Source{"a": "b"},
-				creds.NewVersionedResourceTypes(variables, resourceTypes.Deserialize()),
-			)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(usedResourceConfig).NotTo(BeNil())
-			Expect(usedResourceConfig.CreatedByResourceCache).NotTo(BeNil())
-		})
-
-		Context("when provided custom resource type does not have a version", func() {
-			It("returns an error", func() {
-				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
-					logger,
-					"some-type",
-					atc.Source{"a": "b"},
-					creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-						atc.VersionedResourceType{
-							ResourceType: atc.ResourceType{
-								Name: "some-type",
-								Type: "some-base-resource-type",
-								Source: atc.Source{
-									"some-type": "source",
-								},
-							},
-						},
-					},
-					),
-				)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("ustom resource type 'some-type' version not found"))
-			})
-		})
-	})
-
-	Describe("AcquireResourceCheckingLock", func() {
-		It("acquires only one lock when running in parallel", func() {
-			start := make(chan struct{})
-			wg := sync.WaitGroup{}
-
-			resourceTypes, err := defaultPipeline.ResourceTypes()
-			Expect(err).NotTo(HaveOccurred())
-
-			acquiredLocks := []lock.Lock{}
-			var l sync.RWMutex
-
-			for i := 0; i < 10; i++ {
-				wg.Add(1)
-				go func() {
-					defer GinkgoRecover()
-					<-start
-					lock, acquired, err := resourceConfigFactory.AcquireResourceCheckingLock(
-						logger,
-						"some-type",
-						atc.Source{"a": "b"},
-						creds.NewVersionedResourceTypes(variables, resourceTypes.Deserialize()),
-					)
-					Expect(err).NotTo(HaveOccurred())
-					if acquired {
-						l.Lock()
-						acquiredLocks = append(acquiredLocks, lock)
-						l.Unlock()
-					}
-
-					wg.Done()
-				}()
-			}
-
-			close(start)
-			wg.Wait()
-
-			l.RLock()
-			defer l.RUnlock()
-			Expect(acquiredLocks).To(HaveLen(1))
-		})
-	})
-
-	DescribeTable("CleanConfigUsesForFinishedBuilds",
-		func(i bool, diff int) {
-			err := build.SetInterceptible(i)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
-			Expect(err).NotTo(HaveOccurred())
-
-			var (
-				rcuCountBefore int
-				rcuCountAfter  int
-			)
-
-			dbConn.QueryRow("select count(*) from resource_config_uses").Scan(&rcuCountBefore)
-
-			resourceConfigFactory.CleanConfigUsesForFinishedBuilds()
-			Expect(err).NotTo(HaveOccurred())
-
-			dbConn.QueryRow("select count(*) from resource_config_uses").Scan(&rcuCountAfter)
-
-			Expect(rcuCountBefore - rcuCountAfter).To(Equal(diff))
-		},
-		Entry("non-interceptible builds are deleted", false, 1),
-		Entry("interceptible builds are not deleted", true, 0),
-	)
-
-	Context("when the user no longer exists", func() {
-		BeforeEach(func() {
-			Expect(defaultPipeline.Destroy()).To(Succeed())
-		})
-
-		It("returns UserDisappearedError", func() {
-			user := db.ForBuild(build.ID())
-
-			_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{})
-			Expect(err).To(Equal(db.UserDisappearedError{user}))
-			Expect(err.Error()).To(Equal("resource user disappeared: build #1"))
-		})
-	})
-
 	Context("when the resource config is concurrently deleted and created", func() {
 		BeforeEach(func() {
 			Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
 			Expect(build.SetInterceptible(false)).To(Succeed())
 		})
+
+		ownerExpiries := db.ContainerOwnerExpiries{
+			GraceTime: 5 * time.Second,
+			Min:       10 * time.Second,
+			Max:       10 * time.Second,
+		}
 
 		It("consistently is able to be used", func() {
 			// enable concurrent use of database. this is set to 1 by default to
@@ -177,8 +59,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 					case <-done:
 						return
 					default:
-						Expect(resourceConfigFactory.CleanConfigUsesForFinishedBuilds()).To(Succeed())
-						Expect(resourceConfigFactory.CleanUselessConfigs()).To(Succeed())
+						Expect(resourceConfigFactory.CleanUnreferencedConfigs()).To(Succeed())
 					}
 				}
 			}()
@@ -190,7 +71,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				defer wg.Done()
 
 				for i := 0; i < 100; i++ {
-					_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-base-resource-type", atc.Source{"some": "unique-source"}, creds.VersionedResourceTypes{})
+					_, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger, "some-base-resource-type", atc.Source{"some": "unique-source"}, creds.VersionedResourceTypes{}, ownerExpiries)
 					Expect(err).ToNot(HaveOccurred())
 				}
 			}()

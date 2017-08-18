@@ -21,12 +21,12 @@ import (
 
 var _ = Describe("ResourceTypeScanner", func() {
 	var (
-		fakeResourceFactory       *rfakes.FakeResourceFactory
-		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-		fakeResourceConfig        *db.UsedResourceConfig
-		fakeDBPipeline            *dbfakes.FakePipeline
-		interval                  time.Duration
-		variables                 creds.Variables
+		fakeResourceFactory                   *rfakes.FakeResourceFactory
+		fakeResourceConfigCheckSessionFactory *dbfakes.FakeResourceConfigCheckSessionFactory
+		fakeResourceConfigCheckSession        *dbfakes.FakeResourceConfigCheckSession
+		fakeDBPipeline                        *dbfakes.FakePipeline
+		interval                              time.Duration
+		variables                             creds.Variables
 
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
@@ -39,9 +39,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
-		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
-		fakeResourceConfig = &db.UsedResourceConfig{}
-		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
+		fakeResourceConfigCheckSessionFactory = new(dbfakes.FakeResourceConfigCheckSessionFactory)
+		fakeResourceConfigCheckSession = new(dbfakes.FakeResourceConfigCheckSession)
+		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
 
 		interval = 1 * time.Minute
 
@@ -53,7 +53,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		scanner = NewResourceTypeScanner(
 			fakeResourceFactory,
-			fakeResourceConfigFactory,
+			fakeResourceConfigCheckSessionFactory,
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
@@ -129,15 +129,15 @@ var _ = Describe("ResourceTypeScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+				Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
+				_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
 				Expect(resourceType).To(Equal("docker-image"))
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -170,8 +170,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 				})
 
 				It("constructs the resource of the correct type", func() {
-					Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-					_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+					Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
+					_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
 					Expect(resourceType).To(Equal("docker-image"))
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
@@ -180,7 +180,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 					_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
+					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
 					}))
@@ -203,7 +203,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				_, resourceTypeName, resourceConfig, leaseInterval, immediate := fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckArgsForCall(0)
 				Expect(resourceTypeName).To(Equal(fakeResourceType.Name()))
 				Expect(leaseInterval).To(Equal(interval))
-				Expect(resourceConfig).To(Equal(fakeResourceConfig))
+				Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
 				Expect(immediate).To(BeFalse())
 
 				Eventually(fakeLock.ReleaseCallCount()).Should(Equal(1))

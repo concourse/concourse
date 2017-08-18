@@ -8,26 +8,9 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
 )
 
 type FakeResourceConfigFactory struct {
-	FindOrCreateResourceConfigStub        func(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceConfig, error)
-	findOrCreateResourceConfigMutex       sync.RWMutex
-	findOrCreateResourceConfigArgsForCall []struct {
-		logger        lager.Logger
-		resourceType  string
-		source        atc.Source
-		resourceTypes creds.VersionedResourceTypes
-	}
-	findOrCreateResourceConfigReturns struct {
-		result1 *db.UsedResourceConfig
-		result2 error
-	}
-	findOrCreateResourceConfigReturnsOnCall map[int]struct {
-		result1 *db.UsedResourceConfig
-		result2 error
-	}
 	FindResourceConfigStub        func(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceConfig, bool, error)
 	findResourceConfigMutex       sync.RWMutex
 	findResourceConfigArgsForCall []struct {
@@ -55,80 +38,8 @@ type FakeResourceConfigFactory struct {
 	cleanUnreferencedConfigsReturnsOnCall map[int]struct {
 		result1 error
 	}
-	AcquireResourceCheckingLockStub        func(logger lager.Logger, resourceType string, resourceSource atc.Source, resourceTypes creds.VersionedResourceTypes) (lock.Lock, bool, error)
-	acquireResourceCheckingLockMutex       sync.RWMutex
-	acquireResourceCheckingLockArgsForCall []struct {
-		logger         lager.Logger
-		resourceType   string
-		resourceSource atc.Source
-		resourceTypes  creds.VersionedResourceTypes
-	}
-	acquireResourceCheckingLockReturns struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
-	acquireResourceCheckingLockReturnsOnCall map[int]struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfig(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceConfig, error) {
-	fake.findOrCreateResourceConfigMutex.Lock()
-	ret, specificReturn := fake.findOrCreateResourceConfigReturnsOnCall[len(fake.findOrCreateResourceConfigArgsForCall)]
-	fake.findOrCreateResourceConfigArgsForCall = append(fake.findOrCreateResourceConfigArgsForCall, struct {
-		logger        lager.Logger
-		resourceType  string
-		source        atc.Source
-		resourceTypes creds.VersionedResourceTypes
-	}{logger, resourceType, source, resourceTypes})
-	fake.recordInvocation("FindOrCreateResourceConfig", []interface{}{logger, resourceType, source, resourceTypes})
-	fake.findOrCreateResourceConfigMutex.Unlock()
-	if fake.FindOrCreateResourceConfigStub != nil {
-		return fake.FindOrCreateResourceConfigStub(logger, resourceType, source, resourceTypes)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.findOrCreateResourceConfigReturns.result1, fake.findOrCreateResourceConfigReturns.result2
-}
-
-func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigCallCount() int {
-	fake.findOrCreateResourceConfigMutex.RLock()
-	defer fake.findOrCreateResourceConfigMutex.RUnlock()
-	return len(fake.findOrCreateResourceConfigArgsForCall)
-}
-
-func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigArgsForCall(i int) (lager.Logger, string, atc.Source, creds.VersionedResourceTypes) {
-	fake.findOrCreateResourceConfigMutex.RLock()
-	defer fake.findOrCreateResourceConfigMutex.RUnlock()
-	return fake.findOrCreateResourceConfigArgsForCall[i].logger, fake.findOrCreateResourceConfigArgsForCall[i].resourceType, fake.findOrCreateResourceConfigArgsForCall[i].source, fake.findOrCreateResourceConfigArgsForCall[i].resourceTypes
-}
-
-func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigReturns(result1 *db.UsedResourceConfig, result2 error) {
-	fake.FindOrCreateResourceConfigStub = nil
-	fake.findOrCreateResourceConfigReturns = struct {
-		result1 *db.UsedResourceConfig
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigReturnsOnCall(i int, result1 *db.UsedResourceConfig, result2 error) {
-	fake.FindOrCreateResourceConfigStub = nil
-	if fake.findOrCreateResourceConfigReturnsOnCall == nil {
-		fake.findOrCreateResourceConfigReturnsOnCall = make(map[int]struct {
-			result1 *db.UsedResourceConfig
-			result2 error
-		})
-	}
-	fake.findOrCreateResourceConfigReturnsOnCall[i] = struct {
-		result1 *db.UsedResourceConfig
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeResourceConfigFactory) FindResourceConfig(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceConfig, bool, error) {
@@ -228,74 +139,13 @@ func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigsReturnsOnCall(i i
 	}{result1}
 }
 
-func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLock(logger lager.Logger, resourceType string, resourceSource atc.Source, resourceTypes creds.VersionedResourceTypes) (lock.Lock, bool, error) {
-	fake.acquireResourceCheckingLockMutex.Lock()
-	ret, specificReturn := fake.acquireResourceCheckingLockReturnsOnCall[len(fake.acquireResourceCheckingLockArgsForCall)]
-	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
-		logger         lager.Logger
-		resourceType   string
-		resourceSource atc.Source
-		resourceTypes  creds.VersionedResourceTypes
-	}{logger, resourceType, resourceSource, resourceTypes})
-	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{logger, resourceType, resourceSource, resourceTypes})
-	fake.acquireResourceCheckingLockMutex.Unlock()
-	if fake.AcquireResourceCheckingLockStub != nil {
-		return fake.AcquireResourceCheckingLockStub(logger, resourceType, resourceSource, resourceTypes)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.acquireResourceCheckingLockReturns.result1, fake.acquireResourceCheckingLockReturns.result2, fake.acquireResourceCheckingLockReturns.result3
-}
-
-func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLockCallCount() int {
-	fake.acquireResourceCheckingLockMutex.RLock()
-	defer fake.acquireResourceCheckingLockMutex.RUnlock()
-	return len(fake.acquireResourceCheckingLockArgsForCall)
-}
-
-func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, string, atc.Source, creds.VersionedResourceTypes) {
-	fake.acquireResourceCheckingLockMutex.RLock()
-	defer fake.acquireResourceCheckingLockMutex.RUnlock()
-	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resourceType, fake.acquireResourceCheckingLockArgsForCall[i].resourceSource, fake.acquireResourceCheckingLockArgsForCall[i].resourceTypes
-}
-
-func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
-	fake.AcquireResourceCheckingLockStub = nil
-	fake.acquireResourceCheckingLockReturns = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
-	fake.AcquireResourceCheckingLockStub = nil
-	if fake.acquireResourceCheckingLockReturnsOnCall == nil {
-		fake.acquireResourceCheckingLockReturnsOnCall = make(map[int]struct {
-			result1 lock.Lock
-			result2 bool
-			result3 error
-		})
-	}
-	fake.acquireResourceCheckingLockReturnsOnCall[i] = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.findOrCreateResourceConfigMutex.RLock()
-	defer fake.findOrCreateResourceConfigMutex.RUnlock()
 	fake.findResourceConfigMutex.RLock()
 	defer fake.findResourceConfigMutex.RUnlock()
 	fake.cleanUnreferencedConfigsMutex.RLock()
 	defer fake.cleanUnreferencedConfigsMutex.RUnlock()
-	fake.acquireResourceCheckingLockMutex.RLock()
-	defer fake.acquireResourceCheckingLockMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

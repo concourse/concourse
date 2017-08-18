@@ -3,7 +3,9 @@ package db_test
 import (
 	"time"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,7 +15,6 @@ var _ = Describe("VolumeFactory", func() {
 	var (
 		team2             db.Team
 		usedResourceCache *db.UsedResourceCache
-		baseResourceType  db.BaseResourceType
 		build             db.Build
 	)
 
@@ -22,23 +23,32 @@ var _ = Describe("VolumeFactory", func() {
 		build, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
 
-		setupTx, err := dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-		defer setupTx.Rollback()
-
-		baseResourceType = db.BaseResourceType{
-			Name: "some-base-resource-type",
-		}
-
-		resourceCache := db.ResourceCache{
-			ResourceConfig: db.ResourceConfig{
-				CreatedByBaseResourceType: &baseResourceType,
+		usedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+			logger,
+			db.ForBuild(build.ID()),
+			"some-type",
+			atc.Version{"some": "version"},
+			atc.Source{
+				"some": "source",
 			},
-		}
-		usedResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, resourceCache)
+			atc.Params{"some": "params"},
+			creds.NewVersionedResourceTypes(
+				template.StaticVariables{},
+				atc.VersionedResourceTypes{
+					atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name: "some-type",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some-type": "source",
+							},
+						},
+						Version: atc.Version{"some-type": "version"},
+					},
+				},
+			),
+		)
 		Expect(err).NotTo(HaveOccurred())
-
-		Expect(setupTx.Commit()).To(Succeed())
 	})
 
 	Describe("GetTeamVolumes", func() {
@@ -326,24 +336,32 @@ var _ = Describe("VolumeFactory", func() {
 			build, err := defaultPipeline.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			cache := db.ResourceCache{
-				ResourceConfig: db.ResourceConfig{
-					CreatedByBaseResourceType: &baseResourceType,
-
-					Source: atc.Source{"some": "source"},
+			usedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+				logger,
+				db.ForBuild(build.ID()),
+				"some-type",
+				atc.Version{"some": "version"},
+				atc.Source{
+					"some": "source",
 				},
-				Version: atc.Version{"some": "version"},
-				Params:  atc.Params{"some": "params"},
-			}
-
-			usedResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, cache)
+				atc.Params{"some": "params"},
+				creds.NewVersionedResourceTypes(
+					template.StaticVariables{"source-param": "some-secret-sauce"},
+					atc.VersionedResourceTypes{
+						atc.VersionedResourceType{
+							ResourceType: atc.ResourceType{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some-type": "source",
+								},
+							},
+							Version: atc.Version{"some-type": "version"},
+						},
+					},
+				),
+			)
 			Expect(err).ToNot(HaveOccurred())
-
-			Expect(setupTx.Commit()).To(Succeed())
-
 		})
 
 		Context("when there is a created volume for resource cache", func() {

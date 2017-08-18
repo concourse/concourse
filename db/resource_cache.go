@@ -135,9 +135,6 @@ func (cache ResourceCache) findOrCreate(
 	return rc, nil
 }
 
-// XXX: this will soon only be used by builds; should it live somewhere else?
-// XXX: note that this needs to run in the same transaction that the resource
-// cache was find(-with-select-for-share)-or-created
 func (cache ResourceCache) use(
 	logger lager.Logger,
 	tx Tx,

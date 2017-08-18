@@ -1,6 +1,8 @@
 package gc_test
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -37,24 +39,56 @@ var _ = Describe("ResourceConfigCollector", func() {
 				return result
 			}
 
-			BeforeEach(func() {
-				_, err = resourceConfigFactory.FindOrCreateResourceConfig(
-					logger,
-					"some-base-type",
-					atc.Source{
-						"some": "source",
-					},
-					creds.VersionedResourceTypes{},
-				)
-				Expect(err).NotTo(HaveOccurred())
+			Context("when the config is referenced in resource config check sessions", func() {
+				ownerExpiries := db.ContainerOwnerExpiries{
+					GraceTime: 1 * time.Minute,
+					Min:       5 * time.Minute,
+					Max:       10 * time.Minute,
+				}
+
+				BeforeEach(func() {
+					_, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+						logger,
+						"some-base-type",
+						atc.Source{
+							"some": "source",
+						},
+						creds.VersionedResourceTypes{},
+						ownerExpiries,
+					)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("preserves the config", func() {
+					Expect(countResourceConfigs()).ToNot(BeZero())
+					Expect(collector.Run()).To(Succeed())
+					Expect(countResourceConfigs()).ToNot(BeZero())
+				})
 			})
 
-			Context("when the config has no remaining uses", func() {
+			Context("when the config is no longer referenced in resource config check sessions", func() {
+				ownerExpiries := db.ContainerOwnerExpiries{
+					GraceTime: 1 * time.Minute,
+					Min:       5 * time.Minute,
+					Max:       10 * time.Minute,
+				}
+
 				BeforeEach(func() {
+					_, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+						logger,
+						"some-base-type",
+						atc.Source{
+							"some": "source",
+						},
+						creds.VersionedResourceTypes{},
+						ownerExpiries,
+					)
+					Expect(err).NotTo(HaveOccurred())
+
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
-					_, err = psql.Delete("resource_config_uses").
+					_, err = psql.Delete("resource_config_check_sessions").
 						RunWith(tx).Exec()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(tx.Commit()).To(Succeed())
@@ -67,7 +101,30 @@ var _ = Describe("ResourceConfigCollector", func() {
 				})
 			})
 
-			Context("when config is referenced in resource cache", func() {
+			Context("when config is referenced in resource caches", func() {
+				BeforeEach(func() {
+					_, err = resourceCacheFactory.FindOrCreateResourceCache(
+						logger,
+						db.ForBuild(defaultBuild.ID()),
+						"some-base-type",
+						atc.Version{"some": "version"},
+						atc.Source{
+							"some": "source",
+						},
+						nil,
+						creds.VersionedResourceTypes{},
+					)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("preserve the config", func() {
+					Expect(countResourceConfigs()).NotTo(BeZero())
+					Expect(collector.Run()).To(Succeed())
+					Expect(countResourceConfigs()).NotTo(BeZero())
+				})
+			})
+
+			Context("when config is not referenced in resource caches", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
@@ -85,24 +142,18 @@ var _ = Describe("ResourceConfigCollector", func() {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
-					_, err = psql.Delete("resource_config_uses").
+					_, err = psql.Delete("resource_cache_uses").
+						RunWith(tx).Exec()
+					_, err = psql.Delete("resource_caches").
 						RunWith(tx).Exec()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(tx.Commit()).To(Succeed())
 				})
 
-				It("preserves the config", func() {
+				It("cleans up the config", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
 					Expect(collector.Run()).To(Succeed())
-					Expect(countResourceConfigs()).NotTo(BeZero())
-				})
-			})
-
-			Context("when the config is still in use", func() {
-				It("preserves the config", func() {
-					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run()).To(Succeed())
-					Expect(countResourceConfigs()).NotTo(BeZero())
+					Expect(countResourceConfigs()).To(BeZero())
 				})
 			})
 		})

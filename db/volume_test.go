@@ -122,19 +122,23 @@ var _ = Describe("Volume", func() {
 
 			resourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
+				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+				creds.NewVersionedResourceTypes(
+					template.StaticVariables{"source-param": "some-secret-sauce"},
 					atc.VersionedResourceTypes{
-						{
+						atc.VersionedResourceType{
 							ResourceType: atc.ResourceType{
-								Name:   "some-type",
-								Type:   "some-base-resource-type",
-								Source: atc.Source{"some-type": "((source-param))"},
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some-type": "source",
+								},
 							},
 							Version: atc.Version{"some-type": "version"},
 						},
@@ -306,8 +310,10 @@ var _ = Describe("Volume", func() {
 		It("returns volume type, resource type, resource version", func() {
 			build, err := defaultTeam.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
+
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
+				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
@@ -428,20 +434,27 @@ var _ = Describe("Volume", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-			defer setupTx.Rollback()
-
-			resourceCache := db.ResourceCache{
-				ResourceConfig: db.ResourceConfig{
-					CreatedByBaseResourceType: &db.BaseResourceType{
-						Name: "some-base-resource-type",
+			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+				logger,
+				db.ForBuild(build.ID()),
+				"some-type",
+				atc.Version{"some": "version"},
+				atc.Source{"some": "source"},
+				atc.Params{"some": "params"},
+				creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+					atc.VersionedResourceTypes{
+						{
+							ResourceType: atc.ResourceType{
+								Name:   "some-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some-type": "source"},
+							},
+							Version: atc.Version{"some-custom-type": "version"},
+						},
 					},
-				},
-			}
-			usedResourceCache, err := db.ForBuild(build.ID()).UseResourceCache(logger, setupTx, resourceCache)
+				),
+			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
 
 			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
 				Type:     "get",

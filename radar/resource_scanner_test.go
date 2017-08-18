@@ -50,8 +50,8 @@ var _ = Describe("ResourceScanner", func() {
 	BeforeEach(func() {
 		epoch = time.Unix(123, 456).UTC()
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
+		fakeResourceConfigCheckSession = new(dbfakes.FakeResourceConfigCheckSession)
 		fakeResourceConfigCheckSessionFactory = new(dbfakes.FakeResourceConfigCheckSessionFactory)
-		fakeResourceConfig = &db.UsedResourceConfig{}
 		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
 		fakeDBPipeline = new(dbfakes.FakePipeline)
 		fakeDBResource = new(dbfakes.FakeResource)
@@ -154,8 +154,8 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+				Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
+				_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
 				Expect(resourceType).To(Equal("git"))
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
@@ -163,7 +163,7 @@ var _ = Describe("ResourceScanner", func() {
 				})))
 
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -197,7 +197,7 @@ var _ = Describe("ResourceScanner", func() {
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeFalse())
-					Expect(resourceConfig).To(Equal(fakeResourceConfig))
+					Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
 
 					Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
 				})
@@ -233,7 +233,7 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(resourceName).To(Equal("some-resource"))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())
-				Expect(resourceConfig).To(Equal(fakeResourceConfig))
+				Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
 
 				Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
 			})
@@ -453,8 +453,8 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+				Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
+				_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
 				Expect(resourceType).To(Equal("git"))
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
@@ -462,7 +462,7 @@ var _ = Describe("ResourceScanner", func() {
 				})))
 
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -490,14 +490,14 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(resourceName).To(Equal("some-resource"))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeTrue())
-				Expect(resourceConfig).To(Equal(fakeResourceConfig))
+				Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
 
 				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 			})
 
 			Context("when creating the resource config fails", func() {
 				BeforeEach(func() {
-					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, errors.New("catastrophe"))
+					fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {
@@ -538,7 +538,7 @@ var _ = Describe("ResourceScanner", func() {
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeTrue())
-					Expect(resourceConfig).To(Equal(fakeResourceConfig))
+					Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
 
 					Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
 				})
@@ -587,19 +587,19 @@ var _ = Describe("ResourceScanner", func() {
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
-					Expect(resourceConfig).To(Equal(fakeResourceConfig))
+					Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
 
 					_, resourceName, resourceConfig, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(1)
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
-					Expect(resourceConfig).To(Equal(fakeResourceConfig))
+					Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
 
 					_, resourceName, resourceConfig, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(2)
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
-					Expect(resourceConfig).To(Equal(fakeResourceConfig))
+					Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
 
 					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})

@@ -125,13 +125,11 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when resource configs are cleaned up", func() {
 				BeforeEach(func() {
-					err := defaultPipeline.Destroy()
+					_, err := psql.Delete("resource_config_check_sessions").
+						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceConfigFactory.CleanConfigUsesForInactiveResources()
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceConfigFactory.CleanUselessConfigs()
+					err = resourceConfigFactory.CleanUnreferencedConfigs()
 					Expect(err).NotTo(HaveOccurred())
 				})
 

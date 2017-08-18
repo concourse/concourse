@@ -133,6 +133,7 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		Select("resource_cache_id").
 		Distinct().
 		From("resource_configs").
+		Where(sq.NotEq{"resource_cache_id": nil}).
 		ToSql()
 	if err != nil {
 		return err

@@ -2,7 +2,9 @@ package db_test
 
 import (
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
@@ -11,9 +13,6 @@ import (
 
 var _ = Describe("ResourceCache", func() {
 	var (
-		tx db.Tx
-
-		cache                db.ResourceCache
 		resourceCacheFactory db.ResourceCacheFactory
 	)
 
@@ -28,15 +27,6 @@ var _ = Describe("ResourceCache", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(setupTx.Commit()).To(Succeed())
 
-		cache = db.ResourceCache{
-			ResourceConfig: db.ResourceConfig{
-				CreatedByBaseResourceType: &brt,
-
-				Source: atc.Source{"some": "source"},
-			},
-			Version: atc.Version{"some": "version"},
-			Params:  atc.Params{"some": "params"},
-		}
 		resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
 	})
 
@@ -47,23 +37,28 @@ var _ = Describe("ResourceCache", func() {
 			var err error
 			build, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
-
-			tx, err = dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			err := tx.Rollback()
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("can be created and used", func() {
-			urc, err := db.ForBuild(build.ID()).UseResourceCache(logger, tx, cache)
+			urc, err := resourceCacheFactory.FindOrCreateResourceCache(
+				logger,
+				db.ForBuild(build.ID()),
+				"some-worker-resource-type",
+				atc.Version{"some": "version"},
+				atc.Source{
+					"some": "source",
+				},
+				atc.Params{"some": "params"},
+				creds.NewVersionedResourceTypes(
+					template.StaticVariables{"source-param": "some-secret-sauce"},
+					atc.VersionedResourceTypes{},
+				),
+			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID).ToNot(BeZero())
 
 			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
-			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
+			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(dbConn).Exec()
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
 		})
@@ -73,122 +68,112 @@ var _ = Describe("ResourceCache", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingResourceCache, err = db.ForBuild(build.ID()).UseResourceCache(logger, tx, cache)
+				existingResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+					logger,
+					db.ForBuild(build.ID()),
+					"some-worker-resource-type",
+					atc.Version{"some": "version"},
+					atc.Source{
+						"some": "source",
+					},
+					atc.Params{"some": "params"},
+					creds.NewVersionedResourceTypes(
+						template.StaticVariables{"source-param": "some-secret-sauce"},
+						atc.VersionedResourceTypes{},
+					),
+				)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns the same used resource cache", func() {
-				urc, err := db.ForBuild(build.ID()).UseResourceCache(logger, tx, cache)
+				urc, err := resourceCacheFactory.FindOrCreateResourceCache(
+					logger,
+					db.ForBuild(build.ID()),
+					"some-worker-resource-type",
+					atc.Version{"some": "version"},
+					atc.Source{
+						"some": "source",
+					},
+					atc.Params{"some": "params"},
+					creds.NewVersionedResourceTypes(
+						template.StaticVariables{"source-param": "some-secret-sauce"},
+						atc.VersionedResourceTypes{},
+					),
+				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).To(Equal(existingResourceCache.ID))
 			})
 		})
 	})
 
-	// Describe("creating for a resource", func() {
-	// 	var resource db.Resource
+	Describe("creating for a container", func() {
+		var container db.CreatingContainer
+		var urc *db.UsedResourceCache
 
-	// 	BeforeEach(func() {
-	// 		var found bool
-	// 		var err error
-	// 		resource, found, err = defaultPipeline.Resource("some-resource")
-	// 		Expect(err).NotTo(HaveOccurred())
-	// 		Expect(found).To(BeTrue())
+		BeforeEach(func() {
+			worker, err := defaultTeam.SaveWorker(atc.Worker{
+				Name: "some-worker",
+			}, 0)
+			Expect(err).ToNot(HaveOccurred())
 
-	// 		tx, err = dbConn.Begin()
-	// 		Expect(err).ToNot(HaveOccurred())
-	// 	})
+			build, err := defaultTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
 
-	// 	AfterEach(func() {
-	// 		err := tx.Rollback()
-	// 		Expect(err).NotTo(HaveOccurred())
-	// 	})
+			container, err = defaultTeam.CreateContainer(
+				worker.Name(),
+				db.NewBuildStepContainerOwner(build.ID(), "some-plan"),
+				db.ContainerMetadata{},
+			)
+			Expect(err).ToNot(HaveOccurred())
 
-	// 	It("can be created and used", func() {
-	// 		urc, err := db.ForResource(resource.ID()).UseResourceCache(logger, tx, cache)
-	// 		Expect(err).ToNot(HaveOccurred())
-	// 		Expect(urc.ID).ToNot(BeZero())
+			urc, err = resourceCacheFactory.FindOrCreateResourceCache(
+				logger,
+				db.ForContainer(container.ID()),
+				"some-worker-resource-type",
+				atc.Version{"some-type": "version"},
+				atc.Source{
+					"cache": "source",
+				},
+				atc.Params{"some": "params"},
+				creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+					atc.VersionedResourceTypes{},
+				),
+			)
+			Expect(err).NotTo(HaveOccurred())
+		})
 
-	// 		// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
-	// 		_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
-	// 		Expect(err).To(HaveOccurred())
-	// 		Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
-	// 	})
+		It("resource cache cannot be deleted through use", func() {
+			var err error
+			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
+			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(dbConn).Exec()
+			Expect(err).To(HaveOccurred())
+			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
+		})
 
-	// 	Context("when it already exists", func() {
-	// 		var existingResourceCache *db.UsedResourceCache
+		Context("when it already exists", func() {
+			var existingResourceCache *db.UsedResourceCache
 
-	// 		BeforeEach(func() {
-	// 			var err error
-	// 			existingResourceCache, err = db.ForResource(resource.ID()).UseResourceCache(logger, tx, cache)
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 		})
+			BeforeEach(func() {
+				var err error
+				existingResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+					logger,
+					db.ForContainer(container.ID()),
+					"some-worker-resource-type",
+					atc.Version{"some-type": "version"},
+					atc.Source{
+						"cache": "source",
+					},
+					atc.Params{"some": "params"},
+					creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+						atc.VersionedResourceTypes{},
+					),
+				)
+				Expect(err).NotTo(HaveOccurred())
+			})
 
-	// 		It("returns the same used resource cache", func() {
-	// 			urc, err := db.ForResource(resource.ID()).UseResourceCache(logger, tx, cache)
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 			Expect(urc.ID).To(Equal(existingResourceCache.ID))
-	// 		})
-	// 	})
-	// })
-
-	// Describe("creating for a resource type", func() {
-	// 	BeforeEach(func() {
-	// 		var err error
-	// 		tx, err = dbConn.Begin()
-	// 		Expect(err).ToNot(HaveOccurred())
-	// 	})
-
-	// 	AfterEach(func() {
-	// 		err := tx.Rollback()
-	// 		Expect(err).NotTo(HaveOccurred())
-	// 	})
-
-	// 	It("can be created and used", func() {
-	// 		urc, err := db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-	// 		Expect(err).ToNot(HaveOccurred())
-	// 		Expect(urc.ID).ToNot(BeZero())
-
-	// 		// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
-	// 		_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
-	// 		Expect(err).To(HaveOccurred())
-	// 		Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
-	// 	})
-
-	// 	Context("when it already exists", func() {
-	// 		var existingResourceCache *db.UsedResourceCache
-
-	// 		BeforeEach(func() {
-	// 			var err error
-	// 			existingResourceCache, err = db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 		})
-
-	// 		It("returns the same used resource cache", func() {
-	// 			urc, err := db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 			Expect(urc.ID).To(Equal(existingResourceCache.ID))
-	// 		})
-	// 	})
-
-	// 	Context("when it already exists but with different params", func() {
-	// 		var existingResourceCache *db.UsedResourceCache
-
-	// 		BeforeEach(func() {
-	// 			var err error
-	// 			existingResourceCache, err = db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 		})
-
-	// 		It("creates it, and does not use the existing one [#139960779]", func() {
-	// 			cache.Params = atc.Params{
-	// 				"foo": "bar",
-	// 			}
-
-	// 			urc, err := db.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, cache)
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 			Expect(urc.ID).NotTo(Equal(existingResourceCache.ID))
-	// 		})
-	// 	})
-	// })
+			It("returns the same used resource cache", func() {
+				Expect(urc.ID).To(Equal(existingResourceCache.ID))
+			})
+		})
+	})
 })
