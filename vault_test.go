@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,6 +37,12 @@ var _ = Describe("Vault", func() {
 	}
 
 	var tokenDuration = 30 * time.Second
+
+	BeforeEach(func() {
+		if !strings.Contains(string(bosh("releases").Out.Contents()), "vault") {
+			Skip("vault release not uploaded")
+		}
+	})
 
 	Describe("A deployment with vault", func() {
 		var (

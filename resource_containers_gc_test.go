@@ -238,4 +238,33 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 			}, 5*time.Minute, 10*time.Second).Should(BeFalse())
 		})
 	})
+
+	Describe("container for resource checking", func() {
+		BeforeEach(func() {
+			Deploy("deployments/single-vm-fast-gc.yml")
+		})
+
+		It("is not immediately removed", func() {
+			By("setting pipeline that creates resource config")
+			fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
+
+			By("unpausing the pipeline")
+			fly("unpause-pipeline", "-p", "resource-gc-test")
+
+			By("checking resource")
+			fly("check-resource", "-r", "resource-gc-test/tick-tock")
+
+			Consistently(func() string {
+				By("getting the resource config container")
+				containers := flyTable("containers")
+				for _, container := range containers {
+					if container["type"] == "check" {
+						return container["handle"]
+					}
+				}
+
+				return ""
+			}, 2*time.Minute).ShouldNot(BeEmpty())
+		})
+	})
 })

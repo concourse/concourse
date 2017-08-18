@@ -191,6 +191,7 @@ func Deploy(manifest string, args ...string) {
 	}
 
 	boshLogs = spawnBosh("logs", "-f")
+	time.Sleep(60 * time.Second)
 }
 
 func JobInstance(job string) *boshInstance {
