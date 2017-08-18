@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
-gem 'rspec'
 gem 'capybara'
 gem 'capybara-selenium'
-gem 'greenletters'
 gem 'launchy'
+gem 'rspec'
+gem 'rubocop'
