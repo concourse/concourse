@@ -78,6 +78,23 @@ describe 'dashboard', type: :feature do
     end
   end
 
+  context 'when a pipeline has all passing builds' do
+    before do
+      fly('set-pipeline -n -p some-pipeline -c fixtures/passing-pipeline.yml')
+      fly('trigger-job -w -j some-pipeline/passing')
+    end
+
+    it 'is shown in green' do
+      dash_login team_name
+
+      visit dash_route('/dashboard')
+
+      pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
+      border_color = by_rgba(pipeline.native.css_value('border-top-color'))
+      expect(border_color.closest_match(palette)).to eq(green)
+    end
+  end
+
   private
 
   def by_rgba(rgba)
