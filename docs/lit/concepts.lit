@@ -1,4 +1,4 @@
-\title{Concepts (Discussions)}{concepts}
+\title{Concepts}{concepts}
 
 Concourse's end goal is to provide an expressive system with as few distinct
 moving parts as possible.
@@ -15,11 +15,11 @@ fanning out and in, etc.).
 There are no more nooks and crannies of Concourse introduced as your pipeline
 becomes more involved.
 
-
 \split-sections
 \table-of-contents
 
-\include-section{./concepts/architecture.lit}
+\include-section{./introduction/pipeline-mechanics.lit}
+
 \section{
   \title{Tasks}{tasks}
 
@@ -40,34 +40,6 @@ becomes more involved.
 
   To learn more about tasks in the context of jobs and pipelines, see
   \reference{task-step}.
-}
-
-\section{
-  \title{Resources}{resources}
-
-  A resource is any entity that can be checked for new versions, pulled down
-  at a specific version, and/or pushed up to idempotently create new versions.
-  A common example would be a git repository, but it can also represent more
-  abstract things like
-  \link{time itself}{https://github.com/concourse/time-resource}.
-
-  At its core, Concourse knows nothing about things like \code{git}. Instead,
-  it consumes a generic interface implemented by \italic{resource types}. This
-  allows Concourse to be extended by configuring workers with resource type
-  implementations.
-
-  This abstraction is immensely powerful, as it does not limit Concourse to
-  whatever things its authors thought to integrate with. Instead, as a user of
-  Concourse you can just reuse resource type implementations, or
-  \reference{implementing-resources}{implement your own}.
-
-  To use resources, configure them in your pipeline via the
-  \reference{configuring-resources}{\code{resources}} section, and use them in
-  your \reference{build-plans} via the \reference{get-step} and
-  \reference{put-step} steps.
-
-  See \reference{resource-types} to learn more about what types of resources
-  Concourse supports.
 }
 
 \section{
@@ -106,3 +78,33 @@ becomes more involved.
     debugging.
   }
 }
+
+\section{
+  \title{Resources}{resources}
+
+  A resource is any entity that can be checked for new versions, pulled down
+  at a specific version, and/or pushed up to idempotently create new versions.
+  A common example would be a git repository, but it can also represent more
+  abstract things like
+  \link{time itself}{https://github.com/concourse/time-resource}.
+
+  At its core, Concourse knows nothing about things like \code{git}. Instead,
+  it consumes a generic interface implemented by \italic{resource types}. This
+  allows Concourse to be extended by configuring workers with resource type
+  implementations.
+
+  This abstraction is immensely powerful, as it does not limit Concourse to
+  whatever things its authors thought to integrate with. Instead, as a user of
+  Concourse you can just reuse resource type implementations, or
+  \reference{implementing-resources}{implement your own}.
+
+  To use resources, configure them in your pipeline via the
+  \reference{configuring-resources}{\code{resources}} section, and use them in
+  your \reference{build-plans} via the \reference{get-step} and
+  \reference{put-step} steps.
+
+  See \reference{resource-types} to learn more about what types of resources
+  Concourse supports.
+}
+
+\include-section{./using-concourse/resource-types.lit}

@@ -53,11 +53,11 @@
 
     \define-table{builds}{
       The \italic{builds} table tracks the details of every run of every
-      \reference{jobs-table}{job}, including its name, the status of the build,
-      whether the build has been scheduled or completed, and information about
-      the start and end times of the build.
+      \reference{jobs-table}{job} or \reference{fly-execute}{one-off build},
+      including its name, the status of the build, whether the build has been
+      scheduled or completed, and information about the start and end times of
+      the build.
     }
-
   }
 
   \section{
@@ -70,8 +70,9 @@
 
     \define-table{resources}{
       An entry in the \italic{resources} table represents a resource defined in
-      a \reference{pipelines}.  The \italic{resources} table has columns for
-      configuration, name, type, and details about resource version checking.
+      a \reference{pipelines}{pipeline}. The \italic{resources} table has
+      columns for configuration, name, type, and details about resource version
+      checking.
     }
 
     \define-table{versioned_resources}{
@@ -114,19 +115,6 @@
       custom resource type, and so on, until they reach a base type.
     }
 
-    \define-table{resource_config_uses}{
-      A \italic{config use} is a join table between a
-      \reference{resource_configs-table}{resource config} and a 'user', which
-      lets us know when the use is no longer needed. Think of it as a reference
-      counter.
-
-      A use can be tied to a \reference{builds-table}, in which case the use
-      can be removed when the build is finished.
-
-      A use can be tied to a \reference{resource_config_check_sessions-table},
-      in which case the use can be removed when the session expires.
-    }
-
     \define-table{resource_cache_uses}{
       A \italic{cache use} is a join table between a
       \reference{resource_caches-table}{resource cache} and a 'user', which
@@ -134,10 +122,16 @@
       counter.
 
       A use can be tied to a \reference{builds-table}, in which case the use
-      can be removed when the build is finished.
+      can be removed when the build is finished. A cache is in use by a build
+      when the build is fetching it as an input. This is to prevent the garbage
+      collector from reaping caches that are no longer desired in the long run,
+      but are still in use by a build.
 
-      A use can be tied to a \reference{resource_config_check_sessions-table},
-      in which case the use can be removed when the session expires.
+      A use can be tied to a \reference{containers-table}, in which case the
+      use can be removed when the container goes away. A cache is in use by a
+      container when it's being used as the container's image, either via
+      \reference{image_resource} or a
+      \reference{configuring-resource-types}{custom resource type}.
     }
 
     \define-table{resource_config_check_sessions}{
@@ -151,6 +145,15 @@
       A check session's expiry is tied to its worker's uptime, as a simple way
       to force balancing of check containers across workers more quickly after
       a deploy.
+    }
+
+    \define-table{worker_resource_config_check_sessions}{
+      A \italic{worker resource config check session} is a join table tying a
+      \reference{resource_config_check_sessions-table}{resource config check
+      session} to a \reference{worker_base_resource_types-table}{worker base
+      resource type}. When either go away, the worker resource config check
+      session goes away. This is so that containers using an old base resource
+      type are reaped and recreated.
     }
 
     \define-table{base_resource_types}{
