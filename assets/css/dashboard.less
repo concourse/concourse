@@ -1,35 +1,33 @@
 .dashboard {
-  padding: 50px;
-  padding-right: (50px - 28px); /* account for tiling illusion */
+  padding: 45px 25px 0 45px;
 }
 
-.dashboard-team-group {
-  margin-top: 38px;
-
-  &:first-of-type {
-    margin-top: 0;
-  }
+.dashboard-team-pipelines {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  margin-bottom: 55px;
 }
 
 .dashboard-team-name {
-  color: @dashboard-grey;
-  border-top: 1px solid @dashboard-grey;
+  color: @base07;
+  border-top: 1px solid @base07;
   padding-top: 8px;
-  font-size: 16px;
-  margin-right: 28px;
-  margin-bottom: 38px;
+  font-size: 15px;
+  margin-bottom: 40px;
+  margin-right: 20px;
 }
 
 .dashboard-pipeline {
-  box-sizing: border-box;
-  border-top: 3px solid @dashboard-grey;
-  display: inline-block;
-  margin-right: 28px;
-  margin-bottom: 28px;
-  vertical-align: top;
+  border-top: 3px solid @base07;
+  display: flex;
+  flex-basis: 300px;
+  height: 70px;
+  margin-bottom: 20px;
+  margin-right: 20px;
 
   &.dashboard-paused {
-    border-top-color: @dashboard-blue;
+    border-top-color: @base0D;
 
     .dashboard-pipeline-icon {
       background: url('images/ic_pause_blue.svg');
@@ -37,7 +35,7 @@
   }
 
   &.dashboard-status-failed {
-    border-top-color: @dashboard-red;
+    border-top-color: @base08;
 
     .dashboard-pipeline-icon {
       background: url('images/ic_failing_red.svg');
@@ -45,23 +43,13 @@
   }
 }
 
-.dashboard-pipeline-icon, .dashboard-pipeline-name {
-  display: inline-block;
-}
-
 .dashboard-pipeline-icon {
-  width: 20px;
+  flex-basis: 20px;
   height: 20px;
-  margin-left: 25px;
-  vertical-align: top;
-  margin-top: 15px;
+  margin: auto 0 auto 25px;
 }
 
 .dashboard-pipeline-name {
-  font-size: 20px;
-  margin-left: 15px;
-  word-wrap: break-word;
-  width: 276px;
-  box-sizing: border-box;
-  padding: 11px 15px 11px 0;
+  font-size: 18px;
+  margin: auto 15px;
 }
