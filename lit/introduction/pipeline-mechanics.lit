@@ -1,14 +1,12 @@
-\title{Mechanics of a Pipeline}{pipeline-mechanics}
+\title{Pipelines}{pipeline-mechanics}
 
 \use-plugin{concourse-resources-table}
 
-Composing the three core \reference{concepts} together results in a
-\italic{pipeline}.
-
 A pipeline is the result of configuring \reference{configuring-jobs} and
-\reference{configuring-resources}. When you configure a pipeline, it takes on a
-life of its own, to continuously detect resource versions and schedule jobs over
-time. The mechanics of this are described below.
+connecting them to \reference{configuring-resources}. When you configure a
+pipeline, it takes on a life of its own, to continuously detect resource
+versions and schedule jobs over time. The mechanics of this are described
+below.
 
 \section{
   \title{Scheduling with Resources}

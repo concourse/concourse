@@ -1,3 +1,12 @@
 \title{Reference}{reference}
 
+\split-sections
+\table-of-contents
+
+\include-section{./using-concourse/fly-cli.lit}
+\include-section{./using-concourse/pipelines.lit}
+\include-section{./using-concourse/build-plans.lit}
+\include-section{./using-concourse/resource-types.lit} {- TODO -}
+\include-section{./concepts/architecture.lit}
 \include-section{./reference/internals.lit}
+\include-section{./using-concourse/implementing-resources.lit}
