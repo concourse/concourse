@@ -25,6 +25,8 @@ var _ = Describe(":life [#130495079] Garbage collecting containers for destroyed
 	})
 
 	It("should be removed", func() {
+		Skip("needs resources to be tied to a resource config")
+
 		By("setting a pipeline")
 		fly("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "pipeline-destroyed-test")
 
