@@ -138,6 +138,8 @@ jobsStatus jobs =
     in
         if List.member Concourse.BuildStatusFailed (statuses Concourse.BuildStatusPending) then
             Concourse.BuildStatusFailed
+        else if List.all (\status -> status == Concourse.BuildStatusSucceeded) (statuses Concourse.BuildStatusPending) then
+            Concourse.BuildStatusSucceeded
         else
             Concourse.BuildStatusPending
 
