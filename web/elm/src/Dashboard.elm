@@ -84,7 +84,7 @@ view model =
                                 byTeam
                         )
                         Dict.empty
-                        pipelines
+                        (List.reverse pipelines)
             in
                 Html.div [ class "dashboard" ]
                     (Dict.values (Dict.map viewGroup pipelinesByTeam))
