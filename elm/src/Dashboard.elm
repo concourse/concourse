@@ -110,7 +110,7 @@ viewPipeline state =
         [ classList
             [ ( "dashboard-pipeline", True )
             , ( "dashboard-paused", state.pipeline.paused )
-            , ( "dashboard-status-" ++ pipelineStatus state, True )
+            , ( "dashboard-status-" ++ pipelineStatus state, not state.pipeline.paused )
             ]
         ]
         [ Html.div [ class "dashboard-pipeline-icon" ]

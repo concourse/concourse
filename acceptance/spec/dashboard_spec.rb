@@ -53,12 +53,6 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in blue' do
-      dash_login team_name
-
-      visit dash_route('/dashboard')
-
-      pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
-      border_color = by_rgba(pipeline.native.css_value('border-top-color'))
       expect(border_color.closest_match(palette)).to eq(blue)
     end
   end
@@ -69,12 +63,6 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in red' do
-      dash_login team_name
-
-      visit dash_route('/dashboard')
-
-      pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
-      border_color = by_rgba(pipeline.native.css_value('border-top-color'))
       expect(border_color.closest_match(palette)).to eq(red)
     end
   end
@@ -86,12 +74,6 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in green' do
-      dash_login team_name
-
-      visit dash_route('/dashboard')
-
-      pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
-      border_color = by_rgba(pipeline.native.css_value('border-top-color'))
       expect(border_color.closest_match(palette)).to eq(green)
     end
   end
@@ -103,17 +85,26 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in brown' do
+      expect(border_color.closest_match(palette)).to eq(brown)
+    end
+  end
+
+  context 'when a pipeline is pending' do
+    it 'is shown in grey' do
+      expect(border_color.closest_match(palette)).to eq(grey)
+    end
+  end
+
+  private
+
+  def border_color(pipeline='some-pipeline')
       dash_login team_name
 
       visit dash_route('/dashboard')
 
       pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
-      border_color = by_rgba(pipeline.native.css_value('border-top-color'))
-      expect(border_color.closest_match(palette)).to eq(brown)
-    end
+      by_rgba(pipeline.native.css_value('border-top-color'))
   end
-
-  private
 
   def by_rgba(rgba)
     /rgba\((\d+),\s*(\d+),\s*(\d+), [^\)]+\)/.match(rgba) do |m|
