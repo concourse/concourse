@@ -2,13 +2,14 @@ require 'securerandom'
 require 'color'
 
 describe 'dashboard', type: :feature do
-  let(:red) { Color::CSS['red'] }
-  let(:green) { Color::CSS['green'] }
-  let(:orange) { Color::CSS['orange'] }
-  let(:yellow) { Color::CSS['yellow'] }
-  let(:brown) { Color::CSS['brown'] }
-  let(:blue) { Color::CSS['blue'] }
-  let(:palette) { [red, green, orange, yellow, brown, blue] }
+  let(:red) { Color::RGB.by_hex('E74C3C') }
+  let(:green) { Color::RGB.by_hex('2ECC71') }
+  let(:orange) { Color::RGB.by_hex('E67E22') }
+  let(:yellow) { Color::RGB.by_hex('F1C40F') }
+  let(:brown) { Color::RGB.by_hex('8F4B2D') }
+  let(:blue) { Color::RGB.by_hex('3498DB') }
+  let(:grey) { Color::RGB.by_hex('ECF0F1') }
+  let(:palette) { [red, green, orange, yellow, brown, blue, grey] }
 
   let(:team_name) { generate_team_name }
   let(:other_team_name) { generate_team_name }
@@ -92,6 +93,23 @@ describe 'dashboard', type: :feature do
       pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
       border_color = by_rgba(pipeline.native.css_value('border-top-color'))
       expect(border_color.closest_match(palette)).to eq(green)
+    end
+  end
+
+  context 'when a pipeline has an aborted build' do
+    before do
+      fly('trigger-job -j some-pipeline/running')
+      fly('abort-build -j some-pipeline/running -b 1')
+    end
+
+    it 'is shown in brown' do
+      dash_login team_name
+
+      visit dash_route('/dashboard')
+
+      pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
+      border_color = by_rgba(pipeline.native.css_value('border-top-color'))
+      expect(border_color.closest_match(palette)).to eq(brown)
     end
   end
 
