@@ -121,7 +121,7 @@ all =
 
                             model : Pipeline.Model
                             model =
-                                { ports = { title = (\_ -> Cmd.none), render = (\( _, _ ) -> Cmd.none), resetFocus = (\_ -> Cmd.none) }
+                                { ports = { title = (\_ -> Cmd.none), render = (\( _, _ ) -> Cmd.none) }
                                 , concourseVersion = ""
                                 , turbulenceImgSrc = ""
                                 , pipelineLocator = pipelineLocator

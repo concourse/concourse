@@ -19,7 +19,7 @@ all =
 
                 defaultModel : Pipeline.Model
                 defaultModel =
-                    { ports = { render = (\( _, _ ) -> Cmd.none), title = (\_ -> Cmd.none), resetFocus = resetFocus }
+                    { ports = { render = (\( _, _ ) -> Cmd.none), title = (\_ -> Cmd.none) }
                     , pipelineLocator = { teamName = "some-team", pipelineName = "some-pipeline" }
                     , pipeline = RemoteData.NotAsked
                     , fetchedJobs = Nothing
