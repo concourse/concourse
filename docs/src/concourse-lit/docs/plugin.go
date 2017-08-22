@@ -147,8 +147,11 @@ func (p Plugin) DefineTable(table string, content booklit.Content) booklit.Conte
 			"Targets": booklit.Target{
 				TagName: tagName,
 				Display: booklit.Styled{
-					Style:   booklit.StyleVerbatim,
-					Content: booklit.String(table),
+					Style: booklit.StyleVerbatim,
+					Content: booklit.Styled{
+						Style:   booklit.StyleBold,
+						Content: booklit.String(table),
+					},
 				},
 			},
 			"Thumb": booklit.Styled{
@@ -156,9 +159,28 @@ func (p Plugin) DefineTable(table string, content booklit.Content) booklit.Conte
 				Content: booklit.Preformatted{
 					&booklit.Reference{
 						TagName: tagName,
-						Content: booklit.String(table),
+						Content: booklit.Styled{
+							Style:   booklit.StyleBold,
+							Content: booklit.String(table),
+						},
 					},
 				},
+			},
+		},
+	}
+}
+
+func (p Plugin) ReferenceColumn(table string, column string) booklit.Content {
+	return &booklit.Reference{
+		TagName: table + "-table",
+		Content: booklit.Styled{
+			Style: booklit.StyleVerbatim,
+			Content: booklit.Sequence{
+				booklit.Styled{
+					Style:   booklit.StyleBold,
+					Content: booklit.String(table),
+				},
+				booklit.String(" (" + column + ")"),
 			},
 		},
 	}
