@@ -6,12 +6,19 @@
 \table-of-contents
 
 \section{
-  \title{Garbage Collection}
+  \title{Caching & Retention}
 
-  * Know when it's safe to GC something via database integrity
-  * Garbage Collector should never have any difficult decisions
-  * Eventually consistent
-  * Durable to misbehaving workers
+  TODO:
+
+  \list{
+    How it relates to garbage-collection
+  }{
+    How it relates to the schema
+  }{
+    Resource cache retention policy
+  }{
+    Container retention policy
+  }
 }
 
 \section{
@@ -32,23 +39,26 @@
       in the pipeline.
 
       There are also a number of attributes which are used by the runtime:
+
       \inset{
         \define-attribute{paused: boolean}{
           The build scheduler does not schedule builds for jobs which are \code{paused}.
         }
+
         \define-attribute{inputs_determined: boolean}{
           The build scheduler does not schedule builds for jobs which have not yet had their \code{inputs_determined}.
         }
+
         \define-attribute{max_in_flight_reached: boolean}{
           The build scheduler does not schedule builds for jobs that have had their build \code{max_in_flight_reached}.
         }
+
         \define-attribute{interruptible: boolean}{
           Workers trying to \reference{Worker Lifecycle}{land} will wait until
           all builds are finished, unless the build is for an
           \code{interruptible} job.
         }
       }
-
     }
 
     \define-table{builds}{
@@ -207,13 +217,16 @@
       ever left behind on a worker.
 
       Containers have a handful of really important attributes:
+
       \inset{
         \define-attribute{handle: string}{
           The unique identifier of the container in Garden.
         }{containers-handle}
+
         \define-attribute{worker_name: string}{
           The name of the worker where the container is located.
         }{containers-worker_name}
+
         \define-attribute{state: \code{CREATING}, \code{CREATED}, or \code{DESTROYING}}{
           The stage in the lifecycle of the container. See
           \reference{containers}
@@ -229,21 +242,24 @@
           image_resource.  This container will be in the \code{CREATING}
           \reference{containers-state}{state} until the image is fetched later.
         }{containers-image_check_container_id}
+
         \define-attribute{image_get_container_id: fkey}{
           This signifies that the container is dependant on another container which
           is busy downloading the bits for the image this container will be
-          based on.  This is used in the case of custom resource types, or
-          tasks with image_resource.  This container will be in the
+          based on. This is used in the case of custom resource types, or
+          tasks with image_resource. This container will be in the
           \code{CREATING} \reference{containers-state}{state} until the image
           is fetched.
         }{containers-image_get_container_id}
+
         \define-attribute{build_id: fkey}{
-          If this container is for a build step, this column refers to the id
-          of the build this container is related to.
+          If this container is for a build step, this column refers to the
+          \reference-column{builds}{id} this container is related to.
         }{containers-build_id}
-        \define-attribute{resource_id: fkey}{
+
+        \define-attribute{worker_resource_config_check_session_id: fkey}{
           If this container is for running the check script for a resource, this column
-          refers to a \reference{resource_config_check_sessions-table}.
+          refers to a \reference-column{worker_resource_config_check_sessions}{id}.
         }{containers-resource_id}
       }
     }
@@ -313,6 +329,63 @@
       This table is used to identify worker task cache volumes by their
       \reference{volumes-worker_task_cache_id}{id}.
     }
+  }
+}
+
+\section{
+  \title{Garbage Collection}
+
+  One key difference between Concourse and other CI systems is that everything
+  runs in isolated environments. Where some CI systems may just run builds one
+  at a time on a single VM and reusing a working directory, Concourse creates
+  fresh \reference{containers} and \reference{volumes} to ensure things can
+  safely run in a repeatable environment, isolated from other workloads running
+  on the same worker.
+
+  This introduces a new problem of knowing when Concourse should remove these
+  containers and volumes. Safely identifying things for removal and then
+  getting rid of them, releasing their resources, is the process of
+  \italic{garbage collection}.
+
+  \section{
+    \title{Goals}
+
+    Let's define our metrics for success:
+
+    \list{
+      \bold{Safe}. There should never be a case where a build is running and
+      a container or volume is removed out from under it, causing the build to
+      fail. Resource checking should also never result in errors from check
+      containers being removed. No one should even know garbage collection is
+      happening.
+    }{
+      \bold{Airtight}. Everything Concourse creates, whether it's a
+      \reference{containers}{container} or \reference{volumes}{volume} on a
+      worker or an entry in the database, should never leak. Each object should
+      have a fully defined lifecycle such that there is a clear end to its use.
+      The ATC should be interruptible at any point in time and at the very
+      least be able to remove any state it had created beforehand.
+    }{
+      \bold{Resilient}. Garbage collection should never be outpaced by the
+      workload. A single misbehaving worker should not prevent garbage
+      collection from being performed on other workers. A slow delete of a
+      volume should not prevent garbage collecting of other things on the same
+      worker.
+    }
+  }
+
+  \section{
+    \title{How it Works}
+
+    * Safety is achieved by
+    simplicity; the garbage collector itself is not performing any complex
+    queries to determine whether something can be removed. Instead, the
+    \reference{database-schema} should represent relationships in a way that
+    makes it obvious when something's dependent no longer needs it.
+
+    * This also means that if something goes wrong, garbage
+    collection should just log, continue on to the rest, and retry on the next
+    pass.
   }
 }
 
