@@ -133,14 +133,16 @@ pipelineStatus { jobs } =
 jobsStatus : List Concourse.Job -> Concourse.BuildStatus
 jobsStatus jobs =
     let
-        statuses default =
-            List.map (\job -> Maybe.withDefault default <| Maybe.map .status job.finishedBuild) jobs
+        statuses =
+            List.map (\job -> Maybe.withDefault Concourse.BuildStatusPending <| Maybe.map .status job.finishedBuild) jobs
     in
-        if List.member Concourse.BuildStatusFailed (statuses Concourse.BuildStatusPending) then
+        if List.member Concourse.BuildStatusFailed statuses then
             Concourse.BuildStatusFailed
-        else if List.member Concourse.BuildStatusAborted (statuses Concourse.BuildStatusPending) then
+        else if List.member Concourse.BuildStatusErrored statuses then
+            Concourse.BuildStatusErrored
+        else if List.member Concourse.BuildStatusAborted statuses then
             Concourse.BuildStatusAborted
-        else if List.all (\status -> status == Concourse.BuildStatusSucceeded) (statuses Concourse.BuildStatusPending) then
+        else if List.all (\status -> status == Concourse.BuildStatusSucceeded) statuses then
             Concourse.BuildStatusSucceeded
         else
             Concourse.BuildStatusPending

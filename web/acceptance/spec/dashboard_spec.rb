@@ -95,6 +95,16 @@ describe 'dashboard', type: :feature do
     end
   end
 
+  context 'when a pipeline has an errored build' do
+    before do
+      fly_fail('trigger-job -w -j some-pipeline/erroring')
+    end
+
+    it 'is shown in amber' do
+      expect(border_color.closest_match(palette)).to eq(orange)
+    end
+  end
+
   private
 
   def border_color(pipeline='some-pipeline')
