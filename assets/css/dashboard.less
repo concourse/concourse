@@ -30,7 +30,7 @@
     border-top-color: @base0D;
 
     .dashboard-pipeline-icon {
-      background: url('images/ic_pause_blue.svg');
+      background-image: url('images/ic_pause_blue.svg');
     }
   }
 
@@ -38,7 +38,7 @@
     border-top-color: @base07;
 
     .dashboard-pipeline-icon {
-      background: url('images/ic_pause_grey.svg');
+      background-image: url('images/ic_pause_grey.svg');
     }
   }
 
@@ -46,7 +46,8 @@
     border-top-color: @base08;
 
     .dashboard-pipeline-icon {
-      background: url('images/ic_failing_red.svg');
+      background-image: url('images/ic_failing_red.svg');
+      background-size: 20px 18px;
     }
   }
 
@@ -54,7 +55,7 @@
     border-top-color: @base0F;
 
     .dashboard-pipeline-icon {
-      background: url('images/ic_failing_red.svg');
+      background-image: url('images/ic_aborted_brown.svg');
     }
   }
 
@@ -62,7 +63,16 @@
     border-top-color: @base0B;
 
     .dashboard-pipeline-icon {
-      background: url('images/ic_running_green.svg');
+      background-image: url('images/ic_running_green.svg');
+      background-size: 20px 19px;
+    }
+  }
+
+  &.dashboard-status-errored {
+    border-top-color: @base09;
+
+    .dashboard-pipeline-icon {
+      background-image: url('images/ic_error_orange.svg');
     }
   }
 }
@@ -71,6 +81,7 @@
   flex-basis: 20px;
   height: 20px;
   margin: auto 0 auto 25px;
+  background-repeat: no-repeat;
 }
 
 .dashboard-pipeline-name {
