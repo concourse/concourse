@@ -26,10 +26,12 @@ import Mouse
 import Char
 
 
+port resetPipelineFocus : () -> Cmd msg
+
+
 type alias Ports =
     { render : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd Msg
     , title : String -> Cmd Msg
-    , resetFocus : Bool -> Cmd Msg
     }
 
 
@@ -127,6 +129,7 @@ loadPipeline pipelineLocator model =
         [ fetchPipeline pipelineLocator
         , fetchVersion
         , model.ports.title <| model.pipelineLocator.pipelineName ++ " - "
+        , resetPipelineFocus ()
         ]
     )
 
@@ -179,7 +182,7 @@ update msg model =
         KeyPressed keycode ->
             if (Char.fromCode keycode |> Char.toLower) == 'f' then
                 ( model
-                , model.ports.resetFocus True
+                , resetPipelineFocus ()
                 )
             else
                 ( model

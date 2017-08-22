@@ -32,9 +32,6 @@ port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 port setTitle : String -> Cmd msg
 
 
-port resetPipelineFocus : Bool -> Cmd msg
-
-
 type Model
     = WaitingModel Routes.ConcourseRoute
     | NoPipelineModel
@@ -143,7 +140,6 @@ init turbulencePath route =
                 Pipeline.init
                     { render = renderPipeline
                     , title = setTitle
-                    , resetFocus = resetPipelineFocus
                     }
                     { teamName = teamName
                     , pipelineName = pipelineName
@@ -258,7 +254,7 @@ update turbulence notFound csrfToken msg mdl =
                             , route = route
                             }
                     in
-                        superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.init { render = renderPipeline, title = setTitle, resetFocus = resetPipelineFocus } flags
+                        superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.init { render = renderPipeline, title = setTitle } flags
 
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )
