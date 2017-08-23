@@ -10,6 +10,14 @@
 
   TODO:
 
+  \section{
+    \title{Build Retention}{build-retention}
+  }
+
+  \section{
+    \title{Resource Retention}{resource-retention}
+  }
+
   \list{
     How it relates to garbage-collection
   }{
@@ -25,11 +33,14 @@
   \title{Database Schema}
 
   \section{
-    \title{Core}
+    \title{Pipeline/API Objects}
+
+    The following tables manage objects exposed directly to users, either via
+    the API or by configuring pipelines.
 
     \define-table{pipelines}{
-      The \italic{pipelines} table contains details about a pipeline; its name, which team it belongs to,
-      whether it is paused, and whether it is public.
+      The \italic{pipelines} table contains details about a pipeline; its name,
+      which team it belongs to, whether it is paused, and whether it is public.
     }
 
     \define-table{jobs}{
@@ -46,11 +57,13 @@
         }
 
         \define-attribute{inputs_determined: boolean}{
-          The build scheduler does not schedule builds for jobs which have not yet had their \code{inputs_determined}.
+          The build scheduler does not schedule builds for jobs which have not
+          yet had their \code{inputs_determined}.
         }
 
         \define-attribute{max_in_flight_reached: boolean}{
-          The build scheduler does not schedule builds for jobs that have had their build \code{max_in_flight_reached}.
+          The build scheduler does not schedule builds for jobs that have had
+          their build \code{max_in_flight_reached}.
         }
 
         \define-attribute{interruptible: boolean}{
@@ -68,15 +81,6 @@
       scheduled or completed, and information about the start and end times of
       the build.
     }
-  }
-
-  \section{
-    \title{Resources}
-
-    Concourse's database manages the abstractions around resources, resource
-    configuration, resource versioning, and resource types.  These tables help
-    make the \reference{resources} concept operate as expected, scale across
-    many pipelines, and to many different types.
 
     \define-table{resources}{
       An entry in the \italic{resources} table represents a resource defined in
@@ -92,6 +96,27 @@
       version is enabled in the pipeline.
     }
 
+    \define-table{resource_types}{
+      An entry in the \italic{resource types} table represents a custom
+      resource type defined in a pipleine, and all of the information
+      neccessary to pull the image bits for a custom resource type.  This
+      includes the \italic{resource type} used to fetch the resource type's
+      image (eiher a \reference{base_resource_types-table}{base_resource_type}
+      or another custom resource) , the version of the image to fetch using
+      that resource, and the configuration of the custom resource type.
+
+      {- Maybe this should be called "custom resource types" and just point to
+      a resource config? -}
+    }
+  }
+
+  \section{
+    \title{Abstract Objects}
+
+    Concourse's database manages the abstractions around resources, resource
+    configuration, resource versioning, and resource types. These tables help
+    make the \reference{resources} concept operate as expected, scale across
+    many pipelines, and to many different types.
 
     \define-table{resource_configs}{
       A \italic{resource config} is a distinct configuration of a resource
@@ -144,6 +169,16 @@
       \reference{configuring-resource-types}{custom resource type}.
     }
 
+    \define-table{build_image_resource_caches}{
+      A \italic{build image resource cache} is a join table between a
+      \reference{builds-table}{build} and a
+      \reference{resource_caches-table}{resource cache}.
+
+      A build image resource cache is used for keeping caches that were used
+      for an \reference{image_resource} in a build, as part of the
+      \reference{resource-retention}{resource retention policy}.
+    }
+
     \define-table{resource_config_check_sessions}{
       A \italic{resource config check session} is used for periodic resource
       checking of \reference{resources-table} and
@@ -181,19 +216,6 @@
       of a \reference{base_resource_types-table}{base_resource_type} is found.
       When a worker registers, its \reference{base_resource_types-table} are
       synced by first removing old versions and then inserting new ones.
-    }
-
-    \define-table{resource_types}{
-      An entry in the \italic{resource types} table represents a custom
-      resource type defined in a pipleine, and all of the information
-      neccessary to pull the image bits for a custom resource type.  This
-      includes the \italic{resource type} used to fetch the resource type's
-      image (eiher a \reference{base_resource_types-table}{base_resource_type}
-      or another custom resource) , the version of the image to fetch using
-      that resource, and the configuration of the custom resource type.
-
-      {- Maybe this should be called "custom resource types" and just point to
-      a resource config? -}
     }
 
     \define-table{worker_resource_caches}{
@@ -270,27 +292,34 @@
       left behind on a worker.
 
       Volumes have a handful of really important attributes.
+
       \inset{
         \define-attribute{handle: string}{
           The unique identifier of the volume in BaggageClaim.
         }{volumes-handle}
+
         \define-attribute{worker_name: string}{
           The name of the worker where the volume located.
         }{volumes-worker_name}
+
         \define-attribute{state: \code{CREATING}, \code{CREATED}, or \code{DESTROYING}}{
           The stage in the lifecycle of the volume. See \reference{volumes}
         }{volumes-state}
+
         \define-attribute{container_id: fkey}{
           The container this volume is associated with.
         }{volumes-container_id}
+
         \define-attribute{worker_base_resource_type_id: fkey}{
           If this volume is used for a \reference{worker_base_resource_types-table}{worker base resource type}
           this column points to it.
         }{volumes-worker_base_resource_type_id}
+
         \define-attribute{worker_resource_cache_id: fkey}{
           If this volume is for a \reference{worker_resource_caches-table}{worker resource cache}
           this column points to it.
         }{volumes-worker_resource_cache_id}
+
         \define-attribute{worker_task_cache_id: fkey}{
           If this volume is for a \reference{worker_task_caches-table}{worker task cache}
           this column points to it.
@@ -306,20 +335,24 @@
         \define-attribute{name: string}{
           The unique name for the worker used to identify it in the cluster.
         }{worker-addr}
+
         \define-attribute{addr: string}{
           The full address of the Garden server running for the worker.
         }{worker-addr}
+
         \define-attribute{state: RUNNING, STALLED, LANDING, LANDED, RETIRING, RETIRED }{
           The current state of the worker. This keeps track of the worker's
           lifecycle in order to handle the lifecycle of workers and their
           ability to have new containers or volumes created on them.
         }{worker-state}
+
         \define-attribute{baggageclaim_url: string}{
           The full address of the worker's baggageclaim server; used to store volumes
           on the worker.
         }
       }
     }
+
     \define-table{worker_task_caches}{
       The \italic{worker task caches} table tracks all of the details of a
       \reference{caches}{task cache} for a specific worker. \italic{Worker task
@@ -377,15 +410,178 @@
   \section{
     \title{How it Works}
 
-    * Safety is achieved by
-    simplicity; the garbage collector itself is not performing any complex
-    queries to determine whether something can be removed. Instead, the
-    \reference{database-schema} should represent relationships in a way that
-    makes it obvious when something's dependent no longer needs it.
+    The garbage collector is a batch operation that runs every 30 seconds. This
+    number was chosen arbitrarily and may be reduced in the future. It's
+    important to note that the collector must be able to run frequently enough
+    to not be outpaced by the workload producing things, and so the batch
+    operation should be able to complete pretty quickly.
 
-    * This also means that if something goes wrong, garbage
-    collection should just log, continue on to the rest, and retry on the next
+    The batch operation first performs garbage collection within the database
+    alone, removing rows that are no longer needed. The removal of rows from
+    one stage will often result in removals in a later stage.  They are run in
+    the following order:
+
+    \list{
+      \reference{builds-table} that no longer meet the
+      \reference{build-retention} criteria are marked non-interceptible
+    }{
+      \reference{workers-table} are stepped through their state machine.
+      Unresponsive workers become \code{STALLED}, workers that are
+      \code{RETIRING} are deleted once drained, and workers that are
+      \code{LANDING} become \code{LANDED} once drained.
+    }{
+      \reference{build_image_resource_caches-table} are removed for builds that
+      finished over 24 hours ago.
+    }{
+      \reference{resource_cache_uses-table} are removed for builds that are no
+      longer interceptible.
+    }{
+      \reference{resource_configs-table} that are no longer referenced by a
+      \reference-column{resource_caches}{resource_config_id} or a
+      \reference-column{resource_config_check_sessions}{resource_config_id} are
+      removed.
+    }{
+      \reference{resource_caches-table} that are no longer referenced by a
+      \reference-column{resource_configs}{resource_cache_id} or a
+      \reference-column{resource_cache_uses}{resource_cache_id} are removed.
+    }{
+      \reference{resource_config_check_sessions-table} that have exceeded their
+      \reference-column{resource_config_check_sessions}{expires_at} are
+      removed.
+    }
+
+    If any of the above operations fail, the garbage collector will just log an
+    error and move on. This is so that failure to collect one class of objects
+    does not prevent everything else from being garbage collected. Failure at
+    any part of the garbage collection is OK; it can just retry on the next
     pass.
+
+    After the initial pass of garbage collection in the database, there should
+    now be a set of \reference{volumes-table} and \reference{containers-table}
+    that meet criteria for garbage collection. These two are a bit more
+    complicated to garbage-collect; they both require talking to a worker, and
+    waiting on a potentially slow delete.
+
+    Containers and volumes are the costliest resources consumed by Concourse.
+    There are also many of them created over time as builds execute and
+    pipelines perform their \reference{version-collection}{resource checking}.
+    Therefore it is important to parallelize this aspect of garbage collection
+    so that one slow delete or one slow worker does not cause them to pile up.
+
+    So, the next two steps are \reference{container-collection} and
+    \reference{volume-collection}.
+
+    \section{
+      \title{Container Collection}
+
+      First, a fairly simple query is executed to find containers that meet one
+      of the following conditions:
+
+      \list{
+        If it has a \code{NULL} reference for all four dependent columns:
+
+        \list{
+          \reference-column{containers}{build_id}
+        }{
+          \reference-column{containers}{image_check_container_id}
+        }{
+          \reference-column{containers}{image_get_container_id}
+        }{
+          \reference-column{containers}{worker_resource_config_check_session_id}
+        }
+
+        This is the simplest case: the things that needed the container are now
+        gone, so it can go away.
+      }{
+        The \reference-column{containers}{build_id} referenced by the container
+        is no longer interceptible. See \reference{build-retention}.
+      }{
+        The \reference-column{containers}{image_check_container_id} or
+        \reference-column{containers}{image_get_container_id} referenced by the
+        container is no longer in \code{CREATING} state (likely
+        \code{CREATED}).
+      }
+
+      Once these containers are found, they are all deleted in parallel, with a
+      max-in-flight limit per worker so that the worker doesn't get hammered by
+      a burst of writes.
+
+      The deletion of every container is a careful process to ensure they never
+      leak and are never deleted while a user is hijacked into them:
+
+      \list{
+        If the container is \code{CREATING}, we mark it \code{CREATED}. This is
+        a bit wonky but makes it easier to just step it through the rest of the
+        lifecycle, since if there was a container being created on the worker,
+        we need to clean it up.
+      }{
+        If the container is \code{CREATED}, we first check to see if it was
+        hijacked. If not, we transition it to \code{DESTROYING}.
+
+        If the container is hijacked, we try to find the container in the
+        worker.
+
+        If the worker container is found, we set a \italic{grace time} on it (a
+        period of inactivity after which the container will be reaped by the
+        worker itself), mark the database container as \italic{discontinued},
+        and transition the container to \code{DESTROYING}.
+
+        If the worker container is not found, we transition the container to
+        \code{DESTROYING}, just to funnel it down the same code path as below.
+      }{
+        If the container is \code{DESTROYING}, and the container is
+        \italic{discontinued}, we check if the container has expired yet (via
+        the grace time) by looking for it on the worker. If it's still there,
+        we leave it alone, and leave the container in the database. If it's
+        gone, we reap the container from the database.
+
+        If the container is not discontinued, we destroy the container on the worker
+        and reap the container from the database.
+      }
+
+      Note that if any point of the above process \italic{fails}, the container
+      is left in its current state in the databsae. A container is only ever
+      removed from the database when it's guaranteed that everything has been
+      cleaned up.
+    }
+
+    \section{
+      \title{Volume Collection}
+
+      Volume collection is quite a bit simpler than
+      \reference{container-collection}.
+
+      First, volumes are found for deletion. This is just a query for volumes
+      that have \code{NULL} references for all four volume owners:
+
+      \list{
+        \reference{volumes}{worker_resource_cache_id}
+      }{
+        \reference{volumes}{worker_base_resource_type_id}
+      }{
+        \reference{volumes}{worker_resource_cache_id}
+      }{
+        \reference{volumes}{worker_resource_cache_id}
+      }
+
+      Next, each \code{CREATED} volume is transitioned to \code{DESTROYING}.
+      This transition can fail if the volume is being used as the parent of a
+      copy-on-write volume that is still in use (e.g. by a build).
+
+      Then, for each volume for \code{DESTROYING} state, including those that
+      were just transitioned, we execute the following in parallel (as with
+      containers, there is a max-in-flight limit per worker):
+
+      \list{
+        First, look up the volume on the worker and destroy it if it's found.
+      }{
+        Next, delete the volume from the database.
+      }
+
+      As with containers, if any part of the deletion sequence returns an
+      error, the volume is skipped. A volume is only ever removed from the
+      database when it's guaranteed that everything has been cleaned up.
+    }
   }
 }
 
@@ -394,106 +590,80 @@
 
   \section{
     \title{Lifecycle}
-      Volumes can be in one of 3 states; \code{CREATING}, \code{CREATED}, \code{DESTROYING}.
 
-      \code{CREATING}, volumes are still being initialized in BaggageClaim and are not
-      yet ready to be used. \code{CREATING}, volumes can only transition to \code{CREATED}.
+    Volumes can be in one of 3 states; \code{CREATING}, \code{CREATED},
+    \code{DESTROYING}.
 
-      \code{CREATED} volumes are initialized in BaggageClaim and are ready to be used.
-      \code{CREATED} volumes can only be transitioned to \code{DESTROYING}.
+    \code{CREATING}, volumes are still being initialized in BaggageClaim and
+    are not yet ready to be used. \code{CREATING}, volumes can only transition
+    to \code{CREATED}.
 
-      \code{DESTROYING} volumes are marked for removal from BaggageClaim, and should
-      no longer be used; they will be removed from the database when they no
-      longer exist in the BaggageClaim server.
+    \code{CREATED} volumes are initialized in BaggageClaim and are ready to be
+    used. \code{CREATED} volumes can only be transitioned to \code{DESTROYING}.
+
+    \code{DESTROYING} volumes are marked for removal from BaggageClaim, and
+    should no longer be used; they will be removed from the database when they
+    no longer exist in the BaggageClaim server.
   }
 
   \section{
     \title{Types of Volumes}
-  }
-
-  \section{
-    \title{Volume Garbage Collection}
-      There is a periodic process which runs on the ATC, and performs a mark-and-sweep
-      style garbage collection of volumes. The Container GC performs the following steps:
-      \ordered-list{
-        Finds \code{CREATING} and \code{CREATED} volumes which can be marked for removal.
-      }{
-        Marks them for removal by transitioning them to the \code{DESTROYING} state.
-      }{
-        Tells the BaggageClaim server to destroy volumes which are in the \code{DESTROYING} state.
-      }
   }
 }
 
 \section{
   \title{Containers}
 
-  * When do they go away
-
   \section{
     \title{Lifecycle}
-      Containers can be in one of 3 states; \code{CREATING}, \code{CREATED}, \code{DESTROYING}.
 
-      \code{CREATING}, containers are still being initialized in Garden and are not yet
-      ready to be used. \code{CREATING}, containers can only transition to \code{CREATED}.
+    Containers can be in one of 3 states; \code{CREATING}, \code{CREATED},
+    \code{DESTROYING}.
 
-      \code{CREATED} containers are initialized in Garden and are ready to be used. A
-      \code{CREATED} container can only be transitioned to \code{DESTROYING}.
+    \code{CREATING} containers are still being initialized on the worker and
+    are not yet ready to be used. \code{CREATING}, containers can only
+    transition to \code{CREATED}.
 
-      \code{DESTROYING} containers are marked for removal in Garden, and should no
-      longer be used; they will be removed from the database when they no
-      longer exist in the Garden server.
+    \code{CREATED} containers are initialized on the worker and are ready to be
+    used. A \code{CREATED} container can only be transitioned to
+    \code{DESTROYING}.
+
+    \code{DESTROYING} containers are marked for removal on the worker, and
+    should no longer be used; they will be removed from the database when they
+    no longer exist on the worker.
   }
 
 
  \section{
     \title{Types of Containers}
+
     These are the types of containers:
 
-      \section{
-        \title{Task Containers}
+    \section{
+      \title{Task Containers}
 
-        \italic{Task containers} are created when a \reference{task-step} is exectuted in a build plan.
-        They are based on the image produced by the configured \reference{image_resource}. 
-      }
+      \italic{Task containers} are created when a \reference{task-step} is
+      exectuted in a build plan. They are based on the image produced by the
+      configured \reference{image_resource} or \reference{task-image}.
+    }
 
-      \section{
-        \title{Resource Check Container}
+    \section{
+      \title{Resource Check Container}
 
-        \italic{Resource Check Containers} are created from the resource type's image and are used
-        to check for new versions of a resource.
-        There will be one per \reference{resource_configs-table}{resource config}
-      }
+      \italic{Resource Check Containers} are created from the resource type's
+      image and are used to check for new versions of a resource.  There will
+      be one per \reference{resource_configs-table}{resource config}
+    }
 
-      \section{
-        \title{Resource Get Container}
+    \section{
+      \title{Resource Get Container}
 
-        \italic{Resource Get Container} are created when a \reference{get-step}
-        is exectuted in a build plan.  They are based on the resource type's
-        image and are used to download the bits for a given version of
-        resource.
+      \italic{Resource Get Container} are created when a \reference{get-step}
+      is exectuted in a build plan. They are based on the resource type's image
+      and are used to download the bits for a given version of resource.
 
-        There will be one per \reference{resource_configs-table}{resource
-        config}
-      }
-  }
-
-  \section{
-    \title{Container Garbage Collection}
-
-      There is a periodic process which runs on the ATC, and performs a
-      mark-and-sweep style garbage collection of containers. The Container GC
-      performs the following steps:
-      \ordered-list{
-        Finds \code{CREATING} and \code{CREATED} containers which can be marked
-        for removal.
-      }{
-        Marks them for removal by transitioning them to the \code{DESTROYING}
-        state.
-      }{
-        Tells the Garden server to destroy containers which are in the
-        \code{DESTROYING} state.
-      }
+      There will be one per \reference{resource_configs-table}{resource
+      config}
+    }
   }
 }
-

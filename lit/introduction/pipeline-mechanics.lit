@@ -28,7 +28,7 @@ below.
   optionally auto-triggering jobs when new candidates appear.
 
   \section{
-    \title{Collecting Versions}
+    \title{Collecting Versions}{version-collection}
 
     Each pipeline automatically collects versions of each resource in
     chronological order. An example of versions of resources would be commits
