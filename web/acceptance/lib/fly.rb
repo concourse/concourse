@@ -15,7 +15,7 @@ module Fly
   end
 
   def fly_login(team_name)
-    fly("login -c #{ATC_URL} -n #{team_name}")
+    fly("login -k -c #{ATC_URL} -n #{team_name}")
   end
 
   def fly_table(command)
