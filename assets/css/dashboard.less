@@ -21,10 +21,14 @@
 .dashboard-pipeline {
   border-top: 3px solid @base07;
   display: flex;
-  flex-basis: 300px;
+  flex-basis: 30%;
   height: 70px;
   margin-bottom: 20px;
   margin-right: 20px;
+
+  @media all and (max-width: 700px) {
+    flex-basis: 100%;
+  }
 
   &.dashboard-paused {
     border-top-color: @base0D;
@@ -78,7 +82,7 @@
 }
 
 .dashboard-pipeline-icon {
-  flex-basis: 20px;
+  min-width: 20px;
   height: 20px;
   margin: auto 0 auto 25px;
   background-repeat: no-repeat;
