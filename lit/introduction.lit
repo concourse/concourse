@@ -21,5 +21,7 @@ Once you're ready, you can start \reference{installing}{installing} and
 \reference{using-concourse}{using} Concourse in just a few minutes!
 
 \include-section{./introduction/concourse-vs.lit}
+\include-section{./introduction/concepts.lit}
+\include-section{./introduction/pipeline-mechanics.lit}
 
 \split-sections
