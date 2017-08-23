@@ -67,7 +67,7 @@
         }
 
         \define-attribute{interruptible: boolean}{
-          Workers trying to \reference{Worker Lifecycle}{land} will wait until
+          Workers trying to \reference{worker-lifecycle}{land} will wait until
           all builds are finished, unless the build is for an
           \code{interruptible} job.
         }
@@ -251,7 +251,7 @@
 
         \define-attribute{state: \code{CREATING}, \code{CREATED}, or \code{DESTROYING}}{
           The stage in the lifecycle of the container. See
-          \reference{containers}
+          \reference{container-lifecycle}
         }{containers-state}
 
         Containers can be one of four types, each with individual references
@@ -303,7 +303,8 @@
         }{volumes-worker_name}
 
         \define-attribute{state: \code{CREATING}, \code{CREATED}, or \code{DESTROYING}}{
-          The stage in the lifecycle of the volume. See \reference{volumes}
+          The stage in the lifecycle of the volume. See
+          \reference{volume-internals}.
         }{volumes-state}
 
         \define-attribute{container_id: fkey}{
@@ -371,9 +372,9 @@
   One key difference between Concourse and other CI systems is that everything
   runs in isolated environments. Where some CI systems may just run builds one
   at a time on a single VM and reusing a working directory, Concourse creates
-  fresh \reference{containers} and \reference{volumes} to ensure things can
-  safely run in a repeatable environment, isolated from other workloads running
-  on the same worker.
+  fresh \reference{container-internals} and \reference{volume-internals} to
+  ensure things can safely run in a repeatable environment, isolated from other
+  workloads running on the same worker.
 
   This introduces a new problem of knowing when Concourse should remove these
   containers and volumes. Safely identifying things for removal and then
@@ -393,11 +394,12 @@
       happening.
     }{
       \bold{Airtight}. Everything Concourse creates, whether it's a
-      \reference{containers}{container} or \reference{volumes}{volume} on a
-      worker or an entry in the database, should never leak. Each object should
-      have a fully defined lifecycle such that there is a clear end to its use.
-      The ATC should be interruptible at any point in time and at the very
-      least be able to remove any state it had created beforehand.
+      \reference{container-internals}{container} or
+      \reference{volume-internals}{volume} on a worker or an entry in the
+      database, should never leak. Each object should have a fully defined
+      lifecycle such that there is a clear end to its use.  The ATC should be
+      interruptible at any point in time and at the very least be able to
+      remove any state it had created beforehand.
     }{
       \bold{Resilient}. Garbage collection should never be outpaced by the
       workload. A single misbehaving worker should not prevent garbage
@@ -555,13 +557,13 @@
       that have \code{NULL} references for all four volume owners:
 
       \list{
-        \reference{volumes}{worker_resource_cache_id}
+        \reference-column{volumes}{worker_resource_cache_id}
       }{
-        \reference{volumes}{worker_base_resource_type_id}
+        \reference-column{volumes}{worker_base_resource_type_id}
       }{
-        \reference{volumes}{worker_resource_cache_id}
+        \reference-column{volumes}{worker_resource_cache_id}
       }{
-        \reference{volumes}{worker_resource_cache_id}
+        \reference-column{volumes}{worker_resource_cache_id}
       }
 
       Next, each \code{CREATED} volume is transitioned to \code{DESTROYING}.
@@ -586,10 +588,10 @@
 }
 
 \section{
-  \title{Volumes}
+  \title{Volumes}{volume-internals}
 
   \section{
-    \title{Lifecycle}
+    \title{Lifecycle}{volume-lifecycle}
 
     Volumes can be in one of 3 states; \code{CREATING}, \code{CREATED},
     \code{DESTROYING}.
@@ -612,10 +614,10 @@
 }
 
 \section{
-  \title{Containers}
+  \title{Containers}{container-internals}
 
   \section{
-    \title{Lifecycle}
+    \title{Lifecycle}{container-lifecycle}
 
     Containers can be in one of 3 states; \code{CREATING}, \code{CREATED},
     \code{DESTROYING}.
@@ -669,10 +671,10 @@
 }
 
 \section{
-  \title{Workers}
+  \title{Workers}{worker-internals}
 
   \section{
-    \title{Lifecycle}
+    \title{Lifecycle}{worker-lifecycle}
 
     \define-table{RUNNING}{
       A worker in this state is registered with the cluster and ready to start
