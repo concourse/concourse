@@ -1,4 +1,4 @@
-\title{Mechanics of a Pipeline}{pipeline-mechanics}
+\title{Pipelines}{pipeline-mechanics}
 
 \use-plugin{concourse-resources-table}
 
@@ -6,9 +6,10 @@ Composing the three core \reference{concepts} together results in a
 \italic{pipeline}.
 
 A pipeline is the result of configuring \reference{configuring-jobs} and
-\reference{configuring-resources}. When you configure a pipeline, it takes on a
-life of its own, to continuously detect resource versions and schedule jobs over
-time. The mechanics of this are described below.
+connecting them to \reference{configuring-resources}. When you configure a
+pipeline, it takes on a life of its own, to continuously detect resource
+versions and schedule jobs over time. The mechanics of this are described
+below.
 
 \section{
   \title{Scheduling with Resources}
@@ -30,7 +31,7 @@ time. The mechanics of this are described below.
   optionally auto-triggering jobs when new candidates appear.
 
   \section{
-    \title{Collecting Versions}
+    \title{Collecting Versions}{version-collection}
 
     Each pipeline automatically collects versions of each resource in
     chronological order. An example of versions of resources would be commits

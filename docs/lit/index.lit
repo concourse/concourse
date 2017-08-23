@@ -105,6 +105,7 @@
 \include-section{./introduction.lit}
 \include-section{./setting-up.lit}
 \include-section{./using-concourse.lit}
+\include-section{./reference.lit}
 \include-section{./community.lit}
 \include-section{./downloads.lit}
 \include-section{./trademarks.lit}
