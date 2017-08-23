@@ -1,4 +1,4 @@
-\title{Setting Up (Tutorials)}{setting-up}
+\title{Setting Up}{setting-up}
 
 How is Concourse formed? Well, first you'll need to
 \reference{installing}{install it}. You may also want to skim
@@ -16,6 +16,7 @@ things installed.
 \split-sections
 
 \include-section{./setting-up/installing.lit}
+\include-section{./setting-up/architecture.lit}
 \include-section{./setting-up/worker-pools.lit}
 \include-section{./setting-up/metrics.lit}
 \include-section{./setting-up/encryption.lit}

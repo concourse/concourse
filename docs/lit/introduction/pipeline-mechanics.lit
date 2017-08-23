@@ -2,6 +2,9 @@
 
 \use-plugin{concourse-resources-table}
 
+Composing the three core \reference{concepts} together results in a
+\italic{pipeline}.
+
 A pipeline is the result of configuring \reference{configuring-jobs} and
 connecting them to \reference{configuring-resources}. When you configure a
 pipeline, it takes on a life of its own, to continuously detect resource

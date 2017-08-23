@@ -1,4 +1,4 @@
-\title{Using Concourse (how-to)}{using-concourse}
+\title{Using Concourse}{using-concourse}
 
 Now that you're all \reference{setting-up}{set up} and have a Concourse
 running, it's time to see what this thing can do.
@@ -11,7 +11,12 @@ a read.
 
 \include-section{./using-concourse/hello-world.lit}
 \include-section{./using-concourse/tutorials.lit}
+\include-section{./using-concourse/fly-cli.lit}
 \include-section{./using-concourse/running-tasks.lit}
+\include-section{./using-concourse/pipelines.lit}
+\include-section{./using-concourse/build-plans.lit}
+\include-section{./using-concourse/resource-types.lit}
 \include-section{./using-concourse/teams.lit}
+\include-section{./using-concourse/implementing-resources.lit}
 
 \split-sections
