@@ -115,11 +115,11 @@ viewPipeline state =
             ]
         ]
         [ Html.div [ class "dashboard-pipeline-banner" ] []
-        , Html.div [ class "dashboard-pipeline-content" ]
+        , Html.a [ class "dashboard-pipeline-content", href state.pipeline.url ]
             [ Html.div [ class "dashboard-pipeline-icon" ]
                 []
             , Html.div [ class "dashboard-pipeline-name" ]
-                [ Html.a [ href state.pipeline.url ] [ Html.text state.pipeline.name ] ]
+                [ Html.text state.pipeline.name ]
             ]
         ]
 
