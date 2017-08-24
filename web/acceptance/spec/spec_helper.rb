@@ -1,8 +1,12 @@
 require 'capybara/rspec'
 require 'selenium/webdriver'
+require 'capybara/poltergeist'
 require 'stringio'
 require 'fly'
 require 'dash'
+
+Capybara.default_driver = :poltergeist
+Capybara.javascript_driver = :poltergeist
 
 ATC_URL = ENV.fetch('ATC_URL', 'http://127.0.0.1:8080').freeze
 
@@ -24,20 +28,3 @@ RSpec.configure do |config|
     cleanup_teams
   end
 end
-
-Capybara.register_driver :chrome do |app|
-  Capybara::Selenium::Driver.new(app, browser: :chrome)
-end
-
-Capybara.register_driver :headless_chrome do |app|
-  capabilities = Selenium::WebDriver::Remote::Capabilities.chrome(
-    chromeOptions: { args: %w[headless disable-gpu no-sandbox] }
-  )
-
-  Capybara::Selenium::Driver.new app,
-                                 browser: :chrome,
-                                 desired_capabilities: capabilities
-end
-
-Capybara.default_driver = :headless_chrome
-Capybara.javascript_driver = :headless_chrome
