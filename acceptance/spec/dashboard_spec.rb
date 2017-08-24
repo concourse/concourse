@@ -107,16 +107,20 @@ describe 'dashboard', type: :feature do
   private
 
   def border_color(pipeline='some-pipeline')
-      dash_login team_name
+    dash_login team_name
 
-      visit dash_route('/dashboard')
+    visit dash_route('/dashboard')
 
-      pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
-      by_rgba(pipeline.find('.dashboard-pipeline-banner').native.css_value('background-color'))
+    pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
+    by_rgb(computed_style(pipeline.find('.dashboard-pipeline-banner'), 'backgroundColor'))
   end
 
-  def by_rgba(rgba)
-    /rgba\((\d+),\s*(\d+),\s*(\d+), [^\)]+\)/.match(rgba) do |m|
+  def computed_style(node, attribute)
+    page.evaluate_script("window.getComputedStyle(document.evaluate('#{node.path}', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue).#{attribute}")
+  end
+
+  def by_rgb(rgb)
+    /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.match(rgb) do |m|
       Color::RGB.new(m[1].to_i, m[2].to_i, m[3].to_i)
     end
   end
