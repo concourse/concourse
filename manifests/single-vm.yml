@@ -22,7 +22,7 @@ instance_groups:
     properties:
       log_level: debug
 
-      external_url: http://((web_ip)):4443
+      external_url: http://((web_ip)):8080
       postgresql_database: atc
 
       no_really_i_dont_want_any_auth: true

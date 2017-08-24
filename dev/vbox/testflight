@@ -6,24 +6,9 @@ source $(dirname $0)/common.bash
 
 cd $(dirname $0)/../..
 
-by "force-creating dev release..."
-bosh create-release --force
-
-by "uploading release..."
-bosh -e vbox upload-release
-
-by "deploying testflight..."
-bosh -n -e vbox \
-  -d concourse-testflight \
-  deploy ./src/github.com/concourse/testflight/scripts/manifests/deployment.yml \
-  -v web_ip=10.244.15.2 \
-  -v deployment_name=concourse-testflight \
-  -v concourse_version=latest \
-  -v garden_runc_version=latest \
-  --vars-file ./src/github.com/concourse/testflight/scripts/local_deploy_vars
+./dev/vbox/deploy
 
 by "running testflight..."
 cd ./src/github.com/concourse/testflight
-ATC_URL="https://10.244.15.2:4443" \
-  FLY_CA_CERT="$(cat ./scripts/certs/cert.pem)" \
+ATC_URL="http://10.244.15.2:8080" \
   ginkgo -r -p -nodes=3 "$@"

@@ -61,7 +61,7 @@ if ! bosh -e vbox releases | grep garden-runc >/dev/null; then
   bosh -n -e vbox upload-release "https://bosh.io/d/github.com/cloudfoundry/garden-runc-release"
 fi
 
-by "updating route table for testflight..."
+by "updating route table for single-vm deployment..."
 ./route 10.244.0.0/16 192.168.50.6 vboxnet0
 
 by "updating route table for topgun..."

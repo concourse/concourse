@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e -u
+
+source $(dirname $0)/common.bash
+
+cd $(dirname $0)/../..
+
+by "force-creating dev release..."
+bosh create-release --force
+
+by "uploading release..."
+bosh -e vbox upload-release
+
+by "deploying concourse-test..."
+bosh -n -e vbox \
+  -d concourse \
+  deploy ./manifests/single-vm.yml \
+  -v web_ip=10.244.15.2 \
+  -v deployment_name=concourse \
+  -v concourse_version=latest \
+  -v garden_runc_version=latest
