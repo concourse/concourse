@@ -11,18 +11,21 @@
 
 .dashboard-team-name {
   color: @base07;
-  border-top: 1px solid @base07;
   padding-top: 8px;
   font-size: 15px;
   margin-bottom: 40px;
   margin-right: 20px;
 }
 
+@keyframes pipeline-running {
+  0% { background-position-x: 0;    }
+  100%   { background-position-x: 200%; }
+}
+
 .dashboard-pipeline {
-  border-top: 3px solid @base07;
   display: flex;
+  flex-direction: column;
   flex-basis: 30%;
-  height: 70px;
   margin-bottom: 20px;
   margin-right: 20px;
 
@@ -30,8 +33,28 @@
     flex-basis: 100%;
   }
 
+  .dashboard-pipeline-banner {
+    flex-basis: 100%;
+    max-height: 3px;
+    background-color: @base07;
+    // 100% does not work with percentages in background-position
+    background-size: 200% 200%;
+  }
+
+  .dashboard-pipeline-content {
+    display: flex;
+    height: 70px;
+  }
+
+  .running-animation(@color1, @color2) {
+    background-image: repeating-linear-gradient(120deg, @color1 0, @color1 2%, @color2 0, @color2 4%);
+    animation: pipeline-running 20s linear infinite;
+  }
+
   &.dashboard-paused {
-    border-top-color: @base0D;
+    .dashboard-pipeline-banner {
+      background-color: @base0D;
+    }
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_pause_blue.svg');
@@ -39,44 +62,74 @@
   }
 
   &.dashboard-status-pending {
-    border-top-color: @base07;
-
     .dashboard-pipeline-icon {
       background-image: url('images/ic_pause_grey.svg');
     }
   }
 
   &.dashboard-status-failed {
-    border-top-color: @base08;
+    .dashboard-pipeline-banner {
+      background-color: @base08;
+    }
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_failing_red.svg');
       background-size: 20px 18px;
     }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(#ED4B35, #6B241A);
+      }
+    }
   }
 
   &.dashboard-status-aborted {
-    border-top-color: @base0F;
+    .dashboard-pipeline-banner {
+      background-color: @base0F;
+    }
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_aborted_brown.svg');
     }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(#8B572A, #5F3918);
+      }
+    }
   }
 
   &.dashboard-status-succeeded {
-    border-top-color: @base0B;
+    .dashboard-pipeline-banner {
+      background-color: @base0B;
+    }
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_running_green.svg');
       background-size: 20px 19px;
     }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(#26CD6F, #0D4E2A);
+      }
+    }
   }
 
   &.dashboard-status-errored {
-    border-top-color: @base09;
+    .dashboard-pipeline-banner {
+      background-color: @base09;
+    }
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_error_orange.svg');
+    }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(#F5A623,#A26B0F);
+      }
     }
   }
 }

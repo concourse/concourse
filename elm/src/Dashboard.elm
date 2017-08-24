@@ -110,14 +110,28 @@ viewPipeline state =
         [ classList
             [ ( "dashboard-pipeline", True )
             , ( "dashboard-paused", state.pipeline.paused )
+            , ( "dashboard-running", isPipelineRunning state )
             , ( "dashboard-status-" ++ pipelineStatus state, not state.pipeline.paused )
             ]
         ]
-        [ Html.div [ class "dashboard-pipeline-icon" ]
-            []
-        , Html.div [ class "dashboard-pipeline-name" ]
-            [ Html.a [ href state.pipeline.url ] [ Html.text state.pipeline.name ] ]
+        [ Html.div [ class "dashboard-pipeline-banner" ] []
+        , Html.div [ class "dashboard-pipeline-content" ]
+            [ Html.div [ class "dashboard-pipeline-icon" ]
+                []
+            , Html.div [ class "dashboard-pipeline-name" ]
+                [ Html.a [ href state.pipeline.url ] [ Html.text state.pipeline.name ] ]
+            ]
         ]
+
+
+isPipelineRunning : PipelineState -> Bool
+isPipelineRunning { jobs } =
+    case jobs of
+        RemoteData.Success js ->
+            List.any (\job -> job.nextBuild /= Nothing) js
+
+        _ ->
+            False
 
 
 pipelineStatus : PipelineState -> String
@@ -142,7 +156,7 @@ jobsStatus jobs =
             Concourse.BuildStatusErrored
         else if List.member Concourse.BuildStatusAborted statuses then
             Concourse.BuildStatusAborted
-        else if List.all (\status -> status == Concourse.BuildStatusSucceeded) statuses then
+        else if List.member Concourse.BuildStatusSucceeded statuses then
             Concourse.BuildStatusSucceeded
         else
             Concourse.BuildStatusPending
