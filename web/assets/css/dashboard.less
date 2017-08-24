@@ -10,23 +10,25 @@
 }
 
 .dashboard-team-name {
-  color: @base07;
+  color: @base04;
+  opacity: 0.2;
+  border-top: 1px solid @base07;
   padding-top: 8px;
-  font-size: 15px;
-  margin-bottom: 40px;
+  font-size: 30px;
+  margin-bottom: 55px;
   margin-right: 20px;
 }
 
 @keyframes pipeline-running {
-  0% { background-position-x: 0;    }
-  100%   { background-position-x: 200%; }
+  0% { background-position-x: -23px;    }
+  100%   { background-position-x: 0px; }
 }
 
 .dashboard-pipeline {
   display: flex;
   flex-direction: column;
   flex-basis: 30%;
-  margin-bottom: 20px;
+  margin-bottom: 50px;
   margin-right: 20px;
 
   @media all and (max-width: 700px) {
@@ -35,20 +37,24 @@
 
   .dashboard-pipeline-banner {
     flex-basis: 100%;
-    max-height: 3px;
+    max-height: 5px;
     background-color: @base07;
-    // 100% does not work with percentages in background-position
-    background-size: 200% 200%;
+    background-size: 200% 100%;
   }
 
   .dashboard-pipeline-content {
     display: flex;
     height: 70px;
+
+    &:hover {
+      background: #1F2E3C;
+      box-shadow: 0 2px 3px 0 rgba(0,0,0,0.50);
+    }
   }
 
   .running-animation(@color1, @color2) {
-    background-image: repeating-linear-gradient(120deg, @color1 0, @color1 2%, @color2 0, @color2 4%);
-    animation: pipeline-running 20s linear infinite;
+    background-image: repeating-linear-gradient(120deg, @color1 0, @color1 10px, @color2 0, @color2 20px);
+    animation: pipeline-running 1s linear infinite;
   }
 
   &.dashboard-paused {
@@ -65,6 +71,12 @@
     .dashboard-pipeline-icon {
       background-image: url('images/ic_pause_grey.svg');
     }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(@base07, @base01);
+      }
+    }
   }
 
   &.dashboard-status-failed {
@@ -79,7 +91,7 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(#ED4B35, #6B241A);
+        .running-animation(@base08, @base01);
       }
     }
   }
@@ -95,7 +107,7 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(#8B572A, #5F3918);
+        .running-animation(@base0F, @base01);
       }
     }
   }
@@ -112,7 +124,7 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(#26CD6F, #0D4E2A);
+        .running-animation(@base0B, @base01);
       }
     }
   }
@@ -128,7 +140,7 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(#F5A623,#A26B0F);
+        .running-animation(@base09, @base01);
       }
     }
   }
