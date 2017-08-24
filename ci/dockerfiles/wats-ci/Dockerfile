@@ -13,7 +13,3 @@ RUN curl -L https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linu
 RUN apt-get update && apt-get -y install build-essential
 ADD go*.tar.gz /usr/local
 ENV PATH $PATH:/usr/local/go/bin
-
-# ChromeDriver
-RUN apt-get update && apt-get -y install chromedriver
-ENV PATH $PATH:/usr/lib/chromium
