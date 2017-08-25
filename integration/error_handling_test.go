@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"net/http"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -71,11 +70,7 @@ var _ = Describe("Fly CLI", func() {
 		)
 
 		BeforeEach(func() {
-			atcServer.AppendHandlers(
-				func(w http.ResponseWriter, r *http.Request) {
-					atcServer.CloseClientConnections()
-				},
-			)
+			atcServer.Close()
 
 			flyCmd = exec.Command(flyPath, "-t", targetName, "containers")
 		})
