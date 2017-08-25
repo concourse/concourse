@@ -195,7 +195,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			gitRepo.Cleanup()
 		})
 
-		It("finds the resource cache volumes throughout duration of build", func() {
+		FIt("finds the resource cache volumes throughout duration of build", func() {
 			By("creating an initial resource version")
 			gitRepo.CommitAndPush()
 
@@ -218,11 +218,11 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 				}
 			}
 			Expect(originalResourceVolumeHandles).To(HaveLen(1))
-
+			//
 			By("creating a new resource version")
 			gitRepo.CommitAndPush()
-
-			By("not expiring the resource cache volume")
+			//
+			By("not expiring the resource cache volume for the ongoing build")
 			Consistently(func() []string {
 				volumes := flyTable("volumes")
 				resourceVolumeHandles := []string{}
@@ -232,7 +232,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 					}
 				}
 				return resourceVolumeHandles
-			}, 2*time.Minute).Should(ContainElement(originalResourceVolumeHandles[0]))
+			}, 5*time.Second).Should(ContainElement(originalResourceVolumeHandles[0]))
 
 			By("hijacking the build to tell it to finish")
 			hijackSession := spawnFly(
@@ -249,17 +249,38 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			<-watchSession.Exited
 			Expect(watchSession.ExitCode()).To(Equal(0))
 
+			By("triggering the job")
+			hijackSession = spawnFly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			Eventually(watchSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+
 			By("eventually expiring the resource cache volume")
 			Eventually(func() []string {
 				volumes := flyTable("volumes")
 				resourceVolumeHandles := []string{}
+				fmt.Println(volumes)
 				for _, volume := range volumes {
 					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
 				}
 				return resourceVolumeHandles
-			}, 10*time.Minute, 10*time.Second).ShouldNot(ContainElement(originalResourceVolumeHandles[0]))
+			}, 1*time.Minute, 10*time.Second).ShouldNot(ContainElement(originalResourceVolumeHandles[0]))
+
+			By("hijacking the build to tell it to finish")
+			hijackSession = spawnFly(
+				"hijack",
+				"-j", "volume-gc-test/simple-job",
+				"-s", "wait",
+				"touch", "/tmp/stop-waiting",
+			)
+			<-hijackSession.Exited
+			Expect(hijackSession.ExitCode()).To(Equal(0))
+
+			By("waiting for the build to exit")
+			Eventually(watchSession, 1*time.Minute).Should(gbytes.Say("done"))
+			<-watchSession.Exited
+			Expect(watchSession.ExitCode()).To(Equal(0))
+
 		})
 	})
 })
