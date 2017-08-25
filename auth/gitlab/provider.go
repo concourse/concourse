@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
-	"github.com/jessevdk/go-flags"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
 )
 
@@ -35,7 +35,7 @@ type GitLabAuthConfig struct {
 }
 
 func (*GitLabAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
-	oauthBegin, err := routes.OAuthRoutes.CreatePathForRoute(
+	path, err := routes.OAuthRoutes.CreatePathForRoute(
 		routes.OAuthBegin,
 		rata.Params{"provider": ProviderName},
 	)
@@ -43,22 +43,12 @@ func (*GitLabAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.Au
 		panic("failed to construct oauth begin handler route: " + err.Error())
 	}
 
-	tokenLogin, err := routes.OAuthRoutes.CreatePathForRoute(
-		routes.Token,
-		rata.Params{"provider": ProviderName},
-	)
-	if err != nil {
-		panic("failed to construct token login handler route: " + err.Error())
-	}
-
-	oauthBegin = oauthBegin + fmt.Sprintf("?team_name=%s", teamName)
-	tokenLogin = tokenLogin + fmt.Sprintf("?team_name=%s", teamName)
+	path = path + fmt.Sprintf("?team_name=%s", teamName)
 
 	return atc.AuthMethod{
 		Type:        atc.AuthTypeOAuth,
 		DisplayName: DisplayName,
-		AuthURL:     oauthBaseURL + oauthBegin,
-		TokenURL:    oauthBaseURL + tokenLogin,
+		AuthURL:     oauthBaseURL + path,
 	}
 }
 

@@ -1,20 +1,24 @@
 package github
 
 import (
-	"encoding/json"
 	"errors"
+	"net/http"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/github"
+
 	"fmt"
+	"strings"
+
+	"encoding/json"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
-	"github.com/jessevdk/go-flags"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
-	"net/http"
-	"strings"
 )
 
 const ProviderName = "github"
@@ -35,7 +39,7 @@ type GitHubAuthConfig struct {
 }
 
 func (*GitHubAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
-	oauthBegin, err := routes.OAuthRoutes.CreatePathForRoute(
+	path, err := routes.OAuthRoutes.CreatePathForRoute(
 		routes.OAuthBegin,
 		rata.Params{"provider": ProviderName},
 	)
@@ -43,22 +47,12 @@ func (*GitHubAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.Au
 		panic("failed to construct oauth begin handler route: " + err.Error())
 	}
 
-	tokenLogin, err := routes.OAuthRoutes.CreatePathForRoute(
-		routes.Token,
-		rata.Params{"provider": ProviderName},
-	)
-	if err != nil {
-		panic("failed to construct token login handler route: " + err.Error())
-	}
-
-	oauthBegin = oauthBegin + fmt.Sprintf("?team_name=%s", teamName)
-	tokenLogin = tokenLogin + fmt.Sprintf("?team_name=%s", teamName)
+	path = path + fmt.Sprintf("?team_name=%s", teamName)
 
 	return atc.AuthMethod{
 		Type:        atc.AuthTypeOAuth,
 		DisplayName: DisplayName,
-		AuthURL:     oauthBaseURL + oauthBegin,
-		TokenURL:    oauthBaseURL + tokenLogin,
+		AuthURL:     oauthBaseURL + path,
 	}
 }
 

@@ -12,7 +12,6 @@ type AuthMethod struct {
 
 	DisplayName string `json:"display_name"`
 	AuthURL     string `json:"auth_url"`
-	TokenURL    string `json:"token_url"`
 }
 
 type AuthToken struct {

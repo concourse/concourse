@@ -169,7 +169,6 @@ var _ = Describe("Auth API", func() {
 					Type:        atc.AuthTypeOAuth,
 					DisplayName: "fake display",
 					AuthURL:     "https://example.com/some-auth-url",
-					TokenURL:    "https://example.com/some-auth-url/token",
 				})
 
 				var err error
@@ -204,14 +203,12 @@ var _ = Describe("Auth API", func() {
 					{
 						"type": "oauth",
 						"display_name": "fake display",
-						"auth_url": "https://example.com/some-auth-url",
-						"token_url": "https://example.com/some-auth-url/token"
+						"auth_url": "https://example.com/some-auth-url"
 					},
 					{
 						"type": "basic",
 						"display_name": "Basic Auth",
-						"auth_url": "https://example.com/teams/some-team/login",
-						"token_url": ""
+						"auth_url": "https://example.com/teams/some-team/login"
 					}
 				]`))
 			})

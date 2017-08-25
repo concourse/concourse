@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/auth/provider"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 )
 
 type FakeTeamProvider struct {

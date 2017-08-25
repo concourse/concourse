@@ -112,7 +112,6 @@ var _ = Describe("Generic OAuth Provider", func() {
 				Type:        atc.AuthTypeOAuth,
 				DisplayName: "duck-song",
 				AuthURL:     "http://bum-bum-bum.com/auth/oauth?team_name=dudududum",
-				TokenURL:    "http://bum-bum-bum.com/auth/oauth/token?team_name=dudududum",
 			}))
 		})
 	})
