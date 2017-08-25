@@ -1,20 +1,23 @@
 package genericoauth
 
 import (
-	"code.cloudfoundry.org/lager"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+
+	"code.cloudfoundry.org/lager"
+
+	"encoding/json"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
-	"github.com/jessevdk/go-flags"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"net/http"
 )
 
 const ProviderName = "oauth"
@@ -47,7 +50,7 @@ type GenericOAuthConfig struct {
 }
 
 func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
-	oauthBegin, err := routes.OAuthRoutes.CreatePathForRoute(
+	path, err := routes.OAuthRoutes.CreatePathForRoute(
 		routes.OAuthBegin,
 		rata.Params{"provider": ProviderName},
 	)
@@ -55,22 +58,12 @@ func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName strin
 		panic("failed to construct oauth begin handler route: " + err.Error())
 	}
 
-	tokenLogin, err := routes.OAuthRoutes.CreatePathForRoute(
-		routes.Token,
-		rata.Params{"provider": ProviderName},
-	)
-	if err != nil {
-		panic("failed to construct token login handler route: " + err.Error())
-	}
-
-	oauthBegin = oauthBegin + fmt.Sprintf("?team_name=%s", teamName)
-	tokenLogin = tokenLogin + fmt.Sprintf("?team_name=%s", teamName)
+	path = path + fmt.Sprintf("?team_name=%s", teamName)
 
 	return atc.AuthMethod{
 		Type:        atc.AuthTypeOAuth,
 		DisplayName: config.DisplayName,
-		AuthURL:     oauthBaseURL + oauthBegin,
-		TokenURL:    oauthBaseURL + tokenLogin,
+		AuthURL:     oauthBaseURL + path,
 	}
 }
 

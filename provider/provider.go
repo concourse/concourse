@@ -1,13 +1,17 @@
 package provider
 
 import (
-	"code.cloudfoundry.org/lager"
-	"encoding/json"
+	"net/http"
+
 	"github.com/concourse/atc"
-	"github.com/jessevdk/go-flags"
+	flags "github.com/jessevdk/go-flags"
+
+	"code.cloudfoundry.org/lager"
+
+	"encoding/json"
+
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"net/http"
 )
 
 //go:generate counterfeiter . Provider

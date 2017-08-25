@@ -23,7 +23,6 @@ var _ = Describe("GitHub Provider", func() {
 				Type:        atc.AuthTypeOAuth,
 				DisplayName: "GitHub",
 				AuthURL:     "http://bum-bum-bum.com/auth/github?team_name=dudududum",
-				TokenURL:    "http://bum-bum-bum.com/auth/github/token?team_name=dudududum",
 			}))
 		})
 	})
