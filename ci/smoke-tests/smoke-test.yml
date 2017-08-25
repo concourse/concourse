@@ -45,6 +45,7 @@ run:
     echo "starting web"
     ./concourse web \
       --log-level debug \
+      --postgres-socket /var/run/postgresql \
       --no-really-i-dont-want-any-auth \
       --session-signing-key session_signing_key \
       --tsa-host-key host_key \

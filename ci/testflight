@@ -43,6 +43,7 @@ fi
 $CONCOURSE web \
   --external-url "http://$(hostname -i):8080" \
   --oauth-base-url "http://127.0.0.1:8080" \
+  --postgres-socket /var/run/postgresql \
   --tsa-host-key /etc/concourse/tsa-host \
   --tsa-authorized-keys /etc/concourse/worker.pub \
   --session-signing-key /etc/concourse/session-signing-key \
