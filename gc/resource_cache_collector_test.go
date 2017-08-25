@@ -17,7 +17,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 	var buildCollector gc.Collector
 
 	BeforeEach(func() {
-		collector = gc.NewResourceCacheCollector(logger, resourceCacheFactory)
+		collector = gc.NewResourceCacheCollector(logger, resourceCacheLifecycle)
 		buildCollector = gc.NewBuildCollector(logger, buildFactory)
 	})
 
@@ -32,7 +32,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 			var jobCache *db.UsedResourceCache
 
 			BeforeEach(func() {
-				resourceCacheUseCollector = gc.NewResourceCacheUseCollector(logger, resourceCacheFactory)
+				resourceCacheUseCollector = gc.NewResourceCacheUseCollector(logger, resourceCacheLifecycle)
 
 				oneOffBuild, err = defaultTeam.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
@@ -65,6 +65,13 @@ var _ = Describe("ResourceCacheCollector", func() {
 					creds.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
+
+				resource, found, err := defaultPipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = resource.SetResourceConfig(jobCache.ResourceConfig.ID)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			resourceCacheExists := func(resourceCache *db.UsedResourceCache) bool {

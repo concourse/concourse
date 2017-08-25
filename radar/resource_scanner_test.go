@@ -29,7 +29,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeResourceFactory                   *rfakes.FakeResourceFactory
 		fakeResourceConfigCheckSessionFactory *dbfakes.FakeResourceConfigCheckSessionFactory
-		fakeResourceConfigCheckSession        db.ResourceConfigCheckSession
+		fakeResourceConfigCheckSession        *dbfakes.FakeResourceConfigCheckSession
 		fakeDBPipeline                        *dbfakes.FakePipeline
 		fakeClock                             *fakeclock.FakeClock
 		interval                              time.Duration
@@ -49,30 +49,11 @@ var _ = Describe("ResourceScanner", func() {
 
 	BeforeEach(func() {
 		epoch = time.Unix(123, 456).UTC()
-		fakeResourceFactory = new(rfakes.FakeResourceFactory)
-		fakeResourceConfigCheckSession = new(dbfakes.FakeResourceConfigCheckSession)
-		fakeResourceConfigCheckSessionFactory = new(dbfakes.FakeResourceConfigCheckSessionFactory)
-		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
-		fakeDBPipeline = new(dbfakes.FakePipeline)
-		fakeDBResource = new(dbfakes.FakeResource)
-		fakeDBPipeline.IDReturns(42)
-		fakeDBPipeline.NameReturns("some-pipeline")
-		fakeDBPipeline.TeamIDReturns(teamID)
-		fakeClock = fakeclock.NewFakeClock(epoch)
+		fakeLock = &lockfakes.FakeLock{}
 		interval = 1 * time.Minute
 		variables = template.StaticVariables{
 			"source-params": "some-secret-sauce",
 		}
-
-		scanner = NewResourceScanner(
-			fakeClock,
-			fakeResourceFactory,
-			fakeResourceConfigCheckSessionFactory,
-			interval,
-			fakeDBPipeline,
-			"https://www.example.com",
-			variables,
-		)
 
 		resourceConfig = atc.ResourceConfig{
 			Name:   "some-resource",
@@ -80,16 +61,6 @@ var _ = Describe("ResourceScanner", func() {
 			Source: atc.Source{"uri": "some-secret-sauce"},
 			Tags:   atc.Tags{"some-tag"},
 		}
-
-		fakeDBPipeline.ReloadReturns(true, nil)
-
-		fakeResourceType = new(dbfakes.FakeResourceType)
-		fakeResourceType.IDReturns(1)
-		fakeResourceType.NameReturns("some-custom-resource")
-		fakeResourceType.TypeReturns("docker-image")
-		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
-		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
-		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
 
 		versionedResourceType = atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
@@ -100,6 +71,31 @@ var _ = Describe("ResourceScanner", func() {
 			Version: atc.Version{"custom": "version"},
 		}
 
+		fakeResourceFactory = new(rfakes.FakeResourceFactory)
+		fakeResourceConfigCheckSession = new(dbfakes.FakeResourceConfigCheckSession)
+		fakeResourceConfigCheckSessionFactory = new(dbfakes.FakeResourceConfigCheckSessionFactory)
+		fakeResourceType = new(dbfakes.FakeResourceType)
+		fakeDBResource = new(dbfakes.FakeResource)
+		fakeDBPipeline = new(dbfakes.FakePipeline)
+
+		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
+
+		fakeResourceConfigCheckSession.ResourceConfigReturns(&db.UsedResourceConfig{ID: 123})
+
+		fakeDBPipeline.IDReturns(42)
+		fakeDBPipeline.NameReturns("some-pipeline")
+		fakeDBPipeline.TeamIDReturns(teamID)
+		fakeClock = fakeclock.NewFakeClock(epoch)
+
+		fakeDBPipeline.ReloadReturns(true, nil)
+		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+
+		fakeResourceType.IDReturns(1)
+		fakeResourceType.NameReturns("some-custom-resource")
+		fakeResourceType.TypeReturns("docker-image")
+		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
+		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
+
 		fakeDBResource.IDReturns(39)
 		fakeDBResource.NameReturns("some-resource")
 		fakeDBResource.PipelineNameReturns("some-pipeline")
@@ -107,10 +103,19 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.TypeReturns("git")
 		fakeDBResource.SourceReturns(atc.Source{"uri": "((source-params))"})
 		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
-
-		fakeLock = &lockfakes.FakeLock{}
+		fakeDBResource.SetResourceConfigReturns(nil)
 
 		fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+
+		scanner = NewResourceScanner(
+			fakeClock,
+			fakeResourceFactory,
+			fakeResourceConfigCheckSessionFactory,
+			interval,
+			fakeDBPipeline,
+			"https://www.example.com",
+			variables,
+		)
 	})
 
 	Describe("Run", func() {
@@ -161,6 +166,10 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
 				})))
+
+				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
+				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
+				Expect(resourceConfigID).To(Equal(123))
 
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
@@ -461,6 +470,10 @@ var _ = Describe("ResourceScanner", func() {
 					versionedResourceType,
 				})))
 
+				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
+				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
+				Expect(resourceConfigID).To(Equal(123))
+
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
@@ -498,6 +511,21 @@ var _ = Describe("ResourceScanner", func() {
 			Context("when creating the resource config fails", func() {
 				BeforeEach(func() {
 					fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(nil, errors.New("catastrophe"))
+				})
+
+				It("sets the check error and returns the error", func() {
+					Expect(scanErr).To(HaveOccurred())
+					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+
+					savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+					Expect(savedResource.Name()).To(Equal("some-resource"))
+					Expect(resourceErr).To(MatchError("catastrophe"))
+				})
+			})
+
+			Context("when updating the resource config id on the resource fails", func() {
+				BeforeEach(func() {
+					fakeDBResource.SetResourceConfigReturns(errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {

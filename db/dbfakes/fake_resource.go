@@ -108,6 +108,17 @@ type FakeResource struct {
 	failingToCheckReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	SetResourceConfigStub        func(int) error
+	setResourceConfigMutex       sync.RWMutex
+	setResourceConfigArgsForCall []struct {
+		arg1 int
+	}
+	setResourceConfigReturns struct {
+		result1 error
+	}
+	setResourceConfigReturnsOnCall map[int]struct {
+		result1 error
+	}
 	PauseStub        func() error
 	pauseMutex       sync.RWMutex
 	pauseArgsForCall []struct{}
@@ -581,6 +592,54 @@ func (fake *FakeResource) FailingToCheckReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeResource) SetResourceConfig(arg1 int) error {
+	fake.setResourceConfigMutex.Lock()
+	ret, specificReturn := fake.setResourceConfigReturnsOnCall[len(fake.setResourceConfigArgsForCall)]
+	fake.setResourceConfigArgsForCall = append(fake.setResourceConfigArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("SetResourceConfig", []interface{}{arg1})
+	fake.setResourceConfigMutex.Unlock()
+	if fake.SetResourceConfigStub != nil {
+		return fake.SetResourceConfigStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.setResourceConfigReturns.result1
+}
+
+func (fake *FakeResource) SetResourceConfigCallCount() int {
+	fake.setResourceConfigMutex.RLock()
+	defer fake.setResourceConfigMutex.RUnlock()
+	return len(fake.setResourceConfigArgsForCall)
+}
+
+func (fake *FakeResource) SetResourceConfigArgsForCall(i int) int {
+	fake.setResourceConfigMutex.RLock()
+	defer fake.setResourceConfigMutex.RUnlock()
+	return fake.setResourceConfigArgsForCall[i].arg1
+}
+
+func (fake *FakeResource) SetResourceConfigReturns(result1 error) {
+	fake.SetResourceConfigStub = nil
+	fake.setResourceConfigReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) SetResourceConfigReturnsOnCall(i int, result1 error) {
+	fake.SetResourceConfigStub = nil
+	if fake.setResourceConfigReturnsOnCall == nil {
+		fake.setResourceConfigReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setResourceConfigReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResource) Pause() error {
 	fake.pauseMutex.Lock()
 	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
@@ -729,6 +788,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.webhookTokenMutex.RUnlock()
 	fake.failingToCheckMutex.RLock()
 	defer fake.failingToCheckMutex.RUnlock()
+	fake.setResourceConfigMutex.RLock()
+	defer fake.setResourceConfigMutex.RUnlock()
 	fake.pauseMutex.RLock()
 	defer fake.pauseMutex.RUnlock()
 	fake.unpauseMutex.RLock()

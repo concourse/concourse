@@ -944,13 +944,11 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 		return err
 	}
 
-	sourceHash := mapHash(resource.Source)
-
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resources
-		SET config = $3, source_hash=$4, active = true, nonce = $5
+		SET config = $3, active = true, nonce = $4
 		WHERE name = $1 AND pipeline_id = $2
-	`, resource.Name, pipelineID, encryptedPayload, sourceHash, nonce)
+	`, resource.Name, pipelineID, encryptedPayload, nonce)
 	if err != nil {
 		return err
 	}
@@ -960,9 +958,9 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO resources (name, pipeline_id, config, source_hash, active, nonce)
-		VALUES ($1, $2, $3, $4, true, $5)
-	`, resource.Name, pipelineID, encryptedPayload, sourceHash, nonce)
+		INSERT INTO resources (name, pipeline_id, config, active, nonce)
+		VALUES ($1, $2, $3, true, $4)
+	`, resource.Name, pipelineID, encryptedPayload, nonce)
 
 	return swallowUniqueViolation(err)
 }

@@ -93,6 +93,12 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 		return 0, err
 	}
 
+	err = savedResourceType.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID)
+	if err != nil {
+		logger.Error("failed-to-set-resource-config-id-on-resource-type", err)
+		return 0, err
+	}
+
 	lock, acquired, err := scanner.dbPipeline.AcquireResourceTypeCheckingLockWithIntervalCheck(logger, resourceTypeName, resourceConfigCheckSession.ResourceConfig(), scanner.defaultInterval, false)
 	if err != nil {
 		lockLogger.Error("failed-to-get-lock", err, lager.Data{

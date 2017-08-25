@@ -116,6 +116,16 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return 0, err
 	}
 
+	err = savedResource.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID)
+	if err != nil {
+		logger.Error("failed-to-set-resource-config-id-on-resource", err)
+		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
+		if setErr != nil {
+			logger.Error("failed-to-set-check-error", err)
+		}
+		return 0, err
+	}
+
 	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLockWithIntervalCheck(
 		logger,
 		savedResource.Name(),
@@ -213,6 +223,16 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 	)
 	if err != nil {
 		logger.Error("failed-to-find-or-create-resource-config-check-session", err)
+		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
+		if setErr != nil {
+			logger.Error("failed-to-set-check-error", err)
+		}
+		return err
+	}
+
+	err = savedResource.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID)
+	if err != nil {
+		logger.Error("failed-to-set-resource-config-id-on-resource", err)
 		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
 		if setErr != nil {
 			logger.Error("failed-to-set-check-error", err)

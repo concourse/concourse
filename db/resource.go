@@ -25,6 +25,8 @@ type Resource interface {
 	WebhookToken() string
 	FailingToCheck() bool
 
+	SetResourceConfig(int) error
+
 	Pause() error
 	Unpause() error
 
@@ -135,6 +137,18 @@ func (r *resource) Pause() error {
 func (r *resource) Unpause() error {
 	_, err := psql.Update("resources").
 		Set("paused", false).
+		Where(sq.Eq{
+			"id": r.id,
+		}).
+		RunWith(r.conn).
+		Exec()
+
+	return err
+}
+
+func (r *resource) SetResourceConfig(resourceConfigID int) error {
+	_, err := psql.Update("resources").
+		Set("resource_config_id", resourceConfigID).
 		Where(sq.Eq{
 			"id": r.id,
 		}).

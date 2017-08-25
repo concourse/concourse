@@ -187,5 +187,6 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		AddOnDeleteRestrictToResourceConfigsAndCachesAndResourceConfigCheckSessions,
 		AddWorkerResourceConfigCheckSessions,
 		DropResourceConfigUsesAndAddContainerIDToResourceCacheUsesWhileAlsoRemovingResourceIDAndResourceTypeIDFromResourceCacheUses,
+		AddResourceConfigIDToResources,
 	}
 }

@@ -26,6 +26,8 @@ type ResourceType interface {
 	Privileged() bool
 	Source() atc.Source
 
+	SetResourceConfig(int) error
+
 	Version() atc.Version
 	SaveVersion(atc.Version) error
 
@@ -128,6 +130,18 @@ func (t *resourceType) Reload() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (t *resourceType) SetResourceConfig(resourceConfigID int) error {
+	_, err := psql.Update("resource_types").
+		Set("resource_config_id", resourceConfigID).
+		Where(sq.Eq{
+			"id": t.id,
+		}).
+		RunWith(t.conn).
+		Exec()
+
+	return err
 }
 
 func scanResourceType(t *resourceType, row scannable) error {

@@ -291,6 +291,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn)
+	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -504,7 +505,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				),
 				gc.NewResourceCacheUseCollector(
 					logger.Session("resource-cache-use-collector"),
-					dbResourceCacheFactory,
+					dbResourceCacheLifecycle,
 				),
 				gc.NewResourceConfigCollector(
 					logger.Session("resource-config-collector"),
@@ -512,7 +513,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				),
 				gc.NewResourceCacheCollector(
 					logger.Session("resource-cache-collector"),
-					dbResourceCacheFactory,
+					dbResourceCacheLifecycle,
 				),
 				gc.NewVolumeCollector(
 					logger.Session("volume-collector"),

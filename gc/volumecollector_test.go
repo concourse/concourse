@@ -23,7 +23,6 @@ var _ = Describe("VolumeCollector", func() {
 		fakeJobRunner   *gcfakes.FakeWorkerJobRunner
 
 		volumeFactory      db.VolumeFactory
-		containerFactory   db.ContainerFactory
 		workerFactory      db.WorkerFactory
 		fakeBCVolume       *baggageclaimfakes.FakeVolume
 		createdVolume      db.CreatedVolume
@@ -39,7 +38,6 @@ var _ = Describe("VolumeCollector", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		containerFactory = db.NewContainerFactory(dbConn)
 		volumeFactory = db.NewVolumeFactory(dbConn)
 		workerFactory = db.NewWorkerFactory(dbConn)
 

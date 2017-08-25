@@ -54,6 +54,17 @@ type FakeResourceType struct {
 	sourceReturnsOnCall map[int]struct {
 		result1 atc.Source
 	}
+	SetResourceConfigStub        func(int) error
+	setResourceConfigMutex       sync.RWMutex
+	setResourceConfigArgsForCall []struct {
+		arg1 int
+	}
+	setResourceConfigReturns struct {
+		result1 error
+	}
+	setResourceConfigReturnsOnCall map[int]struct {
+		result1 error
+	}
 	VersionStub        func() atc.Version
 	versionMutex       sync.RWMutex
 	versionArgsForCall []struct{}
@@ -289,6 +300,54 @@ func (fake *FakeResourceType) SourceReturnsOnCall(i int, result1 atc.Source) {
 	}{result1}
 }
 
+func (fake *FakeResourceType) SetResourceConfig(arg1 int) error {
+	fake.setResourceConfigMutex.Lock()
+	ret, specificReturn := fake.setResourceConfigReturnsOnCall[len(fake.setResourceConfigArgsForCall)]
+	fake.setResourceConfigArgsForCall = append(fake.setResourceConfigArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("SetResourceConfig", []interface{}{arg1})
+	fake.setResourceConfigMutex.Unlock()
+	if fake.SetResourceConfigStub != nil {
+		return fake.SetResourceConfigStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.setResourceConfigReturns.result1
+}
+
+func (fake *FakeResourceType) SetResourceConfigCallCount() int {
+	fake.setResourceConfigMutex.RLock()
+	defer fake.setResourceConfigMutex.RUnlock()
+	return len(fake.setResourceConfigArgsForCall)
+}
+
+func (fake *FakeResourceType) SetResourceConfigArgsForCall(i int) int {
+	fake.setResourceConfigMutex.RLock()
+	defer fake.setResourceConfigMutex.RUnlock()
+	return fake.setResourceConfigArgsForCall[i].arg1
+}
+
+func (fake *FakeResourceType) SetResourceConfigReturns(result1 error) {
+	fake.SetResourceConfigStub = nil
+	fake.setResourceConfigReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceType) SetResourceConfigReturnsOnCall(i int, result1 error) {
+	fake.SetResourceConfigStub = nil
+	if fake.setResourceConfigReturnsOnCall == nil {
+		fake.setResourceConfigReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setResourceConfigReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceType) Version() atc.Version {
 	fake.versionMutex.Lock()
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
@@ -433,6 +492,8 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.privilegedMutex.RUnlock()
 	fake.sourceMutex.RLock()
 	defer fake.sourceMutex.RUnlock()
+	fake.setResourceConfigMutex.RLock()
+	defer fake.setResourceConfigMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
 	fake.saveVersionMutex.RLock()

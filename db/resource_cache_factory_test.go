@@ -22,6 +22,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 		usedBaseResourceType      *db.UsedBaseResourceType
 		usedImageBaseResourceType *db.UsedBaseResourceType
 
+		resourceCacheLifecycle db.ResourceCacheLifecycle
+
 		resourceType1                  atc.VersionedResourceType
 		resourceType2                  atc.VersionedResourceType
 		resourceType3                  atc.VersionedResourceType
@@ -46,6 +48,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 		imageBaseResourceType := db.BaseResourceType{
 			Name: "some-image-type",
 		}
+
+		resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)
 
 		usedImageBaseResourceType, err = imageBaseResourceType.FindOrCreate(setupTx)
 		Expect(err).NotTo(HaveOccurred())
@@ -297,8 +301,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 							case <-done:
 								return
 							default:
-								Expect(resourceCacheFactory.CleanUsesForFinishedBuilds()).To(Succeed())
-								Expect(resourceCacheFactory.CleanUpInvalidCaches()).To(Succeed())
+								Expect(resourceCacheLifecycle.CleanUsesForFinishedBuilds(logger)).To(Succeed())
+								Expect(resourceCacheLifecycle.CleanUpInvalidCaches(logger)).To(Succeed())
 								Expect(resourceConfigFactory.CleanUnreferencedConfigs()).To(Succeed())
 							}
 						}
@@ -330,59 +334,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 		})
 	})
 
-	Describe("CleanUpInvalidCaches", func() {
-		countResourceCaches := func() int {
-			var result int
-			err := psql.Select("count(*)").
-				From("resource_caches").
-				RunWith(dbConn).
-				QueryRow().
-				Scan(&result)
-			Expect(err).NotTo(HaveOccurred())
-
-			return result
-		}
-
-		Context("when there is resource cache", func() {
-			var usedResourceCache *db.UsedResourceCache
-			var build db.Build
-
-			BeforeEach(func() {
-				var err error
-				build, err = defaultTeam.CreateOneOffBuild()
-				Expect(err).ToNot(HaveOccurred())
-
-				usedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
-					logger,
-					db.ForBuild(build.ID()),
-					"some-base-type",
-					atc.Version{"some": "version"},
-					atc.Source{
-						"some": "source",
-					},
-					atc.Params{"some": "params"},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{},
-					),
-				)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Context("when resource cache is not used any more", func() {
-				BeforeEach(func() {
-					_, err := build.Delete()
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("deletes the resource cache", func() {
-					err := resourceCacheFactory.CleanUpInvalidCaches()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(countResourceCaches()).To(BeZero())
-				})
-			})
-		})
-	})
 })
 
 type resourceCache struct {

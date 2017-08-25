@@ -32,9 +32,11 @@ var (
 	dbConn                            db.Conn
 	err                               error
 	resourceCacheFactory              db.ResourceCacheFactory
+	resourceCacheLifecycle            db.ResourceCacheLifecycle
 	resourceConfigFactory             db.ResourceConfigFactory
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory
 	buildFactory                      db.BuildFactory
+	lockFactory                       lock.LockFactory
 
 	teamFactory db.TeamFactory
 
@@ -62,7 +64,7 @@ var _ = BeforeEach(func() {
 
 	dbConn = postgresRunner.OpenConn()
 
-	lockFactory := lock.NewLockFactory(postgresRunner.OpenSingleton())
+	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory)
@@ -77,7 +79,7 @@ var _ = BeforeEach(func() {
 		Resources: atc.ResourceConfigs{
 			{
 				Name:   "some-resource",
-				Type:   "resource-type",
+				Type:   "some-base-type",
 				Source: atc.Source{"some": "source"},
 			},
 		},
@@ -116,6 +118,7 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("gc-test")
 
+	resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceConfigCheckSessionFactory = db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)

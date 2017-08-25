@@ -38,45 +38,11 @@ var _ = Describe("ResourceTypeScanner", func() {
 	)
 
 	BeforeEach(func() {
-		fakeResourceFactory = new(rfakes.FakeResourceFactory)
-		fakeResourceConfigCheckSessionFactory = new(dbfakes.FakeResourceConfigCheckSessionFactory)
-		fakeResourceConfigCheckSession = new(dbfakes.FakeResourceConfigCheckSession)
-		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
-
+		fakeLock = &lockfakes.FakeLock{}
 		interval = 1 * time.Minute
-
 		variables = template.StaticVariables{
 			"source-params": "some-secret-sauce",
 		}
-
-		fakeDBPipeline = new(dbfakes.FakePipeline)
-
-		scanner = NewResourceTypeScanner(
-			fakeResourceFactory,
-			fakeResourceConfigCheckSessionFactory,
-			interval,
-			fakeDBPipeline,
-			"https://www.example.com",
-			variables,
-		)
-
-		fakeDBPipeline.ReloadReturns(true, nil)
-
-		fakeLock = &lockfakes.FakeLock{}
-
-		fakeDBPipeline.IDReturns(42)
-		fakeDBPipeline.NameReturns("some-pipeline")
-		fakeDBPipeline.TeamIDReturns(teamID)
-
-		fakeResourceType = new(dbfakes.FakeResourceType)
-		fakeResourceType.IDReturns(39)
-		fakeResourceType.NameReturns("some-custom-resource")
-		fakeResourceType.TypeReturns("docker-image")
-		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
-		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
-
-		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
-		fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
 
 		versionedResourceType = atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
@@ -86,6 +52,39 @@ var _ = Describe("ResourceTypeScanner", func() {
 			},
 			Version: atc.Version{"custom": "version"},
 		}
+
+		fakeResourceFactory = new(rfakes.FakeResourceFactory)
+		fakeResourceConfigCheckSessionFactory = new(dbfakes.FakeResourceConfigCheckSessionFactory)
+		fakeResourceConfigCheckSession = new(dbfakes.FakeResourceConfigCheckSession)
+		fakeResourceType = new(dbfakes.FakeResourceType)
+		fakeDBPipeline = new(dbfakes.FakePipeline)
+
+		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
+
+		fakeResourceConfigCheckSession.ResourceConfigReturns(&db.UsedResourceConfig{ID: 123})
+
+		fakeResourceType.IDReturns(39)
+		fakeResourceType.NameReturns("some-custom-resource")
+		fakeResourceType.TypeReturns("docker-image")
+		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
+		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
+		fakeResourceType.SetResourceConfigReturns(nil)
+
+		fakeDBPipeline.IDReturns(42)
+		fakeDBPipeline.NameReturns("some-pipeline")
+		fakeDBPipeline.TeamIDReturns(teamID)
+		fakeDBPipeline.ReloadReturns(true, nil)
+		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+		fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+
+		scanner = NewResourceTypeScanner(
+			fakeResourceFactory,
+			fakeResourceConfigCheckSessionFactory,
+			interval,
+			fakeDBPipeline,
+			"https://www.example.com",
+			variables,
+		)
 	})
 
 	Describe("Run", func() {
@@ -135,6 +134,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 
+				Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
+				resourceConfigID := fakeResourceType.SetResourceConfigArgsForCall(0)
+				Expect(resourceConfigID).To(Equal(123))
+
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
@@ -167,6 +170,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						otherResourceType,
 					}, nil)
 					fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+					fakeResourceType.SetResourceConfigReturns(nil)
 				})
 
 				It("constructs the resource of the correct type", func() {
@@ -177,6 +181,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
 					})))
+
+					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
+					resourceConfigID := fakeResourceType.SetResourceConfigArgsForCall(0)
+					Expect(resourceConfigID).To(Equal(123))
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 					_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)

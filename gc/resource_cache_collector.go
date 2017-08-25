@@ -6,20 +6,20 @@ import (
 )
 
 type resourceCacheCollector struct {
-	logger       lager.Logger
-	cacheFactory db.ResourceCacheFactory
+	logger         lager.Logger
+	cacheLifecycle db.ResourceCacheLifecycle
 }
 
 func NewResourceCacheCollector(
 	logger lager.Logger,
-	cacheFactory db.ResourceCacheFactory,
+	cacheLifecycle db.ResourceCacheLifecycle,
 ) Collector {
 	return &resourceCacheCollector{
-		logger:       logger.Session("resource-cache-collector"),
-		cacheFactory: cacheFactory,
+		logger:         logger.Session("resource-cache-collector"),
+		cacheLifecycle: cacheLifecycle,
 	}
 }
 
-func (rcuc *resourceCacheCollector) Run() error {
-	return rcuc.cacheFactory.CleanUpInvalidCaches()
+func (rcc *resourceCacheCollector) Run() error {
+	return rcc.cacheLifecycle.CleanUpInvalidCaches(rcc.logger)
 }

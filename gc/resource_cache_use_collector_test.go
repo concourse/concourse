@@ -19,7 +19,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("resource-cache-use-collector")
-		collector = gc.NewResourceCacheUseCollector(logger, resourceCacheFactory)
+		collector = gc.NewResourceCacheUseCollector(logger, resourceCacheLifecycle)
 		buildCollector = gc.NewBuildCollector(logger, buildFactory)
 	})
 
@@ -34,7 +34,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 			countResourceCacheUses := func() int {
 				tx, err := dbConn.Begin()
 				Expect(err).NotTo(HaveOccurred())
-				defer tx.Rollback()
+				defer func() {
+					_ = tx.Rollback()
+				}()
 
 				var result int
 				err = psql.Select("count(*)").

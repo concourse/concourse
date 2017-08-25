@@ -258,31 +258,6 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	return build, nil
 }
 
-func (p *pipeline) NextBuildInputs(jobName string) ([]BuildInput, bool, error) {
-	var found bool
-	err := psql.Select("inputs_determined").
-		From("jobs").
-		Where(sq.Eq{
-			"name":        jobName,
-			"pipeline_id": p.id,
-		}).
-		RunWith(p.conn).
-		QueryRow().
-		Scan(&found)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	// there is a possible race condition where found is true at first but the
-	// inputs are deleted by the time we get here
-	buildInputs, err := p.getJobBuildInputs("next_build_inputs", jobName)
-	return buildInputs, true, err
-}
-
 func (p *pipeline) SetResourceCheckError(resource Resource, cause error) error {
 	var err error
 
