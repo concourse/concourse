@@ -104,10 +104,23 @@ describe 'dashboard', type: :feature do
     end
   end
 
+  context 'when a pipeline changes its state' do
+    it 'updates the dashboard automatically' do
+      expect(border_color.closest_match(palette)).to eq(grey)
+      fly('trigger-job -j some-pipeline/passing')
+      sleep 5
+      expect(border_color.closest_match(palette)).to eq(green)
+    end
+  end
+
   private
 
+  def login
+    @login ||= dash_login team_name
+  end
+
   def border_color(pipeline='some-pipeline')
-    dash_login team_name
+    login
 
     visit dash_route('/dashboard')
 

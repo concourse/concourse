@@ -400,8 +400,8 @@ subscriptions mdl =
         NotFoundModel _ ->
             Sub.none
 
-        DashboardModel _ ->
-            Sub.none
+        DashboardModel model ->
+            Sub.map DashboardMsg <| Dashboard.subscriptions model
 
 
 fetchPipelines : Cmd Msg
