@@ -1,4 +1,4 @@
-port module Dashboard exposing (Model, Msg, init, update, view)
+port module Dashboard exposing (Model, Msg, init, update, subscriptions, view)
 
 import Concourse
 import Concourse.BuildStatus
@@ -8,55 +8,35 @@ import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href)
 import RemoteData
+import Time exposing (Time)
 
 
 type alias Model =
-    { pipelines : RemoteData.WebData (List PipelineState)
-    }
-
-
-type alias PipelineState =
-    { pipeline : Concourse.Pipeline
-    , jobs : RemoteData.WebData (List Concourse.Job)
+    { pipelines : RemoteData.WebData (List Concourse.Pipeline)
+    , jobs : Dict Concourse.PipelineName (RemoteData.WebData (List Concourse.Job))
     }
 
 
 type Msg
     = PipelinesResponse (RemoteData.WebData (List Concourse.Pipeline))
-    | JobsResponse String (RemoteData.WebData (List Concourse.Job))
+    | JobsResponse Concourse.PipelineName (RemoteData.WebData (List Concourse.Job))
+    | AutoRefresh Time
 
 
 init : ( Model, Cmd Msg )
 init =
     ( { pipelines = RemoteData.NotAsked
+      , jobs = Dict.empty
       }
     , fetchPipelines
     )
-
-
-initPipelineState : Concourse.Pipeline -> PipelineState
-initPipelineState pipeline =
-    { pipeline = pipeline
-    , jobs = RemoteData.NotAsked
-    }
-
-
-updatePipelineState : String -> RemoteData.WebData (List Concourse.Job) -> PipelineState -> PipelineState
-updatePipelineState pipelineName response state =
-    if state.pipeline.name == pipelineName then
-        { state | jobs = response }
-    else
-        state
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         PipelinesResponse response ->
-            ( { model
-                | pipelines =
-                    RemoteData.map (List.map initPipelineState) response
-              }
+            ( { model | pipelines = response }
             , case response of
                 RemoteData.Success pipelines ->
                     Cmd.batch (List.map fetchJobs pipelines)
@@ -66,7 +46,16 @@ update msg model =
             )
 
         JobsResponse pipelineName response ->
-            ( { model | pipelines = RemoteData.map (List.map (updatePipelineState pipelineName response)) model.pipelines }, Cmd.none )
+            ( { model | jobs = Dict.insert pipelineName response model.jobs }, Cmd.none )
+
+        AutoRefresh _ ->
+            ( model, fetchPipelines )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ Time.every (5 * Time.second) AutoRefresh ]
 
 
 view : Model -> Html msg
@@ -74,6 +63,18 @@ view model =
     case model.pipelines of
         RemoteData.Success pipelines ->
             let
+                pipelineStates =
+                    List.filter ((/=) RemoteData.NotAsked << .jobs) <|
+                        List.map
+                            (\pipeline ->
+                                { pipeline = pipeline
+                                , jobs =
+                                    Maybe.withDefault RemoteData.NotAsked <|
+                                        Dict.get pipeline.name model.jobs
+                                }
+                            )
+                            pipelines
+
                 pipelinesByTeam =
                     List.foldl
                         (\pipelineState byTeam ->
@@ -84,13 +85,19 @@ view model =
                                 byTeam
                         )
                         Dict.empty
-                        (List.reverse pipelines)
+                        (List.reverse pipelineStates)
             in
                 Html.div [ class "dashboard" ]
                     (Dict.values (Dict.map viewGroup pipelinesByTeam))
 
         _ ->
             Html.text ""
+
+
+type alias PipelineState =
+    { pipeline : Concourse.Pipeline
+    , jobs : RemoteData.WebData (List Concourse.Job)
+    }
 
 
 viewGroup : String -> List PipelineState -> Html msg
