@@ -12,7 +12,8 @@ import (
 )
 
 type DestroyTeamCommand struct {
-	TeamName string `short:"n" long:"team-name" required:"true"        description:"The team to delete"`
+	TeamName        string `short:"n" long:"team-name" required:"true"        description:"The team to delete"`
+	SkipInteractive bool   `long:"non-interactive"        description:"Force apply configuration"`
 }
 
 func (command *DestroyTeamCommand) Execute([]string) error {
@@ -29,14 +30,16 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 	teamName := command.TeamName
 	fmt.Printf("!!! this will remove all data for team `%s`\n\n", teamName)
 
-	var confirm string
-	err = interact.NewInteraction("please type the team name to confirm").Resolve(interact.Required(&confirm))
-	if err != nil {
-		return err
-	}
+	if !command.SkipInteractive {
+		var confirm string
+		err = interact.NewInteraction("please type the team name to confirm").Resolve(interact.Required(&confirm))
+		if err != nil {
+			return err
+		}
 
-	if confirm != teamName {
-		return errors.New("incorrect team name; bailing out")
+		if confirm != teamName {
+			return errors.New("incorrect team name; bailing out")
+		}
 	}
 
 	err = target.Team().DestroyTeam(teamName)

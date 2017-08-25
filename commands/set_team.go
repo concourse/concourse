@@ -14,8 +14,9 @@ import (
 )
 
 type SetTeamCommand struct {
-	TeamName       string        `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
-	Authentication atc.AuthFlags `group:"Authentication"`
+	TeamName        string        `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
+	SkipInteractive bool          `long:"non-interactive" description:"Force apply configuration"`
+	Authentication  atc.AuthFlags `group:"Authentication"`
 
 	ProviderAuth map[string]provider.AuthConfig
 }
@@ -43,10 +44,13 @@ func (command *SetTeamCommand) Execute([]string) error {
 	fmt.Println("UAA Auth:", authMethodStatusDescription(command.ProviderAuth["uaa"].IsConfigured()))
 	fmt.Println("Generic OAuth:", authMethodStatusDescription(command.ProviderAuth["oauth"].IsConfigured()))
 
-	confirm := false
-	err = interact.NewInteraction("apply configuration?").Resolve(&confirm)
-	if err != nil {
-		return err
+	confirm := true
+	if !command.SkipInteractive {
+		confirm = false
+		err = interact.NewInteraction("apply configuration?").Resolve(&confirm)
+		if err != nil {
+			return err
+		}
 	}
 
 	if !confirm {
