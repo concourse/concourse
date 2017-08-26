@@ -113,6 +113,8 @@ before using it!
   }{
     \link{FTP}{https://github.com/aequitas/concourse-ftp-resource}
   }{
+    \link{lftp, access resources via ftp, http, sftp and fish}{https://github.com/openSUSE/lftp-concourse-resource}
+  }{
     \link{Cloudformation}{https://github.com/pivotal-cf-experimental/cloudformation-resource}
   }{
     \link{Generic HTTP API}{https://github.com/aequitas/concourse-http-api-resource}
@@ -216,7 +218,7 @@ before using it!
     Fork the
     \link{\code{concourse/concourse}}{https://github.com/concourse/concourse}
     repository, edit
-    \code{concourse/docs/using-concourse/resource-types.any},
+    \code{lit/using-concourse/resource-types.lit},
     then make a pull request.
   }
 }
