@@ -294,7 +294,7 @@ properties:
     description: |
       How long to wait for Baggageclaim to send the response header. Use Go duration
       format (1m = 1 minute).
-    default: 10m
+    default: 1m
 
   postgresql_database:
     description: |
