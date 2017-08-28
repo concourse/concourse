@@ -1,9 +1,6 @@
 package db
 
 import (
-	"database/sql"
-	"strconv"
-
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -66,8 +63,6 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 		return err
 	}
 
-	logger.Debug("caches-still-in-use", lager.Data{"id": stillInUseCacheIds})
-
 	resourceConfigCacheIds, _, err := sq.
 		Select("resource_cache_id").
 		Distinct().
@@ -78,8 +73,6 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 		return err
 	}
 
-	logger.Debug("caches-for-resource-configs", lager.Data{"id": resourceConfigCacheIds})
-
 	buildImageCacheIds, _, err := sq.
 		Select("resource_cache_id").
 		Distinct().
@@ -88,8 +81,6 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 	if err != nil {
 		return err
 	}
-
-	logger.Debug("caches-for-build-images", lager.Data{"id": buildImageCacheIds})
 
 	nextBuildInputsCacheIds, _, err := sq.
 		Select("r_cache.id").
@@ -107,8 +98,6 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 	if err != nil {
 		return err
 	}
-
-	logger.Debug("caches-for-next-build-inputs", lager.Data{"id": nextBuildInputsCacheIds})
 
 	query, args, err := sq.Delete("resource_caches").
 		Where("id NOT IN (" + stillInUseCacheIds + ")").
@@ -137,14 +126,8 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 
 	var deletedCacheIDs []int
 	for rows.Next() {
-		var id sql.NullString
-
-		err = rows.Scan(&id)
-		if err != nil {
-			return nil
-		}
-
-		cacheID, err := strconv.Atoi(id.String)
+		var cacheID int
+		err = rows.Scan(&cacheID)
 		if err != nil {
 			return nil
 		}
@@ -152,7 +135,9 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 		deletedCacheIDs = append(deletedCacheIDs, cacheID)
 	}
 
-	logger.Debug("deleted-resource-caches", lager.Data{"id": deletedCacheIDs})
+	if len(deletedCacheIDs) > 0 {
+		logger.Debug("deleted-resource-caches", lager.Data{"id": deletedCacheIDs})
+	}
 
 	return nil
 }
