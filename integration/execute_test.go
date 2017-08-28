@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"syscall"
@@ -148,7 +150,7 @@ run:
 						Expires: time.Now().Add(1 * time.Minute),
 					})
 				},
-				ghttp.RespondWith(201, `{"id":128}`),
+				ghttp.RespondWith(201, `{"id":128, "url":"some/url"}`),
 			),
 		)
 		atcServer.RouteToHandler("GET", "/api/v1/builds/128/events",
@@ -228,7 +230,10 @@ run:
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(streaming).Should(BeClosed())
-		Eventually(sess.Out).Should(gbytes.Say("executing build 128"))
+
+		buildURL, _ := url.Parse(atcServer.URL())
+		buildURL.Path = path.Join(buildURL.Path, "some/url")
+		Eventually(sess.Out).Should(gbytes.Say("executing build 128 at %s", buildURL.String()))
 
 		events <- event.Log{Payload: "sup"}
 

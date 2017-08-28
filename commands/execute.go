@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -90,7 +91,15 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
-	fmt.Println("executing build", build.ID)
+	clientURL, err := url.Parse(client.URL())
+	if err != nil {
+		return err
+	}
+	buildURL, err := url.Parse(build.URL)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("executing build %d at %s \n", build.ID, clientURL.ResolveReference(buildURL))
 
 	terminate := make(chan os.Signal, 1)
 
