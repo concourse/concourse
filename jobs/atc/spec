@@ -452,3 +452,9 @@ properties:
       information about the user. The only metric collected is the version of
       concourse.
     default: false
+
+  atc.open_files_limit:
+    description: |
+      Set ATC (build scheduler & web interface) open files limit.
+      In high contention environments, the default limit is known to cause 'too many open files' errors.
+    default: 1024
