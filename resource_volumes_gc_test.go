@@ -195,7 +195,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			gitRepo.Cleanup()
 		})
 
-		FIt("finds the resource cache volumes throughout duration of build", func() {
+		It("finds the resource cache volumes throughout duration of build", func() {
 			By("creating an initial resource version")
 			gitRepo.CommitAndPush()
 
