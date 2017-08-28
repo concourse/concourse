@@ -92,7 +92,7 @@ view model =
                 Html.div [ class "dashboard" ]
                     (Dict.values (Dict.map viewGroup pipelinesByTeam))
 
-        _ ->
+        RemoteData.Failure _ ->
             Html.div
                 [ class "error-message" ]
                 [ Html.div [ class "message" ]
@@ -101,6 +101,9 @@ view model =
                     , Html.p [ class "explanation" ] []
                     ]
                 ]
+
+        _ ->
+            Html.text ""
 
 
 type alias PipelineState =
