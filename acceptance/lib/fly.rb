@@ -10,6 +10,7 @@ module Fly
   def fly_fail(command)
     run "fly -t testpilot #{command}"
   rescue FlyError
+    nil
   else
     raise "expected '#{command}' to not succeed"
   end
