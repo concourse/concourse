@@ -6,7 +6,7 @@ import Concourse.Job
 import Concourse.Pipeline
 import Dict exposing (Dict)
 import Html exposing (Html)
-import Html.Attributes exposing (class, classList, href)
+import Html.Attributes exposing (class, classList, href, src)
 import RemoteData
 import Time exposing (Time)
 
@@ -14,6 +14,7 @@ import Time exposing (Time)
 type alias Model =
     { pipelines : RemoteData.WebData (List Concourse.Pipeline)
     , jobs : Dict Concourse.PipelineName (RemoteData.WebData (List Concourse.Job))
+    , turbulenceImgSrc : String
     }
 
 
@@ -23,10 +24,11 @@ type Msg
     | AutoRefresh Time
 
 
-init : ( Model, Cmd Msg )
-init =
+init : String -> ( Model, Cmd Msg )
+init turbulencePath =
     ( { pipelines = RemoteData.NotAsked
       , jobs = Dict.empty
+      , turbulenceImgSrc = turbulencePath
       }
     , fetchPipelines
     )
@@ -91,7 +93,14 @@ view model =
                     (Dict.values (Dict.map viewGroup pipelinesByTeam))
 
         _ ->
-            Html.text ""
+            Html.div
+                [ class "error-message" ]
+                [ Html.div [ class "message" ]
+                    [ Html.img [ src model.turbulenceImgSrc, class "seatbelt" ] []
+                    , Html.p [] [ Html.text "experiencing turbulence" ]
+                    , Html.p [ class "explanation" ] []
+                    ]
+                ]
 
 
 type alias PipelineState =
