@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ResourceConfigCheckSessionContainerOwner", func() {
+var _ = Describe("ResourceConfigCheckSession", func() {
 	var (
 		ownerExpiries db.ContainerOwnerExpiries
 

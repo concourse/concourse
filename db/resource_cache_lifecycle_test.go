@@ -267,7 +267,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 			})
 
 			It("removes the cache if the type is no longer configured", func() {
-
 				_, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
 					logger,
 					"some-type",
@@ -293,7 +292,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfigCheckSessionLifecycle.CleanUselessResourceConfigCheckSessions()
+				err = resourceConfigCheckSessionLifecycle.CleanInactiveResourceConfigCheckSessions()
 				Expect(err).ToNot(HaveOccurred())
 
 				err = resourceConfigFactory.CleanUnreferencedConfigs()

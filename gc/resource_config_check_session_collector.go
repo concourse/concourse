@@ -27,7 +27,7 @@ func (rccsc *resourceConfigCheckSessionCollector) Run() error {
 		return err
 	}
 
-	err = rccsc.configCheckSessionLifecycle.CleanUselessResourceConfigCheckSessions()
+	err = rccsc.configCheckSessionLifecycle.CleanInactiveResourceConfigCheckSessions()
 	if err != nil {
 		rccsc.logger.Error("unable-to-clean-up-resource-config-check-sessions-for-paused-and-inactive-resources", err)
 		return err

@@ -30,33 +30,6 @@ type FakeResourceCacheFactory struct {
 		result1 *db.UsedResourceCache
 		result2 error
 	}
-	CleanUsesForFinishedBuildsStub        func() error
-	cleanUsesForFinishedBuildsMutex       sync.RWMutex
-	cleanUsesForFinishedBuildsArgsForCall []struct{}
-	cleanUsesForFinishedBuildsReturns     struct {
-		result1 error
-	}
-	cleanUsesForFinishedBuildsReturnsOnCall map[int]struct {
-		result1 error
-	}
-	CleanBuildImageResourceCachesStub        func() error
-	cleanBuildImageResourceCachesMutex       sync.RWMutex
-	cleanBuildImageResourceCachesArgsForCall []struct{}
-	cleanBuildImageResourceCachesReturns     struct {
-		result1 error
-	}
-	cleanBuildImageResourceCachesReturnsOnCall map[int]struct {
-		result1 error
-	}
-	CleanUpInvalidCachesStub        func() error
-	cleanUpInvalidCachesMutex       sync.RWMutex
-	cleanUpInvalidCachesArgsForCall []struct{}
-	cleanUpInvalidCachesReturns     struct {
-		result1 error
-	}
-	cleanUpInvalidCachesReturnsOnCall map[int]struct {
-		result1 error
-	}
 	UpdateResourceCacheMetadataStub        func(*db.UsedResourceCache, []atc.MetadataField) error
 	updateResourceCacheMetadataMutex       sync.RWMutex
 	updateResourceCacheMetadataArgsForCall []struct {
@@ -141,126 +114,6 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheReturnsOnCall(i i
 		result1 *db.UsedResourceCache
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuilds() error {
-	fake.cleanUsesForFinishedBuildsMutex.Lock()
-	ret, specificReturn := fake.cleanUsesForFinishedBuildsReturnsOnCall[len(fake.cleanUsesForFinishedBuildsArgsForCall)]
-	fake.cleanUsesForFinishedBuildsArgsForCall = append(fake.cleanUsesForFinishedBuildsArgsForCall, struct{}{})
-	fake.recordInvocation("CleanUsesForFinishedBuilds", []interface{}{})
-	fake.cleanUsesForFinishedBuildsMutex.Unlock()
-	if fake.CleanUsesForFinishedBuildsStub != nil {
-		return fake.CleanUsesForFinishedBuildsStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.cleanUsesForFinishedBuildsReturns.result1
-}
-
-func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuildsCallCount() int {
-	fake.cleanUsesForFinishedBuildsMutex.RLock()
-	defer fake.cleanUsesForFinishedBuildsMutex.RUnlock()
-	return len(fake.cleanUsesForFinishedBuildsArgsForCall)
-}
-
-func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuildsReturns(result1 error) {
-	fake.CleanUsesForFinishedBuildsStub = nil
-	fake.cleanUsesForFinishedBuildsReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuildsReturnsOnCall(i int, result1 error) {
-	fake.CleanUsesForFinishedBuildsStub = nil
-	if fake.cleanUsesForFinishedBuildsReturnsOnCall == nil {
-		fake.cleanUsesForFinishedBuildsReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.cleanUsesForFinishedBuildsReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResourceCacheFactory) CleanBuildImageResourceCaches() error {
-	fake.cleanBuildImageResourceCachesMutex.Lock()
-	ret, specificReturn := fake.cleanBuildImageResourceCachesReturnsOnCall[len(fake.cleanBuildImageResourceCachesArgsForCall)]
-	fake.cleanBuildImageResourceCachesArgsForCall = append(fake.cleanBuildImageResourceCachesArgsForCall, struct{}{})
-	fake.recordInvocation("CleanBuildImageResourceCaches", []interface{}{})
-	fake.cleanBuildImageResourceCachesMutex.Unlock()
-	if fake.CleanBuildImageResourceCachesStub != nil {
-		return fake.CleanBuildImageResourceCachesStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.cleanBuildImageResourceCachesReturns.result1
-}
-
-func (fake *FakeResourceCacheFactory) CleanBuildImageResourceCachesCallCount() int {
-	fake.cleanBuildImageResourceCachesMutex.RLock()
-	defer fake.cleanBuildImageResourceCachesMutex.RUnlock()
-	return len(fake.cleanBuildImageResourceCachesArgsForCall)
-}
-
-func (fake *FakeResourceCacheFactory) CleanBuildImageResourceCachesReturns(result1 error) {
-	fake.CleanBuildImageResourceCachesStub = nil
-	fake.cleanBuildImageResourceCachesReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResourceCacheFactory) CleanBuildImageResourceCachesReturnsOnCall(i int, result1 error) {
-	fake.CleanBuildImageResourceCachesStub = nil
-	if fake.cleanBuildImageResourceCachesReturnsOnCall == nil {
-		fake.cleanBuildImageResourceCachesReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.cleanBuildImageResourceCachesReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResourceCacheFactory) CleanUpInvalidCaches() error {
-	fake.cleanUpInvalidCachesMutex.Lock()
-	ret, specificReturn := fake.cleanUpInvalidCachesReturnsOnCall[len(fake.cleanUpInvalidCachesArgsForCall)]
-	fake.cleanUpInvalidCachesArgsForCall = append(fake.cleanUpInvalidCachesArgsForCall, struct{}{})
-	fake.recordInvocation("CleanUpInvalidCaches", []interface{}{})
-	fake.cleanUpInvalidCachesMutex.Unlock()
-	if fake.CleanUpInvalidCachesStub != nil {
-		return fake.CleanUpInvalidCachesStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.cleanUpInvalidCachesReturns.result1
-}
-
-func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesCallCount() int {
-	fake.cleanUpInvalidCachesMutex.RLock()
-	defer fake.cleanUpInvalidCachesMutex.RUnlock()
-	return len(fake.cleanUpInvalidCachesArgsForCall)
-}
-
-func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesReturns(result1 error) {
-	fake.CleanUpInvalidCachesStub = nil
-	fake.cleanUpInvalidCachesReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesReturnsOnCall(i int, result1 error) {
-	fake.CleanUpInvalidCachesStub = nil
-	if fake.cleanUpInvalidCachesReturnsOnCall == nil {
-		fake.cleanUpInvalidCachesReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.cleanUpInvalidCachesReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadata(arg1 *db.UsedResourceCache, arg2 []atc.MetadataField) error {
@@ -373,12 +226,6 @@ func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.findOrCreateResourceCacheMutex.RLock()
 	defer fake.findOrCreateResourceCacheMutex.RUnlock()
-	fake.cleanUsesForFinishedBuildsMutex.RLock()
-	defer fake.cleanUsesForFinishedBuildsMutex.RUnlock()
-	fake.cleanBuildImageResourceCachesMutex.RLock()
-	defer fake.cleanBuildImageResourceCachesMutex.RUnlock()
-	fake.cleanUpInvalidCachesMutex.RLock()
-	defer fake.cleanUpInvalidCachesMutex.RUnlock()
 	fake.updateResourceCacheMetadataMutex.RLock()
 	defer fake.updateResourceCacheMetadataMutex.RUnlock()
 	fake.resourceCacheMetadataMutex.RLock()
