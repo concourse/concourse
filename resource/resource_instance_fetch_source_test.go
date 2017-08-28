@@ -69,12 +69,13 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
-		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
-		fakeResourceInstance.ResourceCacheReturns(resourceCache)
-		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id")))
 		resourceCache = &db.UsedResourceCache{
 			ID: 42,
 		}
+
+		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
+		fakeResourceInstance.ResourceCacheReturns(resourceCache)
+		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id")))
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceMetadataField{
 			{Name: "some", Value: "metadata"},
