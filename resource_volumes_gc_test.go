@@ -256,7 +256,6 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			Eventually(func() []string {
 				volumes := flyTable("volumes")
 				resourceVolumeHandles := []string{}
-				fmt.Println(volumes)
 				for _, volume := range volumes {
 					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
