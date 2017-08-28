@@ -136,9 +136,11 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	boshLogs.Signal(os.Interrupt)
-	<-boshLogs.Exited
-	boshLogs = nil
+	if boshLogs != nil {
+		boshLogs.Signal(os.Interrupt)
+		<-boshLogs.Exited
+		boshLogs = nil
+	}
 
 	deleteAllContainers()
 
