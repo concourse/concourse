@@ -216,7 +216,7 @@ before using it!
     Fork the
     \link{\code{concourse/concourse}}{https://github.com/concourse/concourse}
     repository, edit
-    \code{concourse/docs/using-concourse/resource-types.any},
+    \code{concourse/docs/lit/using-concourse/resource-types.lit},
     then make a pull request.
   }
 }
