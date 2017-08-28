@@ -2,7 +2,7 @@ source 'https://rubygems.org'
 
 gem 'capybara'
 gem 'color'
-gem 'poltergeist'
 gem 'launchy'
+gem 'poltergeist'
 gem 'rspec'
 gem 'rubocop'

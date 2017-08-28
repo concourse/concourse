@@ -58,12 +58,23 @@ describe 'dashboard', type: :feature do
   end
 
   context 'when a pipeline has a failed build' do
-    before do
-      fly_fail('trigger-job -w -j some-pipeline/failing')
+    before(:each) do
+      fly('set-pipeline -n -p some-other-pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p some-other-pipeline')
+      fly('set-pipeline -n -p another-pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p another-pipeline')
+      fly_fail('trigger-job -w -j some-other-pipeline/failing')
     end
 
     it 'is shown in red' do
-      expect(border_color.closest_match(palette)).to eq(red)
+      expect(border_color('some-other-pipeline').closest_match(palette)).to eq(red)
+    end
+
+    it 'rises to the top' do
+      visit_dashboard
+      within '.dashboard-team-group', text: team_name do
+        expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-other-pipeline', 'some-pipeline', 'another-pipeline']
+      end
     end
   end
 
@@ -119,12 +130,9 @@ describe 'dashboard', type: :feature do
     @login ||= dash_login team_name
   end
 
-  def border_color(pipeline='some-pipeline')
-    login
-
-    visit dash_route('/dashboard')
-
-    pipeline = page.find('.dashboard-pipeline', text: 'some-pipeline')
+  def border_color(pipeline = 'some-pipeline')
+    visit_dashboard
+    pipeline = page.find('.dashboard-pipeline', text: pipeline)
     by_rgb(computed_style(pipeline.find('.dashboard-pipeline-banner'), 'backgroundColor'))
   end
 
@@ -136,5 +144,10 @@ describe 'dashboard', type: :feature do
     /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.match(rgb) do |m|
       Color::RGB.new(m[1].to_i, m[2].to_i, m[3].to_i)
     end
+  end
+
+  def visit_dashboard
+    login
+    visit dash_route('/dashboard')
   end
 end

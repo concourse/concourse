@@ -66,16 +66,17 @@ view model =
         RemoteData.Success pipelines ->
             let
                 pipelineStates =
-                    List.filter ((/=) RemoteData.NotAsked << .jobs) <|
-                        List.map
-                            (\pipeline ->
-                                { pipeline = pipeline
-                                , jobs =
-                                    Maybe.withDefault RemoteData.NotAsked <|
-                                        Dict.get pipeline.name model.jobs
-                                }
-                            )
-                            pipelines
+                    List.sortWith pipelineStatusComparison <|
+                        List.filter ((/=) RemoteData.NotAsked << .jobs) <|
+                            List.map
+                                (\pipeline ->
+                                    { pipeline = pipeline
+                                    , jobs =
+                                        Maybe.withDefault RemoteData.NotAsked <|
+                                            Dict.get pipeline.name model.jobs
+                                    }
+                                )
+                                pipelines
 
                 pipelinesByTeam =
                     List.foldl
@@ -104,6 +105,28 @@ view model =
 
         _ ->
             Html.text ""
+
+
+pipelineStatusComparison : PipelineState -> PipelineState -> Order
+pipelineStatusComparison pipeline otherPipeline =
+    let
+        status =
+            pipelineStatus pipeline
+
+        otherStatus =
+            pipelineStatus otherPipeline
+
+        failedString =
+            Concourse.BuildStatus.show Concourse.BuildStatusFailed
+    in
+        if status == otherStatus then
+            EQ
+        else if status == failedString then
+            LT
+        else if otherStatus == failedString then
+            GT
+        else
+            EQ
 
 
 type alias PipelineState =
