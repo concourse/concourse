@@ -213,12 +213,9 @@ as).
           id: my-client-id
           secret: my-client-secret
           scope: cloud_controller.read
-          authorities: cloud_controller.admin
-          authorized-grant-types: "authorization_code,client_credentials,refresh_token"
+          authorized-grant-types: "authorization_code,refresh_token"
           access-token-validity: 3600
           refresh-token-validity: 3600
-          autoapprove: true
-          override: true
           redirect-uri: https://concourse.example.com/auth/uaa/callback
       }}
     }
