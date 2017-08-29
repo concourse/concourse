@@ -19,7 +19,7 @@ type}{https://github.com/concourse/docker-image-resource} when doing this.
 
 The following example extends a Concourse pipeline to support use of the
 \link{\code{pull-request} resource
-type}{https://github.com/jtarchie/pullrequest-resource} and then uses it within
+type}{https://github.com/jtarchie/github-pullrequest-resource} and then uses it within
 the pipeline:
 
 \codeblock{yaml}{{
