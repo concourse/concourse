@@ -105,6 +105,20 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				By("having created a new session, as the old one was removed")
 				Expect(newResourceConfigCheckSession.ID()).ToNot(Equal(resourceConfigCheckSession.ID()))
 			})
+
+			It("removes check sessions for resources in paused pipelines", func() {
+				By("pausing the pipeline")
+				Expect(defaultPipeline.Pause()).To(Succeed())
+
+				By("cleaning up inactive sessions")
+				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
+
+				By("find-or-creating the session again")
+				newResourceConfigCheckSession := findOrCreateSessionForDefaultResource()
+
+				By("having created a new session, as the old one was removed")
+				Expect(newResourceConfigCheckSession.ID()).ToNot(Equal(resourceConfigCheckSession.ID()))
+			})
 		})
 
 		Context("for resource types", func() {
@@ -161,6 +175,20 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 					ResourceTypes: atc.ResourceTypes{},
 				}, defaultPipeline.ConfigVersion(), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
+
+				By("cleaning up inactive sessions")
+				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
+
+				By("find-or-creating the session again")
+				newResourceConfigCheckSession := findOrCreateSessionForDefaultResourceType()
+
+				By("having created a new session, as the old one was removed")
+				Expect(newResourceConfigCheckSession.ID()).ToNot(Equal(resourceConfigCheckSession.ID()))
+			})
+
+			It("removes check sessions for resource types in paused pipelines", func() {
+				By("pausing the pipeline")
+				Expect(defaultPipeline.Pause()).To(Succeed())
 
 				By("cleaning up inactive sessions")
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())

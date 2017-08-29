@@ -28,7 +28,8 @@ func (lifecycle resourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 		From("resource_config_check_sessions rccs").
 		Join("resource_configs rc ON rccs.resource_config_id = rc.id").
 		Join("resources r ON r.resource_config_id = rc.id").
-		Where(sq.Eq{"r.paused": false, "r.active": true}).
+		Join("pipelines p ON p.id = r.pipeline_id").
+		Where(sq.Eq{"r.paused": false, "p.paused": false, "r.active": true}).
 		ToSql()
 	if err != nil {
 		return err
@@ -40,7 +41,8 @@ func (lifecycle resourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 		From("resource_config_check_sessions rccs").
 		Join("resource_configs rc ON rccs.resource_config_id = rc.id").
 		Join("resource_types rt ON rt.resource_config_id = rc.id").
-		Where(sq.Eq{"rt.active": true}).
+		Join("pipelines p ON p.id = rt.pipeline_id").
+		Where(sq.Eq{"p.paused": false, "rt.active": true}).
 		ToSql()
 	if err != nil {
 		return err
