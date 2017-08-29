@@ -249,6 +249,8 @@ var zoom = (function() {
   }
 })();
 
+var shouldResetPipelineFocus = false;
+
 function createPipelineSvg(svg) {
   var g = d3.select("g.test")
   if (g.empty()) {
@@ -265,18 +267,25 @@ function createPipelineSvg(svg) {
         ev.stopImmediatePropagation();
     }).call(zoom().scaleExtent([0.5, 10]).on("zoom", function() {
       var ev = d3.event;
-      g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
+      if (shouldResetPipelineFocus) {
+        shouldResetPipelineFocus = false;
+        resetPipelineFocus();
+      } else {
+        g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
+      }
     }));
   }
   return g
 }
 
 function resetPipelineFocus() {
-  var g = d3.select("g.test")
+  var g = d3.select("g.test");
 
   if (!g.empty()) {
-    g.attr("transform", "")
-    zoom().translate([0,0]).scale(1).scaleExtent([0.5, 10]);
+    g.attr("transform", "");
+    zoom().translate([0,0]).scale(1).center(0,0);
+  } else {
+    shouldResetPipelineFocus = true
   }
 
   return g
