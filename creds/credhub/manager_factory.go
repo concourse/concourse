@@ -8,17 +8,17 @@ import (
 type credhubManagerFactory struct{}
 
 func init() {
-	creds.Register("credhub", NewCredhubManagerFactory())
+	creds.Register("credhub", NewCredHubManagerFactory())
 }
 
-func NewCredhubManagerFactory() creds.ManagerFactory {
+func NewCredHubManagerFactory() creds.ManagerFactory {
 	return &credhubManagerFactory{}
 }
 
 func (factory *credhubManagerFactory) AddConfig(group *flags.Group) creds.Manager {
-	manager := &CredhubManager{}
+	manager := &CredHubManager{}
 
-	subGroup, err := group.AddGroup("Credhub Credential Management", "", manager)
+	subGroup, err := group.AddGroup("CredHub Credential Management", "", manager)
 	if err != nil {
 		panic(err)
 	}

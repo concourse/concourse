@@ -8,26 +8,25 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth/uaa"
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/concourse/atc/creds"
 )
 
-type CredhubManager struct {
-	// FIXME Update descriptions
-	URL          string   `long:"url" description:"Credhub server address used to access secrets."`
+type CredHubManager struct {
+	URL          string   `long:"url" description:"CredHub server address used to access secrets."`
 	PathPrefix   string   `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
-	CaCerts      []string `long:"ca-certs" description:"Paths to PEM-encoded CA cert files to use to verify the credhub server SSL cert."`
+	CaCerts      []string `long:"ca-certs" description:"Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert."`
 	Insecure     bool     `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
-	ClientId     string   `long:"client-id" description:"Client ID for Credhub authorization."`
-	ClientSecret string   `long:"client-secret" description:"Client secret for Credhub authorization."`
+	ClientId     string   `long:"client-id" description:"Client ID for CredHub authorization."`
+	ClientSecret string   `long:"client-secret" description:"Client secret for CredHub authorization."`
 	caCerts      []string `no-flag:true`
 }
 
-func (manager CredhubManager) IsConfigured() bool {
+func (manager CredHubManager) IsConfigured() bool {
 	return manager.URL != "" && manager.ClientId != "" && manager.ClientSecret != ""
 }
 
-func (manager CredhubManager) Validate() error {
+func (manager CredHubManager) Validate() error {
 	parsedUrl, err := url.Parse(manager.URL)
 	if err != nil {
 		return fmt.Errorf("invalid URL: %s", err)
@@ -52,10 +51,10 @@ func (manager CredhubManager) Validate() error {
 	return nil
 }
 
-func (manager CredhubManager) NewVariablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
+func (manager CredHubManager) NewVariablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
 	ch, err := credhub.New(manager.URL,
 		credhub.SkipTLSValidation(),
-		credhub.AuthBuilder(uaa.ClientCredentialsGrantBuilder(manager.ClientId, manager.ClientSecret)))
+		credhub.Auth(auth.UaaClientCredentials(manager.ClientId, manager.ClientSecret)))
 
-	return NewCredhubFactory(logger, ch, manager.PathPrefix), err
+	return NewCredHubFactory(logger, ch, manager.PathPrefix), err
 }

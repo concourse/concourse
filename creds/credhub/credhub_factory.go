@@ -13,14 +13,13 @@ type credhubFactory struct {
 	prefix  string
 }
 
-func NewCredhubFactory(logger lager.Logger, credhub *credhub.CredHub, prefix string) *credhubFactory {
+func NewCredHubFactory(logger lager.Logger, credhub *credhub.CredHub, prefix string) *credhubFactory {
 	factory := &credhubFactory{
 		credhub: credhub,
 		logger:  logger,
 		prefix:  prefix,
 	}
 
-	logger.Info("init-credhub", lager.Data{"api": credhub.ApiURL})
 	return factory
 }
 
@@ -29,7 +28,7 @@ func (factory *credhubFactory) NewVariables(teamName string, pipelineName string
 		CredHub:      factory.credhub,
 		PathPrefix:   factory.prefix,
 		TeamName:     teamName,
-		logger:       factory.logger.Session("credhub-vars"),
+		logger:       factory.logger,
 		PipelineName: pipelineName,
 	}
 }
