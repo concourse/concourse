@@ -85,7 +85,7 @@ before using it!
   \list{
     \link{Slack notifications}{https://github.com/cloudfoundry-community/slack-notification-resource}
   }{
-    \link{Pull Requests}{https://github.com/jtarchie/pullrequest-resource}
+    \link{Github Pull Requests}{https://github.com/jtarchie/github-pullrequest-resource}
   }{
     \link{GitLab Merge Requests}{https://github.com/swisscom/gitlab-merge-request-resource}
   }{
