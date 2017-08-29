@@ -24,7 +24,7 @@
     Thanks to \ghuser{SHyx0rmZ} for implementing this! 
   }
   \note{feature}{
-    \code{fly} now prints a URL to your builiid page when you run \reference{fly-execute}. 
+    \code{fly} now prints a URL to your build page when you run \reference{fly-execute}. 
     How convenient! 
   }
   \note{fix}{
