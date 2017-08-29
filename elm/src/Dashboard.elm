@@ -13,14 +13,14 @@ import Time exposing (Time)
 
 type alias Model =
     { pipelines : RemoteData.WebData (List Concourse.Pipeline)
-    , jobs : Dict Concourse.PipelineName (RemoteData.WebData (List Concourse.Job))
+    , jobs : Dict Int (RemoteData.WebData (List Concourse.Job))
     , turbulenceImgSrc : String
     }
 
 
 type Msg
     = PipelinesResponse (RemoteData.WebData (List Concourse.Pipeline))
-    | JobsResponse Concourse.PipelineName (RemoteData.WebData (List Concourse.Job))
+    | JobsResponse Int (RemoteData.WebData (List Concourse.Job))
     | AutoRefresh Time
 
 
@@ -47,8 +47,8 @@ update msg model =
                     Cmd.none
             )
 
-        JobsResponse pipelineName response ->
-            ( { model | jobs = Dict.insert pipelineName response model.jobs }, Cmd.none )
+        JobsResponse pipelineId response ->
+            ( { model | jobs = Dict.insert pipelineId response model.jobs }, Cmd.none )
 
         AutoRefresh _ ->
             ( model, fetchPipelines )
@@ -73,7 +73,7 @@ view model =
                                     { pipeline = pipeline
                                     , jobs =
                                         Maybe.withDefault RemoteData.NotAsked <|
-                                            Dict.get pipeline.name model.jobs
+                                            Dict.get pipeline.id model.jobs
                                     }
                                 )
                                 pipelines
@@ -212,7 +212,7 @@ fetchPipelines =
 
 fetchJobs : Concourse.Pipeline -> Cmd Msg
 fetchJobs pipeline =
-    Cmd.map (JobsResponse pipeline.name) <|
+    Cmd.map (JobsResponse pipeline.id) <|
         RemoteData.asCmd <|
             Concourse.Job.fetchJobs
                 { teamName = pipeline.teamName

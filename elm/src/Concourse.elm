@@ -606,7 +606,8 @@ type alias PipelineIdentifier =
 
 
 type alias Pipeline =
-    { name : PipelineName
+    { id : Int
+    , name : PipelineName
     , url : String
     , paused : Bool
     , public : Bool
@@ -625,6 +626,7 @@ type alias PipelineGroup =
 decodePipeline : Json.Decode.Decoder Pipeline
 decodePipeline =
     Json.Decode.succeed Pipeline
+        |: (Json.Decode.field "id" Json.Decode.int)
         |: (Json.Decode.field "name" Json.Decode.string)
         |: (Json.Decode.field "url" Json.Decode.string)
         |: (Json.Decode.field "paused" Json.Decode.bool)
