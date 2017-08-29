@@ -69,8 +69,6 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 		})
 
 		It("has its resource config, resource config uses and container removed", func() {
-			Skip("needs resources to be tied to a resource config")
-
 			By("setting pipeline that creates resource config")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
 
@@ -129,8 +127,6 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 		})
 
 		It("has its resource config, resource config uses and container removed", func() {
-			Skip("needs resources to be tied to a resource config")
-
 			By("setting pipeline that creates resource config")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
 
@@ -189,8 +185,6 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 		})
 
 		It("has its resource config, resource config uses and container removed", func() {
-			Skip("needs resources to be tied to a resource config")
-
 			By("setting pipeline that creates resource config")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
 
