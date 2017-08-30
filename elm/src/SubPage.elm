@@ -12,6 +12,7 @@ import Concourse
 import Concourse.Pipeline
 import Job
 import Resource
+import BetaResource
 import Build
 import NoPipeline
 import Routes
@@ -38,6 +39,7 @@ type Model
     | BuildModel (Autoscroll.Model Build.Model)
     | JobModel Job.Model
     | ResourceModel Resource.Model
+    | BetaResourceModel BetaResource.Model
     | LoginModel Login.Model
     | PipelineModel Pipeline.Model
     | BetaPipelineModel BetaPipeline.Model
@@ -54,6 +56,7 @@ type Msg
     | BuildMsg (Autoscroll.Msg Build.Msg)
     | JobMsg Job.Msg
     | ResourceMsg Resource.Msg
+    | BetaResourceMsg BetaResource.Msg
     | LoginMsg Login.Msg
     | PipelineMsg Pipeline.Msg
     | DashboardMsg Dashboard.Msg
@@ -104,6 +107,17 @@ init turbulencePath route =
         Routes.Resource teamName pipelineName resourceName ->
             superDupleWrap ( ResourceModel, ResourceMsg ) <|
                 Resource.init
+                    { title = setTitle }
+                    { resourceName = resourceName
+                    , teamName = teamName
+                    , pipelineName = pipelineName
+                    , paging = route.page
+                    , csrfToken = ""
+                    }
+
+        Routes.BetaResource teamName pipelineName resourceName ->
+            superDupleWrap ( BetaResourceModel, BetaResourceMsg ) <|
+                BetaResource.init
                     { title = setTitle }
                     { resourceName = resourceName
                     , teamName = teamName
@@ -234,6 +248,9 @@ update turbulence notFound csrfToken msg mdl =
         ( ResourceMsg message, ResourceModel model ) ->
             handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
 
+        ( BetaResourceMsg message, BetaResourceModel model ) ->
+            handleNotFound notFound ( BetaResourceModel, BetaResourceMsg ) (BetaResource.updateWithMessage message { model | csrfToken = csrfToken })
+
         ( SelectTeamMsg message, SelectTeamModel model ) ->
             superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <| TeamSelection.update message model
 
@@ -298,6 +315,17 @@ urlUpdate route model =
                     }
                     mdl
 
+        ( Routes.BetaResource teamName pipelineName resourceName, BetaResourceModel mdl ) ->
+            superDupleWrap ( BetaResourceModel, BetaResourceMsg ) <|
+                BetaResource.changeToResource
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , resourceName = resourceName
+                    , paging = route.page
+                    , csrfToken = mdl.csrfToken
+                    }
+                    mdl
+
         ( Routes.Job teamName pipelineName jobName, JobModel mdl ) ->
             superDupleWrap ( JobModel, JobMsg ) <|
                 Job.changeToJob
@@ -351,6 +379,9 @@ view mdl =
         ResourceModel model ->
             Html.map ResourceMsg <| Resource.view model
 
+        BetaResourceModel model ->
+            Html.map BetaResourceMsg <| BetaResource.view model
+
         SelectTeamModel model ->
             Html.map SelectTeamMsg <| TeamSelection.view model
 
@@ -390,6 +421,9 @@ subscriptions mdl =
 
         ResourceModel model ->
             Sub.map ResourceMsg <| Resource.subscriptions model
+
+        BetaResourceModel model ->
+            Sub.map BetaResourceMsg <| BetaResource.subscriptions model
 
         SelectTeamModel model ->
             Sub.map SelectTeamMsg <| TeamSelection.subscriptions model
