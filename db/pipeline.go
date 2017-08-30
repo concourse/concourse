@@ -186,19 +186,28 @@ func (p *pipeline) ScopedName(n string) string {
 
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 	rows, err := p.conn.Query(`
-		WITH RECURSIVE causality(versioned_resource_id, build_id) AS (
+		WITH RECURSIVE transitive_outputs(versioned_resource_id, build_id) AS (
 				SELECT bi.versioned_resource_id, bi.build_id
 				FROM build_inputs bi
 				WHERE bi.versioned_resource_id = $1
 			UNION
 				SELECT bi.versioned_resource_id, bi.build_id
-				FROM build_inputs bi, build_outputs bo, causality c
+				FROM build_inputs bi, build_outputs bo, transitive_outputs t
 				WHERE bi.versioned_resource_id = bo.versioned_resource_id
-				AND bo.build_id = c.build_id
+				AND bo.build_id = t.build_id
 				AND bo.explicit
+		), first_version_of_each_resource AS (
+			SELECT min(versioned_resource_id) AS versioned_resource_id
+			FROM transitive_outputs t
+			LEFT JOIN versioned_resources v ON v.id = t.versioned_resource_id
+			GROUP BY v.resource_id
+		), truncated_to_earliest_path AS (
+			SELECT t.versioned_resource_id, t.build_id
+			FROM transitive_outputs t, first_version_of_each_resource f
+			WHERE t.versioned_resource_id = f.versioned_resource_id
 		)
 		SELECT versioned_resource_id, build_id
-		FROM causality
+		FROM truncated_to_earliest_path
 		ORDER BY build_id ASC, versioned_resource_id ASC
 	`, versionedResourceID)
 	if err != nil {
