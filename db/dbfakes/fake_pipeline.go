@@ -118,6 +118,19 @@ type FakePipeline struct {
 		result1 bool
 		result2 error
 	}
+	CausalityStub        func(versionedResourceID int) ([]db.Cause, error)
+	causalityMutex       sync.RWMutex
+	causalityArgsForCall []struct {
+		versionedResourceID int
+	}
+	causalityReturns struct {
+		result1 []db.Cause
+		result2 error
+	}
+	causalityReturnsOnCall map[int]struct {
+		result1 []db.Cause
+		result2 error
+	}
 	SetResourceCheckErrorStub        func(db.Resource, error) error
 	setResourceCheckErrorMutex       sync.RWMutex
 	setResourceCheckErrorArgsForCall []struct {
@@ -198,6 +211,21 @@ type FakePipeline struct {
 		result3 error
 	}
 	getVersionedResourceByVersionReturnsOnCall map[int]struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}
+	VersionedResourceStub        func(versionedResourceID int) (db.SavedVersionedResource, bool, error)
+	versionedResourceMutex       sync.RWMutex
+	versionedResourceArgsForCall []struct {
+		versionedResourceID int
+	}
+	versionedResourceReturns struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}
+	versionedResourceReturnsOnCall map[int]struct {
 		result1 db.SavedVersionedResource
 		result2 bool
 		result3 error
@@ -942,6 +970,57 @@ func (fake *FakePipeline) ReloadReturnsOnCall(i int, result1 bool, result2 error
 	}{result1, result2}
 }
 
+func (fake *FakePipeline) Causality(versionedResourceID int) ([]db.Cause, error) {
+	fake.causalityMutex.Lock()
+	ret, specificReturn := fake.causalityReturnsOnCall[len(fake.causalityArgsForCall)]
+	fake.causalityArgsForCall = append(fake.causalityArgsForCall, struct {
+		versionedResourceID int
+	}{versionedResourceID})
+	fake.recordInvocation("Causality", []interface{}{versionedResourceID})
+	fake.causalityMutex.Unlock()
+	if fake.CausalityStub != nil {
+		return fake.CausalityStub(versionedResourceID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.causalityReturns.result1, fake.causalityReturns.result2
+}
+
+func (fake *FakePipeline) CausalityCallCount() int {
+	fake.causalityMutex.RLock()
+	defer fake.causalityMutex.RUnlock()
+	return len(fake.causalityArgsForCall)
+}
+
+func (fake *FakePipeline) CausalityArgsForCall(i int) int {
+	fake.causalityMutex.RLock()
+	defer fake.causalityMutex.RUnlock()
+	return fake.causalityArgsForCall[i].versionedResourceID
+}
+
+func (fake *FakePipeline) CausalityReturns(result1 []db.Cause, result2 error) {
+	fake.CausalityStub = nil
+	fake.causalityReturns = struct {
+		result1 []db.Cause
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) CausalityReturnsOnCall(i int, result1 []db.Cause, result2 error) {
+	fake.CausalityStub = nil
+	if fake.causalityReturnsOnCall == nil {
+		fake.causalityReturnsOnCall = make(map[int]struct {
+			result1 []db.Cause
+			result2 error
+		})
+	}
+	fake.causalityReturnsOnCall[i] = struct {
+		result1 []db.Cause
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakePipeline) SetResourceCheckError(arg1 db.Resource, arg2 error) error {
 	fake.setResourceCheckErrorMutex.Lock()
 	ret, specificReturn := fake.setResourceCheckErrorReturnsOnCall[len(fake.setResourceCheckErrorArgsForCall)]
@@ -1249,6 +1328,60 @@ func (fake *FakePipeline) GetVersionedResourceByVersionReturnsOnCall(i int, resu
 		})
 	}
 	fake.getVersionedResourceByVersionReturnsOnCall[i] = struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) VersionedResource(versionedResourceID int) (db.SavedVersionedResource, bool, error) {
+	fake.versionedResourceMutex.Lock()
+	ret, specificReturn := fake.versionedResourceReturnsOnCall[len(fake.versionedResourceArgsForCall)]
+	fake.versionedResourceArgsForCall = append(fake.versionedResourceArgsForCall, struct {
+		versionedResourceID int
+	}{versionedResourceID})
+	fake.recordInvocation("VersionedResource", []interface{}{versionedResourceID})
+	fake.versionedResourceMutex.Unlock()
+	if fake.VersionedResourceStub != nil {
+		return fake.VersionedResourceStub(versionedResourceID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.versionedResourceReturns.result1, fake.versionedResourceReturns.result2, fake.versionedResourceReturns.result3
+}
+
+func (fake *FakePipeline) VersionedResourceCallCount() int {
+	fake.versionedResourceMutex.RLock()
+	defer fake.versionedResourceMutex.RUnlock()
+	return len(fake.versionedResourceArgsForCall)
+}
+
+func (fake *FakePipeline) VersionedResourceArgsForCall(i int) int {
+	fake.versionedResourceMutex.RLock()
+	defer fake.versionedResourceMutex.RUnlock()
+	return fake.versionedResourceArgsForCall[i].versionedResourceID
+}
+
+func (fake *FakePipeline) VersionedResourceReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {
+	fake.VersionedResourceStub = nil
+	fake.versionedResourceReturns = struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) VersionedResourceReturnsOnCall(i int, result1 db.SavedVersionedResource, result2 bool, result3 error) {
+	fake.VersionedResourceStub = nil
+	if fake.versionedResourceReturnsOnCall == nil {
+		fake.versionedResourceReturnsOnCall = make(map[int]struct {
+			result1 db.SavedVersionedResource
+			result2 bool
+			result3 error
+		})
+	}
+	fake.versionedResourceReturnsOnCall[i] = struct {
 		result1 db.SavedVersionedResource
 		result2 bool
 		result3 error
@@ -2373,6 +2506,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.checkPausedMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
+	fake.causalityMutex.RLock()
+	defer fake.causalityMutex.RUnlock()
 	fake.setResourceCheckErrorMutex.RLock()
 	defer fake.setResourceCheckErrorMutex.RUnlock()
 	fake.saveResourceVersionsMutex.RLock()
@@ -2385,6 +2520,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.getLatestVersionedResourceMutex.RUnlock()
 	fake.getVersionedResourceByVersionMutex.RLock()
 	defer fake.getVersionedResourceByVersionMutex.RUnlock()
+	fake.versionedResourceMutex.RLock()
+	defer fake.versionedResourceMutex.RUnlock()
 	fake.disableVersionedResourceMutex.RLock()
 	defer fake.disableVersionedResourceMutex.RUnlock()
 	fake.enableVersionedResourceMutex.RLock()

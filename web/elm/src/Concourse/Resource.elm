@@ -5,10 +5,12 @@ module Concourse.Resource
         , pause
         , unpause
         , fetchVersionedResources
+        , fetchVersionedResource
         , enableVersionedResource
         , disableVersionedResource
         , fetchInputTo
         , fetchOutputOf
+        , fetchCausality
         )
 
 import Concourse
@@ -68,6 +70,21 @@ pauseUnpause pause rid csrfToken =
                 , timeout = Nothing
                 , withCredentials = False
                 }
+
+
+fetchVersionedResource : Concourse.VersionedResourceIdentifier -> Task Http.Error Concourse.VersionedResource
+fetchVersionedResource vrid =
+    Http.toTask
+        << flip Http.get Concourse.decodeVersionedResource
+    <|
+        "/api/v1/teams/"
+            ++ vrid.teamName
+            ++ "/pipelines/"
+            ++ vrid.pipelineName
+            ++ "/resources/"
+            ++ vrid.resourceName
+            ++ "/versions/"
+            ++ toString vrid.versionID
 
 
 fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Task Http.Error (Paginated Concourse.VersionedResource)
@@ -135,3 +152,18 @@ fetchInputOutput action vrid =
             ++ toString vrid.versionID
             ++ "/"
             ++ action
+
+
+fetchCausality : Concourse.VersionedResourceIdentifier -> Task Http.Error (List Concourse.Cause)
+fetchCausality vrid =
+    Http.toTask <|
+        flip Http.get (Json.Decode.list Concourse.decodeCause) <|
+            "/api/v1/teams/"
+                ++ vrid.teamName
+                ++ "/pipelines/"
+                ++ vrid.pipelineName
+                ++ "/resources/"
+                ++ vrid.resourceName
+                ++ "/versions/"
+                ++ toString vrid.versionID
+                ++ "/causality"

@@ -10,6 +10,7 @@ type Route
     = Home
     | Build String String String String
     | Resource String String String
+    | BetaResource String String String
     | Job String String String
     | OneOffBuild String
     | Pipeline String String
@@ -43,6 +44,11 @@ oneOffBuild =
 resource : Route.Route Route
 resource =
     Resource := static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
+
+
+betaResource : Route.Route Route
+betaResource =
+    BetaResource := static "beta" </> static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
 
 
 job : Route.Route Route
@@ -84,6 +90,7 @@ sitemap =
     router
         [ build
         , resource
+        , betaResource
         , job
         , login
         , oneOffBuild
@@ -111,6 +118,9 @@ toString route =
 
         Resource teamName pipelineName resourceName ->
             reverse job [ teamName, pipelineName, resourceName ]
+
+        BetaResource teamName pipelineName resourceName ->
+            reverse betaResource [ teamName, pipelineName, resourceName ]
 
         OneOffBuild buildId ->
             reverse oneOffBuild [ buildId ]

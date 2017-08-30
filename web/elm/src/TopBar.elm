@@ -197,6 +197,9 @@ extractPidFromRoute route =
         Routes.Resource teamName pipelineName resourceName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
+        Routes.BetaResource teamName pipelineName resourceName ->
+            Just { teamName = teamName, pipelineName = pipelineName }
+
         Routes.OneOffBuild buildId ->
             Nothing
 

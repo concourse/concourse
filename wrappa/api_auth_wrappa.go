@@ -87,6 +87,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetResource,
 			atc.ListBuildsWithVersionAsInput,
 			atc.ListBuildsWithVersionAsOutput,
+			atc.GetResourceCausality,
+			atc.GetResourceVersion,
 			atc.ListResources,
 			atc.ListResourceVersions:
 			newHandler = wrappa.checkPipelineAccessHandlerFactory.HandlerFor(handler, rejector)
