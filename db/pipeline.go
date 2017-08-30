@@ -186,48 +186,20 @@ func (p *pipeline) ScopedName(n string) string {
 
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 	rows, err := p.conn.Query(`
-		WITH version AS (
-			SELECT *
-			FROM versioned_resources
-			WHERE id = $1
-		), first_occurrences AS (
-			SELECT bi.*, j.name
-			FROM build_inputs bi
-			LEFT JOIN builds b ON bi.build_id = b.id
-			LEFT JOIN jobs j ON b.job_id = j.id
-			WHERE bi.versioned_resource_id IN (SELECT id FROM version)
-			AND NOT EXISTS (
-				SELECT 1
-				FROM build_inputs obi
-				LEFT JOIN builds ob ON obi.build_id = ob.id
-				WHERE obi.versioned_resource_id IN (SELECT id FROM version)
-				AND ob.job_id = b.job_id
-				AND obi.build_id = ob.id
-				AND ob.id < b.id
-			)
-			ORDER BY build_id ASC
-		), first_builds AS (
-			SELECT DISTINCT build_id
-			FROM first_occurrences
-		), all_first_occurrences_within_builds AS (
-			SELECT bi.*
-			FROM build_inputs bi
-			LEFT JOIN builds b ON bi.build_id = b.id
-			LEFT JOIN versioned_resources v ON bi.versioned_resource_id = v.id
-			WHERE bi.build_id IN (SELECT build_id FROM first_occurrences)
-			AND NOT EXISTS (
-				SELECT 1
-				FROM build_inputs obi
-				LEFT JOIN builds ob ON obi.build_id = ob.id
-				WHERE obi.versioned_resource_id = v.id
-				AND ob.job_id = b.job_id
-				AND obi.build_id = ob.id
-				AND ob.id < b.id
-			)
+		WITH RECURSIVE causality(versioned_resource_id, build_id) AS (
+				SELECT bi.versioned_resource_id, bi.build_id
+				FROM build_inputs bi
+				WHERE bi.versioned_resource_id = $1
+			UNION
+				SELECT bi.versioned_resource_id, bi.build_id
+				FROM build_inputs bi, build_outputs bo, causality c
+				WHERE bi.versioned_resource_id = bo.versioned_resource_id
+				AND bo.build_id = c.build_id
+				AND bo.explicit
 		)
-			SELECT versioned_resource_id, build_id
-			FROM all_first_occurrences_within_builds
-			ORDER BY build_id ASC, versioned_resource_id ASC
+		SELECT versioned_resource_id, build_id
+		FROM causality
+		ORDER BY build_id ASC, versioned_resource_id ASC
 	`, versionedResourceID)
 	if err != nil {
 		return nil, err
