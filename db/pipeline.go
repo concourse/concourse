@@ -186,28 +186,28 @@ func (p *pipeline) ScopedName(n string) string {
 
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 	rows, err := p.conn.Query(`
-		WITH RECURSIVE transitive_outputs(versioned_resource_id, build_id) AS (
+		WITH RECURSIVE transitive_output_first_occurrences(versioned_resource_id, build_id) AS (
 				SELECT bi.versioned_resource_id, bi.build_id
 				FROM build_inputs bi
 				WHERE bi.versioned_resource_id = $1
 			UNION
 				SELECT bi.versioned_resource_id, bi.build_id
-				FROM build_inputs bi, build_outputs bo, transitive_outputs t
-				WHERE bi.versioned_resource_id = bo.versioned_resource_id
-				AND bo.build_id = t.build_id
-				AND bo.explicit
-		), first_version_of_each_resource AS (
-			SELECT min(versioned_resource_id) AS versioned_resource_id
-			FROM transitive_outputs t
-			LEFT JOIN versioned_resources v ON v.id = t.versioned_resource_id
-			GROUP BY v.resource_id
-		), truncated_to_earliest_path AS (
-			SELECT t.versioned_resource_id, t.build_id
-			FROM transitive_outputs t, first_version_of_each_resource f
-			WHERE t.versioned_resource_id = f.versioned_resource_id
+				FROM transitive_output_first_occurrences t
+				LEFT JOIN build_outputs bo ON bo.build_id = t.build_id
+				LEFT JOIN build_inputs bi ON bi.versioned_resource_id = bo.versioned_resource_id
+				LEFT JOIN builds b ON b.id = bi.build_id
+				WHERE bo.explicit
+				AND NOT EXISTS (
+					SELECT 1
+					FROM build_outputs obo
+					LEFT JOIN builds ob ON ob.id = obo.build_id
+					WHERE obo.build_id < bi.build_id
+					AND ob.job_id = b.job_id
+					AND obo.versioned_resource_id = bi.versioned_resource_id
+				)
 		)
 		SELECT versioned_resource_id, build_id
-		FROM truncated_to_earliest_path
+		FROM transitive_output_first_occurrences
 		ORDER BY build_id ASC, versioned_resource_id ASC
 	`, versionedResourceID)
 	if err != nil {
