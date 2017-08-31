@@ -10,6 +10,7 @@ type Job struct {
 	DisableManualTrigger bool   `json:"disable_manual_trigger,omitempty"`
 	NextBuild            *Build `json:"next_build"`
 	FinishedBuild        *Build `json:"finished_build"`
+	TransitionBuild      *Build `json:"transition_build,omitempty"`
 
 	Inputs  []JobInput  `json:"inputs"`
 	Outputs []JobOutput `json:"outputs"`

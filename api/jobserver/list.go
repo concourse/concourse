@@ -33,6 +33,7 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 					groups,
 					job.FinishedBuild,
 					job.NextBuild,
+					nil,
 				),
 			)
 		}

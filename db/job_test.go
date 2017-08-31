@@ -216,6 +216,76 @@ var _ = Describe("Job", func() {
 		})
 	})
 
+	Describe("TransitionBuild", func() {
+		var otherJob db.Job
+
+		BeforeEach(func() {
+			otherPipeline, created, err := team.SavePipeline("other-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{Name: "some-job"},
+				},
+			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(created).To(BeTrue())
+
+			var found bool
+			otherJob, found, err = otherPipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		It("can report a job's transition build", func() {
+			transition, err := job.TransitionBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(transition).To(BeNil())
+
+			build, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			build, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build.Finish(db.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			otherBuild, err := otherJob.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			transitionBuild, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = transitionBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			otherBuild, err = otherJob.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherBuild.Finish(db.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			build, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			build, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			transition, err = job.TransitionBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(transition.ID()).To(Equal(transitionBuild.ID()))
+		})
+	})
+
 	Describe("UpdateFirstLoggedBuildID", func() {
 		It("updates FirstLoggedBuildID on a job", func() {
 			By("starting out as 0")

@@ -13,6 +13,7 @@ func Job(
 	groups atc.GroupConfigs,
 	finishedBuild db.Build,
 	nextBuild db.Build,
+	transitionBuild db.Build,
 ) atc.Job {
 	generator := rata.NewRequestGenerator("", web.Routes)
 
@@ -29,7 +30,7 @@ func Job(
 		panic("failed to generate url: " + err.Error())
 	}
 
-	var presentedNextBuild, presentedFinishedBuild *atc.Build
+	var presentedNextBuild, presentedFinishedBuild, presentedTransitionBuild *atc.Build
 
 	if nextBuild != nil {
 		presented := Build(nextBuild)
@@ -39,6 +40,11 @@ func Job(
 	if finishedBuild != nil {
 		presented := Build(finishedBuild)
 		presentedFinishedBuild = &presented
+	}
+
+	if transitionBuild != nil {
+		presented := Build(transitionBuild)
+		presentedTransitionBuild = &presented
 	}
 
 	groupNames := []string{}
@@ -78,6 +84,7 @@ func Job(
 		FirstLoggedBuildID:   job.FirstLoggedBuildID(),
 		FinishedBuild:        presentedFinishedBuild,
 		NextBuild:            presentedNextBuild,
+		TransitionBuild:      presentedTransitionBuild,
 
 		Inputs:  sanitizedInputs,
 		Outputs: sanitizedOutputs,
