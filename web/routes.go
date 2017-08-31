@@ -4,6 +4,7 @@ import "github.com/tedsuo/rata"
 
 const (
 	Index                 = "Index"
+	WebAppManifest        = "WebAppManifest"
 	RobotsTxt             = "RobotsTxt"
 	Pipeline              = "Pipeline"
 	GetBuild              = "GetBuild"
@@ -26,6 +27,7 @@ const (
 var Routes = rata.Routes{
 	// public
 	{Path: "/", Method: "GET", Name: Index},
+	{Path: "/manifest.json", Method: "GET", Name: WebAppManifest},
 	{Path: "/robots.txt", Method: "GET", Name: RobotsTxt},
 
 	// --- delete from here down
