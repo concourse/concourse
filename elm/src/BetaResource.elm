@@ -270,11 +270,7 @@ update action model =
         ToggleVersionedResource versionID ->
             let
                 versionedResourceIdentifier =
-                    { teamName = model.resourceIdentifier.teamName
-                    , pipelineName = model.resourceIdentifier.pipelineName
-                    , resourceName = model.resourceIdentifier.resourceName
-                    , versionID = versionID
-                    }
+                    versionIdentifier model versionID
 
                 versionedResource =
                     List.head <|
@@ -346,11 +342,7 @@ update action model =
         ExpandVersionedResource versionID ->
             let
                 versionedResourceIdentifier =
-                    { teamName = model.resourceIdentifier.teamName
-                    , pipelineName = model.resourceIdentifier.pipelineName
-                    , resourceName = model.resourceIdentifier.resourceName
-                    , versionID = versionID
-                    }
+                    versionIdentifier model versionID
 
                 oldState =
                     getState versionID model.versionedUIStates
@@ -370,29 +362,23 @@ update action model =
                 )
 
         CausalityFetched versionID response ->
-            ( { model | causality = Dict.insert versionID response model.causality }
-            , case response of
-                RemoteData.Success causality ->
-                    Cmd.batch
-                        << flip List.map causality
-                    <|
-                        \cause ->
-                            let
-                                versionedResourceIdentifier =
-                                    { teamName = model.resourceIdentifier.teamName
-                                    , pipelineName = model.resourceIdentifier.pipelineName
-                                    , resourceName = model.resourceIdentifier.resourceName
-                                    , versionID = cause.versionedResourceID
-                                    }
-                            in
-                                Cmd.batch
-                                    [ fetchBuild cause.buildID
-                                    , fetchVersionedResource versionedResourceIdentifier
-                                    ]
+            let
+                withCausality =
+                    { model | causality = Dict.insert versionID response model.causality }
 
-                _ ->
-                    Cmd.none
-            )
+                fetchCausalityDependents cause ( model, cmd ) =
+                    conditionallyFetchBuild cause.buildID <|
+                        conditionallyFetchVersion cause.versionedResourceID <|
+                            ( model, cmd )
+            in
+                case response of
+                    RemoteData.Success causality ->
+                        List.foldl fetchCausalityDependents
+                            ( withCausality, Cmd.none )
+                            causality
+
+                    _ ->
+                        ( withCausality, Cmd.none )
 
         BuildFetched buildID response ->
             ( { model | causalityBuilds = Dict.insert buildID response model.causalityBuilds }
@@ -406,6 +392,49 @@ update action model =
 
         NavTo url ->
             ( model, Navigation.newUrl url )
+
+
+conditionallyFetchBuild : Int -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+conditionallyFetchBuild id ( model, cmd ) =
+    let
+        fetch =
+            ( { model | causalityBuilds = Dict.insert id RemoteData.Loading model.causalityBuilds }
+            , Cmd.batch [ fetchBuild id, cmd ]
+            )
+    in
+        case getData id model.causalityBuilds of
+            RemoteData.Success build ->
+                if Concourse.BuildStatus.isRunning build.status then
+                    fetch
+                else
+                    ( model, cmd )
+
+            RemoteData.NotAsked ->
+                fetch
+
+            _ ->
+                ( model, cmd )
+
+
+conditionallyFetchVersion : Int -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+conditionallyFetchVersion id ( model, cmd ) =
+    case getData id model.causalityVersions of
+        RemoteData.NotAsked ->
+            ( { model | causalityVersions = Dict.insert id RemoteData.Loading model.causalityVersions }
+            , Cmd.batch [ fetchVersionedResource (versionIdentifier model id), cmd ]
+            )
+
+        _ ->
+            ( model, cmd )
+
+
+versionIdentifier : Model -> Int -> Concourse.VersionedResourceIdentifier
+versionIdentifier model versionedResourceID =
+    { teamName = model.resourceIdentifier.teamName
+    , pipelineName = model.resourceIdentifier.pipelineName
+    , resourceName = model.resourceIdentifier.resourceName
+    , versionID = versionedResourceID
+    }
 
 
 permalink : List Concourse.VersionedResource -> Page
@@ -869,12 +898,7 @@ isExpanded states versionedResource =
 
 fetchVersionCausality : Model -> Concourse.VersionedResource -> Cmd Msg
 fetchVersionCausality model versionedResource =
-    fetchCausality
-        { teamName = model.resourceIdentifier.teamName
-        , pipelineName = model.resourceIdentifier.pipelineName
-        , resourceName = model.resourceIdentifier.resourceName
-        , versionID = versionedResource.id
-        }
+    fetchCausality (versionIdentifier model versionedResource.id)
 
 
 fetchResource : Concourse.ResourceIdentifier -> Cmd Msg
