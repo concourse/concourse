@@ -111,7 +111,7 @@
 	branch = master
 [submodule "src/github.com/tedsuo/rata"]
 	path = src/github.com/tedsuo/rata
-	url = https://github.com/concourse/rata
+	url = https://github.com/tedsuo/rata
 	branch = encode-path-segments
 [submodule "src/github.com/tedsuo/ifrit"]
 	path = src/github.com/tedsuo/ifrit
