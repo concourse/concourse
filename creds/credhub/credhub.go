@@ -73,6 +73,9 @@ func (c CredHubAtc) findCred(path string) (credentials.Credential, bool, error) 
 	}
 
 	cred, err = c.CredHub.Get(path)
+	if _, ok := err.(*credhub.Error); ok {
+		return cred, false, nil
+	}
 	if err != nil {
 		return cred, false, err
 	}
