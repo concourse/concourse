@@ -22,6 +22,14 @@ files:
   - github.com/The-Cloud-Source/goryman/proto/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cenkalti/backoff/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/credhub/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/credhub/auth/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/credhub/auth/uaa/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/generate/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/credhub/server/*.go # gosub
   - github.com/cloudfoundry/bosh-cli/director/template/*.go # gosub
   - github.com/cloudfoundry/bosh-cli/vendor/github.com/bmatcuk/doublestar/*.go # gosub
   - github.com/cloudfoundry/bosh-cli/vendor/github.com/charlievieth/fs/*.go # gosub
@@ -62,6 +70,7 @@ files:
   - github.com/concourse/atc/builds/*.go # gosub
   - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/concourse/atc/creds/*.go # gosub
+  - github.com/concourse/atc/creds/credhub/*.go # gosub
   - github.com/concourse/atc/creds/noop/*.go # gosub
   - github.com/concourse/atc/creds/vault/*.go # gosub
   - github.com/concourse/atc/creds/vault/vendor/github.com/fatih/structs/*.go # gosub
