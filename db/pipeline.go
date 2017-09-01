@@ -186,13 +186,13 @@ func (p *pipeline) ScopedName(n string) string {
 
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 	rows, err := p.conn.Query(`
-		WITH RECURSIVE transitive_output_first_occurrences(versioned_resource_id, build_id) AS (
+		WITH RECURSIVE causality(versioned_resource_id, build_id) AS (
 				SELECT bi.versioned_resource_id, bi.build_id
 				FROM build_inputs bi
 				WHERE bi.versioned_resource_id = $1
 			UNION
 				SELECT bi.versioned_resource_id, bi.build_id
-				FROM transitive_output_first_occurrences t
+				FROM causality t
 				INNER JOIN build_outputs bo ON bo.build_id = t.build_id
 				INNER JOIN build_inputs bi ON bi.versioned_resource_id = bo.versioned_resource_id
 				INNER JOIN builds b ON b.id = bi.build_id
@@ -206,9 +206,10 @@ func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 					AND obo.versioned_resource_id = bi.versioned_resource_id
 				)
 		)
-		SELECT versioned_resource_id, build_id
-		FROM transitive_output_first_occurrences
-		ORDER BY build_id ASC, versioned_resource_id ASC
+		SELECT c.versioned_resource_id, c.build_id
+		FROM causality c
+		INNER JOIN builds b ON b.id = c.build_id
+		ORDER BY b.start_time ASC, c.versioned_resource_id ASC
 	`, versionedResourceID)
 	if err != nil {
 		return nil, err
