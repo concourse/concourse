@@ -16,6 +16,7 @@ templates:
   vault_ca_cert.erb: config/vault_ca_cert
   vault_client_cert.erb: config/vault_client_cert
   vault_client_key.erb: config/vault_client_key
+  credhub_ca_cert.erb: config/credhub_ca_cert
 
 packages:
   - pid_utils
@@ -445,6 +446,31 @@ properties:
       Key-value parameters to provide when logging in with the backend.
     default: {}
     example: {role_id: abc123, secret_id: def456}
+
+  credhub.url:
+    description: |
+      CredHub server address used to access secrets.
+    example: "https://credhub-server:9000"
+  credhub.path_prefix:
+    description: |
+      Path under which to namespace team/pipeline credentials.
+    default: /concourse
+  credhub.tls.ca_cert:
+    type: certificate
+    description: |
+      A PEM-encoded CA cert to use to verify the Credhub server SSL cert.
+  credhub.tls.insecure_skip_verify:
+    description: |
+      Enable insecure SSL verification.
+    default: false
+  credhub.client_id:
+    description: |
+      Client ID for CredHub authorization.
+    default: ""
+  credhub.client_secret:
+    description: |
+      Client secret for CredHub authorization.
+    default: ""
 
   telemetry.opt_in:
     description: |

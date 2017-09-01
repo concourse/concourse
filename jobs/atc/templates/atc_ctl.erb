@@ -216,6 +216,16 @@ case $1 in
       --metrics-attribute <%= esc(k) %>:<%= esc(v) %> \
       <% end %> \
       --x-frame-options <%= esc(p("x_frame_options")) %> \
+      <% if_p("credhub.url") do |url| %> \
+      --credhub-url <%= esc(url) %> \
+      <% if_p("credhub.tls.ca_cert") do |ca_cert| %> \
+      --credhub-ca-cert /var/vcap/jobs/atc/config/credhub_ca_cert \
+      <% end %> \
+      --credhub-insecure-skip-verify <%= esc p("credhub.tls.insecure_skip_verify") %> \
+      --credhub-client-id <%= esc p("credhub.client_id") %> \
+      --credhub-client-secret <%= esc p("credhub.client_secret") %> \
+      --credhub-path-prefix <%= esc p("credhub.path_prefix") %> \
+      <% end %> \
       <% if_p("vault.url") do |url| %> \
       --vault-url <%= esc(url) %> \
       <% if_p("vault.tls.ca_cert") do |ca_cert| %> \
