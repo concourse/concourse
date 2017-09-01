@@ -822,6 +822,11 @@ func (p *pipeline) Dashboard() (Dashboard, atc.GroupConfigs, error) {
 		return nil, nil, err
 	}
 
+	transitionBuilds, err := p.getTransitionBuilds()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	for _, job := range jobs {
 		dashboardJob := DashboardJob{
 			Job: job,
@@ -835,6 +840,10 @@ func (p *pipeline) Dashboard() (Dashboard, atc.GroupConfigs, error) {
 
 		if finishedBuild, found := finishedBuilds[job.Name()]; found {
 			dashboardJob.FinishedBuild = finishedBuild
+		}
+
+		if transitionBuild, found := transitionBuilds[job.Name()]; found {
+			dashboardJob.TransitionBuild = transitionBuild
 		}
 
 		dashboard = append(dashboard, dashboardJob)
@@ -1612,6 +1621,63 @@ func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
 	`, p.id).Scan(&max_modified_time)
 
 	return max_modified_time, err
+}
+
+func (p *pipeline) getTransitionBuilds() (map[string]Build, error) {
+	buildCondition := fmt.Sprintf("j.pipeline_id = $1 AND b.status NOT IN ('%s', '%s')", BuildStatusPending, BuildStatusStarted)
+
+	beforeTransitionBuildsQuery := fmt.Sprintf(`
+			SELECT b.job_id, MAX(b.id)
+			FROM builds b
+			LEFT OUTER JOIN jobs j ON (b.job_id = j.id)
+			LEFT OUTER JOIN (
+				SELECT job_id, status
+				FROM builds
+				WHERE id IN (
+					SELECT MAX(b.id)
+					FROM builds b
+					LEFT OUTER JOIN jobs j ON (j.id = b.job_id)
+					WHERE %s
+					GROUP BY j.id
+				)
+			) s ON b.job_id = s.job_id
+			WHERE b.status != s.status AND %s
+			GROUP BY b.job_id
+		`,
+		buildCondition,
+		buildCondition,
+	)
+
+	query, _, err := buildsQuery.Options(`DISTINCT ON (b.job_id)`).
+		Join(`before_transition_builds ON b.job_id = before_transition_builds.job_id`).
+		Where(`b.id > before_transition_builds.max`).
+		OrderBy(`b.job_id, b.id ASC`).
+		ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := p.conn.Query(`WITH before_transition_builds AS (`+beforeTransitionBuildsQuery+`)`+query, p.id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	transitionBuilds := make(map[string]Build)
+
+	for rows.Next() {
+		build := &build{conn: p.conn, lockFactory: p.lockFactory}
+		err := scanBuild(build, rows, p.conn.EncryptionStrategy())
+		if err != nil {
+			return nil, err
+		}
+		transitionBuilds[build.JobName()] = build
+	}
+
+	return transitionBuilds, nil
 }
 
 func (p *pipeline) getLastJobBuildsSatisfying(buildCondition sq.Sqlizer) (map[string]Build, error) {

@@ -2149,6 +2149,65 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[0].NextBuild.Engine()).To(Equal("engine"))
 			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal("metadata"))
 			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(jobBuild.ID()))
+
+			By("returning a job's transition build as nil when all builds have the same status")
+			job, found, err = pipeline.Job("job-name")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			actualDashboard, _, err = pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(actualDashboard[0].TransitionBuild).To(BeNil())
+
+			By("returning a job's transition build when there are builds with different statuses")
+			job, found, err = pipeline.Job("job-name")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			jobBuild, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = jobBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			jobBuild, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = jobBuild.Finish(db.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			otherJobBuild, err := otherJob.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherJobBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			transitionBuild, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = transitionBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			otherJobBuild, err = otherJob.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherJobBuild.Finish(db.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			jobBuild, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = jobBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			jobBuild, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			actualDashboard, _, err = pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(actualDashboard[0].TransitionBuild.ID()).To(Equal(transitionBuild.ID()))
 		})
 	})
 

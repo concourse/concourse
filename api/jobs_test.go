@@ -713,21 +713,34 @@ var _ = Describe("Jobs API", func() {
 				finishedBuild2.StartTimeReturns(time.Unix(101, 0))
 				finishedBuild2.EndTimeReturns(time.Unix(200, 0))
 
+				transitionBuild := new(dbfakes.FakeBuild)
+				transitionBuild.IDReturns(5)
+				transitionBuild.NameReturns("five")
+				transitionBuild.JobNameReturns("job-1")
+				transitionBuild.PipelineNameReturns("another-pipeline")
+				transitionBuild.TeamNameReturns("some-team")
+				transitionBuild.StatusReturns(db.BuildStatusFailed)
+				transitionBuild.StartTimeReturns(time.Unix(101, 0))
+				transitionBuild.EndTimeReturns(time.Unix(200, 0))
+
 				dashboardResponse = db.Dashboard{
 					{
-						Job:           job1,
-						NextBuild:     nextBuild1,
-						FinishedBuild: finishedBuild1,
+						Job:             job1,
+						NextBuild:       nextBuild1,
+						FinishedBuild:   finishedBuild1,
+						TransitionBuild: transitionBuild,
 					},
 					{
-						Job:           job2,
-						NextBuild:     nil,
-						FinishedBuild: finishedBuild2,
+						Job:             job2,
+						NextBuild:       nil,
+						FinishedBuild:   finishedBuild2,
+						TransitionBuild: nil,
 					},
 					{
-						Job:           job3,
-						NextBuild:     nil,
-						FinishedBuild: nil,
+						Job:             job3,
+						NextBuild:       nil,
+						FinishedBuild:   nil,
+						TransitionBuild: nil,
 					},
 				}
 				fakePipeline.DashboardReturns(dashboardResponse, groups, nil)
@@ -801,6 +814,18 @@ var _ = Describe("Jobs API", func() {
 									"team_name": "some-team",
 									"start_time": 1,
 									"end_time": 100
+								},
+								"transition_build": {
+									"id": 5,
+									"name": "five",
+									"job_name": "job-1",
+									"status": "failed",
+									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/five",
+									"api_url": "/api/v1/builds/5",
+									"pipeline_name":"another-pipeline",
+									"team_name": "some-team",
+									"start_time": 101,
+									"end_time": 200
 								},
 								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
 								"outputs": [{"name": "output-1", "resource": "output-1"}],
@@ -884,6 +909,18 @@ var _ = Describe("Jobs API", func() {
 									"team_name": "some-team",
 									"start_time": 1,
 									"end_time": 100
+								},
+								"transition_build": {
+									"id": 5,
+									"name": "five",
+									"job_name": "job-1",
+									"status": "failed",
+									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/five",
+									"api_url": "/api/v1/builds/5",
+									"pipeline_name":"another-pipeline",
+									"team_name": "some-team",
+									"start_time": 101,
+									"end_time": 200
 								},
 								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
 								"outputs": [{"name": "output-1", "resource": "output-1"}],

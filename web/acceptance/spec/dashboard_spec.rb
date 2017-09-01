@@ -1,5 +1,6 @@
-require 'securerandom'
 require 'color'
+require 'securerandom'
+require 'timecop'
 
 describe 'dashboard', type: :feature do
   let(:red) { Color::RGB.by_hex('E74C3C') }
@@ -121,6 +122,33 @@ describe 'dashboard', type: :feature do
       fly('trigger-job -j some-pipeline/passing')
       sleep 5
       expect(border_color.closest_match(palette)).to eq(green)
+    end
+  end
+
+  context 'when a pipeline has multiple failed jobs' do
+    let(:current_time) { DateTime.parse('2017-07-05 05:05:05 EDT') }
+
+    before do
+      Timecop.travel DateTime.parse('2017-07-01 11:11:11 EDT')
+      fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml -v path="false"')
+      fly_fail('trigger-job -w -j some-pipeline/passing_or_failing')
+      Timecop.travel DateTime.parse('2017-07-02 02:02:02 EDT')
+      fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml -v path="true"')
+      fly('trigger-job -w -j some-pipeline/passing_or_failing')
+      Timecop.travel DateTime.parse('2017-07-03 03:03:03 EDT')
+      fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml -v path="false"')
+      fly_fail('trigger-job -w -j some-pipeline/passing_or_failing')
+      Timecop.travel DateTime.parse('2017-07-04 04:04:04 EDT')
+      fly_fail('trigger-job -w -j some-pipeline/passing_or_failing')
+      Timecop.travel current_time
+      fly_fail('trigger-job -w -j some-pipeline/failing')
+    end
+
+    it 'displays the time since the earliest failed build' do
+      visit_dashboard
+      within '.dashboard-pipeline', text: 'some-pipeline' do
+        expect(page).to have_content('failing for: 2 DAYS')
+      end
     end
   end
 
