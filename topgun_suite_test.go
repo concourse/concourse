@@ -192,7 +192,7 @@ func Deploy(manifest string, args ...string) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	boshLogs = spawnBosh("logs", "-f")
+	boshLogs = nil //spawnBosh("logs", "-f")
 }
 
 func JobInstance(job string) *boshInstance {

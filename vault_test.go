@@ -84,7 +84,7 @@ var _ = Describe("Vault", func() {
 
 				It("renews the token", func() {
 					By("executing a task that parameterizes image_resource")
-					watch := spawnFly("execute", "-c", "tasks/vault.yml")
+					watch := spawnFly("execute", "-c", "tasks/credential-management.yml")
 					wait(watch)
 					Expect(watch).To(gbytes.Say("SECRET: Hiii"))
 
@@ -151,7 +151,7 @@ var _ = Describe("Vault", func() {
 					v.Run("write", "concourse/main/pipeline-vault-test/image_resource_repository", "value=busybox")
 
 					By("setting a pipeline that contains vault secrets")
-					fly("set-pipeline", "-n", "-c", "pipelines/vault.yml", "-p", "pipeline-vault-test")
+					fly("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "pipeline-vault-test")
 
 					By("getting the pipeline config")
 					session := getPipeline()
@@ -190,7 +190,7 @@ var _ = Describe("Vault", func() {
 						Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
 
 						By("executing a task that parameterizes image_resource")
-						watch = spawnFly("execute", "-c", "tasks/vault-with-job-inputs.yml", "-j", "pipeline-vault-test/job-with-input")
+						watch = spawnFly("execute", "-c", "tasks/credential-management-with-job-inputs.yml", "-j", "pipeline-vault-test/job-with-input")
 						wait(watch)
 						Expect(watch).To(gbytes.Say("./some-resource/input"))
 
@@ -211,7 +211,7 @@ var _ = Describe("Vault", func() {
 
 				It("parameterizes image_resource and params in a task config", func() {
 					By("executing a task that parameterizes image_resource")
-					watch := spawnFly("execute", "-c", "tasks/vault.yml")
+					watch := spawnFly("execute", "-c", "tasks/credential-management.yml")
 					wait(watch)
 					Expect(watch).To(gbytes.Say("SECRET: Hiii"))
 
