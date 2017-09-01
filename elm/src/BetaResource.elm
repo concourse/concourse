@@ -21,6 +21,9 @@ import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
+import BetaPipeline
+import Routes
+import QueryString
 
 
 type alias Ports =
@@ -40,6 +43,7 @@ type alias Model =
     , causality : Dict.Dict Int (WebData (List Concourse.Cause))
     , causalityBuilds : Dict.Dict Int (WebData Concourse.Build)
     , causalityVersions : Dict.Dict Int (WebData Concourse.VersionedResource)
+    , betaPipelineModel : BetaPipeline.Model
     }
 
 
@@ -70,6 +74,7 @@ type Msg
     | BuildFetched Int (RemoteData.WebData Concourse.Build)
     | VersionedResourceFetched Int (RemoteData.WebData Concourse.VersionedResource)
     | NavTo String
+    | BetaPipelineMsg BetaPipeline.Msg
 
 
 type alias Flags =
@@ -84,6 +89,20 @@ type alias Flags =
 init : Ports -> Flags -> ( Model, Cmd Msg )
 init ports flags =
     let
+        ( betaPipelineModel, betaPipelineCmd ) =
+            BetaPipeline.init
+                { title = always Cmd.none
+                }
+                { teamName = flags.teamName
+                , pipelineName = flags.pipelineName
+                , turbulenceImgSrc = "boring.png"
+                , route =
+                    { logical = Routes.Home
+                    , queries = QueryString.empty
+                    , page = Nothing
+                    }
+                }
+
         ( model, cmd ) =
             changeToResource flags
                 { resourceIdentifier =
@@ -107,12 +126,14 @@ init ports flags =
                 , causality = Dict.empty
                 , causalityBuilds = Dict.empty
                 , causalityVersions = Dict.empty
+                , betaPipelineModel = betaPipelineModel
                 }
     in
         ( model
         , Cmd.batch
             [ fetchResource model.resourceIdentifier
             , cmd
+            , Cmd.map BetaPipelineMsg betaPipelineCmd
             ]
         )
 
@@ -390,6 +411,15 @@ update action model =
             , Cmd.none
             )
 
+        BetaPipelineMsg msg ->
+            let
+                ( betaPipelineModel, betaPipelineCmd ) =
+                    BetaPipeline.update msg model.betaPipelineModel
+            in
+                ( { model | betaPipelineModel = betaPipelineModel }
+                , Cmd.map BetaPipelineMsg betaPipelineCmd
+                )
+
         NavTo url ->
             ( model, Navigation.newUrl url )
 
@@ -653,12 +683,56 @@ viewVersionedResource model states versionedResource =
                         x ->
                             Html.text (toString x)
                     ]
+                , Html.div [ class "pipeline" ]
+                    [ case getData versionedResource.id model.causality of
+                        RemoteData.Success causality ->
+                            Html.map BetaPipelineMsg <|
+                                BetaPipeline.view (pipelineForCausality model causality model.betaPipelineModel)
+
+                        x ->
+                            Html.text (toString x)
+                    ]
                 , Html.div [ class "vri metadata-container" ]
                     [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
                     , viewMetadata versionedResource.metadata
                     ]
                 ]
             ]
+
+
+pipelineForCausality : Model -> List Concourse.Cause -> BetaPipeline.Model -> BetaPipeline.Model
+pipelineForCausality model causality betaPipelineModel =
+    let
+        resetJobState =
+            List.map <|
+                \job ->
+                    { job
+                        | nextBuild = Nothing
+                        , finishedBuild = Nothing
+                    }
+
+        setJobBuild { buildID } jobs =
+            case getData buildID model.causalityBuilds of
+                RemoteData.Success build ->
+                    case build.job of
+                        Just { jobName } ->
+                            flip List.map jobs <|
+                                \job ->
+                                    if job.name == jobName then
+                                        if Concourse.BuildStatus.isRunning build.status then
+                                            { job | nextBuild = Just build }
+                                        else
+                                            { job | finishedBuild = Just build }
+                                    else
+                                        job
+
+                        Nothing ->
+                            jobs
+
+                _ ->
+                    jobs
+    in
+        { betaPipelineModel | jobs = List.foldl setJobBuild (resetJobState betaPipelineModel.jobs) causality }
 
 
 getState : Int -> Dict.Dict Int VersionUIState -> VersionUIState
