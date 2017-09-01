@@ -15,7 +15,7 @@ import (
 type CredHubManager struct {
 	URL          string   `long:"url" description:"CredHub server address used to access secrets."`
 	PathPrefix   string   `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
-	CaCerts      []string `long:"ca-certs" description:"Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert."`
+	CACerts      []string `long:"ca-cert" description:"Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert."`
 	Insecure     bool     `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
 	ClientId     string   `long:"client-id" description:"Client ID for CredHub authorization."`
 	ClientSecret string   `long:"client-secret" description:"Client secret for CredHub authorization."`
@@ -33,13 +33,13 @@ func (manager CredHubManager) Validate() error {
 	}
 
 	if parsedUrl.Scheme == "https" {
-		if len(manager.CaCerts) < 1 && !manager.Insecure {
-			return fmt.Errorf("CaCerts or insecure needs to be set for secure urls")
+		if len(manager.CACerts) < 1 && !manager.Insecure {
+			return fmt.Errorf("CACerts or insecure needs to be set for secure urls")
 		}
 	}
 
-	if len(manager.CaCerts) > 1 {
-		for _, cert := range manager.CaCerts {
+	if len(manager.CACerts) > 1 {
+		for _, cert := range manager.CACerts {
 			contents, err := ioutil.ReadFile(cert)
 			if err != nil {
 				return fmt.Errorf("Could not read CaCert at path %s", cert)
