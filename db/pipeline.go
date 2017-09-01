@@ -193,14 +193,14 @@ func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 			UNION
 				SELECT bi.versioned_resource_id, bi.build_id
 				FROM transitive_output_first_occurrences t
-				LEFT JOIN build_outputs bo ON bo.build_id = t.build_id
-				LEFT JOIN build_inputs bi ON bi.versioned_resource_id = bo.versioned_resource_id
-				LEFT JOIN builds b ON b.id = bi.build_id
+				INNER JOIN build_outputs bo ON bo.build_id = t.build_id
+				INNER JOIN build_inputs bi ON bi.versioned_resource_id = bo.versioned_resource_id
+				INNER JOIN builds b ON b.id = bi.build_id
 				WHERE bo.explicit
 				AND NOT EXISTS (
 					SELECT 1
 					FROM build_outputs obo
-					LEFT JOIN builds ob ON ob.id = obo.build_id
+					INNER JOIN builds ob ON ob.id = obo.build_id
 					WHERE obo.build_id < bi.build_id
 					AND ob.job_id = b.job_id
 					AND obo.versioned_resource_id = bi.versioned_resource_id
