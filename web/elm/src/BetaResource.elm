@@ -396,24 +396,20 @@ update action model =
 
 conditionallyFetchBuild : Int -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 conditionallyFetchBuild id ( model, cmd ) =
-    let
-        fetch =
+    case getData id model.causalityBuilds of
+        RemoteData.Success build ->
+            if Concourse.BuildStatus.isRunning build.status then
+                ( model, Cmd.batch [ fetchBuild id, cmd ] )
+            else
+                ( model, cmd )
+
+        RemoteData.NotAsked ->
             ( { model | causalityBuilds = Dict.insert id RemoteData.Loading model.causalityBuilds }
             , Cmd.batch [ fetchBuild id, cmd ]
             )
-    in
-        case getData id model.causalityBuilds of
-            RemoteData.Success build ->
-                if Concourse.BuildStatus.isRunning build.status then
-                    fetch
-                else
-                    ( model, cmd )
 
-            RemoteData.NotAsked ->
-                fetch
-
-            _ ->
-                ( model, cmd )
+        _ ->
+            ( model, cmd )
 
 
 conditionallyFetchVersion : Int -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
