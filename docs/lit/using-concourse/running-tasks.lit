@@ -71,7 +71,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 
       \define-attribute{source: object}{
         \italic{Required.} The configuration for the resource; see \reference{source}.
-        specified, the input's \code{name} is used.
+        If not specified, the input's \code{name} is used.
 
         Paths are relative to the working directory of the task. Absolute paths
         are not respected.
