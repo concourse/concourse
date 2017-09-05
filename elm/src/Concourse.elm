@@ -539,6 +539,7 @@ type alias Job =
     , url : String
     , nextBuild : Maybe Build
     , finishedBuild : Maybe Build
+    , transitionBuild : Maybe Build
     , paused : Bool
     , disableManualTrigger : Bool
     , inputs : List JobInput
@@ -568,6 +569,7 @@ decodeJob pi =
         |: (Json.Decode.field "url" Json.Decode.string)
         |: (Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild))
         |: (Json.Decode.maybe (Json.Decode.field "finished_build" decodeBuild))
+        |: (Json.Decode.maybe (Json.Decode.field "transition_build" decodeBuild))
         |: (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
         |: (defaultTo False <| Json.Decode.field "disable_manual_trigger" Json.Decode.bool)
         |: (defaultTo [] <| Json.Decode.field "inputs" <| Json.Decode.list decodeJobInput)
