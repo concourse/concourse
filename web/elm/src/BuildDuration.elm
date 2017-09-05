@@ -1,4 +1,4 @@
-module BuildDuration exposing (view)
+module BuildDuration exposing (view, viewFailDuration)
 
 import Date exposing (Date)
 import Date.Format
@@ -32,6 +32,17 @@ view duration now =
                     , labeledRelativeDate "finished" now finishedAt
                     , labeledDuration "duration" durationElmIssue
                     ]
+
+
+viewFailDuration : Concourse.BuildDuration -> Time.Time -> Html a
+viewFailDuration duration now =
+    Html.div [ class "build-duration" ] <|
+        case duration.startedAt of
+            Nothing ->
+                []
+
+            Just startedAt ->
+                [ labeledDuration "failing for:" (Duration.between (Date.toTime startedAt) now) ]
 
 
 labeledRelativeDate : String -> Time -> Date -> Html a

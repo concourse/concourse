@@ -1,5 +1,6 @@
 port module Dashboard exposing (Model, Msg, init, update, subscriptions, view)
 
+import BuildDuration
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Job
@@ -8,12 +9,14 @@ import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, src)
 import RemoteData
+import Task exposing (Task)
 import Time exposing (Time)
 
 
 type alias Model =
     { pipelines : RemoteData.WebData (List Concourse.Pipeline)
     , jobs : Dict Int (RemoteData.WebData (List Concourse.Job))
+    , now : Maybe Time
     , turbulenceImgSrc : String
     }
 
@@ -21,6 +24,7 @@ type alias Model =
 type Msg
     = PipelinesResponse (RemoteData.WebData (List Concourse.Pipeline))
     | JobsResponse Int (RemoteData.WebData (List Concourse.Job))
+    | ClockTick Time.Time
     | AutoRefresh Time
 
 
@@ -28,9 +32,10 @@ init : String -> ( Model, Cmd Msg )
 init turbulencePath =
     ( { pipelines = RemoteData.NotAsked
       , jobs = Dict.empty
+      , now = Nothing
       , turbulenceImgSrc = turbulencePath
       }
-    , fetchPipelines
+    , Cmd.batch [ fetchPipelines, getCurrentTime ]
     )
 
 
@@ -50,6 +55,9 @@ update msg model =
         JobsResponse pipelineId response ->
             ( { model | jobs = Dict.insert pipelineId response model.jobs }, Cmd.none )
 
+        ClockTick now ->
+            ( { model | now = Just now }, Cmd.none )
+
         AutoRefresh _ ->
             ( model, fetchPipelines )
 
@@ -57,7 +65,9 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every (5 * Time.second) AutoRefresh ]
+        [ Time.every Time.second ClockTick
+        , Time.every (5 * Time.second) AutoRefresh
+        ]
 
 
 view : Model -> Html msg
@@ -91,7 +101,7 @@ view model =
                         (List.reverse pipelineStates)
             in
                 Html.div [ class "dashboard" ]
-                    (Dict.values (Dict.map viewGroup pipelinesByTeam))
+                    (Dict.values (Dict.map (viewGroup model.now) pipelinesByTeam))
 
         RemoteData.Failure _ ->
             Html.div
@@ -135,19 +145,19 @@ type alias PipelineState =
     }
 
 
-viewGroup : String -> List PipelineState -> Html msg
-viewGroup teamName pipelines =
+viewGroup : Maybe Time -> String -> List PipelineState -> Html msg
+viewGroup now teamName pipelines =
     Html.div [ class "dashboard-team-group" ]
         [ Html.div [ class "dashboard-team-name" ]
             [ Html.text teamName
             ]
         , Html.div [ class "dashboard-team-pipelines" ]
-            (List.map viewPipeline pipelines)
+            (List.map (viewPipeline now) pipelines)
         ]
 
 
-viewPipeline : PipelineState -> Html msg
-viewPipeline state =
+viewPipeline : Maybe Time -> PipelineState -> Html msg
+viewPipeline now state =
     Html.div
         [ classList
             [ ( "dashboard-pipeline", True )
@@ -163,7 +173,32 @@ viewPipeline state =
             , Html.div [ class "dashboard-pipeline-name" ]
                 [ Html.text state.pipeline.name ]
             ]
+        , Html.div [] (timeSincePipelineFailed now state)
         ]
+
+
+timeSincePipelineFailed : Maybe Time -> PipelineState -> List (Html a)
+timeSincePipelineFailed now { jobs } =
+    case jobs of
+        RemoteData.Success js ->
+            let
+                failedJobs =
+                    List.filter ((==) Concourse.BuildStatusFailed << jobStatus) <| js
+            in
+                List.map (timeSinceFailedJob now) failedJobs
+
+        _ ->
+            []
+
+
+timeSinceFailedJob : Maybe Time -> Concourse.Job -> Html a
+timeSinceFailedJob time job =
+    case ( time, job.transitionBuild ) of
+        ( Just now, Just build ) ->
+            BuildDuration.viewFailDuration build.duration now
+
+        _ ->
+            Html.div [] []
 
 
 isPipelineRunning : PipelineState -> Bool
@@ -184,6 +219,11 @@ pipelineStatus { jobs } =
 
         _ ->
             "unknown"
+
+
+jobStatus : Concourse.Job -> Concourse.BuildStatus
+jobStatus job =
+    Maybe.withDefault Concourse.BuildStatusPending <| Maybe.map .status job.finishedBuild
 
 
 jobsStatus : List Concourse.Job -> Concourse.BuildStatus
@@ -218,3 +258,8 @@ fetchJobs pipeline =
                 { teamName = pipeline.teamName
                 , pipelineName = pipeline.name
                 }
+
+
+getCurrentTime : Cmd Msg
+getCurrentTime =
+    Task.perform ClockTick Time.now
