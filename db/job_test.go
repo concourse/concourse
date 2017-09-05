@@ -240,11 +240,22 @@ var _ = Describe("Job", func() {
 
 			Expect(transition).To(BeNil())
 
+			transitionBuild, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = transitionBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
 			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = build.Finish(db.BuildStatusFailed)
 			Expect(err).NotTo(HaveOccurred())
+
+			transition, err = job.TransitionBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(transition.ID()).To(Equal(transitionBuild.ID()))
 
 			build, err = job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
@@ -258,7 +269,7 @@ var _ = Describe("Job", func() {
 			err = otherBuild.Finish(db.BuildStatusFailed)
 			Expect(err).NotTo(HaveOccurred())
 
-			transitionBuild, err := job.CreateBuild()
+			transitionBuild, err = job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = transitionBuild.Finish(db.BuildStatusFailed)

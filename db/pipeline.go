@@ -1624,7 +1624,7 @@ func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
 }
 
 func (p *pipeline) getTransitionBuilds() (map[string]Build, error) {
-	buildCondition := fmt.Sprintf("j.pipeline_id = $1 AND b.status NOT IN ('%s', '%s')", BuildStatusPending, BuildStatusStarted)
+	finishedBuildCondition := fmt.Sprintf("j.pipeline_id = $1 AND b.status NOT IN ('%s', '%s')", BuildStatusPending, BuildStatusStarted)
 
 	beforeTransitionBuildsQuery := fmt.Sprintf(`
 			SELECT b.job_id, MAX(b.id)
@@ -1644,13 +1644,13 @@ func (p *pipeline) getTransitionBuilds() (map[string]Build, error) {
 			WHERE b.status != s.status AND %s
 			GROUP BY b.job_id
 		`,
-		buildCondition,
-		buildCondition,
+		finishedBuildCondition,
+		finishedBuildCondition,
 	)
 
-	query, _, err := buildsQuery.Options(`DISTINCT ON (b.job_id)`).
-		Join(`before_transition_builds ON b.job_id = before_transition_builds.job_id`).
-		Where(`b.id > before_transition_builds.max`).
+	transitionBuildsQuery, _, err := buildsQuery.Options(`DISTINCT ON (b.job_id)`).
+		Join(`builds_before_transition ON b.job_id = builds_before_transition.job_id`).
+		Where(`b.id > builds_before_transition.max`).
 		OrderBy(`b.job_id, b.id ASC`).
 		ToSql()
 
@@ -1658,23 +1658,48 @@ func (p *pipeline) getTransitionBuilds() (map[string]Build, error) {
 		return nil, err
 	}
 
-	rows, err := p.conn.Query(`WITH before_transition_builds AS (`+beforeTransitionBuildsQuery+`)`+query, p.id)
+	transitionBuildsRows, err := p.conn.Query(`WITH builds_before_transition AS (`+beforeTransitionBuildsQuery+`)`+transitionBuildsQuery, p.id)
 
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer transitionBuildsRows.Close()
 
 	transitionBuilds := make(map[string]Build)
 
-	for rows.Next() {
+	for transitionBuildsRows.Next() {
 		build := &build{conn: p.conn, lockFactory: p.lockFactory}
-		err := scanBuild(build, rows, p.conn.EncryptionStrategy())
+		err := scanBuild(build, transitionBuildsRows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
 		}
 		transitionBuilds[build.JobName()] = build
+	}
+
+	firstBuildsQuery, _, _ := buildsQuery.Options(`DISTINCT ON (b.job_id)`).ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	firstBuildsRows, err := p.conn.Query(firstBuildsQuery)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer firstBuildsRows.Close()
+
+	for firstBuildsRows.Next() {
+		build := &build{conn: p.conn, lockFactory: p.lockFactory}
+		err := scanBuild(build, firstBuildsRows, p.conn.EncryptionStrategy())
+		if err != nil {
+			return nil, err
+		}
+		if transitionBuilds[build.JobName()] == nil {
+			transitionBuilds[build.JobName()] = build
+		}
 	}
 
 	return transitionBuilds, nil

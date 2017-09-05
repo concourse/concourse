@@ -2150,15 +2150,37 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal("metadata"))
 			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(jobBuild.ID()))
 
-			By("returning a job's transition build as nil when all builds have the same status")
-			job, found, err = pipeline.Job("job-name")
+			By("returning a job's transition build as nil when there are no builds")
+			job, found, err = pipeline.Job("random-job")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			actualDashboard, _, err = pipeline.Dashboard()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(actualDashboard[0].TransitionBuild).To(BeNil())
+			Expect(actualDashboard[4].TransitionBuild).To(BeNil())
+
+			By("returning a job's first build as transition build when all builds have the same status")
+			job, found, err = pipeline.Job("random-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			transitionBuild, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = transitionBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			jobBuild, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = jobBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			actualDashboard, _, err = pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(actualDashboard[4].TransitionBuild.ID()).To(Equal(transitionBuild.ID()))
 
 			By("returning a job's transition build when there are builds with different statuses")
 			job, found, err = pipeline.Job("job-name")
@@ -2183,7 +2205,7 @@ var _ = Describe("Pipeline", func() {
 			err = otherJobBuild.Finish(db.BuildStatusFailed)
 			Expect(err).NotTo(HaveOccurred())
 
-			transitionBuild, err := job.CreateBuild()
+			transitionBuild, err = job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = transitionBuild.Finish(db.BuildStatusFailed)

@@ -171,7 +171,7 @@ func (j *job) FinishedAndNextBuild() (Build, Build, error) {
 }
 
 func (j *job) TransitionBuild() (Build, error) {
-	var finished, beforeTransition, transition Build
+	var first, finished, beforeTransition, transition Build
 
 	builds := buildsQuery.
 		Where(sq.Eq{
@@ -219,7 +219,25 @@ func (j *job) TransitionBuild() (Build, error) {
 	}
 
 	if beforeTransition == nil {
-		return nil, nil
+		row = buildsQuery.
+			Where(sq.Eq{
+				"j.name":        j.name,
+				"j.pipeline_id": j.pipelineID,
+			}).
+			Limit(1).
+			RunWith(j.conn).
+			QueryRow()
+
+		firstBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
+		err := scanBuild(firstBuild, row, j.conn.EncryptionStrategy())
+
+		if err == nil {
+			first = firstBuild
+		} else if err != sql.ErrNoRows {
+			return nil, err
+		}
+
+		return first, nil
 	}
 
 	row = builds.
