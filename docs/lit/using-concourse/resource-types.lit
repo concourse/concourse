@@ -209,7 +209,9 @@ before using it!
   }{
     \link{NPM Cache Resource}{https://github.com/ymedlop/npm-cache-resource}
   }{
-    \link{Gerrit Resource}{https://github.com/google/concourse-gerrit}
+    \link{Gerrit Resource}{https://github.com/google/concourse-resources/tree/master/gerrit}
+  }{
+    \link{Repo Resource}{https://github.com/google/concourse-resources/tree/master/repo}
   }{
     \link{Trigger jobs using Slack}{https://github.com/ahelal/bender}
   }
