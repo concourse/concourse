@@ -1677,13 +1677,17 @@ func (p *pipeline) getTransitionBuilds() (map[string]Build, error) {
 		transitionBuilds[build.JobName()] = build
 	}
 
-	firstBuildsQuery, _, _ := buildsQuery.Options(`DISTINCT ON (b.job_id)`).ToSql()
+	firstBuildsQuery, _, _ := buildsQuery.
+		Options(`DISTINCT ON (b.job_id)`).
+		Where(finishedBuildCondition).
+		OrderBy(`b.job_id, b.id`).
+		ToSql()
 
 	if err != nil {
 		return nil, err
 	}
 
-	firstBuildsRows, err := p.conn.Query(firstBuildsQuery)
+	firstBuildsRows, err := p.conn.Query(firstBuildsQuery, p.id)
 
 	if err != nil {
 		return nil, err

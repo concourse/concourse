@@ -217,24 +217,40 @@ var _ = Describe("Job", func() {
 	})
 
 	Describe("TransitionBuild", func() {
-		var otherJob db.Job
-
-		BeforeEach(func() {
+		It("can report a job's transition build", func() {
 			otherPipeline, created, err := team.SavePipeline("other-pipeline", atc.Config{
 				Jobs: atc.JobConfigs{
 					{Name: "some-job"},
 				},
 			}, db.ConfigVersion(0), db.PipelineUnpaused)
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 
-			var found bool
-			otherJob, found, err = otherPipeline.Job("some-job")
+			otherJob, found, err := otherPipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
-		})
 
-		It("can report a job's transition build", func() {
+			otherBuild, err := otherJob.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			job, found, err = pipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			job, found, err = pipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
 			transition, err := job.TransitionBuild()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -243,10 +259,15 @@ var _ = Describe("Job", func() {
 			transitionBuild, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
+			transition, err = job.TransitionBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(transition).To(BeNil())
+
 			err = transitionBuild.Finish(db.BuildStatusFailed)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err := job.CreateBuild()
+			build, err = job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = build.Finish(db.BuildStatusFailed)
@@ -263,7 +284,7 @@ var _ = Describe("Job", func() {
 			err = build.Finish(db.BuildStatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherBuild, err := otherJob.CreateBuild()
+			otherBuild, err = otherJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherBuild.Finish(db.BuildStatusFailed)

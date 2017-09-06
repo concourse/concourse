@@ -2151,9 +2151,45 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(jobBuild.ID()))
 
 			By("returning a job's transition build as nil when there are no builds")
+			otherPipeline, _, err := team.SavePipeline("other-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			otherJob, found, err = otherPipeline.Job("random-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			otherJobBuild, err := otherJob.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherJobBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			job, found, err = pipeline.Job("a-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			jobBuild, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = jobBuild.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
 			job, found, err = pipeline.Job("random-job")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
+
+			actualDashboard, _, err = pipeline.Dashboard()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(actualDashboard[4].TransitionBuild).To(BeNil())
+
+			By("returning a job's transition build as nil when there are only pending builds")
+			job, found, err = pipeline.Job("random-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			jobBuild, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
 
 			actualDashboard, _, err = pipeline.Dashboard()
 			Expect(err).NotTo(HaveOccurred())
@@ -2199,7 +2235,7 @@ var _ = Describe("Pipeline", func() {
 			err = jobBuild.Finish(db.BuildStatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherJobBuild, err := otherJob.CreateBuild()
+			otherJobBuild, err = otherJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherJobBuild.Finish(db.BuildStatusFailed)

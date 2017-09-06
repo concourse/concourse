@@ -5,6 +5,7 @@ import Concourse
 import Concourse.BuildStatus
 import Concourse.Job
 import Concourse.Pipeline
+import Date exposing (Date)
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, src)
@@ -178,27 +179,43 @@ viewPipeline now state =
 
 
 timeSincePipelineFailed : Maybe Time -> PipelineState -> List (Html a)
-timeSincePipelineFailed now { jobs } =
+timeSincePipelineFailed time { jobs } =
     case jobs of
         RemoteData.Success js ->
             let
                 failedJobs =
                     List.filter ((==) Concourse.BuildStatusFailed << jobStatus) <| js
+
+                failedDurations =
+                    List.map
+                        (\job ->
+                            Maybe.withDefault { startedAt = Nothing, finishedAt = Nothing } <|
+                                Maybe.map .duration job.transitionBuild
+                        )
+                        failedJobs
+
+                failedDuration =
+                    List.head <|
+                        List.sortBy
+                            (\duration ->
+                                case duration.startedAt of
+                                    Just date ->
+                                        Time.inSeconds <| Date.toTime date
+
+                                    Nothing ->
+                                        0
+                            )
+                            failedDurations
             in
-                List.map (timeSinceFailedJob now) failedJobs
+                case ( time, failedDuration ) of
+                    ( Just now, Just duration ) ->
+                        [ BuildDuration.viewFailDuration duration now ]
+
+                    _ ->
+                        []
 
         _ ->
             []
-
-
-timeSinceFailedJob : Maybe Time -> Concourse.Job -> Html a
-timeSinceFailedJob time job =
-    case ( time, job.transitionBuild ) of
-        ( Just now, Just build ) ->
-            BuildDuration.viewFailDuration build.duration now
-
-        _ ->
-            Html.div [] []
 
 
 isPipelineRunning : PipelineState -> Bool
