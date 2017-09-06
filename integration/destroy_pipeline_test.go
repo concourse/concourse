@@ -37,7 +37,7 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when a pipeline name is not specified", func() {
-			It("asks the user to specifiy a pipeline name", func() {
+			It("asks the user to specify a pipeline name", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "destroy-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

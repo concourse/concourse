@@ -18,8 +18,8 @@ import (
 const timeDateLayout = "2006-01-02@15:04:05-0700"
 
 type BuildsCommand struct {
-	Count int                 `short:"c" long:"count" default:"50"															description:"number of builds you want to limit the return to"`
-	Job   flaghelpers.JobFlag `short:"j" long:"job"									value-name:"PIPELINE/JOB"		description:"Name of a job to get builds for"`
+	Count int                 `short:"c" long:"count" default:"50" description:"number of builds you want to limit the return to"`
+	Job   flaghelpers.JobFlag `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
 }
 
 func (command *BuildsCommand) Execute([]string) error {
