@@ -71,11 +71,8 @@ func dump(config atc.Config, asJSON bool) error {
 	}
 
 	_, err = fmt.Printf("%s", payload)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func dumpRawConfig(rawConfig atc.RawConfig, asJSON bool) error {
@@ -90,6 +87,9 @@ func dumpRawConfig(rawConfig atc.RawConfig, asJSON bool) error {
 		}
 
 		payload, err = yaml.Marshal(config)
+		if err != nil {
+			return err
+		}
 	}
 
 	_, err := fmt.Printf("%s", payload)
@@ -105,5 +105,5 @@ func (command *GetPipelineCommand) showConfigWarning() {
 		fmt.Fprintln(ui.Stderr, "")
 	}
 	displayhelpers.PrintWarningHeader()
-	fmt.Fprintln(ui.Stderr, "Existing config is invalid, it was returned as-is\n")
+	fmt.Fprintln(ui.Stderr, "Existing config is invalid, it was returned as-is")
 }

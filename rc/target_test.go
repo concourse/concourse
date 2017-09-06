@@ -115,7 +115,7 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 			BeforeEach(func() {
 				flyrcConfig := targetDetailsYAML{
 					Targets: map[rc.TargetName]rc.TargetProps{
-						"some-target": rc.TargetProps{
+						"some-target": {
 							API:      "http://concourse.com",
 							CACert:   rootCA,
 							TeamName: "some-team",

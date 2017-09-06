@@ -311,6 +311,9 @@ func listenAndServeWithPort(srv *http.Server, portChannel chan string) error {
 	}
 
 	_, port, err := net.SplitHostPort(ln.Addr().String())
+	if err != nil {
+		return err
+	}
 
 	portChannel <- port
 
