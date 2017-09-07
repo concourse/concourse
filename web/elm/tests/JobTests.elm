@@ -46,6 +46,7 @@ all =
                             , url = ""
                             , nextBuild = Nothing
                             , finishedBuild = Just someBuild
+                            , transitionBuild = Nothing
                             , paused = False
                             , disableManualTrigger = False
                             , inputs = []

@@ -47,6 +47,56 @@ describe 'dashboard', type: :feature do
     end
   end
 
+  context 'when pipelines have different states' do
+    before do
+      fly('destroy-pipeline -n -p some-pipeline')
+
+      fly('set-pipeline -n -p failing-pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p failing-pipeline')
+      fly_fail('trigger-job -w -j failing-pipeline/failing')
+
+      fly('set-pipeline -n -p other-failing-pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p other-failing-pipeline')
+      fly_fail('trigger-job -w -j other-failing-pipeline/failing')
+      fly('trigger-job -j other-failing-pipeline/running')
+
+      fly('set-pipeline -n -p errored-pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p errored-pipeline')
+      fly_fail('trigger-job -w -j errored-pipeline/erroring')
+
+      fly('set-pipeline -n -p aborted-pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p aborted-pipeline')
+      fly('trigger-job -j aborted-pipeline/running')
+      fly('abort-build -j aborted-pipeline/running -b 1')
+
+      fly('set-pipeline -n -p paused-pipeline -c fixtures/states-pipeline.yml')
+
+      fly('set-pipeline -n -p succeeded-pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p succeeded-pipeline')
+      fly('trigger-job -w -j succeeded-pipeline/passing')
+
+      fly('set-pipeline -n -p pending-pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p pending-pipeline')
+
+      fly('expose-pipeline -p failing-pipeline')
+      fly('expose-pipeline -p other-failing-pipeline')
+      fly('expose-pipeline -p errored-pipeline')
+      fly('expose-pipeline -p aborted-pipeline')
+      fly('expose-pipeline -p paused-pipeline')
+      fly('expose-pipeline -p succeeded-pipeline')
+      fly('expose-pipeline -p pending-pipeline')
+    end
+
+    it 'displays the pipelines in correct sort order' do
+      visit_dashboard
+      within '.dashboard-team-group', text: team_name do
+        expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq (
+          ['other-failing-pipeline', 'failing-pipeline', 'errored-pipeline', 'aborted-pipeline', 'succeeded-pipeline', 'pending-pipeline', 'paused-pipeline']
+        )
+      end
+    end
+  end
+
   context 'when a pipeline is paused' do
     before do
       fly('pause-pipeline -p some-pipeline')

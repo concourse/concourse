@@ -77,7 +77,7 @@ view model =
         RemoteData.Success pipelines ->
             let
                 pipelineStates =
-                    List.sortWith pipelineStatusComparison <|
+                    List.sortBy pipelineStatusRank <|
                         List.filter ((/=) RemoteData.NotAsked << .jobs) <|
                             List.map
                                 (\pipeline ->
@@ -118,26 +118,40 @@ view model =
             Html.text ""
 
 
-pipelineStatusComparison : PipelineState -> PipelineState -> Order
-pipelineStatusComparison pipeline otherPipeline =
+pipelineStatusRank : PipelineState -> Int
+pipelineStatusRank state =
     let
+        order =
+            [ Concourse.BuildStatusFailed, Concourse.BuildStatusErrored, Concourse.BuildStatusAborted, Concourse.BuildStatusSucceeded, Concourse.BuildStatusPending ]
+
+        ranks =
+            List.indexedMap
+                (\index buildStatus ->
+                    ( Concourse.BuildStatus.show buildStatus, index * 2 )
+                )
+                order
+
+        unranked =
+            (List.length ranks) * 2
+
         status =
-            pipelineStatus pipeline
+            pipelineStatus state
 
-        otherStatus =
-            pipelineStatus otherPipeline
+        paused =
+            state.pipeline.paused
 
-        failedString =
-            Concourse.BuildStatus.show Concourse.BuildStatusFailed
+        running =
+            isPipelineRunning state
+
+        rank =
+            Maybe.withDefault unranked <| Dict.get status <| Dict.fromList ranks
     in
-        if status == otherStatus then
-            EQ
-        else if status == failedString then
-            LT
-        else if otherStatus == failedString then
-            GT
+        if paused then
+            unranked
+        else if running then
+            rank - 1
         else
-            EQ
+            rank
 
 
 type alias PipelineState =
