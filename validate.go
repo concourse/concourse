@@ -62,12 +62,19 @@ func (c Config) Validate() ([]Warning, []string) {
 func validateGroups(c Config) error {
 	errorMessages := []string{}
 
+	jobsGrouped := make(map[string]bool)
+	for _, job := range c.Jobs {
+		jobsGrouped[job.Name] = false
+	}
+
 	for _, group := range c.Groups {
 		for _, job := range group.Jobs {
 			_, exists := c.Jobs.Lookup(job)
 			if !exists {
 				errorMessages = append(errorMessages,
 					fmt.Sprintf("group '%s' has unknown job '%s'", group.Name, job))
+			} else {
+				jobsGrouped[job] = true
 			}
 		}
 
@@ -76,6 +83,14 @@ func validateGroups(c Config) error {
 			if !exists {
 				errorMessages = append(errorMessages,
 					fmt.Sprintf("group '%s' has unknown resource '%s'", group.Name, resource))
+			}
+		}
+	}
+
+	if len(c.Groups) != 0 {
+		for job, grouped := range jobsGrouped {
+			if !grouped {
+				errorMessages = append(errorMessages, fmt.Sprintf("job '%s' belongs to no group", job))
 			}
 		}
 	}

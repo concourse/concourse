@@ -25,6 +25,10 @@ var _ = Describe("ValidateConfig", func() {
 					Jobs:      []string{"some-job"},
 					Resources: []string{"some-resource"},
 				},
+				{
+					Name: "some-other-group",
+					Jobs: []string{"some-empty-job"},
+				},
 			},
 
 			Resources: ResourceConfigs{
@@ -119,6 +123,25 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
 				Expect(errorMessages[0]).To(ContainSubstring("unknown job 'bogus-job'"))
 			})
+		})
+
+		Context("when there are jobs excluded from groups", func() {
+			BeforeEach(func() {
+				config.Jobs = append(config.Jobs, JobConfig{
+					Name: "stand-alone-job",
+				})
+				config.Jobs = append(config.Jobs, JobConfig{
+					Name: "other-stand-alone-job",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorMessages[0]).To(ContainSubstring("job 'stand-alone-job' belongs to no group"))
+				Expect(errorMessages[0]).To(ContainSubstring("job 'other-stand-alone-job' belongs to no group"))
+			})
+
 		})
 	})
 
@@ -397,6 +420,7 @@ var _ = Describe("ValidateConfig", func() {
 			job = JobConfig{
 				Name: "some-other-job",
 			}
+			config.Groups = []GroupConfig{}
 		})
 
 		Context("when a job has no name", func() {
