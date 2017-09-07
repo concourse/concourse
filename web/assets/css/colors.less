@@ -95,21 +95,21 @@ span.error { color: @base08; }
 }
 
 .job-animation-node {
+  &.failed  .animation-xlarge{.failed-outline(24px, 36px);}
   &.pending .animation-xlarge{.pending-outline(24px, 36px);}
   &.started .animation-xlarge{.ripple-animation("xlarge-started-ripples-@{theme}", 20px, @base0A);}
-  &.failed .animation-xlarge{.failed-outline(24px, 36px);}
 
+  &.failed  .animation-large{.failed-outline(18px, 27px);}
   &.pending .animation-large{.pending-outline(18px, 27px);}
   &.started .animation-large{.ripple-animation("large-started-ripples-@{theme}", 15px, @base0A);}
-  &.failed .animation-large{.failed-outline(18px, 27px);}
 
+  &.failed  .animation-medium{.failed-outline(8px, 12px);}
   &.pending .animation-medium{.pending-outline(8px, 12px);}
   &.started .animation-medium{.ripple-animation("medium-started-ripples-@{theme}", 7px, @base0A);}
-  &.failed .animation-medium{.failed-outline(8px, 12px);}
 
+  &.failed  .animation-small{.failed-outline(4px, 6px);}
   &.pending .animation-small{.pending-outline(4px, 6px);}
   &.started .animation-small{.ripple-animation("small-started-ripples-@{theme}", 3px, @base0A);}
-  &.failed .animation-small{.failed-outline(4px, 6px);}
 }
 
 .pipeline-grid .node a {
