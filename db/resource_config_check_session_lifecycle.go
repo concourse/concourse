@@ -22,35 +22,32 @@ func NewResourceConfigCheckSessionLifecycle(conn Conn) ResourceConfigCheckSessio
 }
 
 func (lifecycle resourceConfigCheckSessionLifecycle) CleanInactiveResourceConfigCheckSessions() error {
-	usedByActiveUnpausedResources, resourceParams, err := sq.
+	usedByActiveUnpausedResources, _, err := sq.
 		Select("rccs.id").
-		Distinct().
 		From("resource_config_check_sessions rccs").
 		Join("resource_configs rc ON rccs.resource_config_id = rc.id").
 		Join("resources r ON r.resource_config_id = rc.id").
 		Join("pipelines p ON p.id = r.pipeline_id").
-		Where(sq.Eq{"r.paused": false, "p.paused": false, "r.active": true}).
+		Where(sq.Expr("r.active AND NOT r.paused AND NOT p.paused")).
 		ToSql()
 	if err != nil {
 		return err
 	}
 
-	usedByActiveResourceTypes, resourceTypeParams, err := sq.
+	usedByActiveUnpausedResourceTypes, _, err := sq.
 		Select("rccs.id").
-		Distinct().
 		From("resource_config_check_sessions rccs").
 		Join("resource_configs rc ON rccs.resource_config_id = rc.id").
 		Join("resource_types rt ON rt.resource_config_id = rc.id").
 		Join("pipelines p ON p.id = rt.pipeline_id").
-		Where(sq.Eq{"p.paused": false, "rt.active": true}).
+		Where(sq.Expr("rt.active AND NOT p.paused")).
 		ToSql()
 	if err != nil {
 		return err
 	}
 
 	_, err = sq.Delete("resource_config_check_sessions").
-		Where("id NOT IN ("+usedByActiveUnpausedResources+")", resourceParams...).
-		Where("id NOT IN ("+usedByActiveResourceTypes+")", resourceTypeParams...).
+		Where("id NOT IN (" + usedByActiveUnpausedResources + " UNION " + usedByActiveUnpausedResourceTypes + ")").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(lifecycle.conn).
 		Exec()
