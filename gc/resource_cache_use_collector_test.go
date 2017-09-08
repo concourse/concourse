@@ -2,7 +2,6 @@ package gc_test
 
 import (
 	"code.cloudfoundry.org/lager/lagertest"
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -140,62 +139,83 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							Expect(countResourceCacheUses()).To(BeZero())
 						})
 					})
+				})
+			})
 
-					Context("when the build is for a job", func() {
-						var jobId int
+			Context("when the build is for a job", func() {
+				var jobBuild db.Build
 
-						BeforeEach(func() {
-							tx, err := dbConn.Begin()
-							Expect(err).NotTo(HaveOccurred())
-							defer tx.Rollback()
-							err = psql.Insert("jobs").
-								Columns("name", "pipeline_id", "config").
-								Values("lousy-job", pipelineWithTypes.ID(), `{"some":"config"}`).
-								Suffix("RETURNING id").
-								RunWith(tx).QueryRow().Scan(&jobId)
-							Expect(err).NotTo(HaveOccurred())
-							Expect(tx.Commit()).To(Succeed())
-						})
+				BeforeEach(func() {
+					var err error
+					jobBuild, err = defaultJob.CreateBuild()
+					Expect(err).ToNot(HaveOccurred())
 
-						JustBeforeEach(func() {
-							tx, err := dbConn.Begin()
-							Expect(err).NotTo(HaveOccurred())
-							defer tx.Rollback()
-							_, err = psql.Update("builds").
-								SetMap(map[string]interface{}{
-									"status":    "failed",
-									"end_time":  sq.Expr("NOW()"),
-									"completed": true,
-									"job_id":    jobId,
-								}).
-								RunWith(tx).Exec()
-							Expect(err).NotTo(HaveOccurred())
-							Expect(tx.Commit()).To(Succeed())
-						})
+					_, err = resourceCacheFactory.FindOrCreateResourceCache(
+						logger,
+						db.ForBuild(jobBuild.ID()),
+						"some-type",
+						atc.Version{"some": "version"},
+						atc.Source{
+							"some": "source",
+						},
+						atc.Params{"some": "params"},
+						creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+							atc.VersionedResourceTypes{
+								versionedResourceType,
+							},
+						),
+					)
+					Expect(err).NotTo(HaveOccurred())
+				})
 
-						Context("when it is the latest failed build", func() {
-							It("preserves the uses", func() {
-								Expect(countResourceCacheUses()).NotTo(BeZero())
-								Expect(defaultBuild.Finish(db.BuildStatusFailed)).To(Succeed())
-								Expect(buildCollector.Run()).To(Succeed())
-								Expect(collector.Run()).To(Succeed())
-								Expect(countResourceCacheUses()).NotTo(BeZero())
-							})
-						})
+				Context("when it is the latest failed build", func() {
+					It("preserves the uses", func() {
+						Expect(countResourceCacheUses()).NotTo(BeZero())
+						Expect(jobBuild.Finish(db.BuildStatusFailed)).To(Succeed())
+						Expect(buildCollector.Run()).To(Succeed())
+						Expect(collector.Run()).To(Succeed())
+						Expect(countResourceCacheUses()).NotTo(BeZero())
+					})
+				})
 
-						Context("when a later build of the same job has failed also", func() {
-							BeforeEach(func() {
-								_, err = defaultTeam.CreateOneOffBuild()
-								Expect(err).NotTo(HaveOccurred())
-							})
+				Context("when a later build of the same job has succeeded", func() {
+					var secondJobBuild db.Build
 
-							It("cleans up the uses", func() {
-								Expect(countResourceCacheUses()).NotTo(BeZero())
-								Expect(buildCollector.Run()).To(Succeed())
-								Expect(collector.Run()).To(Succeed())
-								Expect(countResourceCacheUses()).To(BeZero())
-							})
-						})
+					BeforeEach(func() {
+						var err error
+						secondJobBuild, err = defaultJob.CreateBuild()
+						Expect(err).ToNot(HaveOccurred())
+
+						_, err = resourceCacheFactory.FindOrCreateResourceCache(
+							logger,
+							db.ForBuild(secondJobBuild.ID()),
+							"some-type",
+							atc.Version{"some": "version"},
+							atc.Source{
+								"some": "source",
+							},
+							atc.Params{"some": "params"},
+							creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
+								atc.VersionedResourceTypes{
+									versionedResourceType,
+								},
+							),
+						)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("cleans up the uses", func() {
+						Expect(jobBuild.Finish(db.BuildStatusFailed)).To(Succeed())
+						Expect(buildCollector.Run()).To(Succeed())
+						Expect(collector.Run()).To(Succeed())
+
+						Expect(countResourceCacheUses()).NotTo(BeZero())
+
+						Expect(secondJobBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
+						Expect(buildCollector.Run()).To(Succeed())
+						Expect(collector.Run()).To(Succeed())
+
+						Expect(countResourceCacheUses()).To(BeZero())
 					})
 				})
 			})
