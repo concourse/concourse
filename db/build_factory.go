@@ -68,12 +68,17 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 				b.status = 'succeeded'
 			OR
 				b.name != j.build_number_seq::text
-		);
+		)
+	`)
+	if err != nil {
+		return err
+	}
 
+	_, err = f.conn.Exec(`
 		UPDATE builds
 		SET interceptible = FALSE
 		WHERE job_id IS NULL
-		AND interceptible AND completed;
+		AND interceptible AND completed
 	`)
 	if err != nil {
 		return err
