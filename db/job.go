@@ -730,9 +730,8 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 	if table == "next_build_inputs" {
 		_, err = psql.Update("jobs").
 			Set("inputs_determined", true).
-			Where(sq.Eq{
-				"id": j.id,
-			}).
+			Where(sq.Eq{"id": j.id}).
+			Where(sq.Expr("NOT inputs_determined")).
 			RunWith(tx).
 			Exec()
 	}
