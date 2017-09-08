@@ -149,8 +149,10 @@ func (r *resource) Unpause() error {
 func (r *resource) SetResourceConfig(resourceConfigID int) error {
 	_, err := psql.Update("resources").
 		Set("resource_config_id", resourceConfigID).
-		Where(sq.Eq{
-			"id": r.id,
+		Where(sq.Eq{"id": r.id}).
+		Where(sq.Or{
+			sq.Eq{"resource_config_id": nil},
+			sq.NotEq{"resource_config_id": resourceConfigID},
 		}).
 		RunWith(r.conn).
 		Exec()
