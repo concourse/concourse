@@ -807,17 +807,12 @@ func (p *pipeline) Dashboard() (Dashboard, atc.GroupConfigs, error) {
 		return nil, nil, err
 	}
 
-	startedBuilds, err := p.getLastJobBuildsSatisfying(sq.Eq{"b.status": BuildStatusStarted})
+	nextBuilds, err := p.getJobBuildsSatisfying("MIN", sq.Expr("NOT b.completed"))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pendingBuilds, err := p.getLastJobBuildsSatisfying(sq.Eq{"b.status": BuildStatusPending})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	finishedBuilds, err := p.getLastJobBuildsSatisfying(sq.NotEq{"b.status": []BuildStatus{BuildStatusPending, BuildStatusStarted}})
+	finishedBuilds, err := p.getJobBuildsSatisfying("MAX", sq.Expr("b.completed"))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -827,10 +822,8 @@ func (p *pipeline) Dashboard() (Dashboard, atc.GroupConfigs, error) {
 			Job: job,
 		}
 
-		if startedBuild, found := startedBuilds[job.Name()]; found {
-			dashboardJob.NextBuild = startedBuild
-		} else if pendingBuild, found := pendingBuilds[job.Name()]; found {
-			dashboardJob.NextBuild = pendingBuild
+		if nextBuild, found := nextBuilds[job.Name()]; found {
+			dashboardJob.NextBuild = nextBuild
 		}
 
 		if finishedBuild, found := finishedBuilds[job.Name()]; found {
@@ -1614,8 +1607,8 @@ func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
 	return max_modified_time, err
 }
 
-func (p *pipeline) getLastJobBuildsSatisfying(buildCondition sq.Sqlizer) (map[string]Build, error) {
-	maxQ, maxArgs, err := psql.Select("MAX(b.id) AS id").
+func (p *pipeline) getJobBuildsSatisfying(aggregateFunction string, buildCondition sq.Sqlizer) (map[string]Build, error) {
+	aggQ, aggArgs, err := psql.Select(aggregateFunction + "(b.id) AS id").
 		From("builds b").
 		Join("jobs j ON j.id = b.job_id").
 		Where(buildCondition).
@@ -1627,13 +1620,13 @@ func (p *pipeline) getLastJobBuildsSatisfying(buildCondition sq.Sqlizer) (map[st
 	}
 
 	buildsQ, _, err := buildsQuery.
-		Where(sq.Expr(`b.id IN (` + maxQ + `)`)).
+		Where(sq.Expr(`b.id IN (` + aggQ + `)`)).
 		ToSql()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := p.conn.Query(buildsQ, maxArgs...)
+	rows, err := p.conn.Query(buildsQ, aggArgs...)
 	if err != nil {
 		return nil, err
 	}
