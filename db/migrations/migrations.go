@@ -192,5 +192,6 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		AddIndexesToEvenMoreForeignKeys,
 		AddBuildsInterceptibleCompletedIndex,
 		DropUnusedBuildsCompletedIndex,
+		AddUniqueIndexToVolumeHandles,
 	}
 }
