@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/worker"
 )
 
@@ -85,7 +86,13 @@ func (runner *workerJobRunner) Try(logger lager.Logger, workerName string, job J
 
 	if !runner.startJob(job.Name(), workerName) {
 		logger.Debug("job-limit-reached")
+
 		// drop the job on the floor; it'll be queued up again later
+		metric.GarbageCollectionDroppedJob{
+			WorkerName: workerName,
+			JobName:    job.Name(),
+		}.Emit(logger)
+
 		return
 	}
 

@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/worker"
 )
 
@@ -87,6 +88,10 @@ func (c *containerCollector) Run() error {
 		"created-containers":    createdContainerHandles,
 		"destroying-containers": destroyingContainerHandles,
 	})
+
+	metric.ContainersToBeGarbageCollected{
+		Containers: len(creatingContainerHandles) + len(createdContainerHandles) + len(destroyingContainerHandles),
+	}.Emit(logger)
 
 	for _, creatingContainer := range creatingContainers {
 		cLog := logger.Session("mark-creating-as-created", lager.Data{

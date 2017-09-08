@@ -138,6 +138,42 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 	)
 }
 
+type ContainersToBeGarbageCollected struct {
+	Containers int
+}
+
+func (event ContainersToBeGarbageCollected) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-found-containers-for-deletion"),
+		Event{
+			Name:       "containers to be garbage collected",
+			Value:      event.Containers,
+			State:      EventStateOK,
+			Attributes: map[string]string{},
+		},
+	)
+}
+
+type GarbageCollectionDroppedJob struct {
+	WorkerName string
+	JobName    string
+}
+
+func (event GarbageCollectionDroppedJob) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-deletion-job-dropped"),
+		Event{
+			Name:  "garbage collection job dropped",
+			Value: 1,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"worker": event.WorkerName,
+				"job":    event.JobName,
+			},
+		},
+	)
+}
+
 type BuildStarted struct {
 	PipelineName string
 	JobName      string
