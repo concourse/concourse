@@ -191,5 +191,6 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		AddResourceConfigIDToResourceTypes,
 		AddIndexesToEvenMoreForeignKeys,
 		AddBuildsInterceptibleCompletedIndex,
+		DropUnusedBuildsCompletedIndex,
 	}
 }
