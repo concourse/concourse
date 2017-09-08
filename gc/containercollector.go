@@ -89,8 +89,16 @@ func (c *containerCollector) Run() error {
 		"destroying-containers": destroyingContainerHandles,
 	})
 
-	metric.ContainersToBeGarbageCollected{
-		Containers: len(creatingContainerHandles) + len(createdContainerHandles) + len(destroyingContainerHandles),
+	metric.CreatingContainersToBeGarbageCollected{
+		Containers: len(creatingContainerHandles),
+	}.Emit(logger)
+
+	metric.CreatedContainersToBeGarbageCollected{
+		Containers: len(createdContainerHandles),
+	}.Emit(logger)
+
+	metric.DestroyingContainersToBeGarbageCollected{
+		Containers: len(destroyingContainerHandles),
 	}.Emit(logger)
 
 	for _, creatingContainer := range creatingContainers {
@@ -168,7 +176,7 @@ func destroyCreatedContainer(logger lager.Logger, container db.CreatedContainer)
 		}
 
 		if destroyingContainer != nil {
-			tryToDestroyContainer(cLog, destroyingContainer, workerClient.GardenClient())
+			tryToDestroyContainer(cLog, destroyingContainer, workerClient)
 		}
 	}
 }
@@ -180,7 +188,7 @@ func destroyDestroyingContainer(logger lager.Logger, container db.DestroyingCont
 			"worker":    workerClient.Name(),
 		})
 
-		tryToDestroyContainer(cLog, container, workerClient.GardenClient())
+		tryToDestroyContainer(cLog, container, workerClient)
 	}
 }
 
@@ -225,10 +233,12 @@ func markHijackedContainerAsDestroying(
 func tryToDestroyContainer(
 	logger lager.Logger,
 	container db.DestroyingContainer,
-	gardenClient garden.Client,
+	workerClient worker.Worker,
 ) {
 	logger.Debug("start")
 	defer logger.Debug("done")
+
+	gardenClient := workerClient.GardenClient()
 
 	if container.IsDiscontinued() {
 		logger.Debug("discontinued")
@@ -257,6 +267,11 @@ func tryToDestroyContainer(
 		}
 
 		logger.Debug("destroyed-in-garden")
+
+		metric.ContainerDeleted{
+			Container:  container.Handle(),
+			WorkerName: workerClient.Name(),
+		}.Emit(logger)
 	}
 
 	ok, err := container.Destroy()

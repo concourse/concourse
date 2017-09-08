@@ -138,18 +138,106 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 	)
 }
 
-type ContainersToBeGarbageCollected struct {
+type CreatingContainersToBeGarbageCollected struct {
 	Containers int
 }
 
-func (event ContainersToBeGarbageCollected) Emit(logger lager.Logger) {
+func (event CreatingContainersToBeGarbageCollected) Emit(logger lager.Logger) {
 	emit(
-		logger.Session("gc-found-containers-for-deletion"),
+		logger.Session("gc-found-creating-containers-for-deletion"),
 		Event{
-			Name:       "containers to be garbage collected",
+			Name:       "creating containers to be garbage collected",
 			Value:      event.Containers,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
+		},
+	)
+}
+
+type CreatedContainersToBeGarbageCollected struct {
+	Containers int
+}
+
+func (event CreatedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-found-created-ccontainers-for-deletion"),
+		Event{
+			Name:       "created containers to be garbage collected",
+			Value:      event.Containers,
+			State:      EventStateOK,
+			Attributes: map[string]string{},
+		},
+	)
+}
+
+type DestroyingContainersToBeGarbageCollected struct {
+	Containers int
+}
+
+func (event DestroyingContainersToBeGarbageCollected) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-found-destroying-containers-for-deletion"),
+		Event{
+			Name:       "destroying containers to be garbage collected",
+			Value:      event.Containers,
+			State:      EventStateOK,
+			Attributes: map[string]string{},
+		},
+	)
+}
+
+type ContainerDeleted struct {
+	Container  string
+	WorkerName string
+}
+
+func (event ContainerDeleted) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-container-deleted"),
+		Event{
+			Name:  "container deleted",
+			Value: 1,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"worker":    event.WorkerName,
+				"container": event.Container,
+			},
+		},
+	)
+}
+
+type VolumesToBeGarbageCollected struct {
+	Volumes int
+}
+
+func (event VolumesToBeGarbageCollected) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-found-volumes-for-deletion"),
+		Event{
+			Name:       "volumes to be garbage collected",
+			Value:      event.Volumes,
+			State:      EventStateOK,
+			Attributes: map[string]string{},
+		},
+	)
+}
+
+type VolumeDeleted struct {
+	Volume     string
+	WorkerName string
+}
+
+func (event VolumeDeleted) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-volume-deleted"),
+		Event{
+			Name:  "volume deleted",
+			Value: 1,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"worker": event.WorkerName,
+				"volume": event.Volume,
+			},
 		},
 	)
 }
