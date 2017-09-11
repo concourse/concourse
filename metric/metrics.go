@@ -11,6 +11,9 @@ import (
 var DatabaseQueries = Meter(0)
 var DatabaseConnections = &Gauge{}
 
+var ContainersDeleted = Meter(0)
+var VolumesDeleted = Meter(0)
+
 type SchedulingFullDuration struct {
 	PipelineName string
 	Duration     time.Duration
@@ -186,26 +189,6 @@ func (event DestroyingContainersToBeGarbageCollected) Emit(logger lager.Logger) 
 	)
 }
 
-type ContainerDeleted struct {
-	Container  string
-	WorkerName string
-}
-
-func (event ContainerDeleted) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-container-deleted"),
-		Event{
-			Name:  "container deleted",
-			Value: 1,
-			State: EventStateOK,
-			Attributes: map[string]string{
-				"worker":    event.WorkerName,
-				"container": event.Container,
-			},
-		},
-	)
-}
-
 type VolumesToBeGarbageCollected struct {
 	Volumes int
 }
@@ -218,26 +201,6 @@ func (event VolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 			Value:      event.Volumes,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
-		},
-	)
-}
-
-type VolumeDeleted struct {
-	Volume     string
-	WorkerName string
-}
-
-func (event VolumeDeleted) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-volume-deleted"),
-		Event{
-			Name:  "volume deleted",
-			Value: 1,
-			State: EventStateOK,
-			Attributes: map[string]string{
-				"worker": event.WorkerName,
-				"volume": event.Volume,
-			},
 		},
 	)
 }

@@ -116,10 +116,8 @@ func destroyRealVolume(logger lager.Logger, volume baggageclaim.Volume, workerNa
 		}
 
 		logger.Debug("destroyed")
-		metric.VolumeDeleted{
-			WorkerName: workerName,
-			Volume:     volume.Handle(),
-		}.Emit(logger)
+
+		metric.VolumesDeleted.Inc()
 	} else {
 		logger.Debug("already-removed")
 	}

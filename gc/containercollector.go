@@ -254,10 +254,7 @@ func tryToDestroyContainer(
 
 		logger.Debug("destroyed-in-garden")
 
-		metric.ContainerDeleted{
-			Container:  container.Handle(),
-			WorkerName: workerClient.Name(),
-		}.Emit(logger)
+		metric.ContainersDeleted.Inc()
 	}
 
 	ok, err := container.Destroy()

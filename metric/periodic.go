@@ -14,14 +14,11 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 	for range ticker.C {
 		tLog := logger.Session("tick")
 
-		databaseQueries := DatabaseQueries.Delta()
-		databaseConnections := DatabaseConnections.Max()
-
 		emit(
 			tLog.Session("database-queries"),
 			Event{
 				Name:  "database queries",
-				Value: databaseQueries,
+				Value: DatabaseQueries.Delta(),
 				State: EventStateOK,
 			},
 		)
@@ -30,7 +27,25 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 			tLog.Session("database-connections"),
 			Event{
 				Name:  "database connections",
-				Value: databaseConnections,
+				Value: DatabaseConnections.Max(),
+				State: EventStateOK,
+			},
+		)
+
+		emit(
+			logger.Session("containers-deleted"),
+			Event{
+				Name:  "containers deleted",
+				Value: ContainersDeleted.Delta(),
+				State: EventStateOK,
+			},
+		)
+
+		emit(
+			logger.Session("volumes-deleted"),
+			Event{
+				Name:  "volumes deleted",
+				Value: VolumesDeleted.Delta(),
 				State: EventStateOK,
 			},
 		)
