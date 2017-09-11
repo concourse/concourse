@@ -341,7 +341,7 @@
           The full address of the Garden server running for the worker.
         }{worker-addr}
 
-        \define-attribute{state: RUNNING, STALLED, LANDING, LANDED, RETIRING, RETIRED }{
+        \define-attribute{state: RUNNING, STALLED, LANDING, LANDED, RETIRING}{
           The current state of the worker. This keeps track of the worker's
           lifecycle in order to handle the lifecycle of workers and their
           ability to have new containers or volumes created on them.
@@ -694,8 +694,8 @@
       The \code{concourse land-worker} command will put a worker in the LANDING
       state to safely drain its assignments for temporary downtime.
 
-      This worker will wait for running \reference{jobs-table} which aren't
-      interruptible to finsh before putting it into the
+      The ATC will wait for builds on the worker for \reference{jobs-table}
+      which aren't interruptible to finish, and transition the worker into
       \reference{LANDED-table} state.
     }
 
@@ -710,17 +710,8 @@
       The \code{concourse retire-worker} command will put a worker in the
       RETIRING state to remove it from the cluster permanently.
 
-      This worker will wait for running \reference{jobs-table} which aren't
-      interruptible to finsh before putting it into the
-      \reference{RETIRED-table} state.
-    }
-
-    \define-table{RETIRED}{
-      A worker in this state has successfully waited for all non-interruptible
-      \reference{jobs-table} on it after having \code{concourse retire-worker}
-      called. A worker in this state is not expected to ever return to the
-      \reference{RUNNING-table} state, and can be removed using the
-      \reference{fly-prune-worker} command.
+      The ATC will wait for builds on the worker for \reference{jobs-table}
+      which aren't interruptible to finish, and remove the worker.
     }
   }
 }
