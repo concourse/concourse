@@ -2,6 +2,11 @@
 
 \release{2017-8-28}{3.4.1}{1.6.0}{
   \note{breaking}{
+    Looks like the GC "fixes" had the opposite effect of making containers
+    linger around longer than usual. You might want to skip this version for now.
+    Otherwise, hang tight while we get this sorted out.
+  }
+  \note{breaking}{
     Removed a feature introduced in v3.4.0 that lets you authenticate into a team
     using personal GitHub tokens.
 
