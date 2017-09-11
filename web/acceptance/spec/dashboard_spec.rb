@@ -196,6 +196,12 @@ describe 'dashboard', type: :feature do
     end
   end
 
+  it 'anchors URL links on team groups' do
+    login
+    visit dash_route('/dashboard')
+    expect(page).to have_css('.dashboard-team-group', id: team_name)
+  end
+
   private
 
   def login

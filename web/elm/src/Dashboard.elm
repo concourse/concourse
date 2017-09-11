@@ -8,7 +8,7 @@ import Concourse.Pipeline
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Html exposing (Html)
-import Html.Attributes exposing (class, classList, href, src)
+import Html.Attributes exposing (class, classList, id, href, src)
 import RemoteData
 import Task exposing (Task)
 import Time exposing (Time)
@@ -162,10 +162,9 @@ type alias PipelineState =
 
 viewGroup : Maybe Time -> String -> List PipelineState -> Html msg
 viewGroup now teamName pipelines =
-    Html.div [ class "dashboard-team-group" ]
+    Html.div [ id teamName, class "dashboard-team-group" ]
         [ Html.div [ class "dashboard-team-name" ]
-            [ Html.text teamName
-            ]
+            [ Html.text teamName ]
         , Html.div [ class "dashboard-team-pipelines" ]
             (List.map (viewPipeline now) pipelines)
         ]
