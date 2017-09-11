@@ -3,6 +3,7 @@ package gc
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 )
@@ -43,6 +44,10 @@ func (vc *volumeCollector) Run() error {
 			"destroying": len(destroyingVolumes),
 		})
 	}
+
+	metric.VolumesToBeGarbageCollected{
+		Volumes: len(createdVolumes) + len(destroyingVolumes),
+	}.Emit(logger)
 
 	for _, createdVolume := range createdVolumes {
 		// queue
@@ -94,13 +99,13 @@ func destroyDestroyingVolume(logger lager.Logger, destroyingVolume db.Destroying
 			return
 		}
 
-		if destroyRealVolume(logger.Session("in-worker"), volume, found) {
+		if destroyRealVolume(logger.Session("in-worker"), volume, workerClient.Name(), found) {
 			destroyDBVolume(logger.Session("in-db"), destroyingVolume)
 		}
 	}
 }
 
-func destroyRealVolume(logger lager.Logger, volume baggageclaim.Volume, found bool) bool {
+func destroyRealVolume(logger lager.Logger, volume baggageclaim.Volume, workerName string, found bool) bool {
 	if found {
 		logger.Debug("destroying")
 
@@ -111,6 +116,8 @@ func destroyRealVolume(logger lager.Logger, volume baggageclaim.Volume, found bo
 		}
 
 		logger.Debug("destroyed")
+
+		metric.VolumesDeleted.Inc()
 	} else {
 		logger.Debug("already-removed")
 	}

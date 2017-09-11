@@ -21,6 +21,7 @@ var _ = Describe("WorkerJobRunner", func() {
 	var workerState chan []worker.Worker
 
 	var pool WorkerJobRunner
+	var metricFuncCallCount int
 
 	setWorkerState := func(workers []worker.Worker) {
 		// two writes guarantees that it read the workers, updated its state, and
@@ -46,7 +47,11 @@ var _ = Describe("WorkerJobRunner", func() {
 			return <-state, nil
 		}
 
-		pool = NewWorkerJobRunner(logger, fakeWorkerPool, time.Millisecond, 3)
+		metricFuncCallCount = 0
+
+		pool = NewWorkerJobRunner(logger, fakeWorkerPool, time.Millisecond, 3, func(lager.Logger, string) {
+			metricFuncCallCount++
+		})
 
 		setWorkerState([]worker.Worker{fakeWorkerA, fakeWorkerB})
 	})
@@ -102,13 +107,17 @@ var _ = Describe("WorkerJobRunner", func() {
 				It("drops any new jobs for the worker on the floor", func() {
 					can := make(chan struct{}, 100)
 
+					attempts := 0
 					Consistently(func() chan struct{} {
 						pool.Try(logger, "worker-a", JobFunc(func(worker.Worker) {
 							can <- struct{}{}
 						}))
 
+						attempts++
 						return can
 					}).ShouldNot(Receive())
+
+					Expect(metricFuncCallCount).To(Equal(attempts))
 				})
 
 				It("can run jobs on other workers", func() {

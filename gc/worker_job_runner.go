@@ -20,8 +20,9 @@ type workerJobRunner struct {
 
 	workerJobs map[string]int
 
-	jobsL        *sync.Mutex
-	inFlightJobs map[string]struct{}
+	jobsL          *sync.Mutex
+	inFlightJobs   map[string]struct{}
+	dropMetricFunc func(lager.Logger, string)
 }
 
 type Job interface {
@@ -48,6 +49,7 @@ func NewWorkerJobRunner(
 	workerPool worker.Client,
 	workersSyncInterval time.Duration,
 	maxJobsPerWorker int,
+	dropMetricFunc func(lager.Logger, string),
 ) WorkerJobRunner {
 	runner := &workerJobRunner{
 		workerPool: workerPool,
@@ -58,9 +60,10 @@ func NewWorkerJobRunner(
 		workersL:            &sync.Mutex{},
 		workersSyncInterval: workersSyncInterval,
 
-		workerJobs:   map[string]int{},
-		jobsL:        &sync.Mutex{},
-		inFlightJobs: map[string]struct{}{},
+		workerJobs:     map[string]int{},
+		jobsL:          &sync.Mutex{},
+		inFlightJobs:   map[string]struct{}{},
+		dropMetricFunc: dropMetricFunc,
 	}
 
 	go runner.syncWorkersLoop(logger)
@@ -85,7 +88,8 @@ func (runner *workerJobRunner) Try(logger lager.Logger, workerName string, job J
 
 	if !runner.startJob(job.Name(), workerName) {
 		logger.Debug("job-limit-reached")
-		// drop the job on the floor; it'll be queued up again later
+		runner.dropMetricFunc(logger, workerName)
+
 		return
 	}
 

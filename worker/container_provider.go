@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -253,6 +254,8 @@ func (p *containerProvider) FindOrCreateContainer(
 				logger.Error("failed-to-create-container-in-garden", err)
 				return nil, err
 			}
+
+			metric.ContainersCreated.Inc()
 
 			logger.Debug("created-container-in-garden")
 		}

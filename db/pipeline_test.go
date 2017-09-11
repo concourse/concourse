@@ -2125,14 +2125,16 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
 			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(jobBuild.ID()))
 
-			By("returning a job's most recent finished build even when there is a newer unfinished build")
+			By("returning a job's nextmost pending build even when there is a newer started build")
 			job, found, err = pipeline.Job("job-name")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			jobBuildNewDB, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
-			jobBuildNewDB.Start("engine", "metadata", atc.Plan{})
+			started, err := jobBuildNewDB.Start("engine", "metadata", atc.Plan{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
 			found, err = jobBuildNewDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -2144,10 +2146,10 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildNewDB.ID()))
+			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
 			Expect(actualDashboard[0].NextBuild.Status()).To(Equal(db.BuildStatusStarted))
 			Expect(actualDashboard[0].NextBuild.Engine()).To(Equal("engine"))
-			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal("metadata"))
+			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal(`{"meta":"data"}`))
 			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(jobBuild.ID()))
 
 			By("returning a job's transition build as nil when there are no builds")

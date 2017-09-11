@@ -189,5 +189,9 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		DropResourceConfigUsesAndAddContainerIDToResourceCacheUsesWhileAlsoRemovingResourceIDAndResourceTypeIDFromResourceCacheUses,
 		AddResourceConfigIDToResources,
 		AddResourceConfigIDToResourceTypes,
+		AddIndexesToEvenMoreForeignKeys,
+		AddBuildsInterceptibleCompletedIndex,
+		DropUnusedBuildsCompletedIndex,
+		AddUniqueIndexToVolumeHandles,
 	}
 }

@@ -1,6 +1,8 @@
 package db
 
 import (
+	"strings"
+
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -56,7 +58,6 @@ func (f *resourceCacheLifecycle) CleanUsesForFinishedBuilds(logger lager.Logger)
 func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error {
 	stillInUseCacheIds, _, err := sq.
 		Select("resource_cache_id").
-		Distinct().
 		From("resource_cache_uses").
 		ToSql()
 	if err != nil {
@@ -65,7 +66,6 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 
 	resourceConfigCacheIds, _, err := sq.
 		Select("resource_cache_id").
-		Distinct().
 		From("resource_configs").
 		Where(sq.NotEq{"resource_cache_id": nil}).
 		ToSql()
@@ -75,7 +75,6 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 
 	buildImageCacheIds, _, err := sq.
 		Select("resource_cache_id").
-		Distinct().
 		From("build_image_resource_caches").
 		ToSql()
 	if err != nil {
@@ -84,7 +83,6 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 
 	nextBuildInputsCacheIds, _, err := sq.
 		Select("r_cache.id").
-		Distinct().
 		From("next_build_inputs nbi").
 		Join("versioned_resources vr ON vr.id = nbi.version_id").
 		Join("resources r ON r.id = vr.resource_id").
@@ -100,10 +98,12 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 	}
 
 	query, args, err := sq.Delete("resource_caches").
-		Where("id NOT IN (" + stillInUseCacheIds + ")").
-		Where("id NOT IN (" + resourceConfigCacheIds + ")").
-		Where("id NOT IN (" + buildImageCacheIds + ")").
-		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
+		Where("id NOT IN (" + strings.Join([]string{
+			stillInUseCacheIds,
+			resourceConfigCacheIds,
+			buildImageCacheIds,
+			nextBuildInputsCacheIds,
+		}, " UNION ") + ")").
 		Suffix("RETURNING id").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()

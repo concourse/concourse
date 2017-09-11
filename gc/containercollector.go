@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/worker"
 )
 
@@ -88,19 +89,17 @@ func (c *containerCollector) Run() error {
 		"destroying-containers": destroyingContainerHandles,
 	})
 
-	for _, creatingContainer := range creatingContainers {
-		cLog := logger.Session("mark-creating-as-created", lager.Data{
-			"container": creatingContainer.Handle(),
-		})
+	metric.CreatingContainersToBeGarbageCollected{
+		Containers: len(creatingContainerHandles),
+	}.Emit(logger)
 
-		createdContainer, err := creatingContainer.Created()
-		if err != nil {
-			cLog.Error("failed-to-transition", err)
-			continue
-		}
+	metric.CreatedContainersToBeGarbageCollected{
+		Containers: len(createdContainerHandles),
+	}.Emit(logger)
 
-		createdContainers = append(createdContainers, createdContainer)
-	}
+	metric.DestroyingContainersToBeGarbageCollected{
+		Containers: len(destroyingContainerHandles),
+	}.Emit(logger)
 
 	for _, createdContainer := range createdContainers {
 		// prevent closure from capturing last value of loop
@@ -163,7 +162,7 @@ func destroyCreatedContainer(logger lager.Logger, container db.CreatedContainer)
 		}
 
 		if destroyingContainer != nil {
-			tryToDestroyContainer(cLog, destroyingContainer, workerClient.GardenClient())
+			tryToDestroyContainer(cLog, destroyingContainer, workerClient)
 		}
 	}
 }
@@ -175,7 +174,7 @@ func destroyDestroyingContainer(logger lager.Logger, container db.DestroyingCont
 			"worker":    workerClient.Name(),
 		})
 
-		tryToDestroyContainer(cLog, container, workerClient.GardenClient())
+		tryToDestroyContainer(cLog, container, workerClient)
 	}
 }
 
@@ -220,10 +219,12 @@ func markHijackedContainerAsDestroying(
 func tryToDestroyContainer(
 	logger lager.Logger,
 	container db.DestroyingContainer,
-	gardenClient garden.Client,
+	workerClient worker.Worker,
 ) {
 	logger.Debug("start")
 	defer logger.Debug("done")
+
+	gardenClient := workerClient.GardenClient()
 
 	if container.IsDiscontinued() {
 		logger.Debug("discontinued")
@@ -252,6 +253,8 @@ func tryToDestroyContainer(
 		}
 
 		logger.Debug("destroyed-in-garden")
+
+		metric.ContainersDeleted.Inc()
 	}
 
 	ok, err := container.Destroy()

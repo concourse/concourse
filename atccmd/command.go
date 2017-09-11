@@ -524,6 +524,11 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 						workerClient,
 						time.Minute,
 						cmd.GC.WorkerConcurrency,
+						func(logger lager.Logger, workerName string) {
+							metric.GarbageCollectionVolumeCollectorJobDropped{
+								WorkerName: workerName,
+							}.Emit(logger)
+						},
 					),
 				),
 				gc.NewContainerCollector(
@@ -534,6 +539,11 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 						workerClient,
 						time.Minute,
 						cmd.GC.WorkerConcurrency,
+						func(logger lager.Logger, workerName string) {
+							metric.GarbageCollectionContainerCollectorJobDropped{
+								WorkerName: workerName,
+							}.Emit(logger)
+						},
 					),
 				),
 				gc.NewResourceConfigCheckSessionCollector(

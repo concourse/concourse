@@ -57,28 +57,29 @@ func (f *buildFactory) PublicBuilds(page Page) ([]Build, Pagination, error) {
 }
 
 func (f *buildFactory) MarkNonInterceptibleBuilds() error {
-	latestBuildsPrefix := `WITH
-		latest_builds AS (
-			SELECT COALESCE(MAX(b.id)) AS build_id
-			FROM builds b, jobs j
-			WHERE b.job_id = j.id
-			AND b.completed
-			GROUP BY j.id
-		)`
+	_, err := f.conn.Exec(`
+		UPDATE builds b
+		SET interceptible = false
+		FROM jobs j
+		WHERE b.interceptible
+		AND b.completed
+		AND j.id = b.job_id
+		AND (
+				b.status = 'succeeded'
+			OR
+				b.name != j.build_number_seq::text
+		)
+	`)
+	if err != nil {
+		return err
+	}
 
-	_, err := psql.Update("builds").
-		Prefix(latestBuildsPrefix).
-		Set("interceptible", false).
-		Where(sq.Eq{
-			"completed":     true,
-			"interceptible": true,
-		}).
-		Where(sq.Or{
-			sq.Expr("id NOT IN (select build_id FROM latest_builds)"),
-			sq.Eq{"status": string(BuildStatusSucceeded)},
-		}).
-		RunWith(f.conn).
-		Exec()
+	_, err = f.conn.Exec(`
+		UPDATE builds
+		SET interceptible = FALSE
+		WHERE job_id IS NULL
+		AND interceptible AND completed
+	`)
 	if err != nil {
 		return err
 	}
