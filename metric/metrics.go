@@ -11,6 +11,9 @@ import (
 var DatabaseQueries = Meter(0)
 var DatabaseConnections = &Gauge{}
 
+var ContainersCreated = Meter(0)
+var VolumesCreated = Meter(0)
+
 var ContainersDeleted = Meter(0)
 var VolumesDeleted = Meter(0)
 

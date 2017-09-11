@@ -50,6 +50,24 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 			},
 		)
 
+		emit(
+			logger.Session("containers-created"),
+			Event{
+				Name:  "containers created",
+				Value: ContainersCreated.Delta(),
+				State: EventStateOK,
+			},
+		)
+
+		emit(
+			logger.Session("volumes-created"),
+			Event{
+				Name:  "volumes created",
+				Value: VolumesCreated.Delta(),
+				State: EventStateOK,
+			},
+		)
+
 		var memStats runtime.MemStats
 		runtime.ReadMemStats(&memStats)
 

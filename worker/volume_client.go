@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -370,6 +371,8 @@ func (c *volumeClient) findOrCreateVolume(
 			logger.Error("failed-to-create-volume-in-baggageclaim", err)
 			return nil, err
 		}
+
+		metric.VolumesCreated.Inc()
 	}
 
 	createdVolume, err = creatingVolume.Created()
