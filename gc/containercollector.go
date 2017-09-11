@@ -101,20 +101,6 @@ func (c *containerCollector) Run() error {
 		Containers: len(destroyingContainerHandles),
 	}.Emit(logger)
 
-	for _, creatingContainer := range creatingContainers {
-		cLog := logger.Session("mark-creating-as-created", lager.Data{
-			"container": creatingContainer.Handle(),
-		})
-
-		createdContainer, err := creatingContainer.Created()
-		if err != nil {
-			cLog.Error("failed-to-transition", err)
-			continue
-		}
-
-		createdContainers = append(createdContainers, createdContainer)
-	}
-
 	for _, createdContainer := range createdContainers {
 		// prevent closure from capturing last value of loop
 		container := createdContainer
