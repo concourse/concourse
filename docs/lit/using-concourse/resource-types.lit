@@ -188,7 +188,7 @@ before using it!
     \link{Maven Resource}{https://github.com/Pivotal-Field-Engineering/maven-resource}
   }{
     \link{cURL File Resource}{https://github.com/pivotalservices/concourse-curl-resource}
-  link
+  }{
     \link{Pivnet Resource (rsamban)}{https://github.com/rsamban/pivnet-resource}
   }{
     \link{Cloud Foundry Events}{https://github.com/mevansam/cf-event-resource-type}
