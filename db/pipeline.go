@@ -807,7 +807,7 @@ func (p *pipeline) Dashboard() (Dashboard, atc.GroupConfigs, error) {
 		return nil, nil, err
 	}
 
-	nextBuilds, err := p.getJobBuildsSatisfying("MIN", sq.Expr("NOT b.completed"))
+	nextBuilds, err := p.getJobBuildsSatisfying("MIN", sq.Eq{"b.status": []BuildStatus{BuildStatusPending, BuildStatusStarted}})
 	if err != nil {
 		return nil, nil, err
 	}
