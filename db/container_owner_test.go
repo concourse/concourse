@@ -57,6 +57,7 @@ var _ = Describe("ContainerOwner", func() {
 		JustBeforeEach(func() {
 			owner = db.NewResourceConfigCheckSessionContainerOwner(
 				resourceConfigCheckSession,
+				defaultTeam.ID(),
 			)
 		})
 
@@ -75,6 +76,7 @@ var _ = Describe("ContainerOwner", func() {
 				BeforeEach(func() {
 					existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
 						resourceConfigCheckSession,
+						defaultTeam.ID(),
 					)
 
 					tx, err := dbConn.Begin()

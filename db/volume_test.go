@@ -25,7 +25,7 @@ var _ = Describe("Volume", func() {
 		resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger, "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{}, expiries)
 		Expect(err).NotTo(HaveOccurred())
 
-		defaultCreatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession), db.ContainerMetadata{Type: "check"})
+		defaultCreatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, defaultTeam.ID()), db.ContainerMetadata{Type: "check"})
 		Expect(err).NotTo(HaveOccurred())
 
 		defaultCreatedContainer, err = defaultCreatingContainer.Created()

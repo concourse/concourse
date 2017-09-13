@@ -142,7 +142,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	res, err := scanner.resourceFactory.NewResource(
 		logger,
 		nil,
-		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession),
+		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, scanner.dbPipeline.TeamID()),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

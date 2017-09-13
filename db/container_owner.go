@@ -113,14 +113,17 @@ func (c buildStepContainerOwner) sqlMap() map[string]interface{} {
 // can be removed.
 func NewResourceConfigCheckSessionContainerOwner(
 	resourceConfigCheckSession ResourceConfigCheckSession,
+	teamID int,
 ) ContainerOwner {
 	return resourceConfigCheckSessionContainerOwner{
 		resourceConfigCheckSession: resourceConfigCheckSession,
+		teamID: teamID,
 	}
 }
 
 type resourceConfigCheckSessionContainerOwner struct {
 	resourceConfigCheckSession ResourceConfigCheckSession
+	teamID                     int
 }
 
 func (c resourceConfigCheckSessionContainerOwner) Find(conn Conn) (sq.Eq, bool, error) {
@@ -129,6 +132,7 @@ func (c resourceConfigCheckSessionContainerOwner) Find(conn Conn) (sq.Eq, bool, 
 		From("worker_resource_config_check_sessions").
 		Where(sq.And{
 			sq.Eq{"resource_config_check_session_id": c.resourceConfigCheckSession.ID()},
+			sq.Eq{"team_id": c.teamID},
 		}).
 		RunWith(conn).
 		QueryRow().
@@ -166,6 +170,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 		SetMap(map[string]interface{}{
 			"resource_config_check_session_id": c.resourceConfigCheckSession.ID(),
 			"worker_base_resource_type_id":     wbrtID,
+			"team_id":                          c.teamID,
 		}).
 		Suffix("RETURNING id").
 		RunWith(tx).

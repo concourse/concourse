@@ -419,7 +419,7 @@ var _ = Describe("Team", func() {
 
 						resourceContainer, err = defaultTeam.CreateContainer(
 							"default-worker",
-							db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession),
+							db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, defaultTeam.ID()),
 							db.ContainerMetadata{},
 						)
 						Expect(err).NotTo(HaveOccurred())
@@ -435,7 +435,7 @@ var _ = Describe("Team", func() {
 						BeforeEach(func() {
 							_, err := otherTeam.CreateContainer(
 								"default-worker",
-								db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession),
+								db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, defaultTeam.ID()),
 								db.ContainerMetadata{},
 							)
 							Expect(err).NotTo(HaveOccurred())
@@ -1911,7 +1911,7 @@ var _ = Describe("Team", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			owner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
+			owner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, team.ID())
 		})
 
 		JustBeforeEach(func() {
