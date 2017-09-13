@@ -26,6 +26,14 @@ fetchJobs pi =
             ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
 
 
+fetchJobsWithTransitionBuilds : Concourse.PipelineIdentifier -> Task Http.Error (List Concourse.Job)
+fetchJobsWithTransitionBuilds pi =
+    Http.toTask <|
+        flip Http.get
+            (Json.Decode.list (Concourse.decodeJob pi))
+            ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs" ++ "?include=transitionBuilds")
+
+
 fetchJobsRaw : Concourse.PipelineIdentifier -> Task Http.Error Json.Decode.Value
 fetchJobsRaw pi =
     Http.toTask <|
