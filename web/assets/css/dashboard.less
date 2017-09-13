@@ -1,5 +1,23 @@
 .dashboard {
   padding: 0 25px 0 45px;
+
+  .pipeline-grid {
+    float: none;
+    height: 200px;
+    display: flex;
+    flex-direction: row;
+    padding: 0 50px 30px;
+  }
+
+  .pipeline-grid >* {
+    align-items: initial;
+  }
+
+  .node {
+    flex-grow: 1;
+    margin: 5%;
+    font-size: 0;
+  }
 }
 
 .dashboard-team-group {
@@ -51,12 +69,17 @@
 
   .dashboard-pipeline-content {
     display: flex;
-    height: 70px;
+    flex-direction: column;
 
     &:hover {
       background: #1F2E3C;
       box-shadow: 0 2px 3px 0 rgba(0,0,0,0.50);
     }
+  }
+
+  .dashboard-pipeline-header {
+    display: flex;
+    height: 70px;
   }
 
   .running-animation(@color1, @color2) {
@@ -87,6 +110,8 @@
   }
 
   &.dashboard-status-failed {
+     background: #1F2E3C;
+
     .dashboard-pipeline-banner {
       background-color: @base08;
     }
