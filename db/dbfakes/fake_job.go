@@ -174,17 +174,6 @@ type FakeJob struct {
 		result2 db.Build
 		result3 error
 	}
-	TransitionBuildStub        func() (db.Build, error)
-	transitionBuildMutex       sync.RWMutex
-	transitionBuildArgsForCall []struct{}
-	transitionBuildReturns     struct {
-		result1 db.Build
-		result2 error
-	}
-	transitionBuildReturnsOnCall map[int]struct {
-		result1 db.Build
-		result2 error
-	}
 	UpdateFirstLoggedBuildIDStub        func(newFirstLoggedBuildID int) error
 	updateFirstLoggedBuildIDMutex       sync.RWMutex
 	updateFirstLoggedBuildIDArgsForCall []struct {
@@ -994,49 +983,6 @@ func (fake *FakeJob) FinishedAndNextBuildReturnsOnCall(i int, result1 db.Build, 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeJob) TransitionBuild() (db.Build, error) {
-	fake.transitionBuildMutex.Lock()
-	ret, specificReturn := fake.transitionBuildReturnsOnCall[len(fake.transitionBuildArgsForCall)]
-	fake.transitionBuildArgsForCall = append(fake.transitionBuildArgsForCall, struct{}{})
-	fake.recordInvocation("TransitionBuild", []interface{}{})
-	fake.transitionBuildMutex.Unlock()
-	if fake.TransitionBuildStub != nil {
-		return fake.TransitionBuildStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.transitionBuildReturns.result1, fake.transitionBuildReturns.result2
-}
-
-func (fake *FakeJob) TransitionBuildCallCount() int {
-	fake.transitionBuildMutex.RLock()
-	defer fake.transitionBuildMutex.RUnlock()
-	return len(fake.transitionBuildArgsForCall)
-}
-
-func (fake *FakeJob) TransitionBuildReturns(result1 db.Build, result2 error) {
-	fake.TransitionBuildStub = nil
-	fake.transitionBuildReturns = struct {
-		result1 db.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeJob) TransitionBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
-	fake.TransitionBuildStub = nil
-	if fake.transitionBuildReturnsOnCall == nil {
-		fake.transitionBuildReturnsOnCall = make(map[int]struct {
-			result1 db.Build
-			result2 error
-		})
-	}
-	fake.transitionBuildReturnsOnCall[i] = struct {
-		result1 db.Build
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeJob) UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error {
 	fake.updateFirstLoggedBuildIDMutex.Lock()
 	ret, specificReturn := fake.updateFirstLoggedBuildIDReturnsOnCall[len(fake.updateFirstLoggedBuildIDArgsForCall)]
@@ -1591,8 +1537,6 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.buildMutex.RUnlock()
 	fake.finishedAndNextBuildMutex.RLock()
 	defer fake.finishedAndNextBuildMutex.RUnlock()
-	fake.transitionBuildMutex.RLock()
-	defer fake.transitionBuildMutex.RUnlock()
 	fake.updateFirstLoggedBuildIDMutex.RLock()
 	defer fake.updateFirstLoggedBuildIDMutex.RUnlock()
 	fake.ensurePendingBuildExistsMutex.RLock()

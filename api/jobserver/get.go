@@ -32,13 +32,6 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		transition, err := job.TransitionBuild()
-		if err != nil {
-			logger.Error("could-not-get-job-transition-build", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		teamName := r.FormValue(":team_name")
 
 		w.WriteHeader(http.StatusOK)
@@ -49,7 +42,7 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 			pipeline.Groups(),
 			finished,
 			next,
-			transition,
+			nil,
 		))
 	})
 }

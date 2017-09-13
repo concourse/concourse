@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
@@ -34,7 +33,6 @@ type Job interface {
 	Builds(page Page) ([]Build, Pagination, error)
 	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
-	TransitionBuild() (Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
 	EnsurePendingBuildExists() error
 	GetPendingBuilds() ([]Build, error)
@@ -168,95 +166,6 @@ func (j *job) FinishedAndNextBuild() (Build, Build, error) {
 	}
 
 	return finished, next, nil
-}
-
-func (j *job) TransitionBuild() (Build, error) {
-	var first, finished, beforeTransition, transition Build
-
-	builds := buildsQuery.
-		Where(sq.Eq{
-			"j.name":        j.name,
-			"j.pipeline_id": j.pipelineID,
-		})
-
-	row := builds.
-		Where(sq.Expr("b.status NOT IN ('pending', 'started')")).
-		OrderBy("b.id DESC").
-		Limit(1).
-		RunWith(j.conn).
-		QueryRow()
-
-	finishedBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err := scanBuild(finishedBuild, row, j.conn.EncryptionStrategy())
-
-	if err == nil {
-		finished = finishedBuild
-	} else if err != sql.ErrNoRows {
-		return nil, err
-	}
-
-	if finished == nil {
-		return nil, nil
-	}
-
-	row = builds.
-		Where(sq.Expr("b.status NOT IN ('pending', 'started')")).
-		Where(sq.NotEq{
-			"b.status": finished.Status(),
-		}).
-		OrderBy("b.id DESC").
-		Limit(1).
-		RunWith(j.conn).
-		QueryRow()
-
-	beforeTransitionBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err = scanBuild(beforeTransitionBuild, row, j.conn.EncryptionStrategy())
-
-	if err == nil {
-		beforeTransition = beforeTransitionBuild
-	} else if err != sql.ErrNoRows {
-		return nil, err
-	}
-
-	if beforeTransition == nil {
-		row = buildsQuery.
-			Where(sq.Eq{
-				"j.name":        j.name,
-				"j.pipeline_id": j.pipelineID,
-			}).
-			Limit(1).
-			RunWith(j.conn).
-			QueryRow()
-
-		firstBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
-		err := scanBuild(firstBuild, row, j.conn.EncryptionStrategy())
-
-		if err == nil {
-			first = firstBuild
-		} else if err != sql.ErrNoRows {
-			return nil, err
-		}
-
-		return first, nil
-	}
-
-	row = builds.
-		Where(sq.Expr(`b.id > ` + strconv.Itoa(beforeTransition.ID()))).
-		OrderBy("b.id ASC").
-		Limit(1).
-		RunWith(j.conn).
-		QueryRow()
-
-	transitionBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err = scanBuild(transitionBuild, row, j.conn.EncryptionStrategy())
-
-	if err == nil {
-		transition = transitionBuild
-	} else if err != sql.ErrNoRows {
-		return nil, err
-	}
-
-	return transition, nil
 }
 
 func (j *job) UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error {

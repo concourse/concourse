@@ -284,7 +284,7 @@ fetchJobs : Concourse.Pipeline -> Cmd Msg
 fetchJobs pipeline =
     Cmd.map (JobsResponse pipeline.id) <|
         RemoteData.asCmd <|
-            Concourse.Job.fetchJobs
+            Concourse.Job.fetchJobsWithTransitionBuilds
                 { teamName = pipeline.teamName
                 , pipelineName = pipeline.name
                 }

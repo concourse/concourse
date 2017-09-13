@@ -15,7 +15,9 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var jobs []atc.Job
 
-		dashboard, groups, err := pipeline.Dashboard()
+		include := r.FormValue("include")
+		dashboard, groups, err := pipeline.Dashboard(include)
+
 		if err != nil {
 			logger.Error("failed-to-get-dashboard", err)
 			w.WriteHeader(http.StatusInternalServerError)
