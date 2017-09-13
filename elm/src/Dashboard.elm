@@ -5,6 +5,7 @@ import Concourse
 import Concourse.BuildStatus
 import Concourse.Job
 import Concourse.Pipeline
+import DashboardPreview exposing (initGraph, pipelinePreview)
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Html exposing (Html)
@@ -27,6 +28,12 @@ type Msg
     | JobsResponse Int (RemoteData.WebData (List Concourse.Job))
     | ClockTick Time.Time
     | AutoRefresh Time
+
+
+type alias PipelineState =
+    { pipeline : Concourse.Pipeline
+    , jobs : RemoteData.WebData (List Concourse.Job)
+    }
 
 
 init : String -> ( Model, Cmd Msg )
@@ -154,12 +161,6 @@ pipelineStatusRank state =
             rank
 
 
-type alias PipelineState =
-    { pipeline : Concourse.Pipeline
-    , jobs : RemoteData.WebData (List Concourse.Job)
-    }
-
-
 viewGroup : Maybe Time -> String -> List PipelineState -> Html msg
 viewGroup now teamName pipelines =
     Html.div [ id teamName, class "dashboard-team-group" ]
@@ -182,16 +183,27 @@ viewPipeline now state =
         ]
         [ Html.div [ class "dashboard-pipeline-banner" ] []
         , Html.a [ class "dashboard-pipeline-content", href state.pipeline.url ]
-            [ Html.div [ class "dashboard-pipeline-icon" ]
-                []
-            , Html.div [ class "dashboard-pipeline-name" ]
-                [ Html.text state.pipeline.name ]
+            [ Html.div [ class "dashboard-pipeline-header" ]
+                [ Html.div [ class "dashboard-pipeline-icon" ]
+                    []
+                , Html.div [ class "dashboard-pipeline-name" ]
+                    [ Html.text state.pipeline.name ]
+                ]
+            , viewPipelinePreview state
+            , timeSincePipelineFailed now state
             ]
-        , Html.div [] (timeSincePipelineFailed now state)
         ]
 
 
-timeSincePipelineFailed : Maybe Time -> PipelineState -> List (Html a)
+viewPipelinePreview : PipelineState -> Html msg
+viewPipelinePreview state =
+    if pipelineStatus state == Concourse.BuildStatus.show Concourse.BuildStatusFailed then
+        pipelinePreview state.jobs
+    else
+        Html.text ""
+
+
+timeSincePipelineFailed : Maybe Time -> PipelineState -> Html a
 timeSincePipelineFailed time { jobs } =
     case jobs of
         RemoteData.Success js ->
@@ -222,13 +234,13 @@ timeSincePipelineFailed time { jobs } =
             in
                 case ( time, failedDuration ) of
                     ( Just now, Just duration ) ->
-                        [ BuildDuration.viewFailDuration duration now ]
+                        BuildDuration.viewFailDuration duration now
 
                     _ ->
-                        []
+                        Html.text ""
 
         _ ->
-            []
+            Html.text ""
 
 
 isPipelineRunning : PipelineState -> Bool
