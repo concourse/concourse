@@ -276,13 +276,22 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(workers)).To(Equal(2))
 
-				Expect(workers[0].Name()).To(Equal("some-name"))
-				Expect(*workers[0].GardenAddr()).To(Equal("some-garden-addr"))
-				Expect(*workers[0].BaggageclaimURL()).To(Equal("some-bc-url"))
+				strptr := func(s string) *string {
+					return &s
+				}
 
-				Expect(workers[1].Name()).To(Equal("some-new-worker"))
-				Expect(*workers[1].GardenAddr()).To(Equal("some-other-garden-addr"))
-				Expect(*workers[1].BaggageclaimURL()).To(Equal("some-other-bc-url"))
+				Expect(workers).To(ConsistOf(
+					And(
+						WithTransform((db.Worker).Name, Equal("some-name")),
+						WithTransform((db.Worker).GardenAddr, Equal(strptr("some-garden-addr"))),
+						WithTransform((db.Worker).BaggageclaimURL, Equal(strptr("some-bc-url"))),
+					),
+					And(
+						WithTransform((db.Worker).Name, Equal("some-new-worker")),
+						WithTransform((db.Worker).GardenAddr, Equal(strptr("some-other-garden-addr"))),
+						WithTransform((db.Worker).BaggageclaimURL, Equal(strptr("some-other-bc-url"))),
+					),
+				))
 			})
 		})
 
