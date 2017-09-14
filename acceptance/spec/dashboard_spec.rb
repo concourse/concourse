@@ -89,7 +89,7 @@ describe 'dashboard', type: :feature do
       visit_dashboard
       within '.dashboard-team-group', text: team_name do
         expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq (
-          ['failing-pipeline', 'other-failing-pipeline', 'errored-pipeline', 'aborted-pipeline', 'succeeded-pipeline', 'pending-pipeline', 'paused-pipeline']
+          ['failing-pipeline', 'other-failing-pipeline', 'errored-pipeline', 'aborted-pipeline', 'paused-pipeline', 'succeeded-pipeline', 'pending-pipeline']
         )
       end
     end
