@@ -18,7 +18,38 @@
     margin: 5%;
     font-size: 0;
   }
+
+  .build-duration {
+    padding-bottom: 20px;
+  }
+
+  .build-duration .dict-key {
+    color: @base03;
+    width: 70px;
+  }
+
+  .build-duration .dict-value {
+    span {
+      color: @base08;
+      font-size: 30px;
+      text-transform: uppercase;
+      top: 7px;
+      white-space: nowrap;
+      word-spacing: -5px;
+      &:after {
+        border-bottom: 1px solid #1F2E3C;
+        display: block;
+        content: ' ';
+        z-index: 999;
+        position: relative;
+        top: -7px;
+        width: 200px;
+      }
+      // letter-spacing: -4.5px;
+    }
+  }
 }
+
 
 .dashboard-team-group {
   padding-top: 55px;
