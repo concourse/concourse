@@ -42,7 +42,7 @@ viewFailDuration duration now =
                 []
 
             Just startedAt ->
-                [ labeledDuration "failing for:" (Duration.between (Date.toTime startedAt) now) ]
+                [ labeledDuration "for:" (Duration.between (Date.toTime startedAt) now) ]
 
 
 labeledRelativeDate : String -> Time -> Date -> Html a

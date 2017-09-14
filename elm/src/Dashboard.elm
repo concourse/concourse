@@ -8,6 +8,7 @@ import Concourse.Pipeline
 import DashboardPreview exposing (initGraph, pipelinePreview)
 import Date exposing (Date)
 import Dict exposing (Dict)
+import Grid exposing (Grid)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src)
 import RemoteData
@@ -84,17 +85,16 @@ view model =
         RemoteData.Success pipelines ->
             let
                 pipelineStates =
-                    List.sortBy pipelineStatusRank <|
-                        List.filter ((/=) RemoteData.NotAsked << .jobs) <|
-                            List.map
-                                (\pipeline ->
-                                    { pipeline = pipeline
-                                    , jobs =
-                                        Maybe.withDefault RemoteData.NotAsked <|
-                                            Dict.get pipeline.id model.jobs
-                                    }
-                                )
-                                pipelines
+                    List.filter ((/=) RemoteData.NotAsked << .jobs) <|
+                        List.map
+                            (\pipeline ->
+                                { pipeline = pipeline
+                                , jobs =
+                                    Maybe.withDefault RemoteData.NotAsked <|
+                                        Dict.get pipeline.id model.jobs
+                                }
+                            )
+                            pipelines
 
                 pipelinesByTeam =
                     List.foldl
@@ -125,42 +125,6 @@ view model =
             Html.text ""
 
 
-pipelineStatusRank : PipelineState -> Int
-pipelineStatusRank state =
-    let
-        order =
-            [ Concourse.BuildStatusFailed, Concourse.BuildStatusErrored, Concourse.BuildStatusAborted, Concourse.BuildStatusSucceeded, Concourse.BuildStatusPending ]
-
-        ranks =
-            List.indexedMap
-                (\index buildStatus ->
-                    ( Concourse.BuildStatus.show buildStatus, index * 2 )
-                )
-                order
-
-        unranked =
-            (List.length ranks) * 2
-
-        status =
-            pipelineStatus state
-
-        paused =
-            state.pipeline.paused
-
-        running =
-            isPipelineRunning state
-
-        rank =
-            Maybe.withDefault unranked <| Dict.get status <| Dict.fromList ranks
-    in
-        if paused then
-            unranked
-        else if running then
-            rank - 1
-        else
-            rank
-
-
 viewGroup : Maybe Time -> String -> List PipelineState -> Html msg
 viewGroup now teamName pipelines =
     Html.div [ id teamName, class "dashboard-team-group" ]
@@ -173,53 +137,64 @@ viewGroup now teamName pipelines =
 
 viewPipeline : Maybe Time -> PipelineState -> Html msg
 viewPipeline now state =
-    Html.div
-        [ classList
-            [ ( "dashboard-pipeline", True )
-            , ( "dashboard-paused", state.pipeline.paused )
-            , ( "dashboard-running", isPipelineRunning state )
-            , ( "dashboard-status-" ++ pipelineStatus state, not state.pipeline.paused )
-            ]
-        ]
-        [ Html.div [ class "dashboard-pipeline-banner" ] []
-        , Html.a [ class "dashboard-pipeline-content", href state.pipeline.url ]
-            [ Html.div [ class "dashboard-pipeline-header" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ]
-                    []
-                , Html.div [ class "dashboard-pipeline-name" ]
-                    [ Html.text state.pipeline.name ]
+    let
+        status =
+            pipelineStatus state
+
+        size =
+            case state.jobs of
+                RemoteData.Success js ->
+                    Dict.size <|
+                        DashboardPreview.jobGroups (Grid.fromGraph (initGraph js)) Dict.empty 0
+
+                _ ->
+                    1
+    in
+        Html.div
+            [ classList
+                [ ( "dashboard-pipeline", True )
+                , ( "dashboard-pipeline-double", size > 6 )
+                , ( "dashboard-paused", state.pipeline.paused )
+                , ( "dashboard-running", isPipelineRunning state )
+                , ( "dashboard-status-" ++ Concourse.BuildStatus.show status, not state.pipeline.paused )
                 ]
-            , viewPipelinePreview state
-            , timeSincePipelineFailed now state
             ]
-        ]
+            [ Html.div [ class "dashboard-pipeline-banner" ] []
+            , Html.a [ class "dashboard-pipeline-content", href state.pipeline.url ]
+                [ Html.div [ class "dashboard-pipeline-header" ]
+                    [ Html.div [ class "dashboard-pipeline-icon" ]
+                        []
+                    , Html.div [ class "dashboard-pipeline-name" ]
+                        [ Html.text state.pipeline.name ]
+                    ]
+                , pipelinePreview state.jobs
+                , timeSincePipelineTransitioned status now state
+                ]
+            ]
 
 
 viewPipelinePreview : PipelineState -> Html msg
 viewPipelinePreview state =
-    if pipelineStatus state == Concourse.BuildStatus.show Concourse.BuildStatusFailed then
-        pipelinePreview state.jobs
-    else
-        Html.text ""
+    pipelinePreview state.jobs
 
 
-timeSincePipelineFailed : Maybe Time -> PipelineState -> Html a
-timeSincePipelineFailed time { jobs } =
+timeSincePipelineTransitioned : Concourse.BuildStatus -> Maybe Time -> PipelineState -> Html a
+timeSincePipelineTransitioned status time { jobs } =
     case jobs of
         RemoteData.Success js ->
             let
-                failedJobs =
-                    List.filter ((==) Concourse.BuildStatusFailed << jobStatus) <| js
+                transitionedJobs =
+                    List.filter ((==) status << jobStatus) <| js
 
-                failedDurations =
+                transitionedDurations =
                     List.map
                         (\job ->
                             Maybe.withDefault { startedAt = Nothing, finishedAt = Nothing } <|
                                 Maybe.map .duration job.transitionBuild
                         )
-                        failedJobs
+                        transitionedJobs
 
-                failedDuration =
+                transitionedDuration =
                     List.head <|
                         List.sortBy
                             (\duration ->
@@ -230,9 +205,9 @@ timeSincePipelineFailed time { jobs } =
                                     Nothing ->
                                         0
                             )
-                            failedDurations
+                            transitionedDurations
             in
-                case ( time, failedDuration ) of
+                case ( time, transitionedDuration ) of
                     ( Just now, Just duration ) ->
                         BuildDuration.viewFailDuration duration now
 
@@ -253,14 +228,14 @@ isPipelineRunning { jobs } =
             False
 
 
-pipelineStatus : PipelineState -> String
+pipelineStatus : PipelineState -> Concourse.BuildStatus
 pipelineStatus { jobs } =
     case jobs of
         RemoteData.Success js ->
-            Concourse.BuildStatus.show (jobsStatus js)
+            jobsStatus js
 
         _ ->
-            "unknown"
+            Concourse.BuildStatusPending
 
 
 jobStatus : Concourse.Job -> Concourse.BuildStatus

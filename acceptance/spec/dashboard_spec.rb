@@ -2,15 +2,13 @@ require 'color'
 require 'securerandom'
 
 describe 'dashboard', type: :feature do
-  let(:red) { Color::RGB.by_hex('E74C3C') }
-  let(:green) { Color::RGB.by_hex('2ECC71') }
-  let(:orange) { Color::RGB.by_hex('E67E22') }
-  let(:yellow) { Color::RGB.by_hex('F1C40F') }
-  let(:brown) { Color::RGB.by_hex('8F4B2D') }
-  let(:blue) { Color::RGB.by_hex('3498DB') }
-  let(:grey) { Color::RGB.by_hex('ECF0F1') }
-  let(:palette) { [red, green, orange, yellow, brown, blue, grey] }
-
+  let(:red) { Color::CSS['red'] }
+  let(:green) { Color::CSS['green'] }
+  let(:orange) { Color::CSS['orange'] }
+  let(:yellow) { Color::CSS['yellow'] }
+  let(:brown) { Color::CSS['brown'] }
+  let(:blue) { Color::CSS['blue'] }
+  let(:palette) { [red, green, orange, yellow, brown, blue] }
   let(:team_name) { generate_team_name }
   let(:other_team_name) { generate_team_name }
 
@@ -91,7 +89,7 @@ describe 'dashboard', type: :feature do
       visit_dashboard
       within '.dashboard-team-group', text: team_name do
         expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq (
-          ['other-failing-pipeline', 'failing-pipeline', 'errored-pipeline', 'aborted-pipeline', 'succeeded-pipeline', 'pending-pipeline', 'paused-pipeline']
+          ['failing-pipeline', 'other-failing-pipeline', 'errored-pipeline', 'aborted-pipeline', 'succeeded-pipeline', 'pending-pipeline', 'paused-pipeline']
         )
       end
     end
@@ -103,6 +101,7 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in blue' do
+      visit_dashboard
       expect(border_color.closest_match(palette)).to eq(blue)
     end
   end
@@ -117,15 +116,10 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in red' do
+      visit_dashboard
       expect(border_color('some-other-pipeline').closest_match(palette)).to eq(red)
     end
 
-    it 'rises to the top' do
-      visit_dashboard
-      within '.dashboard-team-group', text: team_name do
-        expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-other-pipeline', 'some-pipeline', 'another-pipeline']
-      end
-    end
   end
 
   context 'when a pipeline has a passed build' do
@@ -134,6 +128,7 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in green' do
+      visit_dashboard
       expect(border_color.closest_match(palette)).to eq(green)
     end
   end
@@ -145,13 +140,15 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in brown' do
+      visit_dashboard
       expect(border_color.closest_match(palette)).to eq(brown)
     end
   end
 
   context 'when a pipeline is pending' do
     it 'is shown in grey' do
-      expect(border_color.closest_match(palette)).to eq(grey)
+      visit_dashboard
+      expect(check_grayscale).to eq(border_color)
     end
   end
 
@@ -161,14 +158,16 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in amber' do
+      visit_dashboard
       expect(border_color.closest_match(palette)).to eq(orange)
     end
   end
 
   context 'when a pipeline changes its state' do
     it 'updates the dashboard automatically' do
-      expect(border_color.closest_match(palette)).to eq(grey)
-      fly('trigger-job -j some-pipeline/passing')
+      visit_dashboard
+      expect(check_grayscale).to eq(border_color)
+      fly('trigger-job -w -j some-pipeline/passing')
       sleep 5
       expect(border_color.closest_match(palette)).to eq(green)
     end
@@ -191,7 +190,7 @@ describe 'dashboard', type: :feature do
     it 'displays the time since the earliest failed build' do
       visit_dashboard
       within '.dashboard-pipeline', text: 'some-pipeline' do
-        expect(page.text).to match(/some-pipeline failing for: [\d]{1,2}s\z/)
+        expect(page.text).to match(/some-pipeline for: [\d]{1,2}S\z/)
       end
     end
   end
@@ -209,7 +208,6 @@ describe 'dashboard', type: :feature do
   end
 
   def border_color(pipeline = 'some-pipeline')
-    visit_dashboard
     pipeline = page.find('.dashboard-pipeline', text: pipeline)
     by_rgb(computed_style(pipeline.find('.dashboard-pipeline-banner'), 'backgroundColor'))
   end
@@ -227,5 +225,9 @@ describe 'dashboard', type: :feature do
   def visit_dashboard
     login
     visit dash_route('/dashboard')
+  end
+
+  def check_grayscale(bc = border_color)
+    bc.to_grayscale.to_rgb.closest_match(palette + [bc], :jnd)
   end
 end
