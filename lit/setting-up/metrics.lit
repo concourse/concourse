@@ -44,7 +44,7 @@ shared by everything in the Riemann community but we find that it works well.
   \list{
     \link{Riemann Release}{https://github.com/xoebus/riemann-boshrelease}
   }{
-    \link{InfluxDB Release}{https://github.com/concourse/influxdb-release}
+    \link{InfluxDB Release}{https://github.com/concourse/influxdb-boshrelease}
   }{
     \link{Grafana Release}{https://github.com/vito/grafana-boshrelease}
   }
