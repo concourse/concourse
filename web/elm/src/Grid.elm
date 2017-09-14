@@ -1,4 +1,4 @@
-module Grid exposing (Grid(..), insert, fromGraph, MatrixCell(..), toMatrix)
+module Grid exposing (Grid(..), insert, fromGraph, MatrixCell(..), toMatrix, width, height)
 
 import Graph
 import IntDict

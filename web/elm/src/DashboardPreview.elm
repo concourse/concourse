@@ -1,4 +1,4 @@
-module DashboardPreview exposing (initGraph, pipelinePreview)
+module DashboardPreview exposing (initGraph, pipelinePreview, jobGroups)
 
 import Concourse
 import Concourse.BuildStatus
@@ -146,4 +146,4 @@ viewJob job =
                 Nothing ->
                     "no-builds"
     in
-        Html.div [ class ("node job " ++ linkAttrs) ] [ Html.text job.name ]
+        Html.div [ class ("node job " ++ linkAttrs) ] [ Html.text "" ]
