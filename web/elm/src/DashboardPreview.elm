@@ -1,4 +1,4 @@
-module DashboardPreview exposing (initGraph, pipelinePreview, jobGroups)
+module DashboardPreview exposing (init, view, width)
 
 import Concourse
 import Concourse.BuildStatus
@@ -7,7 +7,6 @@ import Graph exposing (Graph)
 import Grid exposing (Grid)
 import Html exposing (Html)
 import Html.Attributes exposing (class)
-import RemoteData
 
 
 type Node
@@ -23,8 +22,8 @@ type alias ByName a =
     Dict String a
 
 
-initGraph : List Concourse.Job -> Graph Node ()
-initGraph jobs =
+init : List Concourse.Job -> Grid Node ()
+init jobs =
     let
         jobNodes =
             List.map JobNode jobs
@@ -38,9 +37,10 @@ initGraph jobs =
         graphNodes =
             List.indexedMap Graph.Node (List.concat [ jobNodes, resourceNodes ])
     in
-        Graph.fromNodesAndEdges
-            graphNodes
-            (List.concatMap (nodeEdges graphNodes) graphNodes)
+        Grid.fromGraph <|
+            Graph.fromNodesAndEdges
+                graphNodes
+                (List.concatMap (nodeEdges graphNodes) graphNodes)
 
 
 jobResourceNodes : ByName Concourse.Job -> Concourse.Job -> List Node
@@ -91,27 +91,14 @@ jobId nodes job =
             Debug.crash "impossible: job index not found"
 
 
-pipelinePreview : RemoteData.WebData (List Concourse.Job) -> Html msg
-pipelinePreview jobs =
-    case jobs of
-        RemoteData.Success js ->
-            let
-                graph =
-                    initGraph js
-            in
-                Html.div [ class "pipeline-grid" ] (viewGrid (Grid.fromGraph graph))
-
-        _ ->
-            Html.text ""
-
-
-viewGrid : Grid Node () -> List (Html msg)
-viewGrid grid =
+view : Grid Node () -> Html msg
+view grid =
     let
         groups =
             Dict.values <| jobGroups grid Dict.empty 0
     in
-        List.map (\jobs -> Html.div [ class "parallel-grid" ] (List.map viewJob jobs)) groups
+        Html.div [ class "pipeline-grid" ] <|
+            List.map (\jobs -> Html.div [ class "parallel-grid" ] (List.map viewJob jobs)) groups
 
 
 jobGroups : Grid Node () -> Dict Int (List Concourse.Job) -> Int -> Dict Int (List Concourse.Job)
@@ -133,6 +120,12 @@ jobGroups grid dict depth =
 
         Grid.End ->
             dict
+
+
+width : Grid Node () -> Int
+width grid =
+    -- TODO: do this more efficiently
+    Dict.size (jobGroups grid Dict.empty 0)
 
 
 viewJob : Concourse.Job -> Html msg

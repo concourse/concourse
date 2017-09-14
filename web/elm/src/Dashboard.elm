@@ -5,10 +5,9 @@ import Concourse
 import Concourse.BuildStatus
 import Concourse.Job
 import Concourse.Pipeline
-import DashboardPreview exposing (initGraph, pipelinePreview)
+import DashboardPreview
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Grid exposing (Grid)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src)
 import RemoteData
@@ -141,14 +140,16 @@ viewPipeline now state =
         status =
             pipelineStatus state
 
-        size =
+        mpreview =
             case state.jobs of
                 RemoteData.Success js ->
-                    Dict.size <|
-                        DashboardPreview.jobGroups (Grid.fromGraph (initGraph js)) Dict.empty 0
+                    Just (DashboardPreview.init js)
 
                 _ ->
-                    1
+                    Nothing
+
+        size =
+            Maybe.withDefault 1 (Maybe.map DashboardPreview.width mpreview)
     in
         Html.div
             [ classList
@@ -167,15 +168,15 @@ viewPipeline now state =
                     , Html.div [ class "dashboard-pipeline-name" ]
                         [ Html.text state.pipeline.name ]
                     ]
-                , pipelinePreview state.jobs
+                , case mpreview of
+                    Just preview ->
+                        DashboardPreview.view preview
+
+                    Nothing ->
+                        Html.text ""
                 , timeSincePipelineTransitioned status now state
                 ]
             ]
-
-
-viewPipelinePreview : PipelineState -> Html msg
-viewPipelinePreview state =
-    pipelinePreview state.jobs
 
 
 timeSincePipelineTransitioned : Concourse.BuildStatus -> Maybe Time -> PipelineState -> Html a
