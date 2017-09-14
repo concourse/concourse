@@ -67,8 +67,6 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 		})
 
 		Context("when the worker stalls while a build is running", func() {
-			var stalledWorkerName string
-
 			var buildSession *gexec.Session
 			var buildID string
 
@@ -87,7 +85,7 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop garden")
 
 				By("waiting for it to stall")
-				stalledWorkerName = waitForStalledWorker()
+				_ = waitForStalledWorker()
 			})
 
 			AfterEach(func() {

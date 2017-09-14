@@ -56,11 +56,10 @@ var _ = Describe("[#129726011] Worker landing", func() {
 	describeRestartingTheWorker := func() {
 		Describe("restarting the worker", func() {
 			var restartSession *gexec.Session
-			var restartingWorkerName string
 
 			JustBeforeEach(func() {
 				restartSession = spawnBosh("restart", "worker/0")
-				restartingWorkerName = waitForLandingOrLandedWorker()
+				_ = waitForLandingOrLandedWorker()
 			})
 
 			AfterEach(func() {

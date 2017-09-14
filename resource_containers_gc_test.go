@@ -1,6 +1,7 @@
 package topgun_test
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -263,6 +264,56 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 
 				return ""
 			}, 2*time.Minute).ShouldNot(BeEmpty())
+		})
+
+		Context("when two teams use identical configuration", func() {
+			var teamName = "A-Team"
+
+			It("doesn't create many containers for one resource check", func() {
+				By("setting pipeline that creates resource config")
+				fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
+
+				By("unpausing the pipeline")
+				fly("unpause-pipeline", "-p", "resource-gc-test")
+
+				By("checking resource")
+				fly("check-resource", "-r", "resource-gc-test/tick-tock")
+
+				By("creating another team")
+				setTeamSession := spawnFlyInteractive(
+					bytes.NewBufferString("y\n"),
+					"set-team",
+					"--team-name", teamName,
+					"--no-really-i-dont-want-any-auth",
+				)
+				<-setTeamSession.Exited
+				Expect(setTeamSession.ExitCode()).To(Equal(0))
+
+				fly("login", "-c", atcExternalURL, "-n", teamName)
+
+				By("setting pipeline that creates an identical resource config")
+				fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
+
+				By("unpausing the pipeline")
+				fly("unpause-pipeline", "-p", "resource-gc-test")
+
+				By("checking resource excessively")
+				for i := 0; i < 20; i++ {
+					fly("check-resource", "-r", "resource-gc-test/tick-tock")
+				}
+
+				otherTeamCheckCount := len(flyTable("containers"))
+				Expect(otherTeamCheckCount).To(Equal(1))
+
+				By("checking resource excessively")
+				fly("login", "-c", atcExternalURL, "-n", "main")
+				for i := 0; i < 20; i++ {
+					fly("check-resource", "-r", "resource-gc-test/tick-tock")
+				}
+
+				mainTeamCheckCount := len(flyTable("containers"))
+				Expect(mainTeamCheckCount).To(Equal(1))
+			})
 		})
 	})
 })
