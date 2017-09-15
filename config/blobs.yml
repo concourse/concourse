@@ -34,10 +34,10 @@ resources/docker-image-resource-3671401.tar.gz:
   size: 39616396
   object_id: 8a632b8e-54f4-4db1-6b8e-e5c6791db7c6
   sha: 77142193155ad3666d83d6c1b73afc2d75ddf11f
-resources/git-resource-c61a2d9.tar.gz:
-  size: 18721951
-  object_id: d8d78d87-d511-4a1f-50fe-5137e18ccdc9
-  sha: f5bc6d2e7c1b024cf15ef81f1ca252afeffe8208
+resources/git-resource-2581649.tar.gz:
+  size: 20622755
+  object_id: 5dcb5916-8aa0-43f2-7c01-6d0bd349458a
+  sha: 4c4d8d2a2bc26148a186a82947c7f0bd26031406
 resources/github-release-resource-b7312f6.tar.gz:
   size: 10660703
   object_id: 9364fd41-6820-48f8-4eaf-0077c193a3c1
