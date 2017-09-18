@@ -2,11 +2,12 @@
 
 set -e -u -x
 
-PACKAGE_DIR=/var/vcap/packages/postgresql_9.3
+PACKAGE_DIR=/var/vcap/packages/postgres-unknown
 JOB_DIR=/var/vcap/jobs/postgresql
 
 STORE_DIR=/var/vcap/store
-DATA_DIR=$STORE_DIR/postgresql
+OLD_DATA_DIR=$STORE_DIR/postgresql
+TRANSITION_DATA_DIR=$STORE_DIR/postgres/postgres-unknown
 
 RUN_DIR=/var/vcap/sys/run/postgresql
 LOG_DIR=/var/vcap/sys/log/postgresql
@@ -35,23 +36,31 @@ case "$1" in
       chown vcap:vcap $LOG_DIR
     fi
 
-    if [ ! -d $DATA_DIR -o ! -f $DATA_DIR/postgresql.conf ]; then
-      mkdir -p $DATA_DIR
-      chown vcap:vcap $DATA_DIR
+    if ! [ -d "$TRANSITION_DATA_DIR" ] && [ -d "$OLD_DATA_DIR" ]; then
+      mkdir $STORE_DIR/postgres
+      chown vcap:vcap $STORE_DIR/postgres
 
-      # initdb creates data directories
-      su - vcap -c "$PACKAGE_DIR/bin/initdb -E utf8 --locale en_US.UTF-8 -D $DATA_DIR"
-
-      mkdir -p $DATA_DIR/pg_log
-      chown vcap:vcap $DATA_DIR/pg_log
+      echo "Moving data to transition location..."
+      mv "$OLD_DATA_DIR" "$TRANSITION_DATA_DIR"
     fi
 
-    cp $JOB_DIR/config/{postgresql,pg_hba}.conf $DATA_DIR
-    chown vcap:vcap $DATA_DIR/{postgresql,pg_hba}.conf
+    if [ ! -d $TRANSITION_DATA_DIR -o ! -f $TRANSITION_DATA_DIR/postgresql.conf ]; then
+      mkdir -p $TRANSITION_DATA_DIR
+      chown vcap:vcap $TRANSITION_DATA_DIR
+
+      # initdb creates data directories
+      su - vcap -c "$PACKAGE_DIR/bin/initdb -E utf8 --locale en_US.UTF-8 -D $TRANSITION_DATA_DIR"
+
+      mkdir -p $TRANSITION_DATA_DIR/pg_log
+      chown vcap:vcap $TRANSITION_DATA_DIR/pg_log
+    fi
+
+    cp $JOB_DIR/config/{postgresql,pg_hba}.conf $TRANSITION_DATA_DIR
+    chown vcap:vcap $TRANSITION_DATA_DIR/{postgresql,pg_hba}.conf
 
     echo "Starting PostgreSQL: "
     su - vcap -c "$PACKAGE_DIR/bin/pg_ctl -o \"-h $HOST -p $PORT\" \
-                  -w start -D $DATA_DIR -l \"$DATA_DIR/pg_log/startup.log\""
+                  -w start -D $TRANSITION_DATA_DIR -l \"$TRANSITION_DATA_DIR/pg_log/startup.log\""
 
     echo "PostgreSQL started successfully"
 
@@ -82,13 +91,13 @@ case "$1" in
 
   stop)
     echo "Stopping PostgreSQL: "
-    su - vcap -c "$PACKAGE_DIR/bin/pg_ctl stop -m fast -w -D $DATA_DIR"
+    su - vcap -c "$PACKAGE_DIR/bin/pg_ctl stop -m fast -w -D $TRANSITION_DATA_DIR"
     wait_pidfile $PIDFILE 1
 
     ;;
 
   status)
-    su - vcap -c "$PACKAGE_DIR/bin/pg_ctl status -D $DATA_DIR"
+    su - vcap -c "$PACKAGE_DIR/bin/pg_ctl status -D $TRANSITION_DATA_DIR"
 
     ;;
 

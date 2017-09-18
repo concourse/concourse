@@ -1,5 +1,5 @@
 ---
-name: postgresql_9.3
+name: postgres-unknown
 
 files:
   - postgresql/postgresql-9.3.4.tar.gz

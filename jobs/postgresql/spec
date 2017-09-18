@@ -8,7 +8,7 @@ templates:
 
 packages:
   - pid_utils
-  - postgresql_9.3
+  - postgres-unknown
 
 provides:
 - name: db
