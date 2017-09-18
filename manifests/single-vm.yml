@@ -6,6 +6,8 @@ releases:
   version: ((concourse_version))
 - name: garden-runc
   version: ((garden_runc_version))
+- name: postgres
+  version: latest
 
 instance_groups:
 - name: concourse
@@ -23,7 +25,12 @@ instance_groups:
       log_level: debug
 
       external_url: http://((web_ip)):8080
-      postgresql_database: atc
+
+      postgresql:
+        database: atc
+        role:
+          name: atc
+          password: dummy-password
 
       no_really_i_dont_want_any_auth: true
 
@@ -31,13 +38,16 @@ instance_groups:
     name: tsa
     properties: {log_level: debug}
 
-  - release: concourse
-    name: postgresql
+  - release: postgres
+    name: postgres
     properties:
       databases:
-      - name: atc
-        role: atc
-        password: dummy-password
+        port: 5432
+        databases:
+        - name: atc
+        roles:
+        - name: atc
+          password: dummy-password
 
   - release: concourse
     name: groundcrew
