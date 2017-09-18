@@ -20,31 +20,17 @@
   }
 
   .build-duration {
-    padding-bottom: 20px;
-  }
+    color: @base08;
+    font-size: 30px;
+    text-transform: uppercase;
+    margin: auto 0 auto 25px;
 
-  .build-duration .dict-key {
-    color: @base03;
-    width: 70px;
-  }
-
-  .build-duration .dict-value {
-    span {
-      color: @base08;
-      font-size: 30px;
-      text-transform: uppercase;
-      top: 7px;
-      white-space: nowrap;
-      word-spacing: -5px;
-      &:after {
-        border-bottom: 1px solid #1F2E3C;
-        display: block;
-        content: ' ';
-        z-index: 999;
-        position: relative;
-        top: -7px;
-        width: 200px;
-      }
+    &:after {
+      border-bottom: 1px solid #1F2E3C;
+      display: block;
+      content: ' ';
+      position: relative;
+      top: -9px;
     }
   }
 }
@@ -123,7 +109,7 @@
       background-image: url('images/ic_pause_blue.svg');
     }
 
-    .build-duration .dict-value span {
+    .build-duration {
       color: @base0D;
     }
   }
@@ -138,7 +124,7 @@
         .running-animation(@base07, @base01);
       }
     }
-    .build-duration .dict-value span {
+    .build-duration {
       color: @base07;
     }
   }
@@ -160,7 +146,7 @@
         .running-animation(@base08, @base01);
       }
     }
-    .build-duration .dict-value span {
+    .build-duration {
       color: @base08;
     }
   }
@@ -179,7 +165,7 @@
         .running-animation(@base0F, @base01);
       }
     }
-    .build-duration .dict-value span {
+    .build-duration {
       color: @base0F;
     }
   }
@@ -199,7 +185,7 @@
         .running-animation(@base0B, @base01);
       }
     }
-    .build-duration .dict-value span {
+    .build-duration {
       color: @base0B;
     }
   }
@@ -218,7 +204,7 @@
         .running-animation(@base09, @base01);
       }
     }
-    .build-duration .dict-value span {
+    .build-duration {
       color: @base09;
     }
   }
@@ -233,7 +219,7 @@
 
 .dashboard-pipeline-name {
   font-size: 18px;
-  margin: auto 15px;
+  margin: 0 0 20px 70px;
 }
 
 .dashboard-pipeline-double {

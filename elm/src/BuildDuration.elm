@@ -1,4 +1,4 @@
-module BuildDuration exposing (view, viewFailDuration)
+module BuildDuration exposing (view, show)
 
 import Date exposing (Date)
 import Date.Format
@@ -34,15 +34,19 @@ view duration now =
                     ]
 
 
-viewFailDuration : Concourse.BuildDuration -> Time.Time -> Html a
-viewFailDuration duration now =
+show : Concourse.BuildDuration -> Time.Time -> Html a
+show duration now =
     Html.div [ class "build-duration" ] <|
         case duration.startedAt of
             Nothing ->
                 []
 
             Just startedAt ->
-                [ labeledDuration "for:" (Duration.between (Date.toTime startedAt) now) ]
+                let
+                    elapsed =
+                        Duration.between (Date.toTime startedAt) now
+                in
+                    [ Html.text <| Duration.format elapsed ]
 
 
 labeledRelativeDate : String -> Time -> Date -> Html a
