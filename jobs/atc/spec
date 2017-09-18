@@ -28,6 +28,9 @@ consumes:
 - name: db
   type: postgresql
   optional: true
+- name: postgres
+  type: database
+  optional: true
 
 provides:
 - name: atc
