@@ -226,7 +226,6 @@ func (server *Server) CommitRootfs() {
 				cp -a /bin rootfs/bin
 				cp -a /etc rootfs/etc
 				cp -a /lib rootfs/lib
-				cp -a /lib64 rootfs/lib64
 				cp -a /usr rootfs/usr
 				cp -a /root rootfs/root || true # prevent copy infinite loop
 				rm -r rootfs/root/some-repo
@@ -289,7 +288,6 @@ func (server *Server) CommitResourceWithFile(fileName string) {
 				cp -a /bin rootfs/bin
 				cp -a /etc rootfs/etc
 				cp -a /lib rootfs/lib
-				cp -a /lib64 rootfs/lib64
 				cp -a /usr rootfs/usr
 				cp -a /root rootfs/root || true # prevent copy infinite loop
 				rm -r rootfs/root/some-repo
@@ -311,7 +309,6 @@ mkdir rootfs
 cp -a /bin rootfs/bin
 cp -a /etc rootfs/etc
 cp -a /lib rootfs/lib
-cp -a /lib64 rootfs/lib64
 cp -a /usr rootfs/usr
 cp -a /root rootfs/root
 cp -a /some-file rootfs/some-file
