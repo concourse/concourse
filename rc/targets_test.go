@@ -45,7 +45,7 @@ var _ = Describe("Targets", func() {
 				targets, err := rc.LoadTargets()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(targets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{
-					"some-target": rc.TargetProps{
+					"some-target": {
 						API:      "http://concourse.com",
 						TeamName: atc.DefaultTeamName,
 						Token: &rc.TargetToken{
