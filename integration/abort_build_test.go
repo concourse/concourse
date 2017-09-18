@@ -72,7 +72,7 @@ var _ = Describe("AbortBuild", func() {
 				)
 			})
 
-			It("asks the user to specifiy a build id", func() {
+			It("asks the user to specify a build id", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-b", "42")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -85,7 +85,7 @@ var _ = Describe("AbortBuild", func() {
 		})
 
 		Context("and the build id is not specified", func() {
-			It("asks the user to specifiy a build id", func() {
+			It("asks the user to specify a build id", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -144,7 +144,7 @@ var _ = Describe("AbortBuild", func() {
 				)
 			})
 
-			It("asks the user to specifiy a build name", func() {
+			It("asks the user to specify a build name", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "23")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -157,7 +157,7 @@ var _ = Describe("AbortBuild", func() {
 		})
 
 		Context("and the build name is not specified", func() {
-			It("asks the user to specifiy a build name", func() {
+			It("asks the user to specify a build name", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "some-pipeline-name/some-job-name")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

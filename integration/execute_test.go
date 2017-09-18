@@ -340,7 +340,7 @@ run: {}
 			Expect(sess.ExitCode()).To(Equal(1))
 		})
 
-		Context("when invalid inputs are passed and the single valid input is correctly ommited", func() {
+		Context("when invalid inputs are passed and the single valid input is correctly omitted", func() {
 			It("prints an error about invalid inputs instead of missing inputs", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "evan=.")
 				flyCmd.Dir = buildDir

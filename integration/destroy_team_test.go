@@ -60,12 +60,12 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess).Should(gbytes.Say("please type the team name to confirm"))
 			})
 
-			Context("when the user types in the name again succesfully", func() {
+			Context("when the user types in the name again successfully", func() {
 				JustBeforeEach(func() {
 					typesName("some-team")
 				})
 
-				Context("when the api call returns 204 (succesful)", func() {
+				Context("when the api call returns 204 (successful)", func() {
 					BeforeEach(func() {
 						atcServer.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -75,7 +75,7 @@ var _ = Describe("Fly CLI", func() {
 						)
 					})
 
-					It("tells the user the team has been destoryed", func() {
+					It("tells the user the team has been destroyed", func() {
 						Eventually(sess).Should(gbytes.Say("`some-team` deleted"))
 					})
 				})
@@ -97,7 +97,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
-			Context("when the user fails to type in the team name again succesfully", func() {
+			Context("when the user fails to type in the team name again successfully", func() {
 				JustBeforeEach(func() {
 					typesName("not-the-correct-team-name")
 				})
