@@ -140,21 +140,24 @@ viewPipeline now state =
         status =
             pipelineStatus state
 
-        mpreview =
+        mJobs =
             case state.jobs of
                 RemoteData.Success js ->
-                    Just (DashboardPreview.init js)
+                    Just js
 
                 _ ->
                     Nothing
 
+        mpreview =
+            Maybe.map DashboardPreview.view mJobs
+
         size =
-            Maybe.withDefault 1 (Maybe.map DashboardPreview.width mpreview)
+            Maybe.withDefault 1 (Maybe.map List.length mpreview)
     in
         Html.div
             [ classList
                 [ ( "dashboard-pipeline", True )
-                , ( "dashboard-pipeline-double", size > 6 )
+                , ( "dashboard-pipeline-double", size > 12 )
                 , ( "dashboard-paused", state.pipeline.paused )
                 , ( "dashboard-running", isPipelineRunning state )
                 , ( "dashboard-status-" ++ Concourse.BuildStatus.show status, not state.pipeline.paused )
@@ -165,16 +168,16 @@ viewPipeline now state =
                 [ Html.div [ class "dashboard-pipeline-header" ]
                     [ Html.div [ class "dashboard-pipeline-icon" ]
                         []
-                    , Html.div [ class "dashboard-pipeline-name" ]
-                        [ Html.text state.pipeline.name ]
+                    , timeSincePipelineTransitioned status now state
                     ]
+                , Html.div [ class "dashboard-pipeline-name" ]
+                    [ Html.text state.pipeline.name ]
                 , case mpreview of
                     Just preview ->
-                        DashboardPreview.view preview
+                        Html.div [ class "pipeline-grid" ] preview
 
                     Nothing ->
                         Html.text ""
-                , timeSincePipelineTransitioned status now state
                 ]
             ]
 
@@ -210,7 +213,7 @@ timeSincePipelineTransitioned status time { jobs } =
             in
                 case ( time, transitionedDuration ) of
                     ( Just now, Just duration ) ->
-                        BuildDuration.viewFailDuration duration now
+                        BuildDuration.show duration now
 
                     _ ->
                         Html.text ""
