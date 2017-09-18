@@ -47,9 +47,9 @@ becomes more involved.
   \link{time itself}{https://github.com/concourse/time-resource}.
 
   At its core, Concourse knows nothing about things like \code{git}. Instead,
-  it consumes a generic interface implemented by \italic{resource types}. This
-  allows Concourse to be extended by configuring workers with resource type
-  implementations.
+  it consumes a generic interface implemented by \italic{resource types}, which
+  can be \reference{configuring-resource-types}{configured in your pipeline}
+  alongside the things that use it.
 
   This abstraction is immensely powerful, as it does not limit Concourse to
   whatever things its authors thought to integrate with. Instead, as a user of
