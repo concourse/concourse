@@ -37,7 +37,6 @@ packages:
   - semver_resource
   - time_resource
   - tracker_resource
-  - vagrant_cloud_resource
 
 consumes:
 - name: tsa
