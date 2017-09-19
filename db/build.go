@@ -258,8 +258,7 @@ func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
 		return false, err
 	}
 
-	// TODO: CONCURRENTLY
-	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW next_builds_per_job`)
+	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY next_builds_per_job`)
 	if err != nil {
 		return false, err
 	}
@@ -340,20 +339,17 @@ func (b *build) Finish(status BuildStatus) error {
 		return err
 	}
 
-	// TODO: CONCURRENTLY
-	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW latest_completed_builds_per_job`)
+	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY latest_completed_builds_per_job`)
 	if err != nil {
 		return err
 	}
 
-	// TODO: CONCURRENTLY
-	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW next_builds_per_job`)
+	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY next_builds_per_job`)
 	if err != nil {
 		return err
 	}
 
-	// TODO: CONCURRENTLY
-	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW transition_builds_per_job`)
+	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY transition_builds_per_job`)
 	if err != nil {
 		return err
 	}
