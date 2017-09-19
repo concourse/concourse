@@ -2005,44 +2005,6 @@ var _ = Describe("Pipeline", func() {
 			Expect(found).To(BeTrue())
 
 			By("returning jobs with no builds")
-			expectedDashboard := db.Dashboard{
-				{
-					Job:           job,
-					NextBuild:     nil,
-					FinishedBuild: nil,
-				},
-				{
-					Job:           otherJob,
-					NextBuild:     nil,
-					FinishedBuild: nil,
-				},
-				{
-					Job:           aJob,
-					NextBuild:     nil,
-					FinishedBuild: nil,
-				},
-				{
-					Job:           sharedJob,
-					NextBuild:     nil,
-					FinishedBuild: nil,
-				},
-				{
-					Job:           randomJob,
-					NextBuild:     nil,
-					FinishedBuild: nil,
-				},
-				{
-					Job:           otherSerialGroupJob,
-					NextBuild:     nil,
-					FinishedBuild: nil,
-				},
-				{
-					Job:           differentSerialGroupJob,
-					NextBuild:     nil,
-					FinishedBuild: nil,
-				},
-			}
-
 			actualDashboard, groups, err := pipeline.Dashboard("")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -2060,33 +2022,29 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			jobBuildOldDB, err := job.CreateBuild()
+			firstJobBuild, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
-
-			expectedDashboard[0].NextBuild = jobBuildOldDB
 
 			actualDashboard, _, err = pipeline.Dashboard("")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
+			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(firstJobBuild.ID()))
 
 			By("returning a job's most recent started build")
-			found, err = jobBuildOldDB.Start("engine", `{"meta":"data"}`, atc.Plan{})
+			found, err = firstJobBuild.Start("engine", `{"meta":"data"}`, atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			found, err = jobBuildOldDB.Reload()
+			found, err = firstJobBuild.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-
-			expectedDashboard[0].NextBuild = jobBuildOldDB
 
 			actualDashboard, _, err = pipeline.Dashboard("")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
+			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(firstJobBuild.ID()))
 			Expect(actualDashboard[0].NextBuild.Status()).To(Equal(db.BuildStatusStarted))
 			Expect(actualDashboard[0].NextBuild.Engine()).To(Equal("engine"))
 			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal(`{"meta":"data"}`))
@@ -2096,61 +2054,32 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			jobBuild, err := job.CreateBuild()
+			secondJobBuild, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
-
-			expectedDashboard[0].NextBuild = jobBuildOldDB
 
 			actualDashboard, _, err = pipeline.Dashboard("")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
+			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(firstJobBuild.ID()))
 
 			By("returning a job's most recent finished build")
-			err = jobBuild.Finish(db.BuildStatusSucceeded)
+			err = firstJobBuild.Finish(db.BuildStatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			found, err = jobBuild.Reload()
+			err = secondJobBuild.Finish(db.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			found, err = secondJobBuild.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-
-			expectedDashboard[0].FinishedBuild = jobBuild
-			expectedDashboard[0].NextBuild = jobBuildOldDB
 
 			actualDashboard, _, err = pipeline.Dashboard("")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
-			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(jobBuild.ID()))
-
-			By("returning a job's nextmost pending build even when there is a newer started build")
-			job, found, err = pipeline.Job("job-name")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			jobBuildNewDB, err := job.CreateBuild()
-			Expect(err).NotTo(HaveOccurred())
-			started, err := jobBuildNewDB.Start("engine", "metadata", atc.Plan{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(started).To(BeTrue())
-			found, err = jobBuildNewDB.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			expectedDashboard[0].FinishedBuild = jobBuild
-			expectedDashboard[0].NextBuild = jobBuildNewDB
-
-			actualDashboard, _, err = pipeline.Dashboard("")
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(jobBuildOldDB.ID()))
-			Expect(actualDashboard[0].NextBuild.Status()).To(Equal(db.BuildStatusStarted))
-			Expect(actualDashboard[0].NextBuild.Engine()).To(Equal("engine"))
-			Expect(actualDashboard[0].NextBuild.EngineMetadata()).To(Equal(`{"meta":"data"}`))
-			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(jobBuild.ID()))
+			Expect(actualDashboard[0].NextBuild).To(BeNil())
+			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(secondJobBuild.ID()))
 
 			By("returning a job's transition build as nil when there are no builds")
 			otherPipeline, _, err := team.SavePipeline("other-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
@@ -2170,7 +2099,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			jobBuild, err = job.CreateBuild()
+			jobBuild, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = jobBuild.Finish(db.BuildStatusFailed)
@@ -2183,6 +2112,7 @@ var _ = Describe("Pipeline", func() {
 			actualDashboard, _, err = pipeline.Dashboard("transitionBuilds")
 			Expect(err).NotTo(HaveOccurred())
 
+			Expect(actualDashboard[4].Job.Name()).To(Equal(randomJob.Name()))
 			Expect(actualDashboard[4].TransitionBuild).To(BeNil())
 
 			By("returning a job's transition build as nil when there are only pending builds")
@@ -2218,6 +2148,7 @@ var _ = Describe("Pipeline", func() {
 			actualDashboard, _, err = pipeline.Dashboard("transitionBuilds")
 			Expect(err).NotTo(HaveOccurred())
 
+			Expect(actualDashboard[4].Job.Name()).To(Equal(randomJob.Name()))
 			Expect(actualDashboard[4].TransitionBuild.ID()).To(Equal(transitionBuild.ID()))
 
 			By("returning a job's transition build when there are builds with different statuses")

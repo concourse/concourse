@@ -194,5 +194,6 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		DropUnusedBuildsCompletedIndex,
 		AddUniqueIndexToVolumeHandles,
 		AddTeamIdToWorkerResourceConfigCheckSessions,
+		AddViewsForBuildStates,
 	}
 }

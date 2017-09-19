@@ -807,12 +807,12 @@ func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error
 		return nil, nil, err
 	}
 
-	nextBuilds, err := p.getJobBuildsSatisfying("MIN", sq.Eq{"b.status": []BuildStatus{BuildStatusPending, BuildStatusStarted}})
+	nextBuilds, err := p.getBuildsFrom("next_builds_per_job")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	finishedBuilds, err := p.getJobBuildsSatisfying("MAX", sq.Expr("b.completed"))
+	finishedBuilds, err := p.getBuildsFrom("latest_completed_builds_per_job")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -820,7 +820,7 @@ func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error
 	var transitionBuilds map[string]Build
 
 	if include == "transitionBuilds" {
-		transitionBuilds, err = p.getTransitionBuilds()
+		transitionBuilds, err = p.getBuildsFrom("transition_builds_per_job")
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1620,112 +1620,11 @@ func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
 	return max_modified_time, err
 }
 
-func (p *pipeline) getTransitionBuilds() (map[string]Build, error) {
-	finishedBuildCondition := fmt.Sprintf("j.pipeline_id = $1 AND b.status NOT IN ('%s', '%s')", BuildStatusPending, BuildStatusStarted)
-
-	beforeTransitionBuildsQuery := fmt.Sprintf(`
-			SELECT b.job_id, MAX(b.id)
-			FROM builds b
-			LEFT OUTER JOIN jobs j ON (b.job_id = j.id)
-			LEFT OUTER JOIN (
-				SELECT job_id, status
-				FROM builds
-				WHERE id IN (
-					SELECT MAX(b.id)
-					FROM builds b
-					LEFT OUTER JOIN jobs j ON (j.id = b.job_id)
-					WHERE %s
-					GROUP BY j.id
-				)
-			) s ON b.job_id = s.job_id
-			WHERE b.status != s.status AND %s
-			GROUP BY b.job_id
-		`,
-		finishedBuildCondition,
-		finishedBuildCondition,
-	)
-
-	transitionBuildsQuery, _, err := buildsQuery.Options(`DISTINCT ON (b.job_id)`).
-		Join(`builds_before_transition ON b.job_id = builds_before_transition.job_id`).
-		Where(`b.id > builds_before_transition.max`).
-		OrderBy(`b.job_id, b.id ASC`).
-		ToSql()
-
-	if err != nil {
-		return nil, err
-	}
-
-	transitionBuildsRows, err := p.conn.Query(`WITH builds_before_transition AS (`+beforeTransitionBuildsQuery+`)`+transitionBuildsQuery, p.id)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer transitionBuildsRows.Close()
-
-	transitionBuilds := make(map[string]Build)
-
-	for transitionBuildsRows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory}
-		err := scanBuild(build, transitionBuildsRows, p.conn.EncryptionStrategy())
-		if err != nil {
-			return nil, err
-		}
-		transitionBuilds[build.JobName()] = build
-	}
-
-	firstBuildsQuery, _, _ := buildsQuery.
-		Options(`DISTINCT ON (b.job_id)`).
-		Where(finishedBuildCondition).
-		OrderBy(`b.job_id, b.id`).
-		ToSql()
-
-	if err != nil {
-		return nil, err
-	}
-
-	firstBuildsRows, err := p.conn.Query(firstBuildsQuery, p.id)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer firstBuildsRows.Close()
-
-	for firstBuildsRows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory}
-		err := scanBuild(build, firstBuildsRows, p.conn.EncryptionStrategy())
-		if err != nil {
-			return nil, err
-		}
-		if transitionBuilds[build.JobName()] == nil {
-			transitionBuilds[build.JobName()] = build
-		}
-	}
-
-	return transitionBuilds, nil
-}
-
-func (p *pipeline) getJobBuildsSatisfying(aggregateFunction string, buildCondition sq.Sqlizer) (map[string]Build, error) {
-	aggQ, aggArgs, err := psql.Select(aggregateFunction + "(b.id) AS id").
-		From("builds b").
-		Join("jobs j ON j.id = b.job_id").
-		Where(buildCondition).
-		Where(sq.Eq{"j.pipeline_id": p.id}).
-		GroupBy("b.job_id").
-		ToSql()
-	if err != nil {
-		return nil, err
-	}
-
-	buildsQ, _, err := buildsQuery.
-		Where(sq.Expr(`b.id IN (` + aggQ + `)`)).
-		ToSql()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := p.conn.Query(buildsQ, aggArgs...)
+func (p *pipeline) getBuildsFrom(view string) (map[string]Build, error) {
+	rows, err := buildsQuery.
+		From(view + " b").
+		Where(sq.Eq{"b.pipeline_id": p.id}).
+		RunWith(p.conn).Query()
 	if err != nil {
 		return nil, err
 	}

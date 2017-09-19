@@ -583,6 +583,12 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
+	// TODO: CONCURRENTLY
+	_, err = j.conn.Exec(`REFRESH MATERIALIZED VIEW next_builds_per_job`)
+	if err != nil {
+		return nil, err
+	}
+
 	return build, nil
 }
 
