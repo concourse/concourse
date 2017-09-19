@@ -1,7 +1,7 @@
 require 'color'
 require 'securerandom'
 
-describe 'dashboard', type: :feature do
+xdescribe 'dashboard', type: :feature do
   let(:red) { Color::CSS['red'] }
   let(:green) { Color::CSS['green'] }
   let(:orange) { Color::CSS['orange'] }
