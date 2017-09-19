@@ -1,0 +1,19 @@
+\use-plugin{concourse-docs}
+
+\release{2017-9-19}{3.5.0}{1.6.0}{
+	\notes{feature}{
+		Concourse now supports CredHub for external credential management.
+	}
+	\note{fix}{
+		GC no longer creates crazy seesaw patterns with containers and volumes. This was an issue that was introduced in v3.4.1 when 2 or more teams have identically configured resources. It's been fixed now. 
+	}
+	\note{fix}{
+		Fixed a leak with goroutines that happens from \reference{fly-hijack}
+	}
+	\note{feature}{
+		When using groups in pipelines, \code{fly} will now let you know when you forgot to assign a job to a group. Say goodbye to hidden pipelines!
+	}
+	\note{fix}{
+		Jobs and resources with a forward slash in their name no longer error out when loading their details. 
+	}
+}
