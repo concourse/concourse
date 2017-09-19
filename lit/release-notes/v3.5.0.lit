@@ -1,19 +1,30 @@
 \use-plugin{concourse-docs}
 
 \release{2017-9-19}{3.5.0}{1.6.0}{
-	\notes{feature}{
+	\note{feature}{
 		Concourse now supports CredHub for external credential management.
 	}
 	\note{fix}{
-		GC no longer creates crazy seesaw patterns with containers and volumes. This was an issue that was introduced in v3.4.1 when 2 or more teams have identically configured resources. It's been fixed now. 
+		GC no longer creates crazy seesaw patterns with containers and volumes. This was an issue that was introduced in v3.4.1 when 2 or more teams have identically configured resources. It's been fixed now.
 	}
 	\note{fix}{
-		Fixed a leak with goroutines that happens from \reference{fly-hijack}
+		Fixed a leak with goroutines that happens from \reference{fly-intercept}
 	}
 	\note{feature}{
 		When using groups in pipelines, \code{fly} will now let you know when you forgot to assign a job to a group. Say goodbye to hidden pipelines!
 	}
 	\note{fix}{
-		Jobs and resources with a forward slash in their name no longer error out when loading their details. 
+		Jobs and resources with a forward slash in their name no longer error out when loading their details.
 	}
+
+        \note{feature}{
+          The \resource{semver} now supports Google Cloud Storage. Thanks
+          \ghuser{chendrix}!
+        }
+
+        \note{fix}{
+          The \resource{s3} correctly shows the progress of uploading and
+          downloading. It will no longer report 2 TB/s. Thanks
+          \ghuser{krishicks}
+        }
 }
