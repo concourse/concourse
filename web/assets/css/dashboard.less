@@ -1,12 +1,14 @@
+@scale: 0.6;
+
 .dashboard {
-  padding: 0 25px 0 45px;
+  padding: 0 0 0 30px;
 
   .pipeline-grid {
     float: none;
-    height: 200px;
+    height: (200px * @scale);
     display: flex;
     flex-direction: row;
-    padding: 0 50px 30px;
+    padding: 0 (50px * @scale) (30px * @scale);
   }
 
   .pipeline-grid >* {
@@ -15,44 +17,43 @@
 
   .node {
     flex-grow: 1;
-    margin: 4px;
+    margin: (4px * @scale);
     font-size: 0;
   }
 
   .build-duration {
     color: @base08;
-    font-size: 30px;
+    font-size: (30px * @scale);
     text-transform: uppercase;
-    margin: auto 0 auto 25px;
+    margin: auto 0 auto 30px;
 
     &:after {
       border-bottom: 1px solid #1F2E3C;
       display: block;
       content: ' ';
       position: relative;
-      top: -9px;
+      top: -7px;
     }
   }
 }
 
 
 .dashboard-team-group {
-  padding-top: 55px;
+  padding-top: (55px * @scale);
   clear: both;
 
   &:first-of-type {
-    padding-top: 45px;
+    padding-top: 30px;
   }
 }
 
 .dashboard-team-name {
-  color: @base04;
-  opacity: 0.2;
-  border-top: 1px solid @base07;
-  padding-top: 8px;
-  font-size: 30px;
-  margin-bottom: 55px;
-  margin-right: 40px;
+  color: @base03;
+  border-top: 1px solid @base02;
+  padding-top: (8px * @scale);
+  font-size: (30px * @scale);
+  margin-bottom: (25px * @scale);
+  margin-right: 30px;
 }
 
 @keyframes pipeline-running {
@@ -62,28 +63,28 @@
 
 .dashboard-pipeline {
   float: left;
-  width: 400px;
-  margin-bottom: 50px;
-  margin-right: 50px;
+  width: (400px * @scale);
+  margin-bottom: (50px * @scale);
+  margin-right: (50px * @scale);
 
-  @media all and (max-width: 700px) {
+  @media all and (max-width: (700px * @scale)) {
     flex-basis: 100%;
   }
 
-
   .dashboard-pipeline-banner {
     flex-basis: 100%;
-    max-height: 5px;
+    max-height: (5px * @scale);
     background-color: @base07;
     background-size: 200% 100%;
-    height: 5px;
+    height: (5px * @scale);
   }
 
   .dashboard-pipeline-content {
     display: flex;
     flex-direction: column;
-    height: 360px;
+    height: (360px * @scale);
     background: #1F2E3C;
+    position: relative;
 
     &:hover {
       box-shadow: 0 2px 3px 0 rgba(0,0,0,0.50);
@@ -92,11 +93,11 @@
 
   .dashboard-pipeline-header {
     display: flex;
-    height: 70px;
+    height: (70px * @scale);
   }
 
   .running-animation(@color1, @color2) {
-    background-image: repeating-linear-gradient(120deg, @color1 0, @color1 10px, @color2 0, @color2 20px);
+    background-image: repeating-linear-gradient(120deg, @color1 0, @color1 (10px * @scale), @color2 0, @color2 (20px * @scale));
     animation: pipeline-running 1s linear infinite;
   }
 
@@ -107,6 +108,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_pause_blue.svg');
+      background-size: (20px * @scale) (20px * @scale);
     }
 
     .build-duration {
@@ -117,6 +119,7 @@
   &.dashboard-status-pending {
     .dashboard-pipeline-icon {
       background-image: url('images/ic_pause_grey.svg');
+      background-size: (20px * @scale) (20px * @scale);
     }
 
     &.dashboard-running {
@@ -138,7 +141,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_failing_red.svg');
-      background-size: 20px 18px;
+      background-size: (20px * @scale) (20px * @scale);
     }
 
     &.dashboard-running {
@@ -158,6 +161,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_aborted_brown.svg');
+      background-size: (20px * @scale) (20px * @scale);
     }
 
     &.dashboard-running {
@@ -177,7 +181,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_running_green.svg');
-      background-size: 20px 19px;
+      background-size: (20px * @scale) (20px * @scale);
     }
 
     &.dashboard-running {
@@ -197,6 +201,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_error_orange.svg');
+      background-size: (20px * @scale) (20px * @scale);
     }
 
     &.dashboard-running {
@@ -211,17 +216,19 @@
 }
 
 .dashboard-pipeline-icon {
-  min-width: 20px;
-  height: 20px;
-  margin: auto 0 auto 25px;
+  min-width: (20px * @scale);
+  height: (20px * @scale);
   background-repeat: no-repeat;
+  position: absolute;
+  top: 14px;
+  left: 10px;
 }
 
 .dashboard-pipeline-name {
-  font-size: 18px;
-  margin: 0 0 20px 70px;
+  font-size: 14px;
+  margin: 0 0 (20px * @scale) 30px;
 }
 
 .dashboard-pipeline-double {
-  width: 850px;
+  width: (850px * @scale);
 }
