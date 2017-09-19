@@ -90,6 +90,7 @@ sitemap =
         , pipeline
         , betaPipeline
         , teamLogin
+        , dashboard
         ]
 
 
