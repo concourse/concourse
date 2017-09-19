@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -718,6 +719,22 @@ var _ = Describe("Containers API", func() {
 							Expect(hijackOutput).To(Equal(atc.HijackOutput{
 								ExitStatus: &exitStatus,
 							}))
+						})
+
+						It("closes the process' stdin pipe", func() {
+							_, io := fakeContainer.RunArgsForCall(0)
+
+							c := make(chan bool, 1)
+
+							go func() {
+								var b []byte
+								_, err := io.Stdin.Read(b)
+								if err != nil {
+									c <- true
+								}
+							}()
+
+							Eventually(c, 2*time.Second).Should(Receive())
 						})
 					})
 

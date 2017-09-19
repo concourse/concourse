@@ -90,6 +90,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 	})
 
 	stdinR, stdinW := io.Pipe()
+	defer stdinW.Close()
 
 	inputs := make(chan atc.HijackInput)
 	outputs := make(chan atc.HijackOutput)
