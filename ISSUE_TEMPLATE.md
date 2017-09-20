@@ -16,7 +16,7 @@ If you've got a suggestion, feel free to place it here - we don't mean to stifle
 
 # Bug Report
 
-Bug reports are pretty free-form; just replace this with whatever. If applicable, though, please include steps to reproduce. Help us help you!
+Bug reports are pretty free-form; just replace this with whatever. You can also help us triage the issue by including steps to reproduce, expected results, and the actual result. Help us help you!
 
 The following can also be handy:
 
