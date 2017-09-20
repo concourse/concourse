@@ -474,10 +474,3 @@ properties:
     description: |
       Client secret for CredHub authorization.
     default: ""
-
-  telemetry.opt_in:
-    description: |
-      Send anonymous usage information back to concourse. This sends no identifying
-      information about the user. The only metric collected is the version of
-      concourse.
-    default: false
