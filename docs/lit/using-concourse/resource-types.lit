@@ -214,6 +214,8 @@ before using it!
     \link{Repo Resource}{https://github.com/google/concourse-resources/tree/master/repo}
   }{
     \link{Trigger jobs using Slack}{https://github.com/ahelal/bender}
+  }{
+    \link{Hashicorp Releases}{https://github.com/starkandwayne/hashicorp-release-resource}
   }
 
   \section{
