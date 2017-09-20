@@ -140,7 +140,7 @@ type ATCCommand struct {
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
 
-	TelemetryOptIn bool `long:"telemetry-opt-in" description:"Enable anonymous concourse version reporting."`
+	TelemetryOptIn bool `long:"telemetry-opt-in" hidden:"true" description:"Enable anonymous concourse version reporting."`
 }
 
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
