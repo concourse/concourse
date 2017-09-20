@@ -38,10 +38,10 @@ resources/git-resource-8be460d.tar.gz:
   size: 21130521
   object_id: fba21bf5-dac2-4154-6c79-d2b6a0c5fb19
   sha: 03aece676fbfadaf3a89fabf4b644a07ad490ab3
-resources/github-release-resource-b7312f6.tar.gz:
-  size: 10660703
-  object_id: 9364fd41-6820-48f8-4eaf-0077c193a3c1
-  sha: 9c55c5cf1f58dff83f58fc1b91c64e5e39f76f35
+resources/github-release-resource-6c24c8c.tar.gz:
+  size: 11359582
+  object_id: 6faf098f-18cb-4466-4ec1-7ee5c06ed6e6
+  sha: 15c0d6f81d677bed7b59d24f7a608b74ad3f2cdf
 resources/hg-resource-831e768.tar.gz:
   size: 15070349
   object_id: 90845934-de35-4f3c-6f49-e367d2be752d
