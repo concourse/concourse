@@ -16,12 +16,14 @@ ssh-add <(echo "$BOSH_KEY")
 
 export CONCOURSE_RELEASE_VERSION="$(cat concourse-release/version)"
 export GARDEN_RUNC_RELEASE_VERSION="$(cat garden-runc-release/version)"
+export POSTGRES_RELEASE_VERSION="$(cat postgres-release/version)"
 export VAULT_RELEASE_VERSION="$(cat vault-release/version)"
 export GIT_SERVER_RELEASE_VERSION="$(cat git-server-release/version)"
 export STEMCELL_VERSION="$(cat stemcell/version)"
 
 bosh upload-release concourse-release/*.tgz
 bosh upload-release garden-runc-release/*.tgz
+bosh upload-release postgres-release/*.tgz
 bosh upload-release git-server-release/*.tgz
 bosh upload-release vault-release/*.tgz
 bosh upload-stemcell stemcell/*.tgz
