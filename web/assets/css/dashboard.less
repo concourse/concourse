@@ -5,7 +5,6 @@
 
   .pipeline-grid {
     float: none;
-    height: (200px * @scale);
     display: flex;
     flex-direction: row;
     padding: 0 (50px * @scale) (30px * @scale);
@@ -57,13 +56,12 @@
 }
 
 @keyframes pipeline-running {
-  0% { background-position-x: -23px;    }
-  100%   { background-position-x: 0px; }
+  0% { background-position: 0 0; }
+  100% { background-position: -28px 0; }
 }
 
 .dashboard-pipeline {
   float: left;
-  width: (400px * @scale);
   margin-bottom: (50px * @scale);
   margin-right: (50px * @scale);
 
@@ -82,7 +80,6 @@
   .dashboard-pipeline-content {
     display: flex;
     flex-direction: column;
-    height: (360px * @scale);
     background: #1F2E3C;
     position: relative;
 
@@ -108,7 +105,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_pause_blue.svg');
-      background-size: (20px * @scale) (20px * @scale);
+      background-size: 15px 15px;
     }
 
     .build-duration {
@@ -119,7 +116,7 @@
   &.dashboard-status-pending {
     .dashboard-pipeline-icon {
       background-image: url('images/ic_pause_grey.svg');
-      background-size: (20px * @scale) (20px * @scale);
+      background-size: 15px 15px;
     }
 
     &.dashboard-running {
@@ -141,7 +138,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_failing_red.svg');
-      background-size: (20px * @scale) (20px * @scale);
+      background-size: 15px 15px;
     }
 
     &.dashboard-running {
@@ -161,7 +158,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_aborted_brown.svg');
-      background-size: (20px * @scale) (20px * @scale);
+      background-size: 15px 15px;
     }
 
     &.dashboard-running {
@@ -181,7 +178,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_running_green.svg');
-      background-size: (20px * @scale) (20px * @scale);
+      background-size: 15px 15px;
     }
 
     &.dashboard-running {
@@ -201,7 +198,7 @@
 
     .dashboard-pipeline-icon {
       background-image: url('images/ic_error_orange.svg');
-      background-size: (20px * @scale) (20px * @scale);
+      background-size: 15px 15px;
     }
 
     &.dashboard-running {
@@ -216,12 +213,12 @@
 }
 
 .dashboard-pipeline-icon {
-  min-width: (20px * @scale);
-  height: (20px * @scale);
+  min-width: 15px;
+  height: 15px;
   background-repeat: no-repeat;
   position: absolute;
-  top: 14px;
-  left: 10px;
+  top: 13px;
+  left: 8px;
 }
 
 .dashboard-pipeline-name {
@@ -229,6 +226,23 @@
   margin: 0 0 (20px * @scale) 30px;
 }
 
-.dashboard-pipeline-double {
-  width: (850px * @scale);
+.pipeline-grid {
+  width: 180px;
+  height: 120px;
+}
+
+.pipeline-grid-tall {
+  height: 364px;
+}
+
+.pipeline-grid-wide {
+  width: 450px;
+}
+
+.pipeline-grid-super-tall {
+  height: 608px;
+}
+
+.pipeline-grid-super-wide {
+  width: 720px;
 }

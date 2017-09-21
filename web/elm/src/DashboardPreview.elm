@@ -5,16 +5,37 @@ import Concourse.BuildStatus
 import Debug
 import Dict exposing (Dict)
 import Html exposing (Html)
-import Html.Attributes exposing (class, title)
+import Html.Attributes exposing (class, classList, title)
 
 
-view : List Concourse.Job -> List (Html msg)
+view : List Concourse.Job -> Html msg
 view jobs =
     let
         groups =
-            Dict.values <| jobGroups jobs
+            jobGroups jobs
+
+        width =
+            Dict.size groups
+
+        height =
+            Maybe.withDefault 0 <| List.maximum (List.map List.length (Dict.values groups))
     in
-        List.map (\jobs -> Html.div [ class "parallel-grid" ] <| List.map viewJob jobs) groups
+        Html.div
+            [ classList
+                [ ( "pipeline-grid", True )
+                , ( "pipeline-grid-wide", width > 12 )
+                , ( "pipeline-grid-tall", height > 12 )
+                , ( "pipeline-grid-super-wide", width > 24 )
+                , ( "pipeline-grid-super-tall", height > 24 )
+                ]
+            ]
+        <|
+            List.map
+                (\jobs ->
+                    List.map viewJob jobs
+                        |> Html.div [ class "parallel-grid" ]
+                )
+                (Dict.values groups)
 
 
 viewJob : Concourse.Job -> Html msg
