@@ -3,6 +3,36 @@
 .dashboard {
   padding: 0 0 0 30px;
 
+  @base01: #2B2B2B;
+  @base03: #6E6E6E;
+  @base07: #979797; /* light grey (pending) */
+  @base08: #ED4B35; /* red */
+  @base09: #F5A623; /* orange */
+  @base0A: #F1C40F; /* yellow */
+  @base0B: #1FCE6D; /* green */
+  @base0C: #1ABC9C; /* cyan */
+  @base0D: #4A90E2; /* blue */
+  @base0E: #9B59B6; /* purple */
+  @base0F: #8F4B2D; /* brown */
+
+  .pending { background: @base04; }
+  .started { background: @base0A; }
+  .no-builds { background: @base03; }
+  .succeeded { background: @base0B; }
+  .failed { background: @base08; }
+  .errored { background: @base09; }
+  .aborted { background: @base0F; }
+  .paused { background: @base0D; }
+
+  body & {
+    background: #333333;
+    height: 100%;
+  }
+
+  .top-bar & {
+    background: #1E1E1E;
+  }
+
   .pipeline-grid {
     float: none;
     display: flex;
@@ -27,7 +57,7 @@
     margin: auto 0 auto 30px;
 
     &:after {
-      border-bottom: 1px solid #1F2E3C;
+      border-bottom: 1px solid @base01;
       display: block;
       content: ' ';
       position: relative;
@@ -35,7 +65,6 @@
     }
   }
 }
-
 
 .dashboard-team-group {
   padding-top: (55px * @scale);
@@ -47,8 +76,8 @@
 }
 
 .dashboard-team-name {
-  color: @base03;
-  border-top: 1px solid @base02;
+  color: #6E6E6E;
+  border-top: 1px solid #6E6E6E;
   padding-top: (8px * @scale);
   font-size: (30px * @scale);
   margin-bottom: (25px * @scale);
@@ -61,9 +90,22 @@
 }
 
 .dashboard-pipeline {
-  float: left;
+  display: inline-block;
   margin-bottom: (50px * @scale);
   margin-right: (50px * @scale);
+
+  @base01: #2B2B2B;
+  @base03: #6E6E6E;
+  @base07: #979797; /* light grey (pending) */
+  @base08: #ED4B35; /* red */
+  @base09: #F5A623; /* orange */
+  @base0A: #F1C40F; /* yellow */
+  @base0B: #1FCE6D; /* green */
+  @base0C: #1ABC9C; /* cyan */
+  @base0D: #4A90E2; /* blue */
+  @base0E: #9B59B6; /* purple */
+  @base0F: #8F4B2D; /* brown */
+
 
   @media all and (max-width: (700px * @scale)) {
     flex-basis: 100%;
@@ -80,11 +122,15 @@
   .dashboard-pipeline-content {
     display: flex;
     flex-direction: column;
-    background: #1F2E3C;
+    background: #2B2B2B;
     position: relative;
 
     &:hover {
-      box-shadow: 0 2px 3px 0 rgba(0,0,0,0.50);
+      background: #181818;
+
+      .build-duration:after {
+        border-color: #181818;
+      }
     }
   }
 
