@@ -18,10 +18,10 @@ resources/bosh-deployment-resource-0c116a6.tar.gz:
   size: 13365364
   object_id: 2dbd2f7b-ba78-48f4-6f9f-d8b199b0e393
   sha: df92a4fdb9c6e3b185e5050a71ba8b2fcb3975f2
-resources/bosh-io-release-resource-fa73b84.tar.gz:
-  size: 5170465
-  object_id: c3e5c9c1-a564-49de-754d-7d512caca965
-  sha: e46b1198310ce27a9de7e26e0fda8e248fcf1f16
+resources/bosh-io-release-resource-b414c5e.tar.gz:
+  size: 5777979
+  object_id: f6f31d1f-cf79-458c-7f4b-710d898a700a
+  sha: 93d58f0b1b80a83887eac735d0fa3521babc2ae6
 resources/bosh-io-stemcell-resource-c144c16.tar.gz:
   size: 9177679
   object_id: dadf4442-f890-4291-64a7-1c95e069e014
@@ -42,10 +42,10 @@ resources/github-release-resource-3cf6e11.tar.gz:
   size: 11662290
   object_id: 30eb933a-6163-4567-7a64-7f4e9cfec0b7
   sha: 982286723e9b650fe3d42eaf8adfb18a1bab3649
-resources/hg-resource-831e768.tar.gz:
-  size: 15070349
-  object_id: 90845934-de35-4f3c-6f49-e367d2be752d
-  sha: 6ad5208876781b0b8dc28cdf08f8a34362b76802
+resources/hg-resource-9d63dcb.tar.gz:
+  size: 28952148
+  object_id: 561fcc03-ea50-4b08-652d-ce9ed7944432
+  sha: 8bd0e4ab4e490efebcefe2cd2e8d440f9dd4f291
 resources/pool-resource-7bfa737.tar.gz:
   size: 22123276
   object_id: 1916435e-664f-4de4-5b7c-802adb446928
