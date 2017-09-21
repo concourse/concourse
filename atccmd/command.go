@@ -36,6 +36,7 @@ import (
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/manifest"
 	"github.com/concourse/atc/web/publichandler"
 	"github.com/concourse/atc/web/robotstxt"
 	"github.com/concourse/atc/worker"
@@ -920,6 +921,7 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webMux.Handle("/api/v1/", apiHandler)
 	webMux.Handle("/auth/", oauthHandler)
 	webMux.Handle("/public/", publicHandler)
+	webMux.Handle("/manifest.json", manifest.NewHandler())
 	webMux.Handle("/robots.txt", robotstxt.Handler{})
 	webMux.Handle("/", webHandler)
 
