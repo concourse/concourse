@@ -691,29 +691,8 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 
 	defer tx.Rollback()
 
-	var pipelineCount int
-
-	err = psql.Select("COUNT(1)").
-		From("pipelines").
-		Where(sq.Eq{"team_id": t.id}).
-		RunWith(tx).
-		QueryRow().
-		Scan(&pipelineCount)
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Update("pipelines").
-		Set("ordering", pipelineCount+1).
-		Where(sq.Eq{"team_id": t.id}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
 	for i, name := range pipelineNames {
-		_, err = psql.Update("pipelines").
+		_, err := psql.Update("pipelines").
 			Set("ordering", i).
 			Where(sq.Eq{
 				"name":    name,
