@@ -1,4 +1,11 @@
 ---
+resources:
+- name: impossible-time
+  type: time
+  source:
+    start: 1:00 AM
+    stop: 1:00 AM
+
 jobs:
 - name: failing
   plan:
@@ -59,3 +66,7 @@ jobs:
         source: {repository: busybox}
 
       run: {path: 'sleep', args: ['9999999']}
+
+- name: hanging
+  plan:
+  - get: impossible-time

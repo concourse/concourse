@@ -98,11 +98,34 @@ describe 'dashboard', type: :feature do
   context 'when a pipeline is paused' do
     before do
       fly('pause-pipeline -p some-pipeline')
+      visit_dashboard
     end
 
     it 'is shown in blue' do
-      visit_dashboard
       expect(border_color.closest_match(palette)).to eq(blue)
+    end
+
+    it 'is labelled "paused"' do
+      within '.dashboard-pipeline', text: 'some-pipeline' do
+        expect(page).to have_content('paused')
+      end
+    end
+  end
+
+  context 'when a pipeline is hanging' do
+    before do
+      fly('trigger-job -j some-pipeline/hanging')
+      visit_dashboard
+    end
+
+    it 'is shown in grey' do
+      expect(check_grayscale).to eq(border_color)
+    end
+
+    it 'is labelled "pending"' do
+      within '.dashboard-pipeline', text: 'some-pipeline' do
+        expect(page).to have_content('pending')
+      end
     end
   end
 
@@ -119,7 +142,6 @@ describe 'dashboard', type: :feature do
       visit_dashboard
       expect(border_color('some-other-pipeline').closest_match(palette)).to eq(red)
     end
-
   end
 
   context 'when a pipeline has a passed build' do

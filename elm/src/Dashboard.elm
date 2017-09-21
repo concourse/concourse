@@ -182,8 +182,8 @@ viewPipeline now state =
 
 
 timeSincePipelineTransitioned : Concourse.BuildStatus -> Maybe Time -> PipelineState -> Html a
-timeSincePipelineTransitioned status time { jobs } =
-    case jobs of
+timeSincePipelineTransitioned status time state =
+    case state.jobs of
         RemoteData.Success js ->
             let
                 transitionedJobs =
@@ -197,25 +197,35 @@ timeSincePipelineTransitioned status time { jobs } =
                         )
                         transitionedJobs
 
+                sortedTransitionedDurations =
+                    List.sortBy
+                        (\duration ->
+                            case duration.startedAt of
+                                Just date ->
+                                    Time.inSeconds <| Date.toTime date
+
+                                Nothing ->
+                                    0
+                        )
+                        transitionedDurations
+
                 transitionedDuration =
-                    List.head <|
-                        List.sortBy
-                            (\duration ->
-                                case duration.startedAt of
-                                    Just date ->
-                                        Time.inSeconds <| Date.toTime date
-
-                                    Nothing ->
-                                        0
-                            )
-                            transitionedDurations
+                    if status == Concourse.BuildStatusSucceeded then
+                        List.head << List.reverse <| sortedTransitionedDurations
+                    else
+                        List.head <| sortedTransitionedDurations
             in
-                case ( time, transitionedDuration ) of
-                    ( Just now, Just duration ) ->
-                        BuildDuration.show duration now
+                if state.pipeline.paused then
+                    Html.div [ class "build-duration" ] [ Html.text "paused" ]
+                else if status == Concourse.BuildStatusPending then
+                    Html.div [ class "build-duration" ] [ Html.text "pending" ]
+                else
+                    case ( time, transitionedDuration ) of
+                        ( Just now, Just duration ) ->
+                            BuildDuration.show duration now
 
-                    _ ->
-                        Html.text ""
+                        _ ->
+                            Html.text ""
 
         _ ->
             Html.text ""
@@ -250,9 +260,11 @@ jobsStatus : List Concourse.Job -> Concourse.BuildStatus
 jobsStatus jobs =
     let
         statuses =
-            List.map (\job -> Maybe.withDefault Concourse.BuildStatusPending <| Maybe.map .status job.finishedBuild) jobs
+            List.map (\job -> Maybe.withDefault Concourse.BuildStatusStarted <| Maybe.map .status job.finishedBuild) jobs
     in
-        if List.member Concourse.BuildStatusFailed statuses then
+        if List.member Concourse.BuildStatusPending statuses then
+            Concourse.BuildStatusPending
+        else if List.member Concourse.BuildStatusFailed statuses then
             Concourse.BuildStatusFailed
         else if List.member Concourse.BuildStatusErrored statuses then
             Concourse.BuildStatusErrored
