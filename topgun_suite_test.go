@@ -43,9 +43,9 @@ var (
 	atcInstance    *boshInstance
 	atcExternalURL string
 
-	concourseReleaseVersion, gardenRuncReleaseVersion string
-	gitServerReleaseVersion, vaultReleaseVersion      string
-	stemcellVersion                                   string
+	concourseReleaseVersion, gardenRuncReleaseVersion, postgresReleaseVersion string
+	gitServerReleaseVersion, vaultReleaseVersion                              string
+	stemcellVersion                                                           string
 
 	pipelineName string
 
@@ -105,6 +105,11 @@ var _ = BeforeEach(func() {
 		gardenRuncReleaseVersion = "latest"
 	}
 
+	postgresReleaseVersion = os.Getenv("POSTGRES_RELEASE_VERSION")
+	if postgresReleaseVersion == "" {
+		postgresReleaseVersion = "latest"
+	}
+
 	gitServerReleaseVersion = os.Getenv("GIT_SERVER_RELEASE_VERSION")
 	if gitServerReleaseVersion == "" {
 		gitServerReleaseVersion = "latest"
@@ -154,6 +159,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 			"-v", "deployment_name='" + deploymentName + "'",
 			"-v", "concourse_release_version='" + concourseReleaseVersion + "'",
 			"-v", "garden_runc_release_version='" + gardenRuncReleaseVersion + "'",
+			"-v", "postgres_release_version='" + postgresReleaseVersion + "'",
 			"-v", "vault_release_version='" + vaultReleaseVersion + "'",
 			"-v", "git_server_release_version='" + gitServerReleaseVersion + "'",
 			"-v", "stemcell_version='" + stemcellVersion + "'",

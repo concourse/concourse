@@ -6,6 +6,8 @@ releases:
   version: ((concourse_release_version))
 - name: garden-runc
   version: ((garden_runc_release_version))
+- name: postgres
+  version: ((postgres_release_version))
 
 instance_groups:
 - name: concourse
@@ -21,20 +23,26 @@ instance_groups:
     properties:
       no_really_i_dont_want_any_auth: true
       log_level: debug
-      postgresql_database: atc
+      postgresql:
+        database: &db-name atc
+        role: &db-role
+          name: atc
+          password: dummy-password
       gc_interval: 1s
 
   - release: concourse
     name: tsa
     properties: {}
 
-  - release: concourse
-    name: postgresql
+  - release: postgres
+    name: postgres
     properties:
       databases:
-      - name: atc
-        role: atc
-        password: dummy-password
+        port: 5432
+        databases:
+        - name: *db-name
+        roles:
+        - *db-role
 
   - release: concourse
     name: groundcrew
