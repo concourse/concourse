@@ -5,7 +5,6 @@
 
   .pipeline-grid {
     float: none;
-    height: (200px * @scale);
     display: flex;
     flex-direction: row;
     padding: 0 (50px * @scale) (30px * @scale);
@@ -63,7 +62,6 @@
 
 .dashboard-pipeline {
   float: left;
-  width: (400px * @scale);
   margin-bottom: (50px * @scale);
   margin-right: (50px * @scale);
 
@@ -82,7 +80,6 @@
   .dashboard-pipeline-content {
     display: flex;
     flex-direction: column;
-    height: (360px * @scale);
     background: #1F2E3C;
     position: relative;
 
@@ -229,6 +226,23 @@
   margin: 0 0 (20px * @scale) 30px;
 }
 
-.dashboard-pipeline-double {
-  width: (850px * @scale);
+.pipeline-grid {
+  width: 180px;
+  height: 120px;
+}
+
+.pipeline-grid-tall {
+  height: 364px;
+}
+
+.pipeline-grid-wide {
+  width: 450px;
+}
+
+.pipeline-grid-super-tall {
+  height: 608px;
+}
+
+.pipeline-grid-super-wide {
+  width: 720px;
 }

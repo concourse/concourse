@@ -150,21 +150,20 @@ viewPipeline now state =
 
         mpreview =
             Maybe.map DashboardPreview.view mJobs
-
-        size =
-            Maybe.withDefault 1 (Maybe.map List.length mpreview)
     in
         Html.div
             [ classList
                 [ ( "dashboard-pipeline", True )
-                , ( "dashboard-pipeline-double", size > 12 )
                 , ( "dashboard-paused", state.pipeline.paused )
                 , ( "dashboard-running", isPipelineRunning state )
                 , ( "dashboard-status-" ++ Concourse.BuildStatus.show status, not state.pipeline.paused )
                 ]
             ]
             [ Html.div [ class "dashboard-pipeline-banner" ] []
-            , Html.a [ class "dashboard-pipeline-content", href state.pipeline.url ]
+            , Html.a
+                [ class "dashboard-pipeline-content"
+                , href state.pipeline.url
+                ]
                 [ Html.div [ class "dashboard-pipeline-header" ]
                     [ Html.div [ class "dashboard-pipeline-icon" ]
                         []
@@ -174,7 +173,7 @@ viewPipeline now state =
                     [ Html.text state.pipeline.name ]
                 , case mpreview of
                     Just preview ->
-                        Html.div [ class "pipeline-grid" ] preview
+                        preview
 
                     Nothing ->
                         Html.text ""
