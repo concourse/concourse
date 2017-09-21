@@ -434,7 +434,7 @@ func (t *team) SavePipeline(
 				"name":     pipelineName,
 				"groups":   groupsPayload,
 				"version":  sq.Expr("nextval('config_version_seq')"),
-				"ordering": sq.Expr("(SELECT COUNT(1) + 1 FROM pipelines)"),
+				"ordering": sq.Expr("currval('pipelines_id_seq')"),
 				"paused":   pausedState.Bool(),
 				"team_id":  t.id,
 			}).
