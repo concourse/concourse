@@ -190,7 +190,7 @@ func Deploy(manifest string, args ...string) {
 		}, 2*time.Minute).Should(Equal(0))
 	}
 
-	dbInstance = JobInstance("postgresql")
+	dbInstance = JobInstance("postgres")
 
 	if dbInstance != nil {
 		var err error
