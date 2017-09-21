@@ -37,17 +37,11 @@ view duration now =
 show : Concourse.BuildDuration -> Time.Time -> Html a
 show duration now =
     Html.div [ class "build-duration" ] <|
-        case ( duration.startedAt, duration.finishedAt ) of
-            ( Nothing, Nothing ) ->
-                [ Html.text "not started" ]
-
-            ( Nothing, Just finishedAt ) ->
+        case duration.startedAt of
+            Nothing ->
                 []
 
-            ( Just startedAt, Nothing ) ->
-                [ Html.text "started" ]
-
-            ( Just startedAt, Just finishedAt ) ->
+            Just startedAt ->
                 let
                     elapsed =
                         Duration.between (Date.toTime startedAt) now
