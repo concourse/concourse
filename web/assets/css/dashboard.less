@@ -53,15 +53,18 @@
   .build-duration {
     color: @base08;
     font-size: (30px * @scale);
-    text-transform: uppercase;
     margin: auto 0 auto 30px;
 
-    &:after {
+    &.with-gap {
+      text-transform: uppercase;
+    }
+
+    &.with-gap:after {
       border-bottom: 1px solid @base01;
       display: block;
       content: ' ';
       position: relative;
-      top: -7px;
+      top: -9px;
     }
   }
 }
@@ -161,7 +164,7 @@
 
   &.dashboard-status-pending {
     .dashboard-pipeline-icon {
-      background-image: url('images/ic_pause_grey.svg');
+      background-image: url('images/ic_pending_grey.svg');
       background-size: 15px 15px;
     }
 

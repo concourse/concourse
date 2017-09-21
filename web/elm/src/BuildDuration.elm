@@ -36,7 +36,7 @@ view duration now =
 
 show : Concourse.BuildDuration -> Time.Time -> Html a
 show duration now =
-    Html.div [ class "build-duration" ] <|
+    Html.div [ class "build-duration with-gap" ] <|
         case duration.startedAt of
             Nothing ->
                 []
