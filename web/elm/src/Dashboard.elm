@@ -160,13 +160,14 @@ viewPipeline now state =
                 ]
             ]
             [ Html.div [ class "dashboard-pipeline-banner" ] []
-            , Html.a
-                [ class "dashboard-pipeline-content"
-                , href state.pipeline.url
-                ]
-                [ Html.div [ class "dashboard-pipeline-header" ]
-                    [ Html.div [ class "dashboard-pipeline-name" ]
-                        [ Html.text state.pipeline.name ]
+            , Html.div
+                [ class "dashboard-pipeline-content" ]
+                [ Html.a [ href state.pipeline.url ]
+                    [ Html.div
+                        [ class "dashboard-pipeline-header" ]
+                        [ Html.div [ class "dashboard-pipeline-name" ]
+                            [ Html.text state.pipeline.name ]
+                        ]
                     ]
                 , case mpreview of
                     Just preview ->

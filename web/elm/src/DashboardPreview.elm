@@ -5,7 +5,7 @@ import Concourse.BuildStatus
 import Debug
 import Dict exposing (Dict)
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList)
+import Html.Attributes exposing (attribute, class, classList, href)
 
 
 view : List Concourse.Job -> Html msg
@@ -48,8 +48,20 @@ viewJob job =
 
                 Nothing ->
                     "no-builds"
+
+        latestBuild =
+            if job.nextBuild == Nothing then
+                job.finishedBuild
+            else
+                job.nextBuild
     in
-        Html.div [ class ("node job " ++ linkAttrs), attribute "data-tooltip" job.name ] [ Html.text "" ]
+        Html.div [ class ("node " ++ linkAttrs), attribute "data-tooltip" job.name ] <|
+            case latestBuild of
+                Nothing ->
+                    [ Html.text "" ]
+
+                Just build ->
+                    [ Html.a [ href build.url ] [ Html.text "" ] ]
 
 
 jobGroups : List Concourse.Job -> Dict Int (List Concourse.Job)

@@ -224,6 +224,13 @@ describe 'dashboard', type: :feature do
     expect(page).to have_css('.dashboard-team-group', id: team_name)
   end
 
+  it 'links to latest build in the preview' do
+    login
+    visit dash_route('/dashboard')
+    fly_fail('trigger-job -w -j some-pipeline/failing')
+    expect(page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
+  end
+
   private
 
   def login
