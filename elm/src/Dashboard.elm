@@ -165,18 +165,20 @@ viewPipeline now state =
                 , href state.pipeline.url
                 ]
                 [ Html.div [ class "dashboard-pipeline-header" ]
-                    [ Html.div [ class "dashboard-pipeline-icon" ]
-                        []
-                    , timeSincePipelineTransitioned status now state
+                    [ Html.div [ class "dashboard-pipeline-name" ]
+                        [ Html.text state.pipeline.name ]
                     ]
-                , Html.div [ class "dashboard-pipeline-name" ]
-                    [ Html.text state.pipeline.name ]
                 , case mpreview of
                     Just preview ->
                         preview
 
                     Nothing ->
                         Html.text ""
+                , Html.div [ class "dashboard-pipeline-footer" ]
+                    [ Html.div [ class "dashboard-pipeline-icon" ]
+                        []
+                    , timeSincePipelineTransitioned status now state
+                    ]
                 ]
             ]
 
