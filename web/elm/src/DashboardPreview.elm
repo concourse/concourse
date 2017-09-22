@@ -5,7 +5,7 @@ import Concourse.BuildStatus
 import Debug
 import Dict exposing (Dict)
 import Html exposing (Html)
-import Html.Attributes exposing (class, classList, title)
+import Html.Attributes exposing (attribute, class, classList)
 
 
 view : List Concourse.Job -> Html msg
@@ -49,7 +49,7 @@ viewJob job =
                 Nothing ->
                     "no-builds"
     in
-        Html.div [ class ("node job " ++ linkAttrs), title job.name ] [ Html.text "" ]
+        Html.div [ class ("node job " ++ linkAttrs), attribute "data-tooltip" job.name ] [ Html.text "" ]
 
 
 jobGroups : List Concourse.Job -> Dict Int (List Concourse.Job)
