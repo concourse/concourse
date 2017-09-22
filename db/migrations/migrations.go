@@ -196,5 +196,6 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		AddTeamIdToWorkerResourceConfigCheckSessions,
 		AddViewsForBuildStates,
 		AddUniqueIndexesToMaterializedViews,
+		AddFailedStateToVolumes,
 	}
 }

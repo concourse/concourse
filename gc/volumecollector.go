@@ -1,12 +1,16 @@
 package gc
 
 import (
+	"errors"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 )
+
+var collectorFailedErr = errors.New("volume collector failed")
 
 type volumeCollector struct {
 	rootLogger    lager.Logger
@@ -31,6 +35,42 @@ func (vc *volumeCollector) Run() error {
 
 	logger.Debug("start")
 	defer logger.Debug("done")
+
+	var err error
+
+	orphanedErr := vc.cleanupOrphanedVolumes(logger)
+	if orphanedErr != nil {
+		vc.rootLogger.Error("volume-collector", orphanedErr)
+		err = collectorFailedErr
+	}
+
+	failedErr := vc.cleanupFailedVolumes(logger)
+	if failedErr != nil {
+		vc.rootLogger.Error("volume-collector", failedErr)
+		err = collectorFailedErr
+	}
+
+	return err
+}
+
+func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {
+	logger = logger.Session("failed-volumes")
+
+	failedVolumes, err := vc.volumeFactory.GetFailedVolumes()
+	if err != nil {
+		logger.Error("failed-to-get-failed-volumes", err)
+		return err
+	}
+
+	for _, failedVolume := range failedVolumes {
+		destroyDBVolume(logger, failedVolume)
+	}
+
+	return nil
+}
+
+func (vc *volumeCollector) cleanupOrphanedVolumes(logger lager.Logger) error {
+	logger = logger.Session("orphaned-volumes")
 
 	createdVolumes, destroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
 	if err != nil {

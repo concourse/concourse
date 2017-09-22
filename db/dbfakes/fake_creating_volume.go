@@ -37,6 +37,17 @@ type FakeCreatingVolume struct {
 		result1 db.CreatedVolume
 		result2 error
 	}
+	FailedStub        func() (db.FailedVolume, error)
+	failedMutex       sync.RWMutex
+	failedArgsForCall []struct{}
+	failedReturns     struct {
+		result1 db.FailedVolume
+		result2 error
+	}
+	failedReturnsOnCall map[int]struct {
+		result1 db.FailedVolume
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -164,6 +175,49 @@ func (fake *FakeCreatingVolume) CreatedReturnsOnCall(i int, result1 db.CreatedVo
 	}{result1, result2}
 }
 
+func (fake *FakeCreatingVolume) Failed() (db.FailedVolume, error) {
+	fake.failedMutex.Lock()
+	ret, specificReturn := fake.failedReturnsOnCall[len(fake.failedArgsForCall)]
+	fake.failedArgsForCall = append(fake.failedArgsForCall, struct{}{})
+	fake.recordInvocation("Failed", []interface{}{})
+	fake.failedMutex.Unlock()
+	if fake.FailedStub != nil {
+		return fake.FailedStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.failedReturns.result1, fake.failedReturns.result2
+}
+
+func (fake *FakeCreatingVolume) FailedCallCount() int {
+	fake.failedMutex.RLock()
+	defer fake.failedMutex.RUnlock()
+	return len(fake.failedArgsForCall)
+}
+
+func (fake *FakeCreatingVolume) FailedReturns(result1 db.FailedVolume, result2 error) {
+	fake.FailedStub = nil
+	fake.failedReturns = struct {
+		result1 db.FailedVolume
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCreatingVolume) FailedReturnsOnCall(i int, result1 db.FailedVolume, result2 error) {
+	fake.FailedStub = nil
+	if fake.failedReturnsOnCall == nil {
+		fake.failedReturnsOnCall = make(map[int]struct {
+			result1 db.FailedVolume
+			result2 error
+		})
+	}
+	fake.failedReturnsOnCall[i] = struct {
+		result1 db.FailedVolume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCreatingVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -173,6 +227,8 @@ func (fake *FakeCreatingVolume) Invocations() map[string][][]interface{} {
 	defer fake.iDMutex.RUnlock()
 	fake.createdMutex.RLock()
 	defer fake.createdMutex.RUnlock()
+	fake.failedMutex.RLock()
+	defer fake.failedMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

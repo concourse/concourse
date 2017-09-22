@@ -27,6 +27,8 @@ type VolumeFactory interface {
 	FindVolumesForContainer(CreatedContainer) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
 
+	GetFailedVolumes() ([]FailedVolume, error)
+
 	FindCreatedVolume(handle string) (CreatedVolume, bool, error)
 }
 
@@ -71,7 +73,7 @@ func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error
 	createdVolumes := []CreatedVolume{}
 
 	for rows.Next() {
-		_, createdVolume, _, err := scanVolume(rows, factory.conn)
+		_, createdVolume, _, _, err := scanVolume(rows, factory.conn)
 		if err != nil {
 			return nil, err
 		}
@@ -143,7 +145,7 @@ func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer
 	createdVolumes := []CreatedVolume{}
 
 	for rows.Next() {
-		_, createdVolume, _, err := scanVolume(rows, factory.conn)
+		_, createdVolume, _, _, err := scanVolume(rows, factory.conn)
 		if err != nil {
 			return nil, err
 		}
@@ -246,6 +248,10 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 			"v.worker_task_cache_id":         nil,
 		}).
 		Where(sq.Or{
+			sq.Eq{"v.state": string(VolumeStateCreated)},
+			sq.Eq{"v.state": string(VolumeStateDestroying)},
+		}).
+		Where(sq.Or{
 			sq.Eq{"w.state": string(WorkerStateRunning)},
 			sq.Eq{"w.state": string(WorkerStateLanding)},
 			sq.Eq{"w.state": string(WorkerStateRetiring)},
@@ -265,7 +271,8 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 	destroyingVolumes := []DestroyingVolume{}
 
 	for rows.Next() {
-		_, createdVolume, destroyingVolume, err := scanVolume(rows, factory.conn)
+		_, createdVolume, destroyingVolume, _, err := scanVolume(rows, factory.conn)
+
 		if err != nil {
 			return nil, nil, err
 		}
@@ -280,6 +287,44 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 	}
 
 	return createdVolumes, destroyingVolumes, nil
+}
+
+func (factory *volumeFactory) GetFailedVolumes() ([]FailedVolume, error) {
+	query, args, err := psql.Select(volumeColumns...).
+		From("volumes v").
+		LeftJoin("workers w ON v.worker_name = w.name").
+		LeftJoin("containers c ON v.container_id = c.id").
+		LeftJoin("volumes pv ON v.parent_id = pv.id").
+		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
+		Where(sq.Eq{
+			"v.state": string(VolumeStateFailed),
+		}).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := factory.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	failedVolumes := []FailedVolume{}
+
+	for rows.Next() {
+		_, _, _, failedVolume, err := scanVolume(rows, factory.conn)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if failedVolume != nil {
+			failedVolumes = append(failedVolumes, failedVolume)
+		}
+	}
+
+	return failedVolumes, nil
 }
 
 var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer exists (stale?)")
@@ -359,7 +404,7 @@ func (factory *volumeFactory) findVolume(teamID int, workerName string, columns 
 		Where(whereClause).
 		RunWith(factory.conn).
 		QueryRow()
-	creatingVolume, createdVolume, _, err := scanVolume(row, factory.conn)
+	creatingVolume, createdVolume, _, _, err := scanVolume(row, factory.conn)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil, nil
@@ -391,7 +436,7 @@ var volumeColumns = []string{
 end`,
 }
 
-func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, DestroyingVolume, error) {
+func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, DestroyingVolume, FailedVolume, error) {
 	var id int
 	var handle string
 	var state string
@@ -420,7 +465,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		&volumeType,
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	var path string
@@ -473,7 +518,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 			workerBaseResourceTypeID: workerBaseResourceTypeID,
 			workerTaskCacheID:        workerTaskCacheID,
 			conn:                     conn,
-		}, nil, nil
+		}, nil, nil, nil
 	case VolumeStateCreating:
 		return &creatingVolume{
 			id:                       id,
@@ -488,9 +533,16 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 			workerBaseResourceTypeID: workerBaseResourceTypeID,
 			workerTaskCacheID:        workerTaskCacheID,
 			conn:                     conn,
-		}, nil, nil, nil
+		}, nil, nil, nil, nil
 	case VolumeStateDestroying:
 		return nil, nil, &destroyingVolume{
+			id:         id,
+			handle:     handle,
+			workerName: workerName,
+			conn:       conn,
+		}, nil, nil
+	case VolumeStateFailed:
+		return nil, nil, nil, &failedVolume{
 			id:         id,
 			handle:     handle,
 			workerName: workerName,
@@ -498,5 +550,5 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		}, nil
 	}
 
-	return nil, nil, nil, nil
+	return nil, nil, nil, nil, nil
 }

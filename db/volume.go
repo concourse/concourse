@@ -14,12 +14,19 @@ import (
 )
 
 var (
-	ErrVolumeMarkDestroyingFailed                 = errors.New("could not mark volume as destroying")
 	ErrVolumeCannotBeDestroyedWithChildrenPresent = errors.New("volume cannot be destroyed as children are present")
 	ErrVolumeStateTransitionFailed                = errors.New("could not transition volume state")
 	ErrVolumeMissing                              = errors.New("volume no longer in db")
 	ErrInvalidResourceCache                       = errors.New("invalid resource cache")
 )
+
+type ErrVolumeMarkStateFailed struct {
+	State VolumeState
+}
+
+func (e ErrVolumeMarkStateFailed) Error() string {
+	return fmt.Sprintf("could not mark volume as %s", e.State)
+}
 
 type ErrVolumeMarkCreatedFailed struct {
 	Handle string
@@ -35,6 +42,7 @@ const (
 	VolumeStateCreating   VolumeState = "creating"
 	VolumeStateCreated    VolumeState = "created"
 	VolumeStateDestroying VolumeState = "destroying"
+	VolumeStateFailed     VolumeState = "failed"
 )
 
 type VolumeType string
@@ -53,6 +61,7 @@ type CreatingVolume interface {
 	Handle() string
 	ID() int
 	Created() (CreatedVolume, error)
+	Failed() (FailedVolume, error)
 }
 
 type creatingVolume struct {
@@ -101,6 +110,28 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 		resourceCacheID:          volume.resourceCacheID,
 		workerBaseResourceTypeID: volume.workerBaseResourceTypeID,
 		workerTaskCacheID:        volume.workerTaskCacheID,
+	}, nil
+}
+
+func (volume *creatingVolume) Failed() (FailedVolume, error) {
+	err := volumeStateTransition(
+		volume.id,
+		volume.conn,
+		VolumeStateCreating,
+		VolumeStateFailed,
+	)
+	if err != nil {
+		if err == ErrVolumeStateTransitionFailed {
+			return nil, ErrVolumeMarkStateFailed{VolumeStateFailed}
+		}
+		return nil, err
+	}
+
+	return &failedVolume{
+		id:         volume.id,
+		workerName: volume.workerName,
+		handle:     volume.handle,
+		conn:       volume.conn,
 	}, nil
 }
 
@@ -477,7 +508,8 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 	)
 	if err != nil {
 		if err == ErrVolumeStateTransitionFailed {
-			return nil, ErrVolumeMarkDestroyingFailed
+			return nil, ErrVolumeMarkStateFailed{VolumeStateDestroying}
+
 		}
 
 		if pqErr, ok := err.(*pq.Error); ok &&
@@ -518,6 +550,46 @@ func (volume *destroyingVolume) Destroy() (bool, error) {
 		Where(sq.Eq{
 			"id":    volume.id,
 			"state": VolumeStateDestroying,
+		}).
+		RunWith(volume.conn).
+		Exec()
+	if err != nil {
+		return false, err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if affected == 0 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+type FailedVolume interface {
+	Handle() string
+	Destroy() (bool, error)
+	WorkerName() string
+}
+
+type failedVolume struct {
+	id         int
+	workerName string
+	handle     string
+	conn       Conn
+}
+
+func (volume *failedVolume) Handle() string     { return volume.handle }
+func (volume *failedVolume) WorkerName() string { return volume.workerName }
+
+func (volume *failedVolume) Destroy() (bool, error) {
+	rows, err := psql.Delete("volumes").
+		Where(sq.Eq{
+			"id":    volume.id,
+			"state": VolumeStateFailed,
 		}).
 		RunWith(volume.conn).
 		Exec()

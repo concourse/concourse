@@ -172,6 +172,16 @@ var _ = Describe("VolumeClient", func() {
 						Expect(foundOrCreatedVolume).NotTo(BeNil())
 						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
 					})
+
+					Context("when creating the volume in baggageclaim fails", func() {
+						BeforeEach(func() {
+							fakeBaggageclaimClient.CreateVolumeReturns(nil, errors.New("failed to create volume, oh no"))
+						})
+
+						It("marks the creating volume as failed", func() {
+							Expect(fakeCreatingVolume.FailedCallCount()).To(Equal(1))
+						})
+					})
 				})
 
 				It("releases the lock", func() {
@@ -216,10 +226,9 @@ var _ = Describe("VolumeClient", func() {
 			BeforeEach(func() {
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, nil, nil)
 				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-				creatingVolume := new(dbfakes.FakeCreatingVolume)
-				fakeDBVolumeFactory.CreateContainerVolumeReturns(creatingVolume, nil)
+				fakeDBVolumeFactory.CreateContainerVolumeReturns(fakeCreatingVolume, nil)
 				fakeCreatedVolume = new(dbfakes.FakeCreatedVolume)
-				creatingVolume.CreatedReturns(fakeCreatedVolume, nil)
+				fakeCreatingVolume.CreatedReturns(fakeCreatedVolume, nil)
 			})
 
 			It("acquires the lock", func() {
@@ -239,6 +248,16 @@ var _ = Describe("VolumeClient", func() {
 				Expect(foundOrCreatedErr).NotTo(HaveOccurred())
 				Expect(foundOrCreatedVolume).To(Equal(worker.NewVolume(fakeBaggageclaimVolume, fakeCreatedVolume, volumeClient)))
 				Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+			})
+
+			Context("when creating the volume in baggageclaim fails", func() {
+				BeforeEach(func() {
+					fakeBaggageclaimClient.CreateVolumeReturns(nil, errors.New("failed to create volume, oh no"))
+				})
+
+				It("marks the creating volume for removal", func() {
+					Expect(fakeCreatingVolume.FailedCallCount()).To(Equal(1))
+				})
 			})
 		})
 	})

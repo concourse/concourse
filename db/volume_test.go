@@ -32,6 +32,80 @@ var _ = Describe("Volume", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	Describe("creatingVolume.Failed", func() {
+		var (
+			creatingVolume db.CreatingVolume
+			failedVolume   db.FailedVolume
+			failErr        error
+		)
+
+		BeforeEach(func() {
+			var err error
+			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/path/to/volume")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			failedVolume, failErr = creatingVolume.Failed()
+		})
+
+		Describe("the database query fails", func() {
+			Context("when the volume is not in creating or failed state", func() {
+				BeforeEach(func() {
+					_, err := creatingVolume.Created()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns the correct error", func() {
+					Expect(failErr).To(HaveOccurred())
+					Expect(failErr).To(Equal(db.ErrVolumeMarkStateFailed{db.VolumeStateFailed}))
+				})
+			})
+
+			Context("there is no such id in the table", func() {
+				BeforeEach(func() {
+					createdVol, err := creatingVolume.Created()
+					Expect(err).NotTo(HaveOccurred())
+
+					destroyingVol, err := createdVol.Destroying()
+					Expect(err).NotTo(HaveOccurred())
+
+					deleted, err := destroyingVol.Destroy()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(deleted).To(BeTrue())
+				})
+
+				It("returns the correct error", func() {
+					Expect(failErr).To(HaveOccurred())
+					Expect(failErr).To(Equal(db.ErrVolumeMarkStateFailed{db.VolumeStateFailed}))
+				})
+			})
+		})
+
+		Describe("the database query succeeds", func() {
+			It("updates the record to be `failed`", func() {
+				Expect(failErr).ToNot(HaveOccurred())
+
+				failedVolumes, err := volumeFactory.GetFailedVolumes()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(failedVolumes).To(HaveLen(1))
+				Expect(failedVolumes).To(ContainElement(failedVolume))
+			})
+
+			Context("when the volume is already in the failed state", func() {
+				BeforeEach(func() {
+					creatingVolume.Failed()
+				})
+
+				It("does not fail to transition", func() {
+					Expect(failErr).ToNot(HaveOccurred())
+				})
+			})
+
+		})
+	})
+
 	Describe("creatingVolume.Created", func() {
 		var (
 			creatingVolume db.CreatingVolume

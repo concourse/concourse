@@ -279,6 +279,41 @@ var _ = Describe("VolumeFactory", func() {
 		})
 	})
 
+	Describe("GetFailedVolumes", func() {
+
+		var expectedFailedHandles []string
+
+		BeforeEach(func() {
+			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				Type:     "task",
+				StepName: "some-task",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			expectedFailedHandles = []string{}
+
+			creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
+			Expect(err).NotTo(HaveOccurred())
+			failedVolume1, err := creatingVolume1.Failed()
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedFailedHandles = append(expectedFailedHandles, failedVolume1.Handle())
+		})
+
+		It("returns failed volumes", func() {
+			failedVolumes, err := volumeFactory.GetFailedVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			failedHandles := []string{}
+
+			for _, vol := range failedVolumes {
+				failedHandles = append(failedHandles, vol.Handle())
+				Expect(vol.WorkerName()).To(Equal("default-worker"))
+			}
+			Expect(failedHandles).To(Equal(expectedFailedHandles))
+		})
+
+	})
+
 	Describe("FindBaseResourceTypeVolume", func() {
 		var usedWorkerBaseResourceType *db.UsedWorkerBaseResourceType
 		BeforeEach(func() {

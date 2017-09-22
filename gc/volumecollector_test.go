@@ -63,104 +63,105 @@ var _ = Describe("VolumeCollector", func() {
 	})
 
 	Describe("Run", func() {
-		BeforeEach(func() {
-			var err error
-			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
-			Expect(err).ToNot(HaveOccurred())
 
-			build, err := team.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
+		Context("when there are failed volumes", func() {
+			var failedVolume1 db.FailedVolume
 
-			worker, err = workerFactory.SaveWorker(atc.Worker{
-				Name:            "some-worker",
-				GardenAddr:      "1.2.3.4:7777",
-				BaggageclaimURL: "1.2.3.4:7788",
-			}, 5*time.Minute)
-			Expect(err).ToNot(HaveOccurred())
-
-			creatingContainer1, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
-				Type:     "task",
-				StepName: "some-task",
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			creatingContainer2, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
-				Type:     "task",
-				StepName: "some-task",
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			creatingVolume1, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-1")
-			Expect(err).NotTo(HaveOccurred())
-			createdVolume, err = creatingVolume1.Created()
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer2, "some-path-2")
-			Expect(err).NotTo(HaveOccurred())
-
-			creatingVolume3, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-3")
-			Expect(err).NotTo(HaveOccurred())
-			createdVolume3, err := creatingVolume3.Created()
-			Expect(err).NotTo(HaveOccurred())
-			_, err = createdVolume3.Destroying()
-			Expect(err).NotTo(HaveOccurred())
-
-			createdContainer1, err := creatingContainer1.Created()
-			Expect(err).NotTo(HaveOccurred())
-			destroyingContainer1, err := createdContainer1.Destroying()
-			Expect(err).NotTo(HaveOccurred())
-			destroyed, err := destroyingContainer1.Destroy()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(destroyed).To(BeTrue())
-		})
-
-		It("deletes created and destroying orphaned volumes", func() {
-			createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(createdVolumes).To(HaveLen(1))
-			Expect(destoryingVolumes).To(HaveLen(1))
-
-			err = volumeCollector.Run()
-			Expect(err).NotTo(HaveOccurred())
-
-			createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(createdVolumes).To(HaveLen(0))
-			Expect(destoryingVolumes).To(HaveLen(0))
-
-			Expect(fakeBCVolume.DestroyCallCount()).To(Equal(2))
-		})
-
-		Context("when destroying the volume in db fails because volume has children", func() {
 			BeforeEach(func() {
-				_, err := createdVolume.CreateChildForContainer(creatingContainer2, "some-path-1")
+				var err error
+				team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+				Expect(err).ToNot(HaveOccurred())
+
+				build, err := team.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				worker, err = workerFactory.SaveWorker(atc.Worker{
+					Name:            "some-worker",
+					GardenAddr:      "1.2.3.4:7777",
+					BaggageclaimURL: "1.2.3.4:7788",
+				}, 5*time.Minute)
+				Expect(err).ToNot(HaveOccurred())
+
+				creatingContainer1, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+					Type:     "task",
+					StepName: "some-task",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				creatingVolume1, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-1")
+				Expect(err).NotTo(HaveOccurred())
+
+				failedVolume1, err = creatingVolume1.Failed()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("leaves the volume in the db", func() {
-				createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+			It("deletes all the failed volumes from the database", func() {
+				failedVolumes, err := volumeFactory.GetFailedVolumes()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(createdVolumes).To(HaveLen(1))
-				createdVolumeHandle := createdVolumes[0].Handle()
-				Expect(destoryingVolumes).To(HaveLen(1))
+				Expect(failedVolumes).To(HaveLen(1))
 
 				err = volumeCollector.Run()
 				Expect(err).NotTo(HaveOccurred())
 
-				createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
+				failedVolumes, err = volumeFactory.GetFailedVolumes()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(createdVolumes).To(HaveLen(1))
-				Expect(destoryingVolumes).To(HaveLen(0))
-				Expect(createdVolumes[0].Handle()).To(Equal(createdVolumeHandle))
+				Expect(failedVolumes).To(HaveLen(0))
 			})
 		})
 
-		Context("when destroying the volume in baggageclaim fails", func() {
+		Context("when there are orphaned volumes", func() {
 			BeforeEach(func() {
-				fakeBCVolume.DestroyReturns(errors.New("oh no!"))
+				var err error
+				team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+				Expect(err).ToNot(HaveOccurred())
+
+				build, err := team.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				worker, err = workerFactory.SaveWorker(atc.Worker{
+					Name:            "some-worker",
+					GardenAddr:      "1.2.3.4:7777",
+					BaggageclaimURL: "1.2.3.4:7788",
+				}, 5*time.Minute)
+				Expect(err).ToNot(HaveOccurred())
+
+				creatingContainer1, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+					Type:     "task",
+					StepName: "some-task",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				creatingContainer2, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+					Type:     "task",
+					StepName: "some-task",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				creatingVolume1, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-1")
+				Expect(err).NotTo(HaveOccurred())
+				createdVolume, err = creatingVolume1.Created()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer2, "some-path-2")
+				Expect(err).NotTo(HaveOccurred())
+
+				creatingVolume3, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-3")
+				Expect(err).NotTo(HaveOccurred())
+				createdVolume3, err := creatingVolume3.Created()
+				Expect(err).NotTo(HaveOccurred())
+				_, err = createdVolume3.Destroying()
+				Expect(err).NotTo(HaveOccurred())
+
+				createdContainer1, err := creatingContainer1.Created()
+				Expect(err).NotTo(HaveOccurred())
+				destroyingContainer1, err := createdContainer1.Destroying()
+				Expect(err).NotTo(HaveOccurred())
+				destroyed, err := destroyingContainer1.Destroy()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(destroyed).To(BeTrue())
 			})
 
-			It("leaves the volume in the db", func() {
+			It("deletes created and destroying orphaned volumes", func() {
 				createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdVolumes).To(HaveLen(1))
@@ -172,7 +173,54 @@ var _ = Describe("VolumeCollector", func() {
 				createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdVolumes).To(HaveLen(0))
-				Expect(destoryingVolumes).To(HaveLen(2))
+				Expect(destoryingVolumes).To(HaveLen(0))
+
+				Expect(fakeBCVolume.DestroyCallCount()).To(Equal(2))
+			})
+
+			Context("when destroying the volume in db fails because volume has children", func() {
+				BeforeEach(func() {
+					_, err := createdVolume.CreateChildForContainer(creatingContainer2, "some-path-1")
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("leaves the volume in the db", func() {
+					createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(createdVolumes).To(HaveLen(1))
+					createdVolumeHandle := createdVolumes[0].Handle()
+					Expect(destoryingVolumes).To(HaveLen(1))
+
+					err = volumeCollector.Run()
+					Expect(err).NotTo(HaveOccurred())
+
+					createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(createdVolumes).To(HaveLen(1))
+					Expect(destoryingVolumes).To(HaveLen(0))
+					Expect(createdVolumes[0].Handle()).To(Equal(createdVolumeHandle))
+				})
+			})
+
+			Context("when destroying the volume in baggageclaim fails", func() {
+				BeforeEach(func() {
+					fakeBCVolume.DestroyReturns(errors.New("oh no!"))
+				})
+
+				It("leaves the volume in the db", func() {
+					createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(createdVolumes).To(HaveLen(1))
+					Expect(destoryingVolumes).To(HaveLen(1))
+
+					err = volumeCollector.Run()
+					Expect(err).NotTo(HaveOccurred())
+
+					createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(createdVolumes).To(HaveLen(0))
+					Expect(destoryingVolumes).To(HaveLen(2))
+				})
 			})
 		})
 	})
