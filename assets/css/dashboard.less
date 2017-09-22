@@ -296,3 +296,42 @@
 .pipeline-grid-super-wide {
   width: 720px;
 }
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:before,
+[data-tooltip]:after {
+  visibility: hidden;
+  top: ~"calc(50% - 15px)";
+}
+
+[data-tooltip]:before {
+  position: absolute;
+  left: ~"calc(50% + 15px)";
+  padding: 6px;
+  background-color: black;
+  content: attr(data-tooltip);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+[data-tooltip]:after {
+  position: absolute;
+  left: 50%;
+  width: 0;
+  border-right: 15px solid black;
+  border-right: 15px solid black;
+  border-top: 15px solid transparent;
+  border-bottom: 15px solid transparent;
+  content: " ";
+  font-size: 0;
+  line-height: 0;
+}
+
+[data-tooltip]:hover:before,
+[data-tooltip]:hover:after {
+  visibility: visible;
+  z-index: 10;
+}
