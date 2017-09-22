@@ -52,7 +52,7 @@
 
   .build-duration {
     color: @base08;
-    font-size: (30px * @scale);
+    font-size: (26px * @scale);
     margin: auto 0 auto 30px;
 
     &.with-gap {
@@ -137,9 +137,10 @@
     }
   }
 
-  .dashboard-pipeline-header {
+  .dashboard-pipeline-header, .dashboard-pipeline-footer {
     display: flex;
     height: (70px * @scale);
+    position: relative;
   }
 
   .running-animation(@color1, @color2) {
@@ -271,8 +272,8 @@
 }
 
 .dashboard-pipeline-name {
-  font-size: 14px;
-  margin: 0 0 (20px * @scale) 30px;
+  font-size: (30px * @scale);
+  margin: auto 0 auto 8px;
 }
 
 .pipeline-grid {
