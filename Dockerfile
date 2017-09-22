@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:17.04
 
 # The Basics
 RUN apt-get update && apt-get -y install curl
@@ -18,5 +18,5 @@ ENV PATH $PATH:/usr/local/go/bin
 RUN apt-get update && apt-get -y install git
 
 # PostgreSQL
-RUN apt-get update && apt-get -y install postgresql
-ENV PATH $PATH:/usr/lib/postgresql/9.5/bin
+RUN apt-get update && apt-get -y install postgresql-9.6
+ENV PATH $PATH:/usr/lib/postgresql/9.6/bin
