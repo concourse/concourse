@@ -2,12 +2,14 @@ package docs
 
 import (
 	"fmt"
-	"pygmentize"
 	"strings"
 	"time"
 
+	_ "concourse-lit/chromastyle"
+
 	"github.com/blang/semver"
 	"github.com/vito/booklit"
+	"github.com/vito/booklit/chroma"
 )
 
 var flyBinariesVersion = semver.MustParse("2.2.0")
@@ -18,11 +20,13 @@ func init() {
 
 type Plugin struct {
 	section *booklit.Section
+	chroma  chroma.Plugin
 }
 
 func NewPlugin(section *booklit.Section) booklit.Plugin {
 	return Plugin{
 		section: section,
+		chroma:  chroma.NewPlugin(section).(chroma.Plugin),
 	}
 }
 
@@ -34,15 +38,7 @@ func (p Plugin) FontAwesome(class string) booklit.Content {
 }
 
 func (p Plugin) Codeblock(language string, code booklit.Content) (booklit.Content, error) {
-	code, err := pygmentize.Block(language, code.String())
-	if err != nil {
-		return nil, err
-	}
-
-	return booklit.Styled{
-		Style:   "codeblock",
-		Content: code,
-	}, nil
+	return p.chroma.Syntax(language, code, "concourseci")
 }
 
 func (p Plugin) TitledCodeblock(title booklit.Content, language string, code booklit.Content) (booklit.Content, error) {

@@ -21,20 +21,6 @@ Install [**semver**](https://github.com/blang/semver)
 go get github.com/blang/semver
 ```
 
-Install [**pygments**](http://pygments.org/)
-
-```bash
-sudo pip install pygments
-```
-
-or, if you have `virtualenv` and `virtualenvwrapper` installed
-
-```bash
-mkvirtualenv concourse-docs
-workon concourse-docs
-pip install pygments
-```
-
 ## Compiling the Docs
 From project root, we're going to move into the `docs` folder:
 
@@ -45,9 +31,6 @@ cd docs
 and from here we'll use the build script to compile our `.lit` files:
 
 ```bash
-# If you installed pygments under a virtualenv, make sure to switch 
-# into it now before you execute the script
-
 ./scripts/build
 ```
 

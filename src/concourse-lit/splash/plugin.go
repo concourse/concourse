@@ -2,9 +2,11 @@ package splash
 
 import (
 	"os"
-	"pygmentize"
+
+	_ "concourse-lit/chromastyle"
 
 	"github.com/vito/booklit"
+	"github.com/vito/booklit/chroma"
 )
 
 func init() {
@@ -13,11 +15,13 @@ func init() {
 
 type Plugin struct {
 	section *booklit.Section
+	chroma  chroma.Plugin
 }
 
 func NewPlugin(section *booklit.Section) booklit.Plugin {
 	return Plugin{
 		section: section,
+		chroma:  chroma.NewPlugin(section).(chroma.Plugin),
 	}
 }
 
@@ -149,7 +153,7 @@ func (p Plugin) CodeLines(lines ...booklit.Content) (booklit.Content, error) {
 }
 
 func (p Plugin) CodeWindow(language string, content booklit.Content) (booklit.Content, error) {
-	code, err := pygmentize.Block(language, content.String())
+	code, err := p.chroma.Syntax(language, content, "concourseci")
 	if err != nil {
 		return nil, err
 	}

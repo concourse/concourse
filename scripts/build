@@ -4,7 +4,10 @@ set -e -u
 
 cd $(dirname $0)/..
 
-export GOPATH=$GOPATH:$PWD
+export GOPATH=$PWD
+export PATH=$PWD/bin:$PATH
+
+go install github.com/vito/booklit/cmd/booklit
 
 booklit -i lit/index.lit -o . \
   --html-templates html/ \
