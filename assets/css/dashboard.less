@@ -1,6 +1,6 @@
 @scale: 0.6;
 
-.dashboard {
+.dashboard-content {
   padding: 0 0 0 30px;
 
   @base01: #2B2B2B;
@@ -70,6 +70,74 @@
       content: ' ';
       position: relative;
       top: -9px;
+    }
+  }
+}
+
+.dashboard-footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #393838;
+  padding: 15px 0;
+  text-align: right;
+  color: #7E7E7E;
+  font-size: 10px;
+
+  .dashboard-legend {
+    float: left;
+    letter-spacing: 0.2em;
+    margin-left: 30px;
+
+    & > div {
+      display: inline-block;
+      text-transform: uppercase;
+      margin-right: 30px;
+    }
+
+    .dashboard-running .dashboard-pipeline-icon {
+        background-image: url('images/ic_running_legend.svg');
+        background-size: 30px 15px;
+        width: 30px;
+    }
+  }
+
+  .dashboard-pipeline-icon {
+    position: initial;
+    display: inline-block;
+    vertical-align: middle;
+    margin: 0 10px 2px 0;
+  }
+
+  .concourse-version {
+    display: inline-block;
+    margin-right: 30px;
+    font-size: 1.2em;
+  }
+
+  .concourse-cli {
+    display: inline-block;
+    margin-right: 20px;
+    font-size: 1.2em;
+
+    .fa {
+      margin-right: 10px;
+      font-size: 1.4em;
+      color: #B9B8B8;
+    }
+  }
+}
+
+@media (max-width : 1279px) {
+  .dashboard-footer {
+    text-align: left;
+
+    .dashboard-legend {
+      float: none;
+    }
+
+    .concourse-version {
+      margin: 10px 30px 0 30px;
     }
   }
 }
@@ -150,123 +218,121 @@
     position: relative;
     margin-left: 30px;
   }
+}
 
-  .running-animation(@color1, @color2) {
-    background-image: repeating-linear-gradient(120deg, @color1 0, @color1 (10px * @scale), @color2 0, @color2 (20px * @scale));
-    animation: pipeline-running 1s linear infinite;
+.running-animation(@color1, @color2) {
+  background-image: repeating-linear-gradient(120deg, @color1 0, @color1 (10px * @scale), @color2 0, @color2 (20px * @scale));
+  animation: pipeline-running 1s linear infinite;
+}
+
+.dashboard-paused {
+  .dashboard-pipeline-banner {
+    background-color: @base0D;
   }
 
-  &.dashboard-paused {
+  .dashboard-pipeline-icon {
+    background-image: url('images/ic_pause_blue.svg');
+    background-size: 15px 15px;
+  }
+
+  .build-duration {
+    color: @base0D;
+  }
+}
+
+.dashboard-status-pending {
+  .dashboard-pipeline-icon {
+    background-image: url('images/ic_pending_grey.svg');
+    background-size: 15px 15px;
+  }
+
+  &.dashboard-running {
     .dashboard-pipeline-banner {
-      background-color: @base0D;
-    }
-
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_pause_blue.svg');
-      background-size: 15px 15px;
-    }
-
-    .build-duration {
-      color: @base0D;
+      .running-animation(@base07, @base01);
     }
   }
+  .build-duration {
+    color: @base07;
+  }
+}
 
-  &.dashboard-status-pending {
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_pending_grey.svg');
-      background-size: 15px 15px;
-    }
-
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@base07, @base01);
-      }
-    }
-    .build-duration {
-      color: @base07;
-    }
+.dashboard-status-failed {
+  .dashboard-pipeline-banner {
+    background-color: @base08;
   }
 
-  &.dashboard-status-failed {
-     background: #1F2E3C;
+  .dashboard-pipeline-icon {
+    background-image: url('images/ic_failing_red.svg');
+    background-size: 15px 15px;
+  }
 
+  &.dashboard-running {
     .dashboard-pipeline-banner {
-      background-color: @base08;
-    }
-
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_failing_red.svg');
-      background-size: 15px 15px;
-    }
-
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@base08, @base01);
-      }
-    }
-    .build-duration {
-      color: @base08;
+      .running-animation(@base08, @base01);
     }
   }
+  .build-duration {
+    color: @base08;
+  }
+}
 
-  &.dashboard-status-aborted {
-    .dashboard-pipeline-banner {
-      background-color: @base0F;
-    }
-
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_aborted_brown.svg');
-      background-size: 15px 15px;
-    }
-
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@base0F, @base01);
-      }
-    }
-    .build-duration {
-      color: @base0F;
-    }
+.dashboard-status-aborted {
+  .dashboard-pipeline-banner {
+    background-color: @base0F;
   }
 
-  &.dashboard-status-succeeded {
-    .dashboard-pipeline-banner {
-      background-color: @base0B;
-    }
-
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_running_green.svg');
-      background-size: 15px 15px;
-    }
-
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@base0B, @base01);
-      }
-    }
-    .build-duration {
-      color: @base0B;
-    }
+  .dashboard-pipeline-icon {
+    background-image: url('images/ic_aborted_brown.svg');
+    background-size: 15px 15px;
   }
 
-  &.dashboard-status-errored {
+  &.dashboard-running {
     .dashboard-pipeline-banner {
-      background-color: @base09;
+      .running-animation(@base0F, @base01);
     }
+  }
+  .build-duration {
+    color: @base0F;
+  }
+}
 
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_error_orange.svg');
-      background-size: 15px 15px;
-    }
+.dashboard-status-succeeded {
+  .dashboard-pipeline-banner {
+    background-color: @base0B;
+  }
 
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@base09, @base01);
-      }
+  .dashboard-pipeline-icon {
+    background-image: url('images/ic_running_green.svg');
+    background-size: 15px 15px;
+  }
+
+  &.dashboard-running {
+    .dashboard-pipeline-banner {
+      .running-animation(@base0B, @base01);
     }
-    .build-duration {
-      color: @base09;
+  }
+  .build-duration {
+    color: @base0B;
+  }
+}
+
+.dashboard-status-errored {
+  .dashboard-pipeline-banner {
+    background-color: @base09;
+  }
+
+  .dashboard-pipeline-icon {
+    background-image: url('images/ic_error_orange.svg');
+    background-size: 15px 15px;
+  }
+
+  &.dashboard-running {
+    .dashboard-pipeline-banner {
+      .running-animation(@base09, @base01);
     }
+  }
+  .build-duration {
+    color: @base09;
   }
 }
 
