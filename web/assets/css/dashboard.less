@@ -1,7 +1,9 @@
 @scale: 0.6;
 
 .dashboard-content {
-  padding: 0 0 0 30px;
+  padding: 0 0 30px 30px;
+  background: #333333;
+  overflow: auto;
 
   @base01: #2B2B2B;
   @base03: #6E6E6E;
@@ -23,11 +25,6 @@
   .errored { background: @base09; }
   .aborted { background: @base0F; }
   .paused { background: @base0D; }
-
-  body & {
-    background: #333333;
-    height: 100%;
-  }
 
   .top-bar & {
     background: #1E1E1E;
