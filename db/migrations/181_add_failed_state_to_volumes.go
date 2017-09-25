@@ -32,7 +32,7 @@ func AddFailedStateToVolumes(tx migration.LimitedTx) error {
     ALTER TABLE volumes
     ADD CONSTRAINT cannot_invalidate_during_initialization CHECK (
     (
-      state IN ('created', 'destroying') AND (
+      state IN ('created', 'destroying', 'failed') AND (
       (
         worker_resource_cache_id IS NULL
       ) AND (
