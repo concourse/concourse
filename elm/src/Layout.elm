@@ -333,21 +333,26 @@ view model =
                 False ->
                     ""
     in
-        Html.div [ class "content-frame" ]
-            [ Html.div [ id "top-bar-app" ]
-                [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel) ]
-            , Html.div [ class "bottom" ]
-                [ Html.div
-                    [ id "pipelines-nav-app"
-                    , class <| "sidebar test" ++ sidebarVisibileAppendage
+        case model.subModel of
+            SubPage.DashboardModel _ ->
+                Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+
+            _ ->
+                Html.div [ class "content-frame" ]
+                    [ Html.div [ id "top-bar-app" ]
+                        [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel) ]
+                    , Html.div [ class "bottom" ]
+                        [ Html.div
+                            [ id "pipelines-nav-app"
+                            , class <| "sidebar test" ++ sidebarVisibileAppendage
+                            ]
+                            [ Html.map (SideMsg model.navIndex) (SideBar.view model.sideModel) ]
+                        , Html.div [ id "content" ]
+                            [ Html.div [ id "subpage" ]
+                                [ Html.map (SubMsg model.navIndex) (SubPage.view model.subModel) ]
+                            ]
+                        ]
                     ]
-                    [ Html.map (SideMsg model.navIndex) (SideBar.view model.sideModel) ]
-                , Html.div [ id "content" ]
-                    [ Html.div [ id "subpage" ]
-                        [ Html.map (SubMsg model.navIndex) (SubPage.view model.subModel) ]
-                    ]
-                ]
-            ]
 
 
 subscriptions : Model -> Sub Msg
