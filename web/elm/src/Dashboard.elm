@@ -16,13 +16,15 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Keyboard
 import Mouse
+import NewTopBar
 import RemoteData
 import Task exposing (Task)
 import Time exposing (Time)
 
 
 type alias Model =
-    { pipelines : RemoteData.WebData (List Concourse.Pipeline)
+    { topBar : NewTopBar.Model
+    , pipelines : RemoteData.WebData (List Concourse.Pipeline)
     , jobs : Dict Int (RemoteData.WebData (List Concourse.Job))
     , concourseVersion : String
     , turbulenceImgSrc : String
@@ -39,6 +41,7 @@ type Msg
     | VersionFetched (Result Http.Error String)
     | AutoRefresh Time
     | ShowFooter
+    | TopBarMsg NewTopBar.Msg
 
 
 type alias PipelineState =
@@ -49,16 +52,26 @@ type alias PipelineState =
 
 init : String -> ( Model, Cmd Msg )
 init turbulencePath =
-    ( { pipelines = RemoteData.NotAsked
-      , jobs = Dict.empty
-      , concourseVersion = ""
-      , turbulenceImgSrc = turbulencePath
-      , now = Nothing
-      , hideFooter = False
-      , hideFooterCounter = 0
-      }
-    , Cmd.batch [ fetchPipelines, fetchVersion, getCurrentTime ]
-    )
+    let
+        ( topBar, topBarMsg ) =
+            NewTopBar.init
+    in
+        ( { topBar = topBar
+          , pipelines = RemoteData.NotAsked
+          , jobs = Dict.empty
+          , now = Nothing
+          , turbulenceImgSrc = turbulencePath
+          , concourseVersion = ""
+          , hideFooter = False
+          , hideFooterCounter = 0
+          }
+        , Cmd.batch
+            [ fetchPipelines
+            , fetchVersion
+            , getCurrentTime
+            , Cmd.map TopBarMsg topBarMsg
+            ]
+        )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -96,6 +109,13 @@ update msg model =
         ShowFooter ->
             ( { model | hideFooter = False, hideFooterCounter = 0 }, Cmd.none )
 
+        TopBarMsg msg ->
+            let
+                ( newTopBar, newTopBarMsg ) =
+                    NewTopBar.update msg model.topBar
+            in
+                ( { model | topBar = newTopBar }, Cmd.map TopBarMsg newTopBarMsg )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -108,8 +128,16 @@ subscriptions model =
         ]
 
 
-view : Model -> Html msg
+view : Model -> Html Msg
 view model =
+    Html.div [ class "page" ]
+        [ Html.map TopBarMsg (NewTopBar.view model.topBar)
+        , viewDashboard model
+        ]
+
+
+viewDashboard : Model -> Html Msg
+viewDashboard model =
     case model.pipelines of
         RemoteData.Success pipelines ->
             let

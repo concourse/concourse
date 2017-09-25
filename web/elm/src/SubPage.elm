@@ -364,7 +364,7 @@ view mdl =
             NotFound.view model
 
         DashboardModel model ->
-            Dashboard.view model
+            Html.map DashboardMsg <| Dashboard.view model
 
 
 subscriptions : Model -> Sub Msg

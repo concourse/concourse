@@ -1,0 +1,83 @@
+// top bar
+
+.module-topbar {
+  @base01: #000000;
+  @base03: #333333;
+  @base05: #6E6E6E;
+  @base07: #FFFFFF;
+  @base0D: #4A90E2;
+  background: #333333;
+  border-bottom: 1px solid black;
+  color: #E6E7E8;
+  display: flex;
+  height: 55px;
+
+  div {
+    // border: 1px dotted lime;
+  }
+
+  .topbar-logo {
+    flex-shrink: 1;
+    flex-basis: 50%;
+    .logo-image-link {
+      background-image: url('images/concourse_logo_white.png');
+      background-size: 30px 30px;
+      background-position: center center;
+      background-repeat: no-repeat;
+      display: inline-block;
+      height: 55px;
+      width: 55px;
+    }
+  }
+
+  .topbar-search {
+    text-align: center;
+
+    .topbar-search-form {
+      display: flex;
+      margin: 0 auto;
+      position: relative;
+      transform: translateY(30%);
+
+      .search-input-field {
+        background: transparent url('images/ic_search_white_24px.svg') 10px 10px no-repeat;
+        border: 1px solid @base05;
+        color: @base07;
+        font-family: monospace;
+        font-size: 14px;
+        height: 35px;
+        max-width: 290px;
+        padding: 0 35px 0 30px;
+        &:focus {
+          border: 1px solid @base0D;
+          outline: 0;
+        }
+       }
+
+      .search-clear-button {
+        flex-grow: 1;
+        background: transparent url('images/ic_close_white_24px.svg') 10px 12px no-repeat;
+        border: 0;
+        color: @base03;
+        height: 24px;
+        padding: 5px 10px;
+        position: absolute;
+        right: 10px;
+        width: 24px;
+      }
+    }
+  }
+
+  .topbar-login {
+    flex-shrink: 1;
+    flex-basis: 50%;
+    line-height: 55px;
+    text-align: right;
+
+    .topbar-user-info {
+      border-left: 1px solid @base01;
+      display: inline-block;
+      padding: 0 35px;
+    }
+  }
+}
