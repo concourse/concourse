@@ -3,6 +3,8 @@ port module Dashboard exposing (Model, Msg, init, update, subscriptions, view)
 import BuildDuration
 import Concourse
 import Concourse.BuildStatus
+import Concourse.Cli
+import Concourse.Info
 import Concourse.Job
 import Concourse.Pipeline
 import DashboardPreview
@@ -10,6 +12,8 @@ import Date exposing (Date)
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src)
+import Html.Attributes.Aria exposing (ariaLabel)
+import Http
 import RemoteData
 import Task exposing (Task)
 import Time exposing (Time)
@@ -18,8 +22,9 @@ import Time exposing (Time)
 type alias Model =
     { pipelines : RemoteData.WebData (List Concourse.Pipeline)
     , jobs : Dict Int (RemoteData.WebData (List Concourse.Job))
-    , now : Maybe Time
+    , concourseVersion : String
     , turbulenceImgSrc : String
+    , now : Maybe Time
     }
 
 
@@ -27,6 +32,7 @@ type Msg
     = PipelinesResponse (RemoteData.WebData (List Concourse.Pipeline))
     | JobsResponse Int (RemoteData.WebData (List Concourse.Job))
     | ClockTick Time.Time
+    | VersionFetched (Result Http.Error String)
     | AutoRefresh Time
 
 
@@ -40,10 +46,11 @@ init : String -> ( Model, Cmd Msg )
 init turbulencePath =
     ( { pipelines = RemoteData.NotAsked
       , jobs = Dict.empty
-      , now = Nothing
+      , concourseVersion = ""
       , turbulenceImgSrc = turbulencePath
+      , now = Nothing
       }
-    , Cmd.batch [ fetchPipelines, getCurrentTime ]
+    , Cmd.batch [ fetchPipelines, fetchVersion, getCurrentTime ]
     )
 
 
@@ -63,11 +70,18 @@ update msg model =
         JobsResponse pipelineId response ->
             ( { model | jobs = Dict.insert pipelineId response model.jobs }, Cmd.none )
 
+        VersionFetched (Ok version) ->
+            ( { model | concourseVersion = version }, Cmd.none )
+
+        VersionFetched (Err err) ->
+            flip always (Debug.log ("failed to fetch version") (err)) <|
+                ( { model | concourseVersion = "" }, Cmd.none )
+
         ClockTick now ->
             ( { model | now = Just now }, Cmd.none )
 
         AutoRefresh _ ->
-            ( model, fetchPipelines )
+            ( model, Cmd.batch [ fetchPipelines, fetchVersion ] )
 
 
 subscriptions : Model -> Sub Msg
@@ -104,7 +118,38 @@ view model =
                         pipelineStates
             in
                 Html.div [ class "dashboard" ] <|
-                    List.map (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) pipelinesByTeam
+                    [ Html.div [ class "dashboard-content" ] <|
+                        List.map (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) pipelinesByTeam
+                    , Html.div [ class "dashboard-footer" ]
+                        [ Html.div [ class "dashboard-legend" ]
+                            [ Html.div [ class "dashboard-status-failed" ]
+                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "failing" ]
+                            , Html.div [ class "dashboard-status-succeeded" ]
+                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "succeeded" ]
+                            , Html.div [ class "dashboard-paused" ]
+                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "paused" ]
+                            , Html.div [ class "dashboard-status-errored" ]
+                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "errored" ]
+                            , Html.div [ class "dashboard-status-aborted" ]
+                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "aborted" ]
+                            , Html.div [ class "dashboard-status-pending" ]
+                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "pending" ]
+                            , Html.div [ class "dashboard-running" ]
+                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "running" ]
+                            ]
+                        , Html.div [ class "concourse-version" ]
+                            [ Html.text "version: v", Html.text model.concourseVersion ]
+                        , Html.div [ class "concourse-cli" ]
+                            [ Html.text "cli: "
+                            , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI" ]
+                                [ Html.i [ class "fa fa-apple" ] [] ]
+                            , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI" ]
+                                [ Html.i [ class "fa fa-windows" ] [] ]
+                            , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI" ]
+                                [ Html.i [ class "fa fa-linux" ] [] ]
+                            ]
+                        ]
+                    ]
 
         RemoteData.Failure _ ->
             Html.div
@@ -305,6 +350,13 @@ fetchJobs pipeline =
                 { teamName = pipeline.teamName
                 , pipelineName = pipeline.name
                 }
+
+
+fetchVersion : Cmd Msg
+fetchVersion =
+    Concourse.Info.fetch
+        |> Task.map (.version)
+        |> Task.attempt VersionFetched
 
 
 getCurrentTime : Cmd Msg
