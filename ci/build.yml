@@ -16,4 +16,4 @@ params:
   ANALYTICS_ID:
 
 run:
-  path: docs/ci/build-docs
+  path: docs/ci/build
