@@ -45,6 +45,16 @@ describe 'dashboard', type: :feature do
     end
   end
 
+  it 'shows authenticated team first' do
+    dash_login team_name
+
+    visit dash_route('/dashboard')
+
+    expect(page).to have_content(team_name)
+    expect(page).to have_content(other_team_name)
+    expect(page.first('.dashboard-team-name').text).to eq(team_name)
+  end
+
   context 'when pipelines have different states' do
     before do
       fly('destroy-pipeline -n -p some-pipeline')
