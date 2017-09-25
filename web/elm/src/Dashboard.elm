@@ -98,17 +98,13 @@ view model =
                 pipelinesByTeam =
                     List.foldl
                         (\pipelineState byTeam ->
-                            Dict.update pipelineState.pipeline.teamName
-                                (\mps ->
-                                    Just (pipelineState :: Maybe.withDefault [] mps)
-                                )
-                                byTeam
+                            addPipelineState byTeam ( pipelineState.pipeline.teamName, pipelineState )
                         )
-                        Dict.empty
-                        (List.reverse pipelineStates)
+                        []
+                        pipelineStates
             in
-                Html.div [ class "dashboard" ]
-                    (Dict.values (Dict.map (viewGroup model.now) pipelinesByTeam))
+                Html.div [ class "dashboard" ] <|
+                    List.map (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) pipelinesByTeam
 
         RemoteData.Failure _ ->
             Html.div
@@ -122,6 +118,19 @@ view model =
 
         _ ->
             Html.text ""
+
+
+addPipelineState : List ( String, List PipelineState ) -> ( String, PipelineState ) -> List ( String, List PipelineState )
+addPipelineState pipelineStates ( teamName, pipelineState ) =
+    case pipelineStates of
+        [] ->
+            [ ( teamName, [ pipelineState ] ) ]
+
+        s :: ss ->
+            if Tuple.first s == teamName then
+                ( teamName, pipelineState :: (Tuple.second s) ) :: ss
+            else
+                s :: (addPipelineState ss ( teamName, pipelineState ))
 
 
 viewGroup : Maybe Time -> String -> List PipelineState -> Html msg
