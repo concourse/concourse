@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e -x
+
+export CONCOURSE_VERSION=$(cat version/version)
+
+BUILT_DOCS=$PWD/built-docs
+
+cp -a docs/* $BUILT_DOCS
+
+cd $BUILT_DOCS
+./scripts/build
