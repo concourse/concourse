@@ -14,6 +14,8 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
+import Keyboard
+import Mouse
 import RemoteData
 import Task exposing (Task)
 import Time exposing (Time)
@@ -25,6 +27,8 @@ type alias Model =
     , concourseVersion : String
     , turbulenceImgSrc : String
     , now : Maybe Time
+    , hideFooter : Bool
+    , hideFooterCounter : Time
     }
 
 
@@ -34,6 +38,7 @@ type Msg
     | ClockTick Time.Time
     | VersionFetched (Result Http.Error String)
     | AutoRefresh Time
+    | ShowFooter
 
 
 type alias PipelineState =
@@ -49,6 +54,8 @@ init turbulencePath =
       , concourseVersion = ""
       , turbulenceImgSrc = turbulencePath
       , now = Nothing
+      , hideFooter = False
+      , hideFooterCounter = 0
       }
     , Cmd.batch [ fetchPipelines, fetchVersion, getCurrentTime ]
     )
@@ -78,10 +85,16 @@ update msg model =
                 ( { model | concourseVersion = "" }, Cmd.none )
 
         ClockTick now ->
-            ( { model | now = Just now }, Cmd.none )
+            if model.hideFooterCounter + Time.second > 5 * Time.second then
+                ( { model | now = Just now, hideFooter = True }, Cmd.none )
+            else
+                ( { model | now = Just now, hideFooterCounter = model.hideFooterCounter + Time.second }, Cmd.none )
 
         AutoRefresh _ ->
             ( model, Cmd.batch [ fetchPipelines, fetchVersion ] )
+
+        ShowFooter ->
+            ( { model | hideFooter = False, hideFooterCounter = 0 }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -89,6 +102,9 @@ subscriptions model =
     Sub.batch
         [ Time.every Time.second ClockTick
         , Time.every (5 * Time.second) AutoRefresh
+        , Mouse.moves (\_ -> ShowFooter)
+        , Mouse.clicks (\_ -> ShowFooter)
+        , Keyboard.presses (\_ -> ShowFooter)
         ]
 
 
@@ -120,7 +136,12 @@ view model =
                 Html.div [ class "dashboard" ] <|
                     [ Html.div [ class "dashboard-content" ] <|
                         List.map (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) pipelinesByTeam
-                    , Html.div [ class "dashboard-footer" ]
+                    , Html.div
+                        [ if model.hideFooter then
+                            class "dashboard-footer hidden"
+                          else
+                            class "dashboard-footer"
+                        ]
                         [ Html.div [ class "dashboard-legend" ]
                             [ Html.div [ class "dashboard-status-failed" ]
                                 [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "failing" ]
