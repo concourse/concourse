@@ -62,6 +62,12 @@ func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {
 		return err
 	}
 
+	if len(failedVolumes) > 0 {
+		logger.Debug("found-failed-volumes", lager.Data{
+			"failed": len(failedVolumes),
+		})
+	}
+
 	for _, failedVolume := range failedVolumes {
 		destroyDBVolume(logger, failedVolume)
 	}
