@@ -1,10 +1,8 @@
 # Concourse Docs
 
 This is where you will find the source for the Concourse website and overall
-documentation. All of our docs are written using the Booklit documentation
-engine. You can read more about its formal specification
-[here](https://vito.github.io/booklit/), and you can read through its source
-code [here](https://github.com/vito/booklit).
+documentation. All of our docs are written using the [Booklit documentation
+engine](https://vito.github.io/booklit/).
 
 # Building the Docs Locally
 
