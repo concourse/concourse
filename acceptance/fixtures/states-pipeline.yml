@@ -76,3 +76,13 @@ jobs:
 - name: hanging
   plan:
   - get: impossible-time
+
+- name: unavailable-pinned-input
+  plan:
+  - get: impossible-time
+    version: {time: "2017-08-11T00:13:33.123805549Z"}
+
+- name: unavailable-constrained-input
+  plan:
+  - get: impossible-time
+    passed: [hanging]
