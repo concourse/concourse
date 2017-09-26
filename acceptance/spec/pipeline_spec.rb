@@ -47,7 +47,7 @@ describe 'pipeline', type: :feature do
 
     pause_button.click
     Capybara.using_wait_time(5) do
-      expect(page).to_not have_css('.top-bar.test.paused')
+      expect(page).to_not have_css('.top-bar.paused')
       expect(pause_button['class']).to include 'disabled'
     end
   end
@@ -64,7 +64,7 @@ describe 'pipeline', type: :feature do
 
     pause_button.click
     Capybara.using_wait_time(5) do
-      expect(page).to have_css('.top-bar.test.paused')
+      expect(page).to have_css('.top-bar.paused')
       expect(pause_button['class']).to include 'enabled'
     end
   end
