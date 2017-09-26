@@ -678,7 +678,7 @@ viewBuildHeader build { now, job, history } =
                                 Just job ->
                                     job.disableManualTrigger
                     in
-                        Html.span
+                        Html.button
                             [ class "build-action fr"
                             , disabled buttonDisabled
                             , attribute "role" "button"
@@ -690,11 +690,11 @@ viewBuildHeader build { now, job, history } =
                             [ Html.i [ class "fa fa-plus-circle" ] [] ]
 
                 _ ->
-                    Html.span [] []
+                    Html.text ""
 
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
-                Html.span
+                Html.button
                     [ class "build-action build-action-abort fr"
                     , onLeftClick (AbortBuild build.id)
                     , attribute "role" "button"
@@ -704,7 +704,7 @@ viewBuildHeader build { now, job, history } =
                     ]
                     [ Html.i [ class "fa fa-times-circle" ] [] ]
             else
-                Html.span [] []
+                Html.text ""
 
         buildTitle =
             case build.job of
