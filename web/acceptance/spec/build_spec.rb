@@ -12,23 +12,56 @@ describe 'build', type: :feature do
     dash_login team_name
   end
 
-  context 'when a build is running' do
+  describe 'builds in different states' do
     before do
       fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
       fly('unpause-pipeline -p pipeline')
-      fly('trigger-job -j pipeline/running')
     end
 
-    it 'can be aborted' do
-      visit dash_route("/teams/#{team_name}/pipelines/pipeline")
-      page.find('a', text: 'running').click
-      page.find_button("Abort Build").click
-      fly_fail('watch -j pipeline/running')
-      expect(page).to have_content 'interrupted'
-      expect(background_palette(page.find('.build-header'))).to eq(BROWN)
-      expect(background_palette(page.find('#builds .current'))).to eq(BROWN)
+    context 'failed' do
+      before do
+        fly_fail('trigger-job -w -j pipeline/failing')
+      end
+
+      it 'shows the build output for failed steps' do
+        visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/failing/builds/1")
+        expect(page).to have_content "i failed"
+        expect(background_palette(page.find('.build-header'))).to eq(RED)
+        expect(background_palette(page.find('#builds .current'))).to eq(RED)
+      end
+    end
+
+    context 'succeeded' do
+      before do
+        fly('trigger-job -w -j pipeline/passing')
+      end
+
+      it 'hides the build output for successful steps, until toggled' do
+        visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/1")
+        expect(page).to_not have_content "i passed"
+        page.find('.build-step .header', text: 'pass').click
+        expect(page).to have_content "i passed"
+        expect(background_palette(page.find('.build-header'))).to eq(GREEN)
+        expect(background_palette(page.find('#builds .current'))).to eq(GREEN)
+      end
+    end
+
+    context 'when a build is running' do
+      before do
+        fly('trigger-job -j pipeline/running')
+      end
+
+      it 'can be aborted' do
+        visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/running/builds/1")
+        page.find_button("Abort Build").click
+        fly_fail('watch -j pipeline/running')
+        expect(page).to have_content 'interrupted'
+        expect(background_palette(page.find('.build-header'))).to eq(BROWN)
+        expect(background_palette(page.find('#builds .current'))).to eq(BROWN)
+      end
     end
   end
+
 
   context 'when a job has manual triggering enabled' do
     before do

@@ -17,7 +17,13 @@ jobs:
         type: docker-image
         source: {repository: busybox}
 
-      run: {path: 'false'}
+      run:
+        path: sh
+        args:
+        - '-ec'
+        - |
+          echo i failed
+          exit 1
 
 - name: passing_or_failing
   plan:
@@ -41,7 +47,7 @@ jobs:
         type: docker-image
         source: {repository: busybox}
 
-      run: {path: 'true'}
+      run: {path: 'echo', args: ['i passed']}
 
 - name: erroring
   plan:
