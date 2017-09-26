@@ -1,4 +1,5 @@
 require 'capybara/rspec'
+require 'selenium/webdriver'
 require 'capybara/poltergeist'
 require 'stringio'
 require 'fly'
