@@ -1,5 +1,13 @@
 ---
 resources:
+- name: some-resource
+  type: docker-image
+  source: {repository: busybox}
+
+- name: broken-time
+  type: time
+  source: {interval: banana}
+
 - name: impossible-time
   type: time
   source:
@@ -76,6 +84,14 @@ jobs:
 - name: hanging
   plan:
   - get: impossible-time
+
+- name: broken-resource
+  plan:
+  - get: broken-time
+
+- name: resource-metadata
+  plan:
+  - get: some-resource
 
 - name: unavailable-pinned-input
   plan:
