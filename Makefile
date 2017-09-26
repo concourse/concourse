@@ -1,4 +1,4 @@
-ELM_FILES = $(shell find elm/ -type f -name '*.elm' -or -name '*.js')
+ELM_FILES = $(shell find elm/src/ -type f -name '*.elm' -or -name '*.js')
 LESS_FILES = $(shell find assets/css/ -type f -name '*.less')
 PUBLIC_FILES = $(shell find public/ -type f)
 
