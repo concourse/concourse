@@ -25,7 +25,7 @@ describe 'build', type: :feature do
 
       it 'shows the build output for failed steps' do
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/failing/builds/1")
-        expect(page).to have_content "i failed"
+        expect(page).to have_content 'i failed'
         expect(background_palette(page.find('.build-header'))).to eq(RED)
         expect(background_palette(page.find('#builds .current'))).to eq(RED)
       end
@@ -38,9 +38,9 @@ describe 'build', type: :feature do
 
       it 'hides the build output for successful steps, until toggled' do
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/1")
-        expect(page).to_not have_content "i passed"
+        expect(page).to_not have_content 'i passed'
         page.find('.build-step .header', text: 'pass').click
-        expect(page).to have_content "i passed"
+        expect(page).to have_content 'i passed'
         expect(background_palette(page.find('.build-header'))).to eq(GREEN)
         expect(background_palette(page.find('#builds .current'))).to eq(GREEN)
       end
@@ -91,7 +91,6 @@ describe 'build', type: :feature do
     end
   end
 
-
   context 'when a job has manual triggering enabled' do
     before do
       fly('set-pipeline -n -p pipeline -c fixtures/manual-trigger-enabled.yml')
@@ -101,8 +100,8 @@ describe 'build', type: :feature do
     it 'can be manually triggered' do
       visit dash_route("/teams/#{team_name}")
       page.find('a', text: 'manual-trigger').click
-      page.find_button("Trigger Build").click
-      expect(page).to have_content "manual-trigger #1"
+      page.find_button('Trigger Build').click
+      expect(page).to have_content 'manual-trigger #1'
     end
 
     context 'when manual triggering is disabled' do
@@ -113,14 +112,14 @@ describe 'build', type: :feature do
 
       it 'cannot be manually triggered from the job page' do
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/manual-trigger")
-        page.find_button("Trigger Build", disabled: true).click
-        expect(page).to_not have_content "manual-trigger #2"
+        page.find_button('Trigger Build', disabled: true).click
+        expect(page).to_not have_content 'manual-trigger #2'
       end
 
       it 'cannot be manually triggered from the build page' do
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/manual-trigger/builds/1")
-        page.find_button("Trigger Build", disabled: true).click
-        expect(page).to_not have_content "manual-trigger #2"
+        page.find_button('Trigger Build', disabled: true).click
+        expect(page).to_not have_content 'manual-trigger #2'
       end
     end
   end
