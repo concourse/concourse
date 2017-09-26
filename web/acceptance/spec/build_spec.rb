@@ -60,6 +60,35 @@ describe 'build', type: :feature do
         expect(background_palette(page.find('#builds .current'))).to eq(BROWN)
       end
     end
+
+    context 'when a build is pending' do
+      it 'pinned version is unavailable' do
+        job_name = 'unavailable-pinned-input'
+        fly("trigger-job -j pipeline/#{job_name}")
+        visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/#{job_name}/builds/1")
+        expect(page).to have_content 'pinned version {"time":"2017-08-11T00:13:33.123805549Z"} is not available'
+        expect(background_color(page.find('.build-header'))).to be_greyscale
+        expect(background_color(page.find('#builds .current'))).to be_greyscale
+      end
+
+      it 'no version available' do
+        job_name = 'hanging'
+        fly("trigger-job -j pipeline/#{job_name}")
+        visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/#{job_name}/builds/1")
+        expect(page).to have_content 'no versions available'
+        expect(background_color(page.find('.build-header'))).to be_greyscale
+        expect(background_color(page.find('#builds .current'))).to be_greyscale
+      end
+
+      it 'no version have passed constraints' do
+        job_name = 'unavailable-constrained-input'
+        fly("trigger-job -j pipeline/#{job_name}")
+        visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/#{job_name}/builds/1")
+        expect(page).to have_content 'no versions satisfy passed constraints'
+        expect(background_color(page.find('.build-header'))).to be_greyscale
+        expect(background_color(page.find('#builds .current'))).to be_greyscale
+      end
+    end
   end
 
 
