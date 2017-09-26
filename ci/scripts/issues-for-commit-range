@@ -6,7 +6,7 @@ FROM_COMMIT=$(cat ./from-commit/ref)
 TO_COMMIT=$(cat ./to-commit/ref)
 
 pushd concourse
-  issues=$(git log $FROM_COMMIT...$TO_COMMIT --grep=concourse/concourse | grep concourse/concourse)
+  issues=$(git log $FROM_COMMIT...$TO_COMMIT --grep=concourse/concourse | grep concourse/concourse | sort | uniq -u)
 popd
 
 echo $HEADING > ./message/text
