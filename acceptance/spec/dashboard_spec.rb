@@ -1,14 +1,9 @@
-require 'color'
 require 'securerandom'
+require 'colors'
 
 describe 'dashboard', type: :feature do
-  let(:red) { Color::CSS['red'] }
-  let(:green) { Color::CSS['green'] }
-  let(:orange) { Color::CSS['orange'] }
-  let(:yellow) { Color::CSS['yellow'] }
-  let(:brown) { Color::CSS['brown'] }
-  let(:blue) { Color::CSS['blue'] }
-  let(:palette) { [red, green, orange, yellow, brown, blue] }
+  include Colors
+
   let(:team_name) { generate_team_name }
   let(:other_team_name) { generate_team_name }
 
@@ -112,7 +107,7 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in blue' do
-      expect(border_color.closest_match(palette)).to eq(blue)
+      expect(border_palette).to eq(BLUE)
     end
 
     it 'is labelled "paused"' do
@@ -130,7 +125,7 @@ describe 'dashboard', type: :feature do
     end
 
     it 'is shown in grey' do
-      expect(check_grayscale).to eq(border_color)
+      expect(border_color).to be_greyscale
     end
 
     it 'is labelled "pending"' do
@@ -151,7 +146,7 @@ describe 'dashboard', type: :feature do
 
     it 'is shown in red' do
       visit_dashboard
-      expect(border_color('some-other-pipeline').closest_match(palette)).to eq(red)
+      expect(border_palette('some-other-pipeline')).to eq(RED)
     end
   end
 
@@ -162,7 +157,7 @@ describe 'dashboard', type: :feature do
 
     it 'is shown in green' do
       visit_dashboard
-      expect(border_color.closest_match(palette)).to eq(green)
+      expect(border_palette).to eq(GREEN)
     end
   end
 
@@ -174,14 +169,14 @@ describe 'dashboard', type: :feature do
 
     it 'is shown in brown' do
       visit_dashboard
-      expect(border_color.closest_match(palette)).to eq(brown)
+      expect(border_palette).to eq(BROWN)
     end
   end
 
   context 'when a pipeline is pending' do
     it 'is shown in grey' do
       visit_dashboard
-      expect(check_grayscale).to eq(border_color)
+      expect(border_color).to be_greyscale
     end
   end
 
@@ -192,17 +187,17 @@ describe 'dashboard', type: :feature do
 
     it 'is shown in amber' do
       visit_dashboard
-      expect(border_color.closest_match(palette)).to eq(orange)
+      expect(border_palette).to eq(ORANGE)
     end
   end
 
   context 'when a pipeline changes its state' do
     it 'updates the dashboard automatically' do
       visit_dashboard
-      expect(check_grayscale).to eq(border_color)
+      expect(border_color).to be_greyscale
       fly('trigger-job -w -j some-pipeline/passing')
       sleep 5
-      expect(border_color.closest_match(palette)).to eq(green)
+      expect(border_palette).to eq(GREEN)
     end
   end
 
@@ -247,27 +242,20 @@ describe 'dashboard', type: :feature do
     @login ||= dash_login team_name
   end
 
+  def border_palette(pipeline = 'some-pipeline')
+    background_palette(border_element(pipeline))
+  end
+
   def border_color(pipeline = 'some-pipeline')
-    pipeline = page.find('.dashboard-pipeline', text: pipeline)
-    by_rgb(computed_style(pipeline.find('.dashboard-pipeline-banner'), 'backgroundColor'))
+    background_color(border_element(pipeline))
   end
 
-  def computed_style(node, attribute)
-    page.evaluate_script("window.getComputedStyle(document.evaluate('#{node.path}', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue).#{attribute}")
-  end
-
-  def by_rgb(rgb)
-    /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.match(rgb) do |m|
-      Color::RGB.new(m[1].to_i, m[2].to_i, m[3].to_i)
-    end
+  def border_element(pipeline = 'some-pipeline')
+    page.find('.dashboard-pipeline', text: pipeline).find('.dashboard-pipeline-banner')
   end
 
   def visit_dashboard
     login
     visit dash_route('/dashboard')
-  end
-
-  def check_grayscale(bc = border_color)
-    bc.to_grayscale.to_rgb.closest_match(palette + [bc], :jnd)
   end
 end
