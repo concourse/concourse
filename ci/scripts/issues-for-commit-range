@@ -2,8 +2,8 @@
 
 set -ex
 
-FROM_COMMIT=$(cat $FROM_COMMIT_FILE)
-TO_COMMIT=$(cat $TO_COMMIT_FILE)
+FROM_COMMIT=$(cat ./from-commit/ref)
+TO_COMMIT=$(cat ./to-commit/ref)
 
 pushd concourse
   issues=$(git log $FROM_COMMIT...$TO_COMMIT --grep=concourse/concourse | grep concourse/concourse)

@@ -8,13 +8,13 @@ image_resource:
 
 inputs:
 - name: concourse
+- name: from-commit
+- name: to-commit
 
 outputs:
 - name: message
 
 params:
-  FROM_COMMIT_FILE:
-  TO_COMMIT_FILE:
   HEADING:
 
 run:
