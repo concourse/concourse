@@ -53,7 +53,7 @@ describe 'build', type: :feature do
 
       it 'can be aborted' do
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/running/builds/1")
-        page.find_button("Abort Build").click
+        page.find_button('Abort Build').click
         fly_fail('watch -j pipeline/running')
         expect(page).to have_content 'interrupted'
         expect(background_palette(page.find('.build-header'))).to eq(BROWN)
