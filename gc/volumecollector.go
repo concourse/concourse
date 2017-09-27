@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/baggageclaim"
 )
 
-var collectorFailedErr = errors.New("volume collector failed")
+var volumeCollectorFailedErr = errors.New("volume collector failed")
 
 type volumeCollector struct {
 	rootLogger    lager.Logger
@@ -38,23 +38,22 @@ func (vc *volumeCollector) Run() error {
 
 	var err error
 
-	orphanedErr := vc.cleanupOrphanedVolumes(logger)
+	orphanedErr := vc.cleanupOrphanedVolumes(logger.Session("orphaned-volumes"))
 	if orphanedErr != nil {
 		vc.rootLogger.Error("volume-collector", orphanedErr)
-		err = collectorFailedErr
+		err = volumeCollectorFailedErr
 	}
 
-	failedErr := vc.cleanupFailedVolumes(logger)
+	failedErr := vc.cleanupFailedVolumes(logger.Session("failed-volumes"))
 	if failedErr != nil {
 		vc.rootLogger.Error("volume-collector", failedErr)
-		err = collectorFailedErr
+		err = volumeCollectorFailedErr
 	}
 
 	return err
 }
 
 func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {
-	logger = logger.Session("failed-volumes")
 
 	failedVolumes, err := vc.volumeFactory.GetFailedVolumes()
 	if err != nil {
@@ -76,8 +75,6 @@ func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {
 }
 
 func (vc *volumeCollector) cleanupOrphanedVolumes(logger lager.Logger) error {
-	logger = logger.Session("orphaned-volumes")
-
 	createdVolumes, destroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
 	if err != nil {
 		logger.Error("failed-to-get-orphaned-volumes", err)

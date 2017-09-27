@@ -5,7 +5,7 @@ import sq "github.com/Masterminds/squirrel"
 //go:generate counterfeiter . ContainerRepository
 
 type ContainerRepository interface {
-	FindContainersForDeletion() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error)
+	FindOrphanedContainers() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error)
 	FindFailedContainers() ([]FailedContainer, error)
 }
 
@@ -19,7 +19,7 @@ func NewContainerRepository(conn Conn) ContainerRepository {
 	}
 }
 
-func (repository *containerRepository) FindContainersForDeletion() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error) {
+func (repository *containerRepository) FindOrphanedContainers() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error) {
 	query, args, err := selectContainers("c").
 		LeftJoin("builds b ON b.id = c.build_id").
 		LeftJoin("containers icc ON icc.id = c.image_check_container_id").

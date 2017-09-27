@@ -13,7 +13,7 @@ import (
 )
 
 var _ = Describe("ContainerRepository", func() {
-	Describe("FindContainersForDeletion", func() {
+	Describe("FindOrphanedContainers", func() {
 		Describe("check containers", func() {
 			var (
 				creatingContainer          db.CreatingContainer
@@ -57,7 +57,7 @@ var _ = Describe("ContainerRepository", func() {
 
 				Context("when container is creating", func() {
 					It("finds the container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(HaveLen(1))
@@ -74,7 +74,7 @@ var _ = Describe("ContainerRepository", func() {
 					})
 
 					It("finds the container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(BeEmpty())
@@ -93,7 +93,7 @@ var _ = Describe("ContainerRepository", func() {
 					})
 
 					It("finds the container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(BeEmpty())
@@ -114,7 +114,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -134,7 +134,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("finds the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -157,7 +157,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("finds the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(creatingContainers).To(HaveLen(1))
 					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
@@ -176,7 +176,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -212,7 +212,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("does not find container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -229,7 +229,7 @@ var _ = Describe("ContainerRepository", func() {
 
 				Context("when the container is creating", func() {
 					It("finds container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(HaveLen(1))
@@ -246,7 +246,7 @@ var _ = Describe("ContainerRepository", func() {
 					})
 
 					It("finds container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(BeEmpty())
@@ -265,7 +265,7 @@ var _ = Describe("ContainerRepository", func() {
 					})
 
 					It("finds container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(BeEmpty())
@@ -283,7 +283,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("finds container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -319,7 +319,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			Context("when the container they're for is still creating", func() {
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -335,7 +335,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -352,7 +352,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("finds the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -388,7 +388,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			Context("when the container they're for is still creating", func() {
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -404,7 +404,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -421,7 +421,7 @@ var _ = Describe("ContainerRepository", func() {
 				})
 
 				It("finds the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))

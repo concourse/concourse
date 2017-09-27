@@ -252,7 +252,8 @@ func (p *containerProvider) FindOrCreateContainer(
 				fetchedImage,
 			)
 			if err != nil {
-				///TODO : Creating Container - mark as errored in db
+				creatingContainer.Failed()
+
 				logger.Error("failed-to-create-container-in-garden", err)
 				return nil, err
 			}

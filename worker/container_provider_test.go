@@ -538,6 +538,10 @@ var _ = Describe("ContainerProvider", func() {
 			It("does not mark container as created", func() {
 				Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(0))
 			})
+
+			It("marks the container as failed", func() {
+				Expect(fakeCreatingContainer.FailedCallCount()).To(Equal(1))
+			})
 		})
 	}
 
