@@ -199,5 +199,6 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		AddFailedStateToVolumes,
 		AddFailedStateToContainers,
 		CreateResourceSpaces,
+		UseMd5ForResourceCacheVersions,
 	}
 }
