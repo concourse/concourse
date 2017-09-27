@@ -41,3 +41,5 @@ end
 
 Capybara.default_driver = :headless_chrome
 Capybara.javascript_driver = :headless_chrome
+
+Capybara.save_path = '/tmp'
