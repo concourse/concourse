@@ -1,0 +1,22 @@
+---
+resources:
+- name: quick-time
+  type: time
+  source: {interval: 1s}
+  check_every: 1s
+
+- name: warp-time
+  type: time
+  source: {interval: 100ms}
+  check_every: 100ms
+
+jobs:
+- name: quick-time-user
+  plan:
+  - get: quick-time
+
+- name: warp-time-user
+  plan:
+  - get: warp-time
+
+

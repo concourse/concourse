@@ -8,7 +8,7 @@ import Dict
 import DictView
 import Erl
 import Html exposing (Html)
-import Html.Attributes exposing (class, href)
+import Html.Attributes exposing (class, href, title)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onClick)
 import Http
@@ -508,15 +508,15 @@ view model =
                 ( previousButtonClass, previousButtonEvent ) =
                     case model.versionedResources.pagination.previousPage of
                         Nothing ->
-                            ( "btn-page-link disabled", Noop )
+                            ( "btn-page-link prev disabled", Noop )
 
                         Just pp ->
-                            ( "btn-page-link", LoadPage pp )
+                            ( "btn-page-link prev", LoadPage pp )
 
                 ( nextButtonClass, nextButtonEvent ) =
                     case model.versionedResources.pagination.nextPage of
                         Nothing ->
-                            ( "btn-page-link disabled", Noop )
+                            ( "btn-page-link next disabled", Noop )
 
                         Just np ->
                             let
@@ -525,7 +525,7 @@ view model =
                                         | limit = 100
                                     }
                             in
-                                ( "btn-page-link", LoadPage updatedPage )
+                                ( "btn-page-link next", LoadPage updatedPage )
             in
                 Html.div [ class "with-fixed-header" ]
                     [ Html.div [ class "fixed-header" ]
@@ -550,9 +550,10 @@ view model =
                             [ Html.div [ class "build-step" ]
                                 (List.append
                                     [ Html.div [ class "header" ]
-                                        [ Html.span
+                                        [ Html.button
                                             [ class <| "btn-pause fl " ++ paused
                                             , ariaLabel aria
+                                            , title aria
                                             , onClick onClickEvent
                                             ]
                                             [ Html.i [ class <| "fa fa-fw " ++ pausedIcon ] []
