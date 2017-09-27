@@ -60,6 +60,10 @@ var _ = Describe("Vault", func() {
 			Deploy(
 				"deployments/vault-with-concourse.yml",
 				"-v", "instances=0",
+				"-v", "vault_url=dontcare",
+				"-v", "vault_client_token=dontcare",
+				"-v", "vault_auth_backend=dontcare",
+				"-v", "vault_auth_params=dontcare",
 			)
 
 			vaultInstance := JobInstance("vault")
@@ -169,7 +173,10 @@ var _ = Describe("Vault", func() {
 					By("triggering job")
 					watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/job-with-custom-input")
 					wait(watch)
-					Expect(watch).To(gbytes.Say("SECRET: Hello/World"))
+					Expect(watch).To(gbytes.Say("GET SECRET: GET-Hello/GET-World"))
+					Expect(watch).To(gbytes.Say("PUT SECRET: PUT-Hello/PUT-World"))
+					Expect(watch).To(gbytes.Say("GET SECRET: PUT-GET-Hello/PUT-GET-World"))
+					Expect(watch).To(gbytes.Say("TASK SECRET: Hello/World"))
 					Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
 
 					By("taking a dump")
@@ -186,6 +193,9 @@ var _ = Describe("Vault", func() {
 						By("triggering job to populate its inputs")
 						watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/job-with-input")
 						wait(watch)
+						Expect(watch).To(gbytes.Say("GET SECRET: GET-Hello/GET-World"))
+						Expect(watch).To(gbytes.Say("PUT SECRET: PUT-Hello/PUT-World"))
+						Expect(watch).To(gbytes.Say("GET SECRET: PUT-GET-Hello/PUT-GET-World"))
 						Expect(watch).To(gbytes.Say("SECRET: Hello/World"))
 						Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
 
@@ -233,6 +243,9 @@ var _ = Describe("Vault", func() {
 					"-o", "operations/enable-vault-tls.yml",
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
+					"-v", "vault_client_token=dontcare",
+					"-v", `vault_auth_backend=""`,
+					"-v", "vault_auth_params={}",
 					"-v", "instances=0",
 				)
 
