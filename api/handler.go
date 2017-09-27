@@ -49,7 +49,7 @@ func NewHandler(
 	dbPipelineFactory db.PipelineFactory,
 	dbWorkerFactory db.WorkerFactory,
 	volumeFactory db.VolumeFactory,
-	containerFactory db.ContainerFactory,
+	containerRepository db.ContainerRepository,
 	dbBuildFactory db.BuildFactory,
 
 	peerURL string,

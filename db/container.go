@@ -12,9 +12,10 @@ var ErrContainerDisappeared = errors.New("container disappeared from db")
 type ContainerState string
 
 const (
-	ContainerStateCreating   = "creating"
 	ContainerStateCreated    = "created"
+	ContainerStateCreating   = "creating"
 	ContainerStateDestroying = "destroying"
+	ContainerStateFailed     = "failed"
 )
 
 //go:generate counterfeiter . Container
@@ -32,6 +33,7 @@ type CreatingContainer interface {
 	Container
 
 	Created() (CreatedContainer, error)
+	Failed() (FailedContainer, error)
 }
 
 type creatingContainer struct {
@@ -94,6 +96,40 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 		container.workerName,
 		container.metadata,
 		false,
+		container.conn,
+	), nil
+}
+
+func (container *creatingContainer) Failed() (FailedContainer, error) {
+	rows, err := psql.Update("containers").
+		Set("state", ContainerStateFailed).
+		Where(sq.And{
+			sq.Eq{"id": container.id},
+			sq.Or{
+				sq.Eq{"state": string(ContainerStateCreating)},
+				sq.Eq{"state": string(ContainerStateFailed)},
+			},
+		}).
+		RunWith(container.conn).
+		Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if affected == 0 {
+		return nil, ErrContainerDisappeared
+	}
+
+	return newFailedContainer(
+		container.id,
+		container.handle,
+		container.workerName,
+		container.metadata,
 		container.conn,
 	), nil
 }
@@ -294,6 +330,67 @@ func (container *destroyingContainer) Destroy() (bool, error) {
 		Where(sq.Eq{
 			"id":    container.id,
 			"state": ContainerStateDestroying,
+		}).
+		RunWith(container.conn).
+		Exec()
+	if err != nil {
+		return false, err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if affected == 0 {
+		return false, ErrContainerDisappeared
+	}
+
+	return true, nil
+}
+
+//go:generate counterfeiter . FailedContainer
+
+type FailedContainer interface {
+	Container
+
+	Destroy() (bool, error)
+}
+
+type failedContainer struct {
+	id         int
+	handle     string
+	workerName string
+	metadata   ContainerMetadata
+	conn       Conn
+}
+
+func newFailedContainer(
+	id int,
+	handle string,
+	workerName string,
+	metadata ContainerMetadata,
+	conn Conn,
+) *failedContainer {
+	return &failedContainer{
+		id:         id,
+		handle:     handle,
+		workerName: workerName,
+		metadata:   metadata,
+		conn:       conn,
+	}
+}
+
+func (container *failedContainer) ID() int                     { return container.id }
+func (container *failedContainer) Handle() string              { return container.handle }
+func (container *failedContainer) WorkerName() string          { return container.workerName }
+func (container *failedContainer) Metadata() ContainerMetadata { return container.metadata }
+
+func (container *failedContainer) Destroy() (bool, error) {
+	rows, err := psql.Delete("containers").
+		Where(sq.Eq{
+			"id":    container.id,
+			"state": ContainerStateFailed,
 		}).
 		RunWith(container.conn).
 		Exec()

@@ -197,5 +197,6 @@ func New(strategy EncryptionStrategy) []migration.Migrator {
 		AddViewsForBuildStates,
 		AddUniqueIndexesToMaterializedViews,
 		AddFailedStateToVolumes,
+		AddFailedStateToContainers,
 	}
 }

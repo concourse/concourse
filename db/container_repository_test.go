@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ContainerFactory", func() {
+var _ = Describe("ContainerRepository", func() {
 	Describe("FindContainersForDeletion", func() {
 		Describe("check containers", func() {
 			var (
@@ -57,7 +57,7 @@ var _ = Describe("ContainerFactory", func() {
 
 				Context("when container is creating", func() {
 					It("finds the container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(HaveLen(1))
@@ -74,7 +74,7 @@ var _ = Describe("ContainerFactory", func() {
 					})
 
 					It("finds the container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(BeEmpty())
@@ -93,7 +93,7 @@ var _ = Describe("ContainerFactory", func() {
 					})
 
 					It("finds the container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(BeEmpty())
@@ -114,7 +114,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -134,7 +134,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("finds the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -157,7 +157,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("finds the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(creatingContainers).To(HaveLen(1))
 					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
@@ -176,7 +176,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -212,7 +212,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("does not find container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -229,7 +229,7 @@ var _ = Describe("ContainerFactory", func() {
 
 				Context("when the container is creating", func() {
 					It("finds container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(HaveLen(1))
@@ -246,7 +246,7 @@ var _ = Describe("ContainerFactory", func() {
 					})
 
 					It("finds container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(BeEmpty())
@@ -265,7 +265,7 @@ var _ = Describe("ContainerFactory", func() {
 					})
 
 					It("finds container for deletion", func() {
-						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(creatingContainers).To(BeEmpty())
@@ -283,7 +283,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("finds container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -319,7 +319,7 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when the container they're for is still creating", func() {
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -335,7 +335,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -352,7 +352,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("finds the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -388,7 +388,7 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when the container they're for is still creating", func() {
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(BeEmpty())
@@ -404,7 +404,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("does not find the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -421,7 +421,7 @@ var _ = Describe("ContainerFactory", func() {
 				})
 
 				It("finds the container for deletion", func() {
-					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(creatingContainers).To(HaveLen(1))
@@ -429,6 +429,97 @@ var _ = Describe("ContainerFactory", func() {
 					Expect(createdContainers).To(BeEmpty())
 					Expect(destroyingContainers).To(BeEmpty())
 				})
+			})
+		})
+	})
+
+	Describe("FindFailedContainers", func() {
+		var failedErr error
+		var failedContainers []db.FailedContainer
+
+		JustBeforeEach(func() {
+			failedContainers, failedErr = containerRepository.FindFailedContainers()
+		})
+
+		ItClosesConnection := func() {
+			It("closes the connection", func() {
+				closed := make(chan bool)
+
+				go func() {
+					_, _ = containerRepository.FindFailedContainers()
+					closed <- true
+				}()
+
+				Eventually(closed).Should(Receive())
+			})
+		}
+
+		Context("when there are failed containers", func() {
+			BeforeEach(func() {
+
+				result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+					"state":        "failed",
+					"handle":       "123-456-abc-def",
+					"worker_name":  defaultWorker.Name(),
+					"hijacked":     false,
+					"discontinued": false,
+				}).RunWith(dbConn).Exec()
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+			})
+
+			It("returns all failed containers", func() {
+				Expect(failedContainers).To(HaveLen(1))
+			})
+			It("does not return an error", func() {
+				Expect(failedErr).ToNot(HaveOccurred())
+			})
+			ItClosesConnection()
+		})
+
+		Context("when there are no failed containers", func() {
+			It("returns an empty array", func() {
+				Expect(failedContainers).To(HaveLen(0))
+			})
+			It("does not return an error", func() {
+				Expect(failedErr).ToNot(HaveOccurred())
+			})
+			ItClosesConnection()
+		})
+
+		Describe("errors", func() {
+			Context("when the query cannot be executed", func() {
+				BeforeEach(func() {
+					err := dbConn.Close()
+					Expect(err).ToNot(HaveOccurred())
+				})
+				AfterEach(func() {
+					dbConn = postgresRunner.OpenConn()
+				})
+				It("returns an error", func() {
+					Expect(failedErr).To(HaveOccurred())
+				})
+				ItClosesConnection()
+			})
+
+			Context("when there is an error iterating through the rows", func() {
+				BeforeEach(func() {
+					By("adding a row without expected values")
+					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+						"state":  "failed",
+						"handle": "123-456-abc-def",
+					}).RunWith(dbConn).Exec()
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+				})
+				It("returns an error", func() {
+					Expect(failedErr).To(HaveOccurred())
+
+				})
+				ItClosesConnection()
 			})
 		})
 	})

@@ -14,6 +14,15 @@ var _ = Describe("Container", func() {
 		build             db.Build
 	)
 
+	var safelyCloseConection = func() {
+		BeforeEach(func() {
+			dbConn.Close()
+		})
+		AfterEach(func() {
+			dbConn = postgresRunner.OpenConn()
+		})
+	}
+
 	BeforeEach(func() {
 		var err error
 		build, err = defaultTeam.CreateOneOffBuild()
@@ -103,6 +112,168 @@ var _ = Describe("Container", func() {
 			Describe("Metadata", func() {
 				It("returns the container metadata", func() {
 					Expect(destroyingContainer.Metadata()).To(Equal(fullMetadata))
+				})
+			})
+		})
+	})
+
+	Describe("Failed", func() {
+		var failedContainer db.FailedContainer
+		var failedContainers []db.FailedContainer
+		var failedErr error
+
+		JustBeforeEach(func() {
+			failedContainer, failedErr = creatingContainer.Failed()
+			failedContainers, _ = containerRepository.FindFailedContainers()
+		})
+
+		Context("when the container is in the creating state", func() {
+			It("makes the state failed", func() {
+				Expect(failedContainers).To(HaveLen(1))
+				Expect(failedContainers).To(ContainElement(failedContainer))
+			})
+
+			It("does not return an error", func() {
+				Expect(failedErr).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("when the container is already in failed state", func() {
+			BeforeEach(func() {
+				_, err := creatingContainer.Failed()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("keeps the state failed", func() {
+				Expect(failedContainers).To(HaveLen(1))
+				Expect(failedContainers).To(ContainElement(failedContainer))
+			})
+
+			It("does not return an error", func() {
+				Expect(failedErr).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("when the container is actually in created state", func() {
+			BeforeEach(func() {
+				_, err := creatingContainer.Created()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("does not mark it as failed", func() {
+				Expect(failedContainers).To(HaveLen(0))
+				Expect(failedContainers).ToNot(ContainElement(failedContainer))
+			})
+
+			It("returns an error", func() {
+				Expect(failedErr).To(HaveOccurred())
+			})
+		})
+
+		Context("when the container is actually in destroying state", func() {
+			BeforeEach(func() {
+				createdContainer, err := creatingContainer.Created()
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = createdContainer.Destroying()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("does not mark it as failed", func() {
+				Expect(failedContainers).To(HaveLen(0))
+				Expect(failedContainers).ToNot(ContainElement(failedContainer))
+			})
+
+			It("returns an error", func() {
+				Expect(failedErr).To(HaveOccurred())
+			})
+		})
+
+		Context("when the container object connection is closed", func() {
+			safelyCloseConection()
+			It("returns an error", func() {
+				Expect(failedErr).To(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("Destroy", func() {
+		var destroyErr error
+		var destroyed bool
+
+		Context("called on a destroying container", func() {
+			var destroyingContainer db.DestroyingContainer
+			BeforeEach(func() {
+				createdContainer, err := creatingContainer.Created()
+				Expect(err).ToNot(HaveOccurred())
+				destroyingContainer, err = createdContainer.Destroying()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			JustBeforeEach(func() {
+				destroyed, destroyErr = destroyingContainer.Destroy()
+			})
+
+			It("successfully removes the row from the db", func() {
+				Expect(destroyed).To(BeTrue())
+				Expect(destroyErr).ToNot(HaveOccurred())
+			})
+
+			Context("errors", func() {
+				Context("when the db connection is closed", func() {
+					safelyCloseConection()
+					It("returns an error", func() {
+						Expect(destroyErr).To(HaveOccurred())
+					})
+				})
+				Context("when the container dissapears from the db", func() {
+					BeforeEach(func() {
+						_, err := destroyingContainer.Destroy()
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns an error", func() {
+						Expect(destroyErr).To(HaveOccurred())
+					})
+				})
+			})
+		})
+
+		Context("called on a failed container", func() {
+			var failedContainer db.FailedContainer
+
+			BeforeEach(func() {
+				var err error
+				failedContainer, err = creatingContainer.Failed()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			JustBeforeEach(func() {
+				destroyed, destroyErr = failedContainer.Destroy()
+			})
+
+			It("successfully removes the row from the db", func() {
+				Expect(destroyed).To(BeTrue())
+				Expect(destroyErr).ToNot(HaveOccurred())
+			})
+
+			Context("errors", func() {
+				Context("when the db connection is closed", func() {
+					safelyCloseConection()
+					It("returns an error", func() {
+						Expect(destroyErr).To(HaveOccurred())
+					})
+				})
+
+				Context("when the container dissapears from the db", func() {
+					BeforeEach(func() {
+						_, err := failedContainer.Destroy()
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns an error", func() {
+						Expect(destroyErr).To(HaveOccurred())
+					})
 				})
 			})
 		})

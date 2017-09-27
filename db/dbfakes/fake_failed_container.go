@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-type FakeCreatingContainer struct {
+type FakeFailedContainer struct {
 	IDStub        func() int
 	iDMutex       sync.RWMutex
 	iDArgsForCall []struct{}
@@ -44,33 +44,22 @@ type FakeCreatingContainer struct {
 	metadataReturnsOnCall map[int]struct {
 		result1 db.ContainerMetadata
 	}
-	CreatedStub        func() (db.CreatedContainer, error)
-	createdMutex       sync.RWMutex
-	createdArgsForCall []struct{}
-	createdReturns     struct {
-		result1 db.CreatedContainer
+	DestroyStub        func() (bool, error)
+	destroyMutex       sync.RWMutex
+	destroyArgsForCall []struct{}
+	destroyReturns     struct {
+		result1 bool
 		result2 error
 	}
-	createdReturnsOnCall map[int]struct {
-		result1 db.CreatedContainer
-		result2 error
-	}
-	FailedStub        func() (db.FailedContainer, error)
-	failedMutex       sync.RWMutex
-	failedArgsForCall []struct{}
-	failedReturns     struct {
-		result1 db.FailedContainer
-		result2 error
-	}
-	failedReturnsOnCall map[int]struct {
-		result1 db.FailedContainer
+	destroyReturnsOnCall map[int]struct {
+		result1 bool
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCreatingContainer) ID() int {
+func (fake *FakeFailedContainer) ID() int {
 	fake.iDMutex.Lock()
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
@@ -85,20 +74,20 @@ func (fake *FakeCreatingContainer) ID() int {
 	return fake.iDReturns.result1
 }
 
-func (fake *FakeCreatingContainer) IDCallCount() int {
+func (fake *FakeFailedContainer) IDCallCount() int {
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	return len(fake.iDArgsForCall)
 }
 
-func (fake *FakeCreatingContainer) IDReturns(result1 int) {
+func (fake *FakeFailedContainer) IDReturns(result1 int) {
 	fake.IDStub = nil
 	fake.iDReturns = struct {
 		result1 int
 	}{result1}
 }
 
-func (fake *FakeCreatingContainer) IDReturnsOnCall(i int, result1 int) {
+func (fake *FakeFailedContainer) IDReturnsOnCall(i int, result1 int) {
 	fake.IDStub = nil
 	if fake.iDReturnsOnCall == nil {
 		fake.iDReturnsOnCall = make(map[int]struct {
@@ -110,7 +99,7 @@ func (fake *FakeCreatingContainer) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeCreatingContainer) Handle() string {
+func (fake *FakeFailedContainer) Handle() string {
 	fake.handleMutex.Lock()
 	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
 	fake.handleArgsForCall = append(fake.handleArgsForCall, struct{}{})
@@ -125,20 +114,20 @@ func (fake *FakeCreatingContainer) Handle() string {
 	return fake.handleReturns.result1
 }
 
-func (fake *FakeCreatingContainer) HandleCallCount() int {
+func (fake *FakeFailedContainer) HandleCallCount() int {
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
 	return len(fake.handleArgsForCall)
 }
 
-func (fake *FakeCreatingContainer) HandleReturns(result1 string) {
+func (fake *FakeFailedContainer) HandleReturns(result1 string) {
 	fake.HandleStub = nil
 	fake.handleReturns = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeCreatingContainer) HandleReturnsOnCall(i int, result1 string) {
+func (fake *FakeFailedContainer) HandleReturnsOnCall(i int, result1 string) {
 	fake.HandleStub = nil
 	if fake.handleReturnsOnCall == nil {
 		fake.handleReturnsOnCall = make(map[int]struct {
@@ -150,7 +139,7 @@ func (fake *FakeCreatingContainer) HandleReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeCreatingContainer) WorkerName() string {
+func (fake *FakeFailedContainer) WorkerName() string {
 	fake.workerNameMutex.Lock()
 	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
 	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct{}{})
@@ -165,20 +154,20 @@ func (fake *FakeCreatingContainer) WorkerName() string {
 	return fake.workerNameReturns.result1
 }
 
-func (fake *FakeCreatingContainer) WorkerNameCallCount() int {
+func (fake *FakeFailedContainer) WorkerNameCallCount() int {
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
 	return len(fake.workerNameArgsForCall)
 }
 
-func (fake *FakeCreatingContainer) WorkerNameReturns(result1 string) {
+func (fake *FakeFailedContainer) WorkerNameReturns(result1 string) {
 	fake.WorkerNameStub = nil
 	fake.workerNameReturns = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeCreatingContainer) WorkerNameReturnsOnCall(i int, result1 string) {
+func (fake *FakeFailedContainer) WorkerNameReturnsOnCall(i int, result1 string) {
 	fake.WorkerNameStub = nil
 	if fake.workerNameReturnsOnCall == nil {
 		fake.workerNameReturnsOnCall = make(map[int]struct {
@@ -190,7 +179,7 @@ func (fake *FakeCreatingContainer) WorkerNameReturnsOnCall(i int, result1 string
 	}{result1}
 }
 
-func (fake *FakeCreatingContainer) Metadata() db.ContainerMetadata {
+func (fake *FakeFailedContainer) Metadata() db.ContainerMetadata {
 	fake.metadataMutex.Lock()
 	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
 	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct{}{})
@@ -205,20 +194,20 @@ func (fake *FakeCreatingContainer) Metadata() db.ContainerMetadata {
 	return fake.metadataReturns.result1
 }
 
-func (fake *FakeCreatingContainer) MetadataCallCount() int {
+func (fake *FakeFailedContainer) MetadataCallCount() int {
 	fake.metadataMutex.RLock()
 	defer fake.metadataMutex.RUnlock()
 	return len(fake.metadataArgsForCall)
 }
 
-func (fake *FakeCreatingContainer) MetadataReturns(result1 db.ContainerMetadata) {
+func (fake *FakeFailedContainer) MetadataReturns(result1 db.ContainerMetadata) {
 	fake.MetadataStub = nil
 	fake.metadataReturns = struct {
 		result1 db.ContainerMetadata
 	}{result1}
 }
 
-func (fake *FakeCreatingContainer) MetadataReturnsOnCall(i int, result1 db.ContainerMetadata) {
+func (fake *FakeFailedContainer) MetadataReturnsOnCall(i int, result1 db.ContainerMetadata) {
 	fake.MetadataStub = nil
 	if fake.metadataReturnsOnCall == nil {
 		fake.metadataReturnsOnCall = make(map[int]struct {
@@ -230,93 +219,50 @@ func (fake *FakeCreatingContainer) MetadataReturnsOnCall(i int, result1 db.Conta
 	}{result1}
 }
 
-func (fake *FakeCreatingContainer) Created() (db.CreatedContainer, error) {
-	fake.createdMutex.Lock()
-	ret, specificReturn := fake.createdReturnsOnCall[len(fake.createdArgsForCall)]
-	fake.createdArgsForCall = append(fake.createdArgsForCall, struct{}{})
-	fake.recordInvocation("Created", []interface{}{})
-	fake.createdMutex.Unlock()
-	if fake.CreatedStub != nil {
-		return fake.CreatedStub()
+func (fake *FakeFailedContainer) Destroy() (bool, error) {
+	fake.destroyMutex.Lock()
+	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
+	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
+	fake.recordInvocation("Destroy", []interface{}{})
+	fake.destroyMutex.Unlock()
+	if fake.DestroyStub != nil {
+		return fake.DestroyStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.createdReturns.result1, fake.createdReturns.result2
+	return fake.destroyReturns.result1, fake.destroyReturns.result2
 }
 
-func (fake *FakeCreatingContainer) CreatedCallCount() int {
-	fake.createdMutex.RLock()
-	defer fake.createdMutex.RUnlock()
-	return len(fake.createdArgsForCall)
+func (fake *FakeFailedContainer) DestroyCallCount() int {
+	fake.destroyMutex.RLock()
+	defer fake.destroyMutex.RUnlock()
+	return len(fake.destroyArgsForCall)
 }
 
-func (fake *FakeCreatingContainer) CreatedReturns(result1 db.CreatedContainer, result2 error) {
-	fake.CreatedStub = nil
-	fake.createdReturns = struct {
-		result1 db.CreatedContainer
+func (fake *FakeFailedContainer) DestroyReturns(result1 bool, result2 error) {
+	fake.DestroyStub = nil
+	fake.destroyReturns = struct {
+		result1 bool
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCreatingContainer) CreatedReturnsOnCall(i int, result1 db.CreatedContainer, result2 error) {
-	fake.CreatedStub = nil
-	if fake.createdReturnsOnCall == nil {
-		fake.createdReturnsOnCall = make(map[int]struct {
-			result1 db.CreatedContainer
+func (fake *FakeFailedContainer) DestroyReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.DestroyStub = nil
+	if fake.destroyReturnsOnCall == nil {
+		fake.destroyReturnsOnCall = make(map[int]struct {
+			result1 bool
 			result2 error
 		})
 	}
-	fake.createdReturnsOnCall[i] = struct {
-		result1 db.CreatedContainer
+	fake.destroyReturnsOnCall[i] = struct {
+		result1 bool
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCreatingContainer) Failed() (db.FailedContainer, error) {
-	fake.failedMutex.Lock()
-	ret, specificReturn := fake.failedReturnsOnCall[len(fake.failedArgsForCall)]
-	fake.failedArgsForCall = append(fake.failedArgsForCall, struct{}{})
-	fake.recordInvocation("Failed", []interface{}{})
-	fake.failedMutex.Unlock()
-	if fake.FailedStub != nil {
-		return fake.FailedStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.failedReturns.result1, fake.failedReturns.result2
-}
-
-func (fake *FakeCreatingContainer) FailedCallCount() int {
-	fake.failedMutex.RLock()
-	defer fake.failedMutex.RUnlock()
-	return len(fake.failedArgsForCall)
-}
-
-func (fake *FakeCreatingContainer) FailedReturns(result1 db.FailedContainer, result2 error) {
-	fake.FailedStub = nil
-	fake.failedReturns = struct {
-		result1 db.FailedContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCreatingContainer) FailedReturnsOnCall(i int, result1 db.FailedContainer, result2 error) {
-	fake.FailedStub = nil
-	if fake.failedReturnsOnCall == nil {
-		fake.failedReturnsOnCall = make(map[int]struct {
-			result1 db.FailedContainer
-			result2 error
-		})
-	}
-	fake.failedReturnsOnCall[i] = struct {
-		result1 db.FailedContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCreatingContainer) Invocations() map[string][][]interface{} {
+func (fake *FakeFailedContainer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.iDMutex.RLock()
@@ -327,10 +273,8 @@ func (fake *FakeCreatingContainer) Invocations() map[string][][]interface{} {
 	defer fake.workerNameMutex.RUnlock()
 	fake.metadataMutex.RLock()
 	defer fake.metadataMutex.RUnlock()
-	fake.createdMutex.RLock()
-	defer fake.createdMutex.RUnlock()
-	fake.failedMutex.RLock()
-	defer fake.failedMutex.RUnlock()
+	fake.destroyMutex.RLock()
+	defer fake.destroyMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
@@ -338,7 +282,7 @@ func (fake *FakeCreatingContainer) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeCreatingContainer) recordInvocation(key string, args []interface{}) {
+func (fake *FakeFailedContainer) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -350,4 +294,4 @@ func (fake *FakeCreatingContainer) recordInvocation(key string, args []interface
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ db.CreatingContainer = new(FakeCreatingContainer)
+var _ db.FailedContainer = new(FakeFailedContainer)

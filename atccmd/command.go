@@ -287,7 +287,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory)
 	dbVolumeFactory := db.NewVolumeFactory(dbConn)
-	dbContainerFactory := db.NewContainerFactory(dbConn)
+	dbContainerRepository := db.NewContainerRepository(dbConn)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
@@ -368,7 +368,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		dbPipelineFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
-		dbContainerFactory,
+		dbContainerRepository,
 		dbBuildFactory,
 		providerFactory,
 		signingKey,
@@ -534,7 +534,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				),
 				gc.NewContainerCollector(
 					logger.Session("container-collector"),
-					dbContainerFactory,
+					dbContainerRepository,
 					gc.NewWorkerJobRunner(
 						logger.Session("container-collector-worker-job-runner"),
 						workerClient,
@@ -949,7 +949,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	dbPipelineFactory db.PipelineFactory,
 	dbWorkerFactory db.WorkerFactory,
 	dbVolumeFactory db.VolumeFactory,
-	dbContainerFactory db.ContainerFactory,
+	dbContainerRepository db.ContainerRepository,
 	dbBuildFactory db.BuildFactory,
 	providerFactory auth.OAuthFactory,
 	signingKey *rsa.PrivateKey,
@@ -1004,7 +1004,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		dbPipelineFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
-		dbContainerFactory,
+		dbContainerRepository,
 		dbBuildFactory,
 
 		cmd.PeerURL.String(),

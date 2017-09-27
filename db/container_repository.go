@@ -2,23 +2,24 @@ package db
 
 import sq "github.com/Masterminds/squirrel"
 
-//go:generate counterfeiter . ContainerFactory
+//go:generate counterfeiter . ContainerRepository
 
-type ContainerFactory interface {
+type ContainerRepository interface {
 	FindContainersForDeletion() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error)
+	FindFailedContainers() ([]FailedContainer, error)
 }
 
-type containerFactory struct {
+type containerRepository struct {
 	conn Conn
 }
 
-func NewContainerFactory(conn Conn) ContainerFactory {
-	return &containerFactory{
+func NewContainerRepository(conn Conn) ContainerRepository {
+	return &containerRepository{
 		conn: conn,
 	}
 }
 
-func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error) {
+func (repository *containerRepository) FindContainersForDeletion() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error) {
 	query, args, err := selectContainers("c").
 		LeftJoin("builds b ON b.id = c.build_id").
 		LeftJoin("containers icc ON icc.id = c.image_check_container_id").
@@ -48,7 +49,7 @@ func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContaine
 		return nil, nil, nil, err
 	}
 
-	rows, err := factory.conn.Query(query, args...)
+	rows, err := repository.conn.Query(query, args...)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -59,7 +60,7 @@ func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContaine
 	destroyingContainers := []DestroyingContainer{}
 
 	for rows.Next() {
-		creatingContainer, createdContainer, destroyingContainer, err := scanContainer(rows, factory.conn)
+		creatingContainer, createdContainer, destroyingContainer, _, err := scanContainer(rows, repository.conn)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -103,7 +104,7 @@ func selectContainers(asOptional ...string) sq.SelectBuilder {
 	return psql.Select(columns...).From(table)
 }
 
-func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedContainer, DestroyingContainer, error) {
+func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedContainer, DestroyingContainer, FailedContainer, error) {
 	var (
 		id             int
 		handle         string
@@ -120,7 +121,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 
 	err := row.Scan(columns...)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	switch state {
@@ -131,7 +132,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 			workerName,
 			metadata,
 			conn,
-		), nil, nil, nil
+		), nil, nil, nil, nil
 	case ContainerStateCreated:
 		return nil, newCreatedContainer(
 			id,
@@ -140,7 +141,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 			metadata,
 			isHijacked,
 			conn,
-		), nil, nil
+		), nil, nil, nil
 	case ContainerStateDestroying:
 		return nil, nil, newDestroyingContainer(
 			id,
@@ -149,8 +150,46 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 			metadata,
 			isDiscontinued,
 			conn,
+		), nil, nil
+	case ContainerStateFailed:
+		return nil, nil, nil, newFailedContainer(
+			id,
+			handle,
+			workerName,
+			metadata,
+			conn,
 		), nil
 	}
 
-	return nil, nil, nil, nil
+	return nil, nil, nil, nil, nil
+}
+
+func (repository *containerRepository) FindFailedContainers() ([]FailedContainer, error) {
+	var failedContainers []FailedContainer
+
+	query, args, _ := selectContainers("c").
+		LeftJoin("builds b ON b.id = c.build_id").
+		LeftJoin("containers icc ON icc.id = c.image_check_container_id").
+		LeftJoin("containers igc ON igc.id = c.image_get_container_id").
+		Where(sq.Eq{"c.state": ContainerStateFailed}).
+		ToSql()
+
+	rows, err := repository.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		_, _, _, failedContainer, err := scanContainer(rows, repository.conn)
+		if err != nil {
+			return nil, err
+		}
+
+		if failedContainer != nil {
+			failedContainers = append(failedContainers, failedContainer)
+		}
+	}
+
+	return failedContainers, nil
 }

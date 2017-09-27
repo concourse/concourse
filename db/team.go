@@ -273,7 +273,7 @@ func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container
 
 	var containers []Container
 	for rows.Next() {
-		creating, created, destroying, err := scanContainer(rows, t.conn)
+		creating, created, destroying, _, err := scanContainer(rows, t.conn)
 		if err != nil {
 			return nil, err
 		}
@@ -356,7 +356,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 
 	var containers []Container
 	for rows.Next() {
-		creating, created, destroying, err := scanContainer(rows, t.conn)
+		creating, created, destroying, _, err := scanContainer(rows, t.conn)
 		if err != nil {
 			return nil, err
 		}
@@ -1010,7 +1010,7 @@ func swallowUniqueViolation(err error) error {
 }
 
 func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, CreatedContainer, error) {
-	creating, created, destroying, err := scanContainer(
+	creating, created, destroying, _, err := scanContainer(
 		selectContainers().
 			Where(whereClause).
 			Where(sq.Eq{"team_id": t.id}).

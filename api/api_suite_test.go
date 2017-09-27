@@ -42,7 +42,7 @@ var (
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
 	fakeVolumeFactory             *dbfakes.FakeVolumeFactory
-	fakeContainerFactory          *dbfakes.FakeContainerFactory
+	fakeContainerRepository       *dbfakes.FakeContainerRepository
 	dbTeamFactory                 *dbfakes.FakeTeamFactory
 	dbPipelineFactory             *dbfakes.FakePipelineFactory
 	fakePipeline                  *dbfakes.FakePipeline
@@ -122,7 +122,7 @@ var _ = BeforeEach(func() {
 	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
 
 	fakeVolumeFactory = new(dbfakes.FakeVolumeFactory)
-	fakeContainerFactory = new(dbfakes.FakeContainerFactory)
+	fakeContainerRepository = new(dbfakes.FakeContainerRepository)
 
 	fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
 
@@ -175,7 +175,7 @@ var _ = BeforeEach(func() {
 		dbPipelineFactory,
 		dbWorkerFactory,
 		fakeVolumeFactory,
-		fakeContainerFactory,
+		fakeContainerRepository,
 		dbBuildFactory,
 
 		peerAddr,
