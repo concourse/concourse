@@ -20,7 +20,7 @@ type GetAction struct {
 	Name          string
 	Resource      string
 	Source        creds.Source
-	Params        atc.Params
+	Params        creds.Params
 	VersionSource VersionSource
 	Tags          atc.Tags
 	Outputs       []string
@@ -81,13 +81,18 @@ func (action *GetAction) Run(
 		return err
 	}
 
+	params, err := action.Params.Evaluate()
+	if err != nil {
+		return err
+	}
+
 	resourceCache, err := action.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
 		db.ForBuild(action.buildID),
 		action.Type,
 		version,
 		source,
-		action.Params,
+		params,
 		action.resourceTypes,
 	)
 	if err != nil {
@@ -99,7 +104,7 @@ func (action *GetAction) Run(
 		resource.ResourceType(action.Type),
 		version,
 		source,
-		action.Params,
+		params,
 		action.resourceTypes,
 		resourceCache,
 		db.NewBuildStepContainerOwner(action.buildID, action.planID),

@@ -88,7 +88,7 @@ func (factory *gardenFactory) Get(
 		Name:          plan.Get.Name,
 		Resource:      plan.Get.Resource,
 		Source:        creds.NewSource(variables, plan.Get.Source),
-		Params:        plan.Get.Params,
+		Params:        creds.NewParams(variables, plan.Get.Params),
 		VersionSource: NewVersionSourceFromPlan(plan.Get, factory.putActions),
 		Tags:          plan.Get.Tags,
 		Outputs:       []string{plan.Get.Name},
@@ -129,7 +129,7 @@ func (factory *gardenFactory) Put(
 		Name:     plan.Put.Name,
 		Resource: plan.Put.Resource,
 		Source:   creds.NewSource(variables, plan.Put.Source),
-		Params:   plan.Put.Params,
+		Params:   creds.NewParams(variables, plan.Put.Params),
 		Tags:     plan.Put.Tags,
 
 		imageFetchingDelegate: imageFetchingDelegate,

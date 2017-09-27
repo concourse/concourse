@@ -320,6 +320,7 @@ func (action *TaskAction) containerSpec(logger lager.Logger, repository *worker.
 			Params:  config.ImageResource.Params,
 			Version: config.ImageResource.Version,
 		}
+
 	} else if config.RootfsURI != "" {
 		imageSpec.ImageURL = config.RootfsURI
 	}

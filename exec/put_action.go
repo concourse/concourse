@@ -18,7 +18,7 @@ type PutAction struct {
 	Name     string
 	Resource string
 	Source   creds.Source
-	Params   atc.Params
+	Params   creds.Params
 	Tags     atc.Tags
 
 	imageFetchingDelegate ImageFetchingDelegate
@@ -40,7 +40,7 @@ func NewPutAction(
 	name string,
 	resourceName string,
 	source creds.Source,
-	params atc.Params,
+	params creds.Params,
 	tags atc.Tags,
 	imageFetchingDelegate ImageFetchingDelegate,
 	resourceFactory resource.ResourceFactory,
@@ -122,13 +122,18 @@ func (action *PutAction) Run(
 		return err
 	}
 
+	params, err := action.Params.Evaluate()
+	if err != nil {
+		return err
+	}
+
 	versionedSource, err := putResource.Put(
 		resource.IOConfig{
 			Stdout: action.imageFetchingDelegate.Stdout(),
 			Stderr: action.imageFetchingDelegate.Stderr(),
 		},
 		source,
-		action.Params,
+		params,
 		signals,
 		ready,
 	)

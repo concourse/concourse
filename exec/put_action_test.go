@@ -90,7 +90,7 @@ var _ = Describe("PutAction", func() {
 			"some-resource",
 			"some-resource",
 			creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
-			atc.Params{"some-param": "some-value"},
+			creds.NewParams(variables, atc.Params{"some-param": "some-value"}),
 			[]string{"some", "tags"},
 			fakeImageFetchingDelegate,
 			fakeResourceFactory,
