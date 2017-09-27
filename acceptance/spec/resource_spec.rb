@@ -6,29 +6,26 @@ describe 'resource', type: :feature do
 
     fly_login team_name
     dash_login team_name
+
+    fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
+    fly('unpause-pipeline -p pipeline')
   end
 
   describe 'broken resource' do
     before do
-      fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
-      fly('unpause-pipeline -p pipeline')
       fly_fail('check-resource -r pipeline/broken-time')
     end
 
     it 'displays logs correctly' do
       resource_name = 'broken-time'
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/resources/#{resource_name}")
+      expect(page).to have_content('checking failed')
       expect(page).to have_content 'failed: exit status'
     end
   end
 
   describe 'resource metadata' do
     context 'when running build again on the same job' do
-      before do
-        fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
-        fly('unpause-pipeline -p pipeline')
-      end
-
       it 'prints resource metadata' do
         job_name = 'resource-metadata'
         fly("trigger-job -w -j pipeline/#{job_name}")
@@ -42,8 +39,6 @@ describe 'resource', type: :feature do
 
     context 'when running build on a another pipeline with the same resource config' do
       before do
-        fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
-        fly('unpause-pipeline -p pipeline')
         fly('set-pipeline -n -p other-pipeline -c fixtures/states-pipeline.yml')
         fly('unpause-pipeline -p other-pipeline')
       end
@@ -62,6 +57,43 @@ describe 'resource', type: :feature do
         page.find('.list-collapsable-item', match: :first).click
         expect(page.find('.build-metadata')).to have_content 'image'
       end
+    end
+  end
+
+  describe 'navigating' do
+    it 'can navigate to the resource' do
+      visit dash_route
+
+      page.find('a', text: 'some-resource').click
+
+      expect(page).to have_current_path("/teams/#{team_name}/pipelines/pipeline/resources/some-resource")
+      expect(page).to have_css('h1', text: 'some-resource')
+    end
+  end
+
+  describe 'pausing' do
+    it 'can pause an unpaused resource' do
+      fly('unpause-resource -r pipeline/some-resource')
+
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/resources/some-resource")
+
+      expect(page).to have_css('.btn-pause.disabled')
+
+      page.find('.btn-pause').click
+
+      expect(page).to have_css('.btn-pause.enabled')
+    end
+
+    it 'can unpause a paused resource' do
+      fly('pause-resource -r pipeline/some-resource')
+
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/resources/some-resource")
+
+      expect(page).to have_css('.btn-pause.enabled')
+
+      page.find('.btn-pause').click
+
+      expect(page).to have_css('.btn-pause.disabled')
     end
   end
 end
