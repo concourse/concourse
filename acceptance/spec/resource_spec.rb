@@ -96,4 +96,27 @@ describe 'resource', type: :feature do
       expect(page).to have_css('.btn-pause.disabled')
     end
   end
+
+  describe 'resource pagination' do
+    before do
+      fly('set-pipeline -n -p pipeline -c fixtures/resource-checking.yml')
+      fly('unpause-pipeline -p pipeline')
+    end
+
+    it 'shows pagination for more than 100 resource versions' do
+      resource_name = 'warp-time'
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/resources/#{resource_name}")
+
+      button = page.find(".btn-page-link.next.disabled")
+      expect(button).to_not be_nil
+      expect(page.all('.resource-versions li').count).to be < 100
+      counter = page.all('.resource-versions li').count
+      while counter < 100 do
+        fly('check-resource -r pipeline/warp-time')
+        counter = page.all('.resource-versions li').count
+      end
+      page.find(".btn-page-link.next").click
+      expect(page.all('.resource-versions li').count).to be >= 0
+    end
+  end
 end
