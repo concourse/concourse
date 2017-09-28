@@ -252,7 +252,11 @@ func (p *containerProvider) FindOrCreateContainer(
 				fetchedImage,
 			)
 			if err != nil {
-				creatingContainer.Failed()
+				_, failedErr := creatingContainer.Failed()
+				if failedErr != nil {
+					logger.Error("failed-to-mark-container-as-failed", err)
+				}
+				metric.FailedContainers.Inc()
 
 				logger.Error("failed-to-create-container-in-garden", err)
 				return nil, err

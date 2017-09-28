@@ -67,6 +67,10 @@ func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {
 		})
 	}
 
+	metric.FailedVolumesToBeGarbageCollected{
+		Volumes: len(failedVolumes),
+	}.Emit(logger)
+
 	for _, failedVolume := range failedVolumes {
 		destroyDBVolume(logger, failedVolume)
 	}
@@ -88,8 +92,12 @@ func (vc *volumeCollector) cleanupOrphanedVolumes(logger lager.Logger) error {
 		})
 	}
 
-	metric.VolumesToBeGarbageCollected{
-		Volumes: len(createdVolumes) + len(destroyingVolumes),
+	metric.CreatedVolumesToBeGarbageCollected{
+		Volumes: len(createdVolumes),
+	}.Emit(logger)
+
+	metric.DestroyingVolumesToBeGarbageCollected{
+		Volumes: len(destroyingVolumes),
 	}.Emit(logger)
 
 	for _, createdVolume := range createdVolumes {
