@@ -95,7 +95,11 @@ var _ = Describe("Config API", func() {
 							Task:       "some-task",
 							Privileged: true,
 							TaskConfig: &atc.TaskConfig{
+								Platform:  "linux",
 								RootfsURI: "some-image",
+								Run: atc.TaskRunConfig{
+									Path: "/path/to/run",
+								},
 							},
 						},
 						{
@@ -193,7 +197,11 @@ var _ = Describe("Config API", func() {
 										Task:       "some-task",
 										Privileged: true,
 										TaskConfig: &atc.TaskConfig{
+											Platform:  "linux",
 											RootfsURI: "some-image",
+											Run: atc.TaskRunConfig{
+												Path: "/path/to/run",
+											},
 										},
 									},
 									{
@@ -564,6 +572,7 @@ jobs:
   - get: some-resource
   - task: some-task
     config:
+      platform: linux
       run:
         path: ls
       params:
@@ -603,6 +612,8 @@ jobs:
 												{
 													Task: "some-task",
 													TaskConfig: &atc.TaskConfig{
+														Platform: "linux",
+
 														Run: atc.TaskRunConfig{
 															Path: "ls",
 														},

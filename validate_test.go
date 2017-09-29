@@ -664,6 +664,28 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a task plan is invalid", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, PlanConfig{
+						Task: "some-resource",
+						TaskConfig: &TaskConfig{
+							Params: map[string]string{
+								"param1": "value1",
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.some-resource missing 'platform'"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.some-resource missing path to executable to run"))
+				})
+			})
+
 			Context("when a put plan has invalid fields specified", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
