@@ -28,7 +28,7 @@ plan:
 
   This is also the name of the resource to fetch, if \code{resource} is not
   set.
-}
+}{get-step-get}
 
 \define-attribute{resource: string}{
   \italic{Optional. Defaults to \code{get}, the name.} The resource to fetch,
@@ -36,7 +36,7 @@ plan:
 
   Use this attribute to rename a resource from the overall pipeline context
   into the job-specific context.
-}
+}{get-step-resource}
 
 \define-attribute{version: ("latest" | "every" | \{version\})}{
   \italic{Optional. Defaults to \code{latest}.} The version of the resource to
@@ -56,7 +56,7 @@ plan:
   use \reference{fly-check-resource} to force detection of resource versions,
   if you need to use an older one that was never detected (as all newly
   configured resources start from the latest version).
-}{get-version}
+}{get-step-version}
 
 \define-attribute{passed: [string]}{
   \italic{Optional.} When specified, only the versions of the resource that
@@ -84,13 +84,13 @@ plan:
 
   This is crucial to being able to implement safe "fan-in" semantics as
   things progress through a pipeline.
-}
+}{get-step-passed}
 
 \define-attribute{params: object}{
   \italic{Optional.} A map of arbitrary configuration to forward to the
   resource. Refer to the resource type's documentation to see what it
   supports.
-}{get-params}
+}{get-step-params}
 
 \define-attribute{trigger: boolean}{
   \italic{Optional. Default \code{false}.} Set to \code{true} to auto-trigger
@@ -99,4 +99,4 @@ plan:
 
   Otherwise, if no \code{get} steps set this to \code{true}, the job can only
   be manually triggered.
-}
+}{get-step-trigger}

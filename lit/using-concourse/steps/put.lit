@@ -48,21 +48,21 @@ plan:
 \define-attribute{put: string}{
   \italic{Required.} The logical name of the resource being pushed. The pushed
   resource will be available under this name after the push succeeds.
-}
+}{put-step-put}
 
 \define-attribute{resource: string}{
   \italic{Optional. Defaults to \code{name}.} The resource to update,
   as configured in \reference{configuring-resources}{\code{resources}}.
-}
+}{put-step-resource}
 
 \define-attribute{params: object}{
   \italic{Optional.} A map of arbitrary configuration to forward to the
   resource. Refer to the resource type's documentation to see what it
   supports.
-}{put-params}
+}{put-step-params}
 
 \define-attribute{get_params: object}{
   \italic{Optional.} A map of arbitrary configuration to forward to the
   resource that will be utilized during the implicit \code{get} step. 
   Refer to the resource type's documentation to see what it supports.
-}{get-params}
+}{put-step-get-params}

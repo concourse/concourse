@@ -32,7 +32,7 @@ Each configured resource consists of the following attributes:
   \italic{Required.} The name of the resource. This should be short and simple.
   This name will be referenced by \reference{build-plans}{build plans} of jobs
   in the pipeline.
-}
+}{resource-name}
 
 \define-attribute{type: string}{
   \italic{Required.} The type of the resource. Each worker advertises a mapping
@@ -41,7 +41,7 @@ Each configured resource consists of the following attributes:
 
   To see what resource types your deployment supports, check the status of your
   worker pool via the \code{/api/v1/workers} API endpoint.
-}
+}{resource-type}
 
 \define-attribute{source: object}{
   \italic{Optional.} The location of the resource. This varies
@@ -57,13 +57,13 @@ Each configured resource consists of the following attributes:
   You can find the source for the resource types provided with Concourse at the
   \link{Concourse GitHub
   organization}{https://github.com/concourse?query=-resource}.
-}
+}{resource-source}
 
 \define-attribute{check_every: string}{
   \italic{Optional. Default \code{1m}.} The interval on which to check for new
   versions of the resource. Acceptable interval options are defined by the
   \link{time.ParseDuration function}{https://golang.org/pkg/time/#ParseDuration}.
-}
+}{resource-check-every}
 
 \define-attribute{tags: [string]}{
   \italic{Optional. Default \code{[]}.} A list of tags to determine which
@@ -87,4 +87,4 @@ Each configured resource consists of the following attributes:
   Note that the request payload sent to this API endpoint is entirely ignored.
   You should configure the resource as if you're not using web hooks, as the
   resource config is still the "source of truth."
-}
+}{resource-webhook-token}

@@ -32,8 +32,8 @@
   }
 
   \note{feature}{
-    Jobs can now be configured with \reference{build_logs_to_retain}, which is
-    a number indicating how many builds for which to keep the build output.
+    Jobs can now be configured with \reference{job-build-logs-to-retain}, which
+    is a number indicating how many builds for which to keep the build output.
     All build logs except for the most recent N builds will be reaped. You can
     flip this on for already-existing jobs with thousands of builds and we'll
     slowly reap them in batches.

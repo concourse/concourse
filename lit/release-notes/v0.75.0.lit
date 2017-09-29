@@ -16,7 +16,7 @@
     should receive warnings when running \reference{fly-set-pipeline} and when
     running a task that specifies both.
 
-    Instead, you should be specifying \reference{task-params},
+    Instead, you should be specifying \reference{task-step-params},
     \reference{input_mapping}, and \reference{output_mapping}.
   }
 
@@ -78,8 +78,8 @@
   }
 
   \note{fix}{
-    Previously resources that had \reference{put-params} involving lists of
-    objects would cause Concourse to blow up instead of working. It should now
-    work.
+    Previously resources that had \reference{put-step-params} involving lists
+    of objects would cause Concourse to blow up instead of working. It should
+    now work.
   }
 }

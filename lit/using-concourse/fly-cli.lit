@@ -399,7 +399,7 @@ flag. Once you've learned what the commands do, you may want to consult
   The pipeline will be publicly viewable, as well as resource versions and
   metadata, which includes things like commit messages. Build output will
   remain hidden by default unless the job configures
-  \reference{public}{\code{public: true}}.
+  \reference{job-public}{\code{public: true}}.
 }
 
 \section{
@@ -781,8 +781,8 @@ flag. Once you've learned what the commands do, you may want to consult
   current build's task, even as the "current build" changes.
 
   The working directory and any relevant environment variables (e.g. those
-  having come from \reference{params}) used by the original process will also
-  be used for the process run by intercept.
+  having come from \reference{task-params}) used by the original process will
+  also be used for the process run by intercept.
 }
 
 \section{

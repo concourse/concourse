@@ -93,17 +93,17 @@ added to your workers.
     \italic{Optional.} A logical name for the worker. This should be something
     that stays the same throughout the worker's lifecycle, for example the
     \code{hostname}. If not specified, the \code{addr} is used.
-  }
+  }{worker-name}
 
   \define-attribute{platform: string}{
     \italic{Required.} The platform supported by the worker, e.g. \code{linux},
     \code{darwin}, or \code{windows}.
-  }
+  }{worker-platform}
 
   \define-attribute{tags: [string]}{
     \italic{Optional.} A set of arbitrary tags. Only steps specifying a matching
     a subset of these tags will be placed on the worker.
-  }
+  }{worker-tags}
 
   \define-attribute{addr: string}{
     \italic{Required.} The address of the
@@ -112,18 +112,18 @@ added to your workers.
     authentication. For this reason it should always be an address only
     reachable from within Concourse's private network. To register external
     workers, see \reference{registering-via-tsa}.
-  }
+  }{worker-addr}
 
   \define-attribute{baggageclaim_url: string}{
     \italic{Optional.} The API endpoint for a
     \link{Baggageclaim}{https://github.com/concourse/baggageclaim} server
     to use for caching artifacts on the worker. If not specified, caching will
     not be utilized.
-  }
+  }{worker-baggageclaim-url}
 
   \define-attribute{active_containers: integer}{
     \italic{Optional.} The number of containers currently running on the worker.
-  }
+  }{worker-active-containers}
 
   \define-attribute{resource_types: [\{type,image\}]}{
     \italic{Optional.} The set of resource types supported by the worker. If

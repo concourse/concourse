@@ -70,10 +70,10 @@
   }
 
   \note{feature}{
-    Inputs to jobs that are not configured to \reference{trigger} the job when
-    new versions appear will now be rendered with a dashed line. This makes it
-    easier to see which resources automate the pipeline flow, and which jobs
-    are only ever manually triggered.
+    Inputs to jobs that are not configured to \reference{get-step-trigger} the
+    job when new versions appear will now be rendered with a dashed line. This
+    makes it easier to see which resources automate the pipeline flow, and
+    which jobs are only ever manually triggered.
   }
 
   \note{feature}{

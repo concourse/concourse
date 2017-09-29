@@ -88,8 +88,8 @@
     This feature is implemented in a way that requires no changes from any
     resources - it "just works". There's no special integration with GitHub,
     BitBucket, or any hosted offering; you just configure
-    \reference{webhook_token} in your resource and pass the hook URL to your
-    service.
+    \reference{resource-webhook-token} in your resource and pass the hook URL
+    to your service.
   }
 
   \note{feature}{

@@ -359,8 +359,8 @@ as).
   Even with a pipeline exposed, all build logs are hidden by default. This is
   because CI jobs are prone to leaking credentials and other...unsavory
   information. After you've determined that a job's builds should be safe for
-  public consumption, you can set \reference{public}{\code{public: true}} on
-  the job in your pipeline.
+  public consumption, you can set \reference{job-public}{\code{public: true}}
+  on the job in your pipeline.
 }
 
 \section{

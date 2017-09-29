@@ -161,7 +161,7 @@
   make sure it doesn't run concurrently with anything else doing the same
   thing. Otherwise we may generate versions or release candidates out of order.
 
-  This is done by specifying \reference{serial_groups}, which is a list of
+  This is done by specifying \reference{job-serial-groups}, which is a list of
   arbitrary tags. We'll make sure to list the same tags in the other jobs which
   modify the version.
 }{
@@ -393,7 +393,7 @@
 \literate-segment{
   The \code{major} job simply has a \reference{put-step} for bumping the
   version in-place. Because it's modifying the version, we'll use
-  \reference{serial_groups} to ensure it doesn't run concurrently with
+  \reference{job-serial-groups} to ensure it doesn't run concurrently with
   \code{build-rc}, \code{shipit}, and the other bump jobs.
 }{
   \codeblock{yaml}{{{

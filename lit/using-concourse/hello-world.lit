@@ -121,8 +121,8 @@ Your pipeline should now look like this:
 
 Every minute, the \code{every-1m} resource will yield a new version. This
 resource is used in a \reference{get-step} step in the \code{navi} job, which
-sets \reference{trigger} to \code{true}, so as a result the job will run every
-minute.
+sets \reference{get-step-trigger} to \code{true}, so as a result the job will
+run every minute.
 
 Now may be a good time to start learning about the
 \reference{resource-types}{different types of resources} or start looking at

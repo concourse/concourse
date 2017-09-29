@@ -70,8 +70,9 @@ Once you've figured out your tasks's configuration, you can reuse it for a
       }{image-resource-type}
 
       \define-attribute{source: object}{
-        \italic{Required.} The configuration for the resource; see \reference{source}.
-        If not specified, the input's \code{name} is used.
+        \italic{Required.} The configuration for the resource; see
+        \reference{resource-source}. If not specified, the input's \code{name}
+        is used.
 
         Paths are relative to the working directory of the task. Absolute paths
         are not respected.
@@ -154,14 +155,14 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     \inset{
       \define-attribute{name: string}{
         \italic{Required.} The logical name of the input.
-      }
+      }{input-name}
 
       \define-attribute{path: string}{
         \italic{Optional.} The path where the input will be placed. If not
         specified, the input's \code{name} is used.
 
         Paths are relative to the working directory of the task. Absolute paths are not respected.
-      }
+      }{input-path}
     }
   }
 
@@ -180,7 +181,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
         \italic{Required.} The logical name of the output. The contents under
         \code{path} will be made available to the rest of the plan under this
         name.
-      }
+      }{output-name}
 
       \define-attribute{path: string}{
         \italic{Optional.} The path to a directory where the output will be
@@ -192,7 +193,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
         outputs. Each output results in a new empty directory that your task
         should place artifacts in; if the path overlaps it'll clobber whatever
         files used to be there.
-      }
+      }{output-path}
     }
 
     For example, the following task and script would be used to propagate a
@@ -240,69 +241,74 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   }
 
   \define-attribute{caches: [object]}{
-      \italic{Optional.} The cached directories shared between task runs.
+    \italic{Optional.} The cached directories shared between task runs.
 
-      On the task's first run, all cache directories will be empty. It is the responsibility of the task to
-      populate these directories with any artifacts to be cached. On subsequent runs, the cached directories will
-      contain those artifacts.
+    On the task's first run, all cache directories will be empty. It is the
+    responsibility of the task to populate these directories with any artifacts
+    to be cached. On subsequent runs, the cached directories will contain those
+    artifacts.
 
-      Caches are scoped to the worker the task is run on, so you will not get a cache hit when subsequent builds run
-      on different workers. This also means that caching is not intended to share state between workers, and your task
-      should be able to run whether or not the cache is warmed.
+    Caches are scoped to the worker the task is run on, so you will not get a
+    cache hit when subsequent builds run on different workers. This also means
+    that caching is not intended to share state between workers, and your task
+    should be able to run whether or not the cache is warmed.
 
-      Caches are also scoped to a particular task name inside of a pipeline's job. As a consequence, if the job name,
-      step name or cache path are changed, the cache will not be used. This also means that caches do not exist for
-      one-off builds.
+    Caches are also scoped to a particular task name inside of a pipeline's
+    job. As a consequence, if the job name, step name or cache path are
+    changed, the cache will not be used. This also means that caches do not
+    exist for one-off builds.
 
-      Each cache has the following attributes:
+    Each cache has the following attributes:
 
-      \inset{
-        \define-attribute{path: string}{
-          \italic{Required.} The path to a directory to be cached.
+    \inset{
+      \define-attribute{path: string}{
+        \italic{Required.} The path to a directory to be cached.
 
-          Paths are relative to the working directory of the task. Absolute paths are not respected.
+        Paths are relative to the working directory of the task. Absolute paths
+        are not respected.
 
-          Note that this value \italic{must not overlap} with any other caches in the same task.
-          Each cache results in a new empty directory that your task can place artifacts in;
-          if the path overlaps it'll clobber whatever files used to be there.
-        }
-      }
-
-      For example, the following task and script define a node project that takes advantage
-      of task caches for its node modules:
-
-      \codeblock{yaml}{{
-      ---
-      platform: linux
-
-      image_resource: # ...
-
-      inputs:
-      - name: project-src
-
-      caches:
-      - path: project-src/node_modules
-
-      run:
-        path: project-src/ci/build
-      }}
-
-      ...assuming \code{project-src/ci/build} looks something like:
-
-      \codeblock{bash}{{
-      #!/bin/bash
-
-      set -e -u -x
-
-      cd project-src
-      npm install
-
-      # ...
-      }}
-
-      ...this task would cache the contents of \code{project-src/node_modules} between runs of this
-      task on the same worker.
+        Note that this value \italic{must not overlap} with any other caches in
+        the same task. Each cache results in a new empty directory that your
+        task can place artifacts in; if the path overlaps it'll clobber
+        whatever files used to be there.
+      }{cache-path}
     }
+
+    For example, the following task and script define a node project that takes
+    advantage of task caches for its node modules:
+
+    \codeblock{yaml}{{
+    ---
+    platform: linux
+
+    image_resource: # ...
+
+    inputs:
+    - name: project-src
+
+    caches:
+    - path: project-src/node_modules
+
+    run:
+      path: project-src/ci/build
+    }}
+
+    ...assuming \code{project-src/ci/build} looks something like:
+
+    \codeblock{bash}{{
+    #!/bin/bash
+
+    set -e -u -x
+
+    cd project-src
+    npm install
+
+    # ...
+    }}
+
+    ...this task would cache the contents of \code{project-src/node_modules} between runs of this
+    task on the same worker.
+  }
 
   \define-attribute{run: object}{
     \italic{Required.} The command to execute in the container.
@@ -348,7 +354,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 
     Use this to provide things like credentials, not to set up the task's
     Bash environment (they do not support interpolation).
-  }
+  }{task-params}
 }
 
 \section{

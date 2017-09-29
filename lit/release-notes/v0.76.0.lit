@@ -18,7 +18,7 @@
 
   \note{feature}{
     Jobs can now have their manual triggering disabled, via
-    \reference{disable_manual_trigger}.
+    \reference{job-disable-manual-trigger}.
   }
 
   \note{feature}{

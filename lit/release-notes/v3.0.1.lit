@@ -13,9 +13,9 @@
 
   \note{fix}{
     Fixed a regression in \reference{task-step}s causing their
-    \reference{task-params} to not be set in the environment when hijacking.
-    This got lost in a cleanup and is now handled in a much simpler way, and
-    also tested so it doesn't regress again.
+    \reference{task-step-params} to not be set in the environment when
+    hijacking. This got lost in a cleanup and is now handled in a much simpler
+    way, and also tested so it doesn't regress again.
   }
 
   \note{fix}{

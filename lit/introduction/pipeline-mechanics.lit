@@ -63,10 +63,10 @@ below.
     \reference{get-step} step is filtered down by two things:
 
     \list{
-      A \reference{passed} constraint on the step itself will make sure that
-      only versions that have passed a set of jobs will be considered for
-      inputs. This means that they were either an input to a successful build
-      of that job or they were a version that was created (via
+      A \reference{get-step-passed} constraint on the step itself will make
+      sure that only versions that have passed a set of jobs will be considered
+      for inputs. This means that they were either an input to a successful
+      build of that job or they were a version that was created (via
       \reference{put-step}) by a successful build of that job.
     }{
       Versions of resources can be
@@ -75,8 +75,8 @@ below.
       pipeline itself did not discover.
     }{
       The version to fetch may be pinned to a specific version or instructed to
-      pick the next available one by configuring \reference{get-version} on the
-      step.
+      pick the next available one by configuring \reference{get-step-version}
+      on the step.
     }
 
     Putting these constraints together, the following illustration shows how
@@ -101,7 +101,7 @@ below.
         \normal{1}
       }
 
-      \column{\reference{passed}{\code{passed}}}{
+      \column{\reference{get-step-passed}{\code{passed}}}{
         \good{8}
       }{
         \good{7}
@@ -157,11 +157,11 @@ below.
     }
 
     Note that with multiple \reference{get-step} steps in a job's
-    \reference{build-plans}{build plan}, their \reference{passed} constraints
-    will be correlated, and only sets of versions that satisfy all constraints
-    at once will be considered. The semantics here are nuanced but should
-    quickly become pretty intuitive; see the docs on \reference{passed} for
-    more information.
+    \reference{build-plans}{build plan}, their \reference{get-step-passed}
+    constraints will be correlated, and only sets of versions that satisfy all
+    constraints at once will be considered. The semantics here are nuanced but
+    should quickly become pretty intuitive; see the docs on
+    \reference{get-step-passed} for more information.
   }
 
   \section{
@@ -172,7 +172,7 @@ below.
 
     By default, jobs won't automatically run when a new set of candidate
     versions becomes available. This behaviour can be changed by adding
-    \reference{trigger}{\code{trigger: true}} to any of the
+    \reference{get-step-trigger}{\code{trigger: true}} to any of the
     \reference{get-step} steps in your plan. This will make it so that the when
     a new set of candidates is discovered, and the version for the \code{get}
     step is new, then a build will be scheduled automatically. This is

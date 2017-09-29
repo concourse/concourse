@@ -74,7 +74,7 @@ consists of the following attributes:
   \reference{configuring-resources} defined within the same
   pipeline, and \reference{image_resource}s used by tasks running in the
   pipeline.
-}
+}{resource-type-name}
 
 \define-attribute{type: string}{
   \italic{Required.} The type of the resource used to provide the resource
@@ -82,7 +82,7 @@ consists of the following attributes:
   \code{docker-image}, as the resource type must result in a container image,
   though there may be other image formats (possibly themselves defined as
   custom resource types!).
-}
+}{resource-type-type}
 
 \define-attribute{source: object}{
   \italic{Optional.} The location of the resource type's resource. This varies

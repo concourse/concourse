@@ -335,22 +335,22 @@
       \inset{
         \define-attribute{name: string}{
           The unique name for the worker used to identify it in the cluster.
-        }{worker-addr}
+        }{worker-table-name}
 
         \define-attribute{addr: string}{
           The full address of the Garden server running for the worker.
-        }{worker-addr}
+        }{worker-table-addr}
 
         \define-attribute{state: RUNNING, STALLED, LANDING, LANDED, RETIRING}{
           The current state of the worker. This keeps track of the worker's
           lifecycle in order to handle the lifecycle of workers and their
           ability to have new containers or volumes created on them.
-        }{worker-state}
+        }{worker-table-state}
 
         \define-attribute{baggageclaim_url: string}{
           The full address of the worker's baggageclaim server; used to store volumes
           on the worker.
-        }
+        }{worker-table-baggageclaim-url}
       }
     }
 

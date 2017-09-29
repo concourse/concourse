@@ -128,7 +128,7 @@
     future.
 
     This refactor also resulting in fixing behavior with
-    \reference{get-version}{\code{version: every}}.
+    \reference{get-step-version}{\code{version: every}}.
   }
 
   \note{fix}{

@@ -23,12 +23,12 @@ Each configured job consists of the following attributes:
 \define-attribute{name: string}{
   \italic{Required.} The name of the job. This should be short; it will show up
   in URLs.
-}
+}{job-name}
 
 \define-attribute{serial: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, builds will
   queue up and execute one-by-one, rather than executing in parallel.
-}
+}{job-serial}
 
 \define-attribute{build_logs_to_retain: number}{
   \italic{Optional.} If configured, only the last specified number of builds
@@ -47,7 +47,7 @@ Each configured job consists of the following attributes:
     - task: smoke-tests
       # ...
   }}
-}
+}{job-build-logs-to-retain}
 
 \define-attribute{serial_groups: [string]}{
   \italic{Optional. Default \code{[]}.} When set to an array of arbitrary
@@ -72,13 +72,13 @@ Each configured job consists of the following attributes:
 
   The builds are executed in their order of creation, across all jobs with
   common tags.
-}
+}{job-serial-groups}
 
 \define-attribute{max_in_flight: integer}{
   \italic{Optional.} If set, specifies a maximum number of builds to run at a
   time. If \code{serial} or \code{serial_groups} are set, they take precedence
   and force this value to be \code{1}.
-}
+}{job-max-in-flight}
 
 \define-attribute{public: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, the build log
@@ -86,13 +86,13 @@ Each configured job consists of the following attributes:
   will always be able to see the inputs, outputs, and build status history of a
   job. This is useful if you would like to expose your pipeline publicly without
   showing sensitive information in the build log.
-}
+}{job-public}
 
 \define-attribute{disable_manual_trigger: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, manual
   triggering of the job (via the web UI or \reference{fly-trigger-job}) will be
   disabled.
-}
+}{job-disable-manual-trigger}
 
 \define-attribute{interruptible: boolean}{
   \italic{Optional. Default \code{false}.} Normally, when a worker is shutting
@@ -100,7 +100,7 @@ Each configured job consists of the following attributes:
   before exiting. If this value is set to \code{true}, the worker will not wait
   on the builds of this job. You may want this if e.g. you have a
   self-deploying Concourse or long-running-but-low-importance jobs.
-}
+}{job-interruptible}
 
 \define-attribute{on_success: step}{
   \italic{Optional.} Step to execute when the job succeeds. Equivalent to the
@@ -119,4 +119,4 @@ Each configured job consists of the following attributes:
 
 \define-attribute{plan: [step]}{
   \italic{Required.} The \reference{build-plans}{Build Plan} to execute.
-}
+}{job-plan}

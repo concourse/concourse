@@ -139,7 +139,7 @@ plan:
 
   If the pipeline used this \code{task.yml} but did not set \code{BAR}, the
   value of \code{$BAR} would be set to the empty string in the task container.
-}{task-params}
+}{task-step-params}
 
 \define-attribute{image: string}{
   \italic{Optional.} Names an artifact source within the plan containing an

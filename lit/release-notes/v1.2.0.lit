@@ -29,10 +29,10 @@
     This will lock the \code{my-repo} step to the specified version. Note that
     the version must be valid, must be collected in the resource's version
     history (which means you may want to use \reference{fly-check-resource}),
-    and must also satisfy any \reference{passed} constraints listed on the
-    step.
+    and must also satisfy any \reference{get-step-passed} constraints listed on
+    the step.
 
-    See \reference{get-version} for more information.
+    See \reference{get-step-version} for more information.
   }
 
   \note{feature}{
@@ -53,7 +53,7 @@
     auditing, handling all pull requests, processing commits across multiple
     branches, etc.).
 
-    See \reference{get-version} for more information.
+    See \reference{get-step-version} for more information.
   }
 
   \note{fix}{
