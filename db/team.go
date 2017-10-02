@@ -635,7 +635,7 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 			"team_id": t.id,
 			"public":  true,
 		}).
-		OrderBy("ordering").
+		OrderBy("team_id ASC", "ordering ASC").
 		RunWith(t.conn).
 		Query()
 	if err != nil {
@@ -653,7 +653,7 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 func (t *team) VisiblePipelines() ([]Pipeline, error) {
 	rows, err := pipelinesQuery.
 		Where(sq.Eq{"team_id": t.id}).
-		OrderBy("ordering").
+		OrderBy("team_id ASC", "ordering ASC").
 		RunWith(t.conn).
 		Query()
 	if err != nil {
@@ -668,7 +668,7 @@ func (t *team) VisiblePipelines() ([]Pipeline, error) {
 	rows, err = pipelinesQuery.
 		Where(sq.NotEq{"team_id": t.id}).
 		Where(sq.Eq{"public": true}).
-		OrderBy("ordering").
+		OrderBy("team_id ASC", "ordering ASC").
 		RunWith(t.conn).
 		Query()
 	if err != nil {
