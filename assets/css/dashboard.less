@@ -34,7 +34,7 @@
     float: none;
     display: flex;
     flex-direction: row;
-    padding: 0 (50px * @scale);
+    padding: 10px (50px * @scale) 0;
   }
 
   .pipeline-grid >* {
@@ -141,7 +141,7 @@
 
 .dashboard-team-group {
   padding-top: (55px * @scale);
-  clear: both;
+  overflow: hidden;
 
   &:first-of-type {
     padding-top: 30px;
@@ -158,7 +158,7 @@
 }
 
 .dashboard-team-pipeline {
-  width:  ~"calc(100% - 30px)";
+  width: ~"calc(100% - 30px)";
 }
 
 @keyframes pipeline-running {
@@ -167,7 +167,6 @@
 }
 
 .dashboard-pipeline {
-  overflow: hidden;
   display: inline-block;
   margin-bottom: (50px * @scale);
   margin-right: (50px * @scale);
@@ -189,6 +188,17 @@
     flex-basis: 100%;
   }
 
+  .dashboard-pipeline-header {
+    border-bottom: 1px solid #6E6E6E;
+    display: flex;
+    height: (70px * @scale);
+    position: relative;
+    padding-left: 30px;
+    &:hover {
+      background: #181818;
+    }
+  }
+
   .dashboard-pipeline-banner {
     flex-basis: 100%;
     max-height: (5px * @scale);
@@ -204,15 +214,12 @@
     position: relative;
 
     &:hover {
-      background: #181818;
-
       .build-duration:after {
         border-color: #181818;
       }
     }
   }
 
-  .dashboard-pipeline-header,
   .dashboard-pipeline-footer {
     display: flex;
     height: (70px * @scale);
