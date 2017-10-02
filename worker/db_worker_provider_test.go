@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 
+	"code.cloudfoundry.org/garden/client"
+	"code.cloudfoundry.org/garden/client/connection"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -63,6 +65,7 @@ var _ = Describe("DBProvider", func() {
 	)
 
 	BeforeEach(func() {
+		var err error
 		baggageclaimServer = ghttp.NewServer()
 
 		baggageclaimServer.RouteToHandler("POST", "/volumes", ghttp.RespondWithJSONEncoded(
@@ -83,7 +86,18 @@ var _ = Describe("DBProvider", func() {
 		logger = lagertest.NewTestLogger("test")
 		gardenServer = server.New("tcp", gardenAddr, 0, fakeGardenBackend, logger)
 		baggageclaimResponseHeaderTimeout = 10 * time.Minute
-		err := gardenServer.Start()
+
+		go func() {
+			defer GinkgoRecover()
+			err = gardenServer.ListenAndServe()
+			Expect(err).NotTo(HaveOccurred())
+
+		}()
+
+		apiClient := client.New(connection.New("tcp", gardenAddr))
+		Eventually(apiClient.Ping).Should(Succeed())
+
+		err = gardenServer.SetupBomberman()
 		Expect(err).NotTo(HaveOccurred())
 
 		worker1Version := "1.2.3"
