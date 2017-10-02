@@ -25,7 +25,7 @@ describe 'dashboard', type: :feature do
     fly_login team_name
   end
 
-  it 'shows all pipelins from the authenticated team and public pipelines from other teams' do
+  it 'shows all pipelines from the authenticated team and public pipelines from other teams' do
     dash_login team_name
 
     visit dash_route('/dashboard')
