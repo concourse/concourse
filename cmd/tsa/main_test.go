@@ -117,7 +117,16 @@ var _ = Describe("TSA SSH Registrar", func() {
 			fakeBackend = new(gfakes.FakeBackend)
 
 			gardenServer = gserver.New("tcp", gardenAddr, 0, fakeBackend, lagertest.NewTestLogger("garden"))
-			err := gardenServer.Start()
+			go func() {
+				defer GinkgoRecover()
+				err := gardenServer.ListenAndServe()
+				Expect(err).NotTo(HaveOccurred())
+			}()
+
+			apiClient := gclient.New(gconn.New("tcp", gardenAddr))
+			Eventually(apiClient.Ping).Should(Succeed())
+
+			err := gardenServer.SetupBomberman()
 			Expect(err).NotTo(HaveOccurred())
 
 			baggageclaimServer = ghttp.NewServer()
