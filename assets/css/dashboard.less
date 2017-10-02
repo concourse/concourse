@@ -157,12 +157,17 @@
   margin-right: 30px;
 }
 
+.dashboard-team-pipeline {
+  width:  ~"calc(100% - 30px)";
+}
+
 @keyframes pipeline-running {
   0%   { background-position-x: -27px; }
   100% { background-position-x: 0px; }
 }
 
 .dashboard-pipeline {
+  overflow: hidden;
   display: inline-block;
   margin-bottom: (50px * @scale);
   margin-right: (50px * @scale);
