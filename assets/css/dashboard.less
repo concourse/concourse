@@ -232,6 +232,10 @@
   background-image: repeating-linear-gradient(120deg, @color1 0, @color1 (10px * @scale), @color2 0, @color2 (20px * @scale));
   animation: pipeline-running 1s linear infinite;
 }
+.running-animation-job(@color1, @color2) {
+  background-image: repeating-linear-gradient(120deg, @color1 2px, @color1 3px, @color2 0, @color2 5px);
+  animation: pipeline-running 1s linear infinite;
+}
 
 .dashboard-paused {
   .dashboard-pipeline-banner {
@@ -255,6 +259,9 @@
   }
 
   &.dashboard-running {
+    .node.pending {
+      .running-animation-job(@base04, @base01);
+    }
     .dashboard-pipeline-banner {
       .running-animation(@base07, @base01);
     }
@@ -275,6 +282,9 @@
   }
 
   &.dashboard-running {
+    .node.failed {
+      .running-animation-job(@base08, @base01);
+    }
     .dashboard-pipeline-banner {
       .running-animation(@base08, @base01);
     }
@@ -295,6 +305,9 @@
   }
 
   &.dashboard-running {
+    .node.aborted {
+      .running-animation-job(@base0F, @base01);
+    }
     .dashboard-pipeline-banner {
       .running-animation(@base0F, @base01);
     }
@@ -315,6 +328,9 @@
   }
 
   &.dashboard-running {
+    .node.succeeded {
+      .running-animation-job(@base0B, @base01);
+    }
     .dashboard-pipeline-banner {
       .running-animation(@base0B, @base01);
     }
@@ -335,6 +351,9 @@
   }
 
   &.dashboard-running {
+    .node.errored {
+      .running-animation-job(@base09, @base01);
+    }
     .dashboard-pipeline-banner {
       .running-animation(@base09, @base01);
     }
