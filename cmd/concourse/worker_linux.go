@@ -80,7 +80,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 	}
 
 	if hasAssets {
-		cmd.Garden.Bin.Runc = cmd.assetPath("bin", "runc")
+		cmd.Garden.Runtime.Plugin = cmd.assetPath("bin", "runc")
 		cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(cmd.assetPath("bin", "dadoo"))
 		cmd.Garden.Bin.Init = guardiancmd.FileFlag(cmd.assetPath("bin", "init"))
 		cmd.Garden.Bin.NSTar = guardiancmd.FileFlag(cmd.assetPath("bin", "nstar"))
