@@ -23,14 +23,16 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 			},
 		)
 
-		emit(
-			tLog.Session("database-connections"),
-			Event{
-				Name:  "database connections",
-				Value: DatabaseConnections.Max(),
-				State: EventStateOK,
-			},
-		)
+		if Database != nil {
+			emit(
+				tLog.Session("database-connections"),
+				Event{
+					Name:  "database connections",
+					Value: Database.Stats().OpenConnections,
+					State: EventStateOK,
+				},
+			)
+		}
 
 		emit(
 			logger.Session("containers-deleted"),

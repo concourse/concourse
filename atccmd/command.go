@@ -232,11 +232,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	connectionCountingDriverName := "connection-counting"
-	metric.SetupConnectionCountingDriver("postgres", cmd.Postgres.ConnectionString(), connectionCountingDriverName)
-
 	retryingDriverName := "too-many-connections-retrying"
-	db.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
+	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
 
 	var variablesFactory creds.VariablesFactory = noop.NewNoopFactory()
 	for name, manager := range cmd.CredentialManagers {
@@ -751,6 +748,7 @@ func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, n
 
 	// Instrument with Metrics
 	dbConn = metric.CountQueries(dbConn)
+	metric.Database = dbConn
 
 	// Instrument with Logging
 	if cmd.LogDBQueries {

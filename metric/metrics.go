@@ -8,8 +8,8 @@ import (
 	"github.com/concourse/atc/db"
 )
 
+var Database db.Conn
 var DatabaseQueries = Meter(0)
-var DatabaseConnections = &Gauge{}
 
 var ContainersCreated = Meter(0)
 var VolumesCreated = Meter(0)
