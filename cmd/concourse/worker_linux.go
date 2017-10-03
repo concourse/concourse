@@ -38,7 +38,7 @@ func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
 	command.FindOptionByLongName("garden-graph").Default = []string{}
 
 	// these are provided as assets embedded in the 'concourse' binary
-	command.FindOptionByLongName("garden-runc-bin").Required = false
+	command.FindOptionByLongName("garden-runtime-plugin").Required = false
 	command.FindOptionByLongName("garden-dadoo-bin").Required = false
 	command.FindOptionByLongName("garden-init-bin").Required = false
 	command.FindOptionByLongName("garden-nstar-bin").Required = false
