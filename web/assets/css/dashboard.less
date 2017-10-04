@@ -219,13 +219,12 @@
 }
 
 @keyframes pipeline-running {
-  0%   { background-position-x: -17px; }
+  0%   { background-position-x: -24px; }
   100% { background-position-x: 0px; }
 }
 
 .running-animation(@color1, @color2) {
-  background-image: repeating-linear-gradient(-45deg, @color1 0, @color1 (10px * @scale), @color2 0, @color2 (20px * @scale));
-  background-size: 17px 17px;
+  background-image: repeating-linear-gradient(-45deg, @color1 0, @color1 6px, @color2 0, @color2 17px);
   animation: pipeline-running 1s linear infinite;
 }
 
