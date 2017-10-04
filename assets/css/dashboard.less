@@ -1,8 +1,15 @@
+@font-face {
+  font-family: "iosevka";
+  src: url("../fonts/iosevka-regular.ttc");
+}
+
 @scale: 0.6;
 
 .dashboard-content {
+  font-family: "iosevka";
+  letter-spacing: 0.1em;
   padding: 0 0 30px 30px;
-  background: #1E1D1D;
+  background: #333;
   overflow: auto;
 
   @base01: #2B2B2B;
@@ -17,14 +24,20 @@
   @base0E: #9B59B6; /* purple */
   @base0F: #8F4B2D; /* brown */
 
-  .pending { background: @base04; }
-  .started { background: @base0A; }
+  .pending   { background: @base04; }
+  .started   { background: @base0A; }
   .no-builds { background: @base03; }
   .succeeded { background: @base0B; }
-  .failed { background: @base08; }
-  .errored { background: @base09; }
-  .aborted { background: @base0F; }
-  .paused { background: @base0D; }
+  .failed    { background: @base08; }
+  .errored   { background: @base09; }
+  .aborted   { background: @base0F; }
+  .paused    { background: @base0D; }
+
+  .no-builds.running { .running-animation(@base04, #666565); }
+  .succeeded.running { .running-animation(@base0B, #0D4E2A); }
+  .failed.running    { .running-animation(@base08, #8D2D20); }
+  .errored.running   { .running-animation(@base09, #9C650A); }
+  .aborted.running   { .running-animation(@base0F, #5A320E); }
 
   .top-bar & {
     background: #1E1E1E;
@@ -34,7 +47,7 @@
     float: none;
     display: flex;
     flex-direction: row;
-    padding: 10px (50px * @scale) 0;
+    padding: 20px 36px 10px;
   }
 
   .pipeline-grid >* {
@@ -53,21 +66,11 @@
   }
 
   .build-duration {
+    display: inline-block;
+    vertical-align: middle;
     color: @base08;
     font-size: (30px * @scale);
-    margin: auto 0 auto 20px;
-
-    &.with-gap {
-      text-transform: uppercase;
-    }
-
-    &.with-gap:after {
-      border-bottom: 1px solid @base01;
-      display: block;
-      content: ' ';
-      position: relative;
-      top: -9px;
-    }
+    margin-left: (16px * @scale);
   }
 }
 
@@ -75,8 +78,8 @@
   position: fixed;
   bottom: 0;
   width: 100%;
-  background: #393838;
-  padding: 15px 0;
+  background: #1E1D1D;
+  padding: 15px 0 5px 0;
   text-align: right;
   color: #7E7E7E;
   font-size: 10px;
@@ -150,7 +153,6 @@
 
 .dashboard-team-name {
   color: #6E6E6E;
-  border-top: 1px solid #6E6E6E;
   padding-top: (8px * @scale);
   font-size: (30px * @scale);
   margin-bottom: (25px * @scale);
@@ -161,17 +163,12 @@
   width: ~"calc(100% - 30px)";
 }
 
-@keyframes pipeline-running {
-  0%   { background-position-x: -27px; }
-  100% { background-position-x: 0px; }
-}
-
 .dashboard-pipeline {
   display: inline-block;
   margin-bottom: (50px * @scale);
   margin-right: (50px * @scale);
 
-  @base01: #2B2B2B;
+  @base01: #262626;
   @base03: #6E6E6E;
   @base07: #979797; /* light grey (pending) */
   @base08: #ED4B35; /* red */
@@ -189,11 +186,7 @@
   }
 
   .dashboard-pipeline-header {
-    border-bottom: 1px solid #6E6E6E;
-    display: flex;
-    height: (70px * @scale);
-    position: relative;
-    padding-left: 30px;
+    border-bottom: 1px solid #333;
     &:hover {
       background: #181818;
     }
@@ -201,10 +194,9 @@
 
   .dashboard-pipeline-banner {
     flex-basis: 100%;
-    max-height: (5px * @scale);
     background-color: @base07;
     background-size: 200% 100%;
-    height: (5px * @scale);
+    height: (14px * @scale);
   }
 
   .dashboard-pipeline-content {
@@ -221,19 +213,19 @@
   }
 
   .dashboard-pipeline-footer {
-    display: flex;
-    height: (70px * @scale);
-    position: relative;
-    margin-left: 30px;
+    text-align: center;
+    margin-bottom: (27px * @scale);
   }
 }
 
-.running-animation(@color1, @color2) {
-  background-image: repeating-linear-gradient(120deg, @color1 0, @color1 (10px * @scale), @color2 0, @color2 (20px * @scale));
-  animation: pipeline-running 1s linear infinite;
+@keyframes pipeline-running {
+  0%   { background-position-x: -17px; }
+  100% { background-position-x: 0px; }
 }
-.running-animation-job(@color1, @color2) {
-  background-image: repeating-linear-gradient(120deg, @color1 2px, @color1 3px, @color2 0, @color2 5px);
+
+.running-animation(@color1, @color2) {
+  background-image: repeating-linear-gradient(-45deg, @color1 0, @color1 (10px * @scale), @color2 0, @color2 (20px * @scale));
+  background-size: 17px 17px;
   animation: pipeline-running 1s linear infinite;
 }
 
@@ -244,7 +236,6 @@
 
   .dashboard-pipeline-icon {
     background-image: url('images/ic_pause_blue.svg');
-    background-size: 15px 15px;
   }
 
   .build-duration {
@@ -255,13 +246,9 @@
 .dashboard-status-pending {
   .dashboard-pipeline-icon {
     background-image: url('images/ic_pending_grey.svg');
-    background-size: 15px 15px;
   }
 
   &.dashboard-running {
-    .node.pending {
-      .running-animation-job(@base04, @base01);
-    }
     .dashboard-pipeline-banner {
       .running-animation(@base07, @base01);
     }
@@ -278,13 +265,9 @@
 
   .dashboard-pipeline-icon {
     background-image: url('images/ic_failing_red.svg');
-    background-size: 15px 15px;
   }
 
   &.dashboard-running {
-    .node.failed {
-      .running-animation-job(@base08, @base01);
-    }
     .dashboard-pipeline-banner {
       .running-animation(@base08, @base01);
     }
@@ -301,13 +284,9 @@
 
   .dashboard-pipeline-icon {
     background-image: url('images/ic_aborted_brown.svg');
-    background-size: 15px 15px;
   }
 
   &.dashboard-running {
-    .node.aborted {
-      .running-animation-job(@base0F, @base01);
-    }
     .dashboard-pipeline-banner {
       .running-animation(@base0F, @base01);
     }
@@ -324,13 +303,9 @@
 
   .dashboard-pipeline-icon {
     background-image: url('images/ic_running_green.svg');
-    background-size: 15px 15px;
   }
 
   &.dashboard-running {
-    .node.succeeded {
-      .running-animation-job(@base0B, @base01);
-    }
     .dashboard-pipeline-banner {
       .running-animation(@base0B, @base01);
     }
@@ -347,13 +322,9 @@
 
   .dashboard-pipeline-icon {
     background-image: url('images/ic_error_orange.svg');
-    background-size: 15px 15px;
   }
 
   &.dashboard-running {
-    .node.errored {
-      .running-animation-job(@base09, @base01);
-    }
     .dashboard-pipeline-banner {
       .running-animation(@base09, @base01);
     }
@@ -364,20 +335,27 @@
 }
 
 .dashboard-pipeline-icon {
-  min-width: 15px;
-  height: 15px;
+  display: inline-block;
+  vertical-align: middle;
+  background-size: 20px 20px;
+  min-width: 20px;
+  height: 20px;
   background-repeat: no-repeat;
-  position: absolute;
-  top: 12px;
 }
 
 .dashboard-pipeline-name {
-  font-size: (30px * @scale);
-  margin: auto 0;
+  text-align: center;
+  font-size: (34px * @scale);
+  margin: 0 auto;
+  padding: (17px * @scale);
+  width: (300px * @scale);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pipeline-grid {
-  width: 180px;
+  width: 200px;
   height: 120px;
 }
 
