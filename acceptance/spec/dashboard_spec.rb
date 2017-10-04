@@ -218,7 +218,7 @@ describe 'dashboard', type: :feature do
     it 'displays the time since the earliest failed build' do
       visit_dashboard
       within '.dashboard-pipeline', text: 'some-pipeline' do
-        expect(page.text).to match(/some-pipeline [\d]{1,2}S/)
+        expect(page.text).to match(/some-pipeline [\d]{1,2}s/)
       end
     end
   end
