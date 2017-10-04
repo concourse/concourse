@@ -69,7 +69,7 @@ viewJob job =
         <|
             case latestBuild of
                 Nothing ->
-                    [ Html.text "" ]
+                    [ Html.a [ href job.url ] [ Html.text "" ] ]
 
                 Just build ->
                     [ Html.a [ href build.url ] [ Html.text "" ] ]
