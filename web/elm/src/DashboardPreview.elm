@@ -41,7 +41,7 @@ view jobs =
 viewJob : Concourse.Job -> Html msg
 viewJob job =
     let
-        linkAttrs =
+        jobStatus =
             case job.finishedBuild of
                 Just fb ->
                     Concourse.BuildStatus.show fb.status
@@ -49,13 +49,24 @@ viewJob job =
                 Nothing ->
                     "no-builds"
 
+        isJobRunning =
+            (/=) job.nextBuild Nothing
+
         latestBuild =
             if job.nextBuild == Nothing then
                 job.finishedBuild
             else
                 job.nextBuild
     in
-        Html.div [ class ("node " ++ linkAttrs), attribute "data-tooltip" job.name ] <|
+        Html.div
+            [ classList
+                [ ( "node " ++ jobStatus, True )
+                , ( "running", isJobRunning )
+                , ( "paused", job.paused )
+                ]
+            , attribute "data-tooltip" job.name
+            ]
+        <|
             case latestBuild of
                 Nothing ->
                     [ Html.text "" ]
