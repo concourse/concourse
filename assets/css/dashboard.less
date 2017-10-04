@@ -5,14 +5,10 @@
 
 @scale: 0.6;
 
-.dashboard-content {
-  font-family: "iosevka";
-  letter-spacing: 0.1em;
-  padding: 0 0 30px 30px;
-  background: #333;
-  overflow: auto;
-
-  @base01: #2B2B2B;
+.dashboard {
+  @base00: #333333;
+  @base01: #262626;
+  @base02: #181818;
   @base03: #6E6E6E;
   @base07: #979797; /* light grey (pending) */
   @base08: #ED4B35; /* red */
@@ -24,6 +20,13 @@
   @base0E: #9B59B6; /* purple */
   @base0F: #8F4B2D; /* brown */
 
+  .dashboard-content {
+    font-family: "iosevka";
+    letter-spacing: 0.1em;
+    padding: 0 0 30px 30px;
+    background: @base00;
+  }
+
   .pending   { background: @base04; }
   .started   { background: @base0A; }
   .no-builds { background: @base03; }
@@ -33,20 +36,16 @@
   .aborted   { background: @base0F; }
   .paused    { background: @base0D; }
 
+  .running { background-size: 200% 100%; }
   .no-builds.running { .running-animation(@base04, #666565); }
   .succeeded.running { .running-animation(@base0B, #0D4E2A); }
   .failed.running    { .running-animation(@base08, #8D2D20); }
   .errored.running   { .running-animation(@base09, #9C650A); }
   .aborted.running   { .running-animation(@base0F, #5A320E); }
 
-  .top-bar & {
-    background: #1E1E1E;
-  }
-
   .pipeline-grid {
     float: none;
     display: flex;
-    flex-direction: row;
     padding: 20px 36px 10px;
   }
 
@@ -68,9 +67,165 @@
   .build-duration {
     display: inline-block;
     vertical-align: middle;
-    color: @base08;
     font-size: (30px * @scale);
     margin-left: (16px * @scale);
+  }
+
+  .dashboard-team-group {
+    padding-top: (55px * @scale);
+    overflow: hidden;
+  }
+
+  .dashboard-team-name {
+    color: @base03;
+    font-size: (30px * @scale);
+    margin-bottom: (25px * @scale);
+  }
+
+  .dashboard-pipeline {
+    display: inline-block;
+    margin-bottom: (50px * @scale);
+    margin-right: (50px * @scale);
+
+    .dashboard-pipeline-header {
+      border-bottom: 1px solid @base00;
+      &:hover {
+        background: @base02;
+      }
+    }
+
+    .dashboard-pipeline-banner {
+      background-color: @base07;
+      background-size: 200% 100%;
+      height: (14px * @scale);
+    }
+
+    .dashboard-pipeline-content {
+      display: flex;
+      flex-direction: column;
+      background: #2B2B2B;
+      position: relative;
+    }
+
+    .dashboard-pipeline-footer {
+      text-align: center;
+      margin-bottom: (27px * @scale);
+    }
+  }
+
+  @keyframes pipeline-running {
+    0%   { background-position-x: -24px; }
+    100% { background-position-x: 0px; }
+  }
+
+  .running-animation(@color1, @color2) {
+    background-image: repeating-linear-gradient(-45deg, @color1 0, @color1 6px, @color2 0, @color2 17px);
+    animation: pipeline-running 1s linear infinite;
+  }
+
+  .dashboard-paused {
+    .dashboard-pipeline-banner {
+      background-color: @base0D;
+    }
+
+    .dashboard-pipeline-icon {
+      background-image: url('images/ic_pause_blue.svg');
+    }
+
+    .build-duration {
+      color: @base0D;
+    }
+  }
+
+  .dashboard-status-pending {
+    .dashboard-pipeline-icon {
+      background-image: url('images/ic_pending_grey.svg');
+    }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(@base07, @base01);
+      }
+    }
+    .build-duration {
+      color: @base07;
+    }
+  }
+
+  .dashboard-status-failed {
+    .dashboard-pipeline-banner {
+      background-color: @base08;
+    }
+
+    .dashboard-pipeline-icon {
+      background-image: url('images/ic_failing_red.svg');
+    }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(@base08, @base01);
+      }
+    }
+    .build-duration {
+      color: @base08;
+    }
+  }
+
+  .dashboard-status-aborted {
+    .dashboard-pipeline-banner {
+      background-color: @base0F;
+    }
+
+    .dashboard-pipeline-icon {
+      background-image: url('images/ic_aborted_brown.svg');
+    }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(@base0F, @base01);
+      }
+    }
+    .build-duration {
+      color: @base0F;
+    }
+  }
+
+  .dashboard-status-succeeded {
+    .dashboard-pipeline-banner {
+      background-color: @base0B;
+    }
+
+    .dashboard-pipeline-icon {
+      background-image: url('images/ic_running_green.svg');
+    }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(@base0B, @base01);
+      }
+    }
+    .build-duration {
+      color: @base0B;
+    }
+  }
+
+  .dashboard-status-errored {
+    .dashboard-pipeline-banner {
+      background-color: @base09;
+    }
+
+    .dashboard-pipeline-icon {
+      background-image: url('images/ic_error_orange.svg');
+    }
+
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(@base09, @base01);
+      }
+    }
+    .build-duration {
+      color: @base09;
+    }
   }
 }
 
@@ -96,9 +251,9 @@
     }
 
     .dashboard-running .dashboard-pipeline-icon {
-        background-image: url('images/ic_running_legend.svg');
-        background-size: 30px 15px;
-        width: 30px;
+      background-image: url('images/ic_running_legend.svg');
+      background-size: 30px 15px;
+      width: 30px;
     }
   }
 
@@ -139,197 +294,6 @@
     .concourse-version {
       margin: 10px 30px 0 30px;
     }
-  }
-}
-
-.dashboard-team-group {
-  padding-top: (55px * @scale);
-  overflow: hidden;
-
-  &:first-of-type {
-    padding-top: 30px;
-  }
-}
-
-.dashboard-team-name {
-  color: #6E6E6E;
-  padding-top: (8px * @scale);
-  font-size: (30px * @scale);
-  margin-bottom: (25px * @scale);
-  margin-right: 30px;
-}
-
-.dashboard-team-pipeline {
-  width: ~"calc(100% - 30px)";
-}
-
-.dashboard-pipeline {
-  display: inline-block;
-  margin-bottom: (50px * @scale);
-  margin-right: (50px * @scale);
-
-  @base01: #262626;
-  @base03: #6E6E6E;
-  @base07: #979797; /* light grey (pending) */
-  @base08: #ED4B35; /* red */
-  @base09: #F5A623; /* orange */
-  @base0A: #F1C40F; /* yellow */
-  @base0B: #1FCE6D; /* green */
-  @base0C: #1ABC9C; /* cyan */
-  @base0D: #4A90E2; /* blue */
-  @base0E: #9B59B6; /* purple */
-  @base0F: #8F4B2D; /* brown */
-
-
-  @media all and (max-width: (700px * @scale)) {
-    flex-basis: 100%;
-  }
-
-  .dashboard-pipeline-header {
-    border-bottom: 1px solid #333;
-    &:hover {
-      background: #181818;
-    }
-  }
-
-  .dashboard-pipeline-banner {
-    flex-basis: 100%;
-    background-color: @base07;
-    background-size: 200% 100%;
-    height: (14px * @scale);
-  }
-
-  .dashboard-pipeline-content {
-    display: flex;
-    flex-direction: column;
-    background: #2B2B2B;
-    position: relative;
-
-    &:hover {
-      .build-duration:after {
-        border-color: #181818;
-      }
-    }
-  }
-
-  .dashboard-pipeline-footer {
-    text-align: center;
-    margin-bottom: (27px * @scale);
-  }
-}
-
-@keyframes pipeline-running {
-  0%   { background-position-x: -24px; }
-  100% { background-position-x: 0px; }
-}
-
-.running-animation(@color1, @color2) {
-  background-image: repeating-linear-gradient(-45deg, @color1 0, @color1 6px, @color2 0, @color2 17px);
-  animation: pipeline-running 1s linear infinite;
-}
-
-.dashboard-paused {
-  .dashboard-pipeline-banner {
-    background-color: @base0D;
-  }
-
-  .dashboard-pipeline-icon {
-    background-image: url('images/ic_pause_blue.svg');
-  }
-
-  .build-duration {
-    color: @base0D;
-  }
-}
-
-.dashboard-status-pending {
-  .dashboard-pipeline-icon {
-    background-image: url('images/ic_pending_grey.svg');
-  }
-
-  &.dashboard-running {
-    .dashboard-pipeline-banner {
-      .running-animation(@base07, @base01);
-    }
-  }
-  .build-duration {
-    color: @base07;
-  }
-}
-
-.dashboard-status-failed {
-  .dashboard-pipeline-banner {
-    background-color: @base08;
-  }
-
-  .dashboard-pipeline-icon {
-    background-image: url('images/ic_failing_red.svg');
-  }
-
-  &.dashboard-running {
-    .dashboard-pipeline-banner {
-      .running-animation(@base08, @base01);
-    }
-  }
-  .build-duration {
-    color: @base08;
-  }
-}
-
-.dashboard-status-aborted {
-  .dashboard-pipeline-banner {
-    background-color: @base0F;
-  }
-
-  .dashboard-pipeline-icon {
-    background-image: url('images/ic_aborted_brown.svg');
-  }
-
-  &.dashboard-running {
-    .dashboard-pipeline-banner {
-      .running-animation(@base0F, @base01);
-    }
-  }
-  .build-duration {
-    color: @base0F;
-  }
-}
-
-.dashboard-status-succeeded {
-  .dashboard-pipeline-banner {
-    background-color: @base0B;
-  }
-
-  .dashboard-pipeline-icon {
-    background-image: url('images/ic_running_green.svg');
-  }
-
-  &.dashboard-running {
-    .dashboard-pipeline-banner {
-      .running-animation(@base0B, @base01);
-    }
-  }
-  .build-duration {
-    color: @base0B;
-  }
-}
-
-.dashboard-status-errored {
-  .dashboard-pipeline-banner {
-    background-color: @base09;
-  }
-
-  .dashboard-pipeline-icon {
-    background-image: url('images/ic_error_orange.svg');
-  }
-
-  &.dashboard-running {
-    .dashboard-pipeline-banner {
-      .running-animation(@base09, @base01);
-    }
-  }
-  .build-duration {
-    color: @base09;
   }
 }
 
@@ -413,5 +377,3 @@
   visibility: visible;
   z-index: 10;
 }
-
-
