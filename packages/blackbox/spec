@@ -14,6 +14,7 @@ files:
   - github.com/hpcloud/tail/vendor/gopkg.in/fsnotify.v1/*.go # gosub
   - github.com/hpcloud/tail/vendor/gopkg.in/tomb.v1/*.go # gosub
   - github.com/hpcloud/tail/watch/*.go # gosub
+  - github.com/hpcloud/tail/winfile/*.go # gosub
   - github.com/papertrail/remote_syslog2/syslog/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/ifrit/grouper/*.go # gosub
