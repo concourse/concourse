@@ -1,6 +1,7 @@
 package radar
 
 import (
+	"reflect"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -39,17 +40,6 @@ func NewResourceTypeScanner(
 }
 
 func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName string) (time.Duration, error) {
-	pipelinePaused, err := scanner.dbPipeline.CheckPaused()
-	if err != nil {
-		logger.Error("failed-to-check-if-pipeline-paused", err)
-		return 0, err
-	}
-
-	if pipelinePaused {
-		logger.Debug("pipeline-paused")
-		return scanner.defaultInterval, nil
-	}
-
 	lockLogger := logger.Session("lock", lager.Data{
 		"resource-type": resourceTypeName,
 	})
@@ -114,7 +104,14 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 
 	defer lock.Release()
 
-	err = scanner.resourceTypeScan(logger.Session("tick"), resourceTypeName, savedResourceType, resourceConfigCheckSession, versionedResourceTypes, source)
+	err = scanner.scan(
+		logger.Session("tick"),
+		savedResourceType,
+		resourceConfigCheckSession,
+		atc.Version(savedResourceType.Version()),
+		versionedResourceTypes,
+		source,
+	)
 	if err != nil {
 		return 0, err
 	}
@@ -130,7 +127,25 @@ func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourc
 	return nil
 }
 
-func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceTypeName string, savedResourceType db.ResourceType, resourceConfigCheckSession db.ResourceConfigCheckSession, versionedResourceTypes creds.VersionedResourceTypes, source atc.Source) error {
+func (scanner *resourceTypeScanner) scan(
+	logger lager.Logger,
+	savedResourceType db.ResourceType,
+	resourceConfigCheckSession db.ResourceConfigCheckSession,
+	fromVersion atc.Version,
+	versionedResourceTypes creds.VersionedResourceTypes,
+	source atc.Source,
+) error {
+	pipelinePaused, err := scanner.dbPipeline.CheckPaused()
+	if err != nil {
+		logger.Error("failed-to-check-if-pipeline-paused", err)
+		return err
+	}
+
+	if pipelinePaused {
+		logger.Debug("pipeline-paused")
+		return nil
+	}
+
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResourceType.Type(),
@@ -155,7 +170,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		return err
 	}
 
-	newVersions, err := res.Check(source, atc.Version(savedResourceType.Version()))
+	newVersions, err := res.Check(source, fromVersion)
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
@@ -166,7 +181,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		return err
 	}
 
-	if len(newVersions) == 0 {
+	if len(newVersions) == 0 || reflect.DeepEqual(newVersions, []atc.Version{fromVersion}) {
 		logger.Debug("no-new-versions")
 		return nil
 	}
