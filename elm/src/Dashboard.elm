@@ -1,4 +1,7 @@
-port module Dashboard exposing (Model, Msg, init, update, subscriptions, view)
+-- port module Dashboard exposing (Model, Msg, init, update, subscriptions, view)
+
+
+port module Dashboard exposing (..)
 
 import BuildDuration
 import Concourse
@@ -20,6 +23,7 @@ import NewTopBar
 import RemoteData
 import Task exposing (Task)
 import Time exposing (Time)
+import Simple.Fuzzy
 
 
 type alias Model =
@@ -31,6 +35,7 @@ type alias Model =
     , now : Maybe Time
     , hideFooter : Bool
     , hideFooterCounter : Time
+    , fetchedPipelines : List Concourse.Pipeline
     }
 
 
@@ -64,6 +69,7 @@ init turbulencePath =
           , concourseVersion = ""
           , hideFooter = False
           , hideFooterCounter = 0
+          , fetchedPipelines = []
           }
         , Cmd.batch
             [ fetchPipelines
@@ -113,8 +119,16 @@ update msg model =
             let
                 ( newTopBar, newTopBarMsg ) =
                     NewTopBar.update msg model.topBar
+
+                filteredPipelines =
+                    updateFromNewTopBar msg model
             in
-                ( { model | topBar = newTopBar }, Cmd.map TopBarMsg newTopBarMsg )
+                ( { model
+                    | topBar = newTopBar
+                    , fetchedPipelines = filteredPipelines
+                  }
+                , Cmd.map TopBarMsg newTopBarMsg
+                )
 
 
 subscriptions : Model -> Sub Msg
@@ -138,80 +152,104 @@ view model =
 
 viewDashboard : Model -> Html Msg
 viewDashboard model =
-    case model.pipelines of
-        RemoteData.Success pipelines ->
-            let
-                pipelineStates =
-                    List.filter ((/=) RemoteData.NotAsked << .jobs) <|
-                        List.map
-                            (\pipeline ->
-                                { pipeline = pipeline
-                                , jobs =
-                                    Maybe.withDefault RemoteData.NotAsked <|
-                                        Dict.get pipeline.id model.jobs
-                                }
-                            )
-                            pipelines
+    let
+        listFetchedPipelinesLength =
+            List.length model.fetchedPipelines
+    in
+        case model.pipelines of
+            RemoteData.Success pipelines ->
+                if listFetchedPipelinesLength > 0 then
+                    showPipelinesView model model.fetchedPipelines
+                else
+                    showPipelinesView model pipelines
 
-                pipelinesByTeam =
-                    List.foldl
-                        (\pipelineState byTeam ->
-                            addPipelineState byTeam ( pipelineState.pipeline.teamName, pipelineState )
-                        )
-                        []
-                        pipelineStates
-            in
-                Html.div [ class "dashboard" ] <|
-                    [ Html.div [ class "dashboard-content" ] <|
-                        List.map (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) pipelinesByTeam
-                    , Html.div
-                        [ if model.hideFooter then
-                            class "dashboard-footer hidden"
-                          else
-                            class "dashboard-footer"
-                        ]
-                        [ Html.div [ class "dashboard-legend" ]
-                            [ Html.div [ class "dashboard-status-succeeded" ]
-                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "succeeded" ]
-                            , Html.div [ class "dashboard-status-errored" ]
-                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "errored" ]
-                            , Html.div [ class "dashboard-status-aborted" ]
-                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "aborted" ]
-                            , Html.div [ class "dashboard-paused" ]
-                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "paused" ]
-                            , Html.div [ class "dashboard-status-failed" ]
-                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "failed" ]
-                            , Html.div [ class "dashboard-status-pending" ]
-                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "pending" ]
-                            , Html.div [ class "dashboard-running" ]
-                                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "started" ]
-                            ]
-                        , Html.div [ class "concourse-version" ]
-                            [ Html.text "version: v", Html.text model.concourseVersion ]
-                        , Html.div [ class "concourse-cli" ]
-                            [ Html.text "cli: "
-                            , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI" ]
-                                [ Html.i [ class "fa fa-apple" ] [] ]
-                            , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI" ]
-                                [ Html.i [ class "fa fa-windows" ] [] ]
-                            , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI" ]
-                                [ Html.i [ class "fa fa-linux" ] [] ]
-                            ]
-                        ]
-                    ]
+            RemoteData.Failure _ ->
+                showTurbulenceView model
 
-        RemoteData.Failure _ ->
-            Html.div
-                [ class "error-message" ]
-                [ Html.div [ class "message" ]
-                    [ Html.img [ src model.turbulenceImgSrc, class "seatbelt" ] []
-                    , Html.p [] [ Html.text "experiencing turbulence" ]
-                    , Html.p [ class "explanation" ] []
-                    ]
-                ]
+            _ ->
+                Html.text ""
 
-        _ ->
-            Html.text ""
+
+showPipelinesView : Model -> List Concourse.Pipeline -> Html Msg
+showPipelinesView model pipelines =
+    let
+        pipelineStates =
+            List.filter ((/=) RemoteData.NotAsked << .jobs) <|
+                List.map
+                    (\pipeline ->
+                        { pipeline = pipeline
+                        , jobs =
+                            Maybe.withDefault RemoteData.NotAsked <|
+                                Dict.get pipeline.id model.jobs
+                        }
+                    )
+                    pipelines
+
+        pipelinesByTeam =
+            List.foldl
+                (\pipelineState byTeam ->
+                    addPipelineState byTeam ( pipelineState.pipeline.teamName, pipelineState )
+                )
+                []
+                pipelineStates
+
+        listPipelinesByTeam =
+            List.map (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) pipelinesByTeam
+    in
+        Html.div
+            [ class "dashboard" ]
+        <|
+            [ Html.div [ class "dashboard-content" ] <| listPipelinesByTeam, showFooterView model ]
+
+
+showFooterView : Model -> Html Msg
+showFooterView model =
+    Html.div
+        [ if model.hideFooter then
+            class "dashboard-footer hidden"
+          else
+            class "dashboard-footer"
+        ]
+        [ Html.div [ class "dashboard-legend" ]
+            [ Html.div [ class "dashboard-status-failed" ]
+                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "failing" ]
+            , Html.div [ class "dashboard-status-succeeded" ]
+                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "succeeded" ]
+            , Html.div [ class "dashboard-paused" ]
+                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "paused" ]
+            , Html.div [ class "dashboard-status-errored" ]
+                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "errored" ]
+            , Html.div [ class "dashboard-status-aborted" ]
+                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "aborted" ]
+            , Html.div [ class "dashboard-status-pending" ]
+                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "pending" ]
+            , Html.div [ class "dashboard-running" ]
+                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "running" ]
+            ]
+        , Html.div [ class "concourse-version" ]
+            [ Html.text "version: v", Html.text model.concourseVersion ]
+        , Html.div [ class "concourse-cli" ]
+            [ Html.text "cli: "
+            , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI" ]
+                [ Html.i [ class "fa fa-apple" ] [] ]
+            , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI" ]
+                [ Html.i [ class "fa fa-windows" ] [] ]
+            , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI" ]
+                [ Html.i [ class "fa fa-linux" ] [] ]
+            ]
+        ]
+
+
+showTurbulenceView : Model -> Html Msg
+showTurbulenceView model =
+    Html.div
+        [ class "error-message" ]
+        [ Html.div [ class "message" ]
+            [ Html.img [ src model.turbulenceImgSrc, class "seatbelt" ] []
+            , Html.p [] [ Html.text "experiencing turbulence" ]
+            , Html.p [ class "explanation" ] []
+            ]
+        ]
 
 
 addPipelineState : List ( String, List PipelineState ) -> ( String, PipelineState ) -> List ( String, List PipelineState )
@@ -411,3 +449,48 @@ fetchVersion =
 getCurrentTime : Cmd Msg
 getCurrentTime =
     Task.perform ClockTick Time.now
+
+
+updateFromNewTopBar : NewTopBar.Msg -> Model -> List Concourse.Pipeline
+updateFromNewTopBar msg model =
+    case msg of
+        NewTopBar.FilterMsg query ->
+            filterModelPipelines query model
+
+        _ ->
+            []
+
+
+filterModelPipelines : String -> Model -> List Concourse.Pipeline
+filterModelPipelines query model =
+    let
+        queryString =
+            toString query
+    in
+        case model.pipelines of
+            RemoteData.Success pipelines ->
+                filterBy queryString pipelines
+
+            _ ->
+                []
+
+
+filterBy : String -> List Concourse.Pipeline -> List Concourse.Pipeline
+filterBy term pipelines =
+    let
+        unquotedTerm =
+            term |> String.dropLeft 1 |> String.dropRight 1
+
+        searchTeams =
+            String.startsWith "team:" unquotedTerm
+
+        teamSearchTerm =
+            if searchTeams then
+                String.dropLeft 5 unquotedTerm
+            else
+                unquotedTerm
+    in
+        if searchTeams == True then
+            Simple.Fuzzy.filter .teamName teamSearchTerm pipelines
+        else
+            Simple.Fuzzy.filter .name term pipelines
