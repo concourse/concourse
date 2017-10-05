@@ -89,6 +89,10 @@ func (c *containerCollector) cleanupFailedContainers(logger lager.Logger) error 
 		"failed-containers": failedContainerHandles,
 	})
 
+	metric.FailedContainersToBeGarbageCollected{
+		Containers: len(failedContainerHandles),
+	}.Emit(logger)
+
 	for _, failedContainer := range failedContainers {
 		// prevent closure from capturing last value of loop
 		container := failedContainer

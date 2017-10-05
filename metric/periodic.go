@@ -70,6 +70,24 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 			},
 		)
 
+		emit(
+			logger.Session("failed-containers"),
+			Event{
+				Name:  "failed containers",
+				Value: FailedContainers.Delta(),
+				State: EventStateOK,
+			},
+		)
+
+		emit(
+			logger.Session("failed-volumes"),
+			Event{
+				Name:  "failed volumes",
+				Value: FailedVolumes.Delta(),
+				State: EventStateOK,
+			},
+		)
+
 		var memStats runtime.MemStats
 		runtime.ReadMemStats(&memStats)
 
