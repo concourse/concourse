@@ -40,6 +40,18 @@ func NewResourceTypeScanner(
 }
 
 func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName string) (time.Duration, error) {
+	return scanner.scan(logger.Session("tick"), resourceTypeName, nil, false)
+}
+
+func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName string) error {
+	return nil
+}
+
+func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion atc.Version) error {
+	return nil
+}
+
+func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName string, fromVersion atc.Version, mustComplete bool) (time.Duration, error) {
 	lockLogger := logger.Session("lock", lager.Data{
 		"resource-type": resourceTypeName,
 	})
@@ -104,8 +116,8 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 
 	defer lock.Release()
 
-	err = scanner.scan(
-		logger.Session("tick"),
+	err = scanner.check(
+		logger,
 		savedResourceType,
 		resourceConfigCheckSession,
 		atc.Version(savedResourceType.Version()),
@@ -119,15 +131,7 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 	return scanner.defaultInterval, nil
 }
 
-func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName string) error {
-	return nil
-}
-
-func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion atc.Version) error {
-	return nil
-}
-
-func (scanner *resourceTypeScanner) scan(
+func (scanner *resourceTypeScanner) check(
 	logger lager.Logger,
 	savedResourceType db.ResourceType,
 	resourceConfigCheckSession db.ResourceConfigCheckSession,
