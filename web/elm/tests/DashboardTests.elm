@@ -36,7 +36,7 @@ pipelineMain =
 pipelineMaintenance =
     { groups = listGroups
     , id = 2
-    , name = "main"
+    , name = "maintenance"
     , paused = False
     , public = True
     , teamName = "SFO"
@@ -93,7 +93,7 @@ fuzzySearchPipelines : List Test
 fuzzySearchPipelines =
     [ test "returns pipeline names that match the search term" <|
         \_ ->
-            Dashboard.filterBy "\"mai\"" pipelines
+            Dashboard.filterBy "mai" pipelines
                 |> Expect.equal
                     [ pipelineMain
                     , pipelineMaintenance
@@ -101,12 +101,12 @@ fuzzySearchPipelines =
                     ]
     , test "returns pipeline names that contain team in the search term" <|
         \_ ->
-            Dashboard.filterBy "\":team:\"" pipelines
+            Dashboard.filterBy ":team:" pipelines
                 |> Expect.equal
                     [ pipelineMain ]
     , test "returns no pipeline names when does not match the search term" <|
         \_ ->
-            Dashboard.filterBy "\"mar\"" pipelines
+            Dashboard.filterBy "mar" pipelines
                 |> Expect.equal []
     ]
 
@@ -115,10 +115,10 @@ fuzzySearchTeams : List Test
 fuzzySearchTeams =
     [ test "returns team names that match the search term" <|
         \_ ->
-            Dashboard.filterBy "\"team: YY\"" pipelines
+            Dashboard.filterBy "team: YY" pipelines
                 |> Expect.equal [ pipelineMain ]
     , test "returns no team names when does not match the search term" <|
         \_ ->
-            Dashboard.filterBy "\"team: YYX\"" pipelines
+            Dashboard.filterBy "team: YYX" pipelines
                 |> Expect.equal []
     ]
