@@ -7,9 +7,14 @@ describe 'dashboard', type: :feature do
   let(:team_name) { generate_team_name }
   let(:other_team_name) { generate_team_name }
 
+  let(:main_team_name) { 'wats-team-main' }
+  let(:test_team_name) { 'wats-team-test' }
+
   before(:each) do
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
     fly_with_input("set-team -n #{other_team_name} --no-really-i-dont-want-any-auth", 'y')
+    fly_with_input("set-team -n #{main_team_name} --no-really-i-dont-want-any-auth", 'y')
+    fly_with_input("set-team -n #{test_team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
     fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml')
@@ -234,6 +239,93 @@ describe 'dashboard', type: :feature do
     visit dash_route('/dashboard')
     fly_fail('trigger-job -w -j some-pipeline/failing')
     expect(page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
+  end
+
+  describe 'Dashboard Fuzzy Search' do
+    before(:each) do
+      fly_login main_team_name
+      fly('set-pipeline -n -p bosh-pipeline -c fixtures/states-pipeline.yml')
+      fly('set-pipeline -n -p main-team-pipeline -c fixtures/states-pipeline.yml')
+      fly('expose-pipeline -p bosh-pipeline')
+      fly('expose-pipeline -p main-team-pipeline')
+
+      fly_login test_team_name
+      fly('set-pipeline -n -p maintenance-pipeline -c fixtures/states-pipeline.yml')
+      fly('set-pipeline -n -p test-team-pipeline -c fixtures/states-pipeline.yml')
+      fly('expose-pipeline -p maintenance-pipeline')
+      fly('expose-pipeline -p test-team-pipeline')
+
+      visit_dashboard
+    end
+
+    context 'search pipelines' do
+      it 'returns pipeline names that match the search term' do
+        find('#search-input-field').set 'mai'
+        within '.dashboard-team-group', text: main_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['main-team-pipeline']
+          )
+        end
+        within '.dashboard-team-group', text: test_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['maintenance-pipeline']
+          )
+        end
+      end
+
+      it 'returns pipeline names that contain team in the search term' do
+        find('#search-input-field').set '-team-'
+        within '.dashboard-team-group', text: main_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['main-team-pipeline']
+          )
+        end
+        within '.dashboard-team-group', text: test_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['test-team-pipeline']
+          )
+        end
+      end
+
+      it 'returns no pipelines name twhen it does not match the search term' do
+        find('#search-input-field').set 'mar'
+        within '.dashboard-team-group', text: main_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['bosh-pipeline', 'main-team-pipeline']
+          )
+        end
+        within '.dashboard-team-group', text: test_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['maintenance-pipeline', 'test-team-pipeline']
+          )
+        end
+      end
+    end
+
+    describe 'search teams' do
+      it 'returns team names that match the search term' do
+        find('#search-input-field').set 'team: main'
+        within '.dashboard-team-group', text: main_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['bosh-pipeline', 'main-team-pipeline']
+          )
+        end
+      end
+
+      it 'returns no team names when it does not match the search term' do
+        find('#search-input-field').set 'team: bosh'
+        within '.dashboard-team-group', text: main_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['bosh-pipeline', 'main-team-pipeline']
+          )
+        end
+        within '.dashboard-team-group', text: test_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['maintenance-pipeline', 'test-team-pipeline']
+          )
+        end
+      end
+    end
   end
 
   private

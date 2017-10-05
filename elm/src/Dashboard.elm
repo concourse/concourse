@@ -23,7 +23,7 @@ import NewTopBar
 import RemoteData
 import Task exposing (Task)
 import Time exposing (Time)
-import Simple.Fuzzy
+import Simple.Fuzzy exposing (match, root, filter)
 
 
 type alias Model =
@@ -463,32 +463,25 @@ updateFromNewTopBar msg model =
 
 filterModelPipelines : String -> Model -> List Concourse.Pipeline
 filterModelPipelines query model =
-    let
-        queryString =
-            toString query
-    in
-        case model.pipelines of
-            RemoteData.Success pipelines ->
-                filterBy queryString pipelines
+    case model.pipelines of
+        RemoteData.Success pipelines ->
+            filterBy query pipelines
 
-            _ ->
-                []
+        _ ->
+            []
 
 
 filterBy : String -> List Concourse.Pipeline -> List Concourse.Pipeline
 filterBy term pipelines =
     let
-        unquotedTerm =
-            term |> String.dropLeft 1 |> String.dropRight 1
-
         searchTeams =
-            String.startsWith "team:" unquotedTerm
+            String.startsWith "team:" term
 
         teamSearchTerm =
             if searchTeams then
-                String.dropLeft 5 unquotedTerm
+                String.dropLeft 5 term
             else
-                unquotedTerm
+                term
     in
         if searchTeams == True then
             Simple.Fuzzy.filter .teamName teamSearchTerm pipelines
