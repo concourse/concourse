@@ -5,7 +5,6 @@ dependencies:
   - golang
 
 files:
-  - github.com/concourse/baggageclaim/kernel/*.go # gosub
   - code.cloudfoundry.org/clock/*.go # gosub
   - code.cloudfoundry.org/lager/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
