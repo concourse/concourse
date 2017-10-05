@@ -1,6 +1,6 @@
 @font-face {
   font-family: "iosevka";
-  src: url("../fonts/iosevka-regular.ttc");
+  src: url("/public/fonts/iosevka-regular.ttf");
 }
 
 @scale: 0.6;
@@ -36,7 +36,7 @@
   .aborted   { background: @base0F; }
   .paused    { background: @base0D; }
 
-  .running { background-size: 200% 100%; }
+  .running { background-size: 500% 100%; }
   .no-builds.running { .running-animation(@base04, #666565); }
   .succeeded.running { .running-animation(@base0B, #0D4E2A); }
   .failed.running    { .running-animation(@base08, #8D2D20); }
