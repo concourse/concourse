@@ -260,7 +260,7 @@ describe 'dashboard', type: :feature do
 
     context 'search pipelines' do
       it 'returns pipeline names that match the search term' do
-        find_by_id('search-input-field').set 'mai'
+        page.fill_in 'search-input-field', with: 'mai'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['main-team-pipeline']
@@ -274,7 +274,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'returns pipeline names that contain team in the search term' do
-        find_by_id('search-input-field').set '-team-'
+        page.fill_in 'search-input-field', with: '-team-'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['main-team-pipeline']
@@ -288,7 +288,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'returns no pipelines name twhen it does not match the search term' do
-        find_by_id('search-input-field').set 'mar'
+        page.fill_in 'search-input-field', with: 'mar'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['bosh-pipeline', 'main-team-pipeline']
@@ -304,7 +304,7 @@ describe 'dashboard', type: :feature do
 
     describe 'search teams' do
       it 'returns team names that match the search term' do
-        find_by_id('search-input-field').set 'team:main'
+        page.fill_in 'search-input-field', with: 'team:main'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['bosh-pipeline', 'main-team-pipeline']
@@ -313,7 +313,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'returns no team names when it does not match the search term' do
-        find_by_id('search-input-field').set 'team:bosh'
+        page.fill_in 'search-input-field', with: 'team:bosh'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['bosh-pipeline', 'main-team-pipeline']
@@ -327,13 +327,21 @@ describe 'dashboard', type: :feature do
       end
 
       it 'returns pipelines by team names that match the search term' do
-        find_by_id('search-input-field').set 'team:mai main'
+        page.fill_in 'search-input-field', with: 'team:main bosh'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
-            ['main-team-pipeline']
+            ['bosh-pipeline']
           )
         end
         expect(page).to_not have_content('wats-team-test')
+      end
+
+      context 'clear search' do
+        it 'clears the search input field' do
+          page.fill_in 'search-input-field', with: 'main'
+          page.find_by_id('search-clear-field').click
+          expect(page.find_by_id('search-input-field').text).to eq ''
+        end
       end
     end
   end
