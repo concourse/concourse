@@ -241,7 +241,7 @@ describe 'dashboard', type: :feature do
     expect(page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
   end
 
-  describe 'Dashboard Fuzzy Search' do
+  describe 'Fuzzy Search' do
     before(:each) do
       fly_login main_team_name
       fly('set-pipeline -n -p bosh-pipeline -c fixtures/states-pipeline.yml')
@@ -260,7 +260,7 @@ describe 'dashboard', type: :feature do
 
     context 'search pipelines' do
       it 'returns pipeline names that match the search term' do
-        find('#search-input-field').set 'mai'
+        find_by_id('search-input-field').set 'mai'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['main-team-pipeline']
@@ -274,7 +274,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'returns pipeline names that contain team in the search term' do
-        find('#search-input-field').set '-team-'
+        find_by_id('search-input-field').set '-team-'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['main-team-pipeline']
@@ -288,7 +288,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'returns no pipelines name twhen it does not match the search term' do
-        find('#search-input-field').set 'mar'
+        find_by_id('search-input-field').set 'mar'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['bosh-pipeline', 'main-team-pipeline']
@@ -304,7 +304,7 @@ describe 'dashboard', type: :feature do
 
     describe 'search teams' do
       it 'returns team names that match the search term' do
-        find('#search-input-field').set 'team: main'
+        find_by_id('search-input-field').set 'team:main'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['bosh-pipeline', 'main-team-pipeline']
@@ -313,7 +313,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'returns no team names when it does not match the search term' do
-        find('#search-input-field').set 'team: bosh'
+        find_by_id('search-input-field').set 'team:bosh'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['bosh-pipeline', 'main-team-pipeline']
@@ -324,6 +324,16 @@ describe 'dashboard', type: :feature do
             ['maintenance-pipeline', 'test-team-pipeline']
           )
         end
+      end
+
+      it 'returns pipelines by team names that match the search term' do
+        find_by_id('search-input-field').set 'team:mai main'
+        within '.dashboard-team-group', text: main_team_name do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
+            ['main-team-pipeline']
+          )
+        end
+        expect(page).to_not have_content('wats-team-test')
       end
     end
   end

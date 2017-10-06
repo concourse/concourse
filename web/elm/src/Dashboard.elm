@@ -465,10 +465,20 @@ filterModelPipelines : String -> Model -> List Concourse.Pipeline
 filterModelPipelines query model =
     case model.pipelines of
         RemoteData.Success pipelines ->
-            filterBy query pipelines
+            searchTermList (String.split " " query) pipelines
 
         _ ->
             []
+
+
+searchTermList : List String -> List Concourse.Pipeline -> List Concourse.Pipeline
+searchTermList queryList pipelines =
+    case queryList of
+        [] ->
+            pipelines
+
+        x :: xs ->
+            searchTermList xs (filterBy x pipelines)
 
 
 filterBy : String -> List Concourse.Pipeline -> List Concourse.Pipeline
