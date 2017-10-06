@@ -1,8 +1,14 @@
 FROM ruby:2
 
+RUN apt-get update && apt-get -y install sudo unzip libnss3 libgconf-2-4
+
 # ChromeDriver
-RUN apt-get update && apt-get -y install chromedriver
-ENV PATH $PATH:/usr/lib/chromium
+RUN wget -N http://chromedriver.storage.googleapis.com/2.32/chromedriver_linux64.zip
+RUN unzip chromedriver_linux64.zip
+RUN chmod +x chromedriver
+RUN sudo mv -f chromedriver /usr/local/share/chromedriver
+RUN sudo ln -s /usr/local/share/chromedriver /usr/local/bin/chromedriver
+RUN sudo ln -s /usr/local/share/chromedriver /usr/bin/chromedriver
 
 # Go, with build-essential for gcc
 RUN apt-get update && apt-get -y install build-essential
