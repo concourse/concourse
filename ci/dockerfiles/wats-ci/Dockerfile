@@ -10,6 +10,10 @@ RUN wget -N http://chromedriver.storage.googleapis.com/2.32/chromedriver_linux64
 && sudo ln -s /usr/local/share/chromedriver /usr/local/bin/chromedriver \
 && sudo ln -s /usr/local/share/chromedriver /usr/bin/chromedriver
 
+# Chromium
+RUN apt-get update && apt-get -y install chromium
+ENV PATH $PATH:/usr/lib/chromium
+
 # Go, with build-essential for gcc
 RUN apt-get update && apt-get -y install build-essential
 ADD go*.tar.gz /usr/local
