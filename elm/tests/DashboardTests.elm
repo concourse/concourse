@@ -17,7 +17,7 @@ pipelineBosh =
     , name = "bosh"
     , paused = False
     , public = True
-    , teamName = "SFO"
+    , teamName = "YYZ"
     , url = "http://google.com"
     }
 
@@ -86,6 +86,7 @@ allTests : List (List Test)
 allTests =
     [ fuzzySearchPipelines
     , fuzzySearchTeams
+    , searchTermList
     ]
 
 
@@ -115,10 +116,23 @@ fuzzySearchTeams : List Test
 fuzzySearchTeams =
     [ test "returns team names that match the search term" <|
         \_ ->
-            Dashboard.filterBy "team: YY" pipelines
-                |> Expect.equal [ pipelineMain ]
+            Dashboard.filterBy "team:YY" pipelines
+                |> Expect.equal [ pipelineBosh, pipelineMain ]
     , test "returns no team names when does not match the search term" <|
         \_ ->
-            Dashboard.filterBy "team: YYX" pipelines
+            Dashboard.filterBy "team:YYX" pipelines
                 |> Expect.equal []
+    ]
+
+
+searchTermList : List Test
+searchTermList =
+    [ test "returns pipelines by team names that match the search term" <|
+        \_ ->
+            let
+                queryList =
+                    [ "team:YY", "main" ]
+            in
+                Dashboard.searchTermList queryList pipelines
+                    |> Expect.equal [ pipelineMain ]
     ]
