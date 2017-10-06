@@ -13,35 +13,37 @@ module Build
         , changeToBuild
         )
 
-import Date exposing (Date)
-import Date.Format
-import Debug
-import Maybe.Extra
-import Dict exposing (Dict)
-import Html exposing (Html)
-import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled, attribute, tabindex)
-import Html.Lazy
-import Http
-import Navigation
-import Process
-import Task exposing (Task)
-import Time exposing (Time)
-import String
 import Autoscroll
 import BuildDuration
 import BuildOutput
+import Char
 import Concourse
 import Concourse.Build
 import Concourse.BuildPrep
 import Concourse.BuildStatus
 import Concourse.Job
 import Concourse.Pagination exposing (Paginated)
+import Date exposing (Date)
+import Date.Format
+import Debug
+import Dict exposing (Dict)
 import Favicon
+import Html exposing (Html)
+import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled, attribute, tabindex)
+import Html.Lazy
+import Http
+import Keyboard
 import LoadingIndicator
-import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
-import Scroll
 import LoginRedirect
+import Maybe.Extra
+import Navigation
+import Process
 import RemoteData exposing (WebData)
+import Scroll
+import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
+import String
+import Task exposing (Task)
+import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -81,6 +83,8 @@ type alias Model =
     , autoScroll : Bool
     , ports : Ports
     , csrfToken : String
+    , previousKeyPress : Maybe Char
+    , showHelp : Bool
     }
 
 
@@ -109,6 +113,7 @@ type Msg
     | WindowScrolled Scroll.FromBottom
     | NavTo String
     | NewCSRFToken String
+    | KeyPressed Keyboard.KeyCode
 
 
 type alias Flags =
@@ -130,6 +135,8 @@ init ports flags page =
                 , autoScroll = True
                 , ports = ports
                 , csrfToken = flags.csrfToken
+                , previousKeyPress = Nothing
+                , showHelp = False
                 }
     in
         ( model, Cmd.batch [ cmd, getCurrentTime ] )
@@ -146,6 +153,7 @@ subscriptions model =
 
             Just buildOutput ->
                 Sub.map (BuildOutputMsg model.browsingIndex) buildOutput.events
+        , Keyboard.presses KeyPressed
         ]
 
 
@@ -343,6 +351,102 @@ update action model =
         NewCSRFToken token ->
             ( { model | csrfToken = token }, Cmd.none )
 
+        KeyPressed keycode ->
+            handleKeyPressed (Char.fromCode keycode) model
+
+
+handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )
+handleKeyPressed key model =
+    let
+        currentBuild =
+            Maybe.map .build (model.currentBuild |> RemoteData.toMaybe)
+
+        newModel =
+            case ( model.previousKeyPress, key ) of
+                ( Nothing, 'g' ) ->
+                    { model | previousKeyPress = Just 'g' }
+
+                _ ->
+                    { model | previousKeyPress = Nothing }
+    in
+        case key of
+            'h' ->
+                case Maybe.andThen (nextBuild model.history) currentBuild of
+                    Just build ->
+                        update (SwitchToBuild build) newModel
+
+                    Nothing ->
+                        ( newModel, Cmd.none )
+
+            'l' ->
+                case Maybe.andThen (prevBuild model.history) currentBuild of
+                    Just build ->
+                        update (SwitchToBuild build) newModel
+
+                    Nothing ->
+                        ( newModel, Cmd.none )
+
+            'j' ->
+                ( newModel, Task.perform (always Noop) Scroll.scrollDown )
+
+            'k' ->
+                ( newModel, Task.perform (always Noop) Scroll.scrollUp )
+
+            'T' ->
+                update (TriggerBuild (currentBuild |> Maybe.andThen .job)) newModel
+
+            'A' ->
+                if currentBuild == List.head model.history then
+                    case currentBuild of
+                        Just build ->
+                            update (AbortBuild build.id) newModel
+
+                        Nothing ->
+                            ( newModel, Cmd.none )
+                else
+                    ( newModel, Cmd.none )
+
+            'g' ->
+                if model.previousKeyPress == Just 'g' then
+                    ( newModel, Task.perform (always Noop) Scroll.toWindowTop )
+                else
+                    ( newModel, Cmd.none )
+
+            'G' ->
+                ( newModel, Task.perform (always Noop) Scroll.toWindowBottom )
+
+            '?' ->
+                ( { model | showHelp = not model.showHelp }, Cmd.none )
+
+            _ ->
+                ( newModel, Cmd.none )
+
+
+nextBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
+nextBuild builds build =
+    case builds of
+        first :: second :: rest ->
+            if second == build then
+                Just first
+            else
+                nextBuild (second :: rest) build
+
+        _ ->
+            Nothing
+
+
+prevBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
+prevBuild builds build =
+    case builds of
+        first :: second :: rest ->
+            if first == build then
+                Just second
+            else
+                prevBuild (second :: rest) build
+
+        _ ->
+            Nothing
+
 
 handleBuildFetched : Int -> Concourse.Build -> Model -> ( Model, Cmd Msg )
 handleBuildFetched browsingIndex build model =
@@ -492,6 +596,21 @@ view model =
                     [ viewBuildPrep currentBuild.prep
                     , Html.Lazy.lazy2 viewBuildOutput model.browsingIndex <|
                         currentBuild.output
+                    , Html.div
+                        [ classList
+                            [ ( "keyboard-help", True )
+                            , ( "hidden", not model.showHelp )
+                            ]
+                        ]
+                        [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "h" ], Html.span [ class "key" ] [ Html.text "l" ] ], Html.text "next/previous build" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "j" ], Html.span [ class "key" ] [ Html.text "k" ] ], Html.text "scroll down/up" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "shift t" ] ], Html.text "trigger a new build" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "shift a" ] ], Html.text "abort build" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "gg" ] ], Html.text "scroll to the top" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "shift g" ] ], Html.text "scroll to the bottom" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "?" ] ], Html.text "hide/show help" ]
+                        ]
                     ]
                         ++ let
                             build =
