@@ -3,7 +3,7 @@ module NewTopBar exposing (Model, Msg(FilterMsg), init, update, view)
 import Concourse
 import Concourse.User
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, src, type_, placeholder)
+import Html.Attributes exposing (class, href, id, src, type_, placeholder, value)
 import Html.Events exposing (..)
 import RemoteData exposing (RemoteData)
 
@@ -66,9 +66,15 @@ view model =
                     , type_ "text"
                     , placeholder "search"
                     , onInput FilterMsg
+                    , value model.query
                     ]
                     []
-                , Html.button [ class "search-clear-button" ] []
+                , Html.span
+                    [ class "search-clear-button"
+                    , id "search-clear-field"
+                    , onClick (FilterMsg "")
+                    ]
+                    []
                 ]
             ]
         , Html.div [ class "topbar-login" ]
