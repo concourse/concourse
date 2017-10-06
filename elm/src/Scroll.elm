@@ -3,10 +3,13 @@ effect module Scroll
     exposing
         ( FromBottom
         , toBottom
+        , toWindowTop
         , toWindowBottom
         , fromWindowBottom
         , scroll
         , scrollIntoView
+        , scrollUp
+        , scrollDown
         )
 
 import Dom.LowLevel as Dom
@@ -53,6 +56,11 @@ toBottom =
     Native.Scroll.toBottom
 
 
+toWindowTop : Task x ()
+toWindowTop =
+    Native.Scroll.toWindowTop ()
+
+
 toWindowBottom : Task x ()
 toWindowBottom =
     Native.Scroll.toWindowBottom ()
@@ -66,6 +74,16 @@ scroll =
 scrollIntoView : String -> Task x ()
 scrollIntoView =
     Native.Scroll.scrollIntoView
+
+
+scrollUp : Task x ()
+scrollUp =
+    Native.Scroll.scrollUp ()
+
+
+scrollDown : Task x ()
+scrollDown =
+    Native.Scroll.scrollDown ()
 
 
 
