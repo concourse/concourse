@@ -260,7 +260,7 @@ describe 'dashboard', type: :feature do
 
     context 'search pipelines' do
       it 'returns pipeline names that match the search term' do
-        page.fill_in 'search-input-field', with: 'mai'
+        page.fill_in 'search-input-field', with: 'main'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['main-team-pipeline']
@@ -274,7 +274,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'returns pipeline names that contain team in the search term' do
-        page.fill_in 'search-input-field', with: '-team-'
+        page.fill_in 'search-input-field', with: 'team'
         within '.dashboard-team-group', text: main_team_name do
           expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq(
             ['main-team-pipeline']
@@ -339,7 +339,7 @@ describe 'dashboard', type: :feature do
       context 'clear search' do
         it 'clears the search input field' do
           page.fill_in 'search-input-field', with: 'main'
-          page.find_by_id('search-clear-field').click
+          page.find('.search-clear-button').click
           expect(page.find_by_id('search-input-field').text).to eq ''
         end
       end

@@ -71,7 +71,7 @@ view model =
                     []
                 , Html.span
                     [ class "search-clear-button"
-                    , id "search-clear-field"
+                    , id "search-clear-button"
                     , onClick (FilterMsg "")
                     ]
                     []
