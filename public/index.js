@@ -79,8 +79,19 @@ function redrawFunction(svg, jobs, resources, newUrl) {
 
     var nodeLink = svgNode.append("svg:a")
       .attr("xlink:href", function(node) { return node.url })
+      .on('dragstart', function(node) {
+        console.log('start')
+      })
+      .on('drag', function(node) {
+        console.log('drag')
+      })
+      .on('dragend', function(node) {
+        console.log('end')
+      })
       .on("click", function(node) {
         var ev = d3.event;
+        if (ev.defaultPrevented) return; // dragged
+
         if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
           return;
         }
@@ -248,6 +259,14 @@ var zoom = (function() {
     return z;
   }
 })();
+function dragged() {
+  var ev = d3.event;
+  ev.sourceEvent.stopPropagation();
+  ev.stopImmediatePropagation();
+  ev.stopPropagation();
+  ev.preventDefault();
+  console.log('drag');
+}
 
 var shouldResetPipelineFocus = false;
 
@@ -265,7 +284,7 @@ function createPipelineSvg(svg) {
       var ev = d3.event;
       if (ev.button || ev.ctrlKey)
         ev.stopImmediatePropagation();
-    }).call(zoom().scaleExtent([0.5, 10]).on("zoom", function() {
+      }).call(zoom().scaleExtent([0.5, 10]).on("zoom", function() {
       var ev = d3.event;
       if (shouldResetPipelineFocus) {
         shouldResetPipelineFocus = false;
