@@ -11,6 +11,10 @@ export BUNDLE_PATH=${PWD}/gems
 
 go install github.com/concourse/fly
 
+export DISPLAY=:99.0
+Xvfb $DISPLAY -ac +extension RANDR &
+trap "kill $!" EXIT
+
 cd concourse/src/github.com/concourse/atc/web/acceptance/
 bundle
 bundle exec rspec "$@"
