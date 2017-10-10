@@ -112,7 +112,7 @@ describe 'keyboard shortcut', type: :feature do
   end
 
   def scroll_position
-    page.evaluate_script('document.documentElement.scrollTop')
+    page.evaluate_script('window.scrollY')
   end
 
   def scroll_to_top
