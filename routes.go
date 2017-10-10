@@ -51,6 +51,7 @@ const (
 	HidePipeline        = "HidePipeline"
 	RenamePipeline      = "RenamePipeline"
 	CreatePipelineBuild = "CreatePipelineBuild"
+	PipelineBadge       = "PipelineBadge"
 
 	CreatePipe = "CreatePipe"
 	WritePipe  = "WritePipe"
@@ -121,6 +122,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/versions-db", Method: "GET", Name: GetVersionsDB},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/rename", Method: "PUT", Name: RenamePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/builds", Method: "POST", Name: CreatePipelineBuild},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/badge", Method: "GET", Name: PipelineBadge},
 
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name", Method: "GET", Name: GetResource},

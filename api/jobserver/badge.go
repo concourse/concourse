@@ -10,29 +10,29 @@ import (
 )
 
 var (
-	badgePassing = badge{width: 88, fillColor: `#44cc11`, status: `passing`}
-	badgeFailing = badge{width: 80, fillColor: `#e05d44`, status: `failing`}
-	badgeUnknown = badge{width: 98, fillColor: `#9f9f9f`, status: `unknown`}
-	badgeAborted = badge{width: 90, fillColor: `#8f4b2d`, status: `aborted`}
-	badgeErrored = badge{width: 88, fillColor: `#fe7d37`, status: `errored`}
+	badgePassing = Badge{width: 88, fillColor: `#44cc11`, status: `passing`}
+	badgeFailing = Badge{width: 80, fillColor: `#e05d44`, status: `failing`}
+	badgeUnknown = Badge{width: 98, fillColor: `#9f9f9f`, status: `unknown`}
+	badgeAborted = Badge{width: 90, fillColor: `#8f4b2d`, status: `aborted`}
+	badgeErrored = Badge{width: 88, fillColor: `#fe7d37`, status: `errored`}
 )
 
-type badge struct {
+type Badge struct {
 	width     int
 	fillColor string
 	status    string
 }
 
-func (b *badge) statusWidth() int {
+func (b *Badge) statusWidth() int {
 	return b.width - 37
 }
 
-func (b *badge) statusTextWidth() string {
+func (b *Badge) statusTextWidth() string {
 	return fmt.Sprintf("%.1f", float64(b.width)/2+17.5)
 }
 
-func (b *badge) String() string {
-	tmpl, err := template.New("badge").Parse(badgeTemplate)
+func (b *Badge) String() string {
+	tmpl, err := template.New("Badge").Parse(badgeTemplate)
 	if err != nil {
 		panic(err)
 	}
@@ -50,7 +50,7 @@ func (b *badge) String() string {
 	return buffer.String()
 }
 
-func badgeForBuild(build db.Build) *badge {
+func BadgeForBuild(build db.Build) *Badge {
 	switch {
 	case build == nil:
 		return &badgeUnknown
@@ -128,6 +128,6 @@ func (s *Server) JobBadge(pipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		fmt.Fprint(w, badgeForBuild(build))
+		fmt.Fprint(w, BadgeForBuild(build))
 	})
 }

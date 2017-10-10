@@ -510,6 +510,255 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/badge", func() {
+		var response *http.Response
+		var jobWithNoBuilds, jobWithSucceededBuild, jobWithAbortedBuild, jobWithErroredBuild, jobWithFailedBuild *dbfakes.FakeJob
+
+		BeforeEach(func() {
+			dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+			dbPipeline.NameReturns("some-pipeline")
+			fakeTeam.PipelineReturns(dbPipeline, true, nil)
+
+			jobWithNoBuilds = new(dbfakes.FakeJob)
+			jobWithSucceededBuild = new(dbfakes.FakeJob)
+			jobWithAbortedBuild = new(dbfakes.FakeJob)
+			jobWithErroredBuild = new(dbfakes.FakeJob)
+			jobWithFailedBuild = new(dbfakes.FakeJob)
+
+			succeededBuild := new(dbfakes.FakeBuild)
+			succeededBuild.StatusReturns(db.BuildStatusSucceeded)
+			jobWithSucceededBuild.FinishedAndNextBuildReturns(succeededBuild, nil, nil)
+
+			abortedBuild := new(dbfakes.FakeBuild)
+			abortedBuild.StatusReturns(db.BuildStatusAborted)
+			jobWithAbortedBuild.FinishedAndNextBuildReturns(abortedBuild, nil, nil)
+
+			erroredBuild := new(dbfakes.FakeBuild)
+			erroredBuild.StatusReturns(db.BuildStatusErrored)
+			jobWithErroredBuild.FinishedAndNextBuildReturns(erroredBuild, nil, nil)
+
+			failedBuild := new(dbfakes.FakeBuild)
+			failedBuild.StatusReturns(db.BuildStatusFailed)
+			jobWithFailedBuild.FinishedAndNextBuildReturns(failedBuild, nil, nil)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/badge")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authorized", func() {
+			BeforeEach(func() {
+				jwtValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("", false, false)
+			})
+
+			Context("and the pipeline is private", func() {
+				BeforeEach(func() {
+					dbPipeline.PublicReturns(false)
+				})
+
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+
+			Context("and the pipeline is public", func() {
+				BeforeEach(func() {
+					dbPipeline.PublicReturns(true)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+		})
+
+		Context("when authorized", func() {
+			BeforeEach(func() {
+				jwtValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", true, true)
+			})
+
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns Content-Type as image/svg+xml and disables caching", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("image/svg+xml"))
+				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
+				Expect(response.Header.Get("Expires")).To(Equal("0"))
+			})
+
+			Context("when the pipeline has no finished builds", func() {
+				BeforeEach(func() {
+					dbPipeline.JobsReturns([]db.Job{jobWithNoBuilds}, nil)
+				})
+
+				It("returns an unknown badge", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="98" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="98" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#9f9f9f" d="M37 0h61v20H37z" />
+      <path fill="url(#b)" d="M0 0h98v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="66.5" y="15" fill="#010101" fill-opacity=".3">unknown</text>
+      <text x="66.5" y="14">unknown</text>
+   </g>
+</svg>`))
+				})
+			})
+
+			Context("when the pipeline has a successful build", func() {
+				BeforeEach(func() {
+					dbPipeline.JobsReturns([]db.Job{jobWithNoBuilds, jobWithSucceededBuild}, nil)
+				})
+
+				It("returns a successful badge", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="88" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#44cc11" d="M37 0h51v20H37z" />
+      <path fill="url(#b)" d="M0 0h88v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="61.5" y="15" fill="#010101" fill-opacity=".3">passing</text>
+      <text x="61.5" y="14">passing</text>
+   </g>
+</svg>`))
+				})
+			})
+
+			Context("when the pipeline has an aborted build", func() {
+				BeforeEach(func() {
+					dbPipeline.JobsReturns([]db.Job{jobWithNoBuilds, jobWithSucceededBuild, jobWithAbortedBuild}, nil)
+				})
+
+				It("returns an aborted badge", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="90" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#8f4b2d" d="M37 0h53v20H37z" />
+      <path fill="url(#b)" d="M0 0h90v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="62.5" y="15" fill="#010101" fill-opacity=".3">aborted</text>
+      <text x="62.5" y="14">aborted</text>
+   </g>
+</svg>`))
+				})
+			})
+
+			Context("when the pipeline has an errored build", func() {
+				BeforeEach(func() {
+					dbPipeline.JobsReturns([]db.Job{jobWithNoBuilds, jobWithSucceededBuild, jobWithAbortedBuild, jobWithErroredBuild}, nil)
+				})
+
+				It("returns an errored badge", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="88" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#fe7d37" d="M37 0h51v20H37z" />
+      <path fill="url(#b)" d="M0 0h88v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="61.5" y="15" fill="#010101" fill-opacity=".3">errored</text>
+      <text x="61.5" y="14">errored</text>
+   </g>
+</svg>`))
+				})
+			})
+
+			Context("when the pipeline has a failed build", func() {
+				BeforeEach(func() {
+					dbPipeline.JobsReturns([]db.Job{jobWithNoBuilds, jobWithSucceededBuild, jobWithAbortedBuild, jobWithErroredBuild, jobWithFailedBuild}, nil)
+				})
+
+				It("returns a failed badge", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="80" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#e05d44" d="M37 0h43v20H37z" />
+      <path fill="url(#b)" d="M0 0h80v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="57.5" y="15" fill="#010101" fill-opacity=".3">failing</text>
+      <text x="57.5" y="14">failing</text>
+   </g>
+</svg>`))
+				})
+			})
+		})
+	})
+
 	Describe("DELETE /api/v1/teams/:team_name/pipelines/:pipeline_name", func() {
 		var response *http.Response
 
