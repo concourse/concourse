@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e -u
+
+ROOT=$(cd $(dirname $0)/.. && pwd)
+
+DEVDIR=/tmp/concourse-dev
+DBDIR=$DEVDIR/db
+docker_postgres="${DOCKER_POSTGRES:-concourse-db}"
+
+exec docker run --rm --name ${docker_postgres} -p 127.0.0.1:${POSTGRES_PORT:-6543}:5432 -d postgres:alpine "$@"
