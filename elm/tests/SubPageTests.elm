@@ -99,6 +99,8 @@ all =
                                 , browsingIndex = 0
                                 , autoScroll = False
                                 , csrfToken = ""
+                                , previousKeyPress = Nothing
+                                , showHelp = False
                                 }
 
                             model =
