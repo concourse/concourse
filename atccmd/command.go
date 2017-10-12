@@ -449,6 +449,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		)
 	}
 
+	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
+		for _, stack := range db.GlobalConnectionTracker.Current() {
+			fmt.Fprintln(w, stack)
+		}
+	})
+
 	members := []grouper.Member{
 		{"drainer", drainer{
 			logger: logger.Session("drain"),

@@ -23,13 +23,15 @@ type Conn interface {
 	Bus() NotificationsBus
 	EncryptionStrategy() EncryptionStrategy
 
-	Begin() (Tx, error)
-	Driver() driver.Driver
-	Exec(query string, args ...interface{}) (sql.Result, error)
 	Ping() error
+	Driver() driver.Driver
+
+	Begin() (Tx, error)
+	Exec(query string, args ...interface{}) (sql.Result, error)
 	Prepare(query string) (*sql.Stmt, error)
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryRow(query string, args ...interface{}) squirrel.RowScanner
+
 	SetMaxIdleConns(n int)
 	SetMaxOpenConns(n int)
 	Stats() sql.DBStats
@@ -345,21 +347,49 @@ func (db *db) Begin() (Tx, error) {
 		return nil, err
 	}
 
-	return &dbTx{tx}, nil
+	return &dbTx{tx, GlobalConnectionTracker.Track()}, nil
+}
+
+func (db *db) Exec(query string, args ...interface{}) (sql.Result, error) {
+	defer GlobalConnectionTracker.Track().Release()
+	return db.DB.Exec(query, args...)
+}
+
+func (db *db) Prepare(query string) (*sql.Stmt, error) {
+	defer GlobalConnectionTracker.Track().Release()
+	return db.DB.Prepare(query)
+}
+
+func (db *db) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	defer GlobalConnectionTracker.Track().Release()
+	return db.DB.Query(query, args...)
 }
 
 // to conform to squirrel.Runner interface
 func (db *db) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+	defer GlobalConnectionTracker.Track().Release()
 	return db.DB.QueryRow(query, args...)
 }
 
 type dbTx struct {
 	*sql.Tx
+
+	session *ConnectionSession
 }
 
 // to conform to squirrel.Runner interface
 func (tx *dbTx) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
 	return tx.Tx.QueryRow(query, args...)
+}
+
+func (tx *dbTx) Commit() error {
+	defer tx.session.Release()
+	return tx.Tx.Commit()
+}
+
+func (tx *dbTx) Rollback() error {
+	defer tx.session.Release()
+	return tx.Tx.Rollback()
 }
 
 type nonOneRowAffectedError struct {
