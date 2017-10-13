@@ -252,6 +252,10 @@ fuzzySearchStatusPipeline =
         \_ ->
             Dashboard.filterBy "status:started" statusPipelines
                 |> Expect.equal [ pipelineStarted ]
+    , test "returns no pipeline if status does not match the search term" <|
+        \_ ->
+            Dashboard.filterBy "status:failure" statusPipelines
+                |> Expect.equal []
     ]
 
 
