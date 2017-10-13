@@ -47,12 +47,12 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 	return scanner.scan(logger.Session("tick"), resourceTypeName, nil, false)
 }
 
-func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName string) error {
+func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion atc.Version) error {
 	// FIXME: Implement
 	return nil
 }
 
-func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion atc.Version) error {
+func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName string) error {
 	// FIXME: Implement
 	return nil
 }
@@ -120,10 +120,10 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 	for breaker := true; breaker == true; breaker = mustComplete {
 		lock, acquired, err := scanner.dbPipeline.AcquireResourceTypeCheckingLockWithIntervalCheck(
 			logger,
-			resourceTypeName,
+			savedResourceType.Name(),
 			resourceConfigCheckSession.ResourceConfig(),
 			interval,
-			false,
+			mustComplete,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
