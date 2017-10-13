@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
@@ -25,6 +26,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceConfigCheckSessionFactory *dbfakes.FakeResourceConfigCheckSessionFactory
 		fakeResourceConfigCheckSession        *dbfakes.FakeResourceConfigCheckSession
 		fakeDBPipeline                        *dbfakes.FakePipeline
+		fakeClock                             *fakeclock.FakeClock
 		interval                              time.Duration
 		variables                             creds.Variables
 
@@ -78,6 +80,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
 
 		scanner = NewResourceTypeScanner(
+			fakeClock,
 			fakeResourceFactory,
 			fakeResourceConfigCheckSessionFactory,
 			interval,

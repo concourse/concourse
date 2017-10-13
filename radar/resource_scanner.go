@@ -96,6 +96,13 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		return 0, err
 	}
 
+	// FIXME: Scan dependencies
+	//   Go through each resourceType
+	//     if the resourceType's Name matches the savedResource's Type
+	//       if the resoureceType's Version is nil
+	//         Scan the resourceType
+	//   Reload all the resourceTypes at some point
+
 	versionedResourceTypes := creds.NewVersionedResourceTypes(
 		scanner.variables,
 		resourceTypes.Deserialize(),

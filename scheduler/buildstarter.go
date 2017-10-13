@@ -107,6 +107,8 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			if err != nil {
 				return false, err
 			}
+
+			// FIXME: reload resource resource types
 		}
 
 		versions, err := s.pipeline.LoadVersionsDB()
