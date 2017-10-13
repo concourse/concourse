@@ -52,6 +52,7 @@ func NewScanRunnerFactory(
 		variables,
 	)
 	resourceTypeScanner := NewResourceTypeScanner(
+		clock,
 		resourceFactory,
 		resourceConfigCheckSessionFactory,
 		defaultInterval,
