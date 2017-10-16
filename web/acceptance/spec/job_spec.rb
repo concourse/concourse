@@ -13,7 +13,7 @@ describe 'job', type: :feature do
 
   context 'without builds' do
     it 'links to the builds page' do
-      page.find('a', text: 'passing').click
+      page.find('a > text', text: 'passing').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/passing"
     end
   end
@@ -37,7 +37,7 @@ describe 'job', type: :feature do
 
     page.find('#job-state').click
     pause_button = page.find('#job-state')
-    Capybara.using_wait_time(2) do
+    Capybara.using_wait_time(5) do
       expect(pause_button['class']).to include 'enabled'
       expect(pause_button['class']).to_not include 'disabled'
     end

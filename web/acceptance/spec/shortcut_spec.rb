@@ -64,7 +64,9 @@ describe 'keyboard shortcut', type: :feature do
       Capybara.using_wait_time(30) do
         expect(page).to have_content('Line 100')
       end
-      page.find('body').send_keys 'gg'
+      page.find('body').send_keys 'g'
+      sleep 0.2
+      page.find('body').send_keys 'g'
       expect(scroll_position).to be 0
     end
   end
