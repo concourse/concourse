@@ -25,7 +25,7 @@ describe 'job', type: :feature do
     end
 
     it 'links to the latest build' do
-      page.find('a', text: 'passing').click
+      page.find('a > text', text: 'passing').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/passing/builds/1"
       click_on 'passing #1'
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/passing"
@@ -33,10 +33,12 @@ describe 'job', type: :feature do
   end
 
   it 'can be paused' do
+    fly('pause-job -j test-pipeline/passing')
+    fly('unpause-job -j test-pipeline/passing')
     visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/passing")
 
-    page.find('#job-state').click
-    pause_button = page.find('#job-state')
+    page.find_by_id('job-state').click
+    pause_button = page.find_by_id('job-state')
     Capybara.using_wait_time(5) do
       expect(pause_button['class']).to include 'enabled'
       expect(pause_button['class']).to_not include 'disabled'
@@ -50,8 +52,8 @@ describe 'job', type: :feature do
     fly('pause-job -j test-pipeline/passing')
     visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/passing")
 
-    page.find('#job-state').click
-    pause_button = page.find('#job-state')
+    page.find_by_id('job-state').click
+    pause_button = page.find_by_id('job-state')
 
     Capybara.using_wait_time(2) do
       expect(pause_button['class']).to_not include 'enabled'

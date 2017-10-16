@@ -19,8 +19,12 @@ describe 'resource', type: :feature do
     it 'displays logs correctly' do
       resource_name = 'broken-time'
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/resources/#{resource_name}")
-      expect(page).to have_content("checking failed")
-      expect(page).to have_content 'failed: exit status'
+      within '.build-step .header' do
+        expect(page).to have_content 'checking failed'
+      end
+      within '.step-body' do
+        expect(page).to have_content 'failed: exit status'
+      end
     end
   end
 
@@ -64,7 +68,7 @@ describe 'resource', type: :feature do
     it 'can navigate to the resource' do
       visit dash_route
 
-      page.find('a', text: 'some-resource').click
+      page.find('a > text', text: 'some-resource').click
 
       expect(page).to have_current_path("/teams/#{team_name}/pipelines/pipeline/resources/some-resource")
       expect(page).to have_css('h1', text: 'some-resource')
@@ -103,8 +107,8 @@ describe 'resource', type: :feature do
       fly('unpause-pipeline -p pipeline')
     end
 
-    def with_timeout timeout
-      Timeout::timeout timeout do
+    def with_timeout(timeout)
+      Timeout.timeout timeout do
         begin
           yield
         rescue
@@ -113,37 +117,37 @@ describe 'resource', type: :feature do
       end
     end
 
-    it "should have pagination for more than 100 resource versions" do
+    it 'should have pagination for more than 100 resource versions' do
       with_timeout(60) { fly('check-resource -r pipeline/many-versions') }
 
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/resources/many-versions")
 
-      expect(page).to have_css(".resource-versions li", count: 100)
+      expect(page).to have_css('.resource-versions li', count: 100)
 
-      expect(page).to have_css(".btn-page-link.prev.disabled")
-      expect(page).to have_css(".btn-page-link.next")
+      expect(page).to have_css('.btn-page-link.prev.disabled')
+      expect(page).to have_css('.btn-page-link.next')
 
-      page.find(".btn-page-link.next").click
+      page.find('.btn-page-link.next').click
 
-      expect(page).to have_css(".resource-versions li", count: 1)
+      expect(page).to have_css('.resource-versions li', count: 1)
 
-      expect(page).to have_css(".btn-page-link.prev")
-      expect(page).to have_css(".btn-page-link.next.disabled")
+      expect(page).to have_css('.btn-page-link.prev')
+      expect(page).to have_css('.btn-page-link.next.disabled')
 
-      page.find(".btn-page-link.prev").click
+      page.find('.btn-page-link.prev').click
 
-      expect(page).to have_css(".resource-versions li", count: 100)
+      expect(page).to have_css('.resource-versions li', count: 100)
     end
 
-    it "should not have pagination for less than 100 resource versions" do
+    it 'should not have pagination for less than 100 resource versions' do
       with_timeout(60) { fly('check-resource -r pipeline/few-versions') }
 
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/resources/few-versions")
 
-      expect(page).to have_css(".resource-versions li", count: 99)
+      expect(page).to have_css('.resource-versions li', count: 99)
 
-      expect(page).to have_css(".btn-page-link.prev.disabled")
-      expect(page).to have_css(".btn-page-link.next.disabled")
+      expect(page).to have_css('.btn-page-link.prev.disabled')
+      expect(page).to have_css('.btn-page-link.next.disabled')
     end
   end
 end

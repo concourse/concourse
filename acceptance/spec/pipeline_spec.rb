@@ -17,12 +17,12 @@ describe 'pipeline', type: :feature do
     end
 
     it 'can navigate to the escaped links' do
-      page.find('a', text: 'some/job').click
+      page.find('a > text', text: 'some/job').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/some%2Fjob"
 
       page.go_back
 
-      page.find('a', text: 'some/resource').click
+      page.find('a > text', text: 'some/resource').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/resources/some%2Fresource"
     end
   end

@@ -231,7 +231,7 @@ describe 'search', type: :feature do
     visit dash_route('/dashboard')
     query.split('').map do |k|
       sleep 0.2
-      page.find_by_id(element).send_keys k.to_s
+      page.find_by_id(element).native.send_keys k.to_s
     end
     expect(page.find_field(element).value).to eq query.to_s
   end

@@ -59,7 +59,8 @@ view model =
     Html.div [ class "module-topbar" ]
         [ Html.div [ class "topbar-logo" ] [ Html.a [ class "logo-image-link", href "#" ] [] ]
         , Html.div [ class "topbar-search" ]
-            [ Html.form [ class "topbar-search-form" ]
+            [ Html.div
+                [ class "topbar-search-form" ]
                 [ Html.input
                     [ class "search-input-field"
                     , id "search-input-field"
