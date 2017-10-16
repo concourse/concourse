@@ -55,7 +55,9 @@ describe 'build', type: :feature do
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/running/builds/1")
         page.find_button('Abort Build').click
         fly_fail('watch -j pipeline/running')
-        expect(page).to have_content 'interrupted'
+        within '.step-body' do
+          expect(page).to have_content 'interrupted'
+        end
         expect(background_palette(page.find('.build-header'))).to eq(BROWN)
         expect(background_palette(page.find('#builds .current'))).to eq(BROWN)
       end
@@ -99,7 +101,7 @@ describe 'build', type: :feature do
 
     it 'can be manually triggered' do
       visit dash_route("/teams/#{team_name}")
-      page.find('a', text: 'manual-trigger').click
+      page.find('a > text', text: 'manual-trigger').click
       page.find_button('Trigger Build').click
       expect(page).to have_content 'manual-trigger #1'
     end
