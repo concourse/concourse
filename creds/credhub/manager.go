@@ -59,15 +59,18 @@ func (manager CredHubManager) Validate() error {
 }
 
 func (manager CredHubManager) NewVariablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
-	var skipTls credhub.Option
+	var options []credhub.Option
 
 	if manager.Insecure {
-		skipTls = credhub.SkipTLSValidation(true)
+		options = append(options, credhub.SkipTLSValidation(true))
 	}
 
-	ch, err := credhub.New(manager.URL,
-		skipTls,
-		credhub.Auth(auth.UaaClientCredentials(manager.ClientId, manager.ClientSecret)))
+	options = append(options, credhub.Auth(auth.UaaClientCredentials(manager.ClientId, manager.ClientSecret)))
 
-	return NewCredHubFactory(logger, ch, manager.PathPrefix), err
+	ch, err := credhub.New(manager.URL, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewCredHubFactory(logger, ch, manager.PathPrefix), nil
 }
