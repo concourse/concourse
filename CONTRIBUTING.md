@@ -73,7 +73,7 @@ Finally you can run the ATC:
 
 ```
 cd ..
-go run cmd/atc/*.go
+go run cmd/atc/*.go --no-really-i-dont-want-any-auth
 ```
 
 Concourse should be live at http://localhost:8080
