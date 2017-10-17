@@ -55,7 +55,7 @@ func (manager CredHubManager) NewVariablesFactory(logger lager.Logger) (creds.Va
 	var skipTls credhub.Option
 
 	if manager.Insecure {
-		skipTls = credhub.SkipTLSValidation()
+		skipTls = credhub.SkipTLSValidation(true)
 	}
 
 	ch, err := credhub.New(manager.URL,
