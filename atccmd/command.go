@@ -192,7 +192,7 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 
 	managerConfigs := make(creds.Managers)
 	for name, p := range creds.ManagerFactories() {
-		managerConfigs[name] = p.AddConfig(authGroup)
+		managerConfigs[name] = p.AddConfig(credsGroup)
 	}
 	cmd.CredentialManagers = managerConfigs
 
