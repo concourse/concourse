@@ -4,9 +4,8 @@ module Dash
   end
 
   def dash_login(team_name)
-    visit ATC_URL
-    click_on 'login'
-    click_on team_name
+    visit dash_route("/teams/#{team_name}/login")
+
     click_button 'login'
 
     # wait for logging in to complete, since the following 'visit'
