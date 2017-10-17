@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc/exec"
 )
 
-type FakeImageFetchingDelegate struct {
+type FakeBuildStepDelegate struct {
 	ImageVersionDeterminedStub        func(*db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -43,7 +43,7 @@ type FakeImageFetchingDelegate struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDetermined(arg1 *db.UsedResourceCache) error {
+func (fake *FakeBuildStepDelegate) ImageVersionDetermined(arg1 *db.UsedResourceCache) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	ret, specificReturn := fake.imageVersionDeterminedReturnsOnCall[len(fake.imageVersionDeterminedArgsForCall)]
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
@@ -60,26 +60,26 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDetermined(arg1 *db.UsedResou
 	return fake.imageVersionDeterminedReturns.result1
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedCallCount() int {
+func (fake *FakeBuildStepDelegate) ImageVersionDeterminedCallCount() int {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedArgsForCall(i int) *db.UsedResourceCache {
+func (fake *FakeBuildStepDelegate) ImageVersionDeterminedArgsForCall(i int) *db.UsedResourceCache {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return fake.imageVersionDeterminedArgsForCall[i].arg1
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturns(result1 error) {
+func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturns(result1 error) {
 	fake.ImageVersionDeterminedStub = nil
 	fake.imageVersionDeterminedReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
+func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
 	fake.ImageVersionDeterminedStub = nil
 	if fake.imageVersionDeterminedReturnsOnCall == nil {
 		fake.imageVersionDeterminedReturnsOnCall = make(map[int]struct {
@@ -91,7 +91,7 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturnsOnCall(i int
 	}{result1}
 }
 
-func (fake *FakeImageFetchingDelegate) Stdout() io.Writer {
+func (fake *FakeBuildStepDelegate) Stdout() io.Writer {
 	fake.stdoutMutex.Lock()
 	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
 	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct{}{})
@@ -106,20 +106,20 @@ func (fake *FakeImageFetchingDelegate) Stdout() io.Writer {
 	return fake.stdoutReturns.result1
 }
 
-func (fake *FakeImageFetchingDelegate) StdoutCallCount() int {
+func (fake *FakeBuildStepDelegate) StdoutCallCount() int {
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
 	return len(fake.stdoutArgsForCall)
 }
 
-func (fake *FakeImageFetchingDelegate) StdoutReturns(result1 io.Writer) {
+func (fake *FakeBuildStepDelegate) StdoutReturns(result1 io.Writer) {
 	fake.StdoutStub = nil
 	fake.stdoutReturns = struct {
 		result1 io.Writer
 	}{result1}
 }
 
-func (fake *FakeImageFetchingDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
+func (fake *FakeBuildStepDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	fake.StdoutStub = nil
 	if fake.stdoutReturnsOnCall == nil {
 		fake.stdoutReturnsOnCall = make(map[int]struct {
@@ -131,7 +131,7 @@ func (fake *FakeImageFetchingDelegate) StdoutReturnsOnCall(i int, result1 io.Wri
 	}{result1}
 }
 
-func (fake *FakeImageFetchingDelegate) Stderr() io.Writer {
+func (fake *FakeBuildStepDelegate) Stderr() io.Writer {
 	fake.stderrMutex.Lock()
 	ret, specificReturn := fake.stderrReturnsOnCall[len(fake.stderrArgsForCall)]
 	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct{}{})
@@ -146,20 +146,20 @@ func (fake *FakeImageFetchingDelegate) Stderr() io.Writer {
 	return fake.stderrReturns.result1
 }
 
-func (fake *FakeImageFetchingDelegate) StderrCallCount() int {
+func (fake *FakeBuildStepDelegate) StderrCallCount() int {
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	return len(fake.stderrArgsForCall)
 }
 
-func (fake *FakeImageFetchingDelegate) StderrReturns(result1 io.Writer) {
+func (fake *FakeBuildStepDelegate) StderrReturns(result1 io.Writer) {
 	fake.StderrStub = nil
 	fake.stderrReturns = struct {
 		result1 io.Writer
 	}{result1}
 }
 
-func (fake *FakeImageFetchingDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
+func (fake *FakeBuildStepDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
 	fake.StderrStub = nil
 	if fake.stderrReturnsOnCall == nil {
 		fake.stderrReturnsOnCall = make(map[int]struct {
@@ -171,7 +171,7 @@ func (fake *FakeImageFetchingDelegate) StderrReturnsOnCall(i int, result1 io.Wri
 	}{result1}
 }
 
-func (fake *FakeImageFetchingDelegate) Invocations() map[string][][]interface{} {
+func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
@@ -187,7 +187,7 @@ func (fake *FakeImageFetchingDelegate) Invocations() map[string][][]interface{} 
 	return copiedInvocations
 }
 
-func (fake *FakeImageFetchingDelegate) recordInvocation(key string, args []interface{}) {
+func (fake *FakeBuildStepDelegate) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -199,4 +199,4 @@ func (fake *FakeImageFetchingDelegate) recordInvocation(key string, args []inter
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ exec.ImageFetchingDelegate = new(FakeImageFetchingDelegate)
+var _ exec.BuildStepDelegate = new(FakeBuildStepDelegate)

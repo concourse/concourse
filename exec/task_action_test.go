@@ -41,7 +41,7 @@ var _ = Describe("TaskAction", func() {
 
 		fakeBuildEventsDelegate     *execfakes.FakeActionsBuildEventsDelegate
 		fakeTaskBuildEventsDelegate *execfakes.FakeTaskBuildEventsDelegate
-		fakeImageFetchingDelegate   *execfakes.FakeImageFetchingDelegate
+		fakeBuildStepDelegate       *execfakes.FakeBuildStepDelegate
 
 		privileged    exec.Privileged
 		tags          []string
@@ -71,9 +71,9 @@ var _ = Describe("TaskAction", func() {
 
 		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 		fakeTaskBuildEventsDelegate = new(execfakes.FakeTaskBuildEventsDelegate)
-		fakeImageFetchingDelegate = new(execfakes.FakeImageFetchingDelegate)
-		fakeImageFetchingDelegate.StdoutReturns(stdoutBuf)
-		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
+		fakeBuildStepDelegate = new(execfakes.FakeBuildStepDelegate)
+		fakeBuildStepDelegate.StdoutReturns(stdoutBuf)
+		fakeBuildStepDelegate.StderrReturns(stderrBuf)
 
 		privileged = false
 		tags = []string{"step", "tags"}
@@ -121,7 +121,7 @@ var _ = Describe("TaskAction", func() {
 			"some-artifact-root",
 			imageArtifactName,
 			fakeTaskBuildEventsDelegate,
-			fakeImageFetchingDelegate,
+			fakeBuildStepDelegate,
 			fakeWorkerClient,
 			teamID,
 			buildID,
@@ -200,7 +200,7 @@ var _ = Describe("TaskAction", func() {
 					StepName: "some-step",
 				}))
 
-				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+				Expect(delegate).To(Equal(fakeBuildStepDelegate))
 
 				Expect(spec).To(Equal(worker.ContainerSpec{
 					Platform: "some-platform",
@@ -248,7 +248,7 @@ var _ = Describe("TaskAction", func() {
 						StepName: "some-step",
 					}))
 
-					Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+					Expect(delegate).To(Equal(fakeBuildStepDelegate))
 
 					Expect(spec).To(Equal(worker.ContainerSpec{
 						Platform: "some-platform",

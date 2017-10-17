@@ -33,16 +33,16 @@ type FakeBuildDelegate struct {
 	dBTaskBuildEventsDelegateReturnsOnCall map[int]struct {
 		result1 exec.TaskBuildEventsDelegate
 	}
-	ImageFetchingDelegateStub        func(atc.PlanID) exec.ImageFetchingDelegate
-	imageFetchingDelegateMutex       sync.RWMutex
-	imageFetchingDelegateArgsForCall []struct {
+	BuildStepDelegateStub        func(atc.PlanID) exec.BuildStepDelegate
+	buildStepDelegateMutex       sync.RWMutex
+	buildStepDelegateArgsForCall []struct {
 		arg1 atc.PlanID
 	}
-	imageFetchingDelegateReturns struct {
-		result1 exec.ImageFetchingDelegate
+	buildStepDelegateReturns struct {
+		result1 exec.BuildStepDelegate
 	}
-	imageFetchingDelegateReturnsOnCall map[int]struct {
-		result1 exec.ImageFetchingDelegate
+	buildStepDelegateReturnsOnCall map[int]struct {
+		result1 exec.BuildStepDelegate
 	}
 	FinishStub        func(lager.Logger, error, exec.Success, bool)
 	finishMutex       sync.RWMutex
@@ -152,51 +152,51 @@ func (fake *FakeBuildDelegate) DBTaskBuildEventsDelegateReturnsOnCall(i int, res
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) ImageFetchingDelegate(arg1 atc.PlanID) exec.ImageFetchingDelegate {
-	fake.imageFetchingDelegateMutex.Lock()
-	ret, specificReturn := fake.imageFetchingDelegateReturnsOnCall[len(fake.imageFetchingDelegateArgsForCall)]
-	fake.imageFetchingDelegateArgsForCall = append(fake.imageFetchingDelegateArgsForCall, struct {
+func (fake *FakeBuildDelegate) BuildStepDelegate(arg1 atc.PlanID) exec.BuildStepDelegate {
+	fake.buildStepDelegateMutex.Lock()
+	ret, specificReturn := fake.buildStepDelegateReturnsOnCall[len(fake.buildStepDelegateArgsForCall)]
+	fake.buildStepDelegateArgsForCall = append(fake.buildStepDelegateArgsForCall, struct {
 		arg1 atc.PlanID
 	}{arg1})
-	fake.recordInvocation("ImageFetchingDelegate", []interface{}{arg1})
-	fake.imageFetchingDelegateMutex.Unlock()
-	if fake.ImageFetchingDelegateStub != nil {
-		return fake.ImageFetchingDelegateStub(arg1)
+	fake.recordInvocation("BuildStepDelegate", []interface{}{arg1})
+	fake.buildStepDelegateMutex.Unlock()
+	if fake.BuildStepDelegateStub != nil {
+		return fake.BuildStepDelegateStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.imageFetchingDelegateReturns.result1
+	return fake.buildStepDelegateReturns.result1
 }
 
-func (fake *FakeBuildDelegate) ImageFetchingDelegateCallCount() int {
-	fake.imageFetchingDelegateMutex.RLock()
-	defer fake.imageFetchingDelegateMutex.RUnlock()
-	return len(fake.imageFetchingDelegateArgsForCall)
+func (fake *FakeBuildDelegate) BuildStepDelegateCallCount() int {
+	fake.buildStepDelegateMutex.RLock()
+	defer fake.buildStepDelegateMutex.RUnlock()
+	return len(fake.buildStepDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) ImageFetchingDelegateArgsForCall(i int) atc.PlanID {
-	fake.imageFetchingDelegateMutex.RLock()
-	defer fake.imageFetchingDelegateMutex.RUnlock()
-	return fake.imageFetchingDelegateArgsForCall[i].arg1
+func (fake *FakeBuildDelegate) BuildStepDelegateArgsForCall(i int) atc.PlanID {
+	fake.buildStepDelegateMutex.RLock()
+	defer fake.buildStepDelegateMutex.RUnlock()
+	return fake.buildStepDelegateArgsForCall[i].arg1
 }
 
-func (fake *FakeBuildDelegate) ImageFetchingDelegateReturns(result1 exec.ImageFetchingDelegate) {
-	fake.ImageFetchingDelegateStub = nil
-	fake.imageFetchingDelegateReturns = struct {
-		result1 exec.ImageFetchingDelegate
+func (fake *FakeBuildDelegate) BuildStepDelegateReturns(result1 exec.BuildStepDelegate) {
+	fake.BuildStepDelegateStub = nil
+	fake.buildStepDelegateReturns = struct {
+		result1 exec.BuildStepDelegate
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) ImageFetchingDelegateReturnsOnCall(i int, result1 exec.ImageFetchingDelegate) {
-	fake.ImageFetchingDelegateStub = nil
-	if fake.imageFetchingDelegateReturnsOnCall == nil {
-		fake.imageFetchingDelegateReturnsOnCall = make(map[int]struct {
-			result1 exec.ImageFetchingDelegate
+func (fake *FakeBuildDelegate) BuildStepDelegateReturnsOnCall(i int, result1 exec.BuildStepDelegate) {
+	fake.BuildStepDelegateStub = nil
+	if fake.buildStepDelegateReturnsOnCall == nil {
+		fake.buildStepDelegateReturnsOnCall = make(map[int]struct {
+			result1 exec.BuildStepDelegate
 		})
 	}
-	fake.imageFetchingDelegateReturnsOnCall[i] = struct {
-		result1 exec.ImageFetchingDelegate
+	fake.buildStepDelegateReturnsOnCall[i] = struct {
+		result1 exec.BuildStepDelegate
 	}{result1}
 }
 
@@ -234,8 +234,8 @@ func (fake *FakeBuildDelegate) Invocations() map[string][][]interface{} {
 	defer fake.dBActionsBuildEventsDelegateMutex.RUnlock()
 	fake.dBTaskBuildEventsDelegateMutex.RLock()
 	defer fake.dBTaskBuildEventsDelegateMutex.RUnlock()
-	fake.imageFetchingDelegateMutex.RLock()
-	defer fake.imageFetchingDelegateMutex.RUnlock()
+	fake.buildStepDelegateMutex.RLock()
+	defer fake.buildStepDelegateMutex.RUnlock()
 	fake.finishMutex.RLock()
 	defer fake.finishMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

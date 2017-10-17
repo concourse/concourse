@@ -3,6 +3,7 @@ package engine
 import (
 	"sync"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -15,7 +16,7 @@ import (
 type BuildDelegate interface {
 	DBActionsBuildEventsDelegate(atc.PlanID) exec.ActionsBuildEventsDelegate
 	DBTaskBuildEventsDelegate(atc.PlanID) exec.TaskBuildEventsDelegate
-	ImageFetchingDelegate(atc.PlanID) exec.ImageFetchingDelegate
+	BuildStepDelegate(atc.PlanID) exec.BuildStepDelegate
 
 	Finish(lager.Logger, error, exec.Success, bool)
 }
@@ -64,11 +65,8 @@ func (delegate *delegate) DBTaskBuildEventsDelegate(
 	return NewDBTaskBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)})
 }
 
-func (delegate *delegate) ImageFetchingDelegate(planID atc.PlanID) exec.ImageFetchingDelegate {
-	return &imageFetchingDelegate{
-		build:  delegate.build,
-		planID: planID,
-	}
+func (delegate *delegate) BuildStepDelegate(planID atc.PlanID) exec.BuildStepDelegate {
+	return NewBuildStepDelegate(delegate.build, planID, clock.NewClock())
 }
 
 func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.Success, aborted bool) {

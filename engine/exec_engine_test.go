@@ -429,7 +429,7 @@ var _ = Describe("ExecEngine", func() {
 					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(0)
 					Expect(originID).To(Equal(plan.ID))
 
-					planID := fakeDelegate.ImageFetchingDelegateArgsForCall(0)
+					planID := fakeDelegate.BuildStepDelegateArgsForCall(0)
 					Expect(planID).To(Equal(plan.ID))
 				})
 			})
@@ -539,7 +539,7 @@ var _ = Describe("ExecEngine", func() {
 					}))
 					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(0)
 					Expect(originID).To(Equal(putPlan.ID))
-					planID := fakeDelegate.ImageFetchingDelegateArgsForCall(0)
+					planID := fakeDelegate.BuildStepDelegateArgsForCall(0)
 					Expect(planID).To(Equal(putPlan.ID))
 				})
 
@@ -568,7 +568,7 @@ var _ = Describe("ExecEngine", func() {
 					}))
 					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(1)
 					Expect(originID).To(Equal(dependentGetPlan.ID))
-					planID := fakeDelegate.ImageFetchingDelegateArgsForCall(1)
+					planID := fakeDelegate.BuildStepDelegateArgsForCall(1)
 					Expect(planID).To(Equal(dependentGetPlan.ID))
 				})
 			})

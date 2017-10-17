@@ -5,45 +5,63 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	"code.cloudfoundry.org/clock"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 )
 
-type imageFetchingDelegate struct {
+type BuildStepDelegate struct {
 	build  db.Build
 	planID atc.PlanID
+	clock  clock.Clock
 }
 
-func (delegate *imageFetchingDelegate) ImageVersionDetermined(resourceCache *db.UsedResourceCache) error {
+func NewBuildStepDelegate(
+	build db.Build,
+	planID atc.PlanID,
+	clock clock.Clock,
+) *BuildStepDelegate {
+	return &BuildStepDelegate{
+		build:  build,
+		planID: planID,
+		clock:  clock,
+	}
+}
+
+func (delegate *BuildStepDelegate) ImageVersionDetermined(resourceCache *db.UsedResourceCache) error {
 	return delegate.build.SaveImageResourceVersion(resourceCache)
 }
 
-func (delegate *imageFetchingDelegate) Stdout() io.Writer {
+func (delegate *BuildStepDelegate) Stdout() io.Writer {
 	return newDBEventWriter(
 		delegate.build,
 		event.Origin{
 			Source: event.OriginSourceStdout,
 			ID:     event.OriginID(delegate.planID),
 		},
+		delegate.clock,
 	)
 }
 
-func (delegate *imageFetchingDelegate) Stderr() io.Writer {
+func (delegate *BuildStepDelegate) Stderr() io.Writer {
 	return newDBEventWriter(
 		delegate.build,
 		event.Origin{
 			Source: event.OriginSourceStderr,
 			ID:     event.OriginID(delegate.planID),
 		},
+		delegate.clock,
 	)
 }
 
-func newDBEventWriter(build db.Build, origin event.Origin) io.Writer {
+func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock) io.Writer {
 	return &dbEventWriter{
 		build:  build,
 		origin: origin,
+		clock:  clock,
 	}
 }
 
@@ -53,6 +71,8 @@ type dbEventWriter struct {
 	origin event.Origin
 
 	dangling []byte
+
+	clock clock.Clock
 }
 
 func (writer *dbEventWriter) Write(data []byte) (int, error) {
@@ -67,6 +87,7 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	writer.dangling = nil
 
 	err := writer.build.SaveEvent(event.Log{
+		Time:    writer.clock.Now().Unix(),
 		Payload: string(text),
 		Origin:  writer.origin,
 	})

@@ -21,9 +21,9 @@ import (
 
 var _ = Describe("FetchSourceProvider", func() {
 	var (
-		fakeWorkerClient          *workerfakes.FakeClient
-		fetchSourceProvider       resource.FetchSourceProvider
-		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
+		fakeWorkerClient      *workerfakes.FakeClient
+		fetchSourceProvider   resource.FetchSourceProvider
+		fakeBuildStepDelegate *workerfakes.FakeImageFetchingDelegate
 
 		logger                   lager.Logger
 		resourceInstance         *resourcefakes.FakeResourceInstance
@@ -60,7 +60,7 @@ var _ = Describe("FetchSourceProvider", func() {
 		})
 
 		resourceInstance.ResourceTypeReturns("some-resource-type")
-		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
+		fakeBuildStepDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		resourceCache = &db.UsedResourceCache{ID: 42}
 		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(resourceCache, nil)
 
@@ -72,7 +72,7 @@ var _ = Describe("FetchSourceProvider", func() {
 			teamID,
 			resourceTypes,
 			resourceInstance,
-			fakeImageFetchingDelegate,
+			fakeBuildStepDelegate,
 		)
 	})
 
@@ -111,7 +111,7 @@ var _ = Describe("FetchSourceProvider", func() {
 					teamID,
 					session,
 					metadata,
-					fakeImageFetchingDelegate,
+					fakeBuildStepDelegate,
 					fakeResourceCacheFactory,
 				)
 				Expect(source).To(Equal(expectedSource))

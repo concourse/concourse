@@ -36,11 +36,11 @@ var _ = Describe("PutAction", func() {
 			Type:     db.ContainerTypePut,
 			StepName: "some-step",
 		}
-		teamID                    = 123
-		buildID                   = 42
-		planID                    = 56
-		fakeBuildEventsDelegate   *execfakes.FakeActionsBuildEventsDelegate
-		fakeImageFetchingDelegate *execfakes.FakeImageFetchingDelegate
+		teamID                  = 123
+		buildID                 = 42
+		planID                  = 56
+		fakeBuildEventsDelegate *execfakes.FakeActionsBuildEventsDelegate
+		fakeBuildStepDelegate   *execfakes.FakeBuildStepDelegate
 
 		resourceTypes creds.VersionedResourceTypes
 
@@ -64,11 +64,11 @@ var _ = Describe("PutAction", func() {
 		}
 
 		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
-		fakeImageFetchingDelegate = new(execfakes.FakeImageFetchingDelegate)
+		fakeBuildStepDelegate = new(execfakes.FakeBuildStepDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
-		fakeImageFetchingDelegate.StdoutReturns(stdoutBuf)
-		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
+		fakeBuildStepDelegate.StdoutReturns(stdoutBuf)
+		fakeBuildStepDelegate.StderrReturns(stderrBuf)
 
 		artifactRepository = worker.NewArtifactRepository()
 
@@ -92,7 +92,7 @@ var _ = Describe("PutAction", func() {
 			creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
 			creds.NewParams(variables, atc.Params{"some-param": "some-value"}),
 			[]string{"some", "tags"},
-			fakeImageFetchingDelegate,
+			fakeBuildStepDelegate,
 			fakeResourceFactory,
 			teamID,
 			buildID,
@@ -169,7 +169,7 @@ var _ = Describe("PutAction", func() {
 					exec.PutResourceSource{fakeMountedSource},
 				))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
-				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+				Expect(delegate).To(Equal(fakeBuildStepDelegate))
 			})
 
 			It("puts the resource with the correct source and params", func() {

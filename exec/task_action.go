@@ -86,15 +86,15 @@ type TaskAction struct {
 	artifactsRoot     string
 	imageArtifactName string
 
-	buildEventsDelegate   TaskBuildEventsDelegate
-	imageFetchingDelegate ImageFetchingDelegate
-	workerPool            worker.Client
-	teamID                int
-	buildID               int
-	jobID                 int
-	stepName              string
-	planID                atc.PlanID
-	containerMetadata     db.ContainerMetadata
+	buildEventsDelegate TaskBuildEventsDelegate
+	buildStepDelegate   BuildStepDelegate
+	workerPool          worker.Client
+	teamID              int
+	buildID             int
+	jobID               int
+	stepName            string
+	planID              atc.PlanID
+	containerMetadata   db.ContainerMetadata
 
 	resourceTypes creds.VersionedResourceTypes
 
@@ -112,7 +112,7 @@ func NewTaskAction(
 	artifactsRoot string,
 	imageArtifactName string,
 	buildEventsDelegate TaskBuildEventsDelegate,
-	imageFetchingDelegate ImageFetchingDelegate,
+	buildStepDelegate BuildStepDelegate,
 	workerPool worker.Client,
 	teamID int,
 	buildID int,
@@ -124,24 +124,24 @@ func NewTaskAction(
 	variables creds.Variables,
 ) *TaskAction {
 	return &TaskAction{
-		privileged:            privileged,
-		configSource:          configSource,
-		tags:                  tags,
-		inputMapping:          inputMapping,
-		outputMapping:         outputMapping,
-		artifactsRoot:         artifactsRoot,
-		imageArtifactName:     imageArtifactName,
-		buildEventsDelegate:   buildEventsDelegate,
-		imageFetchingDelegate: imageFetchingDelegate,
-		workerPool:            workerPool,
-		teamID:                teamID,
-		buildID:               buildID,
-		jobID:                 jobID,
-		stepName:              stepName,
-		planID:                planID,
-		containerMetadata:     containerMetadata,
-		resourceTypes:         resourceTypes,
-		variables:             variables,
+		privileged:          privileged,
+		configSource:        configSource,
+		tags:                tags,
+		inputMapping:        inputMapping,
+		outputMapping:       outputMapping,
+		artifactsRoot:       artifactsRoot,
+		imageArtifactName:   imageArtifactName,
+		buildEventsDelegate: buildEventsDelegate,
+		buildStepDelegate:   buildStepDelegate,
+		workerPool:          workerPool,
+		teamID:              teamID,
+		buildID:             buildID,
+		jobID:               jobID,
+		stepName:            stepName,
+		planID:              planID,
+		containerMetadata:   containerMetadata,
+		resourceTypes:       resourceTypes,
+		variables:           variables,
 	}
 }
 
@@ -184,7 +184,7 @@ func (action *TaskAction) Run(
 	container, err := action.workerPool.FindOrCreateContainer(
 		logger,
 		signals,
-		action.imageFetchingDelegate,
+		action.buildStepDelegate,
 		db.NewBuildStepContainerOwner(action.buildID, action.planID),
 		action.containerMetadata,
 		containerSpec,
@@ -219,8 +219,8 @@ func (action *TaskAction) Run(
 	}
 
 	processIO := garden.ProcessIO{
-		Stdout: action.imageFetchingDelegate.Stdout(),
-		Stderr: action.imageFetchingDelegate.Stderr(),
+		Stdout: action.buildStepDelegate.Stdout(),
+		Stderr: action.buildStepDelegate.Stderr(),
 	}
 
 	process, err := container.Attach(processID, processIO)

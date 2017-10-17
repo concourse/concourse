@@ -94,7 +94,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		containerMetadata,
 		build.delegate.DBTaskBuildEventsDelegate(plan.ID),
 		build.delegate.DBActionsBuildEventsDelegate(plan.ID),
-		build.delegate.ImageFetchingDelegate(plan.ID),
+		build.delegate.BuildStepDelegate(plan.ID),
 	)
 }
 
@@ -117,7 +117,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		build.stepMetadata,
 		containerMetadata,
 		build.delegate.DBActionsBuildEventsDelegate(plan.ID),
-		build.delegate.ImageFetchingDelegate(plan.ID),
+		build.delegate.BuildStepDelegate(plan.ID),
 	)
 }
 
@@ -140,7 +140,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		build.stepMetadata,
 		containerMetadata,
 		build.delegate.DBActionsBuildEventsDelegate(plan.ID),
-		build.delegate.ImageFetchingDelegate(plan.ID),
+		build.delegate.BuildStepDelegate(plan.ID),
 	)
 }
 

@@ -1,6 +1,7 @@
 module StrictEvents
     exposing
         ( onLeftClick
+        , onLeftClickNoPreventDefault
         , onLeftClickOrShiftLeftClick
         , onLeftMouseDown
         , onLeftMouseDownCapturing
@@ -30,13 +31,18 @@ type alias ScrollState =
 
 onLeftClick : msg -> Html.Attribute msg
 onLeftClick msg =
-    onLeftClickCapturing (Json.Decode.succeed ()) (always msg)
+    onLeftClickCapturing True (Json.Decode.succeed ()) (always msg)
 
 
-onLeftClickCapturing : Json.Decode.Decoder x -> (x -> msg) -> Html.Attribute msg
-onLeftClickCapturing captured msg =
+onLeftClickNoPreventDefault : msg -> Html.Attribute msg
+onLeftClickNoPreventDefault msg =
+    onLeftClickCapturing False (Json.Decode.succeed ()) (always msg)
+
+
+onLeftClickCapturing : Bool -> Json.Decode.Decoder x -> (x -> msg) -> Html.Attribute msg
+onLeftClickCapturing preventDefault captured msg =
     Html.Events.onWithOptions "click"
-        { stopPropagation = False, preventDefault = True }
+        { stopPropagation = False, preventDefault = preventDefault }
         (assertNoModifier
             |> Json.Decode.andThen
                 (\_ ->

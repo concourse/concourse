@@ -22,14 +22,14 @@ import (
 
 var _ = Describe("Fetcher", func() {
 	var (
-		fakeFetchSourceProvider   *resourcefakes.FakeFetchSourceProvider
-		fakeClock                 *fakeclock.FakeClock
-		fakeLockFactory           *lockfakes.FakeLockFactory
-		fetcher                   resource.Fetcher
-		signals                   chan os.Signal
-		ready                     chan struct{}
-		fakeVersionedSource       *resourcefakes.FakeVersionedSource
-		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
+		fakeFetchSourceProvider *resourcefakes.FakeFetchSourceProvider
+		fakeClock               *fakeclock.FakeClock
+		fakeLockFactory         *lockfakes.FakeLockFactory
+		fetcher                 resource.Fetcher
+		signals                 chan os.Signal
+		ready                   chan struct{}
+		fakeVersionedSource     *resourcefakes.FakeVersionedSource
+		fakeBuildStepDelegate   *workerfakes.FakeImageFetchingDelegate
 
 		versionedSource resource.VersionedSource
 		fetchErr        error
@@ -54,7 +54,7 @@ var _ = Describe("Fetcher", func() {
 		ready = make(chan struct{})
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 
-		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
+		fakeBuildStepDelegate = new(workerfakes.FakeImageFetchingDelegate)
 	})
 
 	JustBeforeEach(func() {
@@ -66,7 +66,7 @@ var _ = Describe("Fetcher", func() {
 			creds.VersionedResourceTypes{},
 			new(resourcefakes.FakeResourceInstance),
 			resource.EmptyMetadata{},
-			fakeImageFetchingDelegate,
+			fakeBuildStepDelegate,
 			signals,
 			ready,
 		)

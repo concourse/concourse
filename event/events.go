@@ -87,12 +87,13 @@ func (Status) EventType() atc.EventType  { return EventTypeStatus }
 func (Status) Version() atc.EventVersion { return "1.0" }
 
 type Log struct {
+	Time    int64  `json:"time"`
 	Origin  Origin `json:"origin"`
 	Payload string `json:"payload"`
 }
 
 func (Log) EventType() atc.EventType  { return EventTypeLog }
-func (Log) Version() atc.EventVersion { return "5.0" }
+func (Log) Version() atc.EventVersion { return "5.1" }
 
 type Origin struct {
 	ID     OriginID     `json:"id,omitempty"`

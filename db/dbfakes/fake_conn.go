@@ -29,6 +29,24 @@ type FakeConn struct {
 	encryptionStrategyReturnsOnCall map[int]struct {
 		result1 db.EncryptionStrategy
 	}
+	PingStub        func() error
+	pingMutex       sync.RWMutex
+	pingArgsForCall []struct{}
+	pingReturns     struct {
+		result1 error
+	}
+	pingReturnsOnCall map[int]struct {
+		result1 error
+	}
+	DriverStub        func() driver.Driver
+	driverMutex       sync.RWMutex
+	driverArgsForCall []struct{}
+	driverReturns     struct {
+		result1 driver.Driver
+	}
+	driverReturnsOnCall map[int]struct {
+		result1 driver.Driver
+	}
 	BeginStub        func() (db.Tx, error)
 	beginMutex       sync.RWMutex
 	beginArgsForCall []struct{}
@@ -39,15 +57,6 @@ type FakeConn struct {
 	beginReturnsOnCall map[int]struct {
 		result1 db.Tx
 		result2 error
-	}
-	DriverStub        func() driver.Driver
-	driverMutex       sync.RWMutex
-	driverArgsForCall []struct{}
-	driverReturns     struct {
-		result1 driver.Driver
-	}
-	driverReturnsOnCall map[int]struct {
-		result1 driver.Driver
 	}
 	ExecStub        func(query string, args ...interface{}) (sql.Result, error)
 	execMutex       sync.RWMutex
@@ -62,15 +71,6 @@ type FakeConn struct {
 	execReturnsOnCall map[int]struct {
 		result1 sql.Result
 		result2 error
-	}
-	PingStub        func() error
-	pingMutex       sync.RWMutex
-	pingArgsForCall []struct{}
-	pingReturns     struct {
-		result1 error
-	}
-	pingReturnsOnCall map[int]struct {
-		result1 error
 	}
 	PrepareStub        func(query string) (*sql.Stmt, error)
 	prepareMutex       sync.RWMutex
@@ -223,6 +223,86 @@ func (fake *FakeConn) EncryptionStrategyReturnsOnCall(i int, result1 db.Encrypti
 	}{result1}
 }
 
+func (fake *FakeConn) Ping() error {
+	fake.pingMutex.Lock()
+	ret, specificReturn := fake.pingReturnsOnCall[len(fake.pingArgsForCall)]
+	fake.pingArgsForCall = append(fake.pingArgsForCall, struct{}{})
+	fake.recordInvocation("Ping", []interface{}{})
+	fake.pingMutex.Unlock()
+	if fake.PingStub != nil {
+		return fake.PingStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.pingReturns.result1
+}
+
+func (fake *FakeConn) PingCallCount() int {
+	fake.pingMutex.RLock()
+	defer fake.pingMutex.RUnlock()
+	return len(fake.pingArgsForCall)
+}
+
+func (fake *FakeConn) PingReturns(result1 error) {
+	fake.PingStub = nil
+	fake.pingReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeConn) PingReturnsOnCall(i int, result1 error) {
+	fake.PingStub = nil
+	if fake.pingReturnsOnCall == nil {
+		fake.pingReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.pingReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeConn) Driver() driver.Driver {
+	fake.driverMutex.Lock()
+	ret, specificReturn := fake.driverReturnsOnCall[len(fake.driverArgsForCall)]
+	fake.driverArgsForCall = append(fake.driverArgsForCall, struct{}{})
+	fake.recordInvocation("Driver", []interface{}{})
+	fake.driverMutex.Unlock()
+	if fake.DriverStub != nil {
+		return fake.DriverStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.driverReturns.result1
+}
+
+func (fake *FakeConn) DriverCallCount() int {
+	fake.driverMutex.RLock()
+	defer fake.driverMutex.RUnlock()
+	return len(fake.driverArgsForCall)
+}
+
+func (fake *FakeConn) DriverReturns(result1 driver.Driver) {
+	fake.DriverStub = nil
+	fake.driverReturns = struct {
+		result1 driver.Driver
+	}{result1}
+}
+
+func (fake *FakeConn) DriverReturnsOnCall(i int, result1 driver.Driver) {
+	fake.DriverStub = nil
+	if fake.driverReturnsOnCall == nil {
+		fake.driverReturnsOnCall = make(map[int]struct {
+			result1 driver.Driver
+		})
+	}
+	fake.driverReturnsOnCall[i] = struct {
+		result1 driver.Driver
+	}{result1}
+}
+
 func (fake *FakeConn) Begin() (db.Tx, error) {
 	fake.beginMutex.Lock()
 	ret, specificReturn := fake.beginReturnsOnCall[len(fake.beginArgsForCall)]
@@ -264,46 +344,6 @@ func (fake *FakeConn) BeginReturnsOnCall(i int, result1 db.Tx, result2 error) {
 		result1 db.Tx
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeConn) Driver() driver.Driver {
-	fake.driverMutex.Lock()
-	ret, specificReturn := fake.driverReturnsOnCall[len(fake.driverArgsForCall)]
-	fake.driverArgsForCall = append(fake.driverArgsForCall, struct{}{})
-	fake.recordInvocation("Driver", []interface{}{})
-	fake.driverMutex.Unlock()
-	if fake.DriverStub != nil {
-		return fake.DriverStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.driverReturns.result1
-}
-
-func (fake *FakeConn) DriverCallCount() int {
-	fake.driverMutex.RLock()
-	defer fake.driverMutex.RUnlock()
-	return len(fake.driverArgsForCall)
-}
-
-func (fake *FakeConn) DriverReturns(result1 driver.Driver) {
-	fake.DriverStub = nil
-	fake.driverReturns = struct {
-		result1 driver.Driver
-	}{result1}
-}
-
-func (fake *FakeConn) DriverReturnsOnCall(i int, result1 driver.Driver) {
-	fake.DriverStub = nil
-	if fake.driverReturnsOnCall == nil {
-		fake.driverReturnsOnCall = make(map[int]struct {
-			result1 driver.Driver
-		})
-	}
-	fake.driverReturnsOnCall[i] = struct {
-		result1 driver.Driver
-	}{result1}
 }
 
 func (fake *FakeConn) Exec(query string, args ...interface{}) (sql.Result, error) {
@@ -356,46 +396,6 @@ func (fake *FakeConn) ExecReturnsOnCall(i int, result1 sql.Result, result2 error
 		result1 sql.Result
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeConn) Ping() error {
-	fake.pingMutex.Lock()
-	ret, specificReturn := fake.pingReturnsOnCall[len(fake.pingArgsForCall)]
-	fake.pingArgsForCall = append(fake.pingArgsForCall, struct{}{})
-	fake.recordInvocation("Ping", []interface{}{})
-	fake.pingMutex.Unlock()
-	if fake.PingStub != nil {
-		return fake.PingStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.pingReturns.result1
-}
-
-func (fake *FakeConn) PingCallCount() int {
-	fake.pingMutex.RLock()
-	defer fake.pingMutex.RUnlock()
-	return len(fake.pingArgsForCall)
-}
-
-func (fake *FakeConn) PingReturns(result1 error) {
-	fake.PingStub = nil
-	fake.pingReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeConn) PingReturnsOnCall(i int, result1 error) {
-	fake.PingStub = nil
-	if fake.pingReturnsOnCall == nil {
-		fake.pingReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.pingReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeConn) Prepare(query string) (*sql.Stmt, error) {
@@ -685,14 +685,14 @@ func (fake *FakeConn) Invocations() map[string][][]interface{} {
 	defer fake.busMutex.RUnlock()
 	fake.encryptionStrategyMutex.RLock()
 	defer fake.encryptionStrategyMutex.RUnlock()
-	fake.beginMutex.RLock()
-	defer fake.beginMutex.RUnlock()
-	fake.driverMutex.RLock()
-	defer fake.driverMutex.RUnlock()
-	fake.execMutex.RLock()
-	defer fake.execMutex.RUnlock()
 	fake.pingMutex.RLock()
 	defer fake.pingMutex.RUnlock()
+	fake.driverMutex.RLock()
+	defer fake.driverMutex.RUnlock()
+	fake.beginMutex.RLock()
+	defer fake.beginMutex.RUnlock()
+	fake.execMutex.RLock()
+	defer fake.execMutex.RUnlock()
 	fake.prepareMutex.RLock()
 	defer fake.prepareMutex.RUnlock()
 	fake.queryMutex.RLock()
