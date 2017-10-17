@@ -23,13 +23,18 @@ type CredHubManager struct {
 }
 
 func (manager CredHubManager) IsConfigured() bool {
-	return manager.URL != "" && manager.ClientId != "" && manager.ClientSecret != ""
+	return manager.URL != "" || manager.ClientId != "" || manager.ClientSecret != "" || len(manager.CACerts) != 0
 }
 
 func (manager CredHubManager) Validate() error {
 	parsedUrl, err := url.Parse(manager.URL)
 	if err != nil {
 		return fmt.Errorf("invalid URL: %s", err)
+	}
+	// "foo" will parse without error (as a Path, with an empty Host)
+	// so we'll do a few additional sanity checks that this is a valid URL
+	if parsedUrl.Host == "" || !(parsedUrl.Scheme == "http" || parsedUrl.Scheme == "https") {
+		return fmt.Errorf("invalid URL")
 	}
 
 	if parsedUrl.Scheme == "https" {
@@ -38,14 +43,16 @@ func (manager CredHubManager) Validate() error {
 		}
 	}
 
-	if len(manager.CACerts) > 1 {
-		for _, cert := range manager.CACerts {
-			contents, err := ioutil.ReadFile(cert)
-			if err != nil {
-				return fmt.Errorf("Could not read CaCert at path %s", cert)
-			}
-			manager.caCerts = append(manager.caCerts, string(contents))
+	if manager.ClientId == "" || manager.ClientSecret == "" {
+		return fmt.Errorf("--credhub-client-id and --credhub-client-secret must be set to use CredHub")
+	}
+
+	for _, cert := range manager.CACerts {
+		contents, err := ioutil.ReadFile(cert)
+		if err != nil {
+			return fmt.Errorf("Could not read CaCert at path %s", cert)
 		}
+		manager.caCerts = append(manager.caCerts, string(contents))
 	}
 
 	return nil
