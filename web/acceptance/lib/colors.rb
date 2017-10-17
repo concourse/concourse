@@ -11,10 +11,8 @@ PALETTE = [RED, GREEN, ORANGE, YELLOW, BROWN, BLUE].freeze
 
 RSpec::Matchers.define :be_greyscale do
   match do |actual|
-    actual.to_grayscale.to_rgb.closest_match(PALETTE + [actual], :jnd) == actual
+    actual.to_grayscale.to_rgb.closest_match(PALETTE + [actual], 5) == actual
   end
-
-  diffable
 end
 
 module Colors
