@@ -38,7 +38,8 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
 
-		scanner Scanner
+		scanner     Scanner
+		typeScanner Scanner
 
 		resourceConfig atc.ResourceConfig
 		fakeDBResource *dbfakes.FakeResource
@@ -107,6 +108,16 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 
+		typeScanner = NewResourceTypeScanner(
+			fakeClock,
+			fakeResourceFactory,
+			fakeResourceConfigCheckSessionFactory,
+			interval,
+			fakeDBPipeline,
+			"https://www.example.com",
+			variables,
+		)
+
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakeResourceFactory,
@@ -115,6 +126,7 @@ var _ = Describe("ResourceScanner", func() {
 			fakeDBPipeline,
 			"https://www.example.com",
 			variables,
+			typeScanner,
 		)
 	})
 
