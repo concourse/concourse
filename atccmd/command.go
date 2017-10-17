@@ -208,7 +208,10 @@ func (cmd *ATCCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
+func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
+	if len(positionalArguments) != 0 {
+		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
+	}
 	err := cmd.validate()
 	if err != nil {
 		return nil, err
