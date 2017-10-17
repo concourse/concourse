@@ -57,13 +57,15 @@ describe 'keyboard shortcut', type: :feature do
     end
   end
 
-  context 'pressing the "gg" key' do
+  # TODO: handle scroll to the top
+  xcontext 'pressing the "gg" key' do
     it 'scrolls to the top' do
       fly('trigger-job -j pipeline/long-output')
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output/builds/1")
       Capybara.using_wait_time(30) do
         expect(page).to have_content('Line 100')
       end
+      page.find('body').native.send_keys 'G'
       page.find('body').native.send_keys 'gg'
       expect(scroll_position).to be 0
     end
