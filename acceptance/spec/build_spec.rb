@@ -12,6 +12,43 @@ describe 'build', type: :feature do
     dash_login team_name
   end
 
+  describe 'build logs' do
+    before do
+      fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p pipeline')
+      fly('trigger-job -w -j pipeline/passing')
+    end
+
+    it 'has linkable timestamps for each line' do
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/1")
+
+      expect(page).to_not have_content 'i passed'
+      page.find('.build-step .header', text: 'pass').click
+
+      timestamp_regex = /\d{2}:\d{2}:\d{2}/
+      expect(page.find('.steps')).to have_content(timestamp_regex, wait: 30)
+
+      timestamp = page.all('a', text: timestamp_regex).last
+      timestamp.click
+
+      expect(foreground_palette(timestamp)).to eq(ORANGE)
+
+      # remember the timestamp's DOM location so we can find it later
+      timestamp_path = timestamp.path
+
+      # visit the URL to show that the link's target link w/ anchor element
+      # works
+      visit current_url
+
+      # by expanding the step to reveal the line
+      expect(page).to have_content 'i passed'
+
+      # and highlighting the line
+      new_timestamp = page.find(:xpath, timestamp_path)
+      expect(foreground_palette(new_timestamp)).to eq(ORANGE)
+    end
+  end
+
   describe 'builds in different states' do
     before do
       fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')

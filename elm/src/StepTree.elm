@@ -15,18 +15,24 @@ module StepTree
         , updateAt
         , Version
         , StepFocus
+        , Highlight(..)
+        , parseHighlight
         )
 
+import Date exposing (Date)
+import Date.Format
 import Debug
+import Dict exposing (Dict)
 import Ansi.Log
 import Array exposing (Array)
 import Dict exposing (Dict)
 import Focus exposing (Focus, (=>))
 import Html exposing (Html)
 import Html.Events exposing (onClick, onMouseDown)
-import Html.Attributes exposing (class, classList)
+import Html.Attributes exposing (class, classList, href)
 import Concourse
 import DictView
+import StrictEvents
 
 
 type StepTree
@@ -53,6 +59,7 @@ type Msg
     = ToggleStep StepID
     | Finished
     | SwitchTab StepID Int
+    | SetHighlight Highlight
 
 
 type alias HookedStep =
@@ -71,6 +78,7 @@ type alias Step =
     , version : Maybe Version
     , metadata : List MetadataField
     , firstOccurrence : Bool
+    , timestamps : Dict Int Date
     }
 
 
@@ -98,6 +106,7 @@ type alias Model =
     { tree : StepTree
     , foci : Dict StepID StepFocus
     , finished : Bool
+    , highlight : Highlight
     }
 
 
@@ -111,25 +120,30 @@ type alias MetadataField =
     }
 
 
-init : Concourse.BuildResources -> Concourse.BuildPlan -> Model
-init resources plan =
+type Highlight
+    = HighlightNothing
+    | HighlightLine StepID Int
+
+
+init : Highlight -> Concourse.BuildResources -> Concourse.BuildPlan -> Model
+init hl resources plan =
     case plan.step of
         Concourse.BuildStepTask name ->
-            initBottom Task plan.id name
+            initBottom hl Task plan.id name
 
         Concourse.BuildStepGet name version ->
-            initBottom (Get << setupGetStep resources name version) plan.id name
+            initBottom hl (Get << setupGetStep resources name version) plan.id name
 
         Concourse.BuildStepPut name ->
-            initBottom Put plan.id name
+            initBottom hl Put plan.id name
 
         Concourse.BuildStepDependentGet name ->
-            initBottom DependentGet plan.id name
+            initBottom hl DependentGet plan.id name
 
         Concourse.BuildStepAggregate plans ->
             let
                 inited =
-                    Array.map (init resources) plans
+                    Array.map (init hl resources) plans
 
                 trees =
                     Array.map .tree inited
@@ -143,12 +157,12 @@ init resources plan =
                 foci =
                     Array.foldr Dict.union Dict.empty wrappedSubFoci
             in
-                Model (Aggregate trees) foci False
+                Model (Aggregate trees) foci False hl
 
         Concourse.BuildStepDo plans ->
             let
                 inited =
-                    Array.map (init resources) plans
+                    Array.map (init hl resources) plans
 
                 trees =
                     Array.map .tree inited
@@ -162,24 +176,24 @@ init resources plan =
                 foci =
                     Array.foldr Dict.union Dict.empty wrappedSubFoci
             in
-                Model (Do trees) foci False
+                Model (Do trees) foci False hl
 
         Concourse.BuildStepOnSuccess hookedPlan ->
-            initHookedStep resources OnSuccess hookedPlan
+            initHookedStep hl resources OnSuccess hookedPlan
 
         Concourse.BuildStepOnFailure hookedPlan ->
-            initHookedStep resources OnFailure hookedPlan
+            initHookedStep hl resources OnFailure hookedPlan
 
         Concourse.BuildStepEnsure hookedPlan ->
-            initHookedStep resources Ensure hookedPlan
+            initHookedStep hl resources Ensure hookedPlan
 
         Concourse.BuildStepTry plan ->
-            initWrappedStep resources Try plan
+            initWrappedStep hl resources Try plan
 
         Concourse.BuildStepRetry plans ->
             let
                 inited =
-                    Array.map (init resources) plans
+                    Array.map (init hl resources) plans
 
                 trees =
                     Array.map .tree inited
@@ -196,10 +210,10 @@ init resources plan =
                 foci =
                     Array.foldr Dict.union selfFoci wrappedSubFoci
             in
-                Model (Retry plan.id trees 1 Auto) foci False
+                Model (Retry plan.id trees 1 Auto) foci False hl
 
         Concourse.BuildStepTimeout plan ->
-            initWrappedStep resources Timeout plan
+            initWrappedStep hl resources Timeout plan
 
 
 treeIsActive : StepTree -> Bool
@@ -280,6 +294,9 @@ update action root =
         SwitchTab id tab ->
             updateAt id (focusRetry tab) root
 
+        SetHighlight hl ->
+            { root | highlight = hl }
+
 
 toggleExpanded : Step -> Maybe Bool
 toggleExpanded { expanded, state } =
@@ -325,8 +342,8 @@ map f tree =
             tree
 
 
-initBottom : (Step -> StepTree) -> StepID -> StepName -> Model
-initBottom create id name =
+initBottom : Highlight -> (Step -> StepTree) -> StepID -> StepName -> Model
+initBottom hl create id name =
     let
         step =
             { id = id
@@ -334,38 +351,50 @@ initBottom create id name =
             , state = StepStatePending
             , log = Ansi.Log.init Ansi.Log.Cooked
             , error = Nothing
-            , expanded = Nothing
+            , expanded =
+                case hl of
+                    HighlightNothing ->
+                        Nothing
+
+                    HighlightLine stepID _ ->
+                        if id == stepID then
+                            Just True
+                        else
+                            Nothing
             , version = Nothing
             , metadata = []
             , firstOccurrence = False
+            , timestamps = Dict.empty
             }
     in
         { tree = create step
         , foci = Dict.singleton id (Focus.create identity identity)
         , finished = False
+        , highlight = hl
         }
 
 
-initWrappedStep : Concourse.BuildResources -> (StepTree -> StepTree) -> Concourse.BuildPlan -> Model
-initWrappedStep resources create plan =
+initWrappedStep : Highlight -> Concourse.BuildResources -> (StepTree -> StepTree) -> Concourse.BuildPlan -> Model
+initWrappedStep hl resources create plan =
     let
         { tree, foci } =
-            init resources plan
+            init hl resources plan
     in
         { tree = create tree
         , foci = Dict.map wrapStep foci
         , finished = False
+        , highlight = hl
         }
 
 
-initHookedStep : Concourse.BuildResources -> (HookedStep -> StepTree) -> Concourse.HookedPlan -> Model
-initHookedStep resources create hookedPlan =
+initHookedStep : Highlight -> Concourse.BuildResources -> (HookedStep -> StepTree) -> Concourse.HookedPlan -> Model
+initHookedStep hl resources create hookedPlan =
     let
         stepModel =
-            init resources hookedPlan.step
+            init hl resources hookedPlan.step
 
         hookModel =
-            init resources hookedPlan.hook
+            init hl resources hookedPlan.hook
     in
         { tree = create { step = stepModel.tree, hook = hookModel.tree }
         , foci =
@@ -373,6 +402,7 @@ initHookedStep resources create hookedPlan =
                 (Dict.map wrapStep stepModel.foci)
                 (Dict.map wrapHook hookModel.foci)
         , finished = stepModel.finished
+        , highlight = hl
         }
 
 
@@ -610,7 +640,7 @@ autoExpanded state =
 
 
 viewStep : Model -> Step -> String -> Html Msg
-viewStep model { id, name, log, state, error, expanded, version, metadata, firstOccurrence } icon =
+viewStep model { id, name, log, state, error, expanded, version, metadata, firstOccurrence, timestamps } icon =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -635,7 +665,13 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
           <|
             if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
                 [ viewMetadata metadata
-                , Ansi.Log.view log
+                , Html.div [ class "timestamped-logs" ]
+                    [ Html.div [ class "timestamp-times" ] <|
+                        List.map (viewTimestamp model.highlight id) <|
+                            List.sortBy Tuple.first (Dict.toList timestamps)
+                    , Html.div [ class "timestamp-logs" ]
+                        [ Ansi.Log.view log ]
+                    ]
                 , case error of
                     Nothing ->
                         Html.span [] []
@@ -646,6 +682,26 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             else
                 []
         ]
+
+
+viewTimestamp : Highlight -> String -> ( Int, Date ) -> Html Msg
+viewTimestamp hl id ( line, date ) =
+    let
+        lineHl =
+            HighlightLine id line
+
+        linkName =
+            ("L" ++ id ++ ":" ++ toString line)
+    in
+        Html.div [ classList [ ( "timestamp", True ), ( "timestamp-highlighted", hl == lineHl ) ] ]
+            [ Html.a
+                [ Html.Attributes.name linkName
+                , href ("#" ++ linkName)
+                , StrictEvents.onLeftClickNoPreventDefault (SetHighlight lineHl)
+                ]
+                [ Html.text (Date.Format.format "%H:%M:%S" date)
+                ]
+            ]
 
 
 viewVersion : Maybe Version -> Html Msg
@@ -708,3 +764,23 @@ viewStepState state finished =
                 [ class "right errored fa fa-fw fa-exclamation-triangle"
                 ]
                 []
+
+
+parseHighlight : String -> Highlight
+parseHighlight hash =
+    case String.uncons (String.dropLeft 1 hash) of
+        Just ( 'L', selector ) ->
+            case String.split ":" selector of
+                [ stepID, linestr ] ->
+                    case String.toInt linestr of
+                        Ok line ->
+                            HighlightLine stepID line
+
+                        _ ->
+                            HighlightNothing
+
+                _ ->
+                    HighlightNothing
+
+        _ ->
+            HighlightNothing
