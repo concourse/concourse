@@ -20,7 +20,7 @@ type Factory interface {
 		StepMetadata,
 		db.ContainerMetadata,
 		ActionsBuildEventsDelegate,
-		ImageFetchingDelegate,
+		BuildStepDelegate,
 	) StepFactory
 
 	// Put constructs a ActionsStep factory for Put.
@@ -31,7 +31,7 @@ type Factory interface {
 		StepMetadata,
 		db.ContainerMetadata,
 		ActionsBuildEventsDelegate,
-		ImageFetchingDelegate,
+		BuildStepDelegate,
 	) StepFactory
 
 	// Task constructs a ActionsStep factory for Task.
@@ -42,7 +42,7 @@ type Factory interface {
 		db.ContainerMetadata,
 		TaskBuildEventsDelegate,
 		ActionsBuildEventsDelegate,
-		ImageFetchingDelegate,
+		BuildStepDelegate,
 	) StepFactory
 }
 
@@ -52,9 +52,9 @@ type StepMetadata interface {
 	Env() []string
 }
 
-//go:generate counterfeiter . ImageFetchingDelegate
+//go:generate counterfeiter . BuildStepDelegate
 
-type ImageFetchingDelegate interface {
+type BuildStepDelegate interface {
 	ImageVersionDetermined(*db.UsedResourceCache) error
 	Stdout() io.Writer
 	Stderr() io.Writer

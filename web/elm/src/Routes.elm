@@ -23,6 +23,7 @@ type alias ConcourseRoute =
     { logical : Route
     , queries : QueryString.QueryString
     , page : Maybe Pagination.Page
+    , hash : String
     }
 
 
@@ -139,6 +140,7 @@ parsePath location =
     { logical = match <| location.pathname
     , queries = QueryString.parse location.search |> QueryString.remove "csrf_token"
     , page = createPageFromSearch location.search
+    , hash = location.hash
     }
 
 

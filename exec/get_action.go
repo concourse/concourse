@@ -25,7 +25,7 @@ type GetAction struct {
 	Tags          atc.Tags
 	Outputs       []string
 
-	imageFetchingDelegate  ImageFetchingDelegate
+	buildStepDelegate      BuildStepDelegate
 	resourceFetcher        resource.Fetcher
 	teamID                 int
 	buildID                int
@@ -120,7 +120,7 @@ func (action *GetAction) Run(
 		action.resourceTypes,
 		resourceInstance,
 		action.stepMetadata,
-		action.imageFetchingDelegate,
+		action.buildStepDelegate,
 		signals,
 		ready,
 	)

@@ -18,8 +18,16 @@ RSpec::Matchers.define :be_greyscale do |expected|
 end
 
 module Colors
+  def foreground_color(element)
+    by_rgb(computed_style(element, 'color'))
+  end
+
+  def foreground_palette(element)
+    foreground_color(element).closest_match(PALETTE)
+  end
+
   def background_color(element)
-    by_rgb(computed_style(element, 'backgroundColor')).closest_match(PALETTE)
+    by_rgb(computed_style(element, 'backgroundColor'))
   end
 
   def background_palette(element)

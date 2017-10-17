@@ -44,3 +44,37 @@
     border: 1px solid #979797;
   }
 }
+
+.timestamped-logs {
+  display: flex;
+  flex-direction: row;
+
+  .timestamp-times {
+    margin: -10px 10px 0 -10px;
+    flex-grow: 0;
+    flex-shrink: 1;
+    padding: 10px 0;
+
+    .timestamp {
+      padding: 0 10px;
+
+      a {
+        color: @base03;
+
+        &:hover {
+          color: @base06;
+        }
+      }
+
+      &.timestamp-highlighted {
+        a {
+          color: @base0A;
+        }
+      }
+    }
+  }
+
+  .timestamp-logs {
+    flex-grow: 1;
+  }
+}

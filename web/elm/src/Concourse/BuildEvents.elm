@@ -14,7 +14,7 @@ type BuildEvent
     | FinishTask Origin Int
     | FinishGet Origin Int Concourse.Version Concourse.Metadata
     | FinishPut Origin Int Concourse.Version Concourse.Metadata
-    | Log Origin String
+    | Log Origin String (Maybe Date)
     | Error Origin String
     | BuildError String
 
@@ -95,7 +95,13 @@ decodeEvent e =
             Json.Decode.decodeValue (Json.Decode.map2 BuildStatus (Json.Decode.field "status" Concourse.decodeBuildStatus) (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.float)) e.value
 
         "log" ->
-            Json.Decode.decodeValue (Json.Decode.map2 Log (Json.Decode.field "origin" decodeOrigin) (Json.Decode.field "payload" Json.Decode.string)) e.value
+            Json.Decode.decodeValue
+                (Json.Decode.map3 Log
+                    (Json.Decode.field "origin" decodeOrigin)
+                    (Json.Decode.field "payload" Json.Decode.string)
+                    (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.float)
+                )
+                e.value
 
         "error" ->
             Json.Decode.decodeValue decodeErrorEvent e.value

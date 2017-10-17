@@ -32,7 +32,7 @@ var _ = Describe("GetAction", func() {
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFetcher        *resourcefakes.FakeFetcher
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeImageFetchingDelegate  *execfakes.FakeImageFetchingDelegate
+		fakeBuildStepDelegate      *execfakes.FakeBuildStepDelegate
 		fakeBuildEventsDelegate    *execfakes.FakeActionsBuildEventsDelegate
 		fakeVariablesFactory       *credsfakes.FakeVariablesFactory
 		variables                  creds.Variables
@@ -61,7 +61,7 @@ var _ = Describe("GetAction", func() {
 	)
 
 	BeforeEach(func() {
-		fakeImageFetchingDelegate = new(execfakes.FakeImageFetchingDelegate)
+		fakeBuildStepDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeWorkerClient = new(workerfakes.FakeClient)
@@ -116,7 +116,7 @@ var _ = Describe("GetAction", func() {
 			stepMetadata,
 			containerMetadata,
 			fakeBuildEventsDelegate,
-			fakeImageFetchingDelegate,
+			fakeBuildStepDelegate,
 		).Using(artifactRepository)
 
 		process = ifrit.Invoke(getStep)
@@ -146,7 +146,7 @@ var _ = Describe("GetAction", func() {
 			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID)),
 		)))
 		Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
-		Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+		Expect(delegate).To(Equal(fakeBuildStepDelegate))
 		expectedLockName := fmt.Sprintf("%x",
 			sha256.Sum256([]byte(
 				`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"super-secret-source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,

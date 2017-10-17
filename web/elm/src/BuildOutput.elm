@@ -1,6 +1,8 @@
 module BuildOutput exposing (init, update, view, Model, Msg, OutMsg(..))
 
 import Ansi.Log
+import Array exposing (Array)
+import Dict exposing (Dict)
 import Date exposing (Date)
 import Html exposing (Html)
 import Html.Attributes exposing (action, class, classList, id, method, title)
@@ -23,6 +25,7 @@ type alias Model =
     , state : OutputState
     , eventSourceOpened : Bool
     , events : Sub Msg
+    , highlight : StepTree.Highlight
     }
 
 
@@ -45,8 +48,12 @@ type OutMsg
     | OutBuildStatus Concourse.BuildStatus Date
 
 
-init : Concourse.Build -> ( Model, Cmd Msg )
-init build =
+type alias Flags =
+    { hash : String }
+
+
+init : Flags -> Concourse.Build -> ( Model, Cmd Msg )
+init flags build =
     let
         outputState =
             if Concourse.BuildStatus.isRunning build.status then
@@ -61,6 +68,7 @@ init build =
             , state = outputState
             , events = Sub.none
             , eventSourceOpened = False
+            , highlight = StepTree.parseHighlight flags.hash
             }
 
         fetch =
@@ -95,7 +103,7 @@ update action model =
 
         PlanAndResourcesFetched (Ok ( plan, resources )) ->
             ( { model
-                | steps = Just (StepTree.init resources plan)
+                | steps = Just (StepTree.init model.highlight resources plan)
                 , events = subscribeToEvents model.build.id
               }
             , Cmd.none
@@ -142,8 +150,8 @@ handleEventsMsg action model =
 handleEvent : Concourse.BuildEvents.BuildEvent -> Model -> ( Model, Cmd Msg, OutMsg )
 handleEvent event model =
     case event of
-        Concourse.BuildEvents.Log origin output ->
-            ( updateStep origin.id (setRunning << appendStepLog output) model
+        Concourse.BuildEvents.Log origin output time ->
+            ( updateStep origin.id (setRunning << appendStepLog output time) model
             , Cmd.none
             , OutNoop
             )
@@ -218,9 +226,33 @@ setRunning =
     setStepState StepTree.StepStateRunning
 
 
-appendStepLog : String -> StepTree -> StepTree
-appendStepLog output tree =
-    StepTree.map (\step -> { step | log = Ansi.Log.update output step.log }) tree
+appendStepLog : String -> Maybe Date -> StepTree -> StepTree
+appendStepLog output mtime tree =
+    flip StepTree.map tree <|
+        \step ->
+            let
+                newLog =
+                    Ansi.Log.update output step.log
+
+                setLineTimestamp line timestamps =
+                    Dict.update line
+                        (\mval ->
+                            case mval of
+                                Nothing ->
+                                    mtime
+
+                                x ->
+                                    x
+                        )
+                        timestamps
+
+                newTimestamps =
+                    List.foldl
+                        setLineTimestamp
+                        step.timestamps
+                        (List.range 1 (Array.length newLog.lines))
+            in
+                { step | log = newLog, timestamps = newTimestamps }
 
 
 setStepError : String -> StepTree -> StepTree

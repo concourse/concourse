@@ -77,7 +77,7 @@ func (factory *gardenFactory) Get(
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
 	buildEventsDelegate ActionsBuildEventsDelegate,
-	imageFetchingDelegate ImageFetchingDelegate,
+	buildStepDelegate BuildStepDelegate,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
@@ -93,7 +93,7 @@ func (factory *gardenFactory) Get(
 		Tags:          plan.Get.Tags,
 		Outputs:       []string{plan.Get.Name},
 
-		imageFetchingDelegate:  imageFetchingDelegate,
+		buildStepDelegate:      buildStepDelegate,
 		resourceFetcher:        factory.resourceFetcher,
 		teamID:                 build.TeamID(),
 		buildID:                build.ID(),
@@ -118,7 +118,7 @@ func (factory *gardenFactory) Put(
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
 	buildEventsDelegate ActionsBuildEventsDelegate,
-	imageFetchingDelegate ImageFetchingDelegate,
+	buildStepDelegate BuildStepDelegate,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
@@ -132,13 +132,13 @@ func (factory *gardenFactory) Put(
 		Params:   creds.NewParams(variables, plan.Put.Params),
 		Tags:     plan.Put.Tags,
 
-		imageFetchingDelegate: imageFetchingDelegate,
-		resourceFactory:       factory.resourceFactory,
-		teamID:                build.TeamID(),
-		buildID:               build.ID(),
-		planID:                plan.ID,
-		containerMetadata:     workerMetadata,
-		stepMetadata:          stepMetadata,
+		buildStepDelegate: buildStepDelegate,
+		resourceFactory:   factory.resourceFactory,
+		teamID:            build.TeamID(),
+		buildID:           build.ID(),
+		planID:            plan.ID,
+		containerMetadata: workerMetadata,
+		stepMetadata:      stepMetadata,
 
 		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
 	}
@@ -156,7 +156,7 @@ func (factory *gardenFactory) Task(
 	containerMetadata db.ContainerMetadata,
 	taskBuildEventsDelegate TaskBuildEventsDelegate,
 	buildEventsDelegate ActionsBuildEventsDelegate,
-	imageFetchingDelegate ImageFetchingDelegate,
+	buildStepDelegate BuildStepDelegate,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
@@ -177,7 +177,7 @@ func (factory *gardenFactory) Task(
 
 	taskConfigFetcher = DeprecationConfigFetcher{
 		Delegate: taskConfigFetcher,
-		Stderr:   imageFetchingDelegate.Stderr(),
+		Stderr:   buildStepDelegate.Stderr(),
 	}
 
 	fetchConfigAction := &FetchConfigAction{
@@ -200,15 +200,15 @@ func (factory *gardenFactory) Task(
 		artifactsRoot:     workingDirectory,
 		imageArtifactName: plan.Task.ImageArtifactName,
 
-		buildEventsDelegate:   taskBuildEventsDelegate,
-		imageFetchingDelegate: imageFetchingDelegate,
-		workerPool:            factory.workerClient,
-		teamID:                build.TeamID(),
-		buildID:               build.ID(),
-		jobID:                 build.JobID(),
-		stepName:              plan.Task.Name,
-		planID:                plan.ID,
-		containerMetadata:     containerMetadata,
+		buildEventsDelegate: taskBuildEventsDelegate,
+		buildStepDelegate:   buildStepDelegate,
+		workerPool:          factory.workerClient,
+		teamID:              build.TeamID(),
+		buildID:             build.ID(),
+		jobID:               build.JobID(),
+		stepName:            plan.Task.Name,
+		planID:              plan.ID,
+		containerMetadata:   containerMetadata,
 
 		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Task.VersionedResourceTypes),
 

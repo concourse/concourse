@@ -81,7 +81,7 @@ init turbulencePath route =
                     Build.getScrollBehavior
                     << Build.init
                         { title = setTitle }
-                        { csrfToken = "" }
+                        { csrfToken = "", hash = route.hash }
                 <|
                     Build.JobBuildPage
                         { teamName = teamName
@@ -96,7 +96,7 @@ init turbulencePath route =
                     Build.getScrollBehavior
                     << Build.init
                         { title = setTitle }
-                        { csrfToken = "" }
+                        { csrfToken = "", hash = route.hash }
                 <|
                     Build.BuildPage <|
                         Result.withDefault 0 (String.toInt buildId)

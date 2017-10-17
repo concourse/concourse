@@ -75,7 +75,8 @@ type alias CurrentBuild =
 
 
 type alias Model =
-    { now : Maybe Time.Time
+    { page : Page
+    , now : Maybe Time.Time
     , job : Maybe Concourse.Job
     , history : List Concourse.Build
     , currentBuild : WebData CurrentBuild
@@ -85,6 +86,7 @@ type alias Model =
     , csrfToken : String
     , previousKeyPress : Maybe Char
     , showHelp : Bool
+    , hash : String
     }
 
 
@@ -118,6 +120,7 @@ type Msg
 
 type alias Flags =
     { csrfToken : String
+    , hash : String
     }
 
 
@@ -127,7 +130,8 @@ init ports flags page =
         ( model, cmd ) =
             changeToBuild
                 page
-                { now = Nothing
+                { page = page
+                , now = Nothing
                 , job = Nothing
                 , history = []
                 , currentBuild = RemoteData.NotAsked
@@ -137,6 +141,7 @@ init ports flags page =
                 , csrfToken = flags.csrfToken
                 , previousKeyPress = Nothing
                 , showHelp = False
+                , hash = flags.hash
                 }
     in
         ( model, Cmd.batch [ cmd, getCurrentTime ] )
@@ -159,26 +164,29 @@ subscriptions model =
 
 changeToBuild : Page -> Model -> ( Model, Cmd Msg )
 changeToBuild page model =
-    let
-        newIndex =
-            model.browsingIndex + 1
+    if model.browsingIndex > 0 && page == model.page then
+        ( model, Cmd.none )
+    else
+        let
+            newIndex =
+                model.browsingIndex + 1
 
-        newBuild =
-            RemoteData.map (\cb -> { cb | prep = Nothing, output = Nothing })
-                model.currentBuild
-    in
-        ( { model
-            | browsingIndex = newIndex
-            , currentBuild = newBuild
-            , autoScroll = True
-          }
-        , case page of
-            BuildPage buildId ->
-                fetchBuild 0 newIndex buildId
+            newBuild =
+                RemoteData.map (\cb -> { cb | prep = Nothing, output = Nothing })
+                    model.currentBuild
+        in
+            ( { model
+                | browsingIndex = newIndex
+                , currentBuild = newBuild
+                , autoScroll = True
+              }
+            , case page of
+                BuildPage buildId ->
+                    fetchBuild 0 newIndex buildId
 
-            JobBuildPage jbi ->
-                fetchJobBuild newIndex jbi
-        )
+                JobBuildPage jbi ->
+                    fetchJobBuild newIndex jbi
+            )
 
 
 extractTitle : Model -> String
@@ -524,7 +532,7 @@ initBuildOutput : Concourse.Build -> Model -> ( Model, Cmd Msg )
 initBuildOutput build model =
     let
         ( output, outputCmd ) =
-            BuildOutput.init build
+            BuildOutput.init { hash = model.hash } build
     in
         ( { model
             | currentBuild =

@@ -67,6 +67,7 @@ func init() {
 	registerEvent(LogV20{})
 	registerEvent(LogV30{})
 	registerEvent(LogV40{})
+	registerEvent(LogV50{})
 	registerEvent(FinishGetV10{})
 	registerEvent(FinishGetV20{})
 	registerEvent(FinishGetV30{})
