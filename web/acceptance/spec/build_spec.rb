@@ -14,16 +14,16 @@ describe 'build', type: :feature do
 
   describe 'build logs' do
     before do
-      fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
+      fly('set-pipeline -n -p pipeline -c fixtures/pipeline-with-long-output.yml')
       fly('unpause-pipeline -p pipeline')
-      fly('trigger-job -w -j pipeline/passing')
+      fly('trigger-job -w -j pipeline/long-output-passing')
     end
 
     it 'has linkable timestamps for each line' do
-      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/1")
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output-passing/builds/1")
 
-      expect(page).to_not have_content 'i passed'
-      page.find('.build-step .header', text: 'pass').click
+      expect(page).to_not have_content 'Line 10'
+      page.find('.build-step .header', text: 'print').click
 
       timestamp_regex = /\d{2}:\d{2}:\d{2}/
       expect(page.find('.steps')).to have_content(timestamp_regex, wait: 30)
@@ -41,11 +41,55 @@ describe 'build', type: :feature do
       visit current_url
 
       # by expanding the step to reveal the line
-      expect(page).to have_content 'i passed'
+      # note: technically any line; correlating timestamp to actual line is hard
+      expect(page).to have_content 'Line 10'
 
       # and highlighting the line
       new_timestamp = page.find(:xpath, timestamp_path)
       expect(foreground_palette(new_timestamp)).to eq(ORANGE)
+    end
+
+    it 'has range-linkable timestamps for each line' do
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output-passing/builds/1")
+
+      expect(page).to_not have_content 'Line 10'
+      page.find('.build-step .header', text: 'print').click
+
+      timestamp_regex = /\d{2}:\d{2}:\d{2}/
+      expect(page.find('.steps')).to have_content(timestamp_regex, wait: 30)
+
+      timestamps = page.all('a', text: timestamp_regex)
+      until timestamps.length > 10
+        timestamps = page.all('a', text: timestamp_regex)
+      end
+
+      first_timestamp = timestamps[2]
+      last_timestamp = timestamps[7]
+      in_range_timestamps = timestamps[2..7]
+
+      first_timestamp.click
+      page.driver.browser.action.key_down(:shift).click(last_timestamp.native).perform
+
+      in_range_timestamps.each do |timestamp|
+        expect(foreground_palette(timestamp)).to eq(ORANGE)
+      end
+
+      # remember the timestamp's DOM location so we can find it later
+      in_range_timestamp_paths = in_range_timestamps.collect(&:path)
+
+      # visit the URL to show that the link's target link w/ anchor element
+      # works
+      visit current_url
+
+      # by expanding the step to reveal the line
+      # note: technically any line; correlating timestamp to actual line is hard
+      expect(page).to have_content 'Line 10'
+
+      # and highlighting the line
+      in_range_timestamp_paths.each do |timestamp_path|
+        new_timestamp = page.find(:xpath, timestamp_path)
+        expect(foreground_palette(new_timestamp)).to eq(ORANGE)
+      end
     end
   end
 

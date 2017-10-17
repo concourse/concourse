@@ -114,10 +114,16 @@ update action model =
             handleEventsMsg action model
 
         StepTreeMsg action ->
-            ( { model | steps = Maybe.map (StepTree.update action) model.steps }
-            , Cmd.none
-            , OutNoop
-            )
+            case model.steps of
+                Just st ->
+                    let
+                        ( newModel, newMsg ) =
+                            StepTree.update action st
+                    in
+                        ( { model | steps = Just newModel }, Cmd.map StepTreeMsg newMsg, OutNoop )
+
+                _ ->
+                    ( model, Cmd.none, OutNoop )
 
 
 handleEventsMsg : Concourse.BuildEvents.Msg -> Model -> ( Model, Cmd Msg, OutMsg )
@@ -193,16 +199,19 @@ handleEvent event model =
             )
 
         Concourse.BuildEvents.BuildStatus status date ->
-            ( { model
-                | steps =
-                    if not <| Concourse.BuildStatus.isRunning status then
-                        Maybe.map (StepTree.update StepTree.Finished) model.steps
-                    else
-                        model.steps
-              }
-            , Cmd.none
-            , OutBuildStatus status date
-            )
+            case model.steps of
+                Just st ->
+                    let
+                        ( newSt, newMsg ) =
+                            if not <| Concourse.BuildStatus.isRunning status then
+                                StepTree.update StepTree.Finished st
+                            else
+                                ( st, Cmd.none )
+                    in
+                        ( { model | steps = Just newSt }, Cmd.map StepTreeMsg newMsg, OutBuildStatus status date )
+
+                Nothing ->
+                    ( model, Cmd.none, OutBuildStatus status date )
 
         Concourse.BuildEvents.BuildError message ->
             ( { model

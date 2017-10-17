@@ -33,6 +33,7 @@ import Html.Attributes exposing (class, classList, href)
 import Concourse
 import DictView
 import StrictEvents
+import Navigation
 
 
 type StepTree
@@ -59,7 +60,8 @@ type Msg
     = ToggleStep StepID
     | Finished
     | SwitchTab StepID Int
-    | SetHighlight Highlight
+    | SetHighlight StepID Int
+    | ExtendHighlight StepID Int
 
 
 type alias HookedStep =
@@ -123,6 +125,7 @@ type alias MetadataField =
 type Highlight
     = HighlightNothing
     | HighlightLine StepID Int
+    | HighlightRange StepID Int Int
 
 
 init : Highlight -> Concourse.BuildResources -> Concourse.BuildPlan -> Model
@@ -282,20 +285,51 @@ isFirstOccurrence resources step =
                 isFirstOccurrence rest step
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update action root =
     case action of
         ToggleStep id ->
-            updateAt id (map (\step -> { step | expanded = toggleExpanded step })) root
+            ( updateAt id (map (\step -> { step | expanded = toggleExpanded step })) root, Cmd.none )
 
         Finished ->
-            { root | finished = True }
+            ( { root | finished = True }, Cmd.none )
 
         SwitchTab id tab ->
-            updateAt id (focusRetry tab) root
+            ( updateAt id (focusRetry tab) root, Cmd.none )
 
-        SetHighlight hl ->
-            { root | highlight = hl }
+        SetHighlight id line ->
+            let
+                hl =
+                    HighlightLine id line
+            in
+                ( { root | highlight = hl }, Navigation.modifyUrl (showHighlight hl) )
+
+        ExtendHighlight id line ->
+            let
+                hl =
+                    case root.highlight of
+                        HighlightNothing ->
+                            HighlightLine id line
+
+                        HighlightLine currentID currentLine ->
+                            if currentID == id then
+                                if currentLine < line then
+                                    HighlightRange id currentLine line
+                                else
+                                    HighlightRange id line currentLine
+                            else
+                                HighlightLine id line
+
+                        HighlightRange currentID currentLine _ ->
+                            if currentID == id then
+                                if currentLine < line then
+                                    HighlightRange id currentLine line
+                                else
+                                    HighlightRange id line currentLine
+                            else
+                                HighlightLine id line
+            in
+                ( { root | highlight = hl }, Navigation.modifyUrl (showHighlight hl) )
 
 
 toggleExpanded : Step -> Maybe Bool
@@ -357,6 +391,12 @@ initBottom hl create id name =
                         Nothing
 
                     HighlightLine stepID _ ->
+                        if id == stepID then
+                            Just True
+                        else
+                            Nothing
+
+                    HighlightRange stepID _ _ ->
                         if id == stepID then
                             Just True
                         else
@@ -687,17 +727,21 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
 viewTimestamp : Highlight -> String -> ( Int, Date ) -> Html Msg
 viewTimestamp hl id ( line, date ) =
     let
-        lineHl =
-            HighlightLine id line
+        highlighted =
+            case hl of
+                HighlightNothing ->
+                    False
 
-        linkName =
-            ("L" ++ id ++ ":" ++ toString line)
+                HighlightLine hlId hlLine ->
+                    hlId == id && hlLine == line
+
+                HighlightRange hlId hlLine1 hlLine2 ->
+                    hlId == id && line >= hlLine1 && line <= hlLine2
     in
-        Html.div [ classList [ ( "timestamp", True ), ( "timestamp-highlighted", hl == lineHl ) ] ]
+        Html.div [ classList [ ( "timestamp", True ), ( "timestamp-highlighted", highlighted ) ] ]
             [ Html.a
-                [ Html.Attributes.name linkName
-                , href ("#" ++ linkName)
-                , StrictEvents.onLeftClickNoPreventDefault (SetHighlight lineHl)
+                [ href (showHighlight (HighlightLine id line))
+                , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
                 ]
                 [ Html.text (Date.Format.format "%H:%M:%S" date)
                 ]
@@ -766,11 +810,32 @@ viewStepState state finished =
                 []
 
 
+showHighlight : Highlight -> String
+showHighlight hl =
+    case hl of
+        HighlightNothing ->
+            ""
+
+        HighlightLine id line ->
+            "#L" ++ id ++ ":" ++ toString line
+
+        HighlightRange id line1 line2 ->
+            "#L" ++ id ++ ":" ++ toString line1 ++ ":" ++ toString line2
+
+
 parseHighlight : String -> Highlight
 parseHighlight hash =
     case String.uncons (String.dropLeft 1 hash) of
         Just ( 'L', selector ) ->
             case String.split ":" selector of
+                [ stepID, line1str, line2str ] ->
+                    case ( String.toInt line1str, String.toInt line2str ) of
+                        ( Ok line1, Ok line2 ) ->
+                            HighlightRange stepID line1 line2
+
+                        _ ->
+                            HighlightNothing
+
                 [ stepID, linestr ] ->
                     case String.toInt linestr of
                         Ok line ->
