@@ -12,6 +12,87 @@ describe 'build', type: :feature do
     dash_login team_name
   end
 
+  describe 'build logs' do
+    before do
+      fly('set-pipeline -n -p pipeline -c fixtures/pipeline-with-long-output.yml')
+      fly('unpause-pipeline -p pipeline')
+      fly('trigger-job -w -j pipeline/long-output-passing')
+    end
+
+    it 'has linkable timestamps for each line' do
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output-passing/builds/1")
+
+      expect(page).to_not have_content 'Line 10'
+      page.find('.build-step .header', text: 'print').click
+
+      timestamp_regex = /\d{2}:\d{2}:\d{2}/
+      expect(page.find('.steps')).to have_content(timestamp_regex, wait: 30)
+
+      timestamp = page.all('a', text: timestamp_regex).last
+      timestamp.click
+
+      expect(foreground_palette(timestamp)).to eq(ORANGE)
+
+      # remember the timestamp's DOM location so we can find it later
+      timestamp_path = timestamp.path
+
+      # visit the URL to show that the link's target link w/ anchor element
+      # works
+      visit current_url
+
+      # by expanding the step to reveal the line
+      # note: technically any line; correlating timestamp to actual line is hard
+      expect(page).to have_content 'Line 10'
+
+      # and highlighting the line
+      new_timestamp = page.find(:xpath, timestamp_path)
+      expect(foreground_palette(new_timestamp)).to eq(ORANGE)
+    end
+
+    it 'has range-linkable timestamps for each line' do
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output-passing/builds/1")
+
+      expect(page).to_not have_content 'Line 10'
+      page.find('.build-step .header', text: 'print').click
+
+      timestamp_regex = /\d{2}:\d{2}:\d{2}/
+      expect(page.find('.steps')).to have_content(timestamp_regex, wait: 30)
+
+      timestamps = page.all('a', text: timestamp_regex)
+      until timestamps.length > 10
+        timestamps = page.all('a', text: timestamp_regex)
+      end
+
+      first_timestamp = timestamps[2]
+      last_timestamp = timestamps[7]
+      in_range_timestamps = timestamps[2..7]
+
+      first_timestamp.click
+      page.driver.browser.action.key_down(:shift).click(last_timestamp.native).perform
+
+      in_range_timestamps.each do |timestamp|
+        expect(foreground_palette(timestamp)).to eq(ORANGE)
+      end
+
+      # remember the timestamp's DOM location so we can find it later
+      in_range_timestamp_paths = in_range_timestamps.collect(&:path)
+
+      # visit the URL to show that the link's target link w/ anchor element
+      # works
+      visit current_url
+
+      # by expanding the step to reveal the line
+      # note: technically any line; correlating timestamp to actual line is hard
+      expect(page).to have_content 'Line 10'
+
+      # and highlighting the line
+      in_range_timestamp_paths.each do |timestamp_path|
+        new_timestamp = page.find(:xpath, timestamp_path)
+        expect(foreground_palette(new_timestamp)).to eq(ORANGE)
+      end
+    end
+  end
+
   describe 'builds in different states' do
     before do
       fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
@@ -55,7 +136,9 @@ describe 'build', type: :feature do
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/running/builds/1")
         page.find_button('Abort Build').click
         fly_fail('watch -j pipeline/running')
-        expect(page).to have_content 'interrupted'
+        within '.step-body' do
+          expect(page).to have_content 'interrupted'
+        end
         expect(background_palette(page.find('.build-header'))).to eq(BROWN)
         expect(background_palette(page.find('#builds .current'))).to eq(BROWN)
       end
@@ -99,7 +182,7 @@ describe 'build', type: :feature do
 
     it 'can be manually triggered' do
       visit dash_route("/teams/#{team_name}")
-      page.find('a', text: 'manual-trigger').click
+      page.find('a > text', text: 'manual-trigger').click
       page.find_button('Trigger Build').click
       expect(page).to have_content 'manual-trigger #1'
     end

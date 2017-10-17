@@ -36,6 +36,7 @@ type alias Model =
     , hideFooter : Bool
     , hideFooterCounter : Time
     , fetchedPipelines : List Concourse.Pipeline
+    , query : String
     }
 
 
@@ -55,6 +56,12 @@ type alias PipelineState =
     }
 
 
+type alias StatusPipeline =
+    { pipeline : Concourse.Pipeline
+    , status : String
+    }
+
+
 init : String -> ( Model, Cmd Msg )
 init turbulencePath =
     let
@@ -70,6 +77,7 @@ init turbulencePath =
           , hideFooter = False
           , hideFooterCounter = 0
           , fetchedPipelines = []
+          , query = ""
           }
         , Cmd.batch
             [ fetchPipelines
@@ -120,12 +128,13 @@ update msg model =
                 ( newTopBar, newTopBarMsg ) =
                     NewTopBar.update msg model.topBar
 
-                filteredPipelines =
+                ( filteredPipelines, newTopBarSearchQuery ) =
                     updateFromNewTopBar msg model
             in
                 ( { model
                     | topBar = newTopBar
                     , fetchedPipelines = filteredPipelines
+                    , query = newTopBarSearchQuery
                   }
                 , Cmd.map TopBarMsg newTopBarMsg
                 )
@@ -155,11 +164,16 @@ viewDashboard model =
     let
         listFetchedPipelinesLength =
             List.length model.fetchedPipelines
+
+        isQueryEmpty =
+            String.isEmpty model.query
     in
         case model.pipelines of
             RemoteData.Success pipelines ->
                 if listFetchedPipelinesLength > 0 then
                     showPipelinesView model model.fetchedPipelines
+                else if not isQueryEmpty then
+                    showNoResultsView (toString model.query)
                 else
                     showPipelinesView model pipelines
 
@@ -170,20 +184,29 @@ viewDashboard model =
                 Html.text ""
 
 
+showNoResultsView : String -> Html Msg
+showNoResultsView query =
+    let
+        boldedQuery =
+            Html.span [ class "monospace-bold" ] [ Html.text query ]
+    in
+        Html.div
+            [ class "dashboard" ]
+            [ Html.div [ class "dashboard-content no-results" ]
+                [ Html.span []
+                    [ Html.text "No results for "
+                    , boldedQuery
+                    , Html.text " matched your search."
+                    ]
+                ]
+            ]
+
+
 showPipelinesView : Model -> List Concourse.Pipeline -> Html Msg
 showPipelinesView model pipelines =
     let
         pipelineStates =
-            List.filter ((/=) RemoteData.NotAsked << .jobs) <|
-                List.map
-                    (\pipeline ->
-                        { pipeline = pipeline
-                        , jobs =
-                            Maybe.withDefault RemoteData.NotAsked <|
-                                Dict.get pipeline.id model.jobs
-                        }
-                    )
-                    pipelines
+            getPipelineStates model pipelines
 
         pipelinesByTeam =
             List.foldl
@@ -358,11 +381,19 @@ timeSincePipelineTransitioned status time state =
                         List.head << List.reverse <| sortedTransitionedDurations
                     else
                         List.head <| sortedTransitionedDurations
+
+                isRunning =
+                    if isPipelineRunning state then
+                        Concourse.BuildStatusStarted
+                    else
+                        Concourse.BuildStatusPending
             in
                 if state.pipeline.paused then
                     Html.div [ class "build-duration" ] [ Html.text "paused" ]
                 else if status == Concourse.BuildStatusPending then
                     Html.div [ class "build-duration" ] [ Html.text "pending" ]
+                else if status == isRunning then
+                    Html.div [ class "build-duration" ] [ Html.text "running" ]
                 else
                     case ( time, transitionedDuration ) of
                         ( Just now, Just duration ) ->
@@ -451,49 +482,109 @@ getCurrentTime =
     Task.perform ClockTick Time.now
 
 
-updateFromNewTopBar : NewTopBar.Msg -> Model -> List Concourse.Pipeline
+updateFromNewTopBar : NewTopBar.Msg -> Model -> ( List Concourse.Pipeline, String )
 updateFromNewTopBar msg model =
     case msg of
         NewTopBar.FilterMsg query ->
-            filterModelPipelines query model
+            ( (filterModelPipelines query model), query )
 
         _ ->
-            []
+            ( [], "" )
 
 
 filterModelPipelines : String -> Model -> List Concourse.Pipeline
 filterModelPipelines query model =
-    case model.pipelines of
-        RemoteData.Success pipelines ->
-            searchTermList (String.split " " query) pipelines
+    let
+        querySplit =
+            String.split " " query
+    in
+        case model.pipelines of
+            RemoteData.Success pipelines ->
+                searchTermList model querySplit pipelines
 
-        _ ->
-            []
+            _ ->
+                []
 
 
-searchTermList : List String -> List Concourse.Pipeline -> List Concourse.Pipeline
-searchTermList queryList pipelines =
+searchTermList : Model -> List String -> List Concourse.Pipeline -> List Concourse.Pipeline
+searchTermList model queryList pipelines =
     case queryList of
         [] ->
             pipelines
 
         x :: xs ->
-            searchTermList xs (filterBy x pipelines)
+            let
+                plist =
+                    extendedPipelineList model pipelines
+            in
+                searchTermList model xs (filterBy x plist)
 
 
-filterBy : String -> List Concourse.Pipeline -> List Concourse.Pipeline
+extendedPipelineList : Model -> List Concourse.Pipeline -> List StatusPipeline
+extendedPipelineList model pipelines =
+    let
+        pipelineStates =
+            getPipelineStates model pipelines
+
+        setPipelineStatus p =
+            if p.pipeline.paused == True then
+                "paused"
+            else
+                pipelineStatus p |> toString
+    in
+        List.map
+            (\p ->
+                { pipeline = p.pipeline
+                , status = setPipelineStatus p
+                }
+            )
+            pipelineStates
+
+
+filterBy : String -> List StatusPipeline -> List Concourse.Pipeline
 filterBy term pipelines =
     let
         searchTeams =
             String.startsWith "team:" term
+
+        searchStatus =
+            String.startsWith "status:" term
 
         teamSearchTerm =
             if searchTeams then
                 String.dropLeft 5 term
             else
                 term
+
+        statusSearchTerm =
+            if searchStatus then
+                String.dropLeft 7 term
+            else
+                term
+
+        plist =
+            List.map (\p -> p.pipeline) pipelines
+
+        filterByStatus =
+            Simple.Fuzzy.filter .status statusSearchTerm pipelines
     in
         if searchTeams == True then
-            Simple.Fuzzy.filter .teamName teamSearchTerm pipelines
+            Simple.Fuzzy.filter .teamName teamSearchTerm plist
+        else if searchStatus == True then
+            List.map (\p -> p.pipeline) filterByStatus
         else
-            Simple.Fuzzy.filter .name term pipelines
+            Simple.Fuzzy.filter .name term plist
+
+
+getPipelineStates : Model -> List Concourse.Pipeline -> List PipelineState
+getPipelineStates model pipelines =
+    List.filter ((/=) RemoteData.NotAsked << .jobs) <|
+        List.map
+            (\pipeline ->
+                { pipeline = pipeline
+                , jobs =
+                    Maybe.withDefault RemoteData.NotAsked <|
+                        Dict.get pipeline.id model.jobs
+                }
+            )
+            pipelines

@@ -5,6 +5,7 @@ describe 'job', type: :feature do
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
+    fly_with_input('destroy-pipeline -p test-pipeline', 'y')
     fly('set-pipeline -n -p test-pipeline -c fixtures/passing-pipeline.yml')
     fly('unpause-pipeline -p test-pipeline')
 
@@ -13,7 +14,7 @@ describe 'job', type: :feature do
 
   context 'without builds' do
     it 'links to the builds page' do
-      page.find('a', text: 'passing').click
+      page.find('a > text', text: 'passing').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/passing"
     end
   end
@@ -25,7 +26,7 @@ describe 'job', type: :feature do
     end
 
     it 'links to the latest build' do
-      page.find('a', text: 'passing').click
+      page.find('a > text', text: 'passing').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/passing/builds/1"
       click_on 'passing #1'
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/passing"
@@ -33,14 +34,15 @@ describe 'job', type: :feature do
   end
 
   it 'can be paused' do
+    fly('pause-job -j test-pipeline/passing')
+    fly('unpause-job -j test-pipeline/passing')
     visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/passing")
 
-    page.find('#job-state').click
-    pause_button = page.find('#job-state')
-    Capybara.using_wait_time(2) do
-      expect(pause_button['class']).to include 'enabled'
-      expect(pause_button['class']).to_not include 'disabled'
-    end
+    page.find_by_id('job-state').click
+    pause_button = page.find_by_id('job-state')
+    sleep 5
+    expect(pause_button['class']).to include 'enabled'
+    expect(pause_button['class']).to_not include 'disabled'
 
     visit dash_route("/teams/#{team_name}/pipelines/test-pipeline")
     expect(page).to have_css('.job.paused', text: 'passing')
@@ -50,12 +52,11 @@ describe 'job', type: :feature do
     fly('pause-job -j test-pipeline/passing')
     visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/passing")
 
-    page.find('#job-state').click
-    pause_button = page.find('#job-state')
+    page.find_by_id('job-state').click
+    pause_button = page.find_by_id('job-state')
 
-    Capybara.using_wait_time(2) do
-      expect(pause_button['class']).to_not include 'enabled'
-      expect(pause_button['class']).to include 'disabled'
-    end
+    sleep 5
+    expect(pause_button['class']).to_not include 'enabled'
+    expect(pause_button['class']).to include 'disabled'
   end
 end
