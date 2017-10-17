@@ -223,7 +223,9 @@ case $1 in
       <% if_p("credhub.tls.ca_cert") do |ca_cert| %> \
       --credhub-ca-cert /var/vcap/jobs/atc/config/credhub_ca_cert \
       <% end %> \
-      --credhub-insecure-skip-verify <%= esc p("credhub.tls.insecure_skip_verify") %> \
+      <% if p("credhub.tls.insecure_skip_verify") %> \
+      --credhub-insecure-skip-verify \
+      <% end %> \
       --credhub-client-id <%= esc p("credhub.client_id") %> \
       --credhub-client-secret <%= esc p("credhub.client_secret") %> \
       --credhub-path-prefix <%= esc p("credhub.path_prefix") %> \
@@ -234,7 +236,9 @@ case $1 in
       --vault-ca-cert /var/vcap/jobs/atc/config/vault_ca_cert \
       <% end %> \
       --vault-server-name <%= esc(p("vault.tls.server_name")) %> \
-      --vault-insecure-skip-verify <%= p("vault.tls.insecure_skip_verify") %> \
+      <% if p("vault.tls.insecure_skip_verify") %> \
+      --vault-insecure-skip-verify \
+      <% end %> \
       <% if_p("vault.tls.client_cert") do %> \
       --vault-client-cert /var/vcap/jobs/atc/config/vault_client_cert \
       --vault-client-key /var/vcap/jobs/atc/config/vault_client_key \
