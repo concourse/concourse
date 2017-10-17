@@ -5,6 +5,7 @@ describe 'job', type: :feature do
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
+    fly_with_input('destroy-pipeline -p test-pipeline', 'y')
     fly('set-pipeline -n -p test-pipeline -c fixtures/passing-pipeline.yml')
     fly('unpause-pipeline -p test-pipeline')
 
@@ -39,10 +40,9 @@ describe 'job', type: :feature do
 
     page.find_by_id('job-state').click
     pause_button = page.find_by_id('job-state')
-    Capybara.using_wait_time(5) do
-      expect(pause_button['class']).to include 'enabled'
-      expect(pause_button['class']).to_not include 'disabled'
-    end
+    sleep 5
+    expect(pause_button['class']).to include 'enabled'
+    expect(pause_button['class']).to_not include 'disabled'
 
     visit dash_route("/teams/#{team_name}/pipelines/test-pipeline")
     expect(page).to have_css('.job.paused', text: 'passing')
@@ -55,9 +55,8 @@ describe 'job', type: :feature do
     page.find_by_id('job-state').click
     pause_button = page.find_by_id('job-state')
 
-    Capybara.using_wait_time(2) do
-      expect(pause_button['class']).to_not include 'enabled'
-      expect(pause_button['class']).to include 'disabled'
-    end
+    sleep 5
+    expect(pause_button['class']).to_not include 'enabled'
+    expect(pause_button['class']).to include 'disabled'
   end
 end
