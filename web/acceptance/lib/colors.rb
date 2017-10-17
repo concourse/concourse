@@ -9,9 +9,9 @@ BROWN = Color::CSS['brown']
 BLUE = Color::CSS['blue']
 PALETTE = [RED, GREEN, ORANGE, YELLOW, BROWN, BLUE].freeze
 
-RSpec::Matchers.define :be_greyscale do |expected|
+RSpec::Matchers.define :be_greyscale do
   match do |actual|
-    actual.to_grayscale.to_rgb.closest_match(PALETTE + [actual], :jnd) == expected
+    actual.to_grayscale.to_rgb.closest_match(PALETTE + [actual], :jnd) == actual
   end
 
   diffable
