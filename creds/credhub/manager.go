@@ -38,7 +38,7 @@ func (manager CredHubManager) Validate() error {
 	}
 
 	if parsedUrl.Scheme == "https" {
-		if len(manager.CACerts) < 1 && !manager.Insecure {
+		if len(manager.CACerts) == 0 && !manager.Insecure {
 			return fmt.Errorf("CACerts or insecure needs to be set for secure urls")
 		}
 	}
