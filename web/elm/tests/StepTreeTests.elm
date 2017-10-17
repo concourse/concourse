@@ -45,6 +45,7 @@ someVersionedStep version id name state =
     , version = version
     , metadata = []
     , firstOccurrence = False
+    , timestamps = Dict.empty
     }
 
 
@@ -56,7 +57,8 @@ initTask : Test
 initTask =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "some-id"
                 , step = BuildStepTask "some-name"
                 }
@@ -84,7 +86,8 @@ initGet =
             Dict.fromList [ ( "some", "version" ) ]
 
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "some-id"
                 , step = BuildStepGet "some-name" (Just version)
                 }
@@ -109,7 +112,8 @@ initPut : Test
 initPut =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "some-id"
                 , step = BuildStepPut "some-name"
                 }
@@ -134,7 +138,8 @@ initDependentGet : Test
 initDependentGet =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "some-id"
                 , step = BuildStepDependentGet "some-name"
                 }
@@ -159,7 +164,8 @@ initAggregate : Test
 initAggregate =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "aggregate-id"
                 , step =
                     BuildStepAggregate
@@ -202,7 +208,8 @@ initAggregateNested : Test
 initAggregateNested =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "aggregate-id"
                 , step =
                     BuildStepAggregate
@@ -266,7 +273,8 @@ initOnSuccess : Test
 initOnSuccess =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "on-success-id"
                 , step =
                     BuildStepOnSuccess <|
@@ -314,7 +322,8 @@ initOnFailure : Test
 initOnFailure =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "on-success-id"
                 , step =
                     BuildStepOnFailure <|
@@ -362,7 +371,8 @@ initEnsure : Test
 initEnsure =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "on-success-id"
                 , step =
                     BuildStepEnsure <|
@@ -410,7 +420,8 @@ initTry : Test
 initTry =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "on-success-id"
                 , step =
                     BuildStepTry { id = "task-a-id", step = BuildStepTask "task-a" }
@@ -440,7 +451,8 @@ initTimeout : Test
 initTimeout =
     let
         { tree, foci, finished } =
-            StepTree.init emptyResources
+            StepTree.init StepTree.HighlightNothing
+                emptyResources
                 { id = "on-success-id"
                 , step =
                     BuildStepTimeout { id = "task-a-id", step = BuildStepTask "task-a" }
