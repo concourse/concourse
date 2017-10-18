@@ -115,11 +115,12 @@ that one separately:
 Then you can just `Ctrl+C` the `./dev/atc` process and restart it as you make
 changes.
 
-To start everything needed for a full Testflight run, run `./dev/full-start`.
-The only difference is two additional workers: one with a tag, and another with
-a proxiy configured. If your changes don't seem like they'd need those workers,
-you can stick with `./dev/start` - the tests will automatically skip themselves
-if the workers are not present.
+If you prefer to start the postgres database in a container, replace `db` with
+`dockerdb` and `atc` with `atc-dockerdb` in `./dev/Procfile`. The `db` Docker
+container will persist across `./dev/start` runs. To stop it and perform
+cleanup use:
+
+  `docker stop <container ID>`.
 
 
 ## Making changes to Concourse
