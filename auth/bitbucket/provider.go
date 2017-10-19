@@ -14,6 +14,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/bitbucket"
 	"net/http"
+	"github.com/concourse/atc/auth/genericoauth"
 )
 
 const ProviderName = "bitbucket"
@@ -96,7 +97,9 @@ func (BitbucketTeamProvider) ProviderConstructor(config provider.AuthConfig, red
 	}
 
 	return BitbucketProvider{
-		Verifier: verifier.NewVerifierBasket(),
+		Verifier: verifier.NewVerifierBasket(
+			&genericoauth.NoopVerifier{},
+		),
 		Config: &oauth2.Config{
 			ClientID:     bitbucketAuth.ClientID,
 			ClientSecret: bitbucketAuth.ClientSecret,
