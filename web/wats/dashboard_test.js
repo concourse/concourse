@@ -32,13 +32,14 @@ Scenario("shows current team first, followed by other team's public pipelines", 
   I.loginAs(teamName);
 
   I.amOnPage("/dashboard");
-  I.waitForElement('.dashboard-team-group');
 
+  I.waitForElement(`.dashboard-team-group[data-team-name="${teamName}"]`);
   within('.dashboard-team-group:nth-child(1)', () => {
     I.see(teamName);
     I.see('some-pipeline');
   });
 
+  I.waitForElement(`.dashboard-team-group[data-team-name="${otherTeamName}"]`);
   within(`.dashboard-team-group[data-team-name="${otherTeamName}"]`, () => {
     I.see(otherTeamName);
     I.see('other-pipeline-public');
