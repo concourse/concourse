@@ -119,7 +119,6 @@ describe 'dashboard', type: :feature do
 
   context 'when a pipeline is hanging' do
     before do
-      fly('trigger-job -w -j some-pipeline/passing')
       fly('trigger-job -j some-pipeline/hanging')
       visit_dashboard
     end

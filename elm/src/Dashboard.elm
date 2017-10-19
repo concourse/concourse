@@ -435,13 +435,10 @@ jobStatus job =
 jobsStatus : List Concourse.Job -> Concourse.BuildStatus
 jobsStatus jobs =
     let
-        isHanging =
-            List.any (\job -> (Just Concourse.BuildStatusPending) == (Maybe.map .status job.nextBuild)) jobs
-
         statuses =
-            List.map (\job -> Maybe.withDefault Concourse.BuildStatusPending <| Maybe.map .status job.finishedBuild) jobs
+            List.map (\job -> Maybe.withDefault Concourse.BuildStatusStarted <| Maybe.map .status job.finishedBuild) jobs
     in
-        if isHanging then
+        if List.member Concourse.BuildStatusPending statuses then
             Concourse.BuildStatusPending
         else if List.member Concourse.BuildStatusFailed statuses then
             Concourse.BuildStatusFailed
