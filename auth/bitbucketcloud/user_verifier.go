@@ -4,19 +4,19 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/auth/verifier"
 	"github.com/SHyx0rmZ/go-bitbucket/cloud"
+	"github.com/concourse/atc/auth/verifier"
 )
 
 type UserVerifier struct {
-	users        []string
+	users []string
 }
 
 func NewUserVerifier(
 	users []string,
 ) verifier.Verifier {
 	return UserVerifier{
-		users:        users,
+		users: users,
 	}
 }
 
@@ -25,13 +25,12 @@ func (verifier UserVerifier) Verify(logger lager.Logger, httpClient *http.Client
 	if err != nil {
 		return false, err
 	}
-	accessibleUsers, err := bitbucketClient.Users()
-	if err != nil || len(accessibleUsers) != 1 {
+
+	currentUser, err := bitbucketClient.CurrentUser()
+	if err != nil {
 		logger.Error("failed-to-get-current-user", err)
 		return false, err
 	}
-
-	currentUser := accessibleUsers[0].GetName()
 
 	for _, user := range verifier.users {
 		if user == currentUser {

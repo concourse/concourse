@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/genericoauth"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
@@ -31,6 +30,8 @@ var Scopes = []string{"team"}
 type BitbucketAuthConfig struct {
 	ConsumerKey    string `json:"consumer_key" long:"consumer-key" description:"Application client ID for enabling Bitbucket OAuth"`
 	ConsumerSecret string `json:"consumer_secret" long:"consumer-secret" description:"Application client secret for enabling Bitbucket OAuth"`
+
+	Users []string `json:"users" long:"user"`
 
 	AuthURL  string `json:"auth_url,omitempty" long:"auth-url" description:"Override default endpoint AuthURL for Bitbucket Server"`
 	TokenURL string `json:"token_url,omitempty" long:"token-url" description:"Override default endpoint TokenURL for Bitbucket Server"`
@@ -145,7 +146,31 @@ func (BitbucketTeamProvider) ProviderConstructor(config provider.AuthConfig, red
 
 	block, _ := pem.Decode(
 		[]byte(`-----BEGIN RSA PRIVATE KEY-----
-
+MIIEpAIBAAKCAQEAwNO+7RswMf3LQYWvRHwN4Jyy8SaRphzH/+Wklkln+Wxes2sG
+AIh8Tgj5yoAixfSZDInhAFa7rri5n6babpufJSPLfyfml9+I/rW/7hCPeafRQL8S
+MERKMsvDFJyV0EwNMA58C1aN3O10wFuMs8wpT5sAo+5+uRBPA23kcG3xFtRUtZQW
+3WDHUyXgOseZRCtSOqruIKaaV31CfjpMLk8RxNjGRlfstDrblaEX8CNJuj1LckKI
+x6tNuxJDAAOSYMveZ38vqx8b6dFqdamZmW4u+Nx2WTWAncMfid0naComZk4S4fnA
++uhryT0phjjhFCqbuv3gimeFBh0qr4Qou1zdgwIDAQABAoIBAEtEG5lXbHeG9giM
+Uv5rYctTvvEsOdvaDiMPky/qVUBhkZF86+nXXJXlIQNvAqO8NuVTCFVmhXnMtv/f
+VBGqgvMvRqZKf9K2OTYa4WDea/Jzk9Uu/72BWmj7ahkoib21gcxJSxft4A/lTBYt
+Zf1kapedDCHw3NwFxqGzCmDsORfMeIew+9VfnpY6yTjLhnadiEMGqNK90Zfh9FYR
+VYWxvn9QSFFNCJ6fL1q00gteDtErJvRTqjAeEnskDZqSDO2NBZyxi/ugoue7ados
+m16JFsvRTYnjSV5so/ZoI3z+xnvGUKr5xpuDzwgjF3jG4O2rdd/p9FRawCB0ulTn
+l4bdSrkCgYEA/fdg2tlsRU+Ciif2v6viFHqxyUO18AbsPVw+qaYx++t+XTY4l9N2
+SHXxlSN0/Bb8/+VHWOzEhEaCovyGLtvzZ9so1zWA++u+BXR3EhD0XfuWv5z5mqnz
+1b1qXNH/h6etGSjUXIfYFmJyLaS/DDfQ3a8iGV0WyOKLb5T8IVEUYYUCgYEAwl8I
+zDV6Mo6HArxfyyH6dDb46lNaAAgEZLvFN/ZaTxIoU7D334Eb3BbJiGG9kBCSlcBA
+yI+DUS8ViXh9dry3r+dSvwD5k9hDtu36gJ3WTTuEfKFYhFUzsF1BPuGuDYgHweD9
+v0OTC46pSGYcYAS/JGYG8pidPKRqlX1JEWNUbWcCgYEA20WjElF28cDcbHxkxsiY
+wiXNKoCTrVHM1o22bLNZpLCGweP2qN+i2J08oA+lCaKvfiFvoI+MfMiEMkTldb/i
+QGEwud8wJlI8FmmgBLEuy5ZVacsWlzr1lC2ej9WgUnerNHXUJLAFGg6VlmMPsHTg
+mQaE4nFFIty2lviDWCCxACECgYB0ZZDRKV0qFWwIWWJMNObU3W6mdI+64RIweLmb
+z605GLiJlbp6X8idPhAl2dI5CZOelei1siuDXFzbXApWJqEhd7d3pk/PF31FeLHA
+f8Srr26ha8WkSZmQjefaji867zEmC2QpO4A9NYtuTafEYFNOqsKSWI4gmJ0zNDmj
+bgZLFQKBgQDFEPhJMC2w5bu/pLHKeSwDv6bXEh8H6gyDH9YrZ6rQNUZfuCpQ28SW
+9LvApjnjslrWmDI7iTCyC7uK9dvuOhds8gMFhDTR35xdD+KzTzpFKdBUpGx68HuL
+zAuk6MUBKdRGr20AydS3+vQ36qx27zmf5mf0VbBAWe+rIbLT90a4Dw==
 -----END RSA PRIVATE KEY-----`),
 	)
 
@@ -161,7 +186,7 @@ func (BitbucketTeamProvider) ProviderConstructor(config provider.AuthConfig, red
 
 	return &BitbucketProvider{
 		Verifier: verifier.NewVerifierBasket(
-			&genericoauth.NoopVerifier{},
+			NewUserVerifier(bitbucketAuth.Users),
 		),
 		Config: &oauth1.Config{
 			ConsumerKey: bitbucketAuth.ConsumerKey,
