@@ -155,7 +155,7 @@ describe 'build', type: :feature do
       end
 
       it 'no version available' do
-        job_name = 'hanging'
+        job_name = 'pending'
         fly("trigger-job -j pipeline/#{job_name}")
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/#{job_name}/builds/1")
         expect(page).to have_content 'no versions available'
