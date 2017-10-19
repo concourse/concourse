@@ -60,6 +60,16 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("Rename", func() {
+		JustBeforeEach(func() {
+			Expect(team.Rename("oopsies")).To(Succeed())
+		})
+
+		It("renames the team", func() {
+			Expect(team.Name()).To(Equal("oopsies"))
+		})
+	})
+
 	Describe("SaveWorker", func() {
 		var (
 			team      db.Team

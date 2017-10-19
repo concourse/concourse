@@ -105,6 +105,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.HeartbeatWorker,
 			atc.DeleteWorker,
 			atc.SetTeam,
+			atc.RenameTeam,
 			atc.DestroyTeam,
 			atc.WritePipe,
 			atc.ListVolumes,

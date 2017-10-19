@@ -499,4 +499,115 @@ var _ = Describe("Teams API", func() {
 			})
 		})
 	})
+
+	Describe("PUT /api/v1/teams/:team_name/rename", func() {
+		var response *http.Response
+		var teamName string
+
+		JustBeforeEach(func() {
+			request, err := http.NewRequest(
+				"PUT",
+				server.URL+"/api/v1/teams/"+teamName+"/rename",
+				bytes.NewBufferString(`{"name":"some-new-name"}`),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			fakeTeam.IDReturns(2)
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				jwtValidator.IsAuthenticatedReturns(true)
+			})
+			Context("when requester belongs to an admin team", func() {
+				BeforeEach(func() {
+					teamName = "a-team"
+					fakeTeam.NameReturns(teamName)
+					userContextReader.GetTeamReturns(atc.DefaultTeamName, true, true)
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("renames the team to the name provided", func() {
+					Expect(fakeTeam.RenameCallCount()).To(Equal(1))
+					Expect(fakeTeam.RenameArgsForCall(0)).To(Equal("some-new-name"))
+				})
+
+				It("returns 204 no content", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+				})
+			})
+
+			Context("when requester belongs to the team", func() {
+				BeforeEach(func() {
+					teamName = "a-team"
+					fakeTeam.NameReturns(teamName)
+					userContextReader.GetTeamReturns("a-team", true, true)
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("renames the team to the name provided", func() {
+					Expect(fakeTeam.RenameCallCount()).To(Equal(1))
+					Expect(fakeTeam.RenameArgsForCall(0)).To(Equal("some-new-name"))
+				})
+
+				It("returns 204 no content", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+				})
+			})
+
+			Context("when requester does not belong to the team", func() {
+				BeforeEach(func() {
+					teamName = "a-team"
+					fakeTeam.NameReturns(teamName)
+					userContextReader.GetTeamReturns("another-team", false, true)
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				})
+
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					Expect(fakeTeam.RenameCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when trying to rename the admin team", func() {
+				BeforeEach(func() {
+					teamName = atc.DefaultTeamName
+					fakeTeam.NameReturns(teamName)
+					userContextReader.GetTeamReturns(atc.DefaultTeamName, true, true)
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				})
+
+				It("returns 403 Forbidden and backs off", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					Expect(fakeTeam.RenameCallCount()).To(Equal(0))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				jwtValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				Expect(fakeTeam.RenameCallCount()).To(Equal(0))
+			})
+		})
+	})
 })

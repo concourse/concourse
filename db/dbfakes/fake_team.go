@@ -67,6 +67,15 @@ type FakeTeam struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
+	RenameStub        func(string) error
+	renameMutex       sync.RWMutex
+	renameArgsForCall []struct{ name string }
+	renameReturns     struct {
+		result1 error
+	}
+	renameReturnsOnCall map[int]struct {
+		result1 error
+	}
 	SavePipelineStub        func(pipelineName string, config atc.Config, from db.ConfigVersion, pausedState db.PipelinePausedState) (db.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
 	savePipelineArgsForCall []struct {
@@ -604,6 +613,33 @@ func (fake *FakeTeam) DeleteReturnsOnCall(i int, result1 error) {
 	fake.deleteReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeTeam) Rename(name string) error {
+	fake.renameMutex.Lock()
+	ret, specificReturn := fake.renameReturnsOnCall[len(fake.renameArgsForCall)]
+	fake.renameArgsForCall = append(fake.renameArgsForCall, struct{ name string }{name})
+	fake.recordInvocation("Rename", []interface{}{})
+	fake.renameMutex.Unlock()
+	if fake.RenameStub != nil {
+		return fake.RenameStub(name)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.renameReturns.result1
+}
+
+func (fake *FakeTeam) RenameCallCount() int {
+	fake.renameMutex.RLock()
+	defer fake.renameMutex.RUnlock()
+	return len(fake.renameArgsForCall)
+}
+
+func (fake *FakeTeam) RenameArgsForCall(i int) string {
+	fake.renameMutex.RLock()
+	defer fake.renameMutex.RUnlock()
+	return fake.renameArgsForCall[i].name
 }
 
 func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from db.ConfigVersion, pausedState db.PipelinePausedState) (db.Pipeline, bool, error) {

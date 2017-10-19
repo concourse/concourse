@@ -33,6 +33,7 @@ type Team interface {
 	Auth() map[string]*json.RawMessage
 
 	Delete() error
+	Rename(string) error
 
 	SavePipeline(
 		pipelineName string,
@@ -124,6 +125,18 @@ func (t *team) Delete() error {
 	}
 
 	return nil
+}
+
+func (t *team) Rename(name string) error {
+	_, err := psql.Update("teams").
+		Set("name", name).
+		Where(sq.Eq{
+			"id": t.id,
+		}).
+		RunWith(t.conn).
+		Exec()
+
+	return err
 }
 
 func (t *team) Workers() ([]Worker, error) {
