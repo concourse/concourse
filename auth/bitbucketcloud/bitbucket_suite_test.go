@@ -1,4 +1,4 @@
-package bitbucket_test
+package bitbucketcloud_test
 
 import (
 	"testing"
@@ -8,5 +8,5 @@ import (
 
 func TestBitbucket(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Bitbucket Suite")
+	RunSpecs(t, "Bitbucket Cloud Suite")
 }
