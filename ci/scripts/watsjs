@@ -1,0 +1,13 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e
+
+trap "pkill Xvfb" EXIT
+
+install fly-rc/fly_linux_amd64 /usr/local/bin/fly
+
+cd concourse/src/github.com/concourse/atc/web/wats/
+
+npm install
+npm test -- --steps --override '{"helpers":{"Nightmare":{"url":"'$ATC_URL'"}}}'

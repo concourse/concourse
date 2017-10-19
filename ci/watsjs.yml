@@ -1,0 +1,21 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: codeception/codeceptjs}
+
+params:
+  ATC_URL: http://10.244.15.2:8080
+
+inputs:
+- name: concourse
+- name: fly-rc
+
+caches:
+- path: concourse/src/github.com/concourse/atc/web/wats/node_modules
+- path: concourse/pkg
+
+run:
+  path: /docker/entrypoint
+  args: [concourse/ci/scripts/watsjs]
