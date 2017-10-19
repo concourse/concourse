@@ -15,7 +15,7 @@
   "bootstrap": false,
   "teardown": null,
   "hooks": [],
-  "tests": "./*_test.js",
+  "tests": "./test/*/*_test.js",
   "timeout": 10000,
   "name": "wats"
 }
