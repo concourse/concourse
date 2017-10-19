@@ -322,6 +322,7 @@ viewPipeline now state =
                 , ( "dashboard-running", isPipelineRunning state )
                 , ( "dashboard-status-" ++ Concourse.BuildStatus.show status, not state.pipeline.paused )
                 ]
+            , attribute "data-pipeline-name" state.pipeline.name
             ]
             [ Html.div [ class "dashboard-pipeline-banner" ] []
             , Html.div
