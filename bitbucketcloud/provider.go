@@ -1,4 +1,4 @@
-package bitbucket
+package bitbucketcloud
 
 import (
 	"encoding/json"
@@ -17,8 +17,8 @@ import (
 	"github.com/concourse/atc/auth/genericoauth"
 )
 
-const ProviderName = "bitbucket"
-const DisplayName = "Bitbucket"
+const ProviderName = "bitbucket-cloud"
+const DisplayName = "Bitbucket Cloud"
 
 var Scopes = []string{"team"}
 
@@ -113,12 +113,12 @@ func (BitbucketTeamProvider) ProviderConstructor(config provider.AuthConfig, red
 func (BitbucketTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
 	flags := &BitbucketAuthConfig{}
 
-	bGroup, err := group.AddGroup("Bitbucket Authentication", "", flags)
+	bGroup, err := group.AddGroup("Bitbucket Cloud Authentication", "", flags)
 	if err != nil {
 		panic(err)
 	}
 
-	bGroup.Namespace = "bitbucket-auth"
+	bGroup.Namespace = "bitbucket-cloud-auth"
 
 	return flags
 }
