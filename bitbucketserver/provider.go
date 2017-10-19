@@ -1,4 +1,4 @@
-package bitbucketcloud
+package bitbucketserver
 
 import (
 	"encoding/json"
@@ -17,8 +17,8 @@ import (
 	"github.com/concourse/atc/auth/genericoauth"
 )
 
-const ProviderName = "bitbucket-cloud"
-const DisplayName = "Bitbucket Cloud"
+const ProviderName = "bitbucket-server"
+const DisplayName = "Bitbucket Server"
 
 var Scopes = []string{"team"}
 
@@ -41,7 +41,7 @@ func (auth *BitbucketAuthConfig) Validate() error {
 	if auth.ClientID == "" || auth.ClientSecret == "" {
 		errs = multierror.Append(
 			errs,
-			errors.New("must specify --bitbucket-cloud-auth-client-id and --bitbucket-cloud-auth-client-secret to use Bitbucket OAuth"),
+			errors.New("must specify --bitbucket-server-auth-client-id and --bitbucket-server-auth-client-secret to use Bitbucket OAuth"),
 		)
 	}
 	return errs.ErrorOrNil()
@@ -113,12 +113,12 @@ func (BitbucketTeamProvider) ProviderConstructor(config provider.AuthConfig, red
 func (BitbucketTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
 	flags := &BitbucketAuthConfig{}
 
-	bGroup, err := group.AddGroup("Bitbucket Cloud Authentication", "", flags)
+	bGroup, err := group.AddGroup("Bitbucket Server Authentication", "", flags)
 	if err != nil {
 		panic(err)
 	}
 
-	bGroup.Namespace = "bitbucket-cloud-auth"
+	bGroup.Namespace = "bitbucket-server-auth"
 
 	return flags
 }
