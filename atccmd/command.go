@@ -57,6 +57,7 @@ import (
 	"github.com/concourse/atc/auth/routes"
 
 	// dynamically registered auth providers
+	_ "github.com/concourse/atc/auth/bitbucket"
 	_ "github.com/concourse/atc/auth/genericoauth"
 	_ "github.com/concourse/atc/auth/github"
 	_ "github.com/concourse/atc/auth/gitlab"
