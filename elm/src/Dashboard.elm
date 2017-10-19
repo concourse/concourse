@@ -14,7 +14,7 @@ import DashboardPreview
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Html exposing (Html)
-import Html.Attributes exposing (class, classList, id, href, src)
+import Html.Attributes exposing (class, classList, id, href, src, attribute)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Keyboard
@@ -290,7 +290,7 @@ addPipelineState pipelineStates ( teamName, pipelineState ) =
 
 viewGroup : Maybe Time -> String -> List PipelineState -> Html msg
 viewGroup now teamName pipelines =
-    Html.div [ id teamName, class "dashboard-team-group" ]
+    Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
         [ Html.div [ class "dashboard-team-name" ]
             [ Html.text teamName ]
         , Html.div [ class "dashboard-team-pipelines" ]
