@@ -39,6 +39,7 @@ func NewOAuthHandler(
 				teamFactory,
 				expire,
 				isTLSEnabled,
+				oauthBeginHandlerV2{},
 			),
 			routes.OAuthCallback: NewOAuthCallbackHandler(
 				logger.Session("oauth-callback"),
@@ -47,9 +48,43 @@ func NewOAuthHandler(
 				teamFactory,
 				expire,
 				isTLSEnabled,
+				oauthCallbackHandlerV2{},
 			),
 			routes.LogOut: NewLogOutHandler(
 				logger.Session("logout"),
+			),
+		},
+	)
+}
+
+func NewOAuth1Handler(
+	logger lager.Logger,
+	providerFactory ProviderFactory,
+	teamFactory db.TeamFactory,
+	signingKey *rsa.PrivateKey,
+	expire time.Duration,
+	isTLSEnabled bool,
+) (http.Handler, error) {
+	return rata.NewRouter(
+		routes.OAuth1Routes,
+		map[string]http.Handler{
+			routes.OAuth1Begin: NewOAuthBeginHandler(
+				logger.Session("oauth-begin"),
+				providerFactory,
+				signingKey,
+				teamFactory,
+				expire,
+				isTLSEnabled,
+				oauthBeginHandlerV2{},
+			),
+			routes.OAuth1Callback: NewOAuthCallbackHandler(
+				logger.Session("oauth-callback"),
+				providerFactory,
+				signingKey,
+				teamFactory,
+				expire,
+				isTLSEnabled,
+				oauthCallbackHandlerV1{},
 			),
 		},
 	)

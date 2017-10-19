@@ -79,6 +79,11 @@ type alias OAuthAuthMethod =
     }
 
 
+type OAuthVersion
+    = OAuthVersion1
+    | OAuthVersion2
+
+
 decodeAuthMethod : Json.Decode.Decoder AuthMethod
 decodeAuthMethod =
     customDecoder
@@ -97,10 +102,16 @@ authMethodFromTuple tuple =
             Ok AuthMethodBasic
 
         ( "oauth", Just displayName, Just authUrl ) ->
-            Ok (AuthMethodOAuth { displayName = displayName, authUrl = authUrl })
+            Ok (AuthMethodOAuth OAuthVersion2 { displayName = displayName, authUrl = authUrl })
 
         ( "oauth", _, _ ) ->
             Err "missing fields in oauth auth method"
+
+        ( "oauth-v1", Just displayName, Just authUrl ) ->
+            Ok (AuthMethodOAuth OAuthVersion1 { displayName = displayName, authUrl = authUrl })
+
+        ( "oauth-v1", _, _ ) ->
+            Err "missing fields in oauth-v1 auth method"
 
         _ ->
             Err "unknown value for auth method type"

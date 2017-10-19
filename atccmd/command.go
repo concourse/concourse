@@ -358,6 +358,16 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
+	providerFactory1 := auth.NewOAuthFactory(
+		logger.Session("oauth-provider-factory"),
+		cmd.oauthBaseURL(),
+		routes.OAuth1Routes,
+		routes.OAuth1Callback,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	drain := make(chan struct{})
 
 	apiHandler, err := cmd.constructAPIHandler(
@@ -386,6 +396,18 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	oauthHandler, err := auth.NewOAuthHandler(
 		logger,
 		providerFactory,
+		teamFactory,
+		signingKey,
+		cmd.AuthDuration,
+		cmd.isTLSEnabled(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	oauth1Handler, err := auth.NewOAuth1Handler(
+		logger,
+		providerFactory1,
 		teamFactory,
 		signingKey,
 		cmd.AuthDuration,
@@ -432,6 +454,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				externalHost: cmd.ExternalURL.URL().Host,
 				baseHandler:  oauthHandler,
 			},
+			tlsRedirectHandler{
+				externalHost: cmd.ExternalURL.URL().Host,
+				baseHandler:  oauth1Handler,
+			},
 		)
 
 		httpsHandler = cmd.constructHTTPHandler(
@@ -440,6 +466,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			publicHandler,
 			apiHandler,
 			oauthHandler,
+			oauth1Handler,
 		)
 	} else {
 		httpHandler = cmd.constructHTTPHandler(
@@ -448,6 +475,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			publicHandler,
 			apiHandler,
 			oauthHandler,
+			oauth1Handler,
 		)
 	}
 
@@ -922,10 +950,12 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	publicHandler http.Handler,
 	apiHandler http.Handler,
 	oauthHandler http.Handler,
+	oauth1Handler http.Handler,
 ) http.Handler {
 	webMux := http.NewServeMux()
 	webMux.Handle("/api/v1/", apiHandler)
 	webMux.Handle("/auth/", oauthHandler)
+	webMux.Handle("/oauth/v1/", oauth1Handler)
 	webMux.Handle("/public/", publicHandler)
 	webMux.Handle("/manifest.json", manifest.NewHandler())
 	webMux.Handle("/robots.txt", robotstxt.Handler{})
