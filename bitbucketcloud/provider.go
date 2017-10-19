@@ -14,7 +14,6 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/bitbucket"
 	"net/http"
-	"github.com/concourse/atc/auth/genericoauth"
 )
 
 const ProviderName = "bitbucket-cloud"
@@ -26,9 +25,11 @@ type BitbucketAuthConfig struct {
 	ClientID     string `json:"client_id" long:"client-id" description:"Application client ID for enabling Bitbucket OAuth"`
 	ClientSecret string `json:"client_secret" long:"client-secret" description:"Application client secret for enabling Bitbucket OAuth"`
 
-	AuthURL  string `json:"auth_url,omitempty" long:"auth-url" description:"Override default endpoint AuthURL for Bitbucket Server"`
-	TokenURL string `json:"token_url,omitempty" long:"token-url" description:"Override default endpoint TokenURL for Bitbucket Server"`
-	APIURL   string `json:"apiurl,omitempty" long:"api-url" description:"Override default API endpoint URL for Bitbucket Server"`
+	Users []string `json:"users,omitempty" long:"user" description:"Bitbucket users that are allowed to log in."`
+
+	AuthURL  string `json:"auth_url,omitempty" long:"auth-url" description:"Override default endpoint AuthURL for Bitbucket Cloud"`
+	TokenURL string `json:"token_url,omitempty" long:"token-url" description:"Override default endpoint TokenURL for Bitbucket Cloud"`
+	APIURL   string `json:"apiurl,omitempty" long:"api-url" description:"Override default API endpoint URL for Bitbucket Cloud"`
 }
 
 func (auth *BitbucketAuthConfig) IsConfigured() bool {
@@ -98,7 +99,7 @@ func (BitbucketTeamProvider) ProviderConstructor(config provider.AuthConfig, red
 
 	return BitbucketProvider{
 		Verifier: verifier.NewVerifierBasket(
-			&genericoauth.NoopVerifier{},
+			&UserVerifier{bitbucketAuth.Users},
 		),
 		Config: &oauth2.Config{
 			ClientID:     bitbucketAuth.ClientID,
