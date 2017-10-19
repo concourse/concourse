@@ -1,0 +1,24 @@
+{
+  "name": "wats",
+  "version": "1.0.0",
+  "description": "Concourse web UI acceptance tests",
+  "dependencies": {
+    "child-process-promise": "^2.2.1",
+    "codeceptjs-nightmare": "^1.1.0",
+    "uuid": "^3.1.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "codeceptjs run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/concourse/atc.git"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/concourse/atc/issues"
+  },
+  "homepage": "https://github.com/concourse/atc#readme"
+}
