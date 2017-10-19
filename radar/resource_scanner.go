@@ -22,7 +22,6 @@ type resourceScanner struct {
 	dbPipeline                        db.Pipeline
 	externalURL                       string
 	variables                         creds.Variables
-	resourceTypeScanner               Scanner
 }
 
 func NewResourceScanner(
@@ -33,7 +32,6 @@ func NewResourceScanner(
 	dbPipeline db.Pipeline,
 	externalURL string,
 	variables creds.Variables,
-	resourceTypeScanner Scanner,
 ) Scanner {
 	return &resourceScanner{
 		clock:                             clock,
@@ -43,7 +41,6 @@ func NewResourceScanner(
 		dbPipeline:                        dbPipeline,
 		externalURL:                       externalURL,
 		variables:                         variables,
-		resourceTypeScanner:               resourceTypeScanner,
 	}
 }
 
@@ -99,23 +96,12 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		return 0, err
 	}
 
-	for _, resourceType := range resourceTypes {
-		if resourceType.Name() == savedResource.Type() {
-			if resourceType.Version() == nil {
-				err := scanner.resourceTypeScanner.Scan(logger, savedResource.Type())
-				if err != nil {
-					logger.Error("failed-to-scan-resource-type-version", err)
-					return 0, err
-				}
-			}
-		}
-	}
-
-	resourceTypes, err = scanner.dbPipeline.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resource-types-for-refresh", err)
-		return 0, err
-	}
+	// FIXME: Scan dependencies
+	//   Go through each resourceType
+	//     if the resourceType's Name matches the savedResource's Type
+	//       if the resoureceType's Version is nil
+	//         Scan the resourceType
+	//   Reload all the resourceTypes at some point
 
 	versionedResourceTypes := creds.NewVersionedResourceTypes(
 		scanner.variables,

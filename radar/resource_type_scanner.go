@@ -47,15 +47,14 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 	return scanner.scan(logger.Session("tick"), resourceTypeName, nil, false)
 }
 
-// ScanFromVersion is not implemented for the resourceTypeScanner as there are currently no consumers
 func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion atc.Version) error {
+	// FIXME: Implement
 	return nil
 }
 
 func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName string) error {
-	_, err := scanner.scan(logger.Session("tick"), resourceTypeName, nil, true)
-
-	return err
+	// FIXME: Implement
+	return nil
 }
 
 func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName string, fromVersion atc.Version, mustComplete bool) (time.Duration, error) {
@@ -73,6 +72,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		return 0, db.ResourceTypeNotFoundError{Name: resourceTypeName}
 	}
 
+	// TODO: maybe consider scanner.checkInterval
 	interval := scanner.defaultInterval
 
 	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
@@ -81,23 +81,12 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		return 0, err
 	}
 
-	for _, resourceType := range resourceTypes {
-		if resourceType.Name() == savedResourceType.Type() {
-			if resourceType.Version() == nil {
-				err := scanner.Scan(logger, savedResourceType.Type())
-				if err != nil {
-					logger.Error("failed-to-scan-resource-type_version", err)
-					return 0, err
-				}
-			}
-		}
-	}
-
-	resourceTypes, err = scanner.dbPipeline.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resource-types-for-refresh", err)
-		return 0, err
-	}
+	// FIXME: Scan dependencies
+	//   Go through each resourceType
+	//     if the resourceType's Name matches the savedResourceType's Type
+	//       if the resoureceType's Version is nil
+	//         Scan the resourceType
+	//   Reload all the resourceTypes at some point
 
 	versionedResourceTypes := creds.NewVersionedResourceTypes(
 		scanner.variables,
