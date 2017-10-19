@@ -158,8 +158,8 @@ describe 'search', type: :feature do
     end
 
     it 'returns pipelines by status aborted' do
-      fly('trigger-job -j aborted-status-pipeline/hanging')
-      fly('abort-build -j aborted-status-pipeline/hanging -b 1')
+      fly('trigger-job -j aborted-status-pipeline/pending')
+      fly('abort-build -j aborted-status-pipeline/pending -b 1')
       sleep 10
       search_by_query('status:abort')
       within '.dashboard-team-group', text: status_team_name do
