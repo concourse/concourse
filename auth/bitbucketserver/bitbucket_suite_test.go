@@ -1,4 +1,4 @@
-package bitbucketcloud_test
+package bitbucketserver_test
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-func TestBitbucketCloud(t *testing.T) {
+func TestBitbucketServer(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Bitbucket Cloud Suite")
+	RunSpecs(t, "Bitbucket Server Suite")
 }
