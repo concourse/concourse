@@ -27,6 +27,7 @@ type OAuthCallbackHandler struct {
 	teamFactory        db.TeamFactory
 	expire             time.Duration
 	isTLSEnabled       bool
+	versionHandler     oauthCallbackHandler
 }
 
 func NewOAuthCallbackHandler(
@@ -36,6 +37,7 @@ func NewOAuthCallbackHandler(
 	teamFactory db.TeamFactory,
 	expire time.Duration,
 	isTLSEnabled bool,
+	versionHandler oauthCallbackHandler,
 ) http.Handler {
 	return &OAuthCallbackHandler{
 		logger:             logger,
@@ -46,6 +48,7 @@ func NewOAuthCallbackHandler(
 		teamFactory:        teamFactory,
 		expire:             expire,
 		isTLSEnabled:       isTLSEnabled,
+		versionHandler:     versionHandler,
 	}
 }
 
@@ -63,7 +66,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if cookieState.Value != paramState {
+	if !handler.versionHandler.ValidState(cookieState.Value, paramState) {
 		hLog.Info("state-cookie-mismatch", lager.Data{
 			"param-state":  paramState,
 			"cookie-state": cookieState.Value,
@@ -73,7 +76,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	stateJSON, err := base64.RawURLEncoding.DecodeString(r.FormValue("state"))
+	stateJSON, err := base64.RawURLEncoding.DecodeString(cookieState.Value)
 	if err != nil {
 		hLog.Info("failed-to-decode-state", lager.Data{
 			"error": err.Error(),
@@ -141,6 +144,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	}
 
 	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, preTokenClient)
+	ctx = context.WithValue(ctx, "request", r)
 
 	token, err := provider.Exchange(ctx, r.FormValue("code"))
 	if err != nil {
@@ -232,4 +236,19 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		encodedToken := url.QueryEscape(tokenStr)
 		http.Redirect(w, r, fmt.Sprintf("http://127.0.0.1:%s/oauth/callback?token=%s", oauthState.FlyLocalPort, encodedToken), http.StatusTemporaryRedirect)
 	}
+}
+
+type oauthCallbackHandler interface {
+	ValidState(cookieState string, paramState string) bool
+}
+
+type oauthCallbackHandlerV1 struct{}
+type oauthCallbackHandlerV2 struct{}
+
+func (oauthCallbackHandlerV1) ValidState(cookieState string, paramState string) bool {
+	return true
+}
+
+func (oauthCallbackHandlerV2) ValidState(cookieState string, paramState string) bool {
+	return cookieState == paramState
 }
