@@ -29,6 +29,9 @@ func Render(dst io.Writer, src eventstream.EventStream) int {
 		case event.Log:
 			fmt.Fprintf(dst, "%s", e.Payload)
 
+		case event.LogV50:
+			fmt.Fprintf(dst, "%s", e.Payload)
+
 		case event.InitializeTask:
 			fmt.Fprintf(dst, "\x1b[1minitializing\x1b[0m\n")
 
