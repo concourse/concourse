@@ -29,7 +29,7 @@ function* matchPipelineColor(I, expectedState, expectedColor) {
   expect(color(backgroundColor)).to.eql(expectedColor);
 };
 
-Scenario('shows unpaused pipelines that have never run in grey', (I) => {
+Scenario('shows pipelines with no finished builds in grey', (I) => {
   I.amOnPage('/dashboard');
   I.waitForElement('.dashboard-pipeline');
 
@@ -73,6 +73,54 @@ Scenario('shows pipelines with any failed builds in red', (I) => {
 
   I.amOnPage('/dashboard');
   I.waitForElement('.dashboard-pipeline');
+
+  within('.dashboard-pipeline', () => {
+    I.see("some-pipeline");
+    matchPipelineColor(I, palette.red);
+  });
+});
+
+Scenario('shows pipelines with any errored builds in orange', (I) => {
+  I.fly("trigger-job -w -j some-pipeline/passing");
+  I.flyExpectingFailure("trigger-job -w -j some-pipeline/erroring");
+
+  I.amOnPage('/dashboard');
+  I.waitForElement('.dashboard-pipeline');
+
+  within('.dashboard-pipeline', () => {
+    I.see("some-pipeline");
+    matchPipelineColor(I, palette.orange);
+  });
+});
+
+Scenario('shows pipelines with any aborted builds in brown', (I) => {
+  I.fly("trigger-job -j some-pipeline/passing -w");
+  I.fly("trigger-job -j some-pipeline/running");
+  I.fly("abort-build -j some-pipeline/running -b 1");
+
+  I.amOnPage('/dashboard');
+  I.waitForElement('.dashboard-pipeline');
+
+  within('.dashboard-pipeline', () => {
+    I.see("some-pipeline");
+    matchPipelineColor(I, palette.brown);
+  });
+});
+
+Scenario('auto-refreshes to reflect state changes', (I) => {
+  I.fly("trigger-job -w -j some-pipeline/passing");
+
+  I.amOnPage('/dashboard');
+  I.waitForElement('.dashboard-pipeline');
+
+  within('.dashboard-pipeline', () => {
+    I.see("some-pipeline");
+    matchPipelineColor(I, palette.green);
+  });
+
+  I.flyExpectingFailure("trigger-job -w -j some-pipeline/failing");
+
+  I.wait(5);
 
   within('.dashboard-pipeline', () => {
     I.see("some-pipeline");
