@@ -56,7 +56,6 @@ type Pipeline interface {
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
-	// Needs test (from db/lock_test.go)
 	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
 
 	AcquireResourceCheckingLockWithIntervalCheck(
@@ -1130,27 +1129,6 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 }
 
 func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
-	updated, err := checkIfRowsUpdated(tx, `
-		UPDATE pipelines
-		SET last_scheduled = now()
-		WHERE id = $1
-			AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
-	`, p.id, interval.Seconds())
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !updated {
-		return nil, false, nil
-	}
-
 	lock, acquired, err := p.lockFactory.Acquire(
 		logger.Session("lock", lager.Data{
 			"pipeline": p.name,
@@ -1165,11 +1143,36 @@ func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Dura
 		return nil, false, nil
 	}
 
-	err = tx.Commit()
+	var keepLock bool
+	defer func() {
+		if !keepLock {
+			err := lock.Release()
+			if err != nil {
+				logger.Error("failed-to-release-lock", err)
+			}
+		}
+	}()
+
+	result, err := p.conn.Exec(`
+		UPDATE pipelines
+		SET last_scheduled = now()
+		WHERE id = $1
+			AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
+	`, p.id, interval.Seconds())
 	if err != nil {
-		lock.Release()
 		return nil, false, err
 	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if rows == 0 {
+		return nil, false, nil
+	}
+
+	keepLock = true
 
 	return lock, true, nil
 }
