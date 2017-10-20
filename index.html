@@ -12,17 +12,32 @@
     <script src="{{asset "graph.js"}}"></script>
     <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
+    <script src="{{asset "elm-beta.min.js"}}"></script>
   </head>
   <body>
     <div id="elm-app-embed"></div>
 
     <script type="text/javascript">
       var node = document.getElementById("elm-app-embed");
-      var app = Elm.Main.embed(node, {
-        turbulenceImgSrc: {{asset "images/buckleup.svg"}},
-        notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
-        csrfToken: {{ .CSRFToken }}
-      });
+
+      var app;
+
+      if (window.location.pathname.startsWith("/beta")) {
+        console.log("beta concourse")
+        app = Elm.BetaMain.embed(node, {
+          turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+          notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
+          csrfToken: {{ .CSRFToken }}
+        });
+      }
+      else {
+        console.log("main concourse")
+        app = Elm.Main.embed(node, {
+          turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+          notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
+          csrfToken: {{ .CSRFToken }}
+        });
+      }
 
       app.ports.renderPipeline.subscribe(function (values) {
         setTimeout(function(){ // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
@@ -78,6 +93,7 @@
           app.ports.tokenReceived.send(localStorage.getItem(storageKey));
         }
       }, false);
+
     </script>
   </body>
 </html>
