@@ -14,11 +14,14 @@ type UserVerifier struct {
 
 func NewUserVerifier(client api.Client, users []string) verifier.Verifier {
 	return UserVerifier{
-		users: users,
+		users:  users,
+		client: client,
 	}
 }
 
 func (verifier UserVerifier) Verify(logger lager.Logger, c *http.Client) (bool, error) {
+	verifier.client.SetHTTPClient(c)
+
 	currentUser, err := verifier.client.CurrentUser()
 	if err != nil {
 		logger.Error("failed-to-get-current-user", err)
