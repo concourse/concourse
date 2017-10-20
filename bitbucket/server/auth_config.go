@@ -1,4 +1,4 @@
-package bitbucketserver
+package server
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type BitbucketServerAuthConfig struct {
+type AuthConfig struct {
 	ConsumerKey string `json:"consumer_key" long:"consumer-key" description:"Application consumer key for enabling Bitbucket OAuth"`
 	PrivateKey  string `json:"private_key" long:"private-key" description:"Application private key for enabling Bitbucket OAuth, in base64 encoded DER format"`
 	Endpoint    string `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
@@ -17,7 +17,7 @@ type BitbucketServerAuthConfig struct {
 	Users []string `json:"users" long:"user"`
 }
 
-func (auth *BitbucketServerAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
+func (auth *AuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
 	path, err := routes.OAuth1Routes.CreatePathForRoute(
 		routes.OAuth1Begin,
 		rata.Params{"provider": ProviderName},
@@ -35,14 +35,14 @@ func (auth *BitbucketServerAuthConfig) AuthMethod(oauthBaseURL string, teamName 
 	}
 }
 
-func (auth *BitbucketServerAuthConfig) IsConfigured() bool {
+func (auth *AuthConfig) IsConfigured() bool {
 	return auth.ConsumerKey != "" ||
 		auth.PrivateKey != "" ||
 		auth.Endpoint != "" ||
 		len(auth.Users) > 0
 }
 
-func (auth *BitbucketServerAuthConfig) Validate() error {
+func (auth *AuthConfig) Validate() error {
 	var errs *multierror.Error
 	if auth.Endpoint == "" {
 		errs = multierror.Append(

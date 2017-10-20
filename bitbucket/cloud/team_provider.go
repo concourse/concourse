@@ -1,12 +1,14 @@
-package bitbucketcloud
+package cloud
 
 import (
 	"encoding/json"
+	client "github.com/SHyx0rmZ/go-bitbucket/cloud"
+	"github.com/concourse/atc/auth/bitbucket"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/jessevdk/go-flags"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/bitbucket"
+	bitbucketOAuth "golang.org/x/oauth2/bitbucket"
 )
 
 const ProviderName = "bitbucket-cloud"
@@ -15,24 +17,29 @@ const DisplayName = "Bitbucket Cloud"
 var Scopes = []string{"team"}
 
 func init() {
-	provider.Register(ProviderName, BitbucketCloudTeamProvider{})
+	provider.Register(ProviderName, TeamProvider{})
 }
 
-type BitbucketCloudTeamProvider struct {
+type TeamProvider struct {
 }
 
-func (BitbucketCloudTeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
-	bitbucketAuth := config.(*BitbucketCloudAuthConfig)
+func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
+	bitbucketAuth := config.(*AuthConfig)
 
-	endpoint := bitbucket.Endpoint
+	endpoint := bitbucketOAuth.Endpoint
 	if bitbucketAuth.AuthURL != "" && bitbucketAuth.TokenURL != "" {
 		endpoint.AuthURL = bitbucketAuth.AuthURL
 		endpoint.TokenURL = bitbucketAuth.TokenURL
 	}
 
-	return BitbucketCloudProvider{
+	c, err := client.NewClient(nil)
+	if err != nil {
+		return nil, false
+	}
+
+	return Provider{
 		Verifier: verifier.NewVerifierBasket(
-			NewUserVerifier(bitbucketAuth.Users),
+			bitbucket.NewUserVerifier(c, bitbucketAuth.Users),
 		),
 		Config: &oauth2.Config{
 			ClientID:     bitbucketAuth.ClientID,
@@ -44,8 +51,8 @@ func (BitbucketCloudTeamProvider) ProviderConstructor(config provider.AuthConfig
 	}, true
 }
 
-func (BitbucketCloudTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
-	flags := &BitbucketCloudAuthConfig{}
+func (TeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
+	flags := &AuthConfig{}
 
 	bGroup, err := group.AddGroup("Bitbucket Cloud Authentication", "", flags)
 	if err != nil {
@@ -57,8 +64,8 @@ func (BitbucketCloudTeamProvider) AddAuthGroup(group *flags.Group) provider.Auth
 	return flags
 }
 
-func (BitbucketCloudTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfig, error) {
-	flags := &BitbucketCloudAuthConfig{}
+func (TeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfig, error) {
+	flags := &AuthConfig{}
 	if config != nil {
 		err := json.Unmarshal(*config, &flags)
 		if err != nil {

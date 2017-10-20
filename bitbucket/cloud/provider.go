@@ -1,4 +1,4 @@
-package bitbucketcloud
+package cloud
 
 import (
 	"github.com/concourse/atc/auth/verifier"
@@ -6,12 +6,12 @@ import (
 	"net/http"
 )
 
-type BitbucketCloudProvider struct {
+type Provider struct {
 	*oauth2.Config
 	verifier.Verifier
 }
 
-func (BitbucketCloudProvider) PreTokenClient() (*http.Client, error) {
+func (Provider) PreTokenClient() (*http.Client, error) {
 	return &http.Client{
 		Transport: &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,

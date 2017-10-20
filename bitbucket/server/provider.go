@@ -1,4 +1,4 @@
-package bitbucketserver
+package server
 
 import (
 	"github.com/concourse/atc/auth/verifier"
@@ -9,13 +9,13 @@ import (
 	"time"
 )
 
-type BitbucketServerProvider struct {
+type Provider struct {
 	*oauth1.Config
 	verifier.Verifier
 	secrets map[string]string
 }
 
-func (p *BitbucketServerProvider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
+func (p *Provider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
 	requestToken, requestSecret, err := p.Config.RequestToken()
 	if err != nil {
 		panic(err)
@@ -28,11 +28,11 @@ func (p *BitbucketServerProvider) AuthCodeURL(state string, opts ...oauth2.AuthC
 	return authorizationURL.String()
 }
 
-func (p *BitbucketServerProvider) Client(ctx context.Context, t *oauth2.Token) *http.Client {
+func (p *Provider) Client(ctx context.Context, t *oauth2.Token) *http.Client {
 	return p.Config.Client(ctx, &oauth1.Token{Token: t.AccessToken, TokenSecret: t.RefreshToken})
 }
 
-func (p *BitbucketServerProvider) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
+func (p *Provider) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
 	r := ctx.Value("request").(*http.Request)
 	requestToken, verifier, err := oauth1.ParseAuthorizationCallback(r)
 	if err != nil {
@@ -56,7 +56,7 @@ func (p *BitbucketServerProvider) Exchange(ctx context.Context, code string) (*o
 	}, nil
 }
 
-func (*BitbucketServerProvider) PreTokenClient() (*http.Client, error) {
+func (*Provider) PreTokenClient() (*http.Client, error) {
 	return &http.Client{
 		Transport: &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,

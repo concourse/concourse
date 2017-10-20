@@ -1,9 +1,9 @@
-package bitbucketcloud_test
+package cloud
 
 import (
-	"testing"
-	. "github.com/onsi/gomega"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"testing"
 )
 
 func TestBitbucketCloud(t *testing.T) {
