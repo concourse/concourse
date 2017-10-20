@@ -149,6 +149,21 @@ to synchronize with multiple PRs in flight. We'll take it from there. If your
 changes involve multiple components, though (`atc` and `fly` for example), be
 sure to let us know in each PR.
 
+When adding / modifying methods to the ATC API, you may need to regenerate
+models and data structures used for testing using Counterfeiter. To do so,
+download and install counterfeiter:
+
+```bash
+go get github.com/maxbrunsfeld/counterfeiter
+```
+
+Then, execute the following command from the root of the `go-concourse` repository:
+
+```bash
+go generate ./...
+```
+
+Don't forget to commit the changes made to this repository when committing your other changes.
 
 # Testing
 
