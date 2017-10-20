@@ -3,10 +3,9 @@
 const { exec } = require('child-process-promise');
 const uuidv4 = require('uuid/v4');
 
-let Helper = codecept_helper;
 let assert = require('assert');
 
-class FlyHelper extends Helper {
+class Fly extends Helper {
   fly(command) {
     return this._run(`fly -t wats ${command}`);
   }
@@ -85,4 +84,4 @@ class FlyHelper extends Helper {
   }
 }
 
-module.exports = FlyHelper;
+module.exports = Fly;

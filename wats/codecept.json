@@ -6,6 +6,9 @@
     },
     "Fly": {
       "require": "./fly_helper.js"
+    },
+    "Dom": {
+      "require": "./dom_helper.js"
     }
   },
   "include": {
