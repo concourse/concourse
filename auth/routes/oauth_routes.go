@@ -17,6 +17,6 @@ var OAuthRoutes = rata.Routes{
 }
 
 var OAuth1Routes = rata.Routes{
-	{Path: "/oauth/v1/:provider/callback", Method: "GET", Name: OAuth1Begin},
-	{Path: "/oauth/v1/:provider", Method: "GET", Name: OAuth1Callback},
+	{Path: "/oauth/v1/:provider/callback", Method: "GET", Name: OAuth1Callback},
+	{Path: "/oauth/v1/:provider", Method: "GET", Name: OAuth1Begin},
 }

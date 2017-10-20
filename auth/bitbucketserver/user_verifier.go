@@ -13,6 +13,12 @@ type UserVerifier struct {
 	users []string
 }
 
+func NewUserVerifier(users []string) verifier.Verifier {
+	return UserVerifier{
+		users: users,
+	}
+}
+
 func (verifier UserVerifier) Verify(logger lager.Logger, c *http.Client) (bool, error) {
 	bc, err := server.NewClient(context.WithValue(context.Background(), bitbucket.HTTPClient, c), "http://192.168.46.253:7990/")
 	if err != nil {
@@ -37,10 +43,4 @@ func (verifier UserVerifier) Verify(logger lager.Logger, c *http.Client) (bool, 
 	})
 
 	return false, nil
-}
-
-func NewUserVerifier(users []string) verifier.Verifier {
-	return UserVerifier{
-		users: users,
-	}
 }
