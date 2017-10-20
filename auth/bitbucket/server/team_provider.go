@@ -4,13 +4,11 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	client "github.com/SHyx0rmZ/go-bitbucket/server"
 	"github.com/concourse/atc/auth/bitbucket"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/dghubble/oauth1"
 	"github.com/jessevdk/go-flags"
-	"golang.org/x/net/context"
 	"strings"
 )
 
@@ -58,14 +56,9 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 		AccessTokenURL:  strings.TrimRight(bitbucketAuth.Endpoint, "/") + "/plugins/servlet/oauth/access-token",
 	}
 
-	c, err := client.NewClient(context.Background(), bitbucketAuth.Endpoint)
-	if err != nil {
-		return nil, false
-	}
-
 	return &Provider{
 		Verifier: verifier.NewVerifierBasket(
-			bitbucket.NewUserVerifier(c, bitbucketAuth.Users),
+			bitbucket.NewUserVerifier(bitbucketAuth.Users, &client{bitbucketAuth.Endpoint}),
 		),
 		Config: &oauth1.Config{
 			ConsumerKey: bitbucketAuth.ConsumerKey,
