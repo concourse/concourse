@@ -1,4 +1,4 @@
-let assert = require('assert');
+let expect = require('chai').expect;
 
 Feature('Dashboard');
 
@@ -23,17 +23,22 @@ Before(function*(I) {
 });
 
 Scenario("shows pipelines in their correct order", function*(I) {
-  I.waitForElement(`.dashboard-pipeline:nth-child(${pipelineOrder.length})`);
+  var teamGroup = `.dashboard-team-group[data-team-name="${teamName}"]`;
+  I.waitForElement(teamGroup);
 
-  let names = yield I.executeScript(() => {
-    var names = [];
+  within(teamGroup, function* () {
+    I.waitForElement(`.dashboard-pipeline:nth-child(${pipelineOrder.length})`);
 
-    document.querySelectorAll('.dashboard-pipeline-name').forEach((e) => {
-      names.push(e.innerText);
+    let names = yield I.executeScript(() => {
+      var names = [];
+
+      document.querySelectorAll('.dashboard-pipeline-name').forEach((e) => {
+        names.push(e.innerText);
+      });
+
+      return names;
     });
 
-    return names;
+    expect(names).to.eql(pipelineOrder);
   });
-
-  assert.deepEqual(names, pipelineOrder);
 });
