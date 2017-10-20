@@ -21,7 +21,7 @@ const DisplayName = "Bitbucket Cloud"
 
 var Scopes = []string{"team"}
 
-type BitbucketAuthConfig struct {
+type BitbucketCloudAuthConfig struct {
 	ClientID     string `json:"client_id" long:"client-id" description:"Application client ID for enabling Bitbucket OAuth"`
 	ClientSecret string `json:"client_secret" long:"client-secret" description:"Application client secret for enabling Bitbucket OAuth"`
 
@@ -32,12 +32,12 @@ type BitbucketAuthConfig struct {
 	APIURL   string `json:"apiurl,omitempty" long:"api-url" description:"Override default API endpoint URL for Bitbucket Cloud"`
 }
 
-func (auth *BitbucketAuthConfig) IsConfigured() bool {
+func (auth *BitbucketCloudAuthConfig) IsConfigured() bool {
 	return auth.ClientID != "" ||
 		auth.ClientSecret != ""
 }
 
-func (auth *BitbucketAuthConfig) Validate() error {
+func (auth *BitbucketCloudAuthConfig) Validate() error {
 	var errs *multierror.Error
 	if auth.ClientID == "" || auth.ClientSecret == "" {
 		errs = multierror.Append(
@@ -48,7 +48,7 @@ func (auth *BitbucketAuthConfig) Validate() error {
 	return errs.ErrorOrNil()
 }
 
-func (auth *BitbucketAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
+func (auth *BitbucketCloudAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
 	path, err := routes.OAuthRoutes.CreatePathForRoute(
 		routes.OAuthBegin,
 		rata.Params{"provider": ProviderName},
@@ -88,7 +88,7 @@ type BitbucketTeamProvider struct {
 }
 
 func (BitbucketTeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
-	bitbucketAuth := config.(*BitbucketAuthConfig)
+	bitbucketAuth := config.(*BitbucketCloudAuthConfig)
 
 	// ...
 	endpoint := bitbucket.Endpoint
@@ -112,7 +112,7 @@ func (BitbucketTeamProvider) ProviderConstructor(config provider.AuthConfig, red
 }
 
 func (BitbucketTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
-	flags := &BitbucketAuthConfig{}
+	flags := &BitbucketCloudAuthConfig{}
 
 	bGroup, err := group.AddGroup("Bitbucket Cloud Authentication", "", flags)
 	if err != nil {
@@ -125,7 +125,7 @@ func (BitbucketTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfi
 }
 
 func (BitbucketTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfig, error) {
-	flags := &BitbucketAuthConfig{}
+	flags := &BitbucketCloudAuthConfig{}
 	if config != nil {
 		err := json.Unmarshal(*config, &flags)
 		if err != nil {
