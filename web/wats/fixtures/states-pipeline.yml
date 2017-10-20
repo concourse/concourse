@@ -81,7 +81,7 @@ jobs:
 
       run: {path: 'sleep', args: ['9999999']}
 
-- name: hanging
+- name: pending
   plan:
   - get: impossible-time
 
@@ -101,4 +101,4 @@ jobs:
 - name: unavailable-constrained-input
   plan:
   - get: impossible-time
-    passed: [hanging]
+    passed: [pending]
