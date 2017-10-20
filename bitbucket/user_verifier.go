@@ -2,27 +2,24 @@ package bitbucket
 
 import (
 	"code.cloudfoundry.org/lager"
-	api "github.com/SHyx0rmZ/go-bitbucket/bitbucket"
 	"github.com/concourse/atc/auth/verifier"
 	"net/http"
 )
 
 type UserVerifier struct {
-	users  []string
-	client api.Client
+	users           []string
+	bitbucketClient Client
 }
 
-func NewUserVerifier(client api.Client, users []string) verifier.Verifier {
+func NewUserVerifier(users []string, bitbucketClient Client) verifier.Verifier {
 	return UserVerifier{
-		users:  users,
-		client: client,
+		users:           users,
+		bitbucketClient: bitbucketClient,
 	}
 }
 
-func (verifier UserVerifier) Verify(logger lager.Logger, c *http.Client) (bool, error) {
-	verifier.client.SetHTTPClient(c)
-
-	currentUser, err := verifier.client.CurrentUser()
+func (verifier UserVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
+	currentUser, err := verifier.bitbucketClient.CurrentUser(httpClient)
 	if err != nil {
 		logger.Error("failed-to-get-current-user", err)
 		return false, err

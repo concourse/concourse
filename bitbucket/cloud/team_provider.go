@@ -2,7 +2,6 @@ package cloud
 
 import (
 	"encoding/json"
-	client "github.com/SHyx0rmZ/go-bitbucket/cloud"
 	"github.com/concourse/atc/auth/bitbucket"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/verifier"
@@ -32,14 +31,9 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 		endpoint.TokenURL = bitbucketAuth.TokenURL
 	}
 
-	c, err := client.NewClient(nil)
-	if err != nil {
-		return nil, false
-	}
-
 	return Provider{
 		Verifier: verifier.NewVerifierBasket(
-			bitbucket.NewUserVerifier(c, bitbucketAuth.Users),
+			bitbucket.NewUserVerifier(bitbucketAuth.Users, NewClient()),
 		),
 		Config: &oauth2.Config{
 			ClientID:     bitbucketAuth.ClientID,
