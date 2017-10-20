@@ -22,7 +22,7 @@ var _ = Describe("Bitbucket Server Provider", func() {
 			Expect(authMethod).To(Equal(atc.AuthMethod{
 				Type:        atc.AuthTypeOAuth,
 				DisplayName: "Bitbucket Server",
-				AuthURL:     "http://bum-bum-bum.com/auth/bitbucket-server?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/oauth/v1/bitbucket-server?team_name=dudududum",
 			}))
 		})
 	})
