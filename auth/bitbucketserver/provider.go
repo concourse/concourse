@@ -17,8 +17,8 @@ import (
 	"github.com/tedsuo/rata"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/bitbucket"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -27,29 +27,33 @@ const DisplayName = "Bitbucket Server"
 
 var Scopes = []string{"team"}
 
-type BitbucketAuthConfig struct {
+type BitbucketServerAuthConfig struct {
 	ConsumerKey string `json:"consumer_key" long:"consumer-key" description:"Application consumer key for enabling Bitbucket OAuth"`
 	PrivateKey  string `json:"private_key" long:"private-key" description:"Application private key for enabling Bitbucket OAuth"`
+	Endpoint    string `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
 
 	Users []string `json:"users" long:"user"`
-
-	AuthURL  string `json:"auth_url,omitempty" long:"auth-url" description:"Override default endpoint AuthURL for Bitbucket Server"`
-	TokenURL string `json:"token_url,omitempty" long:"token-url" description:"Override default endpoint TokenURL for Bitbucket Server"`
-	APIURL   string `json:"apiurl,omitempty" long:"api-url" description:"Override default API endpoint URL for Bitbucket Server"`
 }
 
-func (auth *BitbucketAuthConfig) IsConfigured() bool {
+func (auth *BitbucketServerAuthConfig) IsConfigured() bool {
 	return auth.ConsumerKey != "" ||
 		auth.PrivateKey != "" ||
+		auth.Endpoint != "" ||
 		len(auth.Users) > 0
 }
 
-func (auth *BitbucketAuthConfig) Validate() error {
+func (auth *BitbucketServerAuthConfig) Validate() error {
 	var errs *multierror.Error
+	if auth.Endpoint == "" {
+		errs = multierror.Append(
+			errs,
+			errors.New("must specifiy --bitbucket-server-auth-endpoint to OAuth with Bitbucket Server"),
+		)
+	}
 	if auth.ConsumerKey == "" || auth.PrivateKey == "" {
 		errs = multierror.Append(
 			errs,
-			errors.New("must specify --bitbucket-server-auth-consumer-key and --bitbucket-server-auth-private-key to use Bitbucket OAuth"),
+			errors.New("must specify --bitbucket-server-auth-consumer-key and --bitbucket-server-auth-private-key to use OAuth with Bitbucket Server"),
 		)
 	}
 	if len(auth.Users) == 0 {
@@ -61,7 +65,7 @@ func (auth *BitbucketAuthConfig) Validate() error {
 	return errs.ErrorOrNil()
 }
 
-func (auth *BitbucketAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
+func (auth *BitbucketServerAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
 	path, err := routes.OAuth1Routes.CreatePathForRoute(
 		routes.OAuth1Begin,
 		rata.Params{"provider": ProviderName},
@@ -143,43 +147,9 @@ type BitbucketTeamProvider struct {
 }
 
 func (BitbucketTeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
-	bitbucketAuth := config.(*BitbucketAuthConfig)
+	bitbucketAuth := config.(*BitbucketServerAuthConfig)
 
-	endpoint := bitbucket.Endpoint
-	if bitbucketAuth.AuthURL != "" && bitbucketAuth.TokenURL != "" {
-		endpoint.AuthURL = bitbucketAuth.AuthURL
-		endpoint.TokenURL = bitbucketAuth.TokenURL
-	}
-
-	block, _ := pem.Decode(
-		[]byte(`-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEAwNO+7RswMf3LQYWvRHwN4Jyy8SaRphzH/+Wklkln+Wxes2sG
-AIh8Tgj5yoAixfSZDInhAFa7rri5n6babpufJSPLfyfml9+I/rW/7hCPeafRQL8S
-MERKMsvDFJyV0EwNMA58C1aN3O10wFuMs8wpT5sAo+5+uRBPA23kcG3xFtRUtZQW
-3WDHUyXgOseZRCtSOqruIKaaV31CfjpMLk8RxNjGRlfstDrblaEX8CNJuj1LckKI
-x6tNuxJDAAOSYMveZ38vqx8b6dFqdamZmW4u+Nx2WTWAncMfid0naComZk4S4fnA
-+uhryT0phjjhFCqbuv3gimeFBh0qr4Qou1zdgwIDAQABAoIBAEtEG5lXbHeG9giM
-Uv5rYctTvvEsOdvaDiMPky/qVUBhkZF86+nXXJXlIQNvAqO8NuVTCFVmhXnMtv/f
-VBGqgvMvRqZKf9K2OTYa4WDea/Jzk9Uu/72BWmj7ahkoib21gcxJSxft4A/lTBYt
-Zf1kapedDCHw3NwFxqGzCmDsORfMeIew+9VfnpY6yTjLhnadiEMGqNK90Zfh9FYR
-VYWxvn9QSFFNCJ6fL1q00gteDtErJvRTqjAeEnskDZqSDO2NBZyxi/ugoue7ados
-m16JFsvRTYnjSV5so/ZoI3z+xnvGUKr5xpuDzwgjF3jG4O2rdd/p9FRawCB0ulTn
-l4bdSrkCgYEA/fdg2tlsRU+Ciif2v6viFHqxyUO18AbsPVw+qaYx++t+XTY4l9N2
-SHXxlSN0/Bb8/+VHWOzEhEaCovyGLtvzZ9so1zWA++u+BXR3EhD0XfuWv5z5mqnz
-1b1qXNH/h6etGSjUXIfYFmJyLaS/DDfQ3a8iGV0WyOKLb5T8IVEUYYUCgYEAwl8I
-zDV6Mo6HArxfyyH6dDb46lNaAAgEZLvFN/ZaTxIoU7D334Eb3BbJiGG9kBCSlcBA
-yI+DUS8ViXh9dry3r+dSvwD5k9hDtu36gJ3WTTuEfKFYhFUzsF1BPuGuDYgHweD9
-v0OTC46pSGYcYAS/JGYG8pidPKRqlX1JEWNUbWcCgYEA20WjElF28cDcbHxkxsiY
-wiXNKoCTrVHM1o22bLNZpLCGweP2qN+i2J08oA+lCaKvfiFvoI+MfMiEMkTldb/i
-QGEwud8wJlI8FmmgBLEuy5ZVacsWlzr1lC2ej9WgUnerNHXUJLAFGg6VlmMPsHTg
-mQaE4nFFIty2lviDWCCxACECgYB0ZZDRKV0qFWwIWWJMNObU3W6mdI+64RIweLmb
-z605GLiJlbp6X8idPhAl2dI5CZOelei1siuDXFzbXApWJqEhd7d3pk/PF31FeLHA
-f8Srr26ha8WkSZmQjefaji867zEmC2QpO4A9NYtuTafEYFNOqsKSWI4gmJ0zNDmj
-bgZLFQKBgQDFEPhJMC2w5bu/pLHKeSwDv6bXEh8H6gyDH9YrZ6rQNUZfuCpQ28SW
-9LvApjnjslrWmDI7iTCyC7uK9dvuOhds8gMFhDTR35xdD+KzTzpFKdBUpGx68HuL
-zAuk6MUBKdRGr20AydS3+vQ36qx27zmf5mf0VbBAWe+rIbLT90a4Dw==
------END RSA PRIVATE KEY-----`),
-	)
+	block, _ := pem.Decode([]byte(bitbucketAuth.PrivateKey))
 
 	var rsa *rsa.PrivateKey
 	var err error
@@ -187,8 +157,14 @@ zAuk6MUBKdRGr20AydS3+vQ36qx27zmf5mf0VbBAWe+rIbLT90a4Dw==
 	case "RSA PRIVATE KEY":
 		rsa, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 		if err != nil {
-			panic(err)
+			return nil, false
 		}
+	}
+
+	endpoint := oauth1.Endpoint{
+		RequestTokenURL: strings.TrimRight(bitbucketAuth.Endpoint, "/") + "/plugins/servlet/oauth/request-token",
+		AuthorizeURL:    strings.TrimRight(bitbucketAuth.Endpoint, "/") + "/plugins/servlet/oauth/authorize",
+		AccessTokenURL:  strings.TrimRight(bitbucketAuth.Endpoint, "/") + "/plugins/servlet/oauth/access-token",
 	}
 
 	return &BitbucketProvider{
@@ -198,11 +174,7 @@ zAuk6MUBKdRGr20AydS3+vQ36qx27zmf5mf0VbBAWe+rIbLT90a4Dw==
 		Config: &oauth1.Config{
 			ConsumerKey: bitbucketAuth.ConsumerKey,
 			CallbackURL: redirectURL,
-			Endpoint: oauth1.Endpoint{
-				RequestTokenURL: "http://192.168.46.253:7990/plugins/servlet/oauth/request-token",
-				AuthorizeURL:    "http://192.168.46.253:7990/plugins/servlet/oauth/authorize",
-				AccessTokenURL:  "http://192.168.46.253:7990/plugins/servlet/oauth/access-token",
-			},
+			Endpoint:    endpoint,
 			Signer: &oauth1.RSASigner{
 				PrivateKey: rsa,
 			},
@@ -212,7 +184,7 @@ zAuk6MUBKdRGr20AydS3+vQ36qx27zmf5mf0VbBAWe+rIbLT90a4Dw==
 }
 
 func (BitbucketTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
-	flags := &BitbucketAuthConfig{}
+	flags := &BitbucketServerAuthConfig{}
 
 	bGroup, err := group.AddGroup("Bitbucket Server Authentication", "", flags)
 	if err != nil {
@@ -225,7 +197,7 @@ func (BitbucketTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfi
 }
 
 func (BitbucketTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfig, error) {
-	flags := &BitbucketAuthConfig{}
+	flags := &BitbucketServerAuthConfig{}
 	if config != nil {
 		err := json.Unmarshal(*config, &flags)
 		if err != nil {
