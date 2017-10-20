@@ -1,10 +1,9 @@
 package bitbucketserver
 
 import (
-	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/dghubble/oauth1"
@@ -40,16 +39,14 @@ func (BitbucketServerTeamProvider) AddAuthGroup(group *flags.Group) provider.Aut
 func (BitbucketServerTeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
 	bitbucketAuth := config.(*BitbucketServerAuthConfig)
 
-	block, _ := pem.Decode([]byte(bitbucketAuth.PrivateKey))
+	key, err := base64.StdEncoding.DecodeString(bitbucketAuth.PrivateKey)
+	if err != nil {
+		return nil, false
+	}
 
-	var rsa *rsa.PrivateKey
-	var err error
-	switch block.Type {
-	case "RSA PRIVATE KEY":
-		rsa, err = x509.ParsePKCS1PrivateKey(block.Bytes)
-		if err != nil {
-			return nil, false
-		}
+	rsa, err := x509.ParsePKCS1PrivateKey(key)
+	if err != nil {
+		return nil, false
 	}
 
 	endpoint := oauth1.Endpoint{
