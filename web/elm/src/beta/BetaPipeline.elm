@@ -1,18 +1,18 @@
-module BetaPipeline exposing (Flags, Model, Msg, init, changeToPipelineAndGroups, update, view, subscriptions)
+module BetaPipeline exposing (Flags, Model, Msg, changeToPipelineAndGroups, init, subscriptions, update, view)
 
+import BetaRoutes
+import Concourse
+import Concourse.BuildStatus
+import Concourse.Job
 import Dict exposing (Dict)
 import Graph exposing (Graph)
+import Grid exposing (Grid)
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, style, rowspan)
+import Html.Attributes exposing (class, href, rowspan, style)
 import Http
+import QueryString
 import Set exposing (Set)
 import Task
-import Concourse
-import Concourse.Job
-import Concourse.BuildStatus
-import Grid exposing (Grid)
-import Routes
-import QueryString
 
 
 type alias Model =
@@ -51,7 +51,7 @@ type alias Flags =
     { teamName : String
     , pipelineName : String
     , turbulenceImgSrc : String
-    , route : Routes.ConcourseRoute
+    , route : BetaRoutes.ConcourseRoute
     }
 
 
@@ -75,7 +75,7 @@ init ports flags =
             , turbulenceImgSrc = flags.turbulenceImgSrc
             }
     in
-        ( model, fetchJobs model.pipelineLocator )
+    ( model, fetchJobs model.pipelineLocator )
 
 
 changeToPipelineAndGroups : Flags -> Model -> ( Model, Cmd Msg )
@@ -86,10 +86,10 @@ changeToPipelineAndGroups flags model =
             , pipelineName = flags.pipelineName
             }
     in
-        if model.pipelineLocator == pid then
-            ( { model | selectedGroups = queryGroupsForRoute flags.route }, Cmd.none )
-        else
-            init model.ports flags
+    if model.pipelineLocator == pid then
+        ( { model | selectedGroups = queryGroupsForRoute flags.route }, Cmd.none )
+    else
+        init model.ports flags
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -127,16 +127,16 @@ view model =
                 graph =
                     initGraph filtered
             in
-                -- Html.table [class "pipeline-table"] (
-                --   model.graph
-                --     |> Grid.fromGraph
-                --     |> Grid.toMatrix nodeHeight
-                --     |> Matrix.toList
-                --     |> List.map viewRow
-                -- )
-                Html.div [ class "pipeline-grid" ]
-                    [ viewGrid (Grid.fromGraph graph)
-                    ]
+            -- Html.table [class "pipeline-table"] (
+            --   model.graph
+            --     |> Grid.fromGraph
+            --     |> Grid.toMatrix nodeHeight
+            --     |> Matrix.toList
+            --     |> List.map viewRow
+            -- )
+            Html.div [ class "pipeline-grid" ]
+                [ viewGrid (Grid.fromGraph graph)
+                ]
 
 
 nodeHeight : Graph.Node Node -> Int
@@ -204,26 +204,26 @@ viewNode { id, label } =
         idAttr =
             Html.Attributes.id ("node-" ++ toString id)
     in
-        case label of
-            JobNode job ->
-                Html.div [ class "node job", idAttr ]
-                    [ viewJobNode job
-                    ]
+    case label of
+        JobNode job ->
+            Html.div [ class "node job", idAttr ]
+                [ viewJobNode job
+                ]
 
-            InputNode { resourceName } ->
-                Html.div [ class "node input", idAttr ]
-                    [ viewInputNode resourceName
-                    ]
+        InputNode { resourceName } ->
+            Html.div [ class "node input", idAttr ]
+                [ viewInputNode resourceName
+                ]
 
-            ConstrainedInputNode { resourceName } ->
-                Html.div [ class "node input constrained", idAttr ]
-                    [ viewConstrainedInputNode resourceName
-                    ]
+        ConstrainedInputNode { resourceName } ->
+            Html.div [ class "node input constrained", idAttr ]
+                [ viewConstrainedInputNode resourceName
+                ]
 
-            OutputNode { resourceName } ->
-                Html.div [ class "node output", idAttr ]
-                    [ viewOutputNode resourceName
-                    ]
+        OutputNode { resourceName } ->
+            Html.div [ class "node output", idAttr ]
+                [ viewOutputNode resourceName
+                ]
 
 
 viewJobNode : Concourse.Job -> Html Msg
@@ -251,10 +251,10 @@ viewJobNode job =
                     , href job.url
                     ]
     in
-        Html.a linkAttrs
-            [ --(style [("line-height", toString (30 * jobResources job - 10) ++ "px")] :: linkAttrs) [
-              Html.text job.name
-            ]
+    Html.a linkAttrs
+        [ --(style [("line-height", toString (30 * jobResources job - 10) ++ "px")] :: linkAttrs) [
+          Html.text job.name
+        ]
 
 
 jobResources : Concourse.Job -> Int
@@ -302,9 +302,9 @@ initGraph jobs =
         graphNodes =
             List.indexedMap Graph.Node (List.concat [ jobNodes, resourceNodes ])
     in
-        Graph.fromNodesAndEdges
-            graphNodes
-            (List.concatMap (nodeEdges graphNodes) graphNodes)
+    Graph.fromNodesAndEdges
+        graphNodes
+        (List.concatMap (nodeEdges graphNodes) graphNodes)
 
 
 jobResourceNodes : ByName Concourse.Job -> Concourse.Job -> List Node
@@ -350,12 +350,13 @@ nodeEdges allNodes { id, label } =
 
         ConstrainedInputNode { dependentJob, upstreamJob } ->
             Graph.Edge id (jobId allNodes dependentJob) ()
-                :: case upstreamJob of
-                    Just upstream ->
-                        [ Graph.Edge (jobId allNodes upstream) id () ]
+                :: (case upstreamJob of
+                        Just upstream ->
+                            [ Graph.Edge (jobId allNodes upstream) id () ]
 
-                    Nothing ->
-                        []
+                        Nothing ->
+                            []
+                   )
 
         OutputNode { upstreamJob } ->
             [ Graph.Edge (jobId allNodes upstreamJob) id () ]
@@ -371,6 +372,6 @@ jobId nodes job =
             Debug.crash "impossible: job index not found"
 
 
-queryGroupsForRoute : Routes.ConcourseRoute -> List String
+queryGroupsForRoute : BetaRoutes.ConcourseRoute -> List String
 queryGroupsForRoute route =
     QueryString.all "groups" route.queries

@@ -1,4 +1,4 @@
-module Routes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, toString)
+module BetaRoutes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, toString)
 
 import Concourse.Pagination as Pagination
 import Navigation exposing (Location)
@@ -8,13 +8,15 @@ import Route exposing (..)
 
 type Route
     = Home
+    | Beta
     | Build String String String String
     | Resource String String String
     | Job String String String
     | OneOffBuild String
-    | Pipeline String String
+    | BetaPipeline String String
     | SelectTeam
     | TeamLogin String
+    | Dashboard
 
 
 type alias ConcourseRoute =
@@ -54,14 +56,24 @@ login =
     SelectTeam := static "login"
 
 
-pipeline : Route.Route Route
-pipeline =
-    Pipeline := static "teams" </> string </> static "pipelines" </> string
+betaPipeline : Route.Route Route
+betaPipeline =
+    BetaPipeline := static "beta" </> static "teams" </> string </> static "pipelines" </> string
 
 
 teamLogin : Route.Route Route
 teamLogin =
     TeamLogin := static "teams" </> string </> static "login"
+
+
+dashboard : Route.Route Route
+dashboard =
+    Dashboard := static "beta" </> static "dashboard"
+
+
+beta : Route.Route Route
+beta =
+    Beta := static "beta"
 
 
 
@@ -76,8 +88,9 @@ sitemap =
         , job
         , login
         , oneOffBuild
-        , pipeline
+        , betaPipeline
         , teamLogin
+        , dashboard
         ]
 
 
@@ -102,14 +115,20 @@ toString route =
         OneOffBuild buildId ->
             reverse oneOffBuild [ buildId ]
 
-        Pipeline teamName pipelineName ->
-            reverse pipeline [ teamName, pipelineName ]
+        BetaPipeline teamName pipelineName ->
+            reverse betaPipeline [ teamName, pipelineName ]
 
         SelectTeam ->
             reverse login []
 
         TeamLogin teamName ->
             reverse teamLogin [ teamName ]
+
+        Dashboard ->
+            reverse dashboard []
+
+        Beta ->
+            "/beta"
 
         Home ->
             "/"

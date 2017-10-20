@@ -1,5 +1,6 @@
-port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, update, urlUpdate, view)
+port module BetaTopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, update, urlUpdate, view)
 
+import BetaRoutes
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
@@ -11,7 +12,6 @@ import List
 import LoginRedirect
 import Navigation exposing (Location)
 import QueryString
-import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import String
 import Task
@@ -19,7 +19,7 @@ import Time
 
 
 type alias Model =
-    { route : Routes.ConcourseRoute
+    { route : BetaRoutes.ConcourseRoute
     , selectedGroups : List String
     , pipeline : Maybe Concourse.Pipeline
     , userState : UserState
@@ -48,12 +48,12 @@ type Msg
     | ToggleUserMenu
 
 
-queryGroupsForRoute : Routes.ConcourseRoute -> List String
+queryGroupsForRoute : BetaRoutes.ConcourseRoute -> List String
 queryGroupsForRoute route =
     QueryString.all "groups" route.queries
 
 
-init : Routes.ConcourseRoute -> ( Model, Cmd Msg )
+init : BetaRoutes.ConcourseRoute -> ( Model, Cmd Msg )
 init route =
     let
         pid =
@@ -105,10 +105,10 @@ update msg model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         case model.route.logical of
-                            Routes.SelectTeam ->
+                            BetaRoutes.SelectTeam ->
                                 ( model, Cmd.none )
 
-                            Routes.TeamLogin _ ->
+                            BetaRoutes.TeamLogin _ ->
                                 ( model, Cmd.none )
 
                             _ ->
@@ -170,7 +170,7 @@ subscriptions model =
             Time.every (5 * Time.second) (always (FetchPipeline pid))
 
 
-pipelineIdentifierFromRouteOrModel : Routes.ConcourseRoute -> Model -> Maybe Concourse.PipelineIdentifier
+pipelineIdentifierFromRouteOrModel : BetaRoutes.ConcourseRoute -> Model -> Maybe Concourse.PipelineIdentifier
 pipelineIdentifierFromRouteOrModel route model =
     case extractPidFromRoute route.logical of
         Nothing ->
@@ -185,31 +185,37 @@ pipelineIdentifierFromRouteOrModel route model =
             Just pidFromRoute
 
 
-extractPidFromRoute : Routes.Route -> Maybe Concourse.PipelineIdentifier
+extractPidFromRoute : BetaRoutes.Route -> Maybe Concourse.PipelineIdentifier
 extractPidFromRoute route =
     case route of
-        Routes.Build teamName pipelineName jobName buildName ->
+        BetaRoutes.Build teamName pipelineName jobName buildName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Routes.Job teamName pipelineName jobName ->
+        BetaRoutes.Job teamName pipelineName jobName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Routes.Resource teamName pipelineName resourceName ->
+        BetaRoutes.Resource teamName pipelineName resourceName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Routes.OneOffBuild buildId ->
+        BetaRoutes.OneOffBuild buildId ->
             Nothing
 
-        Routes.Pipeline teamName pipelineName ->
+        BetaRoutes.BetaPipeline teamName pipelineName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Routes.SelectTeam ->
+        BetaRoutes.SelectTeam ->
             Nothing
 
-        Routes.TeamLogin teamName ->
+        BetaRoutes.TeamLogin teamName ->
             Nothing
 
-        Routes.Home ->
+        BetaRoutes.Home ->
+            Nothing
+
+        BetaRoutes.Beta ->
+            Nothing
+
+        BetaRoutes.Dashboard ->
             Nothing
 
 
@@ -223,7 +229,7 @@ setGroups newGroups model =
     ( model, Navigation.newUrl newUrl )
 
 
-urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
+urlUpdate : BetaRoutes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
 urlUpdate route model =
     let
         pipelineIdentifier =
@@ -257,7 +263,7 @@ getDefaultSelectedGroups pipeline =
                     [ first.name ]
 
 
-setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
+setGroupsInLocation : BetaRoutes.ConcourseRoute -> List String -> BetaRoutes.ConcourseRoute
 setGroupsInLocation loc groups =
     let
         updatedUrl =
@@ -274,7 +280,7 @@ setGroupsInLocation loc groups =
     }
 
 
-pidToUrl : Maybe Concourse.PipelineIdentifier -> Routes.ConcourseRoute -> String
+pidToUrl : Maybe Concourse.PipelineIdentifier -> BetaRoutes.ConcourseRoute -> String
 pidToUrl pid { queries } =
     case pid of
         Just { teamName, pipelineName } ->
@@ -313,10 +319,10 @@ getSelectedOrDefaultGroups model =
 getSelectedGroupsForRoute : Model -> List String
 getSelectedGroupsForRoute model =
     case model.route.logical of
-        Routes.Build _ _ jobName _ ->
+        BetaRoutes.Build _ _ jobName _ ->
             getGroupsForJob jobName model.pipeline
 
-        Routes.Job _ _ jobName ->
+        BetaRoutes.Job _ _ jobName ->
             getGroupsForJob jobName model.pipeline
 
         _ ->

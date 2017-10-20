@@ -1,9 +1,12 @@
-port module SubPage exposing (Model(..), Msg(..), init, subscriptions, update, urlUpdate, view)
+port module BetaSubPage exposing (Model(..), Msg(..), init, subscriptions, update, urlUpdate, view)
 
 import Autoscroll
+import BetaPipeline
+import BetaRoutes
 import Build
 import Concourse
 import Concourse.Pipeline
+import Dashboard
 import Html exposing (Html)
 import Http
 import Job
@@ -14,7 +17,6 @@ import NotFound
 import Pipeline
 import QueryString
 import Resource
-import Routes
 import String
 import Task
 import TeamSelection
@@ -31,19 +33,22 @@ port setTitle : String -> Cmd msg
 
 
 type Model
-    = WaitingModel Routes.ConcourseRoute
+    = WaitingModel BetaRoutes.ConcourseRoute
     | NoPipelineModel
     | BuildModel (Autoscroll.Model Build.Model)
     | JobModel Job.Model
     | ResourceModel Resource.Model
     | LoginModel Login.Model
     | PipelineModel Pipeline.Model
+    | BetaPipelineModel BetaPipeline.Model
     | SelectTeamModel TeamSelection.Model
     | NotFoundModel NotFound.Model
+    | DashboardModel Dashboard.Model
 
 
 type Msg
     = PipelinesFetched (Result Http.Error (List Concourse.Pipeline))
+    | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DefaultPipelineFetched (Maybe Concourse.Pipeline)
     | NoPipelineMsg NoPipeline.Msg
     | BuildMsg (Autoscroll.Msg Build.Msg)
@@ -51,6 +56,8 @@ type Msg
     | ResourceMsg Resource.Msg
     | LoginMsg Login.Msg
     | PipelineMsg Pipeline.Msg
+    | DashboardMsg Dashboard.Msg
+    | BetaPipelineMsg BetaPipeline.Msg
     | SelectTeamMsg TeamSelection.Msg
     | NewCSRFToken String
 
@@ -60,15 +67,15 @@ superDupleWrap ( modelFunc, msgFunc ) ( model, msg ) =
     ( modelFunc model, Cmd.map msgFunc msg )
 
 
-queryGroupsForRoute : Routes.ConcourseRoute -> List String
+queryGroupsForRoute : BetaRoutes.ConcourseRoute -> List String
 queryGroupsForRoute route =
     QueryString.all "groups" route.queries
 
 
-init : String -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
+init : String -> BetaRoutes.ConcourseRoute -> ( Model, Cmd Msg )
 init turbulencePath route =
     case route.logical of
-        Routes.Build teamName pipelineName jobName buildName ->
+        BetaRoutes.Build teamName pipelineName jobName buildName ->
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
@@ -83,7 +90,7 @@ init turbulencePath route =
                         , buildName = buildName
                         }
 
-        Routes.OneOffBuild buildId ->
+        BetaRoutes.OneOffBuild buildId ->
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
@@ -94,7 +101,7 @@ init turbulencePath route =
                     Build.BuildPage <|
                         Result.withDefault 0 (String.toInt buildId)
 
-        Routes.Resource teamName pipelineName resourceName ->
+        BetaRoutes.Resource teamName pipelineName resourceName ->
             superDupleWrap ( ResourceModel, ResourceMsg ) <|
                 Resource.init
                     { title = setTitle }
@@ -105,7 +112,7 @@ init turbulencePath route =
                     , csrfToken = ""
                     }
 
-        Routes.Job teamName pipelineName jobName ->
+        BetaRoutes.Job teamName pipelineName jobName ->
             superDupleWrap ( JobModel, JobMsg ) <|
                 Job.init
                     { title = setTitle }
@@ -116,23 +123,22 @@ init turbulencePath route =
                     , csrfToken = ""
                     }
 
-        Routes.SelectTeam ->
+        BetaRoutes.SelectTeam ->
             let
                 redirect =
                     Maybe.withDefault "" <| QueryString.one QueryString.string "redirect" route.queries
             in
-                superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <|
-                    TeamSelection.init { title = setTitle } redirect
+            superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <|
+                TeamSelection.init { title = setTitle } redirect
 
-        Routes.TeamLogin teamName ->
+        BetaRoutes.TeamLogin teamName ->
             superDupleWrap ( LoginModel, LoginMsg ) <|
                 Login.init { title = setTitle } teamName (QueryString.one QueryString.string "redirect" route.queries)
 
-        Routes.Pipeline teamName pipelineName ->
-            superDupleWrap ( PipelineModel, PipelineMsg ) <|
-                Pipeline.init
-                    { render = renderPipeline
-                    , title = setTitle
+        BetaRoutes.BetaPipeline teamName pipelineName ->
+            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <|
+                BetaPipeline.init
+                    { title = setTitle
                     }
                     { teamName = teamName
                     , pipelineName = pipelineName
@@ -140,7 +146,19 @@ init turbulencePath route =
                     , route = route
                     }
 
-        Routes.Home ->
+        BetaRoutes.Dashboard ->
+            superDupleWrap ( DashboardModel, DashboardMsg ) <|
+                Dashboard.init turbulencePath
+
+        BetaRoutes.Home ->
+            ( WaitingModel route
+            , Cmd.batch
+                [ fetchPipelines
+                , setTitle ""
+                ]
+            )
+
+        BetaRoutes.Beta ->
             ( WaitingModel route
             , Cmd.batch
                 [ fetchPipelines
@@ -173,7 +191,7 @@ update turbulence notFound csrfToken msg mdl =
                 ( newBuildModel, buildCmd ) =
                     Build.update (Build.NewCSRFToken c) buildModel
             in
-                ( BuildModel { scrollModel | subModel = newBuildModel }, buildCmd |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg)) )
+            ( BuildModel { scrollModel | subModel = newBuildModel }, buildCmd |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg)) )
 
         ( BuildMsg message, BuildModel scrollModel ) ->
             let
@@ -183,7 +201,7 @@ update turbulence notFound csrfToken msg mdl =
                 model =
                     { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
             in
-                handleNotFound notFound ( BuildModel, BuildMsg ) (Autoscroll.update Build.updateWithMessage message model)
+            handleNotFound notFound ( BuildModel, BuildMsg ) (Autoscroll.update Build.updateWithMessage message model)
 
         ( NewCSRFToken c, JobModel model ) ->
             ( JobModel { model | csrfToken = c }, Cmd.none )
@@ -198,10 +216,13 @@ update turbulence notFound csrfToken msg mdl =
 
                 --            superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
             in
-                ( LoginModel mdl, Cmd.map LoginMsg msg )
+            ( LoginModel mdl, Cmd.map LoginMsg msg )
 
         ( PipelineMsg message, PipelineModel model ) ->
             handleNotFound notFound ( PipelineModel, PipelineMsg ) (Pipeline.updateWithMessage message model)
+
+        ( BetaPipelineMsg message, BetaPipelineModel model ) ->
+            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <| BetaPipeline.update message model
 
         ( NewCSRFToken c, ResourceModel model ) ->
             ( ResourceModel { model | csrfToken = c }, Cmd.none )
@@ -211,6 +232,9 @@ update turbulence notFound csrfToken msg mdl =
 
         ( SelectTeamMsg message, SelectTeamModel model ) ->
             superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <| TeamSelection.update message model
+
+        ( DashboardMsg message, DashboardModel model ) ->
+            superDupleWrap ( DashboardModel, DashboardMsg ) <| Dashboard.update message model
 
         ( DefaultPipelineFetched pipeline, WaitingModel route ) ->
             case pipeline of
@@ -226,25 +250,22 @@ update turbulence notFound csrfToken msg mdl =
                             , route = route
                             }
                     in
-                        superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.init { render = renderPipeline, title = setTitle } flags
-
-        ( DefaultPipelineFetched _, NoPipelineModel ) ->
-            ( mdl, Cmd.none )
+                    superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <| BetaPipeline.init { title = setTitle } flags
 
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )
 
-        unknown ->
-            flip always (Debug.log ("impossible combination") unknown) <|
+        _ ->
+            flip always (Debug.log "impossible combination" ()) <|
                 ( mdl, Cmd.none )
 
 
-urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
+urlUpdate : BetaRoutes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
 urlUpdate route model =
     case ( route.logical, model ) of
-        ( Routes.Pipeline team pipeline, PipelineModel mdl ) ->
-            superDupleWrap ( PipelineModel, PipelineMsg ) <|
-                Pipeline.changeToPipelineAndGroups
+        ( BetaRoutes.BetaPipeline team pipeline, BetaPipelineModel mdl ) ->
+            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <|
+                BetaPipeline.changeToPipelineAndGroups
                     { teamName = team
                     , pipelineName = pipeline
                     , turbulenceImgSrc = mdl.turbulenceImgSrc
@@ -252,7 +273,7 @@ urlUpdate route model =
                     }
                     mdl
 
-        ( Routes.Resource teamName pipelineName resourceName, ResourceModel mdl ) ->
+        ( BetaRoutes.Resource teamName pipelineName resourceName, ResourceModel mdl ) ->
             superDupleWrap ( ResourceModel, ResourceMsg ) <|
                 Resource.changeToResource
                     { teamName = teamName
@@ -263,7 +284,7 @@ urlUpdate route model =
                     }
                     mdl
 
-        ( Routes.Job teamName pipelineName jobName, JobModel mdl ) ->
+        ( BetaRoutes.Job teamName pipelineName jobName, JobModel mdl ) ->
             superDupleWrap ( JobModel, JobMsg ) <|
                 Job.changeToJob
                     { teamName = teamName
@@ -274,7 +295,7 @@ urlUpdate route model =
                     }
                     mdl
 
-        ( Routes.Build teamName pipelineName jobName buildName, BuildModel scrollModel ) ->
+        ( BetaRoutes.Build teamName pipelineName jobName buildName, BuildModel scrollModel ) ->
             let
                 ( submodel, subcmd ) =
                     Build.changeToBuild
@@ -287,9 +308,9 @@ urlUpdate route model =
                         )
                         scrollModel.subModel
             in
-                ( BuildModel { scrollModel | subModel = submodel }
-                , Cmd.map BuildMsg (Cmd.map Autoscroll.SubMsg subcmd)
-                )
+            ( BuildModel { scrollModel | subModel = submodel }
+            , Cmd.map BuildMsg (Cmd.map Autoscroll.SubMsg subcmd)
+            )
 
         _ ->
             ( model, Cmd.none )
@@ -310,6 +331,9 @@ view mdl =
         PipelineModel model ->
             Html.map PipelineMsg <| Pipeline.view model
 
+        BetaPipelineModel model ->
+            Html.map BetaPipelineMsg <| BetaPipeline.view model
+
         ResourceModel model ->
             Html.map ResourceMsg <| Resource.view model
 
@@ -324,6 +348,9 @@ view mdl =
 
         NotFoundModel model ->
             NotFound.view model
+
+        DashboardModel model ->
+            Html.map DashboardMsg <| Dashboard.view model
 
 
 subscriptions : Model -> Sub Msg
@@ -344,6 +371,9 @@ subscriptions mdl =
         PipelineModel model ->
             Sub.map PipelineMsg <| Pipeline.subscriptions model
 
+        BetaPipelineModel model ->
+            Sub.map BetaPipelineMsg <| BetaPipeline.subscriptions model
+
         ResourceModel model ->
             Sub.map ResourceMsg <| Resource.subscriptions model
 
@@ -355,6 +385,9 @@ subscriptions mdl =
 
         NotFoundModel _ ->
             Sub.none
+
+        DashboardModel model ->
+            Sub.map DashboardMsg <| Dashboard.subscriptions model
 
 
 fetchPipelines : Cmd Msg
