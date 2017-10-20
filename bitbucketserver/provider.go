@@ -28,8 +28,8 @@ const DisplayName = "Bitbucket Server"
 var Scopes = []string{"team"}
 
 type BitbucketAuthConfig struct {
-	ConsumerKey    string `json:"consumer_key" long:"consumer-key" description:"Application client ID for enabling Bitbucket OAuth"`
-	ConsumerSecret string `json:"consumer_secret" long:"consumer-secret" description:"Application client secret for enabling Bitbucket OAuth"`
+	ConsumerKey string `json:"consumer_key" long:"consumer-key" description:"Application consumer key for enabling Bitbucket OAuth"`
+	PrivateKey  string `json:"private_key" long:"private-key" description:"Application private key for enabling Bitbucket OAuth"`
 
 	Users []string `json:"users" long:"user"`
 
@@ -40,15 +40,22 @@ type BitbucketAuthConfig struct {
 
 func (auth *BitbucketAuthConfig) IsConfigured() bool {
 	return auth.ConsumerKey != "" ||
-		auth.ConsumerSecret != ""
+		auth.PrivateKey != "" ||
+		len(auth.Users) > 0
 }
 
 func (auth *BitbucketAuthConfig) Validate() error {
 	var errs *multierror.Error
-	if auth.ConsumerKey == "" || auth.ConsumerSecret == "" {
+	if auth.ConsumerKey == "" || auth.PrivateKey == "" {
 		errs = multierror.Append(
 			errs,
-			errors.New("must specify --bitbucket-server-auth-client-id and --bitbucket-server-auth-client-secret to use Bitbucket OAuth"),
+			errors.New("must specify --bitbucket-server-auth-consumer-key and --bitbucket-server-auth-private-key to use Bitbucket OAuth"),
+		)
+	}
+	if len(auth.Users) == 0 {
+		errs = multierror.Append(
+			errs,
+			errors.New("at least one of the following is required for bitbucket-server-auth: users"),
 		)
 	}
 	return errs.ErrorOrNil()
