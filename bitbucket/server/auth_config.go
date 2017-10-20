@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth/bitbucket"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/hashicorp/go-multierror"
 	"github.com/tedsuo/rata"
@@ -14,7 +15,8 @@ type AuthConfig struct {
 	PrivateKey  string `json:"private_key" long:"private-key" description:"Application private key for enabling Bitbucket OAuth, in base64 encoded DER format"`
 	Endpoint    string `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
 
-	Users []string `json:"users" long:"user"`
+	Users        []string                     `json:"users" long:"user" description:"Bitbucket users that are allowed to log in"`
+	Repositories []bitbucket.RepositoryConfig `json:"repositories,omitempty" long:"repository" description:"Bitbucket repositories whose members are allowed to log in"`
 }
 
 func (auth *AuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
