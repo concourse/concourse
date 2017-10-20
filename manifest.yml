@@ -9,6 +9,6 @@ routes:
 - route: concourse.ci
 - route: concourse.cl
 - route: www.concourse.ci
-- route: concourseci.cfapps.io
+- route: concourse-ci.cfapps.io
 path: .
 buildpack: "https://github.com/cloudfoundry/staticfile-buildpack#v1.3.2"
