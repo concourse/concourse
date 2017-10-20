@@ -1,4 +1,4 @@
-package bitbucketcloud
+package cloud
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type BitbucketCloudAuthConfig struct {
+type AuthConfig struct {
 	ClientID     string `json:"client_id" long:"client-id" description:"Application client ID for enabling Bitbucket OAuth"`
 	ClientSecret string `json:"client_secret" long:"client-secret" description:"Application client secret for enabling Bitbucket OAuth"`
 
@@ -20,7 +20,7 @@ type BitbucketCloudAuthConfig struct {
 	APIURL   string `json:"apiurl,omitempty" long:"api-url" description:"Override default API endpoint URL for Bitbucket Cloud"`
 }
 
-func (auth *BitbucketCloudAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
+func (auth *AuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
 	path, err := routes.OAuthRoutes.CreatePathForRoute(
 		routes.OAuthBegin,
 		rata.Params{"provider": ProviderName},
@@ -38,13 +38,13 @@ func (auth *BitbucketCloudAuthConfig) AuthMethod(oauthBaseURL string, teamName s
 	}
 }
 
-func (auth *BitbucketCloudAuthConfig) IsConfigured() bool {
+func (auth *AuthConfig) IsConfigured() bool {
 	return auth.ClientID != "" ||
 		auth.ClientSecret != "" ||
 		len(auth.Users) > 0
 }
 
-func (auth *BitbucketCloudAuthConfig) Validate() error {
+func (auth *AuthConfig) Validate() error {
 	var errs *multierror.Error
 	if auth.ClientID == "" || auth.ClientSecret == "" {
 		errs = multierror.Append(

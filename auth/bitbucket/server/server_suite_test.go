@@ -1,9 +1,9 @@
-package bitbucketserver_test
+package server
 
 import (
-	"testing"
-	. "github.com/onsi/gomega"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"testing"
 )
 
 func TestBitbucketServer(t *testing.T) {

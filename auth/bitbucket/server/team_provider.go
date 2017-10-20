@@ -1,13 +1,16 @@
-package bitbucketserver
+package server
 
 import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	client "github.com/SHyx0rmZ/go-bitbucket/server"
+	"github.com/concourse/atc/auth/bitbucket"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/dghubble/oauth1"
 	"github.com/jessevdk/go-flags"
+	"golang.org/x/net/context"
 	"strings"
 )
 
@@ -17,14 +20,14 @@ const DisplayName = "Bitbucket Server"
 var Scopes = []string{"team"}
 
 func init() {
-	provider.Register(ProviderName, BitbucketServerTeamProvider{})
+	provider.Register(ProviderName, TeamProvider{})
 }
 
-type BitbucketServerTeamProvider struct {
+type TeamProvider struct {
 }
 
-func (BitbucketServerTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
-	flags := &BitbucketServerAuthConfig{}
+func (TeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
+	flags := &AuthConfig{}
 
 	bGroup, err := group.AddGroup("Bitbucket Server Authentication", "", flags)
 	if err != nil {
@@ -36,8 +39,8 @@ func (BitbucketServerTeamProvider) AddAuthGroup(group *flags.Group) provider.Aut
 	return flags
 }
 
-func (BitbucketServerTeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
-	bitbucketAuth := config.(*BitbucketServerAuthConfig)
+func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
+	bitbucketAuth := config.(*AuthConfig)
 
 	key, err := base64.StdEncoding.DecodeString(bitbucketAuth.PrivateKey)
 	if err != nil {
@@ -55,9 +58,14 @@ func (BitbucketServerTeamProvider) ProviderConstructor(config provider.AuthConfi
 		AccessTokenURL:  strings.TrimRight(bitbucketAuth.Endpoint, "/") + "/plugins/servlet/oauth/access-token",
 	}
 
-	return &BitbucketServerProvider{
+	c, err := client.NewClient(context.Background(), bitbucketAuth.Endpoint)
+	if err != nil {
+		return nil, false
+	}
+
+	return &Provider{
 		Verifier: verifier.NewVerifierBasket(
-			NewUserVerifier(bitbucketAuth.Users),
+			bitbucket.NewUserVerifier(c, bitbucketAuth.Users),
 		),
 		Config: &oauth1.Config{
 			ConsumerKey: bitbucketAuth.ConsumerKey,
@@ -71,8 +79,8 @@ func (BitbucketServerTeamProvider) ProviderConstructor(config provider.AuthConfi
 	}, true
 }
 
-func (BitbucketServerTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfig, error) {
-	flags := &BitbucketServerAuthConfig{}
+func (TeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfig, error) {
+	flags := &AuthConfig{}
 	if config != nil {
 		err := json.Unmarshal(*config, &flags)
 		if err != nil {
