@@ -127,3 +127,52 @@ Scenario('auto-refreshes to reflect state changes', (I) => {
     matchPipelineColor(I, palette.red);
   });
 });
+
+Scenario('shows time since last state change', function*(I) {
+  I.amOnPage('/dashboard');
+
+  I.fly("trigger-job -w -j some-pipeline/passing");
+  I.wait(5);
+
+  within('.dashboard-pipeline', () => {
+    I.see("some-pipeline");
+    matchPipelineColor(I, palette.green);
+  });
+
+  let time1 = yield I.grabTextFrom('.dashboard-pipeline-footer');
+  let duration1 = parseInt(time1.match(/(\d+)s/)[1], 10);
+
+  I.fly("trigger-job -w -j some-pipeline/passing");
+  I.wait(5);
+
+  let time2 = yield I.grabTextFrom('.dashboard-pipeline-footer');
+  let duration2 = parseInt(time2.match(/(\d+)s/)[1], 10);
+
+  expect(duration2).to.be.gte(duration1);
+
+  I.flyExpectingFailure("trigger-job -w -j some-pipeline/failing");
+  I.wait(5);
+
+  within('.dashboard-pipeline', () => {
+    I.see("some-pipeline");
+    matchPipelineColor(I, palette.red);
+  });
+
+  let time3 = yield I.grabTextFrom('.dashboard-pipeline-footer');
+  let duration3 = parseInt(time3.match(/(\d+)s/)[1], 10);
+
+  expect(duration3).to.be.lt(duration2);
+});
+
+Scenario('links to specific builds', (I) => {
+  I.fly("trigger-job -w -j some-pipeline/passing");
+
+  I.amOnPage('/dashboard');
+  I.waitForElement('.dashboard-pipeline');
+
+  within('.dashboard-pipeline', () => {
+    I.click('.node[data-tooltip="passing"] a');
+  });
+
+  I.waitForText("passing #1");
+});
