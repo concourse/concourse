@@ -216,6 +216,8 @@ before using it!
     \link{Trigger jobs using Slack}{https://github.com/ahelal/bender}
   }{
     \link{Hashicorp Releases}{https://github.com/starkandwayne/hashicorp-release-resource}
+  }{
+    \link{Pushover notifications}{https://github.com/redfactorlabs/concourse-pushover-resource}
   }
 
   \section{
