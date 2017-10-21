@@ -1,8 +1,6 @@
 package server
 
 import (
-	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"github.com/concourse/atc/auth/bitbucket"
 	"github.com/concourse/atc/auth/provider"
@@ -40,16 +38,6 @@ func (TeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
 func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
 	bitbucketAuth := config.(*AuthConfig)
 
-	key, err := base64.StdEncoding.DecodeString(bitbucketAuth.PrivateKey)
-	if err != nil {
-		return nil, false
-	}
-
-	rsa, err := x509.ParsePKCS1PrivateKey(key)
-	if err != nil {
-		return nil, false
-	}
-
 	endpoint := oauth1.Endpoint{
 		RequestTokenURL: strings.TrimRight(bitbucketAuth.Endpoint, "/") + "/plugins/servlet/oauth/request-token",
 		AuthorizeURL:    strings.TrimRight(bitbucketAuth.Endpoint, "/") + "/plugins/servlet/oauth/authorize",
@@ -65,7 +53,7 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 			CallbackURL: redirectURL,
 			Endpoint:    endpoint,
 			Signer: &oauth1.RSASigner{
-				PrivateKey: rsa,
+				PrivateKey: bitbucketAuth.PrivateKey.PrivateKey,
 			},
 		},
 		secrets: make(map[string]string),
