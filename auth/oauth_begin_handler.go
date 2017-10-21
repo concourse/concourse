@@ -108,6 +108,7 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	encodedState := base64.RawURLEncoding.EncodeToString(oauthState)
 
 	authCodeURL := provider.AuthCodeURL(encodedState)
