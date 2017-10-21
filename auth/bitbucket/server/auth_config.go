@@ -11,9 +11,9 @@ import (
 )
 
 type AuthConfig struct {
-	ConsumerKey string `json:"consumer_key" long:"consumer-key" description:"Application consumer key for enabling Bitbucket OAuth"`
-	PrivateKey  string `json:"private_key" long:"private-key" description:"Application private key for enabling Bitbucket OAuth, in base64 encoded DER format"`
-	Endpoint    string `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
+	ConsumerKey string           `json:"consumer_key" long:"consumer-key" description:"Application consumer key for enabling Bitbucket OAuth"`
+	PrivateKey  privateKeyConfig `json:"private_key" long:"private-key" description:"Application private key for enabling Bitbucket OAuth, in base64 encoded DER format"`
+	Endpoint    string           `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
 
 	Users        []string                     `json:"users" long:"user" description:"Bitbucket users that are allowed to log in"`
 	Repositories []bitbucket.RepositoryConfig `json:"repositories,omitempty" long:"repository" description:"Bitbucket repositories whose members are allowed to log in"`
@@ -39,7 +39,7 @@ func (auth *AuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.Aut
 
 func (auth *AuthConfig) IsConfigured() bool {
 	return auth.ConsumerKey != "" ||
-		auth.PrivateKey != "" ||
+		auth.PrivateKey.PrivateKey != nil ||
 		auth.Endpoint != "" ||
 		len(auth.Users) > 0
 }
@@ -52,7 +52,7 @@ func (auth *AuthConfig) Validate() error {
 			errors.New("must specifiy --bitbucket-server-auth-endpoint to use OAuth with Bitbucket Server"),
 		)
 	}
-	if auth.ConsumerKey == "" || auth.PrivateKey == "" {
+	if auth.ConsumerKey == "" || auth.PrivateKey.PrivateKey == nil {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --bitbucket-server-auth-consumer-key and --bitbucket-server-auth-private-key to use OAuth with Bitbucket Server"),
