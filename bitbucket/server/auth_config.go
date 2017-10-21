@@ -20,8 +20,8 @@ type AuthConfig struct {
 }
 
 func (auth *AuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
-	path, err := routes.OAuth1Routes.CreatePathForRoute(
-		routes.OAuth1Begin,
+	path, err := routes.OAuthV1Routes.CreatePathForRoute(
+		routes.OAuthV1Begin,
 		rata.Params{"provider": ProviderName},
 	)
 	if err != nil {

@@ -57,7 +57,7 @@ func NewOAuthHandler(
 	)
 }
 
-func NewOAuth1Handler(
+func NewOAuthV1Handler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
 	teamFactory db.TeamFactory,
@@ -66,10 +66,10 @@ func NewOAuth1Handler(
 	isTLSEnabled bool,
 ) (http.Handler, error) {
 	return rata.NewRouter(
-		routes.OAuth1Routes,
+		routes.OAuthV1Routes,
 		map[string]http.Handler{
-			routes.OAuth1Begin: NewOAuthBeginHandler(
-				logger.Session("oauth-begin"),
+			routes.OAuthV1Begin: NewOAuthBeginHandler(
+				logger.Session("oauth-v1-begin"),
 				providerFactory,
 				signingKey,
 				teamFactory,
@@ -77,8 +77,8 @@ func NewOAuth1Handler(
 				isTLSEnabled,
 				oauthBeginHandlerV2{},
 			),
-			routes.OAuth1Callback: NewOAuthCallbackHandler(
-				logger.Session("oauth-callback"),
+			routes.OAuthV1Callback: NewOAuthCallbackHandler(
+				logger.Session("oauth-v1-callback"),
 				providerFactory,
 				signingKey,
 				teamFactory,

@@ -3,11 +3,11 @@ package routes
 import "github.com/tedsuo/rata"
 
 const (
-	OAuthBegin     = "OAuthBegin"
-	OAuthCallback  = "OAuthCallback"
-	OAuth1Begin    = "OAuth1Begin"
-	OAuth1Callback = "OAuth1Callback"
-	LogOut         = "LogOut"
+	OAuthBegin      = "OAuthBegin"
+	OAuthCallback   = "OAuthCallback"
+	OAuthV1Begin    = "OAuthV1Begin"
+	OAuthV1Callback = "OAuthV1Callback"
+	LogOut          = "LogOut"
 )
 
 var OAuthRoutes = rata.Routes{
@@ -16,7 +16,7 @@ var OAuthRoutes = rata.Routes{
 	{Path: "/auth/:provider", Method: "GET", Name: OAuthBegin},
 }
 
-var OAuth1Routes = rata.Routes{
-	{Path: "/oauth/v1/:provider/callback", Method: "GET", Name: OAuth1Callback},
-	{Path: "/oauth/v1/:provider", Method: "GET", Name: OAuth1Begin},
+var OAuthV1Routes = rata.Routes{
+	{Path: "/oauth/v1/:provider/callback", Method: "GET", Name: OAuthV1Callback},
+	{Path: "/oauth/v1/:provider", Method: "GET", Name: OAuthV1Begin},
 }
