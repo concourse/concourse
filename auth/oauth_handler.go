@@ -47,7 +47,7 @@ func NewOAuthHandler(
 				teamFactory,
 				expire,
 				isTLSEnabled,
-				oauthCallbackHandlerV2{},
+				oauthV2StateValidator{},
 			),
 			routes.LogOut: NewLogOutHandler(
 				logger.Session("logout"),
@@ -82,7 +82,7 @@ func NewOAuthV1Handler(
 				teamFactory,
 				expire,
 				isTLSEnabled,
-				oauthCallbackHandlerV1{},
+				oauthV1StateValidator{},
 			),
 		},
 	)

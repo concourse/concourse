@@ -27,7 +27,7 @@ type OAuthCallbackHandler struct {
 	teamFactory        db.TeamFactory
 	expire             time.Duration
 	isTLSEnabled       bool
-	versionHandler     oauthCallbackHandler
+	stateValidator     oauthStateValidator
 }
 
 func NewOAuthCallbackHandler(
@@ -37,7 +37,7 @@ func NewOAuthCallbackHandler(
 	teamFactory db.TeamFactory,
 	expire time.Duration,
 	isTLSEnabled bool,
-	versionHandler oauthCallbackHandler,
+	stateValidator oauthStateValidator,
 ) http.Handler {
 	return &OAuthCallbackHandler{
 		logger:             logger,
@@ -48,7 +48,7 @@ func NewOAuthCallbackHandler(
 		teamFactory:        teamFactory,
 		expire:             expire,
 		isTLSEnabled:       isTLSEnabled,
-		versionHandler:     versionHandler,
+		stateValidator:     stateValidator,
 	}
 }
 
@@ -66,7 +66,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if !handler.versionHandler.ValidState(cookieState.Value, paramState) {
+	if !handler.stateValidator.Valid(cookieState.Value, paramState) {
 		hLog.Info("state-cookie-mismatch", lager.Data{
 			"param-state":  paramState,
 			"cookie-state": cookieState.Value,
@@ -239,19 +239,4 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		encodedToken := url.QueryEscape(tokenStr)
 		http.Redirect(w, r, fmt.Sprintf("http://127.0.0.1:%s/oauth/callback?token=%s", oauthState.FlyLocalPort, encodedToken), http.StatusTemporaryRedirect)
 	}
-}
-
-type oauthCallbackHandler interface {
-	ValidState(cookieState string, paramState string) bool
-}
-
-type oauthCallbackHandlerV1 struct{}
-type oauthCallbackHandlerV2 struct{}
-
-func (oauthCallbackHandlerV1) ValidState(cookieState string, paramState string) bool {
-	return true
-}
-
-func (oauthCallbackHandlerV2) ValidState(cookieState string, paramState string) bool {
-	return cookieState == paramState
 }
