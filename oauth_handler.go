@@ -39,7 +39,6 @@ func NewOAuthHandler(
 				teamFactory,
 				expire,
 				isTLSEnabled,
-				oauthBeginHandlerV2{},
 			),
 			routes.OAuthCallback: NewOAuthCallbackHandler(
 				logger.Session("oauth-callback"),
@@ -75,7 +74,6 @@ func NewOAuthV1Handler(
 				teamFactory,
 				expire,
 				isTLSEnabled,
-				oauthBeginHandlerV2{},
 			),
 			routes.OAuthV1Callback: NewOAuthCallbackHandler(
 				logger.Session("oauth-v1-callback"),
