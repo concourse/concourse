@@ -76,6 +76,9 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Read the state from the cookie instead of the param, as the param
+	// will be empty if this is an OAuth 1 request. For OAuth 2, we already
+	// made sure that the cookie and the param contain the same state.
 	stateJSON, err := base64.RawURLEncoding.DecodeString(cookieState.Value)
 	if err != nil {
 		hLog.Info("failed-to-decode-state", lager.Data{
