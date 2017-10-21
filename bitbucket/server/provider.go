@@ -50,7 +50,7 @@ func (p *Provider) Exchange(ctx context.Context, code string) (*oauth2.Token, er
 
 	return &oauth2.Token{
 		AccessToken:  token.Token,
-		TokenType:    "oauth1",
+		TokenType:    "Bearer",
 		RefreshToken: token.TokenSecret,
 		Expiry:       time.Time{},
 	}, nil
