@@ -337,7 +337,7 @@ function createGraph(svg, jobs, resources) {
       classes.push(job.next_build.status);
     }
 
-    graph.setNode(id, new Node({
+    graph.setNode(id, new GraphNode({
       id: id,
       name: job.name,
       class: classes.join(" "),
@@ -359,7 +359,7 @@ function createGraph(svg, jobs, resources) {
 
       var jobOutputNode = graph.node(outputId);
       if (!jobOutputNode) {
-        jobOutputNode = new Node({
+        jobOutputNode = new GraphNode({
           id: outputId,
           name: output.resource,
           key: output.resource,
@@ -398,7 +398,7 @@ function createGraph(svg, jobs, resources) {
             sourceNode = sourceOutputNode;
           } else {
             if (!graph.node(sourceInputNode)) {
-              graph.setNode(sourceInputNode, new Node({
+              graph.setNode(sourceInputNode, new GraphNode({
                 id: sourceInputNode,
                 name: input.resource,
                 key: input.resource,
@@ -449,7 +449,7 @@ function createGraph(svg, jobs, resources) {
             status = "paused";
           }
 
-          graph.setNode(inputId, new Node({
+          graph.setNode(inputId, new GraphNode({
             id: inputId,
             name: input.resource,
             key: input.resource,
