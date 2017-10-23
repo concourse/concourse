@@ -1,22 +1,21 @@
-module BetaRoutes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, toString)
+module BetaRoutes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString, customToString)
 
-import Concourse.Pagination as Pagination
 import Navigation exposing (Location)
-import QueryString
 import Route exposing (..)
+import QueryString
+import Concourse.Pagination as Pagination
 
 
 type Route
-    = Home
-    | Beta
-    | Build String String String String
-    | Resource String String String
-    | Job String String String
-    | OneOffBuild String
-    | BetaPipeline String String
-    | SelectTeam
-    | TeamLogin String
+    = BetaHome
     | Dashboard
+    | BetaPipeline String String
+    | BetaBuild String String String String
+    | BetaOneOffBuild String
+    | BetaResource String String String
+    | BetaJob String String String
+    | BetaSelectTeam
+    | BetaTeamLogin String
 
 
 type alias ConcourseRoute =
@@ -31,29 +30,24 @@ type alias ConcourseRoute =
 -- pages
 
 
-build : Route.Route Route
-build =
-    Build := static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string </> static "builds" </> string
+dashboard : Route.Route Route
+dashboard =
+    Dashboard := static "beta" </> static "dashboard"
 
 
-oneOffBuild : Route.Route Route
-oneOffBuild =
-    OneOffBuild := static "builds" </> string
+betaBuild : Route.Route Route
+betaBuild =
+    BetaBuild := static "beta" </> static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string </> static "builds" </> string
 
 
-resource : Route.Route Route
-resource =
-    Resource := static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
+betaJob : Route.Route Route
+betaJob =
+    BetaJob := static "beta" </> static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string
 
 
-job : Route.Route Route
-job =
-    Job := static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string
-
-
-login : Route.Route Route
-login =
-    SelectTeam := static "login"
+betaLogin : Route.Route Route
+betaLogin =
+    BetaSelectTeam := static "beta" </> static "login"
 
 
 betaPipeline : Route.Route Route
@@ -61,77 +55,76 @@ betaPipeline =
     BetaPipeline := static "beta" </> static "teams" </> string </> static "pipelines" </> string
 
 
-teamLogin : Route.Route Route
-teamLogin =
-    TeamLogin := static "teams" </> string </> static "login"
+betaOneOffBuild : Route.Route Route
+betaOneOffBuild =
+    BetaOneOffBuild := static "beta" </> static "builds" </> string
 
 
-dashboard : Route.Route Route
-dashboard =
-    Dashboard := static "beta" </> static "dashboard"
+betaResource : Route.Route Route
+betaResource =
+    BetaResource := static "beta" </> static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
 
 
-beta : Route.Route Route
-beta =
-    Beta := static "beta"
+betaTeamLogin : Route.Route Route
+betaTeamLogin =
+    BetaTeamLogin := static "beta" </> static "teams" </> string </> static "login"
 
 
-
--- router
+betaHome : Route.Route Route
+betaHome =
+    BetaHome := static "beta"
 
 
 sitemap : Router Route
 sitemap =
     router
-        [ build
-        , resource
-        , job
-        , login
-        , oneOffBuild
+        [ dashboard
         , betaPipeline
-        , teamLogin
-        , dashboard
+        , betaBuild
+        , betaOneOffBuild
+        , betaResource
+        , betaJob
+        , betaLogin
+        , betaTeamLogin
+        , betaHome
         ]
 
 
 match : String -> Route
 match =
     Route.match sitemap
-        >> Maybe.withDefault Home
+        >> Maybe.withDefault BetaHome
 
 
 toString : Route -> String
 toString route =
     case route of
-        Build teamName pipelineName jobName buildName ->
-            reverse build [ teamName, pipelineName, jobName, buildName ]
-
-        Job teamName pipelineName jobName ->
-            reverse job [ teamName, pipelineName, jobName ]
-
-        Resource teamName pipelineName resourceName ->
-            reverse job [ teamName, pipelineName, resourceName ]
-
-        OneOffBuild buildId ->
-            reverse oneOffBuild [ buildId ]
+        Dashboard ->
+            reverse dashboard []
 
         BetaPipeline teamName pipelineName ->
             reverse betaPipeline [ teamName, pipelineName ]
 
-        SelectTeam ->
-            reverse login []
+        BetaBuild teamName pipelineName jobName buildName ->
+            reverse betaBuild [ teamName, pipelineName, jobName, buildName ]
 
-        TeamLogin teamName ->
-            reverse teamLogin [ teamName ]
+        BetaOneOffBuild buildId ->
+            reverse betaOneOffBuild [ buildId ]
 
-        Dashboard ->
-            reverse dashboard []
+        BetaResource teamName pipelineName resourceName ->
+            reverse betaJob [ teamName, pipelineName, resourceName ]
 
-        Beta ->
+        BetaJob teamName pipelineName jobName ->
+            reverse betaJob [ teamName, pipelineName, jobName ]
+
+        BetaSelectTeam ->
+            reverse betaLogin []
+
+        BetaTeamLogin teamName ->
+            reverse betaTeamLogin [ teamName ]
+
+        BetaHome ->
             "/beta"
-
-        Home ->
-            "/"
 
 
 parsePath : Location -> ConcourseRoute
@@ -163,21 +156,21 @@ createPageFromSearch search =
         limit =
             Maybe.withDefault 100 <| QueryString.one QueryString.int "limit" q
     in
-    case ( since, until ) of
-        ( Nothing, Just u ) ->
-            Just
-                { direction = Pagination.Until u
-                , limit = limit
-                }
+        case ( since, until ) of
+            ( Nothing, Just u ) ->
+                Just
+                    { direction = Pagination.Until u
+                    , limit = limit
+                    }
 
-        ( Just s, Nothing ) ->
-            Just
-                { direction = Pagination.Since s
-                , limit = limit
-                }
+            ( Just s, Nothing ) ->
+                Just
+                    { direction = Pagination.Since s
+                    , limit = limit
+                    }
 
-        _ ->
-            Nothing
+            _ ->
+                Nothing
 
 
 navigateTo : Route -> Cmd msg

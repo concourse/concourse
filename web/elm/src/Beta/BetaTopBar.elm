@@ -4,6 +4,7 @@ import BetaRoutes
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
+import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
 import Html.Events exposing (onClick)
@@ -59,19 +60,19 @@ init route =
         pid =
             extractPidFromRoute route.logical
     in
-    ( { selectedGroups = queryGroupsForRoute route
-      , route = route
-      , pipeline = Nothing
-      , userState = UserStateUnknown
-      , userMenuVisible = False
-      }
-    , case pid of
-        Nothing ->
-            fetchUser
+        ( { selectedGroups = queryGroupsForRoute route
+          , route = route
+          , pipeline = Nothing
+          , userState = UserStateUnknown
+          , userMenuVisible = False
+          }
+        , case pid of
+            Nothing ->
+                fetchUser
 
-        Just pid ->
-            Cmd.batch [ fetchPipeline pid, fetchUser ]
-    )
+            Just pid ->
+                Cmd.batch [ fetchPipeline pid, fetchUser ]
+        )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -105,10 +106,10 @@ update msg model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         case model.route.logical of
-                            BetaRoutes.SelectTeam ->
+                            BetaRoutes.BetaSelectTeam ->
                                 ( model, Cmd.none )
 
-                            BetaRoutes.TeamLogin _ ->
+                            BetaRoutes.BetaTeamLogin _ ->
                                 ( model, Cmd.none )
 
                             _ ->
@@ -134,7 +135,7 @@ update msg model =
                 | selectedGroups = []
                 , pipeline = Nothing
               }
-            , Navigation.newUrl "/login"
+            , Navigation.newUrl <| prependBeta "/login"
             )
 
         LogOut ->
@@ -146,7 +147,7 @@ update msg model =
                 , pipeline = Nothing
                 , selectedGroups = []
               }
-            , Navigation.newUrl "/"
+            , Navigation.newUrl <| prependBeta "/"
             )
 
         NavTo url ->
@@ -188,31 +189,28 @@ pipelineIdentifierFromRouteOrModel route model =
 extractPidFromRoute : BetaRoutes.Route -> Maybe Concourse.PipelineIdentifier
 extractPidFromRoute route =
     case route of
-        BetaRoutes.Build teamName pipelineName jobName buildName ->
+        BetaRoutes.BetaBuild teamName pipelineName jobName buildName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        BetaRoutes.Job teamName pipelineName jobName ->
+        BetaRoutes.BetaJob teamName pipelineName jobName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        BetaRoutes.Resource teamName pipelineName resourceName ->
+        BetaRoutes.BetaResource teamName pipelineName resourceName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        BetaRoutes.OneOffBuild buildId ->
+        BetaRoutes.BetaOneOffBuild buildId ->
             Nothing
 
         BetaRoutes.BetaPipeline teamName pipelineName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        BetaRoutes.SelectTeam ->
+        BetaRoutes.BetaSelectTeam ->
             Nothing
 
-        BetaRoutes.TeamLogin teamName ->
+        BetaRoutes.BetaTeamLogin teamName ->
             Nothing
 
-        BetaRoutes.Home ->
-            Nothing
-
-        BetaRoutes.Beta ->
+        BetaRoutes.BetaHome ->
             Nothing
 
         BetaRoutes.Dashboard ->
@@ -226,7 +224,7 @@ setGroups newGroups model =
             pidToUrl (pipelineIdentifierFromRouteOrModel model.route model) <|
                 setGroupsInLocation model.route newGroups
     in
-    ( model, Navigation.newUrl newUrl )
+        ( model, Navigation.newUrl newUrl )
 
 
 urlUpdate : BetaRoutes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
@@ -235,17 +233,17 @@ urlUpdate route model =
         pipelineIdentifier =
             pipelineIdentifierFromRouteOrModel route model
     in
-    ( { model
-        | route = route
-        , selectedGroups = queryGroupsForRoute route
-      }
-    , case pipelineIdentifier of
-        Nothing ->
-            fetchUser
+        ( { model
+            | route = route
+            , selectedGroups = queryGroupsForRoute route
+          }
+        , case pipelineIdentifier of
+            Nothing ->
+                fetchUser
 
-        Just pid ->
-            Cmd.batch [ fetchPipeline pid, fetchUser ]
-    )
+            Just pid ->
+                Cmd.batch [ fetchPipeline pid, fetchUser ]
+        )
 
 
 getDefaultSelectedGroups : Maybe Concourse.Pipeline -> List String
@@ -275,9 +273,9 @@ setGroupsInLocation loc groups =
                     QueryString.empty
                     groups
     in
-    { loc
-        | queries = updatedUrl
-    }
+        { loc
+            | queries = updatedUrl
+        }
 
 
 pidToUrl : Maybe Concourse.PipelineIdentifier -> BetaRoutes.ConcourseRoute -> String
@@ -319,10 +317,10 @@ getSelectedOrDefaultGroups model =
 getSelectedGroupsForRoute : Model -> List String
 getSelectedGroupsForRoute model =
     case model.route.logical of
-        BetaRoutes.Build _ _ jobName _ ->
+        BetaRoutes.BetaBuild _ _ jobName _ ->
             getGroupsForJob jobName model.pipeline
 
-        BetaRoutes.Job _ _ jobName ->
+        BetaRoutes.BetaJob _ _ jobName ->
             getGroupsForJob jobName model.pipeline
 
         _ ->
@@ -361,26 +359,26 @@ view model =
                         , pipeline.url
                         )
           in
-          Html.ul [ class "groups" ] <|
-            [ Html.li [ class "main" ]
-                [ Html.span
-                    [ class "sidebar-toggle test btn-hamburger"
-                    , onClick ToggleSidebar
-                    , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
+            Html.ul [ class "groups" ] <|
+                [ Html.li [ class "main" ]
+                    [ Html.span
+                        [ class "sidebar-toggle test btn-hamburger"
+                        , onClick ToggleSidebar
+                        , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
+                        ]
+                        [ Html.i [ class "fa fa-bars" ] []
+                        ]
                     ]
-                    [ Html.i [ class "fa fa-bars" ] []
+                , Html.li [ class "main" ]
+                    [ Html.a
+                        [ StrictEvents.onLeftClick <| NavTo <| prependBeta pipelineUrl
+                        , Html.Attributes.href <| prependBeta pipelineUrl
+                        ]
+                        [ Html.i [ class "fa fa-home" ] []
+                        ]
                     ]
                 ]
-            , Html.li [ class "main" ]
-                [ Html.a
-                    [ StrictEvents.onLeftClick <| NavTo pipelineUrl
-                    , Html.Attributes.href pipelineUrl
-                    ]
-                    [ Html.i [ class "fa fa-home" ] []
-                    ]
-                ]
-            ]
-                ++ groupList
+                    ++ groupList
         , Html.ul [ class "nav-right" ]
             [ Html.li [ class "nav-item" ]
                 [ viewUserState model.userState model.userMenuVisible
@@ -404,7 +402,7 @@ viewUserState userState userMenuVisible =
             Html.div [ class "user-info" ]
                 [ Html.a
                     [ StrictEvents.onLeftClick <| LogIn
-                    , href "/login"
+                    , href <| prependBeta "/login"
                     , Html.Attributes.attribute "aria-label" "Log In"
                     , class "login-button"
                     ]

@@ -6,9 +6,9 @@ import BetaTopBar
 import Favicon
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
-import Login exposing (Msg(..))
+import BetaLogin exposing (Msg(..))
 import Navigation
-import SideBar
+import BetaSideBar
 import Task exposing (Task)
 
 
@@ -44,7 +44,7 @@ type alias Model =
     { navIndex : NavIndex
     , subModel : BetaSubPage.Model
     , topModel : BetaTopBar.Model
-    , sideModel : SideBar.Model
+    , sideModel : BetaSideBar.Model
     , sidebarVisible : Bool
     , turbulenceImgSrc : String
     , notFoundImgSrc : String
@@ -56,9 +56,9 @@ type alias Model =
 type Msg
     = Noop
     | RouteChanged BetaRoutes.ConcourseRoute
-    | SubMsg NavIndex BetaSubPage.Msg
-    | TopMsg NavIndex BetaTopBar.Msg
-    | SideMsg NavIndex SideBar.Msg
+    | BetaSubMsg NavIndex BetaSubPage.Msg
+    | BetaTopMsg NavIndex BetaTopBar.Msg
+    | BetaSideMsg NavIndex BetaSideBar.Msg
     | NewUrl String
     | ModifyUrl String
     | SaveToken String
@@ -79,7 +79,7 @@ init flags location =
             BetaTopBar.init route
 
         ( sideModel, sideCmd ) =
-            SideBar.init { csrfToken = flags.csrfToken }
+            BetaSideBar.init { csrfToken = flags.csrfToken }
 
         navIndex =
             1
@@ -110,15 +110,15 @@ init flags location =
             else
                 Navigation.modifyUrl (BetaRoutes.customToString route)
     in
-    ( model
-    , Cmd.batch
-        [ handleTokenCmd
-        , stripCSRFTokenParamCmd
-        , Cmd.map (SubMsg navIndex) subCmd
-        , Cmd.map (TopMsg navIndex) topCmd
-        , Cmd.map (SideMsg navIndex) sideCmd
-        ]
-    )
+        ( model
+        , Cmd.batch
+            [ handleTokenCmd
+            , stripCSRFTokenParamCmd
+            , Cmd.map (BetaSubMsg navIndex) subCmd
+            , Cmd.map (BetaTopMsg navIndex) topCmd
+            , Cmd.map (BetaSideMsg navIndex) sideCmd
+            ]
+        )
 
 
 locationMsg : Navigation.Location -> Msg
@@ -138,7 +138,7 @@ update msg model =
         RouteChanged route ->
             urlUpdate route model
 
-        TopMsg _ BetaTopBar.ToggleSidebar ->
+        BetaTopMsg _ BetaTopBar.ToggleSidebar ->
             ( { model
                 | sidebarVisible = not model.sidebarVisible
               }
@@ -160,45 +160,45 @@ update msg model =
                     BetaSubPage.update model.turbulenceImgSrc model.notFoundImgSrc tokenValue (BetaSubPage.NewCSRFToken tokenValue) model.subModel
 
                 ( newSideModel, sideCmd ) =
-                    SideBar.update (SideBar.NewCSRFToken tokenValue) model.sideModel
+                    BetaSideBar.update (BetaSideBar.NewCSRFToken tokenValue) model.sideModel
             in
-            ( { model
-                | csrfToken = tokenValue
-                , subModel = newSubModel
-                , sideModel = newSideModel
-              }
-            , Cmd.batch
-                [ Cmd.map (SubMsg anyNavIndex) subCmd
-                , Cmd.map (SideMsg anyNavIndex) sideCmd
-                ]
-            )
+                ( { model
+                    | csrfToken = tokenValue
+                    , subModel = newSubModel
+                    , sideModel = newSideModel
+                  }
+                , Cmd.batch
+                    [ Cmd.map (BetaSubMsg anyNavIndex) subCmd
+                    , Cmd.map (BetaSideMsg anyNavIndex) sideCmd
+                    ]
+                )
 
-        SubMsg navIndex (BetaSubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) ->
+        BetaSubMsg navIndex (BetaSubPage.BetaLoginMsg (BetaLogin.AuthSessionReceived (Ok val))) ->
             let
                 ( layoutModel, layoutCmd ) =
                     update (SaveToken val.csrfToken) model
 
                 ( subModel, subCmd ) =
-                    BetaSubPage.update model.turbulenceImgSrc model.notFoundImgSrc val.csrfToken (BetaSubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) model.subModel
+                    BetaSubPage.update model.turbulenceImgSrc model.notFoundImgSrc val.csrfToken (BetaSubPage.BetaLoginMsg (BetaLogin.AuthSessionReceived (Ok val))) model.subModel
 
                 ( sideModel, sideCmd ) =
-                    SideBar.update (SideBar.NewCSRFToken val.csrfToken) model.sideModel
+                    BetaSideBar.update (BetaSideBar.NewCSRFToken val.csrfToken) model.sideModel
             in
-            ( { model
-                | subModel = subModel
-                , sideModel = sideModel
-                , csrfToken = val.csrfToken
-              }
-            , Cmd.batch
-                [ layoutCmd
-                , Cmd.map (SideMsg anyNavIndex) sideCmd
-                , Cmd.map (TopMsg anyNavIndex) BetaTopBar.fetchUser
-                , Cmd.map (SideMsg anyNavIndex) SideBar.fetchPipelines
-                , Cmd.map (SubMsg navIndex) subCmd
-                ]
-            )
+                ( { model
+                    | subModel = subModel
+                    , sideModel = sideModel
+                    , csrfToken = val.csrfToken
+                  }
+                , Cmd.batch
+                    [ layoutCmd
+                    , Cmd.map (BetaSideMsg anyNavIndex) sideCmd
+                    , Cmd.map (BetaTopMsg anyNavIndex) BetaTopBar.fetchUser
+                    , Cmd.map (BetaSideMsg anyNavIndex) BetaSideBar.fetchPipelines
+                    , Cmd.map (BetaSubMsg navIndex) subCmd
+                    ]
+                )
 
-        SubMsg navIndex (BetaSubPage.PipelinesFetched (Ok pipelines)) ->
+        BetaSubMsg navIndex (BetaSubPage.PipelinesFetched (Ok pipelines)) ->
             let
                 pipeline =
                     List.head pipelines
@@ -211,59 +211,59 @@ update msg model =
                         (BetaSubPage.DefaultPipelineFetched pipeline)
                         model.subModel
             in
-            case pipeline of
-                Nothing ->
-                    ( { model
-                        | subModel = subModel
-                      }
-                    , Cmd.map (SubMsg navIndex) subCmd
-                    )
+                case pipeline of
+                    Nothing ->
+                        ( { model
+                            | subModel = subModel
+                          }
+                        , Cmd.map (BetaSubMsg navIndex) subCmd
+                        )
 
-                Just p ->
-                    let
-                        ( topModel, topCmd ) =
-                            BetaTopBar.update
-                                (BetaTopBar.FetchPipeline { teamName = p.teamName, pipelineName = p.name })
-                                model.topModel
-                    in
-                    ( { model
-                        | subModel = subModel
-                        , topModel = topModel
-                      }
-                    , Cmd.batch
-                        [ Cmd.map (SubMsg navIndex) subCmd
-                        , Cmd.map (TopMsg navIndex) topCmd
-                        ]
-                    )
+                    Just p ->
+                        let
+                            ( topModel, topCmd ) =
+                                BetaTopBar.update
+                                    (BetaTopBar.FetchPipeline { teamName = p.teamName, pipelineName = p.name })
+                                    model.topModel
+                        in
+                            ( { model
+                                | subModel = subModel
+                                , topModel = topModel
+                              }
+                            , Cmd.batch
+                                [ Cmd.map (BetaSubMsg navIndex) subCmd
+                                , Cmd.map (BetaTopMsg navIndex) topCmd
+                                ]
+                            )
 
         -- otherwise, pass down
-        SubMsg navIndex m ->
+        BetaSubMsg navIndex m ->
             if validNavIndex model.navIndex navIndex then
                 let
                     ( subModel, subCmd ) =
                         BetaSubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
                 in
-                ( { model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd )
+                    ( { model | subModel = subModel }, Cmd.map (BetaSubMsg navIndex) subCmd )
             else
                 ( model, Cmd.none )
 
-        TopMsg navIndex m ->
+        BetaTopMsg navIndex m ->
             if validNavIndex model.navIndex navIndex then
                 let
                     ( topModel, topCmd ) =
                         BetaTopBar.update m model.topModel
                 in
-                ( { model | topModel = topModel }, Cmd.map (TopMsg navIndex) topCmd )
+                    ( { model | topModel = topModel }, Cmd.map (BetaTopMsg navIndex) topCmd )
             else
                 ( model, Cmd.none )
 
-        SideMsg navIndex m ->
+        BetaSideMsg navIndex m ->
             if validNavIndex model.navIndex navIndex then
                 let
                     ( sideModel, sideCmd ) =
-                        SideBar.update m model.sideModel
+                        BetaSideBar.update m model.sideModel
                 in
-                ( { model | sideModel = sideModel }, Cmd.map (SideMsg navIndex) sideCmd )
+                    ( { model | sideModel = sideModel }, Cmd.map (BetaSideMsg navIndex) sideCmd )
             else
                 ( model, Cmd.none )
 
@@ -302,18 +302,18 @@ urlUpdate route model =
             else
                 BetaTopBar.urlUpdate route model.topModel
     in
-    ( { model
-        | navIndex = navIndex
-        , subModel = newSubmodel
-        , topModel = newTopModel
-        , route = route
-      }
-    , Cmd.batch
-        [ Cmd.map (SubMsg navIndex) cmd
-        , Cmd.map (TopMsg navIndex) tCmd
-        , resetFavicon
-        ]
-    )
+        ( { model
+            | navIndex = navIndex
+            , subModel = newSubmodel
+            , topModel = newTopModel
+            , route = route
+          }
+        , Cmd.batch
+            [ Cmd.map (BetaSubMsg navIndex) cmd
+            , Cmd.map (BetaTopMsg navIndex) tCmd
+            , resetFavicon
+            ]
+        )
 
 
 resetFavicon : Cmd Msg
@@ -333,26 +333,26 @@ view model =
                 False ->
                     ""
     in
-    case model.subModel of
-        BetaSubPage.DashboardModel _ ->
-            Html.map (SubMsg model.navIndex) (BetaSubPage.view model.subModel)
+        case model.subModel of
+            BetaSubPage.DashboardModel _ ->
+                Html.map (BetaSubMsg model.navIndex) (BetaSubPage.view model.subModel)
 
-        _ ->
-            Html.div [ class "content-frame" ]
-                [ Html.div [ id "top-bar-app" ]
-                    [ Html.map (TopMsg model.navIndex) (BetaTopBar.view model.topModel) ]
-                , Html.div [ class "bottom" ]
-                    [ Html.div
-                        [ id "pipelines-nav-app"
-                        , class <| "sidebar test" ++ sidebarVisibileAppendage
-                        ]
-                        [ Html.map (SideMsg model.navIndex) (SideBar.view model.sideModel) ]
-                    , Html.div [ id "content" ]
-                        [ Html.div [ id "BetaSubPage" ]
-                            [ Html.map (SubMsg model.navIndex) (BetaSubPage.view model.subModel) ]
+            _ ->
+                Html.div [ class "content-frame" ]
+                    [ Html.div [ id "top-bar-app" ]
+                        [ Html.map (BetaTopMsg model.navIndex) (BetaTopBar.view model.topModel) ]
+                    , Html.div [ class "bottom" ]
+                        [ Html.div
+                            [ id "pipelines-nav-app"
+                            , class <| "sidebar test" ++ sidebarVisibileAppendage
+                            ]
+                            [ Html.map (BetaSideMsg model.navIndex) (BetaSideBar.view model.sideModel) ]
+                        , Html.div [ id "content" ]
+                            [ Html.div [ id "BetaSubPage" ]
+                                [ Html.map (BetaSubMsg model.navIndex) (BetaSubPage.view model.subModel) ]
+                            ]
                         ]
                     ]
-                ]
 
 
 subscriptions : Model -> Sub Msg
@@ -360,31 +360,31 @@ subscriptions model =
     Sub.batch
         [ newUrl NewUrl
         , tokenReceived TokenReceived
-        , Sub.map (TopMsg model.navIndex) <| BetaTopBar.subscriptions model.topModel
-        , Sub.map (SideMsg model.navIndex) <| SideBar.subscriptions model.sideModel
-        , Sub.map (SubMsg model.navIndex) <| BetaSubPage.subscriptions model.subModel
+        , Sub.map (BetaTopMsg model.navIndex) <| BetaTopBar.subscriptions model.topModel
+        , Sub.map (BetaSideMsg model.navIndex) <| BetaSideBar.subscriptions model.sideModel
+        , Sub.map (BetaSubMsg model.navIndex) <| BetaSubPage.subscriptions model.subModel
         ]
 
 
 routeMatchesModel : BetaRoutes.ConcourseRoute -> Model -> Bool
 routeMatchesModel route model =
     case ( route.logical, model.subModel ) of
-        ( BetaRoutes.SelectTeam, BetaSubPage.SelectTeamModel _ ) ->
+        ( BetaRoutes.BetaSelectTeam, BetaSubPage.BetaSelectTeamModel _ ) ->
             True
 
-        ( BetaRoutes.TeamLogin _, BetaSubPage.LoginModel _ ) ->
+        ( BetaRoutes.BetaTeamLogin _, BetaSubPage.BetaLoginModel _ ) ->
             True
 
         ( BetaRoutes.BetaPipeline _ _, BetaSubPage.BetaPipelineModel _ ) ->
             True
 
-        ( BetaRoutes.Resource _ _ _, BetaSubPage.ResourceModel _ ) ->
+        ( BetaRoutes.BetaResource _ _ _, BetaSubPage.BetaResourceModel _ ) ->
             True
 
-        ( BetaRoutes.Build _ _ _ _, BetaSubPage.BuildModel _ ) ->
+        ( BetaRoutes.BetaBuild _ _ _ _, BetaSubPage.BetaBuildModel _ ) ->
             True
 
-        ( BetaRoutes.Job _ _ _, BetaSubPage.JobModel _ ) ->
+        ( BetaRoutes.BetaJob _ _ _, BetaSubPage.BetaJobModel _ ) ->
             True
 
         _ ->
