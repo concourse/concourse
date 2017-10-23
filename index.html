@@ -18,11 +18,21 @@
     <div id="elm-app-embed"></div>
 
     <script type="text/javascript">
+      $(window).on("load", prependBeta);
+      function prependBeta() {
+        var root, path = window.location.pathname;
+        if (path.startsWith("/beta")) {
+          root = document.getElementsByTagName('html')[0];
+          root.setAttribute('class', 'beta');
+        }
+      }
       var node = document.getElementById("elm-app-embed");
 
       var app;
 
       if (window.location.pathname.startsWith("/beta")) {
+        root = document.getElementsByTagName('html')[0];
+        root.setAttribute('class', 'beta');
         console.log("beta concourse")
         app = Elm.BetaMain.embed(node, {
           turbulenceImgSrc: {{asset "images/buckleup.svg"}},

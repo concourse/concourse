@@ -1,4 +1,5 @@
 ELM_FILES = $(shell find elm/src/ -type f -name '*.elm' -or -name '*.js')
+ELM_BETA_FILES = $(shell find elm/src/Beta -type f -name '*.elm' -or -name '*.js')
 ELM_TESTS_FILES = $(shell find elm/tests/ -type f -name '*.elm' -or -name '*.js')
 LESS_FILES = $(shell find assets/css/ -type f -name '*.less')
 PUBLIC_FILES = $(shell find public/ -type f)
@@ -13,7 +14,7 @@ clean:
 public/elm.js: $(ELM_FILES) $(ELM_TESTS_FILES)
 	cd elm && elm make --warn --output ../public/elm.js --yes src/Main.elm
 
-public/elm-beta.js: $(ELM_FILES) $(ELM_TESTS_FILES)
+public/elm-beta.js: $(ELM_BETA_FILES) $(ELM_TESTS_FILES)
 	cd elm && elm make --warn --output ../public/elm-beta.js --yes src/beta/BetaMain.elm
 
 public/main.css: $(LESS_FILES)

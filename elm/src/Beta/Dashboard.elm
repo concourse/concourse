@@ -1,7 +1,4 @@
--- port module Dashboard exposing (Model, Msg, init, update, subscriptions, view)
-
-
-port module Dashboard exposing (..)
+port module Dashboard exposing (Model, Msg, init, update, subscriptions, view, filterBy, searchTermList, StatusPipeline)
 
 import BuildDuration
 import Concourse
@@ -13,17 +10,18 @@ import Concourse.Pipeline
 import DashboardPreview
 import Date exposing (Date)
 import Dict exposing (Dict)
+import Format exposing (prependBeta)
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, href, id, src)
+import Html.Attributes exposing (class, classList, id, href, src)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Keyboard
 import Mouse
 import NewTopBar
 import RemoteData
-import Simple.Fuzzy exposing (filter, match, root)
 import Task exposing (Task)
 import Time exposing (Time)
+import Simple.Fuzzy exposing (match, root, filter)
 
 
 type alias Model =
@@ -68,24 +66,24 @@ init turbulencePath =
         ( topBar, topBarMsg ) =
             NewTopBar.init
     in
-    ( { topBar = topBar
-      , pipelines = RemoteData.NotAsked
-      , jobs = Dict.empty
-      , now = Nothing
-      , turbulenceImgSrc = turbulencePath
-      , concourseVersion = ""
-      , hideFooter = False
-      , hideFooterCounter = 0
-      , fetchedPipelines = []
-      , query = ""
-      }
-    , Cmd.batch
-        [ fetchPipelines
-        , fetchVersion
-        , getCurrentTime
-        , Cmd.map TopBarMsg topBarMsg
-        ]
-    )
+        ( { topBar = topBar
+          , pipelines = RemoteData.NotAsked
+          , jobs = Dict.empty
+          , now = Nothing
+          , turbulenceImgSrc = turbulencePath
+          , concourseVersion = ""
+          , hideFooter = False
+          , hideFooterCounter = 0
+          , fetchedPipelines = []
+          , query = ""
+          }
+        , Cmd.batch
+            [ fetchPipelines
+            , fetchVersion
+            , getCurrentTime
+            , Cmd.map TopBarMsg topBarMsg
+            ]
+        )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -108,7 +106,7 @@ update msg model =
             ( { model | concourseVersion = version }, Cmd.none )
 
         VersionFetched (Err err) ->
-            flip always (Debug.log "failed to fetch version" err) <|
+            flip always (Debug.log ("failed to fetch version") (err)) <|
                 ( { model | concourseVersion = "" }, Cmd.none )
 
         ClockTick now ->
@@ -131,13 +129,13 @@ update msg model =
                 ( filteredPipelines, newTopBarSearchQuery ) =
                     updateFromNewTopBar msg model
             in
-            ( { model
-                | topBar = newTopBar
-                , fetchedPipelines = filteredPipelines
-                , query = newTopBarSearchQuery
-              }
-            , Cmd.map TopBarMsg newTopBarMsg
-            )
+                ( { model
+                    | topBar = newTopBar
+                    , fetchedPipelines = filteredPipelines
+                    , query = newTopBarSearchQuery
+                  }
+                , Cmd.map TopBarMsg newTopBarMsg
+                )
 
 
 subscriptions : Model -> Sub Msg
@@ -168,20 +166,20 @@ viewDashboard model =
         isQueryEmpty =
             String.isEmpty model.query
     in
-    case model.pipelines of
-        RemoteData.Success pipelines ->
-            if listFetchedPipelinesLength > 0 then
-                showPipelinesView model model.fetchedPipelines
-            else if not isQueryEmpty then
-                showNoResultsView (toString model.query)
-            else
-                showPipelinesView model pipelines
+        case model.pipelines of
+            RemoteData.Success pipelines ->
+                if listFetchedPipelinesLength > 0 then
+                    showPipelinesView model model.fetchedPipelines
+                else if not isQueryEmpty then
+                    showNoResultsView (toString model.query)
+                else
+                    showPipelinesView model pipelines
 
-        RemoteData.Failure _ ->
-            showTurbulenceView model
+            RemoteData.Failure _ ->
+                showTurbulenceView model
 
-        _ ->
-            Html.text ""
+            _ ->
+                Html.text ""
 
 
 showNoResultsView : String -> Html Msg
@@ -190,16 +188,16 @@ showNoResultsView query =
         boldedQuery =
             Html.span [ class "monospace-bold" ] [ Html.text query ]
     in
-    Html.div
-        [ class "dashboard" ]
-        [ Html.div [ class "dashboard-content no-results" ]
-            [ Html.span []
-                [ Html.text "No results for "
-                , boldedQuery
-                , Html.text " matched your search."
+        Html.div
+            [ class "dashboard" ]
+            [ Html.div [ class "dashboard-content no-results" ]
+                [ Html.span []
+                    [ Html.text "No results for "
+                    , boldedQuery
+                    , Html.text " matched your search."
+                    ]
                 ]
             ]
-        ]
 
 
 showPipelinesView : Model -> List Concourse.Pipeline -> Html Msg
@@ -219,10 +217,10 @@ showPipelinesView model pipelines =
         listPipelinesByTeam =
             List.map (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) pipelinesByTeam
     in
-    Html.div
-        [ class "dashboard" ]
-    <|
-        [ Html.div [ class "dashboard-content" ] <| listPipelinesByTeam, showFooterView model ]
+        Html.div
+            [ class "dashboard" ]
+        <|
+            [ Html.div [ class "dashboard-content" ] <| listPipelinesByTeam, showFooterView model ]
 
 
 showFooterView : Model -> Html Msg
@@ -283,14 +281,14 @@ addPipelineState pipelineStates ( teamName, pipelineState ) =
 
         s :: ss ->
             if Tuple.first s == teamName then
-                ( teamName, pipelineState :: Tuple.second s ) :: ss
+                ( teamName, pipelineState :: (Tuple.second s) ) :: ss
             else
-                s :: addPipelineState ss ( teamName, pipelineState )
+                s :: (addPipelineState ss ( teamName, pipelineState ))
 
 
 viewGroup : Maybe Time -> String -> List PipelineState -> Html msg
 viewGroup now teamName pipelines =
-    Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
+    Html.div [ id teamName, class "dashboard-team-group" ]
         [ Html.div [ class "dashboard-team-name" ]
             [ Html.text teamName ]
         , Html.div [ class "dashboard-team-pipelines" ]
@@ -315,38 +313,37 @@ viewPipeline now state =
         mpreview =
             Maybe.map DashboardPreview.view mJobs
     in
-    Html.div
-        [ classList
-            [ ( "dashboard-pipeline", True )
-            , ( "dashboard-paused", state.pipeline.paused )
-            , ( "dashboard-running", isPipelineRunning state )
-            , ( "dashboard-status-" ++ Concourse.BuildStatus.show status, not state.pipeline.paused )
+        Html.div
+            [ classList
+                [ ( "dashboard-pipeline", True )
+                , ( "dashboard-paused", state.pipeline.paused )
+                , ( "dashboard-running", isPipelineRunning state )
+                , ( "dashboard-status-" ++ Concourse.BuildStatus.show status, not state.pipeline.paused )
+                ]
             ]
-        , attribute "data-pipeline-name" state.pipeline.name
-        ]
-        [ Html.div [ class "dashboard-pipeline-banner" ] []
-        , Html.div
-            [ class "dashboard-pipeline-content" ]
-            [ Html.a [ href state.pipeline.url ]
-                [ Html.div
-                    [ class "dashboard-pipeline-header" ]
-                    [ Html.div [ class "dashboard-pipeline-name" ]
-                        [ Html.text state.pipeline.name ]
+            [ Html.div [ class "dashboard-pipeline-banner" ] []
+            , Html.div
+                [ class "dashboard-pipeline-content" ]
+                [ Html.a [ href <| prependBeta state.pipeline.url ]
+                    [ Html.div
+                        [ class "dashboard-pipeline-header" ]
+                        [ Html.div [ class "dashboard-pipeline-name" ]
+                            [ Html.text state.pipeline.name ]
+                        ]
+                    ]
+                , case mpreview of
+                    Just preview ->
+                        preview
+
+                    Nothing ->
+                        Html.text ""
+                , Html.div [ class "dashboard-pipeline-footer" ]
+                    [ Html.div [ class "dashboard-pipeline-icon" ]
+                        []
+                    , timeSincePipelineTransitioned status now state
                     ]
                 ]
-            , case mpreview of
-                Just preview ->
-                    preview
-
-                Nothing ->
-                    Html.text ""
-            , Html.div [ class "dashboard-pipeline-footer" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ]
-                    []
-                , timeSincePipelineTransitioned status now state
-                ]
             ]
-        ]
 
 
 timeSincePipelineTransitioned : Concourse.BuildStatus -> Maybe Time -> PipelineState -> Html a
@@ -389,19 +386,19 @@ timeSincePipelineTransitioned status time state =
                     else
                         Concourse.BuildStatusPending
             in
-            if state.pipeline.paused then
-                Html.div [ class "build-duration" ] [ Html.text "paused" ]
-            else if status == Concourse.BuildStatusPending then
-                Html.div [ class "build-duration" ] [ Html.text "pending" ]
-            else if status == isRunning then
-                Html.div [ class "build-duration" ] [ Html.text "running" ]
-            else
-                case ( time, transitionedDuration ) of
-                    ( Just now, Just duration ) ->
-                        BuildDuration.show duration now
+                if state.pipeline.paused then
+                    Html.div [ class "build-duration" ] [ Html.text "paused" ]
+                else if status == Concourse.BuildStatusPending then
+                    Html.div [ class "build-duration" ] [ Html.text "pending" ]
+                else if status == isRunning then
+                    Html.div [ class "build-duration" ] [ Html.text "running" ]
+                else
+                    case ( time, transitionedDuration ) of
+                        ( Just now, Just duration ) ->
+                            BuildDuration.show duration now
 
-                    _ ->
-                        Html.text ""
+                        _ ->
+                            Html.text ""
 
         _ ->
             Html.text ""
@@ -435,21 +432,24 @@ jobStatus job =
 jobsStatus : List Concourse.Job -> Concourse.BuildStatus
 jobsStatus jobs =
     let
+        isHanging =
+            List.any (\job -> (Just Concourse.BuildStatusPending) == (Maybe.map .status job.nextBuild)) jobs
+
         statuses =
-            List.map (\job -> Maybe.withDefault Concourse.BuildStatusStarted <| Maybe.map .status job.finishedBuild) jobs
+            List.map (\job -> Maybe.withDefault Concourse.BuildStatusPending <| Maybe.map .status job.finishedBuild) jobs
     in
-    if List.member Concourse.BuildStatusPending statuses then
-        Concourse.BuildStatusPending
-    else if List.member Concourse.BuildStatusFailed statuses then
-        Concourse.BuildStatusFailed
-    else if List.member Concourse.BuildStatusErrored statuses then
-        Concourse.BuildStatusErrored
-    else if List.member Concourse.BuildStatusAborted statuses then
-        Concourse.BuildStatusAborted
-    else if List.member Concourse.BuildStatusSucceeded statuses then
-        Concourse.BuildStatusSucceeded
-    else
-        Concourse.BuildStatusPending
+        if isHanging then
+            Concourse.BuildStatusPending
+        else if List.member Concourse.BuildStatusFailed statuses then
+            Concourse.BuildStatusFailed
+        else if List.member Concourse.BuildStatusErrored statuses then
+            Concourse.BuildStatusErrored
+        else if List.member Concourse.BuildStatusAborted statuses then
+            Concourse.BuildStatusAborted
+        else if List.member Concourse.BuildStatusSucceeded statuses then
+            Concourse.BuildStatusSucceeded
+        else
+            Concourse.BuildStatusPending
 
 
 fetchPipelines : Cmd Msg
@@ -471,7 +471,7 @@ fetchJobs pipeline =
 fetchVersion : Cmd Msg
 fetchVersion =
     Concourse.Info.fetch
-        |> Task.map .version
+        |> Task.map (.version)
         |> Task.attempt VersionFetched
 
 
@@ -484,7 +484,7 @@ updateFromNewTopBar : NewTopBar.Msg -> Model -> ( List Concourse.Pipeline, Strin
 updateFromNewTopBar msg model =
     case msg of
         NewTopBar.FilterMsg query ->
-            ( filterModelPipelines query model, query )
+            ( (filterModelPipelines query model), query )
 
         _ ->
             ( [], "" )
@@ -496,12 +496,12 @@ filterModelPipelines query model =
         querySplit =
             String.split " " query
     in
-    case model.pipelines of
-        RemoteData.Success pipelines ->
-            searchTermList model querySplit pipelines
+        case model.pipelines of
+            RemoteData.Success pipelines ->
+                searchTermList model querySplit pipelines
 
-        _ ->
-            []
+            _ ->
+                []
 
 
 searchTermList : Model -> List String -> List Concourse.Pipeline -> List Concourse.Pipeline
@@ -515,7 +515,7 @@ searchTermList model queryList pipelines =
                 plist =
                     extendedPipelineList model pipelines
             in
-            searchTermList model xs (filterBy x plist)
+                searchTermList model xs (filterBy x plist)
 
 
 extendedPipelineList : Model -> List Concourse.Pipeline -> List StatusPipeline
@@ -530,13 +530,13 @@ extendedPipelineList model pipelines =
             else
                 pipelineStatus p |> toString
     in
-    List.map
-        (\p ->
-            { pipeline = p.pipeline
-            , status = setPipelineStatus p
-            }
-        )
-        pipelineStates
+        List.map
+            (\p ->
+                { pipeline = p.pipeline
+                , status = setPipelineStatus p
+                }
+            )
+            pipelineStates
 
 
 filterBy : String -> List StatusPipeline -> List Concourse.Pipeline
@@ -566,12 +566,12 @@ filterBy term pipelines =
         filterByStatus =
             Simple.Fuzzy.filter .status statusSearchTerm pipelines
     in
-    if searchTeams == True then
-        Simple.Fuzzy.filter .teamName teamSearchTerm plist
-    else if searchStatus == True then
-        List.map (\p -> p.pipeline) filterByStatus
-    else
-        Simple.Fuzzy.filter .name term plist
+        if searchTeams == True then
+            Simple.Fuzzy.filter .teamName teamSearchTerm plist
+        else if searchStatus == True then
+            List.map (\p -> p.pipeline) filterByStatus
+        else
+            Simple.Fuzzy.filter .name term plist
 
 
 getPipelineStates : Model -> List Concourse.Pipeline -> List PipelineState
