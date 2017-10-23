@@ -1,8 +1,9 @@
 var currentHighlight;
 
+var redraw;
 function draw(svg, jobs, resources, newUrl) {
-  concourse.redraw = redrawFunction(svg, jobs, resources, newUrl);
-  concourse.redraw();
+  redraw = redrawFunction(svg, jobs, resources, newUrl);
+  redraw();
 }
 
 function redrawFunction(svg, jobs, resources, newUrl) {
@@ -310,10 +311,6 @@ function createGraph(svg, jobs, resources) {
   for (var i in jobs) {
     var job = jobs[i];
 
-    if (!groupsMatch(job.groups, concourse.groups)) {
-      continue;
-    }
-
     var id = jobNode(job.name);
 
     var classes = ["job"];
@@ -355,10 +352,6 @@ function createGraph(svg, jobs, resources) {
     var job = jobs[i];
     var id = jobNode(job.name);
 
-    if (!groupsMatch(job.groups, concourse.groups)) {
-      continue;
-    }
-
     for (var j in job.outputs) {
       var output = job.outputs[j];
 
@@ -389,10 +382,6 @@ function createGraph(svg, jobs, resources) {
   for (var i in jobs) {
     var job = jobs[i];
     var id = jobNode(job.name);
-
-    if (!groupsMatch(job.groups, concourse.groups)) {
-      continue;
-    }
 
     for (var j in job.inputs) {
       var input = job.inputs[j];
@@ -439,10 +428,6 @@ function createGraph(svg, jobs, resources) {
   for (var i in jobs) {
     var job = jobs[i];
     var id = jobNode(job.name);
-
-    if (!groupsMatch(job.groups, concourse.groups)) {
-      continue;
-    }
 
     var node = graph.node(id);
 
@@ -495,20 +480,6 @@ function objectIsEmpty(o) {
   }
 
   return true;
-}
-
-function groupsMatch(objGroups, groups) {
-  if (objectIsEmpty(groups)) {
-    return true;
-  }
-
-  for(var i in objGroups) {
-    if (groups[objGroups[i]]) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 function groupNode(name) {
