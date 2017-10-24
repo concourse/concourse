@@ -179,6 +179,7 @@ changeToBuild page model =
                 | browsingIndex = newIndex
                 , currentBuild = newBuild
                 , autoScroll = True
+                , page = page
               }
             , case page of
                 BuildPage buildId ->
