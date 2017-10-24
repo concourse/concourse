@@ -256,11 +256,14 @@ update turbulence notFound csrfToken msg mdl =
                     in
                         superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.init { render = renderPipeline, title = setTitle } flags
 
+        ( DefaultPipelineFetched _, NoPipelineModel ) ->
+            ( mdl, Cmd.none )
+
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )
 
-        _ ->
-            flip always (Debug.log ("impossible combination") ()) <|
+        unknown ->
+            flip always (Debug.log ("impossible combination") unknown) <|
                 ( mdl, Cmd.none )
 
 
