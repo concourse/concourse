@@ -3,11 +3,9 @@
 
 set -e
 
-trap "pkill Xvfb" EXIT
-
 install fly-rc/fly_linux_amd64 /usr/local/bin/fly
 
 cd concourse/src/github.com/concourse/atc/web/wats/
 
-npm install
-npm test -- --colors --steps --override '{"helpers":{"Nightmare":{"url":"'$ATC_URL'"}}}'
+yarn install --no-progress
+yarn test -v --color

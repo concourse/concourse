@@ -3,7 +3,7 @@ platform: linux
 
 image_resource:
   type: docker-image
-  source: {repository: codeception/codeceptjs}
+  source: {repository: alekzonder/puppeteer}
 
 params:
   ATC_URL: http://10.244.15.2:8080
@@ -17,5 +17,4 @@ caches:
 - path: concourse/pkg
 
 run:
-  path: /docker/entrypoint
-  args: [concourse/ci/scripts/watsjs]
+  path: concourse/ci/scripts/watsjs
