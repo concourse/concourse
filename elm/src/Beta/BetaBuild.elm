@@ -417,7 +417,7 @@ handleKeyPressed key model =
 
             'g' ->
                 if model.previousKeyPress == Just 'g' then
-                    ( newModel, Task.perform (always Noop) Scroll.toWindowTop )
+                    ( { newModel | autoScroll = False }, Task.perform (always Noop) Scroll.toWindowTop )
                 else
                     ( newModel, Cmd.none )
 

@@ -188,8 +188,6 @@ update turbulence notFound csrfToken msg mdl =
         ( NewCSRFToken c, BetaResourceModel model ) ->
             ( BetaResourceModel { model | csrfToken = c }, Cmd.none )
 
-        -- ( BetaPipelineMsg message, BetaPipelineModel model ) ->
-        --     handleNotFound notFound ( BetaPipelineModel, BetaPipelineMsg ) (BetaPipeline.updateWithMessage message model)
         ( BetaResourceMsg message, BetaResourceModel model ) ->
             handleNotFound notFound ( BetaResourceModel, BetaResourceMsg ) (BetaResource.updateWithMessage message { model | csrfToken = csrfToken })
 
@@ -248,8 +246,8 @@ update turbulence notFound csrfToken msg mdl =
         ( BetaSelectTeamMsg message, BetaSelectTeamModel model ) ->
             superDupleWrap ( BetaSelectTeamModel, BetaSelectTeamMsg ) <| BetaTeamSelection.update message model
 
-        _ ->
-            flip always (Debug.log ("impossible combination") ()) <|
+        unknown ->
+            flip always (Debug.log ("impossible combination") unknown) <|
                 ( mdl, Cmd.none )
 
 
