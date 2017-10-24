@@ -12,6 +12,10 @@ class Web {
     return `${this.url}${path}`;
   }
 
+  betaRoute(path) {
+    return `${this.url}/beta${path}`;
+  }
+
   text(page, ele) {
     return page.evaluate(x => (x || document.body).innerText, ele);
   }

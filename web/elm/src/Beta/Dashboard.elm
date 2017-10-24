@@ -12,7 +12,7 @@ import Date exposing (Date)
 import Dict exposing (Dict)
 import Format exposing (prependBeta)
 import Html exposing (Html)
-import Html.Attributes exposing (class, classList, id, href, src)
+import Html.Attributes exposing (class, classList, id, href, src, attribute)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Keyboard
@@ -288,7 +288,7 @@ addPipelineState pipelineStates ( teamName, pipelineState ) =
 
 viewGroup : Maybe Time -> String -> List PipelineState -> Html msg
 viewGroup now teamName pipelines =
-    Html.div [ id teamName, class "dashboard-team-group" ]
+    Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
         [ Html.div [ class "dashboard-team-name" ]
             [ Html.text teamName ]
         , Html.div [ class "dashboard-team-pipelines" ]
@@ -320,6 +320,7 @@ viewPipeline now state =
                 , ( "dashboard-running", isPipelineRunning state )
                 , ( "dashboard-status-" ++ Concourse.BuildStatus.show status, not state.pipeline.paused )
                 ]
+            , attribute "data-pipeline-name" state.pipeline.name
             ]
             [ Html.div [ class "dashboard-pipeline-banner" ] []
             , Html.div
@@ -432,13 +433,10 @@ jobStatus job =
 jobsStatus : List Concourse.Job -> Concourse.BuildStatus
 jobsStatus jobs =
     let
-        isHanging =
-            List.any (\job -> (Just Concourse.BuildStatusPending) == (Maybe.map .status job.nextBuild)) jobs
-
         statuses =
-            List.map (\job -> Maybe.withDefault Concourse.BuildStatusPending <| Maybe.map .status job.finishedBuild) jobs
+            List.map (\job -> Maybe.withDefault Concourse.BuildStatusStarted <| Maybe.map .status job.finishedBuild) jobs
     in
-        if isHanging then
+        if List.member Concourse.BuildStatusPending statuses then
             Concourse.BuildStatusPending
         else if List.member Concourse.BuildStatusFailed statuses then
             Concourse.BuildStatusFailed
