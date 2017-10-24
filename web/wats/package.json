@@ -7,6 +7,7 @@
     "child-process-promise": "^2.2.1",
     "color": "^2.0.0",
     "puppeteer": "^0.12.0",
+    "tmp-promise": "^1.0.3",
     "uuid": "^3.1.0"
   },
   "devDependencies": {},
@@ -19,6 +20,5 @@
   "bugs": {
     "url": "https://github.com/concourse/atc/issues"
   },
-  "homepage": "https://github.com/concourse/atc#readme",
-  "main": "index.js"
+  "homepage": "https://github.com/concourse/atc#readme"
 }
