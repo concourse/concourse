@@ -460,6 +460,15 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []st
 			warnings = append(warnings, newDeprecationWarning(identifier+" specifies both `file` and `config` in a task step"))
 		}
 
+		if plan.TaskConfig != nil {
+			if err := plan.TaskConfig.Validate(); err != nil {
+				messages := strings.Split(err.Error(), "\n")
+				for _, message := range messages {
+					errorMessages = append(errorMessages, fmt.Sprintf("%s %s", identifier, strings.TrimSpace(message)))
+				}
+			}
+		}
+
 		errorMessages = append(errorMessages, validateInapplicableFields(
 			[]string{"resource", "passed", "trigger"},
 			plan, identifier)...,
