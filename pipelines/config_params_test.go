@@ -21,12 +21,15 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 
 		taskFileContents := `---
 platform: linux
+
 image_resource:
   type: docker-image
   source: {repository: busybox}
+
 run:
   path: sh
   args: ["-ec", "echo -n 'SOURCE_PARAM is '; printenv SOURCE_PARAM; echo ."]
+
 params:
   SOURCE_PARAM: file_source
 `
@@ -40,22 +43,12 @@ params:
 
 	Context("when specifying file in task config", func() {
 		It("executes the file with params specified in file", func() {
-			watch := flyHelper.Watch(pipelineName, "file-test")
+			watch := flyHelper.TriggerJob(pipelineName, "file-test")
 			Expect(watch).To(gbytes.Say("file_source"))
 		})
 
-		It("executes the file with params from config", func() {
-			watch := flyHelper.Watch(pipelineName, "file-config-params-test")
-			Expect(watch).To(gbytes.Say("config_params_source"))
-		})
-
 		It("executes the file with job params", func() {
-			watch := flyHelper.Watch(pipelineName, "file-params-test")
-			Expect(watch).To(gbytes.Say("job_params_source"))
-		})
-
-		It("executes the file with job params, overlaying the config params", func() {
-			watch := flyHelper.Watch(pipelineName, "everything-params-test")
+			watch := flyHelper.TriggerJob(pipelineName, "file-params-test")
 			Expect(watch).To(gbytes.Say("job_params_source"))
 		})
 	})

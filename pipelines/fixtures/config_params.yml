@@ -10,34 +10,13 @@ jobs:
 - name: file-test
   plan:
   - get: git-repo
-    trigger: true
   - task: output-producer
     file: git-repo/task.yml
-- name: file-config-params-test
-  plan:
-  - get: git-repo
-    trigger: true
-  - task: output-producer
-    file: git-repo/task.yml
-    config:
-      params:
-        SOURCE_PARAM: config_params_source
+
 - name: file-params-test
   plan:
   - get: git-repo
-    trigger: true
   - task: output-producer
     file: git-repo/task.yml
     params:
       SOURCE_PARAM: job_params_source
-- name: everything-params-test
-  plan:
-  - get: git-repo
-    trigger: true
-  - task: output-producer
-    file: git-repo/task.yml
-    params:
-      SOURCE_PARAM: job_params_source
-    config:
-      params:
-        SOURCE_PARAM: config_params_source
