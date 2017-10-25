@@ -198,10 +198,6 @@ test('links to specific builds', async t => {
   await t.context.page.goto(t.context.web.betaRoute('/dashboard'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-
-  await t.context.page.waitFor(`${group} .dashboard-pipeline`);
-  await t.context.page.click(`${group} .node[data-tooltip="passing"] a`);
-  await t.context.page.waitForNavigation({waitUntil: 'networkidle'});
-
+  await t.context.web.clickAndWait(t.context.page, `${group} .node[data-tooltip="passing"] a`);
   t.regex(await t.context.web.text(t.context.page), /passing #1/);
 });
