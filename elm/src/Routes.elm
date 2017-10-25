@@ -1,9 +1,9 @@
-module Routes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString, customToString)
+module Routes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, toString)
 
-import Navigation exposing (Location)
-import Route exposing (..)
-import QueryString
 import Concourse.Pagination as Pagination
+import Navigation exposing (Location)
+import QueryString
+import Route exposing (..)
 
 
 type Route
@@ -13,10 +13,8 @@ type Route
     | Job String String String
     | OneOffBuild String
     | Pipeline String String
-    | BetaPipeline String String
     | SelectTeam
     | TeamLogin String
-    | Dashboard
 
 
 type alias ConcourseRoute =
@@ -61,19 +59,9 @@ pipeline =
     Pipeline := static "teams" </> string </> static "pipelines" </> string
 
 
-betaPipeline : Route.Route Route
-betaPipeline =
-    BetaPipeline := static "beta" </> static "teams" </> string </> static "pipelines" </> string
-
-
 teamLogin : Route.Route Route
 teamLogin =
     TeamLogin := static "teams" </> string </> static "login"
-
-
-dashboard : Route.Route Route
-dashboard =
-    Dashboard := static "dashboard"
 
 
 
@@ -89,9 +77,7 @@ sitemap =
         , login
         , oneOffBuild
         , pipeline
-        , betaPipeline
         , teamLogin
-        , dashboard
         ]
 
 
@@ -119,17 +105,11 @@ toString route =
         Pipeline teamName pipelineName ->
             reverse pipeline [ teamName, pipelineName ]
 
-        BetaPipeline teamName pipelineName ->
-            reverse betaPipeline [ teamName, pipelineName ]
-
         SelectTeam ->
             reverse login []
 
         TeamLogin teamName ->
             reverse teamLogin [ teamName ]
-
-        Dashboard ->
-            reverse dashboard []
 
         Home ->
             "/"
@@ -164,21 +144,21 @@ createPageFromSearch search =
         limit =
             Maybe.withDefault 100 <| QueryString.one QueryString.int "limit" q
     in
-        case ( since, until ) of
-            ( Nothing, Just u ) ->
-                Just
-                    { direction = Pagination.Until u
-                    , limit = limit
-                    }
+    case ( since, until ) of
+        ( Nothing, Just u ) ->
+            Just
+                { direction = Pagination.Until u
+                , limit = limit
+                }
 
-            ( Just s, Nothing ) ->
-                Just
-                    { direction = Pagination.Since s
-                    , limit = limit
-                    }
+        ( Just s, Nothing ) ->
+            Just
+                { direction = Pagination.Since s
+                , limit = limit
+                }
 
-            _ ->
-                Nothing
+        _ ->
+            Nothing
 
 
 navigateTo : Route -> Cmd msg

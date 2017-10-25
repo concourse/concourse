@@ -1,15 +1,15 @@
-port module Layout exposing (Flags, Model, Msg, locationMsg, init, update, view, subscriptions)
+port module Layout exposing (Flags, Model, Msg, init, locationMsg, subscriptions, update, view)
 
+import Favicon
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
 import Login exposing (Msg(..))
 import Navigation
-import TopBar
-import SideBar
 import Routes
+import SideBar
 import SubPage
 import Task exposing (Task)
-import Favicon
+import TopBar
 
 
 port newUrl : (String -> msg) -> Sub msg
@@ -110,15 +110,15 @@ init flags location =
             else
                 Navigation.modifyUrl (Routes.customToString route)
     in
-        ( model
-        , Cmd.batch
-            [ handleTokenCmd
-            , stripCSRFTokenParamCmd
-            , Cmd.map (SubMsg navIndex) subCmd
-            , Cmd.map (TopMsg navIndex) topCmd
-            , Cmd.map (SideMsg navIndex) sideCmd
-            ]
-        )
+    ( model
+    , Cmd.batch
+        [ handleTokenCmd
+        , stripCSRFTokenParamCmd
+        , Cmd.map (SubMsg navIndex) subCmd
+        , Cmd.map (TopMsg navIndex) topCmd
+        , Cmd.map (SideMsg navIndex) sideCmd
+        ]
+    )
 
 
 locationMsg : Navigation.Location -> Msg
@@ -146,7 +146,7 @@ update msg model =
             )
 
         SaveToken tokenValue ->
-            ( model, saveToken (tokenValue) )
+            ( model, saveToken tokenValue )
 
         LoadToken ->
             ( model, loadToken () )
@@ -162,16 +162,16 @@ update msg model =
                 ( newSideModel, sideCmd ) =
                     SideBar.update (SideBar.NewCSRFToken tokenValue) model.sideModel
             in
-                ( { model
-                    | csrfToken = tokenValue
-                    , subModel = newSubModel
-                    , sideModel = newSideModel
-                  }
-                , Cmd.batch
-                    [ Cmd.map (SubMsg anyNavIndex) subCmd
-                    , Cmd.map (SideMsg anyNavIndex) sideCmd
-                    ]
-                )
+            ( { model
+                | csrfToken = tokenValue
+                , subModel = newSubModel
+                , sideModel = newSideModel
+              }
+            , Cmd.batch
+                [ Cmd.map (SubMsg anyNavIndex) subCmd
+                , Cmd.map (SideMsg anyNavIndex) sideCmd
+                ]
+            )
 
         SubMsg navIndex (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) ->
             let
@@ -184,19 +184,19 @@ update msg model =
                 ( sideModel, sideCmd ) =
                     SideBar.update (SideBar.NewCSRFToken val.csrfToken) model.sideModel
             in
-                ( { model
-                    | subModel = subModel
-                    , sideModel = sideModel
-                    , csrfToken = val.csrfToken
-                  }
-                , Cmd.batch
-                    [ layoutCmd
-                    , Cmd.map (SideMsg anyNavIndex) sideCmd
-                    , Cmd.map (TopMsg anyNavIndex) TopBar.fetchUser
-                    , Cmd.map (SideMsg anyNavIndex) SideBar.fetchPipelines
-                    , Cmd.map (SubMsg navIndex) subCmd
-                    ]
-                )
+            ( { model
+                | subModel = subModel
+                , sideModel = sideModel
+                , csrfToken = val.csrfToken
+              }
+            , Cmd.batch
+                [ layoutCmd
+                , Cmd.map (SideMsg anyNavIndex) sideCmd
+                , Cmd.map (TopMsg anyNavIndex) TopBar.fetchUser
+                , Cmd.map (SideMsg anyNavIndex) SideBar.fetchPipelines
+                , Cmd.map (SubMsg navIndex) subCmd
+                ]
+            )
 
         SubMsg navIndex (SubPage.PipelinesFetched (Ok pipelines)) ->
             let
@@ -211,59 +211,59 @@ update msg model =
                         (SubPage.DefaultPipelineFetched pipeline)
                         model.subModel
             in
-                case pipeline of
-                    Nothing ->
-                        ( { model
-                            | subModel = subModel
-                          }
-                        , Cmd.map (SubMsg navIndex) subCmd
-                        )
+            case pipeline of
+                Nothing ->
+                    ( { model
+                        | subModel = subModel
+                      }
+                    , Cmd.map (SubMsg navIndex) subCmd
+                    )
 
-                    Just p ->
-                        let
-                            ( topModel, topCmd ) =
-                                TopBar.update
-                                    (TopBar.FetchPipeline { teamName = p.teamName, pipelineName = p.name })
-                                    model.topModel
-                        in
-                            ( { model
-                                | subModel = subModel
-                                , topModel = topModel
-                              }
-                            , Cmd.batch
-                                [ Cmd.map (SubMsg navIndex) subCmd
-                                , Cmd.map (TopMsg navIndex) topCmd
-                                ]
-                            )
+                Just p ->
+                    let
+                        ( topModel, topCmd ) =
+                            TopBar.update
+                                (TopBar.FetchPipeline { teamName = p.teamName, pipelineName = p.name })
+                                model.topModel
+                    in
+                    ( { model
+                        | subModel = subModel
+                        , topModel = topModel
+                      }
+                    , Cmd.batch
+                        [ Cmd.map (SubMsg navIndex) subCmd
+                        , Cmd.map (TopMsg navIndex) topCmd
+                        ]
+                    )
 
         -- otherwise, pass down
         SubMsg navIndex m ->
-            if (validNavIndex model.navIndex navIndex) then
+            if validNavIndex model.navIndex navIndex then
                 let
                     ( subModel, subCmd ) =
                         SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
                 in
-                    ( { model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd )
+                ( { model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd )
             else
                 ( model, Cmd.none )
 
         TopMsg navIndex m ->
-            if (validNavIndex model.navIndex navIndex) then
+            if validNavIndex model.navIndex navIndex then
                 let
                     ( topModel, topCmd ) =
                         TopBar.update m model.topModel
                 in
-                    ( { model | topModel = topModel }, Cmd.map (TopMsg navIndex) topCmd )
+                ( { model | topModel = topModel }, Cmd.map (TopMsg navIndex) topCmd )
             else
                 ( model, Cmd.none )
 
         SideMsg navIndex m ->
-            if (validNavIndex model.navIndex navIndex) then
+            if validNavIndex model.navIndex navIndex then
                 let
                     ( sideModel, sideCmd ) =
                         SideBar.update m model.sideModel
                 in
-                    ( { model | sideModel = sideModel }, Cmd.map (SideMsg navIndex) sideCmd )
+                ( { model | sideModel = sideModel }, Cmd.map (SideMsg navIndex) sideCmd )
             else
                 ( model, Cmd.none )
 
@@ -302,24 +302,24 @@ urlUpdate route model =
             else
                 TopBar.urlUpdate route model.topModel
     in
-        ( { model
-            | navIndex = navIndex
-            , subModel = newSubmodel
-            , topModel = newTopModel
-            , route = route
-          }
-        , Cmd.batch
-            [ Cmd.map (SubMsg navIndex) cmd
-            , Cmd.map (TopMsg navIndex) tCmd
-            , resetFavicon
-            ]
-        )
+    ( { model
+        | navIndex = navIndex
+        , subModel = newSubmodel
+        , topModel = newTopModel
+        , route = route
+      }
+    , Cmd.batch
+        [ Cmd.map (SubMsg navIndex) cmd
+        , Cmd.map (TopMsg navIndex) tCmd
+        , resetFavicon
+        ]
+    )
 
 
 resetFavicon : Cmd Msg
 resetFavicon =
     Task.perform (always Noop) <|
-        Favicon.set ("/public/images/favicon.png")
+        Favicon.set "/public/images/favicon.png"
 
 
 view : Model -> Html Msg
@@ -333,26 +333,23 @@ view model =
                 False ->
                     ""
     in
-        case model.subModel of
-            SubPage.DashboardModel _ ->
-                Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
-
-            _ ->
-                Html.div [ class "content-frame" ]
-                    [ Html.div [ id "top-bar-app" ]
-                        [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel) ]
-                    , Html.div [ class "bottom" ]
-                        [ Html.div
-                            [ id "pipelines-nav-app"
-                            , class <| "sidebar test" ++ sidebarVisibileAppendage
-                            ]
-                            [ Html.map (SideMsg model.navIndex) (SideBar.view model.sideModel) ]
-                        , Html.div [ id "content" ]
-                            [ Html.div [ id "subpage" ]
-                                [ Html.map (SubMsg model.navIndex) (SubPage.view model.subModel) ]
-                            ]
+    case model.subModel of
+        _ ->
+            Html.div [ class "content-frame" ]
+                [ Html.div [ id "top-bar-app" ]
+                    [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel) ]
+                , Html.div [ class "bottom" ]
+                    [ Html.div
+                        [ id "pipelines-nav-app"
+                        , class <| "sidebar test" ++ sidebarVisibileAppendage
+                        ]
+                        [ Html.map (SideMsg model.navIndex) (SideBar.view model.sideModel) ]
+                    , Html.div [ id "content" ]
+                        [ Html.div [ id "subpage" ]
+                            [ Html.map (SubMsg model.navIndex) (SubPage.view model.subModel) ]
                         ]
                     ]
+                ]
 
 
 subscriptions : Model -> Sub Msg

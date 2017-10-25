@@ -1,7 +1,4 @@
--- port module Dashboard exposing (Model, Msg, init, update, subscriptions, view)
-
-
-port module Dashboard exposing (..)
+port module Dashboard exposing (Model, Msg, init, update, subscriptions, view, filterBy, searchTermList, StatusPipeline)
 
 import BuildDuration
 import Concourse
@@ -13,6 +10,7 @@ import Concourse.Pipeline
 import DashboardPreview
 import Date exposing (Date)
 import Dict exposing (Dict)
+import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src, attribute)
 import Html.Attributes.Aria exposing (ariaLabel)
@@ -327,7 +325,7 @@ viewPipeline now state =
             [ Html.div [ class "dashboard-pipeline-banner" ] []
             , Html.div
                 [ class "dashboard-pipeline-content" ]
-                [ Html.a [ href state.pipeline.url ]
+                [ Html.a [ href <| prependBeta state.pipeline.url ]
                     [ Html.div
                         [ class "dashboard-pipeline-header" ]
                         [ Html.div [ class "dashboard-pipeline-name" ]

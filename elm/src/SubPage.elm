@@ -1,25 +1,23 @@
-port module SubPage exposing (Model(..), Msg(..), init, urlUpdate, update, view, subscriptions)
+port module SubPage exposing (Model(..), Msg(..), init, subscriptions, update, urlUpdate, view)
 
-import Json.Encode
-import Html exposing (Html)
-import Http
-import Login
-import NotFound
-import String
-import Task
 import Autoscroll
+import Build
 import Concourse
 import Concourse.Pipeline
+import Html exposing (Html)
+import Http
 import Job
-import Resource
-import Build
+import Json.Encode
+import Login
 import NoPipeline
-import Routes
-import QueryString
+import NotFound
 import Pipeline
-import BetaPipeline
+import QueryString
+import Resource
+import Routes
+import String
+import Task
 import TeamSelection
-import Dashboard
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -40,15 +38,12 @@ type Model
     | ResourceModel Resource.Model
     | LoginModel Login.Model
     | PipelineModel Pipeline.Model
-    | BetaPipelineModel BetaPipeline.Model
     | SelectTeamModel TeamSelection.Model
     | NotFoundModel NotFound.Model
-    | DashboardModel Dashboard.Model
 
 
 type Msg
     = PipelinesFetched (Result Http.Error (List Concourse.Pipeline))
-    | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DefaultPipelineFetched (Maybe Concourse.Pipeline)
     | NoPipelineMsg NoPipeline.Msg
     | BuildMsg (Autoscroll.Msg Build.Msg)
@@ -56,8 +51,6 @@ type Msg
     | ResourceMsg Resource.Msg
     | LoginMsg Login.Msg
     | PipelineMsg Pipeline.Msg
-    | DashboardMsg Dashboard.Msg
-    | BetaPipelineMsg BetaPipeline.Msg
     | SelectTeamMsg TeamSelection.Msg
     | NewCSRFToken String
 
@@ -147,21 +140,6 @@ init turbulencePath route =
                     , route = route
                     }
 
-        Routes.BetaPipeline teamName pipelineName ->
-            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <|
-                BetaPipeline.init
-                    { title = setTitle
-                    }
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , turbulenceImgSrc = turbulencePath
-                    , route = route
-                    }
-
-        Routes.Dashboard ->
-            superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init turbulencePath
-
         Routes.Home ->
             ( WaitingModel route
             , Cmd.batch
@@ -225,9 +203,6 @@ update turbulence notFound csrfToken msg mdl =
         ( PipelineMsg message, PipelineModel model ) ->
             handleNotFound notFound ( PipelineModel, PipelineMsg ) (Pipeline.updateWithMessage message model)
 
-        ( BetaPipelineMsg message, BetaPipelineModel model ) ->
-            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <| BetaPipeline.update message model
-
         ( NewCSRFToken c, ResourceModel model ) ->
             ( ResourceModel { model | csrfToken = c }, Cmd.none )
 
@@ -236,9 +211,6 @@ update turbulence notFound csrfToken msg mdl =
 
         ( SelectTeamMsg message, SelectTeamModel model ) ->
             superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <| TeamSelection.update message model
-
-        ( DashboardMsg message, DashboardModel model ) ->
-            superDupleWrap ( DashboardModel, DashboardMsg ) <| Dashboard.update message model
 
         ( DefaultPipelineFetched pipeline, WaitingModel route ) ->
             case pipeline of
@@ -273,16 +245,6 @@ urlUpdate route model =
         ( Routes.Pipeline team pipeline, PipelineModel mdl ) ->
             superDupleWrap ( PipelineModel, PipelineMsg ) <|
                 Pipeline.changeToPipelineAndGroups
-                    { teamName = team
-                    , pipelineName = pipeline
-                    , turbulenceImgSrc = mdl.turbulenceImgSrc
-                    , route = route
-                    }
-                    mdl
-
-        ( Routes.BetaPipeline team pipeline, BetaPipelineModel mdl ) ->
-            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <|
-                BetaPipeline.changeToPipelineAndGroups
                     { teamName = team
                     , pipelineName = pipeline
                     , turbulenceImgSrc = mdl.turbulenceImgSrc
@@ -348,9 +310,6 @@ view mdl =
         PipelineModel model ->
             Html.map PipelineMsg <| Pipeline.view model
 
-        BetaPipelineModel model ->
-            Html.map BetaPipelineMsg <| BetaPipeline.view model
-
         ResourceModel model ->
             Html.map ResourceMsg <| Resource.view model
 
@@ -365,9 +324,6 @@ view mdl =
 
         NotFoundModel model ->
             NotFound.view model
-
-        DashboardModel model ->
-            Html.map DashboardMsg <| Dashboard.view model
 
 
 subscriptions : Model -> Sub Msg
@@ -388,9 +344,6 @@ subscriptions mdl =
         PipelineModel model ->
             Sub.map PipelineMsg <| Pipeline.subscriptions model
 
-        BetaPipelineModel model ->
-            Sub.map BetaPipelineMsg <| BetaPipeline.subscriptions model
-
         ResourceModel model ->
             Sub.map ResourceMsg <| Resource.subscriptions model
 
@@ -402,9 +355,6 @@ subscriptions mdl =
 
         NotFoundModel _ ->
             Sub.none
-
-        DashboardModel model ->
-            Sub.map DashboardMsg <| Dashboard.subscriptions model
 
 
 fetchPipelines : Cmd Msg

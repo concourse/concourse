@@ -24,7 +24,7 @@ async function showsPipelineState(t, setup, assertions) {
 
   await setup(t);
 
-  await t.context.page.goto(t.context.web.route('/dashboard'));
+  await t.context.page.goto(t.context.web.betaRoute('/dashboard'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
   await t.context.page.waitFor(`${group} .dashboard-pipeline`);
@@ -48,7 +48,7 @@ test('shows the current team first, followed by other teams and their public pip
   await t.context.fly.run("set-pipeline -n -p other-pipeline-public -c fixtures/states-pipeline.yml");
   await t.context.fly.run("expose-pipeline -p other-pipeline-public");
 
-  await t.context.page.goto(t.context.web.route('/dashboard'));
+  await t.context.page.goto(t.context.web.betaRoute('/dashboard'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
   const otherGroup = `.dashboard-team-group[data-team-name="${otherTeamName}"]`;
@@ -73,7 +73,7 @@ test('shows pipelines in their correct order', async t => {
     await t.context.fly.run(`set-pipeline -n -p ${name} -c fixtures/states-pipeline.yml`);
   }
 
-  await t.context.page.goto(t.context.web.route('/dashboard'));
+  await t.context.page.goto(t.context.web.betaRoute('/dashboard'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
   await t.context.page.waitFor(`${group} .dashboard-pipeline:nth-child(${pipelineOrder.length})`);
@@ -162,7 +162,7 @@ test('shows time since last state change', async t => {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
-  await t.context.page.goto(t.context.web.route('/dashboard'));
+  await t.context.page.goto(t.context.web.betaRoute('/dashboard'));
 
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
   await t.context.page.waitFor(5000);
@@ -195,7 +195,7 @@ test('links to specific builds', async t => {
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
 
-  await t.context.page.goto(t.context.web.route('/dashboard'));
+  await t.context.page.goto(t.context.web.betaRoute('/dashboard'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
 
