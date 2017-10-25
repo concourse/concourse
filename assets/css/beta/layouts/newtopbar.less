@@ -9,7 +9,6 @@
   background: #1E1D1D;
   color: #E6E7E8;
   display: flex;
-  height: 55px;
 
   div {
     // border: 1px dotted lime;
@@ -45,7 +44,7 @@
         font-family: monospace;
         font-size: 14px;
         height: 35px;
-        max-width: 160px;
+        width: 220px;
         padding: 0 42px;
         background-position-x: 12px;
         &:focus {
@@ -79,5 +78,11 @@
       display: inline-block;
       padding: 0 10%;
     }
+  }
+}
+
+@media (min-width : 320px) and (max-width : 768px) {
+  .module-topbar .topbar-search .topbar-search-form .search-input-field {
+    width: 160px;
   }
 }
