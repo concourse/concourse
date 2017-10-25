@@ -1,8 +1,15 @@
 groups: []
-resources: []
+resources:
+- name: my-image
+  type: docker-image
+  source: {repository: bar}
 jobs:
 - name: some-job
   plan:
   - task: some-task
     file: some-file
-    config: {}
+    image: my-image
+    config:
+      image_resource:
+        type: docker-image
+        source: {repository: foo}
