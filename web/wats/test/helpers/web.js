@@ -22,10 +22,17 @@ class Web {
 
   async loginAs(t, page, teamName) {
     await page.goto(`${this.url}/teams/${teamName}/login`);
-    await page.waitFor('.login-page button');
-    await page.click('.login-page button');
-    await page.waitForNavigation({waitUntil: 'networkidle'});
+    await this.clickAndWait(page, '.login-page button');
     t.notRegex(await this.text(page), /login/);
+  }
+
+  async clickAndWait(page, selector) {
+    await page.waitFor(selector);
+    await page.click(selector);
+    await page.waitForNavigation({
+      waitUntil: 'networkidle',
+      networkIdleInflight: 0
+    });
   }
 
   computedStyle(page, element, style) {
