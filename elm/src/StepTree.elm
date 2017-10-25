@@ -739,20 +739,20 @@ viewTimestampedLine timestamps hl id lineNo line =
                 HighlightRange hlId hlLine1 hlLine2 ->
                     hlId == id && lineNo >= hlLine1 && lineNo <= hlLine2
     in
-        case Dict.get lineNo timestamps of
-            Just ts ->
-                Html.div
-                    [ classList
-                        [ ( "timestamped-line", True )
-                        , ( "highlighted-line", highlighted )
-                        ]
-                    ]
-                    [ viewTimestamp hl id ( lineNo, ts )
-                    , viewLine line
-                    ]
+        Html.div
+            [ classList
+                [ ( "timestamped-line", True )
+                , ( "highlighted-line", highlighted )
+                ]
+            ]
+            [ case Dict.get lineNo timestamps of
+                Just ts ->
+                    viewTimestamp hl id ( lineNo, ts )
 
-            Nothing ->
-                Html.text "impossible: missing timestamp"
+                _ ->
+                    Html.text ""
+            , viewLine line
+            ]
 
 
 viewLine : Ansi.Log.Line -> Html Msg
