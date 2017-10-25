@@ -114,18 +114,6 @@ var _ = Describe("TaskConfigFetcher", func() {
 				}))
 			})
 		})
-
-		Context("when task plan config and task config file are set", func() {
-			BeforeEach(func() {
-				taskPlan.ConfigPath = "task-config-path"
-			})
-
-			It("writes warning to stderr", func() {
-				_, err := configFetcher.FetchConfig(repo)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(stderrBuf).To(gbytes.Say("DEPRECATION WARNING: Specifying both `file` and `config.params` in a task step is deprecated, use params on task step directly"))
-			})
-		})
 	})
 
 	Describe("StaticConfigFetcher", func() {
