@@ -656,11 +656,10 @@ var _ = Describe("ValidateConfig", func() {
 					config.Jobs = append(config.Jobs, job)
 				})
 
-				It("returns a deprecation warning", func() {
-					Expect(configWarnings).To(ContainElement(Warning{
-						Type:    "deprecation",
-						Message: "jobs.some-other-job.plan[0].task.lol specifies both `file` and `config` in a task step",
-					}))
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.lol specifies both `file` and `config` in a task step"))
 				})
 			})
 
