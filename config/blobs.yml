@@ -55,9 +55,9 @@ resources/s3-resource-9f3e4ab.tar.gz:
   object_id: 984db5da-1361-4647-4937-a8875f046422
   sha: 93f9dd321c8421893d54c2187cd67fc689a13c7d
 resources/semver-resource-7cbba17.tar.gz:
-  size: 23669924
-  object_id: 52a531b3-8fb3-4a7e-71eb-e5e9b73d9970
-  sha: 473dcf3877e8d2f58dbfd2d6a5e0f294ce89482a
+  size: 23777425
+  object_id: dfee2ff1-d480-4cc5-70ec-40f59a85a1fe
+  sha: 8c289d1c8d3c8688b3b7d614f6f9053800c25c97
 resources/time-resource-4b53514.tar.gz:
   size: 7050087
   object_id: ec2941fe-6fda-400b-6b5a-89965afabe98
