@@ -787,7 +787,7 @@ jobs:
 
 							Context("when the config includes deprecations", func() {
 								BeforeEach(func() {
-									pipelineConfig.Jobs[0].Plan[1].TaskConfigPath = "some/config/path.yml"
+									pipelineConfig.Jobs[0].Plan[1].ImageArtifactName = "some-image-artifact"
 									writeMultiPart()
 								})
 
@@ -795,8 +795,8 @@ jobs:
 									Expect(response.StatusCode).To(Equal(http.StatusOK))
 									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
 										"warnings": [{
-											"type": "deprecation",
-											"message": "jobs.some-job.plan[1].task.some-task specifies both ` + "`file` and `config`" + ` in a task step"
+											"type": "pipeline",
+											"message": "jobs.some-job.plan[1].task.some-task specifies an image artifact to use as the container's image but also specifies an image or image resource in the task configuration; the image artifact takes precedence"
 										}]
 									}`))
 								})
