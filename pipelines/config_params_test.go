@@ -44,11 +44,15 @@ params:
 	Context("when specifying file in task config", func() {
 		It("executes the file with params specified in file", func() {
 			watch := flyHelper.TriggerJob(pipelineName, "file-test")
+			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
 			Expect(watch).To(gbytes.Say("file_source"))
 		})
 
 		It("executes the file with job params", func() {
 			watch := flyHelper.TriggerJob(pipelineName, "file-params-test")
+			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
 			Expect(watch).To(gbytes.Say("job_params_source"))
 		})
 	})
