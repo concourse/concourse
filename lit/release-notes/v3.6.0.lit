@@ -21,6 +21,15 @@
     recreate of your workers.
   }
 
+  \note{feature,breaking}{
+    The \reference{fly-validate-pipeline} will now validate the
+    \reference{config} field on embedded tasks.
+
+    As part of this change, we have removed support for configuring both
+    \reference{config} and \reference{file}, which was deprecated about a
+    billion years ago and has been emitting shouty warnings all this time.
+  }
+
   \note{feature}{
     Build logs now have timestamps! In addition, you can click them to link to
     lines, and shift-click to select ranges! WHEE!
