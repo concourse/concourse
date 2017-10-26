@@ -248,6 +248,8 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListBuildsWithVersionAsOutput: openForPublicPipelineOrAuthorized(inputHandlers[atc.ListBuildsWithVersionAsOutput]),
 				atc.ListResources:                 openForPublicPipelineOrAuthorized(inputHandlers[atc.ListResources]),
 				atc.ListResourceVersions:          openForPublicPipelineOrAuthorized(inputHandlers[atc.ListResourceVersions]),
+				atc.GetResourceCausality:          openForPublicPipelineOrAuthorized(inputHandlers[atc.GetResourceCausality]),
+				atc.GetResourceVersion:            openForPublicPipelineOrAuthorized(inputHandlers[atc.GetResourceVersion]),
 
 				// authenticated
 				atc.CreateBuild:     authenticated(inputHandlers[atc.CreateBuild]),
