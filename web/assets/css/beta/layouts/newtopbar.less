@@ -6,11 +6,9 @@
   @base05: #6E6E6E;
   @base07: #FFFFFF;
   @base0D: #4A90E2;
-  background: #1E1D1D;
-  border-bottom: 1px solid black;
+  background: @accent;
   color: #E6E7E8;
   display: flex;
-  height: 55px;
 
   div {
     // border: 1px dotted lime;
@@ -41,16 +39,16 @@
 
       .search-input-field {
         background: transparent url('images/ic_search_white_24px.svg') 10px 10px no-repeat;
-        border: 1px solid @base05;
+        border: 1px solid #504B4B;
         color: @base07;
         font-family: monospace;
         font-size: 14px;
         height: 35px;
-        max-width: 160px;
+        width: 220px;
         padding: 0 42px;
         background-position-x: 12px;
         &:focus {
-          border: 1px solid @base0D;
+          border: 1px solid #504B4B;
           outline: 0;
         }
        }
@@ -80,5 +78,11 @@
       display: inline-block;
       padding: 0 10%;
     }
+  }
+}
+
+@media (min-width : 320px) and (max-width : 768px) {
+  .module-topbar .topbar-search .topbar-search-form .search-input-field {
+    width: 160px;
   }
 }

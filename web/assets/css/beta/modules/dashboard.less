@@ -15,21 +15,21 @@
     }
   }
 
-  .pending   { background: @base04; }
-  .started   { background: @base0A; }
-  .no-builds { background: @base03; }
-  .succeeded { background: @base0B; }
-  .failed    { background: @base08; }
-  .errored   { background: @base09; }
-  .aborted   { background: @base0F; }
-  .paused    { background: @base0D; }
+  .pending   { background: @gray-primary; &:hover { background: @gray-secondary }}
+  .started   { background: @gray-secondary; }
+  .no-builds { background: @accent-tertiary; }
+  .succeeded { background: @green-primary; &:hover { background: @green-secondary }}
+  .failed    { background: @red-primary; &:hover { background: @red-secondary }}
+  .errored   { background: @amber-primary; &:hover { background: @amber-secondary }}
+  .aborted   { background: @brown-primary; &:hover { background: @brown-secondary }}
+  .paused    { background: @blue-primary; &:hover { background: @blue-secondary }}
 
   .running { background-size: 500% 100%; }
-  .no-builds.running { .running-animation(@base04, #666565); }
-  .succeeded.running { .running-animation(@base0B, #0D4E2A); }
-  .failed.running    { .running-animation(@base08, #8D2D20); }
-  .errored.running   { .running-animation(@base09, #9C650A); }
-  .aborted.running   { .running-animation(@base0F, #5A320E); }
+  .no-builds.running { .running-animation(@gray-primary, @gray-secondary); }
+  .succeeded.running { .running-animation(@green-primary, @green-secondary); }
+  .failed.running    { .running-animation(@red-primary, @red-secondary); }
+  .errored.running   { .running-animation(@amber-primary, @amber-secondary); }
+  .aborted.running   { .running-animation(@brown-primary, @brown-secondary); }
 
   .pipeline-grid {
     float: none;
@@ -65,7 +65,7 @@
   }
 
   .dashboard-team-name {
-    color: @base03;
+    color: @accent-tertiary;
     font-size: (30px * @scale);
     margin-bottom: (25px * @scale);
   }
@@ -102,18 +102,18 @@
   }
 
   @keyframes pipeline-running {
-    0%   { background-position-x: -24px; }
+    0%   { background-position-x: -27px; }
     100% { background-position-x: 0px; }
   }
 
   .running-animation(@color1, @color2) {
-    background-image: repeating-linear-gradient(-45deg, @color1 0, @color1 6px, @color2 0, @color2 17px);
+    background-image: repeating-linear-gradient(60deg, @color1 0, @color1 5px, @color2 0, @color2 8px);
     animation: pipeline-running 1s linear infinite;
   }
 
   .dashboard-paused {
     .dashboard-pipeline-banner {
-      background-color: @base0D;
+      background-color: @blue-primary;
     }
 
     .dashboard-pipeline-icon {
@@ -121,7 +121,7 @@
     }
 
     .build-duration {
-      color: @base0D;
+      color: @blue-primary;
     }
   }
 
@@ -132,17 +132,17 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@base07, @base01);
+        .running-animation(@gray-primary, @gray-secondary);
       }
     }
     .build-duration {
-      color: @base07;
+      color: @gray-primary;
     }
   }
 
   .dashboard-status-failed {
     .dashboard-pipeline-banner {
-      background-color: @base08;
+      background-color: @red-primary;
     }
 
     .dashboard-pipeline-icon {
@@ -151,17 +151,17 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@base08, @base01);
+        .running-animation(@red-primary, @red-secondary);
       }
     }
     .build-duration {
-      color: @base08;
+      color: @red-primary;
     }
   }
 
   .dashboard-status-aborted {
     .dashboard-pipeline-banner {
-      background-color: @base0F;
+      background-color: @brown-primary;
     }
 
     .dashboard-pipeline-icon {
@@ -170,17 +170,17 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@base0F, @base01);
+        .running-animation(@brown-primary, @brown-secondary);
       }
     }
     .build-duration {
-      color: @base0F;
+      color: @brown-primary;
     }
   }
 
   .dashboard-status-succeeded {
     .dashboard-pipeline-banner {
-      background-color: @base0B;
+      background-color: @green-primary;
     }
 
     .dashboard-pipeline-icon {
@@ -189,17 +189,17 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@base0B, @base01);
+        .running-animation(@green-primary, @green-secondary);
       }
     }
     .build-duration {
-      color: @base0B;
+      color: @green-primary;
     }
   }
 
   .dashboard-status-errored {
     .dashboard-pipeline-banner {
-      background-color: @base09;
+      background-color: @amber-primary;
     }
 
     .dashboard-pipeline-icon {
@@ -208,11 +208,11 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@base09, @base01);
+        .running-animation(@amber-primary, @amber-secondary);
       }
     }
     .build-duration {
-      color: @base09;
+      color: @amber-primary;
     }
   }
 }
@@ -221,12 +221,14 @@
   position: fixed;
   bottom: 0;
   width: 100%;
-  background: #1E1D1D;
-  padding: 15px 0 5px 0;
+  background: @accent;
+  padding: 15px 0;
   text-align: right;
   color: #7E7E7E;
   font-size: 10px;
   z-index: 999;
+  height: 35px;
+  line-height: 35px;
 
   .dashboard-legend {
     float: left;
@@ -268,6 +270,9 @@
       margin-right: 10px;
       font-size: 1.4em;
       color: #B9B8B8;
+      &:hover {
+        color: #FFFFFF;
+      }
     }
   }
 }
@@ -296,6 +301,7 @@
 }
 
 .dashboard-pipeline-name {
+  color: @white;
   text-align: center;
   font-size: (34px * @scale);
   margin: 0 auto;
@@ -340,7 +346,7 @@
 
 [data-tooltip]:before {
   position: absolute;
-  left: ~"calc(50% + 15px)";
+  left: 100%;
   padding: 6px 15px 6px 6px;
   background-color: black;
   content: attr(data-tooltip);
@@ -350,7 +356,7 @@
 
 [data-tooltip]:after {
   position: absolute;
-  left: 50%;
+  left: ~"calc(100% - 15px)";
   width: 0;
   border-right: 15px solid black;
   border-right: 15px solid black;
