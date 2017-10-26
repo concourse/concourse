@@ -21,4 +21,4 @@ go get -t -d ./...
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo -r -p -race -skipPackage acceptance "$@"
+ginkgo -r -p -race "$@"
