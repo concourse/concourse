@@ -5,7 +5,7 @@ set -e -u -x
 export GOPATH=$PWD/concourse
 export PATH=$PWD/concourse/bin:$PATH
 
-export ATC_REPO=$PWD/atc
+export PR_REPO=$PWD/atc
 
 pushd atc
   git checkout -b pr
@@ -13,7 +13,7 @@ popd
 
 cd concourse/src/github.com/concourse/atc
 
-git remote add pr $ATC_REPO
+git remote add pr $PR_REPO
 git fetch pr
 git checkout pr/pr
 
