@@ -1,4 +1,4 @@
-port module BetaPipeline exposing (Flags, Model, Msg, init, changeToPipelineAndGroups, update, view, subscriptions)
+module BetaPipeline exposing (Flags, Model, Msg, init, changeToPipelineAndGroups, update, view, subscriptions)
 
 import Dict exposing (Dict)
 import Format exposing (prependBeta)
@@ -14,9 +14,6 @@ import Concourse.BuildStatus
 import Grid exposing (Grid)
 import BetaRoutes
 import QueryString
-
-
-port resetPipelineFocus : () -> Cmd msg
 
 
 type alias Model =
