@@ -56,6 +56,8 @@ module Concourse
         , decodeUser
         , Version
         , decodeVersion
+        , Cause
+        , decodeCause
         )
 
 import Array exposing (Array)
@@ -669,6 +671,8 @@ type alias VersionedResource =
     , version : Version
     , enabled : Bool
     , metadata : Metadata
+    , resourceType : String
+    , resourceName : String
     }
 
 
@@ -696,6 +700,8 @@ decodeVersionedResource =
         |: (Json.Decode.field "version" decodeVersion)
         |: (Json.Decode.field "enabled" Json.Decode.bool)
         |: defaultTo [] (Json.Decode.field "metadata" decodeMetadata)
+        |: (Json.Decode.field "type" Json.Decode.string)
+        |: (Json.Decode.field "resource" Json.Decode.string)
 
 
 
@@ -771,6 +777,23 @@ decodeUser : Json.Decode.Decoder User
 decodeUser =
     Json.Decode.succeed User
         |: (Json.Decode.field "team" decodeTeam)
+
+
+
+-- Cause
+
+
+type alias Cause =
+    { versionedResourceID : Int
+    , buildID : Int
+    }
+
+
+decodeCause : Json.Decode.Decoder Cause
+decodeCause =
+    Json.Decode.succeed Cause
+        |: (Json.Decode.field "versioned_resource_id" Json.Decode.int)
+        |: (Json.Decode.field "build_id" Json.Decode.int)
 
 
 

@@ -1,24 +1,29 @@
 module BetaResource exposing (Flags, Msg(..), Model, init, changeToResource, update, updateWithMessage, view, subscriptions, PauseChangingOrErrored(..))
 
 import Concourse
+import Concourse.Build
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Pagination, Paginated, Page, equal)
 import Concourse.Resource
-import Dict
+import Dict exposing (Dict)
 import DictView
 import Erl
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, title)
+import Html.Attributes exposing (class, href)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onClick)
 import Http
+import LoginRedirect
 import Navigation
+import RemoteData exposing (WebData)
+import Set exposing (Set)
 import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
-import LoginRedirect
-import RemoteData exposing (WebData)
 import UpdateMsg exposing (UpdateMsg)
+import BetaPipeline
+import BetaRoutes
+import QueryString
 
 
 type alias Ports =
@@ -33,16 +38,18 @@ type alias Model =
     , pausedChanging : PauseChangingOrErrored
     , versionedResources : Paginated Concourse.VersionedResource
     , currentPage : Maybe Page
-    , versionedUIStates : Dict.Dict Int VersionUIState
     , csrfToken : String
+    , versionedUIStates : Dict.Dict Int VersionUIState
+    , causality : Dict.Dict Int (WebData (List Concourse.Cause))
+    , causalityBuilds : Dict.Dict Int (WebData Concourse.Build)
+    , causalityVersions : Dict.Dict Int (WebData Concourse.VersionedResource)
+    , betaPipelineModel : BetaPipeline.Model
     }
 
 
 type alias VersionUIState =
     { changingErrored : Bool
     , expanded : Bool
-    , inputTo : List Concourse.Build
-    , outputOf : List Concourse.Build
     }
 
 
@@ -63,9 +70,11 @@ type Msg
     | ToggleVersionedResource Int
     | VersionedResourceToggled Int (Result Http.Error ())
     | ExpandVersionedResource Int
-    | InputToFetched Int (Result Http.Error (List Concourse.Build))
-    | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
+    | CausalityFetched Int (RemoteData.WebData (List Concourse.Cause))
+    | BuildFetched Int (RemoteData.WebData Concourse.Build)
+    | VersionedResourceFetched Int (RemoteData.WebData Concourse.VersionedResource)
     | NavTo String
+    | BetaPipelineMsg BetaPipeline.Msg
 
 
 type alias Flags =
@@ -80,6 +89,21 @@ type alias Flags =
 init : Ports -> Flags -> ( Model, Cmd Msg )
 init ports flags =
     let
+        ( betaPipelineModel, betaPipelineCmd ) =
+            BetaPipeline.init
+                { title = always Cmd.none
+                }
+                { teamName = flags.teamName
+                , pipelineName = flags.pipelineName
+                , turbulenceImgSrc = "boring.png"
+                , route =
+                    { logical = BetaRoutes.BetaHome
+                    , queries = QueryString.empty
+                    , page = Nothing
+                    , hash = ""
+                    }
+                }
+
         ( model, cmd ) =
             changeToResource flags
                 { resourceIdentifier =
@@ -100,12 +124,17 @@ init ports flags =
                 , versionedUIStates = Dict.empty
                 , ports = ports
                 , csrfToken = flags.csrfToken
+                , causality = Dict.empty
+                , causalityBuilds = Dict.empty
+                , causalityVersions = Dict.empty
+                , betaPipelineModel = betaPipelineModel
                 }
     in
         ( model
         , Cmd.batch
             [ fetchResource model.resourceIdentifier
             , cmd
+            , Cmd.map BetaPipelineMsg betaPipelineCmd
             ]
         )
 
@@ -148,13 +177,11 @@ update action model =
 
         AutoupdateTimerTicked timestamp ->
             ( model
-            , Cmd.batch <|
-                List.append
-                    [ fetchResource model.resourceIdentifier
-                    , fetchVersionedResources model.resourceIdentifier model.currentPage
-                    ]
-                <|
-                    updateExpandedProperties model
+            , Cmd.batch
+                [ fetchResource model.resourceIdentifier
+                , fetchVersionedResources model.resourceIdentifier model.currentPage
+                , updateExpandedProperties model
+                ]
             )
 
         ResourceFetched (Ok resource) ->
@@ -265,11 +292,7 @@ update action model =
         ToggleVersionedResource versionID ->
             let
                 versionedResourceIdentifier =
-                    { teamName = model.resourceIdentifier.teamName
-                    , pipelineName = model.resourceIdentifier.pipelineName
-                    , resourceName = model.resourceIdentifier.resourceName
-                    , versionID = versionID
-                    }
+                    versionIdentifier model versionID
 
                 versionedResource =
                     List.head <|
@@ -341,11 +364,7 @@ update action model =
         ExpandVersionedResource versionID ->
             let
                 versionedResourceIdentifier =
-                    { teamName = model.resourceIdentifier.teamName
-                    , pipelineName = model.resourceIdentifier.pipelineName
-                    , resourceName = model.resourceIdentifier.resourceName
-                    , versionID = versionID
-                    }
+                    versionIdentifier model versionID
 
                 oldState =
                     getState versionID model.versionedUIStates
@@ -359,70 +378,90 @@ update action model =
                     | versionedUIStates = setState versionID newState model.versionedUIStates
                   }
                 , if newState.expanded then
-                    Cmd.batch
-                        [ fetchInputTo versionedResourceIdentifier
-                        , fetchOutputOf versionedResourceIdentifier
-                        ]
+                    fetchCausality versionedResourceIdentifier
                   else
                     Cmd.none
                 )
 
-        InputToFetched _ (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-                    else
-                        ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        InputToFetched versionID (Ok builds) ->
+        CausalityFetched versionID response ->
             let
-                oldState =
-                    getState versionID model.versionedUIStates
+                withCausality =
+                    { model | causality = Dict.insert versionID response model.causality }
 
-                newState =
-                    { oldState
-                        | inputTo = builds
-                    }
+                fetchCausalityDependents cause ( model, cmd ) =
+                    conditionallyFetchBuild cause.buildID <|
+                        conditionallyFetchVersion cause.versionedResourceID <|
+                            ( model, cmd )
             in
-                ( { model
-                    | versionedUIStates = setState versionID newState model.versionedUIStates
-                  }
-                , Cmd.none
-                )
+                case response of
+                    RemoteData.Success causality ->
+                        List.foldl fetchCausalityDependents
+                            ( withCausality, Cmd.none )
+                            causality
 
-        OutputOfFetched _ (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-                    else
-                        ( model, Cmd.none )
+                    _ ->
+                        ( withCausality, Cmd.none )
 
-                _ ->
-                    ( model, Cmd.none )
+        BuildFetched buildID response ->
+            ( { model | causalityBuilds = Dict.insert buildID response model.causalityBuilds }
+            , Cmd.none
+            )
 
-        OutputOfFetched versionID (Ok builds) ->
+        VersionedResourceFetched vrID response ->
+            ( { model | causalityVersions = Dict.insert vrID response model.causalityVersions }
+            , Cmd.none
+            )
+
+        BetaPipelineMsg msg ->
             let
-                oldState =
-                    getState versionID model.versionedUIStates
-
-                newState =
-                    { oldState
-                        | outputOf = builds
-                    }
+                ( betaPipelineModel, betaPipelineCmd ) =
+                    BetaPipeline.update msg model.betaPipelineModel
             in
-                ( { model
-                    | versionedUIStates = setState versionID newState model.versionedUIStates
-                  }
-                , Cmd.none
+                ( { model | betaPipelineModel = betaPipelineModel }
+                , Cmd.map BetaPipelineMsg betaPipelineCmd
                 )
 
         NavTo url ->
             ( model, Navigation.newUrl url )
+
+
+conditionallyFetchBuild : Int -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+conditionallyFetchBuild id ( model, cmd ) =
+    case getData id model.causalityBuilds of
+        RemoteData.Success build ->
+            if Concourse.BuildStatus.isRunning build.status then
+                ( model, Cmd.batch [ fetchBuild id, cmd ] )
+            else
+                ( model, cmd )
+
+        RemoteData.NotAsked ->
+            ( { model | causalityBuilds = Dict.insert id RemoteData.Loading model.causalityBuilds }
+            , Cmd.batch [ fetchBuild id, cmd ]
+            )
+
+        _ ->
+            ( model, cmd )
+
+
+conditionallyFetchVersion : Int -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+conditionallyFetchVersion id ( model, cmd ) =
+    case getData id model.causalityVersions of
+        RemoteData.NotAsked ->
+            ( { model | causalityVersions = Dict.insert id RemoteData.Loading model.causalityVersions }
+            , Cmd.batch [ fetchVersionedResource (versionIdentifier model id), cmd ]
+            )
+
+        _ ->
+            ( model, cmd )
+
+
+versionIdentifier : Model -> Int -> Concourse.VersionedResourceIdentifier
+versionIdentifier model versionedResourceID =
+    { teamName = model.resourceIdentifier.teamName
+    , pipelineName = model.resourceIdentifier.pipelineName
+    , resourceName = model.resourceIdentifier.resourceName
+    , versionID = versionedResourceID
+    }
 
 
 permalink : List Concourse.VersionedResource -> Page
@@ -508,15 +547,15 @@ view model =
                 ( previousButtonClass, previousButtonEvent ) =
                     case model.versionedResources.pagination.previousPage of
                         Nothing ->
-                            ( "btn-page-link prev disabled", Noop )
+                            ( "btn-page-link disabled", Noop )
 
                         Just pp ->
-                            ( "btn-page-link prev", LoadPage pp )
+                            ( "btn-page-link", LoadPage pp )
 
                 ( nextButtonClass, nextButtonEvent ) =
                     case model.versionedResources.pagination.nextPage of
                         Nothing ->
-                            ( "btn-page-link next disabled", Noop )
+                            ( "btn-page-link disabled", Noop )
 
                         Just np ->
                             let
@@ -525,7 +564,7 @@ view model =
                                         | limit = 100
                                     }
                             in
-                                ( "btn-page-link next", LoadPage updatedPage )
+                                ( "btn-page-link", LoadPage updatedPage )
             in
                 Html.div [ class "with-fixed-header" ]
                     [ Html.div [ class "fixed-header" ]
@@ -550,10 +589,9 @@ view model =
                             [ Html.div [ class "build-step" ]
                                 (List.append
                                     [ Html.div [ class "header" ]
-                                        [ Html.button
+                                        [ Html.span
                                             [ class <| "btn-pause fl " ++ paused
                                             , ariaLabel aria
-                                            , title aria
                                             , onClick onClickEvent
                                             ]
                                             [ Html.i [ class <| "fa fa-fw " ++ pausedIcon ] []
@@ -565,7 +603,7 @@ view model =
                                     stepBody
                                 )
                             ]
-                        , (viewVersionedResources model.versionedResources.content model.versionedUIStates)
+                        , (viewVersionedResources model model.versionedResources.content model.versionedUIStates)
                         ]
                     ]
 
@@ -597,14 +635,14 @@ switchEnabled versionID versionedResource =
             versionedResource
 
 
-viewVersionedResources : List Concourse.VersionedResource -> Dict.Dict Int VersionUIState -> Html Msg
-viewVersionedResources versionedResources states =
+viewVersionedResources : Model -> List Concourse.VersionedResource -> Dict.Dict Int VersionUIState -> Html Msg
+viewVersionedResources model versionedResources states =
     Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
-        (List.map (viewVersionedResource states) versionedResources)
+        (List.map (viewVersionedResource model states) versionedResources)
 
 
-viewVersionedResource : Dict.Dict Int VersionUIState -> Concourse.VersionedResource -> Html Msg
-viewVersionedResource states versionedResource =
+viewVersionedResource : Model -> Dict.Dict Int VersionUIState -> Concourse.VersionedResource -> Html Msg
+viewVersionedResource model states versionedResource =
     let
         resourceState =
             getState versionedResource.id states
@@ -638,22 +676,64 @@ viewVersionedResource states versionedResource =
             , Html.div [ class "list-collapsable-title", onClick <| ExpandVersionedResource versionedResource.id ]
                 [ viewVersion versionedResource.version ]
             , Html.div [ class "list-collapsable-content clearfix" ]
-                [ Html.div [ class "vri" ] <|
-                    List.concat
-                        [ [ Html.div [ class "list-collapsable-title" ] [ Html.text "inputs to" ] ]
-                        , viewBuilds <| listToMap resourceState.inputTo
-                        ]
-                , Html.div [ class "vri" ] <|
-                    List.concat
-                        [ [ Html.div [ class "list-collapsable-title" ] [ Html.text "outputs of" ] ]
-                        , viewBuilds <| listToMap resourceState.outputOf
-                        ]
+                [ Html.div [ class "causality" ]
+                    [ case getData versionedResource.id model.causality of
+                        RemoteData.Success causality ->
+                            viewCausality model causality
+
+                        x ->
+                            Html.text (toString x)
+                    ]
+                , Html.div [ class "pipeline" ]
+                    [ case getData versionedResource.id model.causality of
+                        RemoteData.Success causality ->
+                            Html.map BetaPipelineMsg <|
+                                BetaPipeline.view (pipelineForCausality model causality model.betaPipelineModel)
+
+                        x ->
+                            Html.text (toString x)
+                    ]
                 , Html.div [ class "vri metadata-container" ]
                     [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
                     , viewMetadata versionedResource.metadata
                     ]
                 ]
             ]
+
+
+pipelineForCausality : Model -> List Concourse.Cause -> BetaPipeline.Model -> BetaPipeline.Model
+pipelineForCausality model causality betaPipelineModel =
+    let
+        resetJobState =
+            List.map <|
+                \job ->
+                    { job
+                        | nextBuild = Nothing
+                        , finishedBuild = Nothing
+                    }
+
+        setJobBuild { buildID } jobs =
+            case getData buildID model.causalityBuilds of
+                RemoteData.Success build ->
+                    case build.job of
+                        Just { jobName } ->
+                            flip List.map jobs <|
+                                \job ->
+                                    if job.name == jobName then
+                                        if Concourse.BuildStatus.isRunning build.status then
+                                            { job | nextBuild = Just build }
+                                        else
+                                            { job | finishedBuild = Just build }
+                                    else
+                                        job
+
+                        Nothing ->
+                            jobs
+
+                _ ->
+                    jobs
+    in
+        { betaPipelineModel | jobs = List.foldl setJobBuild (resetJobState betaPipelineModel.jobs) causality }
 
 
 getState : Int -> Dict.Dict Int VersionUIState -> VersionUIState
@@ -666,8 +746,6 @@ getState versionID states =
             Nothing ->
                 { changingErrored = False
                 , expanded = False
-                , inputTo = []
-                , outputOf = []
                 }
 
             Just rs ->
@@ -685,6 +763,97 @@ viewVersion version =
         << Dict.map (\_ s -> Html.text s)
     <|
         version
+
+
+viewCausality : Model -> List Concourse.Cause -> Html Msg
+viewCausality model causality =
+    Html.div [ class "causality-sequence" ] <|
+        viewCauses model causality Set.empty Set.empty
+
+
+viewCauses : Model -> List Concourse.Cause -> Set Int -> Set Int -> List (Html Msg)
+viewCauses model causes seenVersions seenBuilds =
+    case causes of
+        [] ->
+            []
+
+        { versionedResourceID, buildID } :: rest ->
+            let
+                build =
+                    viewCauseBuild model buildID
+
+                version =
+                    viewCauseVersion model versionedResourceID
+
+                viewRest =
+                    viewCauses model
+                        rest
+                        (Set.insert versionedResourceID seenVersions)
+                        (Set.insert buildID seenBuilds)
+            in
+                case ( Set.member versionedResourceID seenVersions, Set.member buildID seenBuilds ) of
+                    ( True, True ) ->
+                        viewRest
+
+                    ( False, True ) ->
+                        [ version ] ++ viewRest
+
+                    ( True, False ) ->
+                        [ build ] ++ viewRest
+
+                    ( False, False ) ->
+                        [ version, build ] ++ viewRest
+
+
+viewCauseBuild : Model -> Int -> Html Msg
+viewCauseBuild model buildID =
+    case getData buildID model.causalityBuilds of
+        RemoteData.Success build ->
+            viewBuildCausality build
+
+        x ->
+            Html.text (toString x)
+
+
+viewCauseVersion : Model -> Int -> Html Msg
+viewCauseVersion model versionedResourceID =
+    case getData versionedResourceID model.causalityVersions of
+        RemoteData.Success version ->
+            viewVersionCausality version
+
+        x ->
+            Html.text (toString x)
+
+
+viewBuildCausality : Concourse.Build -> Html Msg
+viewBuildCausality build =
+    let
+        jobName =
+            Maybe.withDefault "one-off" <| Maybe.map .jobName build.job
+    in
+        Html.div [ class <| "causality-build " ++ Concourse.BuildStatus.show build.status ]
+            [ Html.a
+                [ StrictEvents.onLeftClick <| NavTo build.url
+                , href build.url
+                ]
+                [ Html.text <| jobName ++ " #" ++ build.name ]
+            ]
+
+
+viewVersionCausality : Concourse.VersionedResource -> Html Msg
+viewVersionCausality vr =
+    Html.div [ class "causality-resource" ]
+        [ Html.span [ class "resource-name" ]
+            [ Html.text vr.resourceName
+            , Html.text " @ "
+            ]
+        , viewVersion vr.version
+        ]
+
+
+getData : comparable -> Dict comparable (RemoteData.WebData x) -> RemoteData.WebData x
+getData a dict =
+    Maybe.withDefault RemoteData.NotAsked <| Dict.get a dict
 
 
 viewMetadata : Concourse.Metadata -> Html Msg
@@ -772,7 +941,7 @@ viewBuildsByJob buildDict jobName =
         ]
 
 
-updateExpandedProperties : Model -> List (Cmd Msg)
+updateExpandedProperties : Model -> Cmd Msg
 updateExpandedProperties model =
     let
         filteredList =
@@ -780,9 +949,8 @@ updateExpandedProperties model =
                 (isExpanded model.versionedUIStates)
                 model.versionedResources.content
     in
-        List.concatMap
-            (fetchInputAndOutputs model)
-            filteredList
+        Cmd.batch <|
+            List.map (fetchVersionCausality model) filteredList
 
 
 isExpanded : Dict.Dict Int VersionUIState -> Concourse.VersionedResource -> Bool
@@ -799,19 +967,9 @@ isExpanded states versionedResource =
                 someState.expanded
 
 
-fetchInputAndOutputs : Model -> Concourse.VersionedResource -> List (Cmd Msg)
-fetchInputAndOutputs model versionedResource =
-    let
-        identifier =
-            { teamName = model.resourceIdentifier.teamName
-            , pipelineName = model.resourceIdentifier.pipelineName
-            , resourceName = model.resourceIdentifier.resourceName
-            , versionID = versionedResource.id
-            }
-    in
-        [ fetchInputTo identifier
-        , fetchOutputOf identifier
-        ]
+fetchVersionCausality : Model -> Concourse.VersionedResource -> Cmd Msg
+fetchVersionCausality model versionedResource =
+    fetchCausality (versionIdentifier model versionedResource.id)
 
 
 fetchResource : Concourse.ResourceIdentifier -> Cmd Msg
@@ -850,16 +1008,27 @@ disableVersionedResource versionedResourceIdentifier csrfToken =
         Concourse.Resource.disableVersionedResource versionedResourceIdentifier csrfToken
 
 
-fetchInputTo : Concourse.VersionedResourceIdentifier -> Cmd Msg
-fetchInputTo versionedResourceIdentifier =
-    Task.attempt (InputToFetched versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.fetchInputTo versionedResourceIdentifier
+fetchCausality : Concourse.VersionedResourceIdentifier -> Cmd Msg
+fetchCausality versionedResourceIdentifier =
+    Cmd.map (CausalityFetched versionedResourceIdentifier.versionID) <|
+        RemoteData.asCmd <|
+            Concourse.Resource.fetchCausality versionedResourceIdentifier
 
 
-fetchOutputOf : Concourse.VersionedResourceIdentifier -> Cmd Msg
-fetchOutputOf versionedResourceIdentifier =
-    Task.attempt (OutputOfFetched versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.fetchOutputOf versionedResourceIdentifier
+fetchBuild : Int -> Cmd Msg
+fetchBuild buildID =
+    Cmd.map (BuildFetched buildID)
+        << RemoteData.asCmd
+    <|
+        Concourse.Build.fetch buildID
+
+
+fetchVersionedResource : Concourse.VersionedResourceIdentifier -> Cmd Msg
+fetchVersionedResource versionedResourceIdentifier =
+    Cmd.map (VersionedResourceFetched versionedResourceIdentifier.versionID)
+        << RemoteData.asCmd
+    <|
+        Concourse.Resource.fetchVersionedResource versionedResourceIdentifier
 
 
 subscriptions : Model -> Sub Msg

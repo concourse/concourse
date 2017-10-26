@@ -26,6 +26,11 @@ func (e ErrResourceNotFound) Error() string {
 
 //go:generate counterfeiter . Pipeline
 
+type Cause struct {
+	VersionedResourceID int `json:"versioned_resource_id"`
+	BuildID             int `json:"build_id"`
+}
+
 type Pipeline interface {
 	ID() int
 	Name() string
@@ -40,6 +45,8 @@ type Pipeline interface {
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
 
+	Causality(versionedResourceID int) ([]Cause, error)
+
 	SetResourceCheckError(Resource, error) error
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
@@ -49,6 +56,7 @@ type Pipeline interface {
 	GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
 
+	VersionedResource(versionedResourceID int) (SavedVersionedResource, bool, error)
 	DisableVersionedResource(versionedResourceID int) error
 	EnableVersionedResource(versionedResourceID int) error
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
@@ -175,7 +183,54 @@ func (p *pipeline) ScopedName(n string) string {
 	return p.name + ":" + n
 }
 
-// Write test
+func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
+	rows, err := p.conn.Query(`
+		WITH RECURSIVE causality(versioned_resource_id, build_id) AS (
+				SELECT bi.versioned_resource_id, bi.build_id
+				FROM build_inputs bi
+				WHERE bi.versioned_resource_id = $1
+			UNION
+				SELECT bi.versioned_resource_id, bi.build_id
+				FROM causality t
+				INNER JOIN build_outputs bo ON bo.build_id = t.build_id
+				INNER JOIN build_inputs bi ON bi.versioned_resource_id = bo.versioned_resource_id
+				INNER JOIN builds b ON b.id = bi.build_id
+				WHERE bo.explicit
+				AND NOT EXISTS (
+					SELECT 1
+					FROM build_outputs obo
+					INNER JOIN builds ob ON ob.id = obo.build_id
+					WHERE obo.build_id < bi.build_id
+					AND ob.job_id = b.job_id
+					AND obo.versioned_resource_id = bi.versioned_resource_id
+				)
+		)
+		SELECT c.versioned_resource_id, c.build_id
+		FROM causality c
+		INNER JOIN builds b ON b.id = c.build_id
+		ORDER BY b.start_time ASC, c.versioned_resource_id ASC
+	`, versionedResourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	var causality []Cause
+	for rows.Next() {
+		var vrID, buildID int
+		err := rows.Scan(&vrID, &buildID)
+		if err != nil {
+			return nil, err
+		}
+
+		causality = append(causality, Cause{
+			VersionedResourceID: vrID,
+			BuildID:             buildID,
+		})
+	}
+
+	return causality, nil
+}
+
 func (p *pipeline) CheckPaused() (bool, error) {
 	var paused bool
 
@@ -583,6 +638,40 @@ func (p *pipeline) GetVersionedResourceByVersion(atcVersion atc.Version, resourc
 		RunWith(p.conn).
 		QueryRow().
 		Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.CheckOrder)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return SavedVersionedResource{}, false, nil
+		}
+
+		return SavedVersionedResource{}, false, err
+	}
+
+	err = json.Unmarshal([]byte(versionBytes), &svr.Version)
+	if err != nil {
+		return SavedVersionedResource{}, false, err
+	}
+
+	err = json.Unmarshal([]byte(metadataBytes), &svr.Metadata)
+	if err != nil {
+		return SavedVersionedResource{}, false, err
+	}
+
+	return svr, true, nil
+}
+
+func (p *pipeline) VersionedResource(versionedResourceID int) (SavedVersionedResource, bool, error) {
+	svr := SavedVersionedResource{
+		VersionedResource: VersionedResource{},
+	}
+
+	var versionBytes, metadataBytes string
+	err := psql.Select("v.id", "v.enabled", "v.type", "v.version", "v.metadata", "v.check_order", "r.name").
+		From("versioned_resources v").
+		Join("resources r ON r.id = v.resource_id").
+		Where(sq.Eq{"v.id": versionedResourceID}).
+		RunWith(p.conn).
+		QueryRow().
+		Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.CheckOrder, &svr.VersionedResource.Resource)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return SavedVersionedResource{}, false, nil
