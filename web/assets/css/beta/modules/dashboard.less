@@ -3,21 +3,17 @@
 @scale: 0.6;
 
 .dashboard {
-
   .dashboard-content {
-    font-family: "iosevka";
-    letter-spacing: 0.1em;
     padding: 0 0 30px 30px;
-    background: @base00;
     &.no-results {
       padding: 60px 30px;
       text-align: center;
     }
   }
 
-  .pending   { background: @gray-primary; &:hover { background: @gray-secondary }}
-  .started   { background: @gray-secondary; }
-  .no-builds { background: @accent-tertiary; }
+  .pending   { background: @grey-primary; &:hover { background: @grey-secondary }}
+  .started   { background: @grey-secondary; }
+  .no-builds { background: @grey-secondary; }
   .succeeded { background: @green-primary; &:hover { background: @green-secondary }}
   .failed    { background: @red-primary; &:hover { background: @red-secondary }}
   .errored   { background: @amber-primary; &:hover { background: @amber-secondary }}
@@ -25,7 +21,7 @@
   .paused    { background: @blue-primary; &:hover { background: @blue-secondary }}
 
   .running { background-size: 500% 100%; }
-  .no-builds.running { .running-animation(@gray-primary, @gray-secondary); }
+  .no-builds.running { .running-animation(@grey-primary, @grey-secondary); }
   .succeeded.running { .running-animation(@green-primary, @green-secondary); }
   .failed.running    { .running-animation(@red-primary, @red-secondary); }
   .errored.running   { .running-animation(@amber-primary, @amber-secondary); }
@@ -65,7 +61,7 @@
   }
 
   .dashboard-team-name {
-    color: @accent-tertiary;
+    color: @base04;
     font-size: (30px * @scale);
     margin-bottom: (25px * @scale);
   }
@@ -76,14 +72,15 @@
     margin-right: (50px * @scale);
 
     .dashboard-pipeline-header {
-      border-bottom: 1px solid @base00;
+      border-bottom: 2px solid @base02;
+
       &:hover {
-        background: @base02;
+        background: @base00;
       }
     }
 
     .dashboard-pipeline-banner {
-      background-color: @base07;
+      background-color: @grey-primary;
       background-size: 200% 100%;
       height: (14px * @scale);
     }
@@ -91,7 +88,7 @@
     .dashboard-pipeline-content {
       display: flex;
       flex-direction: column;
-      background: #2B2B2B;
+      background: @base01;
       position: relative;
     }
 
@@ -132,11 +129,11 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@gray-primary, @gray-secondary);
+        .running-animation(@grey-primary, @grey-secondary);
       }
     }
     .build-duration {
-      color: @gray-primary;
+      color: @grey-primary;
     }
   }
 
@@ -221,14 +218,13 @@
   position: fixed;
   bottom: 0;
   width: 100%;
-  background: @accent;
-  padding: 15px 0;
+  background: @base00;
   text-align: right;
-  color: #7E7E7E;
+  color: @base04;
   font-size: 10px;
   z-index: 999;
-  height: 35px;
-  line-height: 35px;
+  height: 64px;
+  line-height: 64px;
 
   .dashboard-legend {
     float: left;
@@ -269,9 +265,10 @@
     .fa {
       margin-right: 10px;
       font-size: 1.4em;
-      color: #B9B8B8;
+      color: @base04;
+
       &:hover {
-        color: #FFFFFF;
+        color: @white;
       }
     }
   }
