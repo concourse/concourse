@@ -1,30 +1,24 @@
 // newtopbar.less
 
 .module-topbar {
-  @base01: #000000;
-  @base03: #333333;
-  @base05: #6E6E6E;
-  @base07: #FFFFFF;
-  @base0D: #4A90E2;
-  background: @accent;
-  color: #E6E7E8;
+  background: @base00;
+  color: @white;
   display: flex;
-
-  div {
-    // border: 1px dotted lime;
-  }
+  height: 64px;
+  line-height: 64px;
 
   .topbar-logo {
     flex-shrink: 1;
     flex-basis: 50%;
+
     .logo-image-link {
       background-image: url('images/concourse_logo_white.svg');
       background-size: 30px 30px;
       background-position: center center;
       background-repeat: no-repeat;
       display: inline-block;
-      height: 55px;
-      width: 55px;
+      height: 64px;
+      width: 64px;
     }
   }
 
@@ -35,12 +29,12 @@
       display: flex;
       margin: 0 auto;
       position: relative;
-      transform: translateY(30%);
+      margin-top: 14px;
 
       .search-input-field {
         background: transparent url('images/ic_search_white_24px.svg') 10px 10px no-repeat;
-        border: 1px solid #504B4B;
-        color: @base07;
+        border: 1px solid @base03;
+        color: @white;
         font-family: monospace;
         font-size: 14px;
         height: 35px;
@@ -48,10 +42,10 @@
         padding: 0 42px;
         background-position-x: 12px;
         &:focus {
-          border: 1px solid #504B4B;
+          border: 1px solid @base03;
           outline: 0;
         }
-       }
+      }
 
       .search-clear-button {
         flex-grow: 1;
@@ -69,12 +63,12 @@
   .topbar-login {
     flex-shrink: 1;
     flex-basis: 50%;
-    line-height: 55px;
+    line-height: 64px;
     text-align: right;
     white-space: nowrap;
 
     .topbar-user-info {
-      border-left: 1px solid @base01;
+      border-left: 1px solid @base02;
       display: inline-block;
       padding: 0 10%;
     }

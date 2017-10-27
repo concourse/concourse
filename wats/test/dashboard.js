@@ -93,7 +93,7 @@ test('shows pipelines with no finished builds in grey', showsPipelineState, asyn
   t.regex(text, /some-pipeline/);
   t.regex(text, /pending/);
 
-  t.deepEqual(background, palette.base07);
+  t.deepEqual(background, palette.grey);
 });
 
 test('shows paused pipelines in blue', showsPipelineState, async t => {
@@ -120,12 +120,12 @@ test('shows pipelines with any failed builds in red', showsPipelineState, async 
   t.deepEqual(background, palette.red);
 });
 
-test('shows pipelines with any errored builds in orange', showsPipelineState, async t => {
+test('shows pipelines with any errored builds in amber', showsPipelineState, async t => {
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
   await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/erroring"));
 }, (t, text, background) => {
   t.regex(text, /some-pipeline/);
-  t.deepEqual(background, palette.orange);
+  t.deepEqual(background, palette.amber);
 });
 
 test('shows pipelines with any aborted builds in brown', showsPipelineState, async t => {
