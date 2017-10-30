@@ -72,7 +72,7 @@ func (c CredHubAtc) findCred(path string) (credentials.Credential, bool, error) 
 		return cred, false, nil
 	}
 
-	cred, err = c.CredHub.Get(path)
+	cred, err = c.CredHub.GetLatestVersion(path)
 	if _, ok := err.(*credhub.Error); ok {
 		return cred, false, nil
 	}

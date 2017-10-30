@@ -23,7 +23,7 @@ type CredHubManager struct {
 }
 
 func (manager CredHubManager) IsConfigured() bool {
-	return manager.URL != "" && manager.ClientId != "" && manager.ClientSecret != ""
+	return manager.URL != "" || manager.ClientId != "" || manager.ClientSecret != "" || len(manager.CACerts) != 0
 }
 
 func (manager CredHubManager) Validate() error {
@@ -31,36 +31,46 @@ func (manager CredHubManager) Validate() error {
 	if err != nil {
 		return fmt.Errorf("invalid URL: %s", err)
 	}
+	// "foo" will parse without error (as a Path, with an empty Host)
+	// so we'll do a few additional sanity checks that this is a valid URL
+	if parsedUrl.Host == "" || !(parsedUrl.Scheme == "http" || parsedUrl.Scheme == "https") {
+		return fmt.Errorf("invalid URL")
+	}
 
 	if parsedUrl.Scheme == "https" {
-		if len(manager.CACerts) < 1 && !manager.Insecure {
+		if len(manager.CACerts) == 0 && !manager.Insecure {
 			return fmt.Errorf("CACerts or insecure needs to be set for secure urls")
 		}
 	}
 
-	if len(manager.CACerts) > 1 {
-		for _, cert := range manager.CACerts {
-			contents, err := ioutil.ReadFile(cert)
-			if err != nil {
-				return fmt.Errorf("Could not read CaCert at path %s", cert)
-			}
-			manager.caCerts = append(manager.caCerts, string(contents))
+	if manager.ClientId == "" || manager.ClientSecret == "" {
+		return fmt.Errorf("--credhub-client-id and --credhub-client-secret must be set to use CredHub")
+	}
+
+	for _, cert := range manager.CACerts {
+		contents, err := ioutil.ReadFile(cert)
+		if err != nil {
+			return fmt.Errorf("Could not read CaCert at path %s", cert)
 		}
+		manager.caCerts = append(manager.caCerts, string(contents))
 	}
 
 	return nil
 }
 
 func (manager CredHubManager) NewVariablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
-	var skipTls credhub.Option
+	var options []credhub.Option
 
 	if manager.Insecure {
-		skipTls = credhub.SkipTLSValidation()
+		options = append(options, credhub.SkipTLSValidation(true))
 	}
 
-	ch, err := credhub.New(manager.URL,
-		skipTls,
-		credhub.Auth(auth.UaaClientCredentials(manager.ClientId, manager.ClientSecret)))
+	options = append(options, credhub.Auth(auth.UaaClientCredentials(manager.ClientId, manager.ClientSecret)))
 
-	return NewCredHubFactory(logger, ch, manager.PathPrefix), err
+	ch, err := credhub.New(manager.URL, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewCredHubFactory(logger, ch, manager.PathPrefix), nil
 }
