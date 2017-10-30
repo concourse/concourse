@@ -30,6 +30,8 @@ files:
   - github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values/*.go # gosub
   - github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions/*.go # gosub
   - github.com/cloudfoundry-incubator/credhub-cli/credhub/server/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/errors/*.go # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/github.com/hashicorp/go-version/*.go # gosub
   - github.com/cloudfoundry/bosh-cli/director/template/*.go # gosub
   - github.com/cloudfoundry/bosh-cli/vendor/github.com/bmatcuk/doublestar/*.go # gosub
   - github.com/cloudfoundry/bosh-cli/vendor/github.com/charlievieth/fs/*.go # gosub
