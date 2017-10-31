@@ -224,9 +224,9 @@ before using it!
     \title{Adding to this list}
 
     Fork the
-    \link{\code{concourse/concourse}}{https://github.com/concourse/concourse}
+    \link{\code{concourse/concourse}}{https://github.com/concourse/docs}
     repository, edit
-    \code{concourse/docs/lit/using-concourse/resource-types.lit},
+    \code{lit/using-concourse/resource-types.lit},
     then make a pull request.
   }
 }
