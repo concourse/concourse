@@ -121,6 +121,16 @@
       color: @blue-primary;
     }
   }
+  .dashboard-status-running {
+    &.dashboard-running {
+      .dashboard-pipeline-banner {
+        .running-animation(@grey-primary, @grey-secondary);
+      }
+    }
+    .build-duration {
+      color: @grey-primary;
+    }
+  }
 
   .dashboard-status-pending {
     .dashboard-pipeline-icon {

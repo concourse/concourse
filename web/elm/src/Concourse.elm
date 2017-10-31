@@ -39,6 +39,7 @@ module Concourse
         , PipelineName
         , PipelineIdentifier
         , PipelineGroup
+        , PipelineStatus(..)
         , decodePipeline
         , Metadata
         , MetadataField
@@ -625,6 +626,16 @@ type alias PipelineGroup =
     , jobs : List String
     , resources : List String
     }
+
+
+type PipelineStatus
+    = PipelineStatusAborted
+    | PipelineStatusErrored
+    | PipelineStatusFailed
+    | PipelineStatusPaused
+    | PipelineStatusPending
+    | PipelineStatusRunning
+    | PipelineStatusSucceeded
 
 
 decodePipeline : Json.Decode.Decoder Pipeline
