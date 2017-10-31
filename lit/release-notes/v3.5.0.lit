@@ -38,6 +38,8 @@
       single-vm
       manifest}{https://github.com/concourse/concourse/commit/17be5f144a799e344c9d1bb56d9595ff164c96ef}
       as a reference.)
+    }{
+      Note that the Postgres DB upgrade must not be combined in the same deployment operation with a stemcell update.
     }
   }
 
