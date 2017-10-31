@@ -118,9 +118,6 @@ files:
   - github.com/concourse/atc/mainredirect/*.go # gosub
   - github.com/concourse/atc/metric/*.go # gosub
   - github.com/concourse/atc/metric/emitter/*.go # gosub
-  - github.com/concourse/atc/metric/emitter/vendor/github.com/influxdata/influxdb/client/v2/*.go # gosub
-  - github.com/concourse/atc/metric/emitter/vendor/github.com/influxdata/influxdb/models/*.go # gosub
-  - github.com/concourse/atc/metric/emitter/vendor/github.com/influxdata/influxdb/pkg/escape/*.go # gosub
   - github.com/concourse/atc/pipelines/*.go # gosub
   - github.com/concourse/atc/radar/*.go # gosub
   - github.com/concourse/atc/resource/*.go # gosub
@@ -156,6 +153,9 @@ files:
   - github.com/gorilla/websocket/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.go # gosub
+  - github.com/influxdata/influxdb/client/v2/*.go # gosub
+  - github.com/influxdata/influxdb/models/*.go # gosub
+  - github.com/influxdata/influxdb/pkg/escape/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/lann/builder/*.go # gosub
   - github.com/lann/ps/*.go # gosub

@@ -301,3 +301,7 @@
 [submodule "src/github.com/bmizerany/pat"]
 	path = src/github.com/bmizerany/pat
 	url = https://github.com/bmizerany/pat
+[submodule "src/github.com/influxdata/influxdb"]
+	path = src/github.com/influxdata/influxdb
+	url = https://github.com/influxdata/influxdb
+	branch = master
