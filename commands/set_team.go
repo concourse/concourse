@@ -39,6 +39,8 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	fmt.Println("Team Name:", command.TeamName)
 	fmt.Println("Basic Auth:", authMethodStatusDescription(command.Authentication.BasicAuth.IsConfigured()))
+	fmt.Println("Bitbucket Cloud Auth:", authMethodStatusDescription(command.ProviderAuth["bitbucket-cloud"].IsConfigured()))
+	fmt.Println("Bitbucket Server Auth:", authMethodStatusDescription(command.ProviderAuth["bitbucket-server"].IsConfigured()))
 	fmt.Println("GitHub Auth:", authMethodStatusDescription(command.ProviderAuth["github"].IsConfigured()))
 	fmt.Println("GitLab Auth:", authMethodStatusDescription(command.ProviderAuth["gitlab"].IsConfigured()))
 	fmt.Println("UAA Auth:", authMethodStatusDescription(command.ProviderAuth["uaa"].IsConfigured()))
