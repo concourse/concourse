@@ -35,11 +35,11 @@ type FakeProvider struct {
 	authCodeURLReturnsOnCall map[int]struct {
 		result1 string
 	}
-	ExchangeStub        func(context.Context, string) (*oauth2.Token, error)
+	ExchangeStub        func(context.Context, *http.Request) (*oauth2.Token, error)
 	exchangeMutex       sync.RWMutex
 	exchangeArgsForCall []struct {
 		arg1 context.Context
-		arg2 string
+		arg2 *http.Request
 	}
 	exchangeReturns struct {
 		result1 *oauth2.Token
@@ -171,12 +171,12 @@ func (fake *FakeProvider) AuthCodeURLReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeProvider) Exchange(arg1 context.Context, arg2 string) (*oauth2.Token, error) {
+func (fake *FakeProvider) Exchange(arg1 context.Context, arg2 *http.Request) (*oauth2.Token, error) {
 	fake.exchangeMutex.Lock()
 	ret, specificReturn := fake.exchangeReturnsOnCall[len(fake.exchangeArgsForCall)]
 	fake.exchangeArgsForCall = append(fake.exchangeArgsForCall, struct {
 		arg1 context.Context
-		arg2 string
+		arg2 *http.Request
 	}{arg1, arg2})
 	fake.recordInvocation("Exchange", []interface{}{arg1, arg2})
 	fake.exchangeMutex.Unlock()
@@ -195,7 +195,7 @@ func (fake *FakeProvider) ExchangeCallCount() int {
 	return len(fake.exchangeArgsForCall)
 }
 
-func (fake *FakeProvider) ExchangeArgsForCall(i int) (context.Context, string) {
+func (fake *FakeProvider) ExchangeArgsForCall(i int) (context.Context, *http.Request) {
 	fake.exchangeMutex.RLock()
 	defer fake.exchangeMutex.RUnlock()
 	return fake.exchangeArgsForCall[i].arg1, fake.exchangeArgsForCall[i].arg2
