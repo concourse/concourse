@@ -169,8 +169,8 @@ func (provider Provider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption
 	return provider.Config.AuthCodeURL(state, opts...)
 }
 
-func (provider Provider) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
-	return provider.Config.Exchange(ctx, code)
+func (provider Provider) Exchange(ctx context.Context, req *http.Request) (*oauth2.Token, error) {
+	return provider.Config.Exchange(ctx, req.FormValue("code"))
 }
 
 func (provider Provider) Client(ctx context.Context, t *oauth2.Token) *http.Client {

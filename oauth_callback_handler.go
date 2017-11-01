@@ -147,9 +147,8 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	}
 
 	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, preTokenClient)
-	ctx = context.WithValue(ctx, "request", r)
 
-	token, err := provider.Exchange(ctx, r.FormValue("code"))
+	token, err := provider.Exchange(ctx, r)
 	if err != nil {
 		hLog.Error("failed-to-exchange-token", err)
 		http.Error(w, "failed to exchange token", http.StatusInternalServerError)

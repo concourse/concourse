@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
+	"golang.org/x/net/context"
 )
 
 const ProviderName = "gitlab"
@@ -82,6 +83,10 @@ type GitLabGroupConfig struct {
 type GitLabProvider struct {
 	*oauth2.Config
 	verifier.Verifier
+}
+
+func (p GitLabProvider) Exchange(ctx context.Context, req *http.Request) (*oauth2.Token, error) {
+	return p.Config.Exchange(ctx, req.FormValue("code"))
 }
 
 func init() {
