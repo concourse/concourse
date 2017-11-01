@@ -183,11 +183,11 @@ all =
 
 allTests : List (List Test)
 allTests =
-    [ -- fuzzySearchPipelines
-      -- , fuzzySearchTeams
-      -- , fuzzySearchStatusPipeline
-      -- , searchTermList
-      [ pipelineStatus ]
+    [ fuzzySearchPipelines
+    , fuzzySearchTeams
+    , fuzzySearchStatusPipeline
+    , searchTermList
+    , [ pipelineStatus ]
     ]
 
 
@@ -446,12 +446,6 @@ pipelineStatus =
             { nextBuild = Nothing
             , finishedBuild = Just someBuildAborted
             , paused = False
-            }
-
-        abortedJobPaused =
-            { nextBuild = Nothing
-            , finishedBuild = Just someBuildAborted
-            , paused = True
             }
 
         erroredJob =
