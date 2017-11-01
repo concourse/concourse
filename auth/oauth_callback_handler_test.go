@@ -207,8 +207,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 					It("generated the OAuth token using the request's code", func() {
 						Expect(fakeProvider.ExchangeCallCount()).To(Equal(1))
-						_, code := fakeProvider.ExchangeArgsForCall(0)
-						Expect(code).To(Equal("some-code"))
+						_, request := fakeProvider.ExchangeArgsForCall(0)
+						Expect(request.FormValue("code")).To(Equal("some-code"))
 					})
 
 					It("uses the PreTokenClient from the provider", func() {
@@ -423,8 +423,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 						It("generated the OAuth token using the request's code", func() {
 							Expect(fakeProvider.ExchangeCallCount()).To(Equal(1))
-							_, code := fakeProvider.ExchangeArgsForCall(0)
-							Expect(code).To(Equal("some-code"))
+							_, request := fakeProvider.ExchangeArgsForCall(0)
+							Expect(request.FormValue("code")).To(Equal("some-code"))
 						})
 
 						Context("when the token is verified", func() {
