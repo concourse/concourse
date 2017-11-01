@@ -32,9 +32,8 @@ func (p *Provider) Client(ctx context.Context, t *oauth2.Token) *http.Client {
 	return p.Config.Client(ctx, &oauth1.Token{Token: t.AccessToken, TokenSecret: t.RefreshToken})
 }
 
-func (p *Provider) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
-	r := ctx.Value("request").(*http.Request)
-	requestToken, verifier, err := oauth1.ParseAuthorizationCallback(r)
+func (p *Provider) Exchange(ctx context.Context, req *http.Request) (*oauth2.Token, error) {
+	requestToken, verifier, err := oauth1.ParseAuthorizationCallback(req)
 	if err != nil {
 		panic(err)
 	}

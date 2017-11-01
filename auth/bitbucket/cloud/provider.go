@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"github.com/concourse/atc/auth/verifier"
+	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"net/http"
 )
@@ -9,6 +10,10 @@ import (
 type Provider struct {
 	*oauth2.Config
 	verifier.Verifier
+}
+
+func (p Provider) Exchange(ctx context.Context, req *http.Request) (*oauth2.Token, error) {
+	return p.Config.Exchange(ctx, req.FormValue("code"))
 }
 
 func (Provider) PreTokenClient() (*http.Client, error) {

@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
+	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
@@ -31,6 +32,10 @@ type UAAProvider struct {
 	*oauth2.Config
 	verifier.Verifier
 	CFCACert string
+}
+
+func (p UAAProvider) Exchange(ctx context.Context, req *http.Request) (*oauth2.Token, error) {
+	return p.Config.Exchange(ctx, req.FormValue("code"))
 }
 
 func init() {
