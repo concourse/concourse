@@ -12,7 +12,7 @@ import (
 
 type AuthConfig struct {
 	ConsumerKey string           `json:"consumer_key" long:"consumer-key" description:"Application consumer key for enabling Bitbucket OAuth"`
-	PrivateKey  privateKeyConfig `json:"private_key" long:"private-key" description:"Application private key for enabling Bitbucket OAuth, in base64 encoded DER format"`
+	PrivateKey  privateKeyConfig `json:"private_key" long:"private-key" description:"Path to application private key for enabling Bitbucket OAuth"`
 	Endpoint    string           `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
 
 	Users        []string                     `json:"users" long:"user" description:"Bitbucket users that are allowed to log in"`

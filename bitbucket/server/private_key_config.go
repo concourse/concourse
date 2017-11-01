@@ -2,21 +2,29 @@ package server
 
 import (
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/base64"
+	"github.com/concourse/tsa/tsaflags"
+	"github.com/dgrijalva/jwt-go"
+	"io/ioutil"
 )
 
 type privateKeyConfig struct {
+	tsaflags.FileFlag
+
 	PrivateKey *rsa.PrivateKey
 }
 
-func (pk *privateKeyConfig) UnmarshalFlag(encoded string) error {
-	key, err := base64.StdEncoding.DecodeString(encoded)
+func (pk *privateKeyConfig) UnmarshalFlag(value string) error {
+	err := pk.FileFlag.UnmarshalFlag(value)
 	if err != nil {
 		return err
 	}
 
-	pk.PrivateKey, err = x509.ParsePKCS1PrivateKey(key)
+	blob, err := ioutil.ReadFile(string(pk.FileFlag))
+	if err != nil {
+		return err
+	}
+
+	pk.PrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM(blob)
 
 	return err
 }
