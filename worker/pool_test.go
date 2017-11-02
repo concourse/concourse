@@ -21,15 +21,16 @@ var _ = Describe("Pool", func() {
 	var (
 		logger       *lagertest.TestLogger
 		fakeProvider *workerfakes.FakeWorkerProvider
-
-		pool Client
+		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
+		pool         Client
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeProvider = new(workerfakes.FakeWorkerProvider)
+		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
-		pool = NewPool(fakeProvider)
+		pool = NewPool(fakeProvider, fakeStrategy)
 	})
 
 	Describe("Satisfying", func() {
@@ -398,12 +399,8 @@ var _ = Describe("Pool", func() {
 			createdContainer Container
 			createErr        error
 
-			incompatibleWorker        *workerfakes.FakeWorker
-			compatibleWorkerOneCache1 *workerfakes.FakeWorker
-			compatibleWorkerOneCache2 *workerfakes.FakeWorker
-			compatibleWorkerTwoCaches *workerfakes.FakeWorker
-			compatibleWorkerNoCaches1 *workerfakes.FakeWorker
-			compatibleWorkerNoCaches2 *workerfakes.FakeWorker
+			incompatibleWorker *workerfakes.FakeWorker
+			compatibleWorker   *workerfakes.FakeWorker
 		)
 
 		BeforeEach(func() {
@@ -465,25 +462,9 @@ var _ = Describe("Pool", func() {
 			incompatibleWorker = new(workerfakes.FakeWorker)
 			incompatibleWorker.SatisfyingReturns(nil, ErrIncompatiblePlatform)
 
-			compatibleWorkerOneCache1 = new(workerfakes.FakeWorker)
-			compatibleWorkerOneCache1.SatisfyingReturns(compatibleWorkerOneCache1, nil)
-			compatibleWorkerOneCache1.FindOrCreateContainerReturns(fakeContainer, nil)
-
-			compatibleWorkerOneCache2 = new(workerfakes.FakeWorker)
-			compatibleWorkerOneCache2.SatisfyingReturns(compatibleWorkerOneCache2, nil)
-			compatibleWorkerOneCache2.FindOrCreateContainerReturns(fakeContainer, nil)
-
-			compatibleWorkerTwoCaches = new(workerfakes.FakeWorker)
-			compatibleWorkerTwoCaches.SatisfyingReturns(compatibleWorkerTwoCaches, nil)
-			compatibleWorkerTwoCaches.FindOrCreateContainerReturns(fakeContainer, nil)
-
-			compatibleWorkerNoCaches1 = new(workerfakes.FakeWorker)
-			compatibleWorkerNoCaches1.SatisfyingReturns(compatibleWorkerNoCaches1, nil)
-			compatibleWorkerNoCaches1.FindOrCreateContainerReturns(fakeContainer, nil)
-
-			compatibleWorkerNoCaches2 = new(workerfakes.FakeWorker)
-			compatibleWorkerNoCaches2.SatisfyingReturns(compatibleWorkerNoCaches2, nil)
-			compatibleWorkerNoCaches2.FindOrCreateContainerReturns(fakeContainer, nil)
+			compatibleWorker = new(workerfakes.FakeWorker)
+			compatibleWorker.SatisfyingReturns(compatibleWorker, nil)
+			compatibleWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -552,90 +533,40 @@ var _ = Describe("Pool", func() {
 				})
 			})
 
-			Context("with compatible workers available, with one having the most local caches", func() {
+			Context("with compatible workers available", func() {
 				BeforeEach(func() {
 					fakeProvider.RunningWorkersReturns([]Worker{
 						incompatibleWorker,
-						compatibleWorkerOneCache1,
-						compatibleWorkerTwoCaches,
-						compatibleWorkerNoCaches1,
-						compatibleWorkerNoCaches2,
+						compatibleWorker,
 					}, nil)
 				})
 
-				It("creates it on the worker with the most caches", func() {
-					Expect(createErr).ToNot(HaveOccurred())
-					Expect(compatibleWorkerTwoCaches.FindOrCreateContainerCallCount()).To(Equal(1))
-					Expect(createdContainer).To(Equal(fakeContainer))
-				})
-			})
+				Context("when strategy returns a worker", func() {
+					BeforeEach(func() {
+						fakeStrategy.ChooseReturns(compatibleWorker, nil)
+					})
 
-			Context("with compatible workers available, with multiple with the same amount of local caches", func() {
-				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns([]Worker{
-						incompatibleWorker,
-						compatibleWorkerOneCache1,
-						compatibleWorkerOneCache2,
-						compatibleWorkerNoCaches1,
-						compatibleWorkerNoCaches2,
-					}, nil)
+					It("chooses a worker", func() {
+						Expect(createErr).ToNot(HaveOccurred())
+						Expect(fakeStrategy.ChooseCallCount()).To(Equal(1))
+						Expect(compatibleWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+						Expect(createdContainer).To(Equal(fakeContainer))
+					})
 				})
 
-				It("creates it on a random one of the two", func() {
-					Expect(createErr).ToNot(HaveOccurred())
-					Expect(createdContainer).To(Equal(fakeContainer))
+				Context("when strategy errors", func() {
+					var (
+						strategyError error
+					)
 
-					for i := 0; i < 100; i++ {
-						container, err := pool.FindOrCreateContainer(
-							logger,
-							signals,
-							fakeImageFetchingDelegate,
-							fakeOwner,
-							metadata,
-							spec,
-							resourceTypes,
-						)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(container).To(Equal(fakeContainer))
-					}
+					BeforeEach(func() {
+						strategyError = errors.New("strategical explosion")
+						fakeStrategy.ChooseReturns(nil, strategyError)
+					})
 
-					Expect(compatibleWorkerOneCache1.FindOrCreateContainerCallCount()).ToNot(BeZero())
-					Expect(compatibleWorkerOneCache2.FindOrCreateContainerCallCount()).ToNot(BeZero())
-					Expect(compatibleWorkerNoCaches1.FindOrCreateContainerCallCount()).To(BeZero())
-					Expect(compatibleWorkerNoCaches2.FindOrCreateContainerCallCount()).To(BeZero())
-				})
-			})
-
-			Context("with compatible workers available, with none having any local caches", func() {
-				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns([]Worker{
-						incompatibleWorker,
-						compatibleWorkerNoCaches1,
-						compatibleWorkerNoCaches2,
-					}, nil)
-				})
-
-				It("creates it on a random one of them", func() {
-					Expect(createErr).ToNot(HaveOccurred())
-					Expect(createdContainer).To(Equal(fakeContainer))
-
-					for i := 0; i < 100; i++ {
-						container, err := pool.FindOrCreateContainer(
-							logger,
-							signals,
-							fakeImageFetchingDelegate,
-							fakeOwner,
-							metadata,
-							spec,
-							resourceTypes,
-						)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(container).To(Equal(fakeContainer))
-					}
-
-					Expect(incompatibleWorker.FindOrCreateContainerCallCount()).To(BeZero())
-					Expect(compatibleWorkerNoCaches1.FindOrCreateContainerCallCount()).ToNot(BeZero())
-					Expect(compatibleWorkerNoCaches2.FindOrCreateContainerCallCount()).ToNot(BeZero())
+					It("returns an error", func() {
+						Expect(createErr).To(Equal(strategyError))
+					})
 				})
 			})
 		})

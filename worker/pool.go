@@ -60,13 +60,15 @@ func (err NoCompatibleWorkersError) Error() string {
 type pool struct {
 	provider WorkerProvider
 
-	rand *rand.Rand
+	rand     *rand.Rand
+	strategy ContainerPlacementStrategy
 }
 
-func NewPool(provider WorkerProvider) Client {
+func NewPool(provider WorkerProvider, strategy ContainerPlacementStrategy) Client {
 	return &pool{
 		provider: provider,
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+		strategy: strategy,
 	}
 }
 
@@ -144,32 +146,10 @@ func (pool *pool) FindOrCreateContainer(
 			return nil, err
 		}
 
-		workersByCount := map[int][]Worker{}
-		var highestCount int
-		for _, w := range compatibleWorkers {
-			candidateInputCount := 0
-
-			for _, inputSource := range spec.Inputs {
-				_, found, err := inputSource.Source().VolumeOn(w)
-				if err != nil {
-					return nil, err
-				}
-
-				if found {
-					candidateInputCount++
-				}
-			}
-
-			workersByCount[candidateInputCount] = append(workersByCount[candidateInputCount], w)
-
-			if candidateInputCount >= highestCount {
-				highestCount = candidateInputCount
-			}
+		worker, err = pool.strategy.Choose(compatibleWorkers, spec)
+		if err != nil {
+			return nil, err
 		}
-
-		workers := workersByCount[highestCount]
-
-		worker = workers[pool.rand.Intn(len(workers))]
 	}
 
 	return worker.FindOrCreateContainer(

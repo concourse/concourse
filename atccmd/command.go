@@ -106,6 +106,7 @@ type ATCCommand struct {
 	ResourceCheckingInterval          time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	OldResourceGracePeriod            time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
 	ResourceCacheCleanupInterval      time.Duration `long:"resource-cache-cleanup-interval" default:"30s" description:"Interval on which to cleanup old caches of resources."`
+	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" description:"Method by which a worker is selected during container placement."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
 	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
@@ -805,6 +806,15 @@ func (cmd *ATCCommand) constructWorkerPool(
 		dbResourceConfigFactory,
 		clock.NewClock(),
 	)
+
+	var strategy worker.ContainerPlacementStrategy
+	switch cmd.ContainerPlacementStrategy {
+	case "random":
+		strategy = worker.NewRandomPlacementStrategy()
+	default:
+		strategy = worker.NewVolumeLocalityPlacementStrategy()
+	}
+
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
 			lockFactory,
@@ -820,6 +830,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			workerVersion,
 			baggageclaimResponseHeaderTimeout,
 		),
+		strategy,
 	)
 }
 
