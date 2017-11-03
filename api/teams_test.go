@@ -583,20 +583,6 @@ var _ = Describe("Teams API", func() {
 					Expect(fakeTeam.RenameCallCount()).To(Equal(0))
 				})
 			})
-
-			Context("when trying to rename the admin team", func() {
-				BeforeEach(func() {
-					teamName = atc.DefaultTeamName
-					fakeTeam.NameReturns(teamName)
-					userContextReader.GetTeamReturns(atc.DefaultTeamName, true, true)
-					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-				})
-
-				It("returns 403 Forbidden and backs off", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-					Expect(fakeTeam.RenameCallCount()).To(Equal(0))
-				})
-			})
 		})
 
 		Context("when not authenticated", func() {
