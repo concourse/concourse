@@ -3,7 +3,6 @@ package teamserver
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -53,13 +52,6 @@ func (s *Server) RenameTeam(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		logger.Info("team-not-found")
 		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	fmt.Println(team.Name(), atc.DefaultTeamName)
-	if team.Name() == atc.DefaultTeamName {
-		logger.Info("team-is-default-admin-team")
-		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 

@@ -784,11 +784,11 @@ func (t *team) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
 	query := `
 		UPDATE teams
 		SET basic_auth = $1
-		WHERE LOWER(name) = LOWER($2)
+		WHERE id = $2
 		RETURNING id, name, admin, basic_auth, auth, nonce
 	`
 
-	params := []interface{}{encryptedBasicAuth, t.name}
+	params := []interface{}{encryptedBasicAuth, t.id}
 
 	return t.queryTeam(query, params)
 }
@@ -808,10 +808,10 @@ func (t *team) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
 	query := `
 		UPDATE teams
 		SET auth = $1, nonce = $3
-		WHERE LOWER(name) = LOWER($2)
+		WHERE id = $2
 		RETURNING id, name, admin, basic_auth, auth, nonce
 	`
-	params := []interface{}{string(encryptedAuth), t.name, nonce}
+	params := []interface{}{string(encryptedAuth), t.id, nonce}
 	return t.queryTeam(query, params)
 }
 
@@ -828,12 +828,9 @@ func (t *team) CreatePipe(pipeGUID string, url string) error {
 		VALUES (
 			$1,
 			$2,
-			( SELECT id
-				FROM teams
-				WHERE name = $3
-			)
+			$3
 		)
-	`, pipeGUID, url, t.name)
+	`, pipeGUID, url, t.id)
 	if err != nil {
 		return err
 	}
