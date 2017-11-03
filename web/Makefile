@@ -1,22 +1,29 @@
 ELM_FILES = $(shell find elm/src/ -type f -name '*.elm' -or -name '*.js')
+ELM_BETA_FILES = $(shell find elm/src/Beta -type f -name '*.elm' -or -name '*.js')
 ELM_TESTS_FILES = $(shell find elm/tests/ -type f -name '*.elm' -or -name '*.js')
 LESS_FILES = $(shell find assets/css/ -type f -name '*.less')
 PUBLIC_FILES = $(shell find public/ -type f)
 
-all: public/elm.min.js public/main.css bindata.go
+all: public/elm.min.js public/elm-beta.min.js public/main.css bindata.go
 
 .PHONY: clean
 
 clean:
-	rm -f public/elm.js public/elm.min.js public/main.css bindata.go
+	rm -f public/elm.js public/elm.min.js public/elm-beta.js public/elm-beta.min.js  public/main.css bindata.go
 
 public/elm.js: $(ELM_FILES) $(ELM_TESTS_FILES)
 	cd elm && elm make --warn --output ../public/elm.js --yes src/Main.elm
+
+public/elm-beta.js: $(ELM_BETA_FILES) $(ELM_TESTS_FILES)
+	cd elm && elm make --warn --output ../public/elm-beta.js --yes src/beta/BetaMain.elm
 
 public/main.css: $(LESS_FILES)
 	lessc --clean-css="--advanced" assets/css/main.less $@
 
 public/elm.min.js: public/elm.js
+	uglifyjs < $< > $@
+
+public/elm-beta.min.js: public/elm-beta.js
 	uglifyjs < $< > $@
 
 test: all

@@ -68,12 +68,7 @@ func (configFetcher StaticConfigFetcher) FetchConfig(*worker.ArtifactRepository)
 }
 
 func (configFetcher StaticConfigFetcher) Warnings() []string {
-	warnings := []string{}
-	if configFetcher.Plan.ConfigPath != "" && configFetcher.Plan.Config != nil {
-		warnings = append(warnings, "\x1b[31mDEPRECATION WARNING: Specifying both `file` and `config.params` in a task step is deprecated, use params on task step directly\x1b[0m")
-	}
-
-	return warnings
+	return []string{}
 }
 
 // DeprecationConfigFetcher returns the Delegate TaskConfig and prints warnings to Stderr.

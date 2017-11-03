@@ -543,7 +543,7 @@ RankGroup.prototype.tug = function() {
   return changed;
 }
 
-function Node(opts) {
+function GraphNode(opts) {
   // Graph node ID
   this.id = opts.id;
   this.name = opts.name;
@@ -580,8 +580,8 @@ function Node(opts) {
   };
 };
 
-Node.prototype.copy = function() {
-  return new Node({
+GraphNode.prototype.copy = function() {
+  return new GraphNode({
     id: this.id,
     name: this.name,
     class: this.class,
@@ -594,7 +594,7 @@ Node.prototype.copy = function() {
   });
 };
 
-Node.prototype.width = function() {
+GraphNode.prototype.width = function() {
   if (this._cachedWidth == 0) {
     var id = this.id;
 
@@ -614,12 +614,12 @@ Node.prototype.width = function() {
   return this._cachedWidth + (NODE_PADDING * 2);
 }
 
-Node.prototype.height = function() {
+GraphNode.prototype.height = function() {
   var keys = Math.max(this._edgeKeys.length, 1);
   return (KEY_HEIGHT * keys) + (KEY_SPACING * (keys - 1));
 }
 
-Node.prototype.position = function() {
+GraphNode.prototype.position = function() {
   return {
     x: this._position.x,
     y: (KEY_HEIGHT + KEY_SPACING) * this._keyOffset
@@ -627,7 +627,7 @@ Node.prototype.position = function() {
 }
 
 /* spacing required for firefox to not clip ripple border animation */
-Node.prototype.animationRadius = function() {
+GraphNode.prototype.animationRadius = function() {
   if (this.class.search('job') > -1) {
     return 70
   }
@@ -635,11 +635,11 @@ Node.prototype.animationRadius = function() {
   return 0
 }
 
-Node.prototype.rank = function() {
+GraphNode.prototype.rank = function() {
   return this._cachedRank;
 }
 
-Node.prototype.latestPossibleRank = function() {
+GraphNode.prototype.latestPossibleRank = function() {
   var latestRank;
 
   for (var o in this._outEdges) {
@@ -656,7 +656,7 @@ Node.prototype.latestPossibleRank = function() {
   return latestRank;
 }
 
-Node.prototype.dependsOn = function(node, stack) {
+GraphNode.prototype.dependsOn = function(node, stack) {
   for (var i in this._inEdges) {
     var source = this._inEdges[i].source.node;
 
@@ -678,7 +678,7 @@ Node.prototype.dependsOn = function(node, stack) {
   return false;
 }
 
-Node.prototype.highestUpstreamSource = function() {
+GraphNode.prototype.highestUpstreamSource = function() {
   var minY;
 
   var y;
@@ -693,7 +693,7 @@ Node.prototype.highestUpstreamSource = function() {
   return minY;
 };
 
-Node.prototype.highestDownstreamTarget = function() {
+GraphNode.prototype.highestDownstreamTarget = function() {
   var minY;
 
   var y;
@@ -708,7 +708,7 @@ Node.prototype.highestDownstreamTarget = function() {
   return minY;
 };
 
-Node.prototype.inAlignment = function() {
+GraphNode.prototype.inAlignment = function() {
   var minAlignment;
 
   for (var e in this._inEdges) {
@@ -722,7 +722,7 @@ Node.prototype.inAlignment = function() {
   return minAlignment;
 };
 
-Node.prototype.outAlignment = function() {
+GraphNode.prototype.outAlignment = function() {
   var minAlignment;
 
   for (var e in this._outEdges) {
@@ -736,7 +736,7 @@ Node.prototype.outAlignment = function() {
   return minAlignment;
 };
 
-Node.prototype.passedThroughAnyPreviousNode = function() {
+GraphNode.prototype.passedThroughAnyPreviousNode = function() {
   for (var e in this._inEdges) {
     var edge = this._inEdges[e];
     if (edge.key in edge.source.node._edgeTargets) {
@@ -747,7 +747,7 @@ Node.prototype.passedThroughAnyPreviousNode = function() {
   return false;
 };
 
-Node.prototype.passesThroughAnyNextNode = function() {
+GraphNode.prototype.passesThroughAnyNextNode = function() {
   for (var e in this._outEdges) {
     var edge = this._outEdges[e];
     if (edge.key in edge.target.node._edgeSources) {
@@ -823,7 +823,7 @@ function bezierInterpolate(points, fraction) {
 }
 
 function EdgeSource(node, key) {
-  // Node
+  // GraphNode
   this.node = node;
 
   // Key
@@ -854,7 +854,7 @@ EdgeSource.prototype.position = function() {
 };
 
 function EdgeTarget(node, key) {
-  // Node
+  // GraphNode
   this.node = node;
 
   // Key

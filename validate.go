@@ -24,13 +24,6 @@ type Warning struct {
 	Message string `json:"message"`
 }
 
-func newDeprecationWarning(message string) Warning {
-	return Warning{
-		Type:    "deprecation",
-		Message: message,
-	}
-}
-
 func (c Config) Validate() ([]Warning, []string) {
 	warnings := []Warning{}
 	errorMessages := []string{}
@@ -457,7 +450,16 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []st
 		}
 
 		if plan.TaskConfig != nil && plan.TaskConfigPath != "" {
-			warnings = append(warnings, newDeprecationWarning(identifier+" specifies both `file` and `config` in a task step"))
+			errorMessages = append(errorMessages, identifier+" specifies both `file` and `config` in a task step")
+		}
+
+		if plan.TaskConfig != nil {
+			if err := plan.TaskConfig.Validate(); err != nil {
+				messages := strings.Split(err.Error(), "\n")
+				for _, message := range messages {
+					errorMessages = append(errorMessages, fmt.Sprintf("%s %s", identifier, strings.TrimSpace(message)))
+				}
+			}
 		}
 
 		errorMessages = append(errorMessages, validateInapplicableFields(

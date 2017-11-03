@@ -28,7 +28,7 @@ describe 'dashboard', type: :feature do
   it 'shows all pipelines from the authenticated team and public pipelines from other teams' do
     dash_login team_name
 
-    visit dash_route('/dashboard')
+    visit dash_route('/beta/dashboard')
 
     within '.dashboard-team-group', text: team_name do
       expect(page).to have_content 'some-pipeline'
@@ -43,7 +43,7 @@ describe 'dashboard', type: :feature do
   it 'shows authenticated team first' do
     dash_login team_name
 
-    visit dash_route('/dashboard')
+    visit dash_route('/beta/dashboard')
 
     expect(page).to have_content(team_name)
     expect(page).to have_content(other_team_name)
@@ -117,10 +117,9 @@ describe 'dashboard', type: :feature do
     end
   end
 
-  context 'when a pipeline is hanging' do
+  context 'when a pipeline is pending' do
     before do
-      fly('trigger-job -w -j some-pipeline/passing')
-      fly('trigger-job -j some-pipeline/hanging')
+      fly('trigger-job -j some-pipeline/pending')
       visit_dashboard
     end
 
@@ -130,7 +129,7 @@ describe 'dashboard', type: :feature do
 
     it 'is labelled "pending"' do
       within '.dashboard-pipeline', text: 'some-pipeline' do
-        expect(page).to have_content('pending')
+        expect(page).to have_content('pending', wait: 10)
       end
     end
   end
@@ -225,15 +224,15 @@ describe 'dashboard', type: :feature do
 
   it 'anchors URL links on team groups' do
     login
-    visit dash_route('/dashboard')
+    visit dash_route('/beta/dashboard')
     expect(page).to have_css('.dashboard-team-group', id: team_name)
   end
 
   it 'links to latest build in the preview' do
     login
-    visit dash_route('/dashboard')
+    visit dash_route('/beta/dashboard')
     fly_fail('trigger-job -w -j some-pipeline/failing')
-    expect(page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
+    expect(page.find("a[href=\"/beta/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
   end
 
   private
@@ -256,6 +255,6 @@ describe 'dashboard', type: :feature do
 
   def visit_dashboard
     login
-    visit dash_route('/dashboard')
+    visit dash_route('/beta/dashboard')
   end
 end

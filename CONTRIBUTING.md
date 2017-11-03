@@ -26,7 +26,7 @@ brew install go node postgres
 Finally use Node to install the javascript tools:
 
 ```
-npm install -g uglify-js less less-plugin-clean-css
+npm install -g elm uglify-js less less-plugin-clean-css
 ```
 
 ## Setting up the database
@@ -73,7 +73,7 @@ Finally you can run the ATC:
 
 ```
 cd ..
-go run cmd/atc/*.go
+go run cmd/atc/*.go --no-really-i-dont-want-any-auth
 ```
 
 Concourse should be live at http://localhost:8080

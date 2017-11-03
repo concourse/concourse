@@ -3,7 +3,10 @@ module DashboardTests exposing (..)
 import Test exposing (..)
 import Expect exposing (..)
 import Concourse
+import Concourse.Build
+import Concourse.BuildStatus
 import Concourse.Pipeline
+import Date
 import Dict exposing (..)
 import RemoteData exposing (..)
 import Dashboard
@@ -134,10 +137,10 @@ pipelinePending =
     }
 
 
-pipelineStarted =
+pipelineRunning =
     { groups = listGroups
     , id = 60
-    , name = "test-started"
+    , name = "test-running"
     , paused = False
     , public = True
     , teamName = "DWF"
@@ -168,7 +171,7 @@ statusPipelines =
     , { pipeline = pipelinePaused, status = "paused" }
     , { pipeline = pipelineFailed, status = "failed" }
     , { pipeline = pipelinePending, status = "pending" }
-    , { pipeline = pipelineStarted, status = "started" }
+    , { pipeline = pipelineRunning, status = "running" }
     ]
 
 
@@ -184,6 +187,7 @@ allTests =
     , fuzzySearchTeams
     , fuzzySearchStatusPipeline
     , searchTermList
+    , [ pipelineStatus ]
     ]
 
 
@@ -248,10 +252,10 @@ fuzzySearchStatusPipeline =
         \_ ->
             Dashboard.filterBy "status:pending" statusPipelines
                 |> Expect.equal [ pipelinePending ]
-    , test "returns pipeline that match the search status started" <|
+    , test "returns pipeline that match the search status running" <|
         \_ ->
-            Dashboard.filterBy "status:started" statusPipelines
-                |> Expect.equal [ pipelineStarted ]
+            Dashboard.filterBy "status:running" statusPipelines
+                |> Expect.equal [ pipelineRunning ]
     , test "returns no pipeline if status does not match the search term" <|
         \_ ->
             Dashboard.filterBy "status:failure" statusPipelines
@@ -286,7 +290,7 @@ searchTermList =
                       , groups = []
                       , inputs = []
                       , name = "failing"
-                      , nextBuild = Just buildMock
+                      , nextBuild = Nothing
                       , outputs = []
                       , paused = False
                       , pipeline = { teamName = "YYZ", pipelineName = "main:team:pipeline" }
@@ -315,3 +319,203 @@ searchTermList =
                 Dashboard.searchTermList modelMock queryStatusTeamPipeline pipelines
                     |> Expect.equal [ pipelineMaintenance ]
     ]
+
+
+pipelineStatus : Test
+pipelineStatus =
+    let
+        someJobInfo =
+            { jobName = "some-job"
+            , pipelineName = "some-pipeline"
+            , teamName = "some-team"
+            }
+
+        someBuild : Concourse.Build
+        someBuild =
+            { id = 1
+            , url = ""
+            , name = "build-succeeded"
+            , job = Just someJobInfo
+            , status = Concourse.BuildStatusSucceeded
+            , duration =
+                { startedAt = Just (Date.fromTime 0)
+                , finishedAt = Just (Date.fromTime 0)
+                }
+            , reapTime = Just (Date.fromTime 0)
+            }
+
+        someBuildAborted : Concourse.Build
+        someBuildAborted =
+            { id = 111
+            , url = ""
+            , name = "build-aborted"
+            , job = Just someJobInfo
+            , status = Concourse.BuildStatusAborted
+            , duration =
+                { startedAt = Just (Date.fromTime 0)
+                , finishedAt = Just (Date.fromTime 0)
+                }
+            , reapTime = Just (Date.fromTime 0)
+            }
+
+        someBuildErrored : Concourse.Build
+        someBuildErrored =
+            { id = 222
+            , url = ""
+            , name = "build-errored"
+            , job = Just someJobInfo
+            , status = Concourse.BuildStatusErrored
+            , duration =
+                { startedAt = Just (Date.fromTime 0)
+                , finishedAt = Just (Date.fromTime 0)
+                }
+            , reapTime = Just (Date.fromTime 0)
+            }
+
+        someBuildFailed : Concourse.Build
+        someBuildFailed =
+            { id = 333
+            , url = ""
+            , name = "build-failed"
+            , job = Just someJobInfo
+            , status = Concourse.BuildStatusFailed
+            , duration =
+                { startedAt = Just (Date.fromTime 0)
+                , finishedAt = Just (Date.fromTime 0)
+                }
+            , reapTime = Just (Date.fromTime 0)
+            }
+
+        someBuildPending : Concourse.Build
+        someBuildPending =
+            { id = 444
+            , url = ""
+            , name = "build-pending"
+            , job = Just someJobInfo
+            , status = Concourse.BuildStatusPending
+            , duration =
+                { startedAt = Just (Date.fromTime 0)
+                , finishedAt = Just (Date.fromTime 0)
+                }
+            , reapTime = Just (Date.fromTime 0)
+            }
+
+        someBuildPaused : Concourse.Build
+        someBuildPaused =
+            { id = 555
+            , url = ""
+            , name = "build-paused"
+            , job = Just someJobInfo
+            , status = Concourse.BuildStatusPending
+            , duration =
+                { startedAt = Just (Date.fromTime 0)
+                , finishedAt = Just (Date.fromTime 0)
+                }
+            , reapTime = Just (Date.fromTime 0)
+            }
+
+        someBuildRunning : Concourse.Build
+        someBuildRunning =
+            { id = 666
+            , url = ""
+            , name = "build-started"
+            , job = Just someJobInfo
+            , status = Concourse.BuildStatusStarted
+            , duration =
+                { startedAt = Just (Date.fromTime 0)
+                , finishedAt = Just (Date.fromTime 0)
+                }
+            , reapTime = Just (Date.fromTime 0)
+            }
+
+        someBuildSucceeded : Concourse.Build
+        someBuildSucceeded =
+            { id = 777
+            , url = ""
+            , name = "build-succeeded"
+            , job = Just someJobInfo
+            , status = Concourse.BuildStatusSucceeded
+            , duration =
+                { startedAt = Just (Date.fromTime 0)
+                , finishedAt = Just (Date.fromTime 0)
+                }
+            , reapTime = Just (Date.fromTime 0)
+            }
+
+        abortedJob =
+            { nextBuild = Nothing
+            , finishedBuild = Just someBuildAborted
+            , paused = False
+            }
+
+        erroredJob =
+            { nextBuild = Nothing
+            , finishedBuild = Just someBuildErrored
+            , paused = False
+            }
+
+        failedJob =
+            { nextBuild = Nothing
+            , finishedBuild = Just someBuildFailed
+            , paused = False
+            }
+
+        pausedJob =
+            { nextBuild = Nothing
+            , finishedBuild = Just someBuildPaused
+            , paused = True
+            }
+
+        pendingJob =
+            { nextBuild = Just someBuildPending
+            , finishedBuild = Nothing
+            , paused = False
+            }
+
+        runningJob =
+            { nextBuild = Just someBuildRunning
+            , finishedBuild = Nothing
+            , paused = False
+            }
+
+        succeededJob =
+            { nextBuild = Nothing
+            , finishedBuild = Just someBuildSucceeded
+            , paused = False
+            }
+
+        pipeline paused jobs =
+            { pipeline = { paused = paused }
+            , jobs = (RemoteData.Success jobs)
+            }
+    in
+        describe "many statuses of a pipeline"
+            [ test "returns status aborted" <|
+                \_ ->
+                    Dashboard.pipelineStatus (pipeline False [ abortedJob ])
+                        |> Expect.equal Concourse.PipelineStatusAborted
+            , test "returns status errored" <|
+                \_ ->
+                    Dashboard.pipelineStatus (pipeline False [ erroredJob ])
+                        |> Expect.equal Concourse.PipelineStatusErrored
+            , test "returns status failed" <|
+                \_ ->
+                    Dashboard.pipelineStatus (pipeline False [ failedJob ])
+                        |> Expect.equal Concourse.PipelineStatusFailed
+            , test "returns status paused" <|
+                \_ ->
+                    Dashboard.pipelineStatus (pipeline True [ pausedJob ])
+                        |> Expect.equal Concourse.PipelineStatusPaused
+            , test "returns status pending" <|
+                \_ ->
+                    Dashboard.pipelineStatus (pipeline False [ pendingJob ])
+                        |> Expect.equal Concourse.PipelineStatusPending
+            , test "returns status running for aborted and running jobs" <|
+                \_ ->
+                    Dashboard.pipelineStatus (pipeline False [ runningJob, abortedJob ])
+                        |> Expect.equal Concourse.PipelineStatusRunning
+            , test "returns status succeeded" <|
+                \_ ->
+                    Dashboard.pipelineStatus (pipeline False [ succeededJob ])
+                        |> Expect.equal Concourse.PipelineStatusSucceeded
+            ]

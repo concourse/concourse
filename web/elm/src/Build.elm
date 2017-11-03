@@ -179,6 +179,7 @@ changeToBuild page model =
                 | browsingIndex = newIndex
                 , currentBuild = newBuild
                 , autoScroll = True
+                , page = page
               }
             , case page of
                 BuildPage buildId ->
@@ -416,12 +417,12 @@ handleKeyPressed key model =
 
             'g' ->
                 if model.previousKeyPress == Just 'g' then
-                    ( newModel, Task.perform (always Noop) Scroll.toWindowTop )
+                    ( { newModel | autoScroll = False }, Task.perform (always Noop) Scroll.toWindowTop )
                 else
                     ( newModel, Cmd.none )
 
             'G' ->
-                ( newModel, Task.perform (always Noop) Scroll.toWindowBottom )
+                ( { newModel | autoScroll = True }, Task.perform (always Noop) Scroll.toWindowBottom )
 
             '?' ->
                 ( { model | showHelp = not model.showHelp }, Cmd.none )
@@ -611,12 +612,12 @@ view model =
                             ]
                         ]
                         [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "h" ], Html.span [ class "key" ] [ Html.text "l" ] ], Html.text "next/previous build" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "h" ], Html.span [ class "key" ] [ Html.text "l" ] ], Html.text "previous/next build" ]
                         , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "j" ], Html.span [ class "key" ] [ Html.text "k" ] ], Html.text "scroll down/up" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "shift t" ] ], Html.text "trigger a new build" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "shift a" ] ], Html.text "abort build" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "T" ] ], Html.text "trigger a new build" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "A" ] ], Html.text "abort build" ]
                         , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "gg" ] ], Html.text "scroll to the top" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "shift g" ] ], Html.text "scroll to the bottom" ]
+                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "G" ] ], Html.text "scroll to the bottom" ]
                         , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "?" ] ], Html.text "hide/show help" ]
                         ]
                     ]
