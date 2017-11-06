@@ -14,7 +14,6 @@ files:
   - github.com/concourse/baggageclaim/cmd/baggageclaim/*.go # gosub
   - github.com/concourse/baggageclaim/cmd/fs_mounter/*.go # gosub
   - github.com/concourse/baggageclaim/fs/*.go # gosub
-  - github.com/concourse/baggageclaim/kernel/*.go # gosub
   - github.com/concourse/baggageclaim/reaper/*.go # gosub
   - github.com/concourse/baggageclaim/uidgid/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub

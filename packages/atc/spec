@@ -20,6 +20,7 @@ files:
   - github.com/Masterminds/squirrel/*.go # gosub
   - github.com/The-Cloud-Source/goryman/*.go # gosub
   - github.com/The-Cloud-Source/goryman/proto/*.go # gosub
+  - github.com/beorn7/perks/quantile/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cenkalti/backoff/*.go # gosub
   - github.com/cloudfoundry-incubator/credhub-cli/credhub/*.go # gosub
@@ -161,8 +162,17 @@ files:
   - github.com/lann/ps/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
+  - github.com/matttproud/golang_protobuf_extensions/pbutil/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
+  - github.com/prometheus/client_golang/prometheus/*.go # gosub
+  - github.com/prometheus/client_golang/prometheus/promhttp/*.go # gosub
+  - github.com/prometheus/client_model/go/*.go # gosub
+  - github.com/prometheus/common/expfmt/*.go # gosub
+  - github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg/*.go # gosub
+  - github.com/prometheus/common/model/*.go # gosub
+  - github.com/prometheus/procfs/*.go # gosub
+  - github.com/prometheus/procfs/xfs/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/ifrit/grouper/*.go # gosub
   - github.com/tedsuo/ifrit/http_server/*.go # gosub
