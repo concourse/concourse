@@ -1,7 +1,8 @@
 describe 'resource', type: :feature do
-  let(:team_name) { generate_team_name }
+  let!(:team_name) { generate_team_name }
 
   before(:each) do
+    fly_login 'main'
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name

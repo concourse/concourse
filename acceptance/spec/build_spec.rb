@@ -3,63 +3,65 @@ require 'colors'
 describe 'build', type: :feature do
   include Colors
 
-  let(:team_name) { generate_team_name }
+  let!(:team_name) { generate_team_name }
 
-  before(:each) do
+  before do
+    fly_login 'main'
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
     dash_login team_name
   end
 
-  describe 'build logs' do
-    before do
+  xdescribe 'build logs' do
+    let(:timestamp_regex) { /\d{2}:\d{2}:\d{2}/ }
+
+    it 'has linkable timestamps for each line' do
       fly('set-pipeline -n -p pipeline -c fixtures/pipeline-with-long-output.yml')
       fly('unpause-pipeline -p pipeline')
       fly('trigger-job -w -j pipeline/long-output-passing')
-    end
 
-    it 'has linkable timestamps for each line' do
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output-passing/builds/1")
-
       expect(page).to_not have_content 'Line 10'
-      page.find('.build-step .header', text: 'print').click
 
-      timestamp_regex = /\d{2}:\d{2}:\d{2}/
-      expect(page.find('.steps')).to have_content(timestamp_regex, wait: 30)
+      page.find('.build-step .header', text: 'print').click
+      within '.steps' do
+        expect(page).to have_content(timestamp_regex)
+      end
 
       timestamp = page.all('a', text: timestamp_regex).last
       timestamp.click
-
-      expect(foreground_palette(timestamp)).to eq(ORANGE)
+      expect(foreground_palette(timestamp)).to eq(AMBER)
 
       # remember the timestamp's DOM location so we can find it later
       timestamp_path = timestamp.path
-
       # visit the URL to show that the link's target link w/ anchor element
       # works
       visit current_url
-
       # by expanding the step to reveal the line
       # note: technically any line; correlating timestamp to actual line is hard
       expect(page).to have_content 'Line 10'
 
       # and highlighting the line
       new_timestamp = page.find(:xpath, timestamp_path)
-      expect(foreground_palette(new_timestamp)).to eq(ORANGE)
+      expect(foreground_palette(new_timestamp)).to eq(AMBER)
     end
 
     it 'has range-linkable timestamps for each line' do
+      fly('set-pipeline -n -p pipeline -c fixtures/pipeline-with-long-output.yml')
+      fly('unpause-pipeline -p pipeline')
+      fly('trigger-job -w -j pipeline/long-output-passing')
+
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output-passing/builds/1")
-
       expect(page).to_not have_content 'Line 10'
-      page.find('.build-step .header', text: 'print').click
 
-      timestamp_regex = /\d{2}:\d{2}:\d{2}/
-      expect(page.find('.steps')).to have_content(timestamp_regex, wait: 30)
+      page.find('.build-step .header', text: 'print').click
+      within '.steps' do
+        expect(page).to have_content(timestamp_regex)
+      end
 
       timestamps = page.all('a', text: timestamp_regex)
-      until timestamps.length > 10
+      until timestamps.length >= 10
         timestamps = page.all('a', text: timestamp_regex)
       end
 
@@ -69,9 +71,8 @@ describe 'build', type: :feature do
 
       first_timestamp.click
       page.driver.browser.action.key_down(:shift).click(last_timestamp.native).perform
-
       in_range_timestamps.each do |timestamp|
-        expect(foreground_palette(timestamp)).to eq(ORANGE)
+        expect(foreground_palette(timestamp)).to eq(AMBER)
       end
 
       # remember the timestamp's DOM location so we can find it later
@@ -80,7 +81,6 @@ describe 'build', type: :feature do
       # visit the URL to show that the link's target link w/ anchor element
       # works
       visit current_url
-
       # by expanding the step to reveal the line
       # note: technically any line; correlating timestamp to actual line is hard
       expect(page).to have_content 'Line 10'
@@ -88,7 +88,7 @@ describe 'build', type: :feature do
       # and highlighting the line
       in_range_timestamp_paths.each do |timestamp_path|
         new_timestamp = page.find(:xpath, timestamp_path)
-        expect(foreground_palette(new_timestamp)).to eq(ORANGE)
+        expect(foreground_palette(new_timestamp)).to eq(AMBER)
       end
     end
   end
@@ -134,6 +134,7 @@ describe 'build', type: :feature do
 
       it 'can be aborted' do
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/running/builds/1")
+        expect(page).to have_button 'Abort Build'
         page.find_button('Abort Build').click
         fly_fail('watch -j pipeline/running')
         within '.step-body' do
@@ -163,7 +164,7 @@ describe 'build', type: :feature do
         expect(background_color(page.find('#builds .current'))).to be_greyscale
       end
 
-      it 'no version have passed constraints' do
+      it 'no versions have passed constraints' do
         job_name = 'unavailable-constrained-input'
         fly("trigger-job -j pipeline/#{job_name}")
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/#{job_name}/builds/1")
@@ -182,6 +183,8 @@ describe 'build', type: :feature do
 
     it 'can be manually triggered' do
       visit dash_route("/teams/#{team_name}")
+      expect(page).to have_content 'manual-trigger'
+
       page.find('a > text', text: 'manual-trigger').click
       page.find_button('Trigger Build').click
       expect(page).to have_content 'manual-trigger #1'
@@ -195,6 +198,8 @@ describe 'build', type: :feature do
 
       it 'cannot be manually triggered from the job page' do
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/manual-trigger")
+        expect(page.find('.build-action')).to be_disabled
+
         page.find_button('Trigger Build', disabled: true).click
         expect(page).to_not have_content 'manual-trigger #2'
       end

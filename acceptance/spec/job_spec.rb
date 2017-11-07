@@ -1,11 +1,11 @@
 describe 'job', type: :feature do
-  let(:team_name) { generate_team_name }
+  let!(:team_name) { generate_team_name }
 
   before do
+    fly_login 'main'
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
-    fly_with_input('destroy-pipeline -p test-pipeline', 'y')
     fly('set-pipeline -n -p test-pipeline -c fixtures/passing-pipeline.yml')
     fly('unpause-pipeline -p test-pipeline')
 
@@ -34,7 +34,6 @@ describe 'job', type: :feature do
   end
 
   it 'can be paused' do
-    fly('pause-job -j test-pipeline/passing')
     fly('unpause-job -j test-pipeline/passing')
     visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/passing")
 
@@ -55,7 +54,6 @@ describe 'job', type: :feature do
     page.find_by_id('job-state').click
     pause_button = page.find_by_id('job-state')
 
-    sleep 5
     expect(pause_button['class']).to_not include 'enabled'
     expect(pause_button['class']).to include 'disabled'
   end
