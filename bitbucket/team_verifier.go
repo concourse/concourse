@@ -35,7 +35,7 @@ func (verifier TeamVerifier) Verify(logger lager.Logger, httpClient *http.Client
 		}
 	}
 
-	logger.Info("not-validated-user", lager.Data{
+	logger.Info("not-validated-teams", lager.Data{
 		"have": teams,
 		"want": verifier.teams,
 	})

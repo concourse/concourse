@@ -15,8 +15,9 @@ type AuthConfig struct {
 	PrivateKey  privateKeyConfig `json:"private_key" long:"private-key" description:"Path to application private key for enabling Bitbucket OAuth"`
 	Endpoint    string           `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
 
-	Users        []string                     `json:"users" long:"user" description:"Bitbucket users that are allowed to log in"`
+	Users        []string                     `json:"users,omitempty" long:"user" description:"Bitbucket users that are allowed to log in"`
 	Repositories []bitbucket.RepositoryConfig `json:"repositories,omitempty" long:"repository" description:"Bitbucket repositories whose members are allowed to log in"`
+	Projects     []bitbucket.ProjectConfig    `json:"projects,omitempty" long:"project" description:"Bitbucket projects whose members are allowed to log in"`
 }
 
 func (auth *AuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
@@ -41,7 +42,8 @@ func (auth *AuthConfig) IsConfigured() bool {
 	return auth.ConsumerKey != "" ||
 		auth.PrivateKey.PrivateKey != nil ||
 		auth.Endpoint != "" ||
-		len(auth.Users) > 0
+		len(auth.Users) > 0 ||
+		len(auth.Projects) > 0
 }
 
 func (auth *AuthConfig) Validate() error {
@@ -58,10 +60,10 @@ func (auth *AuthConfig) Validate() error {
 			errors.New("must specify --bitbucket-server-auth-consumer-key and --bitbucket-server-auth-private-key to use OAuth with Bitbucket Server"),
 		)
 	}
-	if len(auth.Users) == 0 {
+	if len(auth.Users) == 0 && len(auth.Projects) == 0 {
 		errs = multierror.Append(
 			errs,
-			errors.New("at least one of the following is required for bitbucket-server-auth: users"),
+			errors.New("at least one of the following is required for bitbucket-server-auth: user, project"),
 		)
 	}
 	return errs.ErrorOrNil()
