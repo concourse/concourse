@@ -1,22 +1,21 @@
-module Routes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString, customToString)
+module Routes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, toString)
 
-import Navigation exposing (Location)
-import Route exposing (..)
-import QueryString
 import Concourse.Pagination as Pagination
+import Navigation exposing (Location)
+import QueryString
+import Route exposing (..)
 
 
 type Route
     = Home
     | Build String String String String
     | Resource String String String
+    | BetaResource String String String
     | Job String String String
     | OneOffBuild String
     | Pipeline String String
-    | BetaPipeline String String
     | SelectTeam
     | TeamLogin String
-    | Dashboard
 
 
 type alias ConcourseRoute =
@@ -46,6 +45,11 @@ resource =
     Resource := static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
 
 
+betaResource : Route.Route Route
+betaResource =
+    BetaResource := static "beta" </> static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
+
+
 job : Route.Route Route
 job =
     Job := static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string
@@ -61,19 +65,9 @@ pipeline =
     Pipeline := static "teams" </> string </> static "pipelines" </> string
 
 
-betaPipeline : Route.Route Route
-betaPipeline =
-    BetaPipeline := static "beta" </> static "teams" </> string </> static "pipelines" </> string
-
-
 teamLogin : Route.Route Route
 teamLogin =
     TeamLogin := static "teams" </> string </> static "login"
-
-
-dashboard : Route.Route Route
-dashboard =
-    Dashboard := static "dashboard"
 
 
 
@@ -85,13 +79,12 @@ sitemap =
     router
         [ build
         , resource
+        , betaResource
         , job
         , login
         , oneOffBuild
         , pipeline
-        , betaPipeline
         , teamLogin
-        , dashboard
         ]
 
 
@@ -113,23 +106,20 @@ toString route =
         Resource teamName pipelineName resourceName ->
             reverse job [ teamName, pipelineName, resourceName ]
 
+        BetaResource teamName pipelineName resourceName ->
+            reverse betaResource [ teamName, pipelineName, resourceName ]
+
         OneOffBuild buildId ->
             reverse oneOffBuild [ buildId ]
 
         Pipeline teamName pipelineName ->
             reverse pipeline [ teamName, pipelineName ]
 
-        BetaPipeline teamName pipelineName ->
-            reverse betaPipeline [ teamName, pipelineName ]
-
         SelectTeam ->
             reverse login []
 
         TeamLogin teamName ->
             reverse teamLogin [ teamName ]
-
-        Dashboard ->
-            reverse dashboard []
 
         Home ->
             "/"
@@ -164,21 +154,21 @@ createPageFromSearch search =
         limit =
             Maybe.withDefault 100 <| QueryString.one QueryString.int "limit" q
     in
-        case ( since, until ) of
-            ( Nothing, Just u ) ->
-                Just
-                    { direction = Pagination.Until u
-                    , limit = limit
-                    }
+    case ( since, until ) of
+        ( Nothing, Just u ) ->
+            Just
+                { direction = Pagination.Until u
+                , limit = limit
+                }
 
-            ( Just s, Nothing ) ->
-                Just
-                    { direction = Pagination.Since s
-                    , limit = limit
-                    }
+        ( Just s, Nothing ) ->
+            Just
+                { direction = Pagination.Since s
+                , limit = limit
+                }
 
-            _ ->
-                Nothing
+        _ ->
+            Nothing
 
 
 navigateTo : Route -> Cmd msg

@@ -109,6 +109,9 @@ decodeEvent e =
         "initialize" ->
             Json.Decode.decodeValue (Json.Decode.map Initialize (Json.Decode.field "origin" decodeOrigin)) e.value
 
+        "initialize-task" ->
+            Json.Decode.decodeValue (Json.Decode.map Initialize (Json.Decode.field "origin" decodeOrigin)) e.value
+
         "start-task" ->
             Json.Decode.decodeValue (Json.Decode.map StartTask (Json.Decode.field "origin" decodeOrigin)) e.value
 

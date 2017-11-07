@@ -1,6 +1,7 @@
 module BetaPipeline exposing (Flags, Model, Msg, init, changeToPipelineAndGroups, update, view, subscriptions)
 
 import Dict exposing (Dict)
+import Format exposing (prependBeta)
 import Graph exposing (Graph)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, style, rowspan)
@@ -11,7 +12,7 @@ import Concourse
 import Concourse.Job
 import Concourse.BuildStatus
 import Grid exposing (Grid)
-import Routes
+import BetaRoutes
 import QueryString
 
 
@@ -51,7 +52,7 @@ type alias Flags =
     { teamName : String
     , pipelineName : String
     , turbulenceImgSrc : String
-    , route : Routes.ConcourseRoute
+    , route : BetaRoutes.ConcourseRoute
     }
 
 
@@ -207,23 +208,19 @@ viewNode { id, label } =
         case label of
             JobNode job ->
                 Html.div [ class "node job", idAttr ]
-                    [ viewJobNode job
-                    ]
+                    [ viewJobNode job ]
 
             InputNode { resourceName } ->
                 Html.div [ class "node input", idAttr ]
-                    [ viewInputNode resourceName
-                    ]
+                    [ viewInputNode resourceName ]
 
             ConstrainedInputNode { resourceName } ->
                 Html.div [ class "node input constrained", idAttr ]
-                    [ viewConstrainedInputNode resourceName
-                    ]
+                    [ viewConstrainedInputNode resourceName ]
 
             OutputNode { resourceName } ->
                 Html.div [ class "node output", idAttr ]
-                    [ viewOutputNode resourceName
-                    ]
+                    [ viewOutputNode resourceName ]
 
 
 viewJobNode : Concourse.Job -> Html Msg
@@ -233,22 +230,22 @@ viewJobNode job =
             case ( job.finishedBuild, job.nextBuild ) of
                 ( Just fb, Just nb ) ->
                     [ class (Concourse.BuildStatus.show fb.status ++ " started")
-                    , href nb.url
+                    , href <| prependBeta nb.url
                     ]
 
                 ( Just fb, Nothing ) ->
                     [ class (Concourse.BuildStatus.show fb.status)
-                    , href fb.url
+                    , href <| prependBeta fb.url
                     ]
 
                 ( Nothing, Just nb ) ->
                     [ class "no-builds started"
-                    , href nb.url
+                    , href <| prependBeta nb.url
                     ]
 
                 ( Nothing, Nothing ) ->
                     [ class "no-builds"
-                    , href job.url
+                    , href <| prependBeta job.url
                     ]
     in
         Html.a linkAttrs
@@ -371,6 +368,6 @@ jobId nodes job =
             Debug.crash "impossible: job index not found"
 
 
-queryGroupsForRoute : Routes.ConcourseRoute -> List String
+queryGroupsForRoute : BetaRoutes.ConcourseRoute -> List String
 queryGroupsForRoute route =
     QueryString.all "groups" route.queries
