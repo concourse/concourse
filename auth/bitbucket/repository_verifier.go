@@ -19,9 +19,6 @@ func NewRepositoryVerifier(repositories []RepositoryConfig, bitbucketClient Clie
 }
 
 func (verifier RepositoryVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
-	logger.Info("validating-repositories", lager.Data{
-		"want": verifier.repositories,
-	})
 	for _, repository := range verifier.repositories {
 		accessable, err := verifier.bitbucketClient.Repository(httpClient, repository.OwnerName, repository.RepositoryName)
 		if err != nil {
@@ -32,10 +29,6 @@ func (verifier RepositoryVerifier) Verify(logger lager.Logger, httpClient *http.
 		}
 
 		if accessable {
-			logger.Info("validated-repository", lager.Data{
-				"have": repository,
-				"want": verifier.repositories,
-			})
 			return true, nil
 		}
 	}
