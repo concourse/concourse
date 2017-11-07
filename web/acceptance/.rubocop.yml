@@ -4,14 +4,17 @@ AllCops:
 Documentation:
   Enabled: false
 
-Style/FrozenStringLiteralComment:
-  Enabled: false
-
-Metrics/MethodLength:
+Metrics/AbcSize:
   Enabled: false
 
 Metrics/BlockLength:
   Enabled: false
 
 Metrics/LineLength:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
   Enabled: false

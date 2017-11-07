@@ -1,13 +1,13 @@
 require 'rspec/expectations'
 require 'color'
 
-RED = Color::CSS['red']
-GREEN = Color::CSS['green']
-ORANGE = Color::CSS['orange']
-YELLOW = Color::CSS['yellow']
-BROWN = Color::CSS['brown']
-BLUE = Color::CSS['blue']
-PALETTE = [RED, GREEN, ORANGE, YELLOW, BROWN, BLUE].freeze
+RED = Color::RGB.by_hex('#ED4B35')
+GREEN = Color::RGB.by_hex('#11C560')
+AMBER = Color::RGB.by_hex('#F5A623')
+BROWN = Color::RGB.by_hex('#8B572A')
+BLUE = Color::RGB.by_hex('#4A90E2')
+GRAY = Color::RGB.by_hex('#9B9B9B')
+PALETTE = [RED, GREEN, AMBER, BROWN, BLUE, GRAY].freeze
 
 RSpec::Matchers.define :be_greyscale do
   match do |actual|

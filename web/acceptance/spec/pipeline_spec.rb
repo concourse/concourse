@@ -1,7 +1,8 @@
 describe 'pipeline', type: :feature do
-  let(:team_name) { generate_team_name }
+  let!(:team_name) { generate_team_name }
 
   before(:each) do
+    fly_login 'main'
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
@@ -22,6 +23,7 @@ describe 'pipeline', type: :feature do
 
       page.go_back
 
+      expect(page).to have_content 'some/resource'
       page.find('a > text', text: 'some/resource').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/resources/some%2Fresource"
     end
@@ -31,6 +33,7 @@ describe 'pipeline', type: :feature do
     page.find('.sidebar-toggle').click
 
     within('.sidebar') do
+      expect(page).to have_content('test-pipeline')
       expect(page).to have_link('test-pipeline')
 
       click_on 'test-pipeline'
@@ -46,10 +49,8 @@ describe 'pipeline', type: :feature do
     expect(page).to have_css('.top-bar.paused')
 
     pause_button.click
-    Capybara.using_wait_time(5) do
-      expect(page).to_not have_css('.top-bar.paused')
-      expect(pause_button['class']).to include 'disabled'
-    end
+    expect(page).to_not have_css('.top-bar.paused')
+    expect(pause_button['class']).to include 'disabled'
   end
 
   it 'can be paused' do
@@ -63,9 +64,7 @@ describe 'pipeline', type: :feature do
     expect(page).to_not have_css('.top-bar.paused')
 
     pause_button.click
-    Capybara.using_wait_time(5) do
-      expect(page).to have_css('.top-bar.paused')
-      expect(pause_button['class']).to include 'enabled'
-    end
+    expect(page).to have_css('.top-bar.paused')
+    expect(pause_button['class']).to include 'enabled'
   end
 end
