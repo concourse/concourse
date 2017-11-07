@@ -15,9 +15,9 @@ type AuthConfig struct {
 	PrivateKey  privateKeyConfig `json:"private_key" long:"private-key" description:"Path to application private key for enabling Bitbucket OAuth"`
 	Endpoint    string           `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
 
-	Users        []string                     `json:"users,omitempty" long:"user" description:"Bitbucket users that are allowed to log in"`
-	Projects     []bitbucket.ProjectConfig    `json:"projects,omitempty" long:"project" description:"Bitbucket projects whose members are allowed to log in"`
-	Repositories []bitbucket.RepositoryConfig `json:"repositories,omitempty" long:"repository" description:"Bitbucket repositories whose members are allowed to log in"`
+	Users        []string                     `json:"users,omitempty" long:"user" description:"Bitbucket users that are allowed to log in" value-name:"USER"`
+	Projects     []string                     `json:"projects,omitempty" long:"project" description:"Bitbucket projects whose members are allowed to log in" value-name:"PROJ"`
+	Repositories []bitbucket.RepositoryConfig `json:"repositories,omitempty" long:"repository" description:"Bitbucket repositories whose members are allowed to log in" value-name:"OWNER/REPO"`
 }
 
 func (auth *AuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {

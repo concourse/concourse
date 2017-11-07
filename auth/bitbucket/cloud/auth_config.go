@@ -14,9 +14,9 @@ type AuthConfig struct {
 	ClientID     string `json:"client_id" long:"client-id" description:"Application client ID for enabling Bitbucket OAuth"`
 	ClientSecret string `json:"client_secret" long:"client-secret" description:"Application client secret for enabling Bitbucket OAuth"`
 
-	Users        []string                     `json:"users,omitempty" long:"user" description:"Bitbucket users that are allowed to log in"`
-	Teams        []bitbucket.TeamConfig       `json:"teams,omitempty" long:"team" description:"Bitbucket teams which members are allowed to log in"`
-	Repositories []bitbucket.RepositoryConfig `json:"repositories,omitempty" long:"repository" description:"Bitbucket repositories whose members are allowed to log in"`
+	Users        []string                     `json:"users,omitempty" long:"user" description:"Bitbucket users that are allowed to log in" value-name:"USER"`
+	Teams        []TeamConfig                 `json:"teams,omitempty" long:"team" description:"Bitbucket teams which members are allowed to log in" value-name:"TEAM[:ROLE]"`
+	Repositories []bitbucket.RepositoryConfig `json:"repositories,omitempty" long:"repository" description:"Bitbucket repositories whose members are allowed to log in" value-name:"OWNER/REPO"`
 
 	AuthURL  string `json:"auth_url,omitempty" long:"auth-url" description:"Override default endpoint AuthURL for Bitbucket Cloud"`
 	TokenURL string `json:"token_url,omitempty" long:"token-url" description:"Override default endpoint TokenURL for Bitbucket Cloud"`
