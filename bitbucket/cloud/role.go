@@ -1,4 +1,4 @@
-package bitbucket
+package cloud
 
 type Role string
 

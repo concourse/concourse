@@ -1,7 +1,8 @@
-package bitbucket
+package cloud
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/auth/bitbucket"
 	"github.com/concourse/atc/auth/verifier"
 	"net/http"
 )
@@ -9,10 +10,10 @@ import (
 type TeamVerifier struct {
 	teams           []string
 	role            Role
-	bitbucketClient Client
+	bitbucketClient bitbucket.Client
 }
 
-func NewTeamVerifier(teams []string, role Role, bitbucketClient Client) verifier.Verifier {
+func NewTeamVerifier(teams []string, role Role, bitbucketClient bitbucket.Client) verifier.Verifier {
 	return TeamVerifier{
 		teams:           teams,
 		role:            role,
