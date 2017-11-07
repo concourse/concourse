@@ -1,21 +1,21 @@
-port module TopBar exposing (Model, Msg(..), init, update, urlUpdate, view, subscriptions, fetchUser)
+port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, update, urlUpdate, view)
 
-import Html exposing (Html)
-import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)
-import Html.Events exposing (onClick)
-import Http
-import List
-import Navigation exposing (Location)
-import QueryString
-import String
-import Task
-import Time
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
+import Html exposing (Html)
+import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
+import Html.Events exposing (onClick)
+import Http
+import List
+import LoginRedirect
+import Navigation exposing (Location)
+import QueryString
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import LoginRedirect
+import String
+import Task
+import Time
 
 
 type alias Model =
@@ -59,19 +59,19 @@ init route =
         pid =
             extractPidFromRoute route.logical
     in
-        ( { selectedGroups = queryGroupsForRoute route
-          , route = route
-          , pipeline = Nothing
-          , userState = UserStateUnknown
-          , userMenuVisible = False
-          }
-        , case pid of
-            Nothing ->
-                fetchUser
+    ( { selectedGroups = queryGroupsForRoute route
+      , route = route
+      , pipeline = Nothing
+      , userState = UserStateUnknown
+      , userMenuVisible = False
+      }
+    , case pid of
+        Nothing ->
+            fetchUser
 
-            Just pid ->
-                Cmd.batch [ fetchPipeline pid, fetchUser ]
-        )
+        Just pid ->
+            Cmd.batch [ fetchPipeline pid, fetchUser ]
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -120,7 +120,7 @@ update msg model =
                     ( model, Cmd.none )
 
         ToggleSidebar ->
-            flip always (Debug.log ("sidebar-toggle-incorrectly-handled") ()) <|
+            flip always (Debug.log "sidebar-toggle-incorrectly-handled" ()) <|
                 ( model, Cmd.none )
 
         ToggleGroup group ->
@@ -153,7 +153,7 @@ update msg model =
             ( model, Navigation.newUrl url )
 
         LoggedOut (Err err) ->
-            flip always (Debug.log ("failed to log out") (err)) <|
+            flip always (Debug.log "failed to log out" err) <|
                 ( model, Cmd.none )
 
         ToggleUserMenu ->
@@ -162,7 +162,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case (pipelineIdentifierFromRouteOrModel model.route model) of
+    case pipelineIdentifierFromRouteOrModel model.route model of
         Nothing ->
             Sub.none
 
@@ -172,7 +172,7 @@ subscriptions model =
 
 pipelineIdentifierFromRouteOrModel : Routes.ConcourseRoute -> Model -> Maybe Concourse.PipelineIdentifier
 pipelineIdentifierFromRouteOrModel route model =
-    case (extractPidFromRoute route.logical) of
+    case extractPidFromRoute route.logical of
         Nothing ->
             case model.pipeline of
                 Nothing ->
@@ -197,13 +197,13 @@ extractPidFromRoute route =
         Routes.Resource teamName pipelineName resourceName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
+        Routes.BetaResource teamName pipelineName resourceName ->
+            Just { teamName = teamName, pipelineName = pipelineName }
+
         Routes.OneOffBuild buildId ->
             Nothing
 
         Routes.Pipeline teamName pipelineName ->
-            Just { teamName = teamName, pipelineName = pipelineName }
-
-        Routes.BetaPipeline teamName pipelineName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
         Routes.SelectTeam ->
@@ -215,9 +215,6 @@ extractPidFromRoute route =
         Routes.Home ->
             Nothing
 
-        Routes.Dashboard ->
-            Nothing
-
 
 setGroups : List String -> Model -> ( Model, Cmd Msg )
 setGroups newGroups model =
@@ -226,7 +223,7 @@ setGroups newGroups model =
             pidToUrl (pipelineIdentifierFromRouteOrModel model.route model) <|
                 setGroupsInLocation model.route newGroups
     in
-        ( model, Navigation.newUrl newUrl )
+    ( model, Navigation.newUrl newUrl )
 
 
 urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
@@ -235,17 +232,17 @@ urlUpdate route model =
         pipelineIdentifier =
             pipelineIdentifierFromRouteOrModel route model
     in
-        ( { model
-            | route = route
-            , selectedGroups = queryGroupsForRoute route
-          }
-        , case pipelineIdentifier of
-            Nothing ->
-                fetchUser
+    ( { model
+        | route = route
+        , selectedGroups = queryGroupsForRoute route
+      }
+    , case pipelineIdentifier of
+        Nothing ->
+            fetchUser
 
-            Just pid ->
-                Cmd.batch [ fetchPipeline pid, fetchUser ]
-        )
+        Just pid ->
+            Cmd.batch [ fetchPipeline pid, fetchUser ]
+    )
 
 
 getDefaultSelectedGroups : Maybe Concourse.Pipeline -> List String
@@ -275,9 +272,9 @@ setGroupsInLocation loc groups =
                     QueryString.empty
                     groups
     in
-        { loc
-            | queries = updatedUrl
-        }
+    { loc
+        | queries = updatedUrl
+    }
 
 
 pidToUrl : Maybe Concourse.PipelineIdentifier -> Routes.ConcourseRoute -> String
@@ -303,7 +300,7 @@ toggleGroup grp names mpipeline =
     if List.member grp.name names then
         List.filter ((/=) grp.name) names
     else if List.isEmpty names then
-        grp.name :: (getDefaultSelectedGroups mpipeline)
+        grp.name :: getDefaultSelectedGroups mpipeline
     else
         grp.name :: names
 
@@ -336,7 +333,7 @@ getGroupsForJob jobName pipeline =
             []
 
         Just pl ->
-            (List.filter (.jobs >> (List.member jobName)) pl.groups |> List.map .name)
+            List.filter (.jobs >> List.member jobName) pl.groups |> List.map .name
 
 
 view : Model -> Html Msg
@@ -361,26 +358,26 @@ view model =
                         , pipeline.url
                         )
           in
-            Html.ul [ class "groups" ] <|
-                [ Html.li [ class "main" ]
-                    [ Html.span
-                        [ class "sidebar-toggle test btn-hamburger"
-                        , onClick ToggleSidebar
-                        , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
-                        ]
-                        [ Html.i [ class "fa fa-bars" ] []
-                        ]
+          Html.ul [ class "groups" ] <|
+            [ Html.li [ class "main" ]
+                [ Html.span
+                    [ class "sidebar-toggle test btn-hamburger"
+                    , onClick ToggleSidebar
+                    , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
                     ]
-                , Html.li [ class "main" ]
-                    [ Html.a
-                        [ StrictEvents.onLeftClick <| NavTo pipelineUrl
-                        , Html.Attributes.href pipelineUrl
-                        ]
-                        [ Html.i [ class "fa fa-home" ] []
-                        ]
+                    [ Html.i [ class "fa fa-bars" ] []
                     ]
                 ]
-                    ++ groupList
+            , Html.li [ class "main" ]
+                [ Html.a
+                    [ StrictEvents.onLeftClick <| NavTo pipelineUrl
+                    , Html.Attributes.href pipelineUrl
+                    ]
+                    [ Html.i [ class "fa fa-home" ] []
+                    ]
+                ]
+            ]
+                ++ groupList
         , Html.ul [ class "nav-right" ]
             [ Html.li [ class "nav-item" ]
                 [ viewUserState model.userState model.userMenuVisible

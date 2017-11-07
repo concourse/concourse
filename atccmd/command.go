@@ -194,7 +194,7 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 
 	managerConfigs := make(creds.Managers)
 	for name, p := range creds.ManagerFactories() {
-		managerConfigs[name] = p.AddConfig(authGroup)
+		managerConfigs[name] = p.AddConfig(credsGroup)
 	}
 	cmd.CredentialManagers = managerConfigs
 
@@ -210,7 +210,10 @@ func (cmd *ATCCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
+func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
+	if len(positionalArguments) != 0 {
+		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
+	}
 	err := cmd.validate()
 	if err != nil {
 		return nil, err

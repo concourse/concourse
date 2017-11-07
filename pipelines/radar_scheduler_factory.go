@@ -50,16 +50,6 @@ func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline,
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string, variables creds.Variables) scheduler.BuildScheduler {
-	resourceTypeScanner := radar.NewResourceTypeScanner(
-		clock.NewClock(),
-		rsf.resourceFactory,
-		rsf.resourceConfigCheckSessionFactory,
-		rsf.interval,
-		pipeline,
-		externalURL,
-		variables,
-	)
-
 	scanner := radar.NewResourceScanner(
 		clock.NewClock(),
 		rsf.resourceFactory,
@@ -68,7 +58,6 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 		pipeline,
 		externalURL,
 		variables,
-		resourceTypeScanner,
 	)
 	inputMapper := inputmapper.NewInputMapper(
 		pipeline,

@@ -5,7 +5,9 @@
     "license": "Apache-2.0",
     "source-directories": [
         "../src",
-        "."
+        "../src/Beta",
+        ".",
+        "./Beta"
     ],
     "exposed-modules": [],
     "native-modules": true,

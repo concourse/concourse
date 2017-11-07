@@ -34,7 +34,6 @@ func NewScannerFactory(
 	externalURL string,
 	variablesFactory creds.VariablesFactory,
 ) ScannerFactory {
-
 	return &scannerFactory{
 		resourceFactory:                   resourceFactory,
 		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,
@@ -45,23 +44,5 @@ func NewScannerFactory(
 }
 
 func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
-	resourceTypeScanner := NewResourceTypeScanner(
-		clock.NewClock(),
-		f.resourceFactory,
-		f.resourceConfigCheckSessionFactory,
-		f.defaultInterval,
-		dbPipeline,
-		f.externalURL,
-		f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name()),
-	)
-	return NewResourceScanner(
-		clock.NewClock(),
-		f.resourceFactory,
-		f.resourceConfigCheckSessionFactory,
-		f.defaultInterval,
-		dbPipeline,
-		f.externalURL,
-		f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name()),
-		resourceTypeScanner,
-	)
+	return NewResourceScanner(clock.NewClock(), f.resourceFactory, f.resourceConfigCheckSessionFactory, f.defaultInterval, dbPipeline, f.externalURL, f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name()))
 }

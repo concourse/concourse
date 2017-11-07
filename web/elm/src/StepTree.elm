@@ -30,6 +30,7 @@ import Focus exposing (Focus, (=>))
 import Html exposing (Html)
 import Html.Events exposing (onClick, onMouseDown)
 import Html.Attributes exposing (class, classList, href)
+import Html.Lazy
 import Concourse
 import DictView
 import StrictEvents
@@ -705,13 +706,8 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
           <|
             if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
                 [ viewMetadata metadata
-                , Html.div [ class "timestamped-logs" ]
-                    [ Html.div [ class "timestamp-times" ] <|
-                        List.map (viewTimestamp model.highlight id) <|
-                            List.sortBy Tuple.first (Dict.toList timestamps)
-                    , Html.div [ class "timestamp-logs" ]
-                        [ Ansi.Log.view log ]
-                    ]
+                , Html.pre [ class "timestamped-logs" ] <|
+                    viewLogs log timestamps model.highlight id
                 , case error of
                     Nothing ->
                         Html.span [] []
@@ -724,8 +720,13 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
         ]
 
 
-viewTimestamp : Highlight -> String -> ( Int, Date ) -> Html Msg
-viewTimestamp hl id ( line, date ) =
+viewLogs : Ansi.Log.Model -> Dict Int Date -> Highlight -> String -> List (Html Msg)
+viewLogs { lines } timestamps hl id =
+    Array.toList <| Array.indexedMap (\idx -> viewTimestampedLine timestamps hl id (idx + 1)) lines
+
+
+viewTimestampedLine : Dict Int Date -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Msg
+viewTimestampedLine timestamps hl id lineNo line =
     let
         highlighted =
             case hl of
@@ -733,19 +734,44 @@ viewTimestamp hl id ( line, date ) =
                     False
 
                 HighlightLine hlId hlLine ->
-                    hlId == id && hlLine == line
+                    hlId == id && hlLine == lineNo
 
                 HighlightRange hlId hlLine1 hlLine2 ->
-                    hlId == id && line >= hlLine1 && line <= hlLine2
+                    hlId == id && lineNo >= hlLine1 && lineNo <= hlLine2
     in
-        Html.div [ classList [ ( "timestamp", True ), ( "timestamp-highlighted", highlighted ) ] ]
-            [ Html.a
-                [ href (showHighlight (HighlightLine id line))
-                , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
-                ]
-                [ Html.text (Date.Format.format "%H:%M:%S" date)
+        Html.div
+            [ classList
+                [ ( "timestamped-line", True )
+                , ( "highlighted-line", highlighted )
                 ]
             ]
+            [ case Dict.get lineNo timestamps of
+                Just ts ->
+                    viewTimestamp hl id ( lineNo, ts )
+
+                _ ->
+                    Html.text ""
+            , viewLine line
+            ]
+
+
+viewLine : Ansi.Log.Line -> Html Msg
+viewLine line =
+    Html.div [ class "timestamped-content" ]
+        [ Html.Lazy.lazy Ansi.Log.viewLine line
+        ]
+
+
+viewTimestamp : Highlight -> String -> ( Int, Date ) -> Html Msg
+viewTimestamp hl id ( line, date ) =
+    Html.div [ class "timestamp" ]
+        [ Html.a
+            [ href (showHighlight (HighlightLine id line))
+            , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
+            ]
+            [ Html.text (Date.Format.format "%H:%M:%S" date)
+            ]
+        ]
 
 
 viewVersion : Maybe Version -> Html Msg

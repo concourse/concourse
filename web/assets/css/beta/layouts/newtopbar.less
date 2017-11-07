@@ -1,0 +1,82 @@
+// newtopbar.less
+
+.module-topbar {
+  background: @base00;
+  color: @white;
+  display: flex;
+  height: 64px;
+  line-height: 64px;
+
+  .topbar-logo {
+    flex-shrink: 1;
+    flex-basis: 50%;
+
+    .logo-image-link {
+      background-image: url('images/concourse_logo_white.svg');
+      background-size: 30px 30px;
+      background-position: center center;
+      background-repeat: no-repeat;
+      display: inline-block;
+      height: 64px;
+      width: 64px;
+    }
+  }
+
+  .topbar-search {
+    text-align: center;
+
+    .topbar-search-form {
+      display: flex;
+      margin: 0 auto;
+      position: relative;
+      margin-top: 14px;
+
+      .search-input-field {
+        background: transparent url('images/ic_search_white_24px.svg') 10px 10px no-repeat;
+        border: 1px solid @base03;
+        color: @white;
+        font-family: monospace;
+        font-size: 14px;
+        height: 35px;
+        width: 220px;
+        padding: 0 42px;
+        background-position-x: 12px;
+        &:focus {
+          border: 1px solid @base03;
+          outline: 0;
+        }
+      }
+
+      .search-clear-button {
+        flex-grow: 1;
+        background: transparent url('images/ic_close_white_24px.svg') 10px 12px no-repeat;
+        border: 0;
+        color: @base03;
+        cursor: pointer;
+        padding: 17px;
+        position: absolute;
+        right: 0;
+      }
+    }
+  }
+
+  .topbar-login {
+    flex-shrink: 1;
+    flex-basis: 50%;
+    line-height: 64px;
+    text-align: right;
+    white-space: nowrap;
+
+    .topbar-user-info {
+      border-left: 1px solid @base02;
+      display: inline-block;
+      padding: 0 10%;
+    }
+  }
+}
+
+@media (min-width : 320px) and (max-width : 768px) {
+  .module-topbar .topbar-search .topbar-search-form .search-input-field {
+    width: 160px;
+  }
+}

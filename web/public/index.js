@@ -1,8 +1,9 @@
 var currentHighlight;
 
+var redraw;
 function draw(svg, jobs, resources, newUrl) {
-  concourse.redraw = redrawFunction(svg, jobs, resources, newUrl);
-  concourse.redraw();
+  redraw = redrawFunction(svg, jobs, resources, newUrl);
+  redraw();
 }
 
 function redrawFunction(svg, jobs, resources, newUrl) {
@@ -310,10 +311,6 @@ function createGraph(svg, jobs, resources) {
   for (var i in jobs) {
     var job = jobs[i];
 
-    if (!groupsMatch(job.groups, concourse.groups)) {
-      continue;
-    }
-
     var id = jobNode(job.name);
 
     var classes = ["job"];
@@ -340,7 +337,7 @@ function createGraph(svg, jobs, resources) {
       classes.push(job.next_build.status);
     }
 
-    graph.setNode(id, new Node({
+    graph.setNode(id, new GraphNode({
       id: id,
       name: job.name,
       class: classes.join(" "),
@@ -355,10 +352,6 @@ function createGraph(svg, jobs, resources) {
     var job = jobs[i];
     var id = jobNode(job.name);
 
-    if (!groupsMatch(job.groups, concourse.groups)) {
-      continue;
-    }
-
     for (var j in job.outputs) {
       var output = job.outputs[j];
 
@@ -366,7 +359,7 @@ function createGraph(svg, jobs, resources) {
 
       var jobOutputNode = graph.node(outputId);
       if (!jobOutputNode) {
-        jobOutputNode = new Node({
+        jobOutputNode = new GraphNode({
           id: outputId,
           name: output.resource,
           key: output.resource,
@@ -390,10 +383,6 @@ function createGraph(svg, jobs, resources) {
     var job = jobs[i];
     var id = jobNode(job.name);
 
-    if (!groupsMatch(job.groups, concourse.groups)) {
-      continue;
-    }
-
     for (var j in job.inputs) {
       var input = job.inputs[j];
 
@@ -409,7 +398,7 @@ function createGraph(svg, jobs, resources) {
             sourceNode = sourceOutputNode;
           } else {
             if (!graph.node(sourceInputNode)) {
-              graph.setNode(sourceInputNode, new Node({
+              graph.setNode(sourceInputNode, new GraphNode({
                 id: sourceInputNode,
                 name: input.resource,
                 key: input.resource,
@@ -440,10 +429,6 @@ function createGraph(svg, jobs, resources) {
     var job = jobs[i];
     var id = jobNode(job.name);
 
-    if (!groupsMatch(job.groups, concourse.groups)) {
-      continue;
-    }
-
     var node = graph.node(id);
 
     for (var j in job.inputs) {
@@ -464,7 +449,7 @@ function createGraph(svg, jobs, resources) {
             status = "paused";
           }
 
-          graph.setNode(inputId, new Node({
+          graph.setNode(inputId, new GraphNode({
             id: inputId,
             name: input.resource,
             key: input.resource,
@@ -495,20 +480,6 @@ function objectIsEmpty(o) {
   }
 
   return true;
-}
-
-function groupsMatch(objGroups, groups) {
-  if (objectIsEmpty(groups)) {
-    return true;
-  }
-
-  for(var i in objGroups) {
-    if (groups[objGroups[i]]) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 function groupNode(name) {

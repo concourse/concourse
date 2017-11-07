@@ -4,50 +4,60 @@ require 'colors'
 describe 'dashboard', type: :feature do
   include Colors
 
-  let(:team_name) { generate_team_name }
-  let(:other_team_name) { generate_team_name }
+  let!(:team_name) { generate_team_name }
 
   before(:each) do
+    fly_login 'main'
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
-    fly_with_input("set-team -n #{other_team_name} --no-really-i-dont-want-any-auth", 'y')
-
     fly_login team_name
     fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml')
     fly('unpause-pipeline -p some-pipeline')
-
-    fly_login other_team_name
-    fly('set-pipeline -n -p other-pipeline-private -c fixtures/states-pipeline.yml')
-    fly('unpause-pipeline -p other-pipeline-private')
-    fly('set-pipeline -n -p other-pipeline-public -c fixtures/states-pipeline.yml')
-    fly('unpause-pipeline -p other-pipeline-public')
-    fly('expose-pipeline -p other-pipeline-public')
-
-    fly_login team_name
   end
 
-  it 'shows all pipelines from the authenticated team and public pipelines from other teams' do
-    dash_login team_name
+  context 'with multiple teams' do
+    let(:other_team_name) { generate_team_name }
 
-    visit dash_route('/dashboard')
+    before do
+      fly_login 'main'
+      fly_with_input("set-team -n #{other_team_name} --no-really-i-dont-want-any-auth", 'y')
 
-    within '.dashboard-team-group', text: team_name do
-      expect(page).to have_content 'some-pipeline'
+      fly_login other_team_name
+      fly('set-pipeline -n -p other-pipeline-private -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p other-pipeline-private')
+      fly('set-pipeline -n -p other-pipeline-public -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p other-pipeline-public')
+      fly('expose-pipeline -p other-pipeline-public')
+
+      fly_login team_name
     end
 
-    within '.dashboard-team-group', text: other_team_name do
-      expect(page).to have_content 'other-pipeline-public'
-      expect(page).to_not have_content 'other-pipeline-private'
+    after do
+      fly_login 'main'
+      fly_with_input("destroy-team -n #{other_team_name}", other_team_name)
     end
-  end
 
-  it 'shows authenticated team first' do
-    dash_login team_name
+    it 'shows all pipelines from the authenticated team and public pipelines from other teams' do
+      dash_login team_name
+      visit dash_route('/beta/dashboard')
+      within '.dashboard-team-group', text: team_name do
+        expect(page).to have_content 'some-pipeline'
+      end
 
-    visit dash_route('/dashboard')
+      within '.dashboard-team-group', text: other_team_name do
+        expect(page).to have_content 'other-pipeline-public'
+        expect(page).to_not have_content 'other-pipeline-private'
+      end
+    end
 
-    expect(page).to have_content(team_name)
-    expect(page).to have_content(other_team_name)
-    expect(page.first('.dashboard-team-name').text).to eq(team_name)
+    it 'shows authenticated team first' do
+      dash_login team_name
+
+      visit dash_route('/beta/dashboard')
+
+      expect(page).to have_content(team_name)
+      expect(page).to have_content(other_team_name)
+      expect(page.first('.dashboard-team-name').text).to eq(team_name)
+    end
   end
 
   context 'when pipelines have different states' do
@@ -117,10 +127,9 @@ describe 'dashboard', type: :feature do
     end
   end
 
-  context 'when a pipeline is hanging' do
+  context 'when a pipeline is pending' do
     before do
-      fly('trigger-job -w -j some-pipeline/passing')
-      fly('trigger-job -j some-pipeline/hanging')
+      fly('trigger-job -j some-pipeline/pending')
       visit_dashboard
     end
 
@@ -130,7 +139,7 @@ describe 'dashboard', type: :feature do
 
     it 'is labelled "pending"' do
       within '.dashboard-pipeline', text: 'some-pipeline' do
-        expect(page).to have_content('pending')
+        expect(page).to have_content('pending', wait: 10)
       end
     end
   end
@@ -169,6 +178,7 @@ describe 'dashboard', type: :feature do
 
     it 'is shown in brown' do
       visit_dashboard
+      expect(page).to have_css('.dashboard-pipeline.dashboard-status-aborted')
       expect(border_palette).to eq(BROWN)
     end
   end
@@ -187,7 +197,7 @@ describe 'dashboard', type: :feature do
 
     it 'is shown in amber' do
       visit_dashboard
-      expect(border_palette).to eq(ORANGE)
+      expect(border_palette).to eq(AMBER)
     end
   end
 
@@ -224,16 +234,15 @@ describe 'dashboard', type: :feature do
   end
 
   it 'anchors URL links on team groups' do
-    login
-    visit dash_route('/dashboard')
+    visit_dashboard
     expect(page).to have_css('.dashboard-team-group', id: team_name)
   end
 
   it 'links to latest build in the preview' do
-    login
-    visit dash_route('/dashboard')
     fly_fail('trigger-job -w -j some-pipeline/failing')
-    expect(page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
+    visit_dashboard
+    expect(page).to have_css("a[href=\"/beta/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]")
+    expect(page.find("a[href=\"/beta/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
   end
 
   private
@@ -256,6 +265,6 @@ describe 'dashboard', type: :feature do
 
   def visit_dashboard
     login
-    visit dash_route('/dashboard')
+    visit dash_route('/beta/dashboard')
   end
 end

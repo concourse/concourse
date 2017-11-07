@@ -1,25 +1,26 @@
-port module SubPage exposing (Model(..), Msg(..), init, urlUpdate, update, view, subscriptions)
+port module SubPage exposing (Model(..), Msg(..), init, subscriptions, update, urlUpdate, view)
 
-import Json.Encode
-import Html exposing (Html)
-import Http
-import Login
-import NotFound
-import String
-import Task
 import Autoscroll
+import Build
 import Concourse
 import Concourse.Pipeline
+import Html exposing (Html)
+import Http
 import Job
+import Json.Encode
+import Login
 import Resource
+import BetaResource
 import Build
 import NoPipeline
-import Routes
-import QueryString
+import NotFound
 import Pipeline
-import BetaPipeline
+import QueryString
+import Resource
+import Routes
+import String
+import Task
 import TeamSelection
-import Dashboard
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -38,26 +39,23 @@ type Model
     | BuildModel (Autoscroll.Model Build.Model)
     | JobModel Job.Model
     | ResourceModel Resource.Model
+    | BetaResourceModel BetaResource.Model
     | LoginModel Login.Model
     | PipelineModel Pipeline.Model
-    | BetaPipelineModel BetaPipeline.Model
     | SelectTeamModel TeamSelection.Model
     | NotFoundModel NotFound.Model
-    | DashboardModel Dashboard.Model
 
 
 type Msg
     = PipelinesFetched (Result Http.Error (List Concourse.Pipeline))
-    | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DefaultPipelineFetched (Maybe Concourse.Pipeline)
     | NoPipelineMsg NoPipeline.Msg
     | BuildMsg (Autoscroll.Msg Build.Msg)
     | JobMsg Job.Msg
     | ResourceMsg Resource.Msg
+    | BetaResourceMsg BetaResource.Msg
     | LoginMsg Login.Msg
     | PipelineMsg Pipeline.Msg
-    | DashboardMsg Dashboard.Msg
-    | BetaPipelineMsg BetaPipeline.Msg
     | SelectTeamMsg TeamSelection.Msg
     | NewCSRFToken String
 
@@ -112,6 +110,17 @@ init turbulencePath route =
                     , csrfToken = ""
                     }
 
+        Routes.BetaResource teamName pipelineName resourceName ->
+            superDupleWrap ( BetaResourceModel, BetaResourceMsg ) <|
+                BetaResource.init
+                    { title = setTitle }
+                    { resourceName = resourceName
+                    , teamName = teamName
+                    , pipelineName = pipelineName
+                    , paging = route.page
+                    , csrfToken = ""
+                    }
+
         Routes.Job teamName pipelineName jobName ->
             superDupleWrap ( JobModel, JobMsg ) <|
                 Job.init
@@ -146,21 +155,6 @@ init turbulencePath route =
                     , turbulenceImgSrc = turbulencePath
                     , route = route
                     }
-
-        Routes.BetaPipeline teamName pipelineName ->
-            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <|
-                BetaPipeline.init
-                    { title = setTitle
-                    }
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , turbulenceImgSrc = turbulencePath
-                    , route = route
-                    }
-
-        Routes.Dashboard ->
-            superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init turbulencePath
 
         Routes.Home ->
             ( WaitingModel route
@@ -225,20 +219,17 @@ update turbulence notFound csrfToken msg mdl =
         ( PipelineMsg message, PipelineModel model ) ->
             handleNotFound notFound ( PipelineModel, PipelineMsg ) (Pipeline.updateWithMessage message model)
 
-        ( BetaPipelineMsg message, BetaPipelineModel model ) ->
-            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <| BetaPipeline.update message model
-
         ( NewCSRFToken c, ResourceModel model ) ->
             ( ResourceModel { model | csrfToken = c }, Cmd.none )
 
         ( ResourceMsg message, ResourceModel model ) ->
             handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
 
+        ( BetaResourceMsg message, BetaResourceModel model ) ->
+            handleNotFound notFound ( BetaResourceModel, BetaResourceMsg ) (BetaResource.updateWithMessage message { model | csrfToken = csrfToken })
+
         ( SelectTeamMsg message, SelectTeamModel model ) ->
             superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <| TeamSelection.update message model
-
-        ( DashboardMsg message, DashboardModel model ) ->
-            superDupleWrap ( DashboardModel, DashboardMsg ) <| Dashboard.update message model
 
         ( DefaultPipelineFetched pipeline, WaitingModel route ) ->
             case pipeline of
@@ -256,11 +247,14 @@ update turbulence notFound csrfToken msg mdl =
                     in
                         superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.init { render = renderPipeline, title = setTitle } flags
 
+        ( DefaultPipelineFetched _, NoPipelineModel ) ->
+            ( mdl, Cmd.none )
+
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )
 
-        _ ->
-            flip always (Debug.log ("impossible combination") ()) <|
+        unknown ->
+            flip always (Debug.log ("impossible combination") unknown) <|
                 ( mdl, Cmd.none )
 
 
@@ -277,19 +271,20 @@ urlUpdate route model =
                     }
                     mdl
 
-        ( Routes.BetaPipeline team pipeline, BetaPipelineModel mdl ) ->
-            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <|
-                BetaPipeline.changeToPipelineAndGroups
-                    { teamName = team
-                    , pipelineName = pipeline
-                    , turbulenceImgSrc = mdl.turbulenceImgSrc
-                    , route = route
-                    }
-                    mdl
-
         ( Routes.Resource teamName pipelineName resourceName, ResourceModel mdl ) ->
             superDupleWrap ( ResourceModel, ResourceMsg ) <|
                 Resource.changeToResource
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , resourceName = resourceName
+                    , paging = route.page
+                    , csrfToken = mdl.csrfToken
+                    }
+                    mdl
+
+        ( Routes.BetaResource teamName pipelineName resourceName, BetaResourceModel mdl ) ->
+            superDupleWrap ( BetaResourceModel, BetaResourceMsg ) <|
+                BetaResource.changeToResource
                     { teamName = teamName
                     , pipelineName = pipelineName
                     , resourceName = resourceName
@@ -345,11 +340,11 @@ view mdl =
         PipelineModel model ->
             Html.map PipelineMsg <| Pipeline.view model
 
-        BetaPipelineModel model ->
-            Html.map BetaPipelineMsg <| BetaPipeline.view model
-
         ResourceModel model ->
             Html.map ResourceMsg <| Resource.view model
+
+        BetaResourceModel model ->
+            Html.map BetaResourceMsg <| BetaResource.view model
 
         SelectTeamModel model ->
             Html.map SelectTeamMsg <| TeamSelection.view model
@@ -362,9 +357,6 @@ view mdl =
 
         NotFoundModel model ->
             NotFound.view model
-
-        DashboardModel model ->
-            Html.map DashboardMsg <| Dashboard.view model
 
 
 subscriptions : Model -> Sub Msg
@@ -385,11 +377,11 @@ subscriptions mdl =
         PipelineModel model ->
             Sub.map PipelineMsg <| Pipeline.subscriptions model
 
-        BetaPipelineModel model ->
-            Sub.map BetaPipelineMsg <| BetaPipeline.subscriptions model
-
         ResourceModel model ->
             Sub.map ResourceMsg <| Resource.subscriptions model
+
+        BetaResourceModel model ->
+            Sub.map BetaResourceMsg <| BetaResource.subscriptions model
 
         SelectTeamModel model ->
             Sub.map SelectTeamMsg <| TeamSelection.subscriptions model
@@ -399,9 +391,6 @@ subscriptions mdl =
 
         NotFoundModel _ ->
             Sub.none
-
-        DashboardModel model ->
-            Sub.map DashboardMsg <| Dashboard.subscriptions model
 
 
 fetchPipelines : Cmd Msg

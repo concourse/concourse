@@ -6,8 +6,8 @@ image_resource:
   source: {repository: concourse/atc-ci}
 
 inputs:
+- name: concourse
 - name: atc
-  path: gopath/src/github.com/concourse/atc
 
 run:
-  path: gopath/src/github.com/concourse/atc/ci/pr
+  path: atc/ci/pr

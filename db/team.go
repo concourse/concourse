@@ -936,12 +936,25 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 		return nil
 	}
 
-	_, err = tx.Exec(`
+	var resourceID string
+
+	err = tx.QueryRow(`
 		INSERT INTO resources (name, pipeline_id, config, active, nonce)
 		VALUES ($1, $2, $3, true, $4)
-	`, resource.Name, pipelineID, encryptedPayload, nonce)
+		RETURNING id
+	`, resource.Name, pipelineID, encryptedPayload, nonce).Scan(&resourceID)
 
-	return swallowUniqueViolation(err)
+	err = swallowUniqueViolation(err)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO resource_spaces (name, resource_id)
+		VALUES ('default', $1)
+	`, resourceID)
+
+	return err
 }
 
 func (t *team) saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) error {
