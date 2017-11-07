@@ -438,8 +438,10 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     \title{Deploying Concourse}
 
     Once you've got all that set up, download the releases listed for your
-    version of Concourse from the \reference{downloads} section, and
-    \link{upload them to the BOSH
+    version of Concourse from the \reference{downloads} section, plus the
+    \link{CloudFoundry Postgres
+    release}{http://bosh.io/releases/github.com/cloudfoundry/postgres-release},
+    and \link{upload them to the BOSH
     director}{http://bosh.io/docs/uploading-releases.html}.
 
     Next you'll need a Concourse \link{BOSH deployment
@@ -460,6 +462,8 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       - name: concourse
         version: latest
       - name: garden-runc
+        version: latest
+      - name: postgres
         version: latest
 
       stemcells:
@@ -494,7 +498,12 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
             tls_cert: REPLACE_ME
             tls_key: REPLACE_ME
 
-            postgresql_database: &atc_db atc
+            postgresql:
+              database: &atc_db atc
+              role: &atc_role
+                # make up a role and password
+                role: REPLACE_ME
+                password: REPLACE_ME
         - name: tsa
           release: concourse
           properties: \{\}
@@ -509,14 +518,15 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
         azs: [z1]
         networks: [\{name: private\}]
         jobs:
-        - name: postgresql
-          release: concourse
+        - name: postgres
+          release: postgres
           properties:
             databases:
-            - name: *atc_db
-              # make up a role and password
-              role: REPLACE_ME
-              password: REPLACE_ME
+              port: 5432
+              databases:
+              - name: *atc_db
+              roles:
+              - *atc_role
 
       - name: worker
         instances: 1
