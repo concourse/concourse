@@ -40,3 +40,7 @@ func (c *client) Teams(httpClient *http.Client, role bitbucket.Role) ([]string, 
 
 	return s, nil
 }
+
+func (c *client) Projects(httpClient *http.Client) ([]string, error) {
+	return nil, nil
+}

@@ -44,9 +44,15 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 		AccessTokenURL:  strings.TrimRight(bitbucketAuth.Endpoint, "/") + "/plugins/servlet/oauth/access-token",
 	}
 
+	var projects []string
+	for _, project := range bitbucketAuth.Projects {
+		projects = append(projects, project.Name)
+	}
+
 	return &Provider{
 		Verifier: verifier.NewVerifierBasket(
 			bitbucket.NewUserVerifier(bitbucketAuth.Users, &client{bitbucketAuth.Endpoint}),
+			bitbucket.NewProjectVerifier(projects, &client{bitbucketAuth.Endpoint}),
 		),
 		Config: &oauth1.Config{
 			ConsumerKey: bitbucketAuth.ConsumerKey,
