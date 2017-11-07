@@ -14,10 +14,29 @@ func NewClient() bitbucket.Client {
 }
 
 func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
-	bc, err := api.NewClient(httpClient)
+	bc, err := api.NewClient(httpClient, "")
 	if err != nil {
 		return "", err
 	}
 
 	return bc.CurrentUser()
+}
+
+func (c *client) Teams(httpClient *http.Client, role bitbucket.Role) ([]string, error) {
+	bc, err := api.NewClient(httpClient, "")
+	if err != nil {
+		return nil, err
+	}
+
+	ts, err := bc.TeamsWithRole(string(role))
+	if err != nil {
+		return nil, err
+	}
+
+	s := make([]string, len(ts))
+	for i, t := range ts {
+		s[i] = t.Username
+	}
+
+	return s, nil
 }

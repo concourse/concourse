@@ -16,6 +16,7 @@ type AuthConfig struct {
 
 	Users        []string                     `json:"users,omitempty" long:"user" description:"Bitbucket users that are allowed to log in"`
 	Repositories []bitbucket.RepositoryConfig `json:"repositories,omitempty" long:"repository" description:"Bitbucket repositories whose members are allowed to log in"`
+	Teams        []bitbucket.TeamConfig       `json:"teams,omitempty" long:"team" description:"Bitbucket teams which members are allowed to log in"`
 
 	AuthURL  string `json:"auth_url,omitempty" long:"auth-url" description:"Override default endpoint AuthURL for Bitbucket Cloud"`
 	TokenURL string `json:"token_url,omitempty" long:"token-url" description:"Override default endpoint TokenURL for Bitbucket Cloud"`
@@ -43,7 +44,8 @@ func (auth *AuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.Aut
 func (auth *AuthConfig) IsConfigured() bool {
 	return auth.ClientID != "" ||
 		auth.ClientSecret != "" ||
-		len(auth.Users) > 0
+		len(auth.Users) > 0 ||
+		len(auth.Teams) > 0
 }
 
 func (auth *AuthConfig) Validate() error {
@@ -54,10 +56,10 @@ func (auth *AuthConfig) Validate() error {
 			errors.New("must specify --bitbucket-cloud-auth-client-id and --bitbucket-cloud-auth-client-secret to use OAuth with Bitbucket Cloud"),
 		)
 	}
-	if len(auth.Users) == 0 {
+	if len(auth.Users) == 0 && len(auth.Teams) == 0 {
 		errs = multierror.Append(
 			errs,
-			errors.New("at least one of the following is required for bitbucket-cloud-auth: users"),
+			errors.New("at least one of the following is required for bitbucket-cloud-auth: user, team"),
 		)
 	}
 	return errs.ErrorOrNil()

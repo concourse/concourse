@@ -6,4 +6,5 @@ import "net/http"
 
 type Client interface {
 	CurrentUser(*http.Client) (string, error)
+	Teams(*http.Client, Role) ([]string, error)
 }

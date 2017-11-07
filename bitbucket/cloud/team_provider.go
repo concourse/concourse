@@ -31,9 +31,27 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 		endpoint.TokenURL = bitbucketAuth.TokenURL
 	}
 
+	var teamsMember []string
+	var teamsContributor []string
+	var teamsAdmin []string
+
+	for _, team := range bitbucketAuth.Teams {
+		switch bitbucket.Role(team.Role) {
+		case bitbucket.RoleMember:
+			teamsMember = append(teamsMember, team.TeamName)
+		case bitbucket.RoleContributor:
+			teamsContributor = append(teamsContributor, team.TeamName)
+		case bitbucket.RoleAdmin:
+			teamsAdmin = append(teamsAdmin, team.TeamName)
+		}
+	}
+
 	return Provider{
 		Verifier: verifier.NewVerifierBasket(
 			bitbucket.NewUserVerifier(bitbucketAuth.Users, NewClient()),
+			bitbucket.NewTeamVerifier(teamsMember, bitbucket.RoleMember, NewClient()),
+			bitbucket.NewTeamVerifier(teamsContributor, bitbucket.RoleContributor, NewClient()),
+			bitbucket.NewTeamVerifier(teamsAdmin, bitbucket.RoleAdmin, NewClient()),
 		),
 		Config: &oauth2.Config{
 			ClientID:     bitbucketAuth.ClientID,
