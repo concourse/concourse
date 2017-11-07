@@ -25,3 +25,7 @@ func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
 
 	return bc.CurrentUser()
 }
+
+func (c *client) Teams(httpClient *http.Client, role bitbucket.Role) ([]string, error) {
+	return nil, nil
+}
