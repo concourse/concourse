@@ -6,7 +6,7 @@ import "net/http"
 
 type Client interface {
 	CurrentUser(*http.Client) (string, error)
-	Teams(*http.Client, Role) ([]string, error)
 	Projects(*http.Client) ([]string, error)
 	Repository(client *http.Client, owner string, repository string) (bool, error)
+	Teams(*http.Client, string) ([]string, error)
 }

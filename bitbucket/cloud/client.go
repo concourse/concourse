@@ -22,29 +22,6 @@ func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
 	return bc.CurrentUser()
 }
 
-func (c *client) Teams(httpClient *http.Client, role bitbucket.Role) ([]string, error) {
-	bc, err := api.NewClient(httpClient, "")
-	if err != nil {
-		return nil, err
-	}
-
-	ts, err := bc.TeamsWithRole(string(role))
-	if err != nil {
-		return nil, err
-	}
-
-	s := make([]string, len(ts))
-	for i, t := range ts {
-		s[i] = t.Username
-	}
-
-	return s, nil
-}
-
-func (c *client) Projects(httpClient *http.Client) ([]string, error) {
-	return nil, nil
-}
-
 func (c *client) Repository(httpClient *http.Client, owner string, repository string) (bool, error) {
 	bc, err := api.NewClient(httpClient, "")
 	if err != nil {
@@ -57,4 +34,27 @@ func (c *client) Repository(httpClient *http.Client, owner string, repository st
 	}
 
 	return true, nil
+}
+
+func (c *client) Projects(httpClient *http.Client) ([]string, error) {
+	return nil, nil
+}
+
+func (c *client) Teams(httpClient *http.Client, role string) ([]string, error) {
+	bc, err := api.NewClient(httpClient, "")
+	if err != nil {
+		return nil, err
+	}
+
+	ts, err := bc.TeamsWithRole(role)
+	if err != nil {
+		return nil, err
+	}
+
+	s := make([]string, len(ts))
+	for i, t := range ts {
+		s[i] = t.Username
+	}
+
+	return s, nil
 }

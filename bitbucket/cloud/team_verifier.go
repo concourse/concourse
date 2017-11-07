@@ -26,7 +26,7 @@ func (verifier TeamVerifier) Verify(logger lager.Logger, httpClient *http.Client
 		return false, nil
 	}
 
-	teams, err := verifier.bitbucketClient.Teams(httpClient, verifier.role)
+	teams, err := verifier.bitbucketClient.Teams(httpClient, verifier.role.String())
 	if err != nil {
 		logger.Error("failed-to-get-teams", err)
 		return false, err

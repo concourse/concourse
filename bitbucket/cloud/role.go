@@ -7,3 +7,7 @@ const (
 	RoleContributor Role = "contributor"
 	RoleAdmin       Role = "admin"
 )
+
+func (r Role) String() string {
+	return string(r)
+}
