@@ -1,17 +1,18 @@
-package bitbucket
+package server
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/auth/bitbucket"
 	"github.com/concourse/atc/auth/verifier"
 	"net/http"
 )
 
 type ProjectVerifier struct {
 	projects        []string
-	bitbucketClient Client
+	bitbucketClient bitbucket.Client
 }
 
-func NewProjectVerifier(projects []string, bitbucketClient Client) verifier.Verifier {
+func NewProjectVerifier(projects []string, bitbucketClient bitbucket.Client) verifier.Verifier {
 	return ProjectVerifier{
 		projects:        projects,
 		bitbucketClient: bitbucketClient,
