@@ -7,14 +7,17 @@ import (
 )
 
 type client struct {
+	endpoint string
 }
 
-func NewClient() bitbucket.Client {
-	return &client{}
+func NewClient(endpoint string) bitbucket.Client {
+	return &client{
+		endpoint: endpoint,
+	}
 }
 
 func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
-	bc, err := api.NewClient(httpClient, "")
+	bc, err := api.NewClient(httpClient, c.endpoint)
 	if err != nil {
 		return "", err
 	}
@@ -23,7 +26,7 @@ func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
 }
 
 func (c *client) Repository(httpClient *http.Client, owner string, repository string) (bool, error) {
-	bc, err := api.NewClient(httpClient, "")
+	bc, err := api.NewClient(httpClient, c.endpoint)
 	if err != nil {
 		return false, err
 	}
@@ -41,7 +44,7 @@ func (c *client) Projects(httpClient *http.Client) ([]string, error) {
 }
 
 func (c *client) Teams(httpClient *http.Client, role string) ([]string, error) {
-	bc, err := api.NewClient(httpClient, "")
+	bc, err := api.NewClient(httpClient, c.endpoint)
 	if err != nil {
 		return nil, err
 	}
