@@ -7,13 +7,13 @@ description: |
 templates:
   tsa_ctl.erb: bin/tsa_ctl
   host_key.erb: config/host_key
+  token_signing_key.erb: config/token_signing_key
+  tsa_host_key.erb: config/tsa_host_key
+  worker_key.pub.erb: config/worker_key.pub
 
 packages:
   - pid_utils
   - tsa
-  - generated_signing_key
-  - generated_tsa_host_key
-  - generated_worker_key
 
 consumes:
 - name: atc
@@ -98,3 +98,40 @@ properties:
       ATC API endpoints to which workers will be advertised.
       If not specified, they will be autodiscovered via BOSH links.
     default: ["http://127.0.0.1:8080"]
+
+  token_signing_key:
+     description: |
+       PEM RSA private key used for minting ATC tokens.
+       Must be specified, bosh can auto-generate (type rsa), see sample manifest.yml.
+     example:
+       private_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ...
+          -----END RSA PRIVATE KEY-----
+       public_key: |
+          -----BEGIN PUBLIC KEY-----
+          ...
+          -----END PUBLIC KEY-----
+
+  tsa_host_key:
+     description: |
+       Must be specified, bosh can auto-generate (type ssh), see sample manifest.yml.
+     example:
+       private_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ...
+          -----END RSA PRIVATE KEY-----
+       public_key: |
+          ssh-rsa ...
+
+  worker_key:
+     description: |
+       Must be specified, bosh can auto-generate (type ssh), see sample manifest.yml.
+       Only public key portion is needed here.
+     example:
+       private_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ...
+          -----END RSA PRIVATE KEY-----
+       public_key: |
+          ssh-rsa ...

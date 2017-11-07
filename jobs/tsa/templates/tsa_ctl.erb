@@ -42,7 +42,9 @@ set -e
 RUN_DIR=/var/vcap/sys/run/tsa
 LOG_DIR=/var/vcap/sys/log/tsa
 PIDFILE=$RUN_DIR/tsa.pid
-SIGNING_KEY=/var/vcap/packages/generated_signing_key/id_rsa
+SIGNING_KEY=/var/vcap/jobs/tsa/config/token_signing_key
+TSA_HOST_KEY=/var/vcap/jobs/tsa/config/tsa_host_key
+WORKER_PUB_KEY=/var/vcap/jobs/tsa/config/worker_key.pub
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
@@ -59,7 +61,7 @@ case $1 in
 
     echo $$ > /var/vcap/sys/run/tsa/tsa.pid
 
-    for key in /var/vcap/packages/generated_tsa_host_key/id_rsa \
+    for key in $TSA_HOST_KEY \
                /var/vcap/jobs/tsa/config/host_key \
                $SIGNING_KEY; do
       chown vcap:vcap $key
@@ -68,7 +70,7 @@ case $1 in
 
     {
 <% if p("authorize_generated_worker_key") %>
-      cat /var/vcap/packages/generated_worker_key/id_rsa.pub
+      cat $WORKER_PUB_KEY
 <% end %>
       cat <<EOF
 <%= p("authorized_keys").join("\n") %>
@@ -92,7 +94,7 @@ EOF
       <% if p("host_key") != "" %> \
       --host-key /var/vcap/jobs/tsa/config/host_key \
       <% else %> \
-      --host-key /var/vcap/packages/generated_tsa_host_key/id_rsa \
+      --host-key $TSA_HOST_KEY \
       <% end %> \
       --authorized-keys /var/vcap/jobs/tsa/config/authorized_keys \
       <% teamAuthorizedKeys.each do |team, keys| %> \

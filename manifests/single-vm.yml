@@ -1,11 +1,11 @@
 ---
-name: ((deployment_name))
+name: concourse
 
 releases:
 - name: concourse
-  version: ((concourse_version))
+  version: latest
 - name: garden-runc
-  version: ((garden_runc_version))
+  version: latest
 - name: postgres
   version: latest
 
@@ -13,10 +13,11 @@ instance_groups:
 - name: concourse
   instances: 1
   networks:
-  - name: testflight
+  - name: default
     static_ips: [&web-ip ((web_ip))]
+  azs: [z1]
   persistent_disk: 10240
-  vm_type: testflight
+  vm_type: small
   stemcell: trusty
   jobs:
   - release: concourse
@@ -30,13 +31,19 @@ instance_groups:
         database: atc
         role:
           name: atc
-          password: dummy-password
+          password: ((postgres_password))
 
       no_really_i_dont_want_any_auth: true
 
+      token_signing_key: ((token_signing_key))
+
   - release: concourse
     name: tsa
-    properties: {log_level: debug}
+    properties:
+      log_level: debug
+      token_signing_key: ((token_signing_key))
+      tsa_host_key: ((tsa_host_key))
+      worker_key: ((worker_key))
 
   - release: postgres
     name: postgres
@@ -47,15 +54,19 @@ instance_groups:
         - name: atc
         roles:
         - name: atc
-          password: dummy-password
+          password: ((postgres_password))
 
   - release: concourse
     name: groundcrew
-    properties: {drain_timeout: 10m}
+    properties:
+      drain_timeout: 10m
+      tsa_host_key: ((tsa_host_key))
+      worker_key: ((worker_key))
 
   - release: concourse
     name: baggageclaim
-    properties: {log_level: debug}
+    properties:
+      log_level: debug
 
   - release: garden-runc
     name: garden
@@ -64,6 +75,16 @@ instance_groups:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
         allow_host_access: true
+
+variables:
+- name: postgres_password
+  type: password
+- name: token_signing_key
+  type: rsa
+- name: tsa_host_key
+  type: ssh
+- name: worker_key
+  type: ssh
 
 stemcells:
 - alias: trusty

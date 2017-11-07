@@ -28,6 +28,9 @@ RUN_DIR=/var/vcap/sys/run/groundcrew
 LOG_DIR=/var/vcap/sys/log/groundcrew
 PIDFILE=$RUN_DIR/beacon.pid
 
+TSA_HOST_PUB_KEY=/var/vcap/jobs/groundcrew/config/tsa_host_key.pub
+WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
+
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
 kill_session_siblings_of() {
@@ -58,7 +61,7 @@ case $1 in
 
     echo $$ > $PIDFILE
 
-    for key in /var/vcap/packages/generated_worker_key/id_rsa \
+    for key in $WORKER_KEY \
                /var/vcap/jobs/groundcrew/config/private_key; do
       chown vcap:vcap $key
       chmod 0400 $key
@@ -69,7 +72,7 @@ case $1 in
     {
       <% tsa_addrs.each do |addr| %>
       echo -n '[<%= addr %>]:<%= tsa_port %> '
-      cat /var/vcap/packages/generated_tsa_host_key/id_rsa.pub
+      cat $TSA_HOST_PUB_KEY
       <% end %>
     } > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
 
@@ -103,7 +106,7 @@ case $1 in
         <% if p("tsa.private_key") != "" %> \
         -i /var/vcap/jobs/groundcrew/config/private_key \
         <% else %> \
-        -i /var/vcap/packages/generated_worker_key/id_rsa \
+        -i $WORKER_KEY \
         <% end %> \
         -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
         -o ConnectTimeout=30 \

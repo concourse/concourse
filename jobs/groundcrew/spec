@@ -14,10 +14,11 @@ templates:
   private_key.erb: config/private_key
   worker.json.erb: config/worker.json
 
+  tsa_host_key.pub.erb: config/tsa_host_key.pub
+  worker_key.erb: config/worker_key
+
 packages:
   - pid_utils
-  - generated_tsa_host_key
-  - generated_worker_key
   - resource_discovery
   - groundcrew
   - worker_version
@@ -157,3 +158,26 @@ properties:
     description: |
       Environment name you wish to group errors under in yeller.
     default: ""
+
+  tsa_host_key:
+     description: |
+       Must be specified, bosh can auto-generate (type ssh), see sample manifest.yml.
+       Only public key portion is needed here.
+     example:
+       private_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ...
+          -----END RSA PRIVATE KEY-----
+       public_key: |
+          ssh-rsa ...
+
+  worker_key:
+     description: |
+       Must be specified, bosh can auto-generate (type ssh), see sample manifest.yml.
+     example:
+       private_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ...
+          -----END RSA PRIVATE KEY-----
+       public_key: |
+          ssh-rsa ...

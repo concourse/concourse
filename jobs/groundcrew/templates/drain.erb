@@ -5,6 +5,9 @@ set -e
 RUN_DIR=/var/vcap/sys/run/groundcrew
 LOG_DIR=/var/vcap/sys/log/groundcrew
 
+TSA_HOST_PUB_KEY=/var/vcap/jobs/groundcrew/config/tsa_host_key.pub
+WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
+
 mkdir -p $RUN_DIR
 chown -R vcap:vcap $RUN_DIR
 
@@ -33,7 +36,7 @@ fi
   end
 %>
 
-for key in /var/vcap/packages/generated_worker_key/id_rsa \
+for key in $WORKER_KEY \
            /var/vcap/jobs/groundcrew/config/private_key; do
   chown vcap:vcap $key
   chmod 0400 $key
@@ -44,7 +47,7 @@ done
 {
   <% tsa_addrs.each do |addr| %>
   echo -n '[<%= addr %>]:<%= tsa_port %> '
-  cat /var/vcap/packages/generated_tsa_host_key/id_rsa.pub
+  cat $TSA_HOST_PUB_KEY
   <% end %>
 } > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
 
@@ -76,7 +79,7 @@ chpst -u vcap:vcap /var/vcap/packages/groundcrew/bin/groundcrew \
   <% if p("tsa.private_key") != "" %> \
   --tsa-ssh-key /var/vcap/jobs/groundcrew/config/private_key \
   <% else %> \
-  --tsa-ssh-key /var/vcap/packages/generated_worker_key/id_rsa \
+  --tsa-ssh-key $WORKER_KEY \
   <% end %> \
   --beacon-pid-file=$RUN_DIR/beacon.pid \
   <% if_p("drain_timeout") do |drain_timeout| %> \

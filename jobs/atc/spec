@@ -17,12 +17,12 @@ templates:
   vault_client_cert.erb: config/vault_client_cert
   vault_client_key.erb: config/vault_client_key
   credhub_ca_cert.erb: config/credhub_ca_cert
+  token_signing_key.erb: config/token_signing_key
 
 packages:
   - pid_utils
   - atc
   - fly
-  - generated_signing_key
 
 consumes:
 - name: db
@@ -474,3 +474,17 @@ properties:
     description: |
       Client secret for CredHub authorization.
     default: ""
+
+  token_signing_key:
+     description: |
+       PEM RSA private key used for minting ATC tokens.
+       Must be specified, bosh can auto-generate (type rsa), see sample manifest.yml.
+     example:
+       private_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ...
+          -----END RSA PRIVATE KEY-----
+       public_key: |
+          -----BEGIN PUBLIC KEY-----
+          ...
+          -----END PUBLIC KEY-----

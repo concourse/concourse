@@ -1,5 +1,0 @@
-#!/bin/bash
-
-set -e -x
-
-ssh-keygen -t rsa -N '' -f ${BOSH_INSTALL_TARGET}/id_rsa

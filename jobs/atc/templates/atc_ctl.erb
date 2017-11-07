@@ -13,7 +13,7 @@ set -e
 
 RUN_DIR=/var/vcap/sys/run/atc
 LOG_DIR=/var/vcap/sys/log/atc
-SIGNING_KEY=/var/vcap/packages/generated_signing_key/id_rsa
+SIGNING_KEY=/var/vcap/jobs/atc/config/token_signing_key
 PIDFILE=$RUN_DIR/atc.pid
 CF_CA_CERT=/var/vcap/jobs/atc/config/cf_ca_cert
 POSTGRESQL_CA_CERT=/var/vcap/jobs/atc/config/postgres_ca_cert
