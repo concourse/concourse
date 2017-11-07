@@ -99,7 +99,7 @@ describe 'dashboard search', type: :feature do
       visit dash_route('/beta/dashboard')
       expect(border_palette).to eq(AMBER)
 
-      search 'status:error'
+      search 'status:errored'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 
@@ -113,7 +113,7 @@ describe 'dashboard search', type: :feature do
       expect(page).to have_css('.dashboard-pipeline.dashboard-status-aborted')
       expect(border_palette).to eq(BROWN)
 
-      search 'status:abort'
+      search 'status:aborted'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 
@@ -123,7 +123,7 @@ describe 'dashboard search', type: :feature do
       visit dash_route('/beta/dashboard')
       expect(border_palette).to eq(BLUE)
 
-      search 'status:pause'
+      search 'status:paused'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 
@@ -133,7 +133,7 @@ describe 'dashboard search', type: :feature do
       visit dash_route('/beta/dashboard')
       expect(border_palette).to eq(RED)
 
-      search 'status:fail'
+      search 'status:failed'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 
