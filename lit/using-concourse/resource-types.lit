@@ -218,6 +218,8 @@ before using it!
     \link{Hashicorp Releases}{https://github.com/starkandwayne/hashicorp-release-resource}
   }{
     \link{Pushover notifications}{https://github.com/redfactorlabs/concourse-pushover-resource}
+  }{
+    \link{SonarQube static code analysis}{https://github.com/cathive/concourse-sonarqube-resource}
   }
 
   \section{
