@@ -44,3 +44,17 @@ func (c *client) Teams(httpClient *http.Client, role bitbucket.Role) ([]string, 
 func (c *client) Projects(httpClient *http.Client) ([]string, error) {
 	return nil, nil
 }
+
+func (c *client) Repository(httpClient *http.Client, owner string, repository string) (bool, error) {
+	bc, err := api.NewClient(httpClient, "")
+	if err != nil {
+		return false, err
+	}
+
+	_, err = bc.Repository(owner + "/" + repository)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}

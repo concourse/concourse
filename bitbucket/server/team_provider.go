@@ -53,6 +53,7 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 		Verifier: verifier.NewVerifierBasket(
 			bitbucket.NewUserVerifier(bitbucketAuth.Users, &client{bitbucketAuth.Endpoint}),
 			bitbucket.NewProjectVerifier(projects, &client{bitbucketAuth.Endpoint}),
+			bitbucket.NewRepositoryVerifier(bitbucketAuth.Repositories, &client{bitbucketAuth.Endpoint}),
 		),
 		Config: &oauth1.Config{
 			ConsumerKey: bitbucketAuth.ConsumerKey,

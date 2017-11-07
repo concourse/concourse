@@ -52,6 +52,7 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 			bitbucket.NewTeamVerifier(teamsMember, bitbucket.RoleMember, NewClient()),
 			bitbucket.NewTeamVerifier(teamsContributor, bitbucket.RoleContributor, NewClient()),
 			bitbucket.NewTeamVerifier(teamsAdmin, bitbucket.RoleAdmin, NewClient()),
+			bitbucket.NewRepositoryVerifier(bitbucketAuth.Repositories, NewClient()),
 		),
 		Config: &oauth2.Config{
 			ClientID:     bitbucketAuth.ClientID,
