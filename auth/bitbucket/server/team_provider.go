@@ -46,13 +46,13 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 
 	var projects []string
 	for _, project := range bitbucketAuth.Projects {
-		projects = append(projects, project.Name)
+		projects = append(projects, project)
 	}
 
 	return &Provider{
 		Verifier: verifier.NewVerifierBasket(
 			bitbucket.NewUserVerifier(bitbucketAuth.Users, &client{bitbucketAuth.Endpoint}),
-			bitbucket.NewProjectVerifier(projects, &client{bitbucketAuth.Endpoint}),
+			NewProjectVerifier(projects, &client{bitbucketAuth.Endpoint}),
 			bitbucket.NewRepositoryVerifier(bitbucketAuth.Repositories, &client{bitbucketAuth.Endpoint}),
 		),
 		Config: &oauth1.Config{
