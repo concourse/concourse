@@ -38,11 +38,11 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 
 	return Provider{
 		Verifier: verifier.NewVerifierBasket(
-			bitbucket.NewUserVerifier(bitbucketAuth.Users, NewClient()),
-			NewTeamVerifier(teams[RoleMember], RoleMember, NewClient()),
-			NewTeamVerifier(teams[RoleContributor], RoleContributor, NewClient()),
-			NewTeamVerifier(teams[RoleAdmin], RoleAdmin, NewClient()),
-			bitbucket.NewRepositoryVerifier(bitbucketAuth.Repositories, NewClient()),
+			bitbucket.NewUserVerifier(bitbucketAuth.Users, NewClient(bitbucketAuth.APIURL)),
+			NewTeamVerifier(teams[RoleMember], RoleMember, NewClient(bitbucketAuth.APIURL)),
+			NewTeamVerifier(teams[RoleContributor], RoleContributor, NewClient(bitbucketAuth.APIURL)),
+			NewTeamVerifier(teams[RoleAdmin], RoleAdmin, NewClient(bitbucketAuth.APIURL)),
+			bitbucket.NewRepositoryVerifier(bitbucketAuth.Repositories, NewClient(bitbucketAuth.APIURL)),
 		),
 		Config: &oauth2.Config{
 			ClientID:     bitbucketAuth.ClientID,
