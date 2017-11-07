@@ -22,6 +22,48 @@ type FakeClient struct {
 		result1 string
 		result2 error
 	}
+	ProjectsStub        func(*http.Client) ([]string, error)
+	projectsMutex       sync.RWMutex
+	projectsArgsForCall []struct {
+		arg1 *http.Client
+	}
+	projectsReturns struct {
+		result1 []string
+		result2 error
+	}
+	projectsReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
+	RepositoryStub        func(client *http.Client, owner string, repository string) (bool, error)
+	repositoryMutex       sync.RWMutex
+	repositoryArgsForCall []struct {
+		client     *http.Client
+		owner      string
+		repository string
+	}
+	repositoryReturns struct {
+		result1 bool
+		result2 error
+	}
+	repositoryReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
+	TeamsStub        func(*http.Client, string) ([]string, error)
+	teamsMutex       sync.RWMutex
+	teamsArgsForCall []struct {
+		arg1 *http.Client
+		arg2 string
+	}
+	teamsReturns struct {
+		result1 []string
+		result2 error
+	}
+	teamsReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -77,11 +119,173 @@ func (fake *FakeClient) CurrentUserReturnsOnCall(i int, result1 string, result2 
 	}{result1, result2}
 }
 
+func (fake *FakeClient) Projects(arg1 *http.Client) ([]string, error) {
+	fake.projectsMutex.Lock()
+	ret, specificReturn := fake.projectsReturnsOnCall[len(fake.projectsArgsForCall)]
+	fake.projectsArgsForCall = append(fake.projectsArgsForCall, struct {
+		arg1 *http.Client
+	}{arg1})
+	fake.recordInvocation("Projects", []interface{}{arg1})
+	fake.projectsMutex.Unlock()
+	if fake.ProjectsStub != nil {
+		return fake.ProjectsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.projectsReturns.result1, fake.projectsReturns.result2
+}
+
+func (fake *FakeClient) ProjectsCallCount() int {
+	fake.projectsMutex.RLock()
+	defer fake.projectsMutex.RUnlock()
+	return len(fake.projectsArgsForCall)
+}
+
+func (fake *FakeClient) ProjectsArgsForCall(i int) *http.Client {
+	fake.projectsMutex.RLock()
+	defer fake.projectsMutex.RUnlock()
+	return fake.projectsArgsForCall[i].arg1
+}
+
+func (fake *FakeClient) ProjectsReturns(result1 []string, result2 error) {
+	fake.ProjectsStub = nil
+	fake.projectsReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) ProjectsReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.ProjectsStub = nil
+	if fake.projectsReturnsOnCall == nil {
+		fake.projectsReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.projectsReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) Repository(client *http.Client, owner string, repository string) (bool, error) {
+	fake.repositoryMutex.Lock()
+	ret, specificReturn := fake.repositoryReturnsOnCall[len(fake.repositoryArgsForCall)]
+	fake.repositoryArgsForCall = append(fake.repositoryArgsForCall, struct {
+		client     *http.Client
+		owner      string
+		repository string
+	}{client, owner, repository})
+	fake.recordInvocation("Repository", []interface{}{client, owner, repository})
+	fake.repositoryMutex.Unlock()
+	if fake.RepositoryStub != nil {
+		return fake.RepositoryStub(client, owner, repository)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.repositoryReturns.result1, fake.repositoryReturns.result2
+}
+
+func (fake *FakeClient) RepositoryCallCount() int {
+	fake.repositoryMutex.RLock()
+	defer fake.repositoryMutex.RUnlock()
+	return len(fake.repositoryArgsForCall)
+}
+
+func (fake *FakeClient) RepositoryArgsForCall(i int) (*http.Client, string, string) {
+	fake.repositoryMutex.RLock()
+	defer fake.repositoryMutex.RUnlock()
+	return fake.repositoryArgsForCall[i].client, fake.repositoryArgsForCall[i].owner, fake.repositoryArgsForCall[i].repository
+}
+
+func (fake *FakeClient) RepositoryReturns(result1 bool, result2 error) {
+	fake.RepositoryStub = nil
+	fake.repositoryReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) RepositoryReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.RepositoryStub = nil
+	if fake.repositoryReturnsOnCall == nil {
+		fake.repositoryReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.repositoryReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) Teams(arg1 *http.Client, arg2 string) ([]string, error) {
+	fake.teamsMutex.Lock()
+	ret, specificReturn := fake.teamsReturnsOnCall[len(fake.teamsArgsForCall)]
+	fake.teamsArgsForCall = append(fake.teamsArgsForCall, struct {
+		arg1 *http.Client
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("Teams", []interface{}{arg1, arg2})
+	fake.teamsMutex.Unlock()
+	if fake.TeamsStub != nil {
+		return fake.TeamsStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.teamsReturns.result1, fake.teamsReturns.result2
+}
+
+func (fake *FakeClient) TeamsCallCount() int {
+	fake.teamsMutex.RLock()
+	defer fake.teamsMutex.RUnlock()
+	return len(fake.teamsArgsForCall)
+}
+
+func (fake *FakeClient) TeamsArgsForCall(i int) (*http.Client, string) {
+	fake.teamsMutex.RLock()
+	defer fake.teamsMutex.RUnlock()
+	return fake.teamsArgsForCall[i].arg1, fake.teamsArgsForCall[i].arg2
+}
+
+func (fake *FakeClient) TeamsReturns(result1 []string, result2 error) {
+	fake.TeamsStub = nil
+	fake.teamsReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) TeamsReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.TeamsStub = nil
+	if fake.teamsReturnsOnCall == nil {
+		fake.teamsReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.teamsReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.currentUserMutex.RLock()
 	defer fake.currentUserMutex.RUnlock()
+	fake.projectsMutex.RLock()
+	defer fake.projectsMutex.RUnlock()
+	fake.repositoryMutex.RLock()
+	defer fake.repositoryMutex.RUnlock()
+	fake.teamsMutex.RLock()
+	defer fake.teamsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
