@@ -22,6 +22,10 @@ func NewTeamVerifier(teams []string, role Role, bitbucketClient bitbucket.Client
 }
 
 func (verifier TeamVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
+	if len(verifier.teams) == 0 {
+		return false, nil
+	}
+
 	teams, err := verifier.bitbucketClient.Teams(httpClient, verifier.role)
 	if err != nil {
 		logger.Error("failed-to-get-teams", err)

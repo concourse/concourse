@@ -20,6 +20,10 @@ func NewProjectVerifier(projects []string, bitbucketClient bitbucket.Client) ver
 }
 
 func (verifier ProjectVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
+	if len(verifier.projects) == 0 {
+		return false, nil
+	}
+
 	projects, err := verifier.bitbucketClient.Projects(httpClient)
 	if err != nil {
 		logger.Error("failed-to-get-projects", err)

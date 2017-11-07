@@ -19,6 +19,10 @@ func NewUserVerifier(users []string, bitbucketClient Client) verifier.Verifier {
 }
 
 func (verifier UserVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
+	if len(verifier.users) == 0 {
+		return false, nil
+	}
+
 	currentUser, err := verifier.bitbucketClient.CurrentUser(httpClient)
 	if err != nil {
 		logger.Error("failed-to-get-current-user", err)
