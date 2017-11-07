@@ -35,14 +35,14 @@ func (p *Provider) Client(ctx context.Context, t *oauth2.Token) *http.Client {
 func (p *Provider) Exchange(ctx context.Context, req *http.Request) (*oauth2.Token, error) {
 	requestToken, verifier, err := oauth1.ParseAuthorizationCallback(req)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	requestSecret := p.secrets[requestToken]
 
 	accessToken, accessSecret, err := p.Config.AccessToken(requestToken, requestSecret, verifier)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	token := oauth1.NewToken(accessToken, accessSecret)
