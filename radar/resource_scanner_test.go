@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/worker"
 
 	. "github.com/concourse/atc/radar"
@@ -38,7 +39,8 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
 
-		scanner Scanner
+		scanner                 Scanner
+		fakeResourceTypeScanner *radarfakes.FakeScanner
 
 		resourceConfig atc.ResourceConfig
 		fakeDBResource *dbfakes.FakeResource
@@ -107,6 +109,8 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 
+		fakeResourceTypeScanner = new(radarfakes.FakeScanner)
+
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakeResourceFactory,
@@ -115,6 +119,7 @@ var _ = Describe("ResourceScanner", func() {
 			fakeDBPipeline,
 			"https://www.example.com",
 			variables,
+			fakeResourceTypeScanner,
 		)
 	})
 
@@ -245,6 +250,48 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
 
 				Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
+			})
+
+			Context("when the resource uses a custom type", func() {
+				BeforeEach(func() {
+					fakeDBResource.TypeReturns("some-custom-resource")
+				})
+				Context("and the custom type has a version", func() {
+					It("doesn't scan for new versions of the custom type", func() {
+						Expect(fakeResourceTypeScanner.ScanCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("and the custom type does not have a version", func() {
+					BeforeEach(func() {
+						fakeResourceType.VersionReturns(nil)
+					})
+
+					It("scans for new versions of the custom type", func() {
+						Expect(fakeResourceTypeScanner.ScanCallCount()).To(Equal(1))
+						_, scannedResourceType := fakeResourceTypeScanner.ScanArgsForCall(0)
+						Expect(scannedResourceType).To(Equal("some-custom-resource"))
+					})
+
+					Context("when scanning for the custom type fails", func() {
+						var typeScanErr = errors.New("type scan failed")
+						BeforeEach(func() {
+							fakeResourceTypeScanner.ScanReturns(typeScanErr)
+						})
+						It("returns the error from scanning for the type", func() {
+							Expect(runErr).To(Equal(typeScanErr))
+						})
+					})
+
+					Context("when scanning for the custom type succeeds", func() {
+						BeforeEach(func() {
+							fakeResourceTypeScanner.ScanReturns(nil)
+						})
+						It("reloads the resource types", func() {
+							Expect(fakeDBPipeline.ResourceTypesCallCount()).To(Equal(2))
+						})
+					})
+				})
 			})
 
 			Context("when there is no current version", func() {

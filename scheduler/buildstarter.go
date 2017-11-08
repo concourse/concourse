@@ -107,8 +107,6 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			if err != nil {
 				return false, err
 			}
-
-			// FIXME: reload resource resource types
 		}
 
 		versions, err := s.pipeline.LoadVersionsDB()
@@ -121,6 +119,12 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		if err != nil {
 			return false, err
 		}
+
+		dbResourceTypes, err := s.pipeline.ResourceTypes()
+		if err != nil {
+			return false, err
+		}
+		resourceTypes = dbResourceTypes.Deserialize()
 	}
 
 	buildInputs, found, err := job.GetNextBuildInputs()

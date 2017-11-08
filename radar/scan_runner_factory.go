@@ -42,15 +42,6 @@ func NewScanRunnerFactory(
 	externalURL string,
 	variables creds.Variables,
 ) ScanRunnerFactory {
-	resourceScanner := NewResourceScanner(
-		clock,
-		resourceFactory,
-		resourceConfigCheckSessionFactory,
-		defaultInterval,
-		dbPipeline,
-		externalURL,
-		variables,
-	)
 	resourceTypeScanner := NewResourceTypeScanner(
 		clock,
 		resourceFactory,
@@ -61,6 +52,16 @@ func NewScanRunnerFactory(
 		variables,
 	)
 
+	resourceScanner := NewResourceScanner(
+		clock,
+		resourceFactory,
+		resourceConfigCheckSessionFactory,
+		defaultInterval,
+		dbPipeline,
+		externalURL,
+		variables,
+		resourceTypeScanner,
+	)
 	return &scanRunnerFactory{
 		clock:               clock,
 		resourceScanner:     resourceScanner,
