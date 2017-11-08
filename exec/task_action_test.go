@@ -91,6 +91,7 @@ var _ = Describe("TaskAction", func() {
 					Name:   "custom-resource",
 					Type:   "custom-type",
 					Source: atc.Source{"some-custom": "source"},
+					Params: atc.Params{"some-custom": "param"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
