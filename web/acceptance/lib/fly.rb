@@ -34,7 +34,7 @@ module Fly
   private
 
   def run(command)
-    output, status = Open3.capture2e command
+    output, status = Open3.capture2e({ 'HOME' => fly_home }, command)
 
     raise FlyError, "'#{command}' failed (status #{status.exitstatus}):\n\n#{output}" \
       unless status.success?

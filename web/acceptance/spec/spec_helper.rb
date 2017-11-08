@@ -3,6 +3,7 @@ require 'selenium/webdriver'
 require 'stringio'
 require 'fly'
 require 'dash'
+require 'tmpdir'
 
 ATC_URL = ENV.fetch('ATC_URL', 'http://127.0.0.1:8080').freeze
 
