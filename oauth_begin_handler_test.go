@@ -117,7 +117,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 			Context("to a known provider", func() {
 				BeforeEach(func() {
 					request.URL.Path = "/auth/provider-name"
-					fakeProvider.AuthCodeURLReturns(redirectTarget.URL())
+					fakeProvider.AuthCodeURLReturns(redirectTarget.URL(), nil)
 				})
 
 				It("redirects to the auth code URL", func() {

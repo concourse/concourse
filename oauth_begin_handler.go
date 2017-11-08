@@ -111,7 +111,15 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	encodedState := base64.RawURLEncoding.EncodeToString(oauthState)
 
-	authCodeURL := provider.AuthCodeURL(encodedState)
+	authCodeURL, err := provider.AuthCodeURL(encodedState)
+	if err != nil {
+		handler.logger.Error("failed-to-get-auth-code-url", err, lager.Data{
+			"provider": providerName,
+			"teamName": teamName,
+		})
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	authCookie := &http.Cookie{
 		Name:     OAuthStateCookie,
