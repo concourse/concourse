@@ -12,6 +12,10 @@ type Provider struct {
 	verifier.Verifier
 }
 
+func (p Provider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) (string, error) {
+	return p.Config.AuthCodeURL(state, opts...), nil
+}
+
 func (p Provider) Exchange(ctx context.Context, req *http.Request) (*oauth2.Token, error) {
 	return p.Config.Exchange(ctx, req.FormValue("code"))
 }

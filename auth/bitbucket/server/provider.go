@@ -15,17 +15,17 @@ type Provider struct {
 	secrets map[string]string
 }
 
-func (p *Provider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
+func (p *Provider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) (string, error) {
 	requestToken, requestSecret, err := p.Config.RequestToken()
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	authorizationURL, err := p.Config.AuthorizationURL(requestToken)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	p.secrets[requestToken] = requestSecret
-	return authorizationURL.String()
+	return authorizationURL.String(), nil
 }
 
 func (p *Provider) Client(ctx context.Context, t *oauth2.Token) *http.Client {
