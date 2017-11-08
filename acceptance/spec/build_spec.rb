@@ -3,7 +3,8 @@ require 'colors'
 describe 'build', type: :feature do
   include Colors
 
-  let!(:team_name) { generate_team_name }
+  let(:team_name) { generate_team_name }
+  let(:fly_home) { Dir.mktmpdir }
 
   before do
     fly_login 'main'

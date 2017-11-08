@@ -1,5 +1,6 @@
 describe 'job', type: :feature do
-  let!(:team_name) { generate_team_name }
+  let(:team_name) { generate_team_name }
+  let(:fly_home) { Dir.mktmpdir }
 
   before do
     fly_login 'main'
