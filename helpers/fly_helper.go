@@ -169,6 +169,21 @@ func (h *FlyHelper) TriggerPipelineJob(pipeline string, jobName string) *gexec.S
 	))
 }
 
+func (h *FlyHelper) CheckResource(argv ...string) *gexec.Session {
+	args := append([]string{
+		"-t",
+		TargetedConcourse,
+		"check-resource",
+	}, argv...)
+
+	command := exec.Command(
+		h.Path,
+		args...,
+	)
+
+	return start(command)
+}
+
 func (h *FlyHelper) Execute(dir string, argv ...string) *gexec.Session {
 	args := append([]string{
 		"-t",

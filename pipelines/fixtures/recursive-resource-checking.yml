@@ -1,0 +1,32 @@
+---
+resource_types:
+- name: echo-resource-parent
+  type: docker-image
+  privileged: true
+  source:
+    repository: concourse/docker-image-resource
+    tag: latest
+
+- name: echo-resource-child
+  type: echo-resource-parent
+  source:
+    repository: concourse/echo-resource
+    tag: latest
+
+- name: echo-resource
+  type: docker-image
+  source:
+    repository: concourse/echo-resource
+    tag: latest
+
+jobs:
+- name: get-resource
+  plan:
+  - get: recursive-custom-resource
+
+resources:
+- name: recursive-custom-resource
+  type: echo-resource-child
+  source:
+    versions:
+      - { version: "1" }

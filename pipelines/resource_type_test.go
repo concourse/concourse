@@ -47,6 +47,13 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			Expect(watch).To(gbytes.Say("SOME_ENV=yep"))
 		})
 
+		It("can check for resources using a custom type", func() {
+			checkResource := flyHelper.CheckResource("-r", fmt.Sprintf("%s/my-resource", pipelineName))
+			<-checkResource.Exited
+			Expect(checkResource.ExitCode()).To(Equal(0))
+			Expect(checkResource).To(gbytes.Say("checked 'my-resource'"))
+		})
+
 		It("should be able to run privileged operations in 'check', 'get' and 'put' steps", func() {
 			watch := flyHelper.TriggerJob(pipelineName, "failing-task")
 			<-watch.Exited
