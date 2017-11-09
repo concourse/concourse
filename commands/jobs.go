@@ -30,7 +30,7 @@ func (command *JobsCommand) Execute([]string) error {
 	var jobs []atc.Job
 
 	jobs, err = target.Team().ListJobs(pipelineName)
-	headers = []string{"name", "paused", "status", "current"}
+	headers = []string{"name", "paused", "status", "next"}
 	if err != nil {
 		return err
 	}
@@ -78,17 +78,19 @@ func (command *JobsCommand) Execute([]string) error {
 		}
 		row = append(row, statusColumn)
 
-		var currentColumn ui.TableCell
+		var nextColumn ui.TableCell
 		if p.NextBuild != nil {
-			currentColumn.Contents = p.NextBuild.Status
+			nextColumn.Contents = p.NextBuild.Status
 			switch p.NextBuild.Status {
 			case "pending:":
-				currentColumn.Color = ui.PendingColor
+				nextColumn.Color = ui.PendingColor
 			case "started":
-				currentColumn.Color = ui.StartedColor
+				nextColumn.Color = ui.StartedColor
 			}
-			row = append(row, currentColumn)
+		} else {
+			nextColumn.Contents = "n/a"
 		}
+		row = append(row, nextColumn)
 
 		table.Data = append(table.Data, row)
 	}
