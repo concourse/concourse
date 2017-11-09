@@ -278,12 +278,21 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 }
 
 func (j *job) Build(name string) (Build, bool, error) {
-	row := buildsQuery.Where(sq.Eq{
-		"b.job_id": j.id,
-		"b.name":   name,
-	}).
-		RunWith(j.conn).
-		QueryRow()
+	var query sq.SelectBuilder
+
+	if name == "latest" {
+		query = buildsQuery.
+			Where(sq.Eq{"b.job_id": j.id}).
+			OrderBy("b.id DESC").
+			Limit(1)
+	} else {
+		query = buildsQuery.Where(sq.Eq{
+			"b.job_id": j.id,
+			"b.name":   name,
+		})
+	}
+
+	row := query.RunWith(j.conn).QueryRow()
 
 	build := &build{conn: j.conn, lockFactory: j.lockFactory}
 

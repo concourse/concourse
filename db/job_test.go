@@ -343,6 +343,15 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
+			It("finds the latest build", func() {
+				secondBuild, err := job.CreateBuild()
+				build, found, err := job.Build("latest")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.ID()).To(Equal(secondBuild.ID()))
+				Expect(build.Status()).To(Equal(secondBuild.Status()))
+			})
+
 			It("finds the build", func() {
 				build, found, err := job.Build(firstBuild.Name())
 				Expect(err).NotTo(HaveOccurred())
@@ -355,6 +364,13 @@ var _ = Describe("Job", func() {
 		Context("when the build does not exist", func() {
 			It("does not error", func() {
 				build, found, err := job.Build("bogus-build")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(build).To(BeNil())
+			})
+
+			It("does not error finding the latest", func() {
+				build, found, err := job.Build("latest")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(build).To(BeNil())
