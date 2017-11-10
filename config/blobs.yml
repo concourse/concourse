@@ -14,10 +14,10 @@ resources/archive-resource-444438f.tar.gz:
   size: 8632724
   object_id: c391ec20-9fba-4594-7a96-5d8412f8ccb9
   sha: 0d35c7ffa5a87d9fdcb47baafa3da3bc58b13cb7
-resources/bosh-deployment-resource-289d7e3.tar.gz:
-  size: 12244435
-  object_id: a7da9228-3d72-4c9e-4fc2-98c251f1742e
-  sha: f353834fdac1e2beba41379c5b88238d5485e277
+resources/bosh-deployment-resource-2ec4621.tar.gz:
+  size: 16919452
+  object_id: 1a77efa5-202c-4653-60e8-ce921426690d
+  sha: c5658b7aca5f25bead0fcf738007fa1876058c51
 resources/bosh-io-release-resource-b414c5e.tar.gz:
   size: 6029202
   object_id: 5815a128-f64a-4038-7284-6b867d70720f
