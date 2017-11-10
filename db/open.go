@@ -13,7 +13,6 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/concourse/atc/db/migration"
-	"github.com/concourse/atc/db/migrations"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/lib/pq"
 )
@@ -62,7 +61,7 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *E
 			strategy = NewNoEncryption()
 		}
 
-		sqlDb, err := migration.Open(sqlDriver, sqlDataSource, migrations.New(strategy))
+		sqlDb, err := migration.Open(sqlDriver, sqlDataSource)
 		if err != nil {
 			if strings.Contains(err.Error(), "dial ") {
 				logger.Error("failed-to-open-db-retrying", err)

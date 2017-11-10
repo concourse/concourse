@@ -15,7 +15,6 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migration"
-	"github.com/concourse/atc/db/migrations"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -100,7 +99,6 @@ func (runner *Runner) OpenDB() *sql.DB {
 	dbConn, err := migration.Open(
 		"postgres",
 		runner.DataSourceName(),
-		migrations.New(db.NewNoEncryption()),
 	)
 	Expect(err).NotTo(HaveOccurred())
 

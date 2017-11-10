@@ -3,89 +3,94 @@ package migration
 import (
 	"database/sql"
 	"fmt"
+
+	_ "github.com/lib/pq"
+	"github.com/mattes/migrate/database"
+	"github.com/mattes/migrate/source"
+	_ "github.com/mattes/migrate/source/file"
+
+	"github.com/mattes/migrate"
+	"github.com/mattes/migrate/database/postgres"
+	"github.com/mattes/migrate/source/go-bindata"
 )
 
-type LimitedTx interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Prepare(query string) (*sql.Stmt, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
-	Stmt(stmt *sql.Stmt) *sql.Stmt
-}
-type Migrator func(LimitedTx) error
-
-func Open(driver, dsn string, migrations []Migrator) (*sql.DB, error) {
+func Open(driver, dsn string) (*sql.DB, error) {
 	db, err := sql.Open(driver, dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS migration_version (version INTEGER)")
+	d, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
+		db.Close()
 		return nil, err
 	}
 
-	_, err = db.Exec(`
-	INSERT INTO migration_version
-	    (version)
-	SELECT 0
-	WHERE
-	    NOT EXISTS (
-		SELECT * FROM migration_version
-	    );`)
-	if err != nil {
-		return nil, err
-	}
-
-	var dbVersion int
-	r := db.QueryRow("SELECT version FROM migration_version")
-	if err := r.Scan(&dbVersion); err != nil {
-		return nil, err
-	}
-
-	libVersion := len(migrations)
-
-	if dbVersion > libVersion {
-		return nil, fmt.Errorf("Database version (%d) is greater than library version (%d).",
-			dbVersion, libVersion)
-	}
-	if dbVersion == libVersion {
-		return db, nil
-	}
-
-	var (
-		tx *sql.Tx
+	s, err := bindata.WithInstance(bindata.Resource(
+		AssetNames(),
+		func(name string) ([]byte, error) {
+			return Asset(name)
+		}),
 	)
 
-	for i, m := range migrations {
-		version := i + 1
-		if version <= dbVersion {
-			continue
-		}
+	dbConn, err := OpenWithMigrateDrivers(db, "go-bindata", s, "postgres", d)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
 
-		tx, err = db.Begin()
-		if err != nil {
+	return dbConn, nil
+}
+
+func OpenWithMigrateDrivers(db *sql.DB, sourceName string, s source.Driver, databaseName string, d database.Driver) (*sql.DB, error) {
+	m, err := migrate.NewWithInstance(sourceName, s, databaseName, d)
+	if err != nil {
+		return nil, err
+	}
+
+	forceVersion, err := checkMigrationVersion(db)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if forceVersion > 0 {
+		if err = m.Force(forceVersion); err != nil {
 			return nil, err
 		}
+	}
 
-		err = m(tx)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		_, err = tx.Exec("UPDATE migration_version SET version = $1", version)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			tx.Rollback()
+	if err = m.Up(); err != nil {
+		if err.Error() != "no change" {
 			return nil, err
 		}
 	}
 
 	return db, nil
+}
+
+func checkMigrationVersion(db *sql.DB) (int, error) {
+	oldMigrationLastVersion := 189
+	newMigrationStartVersion := 1510262030
+
+	var err error
+	var dbVersion int
+
+	if err = db.QueryRow("SELECT version FROM migration_version").Scan(&dbVersion); err != nil {
+		return -1, nil
+	}
+
+	if dbVersion < oldMigrationLastVersion {
+		return -1, fmt.Errorf("Cannot upgrade from concourse version < 3.6.0 (db version: %d), current db version: %d", oldMigrationLastVersion, dbVersion)
+	}
+
+	if _, err = db.Exec("DROP TABLE migration_version"); err != nil {
+		return -1, nil
+	}
+
+	if dbVersion == oldMigrationLastVersion {
+		return newMigrationStartVersion, nil
+	}
+
+	return -1, fmt.Errorf("Unkown database version: %d", dbVersion)
 }
