@@ -51,9 +51,6 @@ func (lifecycle resourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 		PlaceholderFormat(sq.Dollar).
 		RunWith(lifecycle.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
 
 	return err
 }

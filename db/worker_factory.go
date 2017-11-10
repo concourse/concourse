@@ -81,7 +81,7 @@ func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer Close(rows)
 
 	workers := []Worker{}
 
@@ -189,11 +189,7 @@ func scanWorker(worker *worker, row scannable) error {
 		return err
 	}
 
-	err = json.Unmarshal(tags, &worker.tags)
-	if err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(tags, &worker.tags)
 }
 
 func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error) {
@@ -207,14 +203,14 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	expires := "NULL"
 	if ttl != 0 {
 		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
 	}
 
-	cSql, _, err := sq.Case("state").
+	cSQL, _, err := sq.Case("state").
 		When("'landing'::worker_state", "'landing'::worker_state").
 		When("'landed'::worker_state", "'landed'::worker_state").
 		When("'retiring'::worker_state", "'retiring'::worker_state").
@@ -225,7 +221,7 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 		return nil, err
 	}
 
-	addrSql, _, err := sq.Case("state").
+	addrSQL, _, err := sq.Case("state").
 		When("'landed'::worker_state", "NULL").
 		Else("'" + atcWorker.GardenAddr + "'").
 		ToSql()
@@ -233,7 +229,7 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 		return nil, err
 	}
 
-	bcSql, _, err := sq.Case("state").
+	bcSQL, _, err := sq.Case("state").
 		When("'landed'::worker_state", "NULL").
 		Else("'" + atcWorker.BaggageclaimURL + "'").
 		ToSql()
@@ -243,10 +239,10 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 
 	_, err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
-		Set("addr", sq.Expr("("+addrSql+")")).
-		Set("baggageclaim_url", sq.Expr("("+bcSql+")")).
+		Set("addr", sq.Expr("("+addrSQL+")")).
+		Set("baggageclaim_url", sq.Expr("("+bcSQL+")")).
 		Set("active_containers", atcWorker.ActiveContainers).
-		Set("state", sq.Expr("("+cSql+")")).
+		Set("state", sq.Expr("("+cSQL+")")).
 		Where(sq.Eq{"name": atcWorker.Name}).
 		RunWith(tx).
 		Exec()
@@ -284,7 +280,7 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 		return nil, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	savedWorker, err := saveWorker(tx, atcWorker, nil, ttl, f.conn)
 	if err != nil {
@@ -434,6 +430,13 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	workerBaseResourceTypeIDs := []int{}
+
+	var (
+		brt  BaseResourceType
+		ubrt *UsedBaseResourceType
+		uwrt *UsedWorkerResourceType
+	)
+
 	for _, resourceType := range atcWorker.ResourceTypes {
 		workerResourceType := WorkerResourceType{
 			Worker:  savedWorker,
@@ -444,11 +447,11 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			},
 		}
 
-		brt := BaseResourceType{
+		brt = BaseResourceType{
 			Name: resourceType.Type,
 		}
 
-		ubrt, err := brt.FindOrCreate(tx)
+		ubrt, err = brt.FindOrCreate(tx)
 		if err != nil {
 			return nil, err
 		}
@@ -466,7 +469,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		if err != nil {
 			return nil, err
 		}
-		uwrt, err := workerResourceType.FindOrCreate(tx)
+		uwrt, err = workerResourceType.FindOrCreate(tx)
 		if err != nil {
 			return nil, err
 		}

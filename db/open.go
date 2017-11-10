@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -341,6 +342,12 @@ func (db *db) Close() error {
 	return errs
 }
 
+// Close ignores errors, and should used with defer.
+// makes errcheck happy that those errs are captured
+func Close(c io.Closer) {
+	_ = c.Close()
+}
+
 func (db *db) Begin() (Tx, error) {
 	tx, err := db.DB.Begin()
 	if err != nil {
@@ -390,6 +397,12 @@ func (tx *dbTx) Commit() error {
 func (tx *dbTx) Rollback() error {
 	defer tx.session.Release()
 	return tx.Tx.Rollback()
+}
+
+// Rollback ignores errors, and should be used with defer.
+// makes errcheck happy that those errs are captured
+func Rollback(tx Tx) {
+	_ = tx.Rollback()
 }
 
 type nonOneRowAffectedError struct {

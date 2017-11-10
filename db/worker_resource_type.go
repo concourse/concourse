@@ -61,15 +61,15 @@ func (wrt WorkerResourceType) FindOrCreate(tx Tx) (*UsedWorkerResourceType, erro
 
 func (wrt WorkerResourceType) find(tx Tx, usedBaseResourceType *UsedBaseResourceType) (*UsedWorkerResourceType, bool, error) {
 	var (
-		worker_name string
-		id          int
+		workerName string
+		id         int
 	)
 	err := psql.Select("id", "worker_name").From("worker_base_resource_types").Where(sq.Eq{
 		"worker_name":           wrt.Worker.Name(),
 		"base_resource_type_id": usedBaseResourceType.ID,
 		"image":                 wrt.Image,
 		"version":               wrt.Version,
-	}).RunWith(tx).QueryRow().Scan(&id, &worker_name)
+	}).RunWith(tx).QueryRow().Scan(&id, &workerName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -104,7 +104,7 @@ func (wrt WorkerResourceType) create(tx Tx, usedBaseResourceType *UsedBaseResour
 		QueryRow().
 		Scan(&id)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
 			return nil, WorkerBaseResourceTypeAlreadyExistsError{
 				WorkerName:           wrt.Worker.Name(),
 				BaseResourceTypeName: usedBaseResourceType.Name,

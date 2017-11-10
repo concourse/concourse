@@ -22,7 +22,7 @@ type notificationsBus struct {
 	notificationsL sync.Mutex
 }
 
-func NewNotificationsBus(listener *pq.Listener, conn *sql.DB) *notificationsBus {
+func NewNotificationsBus(listener *pq.Listener, conn *sql.DB) NotificationsBus {
 	bus := &notificationsBus{
 		listener: listener,
 		conn:     conn,
@@ -99,7 +99,7 @@ func (bus *notificationsBus) dispatchNotifications() {
 		if gotNotification {
 			// alert any relevant listeners of notification being received
 			// (nonblocking)
-			for sink, _ := range bus.notifications[notification.Channel] {
+			for sink := range bus.notifications[notification.Channel] {
 				select {
 				case sink <- true:
 					// notified of message being received (or queued up)
@@ -111,7 +111,7 @@ func (bus *notificationsBus) dispatchNotifications() {
 			// alert all listeners of connection break so they can check for things
 			// they may have missed
 			for _, sinks := range bus.notifications {
-				for sink, _ := range sinks {
+				for sink := range sinks {
 					select {
 					case sink <- false:
 						// notify that connection was lost, so listener can check for

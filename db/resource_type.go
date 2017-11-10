@@ -156,7 +156,7 @@ func scanResourceType(t *resourceType, row scannable) error {
 	}
 
 	if version.Valid {
-		err := json.Unmarshal([]byte(version.String), &t.version)
+		err = json.Unmarshal([]byte(version.String), &t.version)
 		if err != nil {
 			return err
 		}

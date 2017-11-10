@@ -33,11 +33,7 @@ func (f *resourceCacheLifecycle) CleanBuildImageResourceCaches(logger lager.Logg
 		Where(sq.Eq{"job_id": nil}).
 		RunWith(f.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (f *resourceCacheLifecycle) CleanUsesForFinishedBuilds(logger lager.Logger) error {
@@ -48,11 +44,7 @@ func (f *resourceCacheLifecycle) CleanUsesForFinishedBuilds(logger lager.Logger)
 		}).
 		RunWith(f.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error {
@@ -114,7 +106,7 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 
 	rows, err := f.conn.Query(query, args...)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
 			// this can happen if a use or resource cache is created referencing the
 			// config; as the subqueries above are not atomic
 			return nil
@@ -123,7 +115,7 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 		return err
 	}
 
-	defer rows.Close()
+	defer Close(rows)
 
 	var deletedCacheIDs []int
 	for rows.Next() {
@@ -161,9 +153,6 @@ func (f *resourceCacheLifecycle) CleanUsesForPausedPipelineResources() error {
 		}).
 		RunWith(f.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }

@@ -55,7 +55,7 @@ func (factory *teamFactory) createTeam(t atc.Team, admin bool) (Team, error) {
 		return nil, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	encryptedBasicAuthJSON, err := encryptedJSON(t.BasicAuth)
 	if err != nil {
@@ -146,7 +146,7 @@ func (factory *teamFactory) GetTeams() ([]Team, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer Close(rows)
 
 	teams := []Team{}
 
@@ -215,6 +215,8 @@ func (factory *teamFactory) scanTeam(t *team, rows scannable) error {
 	}
 
 	if providerAuth.Valid {
+		var pAuth []byte
+
 		es := factory.conn.EncryptionStrategy()
 
 		var noncense *string
@@ -222,7 +224,7 @@ func (factory *teamFactory) scanTeam(t *team, rows scannable) error {
 			noncense = &nonce.String
 		}
 
-		pAuth, err := es.Decrypt(providerAuth.String, noncense)
+		pAuth, err = es.Decrypt(providerAuth.String, noncense)
 		if err != nil {
 			return err
 		}

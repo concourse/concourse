@@ -97,7 +97,7 @@ func (t *team) Delete() error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	_, err = psql.Delete("teams").
 		Where(sq.Eq{
@@ -118,12 +118,7 @@ func (t *team) Delete() error {
 		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 func (t *team) Workers() ([]Worker, error) {
@@ -194,7 +189,7 @@ func (t *team) CreateContainer(workerName string, owner ContainerOwner, meta Con
 		return nil, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	insMap := meta.SQLMap()
 	insMap["worker_name"] = workerName
@@ -217,7 +212,7 @@ func (t *team) CreateContainer(workerName string, owner ContainerOwner, meta Con
 		QueryRow().
 		Scan(cols...)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
 			return nil, ErrBuildDisappeared
 		}
 
@@ -269,7 +264,7 @@ func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer Close(rows)
 
 	var containers []Container
 	for rows.Next() {
@@ -352,7 +347,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer Close(rows)
 
 	var containers []Container
 	for rows.Next() {
@@ -411,7 +406,7 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	err = tx.QueryRow(`
 		SELECT COUNT(1)
@@ -689,7 +684,7 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	for i, name := range pipelineNames {
 		_, err := psql.Update("pipelines").
@@ -714,7 +709,7 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 		return nil, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	build := &build{conn: t.conn, lockFactory: t.lockFactory}
 	err = createBuild(tx, build, map[string]interface{}{
@@ -747,7 +742,7 @@ func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, erro
 		return nil, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	savedWorker, err := saveWorker(tx, atcWorker, &t.id, ttl, t.conn)
 	if err != nil {
@@ -808,7 +803,7 @@ func (t *team) CreatePipe(pipeGUID string, url string) error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	_, err = tx.Exec(`
 		INSERT INTO pipes(id, url, team_id)
@@ -825,12 +820,7 @@ func (t *team) CreatePipe(pipeGUID string, url string) error {
 		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 func (t *team) GetPipe(pipeGUID string) (Pipe, error) {
@@ -839,7 +829,7 @@ func (t *team) GetPipe(pipeGUID string) (Pipe, error) {
 		return Pipe{}, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	var pipe Pipe
 
@@ -1066,7 +1056,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 }
 
 func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
-	defer rows.Close()
+	defer Close(rows)
 
 	pipelines := []Pipeline{}
 
@@ -1091,7 +1081,7 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	err = tx.QueryRow(query, params...).Scan(
 		&t.id,

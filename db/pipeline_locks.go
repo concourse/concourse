@@ -28,12 +28,18 @@ func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 
 	intervalUpdated, err := p.checkIfResourceIntervalUpdated(resourceName, interval, immediate)
 	if err != nil {
-		lock.Release()
+		lockErr := lock.Release()
+		if lockErr != nil {
+			logger.Fatal("failed-to-release-lock", lockErr)
+		}
 		return nil, false, err
 	}
 
 	if !intervalUpdated {
-		lock.Release()
+		lockErr := lock.Release()
+		if lockErr != nil {
+			logger.Fatal("failed-to-release-lock", lockErr)
+		}
 		return nil, false, nil
 	}
 
@@ -61,12 +67,15 @@ func (p *pipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(
 
 	intervalUpdated, err := p.checkIfResourceTypeIntervalUpdated(resourceTypeName, interval, immediate)
 	if err != nil {
-		lock.Release()
+
 		return nil, false, err
 	}
 
 	if !intervalUpdated {
-		lock.Release()
+		lockErr := lock.Release()
+		if lockErr != nil {
+			logger.Fatal("failed-to-release-lock", lockErr)
+		}
 		return nil, false, nil
 	}
 
@@ -83,7 +92,7 @@ func (p *pipeline) checkIfResourceTypeIntervalUpdated(
 		return false, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	params := []interface{}{resourceTypeName, p.id}
 
@@ -125,7 +134,7 @@ func (p *pipeline) checkIfResourceIntervalUpdated(
 		return false, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	params := []interface{}{resourceName, p.id}
 

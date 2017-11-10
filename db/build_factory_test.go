@@ -49,7 +49,8 @@ var _ = Describe("BuildFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					var i bool
-					b.Finish(status)
+					err = b.Finish(status)
+					Expect(err).NotTo(HaveOccurred())
 
 					err = buildFactory.MarkNonInterceptibleBuilds()
 					Expect(err).NotTo(HaveOccurred())
@@ -70,6 +71,7 @@ var _ = Describe("BuildFactory", func() {
 
 				var i bool
 				err = buildFactory.MarkNonInterceptibleBuilds()
+				Expect(err).NotTo(HaveOccurred())
 				i, err = b.Interceptible()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(i).To(BeTrue())
@@ -85,8 +87,10 @@ var _ = Describe("BuildFactory", func() {
 				build2, err := defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				build1.Finish(db.BuildStatusErrored)
-				build2.Finish(db.BuildStatusErrored)
+				err = build1.Finish(db.BuildStatusErrored)
+				Expect(err).NotTo(HaveOccurred())
+				err = build2.Finish(db.BuildStatusErrored)
+				Expect(err).NotTo(HaveOccurred())
 
 				p, _, err := defaultTeam.SavePipeline("other-pipeline", atc.Config{
 					Jobs: atc.JobConfigs{
@@ -107,8 +111,10 @@ var _ = Describe("BuildFactory", func() {
 				pb2, err := j.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				pb1.Finish(db.BuildStatusErrored)
-				pb2.Finish(db.BuildStatusErrored)
+				err = pb1.Finish(db.BuildStatusErrored)
+				Expect(err).NotTo(HaveOccurred())
+				err = pb2.Finish(db.BuildStatusErrored)
+				Expect(err).NotTo(HaveOccurred())
 
 				err = buildFactory.MarkNonInterceptibleBuilds()
 				Expect(err).NotTo(HaveOccurred())
@@ -138,8 +144,12 @@ var _ = Describe("BuildFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					var i bool
-					b.Finish(status)
+
+					err = b.Finish(status)
+					Expect(err).NotTo(HaveOccurred())
+
 					err = buildFactory.MarkNonInterceptibleBuilds()
+					Expect(err).NotTo(HaveOccurred())
 					i, err = b.Interceptible()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(i).To(matcher)
@@ -160,6 +170,7 @@ var _ = Describe("BuildFactory", func() {
 				Expect(i).To(BeTrue())
 
 				err = buildFactory.MarkNonInterceptibleBuilds()
+				Expect(err).NotTo(HaveOccurred())
 				i, err = b.Interceptible()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(i).To(BeTrue())
@@ -168,6 +179,7 @@ var _ = Describe("BuildFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				err = buildFactory.MarkNonInterceptibleBuilds()
+				Expect(err).NotTo(HaveOccurred())
 				i, err = b.Interceptible()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(i).To(BeTrue())
@@ -195,7 +207,8 @@ var _ = Describe("BuildFactory", func() {
 
 			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-			publicPipeline.Expose()
+			err = publicPipeline.Expose()
+			Expect(err).NotTo(HaveOccurred())
 
 			publicJob, found, err := publicPipeline.Job("some-job")
 			Expect(err).NotTo(HaveOccurred())
@@ -254,8 +267,11 @@ var _ = Describe("BuildFactory", func() {
 			builds, err := buildFactory.GetAllStartedBuilds()
 			Expect(err).NotTo(HaveOccurred())
 
-			build1DB.Reload()
-			build2DB.Reload()
+			_, err = build1DB.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			_, err = build2DB.Reload()
+			Expect(err).NotTo(HaveOccurred())
+
 			Expect(builds).To(ConsistOf(build1DB, build2DB))
 		})
 	})

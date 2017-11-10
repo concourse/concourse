@@ -109,7 +109,7 @@ func (worker *worker) Reload() (bool, error) {
 }
 
 func (worker *worker) Land() error {
-	cSql, _, err := sq.Case("state").
+	cSQL, _, err := sq.Case("state").
 		When("'landed'::worker_state", "'landed'::worker_state").
 		Else("'landing'::worker_state").
 		ToSql()
@@ -118,7 +118,7 @@ func (worker *worker) Land() error {
 	}
 
 	result, err := psql.Update("workers").
-		Set("state", sq.Expr("("+cSql+")")).
+		Set("state", sq.Expr("("+cSQL+")")).
 		Where(sq.Eq{"name": worker.name}).
 		RunWith(worker.conn).
 		Exec()
@@ -213,9 +213,5 @@ func (worker *worker) Delete() error {
 		RunWith(worker.conn).
 		Exec()
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

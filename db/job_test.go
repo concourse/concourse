@@ -474,13 +474,9 @@ var _ = Describe("Job", func() {
 	})
 
 	Describe("GetNextPendingBuildBySerialGroup", func() {
-		var job1Name, job2Name string
 		var job1, job2 db.Job
 
 		BeforeEach(func() {
-			job1Name = "some-job"
-			job2Name = "other-serial-group-job"
-
 			var found bool
 			var err error
 			job1, found, err = pipeline.Job("some-job")
