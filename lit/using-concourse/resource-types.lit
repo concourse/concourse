@@ -91,6 +91,8 @@ before using it!
   }{
     \link{OpenStack Swift}{https://github.com/sapcc/concourse-swift-resource}
   }{
+    \link{Key Value resource}{https://github.com/regevbr/keyval-resource}
+  }{
     \link{Flowdock notifications}{https://github.com/starkandwayne/flowdock-concourse-notification-resource}
   }{
     \link{Email}{https://github.com/pivotal-cf/email-resource}
