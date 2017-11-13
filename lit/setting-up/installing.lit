@@ -502,7 +502,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
               database: &atc_db atc
               role: &atc_role
                 # make up a role and password
-                role: REPLACE_ME
+                name: REPLACE_ME
                 password: REPLACE_ME
         - name: tsa
           release: concourse
