@@ -1,34 +1,34 @@
-package bitbucket_test
+package cloud_test
 
 import (
-	"errors"
-	"net/http"
-
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/concourse/atc/auth/bitbucket"
+	"errors"
 	"github.com/concourse/atc/auth/bitbucket/bitbucketfakes"
+	"github.com/concourse/atc/auth/bitbucket/cloud"
 	"github.com/concourse/atc/auth/verifier"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"net/http"
 )
 
-var _ = Describe("UserVerifier", func() {
+var _ = Describe("TeamVerifier", func() {
 	var (
-		users      []string
+		teams      []string
+		role       cloud.Role
 		fakeClient *bitbucketfakes.FakeClient
 
 		verifier verifier.Verifier
 	)
 
 	BeforeEach(func() {
-		users = []string{
-			"some-user",
-			"some-user-two",
+		teams = []string{
+			"some-team",
+			"some-team-two",
 		}
+		role = cloud.RoleContributor
 		fakeClient = new(bitbucketfakes.FakeClient)
 
-		verifier = NewUserVerifier(users, fakeClient)
+		verifier = cloud.NewTeamVerifier(teams, role, fakeClient)
 	})
 
 	Describe("Verify", func() {
@@ -47,10 +47,16 @@ var _ = Describe("UserVerifier", func() {
 			verified, verifyErr = verifier.Verify(lagertest.NewTestLogger("test"), httpClient)
 		})
 
-		Context("when the client returns the current user", func() {
-			Context("when the user is permitted", func() {
+		Context("when the client yields teams", func() {
+			Context("including the desired team", func() {
 				BeforeEach(func() {
-					fakeClient.CurrentUserReturns("some-user", nil)
+					fakeClient.TeamsReturns(
+						[]string{
+							"some-other-team",
+							"some-team",
+						},
+						nil,
+					)
 				})
 
 				It("succeeds", func() {
@@ -62,9 +68,14 @@ var _ = Describe("UserVerifier", func() {
 				})
 			})
 
-			Context("when the user is not permitted", func() {
+			Context("not including the desired team", func() {
 				BeforeEach(func() {
-					fakeClient.CurrentUserReturns("some-other-user", nil)
+					fakeClient.TeamsReturns(
+						[]string{
+							"some-other-team",
+						},
+						nil,
+					)
 				})
 
 				It("succeeds", func() {
@@ -81,7 +92,7 @@ var _ = Describe("UserVerifier", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeClient.CurrentUserReturns("", disaster)
+				fakeClient.TeamsReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
