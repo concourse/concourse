@@ -1,37 +1,35 @@
-package bitbucket_test
+package server_test
 
 import (
-	"errors"
-	"net/http"
-
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/concourse/atc/auth/bitbucket"
+	"errors"
 	"github.com/concourse/atc/auth/bitbucket/bitbucketfakes"
+	"github.com/concourse/atc/auth/bitbucket/server"
 	"github.com/concourse/atc/auth/verifier"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"net/http"
 )
 
-var _ = Describe("UserVerifier", func() {
+var _ = Describe("ProjectVerifier", func() {
 	var (
-		users      []string
+		projects   []string
 		fakeClient *bitbucketfakes.FakeClient
 
 		verifier verifier.Verifier
 	)
 
 	BeforeEach(func() {
-		users = []string{
-			"some-user",
-			"some-user-two",
+		projects = []string{
+			"some-project",
+			"some-project-two",
 		}
 		fakeClient = new(bitbucketfakes.FakeClient)
 
-		verifier = NewUserVerifier(users, fakeClient)
+		verifier = server.NewProjectVerifier(projects, fakeClient)
 	})
 
-	Describe("Verify", func() {
+	Describe("Verifiy", func() {
 		var (
 			httpClient *http.Client
 
@@ -47,10 +45,16 @@ var _ = Describe("UserVerifier", func() {
 			verified, verifyErr = verifier.Verify(lagertest.NewTestLogger("test"), httpClient)
 		})
 
-		Context("when the client returns the current user", func() {
-			Context("when the user is permitted", func() {
+		Context("when the client yields projects", func() {
+			Context("including the desired project", func() {
 				BeforeEach(func() {
-					fakeClient.CurrentUserReturns("some-user", nil)
+					fakeClient.ProjectsReturns(
+						[]string{
+							"some-other-project",
+							"some-project",
+						},
+						nil,
+					)
 				})
 
 				It("succeeds", func() {
@@ -62,9 +66,14 @@ var _ = Describe("UserVerifier", func() {
 				})
 			})
 
-			Context("when the user is not permitted", func() {
+			Context("not including the desired project", func() {
 				BeforeEach(func() {
-					fakeClient.CurrentUserReturns("some-other-user", nil)
+					fakeClient.ProjectsReturns(
+						[]string{
+							"some-other-project",
+						},
+						nil,
+					)
 				})
 
 				It("succeeds", func() {
@@ -81,7 +90,7 @@ var _ = Describe("UserVerifier", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeClient.CurrentUserReturns("", disaster)
+				fakeClient.ProjectsReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
