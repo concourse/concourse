@@ -12,6 +12,7 @@ releases:
 instance_groups:
 - name: concourse
   instances: 1
+  azs: [z1]
   networks:
   - name: ((network_name))
     static_ips: [&web-ip ((web_ip))]
