@@ -13,10 +13,10 @@ instance_groups:
 - name: concourse
   instances: 1
   networks:
-  - name: testflight
+  - name: ((network_name))
     static_ips: [&web-ip ((web_ip))]
   persistent_disk: 10240
-  vm_type: testflight
+  vm_type: ((vm_type))
   stemcell: trusty
   jobs:
   - release: concourse
