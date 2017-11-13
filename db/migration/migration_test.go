@@ -7,7 +7,8 @@ import (
 
 	"github.com/concourse/atc/db/migration"
 	"github.com/mattes/migrate/database/postgres"
-	bindata "github.com/mattes/migrate/source/go-bindata"
+	"github.com/mattes/migrate/source/go-bindata"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -16,25 +17,22 @@ var _ = Describe("Migration", func() {
 	var db *sql.DB
 	var err error
 
+	const initialSchemaVersion = 1510262030
+
 	BeforeEach(func() {
+		db, err = sql.Open("postgres", postgresRunner.DataSourceName())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
+		_ = db.Close()
 	})
 
 	It("Fails if trying to upgrade prior to migration_version 189", func() {
-		db, err = sql.Open("postgres", postgresRunner.DataSourceName())
-		Expect(err).NotTo(HaveOccurred())
-		defer db.Close()
-
 		tx, err := db.Begin()
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = tx.Exec(`CREATE TABLE migration_version(version int)`)
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = tx.Exec(`INSERT INTO migration_version(version) VALUES(188)`)
-		Expect(err).NotTo(HaveOccurred())
+		SetupMigrationVersionTableToExistAtVersion(tx, 188)
 
 		err = tx.Commit()
 		Expect(err).NotTo(HaveOccurred())
@@ -48,111 +46,129 @@ var _ = Describe("Migration", func() {
 	})
 
 	It("Forces mattes/migrate to a known first version if migration_version is 189", func() {
-		db, err = sql.Open("postgres", postgresRunner.DataSourceName())
-		Expect(err).NotTo(HaveOccurred())
-		defer db.Close()
-
 		tx, err := db.Begin()
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = tx.Exec(`CREATE TABLE migration_version(version int)`)
-		Expect(err).NotTo(HaveOccurred())
+		SetupMigrationVersionTableToExistAtVersion(tx, 189)
 
-		_, err = tx.Exec(`INSERT INTO migration_version(version) VALUES(189)`)
-		Expect(err).NotTo(HaveOccurred())
-
-		migrations, err := ioutil.ReadFile("migrations/1510262030_initial_schema.up.sql")
-		Expect(err).NotTo(HaveOccurred())
-
-		for _, migration := range strings.Split(string(migrations), ";") {
-			_, err = tx.Exec(migration)
-			Expect(err).NotTo(HaveOccurred())
-		}
+		SetupSchemaFromFile(tx, "migrations/1510262030_initial_schema.up.sql")
 
 		err = tx.Commit()
 		Expect(err).NotTo(HaveOccurred())
 
-		dbConn, err := migration.Open("postgres", postgresRunner.DataSourceName())
+		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"})
 		Expect(err).NotTo(HaveOccurred())
 		defer dbConn.Close()
 
-		var dbVersion int
-		err = dbConn.QueryRow("SELECT version FROM schema_migrations LIMIT 1").Scan(&dbVersion)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(dbVersion > 0).To(BeTrue())
+		ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
 
-		_, err = dbConn.Exec("SELECT version FROM migration_version")
-		Expect(err).To(HaveOccurred())
+		ExpectMigrationVersionTableNotToExist(dbConn)
 
-		_, err = dbConn.Exec("INSERT INTO teams(name) VALUES ('test-team')")
-		Expect(err).NotTo(HaveOccurred())
+		ExpectToBeAbleToInsertData(dbConn)
 	})
 
-	It("Delegate migration work to mattes/migrate if migration_version table does not exist", func() {
-		dbConn, err := migration.Open("postgres", postgresRunner.DataSourceName())
+	It("Runs mattes/migrate if migration_version table does not exist", func() {
+		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"})
 		Expect(err).NotTo(HaveOccurred())
 		defer dbConn.Close()
 
-		var dbVersion int
-		err = dbConn.QueryRow("SELECT version FROM schema_migrations LIMIT 1").Scan(&dbVersion)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(dbVersion > 0).To(BeTrue())
+		ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
 
-		_, err = dbConn.Exec("SELECT version FROM migration_version")
-		Expect(err).To(HaveOccurred())
+		ExpectMigrationVersionTableNotToExist(dbConn)
 
-		_, err = dbConn.Exec("INSERT INTO teams(name) VALUES ('test-team')")
-		Expect(err).NotTo(HaveOccurred())
+		ExpectToBeAbleToInsertData(dbConn)
 	})
 
-	It("Doesn't fail if mattes/migrate.up() is a no-op", func() {
-		db, err = sql.Open("postgres", postgresRunner.DataSourceName())
-		Expect(err).NotTo(HaveOccurred())
-		defer db.Close()
-
+	It("Doesn't fail if there are no migrations to run", func() {
 		tx, err := db.Begin()
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = tx.Exec(`CREATE TABLE schema_migrations(version bigint, dirty boolean)`)
-		Expect(err).NotTo(HaveOccurred())
+		SetupSchemaMigrationsTableToExistAtVersion(tx, initialSchemaVersion)
 
-		_, err = tx.Exec(`INSERT INTO schema_migrations(version, dirty) VALUES(1510262030, false)`)
-		Expect(err).NotTo(HaveOccurred())
-
-		migrations, err := ioutil.ReadFile("migrations/1510262030_initial_schema.up.sql")
-		Expect(err).NotTo(HaveOccurred())
-
-		for _, migration := range strings.Split(string(migrations), ";") {
-			_, err = tx.Exec(migration)
-			Expect(err).NotTo(HaveOccurred())
-		}
+		SetupSchemaFromFile(tx, "migrations/1510262030_initial_schema.up.sql")
 
 		err = tx.Commit()
 		Expect(err).NotTo(HaveOccurred())
 
-		d, err := postgres.WithInstance(db, &postgres.Config{})
-		Expect(err).NotTo(HaveOccurred())
-
-		s, err := bindata.WithInstance(bindata.Resource(
-			[]string{"1510262030_initial_schema.up.sql"},
-			func(name string) ([]byte, error) {
-				return migration.Asset(name)
-			}),
-		)
-
-		dbConn, err := migration.OpenWithMigrateDrivers(db, "go-bindata", s, "postgres", d)
+		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"})
 		Expect(err).NotTo(HaveOccurred())
 		defer dbConn.Close()
 
-		var dbVersion int
-		err = dbConn.QueryRow("SELECT version FROM schema_migrations LIMIT 1").Scan(&dbVersion)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(dbVersion > 0).To(BeTrue())
+		ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
 
-		_, err = dbConn.Exec("SELECT version FROM migration_version")
-		Expect(err).To(HaveOccurred())
+		ExpectMigrationVersionTableNotToExist(dbConn)
 
-		_, err = dbConn.Exec("INSERT INTO teams(name) VALUES ('test-team')")
-		Expect(err).NotTo(HaveOccurred())
+		ExpectToBeAbleToInsertData(dbConn)
 	})
 })
+
+func OpenConnectionWithMigrationFiles(db *sql.DB, files []string) (*sql.DB, error) {
+	var err error
+	d, err := postgres.WithInstance(db, &postgres.Config{})
+	Expect(err).NotTo(HaveOccurred())
+
+	s, err := bindata.WithInstance(bindata.Resource(
+		[]string{"1510262030_initial_schema.up.sql"},
+		func(name string) ([]byte, error) {
+			return migration.Asset(name)
+		}),
+	)
+
+	return migration.OpenWithMigrateDrivers(db, "go-bindata", s, "postgres", d)
+}
+
+func SetupMigrationVersionTableToExistAtVersion(tx *sql.Tx, version int) {
+	var err error
+	_, err = tx.Exec(`CREATE TABLE migration_version(version int)`)
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = tx.Exec(`INSERT INTO migration_version(version) VALUES($1)`, version)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func SetupSchemaMigrationsTableToExistAtVersion(tx *sql.Tx, version int) {
+	var err error
+	_, err = tx.Exec(`CREATE TABLE schema_migrations(version bigint, dirty boolean)`)
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = tx.Exec(`INSERT INTO schema_migrations(version, dirty) VALUES($1, false)`, version)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func SetupSchemaFromFile(tx *sql.Tx, path string) {
+	migrations, err := ioutil.ReadFile(path)
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, migration := range strings.Split(string(migrations), ";") {
+		_, err = tx.Exec(migration)
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func ExpectSchemaMigrationsTableToHaveVersion(dbConn *sql.DB, expectedVersion int) {
+	var err error
+	var dbVersion int
+	err = dbConn.QueryRow("SELECT version FROM schema_migrations LIMIT 1").Scan(&dbVersion)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(dbVersion).To(Equal(expectedVersion))
+}
+
+func ExpectMigrationVersionTableNotToExist(dbConn *sql.DB) {
+	var err error
+	var exists string
+	err = dbConn.QueryRow("SELECT EXISTS(SELECT 1 FROM information_schema.tables where table_name = 'migration_version')").Scan(&exists)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(exists).To(Equal("false"))
+}
+
+func ExpectToBeAbleToInsertData(dbConn *sql.DB) {
+	var err error
+	_, err = dbConn.Exec("INSERT INTO teams(id, name) VALUES (10, 'test-team')")
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = dbConn.Exec("INSERT INTO pipelines(id, team_id, name) VALUES (100, 10, 'test-pipeline')")
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = dbConn.Exec("INSERT INTO jobs(id, pipeline_id, name, config) VALUES (1000, 100, 'test-job', '{}')")
+	Expect(err).NotTo(HaveOccurred())
+}

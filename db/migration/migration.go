@@ -22,7 +22,7 @@ func Open(driver, dsn string) (*sql.DB, error) {
 
 	d, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
@@ -35,7 +35,7 @@ func Open(driver, dsn string) (*sql.DB, error) {
 
 	dbConn, err := OpenWithMigrateDrivers(db, "go-bindata", s, "postgres", d)
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
