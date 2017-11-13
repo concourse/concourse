@@ -1,4 +1,4 @@
-
+BEGIN;
 
 CREATE TYPE build_status AS ENUM (
     'pending',
@@ -1565,5 +1565,4 @@ ALTER TABLE ONLY workers
     ADD CONSTRAINT workers_team_id_fkey FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE;
 
 
-
-
+COMMIT;
