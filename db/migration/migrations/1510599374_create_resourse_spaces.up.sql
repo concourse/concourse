@@ -9,6 +9,8 @@ CREATE TABLE resource_spaces (
 
 INSERT INTO resource_spaces(id, resource_id, name) SELECT id, id, 'default' from resources;
 
+SELECT setval('resource_spaces_id_seq', (SELECT MAX(id) from resource_spaces));
+
 ALTER TABLE versioned_resources RENAME resource_id TO resource_space_id;
 
 ALTER TABLE versioned_resources DROP CONSTRAINT fkey_resource_id;
