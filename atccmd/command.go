@@ -57,6 +57,8 @@ import (
 	"github.com/concourse/atc/auth/routes"
 
 	// dynamically registered auth providers
+	_ "github.com/concourse/atc/auth/bitbucket/cloud"
+	_ "github.com/concourse/atc/auth/bitbucket/server"
 	_ "github.com/concourse/atc/auth/genericoauth"
 	_ "github.com/concourse/atc/auth/github"
 	_ "github.com/concourse/atc/auth/gitlab"
@@ -350,11 +352,21 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	providerFactory := auth.NewOAuthFactory(
+	providerFactoryV2 := auth.NewOAuthFactory(
 		logger.Session("oauth-provider-factory"),
 		cmd.oauthBaseURL(),
 		routes.OAuthRoutes,
 		routes.OAuthCallback,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	providerFactoryV1 := auth.NewOAuthFactory(
+		logger.Session("oauth-v1-provider-factory"),
+		cmd.oauthBaseURL(),
+		routes.OAuthV1Routes,
+		routes.OAuthV1Callback,
 	)
 	if err != nil {
 		return nil, err
@@ -371,7 +383,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		dbVolumeFactory,
 		dbContainerRepository,
 		dbBuildFactory,
-		providerFactory,
+		providerFactoryV2,
 		signingKey,
 		engine,
 		workerClient,
@@ -385,9 +397,21 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	oauthHandler, err := auth.NewOAuthHandler(
+	oauthV2Handler, err := auth.NewOAuthHandler(
 		logger,
-		providerFactory,
+		providerFactoryV2,
+		teamFactory,
+		signingKey,
+		cmd.AuthDuration,
+		cmd.isTLSEnabled(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	oauthV1Handler, err := auth.NewOAuthV1Handler(
+		logger,
+		providerFactoryV1,
 		teamFactory,
 		signingKey,
 		cmd.AuthDuration,
@@ -432,7 +456,11 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 			tlsRedirectHandler{
 				externalHost: cmd.ExternalURL.URL().Host,
-				baseHandler:  oauthHandler,
+				baseHandler:  oauthV2Handler,
+			},
+			tlsRedirectHandler{
+				externalHost: cmd.ExternalURL.URL().Host,
+				baseHandler:  oauthV1Handler,
 			},
 		)
 
@@ -441,7 +469,8 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 			webHandler,
 			publicHandler,
 			apiHandler,
-			oauthHandler,
+			oauthV2Handler,
+			oauthV1Handler,
 		)
 	} else {
 		httpHandler = cmd.constructHTTPHandler(
@@ -449,7 +478,8 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 			webHandler,
 			publicHandler,
 			apiHandler,
-			oauthHandler,
+			oauthV2Handler,
+			oauthV1Handler,
 		)
 	}
 
@@ -933,11 +963,13 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webHandler http.Handler,
 	publicHandler http.Handler,
 	apiHandler http.Handler,
-	oauthHandler http.Handler,
+	oauthV2Handler http.Handler,
+	oauthV1Handler http.Handler,
 ) http.Handler {
 	webMux := http.NewServeMux()
 	webMux.Handle("/api/v1/", apiHandler)
-	webMux.Handle("/auth/", oauthHandler)
+	webMux.Handle("/auth/", oauthV2Handler)
+	webMux.Handle("/oauth/v1/", oauthV1Handler)
 	webMux.Handle("/public/", publicHandler)
 	webMux.Handle("/manifest.json", manifest.NewHandler())
 	webMux.Handle("/robots.txt", robotstxt.Handler{})

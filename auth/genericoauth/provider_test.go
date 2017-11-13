@@ -47,15 +47,17 @@ var _ = Describe("Generic OAuth Provider", func() {
 		})
 
 		It("constructs the Auth URL with the redirect uri", func() {
-			authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
+			authURI, err := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
 
 			Expect(authURI).To(ContainSubstring("redirect_uri=redirect-uri"))
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("constructs the Auth URL with the state param", func() {
-			authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
+			authURI, err := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
 
 			Expect(authURI).To(ContainSubstring("state=some-random-guid"))
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("doesn't do any user authorization", func() {
@@ -74,24 +76,27 @@ var _ = Describe("Generic OAuth Provider", func() {
 			})
 
 			It("constructs the Auth URL with the configured Auth URL params", func() {
-				authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
+				authURI, err := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
 
 				Expect(authURI).To(ContainSubstring("param1=value1"))
 				Expect(authURI).To(ContainSubstring("param2=value2"))
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("merges the passed in Auth URL params with the configured Auth URL params", func() {
-				authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("param3", "value3")}...)
+				authURI, err := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("param3", "value3")}...)
 
 				Expect(authURI).To(ContainSubstring("param1=value1"))
 				Expect(authURI).To(ContainSubstring("param2=value2"))
 				Expect(authURI).To(ContainSubstring("param3=value3"))
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("URL encodes the Auth URL params", func() {
-				authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("question#1", "are your tests passing?")}...)
+				authURI, err := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("question#1", "are your tests passing?")}...)
 
 				Expect(authURI).To(ContainSubstring("question%231=are+your+tests+passing%3F"))
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 		})

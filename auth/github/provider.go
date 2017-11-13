@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
+	"golang.org/x/net/context"
 )
 
 const ProviderName = "github"
@@ -101,6 +102,14 @@ func (flag *GitHubTeamConfig) UnmarshalFlag(value string) error {
 type GitHubProvider struct {
 	*oauth2.Config
 	verifier.Verifier
+}
+
+func (p GitHubProvider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) (string, error) {
+	return p.Config.AuthCodeURL(state, opts...), nil
+}
+
+func (p GitHubProvider) Exchange(ctx context.Context, req *http.Request) (*oauth2.Token, error) {
+	return p.Config.Exchange(ctx, req.FormValue("code"))
 }
 
 func init() {

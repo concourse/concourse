@@ -27,6 +27,7 @@ type OAuthCallbackHandler struct {
 	teamFactory        db.TeamFactory
 	expire             time.Duration
 	isTLSEnabled       bool
+	stateValidator     oauthStateValidator
 }
 
 func NewOAuthCallbackHandler(
@@ -36,6 +37,7 @@ func NewOAuthCallbackHandler(
 	teamFactory db.TeamFactory,
 	expire time.Duration,
 	isTLSEnabled bool,
+	stateValidator oauthStateValidator,
 ) http.Handler {
 	return &OAuthCallbackHandler{
 		logger:             logger,
@@ -46,6 +48,7 @@ func NewOAuthCallbackHandler(
 		teamFactory:        teamFactory,
 		expire:             expire,
 		isTLSEnabled:       isTLSEnabled,
+		stateValidator:     stateValidator,
 	}
 }
 
@@ -63,7 +66,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if cookieState.Value != paramState {
+	if !handler.stateValidator.Valid(cookieState.Value, paramState) {
 		hLog.Info("state-cookie-mismatch", lager.Data{
 			"param-state":  paramState,
 			"cookie-state": cookieState.Value,
@@ -73,7 +76,10 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	stateJSON, err := base64.RawURLEncoding.DecodeString(r.FormValue("state"))
+	// Read the state from the cookie instead of the param, as the param
+	// will be empty if this is an OAuth 1 request. For OAuth 2, we already
+	// made sure that the cookie and the param contain the same state.
+	stateJSON, err := base64.RawURLEncoding.DecodeString(cookieState.Value)
 	if err != nil {
 		hLog.Info("failed-to-decode-state", lager.Data{
 			"error": err.Error(),
@@ -142,7 +148,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, preTokenClient)
 
-	token, err := provider.Exchange(ctx, r.FormValue("code"))
+	token, err := provider.Exchange(ctx, r)
 	if err != nil {
 		hLog.Error("failed-to-exchange-token", err)
 		http.Error(w, "failed to exchange token", http.StatusInternalServerError)
