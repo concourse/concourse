@@ -1,40 +1,53 @@
 BEGIN;
-DROP MATERIALIZED VIEW transition_builds_per_job;
-DROP MATERIALIZED VIEW latest_completed_builds_per_job;
-DROP MATERIALIZED VIEW next_builds_per_job;
-DROP TABLE build_events;
-DROP TABLE build_image_resource_caches;
-DROP TABLE build_inputs;
-DROP TABLE build_outputs;
-DROP TABLE builds;
-DROP TABLE cache_invalidator;
-DROP TABLE containers;
-DROP TABLE independent_build_inputs;
-DROP TABLE jobs;
-DROP TABLE jobs_serial_groups;
-DROP TABLE next_build_inputs;
-DROP TABLE pipelines;
-DROP TABLE pipes;
-DROP TABLE resource_cache_uses;
-DROP TABLE resource_caches;
-DROP TABLE resource_config_check_sessions;
-DROP TABLE resource_configs;
-DROP TABLE resource_types;
-DROP TABLE resources;
-DROP TABLE teams;
-DROP TABLE versioned_resources;
-DROP TABLE volumes;
-DROP TABLE worker_base_resource_types;
-DROP TABLE worker_resource_caches;
-DROP TABLE worker_resource_config_check_sessions;
-DROP TABLE worker_task_caches;
-DROP TABLE workers;
-DROP TABLE base_resource_types;
-DROP TYPE build_status;
-DROP TYPE container_stage;
-DROP TYPE container_state;
-DROP TYPE container_state_old;
-DROP TYPE volume_state;
-DROP TYPE volume_state_old;
-DROP TYPE worker_state;
+
+  DROP MATERIALIZED VIEW
+    latest_completed_builds_per_job,
+    next_builds_per_job,
+    transition_builds_per_job
+    CASCADE;
+
+  DROP SEQUENCE
+    config_version_seq,
+    one_off_name;
+
+  DROP TABLE
+    base_resource_types,
+    build_events,
+    build_image_resource_caches,
+    build_inputs,
+    build_outputs,
+    builds,
+    cache_invalidator,
+    containers,
+    independent_build_inputs,
+    jobs,
+    jobs_serial_groups,
+    next_build_inputs,
+    pipelines,
+    pipes,
+    resource_cache_uses,
+    resource_caches,
+    resource_config_check_sessions,
+    resource_configs,
+    resource_types,
+    resources,
+    teams,
+    versioned_resources,
+    volumes,
+    worker_base_resource_types,
+    worker_resource_caches,
+    worker_resource_config_check_sessions,
+    worker_task_caches,
+    workers
+    CASCADE;
+
+  DROP TYPE
+    build_status,
+    container_state,
+    container_stage,
+    container_state_old,
+    volume_state,
+    volume_state_old,
+    worker_state;
+
 COMMIT;
