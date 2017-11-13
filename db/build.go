@@ -782,25 +782,24 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	outputs := []BuildOutput{}
 
 	rows, err := b.conn.Query(`
-		SELECT i.name, r.name, vr.type, vr.version, vr.metadata,
+		SELECT i.name, r.name, v.type, v.version, v.metadata,
 		NOT EXISTS (
 			SELECT 1
 			FROM build_inputs ci, builds cb
-			WHERE versioned_resource_id = vr.id
+			WHERE versioned_resource_id = v.id
 			AND cb.job_id = b.job_id
 			AND ci.build_id = cb.id
 			AND ci.build_id < b.id
 		)
-		FROM versioned_resources vr, build_inputs i, builds b, resource_spaces rs, resources r
+		FROM versioned_resources v, build_inputs i, builds b, resources r
 		WHERE b.id = $1
 		AND i.build_id = b.id
-		AND i.versioned_resource_id = vr.id
-		AND rs.id = vr.resource_space_id
-    AND r.id = rs.resource_id
+		AND i.versioned_resource_id = v.id
+    AND r.id = v.resource_id
 		AND NOT EXISTS (
 			SELECT 1
 			FROM build_outputs o
-			WHERE o.versioned_resource_id = vr.id
+			WHERE o.versioned_resource_id = v.id
 			AND o.build_id = i.build_id
 			AND o.explicit
 		)
@@ -840,13 +839,12 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	}
 
 	rows, err = b.conn.Query(`
-		SELECT r.name, vr.type, vr.version, vr.metadata
-		FROM versioned_resources vr, build_outputs o, builds b, resource_spaces rs, resources r
+		SELECT r.name, v.type, v.version, v.metadata
+		FROM versioned_resources v, build_outputs o, builds b, resources r
 		WHERE b.id = $1
 		AND o.build_id = b.id
-		AND o.versioned_resource_id = vr.id
-		AND rs.id = vr.resource_space_id
-    AND r.id = rs.resource_id
+		AND o.versioned_resource_id = v.id
+    AND r.id = v.resource_id
 		AND o.explicit
 	`, b.id)
 	if err != nil {
@@ -892,11 +890,10 @@ func (b *build) GetVersionedResources() (SavedVersionedResources, error) {
 			r.name,
 			vr.modified_time
 		FROM builds b
-		INNER JOIN jobs j ON j.id = b.job_id
+		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN build_inputs bi ON bi.build_id = b.id
-		INNER JOIN versioned_resources vr ON vr.id = bi.versioned_resource_id
-		INNER JOIN resource_spaces rs ON rs.id = vr.resource_space_id
-		INNER JOIN resources r ON r.id = rs.resource_id
+		INNER JOIN versioned_resources vr ON bi.versioned_resource_id = vr.id
+		INNER JOIN resources r ON vr.resource_id = r.id
 		WHERE b.id = $1
 
 		UNION ALL
@@ -909,11 +906,10 @@ func (b *build) GetVersionedResources() (SavedVersionedResources, error) {
 			r.name,
 			vr.modified_time
 		FROM builds b
-		INNER JOIN jobs j ON j.id = b.job_id
+		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN build_outputs bo ON bo.build_id = b.id
-		INNER JOIN versioned_resources vr ON vr.id = bo.versioned_resource_id
-		INNER JOIN resource_spaces rs ON rs.id = vr.resource_space_id
-		INNER JOIN resources r ON r.id = rs.resource_id
+		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
+		INNER JOIN resources r ON vr.resource_id = r.id
 		WHERE b.id = $1 AND bo.explicit`)
 }
 

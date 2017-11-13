@@ -652,12 +652,11 @@ func (j *job) updatePausedJob(pause bool) error {
 }
 
 func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
-	rows, err := psql.Select("i.input_name, i.first_occurrence, r.name, vr.type, vr.version, vr.metadata").
+	rows, err := psql.Select("i.input_name, i.first_occurrence, r.name, v.type, v.version, v.metadata").
 		From(table + " i").
 		Join("jobs j ON i.job_id = j.id").
-		Join("versioned_resources vr ON vr.id = i.version_id").
-		Join("resource_spaces rs ON rs.id = vr.resource_space_id").
-		Join("resources r ON r.id = rs.resource_id").
+		Join("versioned_resources v ON v.id = i.version_id").
+		Join("resources r ON r.id = v.resource_id").
 		Where(sq.Eq{
 			"j.name":        j.name,
 			"j.pipeline_id": j.pipelineID,
