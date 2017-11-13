@@ -423,15 +423,18 @@ var _ = Describe("Hijacking", func() {
 		Context("when called with check container", func() {
 			BeforeEach(func() {
 				resourceName = "some-resource-name"
+				containerArguments = "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"
 			})
 
 			Context("and with pipeline specified", func() {
-				BeforeEach(func() {
-					containerArguments = "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"
-				})
-
 				It("can accept the check resources name and a pipeline", func() {
 					hijack("--check", "a-pipeline/some-resource-name")
+				})
+			})
+
+			Context("and with url specified", func() {
+				It("hijacks the given check container by URL", func() {
+					hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/a-pipeline/resources/some-resource-name")
 				})
 			})
 		})
@@ -463,6 +466,10 @@ var _ = Describe("Hijacking", func() {
 				hijack("--job", "some-pipeline/some-job", "--step", "some-step")
 			})
 
+			It("hijacks the job's next build when URL is specified", func() {
+				hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job", "--step", "some-step")
+			})
+
 			Context("with a specific build of the job", func() {
 				BeforeEach(func() {
 					containerArguments = "pipeline_name=some-pipeline&job_name=some-job&build_name=3&step_name=some-step"
@@ -470,6 +477,10 @@ var _ = Describe("Hijacking", func() {
 
 				It("hijacks the given build", func() {
 					hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step")
+				})
+
+				It("hijacks the given build when URL", func() {
+					hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step")
 				})
 			})
 		})
@@ -535,6 +546,32 @@ var _ = Describe("Hijacking", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(255))
 			})
+		})
+	})
+
+	Context("when passing a URL that doesn't match the target", func() {
+		It("errors out when wrong team is specified", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "--url", atcServer.URL()+"/teams/wrongteam/pipelines/a-pipeline/resources/some-resource-name")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err.Contents).Should(ContainSubstring("Team in URL doesn't match the current team of the target"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).ToNot(Equal(0))
+		})
+
+		It("errors out when wrong URL is specified", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "--url", "http://wrong.example.com/teams/"+teamName+"/pipelines/a-pipeline/resources/some-resource-name")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err.Contents).Should(ContainSubstring("URL doesn't match that of target"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).ToNot(Equal(0))
 		})
 	})
 })

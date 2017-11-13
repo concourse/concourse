@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -23,6 +24,7 @@ import (
 type HijackCommand struct {
 	Job            flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Name of a job to hijack"`
 	Check          flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
+	Url            string                   `short:"u" long:"url"                               description:"URL for the build, job, or check container to hijack"`
 	Build          string                   `short:"b" long:"build"                             description:"Build number within the job, or global build ID"`
 	StepName       string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
 	Attempt        string                   `short:"a" long:"attempt" value-name:"N[,N,...]"    description:"Attempt number of step to hijack."`
@@ -42,7 +44,12 @@ func (command *HijackCommand) Execute([]string) error {
 		return err
 	}
 
-	containers, err := command.getContainerIDs(target.Client())
+	fingerprint, err := command.getContainerFingerprint(target)
+	if err != nil {
+		return err
+	}
+
+	containers, err := command.getContainerIDs(target.Client(), fingerprint)
 	if err != nil {
 		return err
 	}
@@ -159,29 +166,91 @@ func (command *HijackCommand) Execute([]string) error {
 	return nil
 }
 
-func (command *HijackCommand) getContainerIDs(client concourse.Client) ([]atc.Container, error) {
-	var pipelineName string
+func parseUrlPath(urlPath string) map[string]string {
+	pathWithoutFirstSlash := strings.Replace(urlPath, "/", "", 1)
+	urlComponents := strings.Split(pathWithoutFirstSlash, "/")
+	urlMap := make(map[string]string)
+
+	for i:=0; i<len(urlComponents)/2; i++ {
+		keyIndex := i*2
+		valueIndex := keyIndex + 1
+		urlMap[urlComponents[keyIndex]] = urlComponents[valueIndex]
+	}
+
+	return urlMap
+}
+
+func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, urlParam string) (*containerFingerprint, error) {
+		u, err := url.Parse(urlParam)
+		if err != nil {
+			return nil, err
+		}
+
+		urlMap := parseUrlPath(u.Path)
+
+		parsedTargetUrl := url.URL{
+			Scheme: u.Scheme,
+			Host:   u.Host,
+		}
+
+		host := parsedTargetUrl.String()
+		if host != target.URL() {
+			err = fmt.Errorf("URL doesn't match that of target")
+			return nil, err
+		}
+
+		team := urlMap["teams"]
+		if team != target.Team().Name() {
+			err = fmt.Errorf("Team in URL doesn't match the current team of the target")
+			return nil, err
+		}
+
+		fingerprint := &containerFingerprint{
+			pipelineName:  urlMap["pipelines"],
+			jobName:       urlMap["jobs"],
+			buildNameOrID: urlMap["builds"],
+			checkName:     urlMap["resources"],
+		}
+
+		return fingerprint, nil
+}
+
+func (command *HijackCommand) getContainerFingerprint(target rc.Target) (*containerFingerprint, error) {
+	var err error
+	fingerprint := &containerFingerprint{}
+
+	if command.Url != "" {
+		fingerprint, err = command.getContainerFingerprintFromUrl(target, command.Url)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	pipelineName := command.Check.PipelineName
 	if command.Job.PipelineName != "" {
 		pipelineName = command.Job.PipelineName
-	} else {
-		pipelineName = command.Check.PipelineName
 	}
 
-	buildNameOrID := command.Build
-	stepName := command.StepName
-	jobName := command.Job.JobName
-	check := command.Check.ResourceName
-	attempt := command.Attempt
-
-	fingerprint := containerFingerprint{
-		pipelineName:  pipelineName,
-		jobName:       jobName,
-		buildNameOrID: buildNameOrID,
-		stepName:      stepName,
-		checkName:     check,
-		attempt:       attempt,
+	for _, field := range []struct{
+		fp *string
+		cmd string
+	} {
+		{fp: &fingerprint.pipelineName,  cmd: pipelineName},
+		{fp: &fingerprint.buildNameOrID, cmd: command.Build},
+		{fp: &fingerprint.stepName,      cmd: command.StepName},
+		{fp: &fingerprint.jobName,       cmd: command.Job.JobName},
+		{fp: &fingerprint.checkName,     cmd: command.Check.ResourceName},
+		{fp: &fingerprint.attempt,       cmd: command.Attempt},
+	} {
+		if field.cmd != "" {
+			*field.fp = field.cmd
+		}
 	}
 
+	return fingerprint, nil
+}
+
+func (command *HijackCommand) getContainerIDs(client concourse.Client, fingerprint *containerFingerprint) ([]atc.Container, error) {
 	reqValues, err := locateContainer(client, fingerprint)
 	if err != nil {
 		return nil, err
@@ -214,14 +283,14 @@ func remoteCommand(argv []string) (string, []string) {
 }
 
 type containerLocator interface {
-	locate(containerFingerprint) (map[string]string, error)
+	locate(*containerFingerprint) (map[string]string, error)
 }
 
 type stepContainerLocator struct {
 	client concourse.Client
 }
 
-func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (map[string]string, error) {
+func (locator stepContainerLocator) locate(fingerprint *containerFingerprint) (map[string]string, error) {
 	reqValues := map[string]string{}
 
 	if fingerprint.jobName != "" {
@@ -252,7 +321,7 @@ func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (ma
 
 type checkContainerLocator struct{}
 
-func (locator checkContainerLocator) locate(fingerprint containerFingerprint) (map[string]string, error) {
+func (locator checkContainerLocator) locate(fingerprint *containerFingerprint) (map[string]string, error) {
 	reqValues := map[string]string{}
 
 	reqValues["type"] = "check"
@@ -277,7 +346,7 @@ type containerFingerprint struct {
 	attempt   string
 }
 
-func locateContainer(client concourse.Client, fingerprint containerFingerprint) (map[string]string, error) {
+func locateContainer(client concourse.Client, fingerprint *containerFingerprint) (map[string]string, error) {
 	var locator containerLocator
 
 	if fingerprint.checkName == "" {

@@ -6,8 +6,8 @@ image_resource:
   source: {repository: golang, tag: "1"}
 
 inputs:
+- name: concourse
 - name: fly
-  path: gopath/src/github.com/concourse/fly
 
 run:
-  path: gopath/src/github.com/concourse/fly/ci/pr
+  path: fly/ci/pr

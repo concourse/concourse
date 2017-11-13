@@ -35,10 +35,16 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when jobs are returned from the API", func() {
-			createJob := func(num int, paused bool, status string) atc.Job {
-				var build *atc.Build
+			createJob := func(num int, paused bool, status string, nextStatus string) atc.Job {
+				var (
+					build     *atc.Build
+					nextBuild *atc.Build
+				)
 				if status != "" {
 					build = &atc.Build{Status: status}
+				}
+				if nextStatus != "" {
+					nextBuild = &atc.Build{Status: nextStatus}
 				}
 
 				return atc.Job{
@@ -46,6 +52,7 @@ var _ = Describe("Fly CLI", func() {
 					URL:           fmt.Sprintf("/teams/main/pipelines/pipeline/jobs/job-%d", num),
 					Paused:        paused,
 					FinishedBuild: build,
+					NextBuild:     nextBuild,
 				}
 			}
 			BeforeEach(func() {
@@ -55,9 +62,9 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/jobs"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Job{
-							createJob(1, false, "started"),
-							createJob(2, true, "failed"),
-							createJob(3, false, ""),
+							createJob(1, false, "succeeded", "started"),
+							createJob(2, true, "failed", ""),
+							createJob(3, false, "", ""),
 						}),
 					),
 				)
@@ -70,9 +77,9 @@ var _ = Describe("Fly CLI", func() {
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Data: []ui.TableRow{
-						{{Contents: "job-1"}, {Contents: "no"}, {Contents: "started"}},
-						{{Contents: "job-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "failed"}},
-						{{Contents: "job-3"}, {Contents: "no"}, {Contents: "n/a"}},
+						{{Contents: "job-1"}, {Contents: "no"}, {Contents: "succeeded"}, {Contents: "started"}},
+						{{Contents: "job-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "failed"}, {Contents: "n/a"}},
+						{{Contents: "job-3"}, {Contents: "no"}, {Contents: "n/a"}, {Contents: "n/a"}},
 					},
 				}))
 			})
