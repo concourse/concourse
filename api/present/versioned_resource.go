@@ -16,10 +16,7 @@ func SavedVersionedResource(svr db.SavedVersionedResource) atc.VersionedResource
 	var metadata []atc.MetadataField
 
 	for _, v := range svr.Metadata {
-		metadata = append(metadata, atc.MetadataField{
-			Name:  v.Name,
-			Value: v.Value,
-		})
+		metadata = append(metadata, atc.MetadataField(v))
 	}
 
 	return atc.VersionedResource{

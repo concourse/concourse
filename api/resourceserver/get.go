@@ -38,6 +38,10 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		json.NewEncoder(w).Encode(resource)
+		err = json.NewEncoder(w).Encode(resource)
+		if err != nil {
+			logger.Error("failed-to-encode-resource", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

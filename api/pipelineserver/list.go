@@ -42,5 +42,9 @@ func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(present.Pipelines(pipelines))
+	err = json.NewEncoder(w).Encode(present.Pipelines(pipelines))
+	if err != nil {
+		logger.Error("failed-to-encode-pipelines", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }

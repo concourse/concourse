@@ -365,14 +365,12 @@ var _ = Describe("Teams API", func() {
 		var request *http.Request
 		var response *http.Response
 
-		var atcTeam atc.Team
 		var team db.Team
 		var teamName string
 
 		BeforeEach(func() {
 			teamName = "team venture"
 
-			atcTeam = atc.Team{}
 			fakeTeam.IDReturns(2)
 			fakeTeam.NameReturns(teamName)
 		})

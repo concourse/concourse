@@ -39,7 +39,7 @@ func (b *Badge) String() string {
 
 	buffer := &bytes.Buffer{}
 
-	err = tmpl.Execute(buffer, badgeTemplateConfig{
+	_ = tmpl.Execute(buffer, badgeTemplateConfig{
 		Width:           b.width,
 		FillColor:       b.fillColor,
 		Status:          b.status,

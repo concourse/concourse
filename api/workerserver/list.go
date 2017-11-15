@@ -34,6 +34,10 @@ func (s *Server) ListWorkers(team db.Team) http.Handler {
 			workers[i] = present.Worker(savedWorker)
 		}
 
-		json.NewEncoder(w).Encode(workers)
+		err = json.NewEncoder(w).Encode(workers)
+		if err != nil {
+			logger.Error("failed-to-encode-workers", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

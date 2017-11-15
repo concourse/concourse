@@ -49,7 +49,7 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 			w.Header().Set("Content-Encoding", "gzip")
 
 			gz := gzip.NewWriter(w)
-			defer gz.Close()
+			defer db.Close(gz)
 
 			writer.responseWriter = gz
 			writer.writeFlusher = gz
@@ -62,7 +62,7 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 			return
 		}
 
-		defer events.Close()
+		defer db.Close(events)
 
 		for {
 			logger = logger.WithData(lager.Data{"id": eventID})

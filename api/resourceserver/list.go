@@ -37,6 +37,10 @@ func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(presentedResources)
+		err = json.NewEncoder(w).Encode(presentedResources)
+		if err != nil {
+			logger.Error("failed-to-encode-resources", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

@@ -66,7 +66,7 @@ func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 
 		copied := make(chan struct{})
 		go func() {
-			io.Copy(w, pipe.read)
+			_, _ = io.Copy(w, pipe.read)
 			close(copied)
 		}()
 
@@ -77,7 +77,7 @@ func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 				break dance
 			case <-closed:
 				// connection died; terminate the pipe
-				pipe.write.Close()
+				_ = pipe.write.Close()
 			}
 		}
 
@@ -99,7 +99,7 @@ func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 
 		copied := make(chan struct{})
 		go func() {
-			io.Copy(w, response.Body)
+			_, _ = io.Copy(w, response.Body)
 			close(copied)
 		}()
 

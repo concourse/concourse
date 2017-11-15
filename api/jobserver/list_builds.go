@@ -74,7 +74,12 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 		for i := 0; i < len(builds); i++ {
 			jobBuilds[i] = present.Build(builds[i])
 		}
-		json.NewEncoder(w).Encode(jobBuilds)
+
+		err = json.NewEncoder(w).Encode(jobBuilds)
+		if err != nil {
+			logger.Error("failed-to-encode-job-builds", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }
 

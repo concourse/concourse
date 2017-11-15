@@ -35,6 +35,10 @@ func (s *Server) GetContainer(team db.Team) http.Handler {
 		presentedContainer := present.Container(container)
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(presentedContainer)
+		err = json.NewEncoder(w).Encode(presentedContainer)
+		if err != nil {
+			hLog.Error("failed-to-encode-container", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

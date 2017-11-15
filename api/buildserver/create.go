@@ -40,6 +40,10 @@ func (s *Server) CreateBuild(team db.Team) http.Handler {
 
 		w.WriteHeader(http.StatusCreated)
 
-		json.NewEncoder(w).Encode(present.Build(build))
+		err = json.NewEncoder(w).Encode(present.Build(build))
+		if err != nil {
+			hLog.Error("failed-to-encode-build", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

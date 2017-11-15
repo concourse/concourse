@@ -79,8 +79,12 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", pipeline.ConfigVersion()))
 
-	json.NewEncoder(w).Encode(atc.ConfigResponse{
+	err = json.NewEncoder(w).Encode(atc.ConfigResponse{
 		Config:    &config,
 		RawConfig: atc.RawConfig(rawConfig),
 	})
+	if err != nil {
+		logger.Error("failed-to-encode-config", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
