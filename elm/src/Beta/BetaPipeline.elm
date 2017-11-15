@@ -207,7 +207,7 @@ viewNode { id, label } =
     in
         case label of
             JobNode job ->
-                Html.div [ class "node job", idAttr ]
+                Html.div [ class "node", idAttr ]
                     [ viewJobNode job ]
 
             InputNode { resourceName } ->
@@ -226,31 +226,32 @@ viewNode { id, label } =
 viewJobNode : Concourse.Job -> Html Msg
 viewJobNode job =
     let
-        linkAttrs =
-            case ( job.finishedBuild, job.nextBuild ) of
-                ( Just fb, Just nb ) ->
-                    [ class (Concourse.BuildStatus.show fb.status ++ " started")
-                    , href <| prependBeta nb.url
-                    ]
+        ( classes, linkTarget ) =
+            case ( job.paused, job.finishedBuild, job.nextBuild ) of
+                ( True, _, Nothing ) ->
+                    ( class "job paused", job.url )
 
-                ( Just fb, Nothing ) ->
-                    [ class (Concourse.BuildStatus.show fb.status)
-                    , href <| prependBeta fb.url
-                    ]
+                ( True, _, Just nb ) ->
+                    ( class "job paused started", nb.url )
 
-                ( Nothing, Just nb ) ->
-                    [ class "no-builds started"
-                    , href <| prependBeta nb.url
-                    ]
+                ( False, Just fb, Just nb ) ->
+                    ( class ("job " ++ Concourse.BuildStatus.show fb.status ++ " started"), nb.url )
 
-                ( Nothing, Nothing ) ->
-                    [ class "no-builds"
-                    , href <| prependBeta job.url
-                    ]
+                ( False, Just fb, Nothing ) ->
+                    ( class ("job " ++ Concourse.BuildStatus.show fb.status), fb.url )
+
+                ( False, Nothing, Just nb ) ->
+                    ( class "job no-builds started", nb.url )
+
+                ( False, Nothing, Nothing ) ->
+                    ( class "job no-builds", job.url )
     in
-        Html.a linkAttrs
-            [ --(style [("line-height", toString (30 * jobResources job - 10) ++ "px")] :: linkAttrs) [
-              Html.text job.name
+        Html.div [ classes ]
+            [ Html.a [ class "job-name", href (prependBeta linkTarget) ]
+                [ Html.text job.name
+                ]
+            , Html.a [ class "job-status", href (prependBeta linkTarget) ]
+                []
             ]
 
 

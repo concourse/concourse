@@ -73,10 +73,7 @@ span.error { color: @base08; }
 .job-animation-node .animation,
 .legend dt.started,
 .legend dt.pending,
-.legend dt.failed,
-.pipeline-grid .node .started,
-.pipeline-grid .node .pending,
-.pipeline-grid .node .failed {
+.legend dt.failed {
   border-radius: 1px;
 }
 
@@ -110,24 +107,6 @@ span.error { color: @base08; }
   &.failed  .animation-small{.failed-outline(4px, 6px);}
   &.pending .animation-small{.pending-outline(4px, 6px);}
   &.started .animation-small{.ripple-animation("small-started-ripples-@{theme}", 3px, @base0A);}
-}
-
-.pipeline-grid .node a {
-  z-index: 1;
-}
-
-.pipeline-grid .node .failed {
-  .failed-outline(8px, 12px);
-}
-
-.pipeline-grid .node a.started {
-  z-index: 0; /* so its animation is below neighboring nodes */
-  .ripple-animation("medium-started-ripples-@{theme}", 7px, @base0A);
-}
-
-.pipeline-grid .node .pending {
-  z-index: 0; /* so its animation is below neighboring nodes */
-  .ripple-animation("medium-pending-ripples-@{theme}", 7px, @base04);
 }
 
 .halo-outline(@blue-radius, @color-radius, @color) {

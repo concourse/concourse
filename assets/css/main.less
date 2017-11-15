@@ -26,7 +26,6 @@
 @import "turbulence.less";
 @import "notfound.less";
 
-@import "pipeline.less";
 
 @import "deprecation.less";
 
@@ -50,11 +49,13 @@
   @grey-primary: #9B9B9B;
   @grey-secondary: #7A7373;
   @green-primary: #11C560;
-  @green-secondary: #31A864;
+  @green-secondary: #298853;
   @red-primary: #ED4B35;
   @red-secondary: #BD3826;
 
   @white: #FFFFFF;
+
+.no-builds { background: @base03; }
 
   @import "beta/reset.less";
   @import "beta/globals.less";
@@ -65,4 +66,6 @@
   @import "beta/modules/dashboard.less";
 
   @import "beta/modules/causality.less";
+
+  @import "beta/modules/pipeline.less";
 }

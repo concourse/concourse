@@ -59,7 +59,9 @@
         }, 0)
       });
 
-      app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
+      if (app.ports.resetPipelineFocus) {
+        app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
+      }
 
       var teamNameRegExp =  /\/teams\/([^/]+)\/.*/;
 
