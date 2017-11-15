@@ -313,7 +313,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
 
   services:
     concourse-db:
-      image: postgres:9.5
+      image: postgres:9.6
       environment:
         POSTGRES_DB: concourse
         POSTGRES_USER: concourse
