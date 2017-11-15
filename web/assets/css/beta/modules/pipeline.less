@@ -1,0 +1,201 @@
+.pipeline-grid {
+  padding: 20px;
+  padding-bottom: 10px; // account for node margins
+  float: left;
+
+  > * {
+    align-items: flex-start;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  .node {
+    display: flex; /* this does interesting but maybe good things? */
+    flex-grow: 1;
+
+    a {
+      flex-grow: 1;
+      white-space: nowrap;
+      // width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      // padding: 0 5px;
+      // font-size: 14px;
+      // vertical-align: top;
+      display: inline-block;
+    }
+  }
+
+  .output {
+    color: @base0E !important;
+  }
+
+  .pipeline-table {
+    padding: 20px;
+    border-spacing: 0;
+
+    tr {
+      vertical-align: top;
+    }
+
+    td {
+      padding: 0;
+    }
+  }
+
+  .spacer {
+    height: 30px;
+  }
+
+  .parallel-grid {
+    display: flex;
+    flex-direction: column;
+    // border: 1px solid red;
+    flex-grow: 1;
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .serial-grid {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    // border: 1px solid green;
+    justify-content: flex-start;
+  }
+
+  .job, .input, .output {
+    margin-bottom: 10px;
+  }
+
+  .input, .output {
+    a {
+      margin-top: 10px;
+      // margin-bottom: 10px;
+      max-height: 30px;
+      border-bottom: 1px solid @grey-secondary;
+      color: @base05;
+      font-size: 10px;
+      padding: 15px 10px 5px;
+      line-height: 10px;
+    }
+  }
+
+  .job a {
+    font-size: 12px;
+  }
+
+  .output {
+    flex-grow: 0;
+  }
+
+  .job {
+    flex-grow: 0;
+    width: 140px;
+    min-height: 80px;
+    // margin-bottom: 10px;
+
+    display: flex;
+    flex-direction: column;
+
+    .job-name {
+      flex-grow: 0;
+      display: block;
+      line-height: 30px;
+      padding: 0 10px;
+      color: @white;
+      background: @base01;
+      font-weight: normal;
+    }
+
+    .job-status {
+      flex-grow: 1;
+      display: block;
+    }
+
+    &.failed .job-status {
+      .striped-background(@red-secondary, @red-primary);
+      border: 2px solid @red-primary;
+    }
+
+    &.no-builds.started .job-status {
+      .running-animation(@base01, @base02);
+      border: 2px solid @base03;
+    }
+
+    &.succeeded.started .job-status {
+      .running-animation(@green-secondary, @green-primary);
+      border: 2px solid @green-primary;
+    }
+
+    &.failed.started .job-status {
+      .running-animation(@red-secondary, @red-primary);
+      border: 2px solid @red-primary;
+    }
+
+    &.aborted.started .job-status {
+      .running-animation(@brown-secondary, @brown-primary);
+      border: 2px solid @brown-primary;
+    }
+
+    &.errored.started .job-status {
+      .running-animation(@amber-secondary, @amber-primary);
+      border: 2px solid @amber-primary;
+    }
+
+    &.aborted.started .job-status {
+      .running-animation(@brown-secondary, @brown-primary);
+      border: 2px solid @brown-primary;
+    }
+
+    &.paused.started .job-status {
+      .running-animation(@blue-secondary, @blue-primary);
+      border: 2px solid @blue-primary;
+    }
+  }
+
+  .serial-grid > .input {
+    align-self: flex-start;
+  }
+
+  .parallel-grid > .input {
+    align-self: flex-end;
+  }
+
+  .input {
+    text-align: right;
+    margin-left: 10px;
+    min-width: 130px;
+  }
+
+  .input.constrained {
+    align-self: stretch;
+    text-align: left;
+    margin-left: 0px;
+    min-width: 140px;
+
+    a {
+      padding-left: 10px;
+      color: @base04;
+    }
+  }
+}
+
+@keyframes pipeline-running-2 {
+  // 0%   {}
+  // 100% {}
+  0%   {  background-position-x: (-53.5px) }
+  100% {  background-position-x: 0px }
+}
+
+.running-animation(@color1, @color2) {
+  .striped-background(@color1, @color2);
+  animation: pipeline-running-2 3s linear infinite;
+}
+
+.striped-background(@color1, @color2) {
+  background-image: repeating-linear-gradient(-115deg, @color1 0, @color1 10px, @color2 0, @color2 16px);
+  background-size: (53px * 2) (57px * 2);
+}
