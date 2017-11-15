@@ -6,6 +6,9 @@ image_resource:
   source:
     repository: concourse/bosh-cli
 
+inputs:
+- name: concourse
+
 params:
   BOSH_ENVIRONMENT:
   BOSH_DEPLOYMENT:
