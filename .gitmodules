@@ -329,3 +329,11 @@
 	path = src/github.com/prometheus/client_golang
 	url = https://github.com/prometheus/client_golang
 	branch = master
+[submodule "src/github.com/dghubble/oauth1"]
+	path = src/github.com/dghubble/oauth1
+	url = https://github.com/dghubble/oauth1
+	branch = master
+[submodule "src/github.com/SHyx0rmZ/go-bitbucket"]
+	path = src/github.com/SHyx0rmZ/go-bitbucket
+	url = https://github.com/SHyx0rmZ/go-bitbucket
+	branch = master
