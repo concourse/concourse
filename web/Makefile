@@ -32,7 +32,7 @@ test: all
 test-watch: all
 	cd elm && elm-test --watch
 
-bindata.go: $(PUBLIC_FILES)
+bindata.go: index.html $(PUBLIC_FILES)
 	go-bindata ${DEV} -pkg web index.html public/...
 	go fmt bindata.go
 
