@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-var Database db.Conn
+var Databases []db.Conn
 var DatabaseQueries = Meter(0)
 
 var ContainersCreated = Meter(0)

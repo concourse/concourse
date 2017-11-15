@@ -38,6 +38,7 @@ type Conn interface {
 	Stats() sql.DBStats
 
 	Close() error
+	Name() string
 }
 
 //go:generate counterfeiter . Tx
@@ -52,7 +53,7 @@ type Tx interface {
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 }
 
-func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *EncryptionKey, oldKey *EncryptionKey) (Conn, error) {
+func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *EncryptionKey, oldKey *EncryptionKey, connectionName string) (Conn, error) {
 	for {
 		var strategy EncryptionStrategy
 		if newKey != nil {
@@ -96,6 +97,7 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *E
 
 			bus:        NewNotificationsBus(listener, sqlDb),
 			encryption: strategy,
+			name:       connectionName,
 		}, nil
 	}
 }
@@ -317,6 +319,11 @@ type db struct {
 
 	bus        NotificationsBus
 	encryption EncryptionStrategy
+	name       string
+}
+
+func (db *db) Name() string {
+	return db.name
 }
 
 func (db *db) Bus() NotificationsBus {

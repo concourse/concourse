@@ -23,15 +23,20 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 			},
 		)
 
-		if Database != nil {
-			emit(
-				tLog.Session("database-connections"),
-				Event{
-					Name:  "database connections",
-					Value: Database.Stats().OpenConnections,
-					State: EventStateOK,
-				},
-			)
+		if len(Databases) > 0 {
+			for _, database := range Databases {
+				emit(
+					tLog.Session("database-connections"),
+					Event{
+						Name:  "database connections",
+						Value: database.Stats().OpenConnections,
+						State: EventStateOK,
+						Attributes: map[string]string{
+							"ConnectionName": database.Name(),
+						},
+					},
+				)
+			}
 		}
 
 		emit(

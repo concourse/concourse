@@ -118,6 +118,7 @@ func (runner *Runner) OpenConn() db.Conn {
 		runner.DataSourceName(),
 		nil,
 		nil,
+		"postgresrunner",
 	)
 	Expect(err).NotTo(HaveOccurred())
 

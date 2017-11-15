@@ -72,6 +72,8 @@ import (
 	_ "github.com/concourse/atc/creds/vault"
 )
 
+var retryingDriverName = "too-many-connections-retrying"
+
 type ATCCommand struct {
 	Logger LagerFlag
 
@@ -203,7 +205,7 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
-	runner, err := cmd.Runner(args)
+	runner, err := cmd.runner(args)
 	if err != nil {
 		return err
 	}
@@ -211,7 +213,14 @@ func (cmd *ATCCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
+func (cmd *ATCCommand) constructMembers(
+	positionalArguments []string,
+	requiredMemberNames []string,
+	maxConns int,
+	connectionName string,
+	logger lager.Logger,
+	reconfigurableSink *lager.ReconfigurableSink,
+) ([]grouper.Member, error) {
 	if len(positionalArguments) != 0 {
 		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
 	}
@@ -229,17 +238,6 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 		workerVersion = &version
 	}
-
-	logger, reconfigurableSink := cmd.constructLogger()
-
-	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
-
-	if err := cmd.configureMetrics(logger); err != nil {
-		return nil, err
-	}
-
-	retryingDriverName := "too-many-connections-retrying"
-	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
 
 	var variablesFactory creds.VariablesFactory = noop.NewNoopFactory()
 	for name, manager := range cmd.CredentialManagers {
@@ -272,7 +270,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		oldKey = db.NewEncryptionKey(cmd.OldEncryptionKey.AEAD)
 	}
 
-	dbConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey)
+	dbConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey, maxConns, connectionName)
 	if err != nil {
 		return nil, err
 	}
@@ -483,12 +481,6 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		)
 	}
 
-	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
-		for _, stack := range db.GlobalConnectionTracker.Current() {
-			fmt.Fprintln(w, stack)
-		}
-	})
-
 	members := []grouper.Member{
 		{"drainer", drainer{
 			logger: logger.Session("drain"),
@@ -646,6 +638,71 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		httpHandler,
 	)})
 
+	var filteredMembers []grouper.Member
+	for _, member := range members {
+		for _, requiredMemberName := range requiredMemberNames {
+			if member.Name == requiredMemberName {
+				filteredMembers = append(filteredMembers, member)
+				break
+			}
+		}
+	}
+
+	return filteredMembers, nil
+}
+
+func (cmd *ATCCommand) runner(positionalArguments []string) (ifrit.Runner, error) {
+	var members []grouper.Member
+
+	//FIXME: These only need to run once for the entire binary. At the moment,
+	//they rely on state of the command.
+	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
+	logger, reconfigurableSink := cmd.constructLogger()
+	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
+		for _, stack := range db.GlobalConnectionTracker.Current() {
+			fmt.Fprintln(w, stack)
+		}
+	})
+
+	if err := cmd.configureMetrics(logger); err != nil {
+		return nil, err
+	}
+	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
+
+	apiMembers, err := cmd.constructMembers(positionalArguments, []string{
+		"debug",
+		"web-tls",
+		"web",
+	},
+		32,
+		"api",
+		logger,
+		reconfigurableSink,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	serviceMembers, err := cmd.constructMembers(positionalArguments, []string{
+		"drainer",
+		"pipelines",
+		"builds",
+		"collector",
+		"build-reaper",
+		"static-worker",
+	},
+		32,
+		"backend",
+		logger,
+		reconfigurableSink,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	members = append(members, apiMembers...)
+	members = append(members, serviceMembers...)
+
 	return onReady(grouper.NewParallel(os.Interrupt, members), func() {
 		logData := lager.Data{
 			"http":  cmd.nonTLSBindAddr(),
@@ -780,15 +837,22 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) error {
 	return metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
 }
 
-func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, newKey *db.EncryptionKey, oldKey *db.EncryptionKey) (db.Conn, error) {
-	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey)
+func (cmd *ATCCommand) constructDBConn(
+	driverName string,
+	logger lager.Logger,
+	newKey *db.EncryptionKey,
+	oldKey *db.EncryptionKey,
+	maxConn int,
+	connectionName string,
+) (db.Conn, error) {
+	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey, connectionName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
 
 	// Instrument with Metrics
 	dbConn = metric.CountQueries(dbConn)
-	metric.Database = dbConn
+	metric.Databases = append(metric.Databases, dbConn)
 
 	// Instrument with Logging
 	if cmd.LogDBQueries {
@@ -796,7 +860,7 @@ func (cmd *ATCCommand) constructDBConn(driverName string, logger lager.Logger, n
 	}
 
 	// Prepare
-	dbConn.SetMaxOpenConns(64)
+	dbConn.SetMaxOpenConns(maxConn)
 
 	return dbConn, nil
 }
@@ -1166,4 +1230,7 @@ func (cmd *ATCCommand) appendStaticWorker(
 
 func (cmd *ATCCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
+}
+
+func init() {
 }
