@@ -37,4 +37,4 @@ Capybara.javascript_driver = :headless_chrome
 
 Capybara.save_path = '/tmp'
 
-Capybara.default_max_wait_time = 30
+Capybara.default_max_wait_time = 60
