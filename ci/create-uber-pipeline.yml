@@ -7,8 +7,8 @@ image_resource:
     repository: ubuntu
 
 inputs:
-- concourse
-- fly-rc
+- name: concourse
+- name: fly-rc
 
 params:
   WEB_IP:
@@ -21,11 +21,12 @@ run:
   - |
     test -n "$PIPELINE_NAME"
 
-  ./fly-rc/fly -t local login -c "$WEB_IP"
+    install fly-rc/fly_linux_amd64 /usr/local/bin/fly
 
-    ./fly-rc/fly -t local set-pipeline -n -p "$PIPELINE_NAME" -c concourse/ci/pipelines/uber-pipeline.yml
+    fly -t local login -c "http://$WEB_IP:8080"
 
-    ./fly-rc/fly -t local unpause-pipeline -p "$PIPELINE_NAME"
+    fly -t local set-pipeline -n -p "$PIPELINE_NAME" -c concourse/ci/pipelines/uber-pipeline.yml
 
-    ./fly-rc/fly -t local trigger-job -j "$PIPELINE_NAME/test-job"
+    fly -t local unpause-pipeline -p "$PIPELINE_NAME"
 
+    fly -t local trigger-job -j "$PIPELINE_NAME/test-job"

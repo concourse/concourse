@@ -7,8 +7,8 @@ image_resource:
     repository: ubuntu
 
 inputs:
-- concourse
-- fly-rc
+- name: concourse
+- name: fly-rc
 
 params:
   WEB_IP:
@@ -19,25 +19,28 @@ run:
   args:
   - -exc
   - |
+
     test -n "$PIPELINE_NAME"
 
-    ./fly-rc/fly -t local login -c "$WEB_IP"
+    install fly-rc/fly_linux_amd64 /usr/local/bin/fly
+
+    fly -t local login -c "http://$WEB_IP:8080"
 
     # test that the pipeline exists
-    ./fly-rc/fly -t local pipelines | grep "test-pipeline.*no.*no"
+    fly -t local pipelines | grep "test-pipeline.*no.*no"
 
     # test that we can still set pipeline
-    ./fly-rc/fly -t local set-pipeline -n -p new-test-pipeline -c concourse/ci/pipelines/uber-pipeline.yml
+    fly -t local set-pipeline -n -p new-test-pipeline -c concourse/ci/pipelines/uber-pipeline.yml
 
     # test that our old pipeline has not changed
-    ! ./fly-rc/fly -t local set-pipeline -n -p $PIPELINE_NAME -c concourse/ci/pipelines/uber-pipeline.yml | grep "has changed"
+    ! fly -t local set-pipeline -n -p $PIPELINE_NAME -c concourse/ci/pipelines/uber-pipeline.yml | grep "has changed"
 
     # test that succeeded build shown in build history
-    ./fly-rc/fly -t local builds | grep "$PIPELINE_NAME/test-job.*1.*succeeded"
+    fly -t local builds | grep "$PIPELINE_NAME/test-job.*1.*succeeded"
 
     # test that we can still fetch build history
-    ./fly-rc/fly -t local watch -j "$PIPELINE_NAME/test-job" | grep "succeeded"
+    fly -t local watch -j "$PIPELINE_NAME/test-job" | grep "succeeded"
 
     # test that we can check our resources
-    ./fly-rc/fly -t local check-resource -r "$PIPELINE_NAME/test-resource" | grep "checked"
+    fly -t local check-resource -r "$PIPELINE_NAME/test-resource" | grep "checked"
 
