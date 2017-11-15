@@ -1,0 +1,43 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: ubuntu
+
+inputs:
+- concourse
+- fly-rc
+
+params:
+  WEB_IP:
+  PIPELINE_NAME:
+
+run:
+  path: bash
+  args:
+  - -exc
+  - |
+    test -n "$PIPELINE_NAME"
+
+    ./fly-rc/fly -t local login -c "$WEB_IP"
+
+    # test that the pipeline exists
+    ./fly-rc/fly -t local pipelines | grep "test-pipeline.*no.*no"
+
+    # test that we can still set pipeline
+    ./fly-rc/fly -t local set-pipeline -n -p new-test-pipeline -c concourse/ci/pipelines/uber-pipeline.yml
+
+    # test that our old pipeline has not changed
+    ! ./fly-rc/fly -t local set-pipeline -n -p $PIPELINE_NAME -c concourse/ci/pipelines/uber-pipeline.yml | grep "has changed"
+
+    # test that succeeded build shown in build history
+    ./fly-rc/fly -t local builds | grep "$PIPELINE_NAME/test-job.*1.*succeeded"
+
+    # test that we can still fetch build history
+    ./fly-rc/fly -t local watch -j "$PIPELINE_NAME/test-job" | grep "succeeded"
+
+    # test that we can check our resources
+    ./fly-rc/fly -t local check-resource -r "$PIPELINE_NAME/test-resource" | grep "checked"
+

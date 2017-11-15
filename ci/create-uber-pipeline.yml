@@ -1,0 +1,31 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: ubuntu
+
+inputs:
+- concourse
+- fly-rc
+
+params:
+  WEB_IP:
+  PIPELINE_NAME:
+
+run:
+  path: bash
+  args:
+  - -exc
+  - |
+    test -n "$PIPELINE_NAME"
+
+  ./fly-rc/fly -t local login -c "$WEB_IP"
+
+    ./fly-rc/fly -t local set-pipeline -n -p "$PIPELINE_NAME" -c concourse/ci/pipelines/uber-pipeline.yml
+
+    ./fly-rc/fly -t local unpause-pipeline -p "$PIPELINE_NAME"
+
+    ./fly-rc/fly -t local trigger-job -j "$PIPELINE_NAME/test-job"
+
