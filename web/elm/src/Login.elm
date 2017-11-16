@@ -221,7 +221,7 @@ view model =
                 [ Html.text "logging in to "
                 , Html.span
                     [ class "bright-text" ]
-                    [ Html.text model.teamName ]
+                    [ Html.text <| Maybe.withDefault "" <| Http.decodeUri model.teamName ]
                 ]
             ]
                 ++ loginMethods model
