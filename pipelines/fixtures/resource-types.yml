@@ -11,16 +11,19 @@ resources:
 - name: my-resource
   type: custom-resource-type
   source: {}
+  check_every: 5s
 
 - name: my-resource-updated
   type: custom-resource-type
   source: {}
+  check_every: 5s
 
 - name: trigger-build
   type: git
   source:
     uri: {{origin-git-server}}
     branch: trigger
+  check_every: 5s
 
 jobs:
 - name: resource-getter

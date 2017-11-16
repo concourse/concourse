@@ -39,7 +39,7 @@ var _ = Describe("Updating resource types", func() {
 		originGitServer.CommitFileToBranch("new-contents", "rootfs/some-file", "master")
 		originGitServer.CommitFileToBranch("new-version", "rootfs/version", "master")
 
-		time.Sleep(10 * time.Second) // twice the default_check_interval
+		time.Sleep(10 * time.Second) // twice the check_every of the resource
 
 		By("watching for resource-imgur with updated resource type")
 		originGitServer.CommitFileToBranch("trigger", "trigger", "trigger")
