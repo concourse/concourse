@@ -31,10 +31,28 @@
     float: none;
     display: flex;
     padding: 20px 36px 10px;
+    width: 200px;
+    height: 120px;
+  }
+
+  .pipeline-grid-tall {
+    height: 364px;
+  }
+
+  .pipeline-grid-wide {
+    width: 502px;
+  }
+
+  .pipeline-grid-super-tall {
+    height: 608px;
+  }
+
+  .pipeline-grid-super-wide {
+    width: 804px;
   }
 
   .pipeline-grid >* {
-    align-items: initial;
+    align-items: initial !important;
   }
 
   .node {
@@ -318,27 +336,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.pipeline-grid {
-  width: 200px;
-  height: 120px;
-}
-
-.pipeline-grid-tall {
-  height: 364px;
-}
-
-.pipeline-grid-wide {
-  width: 502px;
-}
-
-.pipeline-grid-super-tall {
-  height: 608px;
-}
-
-.pipeline-grid-super-wide {
-  width: 804px;
 }
 
 [data-tooltip] {
