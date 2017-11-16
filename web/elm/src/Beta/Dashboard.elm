@@ -24,6 +24,9 @@ import Time exposing (Time)
 import Simple.Fuzzy exposing (match, root, filter)
 
 
+port pinTeamNames : () -> Cmd msg
+
+
 type alias Model =
     { topBar : NewTopBar.Model
     , pipelines : RemoteData.WebData (List Concourse.Pipeline)
@@ -90,6 +93,7 @@ init turbulencePath =
             , fetchVersion
             , getCurrentTime
             , Cmd.map TopBarMsg topBarMsg
+            , pinTeamNames ()
             ]
         )
 
