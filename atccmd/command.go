@@ -205,7 +205,7 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
-	runner, err := cmd.runner(args)
+	runner, err := cmd.Runner(args)
 	if err != nil {
 		return err
 	}
@@ -651,7 +651,7 @@ func (cmd *ATCCommand) constructMembers(
 	return filteredMembers, nil
 }
 
-func (cmd *ATCCommand) runner(positionalArguments []string) (ifrit.Runner, error) {
+func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
 	var members []grouper.Member
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
