@@ -4,7 +4,7 @@
 
 .dashboard {
   .dashboard-content {
-    padding: 0 0 30px 30px;
+    padding: 64px 0 30px 30px;
     &.no-results {
       padding: 60px 30px;
       text-align: center;
@@ -74,14 +74,16 @@
   }
 
   .dashboard-team-group {
-    padding-top: (55px * @scale);
     overflow: hidden;
   }
 
   .dashboard-team-name {
+    background: @base02;
     color: @base04;
     font-size: (30px * @scale);
-    margin-bottom: (25px * @scale);
+    padding-top: (55px * @scale);
+    padding-bottom: (25px * @scale);
+    z-index: 1;
   }
 
   .dashboard-pipeline {
@@ -250,7 +252,7 @@
   text-align: right;
   color: @base04;
   font-size: 10px;
-  z-index: 999;
+  z-index: 10;
   height: 64px;
   line-height: 64px;
 

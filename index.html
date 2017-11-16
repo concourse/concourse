@@ -13,6 +13,7 @@
     <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
     <script src="{{asset "elm-beta.min.js"}}"></script>
+    <script src="{{asset "jquery.pin.min.js"}}"></script>
   </head>
   <body>
     <div id="elm-app-embed"></div>
@@ -38,6 +39,15 @@
           notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
           csrfToken: {{ .CSRFToken }}
         });
+
+        app.ports.pinTeamNames.subscribe(function() {
+          $(document).on('scroll', function() {
+            $(".dashboard-team-name").pin({
+              containerSelector: ".dashboard-team-group",
+              padding: { top: 64 }
+            });
+          });
+        });
       }
       else {
         app = Elm.Main.embed(node, {
@@ -45,6 +55,8 @@
           notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
           csrfToken: {{ .CSRFToken }}
         });
+
+        app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
       }
 
       app.ports.renderPipeline.subscribe(function (values) {
@@ -58,10 +70,6 @@
           }
         }, 0)
       });
-
-      if (app.ports.resetPipelineFocus) {
-        app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
-      }
 
       var teamNameRegExp =  /\/teams\/([^/]+)\/.*/;
 
