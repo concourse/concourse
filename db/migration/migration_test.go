@@ -3,29 +3,41 @@ package migration_test
 import (
 	"database/sql"
 	"io/ioutil"
+	"math/rand"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/migration"
-	"github.com/mattes/migrate/database/postgres"
 	"github.com/mattes/migrate/source/go-bindata"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
+const initialSchemaVersion = 1510262030
+
 var _ = Describe("Migration", func() {
 	var db *sql.DB
+	var lockDB *sql.DB
 	var err error
-
-	const initialSchemaVersion = 1510262030
+	var lockFactory lock.LockFactory
 
 	BeforeEach(func() {
+		lockDB, err = sql.Open("postgres", postgresRunner.DataSourceName())
+		Expect(err).NotTo(HaveOccurred())
+
 		db, err = sql.Open("postgres", postgresRunner.DataSourceName())
 		Expect(err).NotTo(HaveOccurred())
+
+		lockFactory = lock.NewLockFactory(lockDB)
 	})
 
 	AfterEach(func() {
 		_ = db.Close()
+		_ = lockDB.Close()
 	})
 
 	It("Fails if trying to upgrade prior to migration_version 189", func() {
@@ -44,7 +56,7 @@ var _ = Describe("Migration", func() {
 
 		SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
 
-		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"})
+		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
 		Expect(err).NotTo(HaveOccurred())
 		defer dbConn.Close()
 
@@ -56,7 +68,7 @@ var _ = Describe("Migration", func() {
 	})
 
 	It("Runs mattes/migrate if migration_version table does not exist", func() {
-		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"})
+		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
 		Expect(err).NotTo(HaveOccurred())
 		defer dbConn.Close()
 
@@ -72,7 +84,7 @@ var _ = Describe("Migration", func() {
 
 		SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
 
-		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"})
+		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
 		Expect(err).NotTo(HaveOccurred())
 		defer dbConn.Close()
 
@@ -82,20 +94,51 @@ var _ = Describe("Migration", func() {
 
 		ExpectToBeAbleToInsertData(dbConn)
 	})
+
+	It("Locks the database so multiple ATCs don't all run migrations at the same time", func() {
+		SetupMigrationVersionTableToExistAtVersion(db, 189)
+
+		SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
+
+		var wg sync.WaitGroup
+		wg.Add(3)
+
+		go TryRunMigrationsAndVerifyResult([]string{"1510262030_initial_schema.up.sql"}, lockFactory, &wg)
+		go TryRunMigrationsAndVerifyResult([]string{"1510262030_initial_schema.up.sql"}, lockFactory, &wg)
+		go TryRunMigrationsAndVerifyResult([]string{"1510262030_initial_schema.up.sql"}, lockFactory, &wg)
+
+		wg.Wait()
+	})
 })
 
-func OpenConnectionWithMigrationFiles(db *sql.DB, files []string) (*sql.DB, error) {
-	d, err := postgres.WithInstance(db, &postgres.Config{})
-	Expect(err).NotTo(HaveOccurred())
+func TryRunMigrationsAndVerifyResult(files []string, lockFactory lock.LockFactory, wg *sync.WaitGroup) {
+	defer GinkgoRecover()
+	defer wg.Done()
 
-	s, err := bindata.WithInstance(bindata.Resource(
+	db, err := sql.Open("postgres", postgresRunner.DataSourceName())
+	Expect(err).NotTo(HaveOccurred())
+	defer db.Close()
+
+	dbConn, err := OpenConnectionWithMigrationFiles(db, files, lockFactory)
+	Expect(err).NotTo(HaveOccurred())
+	defer dbConn.Close()
+
+	ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
+
+	ExpectMigrationVersionTableNotToExist(dbConn)
+
+	ExpectToBeAbleToInsertData(dbConn)
+}
+
+func OpenConnectionWithMigrationFiles(db *sql.DB, files []string, lockFactory lock.LockFactory) (*sql.DB, error) {
+	s, _ := bindata.WithInstance(bindata.Resource(
 		[]string{"1510262030_initial_schema.up.sql"},
 		func(name string) ([]byte, error) {
 			return migration.Asset(name)
 		}),
 	)
 
-	return migration.OpenWithMigrateDrivers(db, "go-bindata", s, "postgres", d)
+	return migration.OpenWithMigrateDrivers(db, "go-bindata", s, lockFactory)
 }
 
 func SetupMigrationVersionTableToExistAtVersion(db *sql.DB, version int) {
@@ -139,12 +182,17 @@ func ExpectMigrationVersionTableNotToExist(dbConn *sql.DB) {
 }
 
 func ExpectToBeAbleToInsertData(dbConn *sql.DB) {
-	_, err := dbConn.Exec("INSERT INTO teams(id, name) VALUES (10, 'test-team')")
+	rand.Seed(time.Now().UnixNano())
+
+	teamID := rand.Intn(10000)
+	_, err := dbConn.Exec("INSERT INTO teams(id, name) VALUES ($1, $2)", teamID, strconv.Itoa(teamID))
 	Expect(err).NotTo(HaveOccurred())
 
-	_, err = dbConn.Exec("INSERT INTO pipelines(id, team_id, name) VALUES (100, 10, 'test-pipeline')")
+	pipelineID := rand.Intn(10000)
+	_, err = dbConn.Exec("INSERT INTO pipelines(id, team_id, name) VALUES ($1, $2, $3)", pipelineID, teamID, strconv.Itoa(pipelineID))
 	Expect(err).NotTo(HaveOccurred())
 
-	_, err = dbConn.Exec("INSERT INTO jobs(id, pipeline_id, name, config) VALUES (1000, 100, 'test-job', '{}')")
+	jobID := rand.Intn(10000)
+	_, err = dbConn.Exec("INSERT INTO jobs(id, pipeline_id, name, config) VALUES ($1, $2, $3, '{}')", jobID, pipelineID, strconv.Itoa(jobID))
 	Expect(err).NotTo(HaveOccurred())
 }

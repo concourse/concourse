@@ -270,17 +270,17 @@ func (cmd *ATCCommand) constructMembers(
 		oldKey = db.NewEncryptionKey(cmd.OldEncryptionKey.AEAD)
 	}
 
-	dbConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey, maxConns, connectionName)
-	if err != nil {
-		return nil, err
-	}
-
 	lockConn, err := cmd.constructLockConn(retryingDriverName)
 	if err != nil {
 		return nil, err
 	}
 
 	lockFactory := lock.NewLockFactory(lockConn)
+
+	dbConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey, maxConns, connectionName, lockFactory)
+	if err != nil {
+		return nil, err
+	}
 
 	bus := dbConn.Bus()
 
@@ -844,8 +844,9 @@ func (cmd *ATCCommand) constructDBConn(
 	oldKey *db.EncryptionKey,
 	maxConn int,
 	connectionName string,
+	lockFactory lock.LockFactory,
 ) (db.Conn, error) {
-	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey, connectionName)
+	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey, connectionName, lockFactory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}

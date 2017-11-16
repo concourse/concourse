@@ -117,6 +117,7 @@ func (runner *Runner) OpenConn() db.Conn {
 		nil,
 		nil,
 		"postgresrunner",
+		nil,
 	)
 	Expect(err).NotTo(HaveOccurred())
 
