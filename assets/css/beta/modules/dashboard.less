@@ -21,9 +21,9 @@
   .paused    { background: @blue-primary; &:hover { background: @blue-secondary }}
 
   .running { background-size: 500% 100%; }
-  .no-builds.running { .running-animation(@grey-primary, @grey-secondary); }
+  .no-builds.running { .running-animation(@grey-primary,  @grey-secondary); }
   .succeeded.running { .running-animation(@green-primary, @green-secondary); }
-  .failed.running    { .running-animation(@red-primary, @red-secondary); }
+  .failed.running    { .running-animation(@red-primary,   @red-secondary); }
   .errored.running   { .running-animation(@amber-primary, @amber-secondary); }
   .aborted.running   { .running-animation(@brown-primary, @brown-secondary); }
 
@@ -84,6 +84,7 @@
     padding-top: (55px * @scale);
     padding-bottom: (25px * @scale);
     z-index: 1;
+    opacity: 0.9;
   }
 
   .dashboard-pipeline {
@@ -116,16 +117,6 @@
       text-align: center;
       margin-bottom: (27px * @scale);
     }
-  }
-
-  @keyframes pipeline-running {
-    0%   { background-position-x: -27px; }
-    100% { background-position-x: 0px; }
-  }
-
-  .running-animation(@color1, @color2) {
-    background-image: repeating-linear-gradient(60deg, @color1 0, @color1 5px, @color2 0, @color2 8px);
-    animation: pipeline-running 1s linear infinite;
   }
 
   .dashboard-paused {

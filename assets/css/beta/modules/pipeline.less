@@ -121,37 +121,32 @@
     }
 
     &.no-builds.started .job-status {
-      .running-animation(@base01, @base02);
+      .running-animation(@base02, @base01);
       border: 2px solid @base03;
     }
 
     &.succeeded.started .job-status {
-      .running-animation(@green-secondary, @green-primary);
+      .running-animation(@green-primary, @green-secondary);
       border: 2px solid @green-primary;
     }
 
     &.failed.started .job-status {
-      .running-animation(@red-secondary, @red-primary);
+      .running-animation(@red-primary, @red-secondary);
       border: 2px solid @red-primary;
     }
 
     &.aborted.started .job-status {
-      .running-animation(@brown-secondary, @brown-primary);
+      .running-animation(@brown-primary, @brown-secondary);
       border: 2px solid @brown-primary;
     }
 
     &.errored.started .job-status {
-      .running-animation(@amber-secondary, @amber-primary);
+      .running-animation(@amber-primary, @amber-secondary);
       border: 2px solid @amber-primary;
     }
 
-    &.aborted.started .job-status {
-      .running-animation(@brown-secondary, @brown-primary);
-      border: 2px solid @brown-primary;
-    }
-
     &.paused.started .job-status {
-      .running-animation(@blue-secondary, @blue-primary);
+      .running-animation(@blue-primary, @blue-secondary);
       border: 2px solid @blue-primary;
     }
   }
@@ -183,16 +178,14 @@
   }
 }
 
-@keyframes pipeline-running-2 {
-  // 0%   {}
-  // 100% {}
+@keyframes pipeline-running {
   0%   {  background-position-x: (-53.5px) }
   100% {  background-position-x: 0px }
 }
 
 .running-animation(@color1, @color2) {
-  .striped-background(@color1, @color2);
-  animation: pipeline-running-2 3s linear infinite;
+  .striped-background(@color2, @color1);
+  animation: pipeline-running 3s linear infinite;
 }
 
 .striped-background(@color1, @color2) {

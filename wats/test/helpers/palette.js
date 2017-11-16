@@ -15,9 +15,9 @@ module.exports = {
   "white": color("#ffffff"),
 
   "green": color("#11C560"),
-  "green2": color("#31A864"),
+  "green2": color("#419867"),
   "amber": color("#F5A623"),
-  "amber2": color("#FFB843"),
+  "amber2": color("#D58808"),
   "red": color("#ED4B35"),
   "red2": color("#BD3826"),
   "blue": color("#4A90E2"),
