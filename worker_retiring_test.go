@@ -14,6 +14,7 @@ var _ = Describe("Worker retiring", func() {
 	BeforeEach(func() {
 		deployment = "deployments/one-forwarded-worker.yml"
 		Deploy(deployment)
+		_ = waitForRunningWorker()
 	})
 
 	It("[#129726063 #129726083] deletes all containers and volumes when worker is gone", func() {
