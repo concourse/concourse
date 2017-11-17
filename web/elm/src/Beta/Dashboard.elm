@@ -128,7 +128,7 @@ update msg model =
                 ( { model | now = Just now, hideFooterCounter = model.hideFooterCounter + Time.second }, Cmd.none )
 
         AutoRefresh _ ->
-            ( model, Cmd.batch [ fetchPipelines, fetchVersion ] )
+            ( model, Cmd.batch [ fetchPipelines, fetchVersion, Cmd.map TopBarMsg NewTopBar.fetchUser ] )
 
         ShowFooter ->
             ( { model | hideFooter = False, hideFooterCounter = 0 }, Cmd.none )
