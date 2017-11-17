@@ -181,6 +181,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 	Context("with one worker", func() {
 		BeforeEach(func() {
 			Deploy("deployments/one-forwarded-worker.yml")
+			waitForRunningWorker()
 		})
 
 		describeRestartingTheWorker()
