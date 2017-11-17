@@ -337,3 +337,6 @@
 	path = src/github.com/SHyx0rmZ/go-bitbucket
 	url = https://github.com/SHyx0rmZ/go-bitbucket
 	branch = master
+[submodule "src/github.com/mattes/migrate"]
+	path = src/github.com/mattes/migrate
+	url = https://github.com/mattes/migrate

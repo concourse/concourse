@@ -114,9 +114,6 @@ files:
   - github.com/concourse/atc/db/algorithm/*.go # gosub
   - github.com/concourse/atc/db/lock/*.go # gosub
   - github.com/concourse/atc/db/migration/*.go # gosub
-  - github.com/concourse/atc/db/migrations/*.go # gosub
-  - github.com/concourse/atc/db/migrations/internal/163/*.go # gosub
-  - github.com/concourse/atc/db/migrations/internal/26/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
@@ -170,6 +167,12 @@ files:
   - github.com/lann/ps/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
+  - github.com/mattes/migrate/*.go # gosub
+  - github.com/mattes/migrate/database/*.go # gosub
+  - github.com/mattes/migrate/database/postgres/*.go # gosub
+  - github.com/mattes/migrate/source/*.go # gosub
+  - github.com/mattes/migrate/source/file/*.go # gosub
+  - github.com/mattes/migrate/source/go-bindata/*.go # gosub
   - github.com/matttproud/golang_protobuf_extensions/pbutil/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
