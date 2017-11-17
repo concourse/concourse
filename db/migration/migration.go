@@ -107,17 +107,13 @@ func checkMigrationVersion(db *sql.DB) (int, error) {
 		return -1, nil
 	}
 
-	if dbVersion < oldMigrationLastVersion {
-		return -1, fmt.Errorf("Cannot upgrade from concourse version < 3.6.0 (db version: %d), current db version: %d", oldMigrationLastVersion, dbVersion)
+	if dbVersion != oldMigrationLastVersion {
+		return -1, fmt.Errorf("Must upgrade from db version %d (concourse 3.6.0), current db version: %d", oldMigrationLastVersion, dbVersion)
 	}
 
 	if _, err = db.Exec("DROP TABLE IF EXISTS migration_version"); err != nil {
 		return -1, nil
 	}
 
-	if dbVersion == oldMigrationLastVersion {
-		return newMigrationStartVersion, nil
-	}
-
-	return -1, fmt.Errorf("Unkown database version: %d", dbVersion)
+	return newMigrationStartVersion, nil
 }

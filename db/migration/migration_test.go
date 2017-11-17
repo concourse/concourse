@@ -40,12 +40,23 @@ var _ = Describe("Migration", func() {
 		_ = lockDB.Close()
 	})
 
-	It("Fails if trying to upgrade prior to migration_version 189", func() {
+	It("Fails if trying to upgrade from a migration_version < 189", func() {
 		SetupMigrationVersionTableToExistAtVersion(db, 188)
 
 		_, err = migration.Open("postgres", postgresRunner.DataSourceName())
 
-		Expect(err.Error()).To(Equal("Cannot upgrade from concourse version < 3.6.0 (db version: 189), current db version: 188"))
+		Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 188"))
+
+		_, err = db.Exec("SELECT version FROM migration_version")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("Fails if trying to upgrade from a migration_version > 189", func() {
+		SetupMigrationVersionTableToExistAtVersion(db, 190)
+
+		_, err = migration.Open("postgres", postgresRunner.DataSourceName())
+
+		Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 190"))
 
 		_, err = db.Exec("SELECT version FROM migration_version")
 		Expect(err).NotTo(HaveOccurred())
