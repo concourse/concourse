@@ -1,0 +1,44 @@
+---
+resource_types:
+- name: custom-resource-type
+  type: git
+  privileged: ((privileged))
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+- name: semver-from-s3
+  type: s3
+  #privileged: ((privileged))
+  source:
+    bucket: {{s3_bucket}}
+    regexp: {{s3_regexp}}
+    region_name: {{s3_region}}
+  params:
+    unpack: true
+
+resources:
+- name: my-resource
+  type: semver-from-s3
+  source:
+    bucket: {{s3_bucket}}
+    key: testflight
+    region_name: {{s3_region}}
+    initial_version: 0.0.1
+
+jobs:
+- name: resource-test
+  plan:
+  - get: my-resource
+    #params: {bump: patch}
+  - task: use-custom-resource-type
+    config:
+      inputs:
+      - name: my-resource
+      platform: linux
+      image_resource:
+        type: custom-resource-type
+        source: {}
+      run:
+        path: test
+        args: [-e, "my-resource/version"]

@@ -131,6 +131,26 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 		})
 	})
 
+	Context("with custom resource types that have params", func() {
+		BeforeEach(func() {
+			flyHelper.ConfigurePipeline(
+				pipelineName,
+				"-c", "fixtures/resource-types-with-params.yml",
+				"-v", "origin-git-server="+originGitServer.URI(),
+				"-v", "s3_bucket=jghiloni-psrtest",
+				"-v", "s3_regexp=semver-resource-(.*).tar.gz",
+				"-v", "s3_region=us-east-2",
+				"-y", "privileged=false",
+			)
+		})
+
+		It("can use a custom resource with parameters", func() {
+			watch := flyHelper.TriggerJob(pipelineName, "resource-test")
+			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
+		})
+	})
+
 	Context("when resource type named as base resource type", func() {
 		BeforeEach(func() {
 			flyHelper.ConfigurePipeline(
