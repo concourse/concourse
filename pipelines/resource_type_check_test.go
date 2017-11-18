@@ -1,7 +1,7 @@
 package pipelines_test
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/concourse/testflight/gitserver"
 	. "github.com/onsi/ginkgo"
@@ -39,13 +39,15 @@ var _ = Describe("Updating resource types", func() {
 		originGitServer.CommitFileToBranch("new-contents", "rootfs/some-file", "master")
 		originGitServer.CommitFileToBranch("new-version", "rootfs/version", "master")
 
-		time.Sleep(10 * time.Second) // twice the default_check_interval
+		buildNum := 2
+		Eventually(func() *gexec.Session {
+			By("watching for resource-imgur with updated resource type")
+			originGitServer.CommitFileToBranch(fmt.Sprintf("trigger %d", buildNum), "trigger", "trigger")
 
-		By("watching for resource-imgur with updated resource type")
-		originGitServer.CommitFileToBranch("trigger", "trigger", "trigger")
-
-		watch = flyHelper.Watch(pipelineName, "resource-imgur", "2")
-		Expect(watch).To(gbytes.Say("new-contents"))
-		Expect(watch).To(gexec.Exit(0))
+			watch = flyHelper.Watch(pipelineName, "resource-imgur", fmt.Sprintf("%d", buildNum))
+			Expect(watch).To(gexec.Exit(0))
+			buildNum += 1
+			return watch
+		}, "3m").Should(gbytes.Say("new-contents"))
 	})
 })
