@@ -49,6 +49,27 @@ func main() {
 	helpParser.NamespaceDelimiter = "-"
 
 	_, err := parser.Parse()
+	err = loginAndRetry(parser, err)
+	handleError(helpParser, err)
+}
+
+func loginAndRetry(parser *flags.Parser, err error) error {
+	_, stdoutIsTTY := ui.ForTTY(os.Stdout)
+	_, stdinIsTTY := ui.ForTTY(os.Stdin)
+	if err == concourse.ErrUnauthorized && stdoutIsTTY && stdinIsTTY {
+		fmt.Fprintln(ui.Stderr, "could not find a valid token.")
+
+		login := &commands.LoginCommand{}
+		err = login.Execute([]string{})
+
+		if err == nil {
+			_, err = parser.Parse()
+		}
+	}
+	return err
+}
+
+func handleError(helpParser *flags.Parser, err error) {
 	if err != nil {
 		if err == concourse.ErrUnauthorized {
 			fmt.Fprintln(ui.Stderr, "not authorized. run the following to log in:")
