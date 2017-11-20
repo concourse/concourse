@@ -18,7 +18,7 @@ describe 'session', type: :feature do
     end
   end
 
-  context 'when session expires' do
+  xcontext 'when session expires' do
     it 'displays the correct state in the top bar' do
       dash_login team_name
       visit dash_route('/beta/dashboard')
