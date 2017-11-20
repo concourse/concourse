@@ -28,8 +28,8 @@
       Foundry Postgres release will upgrade from.
     }{
       After the deploy has finished, upload the Cloud Foundry Postgres release.
-      We've tested the upgrade path with version 20, available on
-      \link{bosh.io}{http://bosh.io/releases/github.com/cloudfoundry/postgres-release?version=20}.
+      We've tested the upgrade path with version 22, available on
+      \link{bosh.io}{http://bosh.io/releases/github.com/cloudfoundry/postgres-release?version=22}.
     }{
       Once the release is uploaded, add it to your deployment manifest, swap
       out the \code{concourse/postgresql} job for the \code{postgres/postgres}
