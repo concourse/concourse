@@ -9,36 +9,100 @@ import (
 	"github.com/concourse/atc/db/lock"
 	"github.com/mattes/migrate"
 	"github.com/mattes/migrate/database/postgres"
-	"github.com/mattes/migrate/source"
 	"github.com/mattes/migrate/source/go-bindata"
 
 	_ "github.com/lib/pq"
 	_ "github.com/mattes/migrate/source/file"
 )
 
-func Version(driver, dsn string) (int, error) {
-	db, err := sql.Open(driver, dsn)
+func NewOpenHelper(driver, name string, lockFactory lock.LockFactory) *OpenHelper {
+	return &OpenHelper{
+		driver,
+		name,
+		lockFactory,
+	}
+}
+
+type OpenHelper struct {
+	driver         string
+	dataSourceName string
+	lockFactory    lock.LockFactory
+}
+
+func (self *OpenHelper) Version() (int, error) {
+	db, err := sql.Open(self.driver, self.dataSourceName)
 	if err != nil {
 		return -1, err
 	}
 
 	defer db.Close()
 
-	s, err := bindata.WithInstance(bindata.Resource(
-		AssetNames(),
-		func(name string) ([]byte, error) {
-			return Asset(name)
-		}),
-	)
+	return NewMigrator(db, self.lockFactory).Version()
+}
 
-	d, err := postgres.WithInstance(db, &postgres.Config{})
+func (self *OpenHelper) Open() (*sql.DB, error) {
+	db, err := sql.Open(self.driver, self.dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := NewMigrator(db, self.lockFactory).Up(); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func (self *OpenHelper) OpenAtVersion(version int) (*sql.DB, error) {
+	db, err := sql.Open(self.driver, self.dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := NewMigrator(db, self.lockFactory).Migrate(version); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+
+	return db, nil
+}
+
+type Migrator interface {
+	Version() (int, error)
+	Migrate(version int) error
+	Up() error
+}
+
+func NewMigrator(db *sql.DB, lockFactory lock.LockFactory) Migrator {
+	return NewMigratorForMigrations(db, lockFactory, AssetNames())
+}
+
+func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, migrations []string) Migrator {
+	return &migrator{
+		db,
+		lockFactory,
+		lager.NewLogger("migrations"),
+		migrations,
+	}
+}
+
+type migrator struct {
+	db          *sql.DB
+	lockFactory lock.LockFactory
+	logger      lager.Logger
+	migrations  []string
+}
+
+func (self *migrator) Version() (int, error) {
+
+	m, lock, err := self.openWithLock()
 	if err != nil {
 		return -1, err
 	}
 
-	m, err := migrate.NewWithInstance("go-bindata", s, "postgres", d)
-	if err != nil {
-		return -1, err
+	if lock != nil {
+		defer lock.Release()
 	}
 
 	version, _, err := m.Version()
@@ -49,48 +113,15 @@ func Version(driver, dsn string) (int, error) {
 	return int(version), nil
 }
 
-func Migrate(driver, dsn string, lockFactory lock.LockFactory, version int) error {
-	logger := lager.NewLogger("migrations").Session("locks")
-	for {
-		if lockFactory != nil {
-			lock, acquired, err := lockFactory.Acquire(logger, lock.NewDatabaseMigrationLockID())
-			if err != nil {
-				return err
-			}
+func (self *migrator) Migrate(version int) error {
 
-			if !acquired {
-				time.Sleep(1 * time.Second)
-				continue
-			}
-
-			defer lock.Release()
-		}
-
-		break
-	}
-
-	db, err := sql.Open(driver, dsn)
+	m, lock, err := self.openWithLock()
 	if err != nil {
 		return err
 	}
 
-	defer db.Close()
-
-	s, err := bindata.WithInstance(bindata.Resource(
-		AssetNames(),
-		func(name string) ([]byte, error) {
-			return Asset(name)
-		}),
-	)
-
-	d, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		return err
-	}
-
-	m, err := migrate.NewWithInstance("go-bindata", s, "postgres", d)
-	if err != nil {
-		return err
+	if lock != nil {
+		defer lock.Release()
 	}
 
 	if err = m.Migrate(uint(version)); err != nil {
@@ -102,92 +133,99 @@ func Migrate(driver, dsn string, lockFactory lock.LockFactory, version int) erro
 	return nil
 }
 
-func Open(driver, dsn string) (*sql.DB, error) {
-	return OpenWithLockFactory(driver, dsn, nil)
+func (self *migrator) Up() error {
+
+	m, lock, err := self.openWithLock()
+	if err != nil {
+		return err
+	}
+
+	if lock != nil {
+		defer lock.Release()
+	}
+
+	if err = m.Up(); err != nil {
+		if err.Error() != "no change" {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func OpenWithLockFactory(driver, dsn string, lockFactory lock.LockFactory) (*sql.DB, error) {
-	db, err := sql.Open(driver, dsn)
+func (self *migrator) open() (*migrate.Migrate, error) {
+
+	forceVersion, err := self.checkLegacyVersion()
 	if err != nil {
 		return nil, err
 	}
 
 	s, err := bindata.WithInstance(bindata.Resource(
-		AssetNames(),
+		self.migrations,
 		func(name string) ([]byte, error) {
 			return Asset(name)
 		}),
 	)
 
-	dbConn, err := OpenWithMigrateDrivers(db, "go-bindata", s, lockFactory)
+	d, err := postgres.WithInstance(self.db, &postgres.Config{})
 	if err != nil {
-		_ = db.Close()
 		return nil, err
 	}
 
-	return dbConn, nil
-}
-
-func OpenWithMigrateDrivers(db *sql.DB, sourceName string, s source.Driver, lockFactory lock.LockFactory) (*sql.DB, error) {
-
-	logger := lager.NewLogger("migrations").Session("locks")
-	for {
-
-		if lockFactory != nil {
-			lock, acquired, err := lockFactory.Acquire(logger, lock.NewDatabaseMigrationLockID())
-			if err != nil {
-				return nil, err
-			}
-
-			if !acquired {
-				time.Sleep(1 * time.Second)
-				continue
-			}
-
-			defer lock.Release()
-		}
-
-		forceVersion, err := checkLegacyMigrationVersion(db)
-		if err != nil {
-			return nil, err
-		}
-
-		d, err := postgres.WithInstance(db, &postgres.Config{})
-		if err != nil {
-			return nil, err
-		}
-
-		m, err := migrate.NewWithInstance(sourceName, s, "postgres", d)
-		if err != nil {
-			return nil, err
-		}
-
-		if forceVersion > 0 {
-			if err = m.Force(forceVersion); err != nil {
-				logger.Error("migrations", err)
-				return nil, err
-			}
-		}
-
-		if err = m.Up(); err != nil {
-			if err.Error() != "no change" {
-				logger.Error("migrations", err)
-				return nil, err
-			}
-		}
-
-		return db, nil
+	m, err := migrate.NewWithInstance("go-bindata", s, "postgres", d)
+	if err != nil {
+		return nil, err
 	}
+
+	if forceVersion > 0 {
+		if err = m.Force(forceVersion); err != nil {
+			return nil, err
+		}
+	}
+
+	return m, nil
 }
 
-func checkLegacyMigrationVersion(db *sql.DB) (int, error) {
+func (self *migrator) openWithLock() (*migrate.Migrate, lock.Lock, error) {
+
+	var err error
+	var acquired bool
+	var newLock lock.Lock
+
+	if self.lockFactory != nil {
+		for {
+			newLock, acquired, err = self.lockFactory.Acquire(self.logger, lock.NewDatabaseMigrationLockID())
+
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if acquired {
+				break
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	m, err := self.open()
+
+	if err != nil && newLock != nil {
+		newLock.Release()
+		return nil, nil, err
+	}
+
+	return m, newLock, err
+}
+
+func (self *migrator) checkLegacyVersion() (int, error) {
 	oldMigrationLastVersion := 189
 	newMigrationStartVersion := 1510262030
 
 	var err error
 	var dbVersion int
 
-	if err = db.QueryRow("SELECT version FROM migration_version").Scan(&dbVersion); err != nil {
+	if err = self.db.QueryRow("SELECT version FROM migration_version").Scan(&dbVersion); err != nil {
 		return -1, nil
 	}
 
@@ -195,7 +233,7 @@ func checkLegacyMigrationVersion(db *sql.DB) (int, error) {
 		return -1, fmt.Errorf("Must upgrade from db version %d (concourse 3.6.0), current db version: %d", oldMigrationLastVersion, dbVersion)
 	}
 
-	if _, err = db.Exec("DROP TABLE IF EXISTS migration_version"); err != nil {
+	if _, err = self.db.Exec("DROP TABLE IF EXISTS migration_version"); err != nil {
 		return -1, err
 	}
 

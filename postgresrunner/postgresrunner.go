@@ -96,10 +96,11 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 }
 
 func (runner *Runner) OpenDB() *sql.DB {
-	dbConn, err := migration.Open(
+	dbConn, err := migration.NewOpenHelper(
 		"postgres",
 		runner.DataSourceName(),
-	)
+		nil,
+	).Open()
 	Expect(err).NotTo(HaveOccurred())
 
 	// only allow one connection so that we can detect any code paths that
