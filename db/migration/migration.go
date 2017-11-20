@@ -69,7 +69,6 @@ func OpenWithMigrateDrivers(db *sql.DB, sourceName string, s source.Driver, lock
 
 		d, err := postgres.WithInstance(db, &postgres.Config{})
 		if err != nil {
-			_ = db.Close()
 			return nil, err
 		}
 
@@ -112,7 +111,7 @@ func checkMigrationVersion(db *sql.DB) (int, error) {
 	}
 
 	if _, err = db.Exec("DROP TABLE IF EXISTS migration_version"); err != nil {
-		return -1, nil
+		return -1, err
 	}
 
 	return newMigrationStartVersion, nil
