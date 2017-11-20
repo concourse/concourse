@@ -16,6 +16,92 @@ import (
 	_ "github.com/mattes/migrate/source/file"
 )
 
+func Version(driver, dsn string) (int, error) {
+	db, err := sql.Open(driver, dsn)
+	if err != nil {
+		return -1, err
+	}
+
+	defer db.Close()
+
+	s, err := bindata.WithInstance(bindata.Resource(
+		AssetNames(),
+		func(name string) ([]byte, error) {
+			return Asset(name)
+		}),
+	)
+
+	d, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return -1, err
+	}
+
+	m, err := migrate.NewWithInstance("go-bindata", s, "postgres", d)
+	if err != nil {
+		return -1, err
+	}
+
+	version, _, err := m.Version()
+	if err != nil {
+		return -1, err
+	}
+
+	return int(version), nil
+}
+
+func Migrate(driver, dsn string, lockFactory lock.LockFactory, version int) error {
+	logger := lager.NewLogger("migrations").Session("locks")
+	for {
+		if lockFactory != nil {
+			lock, acquired, err := lockFactory.Acquire(logger, lock.NewDatabaseMigrationLockID())
+			if err != nil {
+				return err
+			}
+
+			if !acquired {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+
+			defer lock.Release()
+		}
+
+		break
+	}
+
+	db, err := sql.Open(driver, dsn)
+	if err != nil {
+		return err
+	}
+
+	defer db.Close()
+
+	s, err := bindata.WithInstance(bindata.Resource(
+		AssetNames(),
+		func(name string) ([]byte, error) {
+			return Asset(name)
+		}),
+	)
+
+	d, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithInstance("go-bindata", s, "postgres", d)
+	if err != nil {
+		return err
+	}
+
+	if err = m.Migrate(uint(version)); err != nil {
+		if err.Error() != "no change" {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func Open(driver, dsn string) (*sql.DB, error) {
 	return OpenWithLockFactory(driver, dsn, nil)
 }
@@ -61,8 +147,7 @@ func OpenWithMigrateDrivers(db *sql.DB, sourceName string, s source.Driver, lock
 			defer lock.Release()
 		}
 
-		forceVersion, err := checkMigrationVersion(db)
-
+		forceVersion, err := checkLegacyMigrationVersion(db)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +180,7 @@ func OpenWithMigrateDrivers(db *sql.DB, sourceName string, s source.Driver, lock
 	}
 }
 
-func checkMigrationVersion(db *sql.DB) (int, error) {
+func checkLegacyMigrationVersion(db *sql.DB) (int, error) {
 	oldMigrationLastVersion := 189
 	newMigrationStartVersion := 1510262030
 

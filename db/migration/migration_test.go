@@ -20,10 +20,12 @@ import (
 const initialSchemaVersion = 1510262030
 
 var _ = Describe("Migration", func() {
-	var db *sql.DB
-	var lockDB *sql.DB
-	var err error
-	var lockFactory lock.LockFactory
+	var (
+		err         error
+		db          *sql.DB
+		lockDB      *sql.DB
+		lockFactory lock.LockFactory
+	)
 
 	BeforeEach(func() {
 		lockDB, err = sql.Open("postgres", postgresRunner.DataSourceName())
@@ -40,85 +42,150 @@ var _ = Describe("Migration", func() {
 		_ = lockDB.Close()
 	})
 
-	It("Fails if trying to upgrade from a migration_version < 189", func() {
-		SetupMigrationVersionTableToExistAtVersion(db, 188)
+	Context("Version Check", func() {
+		It("Reports its current version", func() {
+			dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
+			Expect(err).NotTo(HaveOccurred())
+			dbConn.Close()
 
-		_, err = migration.Open("postgres", postgresRunner.DataSourceName())
+			version, err := migration.Version("postgres", postgresRunner.DataSourceName())
 
-		Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 188"))
-
-		_, err = db.Exec("SELECT version FROM migration_version")
-		Expect(err).NotTo(HaveOccurred())
+			Expect(version).To(Equal(initialSchemaVersion))
+		})
 	})
 
-	It("Fails if trying to upgrade from a migration_version > 189", func() {
-		SetupMigrationVersionTableToExistAtVersion(db, 190)
+	Context("Downgrade", func() {
+		const upgradedSchemaVersion = 1510670987
 
-		_, err = migration.Open("postgres", postgresRunner.DataSourceName())
+		It("Downgrades to a given version", func() {
+			dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql", "1510670987_update_unique_constraint_for_resource_caches.up.sql"}, lockFactory)
+			Expect(err).NotTo(HaveOccurred())
+			dbConn.Close()
 
-		Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 190"))
+			version, err := migration.Version("postgres", postgresRunner.DataSourceName())
+			Expect(version).To(Equal(upgradedSchemaVersion))
 
-		_, err = db.Exec("SELECT version FROM migration_version")
-		Expect(err).NotTo(HaveOccurred())
+			err = migration.Migrate("postgres", postgresRunner.DataSourceName(), lockFactory, initialSchemaVersion)
+			Expect(err).NotTo(HaveOccurred())
+
+			version, err = migration.Version("postgres", postgresRunner.DataSourceName())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(version).To(Equal(initialSchemaVersion))
+		})
+
+		It("Doesn't fail if already at the requested version", func() {
+			dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql", "1510670987_update_unique_constraint_for_resource_caches.up.sql"}, lockFactory)
+			Expect(err).NotTo(HaveOccurred())
+			dbConn.Close()
+
+			version, err := migration.Version("postgres", postgresRunner.DataSourceName())
+			Expect(version).To(Equal(upgradedSchemaVersion))
+
+			err = migration.Migrate("postgres", postgresRunner.DataSourceName(), lockFactory, upgradedSchemaVersion)
+			Expect(err).NotTo(HaveOccurred())
+
+			version, err = migration.Version("postgres", postgresRunner.DataSourceName())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(version).To(Equal(upgradedSchemaVersion))
+		})
+
+		It("Locks the database so multiple consumers don't run downgrade at the same time", func() {
+			dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql", "1510670987_update_unique_constraint_for_resource_caches.up.sql"}, lockFactory)
+			Expect(err).NotTo(HaveOccurred())
+			dbConn.Close()
+
+			var wg sync.WaitGroup
+			wg.Add(3)
+
+			go TryRunMigrateAndVerifyResult(initialSchemaVersion, lockFactory, &wg)
+			go TryRunMigrateAndVerifyResult(initialSchemaVersion, lockFactory, &wg)
+			go TryRunMigrateAndVerifyResult(initialSchemaVersion, lockFactory, &wg)
+
+			wg.Wait()
+		})
 	})
 
-	It("Forces mattes/migrate to a known first version if migration_version is 189", func() {
-		SetupMigrationVersionTableToExistAtVersion(db, 189)
+	Context("Upgrade", func() {
+		It("Fails if trying to upgrade from a migration_version < 189", func() {
+			SetupMigrationVersionTableToExistAtVersion(db, 188)
 
-		SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
+			_, err = migration.Open("postgres", postgresRunner.DataSourceName())
 
-		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
-		Expect(err).NotTo(HaveOccurred())
-		defer dbConn.Close()
+			Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 188"))
 
-		ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
+			_, err = db.Exec("SELECT version FROM migration_version")
+			Expect(err).NotTo(HaveOccurred())
+		})
 
-		ExpectMigrationVersionTableNotToExist(dbConn)
+		It("Fails if trying to upgrade from a migration_version > 189", func() {
+			SetupMigrationVersionTableToExistAtVersion(db, 190)
 
-		ExpectToBeAbleToInsertData(dbConn)
-	})
+			_, err = migration.Open("postgres", postgresRunner.DataSourceName())
 
-	It("Runs mattes/migrate if migration_version table does not exist", func() {
-		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
-		Expect(err).NotTo(HaveOccurred())
-		defer dbConn.Close()
+			Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 190"))
 
-		ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
+			_, err = db.Exec("SELECT version FROM migration_version")
+			Expect(err).NotTo(HaveOccurred())
+		})
 
-		ExpectMigrationVersionTableNotToExist(dbConn)
+		It("Forces mattes/migrate to a known first version if migration_version is 189", func() {
+			SetupMigrationVersionTableToExistAtVersion(db, 189)
 
-		ExpectToBeAbleToInsertData(dbConn)
-	})
+			SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
 
-	It("Doesn't fail if there are no migrations to run", func() {
-		SetupSchemaMigrationsTableToExistAtVersion(db, initialSchemaVersion)
+			dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
+			Expect(err).NotTo(HaveOccurred())
+			defer dbConn.Close()
 
-		SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
+			ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
 
-		dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
-		Expect(err).NotTo(HaveOccurred())
-		defer dbConn.Close()
+			ExpectMigrationVersionTableNotToExist(dbConn)
 
-		ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
+			ExpectToBeAbleToInsertData(dbConn)
+		})
 
-		ExpectMigrationVersionTableNotToExist(dbConn)
+		It("Runs mattes/migrate if migration_version table does not exist", func() {
+			dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
+			Expect(err).NotTo(HaveOccurred())
+			defer dbConn.Close()
 
-		ExpectToBeAbleToInsertData(dbConn)
-	})
+			ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
 
-	It("Locks the database so multiple ATCs don't all run migrations at the same time", func() {
-		SetupMigrationVersionTableToExistAtVersion(db, 189)
+			ExpectMigrationVersionTableNotToExist(dbConn)
 
-		SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
+			ExpectToBeAbleToInsertData(dbConn)
+		})
 
-		var wg sync.WaitGroup
-		wg.Add(3)
+		It("Doesn't fail if there are no migrations to run", func() {
+			SetupSchemaMigrationsTableToExistAtVersion(db, initialSchemaVersion)
 
-		go TryRunMigrationsAndVerifyResult([]string{"1510262030_initial_schema.up.sql"}, lockFactory, &wg)
-		go TryRunMigrationsAndVerifyResult([]string{"1510262030_initial_schema.up.sql"}, lockFactory, &wg)
-		go TryRunMigrationsAndVerifyResult([]string{"1510262030_initial_schema.up.sql"}, lockFactory, &wg)
+			SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
 
-		wg.Wait()
+			dbConn, err := OpenConnectionWithMigrationFiles(db, []string{"1510262030_initial_schema.up.sql"}, lockFactory)
+			Expect(err).NotTo(HaveOccurred())
+			defer dbConn.Close()
+
+			ExpectSchemaMigrationsTableToHaveVersion(dbConn, initialSchemaVersion)
+
+			ExpectMigrationVersionTableNotToExist(dbConn)
+
+			ExpectToBeAbleToInsertData(dbConn)
+		})
+
+		It("Locks the database so multiple ATCs don't all run migrations at the same time", func() {
+			SetupMigrationVersionTableToExistAtVersion(db, 189)
+
+			SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
+
+			var wg sync.WaitGroup
+			wg.Add(3)
+
+			go TryRunMigrationsAndVerifyResult([]string{"1510262030_initial_schema.up.sql"}, lockFactory, &wg)
+			go TryRunMigrationsAndVerifyResult([]string{"1510262030_initial_schema.up.sql"}, lockFactory, &wg)
+			go TryRunMigrationsAndVerifyResult([]string{"1510262030_initial_schema.up.sql"}, lockFactory, &wg)
+
+			wg.Wait()
+		})
 	})
 })
 
@@ -141,9 +208,17 @@ func TryRunMigrationsAndVerifyResult(files []string, lockFactory lock.LockFactor
 	ExpectToBeAbleToInsertData(dbConn)
 }
 
+func TryRunMigrateAndVerifyResult(version int, lockFactory lock.LockFactory, wg *sync.WaitGroup) {
+	defer GinkgoRecover()
+	defer wg.Done()
+
+	err := migration.Migrate("postgres", postgresRunner.DataSourceName(), lockFactory, version)
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func OpenConnectionWithMigrationFiles(db *sql.DB, files []string, lockFactory lock.LockFactory) (*sql.DB, error) {
 	s, _ := bindata.WithInstance(bindata.Resource(
-		[]string{"1510262030_initial_schema.up.sql"},
+		files,
 		func(name string) ([]byte, error) {
 			return migration.Asset(name)
 		}),
