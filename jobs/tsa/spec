@@ -8,8 +8,6 @@ templates:
   tsa_ctl.erb: bin/tsa_ctl
   host_key.erb: config/host_key
   token_signing_key.erb: config/token_signing_key
-  tsa_host_key.erb: config/tsa_host_key
-  worker_key.pub.erb: config/worker_key.pub
 
 packages:
   - pid_utils
@@ -24,7 +22,7 @@ provides:
   type: tsa
   properties:
   - bind_port
-  - host_public_key
+  - host_key
 
 properties:
   heartbeat_interval:
@@ -44,18 +42,30 @@ properties:
     default: 2222
 
   host_key:
-    description: >
-      Private key to use for the SSH server.
+    type: ssh
+    description: |
+      Must be specified, bosh can auto-generate, see sample manifest.yml.
+    example:
+      private_key: |
+         -----BEGIN RSA PRIVATE KEY-----
+         ...
+         -----END RSA PRIVATE KEY-----
+      public_key: |
+         ssh-rsa ...
 
-      If not specified, a deployment-scoped default is used.
-    default: ""
-
-  host_public_key:
-    description: >
-      Public key component of the host's key. This property is
-      exported via the `tsa` link so that workers can discover
-      it.
-    default: ""
+  token_signing_key:
+    type: rsa
+    description: |
+      PEM RSA key used for minting ATC tokens.
+    example:
+      private_key: |
+         -----BEGIN RSA PRIVATE KEY-----
+         ...
+         -----END RSA PRIVATE KEY-----
+      public_key: |
+         -----BEGIN PUBLIC KEY-----
+         ...
+         -----END PUBLIC KEY-----
 
   authorized_keys:
     description: |
@@ -69,13 +79,6 @@ properties:
       - team: concourse
         ssh_key: ssh-rsa key key@pivotal.io
     default: []
-
-  authorize_generated_worker_key:
-    description: |
-      Permit access via generated worker key, local to the deployment. Set to
-      `false` if you plan on only ever using explicitly configured and
-      authorized worker keys.
-    default: true
 
   log_level:
     description: |
@@ -98,40 +101,3 @@ properties:
       ATC API endpoints to which workers will be advertised.
       If not specified, they will be autodiscovered via BOSH links.
     default: ["http://127.0.0.1:8080"]
-
-  token_signing_key:
-     description: |
-       PEM RSA private key used for minting ATC tokens.
-       Must be specified, bosh can auto-generate (type rsa), see sample manifest.yml.
-     example:
-       private_key: |
-          -----BEGIN RSA PRIVATE KEY-----
-          ...
-          -----END RSA PRIVATE KEY-----
-       public_key: |
-          -----BEGIN PUBLIC KEY-----
-          ...
-          -----END PUBLIC KEY-----
-
-  tsa_host_key:
-     description: |
-       Must be specified, bosh can auto-generate (type ssh), see sample manifest.yml.
-     example:
-       private_key: |
-          -----BEGIN RSA PRIVATE KEY-----
-          ...
-          -----END RSA PRIVATE KEY-----
-       public_key: |
-          ssh-rsa ...
-
-  worker_key:
-     description: |
-       Must be specified, bosh can auto-generate (type ssh), see sample manifest.yml.
-       Only public key portion is needed here.
-     example:
-       private_key: |
-          -----BEGIN RSA PRIVATE KEY-----
-          ...
-          -----END RSA PRIVATE KEY-----
-       public_key: |
-          ssh-rsa ...

@@ -5,18 +5,19 @@ set -e
 RUN_DIR=/var/vcap/sys/run/groundcrew
 LOG_DIR=/var/vcap/sys/log/groundcrew
 
-TSA_HOST_PUB_KEY=/var/vcap/jobs/groundcrew/config/tsa_host_key.pub
-WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
-
 mkdir -p $RUN_DIR
 chown -R vcap:vcap $RUN_DIR
 
 mkdir -p $LOG_DIR
 chown -R vcap:vcap $LOG_DIR
 
+exec 3>&1 # make stdout available as fd 3 for the drain result
+exec 1>>$LOG_DIR/drain.stdout.log
+exec 2>>$LOG_DIR/drain.stderr.log
+
 shutdown_flag=""
 
-if [ $1 == "job_shutdown" ]; then
+if [ "$1" == "job_shutdown" ]; then
   shutdown_flag="--shutdown"
 fi
 
@@ -36,29 +37,12 @@ fi
   end
 %>
 
-for key in $WORKER_KEY \
-           /var/vcap/jobs/groundcrew/config/private_key; do
-  chown vcap:vcap $key
-  chmod 0400 $key
-done
+WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
+chown vcap:vcap $WORKER_KEY
+chmod 0400 $WORKER_KEY
 
-# even more ideal would be for each node to have its own key and stop doing
-# the generated_tsa_host_key thing
-{
-  <% tsa_addrs.each do |addr| %>
-  echo -n '[<%= addr %>]:<%= tsa_port %> '
-  cat $TSA_HOST_PUB_KEY
-  <% end %>
-} > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
-
-KNOWN_HOSTS_FILE=${RUN_DIR}/known_hosts
-
-cat \
-  /var/vcap/jobs/groundcrew/config/static_known_hosts \
-  /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts \
-  > $KNOWN_HOSTS_FILE
-
-chown vcap:vcap $KNOWN_HOSTS_FILE
+KNOWN_HOSTS=/var/vcap/jobs/groundcrew/config/known_hosts
+chown vcap:vcap $KNOWN_HOSTS
 
 WORKER_VERSION=$(cat /var/vcap/packages/worker_version/version)
 
@@ -72,21 +56,15 @@ cat /var/vcap/jobs/groundcrew/config/worker.json | \
 chpst -u vcap:vcap /var/vcap/packages/groundcrew/bin/groundcrew \
   drain \
   <% tsa_addrs.each do |tsa_addr| %> \
-  --tsa-addr=<%= tsa_addr %>:<%= tsa_port %> \
+  --tsa-addr <%= tsa_addr %>:<%= tsa_port %> \
   <% end %> \
-  --worker-config-file=$RUN_DIR/worker.json \
-  --user-known-hosts-file=${KNOWN_HOSTS_FILE} \
-  <% if p("tsa.private_key") != "" %> \
-  --tsa-ssh-key /var/vcap/jobs/groundcrew/config/private_key \
-  <% else %> \
+  --worker-config-file $RUN_DIR/worker.json \
+  --user-known-hosts-file ${KNOWN_HOSTS} \
   --tsa-ssh-key $WORKER_KEY \
-  <% end %> \
   --beacon-pid-file=$RUN_DIR/beacon.pid \
   <% if_p("drain_timeout") do |drain_timeout| %> \
   --timeout=<%= drain_timeout %> \
   <% end %> \
   $shutdown_flag \
-  1>>$LOG_DIR/drain.stdout.log \
-  2>>$LOG_DIR/drain.stderr.log
 
-echo 0
+echo 0 >&3

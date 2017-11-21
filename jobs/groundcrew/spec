@@ -10,12 +10,9 @@ templates:
   drain.erb: bin/drain
   beacon_ctl.erb: bin/beacon_ctl
 
-  static_known_hosts.erb: config/static_known_hosts
-  private_key.erb: config/private_key
-  worker.json.erb: config/worker.json
-
-  tsa_host_key.pub.erb: config/tsa_host_key.pub
+  known_hosts.erb: config/known_hosts
   worker_key.erb: config/worker_key
+  worker.json.erb: config/worker.json
 
 packages:
   - pid_utils
@@ -67,17 +64,21 @@ properties:
 
   tsa.host_public_key:
     description: >
-      Host key to verify for the TSA server.
+      Public key to verify for the TSA server.
 
-      If not specified, a deployment-scoped default is used.
-    default: ""
+      If not specified, the `tsa` link is used.
+    example: 'ssh-rsa ...'
 
-  tsa.private_key:
+  tsa.worker_key:
+    type: ssh
     description: |
-      Private key to use when authenticating with the TSA.
-
-      If not specified, a deployment-scoped default is used.
-    default: ""
+      SSH key to use when authenticating with the TSA.
+    example:
+      private_key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        ...
+        -----END RSA PRIVATE KEY-----
+      public_key: 'ssh-rsa ...'
 
   garden.address:
     description: |
@@ -158,26 +159,3 @@ properties:
     description: |
       Environment name you wish to group errors under in yeller.
     default: ""
-
-  tsa_host_key:
-     description: |
-       Must be specified, bosh can auto-generate (type ssh), see sample manifest.yml.
-       Only public key portion is needed here.
-     example:
-       private_key: |
-          -----BEGIN RSA PRIVATE KEY-----
-          ...
-          -----END RSA PRIVATE KEY-----
-       public_key: |
-          ssh-rsa ...
-
-  worker_key:
-     description: |
-       Must be specified, bosh can auto-generate (type ssh), see sample manifest.yml.
-     example:
-       private_key: |
-          -----BEGIN RSA PRIVATE KEY-----
-          ...
-          -----END RSA PRIVATE KEY-----
-       public_key: |
-          ssh-rsa ...

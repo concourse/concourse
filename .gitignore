@@ -57,3 +57,4 @@ src/fly_binaries/*
 dev/vbox/bosh-deployment/
 dev/vbox/creds.yml
 dev/vbox/state.json
+dev/vbox/deploy-creds.yml

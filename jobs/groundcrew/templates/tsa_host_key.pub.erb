@@ -1,1 +1,7 @@
-<%= p("tsa_host_key.public_key", "") %>
+<%=
+  if_p("tsa.host_public_key") do |key|
+    key
+  end.else do
+    link("tsa").p("host_key.public_key")
+  end
+%>

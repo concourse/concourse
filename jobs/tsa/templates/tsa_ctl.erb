@@ -25,26 +25,17 @@ set -e
 
   atc_urls = p("atc.urls") if atc_urls.empty?
 
-  teamAuthorizedKeys = Hash.new
+  team_authorized_keys = {}
   p("team_authorized_keys").each do |a|
-    teamName = a["team"]
-    keys = teamAuthorizedKeys[teamName]
-    if keys == nil
-      keys = [a["ssh_key"]]
-    else
-     keys.push(a["ssh_key"])
-   end
-
-    teamAuthorizedKeys[teamName] = keys
+    team = a["team"]
+    team_authorized_keys[team] ||= []
+    team_authorized_keys[team] << a["ssh_key"]
   end
 %>
 
 RUN_DIR=/var/vcap/sys/run/tsa
 LOG_DIR=/var/vcap/sys/log/tsa
 PIDFILE=$RUN_DIR/tsa.pid
-SIGNING_KEY=/var/vcap/jobs/tsa/config/token_signing_key
-TSA_HOST_KEY=/var/vcap/jobs/tsa/config/tsa_host_key
-WORKER_PUB_KEY=/var/vcap/jobs/tsa/config/worker_key.pub
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
@@ -61,23 +52,21 @@ case $1 in
 
     echo $$ > /var/vcap/sys/run/tsa/tsa.pid
 
-    for key in $TSA_HOST_KEY \
-               /var/vcap/jobs/tsa/config/host_key \
-               $SIGNING_KEY; do
+    HOST_KEY=/var/vcap/jobs/tsa/config/host_key
+    SIGNING_KEY=/var/vcap/jobs/tsa/config/token_signing_key
+
+    for key in $HOST_KEY $SIGNING_KEY; do
       chown vcap:vcap $key
       chmod 0400 $key
     done
 
     {
-<% if p("authorize_generated_worker_key") %>
-      cat $WORKER_PUB_KEY
-<% end %>
       cat <<EOF
 <%= p("authorized_keys").join("\n") %>
 EOF
     } > /var/vcap/jobs/tsa/config/authorized_keys
 
-<% teamAuthorizedKeys.each do |team, keys| %>
+<% team_authorized_keys.each do |team, keys| %>
     {
       cat <<EOF
 <%= keys.join("\n") %>
@@ -91,16 +80,12 @@ EOF
       <% end %> \
       --peer-ip <%= peer_ip %> \
       --bind-port <%= p("bind_port") %> \
-      <% if p("host_key") != "" %> \
-      --host-key /var/vcap/jobs/tsa/config/host_key \
-      <% else %> \
-      --host-key $TSA_HOST_KEY \
-      <% end %> \
-      --authorized-keys /var/vcap/jobs/tsa/config/authorized_keys \
-      <% teamAuthorizedKeys.each do |team, keys| %> \
-      --team-authorized-keys <%= team %>=/var/vcap/jobs/tsa/config/<%= team %>_authorized_keys \
-       <% end %> \
+      --host-key $HOST_KEY \
       --session-signing-key $SIGNING_KEY \
+      --authorized-keys /var/vcap/jobs/tsa/config/authorized_keys \
+      <% team_authorized_keys.each do |team, keys| %> \
+      --team-authorized-keys <%= team %> /var/vcap/jobs/tsa/config/<%= team %>_authorized_keys \
+       <% end %> \
       --heartbeat-interval <%= p("heartbeat_interval") %> \
       --log-level <%= p("log_level") %> \
       --yeller-api-key <%= esc(p("yeller.api_key")) %> \

@@ -357,6 +357,20 @@ properties:
       Dialing timeout, in Go duration format (1m = 1 minute). 0 means wait indefinitely.
     default: 5m
 
+  token_signing_key:
+    type: rsa
+    description: |
+      PEM RSA private key used for minting ATC tokens.
+    example:
+      private_key: |
+         -----BEGIN RSA PRIVATE KEY-----
+         ...
+         -----END RSA PRIVATE KEY-----
+      public_key: |
+         -----BEGIN PUBLIC KEY-----
+         ...
+         -----END PUBLIC KEY-----
+
   yeller.api_key:
     description: |
       If configured, errors emitted to the logs will also be emitted to Yeller.
@@ -474,17 +488,3 @@ properties:
     description: |
       Client secret for CredHub authorization.
     default: ""
-
-  token_signing_key:
-     description: |
-       PEM RSA private key used for minting ATC tokens.
-       Must be specified, bosh can auto-generate (type rsa), see sample manifest.yml.
-     example:
-       private_key: |
-          -----BEGIN RSA PRIVATE KEY-----
-          ...
-          -----END RSA PRIVATE KEY-----
-       public_key: |
-          -----BEGIN PUBLIC KEY-----
-          ...
-          -----END PUBLIC KEY-----

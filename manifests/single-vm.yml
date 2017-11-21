@@ -1,11 +1,11 @@
 ---
-name: concourse
+name: ((deployment_name))
 
 releases:
 - name: concourse
-  version: latest
+  version: ((concourse_version))
 - name: garden-runc
-  version: latest
+  version: ((garden_runc_version))
 - name: postgres
   version: latest
 
@@ -42,9 +42,9 @@ instance_groups:
     name: tsa
     properties:
       log_level: debug
+      host_key: ((tsa_host_key))
       token_signing_key: ((token_signing_key))
-      tsa_host_key: ((tsa_host_key))
-      worker_key: ((worker_key))
+      authorized_keys: [((worker_key.public_key))]
 
   - release: postgres
     name: postgres
@@ -61,8 +61,7 @@ instance_groups:
     name: groundcrew
     properties:
       drain_timeout: 10m
-      tsa_host_key: ((tsa_host_key))
-      worker_key: ((worker_key))
+      tsa: {worker_key: ((worker_key))}
 
   - release: concourse
     name: baggageclaim

@@ -2,6 +2,18 @@
 
 set -e
 
+RUN_DIR=/var/vcap/sys/run/groundcrew
+LOG_DIR=/var/vcap/sys/log/groundcrew
+PIDFILE=$RUN_DIR/beacon.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+mkdir -p $RUN_DIR
+chown -R vcap:vcap $RUN_DIR
+
+mkdir -p $LOG_DIR
+chown -R vcap:vcap $LOG_DIR
+
 <%
   require "shellwords"
 
@@ -24,14 +36,12 @@ set -e
   end
 %>
 
-RUN_DIR=/var/vcap/sys/run/groundcrew
-LOG_DIR=/var/vcap/sys/log/groundcrew
-PIDFILE=$RUN_DIR/beacon.pid
-
-TSA_HOST_PUB_KEY=/var/vcap/jobs/groundcrew/config/tsa_host_key.pub
 WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
+chown vcap:vcap $WORKER_KEY
+chmod 0400 $WORKER_KEY
 
-source /var/vcap/packages/pid_utils/pid_utils.sh
+KNOWN_HOSTS=/var/vcap/jobs/groundcrew/config/known_hosts
+chown vcap:vcap $KNOWN_HOSTS
 
 kill_session_siblings_of() {
   pidfile=$1
@@ -53,37 +63,7 @@ case $1 in
   start)
     pid_guard $PIDFILE "beacon"
 
-    mkdir -p $RUN_DIR
-    chown -R vcap:vcap $RUN_DIR
-
-    mkdir -p $LOG_DIR
-    chown -R vcap:vcap $LOG_DIR
-
     echo $$ > $PIDFILE
-
-    for key in $WORKER_KEY \
-               /var/vcap/jobs/groundcrew/config/private_key; do
-      chown vcap:vcap $key
-      chmod 0400 $key
-    done
-
-    # even more ideal would be for each node to have its own key and stop doing
-    # the generated_tsa_host_key thing
-    {
-      <% tsa_addrs.each do |addr| %>
-      echo -n '[<%= addr %>]:<%= tsa_port %> '
-      cat $TSA_HOST_PUB_KEY
-      <% end %>
-    } > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
-
-    KNOWN_HOSTS_FILE=${RUN_DIR}/known_hosts
-
-    cat \
-      /var/vcap/jobs/groundcrew/config/static_known_hosts \
-      /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts \
-      > $KNOWN_HOSTS_FILE
-
-    chown vcap:vcap $KNOWN_HOSTS_FILE
 
     WORKER_VERSION=$(cat /var/vcap/packages/worker_version/version)
 
@@ -103,12 +83,8 @@ case $1 in
       exitstatus=0
       chpst -u vcap:vcap ssh \
         -p <%= tsa_port %> $tsa_addr \
-        <% if p("tsa.private_key") != "" %> \
-        -i /var/vcap/jobs/groundcrew/config/private_key \
-        <% else %> \
-        -i $WORKER_KEY \
-        <% end %> \
-        -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
+        -i ${WORKER_KEY} \
+        -o UserKnownHostsFile=${KNOWN_HOSTS} \
         -o ConnectTimeout=30 \
         -o ServerAliveInterval=8 \
         -o ServerAliveCountMax=3 \
