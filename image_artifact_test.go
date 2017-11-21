@@ -9,7 +9,7 @@ import (
 
 var _ = Describe("A job with a task using an image within the plan", func() {
 	BeforeEach(func() {
-		Deploy("deployments/two-workers-one-tagged.yml")
+		Deploy("deployments/concourse-different-workers.yml", "-o", "operations/other-worker-tagged.yml")
 		fly("set-pipeline", "-n", "-p", "image-artifact", "-c", "pipelines/image-artifact.yml")
 		fly("unpause-pipeline", "-p", "image-artifact")
 	})

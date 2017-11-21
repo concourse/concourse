@@ -16,7 +16,7 @@ import (
 var _ = Describe("[#129726011] Worker landing", func() {
 	Context("with two workers available", func() {
 		BeforeEach(func() {
-			Deploy("deployments/two-forwarded-workers.yml")
+			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-two.yml")
 		})
 
 		Describe("restarting the worker", func() {
@@ -180,7 +180,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 
 	Context("with one worker", func() {
 		BeforeEach(func() {
-			Deploy("deployments/one-forwarded-worker.yml")
+			Deploy("deployments/concourse-separate-forwarded-worker.yml")
 			waitForRunningWorker()
 		})
 
@@ -189,7 +189,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 
 	Context("with a single team worker", func() {
 		BeforeEach(func() {
-			Deploy("deployments/team-worker.yml")
+			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-team.yml")
 
 			setTeam := spawnFlyInteractive(bytes.NewBufferString("y\n"), "set-team", "-n", "team-a", "--no-really-i-dont-want-any-auth")
 			<-setTeam.Exited

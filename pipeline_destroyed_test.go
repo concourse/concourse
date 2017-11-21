@@ -19,7 +19,7 @@ var _ = Describe(":life [#130495079] Garbage collecting containers for destroyed
 	)
 
 	BeforeEach(func() {
-		Deploy("deployments/single-vm.yml")
+		Deploy("deployments/concourse.yml")
 
 		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
 	})

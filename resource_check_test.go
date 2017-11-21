@@ -8,7 +8,7 @@ import (
 
 var _ = Describe("Resource checking", func() {
 	BeforeEach(func() {
-		Deploy("deployments/two-workers-one-tagged.yml")
+		Deploy("deployments/concourse-different-workers.yml", "-o", "operations/other-worker-tagged.yml")
 	})
 
 	Context("with tags on the resource", func() {

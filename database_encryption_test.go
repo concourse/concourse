@@ -53,7 +53,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 	Describe("A deployment with encryption enabled immediately", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm-with-encryption.yml")
+			Deploy("deployments/concourse.yml", "-o", "operations/encryption.yml")
 		})
 
 		It("encrypts pipeline credentials and team auth config", func() {
@@ -70,7 +70,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 	Describe("A deployment with encryption initially not configured", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm.yml")
+			Deploy("deployments/concourse.yml")
 		})
 
 		Context("with credentials and team auth in plaintext", func() {
@@ -87,7 +87,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 			Context("when redeployed with encryption enabled", func() {
 				BeforeEach(func() {
-					Deploy("deployments/single-vm-with-encryption.yml")
+					Deploy("deployments/concourse.yml", "-o", "operations/encryption.yml")
 				})
 
 				It("encrypts pipeline credentials and team auth config", func() {
@@ -108,7 +108,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 				Context("when the encryption key is rotated", func() {
 					BeforeEach(func() {
-						Deploy("deployments/single-vm-with-rotated-encryption.yml")
+						Deploy("deployments/concourse.yml", "-o", "operations/encryption-rotated.yml")
 					})
 
 					It("can still get and set pipelines", func() {
@@ -140,7 +140,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 				Context("when an old key is given but all the data is already using the new key", func() {
 					BeforeEach(func() {
-						Deploy("deployments/single-vm-with-no-longer-used-old-key.yml")
+						Deploy("deployments/concourse.yml", "-o", "operations/encryption-already-rotated.yml")
 					})
 
 					It("can still get and set pipelines", func() {
@@ -174,13 +174,13 @@ var _ = Describe("Database secrets encryption", func() {
 					var deploy *gexec.Session
 
 					BeforeEach(func() {
-						deploy = StartDeploy("deployments/single-vm-with-bogus-keys.yml")
+						deploy = StartDeploy("deployments/concourse.yml", "-o", "operations/encryption-bogus.yml")
 						<-deploy.Exited
 						Expect(deploy.ExitCode()).To(Equal(1))
 					})
 
 					AfterEach(func() {
-						Deploy("deployments/single-vm-with-encryption.yml")
+						Deploy("deployments/concourse.yml", "-o", "operations/encryption.yml")
 					})
 
 					It("fails to deploy with a useful message", func() {
@@ -191,7 +191,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 				Context("when the encryption key is removed", func() {
 					BeforeEach(func() {
-						Deploy("deployments/single-vm-with-removed-encryption.yml")
+						Deploy("deployments/concourse.yml", "-o", "operations/encryption-removed.yml")
 					})
 
 					It("decrypts pipeline credentials and team auth config", func() {

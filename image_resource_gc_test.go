@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("A build using an image_resource", func() {
 	BeforeEach(func() {
-		Deploy("deployments/single-vm-fast-gc.yml")
+		Deploy("deployments/concourse.yml", "-o", "operations/fast-gc.yml")
 	})
 
 	Describe("one-off builds", func() {

@@ -21,7 +21,7 @@ var _ = Describe(":life volume gc", func() {
 	var bcClient baggageclaim.Client
 
 	BeforeEach(func() {
-		Deploy("deployments/single-vm.yml")
+		Deploy("deployments/concourse.yml")
 
 		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
 		bcClient = bgclient.New(fmt.Sprintf("http://%s:7788", JobInstance("baggageclaim").IP), http.DefaultTransport)

@@ -7,12 +7,12 @@ import (
 
 var _ = Describe("A pipeline-provided resource type", func() {
 	BeforeEach(func() {
-		Deploy("deployments/single-vm-no-gc.yml")
+		Deploy("deployments/concourse.yml", "-o", "operations/no-gc.yml")
 	})
 
 	AfterEach(func() {
 		// restore deployment to drainable state
-		deploy := StartDeploy("deployments/single-vm.yml")
+		deploy := StartDeploy("deployments/concourse.yml")
 
 		var workers []string
 		Eventually(func() []string {

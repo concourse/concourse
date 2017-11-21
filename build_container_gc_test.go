@@ -18,7 +18,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 	var gClient garden.Client
 
 	BeforeEach(func() {
-		Deploy("deployments/single-vm.yml")
+		Deploy("deployments/concourse.yml")
 
 		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
 	})

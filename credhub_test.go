@@ -60,7 +60,7 @@ var _ = Describe("Credhub", func() {
 	Describe("A deployment with credhub", func() {
 		BeforeEach(func() {
 			Deploy(
-				"deployments/single-vm.yml",
+				"deployments/concourse.yml",
 				"-o", "operations/credhub.yml",
 				"-v", "credhub_url="+os.Getenv("CREDHUB_URL"),
 				"-v", "credhub_client_id="+os.Getenv("CREDHUB_CLIENT_ID"),

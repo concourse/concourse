@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -49,10 +50,11 @@ var (
 
 	pipelineName string
 
-	tmpHome string
-	flyBin  string
+	flyBin string
 
 	logger *lagertest.TestLogger
+
+	tmp string
 
 	boshLogs *gexec.Session
 )
@@ -130,6 +132,9 @@ var _ = BeforeEach(func() {
 	deploymentName = fmt.Sprintf("concourse-topgun-%d", deploymentNumber)
 	flyTarget = deploymentName
 
+	tmp, err = ioutil.TempDir("", "topgun-tmp")
+	Expect(err).ToNot(HaveOccurred())
+
 	bosh("delete-deployment")
 
 	jobInstances = map[string][]boshInstance{}
@@ -150,12 +155,15 @@ var _ = AfterEach(func() {
 	deleteAllContainers()
 
 	bosh("delete-deployment")
+
+	Expect(os.RemoveAll(tmp)).To(Succeed())
 })
 
 func StartDeploy(manifest string, args ...string) *gexec.Session {
 	return spawnBosh(
 		append([]string{
 			"deploy", manifest,
+			"--vars-store", filepath.Join(tmp, deploymentName+"-vars.yml"),
 			"-v", "deployment_name='" + deploymentName + "'",
 			"-v", "concourse_release_version='" + concourseReleaseVersion + "'",
 			"-v", "garden_runc_release_version='" + gardenRuncReleaseVersion + "'",

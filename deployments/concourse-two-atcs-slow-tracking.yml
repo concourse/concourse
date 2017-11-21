@@ -11,16 +11,17 @@ releases:
 
 instance_groups:
 - name: web
-  instances: 1
+  instances: 2
   networks: [{name: topgun}]
   azs: [z1]
-  persistent_disk: 10240
+  persistent_disk: 1240
   vm_type: topgun
   stemcell: trusty
   jobs:
   - release: concourse
     name: atc
     properties:
+      token_signing_key: ((token_signing_key))
       no_really_i_dont_want_any_auth: true
       log_level: debug
       postgresql:
@@ -29,10 +30,23 @@ instance_groups:
           name: atc
           password: dummy-password
 
+      build_tracker_interval: 5m
+
   - release: concourse
     name: tsa
-    properties: {}
+    properties:
+      host_key: ((tsa_host_key))
+      token_signing_key: ((token_signing_key))
+      authorized_keys: [((worker_key.public_key))]
 
+- name: db
+  instances: 1
+  networks: [{name: topgun}]
+  azs: [z1]
+  persistent_disk: 10240
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
   - release: postgres
     name: postgres
     properties:
@@ -52,14 +66,20 @@ instance_groups:
   jobs:
   - release: concourse
     name: groundcrew
-    consumes: {baggageclaim: {from: bc}}
     properties:
+      tsa: {worker_key: ((worker_key))}
+
       # prevent tests from hanging forever
       drain_timeout: 10m
 
+      garden:
+        forward_address: 127.0.0.1:7777
+
+      baggageclaim:
+        forward_address: 127.0.0.1:7788
+
   - release: concourse
     name: baggageclaim
-    provides: {baggageclaim: {as: bc}}
     properties: {}
 
   - release: garden-runc
@@ -71,36 +91,13 @@ instance_groups:
         allow_host_access: true
         network_mtu: 1460
 
-
-- name: tagged_worker
-  instances: 1
-  networks: [{name: topgun}]
-  azs: [z1]
-  vm_type: topgun
-  stemcell: trusty
-  jobs:
-  - release: concourse
-    name: groundcrew
-    consumes: {baggageclaim: {from: tagged_bc}}
-    properties:
-      tags: [tagged]
-
-      # prevent tests from hanging forever
-      drain_timeout: 10m
-
-  - release: concourse
-    name: baggageclaim
-    properties: {}
-    provides: {baggageclaim: {as: tagged_bc}}
-
-  - release: garden-runc
-    name: garden
-    properties:
-      garden:
-        listen_network: tcp
-        listen_address: 0.0.0.0:7777
-        allow_host_access: true
-        network_mtu: 1460
+variables:
+- name: token_signing_key
+  type: rsa
+- name: tsa_host_key
+  type: ssh
+- name: worker_key
+  type: ssh
 
 stemcells:
 - alias: trusty

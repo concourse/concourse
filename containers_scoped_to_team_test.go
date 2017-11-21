@@ -14,7 +14,7 @@ import (
 var _ = Describe(":life [#136140165] Container scope", func() {
 	Context("when the container is scoped to a team", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm.yml")
+			Deploy("deployments/concourse.yml")
 		})
 
 		It("is only hijackable by someone in that team", func() {

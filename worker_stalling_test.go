@@ -15,7 +15,7 @@ import (
 var _ = Describe("[#129726011] Worker stalling", func() {
 	Context("with two workers available", func() {
 		BeforeEach(func() {
-			Deploy("deployments/two-forwarded-workers.yml")
+			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-two.yml")
 		})
 
 		It("initially runs tasks across all workers", func() {
@@ -63,7 +63,7 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 	Context("with no other worker available", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm-forwarded-worker.yml")
+			Deploy("deployments/concourse.yml", "-o", "operations/forward-worker.yml")
 		})
 
 		Context("when the worker stalls while a build is running", func() {

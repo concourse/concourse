@@ -9,7 +9,7 @@ import (
 
 var _ = Describe("Passing artifacts between build steps", func() {
 	BeforeEach(func() {
-		Deploy("deployments/two-workers-different-types.yml")
+		Deploy("deployments/concourse-different-workers.yml", "-o", "operations/other-worker-different-resource-type.yml")
 	})
 
 	It("transfers bits between workers when the resource type is not supported", func() {

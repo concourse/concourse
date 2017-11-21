@@ -13,7 +13,7 @@ import (
 var _ = Describe(":life Garbage collecting resource containers", func() {
 	Describe("A container that is used by resource checking on freshly deployed worker", func() {
 		BeforeEach(func() {
-			Deploy("deployments/two-forwarded-workers.yml")
+			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-two.yml")
 		})
 
 		It("is recreated in database and worker [#129726933]", func() {
@@ -66,7 +66,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 
 	Describe("container for resource that is removed from pipeline", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm.yml")
+			Deploy("deployments/concourse.yml")
 		})
 
 		It("has its resource config, resource config uses and container removed", func() {
@@ -124,7 +124,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 
 	Describe("container for resource when pipeline is paused", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm.yml")
+			Deploy("deployments/concourse.yml")
 		})
 
 		It("has its resource config, resource config uses and container removed", func() {
@@ -182,7 +182,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 
 	Describe("container for resource that is updated", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm.yml")
+			Deploy("deployments/concourse.yml")
 		})
 
 		It("has its resource config, resource config uses and container removed", func() {
@@ -240,7 +240,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 
 	Describe("container for resource checking", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm-fast-gc.yml")
+			Deploy("deployments/concourse.yml", "-o", "operations/fast-gc.yml")
 		})
 
 		It("is not immediately removed", func() {

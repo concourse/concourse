@@ -8,7 +8,7 @@ import (
 
 var _ = Describe("A worker with a proxy configured", func() {
 	BeforeEach(func() {
-		Deploy("deployments/proxy-worker.yml")
+		Deploy("deployments/concourse.yml", "-o", "operations/worker-proxy.yml")
 	})
 
 	It("uses the proxy server for executed tasks", func() {

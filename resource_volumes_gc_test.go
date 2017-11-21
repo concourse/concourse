@@ -14,7 +14,7 @@ import (
 var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 	Describe("A resource that was removed from pipeline", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm.yml")
+			Deploy("deployments/concourse.yml")
 		})
 
 		It("has its resource cache, resource cache uses and resource cache volumes cleared out", func() {
@@ -42,7 +42,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 
 	Describe("A resource that was updated", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm.yml")
+			Deploy("deployments/concourse.yml")
 		})
 
 		It("has its resource cache, resource cache uses and resource cache volumes cleared out", func() {
@@ -77,7 +77,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 
 	Describe("A resource in paused pipeline", func() {
 		BeforeEach(func() {
-			Deploy("deployments/single-vm.yml")
+			Deploy("deployments/concourse.yml")
 		})
 
 		It("has its resource cache, resource cache uses and resource cache volumes cleared out", func() {
@@ -121,7 +121,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 				Skip("git-server release not uploaded")
 			}
 
-			Deploy("deployments/single-vm.yml", "-o", "operations/add-git-server.yml")
+			Deploy("deployments/concourse.yml", "-o", "operations/add-git-server.yml")
 
 			gitRepoURI = fmt.Sprintf("git://%s/some-repo", JobInstance("git_server").IP)
 			gitRepo = NewGitRepo(gitRepoURI)
@@ -185,7 +185,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 				Skip("git-server release not uploaded")
 			}
 
-			Deploy("deployments/single-vm-fast-gc.yml", "-o", "operations/add-git-server.yml")
+			Deploy("deployments/concourse.yml", "-o", "operations/fast-gc.yml", "-o", "operations/add-git-server.yml")
 
 			gitRepoURI = fmt.Sprintf("git://%s/some-repo", JobInstance("git_server").IP)
 			gitRepo = NewGitRepo(gitRepoURI)

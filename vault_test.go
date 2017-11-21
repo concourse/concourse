@@ -58,7 +58,8 @@ var _ = Describe("Vault", func() {
 			Expect(varsStore.Close()).To(Succeed())
 
 			Deploy(
-				"deployments/vault-with-concourse.yml",
+				"deployments/concourse.yml",
+				"-o", "operations/add-vault.yml",
 				"-v", "instances=0",
 				"-v", "vault_url=dontcare",
 				"-v", "vault_client_token=dontcare",
@@ -135,7 +136,8 @@ var _ = Describe("Vault", func() {
 
 				By("deploying concourse with the token")
 				Deploy(
-					"deployments/vault-with-concourse.yml",
+					"deployments/concourse.yml",
+					"-o", "operations/add-vault.yml",
 					"--vars-store", varsStore.Name(),
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
@@ -238,7 +240,8 @@ var _ = Describe("Vault", func() {
 		Context("with TLS auth", func() {
 			BeforeEach(func() {
 				Deploy(
-					"deployments/vault-with-concourse.yml",
+					"deployments/concourse.yml",
+					"-o", "operations/add-vault.yml",
 					"--vars-store", varsStore.Name(),
 					"-o", "operations/enable-vault-tls.yml",
 					"-v", "vault_url="+v.URI(),
@@ -273,7 +276,8 @@ var _ = Describe("Vault", func() {
 				)
 
 				Deploy(
-					"deployments/vault-with-concourse.yml",
+					"deployments/concourse.yml",
+					"-o", "operations/add-vault.yml",
 					"--vars-store", varsStore.Name(),
 					"-o", "operations/enable-vault-tls.yml",
 					"-v", "vault_url="+v.URI(),
@@ -308,7 +312,8 @@ var _ = Describe("Vault", func() {
 				secretID := regexp.MustCompile(`secret_id\s+(.*)`).FindStringSubmatch(content)[1]
 
 				Deploy(
-					"deployments/vault-with-concourse.yml",
+					"deployments/concourse.yml",
+					"-o", "operations/add-vault.yml",
 					"--vars-store", varsStore.Name(),
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),

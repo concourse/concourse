@@ -10,7 +10,7 @@ releases:
   version: ((postgres_release_version))
 
 instance_groups:
-- name: web
+- name: concourse
   instances: 1
   networks: [{name: topgun}]
   azs: [z1]
@@ -22,6 +22,7 @@ instance_groups:
     name: atc
     properties:
       no_really_i_dont_want_any_auth: true
+      token_signing_key: ((token_signing_key))
       log_level: debug
       postgresql:
         database: &db-name atc
@@ -31,7 +32,10 @@ instance_groups:
 
   - release: concourse
     name: tsa
-    properties: {}
+    properties:
+      host_key: ((tsa_host_key))
+      token_signing_key: ((token_signing_key))
+      authorized_keys: [((worker_key.public_key))]
 
   - release: postgres
     name: postgres
@@ -43,24 +47,13 @@ instance_groups:
         roles:
         - *db-role
 
-- name: worker
-  instances: 2
-  networks: [{name: topgun}]
-  azs: [z1]
-  vm_type: topgun
-  stemcell: trusty
-  jobs:
   - release: concourse
     name: groundcrew
     properties:
+      tsa: {worker_key: ((worker_key))}
+
       # prevent tests from hanging forever
       drain_timeout: 10m
-
-      garden:
-        forward_address: 127.0.0.1:7777
-
-      baggageclaim:
-        forward_address: 127.0.0.1:7788
 
   - release: concourse
     name: baggageclaim
@@ -74,6 +67,14 @@ instance_groups:
         listen_address: 0.0.0.0:7777
         allow_host_access: true
         network_mtu: 1460
+
+variables:
+- name: token_signing_key
+  type: rsa
+- name: tsa_host_key
+  type: ssh
+- name: worker_key
+  type: ssh
 
 stemcells:
 - alias: trusty

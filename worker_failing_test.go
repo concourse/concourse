@@ -10,7 +10,7 @@ import (
 
 var _ = Describe("Worker failing", func() {
 	BeforeEach(func() {
-		Deploy("deployments/two-workers-one-doomed-fast-gc.yml")
+		Deploy("deployments/concourse-different-workers.yml", "-o", "operations/other-worker-tagged.yml", "-o", "operations/fast-gc.yml")
 	})
 
 	Context("when baggageclaim becomes unresponsive", func() {
