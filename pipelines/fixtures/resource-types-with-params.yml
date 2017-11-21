@@ -1,13 +1,6 @@
 ---
 resource_types:
-- name: custom-resource-type
-  type: git
-  privileged: ((privileged))
-  source:
-    uri: {{origin-git-server}}
-    branch: master
-
-- name: semver-from-s3
+- name: time-from-s3
   type: s3
   source:
     bucket: {{s3_bucket}}
@@ -18,13 +11,9 @@ resource_types:
 
 resources:
 - name: my-resource
-  type: semver-from-s3
+  type: time-from-s3
   source:
-    bucket: {{s3_bucket}}
-    key: testflight
-    region_name: {{s3_region}}
-    initial_version: 0.0.1
-
+    interval: 5s
 jobs:
 - name: resource-test
   plan:
@@ -35,8 +24,8 @@ jobs:
       - name: my-resource
       platform: linux
       image_resource:
-        type: custom-resource-type
-        source: {}
+        type: docker-image
+        source: {repository: concourse/busybox}
       run:
         path: test
-        args: [-e, "my-resource/version"]
+        args: [-e, "my-resource/input"]

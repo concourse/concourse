@@ -138,7 +138,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 				"-c", "fixtures/resource-types-with-params.yml",
 				"-v", "origin-git-server="+originGitServer.URI(),
 				"-v", "s3_bucket=jghiloni-psrtest",
-				"-v", "s3_regexp=semver-resource-(.*).tar.gz",
+				"-v", "s3_regexp=time-resource-(.*).tar.gz",
 				"-v", "s3_region=us-east-2",
 				"-y", "privileged=false",
 			)
