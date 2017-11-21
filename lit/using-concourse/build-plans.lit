@@ -112,6 +112,7 @@ For a reference on each type of step, read on.
 \include-section{./steps/do.lit}
 \include-section{./steps/on_success.lit}
 \include-section{./steps/on_failure.lit}
+\include-section{./steps/on_abort.lit}
 \include-section{./steps/ensure.lit}
 \include-section{./steps/tags.lit}
 \include-section{./steps/try.lit}
