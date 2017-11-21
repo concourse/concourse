@@ -111,6 +111,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 	}
 
 	var tty *garden.TTYSpec
+	var idle *time.Timer
 
 	if request.Process.TTY != nil {
 		tty = &garden.TTYSpec{
@@ -173,6 +174,8 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		}
 	}()
 
+	idle = time.NewTimer(s.interceptIdleTimeout)
+
 	for {
 		select {
 		case input := <-inputs:
@@ -192,6 +195,14 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 				}
 			} else {
 				_, _ = stdinW.Write(input.Stdin)
+				if s.interceptIdleTimeout != 0 {
+					idle.Reset(s.interceptIdleTimeout)
+				}
+			}
+
+		case <-idle.C:
+			if s.interceptIdleTimeout != 0 {
+				errs <- fmt.Errorf("Idle timeout of %d was reached", s.interceptIdleTimeout)
 			}
 
 		case output := <-outputs:
