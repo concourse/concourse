@@ -23,7 +23,7 @@ var _ = Describe("Worker failing", func() {
 			fly("trigger-job", "-w", "-j", "worker-failing-test/use-doomed-worker")
 
 			By("making baggageclaim become unresponsive on the doomed worker")
-			bosh("ssh", "doomed_worker/0", "-c", "sudo pkill -F /var/vcap/sys/run/baggageclaim/baggageclaim.pid -STOP")
+			bosh("ssh", "other_worker/0", "-c", "sudo pkill -F /var/vcap/sys/run/baggageclaim/baggageclaim.pid -STOP")
 
 			By("running check-resource to force the existing volume to be no longer desired")
 			fly("check-resource", "-r", "worker-failing-test/controlled-timer")
@@ -32,7 +32,7 @@ var _ = Describe("Worker failing", func() {
 		})
 
 		AfterEach(func() {
-			bosh("ssh", "doomed_worker/0", "-c", "sudo pkill -F /var/vcap/sys/run/baggageclaim/baggageclaim.pid -CONT")
+			bosh("ssh", "other_worker/0", "-c", "sudo pkill -F /var/vcap/sys/run/baggageclaim/baggageclaim.pid -CONT")
 			waitForWorkersToBeRunning()
 		})
 
