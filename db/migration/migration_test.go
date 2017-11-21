@@ -43,15 +43,39 @@ var _ = Describe("Migration", func() {
 	})
 
 	Context("Version Check", func() {
-		It("Reports its current version", func() {
+		It("CurrentVersion reports the current version stored in the database", func() {
+
+			myDatabaseVersion := 1234567890
+
+			SetupSchemaMigrationsTableToExistAtVersion(db, myDatabaseVersion)
+
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
+				"1000_some_migration.up.sql",
+				"1510262030_initial_schema.up.sql",
+				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
+				"2000000000_latest_migration_does_not_matter.up.sql",
+			})
+
+			version, err := migrator.CurrentVersion()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(version).To(Equal(myDatabaseVersion))
+		})
+
+		It("SupportedVersion reports the highest supported migration version", func() {
 
 			SetupSchemaMigrationsTableToExistAtVersion(db, initialSchemaVersion)
 
-			migrator := migration.NewMigrator(db, lockFactory)
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
+				"1000_some_migration.up.sql",
+				"1510262030_initial_schema.up.sql",
+				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
+				"300000_this_is_to_prove_we_dont_use_string_sort.up.sql",
+				"2000000000_latest_migration.up.sql",
+			})
 
-			version, err := migrator.Version()
+			version, err := migrator.SupportedVersion()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(version).To(Equal(initialSchemaVersion))
+			Expect(version).To(Equal(2000000000))
 		})
 	})
 

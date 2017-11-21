@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/atc/creds/noop"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/db/migration"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/gc"
@@ -75,6 +76,12 @@ import (
 var retryingDriverName = "too-many-connections-retrying"
 
 type ATCCommand struct {
+	Migration struct {
+		CurrentDBVersion   func()    `long:"current-db-version" description:"Print the current database version and exit"`
+		SupportedDBVersion func()    `long:"supported-db-version" description:"Print the max supported database version and exit"`
+		MigrateDBToVersion func(int) `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
+	} `group:"Migration Options"`
+
 	Logger LagerFlag
 
 	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
@@ -202,6 +209,78 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	cmd.CredentialManagers = managerConfigs
 
 	metric.WireEmitters(metricsGroup)
+}
+
+func (cmd *ATCCommand) WireDynamicCallbacks(commandFlags *flags.Command) {
+	//FIXME: These only need to run once for the entire binary. At the moment,
+	//they rely on state of the command.
+	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
+
+	cmd.Migration.CurrentDBVersion = func() {
+		helper := migration.NewOpenHelper(
+			retryingDriverName,
+			cmd.Postgres.ConnectionString(),
+			nil,
+		)
+
+		version, err := helper.CurrentVersion()
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+
+		fmt.Println(version)
+		os.Exit(0)
+	}
+
+	cmd.Migration.SupportedDBVersion = func() {
+		lockConn, err := cmd.constructLockConn(retryingDriverName)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+		defer lockConn.Close()
+
+		helper := migration.NewOpenHelper(
+			retryingDriverName,
+			cmd.Postgres.ConnectionString(),
+			lock.NewLockFactory(lockConn),
+		)
+
+		version, err := helper.SupportedVersion()
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+
+		fmt.Println(version)
+		os.Exit(0)
+	}
+
+	cmd.Migration.MigrateDBToVersion = func(version int) {
+		lockConn, err := cmd.constructLockConn(retryingDriverName)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+
+		defer lockConn.Close()
+
+		helper := migration.NewOpenHelper(
+			retryingDriverName,
+			cmd.Postgres.ConnectionString(),
+			lock.NewLockFactory(lockConn),
+		)
+
+		sqlDb, err := helper.OpenAtVersion(version)
+		if err != nil {
+			fmt.Println("Could not migrate to version:", version)
+			os.Exit(1)
+		}
+
+		sqlDb.Close()
+		os.Exit(0)
+	}
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -654,9 +733,6 @@ func (cmd *ATCCommand) constructMembers(
 func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
 	var members []grouper.Member
 
-	//FIXME: These only need to run once for the entire binary. At the moment,
-	//they rely on state of the command.
-	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
 	logger, reconfigurableSink := cmd.constructLogger()
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
 		for _, stack := range db.GlobalConnectionTracker.Current() {

@@ -3,12 +3,14 @@ package migration
 import (
 	"database/sql"
 	"fmt"
+	"sort"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db/lock"
 	"github.com/mattes/migrate"
 	"github.com/mattes/migrate/database/postgres"
+	"github.com/mattes/migrate/source"
 	"github.com/mattes/migrate/source/go-bindata"
 
 	_ "github.com/lib/pq"
@@ -29,7 +31,7 @@ type OpenHelper struct {
 	lockFactory    lock.LockFactory
 }
 
-func (self *OpenHelper) Version() (int, error) {
+func (self *OpenHelper) CurrentVersion() (int, error) {
 	db, err := sql.Open(self.driver, self.dataSourceName)
 	if err != nil {
 		return -1, err
@@ -37,7 +39,18 @@ func (self *OpenHelper) Version() (int, error) {
 
 	defer db.Close()
 
-	return NewMigrator(db, self.lockFactory).Version()
+	return NewMigrator(db, self.lockFactory).CurrentVersion()
+}
+
+func (self *OpenHelper) SupportedVersion() (int, error) {
+	db, err := sql.Open(self.driver, self.dataSourceName)
+	if err != nil {
+		return -1, err
+	}
+
+	defer db.Close()
+
+	return NewMigrator(db, self.lockFactory).SupportedVersion()
 }
 
 func (self *OpenHelper) Open() (*sql.DB, error) {
@@ -69,7 +82,8 @@ func (self *OpenHelper) OpenAtVersion(version int) (*sql.DB, error) {
 }
 
 type Migrator interface {
-	Version() (int, error)
+	CurrentVersion() (int, error)
+	SupportedVersion() (int, error)
 	Migrate(version int) error
 	Up() error
 }
@@ -91,11 +105,22 @@ type migrator struct {
 	db          *sql.DB
 	lockFactory lock.LockFactory
 	logger      lager.Logger
-	migrations  []string
+	migrations  migrations
 }
 
-func (self *migrator) Version() (int, error) {
+func (self *migrator) SupportedVersion() (int, error) {
 
+	latest := self.migrations.Latest()
+
+	m, err := source.Parse(latest)
+	if err != nil {
+		return -1, err
+	}
+
+	return int(m.Version), nil
+}
+
+func (self *migrator) CurrentVersion() (int, error) {
 	m, lock, err := self.openWithLock()
 	if err != nil {
 		return -1, err
@@ -238,4 +263,26 @@ func (self *migrator) checkLegacyVersion() (int, error) {
 	}
 
 	return newMigrationStartVersion, nil
+}
+
+type migrations []string
+
+func (m migrations) Len() int {
+	return len(m)
+}
+
+func (m migrations) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m migrations) Less(i, j int) bool {
+	m1, _ := source.Parse(m[i])
+	m2, _ := source.Parse(m[j])
+	return m1.Version < m2.Version
+}
+
+func (m migrations) Latest() string {
+	sort.Sort(m)
+
+	return m[len(m)-1]
 }
