@@ -4,6 +4,8 @@ set -e
 
 set -o pipefail
 
+go install github.com/vito/gosub
+
 for pkg in fly; do
   pushd packages/$pkg
     {

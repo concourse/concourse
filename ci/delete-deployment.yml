@@ -1,0 +1,19 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/bosh-cli
+
+inputs:
+- name: concourse
+
+params:
+  BOSH_ENVIRONMENT:
+  BOSH_DEPLOYMENT:
+  BOSH_CLIENT:
+  BOSH_CLIENT_SECRET:
+
+run:
+  path: concourse/ci/scripts/delete-deployment

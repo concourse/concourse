@@ -12,12 +12,13 @@ releases:
 instance_groups:
 - name: concourse
   instances: 1
+  azs: [z1]
   networks:
-  - name: default
+  - name: ((network_name))
     static_ips: [&web-ip ((web_ip))]
   azs: [z1]
   persistent_disk: 10240
-  vm_type: small
+  vm_type: ((vm_type))
   stemcell: trusty
   jobs:
   - release: concourse

@@ -1,44 +1,6 @@
 #!/bin/bash
-set -e
 
-submodule_warning='Uncommitted submodules changes will be clobbered'
-unversioned_change_warning='Unversioned changes will be clobbered'
+set -e -u
 
-function has_upstream() {
-  git rev-parse @{u} > /dev/null 2>&1
-}
-
-if [ "$1" == "--help" ]; then
-  echo "USAGE: $0"
-  echo "    This command takes no arguments."
-  echo ""
-  echo "This script does a git submodule update on all submodules"
-  echo ""
-  echo "NOTE: $submodule_warning"
-  exit 0
-fi
-
-echo ""
-echo "===> $submodule_warning <==="
-echo ""
-
-echo ""
-echo "===> $unversioned_change_warning <==="
-echo ""
-
-set -x # show the commands we are running
-
-has_upstream && git pull
-
-# Update submodule pointers; Clean out any submodule changes
 git submodule sync
-git submodule foreach --recursive 'git submodule sync; git clean -d --force --force'
-
-# Update submodule content, checkout if necessary
-git submodule update --init --recursive --force
-
-git clean -ffd
-
-set +x # stop showing commands
-
-echo "Update complete"
+git submodule update --init --recursive

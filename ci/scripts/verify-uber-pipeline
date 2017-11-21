@@ -1,0 +1,27 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+test -n "$WEB_IP"
+test -n "$PIPELINE_NAME"
+
+install fly-rc/fly_linux_amd64 /usr/local/bin/fly
+
+fly -t local login -c "http://$WEB_IP:8080"
+
+# test that the pipeline exists
+fly -t local pipelines | grep "$PIPELINE_NAME.*no.*no"
+
+# test that our old pipeline has not changed
+! fly -t local set-pipeline -n -p $PIPELINE_NAME -c concourse/ci/pipelines/uber-pipeline.yml | grep "has changed"
+
+# test that succeeded build shown in build history
+fly -t local builds | grep "$PIPELINE_NAME/test-job.*1.*succeeded"
+
+# test that we can still fetch build history
+fly -t local watch -j "$PIPELINE_NAME/test-job" | grep "succeeded"
+
+# test that we can check our resources
+fly -t local check-resource -r "$PIPELINE_NAME/test-resource" | grep "checked"
+

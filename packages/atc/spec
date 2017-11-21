@@ -18,8 +18,12 @@ files:
   - code.cloudfoundry.org/lager/*.go # gosub
   - code.cloudfoundry.org/urljoiner/*.go # gosub
   - github.com/Masterminds/squirrel/*.go # gosub
+  - github.com/SHyx0rmZ/go-bitbucket/bitbucket/*.go # gosub
+  - github.com/SHyx0rmZ/go-bitbucket/cloud/*.go # gosub
+  - github.com/SHyx0rmZ/go-bitbucket/server/*.go # gosub
   - github.com/The-Cloud-Source/goryman/*.go # gosub
   - github.com/The-Cloud-Source/goryman/proto/*.go # gosub
+  - github.com/beorn7/perks/quantile/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cenkalti/backoff/*.go # gosub
   - github.com/cloudfoundry-incubator/credhub-cli/credhub/*.go # gosub
@@ -60,6 +64,9 @@ files:
   - github.com/concourse/atc/api/workerserver/*.go # gosub
   - github.com/concourse/atc/atccmd/*.go # gosub
   - github.com/concourse/atc/auth/*.go # gosub
+  - github.com/concourse/atc/auth/bitbucket/*.go # gosub
+  - github.com/concourse/atc/auth/bitbucket/cloud/*.go # gosub
+  - github.com/concourse/atc/auth/bitbucket/server/*.go # gosub
   - github.com/concourse/atc/auth/genericoauth/*.go # gosub
   - github.com/concourse/atc/auth/github/*.go # gosub
   - github.com/concourse/atc/auth/gitlab/*.go # gosub
@@ -107,9 +114,6 @@ files:
   - github.com/concourse/atc/db/algorithm/*.go # gosub
   - github.com/concourse/atc/db/lock/*.go # gosub
   - github.com/concourse/atc/db/migration/*.go # gosub
-  - github.com/concourse/atc/db/migrations/*.go # gosub
-  - github.com/concourse/atc/db/migrations/internal/163/*.go # gosub
-  - github.com/concourse/atc/db/migrations/internal/26/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
@@ -141,8 +145,10 @@ files:
   - github.com/concourse/baggageclaim/volume/*.go # gosub
   - github.com/concourse/go-archive/tarfs/*.go # gosub
   - github.com/concourse/retryhttp/*.go # gosub
+  - github.com/concourse/tsa/tsaflags/*.go # gosub
   - github.com/contraband/holler/*.go # gosub
   - github.com/cppforlife/go-semi-semantic/version/*.go # gosub
+  - github.com/dghubble/oauth1/*.go # gosub
   - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/elazarl/go-bindata-assetfs/*.go # gosub
   - github.com/felixge/tcpkeepalive/*.go # gosub
@@ -161,8 +167,23 @@ files:
   - github.com/lann/ps/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
+  - github.com/mattes/migrate/*.go # gosub
+  - github.com/mattes/migrate/database/*.go # gosub
+  - github.com/mattes/migrate/database/postgres/*.go # gosub
+  - github.com/mattes/migrate/source/*.go # gosub
+  - github.com/mattes/migrate/source/file/*.go # gosub
+  - github.com/mattes/migrate/source/go-bindata/*.go # gosub
+  - github.com/matttproud/golang_protobuf_extensions/pbutil/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
+  - github.com/prometheus/client_golang/prometheus/*.go # gosub
+  - github.com/prometheus/client_golang/prometheus/promhttp/*.go # gosub
+  - github.com/prometheus/client_model/go/*.go # gosub
+  - github.com/prometheus/common/expfmt/*.go # gosub
+  - github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg/*.go # gosub
+  - github.com/prometheus/common/model/*.go # gosub
+  - github.com/prometheus/procfs/*.go # gosub
+  - github.com/prometheus/procfs/xfs/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/ifrit/grouper/*.go # gosub
   - github.com/tedsuo/ifrit/http_server/*.go # gosub
@@ -174,6 +195,7 @@ files:
   - golang.org/x/crypto/blowfish/*.go # gosub
   - golang.org/x/net/context/*.go # gosub
   - golang.org/x/oauth2/*.go # gosub
+  - golang.org/x/oauth2/bitbucket/*.go # gosub
   - golang.org/x/oauth2/github/*.go # gosub
   - golang.org/x/oauth2/internal/*.go # gosub
   - golang.org/x/sync/syncmap/*.go # gosub

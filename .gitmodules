@@ -305,3 +305,38 @@
 	path = src/github.com/influxdata/influxdb
 	url = https://github.com/influxdata/influxdb
 	branch = master
+[submodule "src/github.com/prometheus/client_model"]
+	path = src/github.com/prometheus/client_model
+	url = https://github.com/prometheus/client_model
+	branch = master
+[submodule "src/github.com/beorn7/perks"]
+	path = src/github.com/beorn7/perks
+	url = https://github.com/beorn7/perks
+	branch = master
+[submodule "src/github.com/prometheus/common"]
+	path = src/github.com/prometheus/common
+	url = https://github.com/prometheus/common
+	branch = master
+[submodule "src/github.com/prometheus/procfs"]
+	path = src/github.com/prometheus/procfs
+	url = https://github.com/prometheus/procfs
+	branch = master
+[submodule "src/github.com/matttproud/golang_protobuf_extensions"]
+	path = src/github.com/matttproud/golang_protobuf_extensions
+	url = https://github.com/matttproud/golang_protobuf_extensions
+	branch = master
+[submodule "src/github.com/prometheus/client_golang"]
+	path = src/github.com/prometheus/client_golang
+	url = https://github.com/prometheus/client_golang
+	branch = master
+[submodule "src/github.com/dghubble/oauth1"]
+	path = src/github.com/dghubble/oauth1
+	url = https://github.com/dghubble/oauth1
+	branch = master
+[submodule "src/github.com/SHyx0rmZ/go-bitbucket"]
+	path = src/github.com/SHyx0rmZ/go-bitbucket
+	url = https://github.com/SHyx0rmZ/go-bitbucket
+	branch = master
+[submodule "src/github.com/mattes/migrate"]
+	path = src/github.com/mattes/migrate
+	url = https://github.com/mattes/migrate
