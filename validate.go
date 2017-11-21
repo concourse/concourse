@@ -474,6 +474,13 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []st
 		errorMessages = append(errorMessages, planErrMessages...)
 	}
 
+	if plan.Abort != nil {
+		subIdentifier := fmt.Sprintf("%s.abort", identifier)
+		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Abort)
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
+	}
+
 	if plan.Ensure != nil {
 		subIdentifier := fmt.Sprintf("%s.ensure", identifier)
 		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Ensure)

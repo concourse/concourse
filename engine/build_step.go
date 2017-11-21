@@ -53,6 +53,14 @@ func (build *execBuild) buildTryStep(logger lager.Logger, plan atc.Plan) exec.St
 	return exec.Try(step)
 }
 
+func (build *execBuild) buildOnAbortStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
+	plan.OnAbort.Step.Attempts = plan.Attempts
+	step := build.buildStepFactory(logger, plan.OnAbort.Step)
+	plan.OnAbort.Next.Attempts = plan.Attempts
+	next := build.buildStepFactory(logger, plan.OnAbort.Next)
+	return exec.OnAbort(step, next)
+}
+
 func (build *execBuild) buildOnSuccessStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	plan.OnSuccess.Step.Attempts = plan.Attempts
 	step := build.buildStepFactory(logger, plan.OnSuccess.Step)

@@ -146,9 +146,19 @@ var _ = Describe("Plan", func() {
 
 				atc.Plan{
 					ID: "15",
-					Try: &atc.TryPlan{
+					OnAbort: &atc.OnAbortPlan{
 						Step: atc.Plan{
 							ID: "16",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+						Next: atc.Plan{
+							ID: "17",
 							Task: &atc.TaskPlan{
 								Name:       "name",
 								ConfigPath: "some/config/path.yml",
@@ -162,9 +172,25 @@ var _ = Describe("Plan", func() {
 
 				atc.Plan{
 					ID: "18",
-					Timeout: &atc.TimeoutPlan{
+					Try: &atc.TryPlan{
 						Step: atc.Plan{
 							ID: "19",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+					},
+				},
+
+				atc.Plan{
+					ID: "20",
+					Timeout: &atc.TimeoutPlan{
+						Step: atc.Plan{
+							ID: "21",
 							Task: &atc.TaskPlan{
 								Name:       "name",
 								ConfigPath: "some/config/path.yml",
@@ -178,10 +204,10 @@ var _ = Describe("Plan", func() {
 				},
 
 				atc.Plan{
-					ID: "20",
+					ID: "22",
 					Do: &atc.DoPlan{
 						atc.Plan{
-							ID: "21",
+							ID: "23",
 							Task: &atc.TaskPlan{
 								Name:       "name",
 								ConfigPath: "some/config/path.yml",
@@ -194,30 +220,56 @@ var _ = Describe("Plan", func() {
 				},
 
 				atc.Plan{
-					ID: "22",
+					ID: "24",
 					Retry: &atc.RetryPlan{
 						atc.Plan{
-							ID: "23",
-							Task: &atc.TaskPlan{
-								Name:       "name",
-								ConfigPath: "some/config/path.yml",
-								Config: &atc.TaskConfig{
-									Params: map[string]string{"some": "secret"},
-								},
-							},
-						},
-						atc.Plan{
-							ID: "24",
-							Task: &atc.TaskPlan{
-								Name:       "name",
-								ConfigPath: "some/config/path.yml",
-								Config: &atc.TaskConfig{
-									Params: map[string]string{"some": "secret"},
-								},
-							},
-						},
-						atc.Plan{
 							ID: "25",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+						atc.Plan{
+							ID: "26",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+						atc.Plan{
+							ID: "27",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+					},
+				},
+
+				atc.Plan{
+					ID: "28",
+					OnAbort: &atc.OnAbortPlan{
+						Step: atc.Plan{
+							ID: "29",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+						Next: atc.Plan{
+							ID: "30",
 							Task: &atc.TaskPlan{
 								Name:       "name",
 								ConfigPath: "some/config/path.yml",
@@ -333,9 +385,16 @@ var _ = Describe("Plan", func() {
     },
     {
       "id": "15",
-      "try": {
+      "on_abort": {
         "step": {
           "id": "16",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+        },
+        "on_abort": {
+          "id": "17",
           "task": {
             "name": "name",
             "privileged": false
@@ -345,9 +404,21 @@ var _ = Describe("Plan", func() {
     },
     {
       "id": "18",
-      "timeout": {
+      "try": {
         "step": {
           "id": "19",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+        }
+      }
+    },
+    {
+      "id": "20",
+      "timeout": {
+        "step": {
+          "id": "21",
           "task": {
             "name": "name",
             "privileged": false
@@ -357,10 +428,10 @@ var _ = Describe("Plan", func() {
       }
     },
     {
-      "id": "20",
+      "id": "22",
       "do": [
         {
-          "id": "21",
+          "id": "23",
           "task": {
             "name": "name",
             "privileged": false
@@ -369,30 +440,49 @@ var _ = Describe("Plan", func() {
       ]
     },
     {
-      "id": "22",
+      "id": "24",
       "retry": [
-        {
-          "id": "23",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
-        {
-          "id": "24",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
         {
           "id": "25",
           "task": {
             "name": "name",
             "privileged": false
           }
+        },
+        {
+          "id": "26",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+        },
+        {
+          "id": "27",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
         }
       ]
+    },
+    {
+      "id": "28",
+      "on_abort": {
+	    "step": {
+          "id": "29",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+	    },
+        "on_abort": {
+          "id": "30",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+	    }
+      }
     }
   ]
 }

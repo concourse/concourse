@@ -425,6 +425,33 @@ var _ = Describe("Factory Hooks", func() {
 	})
 
 	Context("when I have hooks in my plan", func() {
+		It("can build a job with one abort hook", func() {
+			var input atc.JobConfig
+			input = atc.JobConfig{
+				Plan: atc.PlanSequence{
+					{
+						Task: "those who resist our will",
+						Abort: &atc.PlanConfig{
+							Task: "task aborted",
+						},
+					},
+				},
+			}
+			actual, err := buildFactory.Create(input, nil, nil, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			expected := expectedPlanFactory.NewPlan(atc.OnAbortPlan{
+				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name: "those who resist our will",
+				}),
+				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name: "task aborted",
+				}),
+			})
+
+			Expect(actual).To(testhelpers.MatchPlan(expected))
+		})
+
 		It("can build a job with one failure hook", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{

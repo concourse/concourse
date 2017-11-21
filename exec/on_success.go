@@ -54,6 +54,7 @@ func (o *OnSuccessStep) Run(signals <-chan os.Signal, ready chan<- struct{}) err
 	}
 
 	o.success = o.successFactory.Using(o.repo)
+
 	err := o.success.Run(signals, make(chan struct{}))
 	return err
 }
