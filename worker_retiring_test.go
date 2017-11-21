@@ -12,7 +12,7 @@ var _ = Describe("Worker retiring", func() {
 	)
 
 	BeforeEach(func() {
-		deployment = "deployments/one-forwarded-worker.yml"
+		deployment = "deployments/concourse-separate-forwarded-worker.yml"
 		Deploy(deployment)
 		_ = waitForRunningWorker()
 	})
