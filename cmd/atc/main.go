@@ -15,7 +15,6 @@ func main() {
 	parser.NamespaceDelimiter = "-"
 
 	cmd.WireDynamicFlags(parser.Command)
-	cmd.WireDynamicCallbacks(parser.Command)
 
 	args, err := parser.Parse()
 	if err != nil {

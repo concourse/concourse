@@ -67,18 +67,19 @@ func (self *OpenHelper) Open() (*sql.DB, error) {
 	return db, nil
 }
 
-func (self *OpenHelper) OpenAtVersion(version int) (*sql.DB, error) {
+func (self *OpenHelper) MigrateToVersion(version int) error {
 	db, err := sql.Open(self.driver, self.dataSourceName)
 	if err != nil {
-		return nil, err
+		return err
 	}
+
+	defer db.Close()
 
 	if err := NewMigrator(db, self.lockFactory).Migrate(version); err != nil {
-		_ = db.Close()
-		return nil, err
+		return err
 	}
 
-	return db, nil
+	return nil
 }
 
 type Migrator interface {

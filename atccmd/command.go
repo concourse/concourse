@@ -209,11 +209,9 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	cmd.CredentialManagers = managerConfigs
 
 	metric.WireEmitters(metricsGroup)
-}
 
-func (cmd *ATCCommand) WireDynamicCallbacks(commandFlags *flags.Command) {
-	//FIXME: These only need to run once for the entire binary. At the moment,
-	//they rely on state of the command.
+	// FIXME: Moved this here from Runner() since we need it for the db version checking
+	// This still probably isn't the right place for this. It needs to get called once on setup.
 	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
 
 	cmd.Migration.CurrentDBVersion = func() {
@@ -263,7 +261,6 @@ func (cmd *ATCCommand) WireDynamicCallbacks(commandFlags *flags.Command) {
 			fmt.Println(err.Error())
 			os.Exit(1)
 		}
-
 		defer lockConn.Close()
 
 		helper := migration.NewOpenHelper(
@@ -272,13 +269,12 @@ func (cmd *ATCCommand) WireDynamicCallbacks(commandFlags *flags.Command) {
 			lock.NewLockFactory(lockConn),
 		)
 
-		sqlDb, err := helper.OpenAtVersion(version)
+		err = helper.MigrateToVersion(version)
 		if err != nil {
 			fmt.Println("Could not migrate to version:", version)
 			os.Exit(1)
 		}
 
-		sqlDb.Close()
 		os.Exit(0)
 	}
 }
