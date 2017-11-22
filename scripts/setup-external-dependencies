@@ -26,11 +26,6 @@ which aws > /dev/null || {
   exit 1
 }
 
-which docker >/dev/null || {
-  log "docker is not installed"
-  exit 1
-}
-
 set +e
 log "Uploading RootFS to S3"
 log "Attempt to create bucket. This may fail if the bucket already exists. We will attempt to continue"
