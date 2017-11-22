@@ -112,9 +112,14 @@ Each configured job consists of the following attributes:
   \reference{on_failure} step attribute.
 }{job-on-failure}
 
+\define-attribute{on_abort: step}{
+  \italic{Optional.} Step to execute when the job aborts. Equivalent to the
+  \reference{on_abort} step attribute.
+}{job-on-abort}
+
 \define-attribute{ensure: step}{
   \italic{Optional.} Step to execute regardless of whether the job succeeds,
-  fails, or errors. Equivalent to the \reference{ensure} step attribute.
+  fails, errors, or aborts. Equivalent to the \reference{ensure} step attribute.
 }{job-ensure}
 
 \define-attribute{plan: [step]}{
