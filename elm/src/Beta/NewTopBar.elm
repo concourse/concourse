@@ -51,7 +51,7 @@ showUserInfo model =
             Html.text user.team.name
 
         RemoteData.Failure _ ->
-            Html.text "log in"
+            Html.text "login"
 
 
 view : Model -> Html Msg
