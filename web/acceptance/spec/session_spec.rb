@@ -21,6 +21,21 @@ describe 'session', type: :feature do
   xcontext 'when session expires' do
     it 'displays the correct state in the top bar' do
       dash_login team_name
+      visit dash_route
+      expect(page).to have_content team_name
+
+      within_window open_new_window do
+        visit dash_route
+        find('.user-info').click
+        find('a', text: 'logout').click
+      end
+
+      expect(page).to_not have_content team_name
+      expect(page).to have_content 'login'
+    end
+
+    it 'displays the correct state in the dashboard top bar' do
+      dash_login team_name
       visit dash_route('/beta/dashboard')
       expect(page).to have_content team_name
 
@@ -31,7 +46,7 @@ describe 'session', type: :feature do
       end
 
       expect(page).to_not have_content team_name
-      expect(page).to have_content 'log in'
+      expect(page).to have_content 'login'
     end
   end
 end
