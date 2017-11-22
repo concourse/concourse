@@ -1,4 +1,4 @@
-module NewTopBar exposing (Model, Msg(FilterMsg), init, fetchUser, update, view)
+module NewTopBar exposing (Model, Msg(FilterMsg, UserFetched), init, fetchUser, update, view)
 
 import Concourse
 import Concourse.User
