@@ -301,8 +301,8 @@ addPipelineState pipelineStates ( teamName, pipelineState ) =
 viewGroup : Maybe Time -> String -> List PipelineWithJobs -> Html msg
 viewGroup now teamName pipelines =
     Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
-        [ Html.div [ class "dashboard-team-name" ]
-            [ Html.text teamName ]
+        [ Html.div [ class "pin-wrapper" ]
+            [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ] ]
         , Html.div [ class "dashboard-team-pipelines" ]
             (List.map (viewPipeline now) pipelines)
         ]
