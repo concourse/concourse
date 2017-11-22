@@ -1,4 +1,4 @@
-port module Dashboard exposing (Model, Msg, init, update, subscriptions, view, filterBy, searchTermList, jobsStatus, pipelineStatus, StatusPipeline)
+port module Dashboard exposing (Model, Msg, init, update, subscriptions, view, filterBy, searchTermList, pipelineStatus, StatusPipeline)
 
 import BuildDuration
 import Concourse
@@ -311,8 +311,11 @@ viewGroup now teamName pipelines =
 viewPipeline : Maybe Time -> PipelineWithJobs -> Html msg
 viewPipeline now state =
     let
-        status =
+        pStatus =
             pipelineStatus state
+
+        lStatus =
+            lastPipelineStatus state
 
         mJobs =
             case state.jobs of
@@ -329,8 +332,8 @@ viewPipeline now state =
             [ classList
                 [ ( "dashboard-pipeline", True )
                 , ( "dashboard-paused", state.pipeline.paused )
-                , ( "dashboard-running", isPipelineRunning state )
-                , ( "dashboard-status-" ++ Concourse.PipelineStatus.show status, not state.pipeline.paused )
+                , ( "dashboard-running", isPipelineRunning pStatus )
+                , ( setPipelineStatusClass lStatus, not state.pipeline.paused )
                 ]
             , attribute "data-pipeline-name" state.pipeline.name
             ]
@@ -357,6 +360,14 @@ viewPipeline now state =
                     ]
                 ]
             ]
+
+
+setPipelineStatusClass : Concourse.PipelineStatus -> String
+setPipelineStatusClass state =
+    if isPipelineRunning state then
+        ""
+    else
+        "dashboard-status-" ++ Concourse.PipelineStatus.show state
 
 
 timeSincePipelineTransitioned : Maybe Time -> PipelineWithJobs -> Html a
@@ -421,8 +432,21 @@ timeSincePipelineTransitioned time state =
             Html.text ""
 
 
-isPipelineRunning : PipelineWithJobs -> Bool
-isPipelineRunning { jobs } =
+isPipelineRunning : Concourse.PipelineStatus -> Bool
+isPipelineRunning status =
+    case status of
+        Concourse.PipelineStatusRunning ->
+            True
+
+        Concourse.PipelineStatusPending ->
+            True
+
+        _ ->
+            False
+
+
+isPipelineJobsRunning : PipelineWithJobs -> Bool
+isPipelineJobsRunning { jobs } =
     case jobs of
         RemoteData.Success js ->
             List.any (\job -> job.nextBuild /= Nothing) js
@@ -438,40 +462,50 @@ pipelineStatus { pipeline, jobs } =
     else
         case jobs of
             RemoteData.Success js ->
-                jobsStatus js
+                pipelineStatusFromJobs js
 
             _ ->
                 Concourse.PipelineStatusPending
 
 
-jobStatus : Concourse.Job -> Concourse.BuildStatus
-jobStatus job =
-    Maybe.withDefault Concourse.BuildStatusPending <| Maybe.map .status job.finishedBuild
+lastPipelineStatus : { record | pipeline : { p | paused : Bool }, jobs : RemoteData.WebData (List (JobBuilds j)) } -> Concourse.PipelineStatus
+lastPipelineStatus { pipeline, jobs } =
+    if pipeline.paused == True then
+        Concourse.PipelineStatusPaused
+    else
+        case jobs of
+            RemoteData.Success js ->
+                lastPipelineStatusFromJobs js
+
+            _ ->
+                Concourse.PipelineStatusPending
 
 
-jobsStatus : List (JobBuilds j) -> Concourse.PipelineStatus
-jobsStatus jobs =
+lastPipelineStatusFromJobs : List (JobBuilds j) -> Concourse.PipelineStatus
+lastPipelineStatusFromJobs jobs =
     let
         statuses =
-            List.concatMap
-                (\job ->
-                    [ Maybe.map .status job.finishedBuild
-                    , Maybe.map .status job.nextBuild
-                    ]
-                )
-                jobs
+            collectStatusesFromJobs jobs
+    in
+        if containsStatus Concourse.BuildStatusPending statuses then
+            Concourse.PipelineStatusPending
+        else if containsStatus Concourse.BuildStatusFailed statuses then
+            Concourse.PipelineStatusFailed
+        else if containsStatus Concourse.BuildStatusErrored statuses then
+            Concourse.PipelineStatusErrored
+        else if containsStatus Concourse.BuildStatusAborted statuses then
+            Concourse.PipelineStatusAborted
+        else if containsStatus Concourse.BuildStatusSucceeded statuses then
+            Concourse.PipelineStatusSucceeded
+        else
+            Concourse.PipelineStatusPending
 
-        containsStatus status statuses =
-            List.any
-                (\s ->
-                    case s of
-                        Just s ->
-                            status == s
 
-                        Nothing ->
-                            False
-                )
-                statuses
+pipelineStatusFromJobs : List (JobBuilds j) -> Concourse.PipelineStatus
+pipelineStatusFromJobs jobs =
+    let
+        statuses =
+            collectStatusesFromJobs jobs
     in
         if containsStatus Concourse.BuildStatusPending statuses then
             Concourse.PipelineStatusPending
@@ -487,6 +521,31 @@ jobsStatus jobs =
             Concourse.PipelineStatusSucceeded
         else
             Concourse.PipelineStatusPending
+
+
+collectStatusesFromJobs : List (JobBuilds j) -> List (Maybe Concourse.BuildStatus)
+collectStatusesFromJobs jobs =
+    List.concatMap
+        (\job ->
+            [ Maybe.map .status job.finishedBuild
+            , Maybe.map .status job.nextBuild
+            ]
+        )
+        jobs
+
+
+containsStatus : Concourse.BuildStatus -> List (Maybe Concourse.BuildStatus) -> Bool
+containsStatus status statuses =
+    List.any
+        (\s ->
+            case s of
+                Just s ->
+                    status == s
+
+                Nothing ->
+                    False
+        )
+        statuses
 
 
 fetchPipelines : Cmd Msg
