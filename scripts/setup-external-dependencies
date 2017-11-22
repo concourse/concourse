@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -e
+log() {
+  echo "$@" >&2
+}
+
+usage() {
+  log "$0 <BUCKET NAME> <PATH TO ROOTFS>"
+  exit 1
+}
+
+[[ $# == 2 ]] || usage
+
+BUCKET_NAME=$1
+ROOTFS=$2
+
+# Sanity Checks
+which aws > /dev/null || {
+  log "aws is required. Run brew install awscli"
+  exit 1
+}
+
+[[ -r ~/.aws/credentials && -r ~/.aws/config ]] || {
+  log "AWS CLI hasn't been configured. Run aws configure"
+  exit 1
+}
+
+which docker >/dev/null || {
+  log "docker is not installed"
+  exit 1
+}
+
+set +e
+log "Uploading RootFS to S3"
+log "Attempt to create bucket. This may fail if the bucket already exists. We will attempt to continue"
+aws s3 mb s3://${BUCKET_NAME}
+
+log "Set versioning on the bucket"
+aws s3api put-bucket-versioning --bucket ${BUCKET_NAME} --versioning-configuration Status=Enabled
+
+log "Make bucket publically readable"
+aws s3api put-bucket-acl --bucket ${BUCKET_NAME} --acl public-read
+
+log "Upload RootFS"
+aws s3 cp ${ROOTFS} s3://${BUCKET_NAME}
+
+log "Make RootFS public"
+aws s3api put-object-acl --bucket ${BUCKET_NAME} --key $(basename ${ROOTFS}) --acl public-read

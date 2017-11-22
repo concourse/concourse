@@ -3,9 +3,9 @@ resource_types:
 - name: time-from-s3
   type: s3
   source:
-    bucket: {{s3_bucket}}
-    regexp: {{s3_regexp}}
-    region_name: {{s3_region}}
+    bucket: ((s3_bucket))
+    regexp: ((s3_regexp))
+    region_name: ((s3_region))
   params:
     unpack: true
 
@@ -25,7 +25,7 @@ jobs:
       platform: linux
       image_resource:
         type: docker-image
-        source: {repository: concourse/busybox}
+        source: {repository: alpine}
       run:
         path: test
         args: [-e, "my-resource/input"]
