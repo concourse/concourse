@@ -58,6 +58,7 @@ var _ = Describe("Image", func() {
 	var fetchedVersion atc.Version
 	var fetchErr error
 	var teamID int
+	var variables template.StaticVariables
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -72,7 +73,7 @@ var _ = Describe("Image", func() {
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 		stderrBuf = gbytes.NewBuffer()
 
-		variables := template.StaticVariables{
+		variables = template.StaticVariables{
 			"source-param":   "super-secret-sauce",
 			"a-source-param": "super-secret-a-source",
 			"b-source-param": "super-secret-b-source",
@@ -152,7 +153,72 @@ var _ = Describe("Image", func() {
 			BeforeEach(func() {
 				fakeCheckResource = new(resourcefakes.FakeResource)
 				fakeBuildResource = new(resourcefakes.FakeResource)
-				fakeResourceFactory.NewResourceReturns(fakeCheckResource, nil)
+				fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource, nil)
+			})
+
+			Context("when the resource type the resource depends on a custom type", func() {
+				var (
+					fakeCheckResourceType  *resourcefakes.FakeResource
+					customResourceTypeName = "custom-type-a"
+				)
+
+				BeforeEach(func() {
+					imageResource = worker.ImageResource{
+						Type:   customResourceTypeName,
+						Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
+						Params: &atc.Params{"some": "params"},
+					}
+
+				})
+
+				Context("and the custom type has a version", func() {
+					It("does not check for versions of the custom type", func() {
+						Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
+					})
+				})
+
+				Context("and the custom type does not have a version", func() {
+					BeforeEach(func() {
+						customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+							{
+								ResourceType: atc.ResourceType{
+									Name:   "custom-type-a",
+									Type:   "base-type",
+									Source: atc.Source{"some": "param"},
+								},
+								Version: nil,
+							},
+						})
+
+						fakeCheckResourceType = new(resourcefakes.FakeResource)
+						fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResourceType, nil)
+
+						fakeResourceFactory.NewResourceReturnsOnCall(1, fakeCheckResource, nil)
+					})
+
+					It("checks for the latest version of the resource type", func() {
+						By("using the resource factory to find or create a resource container")
+						_, _, _, _, containerSpec, _, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+						Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
+
+						By("calling the resource type's check script")
+						Expect(fakeCheckResourceType.CheckCallCount()).To(Equal(1))
+					})
+
+					Context("when a version of the custom resource type is found", func() {
+						BeforeEach(func() {
+							fakeCheckResourceType.CheckReturns([]atc.Version{{"some": "version"}}, nil)
+						})
+
+						It("uses the version of the custom type when checking for the original resource", func() {
+							Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(2))
+							_, _, _, _, containerSpec, customTypes, _ := fakeResourceFactory.NewResourceArgsForCall(1)
+							Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
+							Expect(customTypes[0].Version).To(Equal(atc.Version{"some": "version"}))
+						})
+					})
+				})
+
 			})
 
 			Context("when check returns a version", func() {

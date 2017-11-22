@@ -108,9 +108,10 @@ func constructResourceConfig(
 			return ResourceConfig{}, err
 		}
 
-		if customType.Version == nil {
-			return ResourceConfig{}, ErrCustomResourceTypeVersionNotFound{Name: customType.Name}
-		}
+		// TODO: https://github.com/concourse/concourse/issues/1838
+		// if customType.Version == nil {
+		// 	return ResourceConfig{}, ErrCustomResourceTypeVersionNotFound{Name: customType.Name}
+		// }
 
 		resourceConfig.CreatedByResourceCache = &ResourceCache{
 			ResourceConfig: customTypeResourceConfig,
