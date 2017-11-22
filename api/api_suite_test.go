@@ -197,7 +197,7 @@ var _ = BeforeEach(func() {
 		"1.2.3",
 		"4.5.6",
 		fakeVariablesFactory,
-		0m
+		0,
 	)
 	Expect(err).NotTo(HaveOccurred())
 
