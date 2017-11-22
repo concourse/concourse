@@ -7,7 +7,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = XDescribe("A task using a custom resource as image_resource", func() {
+var _ = Describe("A task using a custom resource as image_resource", func() {
 	BeforeEach(func() {
 		flyHelper.ConfigurePipeline(
 			pipelineName,
