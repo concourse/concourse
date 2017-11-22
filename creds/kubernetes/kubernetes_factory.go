@@ -26,6 +26,6 @@ func (factory *kubernetesFactory) NewVariables(teamName string, pipelineName str
 		Clientset:    factory.clientset,
 		TeamName:     teamName,
 		PipelineName: pipelineName,
-		Logger:       factory.logger,
+		logger:       factory.logger,
 	}
 }
