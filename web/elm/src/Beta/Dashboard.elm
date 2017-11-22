@@ -37,7 +37,6 @@ type alias Model =
     , hideFooter : Bool
     , hideFooterCounter : Time
     , fetchedPipelines : List Concourse.Pipeline
-    , query : String
     }
 
 
@@ -86,7 +85,6 @@ init turbulencePath =
           , hideFooter = False
           , hideFooterCounter = 0
           , fetchedPipelines = []
-          , query = ""
           }
         , Cmd.batch
             [ fetchPipelines
@@ -138,16 +136,18 @@ update msg model =
                 ( newTopBar, newTopBarMsg ) =
                     NewTopBar.update msg model.topBar
 
-                ( filteredPipelines, newTopBarSearchQuery ) =
-                    updateFromNewTopBar msg model
+                newModel =
+                    case msg of
+                        NewTopBar.FilterMsg query ->
+                            { model
+                                | topBar = newTopBar
+                                , fetchedPipelines = filterModelPipelines query model
+                            }
+
+                        NewTopBar.UserFetched _ ->
+                            { model | topBar = newTopBar }
             in
-                ( { model
-                    | topBar = newTopBar
-                    , fetchedPipelines = filteredPipelines
-                    , query = newTopBarSearchQuery
-                  }
-                , Cmd.map TopBarMsg newTopBarMsg
-                )
+                ( newModel, Cmd.map TopBarMsg newTopBarMsg )
 
 
 subscriptions : Model -> Sub Msg
@@ -176,14 +176,14 @@ viewDashboard model =
             List.length model.fetchedPipelines
 
         isQueryEmpty =
-            String.isEmpty model.query
+            String.isEmpty model.topBar.query
     in
         case model.pipelines of
             RemoteData.Success pipelines ->
                 if listFetchedPipelinesLength > 0 then
                     showPipelinesView model model.fetchedPipelines
                 else if not isQueryEmpty then
-                    showNoResultsView (toString model.query)
+                    showNoResultsView (toString model.topBar.query)
                 else
                     showPipelinesView model pipelines
 
@@ -515,16 +515,6 @@ fetchVersion =
 getCurrentTime : Cmd Msg
 getCurrentTime =
     Task.perform ClockTick Time.now
-
-
-updateFromNewTopBar : NewTopBar.Msg -> Model -> ( List Concourse.Pipeline, String )
-updateFromNewTopBar msg model =
-    case msg of
-        NewTopBar.FilterMsg query ->
-            ( (filterModelPipelines query model), query )
-
-        _ ->
-            ( [], "" )
 
 
 filterModelPipelines : String -> Model -> List Concourse.Pipeline

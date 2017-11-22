@@ -310,7 +310,6 @@ searchTermList =
                     , hideFooter = False
                     , hideFooterCounter = 0
                     , fetchedPipelines = []
-                    , query = ""
                     }
 
                 queryStatusTeamPipeline =
