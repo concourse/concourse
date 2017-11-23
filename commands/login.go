@@ -70,6 +70,10 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	fmt.Printf("logging in to team '%s'\n\n", command.TeamName)
 
+	if len(args) != 0 {
+		return errors.New("unexpected argument [" + strings.Join(args, ", ") + "]")
+	}
+
 	err = target.ValidateWithWarningOnly()
 	if err != nil {
 		return err

@@ -140,6 +140,28 @@ var _ = Describe("login Command", func() {
 
 	})
 
+	Context("with no specified flag but extra arguments ", func() {
+
+		BeforeEach(func() {
+			loginATCServer = ghttp.NewServer()
+		})
+
+		AfterEach(func() {
+			loginATCServer.Close()
+		})
+
+		It("return error indicating login failed with unknown arguments", func() {
+
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "unknown-argument", "blah")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).NotTo(Equal(0))
+			Expect(sess.Err).To(gbytes.Say(`unexpected argument \[unknown-argument, blah\]`))
+		})
+	})
 	Context("with a team name", func() {
 		BeforeEach(func() {
 			loginATCServer = ghttp.NewServer()
