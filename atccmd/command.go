@@ -73,6 +73,7 @@ import (
 	_ "github.com/concourse/atc/creds/vault"
 )
 
+var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
 
 type ATCCommand struct {
@@ -177,7 +178,7 @@ func (cmd *ATCCommand) RunMigrationCommand() error {
 
 func (cmd *ATCCommand) currentDBVersion() error {
 	helper := migration.NewOpenHelper(
-		retryingDriverName,
+		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
 	)
@@ -193,7 +194,7 @@ func (cmd *ATCCommand) currentDBVersion() error {
 
 func (cmd *ATCCommand) supportedDBVersion() error {
 	helper := migration.NewOpenHelper(
-		retryingDriverName,
+		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
 	)
@@ -210,14 +211,14 @@ func (cmd *ATCCommand) supportedDBVersion() error {
 func (cmd *ATCCommand) migrateDBToVersion() error {
 	version := cmd.Migration.MigrateDBToVersion
 
-	lockConn, err := cmd.constructLockConn(retryingDriverName)
+	lockConn, err := cmd.constructLockConn(defaultDriverName)
 	if err != nil {
 		return err
 	}
 	defer lockConn.Close()
 
 	helper := migration.NewOpenHelper(
-		retryingDriverName,
+		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		lock.NewLockFactory(lockConn),
 	)
@@ -288,9 +289,6 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
-	// FIXME: Moved this here from Runner() since we need it for the db version checking
-	// This still probably isn't the right place for this. It needs to get called once on setup.
-	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
 
 	if cmd.Migration.CommandProvided() {
 		return cmd.RunMigrationCommand()
@@ -745,6 +743,9 @@ func (cmd *ATCCommand) constructMembers(
 func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
 	var members []grouper.Member
 
+	//FIXME: These only need to run once for the entire binary. At the moment,
+	//they rely on state of the command.
+	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
 	logger, reconfigurableSink := cmd.constructLogger()
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
 		for _, stack := range db.GlobalConnectionTracker.Current() {
