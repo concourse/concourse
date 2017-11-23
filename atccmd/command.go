@@ -76,11 +76,7 @@ import (
 var retryingDriverName = "too-many-connections-retrying"
 
 type ATCCommand struct {
-	Migration struct {
-		CurrentDBVersion   func()    `long:"current-db-version" description:"Print the current database version and exit"`
-		SupportedDBVersion func()    `long:"supported-db-version" description:"Print the max supported database version and exit"`
-		MigrateDBToVersion func(int) `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
-	} `group:"Migration Options"`
+	Migration Migration `group:"Migration Options"`
 
 	Logger LagerFlag
 
@@ -156,6 +152,85 @@ type ATCCommand struct {
 	TelemetryOptIn bool `long:"telemetry-opt-in" hidden:"true" description:"Enable anonymous concourse version reporting."`
 }
 
+type Migration struct {
+	CurrentDBVersion   bool `long:"current-db-version" description:"Print the current database version and exit"`
+	SupportedDBVersion bool `long:"supported-db-version" description:"Print the max supported database version and exit"`
+	MigrateDBToVersion int  `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
+}
+
+func (m *Migration) CommandProvided() bool {
+	return m.CurrentDBVersion || m.SupportedDBVersion || m.MigrateDBToVersion > 0
+}
+
+func (cmd *ATCCommand) RunMigrationCommand() error {
+	if cmd.Migration.CurrentDBVersion {
+		return cmd.currentDBVersion()
+	}
+	if cmd.Migration.SupportedDBVersion {
+		return cmd.supportedDBVersion()
+	}
+	if cmd.Migration.MigrateDBToVersion > 0 {
+		return cmd.migrateDBToVersion()
+	}
+	return nil
+}
+
+func (cmd *ATCCommand) currentDBVersion() error {
+	helper := migration.NewOpenHelper(
+		retryingDriverName,
+		cmd.Postgres.ConnectionString(),
+		nil,
+	)
+
+	version, err := helper.CurrentVersion()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(version)
+	return nil
+}
+
+func (cmd *ATCCommand) supportedDBVersion() error {
+	helper := migration.NewOpenHelper(
+		retryingDriverName,
+		cmd.Postgres.ConnectionString(),
+		nil,
+	)
+
+	version, err := helper.SupportedVersion()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(version)
+	return nil
+}
+
+func (cmd *ATCCommand) migrateDBToVersion() error {
+	version := cmd.Migration.MigrateDBToVersion
+
+	lockConn, err := cmd.constructLockConn(retryingDriverName)
+	if err != nil {
+		return err
+	}
+	defer lockConn.Close()
+
+	helper := migration.NewOpenHelper(
+		retryingDriverName,
+		cmd.Postgres.ConnectionString(),
+		lock.NewLockFactory(lockConn),
+	)
+
+	err = helper.MigrateToVersion(version)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not migrate to version: %d Reason: %s", version, err.Error()))
+	}
+
+	fmt.Println("Successfully migrated to version:", version)
+	return nil
+}
+
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	var authGroup *flags.Group
 	var metricsGroup *flags.Group
@@ -210,76 +285,17 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 
 	metric.WireEmitters(metricsGroup)
 
+}
+
+func (cmd *ATCCommand) Execute(args []string) error {
 	// FIXME: Moved this here from Runner() since we need it for the db version checking
 	// This still probably isn't the right place for this. It needs to get called once on setup.
 	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
 
-	cmd.Migration.CurrentDBVersion = func() {
-		helper := migration.NewOpenHelper(
-			retryingDriverName,
-			cmd.Postgres.ConnectionString(),
-			nil,
-		)
-
-		version, err := helper.CurrentVersion()
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
-
-		fmt.Println(version)
-		os.Exit(0)
+	if cmd.Migration.CommandProvided() {
+		return cmd.RunMigrationCommand()
 	}
 
-	cmd.Migration.SupportedDBVersion = func() {
-		lockConn, err := cmd.constructLockConn(retryingDriverName)
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
-		defer lockConn.Close()
-
-		helper := migration.NewOpenHelper(
-			retryingDriverName,
-			cmd.Postgres.ConnectionString(),
-			lock.NewLockFactory(lockConn),
-		)
-
-		version, err := helper.SupportedVersion()
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
-
-		fmt.Println(version)
-		os.Exit(0)
-	}
-
-	cmd.Migration.MigrateDBToVersion = func(version int) {
-		lockConn, err := cmd.constructLockConn(retryingDriverName)
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
-		defer lockConn.Close()
-
-		helper := migration.NewOpenHelper(
-			retryingDriverName,
-			cmd.Postgres.ConnectionString(),
-			lock.NewLockFactory(lockConn),
-		)
-
-		err = helper.MigrateToVersion(version)
-		if err != nil {
-			fmt.Println("Could not migrate to version:", version)
-			os.Exit(1)
-		}
-
-		os.Exit(0)
-	}
-}
-
-func (cmd *ATCCommand) Execute(args []string) error {
 	runner, err := cmd.Runner(args)
 	if err != nil {
 		return err
