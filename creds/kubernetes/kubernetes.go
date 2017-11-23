@@ -14,6 +14,7 @@ type Kubernetes struct {
 	Clientset    *kubernetes.Clientset
 	TeamName     string
 	PipelineName string
+	NamespacePrefix string
 	logger       lager.Logger
 }
 
