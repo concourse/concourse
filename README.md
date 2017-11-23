@@ -37,6 +37,6 @@ Each component has its own repository:
 To learn more about how they fit together, see [Concourse
 Architecture](https://concourse.ci/architecture.html).
 
-Please note that this project is released with at Contributor Code of Conduct.
+Please note that this project is released with a Contributor Code of Conduct.
 By participating in this project you agree to abide by its terms. You can review
 the Code of Code of Conduct in `CODE_OF_CONDUCT.md` 
