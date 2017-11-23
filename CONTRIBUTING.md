@@ -84,6 +84,22 @@ the project!
 
 # Development
 
+## Initial Setup
+
+```
+git clone https://github.com/concourse/concourse
+cd concourse
+git submodule update --init --recursive
+
+# if not using direnv
+source .envrc
+
+# if needing to use fly against a local build
+cd src/github.com/concourse/fly
+go build
+# now use the 'fly' in this folder
+```
+
 ## Running Concourse locally
 
 There are scripts under `dev/` to make running Concourse during development
