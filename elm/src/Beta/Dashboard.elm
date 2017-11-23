@@ -1,4 +1,4 @@
-port module Dashboard exposing (Model, Msg, init, update, subscriptions, view, filterBy, searchTermList, pipelineStatus, StatusPipeline)
+port module Dashboard exposing (Model, Msg, init, update, subscriptions, view, filterBy, searchTermList, pipelineStatus, lastPipelineStatus, StatusPipeline)
 
 import BuildDuration
 import Concourse
@@ -332,7 +332,7 @@ viewPipeline now state =
             [ classList
                 [ ( "dashboard-pipeline", True )
                 , ( "dashboard-paused", state.pipeline.paused )
-                , ( "dashboard-running", isPipelineRunning pStatus )
+                , ( "dashboard-running", isPipelineRunning pStatus || hasJobsRunning state.jobs )
                 , ( setPipelineStatusClass lStatus, not state.pipeline.paused )
                 ]
             , attribute "data-pipeline-name" state.pipeline.name
@@ -363,11 +363,11 @@ viewPipeline now state =
 
 
 setPipelineStatusClass : Concourse.PipelineStatus -> String
-setPipelineStatusClass state =
-    if isPipelineRunning state then
+setPipelineStatusClass status =
+    if isPipelineRunning status then
         ""
     else
-        "dashboard-status-" ++ Concourse.PipelineStatus.show state
+        "dashboard-status-" ++ Concourse.PipelineStatus.show status
 
 
 timeSincePipelineTransitioned : Maybe Time -> PipelineWithJobs -> Html a
@@ -438,15 +438,22 @@ isPipelineRunning status =
         Concourse.PipelineStatusRunning ->
             True
 
-        Concourse.PipelineStatusPending ->
-            True
-
         _ ->
             False
 
 
 isPipelineJobsRunning : PipelineWithJobs -> Bool
 isPipelineJobsRunning { jobs } =
+    case jobs of
+        RemoteData.Success js ->
+            List.any (\job -> job.nextBuild /= Nothing) js
+
+        _ ->
+            False
+
+
+hasJobsRunning : RemoteData.WebData (List Concourse.Job) -> Bool
+hasJobsRunning jobs =
     case jobs of
         RemoteData.Success js ->
             List.any (\job -> job.nextBuild /= Nothing) js
