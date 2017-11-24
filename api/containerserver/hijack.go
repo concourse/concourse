@@ -18,6 +18,14 @@ var upgrader = websocket.Upgrader{
 	HandshakeTimeout: 5 * time.Second,
 }
 
+type InterceptTimeoutError struct {
+    Duration time.Duration
+}
+
+func (err InterceptTimeoutError) Error() string {
+    return fmt.Sprintf("idle timeout (%s) reached", err.Duration)
+}
+
 func (s *Server) HijackContainer(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle := r.FormValue(":id")
@@ -179,6 +187,9 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 	for {
 		select {
 		case input := <-inputs:
+			if s.interceptIdleTimeout != 0 {
+				idle.Reset(s.interceptIdleTimeout)
+			}
 			if input.Closed {
 				_ = stdinW.Close()
 			} else if input.TTYSpec != nil {
@@ -195,14 +206,11 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 				}
 			} else {
 				_, _ = stdinW.Write(input.Stdin)
-				if s.interceptIdleTimeout != 0 {
-					idle.Reset(s.interceptIdleTimeout)
-				}
 			}
 
 		case <-idle.C:
 			if s.interceptIdleTimeout != 0 {
-				errs <- fmt.Errorf("Idle timeout of %d was reached", s.interceptIdleTimeout)
+				errs <- InterceptTimeoutError{Duration: s.interceptIdleTimeout}
 			}
 
 		case output := <-outputs:
