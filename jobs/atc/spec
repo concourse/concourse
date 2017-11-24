@@ -406,6 +406,14 @@ properties:
       env: dev
       foo: bar
 
+  prometheus.bind_ip:
+    description: |
+      If configured, expose Prometheus metrics at specified address
+
+  prometheus.bind_port:
+    description: |
+      If configured, expose Prometheus metrics at specified port
+
   influxdb.url:
     description: |
       If configured, detailed metrics will be emitted to the specified InfluxDB

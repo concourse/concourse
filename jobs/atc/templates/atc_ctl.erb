@@ -217,6 +217,10 @@ case $1 in
       <% p("riemann.tags").each do |k,v| %> \
       --metrics-attribute <%= esc(k) %>:<%= esc(v) %> \
       <% end %> \
+      <% if_p("prometheus.bind_ip", "prometheus.bind_port") do |ip, port| %> \
+      --prometheus-bind-ip <%= esc(ip) %> \
+      --prometheus-bind-port <%= esc(port) %> \
+      <% end %> \
       --x-frame-options <%= esc(p("x_frame_options")) %> \
       <% if_p("credhub.url") do |url| %> \
       --credhub-url <%= esc(url) %> \
