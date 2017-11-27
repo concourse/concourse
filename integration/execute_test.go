@@ -274,6 +274,177 @@ run: {}
 		})
 	})
 
+	Context("when the build config is valid", func() {
+		Context("when arguments include input that is not a git repo", func() {
+
+			Context("when arguments not include -x", func() {
+				It("uploading with everything", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture="+buildDir)
+
+					flyCmd.Dir = buildDir
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					// sync with after create
+					Eventually(streaming).Should(BeClosed())
+
+					close(events)
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+
+					Expect(uploadingBits).To(BeClosed())
+				})
+			})
+		})
+
+		Context("when arguments include input that is a git repo", func() {
+
+			BeforeEach(func() {
+				gitIgnorePath := filepath.Join(buildDir, ".gitignore")
+
+				err := ioutil.WriteFile(
+					gitIgnorePath,
+					[]byte(`*.test`),
+					0644,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				fileToBeIgnoredPath := filepath.Join(buildDir, "dev.test")
+
+				err = ioutil.WriteFile(
+					fileToBeIgnoredPath,
+					[]byte(`test file content`),
+					0644,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = os.Mkdir(filepath.Join(buildDir, ".git"), 0755)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = os.Mkdir(filepath.Join(buildDir, ".git/refs"), 0755)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = os.Mkdir(filepath.Join(buildDir, ".git/objects"), 0755)
+				Expect(err).NotTo(HaveOccurred())
+				gitHEADPath := filepath.Join(buildDir+"/.git", "HEAD")
+
+				err = ioutil.WriteFile(
+					gitHEADPath,
+					[]byte(`ref: refs/heads/master`),
+					0644,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				fmt.Printf("\nblah: %s\n", buildDir)
+			})
+
+			Context("when arguments not include -x", func() {
+				It("by default apply .gitignore", func() {
+
+					uploading := make(chan struct{})
+					uploadingBits = uploading
+					atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-pipe-id",
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
+							func(w http.ResponseWriter, req *http.Request) {
+								close(uploading)
+
+								gr, err := gzip.NewReader(req.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								tr := tar.NewReader(gr)
+
+								var matchFound = false
+								for {
+									hdr, err := tr.Next()
+									if err != nil {
+										break
+									}
+									if hdr.Name == "./dev.test" {
+										matchFound = true
+										break
+									}
+								}
+
+								Expect(matchFound).To(Equal(false))
+							},
+							ghttp.RespondWith(200, ""),
+						),
+					)
+
+					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture="+buildDir)
+
+					flyCmd.Dir = buildDir
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					// sync with after create
+					Eventually(streaming).Should(BeClosed())
+
+					close(events)
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+
+					Expect(uploadingBits).To(BeClosed())
+				})
+			})
+
+			Context("when arguments include -x", func() {
+				It("uploading with everything", func() {
+					uploading := make(chan struct{})
+					uploadingBits = uploading
+					atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-pipe-id",
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
+							func(w http.ResponseWriter, req *http.Request) {
+								close(uploading)
+
+								gr, err := gzip.NewReader(req.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								tr := tar.NewReader(gr)
+
+								var matchFound = false
+								for {
+									hdr, err := tr.Next()
+									if err != nil {
+										break
+									}
+									if hdr.Name == "./dev.test" {
+										matchFound = true
+										break
+									}
+								}
+
+								Expect(matchFound).To(Equal(true))
+							},
+							ghttp.RespondWith(200, ""),
+						),
+					)
+					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-x")
+
+					flyCmd.Dir = buildDir
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					// sync with after create
+					Eventually(streaming).Should(BeClosed())
+
+					close(events)
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+
+					Expect(uploadingBits).To(BeClosed())
+				})
+			})
+		})
+	})
+
 	Context("when arguments are passed through", func() {
 		BeforeEach(func() {
 			(*expectedPlan.Do)[1].Task.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}

@@ -13,21 +13,20 @@ import (
 	"github.com/concourse/go-concourse/concourse"
 )
 
-func Upload(client concourse.Client, input Input, excludeIgnored bool) {
+func Upload(client concourse.Client, input Input, includeIgnored bool) {
 	path := input.Path
 	pipe := input.Pipe
 
 	var files []string
 	var err error
 
-	if excludeIgnored {
+	if includeIgnored {
+		files = []string{"."}
+	} else {
 		files, err = getGitFiles(path)
 		if err != nil {
-			fmt.Fprintln(ui.Stderr, "could not determine ignored files:", err)
-			return
+			files = []string{"."}
 		}
-	} else {
-		files = []string{"."}
 	}
 
 	archiveStream, archiveWriter := io.Pipe()
