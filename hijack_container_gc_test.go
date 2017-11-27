@@ -46,7 +46,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		}
 	}
 
-	It("does not delete hijacked build containers from the database, and sets a 5 minute TTL on the container in garden", func() {
+	XIt("does not delete hijacked build containers from the database, and sets a 5 minute TTL on the container in garden", func() {
 		By("setting the pipeline that has a build")
 		fly("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "hijacked-containers-test")
 
