@@ -14,82 +14,66 @@ describe 'build', type: :feature do
     dash_login team_name
   end
 
-  xdescribe 'build logs' do
+  describe 'build logs' do
     let(:timestamp_regex) { /\d{2}:\d{2}:\d{2}/ }
 
-    it 'has linkable timestamps for each line' do
+    def timestamp_for_line i
+      page.evaluate_script "window.getComputedStyle($('.timestamp')[#{i}], ':before').getPropertyValue('content')"
+    end
+
+    def timestamp_color_for_line i
+      color = page.evaluate_script "window.getComputedStyle($('.timestamp')[#{i}], ':before').getPropertyValue('color')"
+      by_rgb(color).closest_match(PALETTE)
+    end
+
+    before do
       fly('set-pipeline -n -p pipeline -c fixtures/pipeline-with-long-output.yml')
       fly('unpause-pipeline -p pipeline')
       fly('trigger-job -w -j pipeline/long-output-passing')
 
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output-passing/builds/1")
-      expect(page).to_not have_content 'Line 10'
+      expect(page).to_not have_content 'Line 5'
 
       page.find('.build-step .header', text: 'print').click
       within '.steps' do
-        expect(page).to have_content(timestamp_regex)
+        expect(timestamp_for_line(1)).to match(timestamp_regex)
+      end
+    end
+
+    it 'has linkable timestamps for each line' do
+      timestamp = page.all('.timestamp')[5]
+      timestamp.click
+      within '.steps' do
+        expect(timestamp_color_for_line(5)).to eq(AMBER)
       end
 
-      timestamp = page.all('a', text: timestamp_regex).last
-      timestamp.click
-      expect(foreground_palette(timestamp)).to eq(AMBER)
-
-      # remember the timestamp's DOM location so we can find it later
-      timestamp_path = timestamp.path
-      # visit the URL to show that the link's target link w/ anchor element
-      # works
+      # visit the URL to show that the link's target link w/ anchor element works
+      # by expanding the step to reveal the line and highlighting the line
       visit current_url
-      # by expanding the step to reveal the line
-      # note: technically any line; correlating timestamp to actual line is hard
-      expect(page).to have_content 'Line 10'
-
-      # and highlighting the line
-      new_timestamp = page.find(:xpath, timestamp_path)
-      expect(foreground_palette(new_timestamp)).to eq(AMBER)
+      expect(page).to have_content 'Line 5'
+      within '.steps' do
+        expect(timestamp_color_for_line(5)).to eq(AMBER)
+      end
     end
 
     it 'has range-linkable timestamps for each line' do
-      fly('set-pipeline -n -p pipeline -c fixtures/pipeline-with-long-output.yml')
-      fly('unpause-pipeline -p pipeline')
-      fly('trigger-job -w -j pipeline/long-output-passing')
-
-      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output-passing/builds/1")
-      expect(page).to_not have_content 'Line 10'
-
-      page.find('.build-step .header', text: 'print').click
-      within '.steps' do
-        expect(page).to have_content(timestamp_regex)
-      end
-
-      timestamps = page.all('a', text: timestamp_regex)
-      until timestamps.length >= 10
-        timestamps = page.all('a', text: timestamp_regex)
-      end
-
-      first_timestamp = timestamps[2]
-      last_timestamp = timestamps[7]
-      in_range_timestamps = timestamps[2..7]
+      first_timestamp = page.all('.timestamp')[2]
+      last_timestamp = page.all('.timestamp')[7]
 
       first_timestamp.click
-      page.driver.browser.action.key_down(:shift).click(last_timestamp.native).perform
-      in_range_timestamps.each do |timestamp|
-        expect(foreground_palette(timestamp)).to eq(AMBER)
+      page.driver.browser.action.key_down(:shift).click(last_timestamp.native).key_up(:shift).perform
+      within '.steps' do
+        (2..7).each do |line_number|
+          expect(timestamp_color_for_line(line_number)).to eq(AMBER)
+        end
       end
 
-      # remember the timestamp's DOM location so we can find it later
-      in_range_timestamp_paths = in_range_timestamps.collect(&:path)
-
-      # visit the URL to show that the link's target link w/ anchor element
-      # works
       visit current_url
-      # by expanding the step to reveal the line
-      # note: technically any line; correlating timestamp to actual line is hard
-      expect(page).to have_content 'Line 10'
-
-      # and highlighting the line
-      in_range_timestamp_paths.each do |timestamp_path|
-        new_timestamp = page.find(:xpath, timestamp_path)
-        expect(foreground_palette(new_timestamp)).to eq(AMBER)
+      within '.steps' do
+        (2..7).each do |line_number|
+          expect(page).to have_content "Line #{line_number}"
+          expect(timestamp_color_for_line(line_number)).to eq(AMBER)
+        end
       end
     end
   end

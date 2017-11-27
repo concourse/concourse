@@ -29,7 +29,7 @@ import Dict exposing (Dict)
 import Focus exposing (Focus, (=>))
 import Html exposing (Html)
 import Html.Events exposing (onClick, onMouseDown)
-import Html.Attributes exposing (class, classList, href)
+import Html.Attributes exposing (attribute, class, classList, href)
 import Html.Lazy
 import Concourse
 import DictView
@@ -739,7 +739,7 @@ viewTimestampedLine timestamps hl id lineNo line =
                 HighlightRange hlId hlLine1 hlLine2 ->
                     hlId == id && lineNo >= hlLine1 && lineNo <= hlLine2
     in
-        Html.div
+        Html.tr
             [ classList
                 [ ( "timestamped-line", True )
                 , ( "highlighted-line", highlighted )
@@ -757,21 +757,18 @@ viewTimestampedLine timestamps hl id lineNo line =
 
 viewLine : Ansi.Log.Line -> Html Msg
 viewLine line =
-    Html.div [ class "timestamped-content" ]
+    Html.td [ class "timestamped-content" ]
         [ Html.Lazy.lazy Ansi.Log.viewLine line
         ]
 
 
 viewTimestamp : Highlight -> String -> ( Int, Date ) -> Html Msg
 viewTimestamp hl id ( line, date ) =
-    Html.div [ class "timestamp" ]
-        [ Html.a
-            [ href (showHighlight (HighlightLine id line))
-            , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
-            ]
-            [ Html.text (Date.Format.format "%H:%M:%S" date)
-            ]
+    Html.a
+        [ href (showHighlight (HighlightLine id line))
+        , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
         ]
+        [ Html.td [ class "timestamp", attribute "data-timestamp" (Date.Format.format "%H:%M:%S" date) ] [] ]
 
 
 viewVersion : Maybe Version -> Html Msg
