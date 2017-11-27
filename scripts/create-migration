@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e -u
+
+go build -tags 'postgres' -o $GOPATH/bin/migrate github.com/mattes/migrate/cli
+
+migrate create -ext sql -dir db/migration/migrations/ "$@"
