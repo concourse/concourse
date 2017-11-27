@@ -56,21 +56,23 @@
   .timestamp {
     padding-right: 20px;
     flex-shrink: 0;
+    user-select: none;
 
-    a {
+    &::before {
+      content: attr(data-timestamp);
       color: @base03;
       display: inline-block;
+    }
 
-      &:hover {
-        color: @base06;
-      }
+    &:hover:before {
+      color: @base06;
     }
   }
 
   &.highlighted-line {
     background: @base02;
 
-    .timestamp a {
+    .timestamp:before {
       color: @base0A;
     }
   }
