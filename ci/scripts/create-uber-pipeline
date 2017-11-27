@@ -11,6 +11,8 @@ install fly-rc/fly_linux_amd64 /usr/local/bin/fly
 
 fly -t local login -c "http://$WEB_IP:8080"
 
+fly -t local sync
+
 fly -t local set-pipeline -n -p "$PIPELINE_NAME" -c concourse/ci/pipelines/uber-pipeline.yml
 
 fly -t local unpause-pipeline -p "$PIPELINE_NAME"
