@@ -1,7 +1,0 @@
----
-name: postgres-unknown
-
-files:
-  - postgresql/postgresql-9.3.4.tar.gz
-  - config/config.guess
-  - config/config.sub

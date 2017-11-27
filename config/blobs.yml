@@ -6,10 +6,6 @@ golang/golang-linux-amd64-1.9.2.tar.gz:
   size: 104247844
   object_id: 78ad4712-ac1d-4b85-5ceb-49c70c2c31b8
   sha: 94c889e039e3d2e94ed95e8f8cb747c5bc1c2b58
-postgresql/postgresql-9.3.4.tar.gz:
-  size: 21865589
-  object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
-  sha: 9f80b3cfebc434ca0860fc8489923cea73456081
 resources/archive-resource-3ee27e9.tar.gz:
   size: 9473180
   object_id: 809ad452-5ebd-49d8-5e86-3975685d5f65
