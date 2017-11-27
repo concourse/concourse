@@ -46,6 +46,7 @@ type StepTree
     | Do (Array StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
+    | OnAbort HookedStep
     | Ensure HookedStep
     | Try StepTree
     | Retry StepID (Array StepTree) Int TabFocus
@@ -188,6 +189,9 @@ init hl resources plan =
         Concourse.BuildStepOnFailure hookedPlan ->
             initHookedStep hl resources OnFailure hookedPlan
 
+        Concourse.BuildStepOnAbort hookedPlan ->
+            initHookedStep hl resources OnAbort hookedPlan
+
         Concourse.BuildStepEnsure hookedPlan ->
             initHookedStep hl resources Ensure hookedPlan
 
@@ -233,6 +237,9 @@ treeIsActive tree =
             treeIsActive step
 
         OnFailure { step } ->
+            treeIsActive step
+
+        OnAbort { step } ->
             treeIsActive step
 
         Ensure { step } ->
@@ -466,6 +473,9 @@ getStep tree =
         OnFailure { step } ->
             step
 
+        OnAbort { step } ->
+            step
+
         Ensure { step } ->
             step
 
@@ -487,6 +497,9 @@ updateStep update tree =
 
         OnFailure hookedStep ->
             OnFailure { hookedStep | step = update hookedStep.step }
+
+        OnAbort hookedStep ->
+            OnAbort { hookedStep | step = update hookedStep.step }
 
         Ensure hookedStep ->
             Ensure { hookedStep | step = update hookedStep.step }
@@ -515,6 +528,9 @@ getHook tree =
         OnFailure { hook } ->
             hook
 
+        OnAbort { hook } ->
+            hook
+
         Ensure { hook } ->
             hook
 
@@ -530,6 +546,9 @@ updateHook update tree =
 
         OnFailure hookedStep ->
             OnFailure { hookedStep | hook = update hookedStep.hook }
+
+        OnAbort hookedStep ->
+            OnAbort { hookedStep | hook = update hookedStep.hook }
 
         Ensure hookedStep ->
             Ensure { hookedStep | hook = update hookedStep.hook }
@@ -640,6 +659,9 @@ viewTree model tree =
         OnFailure { step, hook } ->
             viewHooked "failure" model step hook
 
+        OnAbort { step, hook } ->
+            viewHooked "abort" model step hook
+
         Ensure { step, hook } ->
             viewHooked "ensure" model step hook
 
@@ -688,6 +710,7 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             , ( "inactive", not <| isActive state )
             , ( "first-occurrence", firstOccurrence )
             ]
+        , attribute "data-step-name" name
         ]
         [ Html.div [ class "header", onClick (ToggleStep id) ]
             [ viewStepState state model.finished
