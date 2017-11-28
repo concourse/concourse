@@ -340,3 +340,7 @@
 [submodule "src/github.com/mattes/migrate"]
 	path = src/github.com/mattes/migrate
 	url = https://github.com/mattes/migrate
+[submodule "src/github.com/NYTimes/gziphandler"]
+	path = src/github.com/NYTimes/gziphandler
+	url = https://github.com/NYTimes/gziphandler
+	branch = master

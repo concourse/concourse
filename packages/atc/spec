@@ -18,6 +18,7 @@ files:
   - code.cloudfoundry.org/lager/*.go # gosub
   - code.cloudfoundry.org/urljoiner/*.go # gosub
   - github.com/Masterminds/squirrel/*.go # gosub
+  - github.com/NYTimes/gziphandler/*.go # gosub
   - github.com/SHyx0rmZ/go-bitbucket/bitbucket/*.go # gosub
   - github.com/SHyx0rmZ/go-bitbucket/cloud/*.go # gosub
   - github.com/SHyx0rmZ/go-bitbucket/server/*.go # gosub
