@@ -22,6 +22,11 @@ type PrometheusEmitter struct {
 	buildsAborted     prometheus.Counter
 	buildsFinishedVec *prometheus.CounterVec
 	buildDurationsVec *prometheus.HistogramVec
+
+	workerContainers *prometheus.GaugeVec
+	workerVolumes    *prometheus.GaugeVec
+
+	httpRequestsDuration *prometheus.HistogramVec
 }
 
 type PrometheusConfig struct {
@@ -111,6 +116,38 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(buildDurationsVec)
 
+	workerContainers := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "workers",
+			Name:      "containers",
+			Help:      "Number of containers per worker",
+		},
+		[]string{"worker"},
+	)
+	prometheus.MustRegister(workerContainers)
+	workerVolumes := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "workers",
+			Name:      "volumes",
+			Help:      "Number of volumes per worker",
+		},
+		[]string{"worker"},
+	)
+	prometheus.MustRegister(workerVolumes)
+
+	httpRequestsDuration := prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "concourse",
+			Subsystem: "http_responses",
+			Name:      "duration_seconds",
+			Help:      "Response time in seconds",
+		},
+		[]string{"path", "method"},
+	)
+	prometheus.MustRegister(httpRequestsDuration)
+
 	listener, err := net.Listen("tcp", config.bind())
 	if err != nil {
 		return nil, err
@@ -127,6 +164,11 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		buildsErrored:     buildsErrored,
 		buildsFailed:      buildsFailed,
 		buildsAborted:     buildsAborted,
+
+		workerContainers: workerContainers,
+		workerVolumes:    workerVolumes,
+
+		httpRequestsDuration: httpRequestsDuration,
 	}, nil
 }
 
@@ -140,6 +182,12 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.buildsStarted.Inc()
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
+	case "worker containers":
+		emitter.workerContainersMetrics(logger, event)
+	case "worker volumes":
+		emitter.workerVolumesMetrics(logger, event)
+	case "http response time":
+		emitter.httpResponseTimeMetrics(logger, event)
 	default:
 		// unless we have a specific metric, we do nothing
 	}
@@ -190,4 +238,50 @@ func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, even
 	// seconds are the standard prometheus base unit for time
 	duration = duration / 1000
 	emitter.buildDurationsVec.WithLabelValues(team, pipeline).Observe(duration)
+}
+
+func (emitter *PrometheusEmitter) workerContainersMetrics(logger lager.Logger, event metric.Event) {
+	worker, exists := event.Attributes["worker"]
+	if !exists {
+		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+	}
+
+	containers, ok := event.Value.(int)
+	if !ok {
+		logger.Error("worker-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+	}
+
+	emitter.workerContainers.WithLabelValues(worker).Set(float64(containers))
+}
+
+func (emitter *PrometheusEmitter) workerVolumesMetrics(logger lager.Logger, event metric.Event) {
+	worker, exists := event.Attributes["worker"]
+	if !exists {
+		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+	}
+
+	workers, ok := event.Value.(int)
+	if !ok {
+		logger.Error("worker-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+	}
+
+	emitter.workerContainers.WithLabelValues(worker).Set(float64(workers))
+}
+
+func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, event metric.Event) {
+	path, exists := event.Attributes["path"]
+	if !exists {
+		logger.Error("failed-to-find-path-in-event", fmt.Errorf("expected path to exist in event.Attributes"))
+	}
+	method, exists := event.Attributes["method"]
+	if !exists {
+		logger.Error("failed-to-find-method-in-event", fmt.Errorf("expected method to exist in event.Attributes"))
+	}
+
+	responseTime, ok := event.Value.(float64)
+	if !ok {
+		logger.Error("http-response-time-event-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
+	}
+
+	emitter.httpRequestsDuration.WithLabelValues(path, method).Observe(responseTime / 1000)
 }
