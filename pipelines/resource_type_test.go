@@ -2,7 +2,6 @@ package pipelines_test
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/concourse/testflight/gitserver"
 	. "github.com/onsi/ginkgo"
@@ -58,7 +57,6 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 		It("should be able to run privileged operations in 'check', 'get' and 'put' steps", func() {
 			watch := flyHelper.TriggerJob(pipelineName, "failing-task")
 			<-watch.Exited
-			// time.Sleep(time.Hour)
 			By("hijacking into get container for my-resource")
 			hijackS, stdin := flyHelper.HijackInteractive(
 				"-j", pipelineName+"/failing-task",
@@ -145,7 +143,6 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 		})
 
 		It("can use a custom resource with parameters", func() {
-			time.Sleep(30 * time.Second)
 			watch := flyHelper.TriggerJob(pipelineName, "resource-test")
 			<-watch.Exited
 			Expect(watch.ExitCode()).To(Equal(0))
