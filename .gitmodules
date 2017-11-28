@@ -344,3 +344,63 @@
 	path = src/github.com/NYTimes/gziphandler
 	url = https://github.com/NYTimes/gziphandler
 	branch = master
+[submodule "src/github.com/go-openapi/jsonpointer"]
+	path = src/github.com/go-openapi/jsonpointer
+	url = https://github.com/go-openapi/jsonpointer
+	branch = master
+[submodule "src/golang.org/x/text"]
+	path = src/golang.org/x/text
+	url = https://go.googlesource.com/text
+	branch = master
+[submodule "src/github.com/emicklei/go-restful"]
+	path = src/github.com/emicklei/go-restful
+	url = https://github.com/emicklei/go-restful
+	branch = master
+[submodule "src/github.com/go-openapi/jsonreference"]
+	path = src/github.com/go-openapi/jsonreference
+	url = https://github.com/go-openapi/jsonreference
+	branch = master
+[submodule "src/github.com/golang/glog"]
+	path = src/github.com/golang/glog
+	url = https://github.com/golang/glog
+	branch = master
+[submodule "src/github.com/google/gofuzz"]
+	path = src/github.com/google/gofuzz
+	url = https://github.com/google/gofuzz
+	branch = master
+[submodule "src/github.com/PuerkitoBio/purell"]
+	path = src/github.com/PuerkitoBio/purell
+	url = https://github.com/PuerkitoBio/purell
+	branch = master
+[submodule "src/k8s.io/kube-openapi"]
+	path = src/k8s.io/kube-openapi
+	url = https://github.com/kubernetes/kube-openapi
+	branch = master
+[submodule "src/github.com/PuerkitoBio/urlesc"]
+	path = src/github.com/PuerkitoBio/urlesc
+	url = https://github.com/PuerkitoBio/urlesc
+	branch = master
+[submodule "src/k8s.io/client-go"]
+	path = src/k8s.io/client-go
+	url = https://github.com/kubernetes/client-go
+	branch = master
+[submodule "src/k8s.io/apimachinery"]
+	path = src/k8s.io/apimachinery
+	url = https://github.com/kubernetes/apimachinery
+	branch = master
+[submodule "src/k8s.io/api"]
+	path = src/k8s.io/api
+	url = https://github.com/kubernetes/api
+	branch = master
+[submodule "src/github.com/mailru/easyjson"]
+	path = src/github.com/mailru/easyjson
+	url = https://github.com/mailru/easyjson
+	branch = master
+[submodule "src/github.com/go-openapi/spec"]
+	path = src/github.com/go-openapi/spec
+	url = https://github.com/go-openapi/spec
+	branch = master
+[submodule "src/github.com/go-openapi/swag"]
+	path = src/github.com/go-openapi/swag
+	url = https://github.com/go-openapi/swag
+	branch = master

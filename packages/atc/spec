@@ -19,6 +19,8 @@ files:
   - code.cloudfoundry.org/urljoiner/*.go # gosub
   - github.com/Masterminds/squirrel/*.go # gosub
   - github.com/NYTimes/gziphandler/*.go # gosub
+  - github.com/PuerkitoBio/purell/*.go # gosub
+  - github.com/PuerkitoBio/urlesc/*.go # gosub
   - github.com/SHyx0rmZ/go-bitbucket/bitbucket/*.go # gosub
   - github.com/SHyx0rmZ/go-bitbucket/cloud/*.go # gosub
   - github.com/SHyx0rmZ/go-bitbucket/server/*.go # gosub
@@ -81,6 +83,7 @@ files:
   - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/concourse/atc/creds/*.go # gosub
   - github.com/concourse/atc/creds/credhub/*.go # gosub
+  - github.com/concourse/atc/creds/kubernetes/*.go # gosub
   - github.com/concourse/atc/creds/noop/*.go # gosub
   - github.com/concourse/atc/creds/vault/*.go # gosub
   - github.com/concourse/atc/creds/vault/vendor/github.com/fatih/structs/*.go # gosub
@@ -152,10 +155,18 @@ files:
   - github.com/dghubble/oauth1/*.go # gosub
   - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/elazarl/go-bindata-assetfs/*.go # gosub
+  - github.com/emicklei/go-restful/*.go # gosub
+  - github.com/emicklei/go-restful/log/*.go # gosub
   - github.com/felixge/tcpkeepalive/*.go # gosub
+  - github.com/go-openapi/jsonpointer/*.go # gosub
+  - github.com/go-openapi/jsonreference/*.go # gosub
+  - github.com/go-openapi/spec/*.go # gosub
+  - github.com/go-openapi/swag/*.go # gosub
+  - github.com/golang/glog/*.go # gosub
   - github.com/golang/protobuf/proto/*.go # gosub
   - github.com/google/go-github/github/*.go # gosub
   - github.com/google/go-querystring/query/*.go # gosub
+  - github.com/google/gofuzz/*.go # gosub
   - github.com/google/jsonapi/*.go # gosub
   - github.com/gorilla/websocket/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
@@ -168,6 +179,9 @@ files:
   - github.com/lann/ps/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
+  - github.com/mailru/easyjson/buffer/*.go # gosub
+  - github.com/mailru/easyjson/jlexer/*.go # gosub
+  - github.com/mailru/easyjson/jwriter/*.go # gosub
   - github.com/mattes/migrate/*.go # gosub
   - github.com/mattes/migrate/database/*.go # gosub
   - github.com/mattes/migrate/database/postgres/*.go # gosub
@@ -195,9 +209,166 @@ files:
   - golang.org/x/crypto/bcrypt/*.go # gosub
   - golang.org/x/crypto/blowfish/*.go # gosub
   - golang.org/x/net/context/*.go # gosub
+  - golang.org/x/net/idna/*.go # gosub
   - golang.org/x/oauth2/*.go # gosub
   - golang.org/x/oauth2/bitbucket/*.go # gosub
   - golang.org/x/oauth2/github/*.go # gosub
   - golang.org/x/oauth2/internal/*.go # gosub
   - golang.org/x/sync/syncmap/*.go # gosub
+  - golang.org/x/text/transform/*.go # gosub
+  - golang.org/x/text/unicode/norm/*.go # gosub
+  - golang.org/x/text/width/*.go # gosub
   - gopkg.in/yaml.v2/*.go # gosub
+  - k8s.io/api/admissionregistration/v1alpha1/*.go # gosub
+  - k8s.io/api/apps/v1/*.go # gosub
+  - k8s.io/api/apps/v1beta1/*.go # gosub
+  - k8s.io/api/apps/v1beta2/*.go # gosub
+  - k8s.io/api/authentication/v1/*.go # gosub
+  - k8s.io/api/authentication/v1beta1/*.go # gosub
+  - k8s.io/api/authorization/v1/*.go # gosub
+  - k8s.io/api/authorization/v1beta1/*.go # gosub
+  - k8s.io/api/autoscaling/v1/*.go # gosub
+  - k8s.io/api/autoscaling/v2beta1/*.go # gosub
+  - k8s.io/api/batch/v1/*.go # gosub
+  - k8s.io/api/batch/v1beta1/*.go # gosub
+  - k8s.io/api/batch/v2alpha1/*.go # gosub
+  - k8s.io/api/certificates/v1beta1/*.go # gosub
+  - k8s.io/api/core/v1/*.go # gosub
+  - k8s.io/api/extensions/v1beta1/*.go # gosub
+  - k8s.io/api/networking/v1/*.go # gosub
+  - k8s.io/api/policy/v1beta1/*.go # gosub
+  - k8s.io/api/rbac/v1/*.go # gosub
+  - k8s.io/api/rbac/v1alpha1/*.go # gosub
+  - k8s.io/api/rbac/v1beta1/*.go # gosub
+  - k8s.io/api/scheduling/v1alpha1/*.go # gosub
+  - k8s.io/api/settings/v1alpha1/*.go # gosub
+  - k8s.io/api/storage/v1/*.go # gosub
+  - k8s.io/api/storage/v1beta1/*.go # gosub
+  - k8s.io/api/vendor/github.com/gogo/protobuf/proto/*.go # gosub
+  - k8s.io/api/vendor/github.com/gogo/protobuf/sortkeys/*.go # gosub
+  - k8s.io/apimachinery/pkg/api/equality/*.go # gosub
+  - k8s.io/apimachinery/pkg/api/errors/*.go # gosub
+  - k8s.io/apimachinery/pkg/api/meta/*.go # gosub
+  - k8s.io/apimachinery/pkg/api/resource/*.go # gosub
+  - k8s.io/apimachinery/pkg/apis/meta/v1/*.go # gosub
+  - k8s.io/apimachinery/pkg/apis/meta/v1/unstructured/*.go # gosub
+  - k8s.io/apimachinery/pkg/apis/meta/v1alpha1/*.go # gosub
+  - k8s.io/apimachinery/pkg/conversion/*.go # gosub
+  - k8s.io/apimachinery/pkg/conversion/queryparams/*.go # gosub
+  - k8s.io/apimachinery/pkg/conversion/unstructured/*.go # gosub
+  - k8s.io/apimachinery/pkg/fields/*.go # gosub
+  - k8s.io/apimachinery/pkg/labels/*.go # gosub
+  - k8s.io/apimachinery/pkg/runtime/*.go # gosub
+  - k8s.io/apimachinery/pkg/runtime/schema/*.go # gosub
+  - k8s.io/apimachinery/pkg/runtime/serializer/*.go # gosub
+  - k8s.io/apimachinery/pkg/runtime/serializer/json/*.go # gosub
+  - k8s.io/apimachinery/pkg/runtime/serializer/protobuf/*.go # gosub
+  - k8s.io/apimachinery/pkg/runtime/serializer/recognizer/*.go # gosub
+  - k8s.io/apimachinery/pkg/runtime/serializer/streaming/*.go # gosub
+  - k8s.io/apimachinery/pkg/runtime/serializer/versioning/*.go # gosub
+  - k8s.io/apimachinery/pkg/selection/*.go # gosub
+  - k8s.io/apimachinery/pkg/types/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/clock/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/diff/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/errors/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/framer/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/intstr/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/json/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/net/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/runtime/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/sets/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/validation/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/validation/field/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/wait/*.go # gosub
+  - k8s.io/apimachinery/pkg/util/yaml/*.go # gosub
+  - k8s.io/apimachinery/pkg/version/*.go # gosub
+  - k8s.io/apimachinery/pkg/watch/*.go # gosub
+  - k8s.io/apimachinery/third_party/forked/golang/reflect/*.go # gosub
+  - k8s.io/apimachinery/vendor/github.com/davecgh/go-spew/spew/*.go # gosub
+  - k8s.io/apimachinery/vendor/github.com/ghodss/yaml/*.go # gosub
+  - k8s.io/apimachinery/vendor/github.com/gogo/protobuf/proto/*.go # gosub
+  - k8s.io/apimachinery/vendor/github.com/gogo/protobuf/sortkeys/*.go # gosub
+  - k8s.io/apimachinery/vendor/github.com/json-iterator/go/*.go # gosub
+  - k8s.io/apimachinery/vendor/github.com/spf13/pflag/*.go # gosub
+  - k8s.io/apimachinery/vendor/golang.org/x/net/http2/*.go # gosub
+  - k8s.io/apimachinery/vendor/golang.org/x/net/http2/hpack/*.go # gosub
+  - k8s.io/apimachinery/vendor/golang.org/x/net/idna/*.go # gosub
+  - k8s.io/apimachinery/vendor/golang.org/x/net/lex/httplex/*.go # gosub
+  - k8s.io/apimachinery/vendor/golang.org/x/text/secure/bidirule/*.go # gosub
+  - k8s.io/apimachinery/vendor/golang.org/x/text/transform/*.go # gosub
+  - k8s.io/apimachinery/vendor/golang.org/x/text/unicode/bidi/*.go # gosub
+  - k8s.io/apimachinery/vendor/golang.org/x/text/unicode/norm/*.go # gosub
+  - k8s.io/apimachinery/vendor/gopkg.in/inf.v0/*.go # gosub
+  - k8s.io/apimachinery/vendor/gopkg.in/yaml.v2/*.go # gosub
+  - k8s.io/client-go/discovery/*.go # gosub
+  - k8s.io/client-go/kubernetes/*.go # gosub
+  - k8s.io/client-go/kubernetes/scheme/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/admissionregistration/v1alpha1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/apps/v1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/apps/v1beta1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/apps/v1beta2/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/authentication/v1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/authentication/v1beta1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/authorization/v1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/authorization/v1beta1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/autoscaling/v1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/autoscaling/v2beta1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/batch/v1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/batch/v1beta1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/batch/v2alpha1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/certificates/v1beta1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/core/v1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/extensions/v1beta1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/networking/v1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/policy/v1beta1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/rbac/v1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/rbac/v1alpha1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/rbac/v1beta1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/scheduling/v1alpha1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/settings/v1alpha1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/storage/v1/*.go # gosub
+  - k8s.io/client-go/kubernetes/typed/storage/v1beta1/*.go # gosub
+  - k8s.io/client-go/pkg/version/*.go # gosub
+  - k8s.io/client-go/rest/*.go # gosub
+  - k8s.io/client-go/rest/watch/*.go # gosub
+  - k8s.io/client-go/tools/auth/*.go # gosub
+  - k8s.io/client-go/tools/clientcmd/*.go # gosub
+  - k8s.io/client-go/tools/clientcmd/api/*.go # gosub
+  - k8s.io/client-go/tools/clientcmd/api/latest/*.go # gosub
+  - k8s.io/client-go/tools/clientcmd/api/v1/*.go # gosub
+  - k8s.io/client-go/tools/metrics/*.go # gosub
+  - k8s.io/client-go/tools/reference/*.go # gosub
+  - k8s.io/client-go/transport/*.go # gosub
+  - k8s.io/client-go/util/cert/*.go # gosub
+  - k8s.io/client-go/util/flowcontrol/*.go # gosub
+  - k8s.io/client-go/util/homedir/*.go # gosub
+  - k8s.io/client-go/util/integer/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/golang/protobuf/proto/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/golang/protobuf/ptypes/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/golang/protobuf/ptypes/any/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/golang/protobuf/ptypes/duration/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/golang/protobuf/ptypes/timestamp/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/google/btree/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/googleapis/gnostic/OpenAPIv2/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/googleapis/gnostic/compiler/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/googleapis/gnostic/extensions/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/gregjones/httpcache/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/gregjones/httpcache/diskcache/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/howeyc/gopass/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/imdario/mergo/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/juju/ratelimit/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/peterbourgon/diskv/*.go # gosub
+  - k8s.io/client-go/vendor/github.com/spf13/pflag/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/crypto/ssh/terminal/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/net/http2/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/net/http2/hpack/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/net/idna/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/net/lex/httplex/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/sys/unix/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/sys/windows/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/text/secure/bidirule/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/text/transform/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/text/unicode/bidi/*.go # gosub
+  - k8s.io/client-go/vendor/golang.org/x/text/unicode/norm/*.go # gosub
+  - k8s.io/client-go/vendor/gopkg.in/yaml.v2/*.go # gosub
+  - k8s.io/kube-openapi/pkg/common/*.go # gosub
