@@ -19,7 +19,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 		// emitterFactory *metricfakes.FakeEmitterFactory
 	)
 
-	BeforeSuite(func() {
+	BeforeEach(func() {
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitter = &metricfakes.FakeEmitter{}
 
@@ -33,11 +33,11 @@ var _ = Describe("Periodic emission of metrics", func() {
 		metric.Databases = []db.Conn{a, b}
 		metric.Initialize(nil, "test", map[string]string{})
 
-		go metric.PeriodicallyEmit(lager.NewLogger("dont care"), 10*time.Millisecond)
+		go metric.PeriodicallyEmit(lager.NewLogger("dont care"), 250*time.Millisecond)
 	})
 
 	It("emits database queries", func() {
-		Eventually(emitter.Invocations).Should(HaveLen(1))
+		Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
 		Expect(emitter.Invocations()["Emit"]).To(
 			ContainElement(
 				ContainElement(
@@ -50,7 +50,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 	})
 
 	It("emits database connections for each pool", func() {
-		Eventually(emitter.Invocations).Should(HaveLen(1))
+		Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
 		Expect(emitter.Invocations()["Emit"]).To(
 			ContainElement(
 				ContainElement(
