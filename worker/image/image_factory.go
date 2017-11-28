@@ -63,6 +63,7 @@ func (f *imageFactory) GetImage(
 			worker.ImageResource{
 				Type:   resourceType.Type,
 				Source: resourceType.Source,
+				Params: &resourceType.Params,
 			},
 			resourceType.Version,
 			teamID,

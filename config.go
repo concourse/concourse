@@ -65,6 +65,7 @@ type ResourceType struct {
 	Source     Source `yaml:"source" json:"source" mapstructure:"source"`
 	Privileged bool   `yaml:"privileged,omitempty" json:"privileged" mapstructure:"privileged"`
 	Tags       Tags   `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
+	Params     Params `yaml:"params,omitempty" json:"params" mapstructure:"params"`
 }
 
 type ResourceTypes []ResourceType

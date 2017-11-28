@@ -31,6 +31,12 @@ var _ = Describe("ResourceType", func() {
 						Privileged: true,
 						Source:     atc.Source{"some": "other-repository"},
 					},
+					{
+						Name:   "some-type-with-params",
+						Type:   "s3",
+						Source: atc.Source{"some": "repository"},
+						Params: atc.Params{"unpack": "true"},
+					},
 				},
 			},
 			0,
@@ -50,7 +56,7 @@ var _ = Describe("ResourceType", func() {
 		})
 
 		It("returns the resource types", func() {
-			Expect(resourceTypes).To(HaveLen(2))
+			Expect(resourceTypes).To(HaveLen(3))
 
 			ids := map[int]struct{}{}
 
@@ -69,10 +75,14 @@ var _ = Describe("ResourceType", func() {
 					Expect(t.Source()).To(Equal(atc.Source{"some": "other-repository"}))
 					Expect(t.Version()).To(BeNil())
 					Expect(t.Privileged()).To(BeTrue())
+				case "some-type-with-params":
+					Expect(t.Name()).To(Equal("some-type-with-params"))
+					Expect(t.Type()).To(Equal("s3"))
+					Expect(t.Params()).To(Equal(atc.Params{"unpack": "true"}))
 				}
 			}
 
-			Expect(ids).To(HaveLen(2))
+			Expect(ids).To(HaveLen(3))
 		})
 
 		Context("when a resource type becomes inactive", func() {

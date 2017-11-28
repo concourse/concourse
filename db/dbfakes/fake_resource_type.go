@@ -54,6 +54,15 @@ type FakeResourceType struct {
 	sourceReturnsOnCall map[int]struct {
 		result1 atc.Source
 	}
+	ParamsStub        func() atc.Params
+	paramsMutex       sync.RWMutex
+	paramsArgsForCall []struct{}
+	paramsReturns     struct {
+		result1 atc.Params
+	}
+	paramsReturnsOnCall map[int]struct {
+		result1 atc.Params
+	}
 	SetResourceConfigStub        func(int) error
 	setResourceConfigMutex       sync.RWMutex
 	setResourceConfigArgsForCall []struct {
@@ -297,6 +306,46 @@ func (fake *FakeResourceType) SourceReturnsOnCall(i int, result1 atc.Source) {
 	}
 	fake.sourceReturnsOnCall[i] = struct {
 		result1 atc.Source
+	}{result1}
+}
+
+func (fake *FakeResourceType) Params() atc.Params {
+	fake.paramsMutex.Lock()
+	ret, specificReturn := fake.paramsReturnsOnCall[len(fake.paramsArgsForCall)]
+	fake.paramsArgsForCall = append(fake.paramsArgsForCall, struct{}{})
+	fake.recordInvocation("Params", []interface{}{})
+	fake.paramsMutex.Unlock()
+	if fake.ParamsStub != nil {
+		return fake.ParamsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.paramsReturns.result1
+}
+
+func (fake *FakeResourceType) ParamsCallCount() int {
+	fake.paramsMutex.RLock()
+	defer fake.paramsMutex.RUnlock()
+	return len(fake.paramsArgsForCall)
+}
+
+func (fake *FakeResourceType) ParamsReturns(result1 atc.Params) {
+	fake.ParamsStub = nil
+	fake.paramsReturns = struct {
+		result1 atc.Params
+	}{result1}
+}
+
+func (fake *FakeResourceType) ParamsReturnsOnCall(i int, result1 atc.Params) {
+	fake.ParamsStub = nil
+	if fake.paramsReturnsOnCall == nil {
+		fake.paramsReturnsOnCall = make(map[int]struct {
+			result1 atc.Params
+		})
+	}
+	fake.paramsReturnsOnCall[i] = struct {
+		result1 atc.Params
 	}{result1}
 }
 
