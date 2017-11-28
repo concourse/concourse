@@ -84,7 +84,7 @@ EOF
       --session-signing-key $SIGNING_KEY \
       --authorized-keys /var/vcap/jobs/tsa/config/authorized_keys \
       <% team_authorized_keys.each do |team, keys| %> \
-      --team-authorized-keys <%= team %> /var/vcap/jobs/tsa/config/<%= team %>_authorized_keys \
+      --team-authorized-keys <%= team %>=/var/vcap/jobs/tsa/config/<%= team %>_authorized_keys \
        <% end %> \
       --heartbeat-interval <%= p("heartbeat_interval") %> \
       --log-level <%= p("log_level") %> \
