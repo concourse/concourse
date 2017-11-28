@@ -2,6 +2,7 @@ package pipelines_test
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/concourse/testflight/gitserver"
 	. "github.com/onsi/ginkgo"
@@ -128,6 +129,26 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 					"mkdir tmp && mount -o size=50m -t tmpfs swap tmp")
 				Eventually(hijackS).Should(gexec.Exit(1))
 			})
+		})
+	})
+
+	Context("with custom resource types that have params", func() {
+		BeforeEach(func() {
+			flyHelper.ConfigurePipeline(
+				pipelineName,
+				"-c", "fixtures/resource-types-with-params.yml",
+				"-v", "s3_bucket=jghiloni-testflight2",
+				"-v", "s3_regexp=time-resource-(.*).tar.gz",
+				"-v", "s3_region=us-east-2",
+				"-y", "privileged=false",
+			)
+		})
+
+		It("can use a custom resource with parameters", func() {
+			time.Sleep(30 * time.Second)
+			watch := flyHelper.TriggerJob(pipelineName, "resource-test")
+			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
 		})
 	})
 

@@ -1,0 +1,31 @@
+---
+resource_types:
+- name: time-from-s3
+  type: s3
+  source:
+    bucket: ((s3_bucket))
+    regexp: ((s3_regexp))
+    region_name: ((s3_region))
+  params:
+    unpack: true
+
+resources:
+- name: my-resource
+  type: time-from-s3
+  source:
+    interval: 5s
+jobs:
+- name: resource-test
+  plan:
+  - get: my-resource
+  - task: use-custom-resource-type
+    config:
+      inputs:
+      - name: my-resource
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: alpine}
+      run:
+        path: test
+        args: [-e, "my-resource/input"]
