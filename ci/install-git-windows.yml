@@ -1,0 +1,11 @@
+---
+platform: windows
+
+inputs:
+- name: concourse
+
+run:
+  path: powershell.exe
+  args:
+  - -File
+  - '.\concourse\ci\scripts\install-git-windows.ps1'
