@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
@@ -50,7 +51,7 @@ type GenericOAuthConfig struct {
 	AuthURLParams map[string]string `json:"auth_url_params,omitempty"   long:"auth-url-param"  description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
 	Scope         string            `json:"scope,omitempty"             long:"scope"           description:"Optional scope required to authorize user"`
 	TokenURL      string            `json:"token_url,omitempty"         long:"token-url"       description:"Generic OAuth provider TokenURL endpoint."`
-	CACert        string            `json:"ca_cert,omitempty"           long:"ca-cert"         description:"PEM-encoded CA certificate string"`
+	CACert        auth.FileContentsFlag            `json:"ca_cert,omitempty"           long:"ca-cert"         description:"PEM-encoded CA certificate string"`
 }
 
 func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
