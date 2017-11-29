@@ -3,40 +3,108 @@
 \release{2017-11-30}{3.7.0}{1.9.0}{
   \note{feature,security,breaking}{
     We've ripped out the old & janky PostgreSQL job from our Concourse BOSH release.
-    You will have no choice but to bring your own PostgreSQL database. 
+    You will have no choice but to bring your own PostgreSQL database.
 
-    If you use the Concourse BOSH release and you haven't upgraded in a while, I'd
-    suggest you check out the previous migration instructions from Concourse \reference{v3.5.0} 
-    and \reference{v3.6.0}  
+    If you use the Concourse BOSH release and you haven't upgraded in a while,
+    I'd suggest you check out the previous migration instructions from
+    Concourse \reference{v3.5.0} and \reference{v3.6.0}.
+  }
+
+  \note{feature,breaking}{
+    We've changed how we develop database migrations, so as to support down
+    migrations in the future. This will hopefully mean that if you upgrade
+    Concourse and for whatever reason need to back out, you'll be able to,
+    instead of being stuck on a (possibly broken) latest version.
+
+    As part of this switch, we've also squashed our migrations into one big
+    bang, which should also improve startup time for fresh installations.
+    However, this means that \bold{you must first upgrade to \reference{v3.6.0}
+    before upgrading to \reference{v3.7.0}!}
+
+    So, do that. You may need to anyway now that we've removed PostgreSQL (see
+    previous note).
+  }
+
+  \note{feature,breaking}{
+    Our BOSH release used to have a few magical mystical packages called
+    \code{generated_something}. These packages would generate a RSA key every
+    time they compiled, in service of automagically wiring up security
+    credentials so you didn't have to put them in your manifest.
+
+    This approach was extremely clever and whoever came up with the idea was a
+    downright genius, way ahead of their time.
+
+    We've now collectively decided that the whole approach is stupid and
+    redundant now that BOSH manifests can generate their own typed variables.
+    It was fun while it lasted.
+
+    The delta for this change is described in \ghissue{1834}. You can consult
+    \link{our changes to
+    \code{manifests/single-vm.yml}}{https://github.com/concourse/concourse/compare/concourse:4bd88f1...concourse:6c80d86#diff-3492b4974e6d847f6bafd34846ccac8e}
+    for reference.
+
+    As an alternative to hand-editing your manifest, the next release note may
+    pique your interest.
   }
 
   \note{feature}{
-    We are now openly gathering feedback on one of our worst-kept-secrets: the Concourse
-    dashboard view. You can access it by visiting \code{/beta/dashboard}. 
+    We have started dusting off
+    \link{\code{concourse-deployment}}{https://github.com/concourse/concourse-deployment}
+    and using it as a central location for Concourse BOSHy deployment goodness.
+    We now use it for our production deployment, as well as a few testing
+    environments. We've updated the \reference{clusters-with-bosh}
+    documentation accordingly.
+  }
 
-    In this version of Concourse, we've tweaked some of the visual elements of the
-    dashboard to make it more readible for installations with multiple teams. 
-    We've also fixed some of the pipeline states so that they make more sense. 
+  \note{feature}{
+    We are now openly gathering feedback on one of our worst-kept-secrets: the
+    Concourse dashboard view. You can access it by visiting
+    \code{/beta/dashboard}.
 
-    Tell us what you think about the new dashboard by dropping us a line on GitHub issue
-    \link{#1829}{https://github.com/concourse/concourse/issues/1829}
+    In this version of Concourse, we've tweaked some of the visual elements of
+    the dashboard to make it more readible for installations with multiple
+    teams. We've also fixed some of the pipeline states so that they make more
+    sense.
+
+    Tell us what you think about the new dashboard by dropping us a line on
+    \ghissue{1829}.
+  }
+
+  \note{feature}{
+    The ATC will now use a separate database connection pool for the API and
+    the pipeline scheduling work. This will make it so that a bunch of slow API
+    requests can't starve critical functionality.
+  }
+
+  \note{feature}{
+    You can now configure \reference{resource-type-params} on a pipeline
+    resource type, thanks to a PR by \ghuser{jghiloni}! This will enable users
+    to use the \resource{s3} with \code{params: \{unpack: true\}}, as an
+    alternative to the \resource{docker-image}.
+  }
+
+  \note{feature}{
+    You can now specify a \reference{on_abort} hook on a step or on a job. It
+    will run on abort. 🎉
   }
 
   \note{fix}{
-    Fixed an issue where copying the build output would also take on the timestamp on the left.
+    Fixed an issue where selecting/copying the build output would also select
+    the timestamp on the left.
   }
 
   \note{fix}{
-    \code{fly} no longer tries to log you into the previous team if you forget to use \code{-n} on \reference{fly-login}
+    \code{fly login} will now error if arguments are mistakenly given to it.
   }
 
   \note{fix}{
-    Turns out you can spam the build page by holding \code{T} to trigger multiple builds. We've fixed that now so it only
-    triggers a build once
-  } 
+    Turns out you could easily spam the build page by holding \code{T} to
+    trigger multiple builds. We've fixed that now so it only triggers a build
+    once. #YOTO
+  }
 
   \note{fix}{
-    Fixed the web UI so that it appropriately shows that you are logged out when your session expires
-  } 
-
+    Fixed the web UI so that it appropriately shows that you are logged out
+    when your session expires.
+  }
 }

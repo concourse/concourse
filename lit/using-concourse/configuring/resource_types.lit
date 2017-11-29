@@ -110,6 +110,10 @@ consists of the following attributes:
   via third-party resource type exploits.
 }{resource-type-privileged}
 
+\define-attribute{params: object}{
+  \italic{Optional.} Arbitrary params to pass when fetching the resource.
+}{resource-type-params}
+
 \define-attribute{tags: [string]}{
   \italic{Optional. Default \code{[]}.} A list of tags to determine which
   workers the checks will be performed on. You'll want to specify this if the
