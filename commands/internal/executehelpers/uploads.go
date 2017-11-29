@@ -25,6 +25,7 @@ func Upload(client concourse.Client, input Input, includeIgnored bool) {
 	} else {
 		files, err = getGitFiles(path)
 		if err != nil {
+			fmt.Println("getGitFiles error: ", err)
 			files = []string{"."}
 		}
 	}

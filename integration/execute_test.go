@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -304,20 +305,11 @@ run: {}
 			BeforeEach(func() {
 				gitIgnorePath := filepath.Join(buildDir, ".gitignore")
 
-				err := ioutil.WriteFile(
-					gitIgnorePath,
-					[]byte(`*.test`),
-					0644,
-				)
+				err := ioutil.WriteFile(gitIgnorePath, []byte(`*.test`), 0644)
 				Expect(err).NotTo(HaveOccurred())
 
 				fileToBeIgnoredPath := filepath.Join(buildDir, "dev.test")
-
-				err = ioutil.WriteFile(
-					fileToBeIgnoredPath,
-					[]byte(`test file content`),
-					0644,
-				)
+				err = ioutil.WriteFile(fileToBeIgnoredPath, []byte(`test file content`), 0644)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = os.Mkdir(filepath.Join(buildDir, ".git"), 0755)
@@ -328,15 +320,10 @@ run: {}
 
 				err = os.Mkdir(filepath.Join(buildDir, ".git/objects"), 0755)
 				Expect(err).NotTo(HaveOccurred())
-				gitHEADPath := filepath.Join(buildDir+"/.git", "HEAD")
 
-				err = ioutil.WriteFile(
-					gitHEADPath,
-					[]byte(`ref: refs/heads/master`),
-					0644,
-				)
+				gitHEADPath := filepath.Join(buildDir, ".git/HEAD")
+				err = ioutil.WriteFile(gitHEADPath, []byte(`ref: refs/heads/master`), 0644)
 				Expect(err).NotTo(HaveOccurred())
-				fmt.Printf("\nblah: %s\n", buildDir)
 			})
 
 			Context("when arguments not include -x", func() {
@@ -361,7 +348,7 @@ run: {}
 									if err != nil {
 										break
 									}
-									if hdr.Name == "./dev.test" {
+									if strings.Contains(hdr.Name, "dev.test") {
 										matchFound = true
 										break
 									}
@@ -373,8 +360,7 @@ run: {}
 						),
 					)
 
-					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture="+buildDir)
-
+					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)
 					flyCmd.Dir = buildDir
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -413,7 +399,7 @@ run: {}
 									if err != nil {
 										break
 									}
-									if hdr.Name == "./dev.test" {
+									if strings.Contains(hdr.Name, "dev.test") {
 										matchFound = true
 										break
 									}
@@ -425,7 +411,6 @@ run: {}
 						),
 					)
 					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-x")
-
 					flyCmd.Dir = buildDir
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
