@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/uaa"
 	. "github.com/onsi/ginkgo"
@@ -19,7 +20,7 @@ var _ = Describe("UAA Provider", func() {
 		uaaProvider     provider.Provider
 		found           bool
 		uaaTeamProvider uaa.UAATeamProvider
-		sslCert         uaa.FileContentsFlag
+		sslCert         auth.FileContentsFlag
 	)
 
 	BeforeEach(func() {
