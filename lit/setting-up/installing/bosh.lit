@@ -12,163 +12,99 @@ investment, but it should pay off in spades. There are a lot of parallels
 between the philosophy of BOSH and Concourse.
 
 \section{
-  \title{Prepping the Environment}{prepping-bosh}
+  \title{Learning BOSH}
 
-  To go from nothing to a BOSH managed Concourse, you'll need to do the following:
+  If you've never used BOSH before, you may want to first go through its
+  introductory material:
 
   \list{
-    \link{Initialize a BOSH director}{http://bosh.io/docs/init.html}, which
-    is the server that orchestrates BOSH deployments.
+    \link{What is BOSH?}{http://bosh.io/docs}
   }{
-    \link{Set up your Cloud Config}{http://bosh.io/docs/cloud-config.html},
-    which describes the infrastructure to which Concourse will be deployed.
+    \link{General architecture}{http://bosh.io/docs/bosh-components.html}
   }{
-    \link{Upload the stemcell}{http://bosh.io/docs/uploading-stemcells.html},
-    which contains the base image used for VMs managed by BOSH.
+    \link{Terminology}{http://bosh.io/docs/terminology.html}
   }
 
-  You can skip some of this if you already have a working BOSH director
-  running BOSH v255.4 and up.
+  To tie the terminology together: Concourse is packaged as a \italic{release},
+  whose source repository lives at
+  \link{concourse/concourse}{https://github.com/concourse/concourse} on GitHub.
+
+  Releases and \italic{stemcells} (operating system images) are put together to
+  form a \italic{deployment manifest} (a YAML file, similar to a Concourse
+  pipeline, which describes what jobs to run where, and with what properties).
+
+  A BOSH director is given a \italic{cloud config}, which is another YAML file
+  describing IaaS-specific things like network names and VM types. This file is
+  changed a lot less often than your deployment manifests.
+
+  The BOSH director is then used to deploy the deployment manifest, which is
+  what brings the "abstract" (releases, deployment manifests, a bunch of YAML)
+  to the "concrete" (software running on VMs running on an IaaS of your
+  choice). The director is then used to maintain the deployment, allowing you
+  to e.g. SSH into VMs, re-create them, perform a rolling upgrade, manage
+  persistent state, recover from IaaS instability, etc. etc.
 }
 
 \section{
-  \title{Deploying Concourse}
+  \title{Deploying Concourse with BOSH}
 
-  Once you've got all that set up, download the releases listed for your
-  version of Concourse from the \reference{downloads} section, plus the
-  \link{CloudFoundry Postgres
-  release}{http://bosh.io/releases/github.com/cloudfoundry/postgres-release},
-  and \link{upload them to the BOSH
-  director}{http://bosh.io/docs/uploading-releases.html}.
+  The quickest and easiest way to get going is to use our
+  \link{\code{concourse-deployment} "cluster"
+  recipes}{https://github.com/concourse/concourse-deployment/tree/master/cluster}.
+  This repository contains a base manifest, some example cloud configs, and
+  useful \link{Operations files}{http://bosh.io/docs/cli-ops-files.html} for
+  deploying and maintaining the latest version of Concourse with BOSH. In the
+  future, it will also include useful deployments to provide things like
+  credential management and metrics.
 
-  Next you'll need a Concourse \link{BOSH deployment
-  manifest}{http://bosh.io/docs/deployment.html}. An example manifest is
-  below; you'll want to replace the \code{REPLACE_ME} bits with whatever
-  values are appropriate.
+  The \code{concourse-deployment} repo covers the following steps:
 
-  Note that the VM types, VM extensions, persistent disk type, and network names
-  must come from your Cloud Config. Consult \reference{prepping-bosh} if you
-  haven't set it up yet. You can retrieve your Cloud Config by running
-  \code{bosh cloud-config}.
+  \list{
+    Setting up your cloud config: there's a \code{cloud_configs} directory
+    containing various examples. Some of them may work verbatim. If none of
+    them apply, though, you're on your own; you should consult
+    \link{bosh.io}{http://bosh.io/docs/cloud-config.html} for IaaS-specific
+    information.
+  }{
+    Creating the manifest: that's kind of the point of the repo. Any required
+    property changes will be made to the repository as soon as they're needed,
+    so when a new Concourse comes out you should be able to just
+    re-\code{deploy}.
+  }{
+    Uploading the releases: the manifest will include them by URL, version, and
+    sha1, allowing the director to download them for you.
+  }{
+    Configuring \reference{authentication} and other fancier setups should be
+    available as Operations files under the
+    \link{\code{operations/}}{https://github.com/concourse/concourse-deployment/tree/master/cluster/operations}
+    tree.
+  }
 
-  \codeblock{yaml}{{
-    ---
-    name: concourse
+  However, it does \italic{not} cover the following:
 
-    releases:
-    - name: concourse
-      version: latest
-    - name: garden-runc
-      version: latest
-    - name: postgres
-      version: latest
+  \list{
+    Initializing your BOSH director. To go from nothing to a BOSH managed
+    Concourse, you'll first need to \link{initialize a BOSH
+    director}{http://bosh.io/docs/init.html}.
+  }{
+    Uploading the stemcells. Head over to
+    \link{bosh.io/stemcells}{http://bosh.io/stemcells} and grab the appropriate
+    one for your IaaS, and \link{upload it to your
+    director}{http://bosh.io/docs/uploading-stemcells.html}.
+  }
 
-    stemcells:
-    - alias: trusty
-      os: ubuntu-trusty
-      version: latest
+  These steps are general to anyone using BOSH, and so are not replicated in
+  our documentation.
 
-    instance_groups:
-    - name: web
-      instances: 1
-      # replace with a VM type from your BOSH Director's cloud config
-      vm_type: REPLACE_ME
-      vm_extensions:
-      # replace with a VM extension from your BOSH Director's cloud config that will attach
-      # this instance group to your ELB
-      - REPLACE_ME
-      stemcell: trusty
-      azs: [z1]
-      networks: [\{name: private\}]
-      jobs:
-      - name: atc
-        release: concourse
-        properties:
-          # replace with your CI's externally reachable URL, e.g. https://ci.foo.com
-          external_url: REPLACE_ME
-
-          # replace with username/password, or configure GitHub auth
-          basic_auth_username: REPLACE_ME
-          basic_auth_password: REPLACE_ME
-
-          # replace with your SSL cert and key
-          tls_cert: REPLACE_ME
-          tls_key: REPLACE_ME
-
-          postgresql:
-            database: &atc_db atc
-            role: &atc_role
-              # make up a role and password
-              name: REPLACE_ME
-              password: REPLACE_ME
-      - name: tsa
-        release: concourse
-        properties: \{\}
-
-    - name: db
-      instances: 1
-      # replace with a VM type from your BOSH Director's cloud config
-      vm_type: REPLACE_ME
-      stemcell: trusty
-      # replace with a disk type from your BOSH Director's cloud config
-      persistent_disk_type: REPLACE_ME
-      azs: [z1]
-      networks: [\{name: private\}]
-      jobs:
-      - name: postgres
-        release: postgres
-        properties:
-          databases:
-            port: 5432
-            databases:
-            - name: *atc_db
-            roles:
-            - *atc_role
-
-    - name: worker
-      instances: 1
-      # replace with a VM type from your BOSH Director's cloud config
-      vm_type: REPLACE_ME
-      vm_extensions:
-      # replace with a VM extension from your BOSH Director's cloud config that will attach
-      # sufficient ephemeral storage to VMs in this instance group.
-      - REPLACE_ME
-      stemcell: trusty
-      azs: [z1]
-      networks: [\{name: private\}]
-      jobs:
-      - name: groundcrew
-        release: concourse
-        properties: \{\}
-      - name: baggageclaim
-        release: concourse
-        properties: \{\}
-      - name: garden
-        release: garden-runc
-        properties:
-          garden:
-            listen_network: tcp
-            listen_address: 0.0.0.0:7777
-
-    update:
-      canaries: 1
-      max_in_flight: 1
-      serial: false
-      canary_watch_time: 1000-60000
-      update_watch_time: 1000-60000
-  }}
-
-  You may also want to consult the property descriptions for your version of
-  Concourse at
-  \link{bosh.io}{https://bosh.io/releases/github.com/concourse/concourse} to
-  see what properties you can/should tweak.
+  Another handy reference is the \link{release documentation on
+  bosh.io}{https://bosh.io/releases/github.com/concourse/concourse}, which
+  makesit easy to peruse the available properties for each job. We
+  intentionally keep all documentation and examples within the release itself
+  to ensure there is no out-of-date documentation.
 
   You may also want to consult \reference{authentication} for configuring
   something other than basic auth for the \reference{main-team}{\code{main}
   team}.
-
-  Once you've got a manifest, just \link{deploy
-  it}{https://bosh.io/docs/deploying.html}!
 }
 
 \section{
@@ -209,58 +145,12 @@ between the philosophy of BOSH and Concourse.
   of time, so they know who they're connecting to.
 
   \section{
-    \title{Configuring the TSA's host key}
-
-    First you'll need to remove the "magic" from the default deployment. By
-    default, Concourse generates a key pair for the TSA, and gives the public
-    key to the workers so they can trust the connection. This key
-    occasionally gets cycled, which is fine so long as things are in one
-    deployment, but once you have external workers you would have to update
-    them all manually, which is annoying.
-
-    To fix this, generate a passwordless key pair via \code{ssh-keygen}, and
-    provide the following properties in your BOSH deployment manifest:
-
-    \definitions{
-      \definition{\code{host_key} on the \code{tsa} job}{
-        the contents of the private key for the TSA server
-      }
-    }{
-      \definition{\code{host_public_key} on the \code{tsa} job}{
-        the public key of the TSA, for the workers to use to verify the
-        connection
-      }
-    }
-
-    For example (note that this manifest omits a bunch of stuff):
-
-    \codeblock{yaml}{{
-    instance_groups:
-    - name: web
-      jobs:
-      - name: tsa
-        release: concourse
-        properties:
-          host_key: |
-            -----BEGIN RSA PRIVATE KEY-----
-            <a bunch of stuff>
-            -----END RSA PRIVATE KEY-----
-          host_public_key: "ssh-rsa blahblahblah"
-      - # ...
-    }}
-
-    After setting these properties, be sure to run \code{bosh deploy}.
-  }
-
-  \section{
     \title{Authorizing worker keys}
 
-    We've left the worker keys auto-generated so far, which is fine for
-    workers deployed alongside the TSA, as it'll also automatically authorize
-    them.
-
-    External workers however will need their own private keys, and so the TSA
-    must be told to authorize them.
+    Workers are authorized into the cluster by listing their public key in the
+    \code{authorized_keys} property on the \code{tsa} job, and configuring the
+    worker's \code{tsa.worker_key} property on the \code{groundcrew} job to
+    register with the corresponding private key.
 
     To do so, set the following properties:
 
@@ -269,7 +159,7 @@ between the philosophy of BOSH and Concourse.
         the array of public keys to authorize
       }
     }{
-      \definition{\code{tsa.private_key} on the \code{groundcrew} job}{
+      \definition{\code{tsa.worker_key} on the \code{groundcrew} job}{
         the private key for the worker to use when accessing the TSA
       }
     }{
@@ -279,16 +169,20 @@ between the philosophy of BOSH and Concourse.
       }
     }{
       \definition{\code{garden.forward_address} on the \code{groundcrew} job}{
-        if the worker is in a separate deployment, this must be the locally-reachable Garden address to forward through the TSA; e.g.: 127.0.0.1:7777
+        if the worker is in a separate deployment, this must be the
+        locally-reachable Garden address to forward through the TSA; e.g.:
+        127.0.0.1:7777
       }
     }{
       \definition{\code{baggageclaim.forward_address} on the \code{groundcrew} job}{
-        if the worker is in a separate deployment, this must be the locally-reachable Baggageclaim address to forward through the TSA; e.g.: 127.0.0.1:7788
+        if the worker is in a separate deployment, this must be the
+        locally-reachable Baggageclaim address to forward through the TSA;
+        e.g.: 127.0.0.1:7788
       }
     }
 
-    Once again, after setting these properties run \code{bosh deploy} to make
-    the changes take place.
+    After setting these properties run \code{bosh deploy} to make the changes
+    take place.
   }
 
   \section{
