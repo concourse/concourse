@@ -1,6 +1,8 @@
 package genericoauth
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 	"encoding/json"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
@@ -25,6 +28,7 @@ const ProviderName = "oauth"
 type Provider struct {
 	verifier.Verifier
 	Config ConfigOverride
+	CACert string
 }
 
 type ConfigOverride struct {
@@ -47,6 +51,7 @@ type GenericOAuthConfig struct {
 	AuthURLParams map[string]string `json:"auth_url_params,omitempty"   long:"auth-url-param"  description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
 	Scope         string            `json:"scope,omitempty"             long:"scope"           description:"Optional scope required to authorize user"`
 	TokenURL      string            `json:"token_url,omitempty"         long:"token-url"       description:"Generic OAuth provider TokenURL endpoint."`
+	CACert        auth.FileContentsFlag            `json:"ca_cert,omitempty"           long:"ca-cert"         description:"PEM-encoded CA certificate string"`
 }
 
 func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
@@ -154,6 +159,7 @@ func (GenericTeamProvider) ProviderConstructor(
 			},
 			AuthURLParams: genericOAuth.AuthURLParams,
 		},
+	  CACert: string(genericOAuth.CACert),
 	}, true
 }
 
@@ -177,11 +183,25 @@ func (provider Provider) Client(ctx context.Context, t *oauth2.Token) *http.Clie
 	return provider.Config.Client(ctx, t)
 }
 
-func (Provider) PreTokenClient() (*http.Client, error) {
+func (p Provider) PreTokenClient() (*http.Client, error) {
+	transport := &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		DisableKeepAlives: true,
+	}
+
+	if p.CACert != "" {
+		caCertPool := x509.NewCertPool()
+		ok := caCertPool.AppendCertsFromPEM([]byte(p.CACert))
+		if !ok {
+			return nil, errors.New("failed to use cf certificate")
+		}
+
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs: caCertPool,
+		}
+	}
+
 	return &http.Client{
-		Transport: &http.Transport{
-			Proxy:             http.ProxyFromEnvironment,
-			DisableKeepAlives: true,
-		},
+		Transport: transport,
 	}, nil
 }

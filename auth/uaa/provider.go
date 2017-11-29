@@ -5,14 +5,12 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"path/filepath"
-	"strings"
 
 	"encoding/json"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
@@ -50,41 +48,11 @@ type UAAAuthConfig struct {
 	ClientID     string `json:"client_id"     long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
 	ClientSecret string `json:"client_secret" long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
 
-	AuthURL  string           `json:"auth_url,omitempty"      long:"auth-url"      description:"UAA AuthURL endpoint."`
-	TokenURL string           `json:"token_url,omitempty"     long:"token-url"     description:"UAA TokenURL endpoint."`
-	CFSpaces []string         `json:"cf_spaces,omitempty"     long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
-	CFURL    string           `json:"cf_url,omitempty"        long:"cf-url"        description:"CF API endpoint."`
-	CFCACert FileContentsFlag `json:"cf_ca_cert,omitempty"    long:"cf-ca-cert"    description:"Path to CF PEM-encoded CA certificate file."`
-}
-
-type FileContentsFlag string
-
-func (f *FileContentsFlag) UnmarshalFlag(value string) error {
-	if value == "" {
-		return nil
-	}
-
-	matches, err := filepath.Glob(value)
-	if err != nil {
-		return fmt.Errorf("failed to expand path '%s': %s", value, err)
-	}
-
-	if len(matches) == 0 {
-		return fmt.Errorf("path '%s' does not exist", value)
-	}
-
-	if len(matches) > 1 {
-		return fmt.Errorf("path '%s' resolves to multiple entries: %s", value, strings.Join(matches, ", "))
-	}
-
-	cert, err := ioutil.ReadFile(matches[0])
-	if err != nil {
-		return fmt.Errorf("failed to read file from path '%s'", value)
-	}
-
-	*f = FileContentsFlag(cert)
-
-	return nil
+	AuthURL  string                `json:"auth_url,omitempty"      long:"auth-url"      description:"UAA AuthURL endpoint."`
+	TokenURL string                `json:"token_url,omitempty"     long:"token-url"     description:"UAA TokenURL endpoint."`
+	CFSpaces []string              `json:"cf_spaces,omitempty"     long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
+	CFURL    string                `json:"cf_url,omitempty"        long:"cf-url"        description:"CF API endpoint."`
+	CFCACert auth.FileContentsFlag `json:"cf_ca_cert,omitempty"    long:"cf-ca-cert"    description:"Path to CF PEM-encoded CA certificate file."`
 }
 
 func (*UAAAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
