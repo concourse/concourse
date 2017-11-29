@@ -1,0 +1,42 @@
+\use-plugin{concourse-docs}
+
+\release{2017-11-30}{3.7.0}{1.9.0}{
+  \note{feature,security,breaking}{
+    We've ripped out the old & janky PostgreSQL job from our Concourse BOSH release.
+    You will have no choice but to bring your own PostgreSQL database. 
+
+    If you use the Concourse BOSH release and you haven't upgraded in a while, I'd
+    suggest you check out the previous migration instructions from Concourse \reference{v3.5.0} 
+    and \reference{v3.6.0}  
+  }
+
+  \note{feature}{
+    We are now openly gathering feedback on one of our worst-kept-secrets: the Concourse
+    dashboard view. You can access it by visiting \code{/beta/dashboard}. 
+
+    In this version of Concourse, we've tweaked some of the visual elements of the
+    dashboard to make it more readible for installations with multiple teams. 
+    We've also fixed some of the pipeline states so that they make more sense. 
+
+    Tell us what you think about the new dashboard by dropping us a line on GitHub issue
+    \link{#1829}{https://github.com/concourse/concourse/issues/1829}
+  }
+
+  \note{fix}{
+    Fixed an issue where copying the build output would also take on the timestamp on the left.
+  }
+
+  \note{fix}{
+    \code{fly} no longer tries to log you into the previous team if you forget to use \code{-n} on \reference{fly-login}
+  }
+
+  \note{fix}{
+    Turns out you can spam the build page by holding \code{T} to trigger multiple builds. We've fixed that now so it only
+    triggers a build once
+  } 
+
+  \note{fix}{
+    Fixed the web UI so that it appropriately shows that you are logged out when your session expires
+  } 
+
+}
