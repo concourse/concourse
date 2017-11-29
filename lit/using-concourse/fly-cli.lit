@@ -745,6 +745,14 @@ flag. Once you've learned what the commands do, you may want to consult
   }}
 
   \aside{
+    When intercepting a job running on a windows worker, you will need to
+    specifically tell fly to target PowerShell as an additional argument:
+      \codeblock{bash}{{
+      $ fly -t example intercept powershell
+      }}
+  }
+
+  \aside{
     Be warned, if more than one person is using a Concourse server for running
     one-off builds then you may end up in a build that you did not expect!
   }
