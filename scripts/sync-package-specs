@@ -11,7 +11,7 @@ for pkg in fly; do
     {
       cat spec | grep -v '# gosub'
       gosub list -a github.com/concourse/$pkg | \
-        sed -e 's/\(.*\)/  - \1\/*.go # gosub/g'
+        sed -e 's/\(.*\)/  - \1\/*.{go,s,c,h} # gosub/g'
     } > spec.new
 
     mv spec.new spec
@@ -23,7 +23,7 @@ for pkg in atc blackbox baggageclaim tsa groundcrew; do
     {
       cat spec | grep -v '# gosub'
       gosub list -a github.com/concourse/$pkg/cmd/... | \
-        sed -e 's/\(.*\)/  - \1\/*.go # gosub/g'
+        sed -e 's/\(.*\)/  - \1\/*.{go,s,c,h} # gosub/g'
     } > spec.new
 
     mv spec.new spec
