@@ -1,6 +1,8 @@
 package kubernetes
 
 import (
+	"errors"
+
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc/creds"
@@ -10,29 +12,27 @@ import (
 )
 
 type KubernetesManager struct {
-	ConfigPath string `long:"config-path" description:"Path to kubernetes config. Leave empty for in-cluster ATC."`
+	InClusterConfig bool `long:"in-cluster" description:"Enables the in-cluster client."`
+	ConfigPath string `long:"config-path" description:"Path to Kubernetes config when running ATC outside Kubernetes."`
 	NamespacePrefix string `long:"namespace-prefix" default:"concourse-" description:"Prefix to use for Kubernetes namespaces under which secrets will be looked up."`
 }
 
 func (manager KubernetesManager) IsConfigured() bool {
-	if manager.ConfigPath != "" {
-		return true
-	}
-	_, err := rest.InClusterConfig()
-	if err == nil {
-		return true
-	}
-	return false
+	return manager.InClusterConfig || manager.ConfigPath != ""
 }
 
 func (manager KubernetesManager) buildConfig() (*rest.Config, error) {
-	if manager.ConfigPath != "" {
-		return clientcmd.BuildConfigFromFlags("", manager.ConfigPath)
+	if manager.InClusterConfig {
+		return rest.InClusterConfig()
 	}
-	return rest.InClusterConfig()
+
+	return clientcmd.BuildConfigFromFlags("", manager.ConfigPath)
 }
 
 func (manager KubernetesManager) Validate() error {
+	if (manager.InClusterConfig && manager.ConfigPath != "") {
+		return errors.New("Either in-cluster or config-path can be used, not both.")
+	}
 	_, err := manager.buildConfig()
 	return err
 }
