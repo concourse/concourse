@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -120,7 +121,8 @@ var _ = Describe("Workers API", func() {
 			worker atc.Worker
 			ttl    string
 
-			response *http.Response
+			response         *http.Response
+			fakeGardenWorker *workerfakes.FakeWorker
 		)
 
 		BeforeEach(func() {
@@ -143,6 +145,9 @@ var _ = Describe("Workers API", func() {
 			ttl = "30s"
 			userContextReader.GetTeamReturns("some-team", true, true)
 			userContextReader.GetSystemReturns(true, true)
+
+			fakeGardenWorker = new(workerfakes.FakeWorker)
+			fakeWorkerProvider.NewGardenWorkerReturns(fakeGardenWorker)
 		})
 
 		JustBeforeEach(func() {
@@ -284,13 +289,35 @@ var _ = Describe("Workers API", func() {
 			})
 
 			Context("when saving the worker succeeds", func() {
+				var fakeWorker *dbfakes.FakeWorker
 				BeforeEach(func() {
-					dbWorkerFactory.SaveWorkerReturns(new(dbfakes.FakeWorker), nil)
+					fakeWorker = new(dbfakes.FakeWorker)
+					dbWorkerFactory.SaveWorkerReturns(fakeWorker, nil)
 				})
 
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
+
+				It("ensures the worker has a certs volume in its baggageclaim", func() {
+					Expect(fakeWorkerProvider.NewGardenWorkerCallCount()).To(Equal(1))
+					_, _, savedWorker := fakeWorkerProvider.NewGardenWorkerArgsForCall(0)
+					Expect(savedWorker).To(Equal(fakeWorker))
+
+					Expect(fakeGardenWorker.EnsureCertsVolumeExistsCallCount()).To(Equal(1))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				Context("when ensuring the certs volume exists fails", func() {
+					BeforeEach(func() {
+						fakeGardenWorker.EnsureCertsVolumeExistsReturns(errors.New("failure"))
+					})
+
+					It("returns a non 200 status code", func() {
+						Expect(response.StatusCode).ToNot(Equal(http.StatusOK))
+					})
+				})
+
 			})
 
 			Context("when saving the worker fails", func() {

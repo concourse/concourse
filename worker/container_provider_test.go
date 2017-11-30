@@ -46,10 +46,8 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
 		fakeDBResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeLockFactory             *lockfakes.FakeLockFactory
-		fakeWorker                  *workerfakes.FakeWorker
 
-		containerProvider        ContainerProvider
-		containerProviderFactory ContainerProviderFactory
+		containerProvider ContainerProvider
 
 		fakeLocalInput    *workerfakes.FakeInputSource
 		fakeRemoteInput   *workerfakes.FakeInputSource
@@ -97,7 +95,6 @@ var _ = Describe("ContainerProvider", func() {
 		}, nil)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
-		fakeWorker = new(workerfakes.FakeWorker)
 
 		fakeDBTeamFactory := new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
@@ -109,23 +106,24 @@ var _ = Describe("ContainerProvider", func() {
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 
-		containerProviderFactory = NewContainerProviderFactory(
+		fakeDBWorker := new(dbfakes.FakeWorker)
+		fakeDBWorker.HTTPProxyURLReturns("http://proxy.com")
+		fakeDBWorker.HTTPSProxyURLReturns("https://proxy.com")
+		fakeDBWorker.NoProxyReturns("http://noproxy.com")
+
+		containerProvider = NewContainerProvider(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
 			fakeVolumeClient,
+			fakeDBWorker,
+			fakeClock,
 			fakeImageFactory,
 			fakeDBVolumeFactory,
 			fakeDBResourceCacheFactory,
 			fakeDBResourceConfigFactory,
 			fakeDBTeamFactory,
 			fakeLockFactory,
-			"http://proxy.com",
-			"https://proxy.com",
-			"http://noproxy.com",
-			fakeClock,
 		)
-
-		containerProvider = containerProviderFactory.ContainerProviderFor(fakeWorker)
 
 		fakeLocalInput = new(workerfakes.FakeInputSource)
 		fakeLocalInput.DestinationPathReturns("/some/work-dir/local-input")
@@ -346,7 +344,10 @@ var _ = Describe("ContainerProvider", func() {
 		It("gets image", func() {
 			Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
 			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualDelegate, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
-			Expect(actualWorker).To(Equal(fakeWorker))
+
+			Expect(actualWorker.BaggageclaimClient()).To(Equal(fakeBaggageclaimClient))
+			Expect(actualWorker.GardenClient()).To(Equal(fakeGardenClient))
+
 			Expect(actualVolumeClient).To(Equal(fakeVolumeClient))
 			Expect(actualImageSpec).To(Equal(containerSpec.ImageSpec))
 			Expect(actualImageSpec).ToNot(BeZero())

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -32,6 +33,12 @@ type WorkerProvider interface {
 		teamID int,
 		owner db.ContainerOwner,
 	) (Worker, bool, error)
+
+	NewGardenWorker(
+		logger lager.Logger,
+		tikTok clock.Clock,
+		savedWorker db.Worker,
+	) Worker
 }
 
 var (

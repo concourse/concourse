@@ -70,8 +70,8 @@ import (
 
 	// dynamically registered credential managers
 	_ "github.com/concourse/atc/creds/credhub"
-	_ "github.com/concourse/atc/creds/vault"
 	_ "github.com/concourse/atc/creds/kubernetes"
+	_ "github.com/concourse/atc/creds/vault"
 )
 
 var defaultDriverName = "postgres"
@@ -390,20 +390,33 @@ func (cmd *ATCCommand) constructMembers(
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
-	workerClient := cmd.constructWorkerPool(
-		logger,
-		lockFactory,
+
+	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
 		resourceFactoryFactory,
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		clock.NewClock(),
+	)
+
+	workerProvider := worker.NewDBWorkerProvider(
+		lockFactory,
+		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		image.NewImageFactory(imageResourceFetcherFactory),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
 		dbWorkerTaskCacheFactory,
 		dbVolumeFactory,
-		dbWorkerFactory,
 		teamFactory,
+		dbWorkerFactory,
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
+	)
+
+	workerClient := cmd.constructWorkerPool(
+		logger,
+		workerProvider,
 	)
 
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
@@ -475,6 +488,7 @@ func (cmd *ATCCommand) constructMembers(
 		signingKey,
 		engine,
 		workerClient,
+		workerProvider,
 		drain,
 		radarSchedulerFactory,
 		radarScannerFactory,
@@ -971,26 +985,8 @@ func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {
 
 func (cmd *ATCCommand) constructWorkerPool(
 	logger lager.Logger,
-	lockFactory lock.LockFactory,
-	resourceFetcherFactory resource.FetcherFactory,
-	resourceFactoryFactory resource.ResourceFactoryFactory,
-	dbResourceCacheFactory db.ResourceCacheFactory,
-	dbResourceConfigFactory db.ResourceConfigFactory,
-	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
-	dbWorkerTaskCacheFactory db.WorkerTaskCacheFactory,
-	dbVolumeFactory db.VolumeFactory,
-	dbWorkerFactory db.WorkerFactory,
-	teamFactory db.TeamFactory,
-	workerVersion *version.Version,
-	baggageclaimResponseHeaderTimeout time.Duration,
+	workerProvider worker.WorkerProvider,
 ) worker.Client {
-	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFetcherFactory,
-		resourceFactoryFactory,
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		clock.NewClock(),
-	)
 
 	var strategy worker.ContainerPlacementStrategy
 	switch cmd.ContainerPlacementStrategy {
@@ -1001,20 +997,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	}
 
 	return worker.NewPool(
-		worker.NewDBWorkerProvider(
-			lockFactory,
-			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-			image.NewImageFactory(imageResourceFetcherFactory),
-			dbResourceCacheFactory,
-			dbResourceConfigFactory,
-			dbWorkerBaseResourceTypeFactory,
-			dbWorkerTaskCacheFactory,
-			dbVolumeFactory,
-			teamFactory,
-			dbWorkerFactory,
-			workerVersion,
-			baggageclaimResponseHeaderTimeout,
-		),
+		workerProvider,
 		strategy,
 	)
 }
@@ -1160,6 +1143,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	signingKey *rsa.PrivateKey,
 	engine engine.Engine,
 	workerClient worker.Client,
+	workerProvider worker.WorkerProvider,
 	drain <-chan struct{},
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
@@ -1218,6 +1202,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		engine,
 		workerClient,
+		workerProvider,
 		radarSchedulerFactory,
 		radarScannerFactory,
 

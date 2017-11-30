@@ -85,12 +85,13 @@ type volumeClient struct {
 
 func NewVolumeClient(
 	baggageclaimClient baggageclaim.Client,
+	dbWorker db.Worker,
+	clock clock.Clock,
+
 	lockFactory lock.LockFactory,
 	dbVolumeFactory db.VolumeFactory,
 	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
 	dbWorkerTaskCacheFactory db.WorkerTaskCacheFactory,
-	clock clock.Clock,
-	dbWorker db.Worker,
 ) VolumeClient {
 	return &volumeClient{
 		baggageclaimClient:              baggageclaimClient,

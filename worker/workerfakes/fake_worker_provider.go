@@ -4,6 +4,7 @@ package workerfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
@@ -56,6 +57,19 @@ type FakeWorkerProvider struct {
 		result1 worker.Worker
 		result2 bool
 		result3 error
+	}
+	NewGardenWorkerStub        func(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker) worker.Worker
+	newGardenWorkerMutex       sync.RWMutex
+	newGardenWorkerArgsForCall []struct {
+		logger      lager.Logger
+		tikTok      clock.Clock
+		savedWorker db.Worker
+	}
+	newGardenWorkerReturns struct {
+		result1 worker.Worker
+	}
+	newGardenWorkerReturnsOnCall map[int]struct {
+		result1 worker.Worker
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -224,6 +238,56 @@ func (fake *FakeWorkerProvider) FindWorkerForContainerByOwnerReturnsOnCall(i int
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker) worker.Worker {
+	fake.newGardenWorkerMutex.Lock()
+	ret, specificReturn := fake.newGardenWorkerReturnsOnCall[len(fake.newGardenWorkerArgsForCall)]
+	fake.newGardenWorkerArgsForCall = append(fake.newGardenWorkerArgsForCall, struct {
+		logger      lager.Logger
+		tikTok      clock.Clock
+		savedWorker db.Worker
+	}{logger, tikTok, savedWorker})
+	fake.recordInvocation("NewGardenWorker", []interface{}{logger, tikTok, savedWorker})
+	fake.newGardenWorkerMutex.Unlock()
+	if fake.NewGardenWorkerStub != nil {
+		return fake.NewGardenWorkerStub(logger, tikTok, savedWorker)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.newGardenWorkerReturns.result1
+}
+
+func (fake *FakeWorkerProvider) NewGardenWorkerCallCount() int {
+	fake.newGardenWorkerMutex.RLock()
+	defer fake.newGardenWorkerMutex.RUnlock()
+	return len(fake.newGardenWorkerArgsForCall)
+}
+
+func (fake *FakeWorkerProvider) NewGardenWorkerArgsForCall(i int) (lager.Logger, clock.Clock, db.Worker) {
+	fake.newGardenWorkerMutex.RLock()
+	defer fake.newGardenWorkerMutex.RUnlock()
+	return fake.newGardenWorkerArgsForCall[i].logger, fake.newGardenWorkerArgsForCall[i].tikTok, fake.newGardenWorkerArgsForCall[i].savedWorker
+}
+
+func (fake *FakeWorkerProvider) NewGardenWorkerReturns(result1 worker.Worker) {
+	fake.NewGardenWorkerStub = nil
+	fake.newGardenWorkerReturns = struct {
+		result1 worker.Worker
+	}{result1}
+}
+
+func (fake *FakeWorkerProvider) NewGardenWorkerReturnsOnCall(i int, result1 worker.Worker) {
+	fake.NewGardenWorkerStub = nil
+	if fake.newGardenWorkerReturnsOnCall == nil {
+		fake.newGardenWorkerReturnsOnCall = make(map[int]struct {
+			result1 worker.Worker
+		})
+	}
+	fake.newGardenWorkerReturnsOnCall[i] = struct {
+		result1 worker.Worker
+	}{result1}
+}
+
 func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -233,6 +297,8 @@ func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	defer fake.findWorkerForContainerMutex.RUnlock()
 	fake.findWorkerForContainerByOwnerMutex.RLock()
 	defer fake.findWorkerForContainerByOwnerMutex.RUnlock()
+	fake.newGardenWorkerMutex.RLock()
+	defer fake.newGardenWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

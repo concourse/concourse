@@ -41,6 +41,7 @@ var (
 	providerFactory         *authfakes.FakeProviderFactory
 	fakeEngine              *enginefakes.FakeEngine
 	fakeWorkerClient        *workerfakes.FakeClient
+	fakeWorkerProvider      *workerfakes.FakeWorkerProvider
 	fakeVolumeFactory       *dbfakes.FakeVolumeFactory
 	fakeContainerRepository *dbfakes.FakeContainerRepository
 	dbTeamFactory           *dbfakes.FakeTeamFactory
@@ -116,6 +117,7 @@ var _ = BeforeEach(func() {
 
 	fakeEngine = new(enginefakes.FakeEngine)
 	fakeWorkerClient = new(workerfakes.FakeClient)
+	fakeWorkerProvider = new(workerfakes.FakeWorkerProvider)
 
 	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
 	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
@@ -183,6 +185,7 @@ var _ = BeforeEach(func() {
 
 		fakeEngine,
 		fakeWorkerClient,
+		fakeWorkerProvider,
 
 		fakeSchedulerFactory,
 		fakeScannerFactory,

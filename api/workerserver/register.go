@@ -8,9 +8,11 @@ import (
 	"strconv"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 )
 
@@ -68,6 +70,8 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		Volumes:    registration.ActiveVolumes,
 	}.Emit(s.logger)
 
+	var savedWorker db.Worker
+
 	if registration.Team != "" {
 		team, found, err := s.teamFactory.FindTeam(registration.Team)
 		if err != nil {
@@ -82,19 +86,27 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = team.SaveWorker(registration, ttl)
+		savedWorker, err = team.SaveWorker(registration, ttl)
 		if err != nil {
 			logger.Error("failed-to-save-worker", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	} else {
-		_, err := s.dbWorkerFactory.SaveWorker(registration, ttl)
+		savedWorker, err = s.dbWorkerFactory.SaveWorker(registration, ttl)
 		if err != nil {
 			logger.Error("failed-to-save-worker", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+	}
+
+	gardenWorker := s.workerProvider.NewGardenWorker(logger, clock.NewClock(), savedWorker)
+	err = gardenWorker.EnsureCertsVolumeExists(logger)
+	if err != nil {
+		logger.Error("failed-to-ensure-certs-volume", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
