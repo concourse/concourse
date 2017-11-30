@@ -278,7 +278,7 @@ run: {}
 	Context("when the build config is valid", func() {
 		Context("when arguments include input that is not a git repo", func() {
 
-			Context("when arguments not include -x", func() {
+			Context("when arguments not include --include-ignored", func() {
 				It("uploading with everything", func() {
 					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture="+buildDir)
 
@@ -326,7 +326,7 @@ run: {}
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when arguments not include -x", func() {
+			Context("when arguments not include --include-ignored", func() {
 				It("by default apply .gitignore", func() {
 
 					uploading := make(chan struct{})
@@ -378,7 +378,7 @@ run: {}
 				})
 			})
 
-			Context("when arguments include -x", func() {
+			Context("when arguments include --include-ignored", func() {
 				It("uploading with everything", func() {
 					uploading := make(chan struct{})
 					uploadingBits = uploading
@@ -410,7 +410,7 @@ run: {}
 							ghttp.RespondWith(200, ""),
 						),
 					)
-					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-x")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "--include-ignored")
 					flyCmd.Dir = buildDir
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
