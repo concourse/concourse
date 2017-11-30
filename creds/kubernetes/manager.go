@@ -12,8 +12,8 @@ import (
 )
 
 type KubernetesManager struct {
-	InClusterConfig bool `long:"in-cluster" description:"Enables the in-cluster client."`
-	ConfigPath string `long:"config-path" description:"Path to Kubernetes config when running ATC outside Kubernetes."`
+	InClusterConfig bool   `long:"in-cluster" description:"Enables the in-cluster client."`
+	ConfigPath      string `long:"config-path" description:"Path to Kubernetes config when running ATC outside Kubernetes."`
 	NamespacePrefix string `long:"namespace-prefix" default:"concourse-" description:"Prefix to use for Kubernetes namespaces under which secrets will be looked up."`
 }
 
@@ -30,7 +30,7 @@ func (manager KubernetesManager) buildConfig() (*rest.Config, error) {
 }
 
 func (manager KubernetesManager) Validate() error {
-	if (manager.InClusterConfig && manager.ConfigPath != "") {
+	if manager.InClusterConfig && manager.ConfigPath != "" {
 		return errors.New("Either in-cluster or config-path can be used, not both.")
 	}
 	_, err := manager.buildConfig()
