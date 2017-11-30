@@ -47,10 +47,8 @@ var _ = Describe("Periodic emission of metrics", func() {
 				),
 			),
 		)
-	})
 
-	It("emits database connections for each pool", func() {
-		Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
+		By("emits database connections for each pool")
 		Expect(emitter.Invocations()["Emit"]).To(
 			ContainElement(
 				ContainElement(
