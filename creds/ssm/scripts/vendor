@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -e -u -x
+
+govendor fetch github.com/aws/aws-sdk-go/aws/^
+govendor fetch github.com/aws/aws-sdk-go/service/ssm/^
