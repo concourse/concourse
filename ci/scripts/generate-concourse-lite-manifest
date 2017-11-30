@@ -3,7 +3,7 @@
 
 set -e -x
 
-bosh interpolate concourse-deployment/concourse.yml \
+bosh interpolate concourse-deployment/lite/concourse.yml \
   -o concourse-deployment/infrastructures/virtualbox.yml \
   --vars-store concourse-deployment/vbox-creds.yml \
   -v internal_cidr=192.168.100.0/24 \
@@ -14,7 +14,9 @@ bosh interpolate concourse-deployment/concourse.yml \
   -v concourse_sha1=$(shasum exported-release/concourse-*.tgz | awk '{print $1}') \
   -v garden_runc_version="'$(cat garden-runc/version)'" \
   -v garden_runc_sha1=$(shasum garden-runc/*.tgz | awk '{print $1}') \
-  -v bosh_virtualbox_cpi_version="'$(cat bosh-virtualbox-cpi/version)'" \
-  -v bosh_virtualbox_cpi_sha1=$(cat bosh-virtualbox-cpi/sha1) \
-  -v stemcell_version="'$(cat vsphere-stemcell/version)'" \
-  -v stemcell_sha1=$(cat vsphere-stemcell/sha1) > concourse-lite-manifest/concourse-lite.yml
+  -v postgres_version="'$(cat postgres-release/version)'" \
+  -v postgres_sha1=$(cat postgres-release/sha1) \
+  -v virtualbox_cpi_version="'$(cat bosh-virtualbox-cpi/version)'" \
+  -v virtualbox_cpi_sha1=$(cat bosh-virtualbox-cpi/sha1) \
+  -v virtualbox_stemcell_version="'$(cat vsphere-stemcell/version)'" \
+  -v virtualbox_stemcell_sha1=$(cat vsphere-stemcell/sha1) > concourse-lite-manifest/concourse-lite.yml
