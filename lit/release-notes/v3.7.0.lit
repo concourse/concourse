@@ -77,6 +77,11 @@
   }
 
   \note{feature}{
+    Pipeline-provided resource types will no longer fail miserably for a minute
+    or two when they're first configured.
+  }
+
+  \note{feature}{
     You can now configure \reference{resource-type-params} on a pipeline
     resource type, thanks to a PR by \ghuser{jghiloni}! This will enable users
     to use the \resource{s3} with \code{params: \{unpack: true\}}, as an
