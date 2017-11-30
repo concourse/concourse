@@ -151,11 +151,6 @@
   }
 
   \note{feature}{
-    The Generic oAuth provider can now be configured with a CA cert, thanks to
-    a PR by \ghuser{rkoster}.
-  }
-
-  \note{feature}{
     The \resource{cf} can now be configured with a Docker username/password for
     pushing an app using a private repository, thanks to a PR by
     \ghuser{elgohr}.
