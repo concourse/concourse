@@ -71,6 +71,16 @@
   }
 
   \note{feature}{
+    The \reference{fly-execute} command will now default to \code{-x}, which
+    has been replaced with a new flag, \code{--include-ignored}, to revert to
+    the old behavior.
+
+    In addition, Fly will no longer blow up when trying to execute with an
+    input that doesn't have a \code{.gitignore}. It will also not blow up if
+    any inputs are files and not directories.
+  }
+
+  \note{feature}{
     The ATC will now use a separate database connection pool for the API and
     the pipeline scheduling work. This will make it so that a bunch of slow API
     requests can't starve critical functionality.
