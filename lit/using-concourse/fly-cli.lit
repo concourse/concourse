@@ -206,10 +206,10 @@ flag. Once you've learned what the commands do, you may want to consult
   build when received. This allows it to be transparently composed with other
   toolchains.
 
-  If you have many extra files or large files in your current directory that
-  would normally be ignored by your version control system, then you can use
-  the \code{-x} or \code{--exclude-ignored} flags in order to limit the files
-  that you send to Concourse to just those that are not ignored.
+  By default, Fly will not send extra files or large files in your current
+  directory that would normally be ignored by your version control system. You
+  can use the \code{--include-ignored} flags in order to send ignored files to
+  Concourse along with those that are not ignored.
 
   If your task needs to run as \code{root} then you can specify the \code{-p}
   or \code{--privileged} flag.
