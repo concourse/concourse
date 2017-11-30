@@ -170,6 +170,12 @@
     Notice how this note and the prior note have entirely different property
     names for doing the same thing. Blargh! See \ghissue{1027}.
   }
+  \note{feature}{
+    ATC now has a flag for using k8s secrets when running in a cluster. This change makes
+    using the k8s credential manager an explicit choice when running inside k8s, and also
+    allows you to use a different credential manager when running in a cluster. Thanks
+    for the PR by \ghuser{william-tran}
+  }
 
   \note{fix}{
     When the ATC is configured with multiple metrics emitters, it will now
