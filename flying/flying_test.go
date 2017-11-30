@@ -136,7 +136,7 @@ cat < /tmp/fifo
 		})
 	})
 
-	Describe("uploading inputs with and without -x", func() {
+	Describe("uploading inputs with and without --include-ignored", func() {
 		BeforeEach(func() {
 			gitIgnorePath := filepath.Join(input1, ".gitignore")
 
@@ -206,7 +206,7 @@ cp -a input-2/. output-2/
 		})
 
 		It("uploads git repo input and non git repo input, INCLUDING things in the .gitignore for git repo inputs", func() {
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-x", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
+			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "--include-ignored", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
 			fly.Dir = tmpdir
 
 			session := helpers.StartFly(fly)
