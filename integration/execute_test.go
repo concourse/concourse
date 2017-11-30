@@ -496,6 +496,29 @@ run: {}
 			Expect(sess.ExitCode()).To(Equal(1))
 		})
 
+		Context("when input is not a folder", func() {
+			It("prints an error", func() {
+				testFile := filepath.Join(buildDir, "test-file.txt")
+				err := ioutil.WriteFile(
+					testFile,
+					[]byte(`test file content`),
+					0644,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture=./test-file.txt")
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("./test-file.txt not a folder"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+			})
+		})
+
 		Context("when invalid inputs are passed and the single valid input is correctly omitted", func() {
 			It("prints an error about invalid inputs instead of missing inputs", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "evan=.")

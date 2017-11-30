@@ -32,6 +32,11 @@ func DetermineInputs(
 		return nil, err
 	}
 
+	err = CheckForInputType(inputMappings)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(inputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -68,6 +73,22 @@ func DetermineInputs(
 	}
 
 	return inputs, nil
+}
+
+func CheckForInputType(inputMaps []flaghelpers.InputPairFlag) error {
+	for _, i := range inputMaps {
+		if i.Path != "" {
+			fi, err := os.Stat(i.Path)
+			if err != nil {
+				return err
+			}
+			switch mode := fi.Mode(); {
+			case mode.IsRegular():
+				return errors.New(i.Path + " not a folder")
+			}
+		}
+	}
+	return nil
 }
 
 func CheckForUnknownInputMappings(inputMappings []flaghelpers.InputPairFlag, validInputs []atc.TaskInputConfig) error {
