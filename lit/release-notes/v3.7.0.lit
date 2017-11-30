@@ -174,7 +174,7 @@
     ATC now has a flag for using k8s secrets when running in a cluster. This change makes
     using the k8s credential manager an explicit choice when running inside k8s, and also
     allows you to use a different credential manager when running in a cluster. Thanks
-    for the PR by \ghuser{william-tran}
+    for the PR and the patience by \ghuser{william-tran} and \ghuser{farcaller}
   }
 
   \note{fix}{
