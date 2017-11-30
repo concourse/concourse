@@ -88,6 +88,84 @@
     will run on abort. 🎉
   }
 
+  \note{feature}{
+    The ATC can now be configured with a pure-random worker selection strategy,
+    which may help users affected by our default resource affinity placement,
+    which can result in overloaded workers. This is thanks to a PR by
+    \ghuser{phillbaker}!
+
+    To use the random placement strategy, pass
+    \code{--container-placement-strategy=random} to the \code{web} command.
+  }
+
+  \note{feature}{
+    The \reference{fly-jobs} command now has a column indicating whether any
+    builds are pending or started for each job, thanks to a PR by
+    \ghuser{rowanjacobs}!
+  }
+
+  \note{feature}{
+    The \resource{s3} now supports being configured with a session token,
+    thanks to a PR by \ghuser{keymon}!
+  }
+
+  \note{feature}{
+    Git repos encrypted with \code{git-crypt} will now be automatically
+    decrypted by the \resource{git}, thanks to a PR by \ghuser{dmrschmidt}!
+  }
+
+  \note{feature}{
+    The ATC can now be configured to serve a metrics endpoint for
+    \link{Prometheus}{https://prometheus.io/}, thanks to PRs by
+    \ghuser{TimSimmons} and \ghuser{jmcarp}!
+  }
+
+  \note{feature}{
+    Teams can now have BitBucket-based auth, thanks to a PR by
+    \ghuser{SHyx0rmZ}!
+  }
+
+  \note{feature}{
+    The \resource{git} can now be configured with a HTTPS proxy, thanks to a PR
+    by \ghuser{jghiloni}!
+  }
+
+  \note{feature}{
+    Inline task configs are now validated as part of pipeline validation,
+    thanks to a PR by \ghuser{jmcarp}!
+  }
+
+  \note{feature}{
+    The Generic oAuth provider can now be configured with a CA cert, thanks to
+    a PR by \ghuser{rkoster}.
+  }
+
+  \note{feature}{
+    The \resource{cf} can now be configured with a Docker username/password for
+    pushing an app using a private repository, thanks to a PR by
+    \ghuser{elgohr}.
+  }
+
+  \note{feature}{
+    The \resource{github-release} now supports being configured with
+    \code{insecure: true} to support private GitHub Enterprise installations.
+    For the long-term strategy regarding this, see \ghissue{1027}.
+  }
+
+  \note{feature}{
+    The \resource{semver} now supports being configured with
+    \code{skip_ssl_verification: true} to support private S3-compatible
+    blobstores, thanks to a PR by \ghuser{calebwashburn}.
+
+    Notice how this note and the prior note have entirely different property
+    names for doing the same thing. Blargh! See \ghissue{1027}.
+  }
+
+  \note{fix}{
+    When the ATC is configured with multiple metrics emitters, it will now
+    error, rather than silently picking one, thanks to a PR by \ghuser{jmcarp}.
+  }
+
   \note{fix}{
     Fixed an issue where selecting/copying the build output would also select
     the timestamp on the left.
@@ -106,5 +184,21 @@
   \note{fix}{
     Fixed the web UI so that it appropriately shows that you are logged out
     when your session expires.
+  }
+
+  \note{fix}{
+    The deprecated \resource{bosh-deployment} resource now, uh, contains the
+    \code{bosh} CLI again. Sorry about that. Switch to the \link{CloudFoundry
+    BOSH deployment
+    resource}{https://github.com/cloudfoundry/bosh-deployment-resource} if you
+    can though!
+
+    This was fixed by a PR by \ghuser{Infra-Red}. Thanks!
+  }
+
+  \note{fix}{
+    Fixed an issue with the CredHub integration that made it necessary to
+    configure \code{--insecure-skip-verify}, thanks to a PR by
+    \ghuser{aeijdenberg}!
   }
 }
