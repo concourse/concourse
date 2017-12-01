@@ -7,7 +7,7 @@ image_resource:
     repository: concourse/bosh-cli
 
 inputs:
-- name: concourse
+- name: concourse-head
 - name: version
 - name: bosh-rc
 
@@ -16,4 +16,4 @@ outputs:
 - name: final-release-tarball
 
 run:
-  path: concourse/ci/scripts/finalize-release
+  path: concourse-head/ci/scripts/finalize-release

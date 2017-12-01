@@ -14,7 +14,7 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-git clone ./concourse $FINAL_RELEASE_REPO
+git clone ./concourse-head $FINAL_RELEASE_REPO
 
 echo "$BOSH_PRIVATE_CONFIG" > $FINAL_RELEASE_REPO/config/private.yml
 
