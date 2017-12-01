@@ -39,5 +39,3 @@ if ! [ -e ${RELEASE_YML} ]; then
 fi
 
 bosh -n create-release --tarball ${FINAL_RELEASE_TGZ} ${RELEASE_YML}
-
-cp $PWD/manifests/single-vm.yml ${FINAL_RELEASE_DIR}/single-vm-${VERSION}.yml
