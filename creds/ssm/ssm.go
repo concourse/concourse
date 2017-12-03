@@ -49,7 +49,7 @@ func (s *Ssm) Get(varDef varTemplate.VariableDefinition) (interface{}, bool, err
 	if err != nil {
 		return nil, false, err
 	}
-	return param.Parameter.Value, true, nil
+	return *param.Parameter.Value, true, nil
 }
 
 func (s *Ssm) List() ([]varTemplate.VariableDefinition, error) {
