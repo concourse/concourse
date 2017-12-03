@@ -23,5 +23,9 @@ func (s *Server) ListTeams(w http.ResponseWriter, r *http.Request) {
 		presentedTeams[i] = present.Team(team)
 	}
 
-	json.NewEncoder(w).Encode(presentedTeams)
+	err = json.NewEncoder(w).Encode(presentedTeams)
+	if err != nil {
+		hLog.Error("failed-to-encode-teams", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }

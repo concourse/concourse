@@ -58,8 +58,8 @@ func (s *Server) WritePipe(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		io.Copy(pipe.write, r.Body)
-		pipe.write.Close()
+		_, _ = io.Copy(pipe.write, r.Body)
+		_ = pipe.write.Close()
 
 		s.pipesL.Lock()
 		delete(s.pipes, pipeID)

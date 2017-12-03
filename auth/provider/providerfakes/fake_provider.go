@@ -23,7 +23,7 @@ type FakeProvider struct {
 		result1 *http.Client
 		result2 error
 	}
-	AuthCodeURLStub        func(string, ...oauth2.AuthCodeOption) string
+	AuthCodeURLStub        func(string, ...oauth2.AuthCodeOption) (string, error)
 	authCodeURLMutex       sync.RWMutex
 	authCodeURLArgsForCall []struct {
 		arg1 string
@@ -31,15 +31,17 @@ type FakeProvider struct {
 	}
 	authCodeURLReturns struct {
 		result1 string
+		result2 error
 	}
 	authCodeURLReturnsOnCall map[int]struct {
 		result1 string
+		result2 error
 	}
-	ExchangeStub        func(context.Context, string) (*oauth2.Token, error)
+	ExchangeStub        func(context.Context, *http.Request) (*oauth2.Token, error)
 	exchangeMutex       sync.RWMutex
 	exchangeArgsForCall []struct {
 		arg1 context.Context
-		arg2 string
+		arg2 *http.Request
 	}
 	exchangeReturns struct {
 		result1 *oauth2.Token
@@ -122,7 +124,7 @@ func (fake *FakeProvider) PreTokenClientReturnsOnCall(i int, result1 *http.Clien
 	}{result1, result2}
 }
 
-func (fake *FakeProvider) AuthCodeURL(arg1 string, arg2 ...oauth2.AuthCodeOption) string {
+func (fake *FakeProvider) AuthCodeURL(arg1 string, arg2 ...oauth2.AuthCodeOption) (string, error) {
 	fake.authCodeURLMutex.Lock()
 	ret, specificReturn := fake.authCodeURLReturnsOnCall[len(fake.authCodeURLArgsForCall)]
 	fake.authCodeURLArgsForCall = append(fake.authCodeURLArgsForCall, struct {
@@ -135,9 +137,9 @@ func (fake *FakeProvider) AuthCodeURL(arg1 string, arg2 ...oauth2.AuthCodeOption
 		return fake.AuthCodeURLStub(arg1, arg2...)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fake.authCodeURLReturns.result1
+	return fake.authCodeURLReturns.result1, fake.authCodeURLReturns.result2
 }
 
 func (fake *FakeProvider) AuthCodeURLCallCount() int {
@@ -152,31 +154,34 @@ func (fake *FakeProvider) AuthCodeURLArgsForCall(i int) (string, []oauth2.AuthCo
 	return fake.authCodeURLArgsForCall[i].arg1, fake.authCodeURLArgsForCall[i].arg2
 }
 
-func (fake *FakeProvider) AuthCodeURLReturns(result1 string) {
+func (fake *FakeProvider) AuthCodeURLReturns(result1 string, result2 error) {
 	fake.AuthCodeURLStub = nil
 	fake.authCodeURLReturns = struct {
 		result1 string
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeProvider) AuthCodeURLReturnsOnCall(i int, result1 string) {
+func (fake *FakeProvider) AuthCodeURLReturnsOnCall(i int, result1 string, result2 error) {
 	fake.AuthCodeURLStub = nil
 	if fake.authCodeURLReturnsOnCall == nil {
 		fake.authCodeURLReturnsOnCall = make(map[int]struct {
 			result1 string
+			result2 error
 		})
 	}
 	fake.authCodeURLReturnsOnCall[i] = struct {
 		result1 string
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeProvider) Exchange(arg1 context.Context, arg2 string) (*oauth2.Token, error) {
+func (fake *FakeProvider) Exchange(arg1 context.Context, arg2 *http.Request) (*oauth2.Token, error) {
 	fake.exchangeMutex.Lock()
 	ret, specificReturn := fake.exchangeReturnsOnCall[len(fake.exchangeArgsForCall)]
 	fake.exchangeArgsForCall = append(fake.exchangeArgsForCall, struct {
 		arg1 context.Context
-		arg2 string
+		arg2 *http.Request
 	}{arg1, arg2})
 	fake.recordInvocation("Exchange", []interface{}{arg1, arg2})
 	fake.exchangeMutex.Unlock()
@@ -195,7 +200,7 @@ func (fake *FakeProvider) ExchangeCallCount() int {
 	return len(fake.exchangeArgsForCall)
 }
 
-func (fake *FakeProvider) ExchangeArgsForCall(i int) (context.Context, string) {
+func (fake *FakeProvider) ExchangeArgsForCall(i int) (context.Context, *http.Request) {
 	fake.exchangeMutex.RLock()
 	defer fake.exchangeMutex.RUnlock()
 	return fake.exchangeArgsForCall[i].arg1, fake.exchangeArgsForCall[i].arg2

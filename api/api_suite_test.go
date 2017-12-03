@@ -33,34 +33,34 @@ var (
 	externalURL  = "https://example.com"
 	oAuthBaseURL = "https://oauth.example.com"
 
-	jwtValidator                  *authfakes.FakeValidator
-	getTokenValidator             *authfakes.FakeValidator
-	userContextReader             *authfakes.FakeUserContextReader
-	fakeAuthTokenGenerator        *authfakes.FakeAuthTokenGenerator
-	fakeCSRFTokenGenerator        *authfakes.FakeCSRFTokenGenerator
-	providerFactory               *authfakes.FakeProviderFactory
-	fakeEngine                    *enginefakes.FakeEngine
-	fakeWorkerClient              *workerfakes.FakeClient
-	fakeVolumeFactory             *dbfakes.FakeVolumeFactory
-	fakeContainerRepository       *dbfakes.FakeContainerRepository
-	dbTeamFactory                 *dbfakes.FakeTeamFactory
-	dbPipelineFactory             *dbfakes.FakePipelineFactory
-	fakePipeline                  *dbfakes.FakePipeline
-	dbWorkerFactory               *dbfakes.FakeWorkerFactory
-	dbWorkerLifecycle             *dbfakes.FakeWorkerLifecycle
-	build                         *dbfakes.FakeBuild
-	dbBuildFactory                *dbfakes.FakeBuildFactory
-	dbTeam                        *dbfakes.FakeTeam
-	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
-	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
-	fakeVariablesFactory          *credsfakes.FakeVariablesFactory
-	configValidationErrorMessages []string
-	peerAddr                      string
-	drain                         chan struct{}
-	expire                        time.Duration
-	isTLSEnabled                  bool
-	cliDownloadsDir               string
-	logger                        *lagertest.TestLogger
+	jwtValidator            *authfakes.FakeValidator
+	getTokenValidator       *authfakes.FakeValidator
+	userContextReader       *authfakes.FakeUserContextReader
+	fakeAuthTokenGenerator  *authfakes.FakeAuthTokenGenerator
+	fakeCSRFTokenGenerator  *authfakes.FakeCSRFTokenGenerator
+	providerFactory         *authfakes.FakeProviderFactory
+	fakeEngine              *enginefakes.FakeEngine
+	fakeWorkerClient        *workerfakes.FakeClient
+	fakeWorkerProvider      *workerfakes.FakeWorkerProvider
+	fakeVolumeFactory       *dbfakes.FakeVolumeFactory
+	fakeContainerRepository *dbfakes.FakeContainerRepository
+	dbTeamFactory           *dbfakes.FakeTeamFactory
+	dbPipelineFactory       *dbfakes.FakePipelineFactory
+	fakePipeline            *dbfakes.FakePipeline
+	dbWorkerFactory         *dbfakes.FakeWorkerFactory
+	dbWorkerLifecycle       *dbfakes.FakeWorkerLifecycle
+	build                   *dbfakes.FakeBuild
+	dbBuildFactory          *dbfakes.FakeBuildFactory
+	dbTeam                  *dbfakes.FakeTeam
+	fakeSchedulerFactory    *jobserverfakes.FakeSchedulerFactory
+	fakeScannerFactory      *resourceserverfakes.FakeScannerFactory
+	fakeVariablesFactory    *credsfakes.FakeVariablesFactory
+	peerAddr                string
+	drain                   chan struct{}
+	expire                  time.Duration
+	isTLSEnabled            bool
+	cliDownloadsDir         string
+	logger                  *lagertest.TestLogger
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -84,7 +84,7 @@ func (f *fakeEventHandlerFactory) Construct(
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("fake event handler factory was here"))
+		_, _ = w.Write([]byte("fake event handler factory was here"))
 	})
 }
 
@@ -117,6 +117,7 @@ var _ = BeforeEach(func() {
 
 	fakeEngine = new(enginefakes.FakeEngine)
 	fakeWorkerClient = new(workerfakes.FakeClient)
+	fakeWorkerProvider = new(workerfakes.FakeWorkerProvider)
 
 	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
 	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
@@ -184,6 +185,7 @@ var _ = BeforeEach(func() {
 
 		fakeEngine,
 		fakeWorkerClient,
+		fakeWorkerProvider,
 
 		fakeSchedulerFactory,
 		fakeScannerFactory,

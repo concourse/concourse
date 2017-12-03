@@ -84,7 +84,7 @@ func (brt BaseResourceType) create(tx Tx) (*UsedBaseResourceType, error) {
 		QueryRow().
 		Scan(&id)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
 			return nil, ErrBaseResourceTypeAlreadyExists
 		}
 

@@ -10,12 +10,12 @@ import (
 )
 
 func (s *Server) GetBuildPreparation(build db.Build) http.Handler {
-	log := s.logger.Session("build-preparation", lager.Data{"build-id": build.ID()})
+	logger := s.logger.Session("build-preparation", lager.Data{"build-id": build.ID()})
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		prep, found, err := build.Preparation()
 		if err != nil {
-			log.Error("cannot-find-build-preparation", err)
+			logger.Error("cannot-find-build-preparation", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -25,6 +25,10 @@ func (s *Server) GetBuildPreparation(build db.Build) http.Handler {
 			return
 		}
 
-		json.NewEncoder(w).Encode(present.BuildPreparation(prep))
+		err = json.NewEncoder(w).Encode(present.BuildPreparation(prep))
+		if err != nil {
+			logger.Error("failed-to-encode-build-preparation", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

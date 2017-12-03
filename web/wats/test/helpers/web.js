@@ -20,6 +20,15 @@ class Web {
     return page.evaluate(x => (x || document.body).innerText, ele);
   }
 
+  waitForText(page, text) {
+    return page.waitForFunction((text) => {
+      return document.body.innerText.indexOf(text) !== -1
+    }, {
+      polling: 100,
+      timeout: 60000
+    }, text)
+  }
+
   async loginAs(t, page, teamName) {
     await page.goto(`${this.url}/teams/${teamName}/login`);
     await this.clickAndWait(page, '.login-page button');

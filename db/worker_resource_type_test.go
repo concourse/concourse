@@ -26,7 +26,8 @@ var _ = Describe("WorkerResourceType", func() {
 		Expect(err).ToNot(HaveOccurred())
 		usedWorkerResourceType, err := wrt.FindOrCreate(tx)
 		Expect(err).ToNot(HaveOccurred())
-		tx.Rollback()
+		err = tx.Rollback()
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(usedWorkerResourceType.Worker.Name()).To(Equal(defaultWorker.Name()))
 		baseResourceType, found, err := baseResourceTypeFactory.Find("some-base-resource-type")

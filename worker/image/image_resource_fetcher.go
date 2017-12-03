@@ -215,11 +215,68 @@ func (i *imageResourceFetcher) Fetch(
 	return volume, releasingReader, version, nil
 }
 
+func (i *imageResourceFetcher) ensureVersionOfType(
+	logger lager.Logger,
+	signals <-chan os.Signal,
+	container db.CreatingContainer,
+	resourceType creds.VersionedResourceType,
+) error {
+
+	checkResourceType, err := i.resourceFactory.NewResource(
+		logger,
+		signals,
+		db.NewImageCheckContainerOwner(container),
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
+		worker.ContainerSpec{
+			ImageSpec: worker.ImageSpec{
+				ResourceType: resourceType.Name,
+			},
+			Tags:   i.worker.Tags(),
+			TeamID: i.teamID,
+		}, i.customTypes,
+		worker.NoopImageFetchingDelegate{},
+	)
+	if err != nil {
+		return err
+	}
+
+	source, err := resourceType.Source.Evaluate()
+	if err != nil {
+		return err
+	}
+
+	versions, err := checkResourceType.Check(source, nil)
+	if err != nil {
+		return err
+	}
+
+	if len(versions) == 0 {
+		return ErrImageUnavailable
+	}
+
+	resourceType.Version = versions[0]
+
+	i.customTypes = append(i.customTypes.Without(resourceType.Name), resourceType)
+
+	return nil
+}
+
 func (i *imageResourceFetcher) getLatestVersion(
 	logger lager.Logger,
 	signals <-chan os.Signal,
 	container db.CreatingContainer,
 ) (atc.Version, error) {
+
+	resourceType, found := i.customTypes.Lookup(i.imageResource.Type)
+	if found && resourceType.Version == nil {
+		err := i.ensureVersionOfType(logger, signals, container, resourceType)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: i.imageResource.Type,

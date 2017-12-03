@@ -9,6 +9,7 @@ type Plan struct {
 	Get       *GetPlan       `json:"get,omitempty"`
 	Put       *PutPlan       `json:"put,omitempty"`
 	Task      *TaskPlan      `json:"task,omitempty"`
+	OnAbort   *OnAbortPlan   `json:"on_abort,ommitempty"`
 	Ensure    *EnsurePlan    `json:"ensure,omitempty"`
 	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
 	OnFailure *OnFailurePlan `json:"on_failure,omitempty"`
@@ -21,6 +22,11 @@ type Plan struct {
 }
 
 type PlanID string
+
+type OnAbortPlan struct {
+	Step Plan `json:"step"`
+	Next Plan `json:"on_abort"`
+}
 
 type OnFailurePlan struct {
 	Step Plan `json:"step"`

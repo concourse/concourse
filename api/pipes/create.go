@@ -89,5 +89,9 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(pipeResource)
+	err = json.NewEncoder(w).Encode(pipeResource)
+	if err != nil {
+		logger.Error("failed-to-encode-pipe", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }

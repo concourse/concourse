@@ -310,7 +310,6 @@ searchTermList =
                     , hideFooter = False
                     , hideFooterCounter = 0
                     , fetchedPipelines = []
-                    , query = ""
                     }
 
                 queryStatusTeamPipeline =
@@ -490,18 +489,18 @@ pipelineStatus =
             }
     in
         describe "many statuses of a pipeline"
-            [ test "returns status aborted" <|
+            [ test "returns status failed" <|
                 \_ ->
-                    Dashboard.pipelineStatus (pipeline False [ abortedJob ])
-                        |> Expect.equal Concourse.PipelineStatusAborted
+                    Dashboard.pipelineStatus (pipeline False [ failedJob, erroredJob, abortedJob, succeededJob ])
+                        |> Expect.equal Concourse.PipelineStatusFailed
             , test "returns status errored" <|
                 \_ ->
-                    Dashboard.pipelineStatus (pipeline False [ erroredJob ])
+                    Dashboard.pipelineStatus (pipeline False [ erroredJob, abortedJob, succeededJob ])
                         |> Expect.equal Concourse.PipelineStatusErrored
-            , test "returns status failed" <|
+            , test "returns status aborted" <|
                 \_ ->
-                    Dashboard.pipelineStatus (pipeline False [ failedJob ])
-                        |> Expect.equal Concourse.PipelineStatusFailed
+                    Dashboard.pipelineStatus (pipeline False [ abortedJob, succeededJob ])
+                        |> Expect.equal Concourse.PipelineStatusAborted
             , test "returns status paused" <|
                 \_ ->
                     Dashboard.pipelineStatus (pipeline True [ pausedJob ])
@@ -517,5 +516,21 @@ pipelineStatus =
             , test "returns status succeeded" <|
                 \_ ->
                     Dashboard.pipelineStatus (pipeline False [ succeededJob ])
+                        |> Expect.equal Concourse.PipelineStatusSucceeded
+            , test "returns last status as failed" <|
+                \_ ->
+                    Dashboard.lastPipelineStatus (pipeline False [ failedJob, erroredJob, abortedJob, succeededJob ])
+                        |> Expect.equal Concourse.PipelineStatusFailed
+            , test "returns last status as errored" <|
+                \_ ->
+                    Dashboard.lastPipelineStatus (pipeline False [ erroredJob, abortedJob, succeededJob ])
+                        |> Expect.equal Concourse.PipelineStatusErrored
+            , test "returns last status as aborted" <|
+                \_ ->
+                    Dashboard.lastPipelineStatus (pipeline False [ abortedJob, succeededJob ])
+                        |> Expect.equal Concourse.PipelineStatusAborted
+            , test "returns last status as succeeded" <|
+                \_ ->
+                    Dashboard.lastPipelineStatus (pipeline False [ succeededJob ])
                         |> Expect.equal Concourse.PipelineStatusSucceeded
             ]

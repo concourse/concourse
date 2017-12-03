@@ -218,7 +218,7 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 		return nil, Pagination{}, err
 	}
 
-	defer rows.Close()
+	defer Close(rows)
 
 	builds := []Build{}
 
@@ -278,12 +278,21 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 }
 
 func (j *job) Build(name string) (Build, bool, error) {
-	row := buildsQuery.Where(sq.Eq{
-		"b.job_id": j.id,
-		"b.name":   name,
-	}).
-		RunWith(j.conn).
-		QueryRow()
+	var query sq.SelectBuilder
+
+	if name == "latest" {
+		query = buildsQuery.
+			Where(sq.Eq{"b.job_id": j.id}).
+			OrderBy("b.id DESC").
+			Limit(1)
+	} else {
+		query = buildsQuery.Where(sq.Eq{
+			"b.job_id": j.id,
+			"b.name":   name,
+		})
+	}
+
+	row := query.RunWith(j.conn).QueryRow()
 
 	build := &build{conn: j.conn, lockFactory: j.lockFactory}
 
@@ -351,7 +360,7 @@ func (j *job) GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, err
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer Close(rows)
 
 	bs := []Build{}
 
@@ -435,7 +444,7 @@ func (j *job) DeleteNextInputMapping() error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	_, err = psql.Update("jobs").
 		Set("inputs_determined", false).
@@ -456,12 +465,7 @@ func (j *job) DeleteNextInputMapping() error {
 		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 func (j *job) EnsurePendingBuildExists() error {
@@ -470,7 +474,7 @@ func (j *job) EnsurePendingBuildExists() error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	buildName, err := j.getNewBuildName(tx)
 	if err != nil {
@@ -488,7 +492,7 @@ func (j *job) EnsurePendingBuildExists() error {
 		return err
 	}
 
-	defer rows.Close()
+	defer Close(rows)
 
 	if rows.Next() {
 		var buildID int
@@ -497,7 +501,10 @@ func (j *job) EnsurePendingBuildExists() error {
 			return err
 		}
 
-		rows.Close()
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
 
 		err = createBuildEventSeq(tx, buildID)
 		if err != nil {
@@ -537,7 +544,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer Close(rows)
 
 	for rows.Next() {
 		build := &build{conn: j.conn, lockFactory: j.lockFactory}
@@ -558,7 +565,7 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	buildName, err := j.getNewBuildName(tx)
 	if err != nil {
@@ -597,7 +604,7 @@ func (j *job) updateSerialGroups(serialGroups []string) error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	_, err = psql.Delete("jobs_serial_groups").
 		Where(sq.Eq{
@@ -619,12 +626,7 @@ func (j *job) updateSerialGroups(serialGroups []string) error {
 		}
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 func (j *job) updatePausedJob(pause bool) error {
@@ -729,7 +731,7 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 		return err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	if table == "next_build_inputs" {
 		_, err = psql.Update("jobs").
@@ -756,7 +758,7 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 	for rows.Next() {
 		var inputName string
 		var inputVersion algorithm.InputVersion
-		err := rows.Scan(&inputName, &inputVersion.VersionID, &inputVersion.FirstOccurrence)
+		err = rows.Scan(&inputName, &inputVersion.VersionID, &inputVersion.FirstOccurrence)
 		if err != nil {
 			return err
 		}
@@ -836,7 +838,7 @@ func scanJob(j *job, row scannable) error {
 }
 
 func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) (Jobs, error) {
-	defer rows.Close()
+	defer Close(rows)
 
 	jobs := Jobs{}
 

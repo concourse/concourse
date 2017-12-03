@@ -21,10 +21,10 @@ public/main.css: $(LESS_FILES)
 	lessc --clean-css="--advanced" assets/css/main.less $@
 
 public/elm.min.js: public/elm.js
-	uglifyjs < $< > $@
+	closure-compiler --js $< --js_output_file $@
 
 public/elm-beta.min.js: public/elm-beta.js
-	uglifyjs < $< > $@
+	closure-compiler --js $< --js_output_file $@
 
 test: all
 	cd elm && elm-test
@@ -32,7 +32,7 @@ test: all
 test-watch: all
 	cd elm && elm-test --watch
 
-bindata.go: $(PUBLIC_FILES)
+bindata.go: index.html $(PUBLIC_FILES)
 	go-bindata ${DEV} -pkg web index.html public/...
 	go fmt bindata.go
 

@@ -1,7 +1,9 @@
 describe 'keyboard shortcut', type: :feature do
   let(:team_name) { generate_team_name }
+  let(:fly_home) { Dir.mktmpdir }
 
   before(:each) do
+    fly_login 'main'
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
@@ -35,9 +37,7 @@ describe 'keyboard shortcut', type: :feature do
     it 'scrolls down' do
       fly('trigger-job -j pipeline/long-output')
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output/builds/1")
-      Capybara.using_wait_time(30) do
-        expect(page).to have_content('Line 100')
-      end
+      expect(page).to have_content('Line 100')
       scroll_to_top
       page.find('body').native.send_keys 'j'
       expect(scroll_position).to be > 0
@@ -48,24 +48,18 @@ describe 'keyboard shortcut', type: :feature do
     it 'scrolls up' do
       fly('trigger-job -j pipeline/long-output')
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output/builds/1")
-      Capybara.using_wait_time(30) do
-        expect(page).to have_content('Line 100')
-      end
+      expect(page).to have_content('Line 100')
       previous_scroll_position = scroll_position
       page.find('body').native.send_keys 'kkkkk'
       expect(scroll_position).to be < previous_scroll_position
     end
   end
 
-  # TODO: handle scroll to the top
-  xcontext 'pressing the "gg" key' do
+  context 'pressing the "gg" key' do
     it 'scrolls to the top' do
       fly('trigger-job -j pipeline/long-output')
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output/builds/1")
-      Capybara.using_wait_time(30) do
-        expect(page).to have_content('Line 100')
-      end
-      page.find('body').native.send_keys 'G'
+      expect(page).to have_content('Line 100')
       page.find('body').native.send_keys 'gg'
       expect(scroll_position).to be 0
     end
@@ -75,9 +69,7 @@ describe 'keyboard shortcut', type: :feature do
     it 'scrolls to the bottom' do
       fly('trigger-job -j pipeline/long-output')
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output/builds/1")
-      Capybara.using_wait_time(30) do
-        expect(page).to have_content('Line 100')
-      end
+      expect(page).to have_content('Line 100')
       scroll_to_top
       page.find('body').native.send_keys 'G'
       expect(scroll_position).to be > 0
@@ -98,9 +90,7 @@ describe 'keyboard shortcut', type: :feature do
       fly('trigger-job -j pipeline/long-output')
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output/builds/1")
       page.find('body').native.send_keys 'A'
-      Capybara.using_wait_time(30) do
-        expect(page).to have_content 'duration'
-      end
+      expect(page).to have_content 'duration'
     end
   end
 

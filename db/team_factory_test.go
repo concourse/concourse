@@ -65,10 +65,9 @@ var _ = Describe("Team Factory", func() {
 		})
 
 		Context("when the team exists", func() {
-			var createdTeam db.Team
 			BeforeEach(func() {
 				var err error
-				createdTeam, err = teamFactory.CreateTeam(atcTeam)
+				_, err = teamFactory.CreateTeam(atcTeam)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -137,10 +136,9 @@ var _ = Describe("Team Factory", func() {
 		})
 
 		Context("when there is one team", func() {
-			var createdTeam db.Team
 			BeforeEach(func() {
 				var err error
-				createdTeam, err = teamFactory.CreateTeam(atcTeam)
+				_, err = teamFactory.CreateTeam(atcTeam)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -154,15 +152,11 @@ var _ = Describe("Team Factory", func() {
 		})
 
 		Context("when there is more than one team", func() {
-			var (
-				createdTeam      db.Team
-				otherCreatedTeam db.Team
-			)
 			BeforeEach(func() {
 				var err error
-				createdTeam, err = teamFactory.CreateTeam(atcTeam)
+				_, err = teamFactory.CreateTeam(atcTeam)
 				Expect(err).ToNot(HaveOccurred())
-				otherCreatedTeam, err = teamFactory.CreateTeam(atc.Team{
+				_, err = teamFactory.CreateTeam(atc.Team{
 					Name: "some-other-team",
 					BasicAuth: &atc.BasicAuth{
 						BasicAuthUsername: "boring-user",

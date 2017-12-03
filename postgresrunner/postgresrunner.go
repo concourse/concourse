@@ -15,7 +15,6 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migration"
-	"github.com/concourse/atc/db/migrations"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -97,11 +96,11 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 }
 
 func (runner *Runner) OpenDB() *sql.DB {
-	dbConn, err := migration.Open(
+	dbConn, err := migration.NewOpenHelper(
 		"postgres",
 		runner.DataSourceName(),
-		migrations.New(db.NewNoEncryption()),
-	)
+		nil,
+	).Open()
 	Expect(err).NotTo(HaveOccurred())
 
 	// only allow one connection so that we can detect any code paths that
@@ -117,6 +116,8 @@ func (runner *Runner) OpenConn() db.Conn {
 		"postgres",
 		runner.DataSourceName(),
 		nil,
+		nil,
+		"postgresrunner",
 		nil,
 	)
 	Expect(err).NotTo(HaveOccurred())
@@ -189,7 +190,7 @@ func (runner *Runner) Truncate() {
 			DECLARE
 					statements CURSOR FOR
 							SELECT tablename FROM pg_tables
-							WHERE schemaname = 'public' AND tablename != 'migration_version';
+							WHERE schemaname = 'public' AND tablename != 'schema_migrations';
 			BEGIN
 					FOR stmt IN statements LOOP
 							EXECUTE 'TRUNCATE TABLE ' || quote_ident(stmt.tablename) || ' RESTART IDENTITY CASCADE;';

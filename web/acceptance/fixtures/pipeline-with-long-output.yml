@@ -36,7 +36,7 @@ jobs:
         args:
         - '-ec'
         - |
-          for i in $(seq 1 999)
+          for i in $(seq 1 10)
             do
             echo "Line $i"
           done

@@ -1,11 +1,8 @@
 package db
 
 import (
-	"crypto/sha256"
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"fmt"
 
 	"code.cloudfoundry.org/lager"
 
@@ -58,9 +55,8 @@ type UsedResourceConfig struct {
 func (resourceConfig *UsedResourceConfig) OriginBaseResourceType() *UsedBaseResourceType {
 	if resourceConfig.CreatedByBaseResourceType != nil {
 		return resourceConfig.CreatedByBaseResourceType
-	} else {
-		return resourceConfig.CreatedByResourceCache.ResourceConfig.OriginBaseResourceType()
 	}
+	return resourceConfig.CreatedByResourceCache.ResourceConfig.OriginBaseResourceType()
 }
 
 func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx) (*UsedResourceConfig, error) {
@@ -118,11 +114,11 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx) (*
 			QueryRow().
 			Scan(&id)
 		if err != nil {
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
 				return nil, ErrSafeRetryFindOrCreate
 			}
 
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
 				return nil, ErrSafeRetryFindOrCreate
 			}
 
@@ -186,14 +182,6 @@ func (resourceConfig ResourceConfig) Find(tx Tx) (*UsedResourceConfig, bool, err
 	urc.ID = id
 
 	return urc, true, nil
-}
-
-func (resourceConfig ResourceConfig) lockName() (string, error) {
-	resourceConfigJSON, err := json.Marshal(resourceConfig)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%x", sha256.Sum256(resourceConfigJSON)), nil
 }
 
 func (resourceConfig ResourceConfig) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, bool, error) {

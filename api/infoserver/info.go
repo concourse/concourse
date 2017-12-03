@@ -8,5 +8,11 @@ import (
 )
 
 func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(atc.Info{Version: s.version, WorkerVersion: s.workerVersion})
+	logger := s.logger.Session("info")
+
+	err := json.NewEncoder(w).Encode(atc.Info{Version: s.version, WorkerVersion: s.workerVersion})
+	if err != nil {
+		logger.Error("failed-to-encode-info", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }

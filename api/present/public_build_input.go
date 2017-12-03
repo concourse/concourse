@@ -8,10 +8,7 @@ import (
 func PublicBuildInput(input db.BuildInput, pipelineID int) atc.PublicBuildInput {
 	metadata := make([]atc.MetadataField, 0, len(input.Metadata))
 	for _, meta := range input.Metadata {
-		metadata = append(metadata, atc.MetadataField{
-			Name:  meta.Name,
-			Value: meta.Value,
-		})
+		metadata = append(metadata, atc.MetadataField(meta))
 	}
 
 	return atc.PublicBuildInput{

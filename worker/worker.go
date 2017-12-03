@@ -33,6 +33,8 @@ func (err MalformedMetadataError) Error() string {
 	return fmt.Sprintf("malformed image metadata: %s", err.UnmarshalError)
 }
 
+const certsVolumeName = "resource-certs"
+
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
 const volumeMountsPropertyName = "concourse:volume-mounts"
@@ -60,16 +62,15 @@ type Worker interface {
 
 	GardenClient() garden.Client
 	BaggageclaimClient() baggageclaim.Client
+	EnsureCertsVolumeExists(logger lager.Logger) error
 }
 
 type gardenWorker struct {
-	containerProviderFactory ContainerProviderFactory
-	gardenClient             garden.Client
-
-	volumeClient       VolumeClient
+	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
 
-	provider WorkerProvider
+	volumeClient      VolumeClient
+	containerProvider ContainerProvider
 
 	clock clock.Clock
 
@@ -84,38 +85,29 @@ type gardenWorker struct {
 }
 
 func NewGardenWorker(
-	containerProviderFactory ContainerProviderFactory,
-	volumeClient VolumeClient,
-	provider WorkerProvider,
-	clock clock.Clock,
-	activeContainers int,
-	resourceTypes []atc.WorkerResourceType,
-	platform string,
-	tags atc.Tags,
-	teamID int,
-	name string,
-	startTime int64,
-	version *string,
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
+	containerProvider ContainerProvider,
+	volumeClient VolumeClient,
+	dbWorker db.Worker,
+	clock clock.Clock,
 ) Worker {
+
 	return &gardenWorker{
-		containerProviderFactory: containerProviderFactory,
-		gardenClient:             gardenClient,
-
-		volumeClient:       volumeClient,
+		gardenClient:       gardenClient,
 		baggageclaimClient: baggageclaimClient,
+		volumeClient:       volumeClient,
+		containerProvider:  containerProvider,
 
-		provider:         provider,
 		clock:            clock,
-		activeContainers: activeContainers,
-		resourceTypes:    resourceTypes,
-		platform:         platform,
-		tags:             tags,
-		teamID:           teamID,
-		name:             name,
-		startTime:        startTime,
-		version:          version,
+		activeContainers: dbWorker.ActiveContainers(),
+		resourceTypes:    dbWorker.ResourceTypes(),
+		platform:         dbWorker.Platform(),
+		tags:             dbWorker.Tags(),
+		teamID:           dbWorker.TeamID(),
+		name:             dbWorker.Name(),
+		startTime:        dbWorker.StartTime(),
+		version:          dbWorker.Version(),
 	}
 }
 
@@ -162,6 +154,27 @@ func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVer
 	}
 }
 
+func (worker *gardenWorker) EnsureCertsVolumeExists(logger lager.Logger) error {
+	baggageclaimClient := worker.BaggageclaimClient()
+
+	_, found, err := baggageclaimClient.LookupVolume(logger, certsVolumeName)
+	if err != nil {
+		return err
+	}
+
+	if found {
+		return nil
+	}
+
+	_, err = baggageclaimClient.CreateVolume(logger, certsVolumeName, baggageclaim.VolumeSpec{
+		Strategy: baggageclaim.ImportStrategy{
+			Path: "/etc/ssl/certs",
+		},
+	})
+
+	return err
+}
+
 func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {
 	for _, rt := range worker.resourceTypes {
 		if path == rt.Image {
@@ -193,9 +206,8 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	spec ContainerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
-	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
 
-	return containerProvider.FindOrCreateContainer(
+	return worker.containerProvider.FindOrCreateContainer(
 		logger,
 		cancel,
 		owner,
@@ -207,8 +219,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 }
 
 func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
-	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-	return containerProvider.FindCreatedContainerByHandle(logger, handle, teamID)
+	return worker.containerProvider.FindCreatedContainerByHandle(logger, handle, teamID)
 }
 
 func (worker *gardenWorker) ActiveContainers() int {

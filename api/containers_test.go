@@ -315,8 +315,7 @@ var _ = Describe("Containers API", func() {
 						})
 
 						It("does not lookup containers", func() {
-							client.Do(req)
-
+							_, _ = client.Do(req)
 							Expect(dbTeam.FindContainersByMetadataCallCount()).To(Equal(0))
 						})
 					})
@@ -522,7 +521,7 @@ var _ = Describe("Containers API", func() {
 
 		AfterEach(func() {
 			if !expectBadHandshake {
-				conn.Close()
+				_ = conn.Close()
 			}
 		})
 

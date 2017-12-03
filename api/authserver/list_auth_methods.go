@@ -32,7 +32,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		logger.Info("team-not-found")
 		w.WriteHeader(http.StatusNotFound)
-		jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
+		_ = jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
 			Title:  "Team Not Found Error",
 			Detail: fmt.Sprintf("Team with name '%s' not found.", teamName),
 			Status: "404",
@@ -48,7 +48,11 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sort.Sort(byTypeAndName(methods))
-	json.NewEncoder(w).Encode(methods)
+	err = json.NewEncoder(w).Encode(methods)
+	if err != nil {
+		logger.Error("failed-to-encode-auth-methods", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 type byTypeAndName []atc.AuthMethod

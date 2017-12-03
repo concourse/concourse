@@ -121,12 +121,11 @@ var _ = Describe("WorkerFactory", func() {
 			})
 
 			Context("when the worker is in stalled state", func() {
-				var stalled []string
 				BeforeEach(func() {
 					_, err := workerFactory.SaveWorker(atcWorker, -5*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 
-					stalled, err = workerLifecycle.StallUnresponsiveWorkers()
+					_, err = workerLifecycle.StallUnresponsiveWorkers()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -185,10 +184,8 @@ var _ = Describe("WorkerFactory", func() {
 
 	Describe("GetWorker", func() {
 		Context("when the worker is present", func() {
-			var createdWorker db.Worker
 			BeforeEach(func() {
-				var err error
-				createdWorker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -226,8 +223,7 @@ var _ = Describe("WorkerFactory", func() {
 
 			Context("when worker is stalled", func() {
 				BeforeEach(func() {
-					var err error
-					createdWorker, err = workerFactory.SaveWorker(atcWorker, -1*time.Minute)
+					_, err := workerFactory.SaveWorker(atcWorker, -1*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 					stalled, err := workerLifecycle.StallUnresponsiveWorkers()
 					Expect(err).NotTo(HaveOccurred())
@@ -388,7 +384,6 @@ var _ = Describe("WorkerFactory", func() {
 			Context("when the current state is stalled", func() {
 				var (
 					unresponsiveWorker db.Worker
-					stalledWorkerNames []string
 					err                error
 				)
 
@@ -396,7 +391,7 @@ var _ = Describe("WorkerFactory", func() {
 					unresponsiveWorker, err = workerFactory.SaveWorker(atcWorker, -5*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 
-					stalledWorkerNames, err = workerLifecycle.StallUnresponsiveWorkers()
+					_, err = workerLifecycle.StallUnresponsiveWorkers()
 					Expect(err).NotTo(HaveOccurred())
 
 				})

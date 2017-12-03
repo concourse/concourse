@@ -4,7 +4,7 @@
 
 .dashboard {
   .dashboard-content {
-    padding: 0 0 30px 30px;
+    padding: 64px 0 30px 30px;
     &.no-results {
       padding: 60px 30px;
       text-align: center;
@@ -21,9 +21,9 @@
   .paused    { background: @blue-primary; &:hover { background: @blue-secondary }}
 
   .running { background-size: 500% 100%; }
-  .no-builds.running { .running-animation(@grey-primary, @grey-secondary); }
+  .no-builds.running { .running-animation(@grey-primary,  @grey-secondary); }
   .succeeded.running { .running-animation(@green-primary, @green-secondary); }
-  .failed.running    { .running-animation(@red-primary, @red-secondary); }
+  .failed.running    { .running-animation(@red-primary,   @red-secondary); }
   .errored.running   { .running-animation(@amber-primary, @amber-secondary); }
   .aborted.running   { .running-animation(@brown-primary, @brown-secondary); }
 
@@ -31,10 +31,28 @@
     float: none;
     display: flex;
     padding: 20px 36px 10px;
+    width: 200px;
+    height: 120px;
+  }
+
+  .pipeline-grid-tall {
+    height: 364px;
+  }
+
+  .pipeline-grid-wide {
+    width: 502px;
+  }
+
+  .pipeline-grid-super-tall {
+    height: 608px;
+  }
+
+  .pipeline-grid-super-wide {
+    width: 804px;
   }
 
   .pipeline-grid >* {
-    align-items: initial;
+    align-items: initial !important;
   }
 
   .node {
@@ -56,14 +74,17 @@
   }
 
   .dashboard-team-group {
-    padding-top: (55px * @scale);
     overflow: hidden;
   }
 
   .dashboard-team-name {
+    background: @base02;
     color: @base04;
     font-size: (30px * @scale);
-    margin-bottom: (25px * @scale);
+    padding-top: (55px * @scale);
+    padding-bottom: (25px * @scale);
+    z-index: 1;
+    opacity: 0.9;
   }
 
   .dashboard-pipeline {
@@ -98,16 +119,6 @@
     }
   }
 
-  @keyframes pipeline-running {
-    0%   { background-position-x: -27px; }
-    100% { background-position-x: 0px; }
-  }
-
-  .running-animation(@color1, @color2) {
-    background-image: repeating-linear-gradient(60deg, @color1 0, @color1 5px, @color2 0, @color2 8px);
-    animation: pipeline-running 1s linear infinite;
-  }
-
   .dashboard-paused {
     .dashboard-pipeline-banner {
       background-color: @blue-primary;
@@ -139,7 +150,7 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@grey-primary, @grey-secondary);
+        .running-animation(@grey-primary, @base01);
       }
     }
     .build-duration {
@@ -158,7 +169,7 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@red-primary, @red-secondary);
+        .running-animation(@red-primary, @base01);
       }
     }
     .build-duration {
@@ -177,7 +188,7 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@brown-primary, @brown-secondary);
+        .running-animation(@brown-primary, @base01);
       }
     }
     .build-duration {
@@ -196,7 +207,7 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@green-primary, @green-secondary);
+        .running-animation(@green-primary, @base01);
       }
     }
     .build-duration {
@@ -215,7 +226,7 @@
 
     &.dashboard-running {
       .dashboard-pipeline-banner {
-        .running-animation(@amber-primary, @amber-secondary);
+        .running-animation(@amber-primary, @base01);
       }
     }
     .build-duration {
@@ -232,7 +243,7 @@
   text-align: right;
   color: @base04;
   font-size: 10px;
-  z-index: 999;
+  z-index: 10;
   height: 64px;
   line-height: 64px;
 
@@ -250,6 +261,7 @@
     .dashboard-running .dashboard-pipeline-icon {
       background-image: url('images/ic_running_legend.svg');
       background-size: 30px 15px;
+      background-position: center center;
       width: 30px;
     }
   }
@@ -317,27 +329,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.pipeline-grid {
-  width: 200px;
-  height: 120px;
-}
-
-.pipeline-grid-tall {
-  height: 364px;
-}
-
-.pipeline-grid-wide {
-  width: 502px;
-}
-
-.pipeline-grid-super-tall {
-  height: 608px;
-}
-
-.pipeline-grid-super-wide {
-  width: 804px;
 }
 
 [data-tooltip] {

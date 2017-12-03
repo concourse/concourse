@@ -79,11 +79,7 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 		}).
 		RunWith(f.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
@@ -95,7 +91,7 @@ func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer Close(rows)
 
 	bs := []Build{}
 
@@ -131,7 +127,7 @@ func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn,
 		return nil, Pagination{}, err
 	}
 
-	defer rows.Close()
+	defer Close(rows)
 
 	builds := []Build{}
 

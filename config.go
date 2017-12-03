@@ -65,6 +65,7 @@ type ResourceType struct {
 	Source     Source `yaml:"source" json:"source" mapstructure:"source"`
 	Privileged bool   `yaml:"privileged,omitempty" json:"privileged" mapstructure:"privileged"`
 	Tags       Tags   `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
+	Params     Params `yaml:"params,omitempty" json:"params" mapstructure:"params"`
 }
 
 type ResourceTypes []ResourceType
@@ -91,6 +92,7 @@ func (types ResourceTypes) Without(name string) ResourceTypes {
 }
 
 type Hooks struct {
+	Abort   *PlanConfig
 	Failure *PlanConfig
 	Ensure  *PlanConfig
 	Success *PlanConfig
@@ -256,6 +258,9 @@ type PlanConfig struct {
 	// used by any step to specify which workers are eligible to run the step
 	Tags Tags `yaml:"tags,omitempty" json:"tags,omitempty" mapstructure:"tags"`
 
+	// used by any step to run something when the build is aborted during execution of the step
+	Abort *PlanConfig `yaml:"on_abort,omitempty" json:"on_abort,omitempty" mapstructure:"on_abort"`
+
 	// used by any step to run something when the step reports a failure
 	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
 
@@ -320,7 +325,7 @@ func (config PlanConfig) ResourceName() string {
 }
 
 func (config PlanConfig) Hooks() Hooks {
-	return Hooks{config.Failure, config.Ensure, config.Success}
+	return Hooks{Abort: config.Abort, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
 }
 
 type ResourceConfigs []ResourceConfig

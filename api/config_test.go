@@ -20,12 +20,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type RemoraConfig struct {
-	atc.Config
-
-	Extra string `json:"extra"`
-}
-
 var _ = Describe("Config API", func() {
 	var (
 		pipelineConfig   atc.Config
@@ -714,7 +708,7 @@ jobs:
 								Expect(err).NotTo(HaveOccurred())
 							}
 
-							writer.Close()
+							_ = writer.Close()
 
 							request.Header.Set("Content-Type", writer.FormDataContentType())
 							request.Body = gbytes.BufferWithBytes(body.Bytes())
@@ -852,7 +846,7 @@ jobs:
 								err = writer.WriteField("paused", "junk")
 								Expect(err).NotTo(HaveOccurred())
 
-								writer.Close()
+								_ = writer.Close()
 
 								request.Header.Set("Content-Type", writer.FormDataContentType())
 								request.Body = gbytes.BufferWithBytes(body.Bytes())
@@ -888,7 +882,7 @@ jobs:
 
 									Expect(err).NotTo(HaveOccurred())
 
-									writer.Close()
+									_ = writer.Close()
 
 									request.Header.Set("Content-Type", writer.FormDataContentType())
 									request.Body = gbytes.BufferWithBytes(body.Bytes())
@@ -927,7 +921,7 @@ jobs:
 									_, err = yamlWriter.Write([]byte("{"))
 									Expect(err).NotTo(HaveOccurred())
 
-									writer.Close()
+									_ = writer.Close()
 
 									request.Header.Set("Content-Type", writer.FormDataContentType())
 									request.Body = gbytes.BufferWithBytes(body.Bytes())

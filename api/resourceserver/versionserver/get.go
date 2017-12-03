@@ -21,7 +21,7 @@ func (s *Server) GetResourceVersion(pipeline db.Pipeline) http.Handler {
 
 		version, found, err := pipeline.VersionedResource(versionID)
 		if err != nil {
-			logger.Error("failed-to-get-resource-versions", err)
+			logger.Error("failed-to-get-resource-version", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -35,6 +35,10 @@ func (s *Server) GetResourceVersion(pipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		json.NewEncoder(w).Encode(present.SavedVersionedResource(version))
+		err = json.NewEncoder(w).Encode(present.SavedVersionedResource(version))
+		if err != nil {
+			logger.Error("failed-to-encode-resource-version", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

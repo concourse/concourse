@@ -159,7 +159,12 @@ func (s *Server) writeSaveConfigResponse(w http.ResponseWriter, saveConfigRespon
 		return
 	}
 
-	w.Write(responseJSON)
+	_, err = w.Write(responseJSON)
+	if err != nil {
+		session.Error("failed-to-write-validation-response", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func requestToConfig(contentType string, requestBody io.ReadCloser, configStructure interface{}) (db.PipelinePausedState, error) {

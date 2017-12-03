@@ -26,7 +26,6 @@
 @import "turbulence.less";
 @import "notfound.less";
 
-@import "pipeline.less";
 
 @import "deprecation.less";
 
@@ -42,7 +41,7 @@
   @white: #ffffff;
 
   @amber-primary: #F5A623;
-  @amber-secondary: #FFB843;
+  @amber-secondary: #D58808;
   @blue-primary: #4A90E2;
   @blue-secondary: #2D76CC;
   @brown-primary: #8B572A;
@@ -50,7 +49,7 @@
   @grey-primary: #9B9B9B;
   @grey-secondary: #7A7373;
   @green-primary: #11C560;
-  @green-secondary: #31A864;
+  @green-secondary: #419867;
   @red-primary: #ED4B35;
   @red-secondary: #BD3826;
 
@@ -65,4 +64,75 @@
   @import "beta/modules/dashboard.less";
 
   @import "beta/modules/causality.less";
+
+  @import "beta/modules/pipeline.less";
+
+  /// someone please kill all of the following once we're out of beta
+  .steps .nest.even { background: @base01; }
+
+  #builds { background: @base00; }
+  .builds-list { background: @base00; }
+  .build-step .header { background: @base00; }
+  .top-bar { background: @base00; }
+
+  .steps .nest.odd { background: @base02; }
+
+  .build-step.first-occurrence .header { background: @base03; }
+  .groups li.active a { background: @base03; }
+
+  .build-action { background-color: transparent; }
+  .build-action i { color: @white; }
+  .build-action i:hover { background: @base02; }
+  .build-action i:active { background: @base04; }
+  .build-action i:focus { background: @base04; }
+
+  .build-action-abort i { color: @red-primary; }
+  .build-action-abort i:hover { background: @red-primary; color: @white; }
+  .build-action-abort i:active { color: @white; background: @brown-primary; }
+  .build-action-abort i:focus { background: @brown-primary; }
+
+  .build-step i.failed    { color: @white; background: @red-primary; }
+  .build-step i.succeeded { color: @white; background: @green-primary; }
+  .build-step i.errored   { color: @white; background: @amber-primary; }
+
+  // combined statuses go first so previous status background wins
+  .pending { background: @base04; }
+  .started { background: red; }
+  .no-builds { background: @base03; }
+  .succeeded { background: @green-primary; }
+  .failed { background: @red-primary; }
+  .errored { background: @amber-primary; }
+  .aborted { background: @brown-primary; }
+  .paused { background: @blue-primary; }
+
+  .build-step .header i.pending { color: @grey-primary; background: transparent; }
+  .build-step .header i.succeeded { color: @green-primary; background: transparent; }
+  .build-step .header i.failed { color: @red-primary; background: transparent; }
+  .build-step .header i.errored { color: @amber-primary; background: transparent; }
+  .build-step .header i.aborted { color: @brown-primary; background: transparent; }
+
+  span.error { color: @red-primary; }
+  .resource-check-status pre { color: @red-primary; }
+
+  .build-step .header .dictionary { color: @grey-primary; }
+
+  .build-header .build-duration { color: @white; }
+  .pagination-header h1 { color: @white; }
+
+  .builds-list li a { color: @white; }
+  #builds li a { color: @white; }
+  .groups li a { color: @white; }
+  #cli-downloads a { color: @white; }
+
+  .build-number {
+    color: @white;
+    border: 5px solid @base00;
+  }
+
+  .build-one-off {
+    background-color: @base03;
+  }
+
+  .build-login input { background: @base01; color: @white; }
+  .build-login input:hover { background: @base04; }
 }

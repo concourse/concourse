@@ -1338,7 +1338,6 @@ var _ = Describe("Builds API", func() {
 	})
 
 	Describe("GET /api/v1/builds/:build_id/plan", func() {
-		var publicPlan atc.PublicBuildPlan
 		var plan *json.RawMessage
 
 		var response *http.Response
@@ -1346,11 +1345,6 @@ var _ = Describe("Builds API", func() {
 		BeforeEach(func() {
 			data := []byte(`{"some":"plan"}`)
 			plan = (*json.RawMessage)(&data)
-
-			publicPlan = atc.PublicBuildPlan{
-				Schema: "some-schema",
-				Plan:   plan,
-			}
 		})
 
 		JustBeforeEach(func() {

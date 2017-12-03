@@ -47,7 +47,7 @@ func (s *Server) HijackContainer(team db.Team) http.Handler {
 			return
 		}
 
-		defer conn.Close()
+		defer db.Close(conn)
 
 		var processSpec atc.HijackProcessSpec
 		err = conn.ReadJSON(&processSpec)
@@ -90,7 +90,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 	})
 
 	stdinR, stdinW := io.Pipe()
-	defer stdinW.Close()
+	defer db.Close(stdinW)
 
 	inputs := make(chan atc.HijackInput)
 	outputs := make(chan atc.HijackOutput)
@@ -177,7 +177,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		select {
 		case input := <-inputs:
 			if input.Closed {
-				stdinW.Close()
+				_ = stdinW.Close()
 			} else if input.TTYSpec != nil {
 				err := process.SetTTY(garden.TTYSpec{
 					WindowSize: &garden.WindowSize{
@@ -186,12 +186,12 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 					},
 				})
 				if err != nil {
-					conn.WriteJSON(atc.HijackOutput{
+					_ = conn.WriteJSON(atc.HijackOutput{
 						Error: err.Error(),
 					})
 				}
 			} else {
-				stdinW.Write(input.Stdin)
+				_, _ = stdinW.Write(input.Stdin)
 			}
 
 		case output := <-outputs:
@@ -201,14 +201,14 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 			}
 
 		case status := <-exited:
-			conn.WriteJSON(atc.HijackOutput{
+			_ = conn.WriteJSON(atc.HijackOutput{
 				ExitStatus: &status,
 			})
 
 			return
 
 		case err := <-errs:
-			conn.WriteJSON(atc.HijackOutput{
+			_ = conn.WriteJSON(atc.HijackOutput{
 				Error: err.Error(),
 			})
 

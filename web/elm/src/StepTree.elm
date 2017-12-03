@@ -29,7 +29,7 @@ import Dict exposing (Dict)
 import Focus exposing (Focus, (=>))
 import Html exposing (Html)
 import Html.Events exposing (onClick, onMouseDown)
-import Html.Attributes exposing (class, classList, href)
+import Html.Attributes exposing (attribute, class, classList, href)
 import Html.Lazy
 import Concourse
 import DictView
@@ -46,6 +46,7 @@ type StepTree
     | Do (Array StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
+    | OnAbort HookedStep
     | Ensure HookedStep
     | Try StepTree
     | Retry StepID (Array StepTree) Int TabFocus
@@ -188,6 +189,9 @@ init hl resources plan =
         Concourse.BuildStepOnFailure hookedPlan ->
             initHookedStep hl resources OnFailure hookedPlan
 
+        Concourse.BuildStepOnAbort hookedPlan ->
+            initHookedStep hl resources OnAbort hookedPlan
+
         Concourse.BuildStepEnsure hookedPlan ->
             initHookedStep hl resources Ensure hookedPlan
 
@@ -233,6 +237,9 @@ treeIsActive tree =
             treeIsActive step
 
         OnFailure { step } ->
+            treeIsActive step
+
+        OnAbort { step } ->
             treeIsActive step
 
         Ensure { step } ->
@@ -466,6 +473,9 @@ getStep tree =
         OnFailure { step } ->
             step
 
+        OnAbort { step } ->
+            step
+
         Ensure { step } ->
             step
 
@@ -487,6 +497,9 @@ updateStep update tree =
 
         OnFailure hookedStep ->
             OnFailure { hookedStep | step = update hookedStep.step }
+
+        OnAbort hookedStep ->
+            OnAbort { hookedStep | step = update hookedStep.step }
 
         Ensure hookedStep ->
             Ensure { hookedStep | step = update hookedStep.step }
@@ -515,6 +528,9 @@ getHook tree =
         OnFailure { hook } ->
             hook
 
+        OnAbort { hook } ->
+            hook
+
         Ensure { hook } ->
             hook
 
@@ -530,6 +546,9 @@ updateHook update tree =
 
         OnFailure hookedStep ->
             OnFailure { hookedStep | hook = update hookedStep.hook }
+
+        OnAbort hookedStep ->
+            OnAbort { hookedStep | hook = update hookedStep.hook }
 
         Ensure hookedStep ->
             Ensure { hookedStep | hook = update hookedStep.hook }
@@ -640,6 +659,9 @@ viewTree model tree =
         OnFailure { step, hook } ->
             viewHooked "failure" model step hook
 
+        OnAbort { step, hook } ->
+            viewHooked "abort" model step hook
+
         Ensure { step, hook } ->
             viewHooked "ensure" model step hook
 
@@ -688,6 +710,7 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             , ( "inactive", not <| isActive state )
             , ( "first-occurrence", firstOccurrence )
             ]
+        , attribute "data-step-name" name
         ]
         [ Html.div [ class "header", onClick (ToggleStep id) ]
             [ viewStepState state model.finished
@@ -739,7 +762,7 @@ viewTimestampedLine timestamps hl id lineNo line =
                 HighlightRange hlId hlLine1 hlLine2 ->
                     hlId == id && lineNo >= hlLine1 && lineNo <= hlLine2
     in
-        Html.div
+        Html.tr
             [ classList
                 [ ( "timestamped-line", True )
                 , ( "highlighted-line", highlighted )
@@ -757,21 +780,18 @@ viewTimestampedLine timestamps hl id lineNo line =
 
 viewLine : Ansi.Log.Line -> Html Msg
 viewLine line =
-    Html.div [ class "timestamped-content" ]
+    Html.td [ class "timestamped-content" ]
         [ Html.Lazy.lazy Ansi.Log.viewLine line
         ]
 
 
 viewTimestamp : Highlight -> String -> ( Int, Date ) -> Html Msg
 viewTimestamp hl id ( line, date ) =
-    Html.div [ class "timestamp" ]
-        [ Html.a
-            [ href (showHighlight (HighlightLine id line))
-            , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
-            ]
-            [ Html.text (Date.Format.format "%H:%M:%S" date)
-            ]
+    Html.a
+        [ href (showHighlight (HighlightLine id line))
+        , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
         ]
+        [ Html.td [ class "timestamp", attribute "data-timestamp" (Date.Format.format "%H:%M:%S" date) ] [] ]
 
 
 viewVersion : Maybe Version -> Html Msg

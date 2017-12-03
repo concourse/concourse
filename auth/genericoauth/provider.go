@@ -1,6 +1,8 @@
 package genericoauth
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 	"encoding/json"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
@@ -25,6 +28,7 @@ const ProviderName = "oauth"
 type Provider struct {
 	verifier.Verifier
 	Config ConfigOverride
+	CACert string
 }
 
 type ConfigOverride struct {
@@ -43,10 +47,11 @@ type GenericOAuthConfig struct {
 	ClientID     string `json:"client_id"         long:"client-id"       description:"Application client ID for enabling generic OAuth."`
 	ClientSecret string `json:"client_secret"     long:"client-secret"   description:"Application client secret for enabling generic OAuth."`
 
-	AuthURL       string            `json:"auth_url,omitempty"          long:"auth-url"        description:"Generic OAuth provider AuthURL endpoint."`
-	AuthURLParams map[string]string `json:"auth_url_params,omitempty"   long:"auth-url-param"  description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
-	Scope         string            `json:"scope,omitempty"             long:"scope"           description:"Optional scope required to authorize user"`
-	TokenURL      string            `json:"token_url,omitempty"         long:"token-url"       description:"Generic OAuth provider TokenURL endpoint."`
+	AuthURL       string                `json:"auth_url,omitempty"          long:"auth-url"        description:"Generic OAuth provider AuthURL endpoint."`
+	AuthURLParams map[string]string     `json:"auth_url_params,omitempty"   long:"auth-url-param"  description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
+	Scope         string                `json:"scope,omitempty"             long:"scope"           description:"Optional scope required to authorize user"`
+	TokenURL      string                `json:"token_url,omitempty"         long:"token-url"       description:"Generic OAuth provider TokenURL endpoint."`
+	CACert        auth.FileContentsFlag `json:"ca_cert,omitempty"           long:"ca-cert"         description:"PEM-encoded CA certificate string"`
 }
 
 func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
@@ -154,6 +159,7 @@ func (GenericTeamProvider) ProviderConstructor(
 			},
 			AuthURLParams: genericOAuth.AuthURLParams,
 		},
+		CACert: string(genericOAuth.CACert),
 	}, true
 }
 
@@ -161,27 +167,41 @@ func (v NoopVerifier) Verify(logger lager.Logger, client *http.Client) (bool, er
 	return true, nil
 }
 
-func (provider Provider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
+func (provider Provider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) (string, error) {
 	for key, value := range provider.Config.AuthURLParams {
 		opts = append(opts, oauth2.SetAuthURLParam(key, value))
 
 	}
-	return provider.Config.AuthCodeURL(state, opts...)
+	return provider.Config.AuthCodeURL(state, opts...), nil
 }
 
-func (provider Provider) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
-	return provider.Config.Exchange(ctx, code)
+func (provider Provider) Exchange(ctx context.Context, req *http.Request) (*oauth2.Token, error) {
+	return provider.Config.Exchange(ctx, req.FormValue("code"))
 }
 
 func (provider Provider) Client(ctx context.Context, t *oauth2.Token) *http.Client {
 	return provider.Config.Client(ctx, t)
 }
 
-func (Provider) PreTokenClient() (*http.Client, error) {
+func (p Provider) PreTokenClient() (*http.Client, error) {
+	transport := &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		DisableKeepAlives: true,
+	}
+
+	if p.CACert != "" {
+		caCertPool := x509.NewCertPool()
+		ok := caCertPool.AppendCertsFromPEM([]byte(p.CACert))
+		if !ok {
+			return nil, errors.New("failed to use cf certificate")
+		}
+
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs: caCertPool,
+		}
+	}
+
 	return &http.Client{
-		Transport: &http.Transport{
-			Proxy:             http.ProxyFromEnvironment,
-			DisableKeepAlives: true,
-		},
+		Transport: transport,
 	}, nil
 }

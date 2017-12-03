@@ -61,14 +61,12 @@ type buildEventSource struct {
 }
 
 func (source *buildEventSource) Next() (event.Envelope, error) {
-	select {
-	case e, ok := <-source.events:
-		if !ok {
-			return event.Envelope{}, source.err
-		}
-
-		return e, nil
+	e, ok := <-source.events
+	if !ok {
+		return event.Envelope{}, source.err
 	}
+
+	return e, nil
 }
 
 func (source *buildEventSource) Close() error {
@@ -135,7 +133,7 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 			var t, v, p string
 			err := rows.Scan(&t, &v, &p)
 			if err != nil {
-				rows.Close()
+				_ = rows.Close()
 
 				source.err = err
 				close(source.events)
@@ -153,7 +151,7 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 			select {
 			case source.events <- ev:
 			case <-source.stop:
-				rows.Close()
+				_ = rows.Close()
 
 				source.err = ErrBuildEventStreamClosed
 				close(source.events)

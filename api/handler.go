@@ -58,6 +58,7 @@ func NewHandler(
 
 	engine engine.Engine,
 	workerClient worker.Client,
+	workerProvider worker.WorkerProvider,
 
 	schedulerFactory jobserver.SchedulerFactory,
 	scannerFactory resourceserver.ScannerFactory,
@@ -114,7 +115,7 @@ func NewHandler(
 
 	configServer := configserver.NewServer(logger, dbTeamFactory)
 
-	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
+	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
 
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 

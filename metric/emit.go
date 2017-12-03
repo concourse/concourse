@@ -25,10 +25,12 @@ const EventStateOK EventState = "ok"
 const EventStateWarning EventState = "warning"
 const EventStateCritical EventState = "critical"
 
+//go:generate counterfeiter . Emitter
 type Emitter interface {
 	Emit(lager.Logger, Event)
 }
 
+//go:generate counterfeiter . EmitterFactory
 type EmitterFactory interface {
 	Description() string
 	IsConfigured() bool

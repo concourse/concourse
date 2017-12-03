@@ -82,7 +82,11 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		atc[i] = present.Build(build)
 	}
 
-	json.NewEncoder(w).Encode(atc)
+	err = json.NewEncoder(w).Encode(atc)
+	if err != nil {
+		logger.Error("failed-to-encode-builds", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) addNextLink(w http.ResponseWriter, page db.Page) {

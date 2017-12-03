@@ -108,7 +108,11 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(present.Team(team))
+	err = json.NewEncoder(w).Encode(present.Team(team))
+	if err != nil {
+		hLog.Error("failed-to-encode-team", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) updateCredentials(atcTeam atc.Team, team db.Team) error {
@@ -118,9 +122,5 @@ func (s *Server) updateCredentials(atcTeam atc.Team, team db.Team) error {
 	}
 
 	err = team.UpdateProviderAuth(atcTeam.Auth)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

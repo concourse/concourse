@@ -336,6 +336,7 @@ var _ = Describe("ExecEngine", func() {
 		Context("with a plan where conditional steps are inside retries", func() {
 			var (
 				retryPlan     atc.Plan
+				onAbortPlan   atc.Plan
 				onSuccessPlan atc.Plan
 				onFailurePlan atc.Plan
 				ensurePlan    atc.Plan
@@ -350,8 +351,13 @@ var _ = Describe("ExecEngine", func() {
 					ConfigPath: "some-config-path",
 				})
 
-				onSuccessPlan = planFactory.NewPlan(atc.OnSuccessPlan{
+				onAbortPlan = planFactory.NewPlan(atc.OnAbortPlan{
 					Step: leafPlan,
+					Next: leafPlan,
+				})
+
+				onSuccessPlan = planFactory.NewPlan(atc.OnSuccessPlan{
+					Step: onAbortPlan,
 					Next: leafPlan,
 				})
 
@@ -372,7 +378,7 @@ var _ = Describe("ExecEngine", func() {
 				build, err = execEngine.CreateBuild(logger, dbBuild, retryPlan)
 				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
-				Expect(fakeFactory.TaskCallCount()).To(Equal(4))
+				Expect(fakeFactory.TaskCallCount()).To(Equal(5))
 			})
 
 			It("constructs nested steps correctly", func() {
@@ -383,6 +389,8 @@ var _ = Describe("ExecEngine", func() {
 				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(2)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
 				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(3)
+				Expect(containerMetadata.Attempt).To(Equal("1"))
+				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(4)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
 			})
 		})

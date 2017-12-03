@@ -43,6 +43,10 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		json.NewEncoder(w).Encode(jobs)
+		err = json.NewEncoder(w).Encode(jobs)
+		if err != nil {
+			logger.Error("failed-to-encode-jobs", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

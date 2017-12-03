@@ -1,4 +1,4 @@
-module NewTopBar exposing (Model, Msg(FilterMsg), init, update, view)
+module NewTopBar exposing (Model, Msg(FilterMsg, UserFetched), init, fetchUser, update, view)
 
 import Concourse
 import Concourse.User
@@ -51,7 +51,7 @@ showUserInfo model =
             Html.text user.team.name
 
         RemoteData.Failure _ ->
-            Html.text "log in"
+            Html.text "login"
 
 
 view : Model -> Html Msg

@@ -15,7 +15,7 @@ var _ = Describe("WorkerResourceCache", func() {
 	Describe("FindOrCreate", func() {
 		BeforeEach(func() {
 			build, err := defaultTeam.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
@@ -26,7 +26,7 @@ var _ = Describe("WorkerResourceCache", func() {
 				atc.Params{},
 				creds.VersionedResourceTypes{},
 			)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			workerResourceCache = db.WorkerResourceCache{
 				ResourceCache: resourceCache,
@@ -37,37 +37,35 @@ var _ = Describe("WorkerResourceCache", func() {
 		Context("when there are no existing worker resource caches", func() {
 			It("creates worker resource cache", func() {
 				tx, err := dbConn.Begin()
-				Expect(err).NotTo(HaveOccurred())
-				defer tx.Rollback()
+				Expect(err).ToNot(HaveOccurred())
+				defer db.Rollback(tx)
 
 				usedWorkerResourceCache, err := workerResourceCache.FindOrCreate(tx)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				Expect(usedWorkerResourceCache.ID).To(Equal(1))
 			})
 		})
 
 		Context("when there is existing worker resource caches", func() {
-			var createdWorkerResourceCache *db.UsedWorkerResourceCache
-
 			BeforeEach(func() {
 				var err error
 				tx, err := dbConn.Begin()
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
-				createdWorkerResourceCache, err = workerResourceCache.FindOrCreate(tx)
-				Expect(err).NotTo(HaveOccurred())
+				_, err = workerResourceCache.FindOrCreate(tx)
+				Expect(err).ToNot(HaveOccurred())
 
 				Expect(tx.Commit()).To(Succeed())
 			})
 
 			It("finds worker resource cache", func() {
 				tx, err := dbConn.Begin()
-				Expect(err).NotTo(HaveOccurred())
-				defer tx.Rollback()
+				Expect(err).ToNot(HaveOccurred())
+				defer db.Rollback(tx)
 
 				usedWorkerResourceCache, err := workerResourceCache.FindOrCreate(tx)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				Expect(usedWorkerResourceCache.ID).To(Equal(1))
 			})
@@ -81,7 +79,7 @@ var _ = Describe("WorkerResourceCache", func() {
 
 		BeforeEach(func() {
 			build, err := defaultTeam.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
@@ -92,7 +90,7 @@ var _ = Describe("WorkerResourceCache", func() {
 				atc.Params{},
 				creds.VersionedResourceTypes{},
 			)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			workerResourceCache = db.WorkerResourceCache{
 				ResourceCache: resourceCache,
@@ -102,15 +100,15 @@ var _ = Describe("WorkerResourceCache", func() {
 
 		JustBeforeEach(func() {
 			tx, err := dbConn.Begin()
-			Expect(err).NotTo(HaveOccurred())
-			defer tx.Rollback()
+			Expect(err).ToNot(HaveOccurred())
+			defer db.Rollback(tx)
 
 			foundWRC, found, findErr = workerResourceCache.Find(tx)
 		})
 
 		Context("when there are no existing worker resource caches", func() {
 			It("returns false and no error", func() {
-				Expect(findErr).NotTo(HaveOccurred())
+				Expect(findErr).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(foundWRC).To(BeNil())
 			})
@@ -119,19 +117,20 @@ var _ = Describe("WorkerResourceCache", func() {
 		Context("when the base resource type does not exist on the worker", func() {
 			BeforeEach(func() {
 				tx, err := dbConn.Begin()
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
-				defer tx.Rollback()
+				defer db.Rollback(tx)
 
 				_, err = db.BaseResourceType{
 					Name: "some-bogus-resource-type",
 				}.FindOrCreate(tx)
+				Expect(err).ToNot(HaveOccurred())
 
 				err = tx.Commit()
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				build, err := defaultTeam.CreateOneOffBuild()
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 					logger,
@@ -142,7 +141,7 @@ var _ = Describe("WorkerResourceCache", func() {
 					atc.Params{},
 					creds.VersionedResourceTypes{},
 				)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				workerResourceCache.ResourceCache = resourceCache
 			})
@@ -159,16 +158,16 @@ var _ = Describe("WorkerResourceCache", func() {
 			BeforeEach(func() {
 				var err error
 				tx, err := dbConn.Begin()
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				createdWorkerResourceCache, err = workerResourceCache.FindOrCreate(tx)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				Expect(tx.Commit()).To(Succeed())
 			})
 
 			It("finds worker resource cache", func() {
-				Expect(findErr).NotTo(HaveOccurred())
+				Expect(findErr).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(foundWRC.ID).To(Equal(createdWorkerResourceCache.ID))
 			})

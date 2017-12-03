@@ -68,7 +68,7 @@ func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer Close(rows)
 
 	createdVolumes := []CreatedVolume{}
 
@@ -140,7 +140,7 @@ func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer Close(rows)
 
 	createdVolumes := []CreatedVolume{}
 
@@ -265,7 +265,7 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 	if err != nil {
 		return nil, nil, err
 	}
-	defer rows.Close()
+	defer Close(rows)
 
 	createdVolumes := []CreatedVolume{}
 	destroyingVolumes := []DestroyingVolume{}
@@ -308,7 +308,7 @@ func (factory *volumeFactory) GetFailedVolumes() ([]FailedVolume, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer Close(rows)
 
 	failedVolumes := []FailedVolume{}
 

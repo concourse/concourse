@@ -37,6 +37,7 @@ type Msg
     = Noop
     | PipelineFetched (Result Http.Error Concourse.Pipeline)
     | UserFetched (Result Http.Error Concourse.User)
+    | FetchUser Time.Time
     | FetchPipeline Concourse.PipelineIdentifier
     | ToggleSidebar
     | ToggleGroup Concourse.PipelineGroup
@@ -59,19 +60,19 @@ init route =
         pid =
             extractPidFromRoute route.logical
     in
-    ( { selectedGroups = queryGroupsForRoute route
-      , route = route
-      , pipeline = Nothing
-      , userState = UserStateUnknown
-      , userMenuVisible = False
-      }
-    , case pid of
-        Nothing ->
-            fetchUser
+        ( { selectedGroups = queryGroupsForRoute route
+          , route = route
+          , pipeline = Nothing
+          , userState = UserStateUnknown
+          , userMenuVisible = False
+          }
+        , case pid of
+            Nothing ->
+                fetchUser
 
-        Just pid ->
-            Cmd.batch [ fetchPipeline pid, fetchUser ]
-    )
+            Just pid ->
+                Cmd.batch [ fetchPipeline pid, fetchUser ]
+        )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -82,6 +83,9 @@ update msg model =
 
         FetchPipeline pid ->
             ( model, fetchPipeline pid )
+
+        FetchUser _ ->
+            ( model, fetchUser )
 
         UserFetched (Ok user) ->
             ( { model | userState = UserStateLoggedIn user }
@@ -162,12 +166,15 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case pipelineIdentifierFromRouteOrModel model.route model of
-        Nothing ->
-            Sub.none
+    Sub.batch
+        [ case pipelineIdentifierFromRouteOrModel model.route model of
+            Nothing ->
+                Sub.none
 
-        Just pid ->
-            Time.every (5 * Time.second) (always (FetchPipeline pid))
+            Just pid ->
+                Time.every (5 * Time.second) (always (FetchPipeline pid))
+        , Time.every (5 * Time.second) FetchUser
+        ]
 
 
 pipelineIdentifierFromRouteOrModel : Routes.ConcourseRoute -> Model -> Maybe Concourse.PipelineIdentifier
@@ -223,7 +230,7 @@ setGroups newGroups model =
             pidToUrl (pipelineIdentifierFromRouteOrModel model.route model) <|
                 setGroupsInLocation model.route newGroups
     in
-    ( model, Navigation.newUrl newUrl )
+        ( model, Navigation.newUrl newUrl )
 
 
 urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
@@ -232,17 +239,17 @@ urlUpdate route model =
         pipelineIdentifier =
             pipelineIdentifierFromRouteOrModel route model
     in
-    ( { model
-        | route = route
-        , selectedGroups = queryGroupsForRoute route
-      }
-    , case pipelineIdentifier of
-        Nothing ->
-            fetchUser
+        ( { model
+            | route = route
+            , selectedGroups = queryGroupsForRoute route
+          }
+        , case pipelineIdentifier of
+            Nothing ->
+                fetchUser
 
-        Just pid ->
-            Cmd.batch [ fetchPipeline pid, fetchUser ]
-    )
+            Just pid ->
+                Cmd.batch [ fetchPipeline pid, fetchUser ]
+        )
 
 
 getDefaultSelectedGroups : Maybe Concourse.Pipeline -> List String
@@ -272,9 +279,9 @@ setGroupsInLocation loc groups =
                     QueryString.empty
                     groups
     in
-    { loc
-        | queries = updatedUrl
-    }
+        { loc
+            | queries = updatedUrl
+        }
 
 
 pidToUrl : Maybe Concourse.PipelineIdentifier -> Routes.ConcourseRoute -> String
@@ -358,26 +365,26 @@ view model =
                         , pipeline.url
                         )
           in
-          Html.ul [ class "groups" ] <|
-            [ Html.li [ class "main" ]
-                [ Html.span
-                    [ class "sidebar-toggle test btn-hamburger"
-                    , onClick ToggleSidebar
-                    , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
+            Html.ul [ class "groups" ] <|
+                [ Html.li [ class "main" ]
+                    [ Html.span
+                        [ class "sidebar-toggle test btn-hamburger"
+                        , onClick ToggleSidebar
+                        , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
+                        ]
+                        [ Html.i [ class "fa fa-bars" ] []
+                        ]
                     ]
-                    [ Html.i [ class "fa fa-bars" ] []
+                , Html.li [ class "main" ]
+                    [ Html.a
+                        [ StrictEvents.onLeftClick <| NavTo pipelineUrl
+                        , Html.Attributes.href pipelineUrl
+                        ]
+                        [ Html.i [ class "fa fa-home" ] []
+                        ]
                     ]
                 ]
-            , Html.li [ class "main" ]
-                [ Html.a
-                    [ StrictEvents.onLeftClick <| NavTo pipelineUrl
-                    , Html.Attributes.href pipelineUrl
-                    ]
-                    [ Html.i [ class "fa fa-home" ] []
-                    ]
-                ]
-            ]
-                ++ groupList
+                    ++ groupList
         , Html.ul [ class "nav-right" ]
             [ Html.li [ class "nav-item" ]
                 [ viewUserState model.userState model.userMenuVisible

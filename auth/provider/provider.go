@@ -24,8 +24,8 @@ type Provider interface {
 }
 
 type OAuthClient interface {
-	AuthCodeURL(string, ...oauth2.AuthCodeOption) string
-	Exchange(context.Context, string) (*oauth2.Token, error)
+	AuthCodeURL(string, ...oauth2.AuthCodeOption) (string, error)
+	Exchange(context.Context, *http.Request) (*oauth2.Token, error)
 	Client(context.Context, *oauth2.Token) *http.Client
 }
 

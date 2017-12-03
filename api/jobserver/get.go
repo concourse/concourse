@@ -36,7 +36,7 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		json.NewEncoder(w).Encode(present.Job(
+		err = json.NewEncoder(w).Encode(present.Job(
 			teamName,
 			job,
 			pipeline.Groups(),
@@ -44,5 +44,9 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 			next,
 			nil,
 		))
+		if err != nil {
+			logger.Error("failed-to-encode-job", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

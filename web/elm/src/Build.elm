@@ -85,6 +85,7 @@ type alias Model =
     , ports : Ports
     , csrfToken : String
     , previousKeyPress : Maybe Char
+    , previousTriggerBuildByKey : Bool
     , showHelp : Bool
     , hash : String
     }
@@ -116,6 +117,7 @@ type Msg
     | NavTo String
     | NewCSRFToken String
     | KeyPressed Keyboard.KeyCode
+    | KeyUped Keyboard.KeyCode
 
 
 type alias Flags =
@@ -140,6 +142,7 @@ init ports flags page =
                 , ports = ports
                 , csrfToken = flags.csrfToken
                 , previousKeyPress = Nothing
+                , previousTriggerBuildByKey = False
                 , showHelp = False
                 , hash = flags.hash
                 }
@@ -159,6 +162,7 @@ subscriptions model =
             Just buildOutput ->
                 Sub.map (BuildOutputMsg model.browsingIndex) buildOutput.events
         , Keyboard.presses KeyPressed
+        , Keyboard.ups KeyUped
         ]
 
 
@@ -363,6 +367,14 @@ update action model =
         KeyPressed keycode ->
             handleKeyPressed (Char.fromCode keycode) model
 
+        KeyUped keycode ->
+            case (Char.fromCode keycode) of
+                'T' ->
+                    ( { model | previousTriggerBuildByKey = False }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
 
 handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )
 handleKeyPressed key model =
@@ -402,7 +414,12 @@ handleKeyPressed key model =
                 ( newModel, Task.perform (always Noop) Scroll.scrollUp )
 
             'T' ->
-                update (TriggerBuild (currentBuild |> Maybe.andThen .job)) newModel
+                if not model.previousTriggerBuildByKey then
+                    update
+                        (TriggerBuild (currentBuild |> Maybe.andThen .job))
+                        { newModel | previousTriggerBuildByKey = True }
+                else
+                    ( newModel, Cmd.none )
 
             'A' ->
                 if currentBuild == List.head model.history then

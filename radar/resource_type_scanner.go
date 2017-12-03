@@ -48,13 +48,13 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 }
 
 func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion atc.Version) error {
-	// FIXME: Implement
 	return nil
 }
 
 func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName string) error {
-	// FIXME: Implement
-	return nil
+	_, err := scanner.scan(logger, resourceTypeName, nil, true)
+
+	return err
 }
 
 func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName string, fromVersion atc.Version, mustComplete bool) (time.Duration, error) {
@@ -64,7 +64,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 
 	savedResourceType, found, err := scanner.dbPipeline.ResourceType(resourceTypeName)
 	if err != nil {
-		logger.Error("failed-to-get-current-version", err)
+		logger.Error("failed-to-find-resource-type-in-db", err)
 		return 0, err
 	}
 
@@ -81,12 +81,28 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		return 0, err
 	}
 
-	// FIXME: Scan dependencies
-	//   Go through each resourceType
-	//     if the resourceType's Name matches the savedResourceType's Type
-	//       if the resoureceType's Version is nil
-	//         Scan the resourceType
-	//   Reload all the resourceTypes at some point
+	for _, parentType := range resourceTypes {
+		if parentType.Name() == savedResourceType.Name() {
+			continue
+		}
+		if parentType.Name() != savedResourceType.Type() {
+			continue
+		}
+		if parentType.Version() != nil {
+			continue
+		}
+
+		if err = scanner.Scan(logger, parentType.Name()); err != nil {
+			logger.Error("failed-to-scan-parent-resource-type-version", err)
+			return 0, err
+		}
+	}
+
+	resourceTypes, err = scanner.dbPipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resource-types", err)
+		return 0, err
+	}
 
 	versionedResourceTypes := creds.NewVersionedResourceTypes(
 		scanner.variables,

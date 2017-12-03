@@ -3,6 +3,7 @@ require 'selenium/webdriver'
 require 'stringio'
 require 'fly'
 require 'dash'
+require 'tmpdir'
 
 ATC_URL = ENV.fetch('ATC_URL', 'http://127.0.0.1:8080').freeze
 
@@ -10,18 +11,10 @@ RSpec.configure do |config|
   include Fly
   config.include Dash
 
-  config.before(:suite) do
+  config.after(:each) do
     fly_login 'main'
-    cleanup_teams
-  end
-
-  config.before(:each) do
-    fly_login 'main'
-  end
-
-  config.after(:suite) do
-    fly_login 'main'
-    cleanup_teams
+    fly_with_input("destroy-team -n #{team_name}", team_name)
+    fly('logout')
   end
 end
 
@@ -43,3 +36,5 @@ Capybara.default_driver = :headless_chrome
 Capybara.javascript_driver = :headless_chrome
 
 Capybara.save_path = '/tmp'
+
+Capybara.default_max_wait_time = 30
