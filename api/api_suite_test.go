@@ -19,6 +19,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 
+	"github.com/concourse/atc/api/containerserver/containerserverfakes"
 	"github.com/concourse/atc/api/jobserver/jobserverfakes"
 	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
@@ -54,6 +55,8 @@ var (
 	fakeSchedulerFactory    *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory      *resourceserverfakes.FakeScannerFactory
 	fakeVariablesFactory    *credsfakes.FakeVariablesFactory
+	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
+	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
 	peerAddr                string
 	drain                   chan struct{}
 	expire                  time.Duration
@@ -91,6 +94,10 @@ var _ = BeforeEach(func() {
 	dbTeamFactory = new(dbfakes.FakeTeamFactory)
 	dbPipelineFactory = new(dbfakes.FakePipelineFactory)
 	dbBuildFactory = new(dbfakes.FakeBuildFactory)
+
+	interceptTimeoutFactory = new(containerserverfakes.FakeInterceptTimeoutFactory)
+	interceptTimeout = new(containerserverfakes.FakeInterceptTimeout)
+	interceptTimeoutFactory.NewInterceptTimeoutReturns(interceptTimeout)
 
 	dbTeam = new(dbfakes.FakeTeam)
 	dbTeam.IDReturns(734)
@@ -197,7 +204,7 @@ var _ = BeforeEach(func() {
 		"1.2.3",
 		"4.5.6",
 		fakeVariablesFactory,
-		0,
+		interceptTimeoutFactory,
 	)
 	Expect(err).NotTo(HaveOccurred())
 

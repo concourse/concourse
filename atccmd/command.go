@@ -20,6 +20,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
+	"github.com/concourse/atc/api/containerserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/creds"
@@ -1141,7 +1142,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		Version,
 		WorkerVersion,
 		variablesFactory,
-		cmd.InterceptIdleTimeout,
+		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
 	)
 }
 

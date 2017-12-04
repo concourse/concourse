@@ -1,8 +1,6 @@
 package containerserver
 
 import (
-	"time"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/worker"
@@ -11,21 +9,21 @@ import (
 type Server struct {
 	logger lager.Logger
 
-	workerClient         worker.Client
-	variablesFactory     creds.VariablesFactory
-	interceptIdleTimeout time.Duration
+	workerClient            worker.Client
+	variablesFactory        creds.VariablesFactory
+	interceptTimeoutFactory InterceptTimeoutFactory
 }
 
 func NewServer(
 	logger lager.Logger,
 	workerClient worker.Client,
 	variablesFactory creds.VariablesFactory,
-	interceptIdleTimeout time.Duration,
+	interceptTimeoutFactory InterceptTimeoutFactory,
 ) *Server {
 	return &Server{
-		logger:               logger,
-		workerClient:         workerClient,
-		variablesFactory:     variablesFactory,
-		interceptIdleTimeout: interceptIdleTimeout,
+		logger:                  logger,
+		workerClient:            workerClient,
+		variablesFactory:        variablesFactory,
+		interceptTimeoutFactory: interceptTimeoutFactory,
 	}
 }
