@@ -3,14 +3,16 @@
   tsa_port = nil
   tsa_host_public_key = nil
 
+  known_host = ""
   if_p("tsa.host", "tsa.port", "tsa.host_public_key") do |host, port, public_key|
-    "[#{host}]:#{port} #{public_key}"
+    known_host = "[#{host}]:#{port} #{public_key}"
   end.else do
     tsa = link("tsa")
     port = tsa.p("bind_port")
     key = tsa.p("host_key.public_key")
-    tsa.instances.collect do |i|
+    known_host = tsa.instances.collect do |i|
       "[#{i.address}]:#{port} #{key}"
     end.join("\n")
   end
+  known_host
 %>
