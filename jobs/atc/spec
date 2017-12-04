@@ -288,6 +288,13 @@ properties:
       for and release old caches of resource versions.
     default: 30s
 
+  container_placement_strategy:
+    description: |
+      Method by which a worker is selected during container placement.
+
+      Options are "volume-locality" and "random".
+    default: "volume-locality"
+
   old_resource_grace_period:
     description: |
       How long to cache the result of a get step after a newer version of the
