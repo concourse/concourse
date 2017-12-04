@@ -260,12 +260,12 @@ func (emitter *PrometheusEmitter) workerVolumesMetrics(logger lager.Logger, even
 		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
 	}
 
-	workers, ok := event.Value.(int)
+	volumes, ok := event.Value.(int)
 	if !ok {
 		logger.Error("worker-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
 	}
 
-	emitter.workerContainers.WithLabelValues(worker).Set(float64(workers))
+	emitter.workerVolumes.WithLabelValues(worker).Set(float64(volumes))
 }
 
 func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, event metric.Event) {
