@@ -73,6 +73,7 @@ func NewHandler(
 	version string,
 	workerVersion string,
 	variablesFactory creds.VariablesFactory,
+	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
 ) (http.Handler, error) {
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
 	if err != nil {
@@ -121,7 +122,7 @@ func NewHandler(
 
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 
-	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory)
+	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory)
 
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 

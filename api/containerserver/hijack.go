@@ -18,6 +18,67 @@ var upgrader = websocket.Upgrader{
 	HandshakeTimeout: 5 * time.Second,
 }
 
+type InterceptTimeoutError struct {
+	duration time.Duration
+}
+
+func (err InterceptTimeoutError) Error() string {
+	return fmt.Sprintf("idle timeout (%s) reached", err.duration)
+}
+
+//go:generate counterfeiter . InterceptTimeoutFactory
+
+type InterceptTimeoutFactory interface {
+	NewInterceptTimeout() InterceptTimeout
+}
+
+func NewInterceptTimeoutFactory(duration time.Duration) InterceptTimeoutFactory {
+	return &interceptTimeoutFactory{
+		duration: duration,
+	}
+}
+
+type interceptTimeoutFactory struct {
+	duration time.Duration
+}
+
+func (t *interceptTimeoutFactory) NewInterceptTimeout() InterceptTimeout {
+	return &interceptTimeout{
+		duration: t.duration,
+		timer:    time.NewTimer(t.duration),
+	}
+}
+
+//go:generate counterfeiter . InterceptTimeout
+
+type InterceptTimeout interface {
+	Reset()
+	Channel() <-chan time.Time
+	Error() error
+}
+
+type interceptTimeout struct {
+	duration time.Duration
+	timer    *time.Timer
+}
+
+func (t *interceptTimeout) Reset() {
+	if t.duration > 0 {
+		t.timer.Reset(t.duration)
+	}
+}
+
+func (t *interceptTimeout) Channel() <-chan time.Time {
+	if t.duration > 0 {
+		return t.timer.C
+	}
+	return make(chan time.Time)
+}
+
+func (t *interceptTimeout) Error() error {
+	return InterceptTimeoutError{duration: t.duration}
+}
+
 func (s *Server) HijackContainer(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle := r.FormValue(":id")
@@ -111,6 +172,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 	}
 
 	var tty *garden.TTYSpec
+	var idle InterceptTimeout
 
 	if request.Process.TTY != nil {
 		tty = &garden.TTYSpec{
@@ -173,9 +235,13 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		}
 	}()
 
+	idle = s.interceptTimeoutFactory.NewInterceptTimeout()
+	idleChan := idle.Channel()
+
 	for {
 		select {
 		case input := <-inputs:
+			idle.Reset()
 			if input.Closed {
 				_ = stdinW.Close()
 			} else if input.TTYSpec != nil {
@@ -193,6 +259,9 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 			} else {
 				_, _ = stdinW.Write(input.Stdin)
 			}
+
+		case <-idleChan:
+			errs <- idle.Error()
 
 		case output := <-outputs:
 			err := conn.WriteJSON(output)
