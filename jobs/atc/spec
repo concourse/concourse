@@ -261,6 +261,10 @@ properties:
     description: Name of the authentication method to be displayed on the Web UI
     default: ""
 
+  intercept_idle_timeout:
+    description: Length of time for a intercepted session to be idle before terminating, in Go duration format.
+    example: 5m
+
   default_check_interval:
     description: |
       The interval, in Go duration format (1m = 1 minute), on which to check

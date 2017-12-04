@@ -186,6 +186,9 @@ case $1 in
       --generic-oauth-token-url <%= esc(p("generic_oauth.token_url")) %> \
       --generic-oauth-display-name <%= esc(p("generic_oauth.display_name")) %> \
       --session-signing-key $SIGNING_KEY \
+      <% if_p("intercept_idle_timeout") do |timeout| %> \
+      --intercept-idle-timeout esc(timeout) \
+      <% end %> \
       --resource-checking-interval <%= p("default_check_interval") %> \
       --old-resource-grace-period <%= p("old_resource_grace_period") %> \
       --resource-cache-cleanup-interval <%= p("resource_cache_cleanup_interval") %> \
