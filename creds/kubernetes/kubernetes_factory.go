@@ -8,15 +8,15 @@ import (
 )
 
 type kubernetesFactory struct {
-	clientset *kubernetes.Clientset
-	logger    lager.Logger
+	clientset       *kubernetes.Clientset
+	logger          lager.Logger
 	namespacePrefix string
 }
 
 func NewKubernetesFactory(logger lager.Logger, clientset *kubernetes.Clientset, namespacePrefix string) *kubernetesFactory {
 	factory := &kubernetesFactory{
-		clientset: clientset,
-		logger:    logger,
+		clientset:       clientset,
+		logger:          logger,
 		namespacePrefix: namespacePrefix,
 	}
 
@@ -25,10 +25,10 @@ func NewKubernetesFactory(logger lager.Logger, clientset *kubernetes.Clientset, 
 
 func (factory *kubernetesFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
 	return &Kubernetes{
-		Clientset:    factory.clientset,
-		TeamName:     teamName,
-		PipelineName: pipelineName,
+		Clientset:       factory.clientset,
+		TeamName:        teamName,
+		PipelineName:    pipelineName,
 		NamespacePrefix: factory.namespacePrefix,
-		logger:       factory.logger,
+		logger:          factory.logger,
 	}
 }

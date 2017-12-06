@@ -20,6 +20,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
+	"github.com/concourse/atc/api/containerserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/creds"
@@ -70,8 +71,8 @@ import (
 
 	// dynamically registered credential managers
 	_ "github.com/concourse/atc/creds/credhub"
-	_ "github.com/concourse/atc/creds/vault"
 	_ "github.com/concourse/atc/creds/kubernetes"
+	_ "github.com/concourse/atc/creds/vault"
 )
 
 var defaultDriverName = "postgres"
@@ -96,8 +97,7 @@ type ATCCommand struct {
 	ProviderAuth   provider.AuthConfigs
 
 	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
-
-	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
+	OAuthBaseURL URLFlag       `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
 
 	Postgres PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -112,6 +112,7 @@ type ATCCommand struct {
 
 	SessionSigningKey FileFlag `long:"session-signing-key" description:"File containing an RSA private key, used to sign session tokens."`
 
+	InterceptIdleTimeout              time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 	ResourceCheckingInterval          time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	OldResourceGracePeriod            time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
 	ResourceCacheCleanupInterval      time.Duration `long:"resource-cache-cleanup-interval" default:"30s" description:"Interval on which to cleanup old caches of resources."`
@@ -390,20 +391,33 @@ func (cmd *ATCCommand) constructMembers(
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
-	workerClient := cmd.constructWorkerPool(
-		logger,
-		lockFactory,
+
+	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
 		resourceFactoryFactory,
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		clock.NewClock(),
+	)
+
+	workerProvider := worker.NewDBWorkerProvider(
+		lockFactory,
+		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		image.NewImageFactory(imageResourceFetcherFactory),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
 		dbWorkerTaskCacheFactory,
 		dbVolumeFactory,
-		dbWorkerFactory,
 		teamFactory,
+		dbWorkerFactory,
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
+	)
+
+	workerClient := cmd.constructWorkerPool(
+		logger,
+		workerProvider,
 	)
 
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
@@ -475,6 +489,7 @@ func (cmd *ATCCommand) constructMembers(
 		signingKey,
 		engine,
 		workerClient,
+		workerProvider,
 		drain,
 		radarSchedulerFactory,
 		radarScannerFactory,
@@ -971,26 +986,8 @@ func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {
 
 func (cmd *ATCCommand) constructWorkerPool(
 	logger lager.Logger,
-	lockFactory lock.LockFactory,
-	resourceFetcherFactory resource.FetcherFactory,
-	resourceFactoryFactory resource.ResourceFactoryFactory,
-	dbResourceCacheFactory db.ResourceCacheFactory,
-	dbResourceConfigFactory db.ResourceConfigFactory,
-	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
-	dbWorkerTaskCacheFactory db.WorkerTaskCacheFactory,
-	dbVolumeFactory db.VolumeFactory,
-	dbWorkerFactory db.WorkerFactory,
-	teamFactory db.TeamFactory,
-	workerVersion *version.Version,
-	baggageclaimResponseHeaderTimeout time.Duration,
+	workerProvider worker.WorkerProvider,
 ) worker.Client {
-	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFetcherFactory,
-		resourceFactoryFactory,
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		clock.NewClock(),
-	)
 
 	var strategy worker.ContainerPlacementStrategy
 	switch cmd.ContainerPlacementStrategy {
@@ -1001,20 +998,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	}
 
 	return worker.NewPool(
-		worker.NewDBWorkerProvider(
-			lockFactory,
-			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-			image.NewImageFactory(imageResourceFetcherFactory),
-			dbResourceCacheFactory,
-			dbResourceConfigFactory,
-			dbWorkerBaseResourceTypeFactory,
-			dbWorkerTaskCacheFactory,
-			dbVolumeFactory,
-			teamFactory,
-			dbWorkerFactory,
-			workerVersion,
-			baggageclaimResponseHeaderTimeout,
-		),
+		workerProvider,
 		strategy,
 	)
 }
@@ -1160,6 +1144,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	signingKey *rsa.PrivateKey,
 	engine engine.Engine,
 	workerClient worker.Client,
+	workerProvider worker.WorkerProvider,
 	drain <-chan struct{},
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
@@ -1218,6 +1203,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		engine,
 		workerClient,
+		workerProvider,
 		radarSchedulerFactory,
 		radarScannerFactory,
 
@@ -1231,6 +1217,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		Version,
 		WorkerVersion,
 		variablesFactory,
+		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
 	)
 }
 

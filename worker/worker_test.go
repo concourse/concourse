@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"errors"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -13,6 +14,7 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
 
@@ -22,27 +24,25 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		logger                       *lagertest.TestLogger
-		fakeVolumeClient             *wfakes.FakeVolumeClient
-		fakeImageFactory             *wfakes.FakeImageFactory
-		fakeWorkerProvider           *wfakes.FakeWorkerProvider
-		fakeClock                    *fakeclock.FakeClock
-		fakeDBResourceCacheFactory   *dbfakes.FakeResourceCacheFactory
-		fakeResourceConfigFactory    *dbfakes.FakeResourceConfigFactory
-		fakeContainerProviderFactory *wfakes.FakeContainerProviderFactory
-		fakeContainerProvider        *wfakes.FakeContainerProvider
-		activeContainers             int
-		resourceTypes                []atc.WorkerResourceType
-		platform                     string
-		tags                         atc.Tags
-		teamID                       int
-		workerName                   string
-		workerStartTime              int64
-		workerUptime                 uint64
-		gardenWorker                 Worker
-		workerVersion                string
-		fakeGardenClient             *gardenfakes.FakeClient
-		fakeBaggageClaimClient       *baggageclaimfakes.FakeClient
+		logger                     *lagertest.TestLogger
+		fakeVolumeClient           *wfakes.FakeVolumeClient
+		fakeImageFactory           *wfakes.FakeImageFactory
+		fakeClock                  *fakeclock.FakeClock
+		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+		fakeResourceConfigFactory  *dbfakes.FakeResourceConfigFactory
+		fakeContainerProvider      *wfakes.FakeContainerProvider
+		activeContainers           int
+		resourceTypes              []atc.WorkerResourceType
+		platform                   string
+		tags                       atc.Tags
+		teamID                     int
+		workerName                 string
+		workerStartTime            int64
+		workerUptime               uint64
+		gardenWorker               Worker
+		workerVersion              string
+		fakeGardenClient           *gardenfakes.FakeClient
+		fakeBaggageClaimClient     *baggageclaimfakes.FakeClient
 	)
 
 	BeforeEach(func() {
@@ -68,30 +68,29 @@ var _ = Describe("Worker", func() {
 
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
-		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
 		fakeContainerProvider = new(wfakes.FakeContainerProvider)
-		fakeContainerProviderFactory = new(wfakes.FakeContainerProviderFactory)
-		fakeContainerProviderFactory.ContainerProviderForReturns(fakeContainerProvider)
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		fakeBaggageClaimClient = new(baggageclaimfakes.FakeClient)
 	})
 
 	JustBeforeEach(func() {
+		dbWorker := new(dbfakes.FakeWorker)
+		dbWorker.ActiveContainersReturns(activeContainers)
+		dbWorker.ResourceTypesReturns(resourceTypes)
+		dbWorker.PlatformReturns(platform)
+		dbWorker.TagsReturns(tags)
+		dbWorker.TeamIDReturns(teamID)
+		dbWorker.NameReturns(workerName)
+		dbWorker.StartTimeReturns(workerStartTime)
+		dbWorker.VersionReturns(&workerVersion)
+
 		gardenWorker = NewGardenWorker(
-			fakeContainerProviderFactory,
-			fakeVolumeClient,
-			fakeWorkerProvider,
-			fakeClock,
-			activeContainers,
-			resourceTypes,
-			platform,
-			tags,
-			teamID,
-			workerName,
-			workerStartTime,
-			&workerVersion,
 			fakeGardenClient,
 			fakeBaggageClaimClient,
+			fakeContainerProvider,
+			fakeVolumeClient,
+			dbWorker,
+			fakeClock,
 		)
 
 		fakeClock.IncrementBySeconds(workerUptime)
@@ -175,6 +174,62 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
+	Describe("EnsureCertsVolumeExists", func() {
+		var ensureErr error
+		var expectedCertsVolumeName = "resource-certs"
+		JustBeforeEach(func() {
+			ensureErr = gardenWorker.EnsureCertsVolumeExists(logger)
+		})
+
+		It("looks up the existing volume in baggageclaim", func() {
+			Expect(fakeBaggageClaimClient.LookupVolumeCallCount()).To(Equal(1))
+			_, certsVolumeName := fakeBaggageClaimClient.LookupVolumeArgsForCall(0)
+			Expect(certsVolumeName).To(Equal(expectedCertsVolumeName))
+		})
+
+		Context("when looking the volume up fails", func() {
+			var lookupErr = errors.New("failure")
+			BeforeEach(func() {
+				fakeBaggageClaimClient.LookupVolumeReturns(nil, true, lookupErr)
+			})
+			It("returns the error", func() {
+				Expect(ensureErr).To(Equal(lookupErr))
+			})
+		})
+
+		Context("when the volume already exists", func() {
+			BeforeEach(func() {
+				fakeBaggageClaimClient.LookupVolumeReturns(nil, true, nil)
+			})
+
+			It("does not create a new volume", func() {
+				Expect(fakeBaggageClaimClient.CreateVolumeCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when the volume does not exist", func() {
+			It("uses certs directory from the host", func() {
+				expectedStrategy := baggageclaim.ImportStrategy{Path: "/etc/ssl/certs"}
+				By("creating the volume")
+				Expect(fakeBaggageClaimClient.CreateVolumeCallCount()).To(Equal(1))
+				_, certsVolumeName, volumeSpec := fakeBaggageClaimClient.CreateVolumeArgsForCall(0)
+
+				Expect(certsVolumeName).To(Equal(expectedCertsVolumeName))
+				Expect(volumeSpec.Strategy).To(Equal(expectedStrategy))
+			})
+
+			Context("when looking the volume up fails", func() {
+				var createErr = errors.New("failure")
+				BeforeEach(func() {
+					fakeBaggageClaimClient.CreateVolumeReturns(nil, createErr)
+				})
+				It("returns the error", func() {
+					Expect(ensureErr).To(Equal(createErr))
+				})
+			})
+
+		})
+	})
 	Describe("FindCreatedContainerByHandle", func() {
 		var (
 			handle            string
@@ -195,8 +250,6 @@ var _ = Describe("Worker", func() {
 		})
 
 		It("calls the container provider", func() {
-			Expect(fakeContainerProviderFactory.ContainerProviderForCallCount()).To(Equal(1))
-
 			Expect(fakeContainerProvider.FindCreatedContainerByHandleCallCount()).To(Equal(1))
 
 			Expect(foundContainer).To(Equal(existingContainer))

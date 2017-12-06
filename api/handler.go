@@ -58,6 +58,7 @@ func NewHandler(
 
 	engine engine.Engine,
 	workerClient worker.Client,
+	workerProvider worker.WorkerProvider,
 
 	schedulerFactory jobserver.SchedulerFactory,
 	scannerFactory resourceserver.ScannerFactory,
@@ -72,6 +73,7 @@ func NewHandler(
 	version string,
 	workerVersion string,
 	variablesFactory creds.VariablesFactory,
+	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
 ) (http.Handler, error) {
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
 	if err != nil {
@@ -114,13 +116,13 @@ func NewHandler(
 
 	configServer := configserver.NewServer(logger, dbTeamFactory)
 
-	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
+	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
 
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 
-	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory)
+	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory)
 
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 

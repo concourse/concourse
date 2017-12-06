@@ -106,7 +106,6 @@ var _ = Describe("Volumes API", func() {
 							volume5.WorkerNameReturns(fakeWorker.Name())
 							volume5.TypeReturns(db.VolumeTypeTaskCache)
 							volume5.TaskIdentifierReturns("some-pipeline", "some-job", "some-task", nil)
-
 							return []db.CreatedVolume{
 								volume1,
 								volume2,
@@ -217,6 +216,57 @@ var _ = Describe("Volumes API", func() {
 
 					It("returns 500 Internal Server Error", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when a volume is deleted during the request", func() {
+					BeforeEach(func() {
+						someOtherFakeWorker := new(dbfakes.FakeWorker)
+						someOtherFakeWorker.NameReturns("some-other-worker")
+
+						fakeVolumeFactory.GetTeamVolumesStub = func(teamID int) ([]db.CreatedVolume, error) {
+							volume1 := new(dbfakes.FakeCreatedVolume)
+							volume1.ResourceTypeReturns(nil, errors.New("Something"))
+
+							volume2 := new(dbfakes.FakeCreatedVolume)
+							volume2.HandleReturns("some-import-handle")
+							volume2.WorkerNameReturns(fakeWorker.Name())
+							volume2.TypeReturns(db.VolumeTypeResourceType)
+							volume2.BaseResourceTypeReturns(&db.UsedWorkerBaseResourceType{
+								Name:    "some-base-resource-type",
+								Version: "some-base-version",
+							}, nil)
+							return []db.CreatedVolume{
+								volume1,
+								volume2,
+							}, nil
+						}
+					})
+
+					It("returns a partial list of volumes", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`[
+							{
+								"id": "some-import-handle",
+								"worker_name": "some-worker",
+								"type": "resource-type",
+								"container_handle": "",
+								"path": "",
+								"parent_handle": "",
+								"resource_type": null,
+								"base_resource_type": {
+									"name": "some-base-resource-type",
+									"version": "some-base-version"
+								},
+								"pipeline_name": "",
+								"job_name": "",
+								"step_name": ""
+							}]`))
+					})
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 				})
 			})

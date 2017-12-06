@@ -5,17 +5,17 @@ import (
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	v1 "k8s.io/api/core/v1"
+	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type Kubernetes struct {
-	Clientset    *kubernetes.Clientset
-	TeamName     string
-	PipelineName string
+	Clientset       *kubernetes.Clientset
+	TeamName        string
+	PipelineName    string
 	NamespacePrefix string
-	logger       lager.Logger
+	logger          lager.Logger
 }
 
 func (k Kubernetes) Get(varDef template.VariableDefinition) (interface{}, bool, error) {
@@ -31,9 +31,9 @@ func (k Kubernetes) Get(varDef template.VariableDefinition) (interface{}, bool, 
 
 	if err != nil {
 		k.logger.Error("k8s-secret-error", err, lager.Data{
-			"namespace": namespace,
+			"namespace":          namespace,
 			"pipelineSecretName": pipelineSecretName,
-			"secretName": secretName,
+			"secretName":         secretName,
 		})
 		return nil, false, err
 	}
@@ -41,11 +41,11 @@ func (k Kubernetes) Get(varDef template.VariableDefinition) (interface{}, bool, 
 	if found {
 		return k.getValueFromSecret(secret)
 	}
-	
+
 	k.logger.Info("k8s-secret-not-found", lager.Data{
-		"namespace": namespace,
-		"pipelineSecretName": pipelineSecretName, 
-		"secretName": secretName,
+		"namespace":          namespace,
+		"pipelineSecretName": pipelineSecretName,
+		"secretName":         secretName,
 	})
 	return nil, false, nil
 }

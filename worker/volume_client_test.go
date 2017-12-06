@@ -53,12 +53,13 @@ var _ = Describe("VolumeClient", func() {
 
 		volumeClient = worker.NewVolumeClient(
 			fakeBaggageclaimClient,
+			dbWorker,
+			fakeClock,
+
 			fakeLockFactory,
 			fakeDBVolumeFactory,
 			fakeWorkerBaseResourceTypeFactory,
 			fakeWorkerTaskCacheFactory,
-			fakeClock,
-			dbWorker,
 		)
 	})
 
@@ -526,12 +527,13 @@ var _ = Describe("VolumeClient", func() {
 		JustBeforeEach(func() {
 			_, found, lookupErr = worker.NewVolumeClient(
 				fakeBaggageclaimClient,
+				dbWorker,
+				fakeClock,
+
 				fakeLockFactory,
 				fakeDBVolumeFactory,
 				fakeWorkerBaseResourceTypeFactory,
 				fakeWorkerTaskCacheFactory,
-				fakeClock,
-				dbWorker,
 			).LookupVolume(testLogger, handle)
 		})
 
