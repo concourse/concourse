@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"text/template"
+	"text/template/parse"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,12 +14,16 @@ import (
 	"github.com/concourse/atc/creds"
 )
 
+const DefaultSecretTemplate = "concourse-{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+const DefaultFallbackTemplate = "concourse-{{.Team}}/{{.Secret}}"
+
 type SsmManager struct {
 	AwsAccessKeyID     string `long:"aws-access-key" description:"AWS Access key ID"`
 	AwsSecretAccessKey string `long:"aws-secret-key" description:"AWS Secret Access Key"`
 	AwsSessionToken    string `long:"aws-session-token" description:"AWS Session Token"`
 	AwsRegion          string `long:"aws-region" description:"AWS region to send requests to. Enviroment variable AWS_REGION is used if this flag is not provided."`
-	SecretTemplate     string `long:"secret-template" description:"AWS SSM parameter name template" default:"/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
+	SecretTemplate     string `long:"secret-template" description:"AWS SSM parameter name template" default:"concourse-{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
+	FallbackTemplate   string `long:"fallback-secret-template" description:"Fallback template to use for AWS SSM parameter name. Empty fallback template will disable this functionality" default:"concourse-{{.Team}}/{{.Secret}}"`
 }
 
 type SsmSecret struct {
@@ -28,10 +33,31 @@ type SsmSecret struct {
 }
 
 func (manager SsmManager) buildSecretTemplate() (*template.Template, error) {
-	return template.
+	t, err := template.
 		New("ssm-secret-name").
 		Option("missingkey=error").
 		Parse(manager.SecretTemplate)
+	if err != nil {
+		return nil, err
+	}
+	if parse.IsEmptyTree(t.Root) {
+		return nil, errors.New("secret template should not be empty")
+	}
+	return t, nil
+}
+
+func (manager SsmManager) buildFallbackTemplate() (*template.Template, error) {
+	t, err := template.
+		New("ssm-secret-fallback-name").
+		Option("missingkey=error").
+		Parse(manager.FallbackTemplate)
+	if err != nil {
+		return nil, err
+	}
+	if parse.IsEmptyTree(t.Root) {
+		return nil, nil
+	}
+	return t, nil
 }
 
 func (manager SsmManager) IsConfigured() bool {
@@ -44,14 +70,24 @@ func (manager SsmManager) Validate() error {
 	if err != nil {
 		return err
 	}
-	// Execute the template on dummy data to verify that it does not expect additional data
+	fallbackTemplate, err := manager.buildFallbackTemplate()
+	if err != nil {
+		return err
+	}
+	// Execute the templates on dummy data to verify that it does not expect additional data
 	dummy := SsmSecret{Team: "team", Pipeline: "pipeline", Secret: "secret"}
 	err = secretTemplate.Execute(ioutil.Discard, &dummy)
 	if err != nil {
 		return err
 	}
+	if fallbackTemplate != nil {
+		err = fallbackTemplate.Execute(ioutil.Discard, &dummy)
+		if err != nil {
+			return err
+		}
+	}
 	// All of the AWS credential variables may be empty since credentials may be obtained via environemnt variables
-	// or other means. However, if one of them is propvided, then all of them must be provided.
+	// or other means. However, if one of them is provided, then all of them must be provided.
 	if manager.AwsAccessKeyID == "" && manager.AwsSecretAccessKey == "" && manager.AwsSessionToken == "" {
 		return nil
 	}
@@ -87,5 +123,10 @@ func (manager SsmManager) NewVariablesFactory(lager.Logger) (creds.VariablesFact
 		return nil, err
 	}
 
-	return NewSsmFactory(session, secretTemplate), nil
+	fallbackTemplate, err := manager.buildFallbackTemplate()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSsmFactory(session, secretTemplate, fallbackTemplate), nil
 }

@@ -9,11 +9,12 @@ import (
 )
 
 type ssmFactory struct {
-	session        *session.Session
-	secretTemplate *template.Template
+	session          *session.Session
+	secretTemplate   *template.Template
+	fallbackTemplate *template.Template
 }
 
-func NewSsmFactory(session *session.Session, secretTemplate *template.Template) *ssmFactory {
+func NewSsmFactory(session *session.Session, secretTemplate *template.Template, fallbackTemplate *template.Template) *ssmFactory {
 	return &ssmFactory{
 		session:        session,
 		secretTemplate: secretTemplate,
@@ -21,5 +22,5 @@ func NewSsmFactory(session *session.Session, secretTemplate *template.Template) 
 }
 
 func (factory *ssmFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
-	return NewSsm(ssm.New(factory.session), teamName, pipelineName, factory.secretTemplate)
+	return NewSsm(ssm.New(factory.session), teamName, pipelineName, factory.secretTemplate, factory.fallbackTemplate)
 }

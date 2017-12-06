@@ -12,33 +12,43 @@ import (
 )
 
 type Ssm struct {
-	api            ssmiface.SSMAPI
-	teamName       string
-	pipelineName   string
-	secretTemplate *template.Template
+	api              ssmiface.SSMAPI
+	TeamName         string
+	PipelineName     string
+	SecretTemplate   *template.Template
+	FallbackTemplate *template.Template
 }
 
-func NewSsm(api ssmiface.SSMAPI, teamName string, pipelineName string, secretTemplate *template.Template) *Ssm {
+func NewSsm(api ssmiface.SSMAPI, teamName string, pipelineName string, secretTemplate *template.Template, fallbackTemplate *template.Template) *Ssm {
 	return &Ssm{
-		api:            api,
-		teamName:       teamName,
-		pipelineName:   pipelineName,
-		secretTemplate: secretTemplate,
+		api:              api,
+		TeamName:         teamName,
+		PipelineName:     pipelineName,
+		SecretTemplate:   secretTemplate,
+		FallbackTemplate: fallbackTemplate,
 	}
 }
 
-func (s *Ssm) buildSecretName(varName string) (string, error) {
+func (s *Ssm) buildSecretName(nameTemplate *template.Template, varName string) (string, error) {
 	var buf bytes.Buffer
-	err := s.secretTemplate.Execute(&buf, &SsmSecret{
-		Team:     s.teamName,
-		Pipeline: s.pipelineName,
+	err := nameTemplate.Execute(&buf, &SsmSecret{
+		Team:     s.TeamName,
+		Pipeline: s.PipelineName,
 		Secret:   varName,
 	})
 	return buf.String(), err
 }
 
 func (s *Ssm) Get(varDef varTemplate.VariableDefinition) (interface{}, bool, error) {
-	secretName, err := s.buildSecretName(varDef.Name)
+	value, found, err := s.GetVar(s.SecretTemplate, varDef.Name)
+	if !found && s.FallbackTemplate != nil {
+		value, found, err = s.GetVar(s.FallbackTemplate, varDef.Name)
+	}
+	return value, found, err
+}
+
+func (s *Ssm) GetVar(nameTemplate *template.Template, varName string) (interface{}, bool, error) {
+	secretName, err := s.buildSecretName(nameTemplate, varName)
 	if err != nil {
 		return nil, false, err
 	}
@@ -53,7 +63,41 @@ func (s *Ssm) Get(varDef varTemplate.VariableDefinition) (interface{}, bool, err
 }
 
 func (s *Ssm) List() ([]varTemplate.VariableDefinition, error) {
-	secretPath, err := s.buildSecretName("")
+	// Merge the secret & fallback variables using a map. Since the default
+	// fallback template includes all secret templates as well.
+	mergedVars := make(map[string]bool)
+
+	secretVars, err := s.ListVars(s.SecretTemplate)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range secretVars {
+		mergedVars[v] = true
+	}
+
+	if s.FallbackTemplate != nil {
+		fallbackVars, err := s.ListVars(s.FallbackTemplate)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, v := range fallbackVars {
+			mergedVars[v] = true
+		}
+	}
+
+	// Convert to array before returing to caller
+	varDefs := make([]varTemplate.VariableDefinition, len(mergedVars))
+	i := 0
+	for v := range mergedVars {
+		varDefs[i] = varTemplate.VariableDefinition{Name: v}
+		i++
+	}
+	return varDefs, nil
+}
+
+func (s *Ssm) ListVars(nameTemplate *template.Template) ([]string, error) {
+	secretPath, err := s.buildSecretName(nameTemplate, "")
 	if err != nil {
 		return nil, err
 	}
@@ -62,14 +106,14 @@ func (s *Ssm) List() ([]varTemplate.VariableDefinition, error) {
 	if secretPath == "" {
 		secretPath = "/"
 	}
-	var varDefs []varTemplate.VariableDefinition
+	var names []string
 	query := &ssm.GetParametersByPathInput{}
 	query = query.SetPath(secretPath).SetRecursive(true).SetWithDecryption(false).SetMaxResults(10)
 	err = s.api.GetParametersByPathPages(query, func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
 		for _, param := range page.Parameters {
-			varDefs = append(varDefs, varTemplate.VariableDefinition{Name: *param.Name})
+			names = append(names, *param.Name)
 		}
 		return true
 	})
-	return varDefs, err
+	return names, err
 }
