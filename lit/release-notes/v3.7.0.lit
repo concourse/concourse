@@ -31,6 +31,8 @@
   }
 
   \note{feature,breaking}{
+    There are new required manifest changes to deploy this release with BOSH.
+
     Our BOSH release used to have a few magical mystical packages called
     \code{generated_something}. These packages would generate a RSA key every
     time they compiled, in service of automagically wiring up security
