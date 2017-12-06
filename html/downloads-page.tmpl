@@ -17,6 +17,8 @@
           <div id="content" class="full-width">
             <div class="content-spacing">
               <div class="section">
+                {{.Body | render}}
+
                 {{range .Children}}
                 {{template "release.tmpl" .}}
                 {{end}}

@@ -1,8 +1,15 @@
+\use-plugin{concourse-docs}
+
 \title{Downloads}{downloads}
 
 \styled{downloads}
 
 \omit-children-from-table-of-contents
+
+\warn{
+  If you are currently on a version older than \reference{v3.6.0}, \bold{you
+  must first upgrade to \reference{v3.6.0} before upgrading past it!}
+}
 
 \include-section{./release-notes/v3.8.0.lit}
 \include-section{./release-notes/v3.7.0.lit}
