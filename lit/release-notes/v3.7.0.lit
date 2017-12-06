@@ -3,7 +3,7 @@
 \release{2017-11-30}{3.7.0}{1.9.0}{
   \warn{
     This release has issues. Primarily with the BOSH distribution. You should
-    probably just skip straight to v3.8.0, which will be out soon.
+    probably just skip straight to \reference{v3.8.0}.
   }
 
   \note{feature,security,breaking}{
