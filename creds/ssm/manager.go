@@ -14,16 +14,16 @@ import (
 	"github.com/concourse/atc/creds"
 )
 
-const DefaultSecretTemplate = "concourse-{{.Team}}/{{.Pipeline}}/{{.Secret}}"
-const DefaultFallbackTemplate = "concourse-{{.Team}}/{{.Secret}}"
+const DefaultSecretTemplate = "concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+const DefaultFallbackTemplate = "concourse/{{.Team}}/{{.Secret}}"
 
 type SsmManager struct {
 	AwsAccessKeyID     string `long:"aws-access-key" description:"AWS Access key ID"`
 	AwsSecretAccessKey string `long:"aws-secret-key" description:"AWS Secret Access Key"`
 	AwsSessionToken    string `long:"aws-session-token" description:"AWS Session Token"`
 	AwsRegion          string `long:"aws-region" description:"AWS region to send requests to. Enviroment variable AWS_REGION is used if this flag is not provided."`
-	SecretTemplate     string `long:"secret-template" description:"AWS SSM parameter name template" default:"concourse-{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	FallbackTemplate   string `long:"fallback-secret-template" description:"Fallback template to use for AWS SSM parameter name. Empty fallback template will disable this functionality" default:"concourse-{{.Team}}/{{.Secret}}"`
+	SecretTemplate     string `long:"secret-template" description:"AWS SSM parameter name template" default:"concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
+	FallbackTemplate   string `long:"fallback-secret-template" description:"Fallback template to use for AWS SSM parameter name. Empty fallback template will disable this functionality" default:"concourse/{{.Team}}/{{.Secret}}"`
 }
 
 type SsmSecret struct {

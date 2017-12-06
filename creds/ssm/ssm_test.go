@@ -99,13 +99,13 @@ var _ = Describe("Ssm", func() {
 		Expect(ssmAccess).NotTo(BeNil())
 		varDef = varTemplate.VariableDefinition{Name: "cheery"}
 		mockService.stubGetParameter = func(input string) (string, error) {
-			Expect(input).To(Equal("concourse-alpha/bogus/cheery"))
+			Expect(input).To(Equal("concourse/alpha/bogus/cheery"))
 			return "ssm decrypted value", nil
 		}
 		mockService.stubGetParametersByPathPages = func(path string) []mockPathResultPage {
 			return []mockPathResultPage{
 				{
-					params: []string{"concourse-alpha/bogus/cheery"},
+					params: []string{"concourse/alpha/bogus/cheery"},
 					err:    nil,
 				},
 			}
@@ -122,7 +122,7 @@ var _ = Describe("Ssm", func() {
 
 		It("should get fallback parameter if exists", func() {
 			mockService.stubGetParameter = func(input string) (string, error) {
-				if input != "concourse-alpha/cheery" {
+				if input != "concourse/alpha/cheery" {
 					return "", errors.New("parameter not found")
 				}
 				return "fallback decrypted value", nil
@@ -145,7 +145,7 @@ var _ = Describe("Ssm", func() {
 			svcErr := errors.New("parameter not found")
 			ssmAccess.FallbackTemplate = nil
 			mockService.stubGetParameter = func(input string) (string, error) {
-				if input != "concourse-alpha/cheery" {
+				if input != "concourse/alpha/cheery" {
 					return "", svcErr
 				}
 				return "fallback decrypted value", nil
@@ -162,11 +162,11 @@ var _ = Describe("Ssm", func() {
 			mockService.stubGetParametersByPathPages = func(path string) []mockPathResultPage {
 				return []mockPathResultPage{
 					{
-						params: []string{"concourse-alpha/bogus/cheery"},
+						params: []string{"concourse/alpha/bogus/cheery"},
 						err:    nil,
 					},
 					{
-						params: []string{"concourse-alpha/bogus/cheery", "concourse-alpha/bogus/cocco"},
+						params: []string{"concourse/alpha/bogus/cheery", "concourse/alpha/bogus/cocco"},
 						err:    nil,
 					},
 				}
@@ -174,8 +174,8 @@ var _ = Describe("Ssm", func() {
 			vars, err := ssmAccess.List()
 			Expect(err).To(BeNil())
 			Expect(vars).To(Equal([]varTemplate.VariableDefinition{
-				{Name: "concourse-alpha/bogus/cheery"},
-				{Name: "concourse-alpha/bogus/cocco"},
+				{Name: "concourse/alpha/bogus/cheery"},
+				{Name: "concourse/alpha/bogus/cocco"},
 			}))
 		})
 	})
