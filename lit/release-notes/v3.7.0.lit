@@ -38,9 +38,9 @@
     redundant now that BOSH manifests can generate their own typed variables.
     It was fun while it lasted.
 
-    The delta for this change is described in \ghissue{1834}. You can consult
-    \link{our changes to
-    \code{manifests/single-vm.yml}}{https://github.com/concourse/concourse/compare/concourse:4bd88f1...concourse:6c80d86#diff-3492b4974e6d847f6bafd34846ccac8e}
+    \bold{What you need to do for this change is described in \ghissue{1834}}.
+    You can consult \link{our changes to
+    \code{manifests/single-vm.yml}}{https://gist.github.com/vito/44cdf3aafcf4ba06349e24e8c21135eb}
     for reference.
 
     As an alternative to hand-editing your manifest, the next release note may
