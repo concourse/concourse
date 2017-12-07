@@ -65,9 +65,9 @@ var _ = Describe("Team", func() {
 			Expect(team.Rename("oopsies")).To(Succeed())
 		})
 
-		It("renames the team", func() {
-			modifiedTeam := teamFactory.GetByID(team.ID())
-			Expect(modifiedTeam.Name()).To(Equal("oopsies"))
+		It("find the renamed team", func() {
+			_, found, _ := teamFactory.FindTeam("oopsies")
+			Expect(found).To(BeTrue())
 		})
 	})
 
