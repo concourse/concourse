@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/auth"
 )
 
-// RenameTeam allows an authed user with authority or admin to rename a team
+// RenameTeam allows an authenticated user with authority or admin to rename a team
 func (s *Server) RenameTeam(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("rename-team")
 
