@@ -91,7 +91,7 @@ before using it!
   }{
     \link{OpenStack Swift}{https://github.com/sapcc/concourse-swift-resource}
   }{
-    \link{Key Value resource}{https://github.com/regevbr/keyval-resource}
+    \link{Key Value resource}{https://github.com/swce/keyval-resource}
   }{
     \link{Flowdock notifications}{https://github.com/starkandwayne/flowdock-concourse-notification-resource}
   }{
@@ -224,6 +224,8 @@ before using it!
     \link{Pushover notifications}{https://github.com/redfactorlabs/concourse-pushover-resource}
   }{
     \link{SonarQube static code analysis}{https://github.com/cathive/concourse-sonarqube-resource}
+  }{
+    \link{Metadata resource}{https://github.com/swce/metadata-resource}
   }
 
   \section{
