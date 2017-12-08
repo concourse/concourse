@@ -226,6 +226,8 @@ before using it!
     \link{SonarQube static code analysis}{https://github.com/cathive/concourse-sonarqube-resource}
   }{
     \link{Metadata resource}{https://github.com/swce/metadata-resource}
+  }{
+    \link{Spinnaker Resource}{https://github.com/burdzwastaken/concourse-spinnaker-resource}
   }
 
   \section{
