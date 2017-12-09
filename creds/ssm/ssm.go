@@ -5,6 +5,7 @@ import (
 	"strings"
 	"text/template"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
@@ -12,6 +13,7 @@ import (
 )
 
 type Ssm struct {
+	log              lager.Logger
 	api              ssmiface.SSMAPI
 	TeamName         string
 	PipelineName     string
@@ -19,8 +21,9 @@ type Ssm struct {
 	FallbackTemplate *template.Template
 }
 
-func NewSsm(api ssmiface.SSMAPI, teamName string, pipelineName string, secretTemplate *template.Template, fallbackTemplate *template.Template) *Ssm {
+func NewSsm(log lager.Logger, api ssmiface.SSMAPI, teamName string, pipelineName string, secretTemplate *template.Template, fallbackTemplate *template.Template) *Ssm {
 	return &Ssm{
+		log:              log,
 		api:              api,
 		TeamName:         teamName,
 		PipelineName:     pipelineName,
@@ -50,6 +53,10 @@ func (s *Ssm) Get(varDef varTemplate.VariableDefinition) (interface{}, bool, err
 func (s *Ssm) GetVar(nameTemplate *template.Template, varName string) (interface{}, bool, error) {
 	secretName, err := s.buildSecretName(nameTemplate, varName)
 	if err != nil {
+		s.log.Error("Failed to build variable path from secret name", err, lager.Data{
+			"template": nameTemplate.Name(),
+			"secret":   varName,
+		})
 		return nil, false, err
 	}
 	param, err := s.api.GetParameter(&ssm.GetParameterInput{
@@ -57,6 +64,7 @@ func (s *Ssm) GetVar(nameTemplate *template.Template, varName string) (interface
 		WithDecryption: aws.Bool(true),
 	})
 	if err != nil {
+		s.log.Error("Failed to fetch parameter from SSM", err, lager.Data{"parameter": secretName})
 		return nil, false, err
 	}
 	return *param.Parameter.Value, true, nil

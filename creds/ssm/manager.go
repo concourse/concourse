@@ -107,14 +107,17 @@ func (manager SsmManager) Validate() error {
 	return nil
 }
 
-func (manager SsmManager) NewVariablesFactory(lager.Logger) (creds.VariablesFactory, error) {
+func (manager SsmManager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
+	log.Info("Creating new SSM variables factory")
 	config := &aws.Config{Region: &manager.AwsRegion}
 	if manager.AwsAccessKeyID != "" {
+		log.Info("Using AWS credentials provided by user", lager.Data{"awsAccessKey": manager.AwsAccessKeyID})
 		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)
 	}
 
 	session, err := session.NewSession(config)
 	if err != nil {
+		log.Error("Failed to establish AWS session", err)
 		return nil, err
 	}
 
@@ -128,5 +131,5 @@ func (manager SsmManager) NewVariablesFactory(lager.Logger) (creds.VariablesFact
 		return nil, err
 	}
 
-	return NewSsmFactory(session, secretTemplate, fallbackTemplate), nil
+	return NewSsmFactory(log, session, secretTemplate, fallbackTemplate), nil
 }

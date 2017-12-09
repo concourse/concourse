@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"text/template"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
@@ -95,7 +96,7 @@ var _ = Describe("Ssm", func() {
 		fallbackTemplate, err := template.New("test").Parse(DefaultFallbackTemplate)
 		Expect(fallbackTemplate).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		ssmAccess = NewSsm(&mockService, "alpha", "bogus", secretTemplate, fallbackTemplate)
+		ssmAccess = NewSsm(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", secretTemplate, fallbackTemplate)
 		Expect(ssmAccess).NotTo(BeNil())
 		varDef = varTemplate.VariableDefinition{Name: "cheery"}
 		mockService.stubGetParameter = func(input string) (string, error) {

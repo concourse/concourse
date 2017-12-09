@@ -3,24 +3,27 @@ package ssm
 import (
 	"text/template"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/concourse/atc/creds"
 )
 
 type ssmFactory struct {
-	session          *session.Session
+	log              lager.Logger
+	api              *ssm.SSM
 	secretTemplate   *template.Template
 	fallbackTemplate *template.Template
 }
 
-func NewSsmFactory(session *session.Session, secretTemplate *template.Template, fallbackTemplate *template.Template) *ssmFactory {
+func NewSsmFactory(log lager.Logger, session *session.Session, secretTemplate *template.Template, fallbackTemplate *template.Template) *ssmFactory {
 	return &ssmFactory{
-		session:        session,
+		log:            log,
+		api:            ssm.New(session),
 		secretTemplate: secretTemplate,
 	}
 }
 
 func (factory *ssmFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
-	return NewSsm(ssm.New(factory.session), teamName, pipelineName, factory.secretTemplate, factory.fallbackTemplate)
+	return NewSsm(factory.log, factory.api, teamName, pipelineName, factory.secretTemplate, factory.fallbackTemplate)
 }
