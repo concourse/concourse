@@ -2,6 +2,9 @@
 
 set -ex
 
+eval $(ssh-agent)
+ssh-add <(echo "$BOSH_KEY")
+
 strip_bosh_output() { grep stdout | awk -F'|' '{print $NF}' | tr -d '\r' | xargs -L1; }
 
 downgrade_to=$(bosh ssh web -c "ls -al /var/vcap/packages/atc" | strip_bosh_output | awk -F/ '{print $NF}' | head -1)

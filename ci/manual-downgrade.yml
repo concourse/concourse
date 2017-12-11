@@ -15,6 +15,7 @@ params:
   BOSH_CLIENT:
   BOSH_CLIENT_SECRET:
   BOSH_CA_CERT:
+  BOSH_KEY:
 
 run:
   path: concourse/ci/scripts/manual-downgrade
