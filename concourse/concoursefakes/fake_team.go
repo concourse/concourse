@@ -57,6 +57,20 @@ type FakeTeam struct {
 		result3 bool
 		result4 error
 	}
+	RenameTeamStub        func(teamName, name string) (bool, error)
+	renameTeamMutex       sync.RWMutex
+	renameTeamArgsForCall []struct {
+		teamName string
+		name     string
+	}
+	renameTeamReturns struct {
+		result1 bool
+		result2 error
+	}
+	renameTeamReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	DestroyTeamStub        func(teamName string) error
 	destroyTeamMutex       sync.RWMutex
 	destroyTeamArgsForCall []struct {
@@ -645,6 +659,58 @@ func (fake *FakeTeam) CreateOrUpdateReturnsOnCall(i int, result1 atc.Team, resul
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeTeam) RenameTeam(teamName string, name string) (bool, error) {
+	fake.renameTeamMutex.Lock()
+	ret, specificReturn := fake.renameTeamReturnsOnCall[len(fake.renameTeamArgsForCall)]
+	fake.renameTeamArgsForCall = append(fake.renameTeamArgsForCall, struct {
+		teamName string
+		name     string
+	}{teamName, name})
+	fake.recordInvocation("RenameTeam", []interface{}{teamName, name})
+	fake.renameTeamMutex.Unlock()
+	if fake.RenameTeamStub != nil {
+		return fake.RenameTeamStub(teamName, name)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.renameTeamReturns.result1, fake.renameTeamReturns.result2
+}
+
+func (fake *FakeTeam) RenameTeamCallCount() int {
+	fake.renameTeamMutex.RLock()
+	defer fake.renameTeamMutex.RUnlock()
+	return len(fake.renameTeamArgsForCall)
+}
+
+func (fake *FakeTeam) RenameTeamArgsForCall(i int) (string, string) {
+	fake.renameTeamMutex.RLock()
+	defer fake.renameTeamMutex.RUnlock()
+	return fake.renameTeamArgsForCall[i].teamName, fake.renameTeamArgsForCall[i].name
+}
+
+func (fake *FakeTeam) RenameTeamReturns(result1 bool, result2 error) {
+	fake.RenameTeamStub = nil
+	fake.renameTeamReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) RenameTeamReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.RenameTeamStub = nil
+	if fake.renameTeamReturnsOnCall == nil {
+		fake.renameTeamReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.renameTeamReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTeam) DestroyTeam(teamName string) error {
@@ -2101,6 +2167,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.authTokenMutex.RUnlock()
 	fake.createOrUpdateMutex.RLock()
 	defer fake.createOrUpdateMutex.RUnlock()
+	fake.renameTeamMutex.RLock()
+	defer fake.renameTeamMutex.RUnlock()
 	fake.destroyTeamMutex.RLock()
 	defer fake.destroyTeamMutex.RUnlock()
 	fake.pipelineMutex.RLock()

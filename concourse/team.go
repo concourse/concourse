@@ -14,6 +14,7 @@ type Team interface {
 	AuthToken() (atc.AuthToken, error)
 
 	CreateOrUpdate(team atc.Team) (atc.Team, bool, bool, error)
+	RenameTeam(teamName, name string) (bool, error)
 	DestroyTeam(teamName string) error
 
 	Pipeline(name string) (atc.Pipeline, bool, error)

@@ -70,6 +70,32 @@ func (team *team) DestroyTeam(teamName string) error {
 	return err
 }
 
+func (team *team) RenameTeam(teamName, name string) (bool, error) {
+	params := rata.Params{
+		"team_name": teamName,
+	}
+
+	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: name})
+	if err != nil {
+		return false, err
+	}
+
+	err = team.connection.Send(internal.Request{
+		RequestName: atc.RenameTeam,
+		Params:      params,
+		Body:        bytes.NewBuffer(jsonBytes),
+		Header:      http.Header{"Content-Type": []string{"application/json"}},
+	}, nil)
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
 func (client *client) ListTeams() ([]atc.Team, error) {
 	var teams []atc.Team
 	err := client.connection.Send(internal.Request{
