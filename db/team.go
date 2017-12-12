@@ -131,10 +131,6 @@ func (t *team) Rename(name string) error {
 		RunWith(t.conn).
 		Exec()
 
-	if err == nil {
-		t.name = name
-	}
-
 	return err
 }
 
