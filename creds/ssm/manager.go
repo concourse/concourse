@@ -14,16 +14,16 @@ import (
 	"github.com/concourse/atc/creds"
 )
 
-const DefaultSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
-const DefaultFallbackTemplate = "/concourse/{{.Team}}/{{.Secret}}"
+const DefaultPipeSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type SsmManager struct {
 	AwsAccessKeyID     string `long:"aws-access-key" description:"AWS Access key ID"`
 	AwsSecretAccessKey string `long:"aws-secret-key" description:"AWS Secret Access Key"`
 	AwsSessionToken    string `long:"aws-session-token" description:"AWS Session Token"`
 	AwsRegion          string `long:"aws-region" description:"AWS region to send requests to. Enviroment variable AWS_REGION is used if this flag is not provided."`
-	SecretTemplate     string `long:"secret-template" description:"AWS SSM parameter name template" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	FallbackTemplate   string `long:"fallback-secret-template" description:"Fallback template to use for AWS SSM parameter name. Empty fallback template will disable this functionality" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	PipeSecretTemplate string `long:"pipe-secret-template" description:"AWS SSM parameter name template used for pipeline specific paramter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
+	TeamSecretTemplate string `long:"team-secret-template" description:"AWS SSM parameter name template used for team specific paramter" default:"/concourse/{{.Team}}/{{.Secret}}"`
 }
 
 type SsmSecret struct {
@@ -32,30 +32,16 @@ type SsmSecret struct {
 	Secret   string
 }
 
-func (manager SsmManager) buildSecretTemplate() (*template.Template, error) {
+func buildSecretTemplate(name, tmpl string) (*template.Template, error) {
 	t, err := template.
-		New("ssm-secret-name").
+		New(name).
 		Option("missingkey=error").
-		Parse(manager.SecretTemplate)
+		Parse(tmpl)
 	if err != nil {
 		return nil, err
 	}
 	if parse.IsEmptyTree(t.Root) {
 		return nil, errors.New("secret template should not be empty")
-	}
-	return t, nil
-}
-
-func (manager SsmManager) buildFallbackTemplate() (*template.Template, error) {
-	t, err := template.
-		New("ssm-secret-fallback-name").
-		Option("missingkey=error").
-		Parse(manager.FallbackTemplate)
-	if err != nil {
-		return nil, err
-	}
-	if parse.IsEmptyTree(t.Root) {
-		return nil, nil
 	}
 	return t, nil
 }
@@ -66,25 +52,21 @@ func (manager SsmManager) IsConfigured() bool {
 
 func (manager SsmManager) Validate() error {
 	// Make sure that the template is valid
-	secretTemplate, err := manager.buildSecretTemplate()
+	pipeSecretTemplate, err := buildSecretTemplate("pipe-secret-template", manager.PipeSecretTemplate)
 	if err != nil {
 		return err
 	}
-	fallbackTemplate, err := manager.buildFallbackTemplate()
+	teamSecretTemplate, err := buildSecretTemplate("team-secret-template", manager.TeamSecretTemplate)
 	if err != nil {
 		return err
 	}
 	// Execute the templates on dummy data to verify that it does not expect additional data
 	dummy := SsmSecret{Team: "team", Pipeline: "pipeline", Secret: "secret"}
-	err = secretTemplate.Execute(ioutil.Discard, &dummy)
-	if err != nil {
+	if err = pipeSecretTemplate.Execute(ioutil.Discard, &dummy); err != nil {
 		return err
 	}
-	if fallbackTemplate != nil {
-		err = fallbackTemplate.Execute(ioutil.Discard, &dummy)
-		if err != nil {
-			return err
-		}
+	if err = teamSecretTemplate.Execute(ioutil.Discard, &dummy); err != nil {
+		return err
 	}
 	// All of the AWS credential variables may be empty since credentials may be obtained via environemnt variables
 	// or other means. However, if one of them is provided, then all of them must be provided.
@@ -109,15 +91,15 @@ func (manager SsmManager) Validate() error {
 
 func (manager SsmManager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
 	log.Info("Creating new SSM variables factory", lager.Data{
-		"secretTemplate":         manager.SecretTemplate,
-		"fallbackSecretTemplate": manager.FallbackTemplate,
+		"pipe-secret-template": manager.PipeSecretTemplate,
+		"team-secret-template": manager.TeamSecretTemplate,
 	})
 	config := &aws.Config{}
 	if manager.AwsRegion != "" {
 		config.Region = &manager.AwsRegion
 	}
 	if manager.AwsAccessKeyID != "" {
-		log.Info("Using AWS credentials provided by user", lager.Data{"awsAccessKey": manager.AwsAccessKeyID})
+		log.Info("Using AWS credentials provided by user", lager.Data{"aws-access-key": manager.AwsAccessKeyID})
 		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)
 	}
 
@@ -127,15 +109,15 @@ func (manager SsmManager) NewVariablesFactory(log lager.Logger) (creds.Variables
 		return nil, err
 	}
 
-	secretTemplate, err := manager.buildSecretTemplate()
+	pipeSecretTemplate, err := buildSecretTemplate("pipe-secret-template", manager.PipeSecretTemplate)
 	if err != nil {
 		return nil, err
 	}
 
-	fallbackTemplate, err := manager.buildFallbackTemplate()
+	teamSecretTemplate, err := buildSecretTemplate("team-secret-template", manager.TeamSecretTemplate)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewSsmFactory(log, session, secretTemplate, fallbackTemplate), nil
+	return NewSsmFactory(log, session, []*template.Template{pipeSecretTemplate, teamSecretTemplate}), nil
 }

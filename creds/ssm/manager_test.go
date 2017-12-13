@@ -40,8 +40,8 @@ var _ = Describe("SsmManager", func() {
 			manager = ssm.SsmManager{AwsRegion: "test-region"}
 			_, err := flags.ParseArgs(&manager, []string{})
 			Expect(err).To(BeNil())
-			Expect(manager.SecretTemplate).To(Equal(ssm.DefaultSecretTemplate))
-			Expect(manager.FallbackTemplate).To(Equal(ssm.DefaultFallbackTemplate))
+			Expect(manager.PipeSecretTemplate).To(Equal(ssm.DefaultPipeSecretTemplate))
+			Expect(manager.TeamSecretTemplate).To(Equal(ssm.DefaultTeamSecretTemplate))
 		})
 
 		It("passes on default parameters", func() {
@@ -70,38 +70,43 @@ var _ = Describe("SsmManager", func() {
 			Entry("only token", "", "", "token"),
 		)
 
-		It("passes on secret template containing less specialization", func() {
-			manager.SecretTemplate = "{{.Secret}}"
+		It("passes on pipe secret template containing less specialization", func() {
+			manager.PipeSecretTemplate = "{{.Secret}}"
 			Expect(manager.Validate()).To(BeNil())
 		})
 
-		It("passes on secret template containing no specialization", func() {
-			manager.SecretTemplate = "var"
+		It("passes on pipe secret template containing no specialization", func() {
+			manager.PipeSecretTemplate = "var"
 			Expect(manager.Validate()).To(BeNil())
 		})
 
-		It("fails on empty secret template", func() {
-			manager.FallbackTemplate = ""
-			Expect(manager.Validate()).To(BeNil())
-		})
-
-		It("fails on secret template containing invalid parameters", func() {
-			manager.SecretTemplate = "{{.Teams}}"
+		It("fails on empty pipe secret template", func() {
+			manager.PipeSecretTemplate = ""
 			Expect(manager.Validate()).ToNot(BeNil())
 		})
 
-		It("passes on fallback template containing less specialization", func() {
-			manager.FallbackTemplate = "{{.Secret}}"
+		It("fails on pipe secret template containing invalid parameters", func() {
+			manager.PipeSecretTemplate = "{{.Teams}}"
+			Expect(manager.Validate()).ToNot(BeNil())
+		})
+
+		It("passes on team secret template containing less specialization", func() {
+			manager.TeamSecretTemplate = "{{.Secret}}"
 			Expect(manager.Validate()).To(BeNil())
 		})
 
-		It("passes on empty fallback template", func() {
-			manager.FallbackTemplate = ""
+		It("passes on team secret template containing no specialization", func() {
+			manager.TeamSecretTemplate = "var"
 			Expect(manager.Validate()).To(BeNil())
 		})
 
-		It("fails on fallback template containing invalid parameters", func() {
-			manager.FallbackTemplate = "{{.Teams}}"
+		It("fails on empty team secret template", func() {
+			manager.TeamSecretTemplate = ""
+			Expect(manager.Validate()).ToNot(BeNil())
+		})
+
+		It("fails on team secret template containing invalid parameters", func() {
+			manager.TeamSecretTemplate = "{{.Teams}}"
 			Expect(manager.Validate()).ToNot(BeNil())
 		})
 	})

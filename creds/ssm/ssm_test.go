@@ -89,13 +89,13 @@ var _ = Describe("Ssm", func() {
 
 	JustBeforeEach(func() {
 		varDef = varTemplate.VariableDefinition{Name: "cheery"}
-		secretTemplate, err := template.New("test").Parse(DefaultSecretTemplate)
-		Expect(secretTemplate).NotTo(BeNil())
+		t1, err := template.New("test").Parse(DefaultPipeSecretTemplate)
+		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		fallbackTemplate, err := template.New("test").Parse(DefaultFallbackTemplate)
-		Expect(fallbackTemplate).NotTo(BeNil())
+		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)
+		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		ssmAccess = NewSsm(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", secretTemplate, fallbackTemplate)
+		ssmAccess = NewSsm(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", []*template.Template{t1, t2})
 		Expect(ssmAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (string, error) {
 			if input == "/concourse/alpha/bogus/cheery" {
@@ -147,15 +147,15 @@ var _ = Describe("Ssm", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should get fallback parameter if exists", func() {
+		It("should get team parameter if exists", func() {
 			mockService.stubGetParameter = func(input string) (string, error) {
 				if input != "/concourse/alpha/cheery" {
 					return "", awserr.New(ssm.ErrCodeParameterNotFound, "", nil)
 				}
-				return "fallback decrypted value", nil
+				return "team decrypted value", nil
 			}
 			value, found, err := ssmAccess.Get(varDef)
-			Expect(value).To(BeEquivalentTo("fallback decrypted value"))
+			Expect(value).To(BeEquivalentTo("team decrypted value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
@@ -166,21 +166,6 @@ var _ = Describe("Ssm", func() {
 			Expect(value).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).NotTo(BeNil())
-		})
-
-		It("should work even if fallback template is nil", func() {
-			svcErr := errors.New("parameter not found")
-			ssmAccess.FallbackTemplate = nil
-			mockService.stubGetParameter = func(input string) (string, error) {
-				if input != "/concourse/alpha/cheery" {
-					return "", svcErr
-				}
-				return "fallback decrypted value", nil
-			}
-			value, found, err := ssmAccess.Get(varDef)
-			Expect(value).To(BeNil())
-			Expect(found).To(BeFalse())
-			Expect(err).To(Equal(svcErr))
 		})
 	})
 })

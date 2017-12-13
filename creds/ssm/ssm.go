@@ -14,22 +14,20 @@ import (
 )
 
 type Ssm struct {
-	log              lager.Logger
-	api              ssmiface.SSMAPI
-	TeamName         string
-	PipelineName     string
-	SecretTemplate   *template.Template
-	FallbackTemplate *template.Template
+	log             lager.Logger
+	api             ssmiface.SSMAPI
+	TeamName        string
+	PipelineName    string
+	SecretTemplates []*template.Template
 }
 
-func NewSsm(log lager.Logger, api ssmiface.SSMAPI, teamName string, pipelineName string, secretTemplate *template.Template, fallbackTemplate *template.Template) *Ssm {
+func NewSsm(log lager.Logger, api ssmiface.SSMAPI, teamName string, pipelineName string, secretTemplates []*template.Template) *Ssm {
 	return &Ssm{
-		log:              log,
-		api:              api,
-		TeamName:         teamName,
-		PipelineName:     pipelineName,
-		SecretTemplate:   secretTemplate,
-		FallbackTemplate: fallbackTemplate,
+		log:             log,
+		api:             api,
+		TeamName:        teamName,
+		PipelineName:    pipelineName,
+		SecretTemplates: secretTemplates,
 	}
 }
 
@@ -44,48 +42,59 @@ func (s *Ssm) buildSecretName(nameTemplate *template.Template, varName string) (
 }
 
 func (s *Ssm) Get(varDef varTemplate.VariableDefinition) (interface{}, bool, error) {
-	value, found, err := s.GetVar(s.SecretTemplate, varDef.Name)
-	if !found && s.FallbackTemplate != nil {
-		value, found, err = s.GetVar(s.FallbackTemplate, varDef.Name)
+	for _, st := range s.SecretTemplates {
+		if secret, err := s.buildSecretName(st, varDef.Name); err != nil {
+			s.log.Error("Failed to build SSM parameter path from secret", err, lager.Data{
+				"template": st.Name(),
+				"secret":   varDef.Name,
+			})
+			return nil, false, err
+		} else if value, found, err := s.getParameterByName(secret); err != nil {
+			s.log.Error("Failed to get SSM paramter by name", err, lager.Data{
+				"template": st.Name(),
+				"secret":   secret,
+			})
+			return nil, false, err
+		} else if found {
+			return value, true, nil
+		} else if value, found, err = s.getParameterByPath(secret); err != nil {
+			s.log.Error("Failed to get SSM paramter by path", err, lager.Data{
+				"template": st.Name(),
+				"secret":   secret,
+			})
+			return nil, false, err
+		} else if found {
+			return value, true, nil
+		}
 	}
-	return value, found, err
+	return nil, false, nil
 }
 
-func (s *Ssm) GetVar(nameTemplate *template.Template, varName string) (interface{}, bool, error) {
-	secretName, err := s.buildSecretName(nameTemplate, varName)
-	if err != nil {
-		s.log.Error("Failed to build variable path from secret name", err, lager.Data{
-			"template": nameTemplate.Name(),
-			"secret":   varName,
-		})
-		return nil, false, err
-	}
-	s.log.Info("Trying to get SSM parameter by name", lager.Data{"name": secretName})
-	// Try to get parameter as a string value
+func (s *Ssm) getParameterByName(name string) (interface{}, bool, error) {
 	param, err := s.api.GetParameter(&ssm.GetParameterInput{
-		Name:           &secretName,
+		Name:           &name,
 		WithDecryption: aws.Bool(true),
 	})
 	if err == nil {
 		return *param.Parameter.Value, true, nil
 
-	} else if errObj, ok := err.(awserr.Error); !ok || errObj.Code() != ssm.ErrCodeParameterNotFound {
-		s.log.Error("Failed to fetch parameter from SSM", err, lager.Data{"parameter": secretName})
-		return nil, false, err
+	} else if errObj, ok := err.(awserr.Error); ok && errObj.Code() == ssm.ErrCodeParameterNotFound {
+		return nil, false, nil
 	}
-	// The parameter may exist as a complex object. So try to find all parameters in the path
-	// this will be retuned as a map
-	secretPath := strings.TrimRight(secretName, "/")
-	if secretPath == "" {
-		secretPath = "/"
+	return nil, false, err
+}
+
+func (s *Ssm) getParameterByPath(path string) (interface{}, bool, error) {
+	path = strings.TrimRight(path, "/")
+	if path == "" {
+		path = "/"
 	}
-	s.log.Info("Trying to get SSM parameter by path", lager.Data{"path": secretPath})
 	value := make(map[interface{}]interface{})
 	pathQuery := &ssm.GetParametersByPathInput{}
-	pathQuery = pathQuery.SetPath(secretPath).SetRecursive(true).SetWithDecryption(true).SetMaxResults(10)
-	err = s.api.GetParametersByPathPages(pathQuery, func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
+	pathQuery = pathQuery.SetPath(path).SetRecursive(true).SetWithDecryption(true).SetMaxResults(10)
+	err := s.api.GetParametersByPathPages(pathQuery, func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
 		for _, param := range page.Parameters {
-			value[(*param.Name)[len(secretPath)+1:]] = *param.Value
+			value[(*param.Name)[len(path)+1:]] = *param.Value
 		}
 		return true
 	})
@@ -93,7 +102,6 @@ func (s *Ssm) GetVar(nameTemplate *template.Template, varName string) (interface
 		return nil, false, err
 	}
 	if len(value) == 0 {
-		s.log.Info("SSM secret does not exists", lager.Data{"name": varName})
 		return nil, false, nil
 	}
 	return value, true, nil
