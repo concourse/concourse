@@ -16,7 +16,6 @@ params:
   BOSH_CLIENT_SECRET:
   BOSH_CA_CERT:
   BOSH_KEY:
-  DB_PASSWORD:
 
 run:
   path: concourse/ci/scripts/manual-downgrade
