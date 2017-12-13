@@ -9,16 +9,17 @@ strip_bosh_output() { grep stdout | awk -F'|' '{print $NF}' | tr -d '\r' | xargs
 
 downgrade_to=$(bosh ssh web -c "ls -al /var/vcap/packages/atc" | strip_bosh_output | awk -F/ '{print $NF}' | head -1)
 downgrade_from=$(bosh ssh web -c "ls -t /var/vcap/data/packages/atc/" | strip_bosh_output | grep -v $downgrade_to | head -1)
+db_host=$(bosh -e prod -d $BOSH_DEPLOYMENT instances --json | jq -r '.Tables[0] | .Rows[] | select(.instance | contains("db/")) | .ips')
 
 test -n "$downgrade_from" && {
-  version=$(bosh ssh web -c "/var/vcap/data/packages/atc/${downgrade_to}/bin/atc --postgres-user=atc --supported-db-version" | strip_bosh_output)
+  version=$(bosh ssh web -c "/var/vcap/data/packages/atc/${downgrade_to}/bin/atc --postgres-user=concourse --supported-db-version" | strip_bosh_output)
 }
 
 test -n "$version" && {
   bosh ssh web -c "sudo /var/vcap/bosh/bin/monit stop atc"
   until bosh ssh web -c "sudo /var/vcap/bosh/bin/monit summary" | strip_bosh_output | grep -E "atc.*not monitored"; do sleep 2; done
 
-  bosh ssh web -c "/var/vcap/data/packages/atc/${downgrade_from}/bin/atc --postgres-user=atc --migrate-db-to-version ${version}"
+  bosh ssh web -c "/var/vcap/data/packages/atc/${downgrade_from}/bin/atc --postgres-user=concourse --postgres-host=$db_host --postgres-password=$DB_PASSWORD --migrate-db-to-version ${version}"
 
   until bosh ssh web -c "sudo /var/vcap/bosh/bin/monit start atc"; do sleep 2; done
   until bosh ssh web -c "sudo /var/vcap/bosh/bin/monit summary" | strip_bosh_output | grep -E "atc.*running"; do sleep 2; done
