@@ -104,7 +104,7 @@ var _ = Describe("logout Command", func() {
 		})
 
 		Context("when it is called", func() {
-			It("removes all items", func() {
+			It("removes all tokens and all targets remain in flyrc", func() {
 				flyCmd := exec.Command(flyPath, "logout", "--all")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -126,7 +126,12 @@ var _ = Describe("logout Command", func() {
 						{Contents: "url", Color: color.New(color.Bold)},
 						{Contents: "expiry", Color: color.New(color.Bold)},
 					},
-					Data: []ui.TableRow{},
+					Data: []ui.TableRow{
+						{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "n/a"}},
+						{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
+						{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "n/a"}},
+						{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "n/a"}},
+					},
 				}))
 			})
 		})
@@ -198,6 +203,7 @@ var _ = Describe("logout Command", func() {
 				Data: []ui.TableRow{
 					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
 					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
+					{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "n/a"}},
 					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
 				},
 			}))
@@ -206,7 +212,7 @@ var _ = Describe("logout Command", func() {
 		})
 
 		Context("when it is called", func() {
-			It("removes all items", func() {
+			It("removes token of the target and the target should remain in .flyrc", func() {
 				flyCmd := exec.Command(flyPath, "logout", "-t", "omt")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

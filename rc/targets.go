@@ -50,8 +50,10 @@ func DeleteTarget(targetName TargetName) error {
 		return err
 	}
 
-	if _, ok := flyTargets.Targets[targetName]; ok {
-		delete(flyTargets.Targets, targetName)
+	if target, ok := flyTargets.Targets[targetName]; ok {
+		if target.Token != nil {
+			*target.Token = TargetToken{}
+		}
 	}
 
 	return writeTargets(flyrcPath(), flyTargets)
