@@ -108,8 +108,14 @@ func (manager SsmManager) Validate() error {
 }
 
 func (manager SsmManager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
-	log.Info("Creating new SSM variables factory")
-	config := &aws.Config{Region: &manager.AwsRegion}
+	log.Info("Creating new SSM variables factory", lager.Data{
+		"secretTemplate":         manager.SecretTemplate,
+		"fallbackSecretTemplate": manager.FallbackTemplate,
+	})
+	config := &aws.Config{}
+	if manager.AwsRegion != "" {
+		config.Region = &manager.AwsRegion
+	}
 	if manager.AwsAccessKeyID != "" {
 		log.Info("Using AWS credentials provided by user", lager.Data{"awsAccessKey": manager.AwsAccessKeyID})
 		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)

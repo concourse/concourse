@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	varTemplate "github.com/cloudfoundry/bosh-cli/director/template"
@@ -18,7 +19,7 @@ import (
 )
 
 type mockPathResultPage struct {
-	params []string
+	params map[string]string
 	err    error
 }
 
@@ -26,12 +27,12 @@ func (page mockPathResultPage) ToGetParametersByPathOutput() (*ssm.GetParameters
 	if page.err != nil {
 		return nil, page.err
 	}
-	params := make([]*ssm.Parameter, len(page.params))
-	for i, p := range page.params {
-		params[i] = &ssm.Parameter{
-			Name:  aws.String(p),
-			Value: aws.String(p + ":value"),
-		}
+	params := make([]*ssm.Parameter, 0, len(page.params))
+	for name, value := range page.params {
+		params = append(params, &ssm.Parameter{
+			Name:  aws.String(name),
+			Value: aws.String(value),
+		})
 	}
 	return &ssm.GetParametersByPathOutput{Parameters: params}, nil
 }
@@ -64,12 +65,9 @@ func (mock *MockSsmService) GetParametersByPathPages(input *ssm.GetParametersByP
 	Expect(input).NotTo(BeNil())
 	Expect(input.Path).NotTo(BeNil())
 	Expect(input.Recursive).To(PointTo(Equal(true)))
-	Expect(input.WithDecryption).To(PointTo(Equal(false)))
+	Expect(input.WithDecryption).To(PointTo(Equal(true)))
 	Expect(input.MaxResults).To(PointTo(BeEquivalentTo(10)))
 	allPages := mock.stubGetParametersByPathPages(*input.Path)
-	if len(allPages) == 0 {
-		return errors.New("no pages are returned by the stub")
-	}
 	for n, page := range allPages {
 		params, err := page.ToGetParametersByPathOutput()
 		if err != nil {
@@ -90,6 +88,7 @@ var _ = Describe("Ssm", func() {
 	var mockService MockSsmService
 
 	JustBeforeEach(func() {
+		varDef = varTemplate.VariableDefinition{Name: "cheery"}
 		secretTemplate, err := template.New("test").Parse(DefaultSecretTemplate)
 		Expect(secretTemplate).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -98,18 +97,14 @@ var _ = Describe("Ssm", func() {
 		Expect(err).To(BeNil())
 		ssmAccess = NewSsm(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", secretTemplate, fallbackTemplate)
 		Expect(ssmAccess).NotTo(BeNil())
-		varDef = varTemplate.VariableDefinition{Name: "cheery"}
 		mockService.stubGetParameter = func(input string) (string, error) {
-			Expect(input).To(Equal("/concourse/alpha/bogus/cheery"))
-			return "ssm decrypted value", nil
+			if input == "/concourse/alpha/bogus/cheery" {
+				return "ssm decrypted value", nil
+			}
+			return "", awserr.New(ssm.ErrCodeParameterNotFound, "", nil)
 		}
 		mockService.stubGetParametersByPathPages = func(path string) []mockPathResultPage {
-			return []mockPathResultPage{
-				{
-					params: []string{"/concourse/alpha/bogus/cheery"},
-					err:    nil,
-				},
-			}
+			return []mockPathResultPage{}
 		}
 	})
 
@@ -121,10 +116,41 @@ var _ = Describe("Ssm", func() {
 			Expect(err).To(BeNil())
 		})
 
+		It("should get complex paramter", func() {
+			mockService.stubGetParametersByPathPages = func(path string) []mockPathResultPage {
+				return []mockPathResultPage{
+					{
+						params: map[string]string{
+							"/concourse/alpha/bogus/user/name": "yours",
+							"/concourse/alpha/bogus/user/pass": "truely",
+						},
+						err: nil,
+					},
+				}
+			}
+			value, found, err := ssmAccess.Get(varTemplate.VariableDefinition{Name: "user"})
+			Expect(value).To(BeEquivalentTo(map[interface{}]interface{}{
+				"name": "yours",
+				"pass": "truely",
+			}))
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should return numbers as strings", func() {
+			mockService.stubGetParameter = func(input string) (string, error) {
+				return "101", nil
+			}
+			value, found, err := ssmAccess.Get(varDef)
+			Expect(value).To(BeEquivalentTo("101"))
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
 		It("should get fallback parameter if exists", func() {
 			mockService.stubGetParameter = func(input string) (string, error) {
 				if input != "/concourse/alpha/cheery" {
-					return "", errors.New("parameter not found")
+					return "", awserr.New(ssm.ErrCodeParameterNotFound, "", nil)
 				}
 				return "fallback decrypted value", nil
 			}
@@ -155,29 +181,6 @@ var _ = Describe("Ssm", func() {
 			Expect(value).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).To(Equal(svcErr))
-		})
-	})
-
-	Describe("List()", func() {
-		It("should list all parameters once", func() {
-			mockService.stubGetParametersByPathPages = func(path string) []mockPathResultPage {
-				return []mockPathResultPage{
-					{
-						params: []string{"/concourse/alpha/bogus/cheery"},
-						err:    nil,
-					},
-					{
-						params: []string{"/concourse/alpha/bogus/cheery", "/concourse/alpha/bogus/cocco"},
-						err:    nil,
-					},
-				}
-			}
-			vars, err := ssmAccess.List()
-			Expect(err).To(BeNil())
-			Expect(vars).To(Equal([]varTemplate.VariableDefinition{
-				{Name: "/concourse/alpha/bogus/cheery"},
-				{Name: "/concourse/alpha/bogus/cocco"},
-			}))
 		})
 	})
 })

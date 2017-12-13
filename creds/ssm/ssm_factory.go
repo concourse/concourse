@@ -18,9 +18,10 @@ type ssmFactory struct {
 
 func NewSsmFactory(log lager.Logger, session *session.Session, secretTemplate *template.Template, fallbackTemplate *template.Template) *ssmFactory {
 	return &ssmFactory{
-		log:            log,
-		api:            ssm.New(session),
-		secretTemplate: secretTemplate,
+		log:              log,
+		api:              ssm.New(session),
+		secretTemplate:   secretTemplate,
+		fallbackTemplate: fallbackTemplate,
 	}
 }
 

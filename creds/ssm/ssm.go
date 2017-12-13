@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	varTemplate "github.com/cloudfoundry/bosh-cli/director/template"
@@ -59,69 +60,46 @@ func (s *Ssm) GetVar(nameTemplate *template.Template, varName string) (interface
 		})
 		return nil, false, err
 	}
+	s.log.Info("Trying to get SSM parameter by name", lager.Data{"name": secretName})
+	// Try to get parameter as a string value
 	param, err := s.api.GetParameter(&ssm.GetParameterInput{
 		Name:           &secretName,
 		WithDecryption: aws.Bool(true),
 	})
-	if err != nil {
+	if err == nil {
+		return *param.Parameter.Value, true, nil
+
+	} else if errObj, ok := err.(awserr.Error); !ok || errObj.Code() != ssm.ErrCodeParameterNotFound {
 		s.log.Error("Failed to fetch parameter from SSM", err, lager.Data{"parameter": secretName})
 		return nil, false, err
 	}
-	return *param.Parameter.Value, true, nil
-}
-
-func (s *Ssm) List() ([]varTemplate.VariableDefinition, error) {
-	// Merge the secret & fallback variables using a map. Since the default
-	// fallback template includes all secret templates as well.
-	mergedVars := make(map[string]bool)
-
-	secretVars, err := s.ListVars(s.SecretTemplate)
-	if err != nil {
-		return nil, err
-	}
-	for _, v := range secretVars {
-		mergedVars[v] = true
-	}
-
-	if s.FallbackTemplate != nil {
-		fallbackVars, err := s.ListVars(s.FallbackTemplate)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, v := range fallbackVars {
-			mergedVars[v] = true
-		}
-	}
-
-	// Convert to array before returing to caller
-	varDefs := make([]varTemplate.VariableDefinition, len(mergedVars))
-	i := 0
-	for v := range mergedVars {
-		varDefs[i] = varTemplate.VariableDefinition{Name: v}
-		i++
-	}
-	return varDefs, nil
-}
-
-func (s *Ssm) ListVars(nameTemplate *template.Template) ([]string, error) {
-	secretPath, err := s.buildSecretName(nameTemplate, "")
-	if err != nil {
-		return nil, err
-	}
-	// Remove all trailing slashes
-	secretPath = strings.TrimRight(secretPath, "/")
+	// The parameter may exist as a complex object. So try to find all parameters in the path
+	// this will be retuned as a map
+	secretPath := strings.TrimRight(secretName, "/")
 	if secretPath == "" {
 		secretPath = "/"
 	}
-	var names []string
-	query := &ssm.GetParametersByPathInput{}
-	query = query.SetPath(secretPath).SetRecursive(true).SetWithDecryption(false).SetMaxResults(10)
-	err = s.api.GetParametersByPathPages(query, func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
+	s.log.Info("Trying to get SSM parameter by path", lager.Data{"path": secretPath})
+	value := make(map[interface{}]interface{})
+	pathQuery := &ssm.GetParametersByPathInput{}
+	pathQuery = pathQuery.SetPath(secretPath).SetRecursive(true).SetWithDecryption(true).SetMaxResults(10)
+	err = s.api.GetParametersByPathPages(pathQuery, func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
 		for _, param := range page.Parameters {
-			names = append(names, *param.Name)
+			value[(*param.Name)[len(secretPath)+1:]] = *param.Value
 		}
 		return true
 	})
-	return names, err
+	if err != nil {
+		return nil, false, err
+	}
+	if len(value) == 0 {
+		s.log.Info("SSM secret does not exists", lager.Data{"name": varName})
+		return nil, false, nil
+	}
+	return value, true, nil
+}
+
+func (s *Ssm) List() ([]varTemplate.VariableDefinition, error) {
+	// not implemented, see vault implementation
+	return []varTemplate.VariableDefinition{}, nil
 }
