@@ -507,3 +507,42 @@ properties:
     description: |
       Client secret for CredHub authorization.
     default: ""
+
+  ssm.aws_region:
+    description: |
+      AWS region to use for fetching SSM parameters. Enviroment variable AWS_REGION is used
+      if this flag is not provided. This flag or the environment variable *must* be specified
+      for SSM secret backend to be enabled. When AWS_SDK_LOAD_CONFIG environment variable is
+      set, shared configuration files (~/.aws/config & ~/.aws/credentials) are used to load
+      this flag and credential flags. A profile within shared config file may be selected by
+      specifying it in AWS_PROFILE or AWS_DEFAULT_PROFILE environment variables.
+    default: ""
+  ssm.aws_access_key:
+    description: |
+      AWS Access key ID used as credentials for accessing SSM parameters. If this flag is not specified,
+      AWS_ACCESS_KEY_ID or AWS_ACCESS_KEY environment variables are used. On EC2 instances, the metadata
+      service is used to get credentials when none are specified.
+    default: ""
+  ssm.aws_secret_key:
+    description: |
+      AWS Secret Access Key used as credentials for accessing SSM parameters. If this flag is not specified,
+      AWS_SECRET_ACCESS_KEY or AWS_SECRET_KEY environment variables are used. On EC2 instances, the metadata
+      service is used to get credentials when none are specified.
+    default: ""
+  ssm.aws_session_token:
+    description: |
+      AWS Session Token used as credentials for accessing SSM parameters. If this flag is not specified,
+      AWS_SESSION_TOKEN environment variable is used. On EC2 instances, the metadata service is used to
+      get credentials when none are specified.
+    default: ""
+  ssm.pipe_secret_template:
+    description: |
+      AWS SSM parameter name template used to resolve pipeline specific secrets. If this flag contains slashes, be sure
+      to start it with a /. Maximum 5 slashes are permitted by AWS in parameter names.
+    default: /concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}
+  ssm.team_secret_template:
+    description: |
+      AWS SSM parameter name template used to resolve team specific secrets. If this flag contains slashes, be sure
+      to start it with a /. Maximum 5 slashes are permitted by AWS in parameter names.
+      names.
+    default: /concourse/{{.Team}}/{{.Secret}}
