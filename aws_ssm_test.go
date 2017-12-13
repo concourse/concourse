@@ -22,9 +22,9 @@ import (
 
 	aws ssm put-parameter --type String --name "/concourse-topgun/main/pipeline-ssm-test/resource_type_repository" --value "concourse/time-resource"
 	aws ssm put-parameter --type String --name "/concourse-topgun/main/pipeline-ssm-test/time_resource_interval" --value "10m"
-	aws ssm put-parameter --type SecureString --name "/concourse-topgun/main/pipeline-ssm-test/job_secret.username" --value "Hello"
-	aws ssm put-parameter --type SecureString --name "/concourse-topgun/main/pipeline-ssm-test/job_secret.password" --value "World"
 	aws ssm put-parameter --type String --name "/concourse-topgun/main/pipeline-ssm-test/image_resource_repository" --value "busybox"
+	aws ssm put-parameter --type SecureString --name "/concourse-topgun/main/pipeline-ssm-test/job_secret/username" --value "Hello"
+	aws ssm put-parameter --type SecureString --name "/concourse-topgun/main/pipeline-ssm-test/job_secret/password" --value "World"
 	aws ssm put-parameter --type SecureString --name "/concourse-topgun/main/team_secret" --value "Sauce"
 	aws ssm put-parameter --type SecureString --name "/concourse-topgun/main/task_secret" --value "Hiii"
 	aws ssm put-parameter --type SecureString --name "/concourse-topgun/main/image_resource_repository" --value "busybox"
@@ -69,8 +69,8 @@ var _ = Describe("AWS SSM", func() {
 		var secrets = map[string]string{
 			"/concourse-topgun/main/pipeline-ssm-test/resource_type_repository":  "concourse/time-resource",
 			"/concourse-topgun/main/pipeline-ssm-test/time_resource_interval":    "10m",
-			"/concourse-topgun/main/pipeline-ssm-test/job_secret.username":       "Hello",
-			"/concourse-topgun/main/pipeline-ssm-test/job_secret.password":       "World",
+			"/concourse-topgun/main/pipeline-ssm-test/job_secret/username":       "Hello",
+			"/concourse-topgun/main/pipeline-ssm-test/job_secret/password":       "World",
 			"/concourse-topgun/main/pipeline-ssm-test/image_resource_repository": "busybox",
 			"/concourse-topgun/main/team_secret":                                 "Sauce",
 			"/concourse-topgun/main/task_secret":                                 "Hiii",

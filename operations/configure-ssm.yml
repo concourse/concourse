@@ -6,5 +6,5 @@
     aws_access_key: ((aws_access_key))
     aws_secret_key: ((aws_secret_key))
     aws_session_token: ((aws_session_token))
-    secret_template: /concourse-topgun/{{.Team}}/{{.Pipeline}}/{{.Secret}}
-    fallback_secret_template: /concourse-topgun/{{.Team}}/{{.Secret}}
+    pipe_secret_template: /concourse-topgun/{{.Team}}/{{.Pipeline}}/{{.Secret}}
+    team_secret_template: /concourse-topgun/{{.Team}}/{{.Secret}}
