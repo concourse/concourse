@@ -111,6 +111,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Subsystem: "builds",
 			Name:      "duration_seconds",
 			Help:      "Build time in seconds",
+			Buckets:   []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
 		},
 		[]string{"team", "pipeline"},
 	)
@@ -144,7 +145,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "duration_seconds",
 			Help:      "Response time in seconds",
 		},
-		[]string{"method"},
+		[]string{"method", "route"},
 	)
 	prometheus.MustRegister(httpRequestsDuration)
 
@@ -269,6 +270,11 @@ func (emitter *PrometheusEmitter) workerVolumesMetrics(logger lager.Logger, even
 }
 
 func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, event metric.Event) {
+	route, exists := event.Attributes["route"]
+	if !exists {
+		logger.Error("failed-to-find-route-in-event", fmt.Errorf("expected method to exist in event.Attributes"))
+	}
+
 	method, exists := event.Attributes["method"]
 	if !exists {
 		logger.Error("failed-to-find-method-in-event", fmt.Errorf("expected method to exist in event.Attributes"))
@@ -279,5 +285,6 @@ func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, e
 		logger.Error("http-response-time-event-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
 	}
 
-	emitter.httpRequestsDuration.WithLabelValues(method).Observe(responseTime / 1000)
+	emitter.httpRequestsDuration.WithLabelValues(method, route).Observe(responseTime / 1000)
+}
 }
