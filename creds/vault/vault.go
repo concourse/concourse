@@ -7,8 +7,16 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
+// A SecretReader reads a vault secret from the given path. It should
+// be thread safe!
+type SecretReader interface {
+	Read(path string) (*vaultapi.Secret, error)
+}
+
+// Vault converts a vault secret to our completely untyped secret
+// data.
 type Vault struct {
-	VaultClient *vaultapi.Logical
+	SecretReader SecretReader
 
 	PathPrefix   string
 	TeamName     string
@@ -52,7 +60,7 @@ func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error
 }
 
 func (v Vault) findSecret(path string) (*vaultapi.Secret, bool, error) {
-	secret, err := v.VaultClient.Read(path)
+	secret, err := v.SecretReader.Read(path)
 	if err != nil {
 		return nil, false, err
 	}

@@ -18,6 +18,8 @@ type VaultManager struct {
 
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 
+	Cache bool `bool:"cache" default:"false" description:"Cache returned secrets for their lease duration in memory"`
+
 	TLS struct {
 		CACert     string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
 		CAPath     string `long:"ca-path"              description:"Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert."`
@@ -33,9 +35,12 @@ type VaultManager struct {
 type AuthConfig struct {
 	ClientToken string `long:"client-token" description:"Client token for accessing secrets within the Vault server."`
 
-	Backend       string           `long:"auth-backend" description:"Auth backend to use for logging in to Vault."`
-	BackendMaxTTL time.Duration    `long:"auth-backend-max-ttl" description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
-	Params        []template.VarKV `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME=VALUE"`
+	Backend       string        `long:"auth-backend" description:"Auth backend to use for logging in to Vault."`
+	BackendMaxTTL time.Duration `long:"auth-backend-max-ttl" description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
+	RetryMax      time.Duration `long:"retry-max" description:"The maximum time between retries when logging in or re-authing a secret."`
+	RetryInitial  time.Duration `long:"retry-initial" description:"The initial time between retries when logging in or re-authing a secret."`
+
+	Params []template.VarKV `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME=VALUE"`
 }
 
 func (manager VaultManager) IsConfigured() bool {
@@ -85,5 +90,14 @@ func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.Vari
 		return nil, err
 	}
 
-	return NewVaultFactory(logger, client, manager.Auth, manager.PathPrefix), nil
+	c := NewAPIClient(logger, client, manager.Auth)
+
+	// TODO: Configurable?
+	ra := NewReAuther(c, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
+	var sr SecretReader = c
+	if manager.Cache {
+		sr = NewCache(c)
+	}
+
+	return NewVaultFactory(sr, ra.LoggedIn(), manager.PathPrefix), nil
 }
