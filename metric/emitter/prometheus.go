@@ -191,6 +191,9 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(schedulingJobDuration)
 
+	// dbPromMetricsCollector defines database metrics
+	prometheus.MustRegister(newDBPromCollector())
+
 	listener, err := net.Listen("tcp", config.bind())
 	if err != nil {
 		return nil, err
@@ -244,6 +247,52 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	default:
 		// unless we have a specific metric, we do nothing
 	}
+}
+
+type dbPromMetricsCollector struct {
+	dbConns   *prometheus.Desc
+	dbQueries *prometheus.Desc
+}
+
+func newDBPromCollector() prometheus.Collector {
+	return &dbPromMetricsCollector{
+		dbConns: prometheus.NewDesc(
+			"concourse_db_connections",
+			"Current number of concourse database connections",
+			[]string{"dbname"},
+			nil,
+		),
+		// this needs to be a recent number, because it is reset every 10 seconds
+		// by the periodic metrics emitter
+		dbQueries: prometheus.NewDesc(
+			"concourse_db_queries",
+			"Recent number of Concourse database queries",
+			nil,
+			nil,
+		),
+	}
+}
+
+func (c *dbPromMetricsCollector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- c.dbConns
+	ch <- c.dbQueries
+}
+
+func (c *dbPromMetricsCollector) Collect(ch chan<- prometheus.Metric) {
+	for _, database := range metric.Databases {
+		ch <- prometheus.MustNewConstMetric(
+			c.dbConns,
+			prometheus.GaugeValue,
+			float64(database.Stats().OpenConnections),
+			database.Name(),
+		)
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		c.dbQueries,
+		prometheus.GaugeValue,
+		float64(metric.DatabaseQueries),
+	)
 }
 
 func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, event metric.Event) {
