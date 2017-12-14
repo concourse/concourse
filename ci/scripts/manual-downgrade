@@ -5,4 +5,4 @@ set -e
 eval $(ssh-agent)
 ssh-add <(echo "$BOSH_KEY")
 
-bosh ssh web -c "sudo /var/vcap/jobs/atc/bin/atc_downgrade_db"
+bosh ssh web -c "find /var/vcap/data/jobs/atc -name experimental_downgrade_db -print -quit | xargs sh -c"

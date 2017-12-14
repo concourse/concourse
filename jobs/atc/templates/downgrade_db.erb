@@ -3,9 +3,6 @@
 
 set -e
 
-downgrade_to=$(ls -al /var/vcap/packages/atc | awk -F/ '{print $NF}' | head -1)
-downgrade_from=$(ls -t /var/vcap/data/packages/atc/ | grep -v $downgrade_to | head -1)
-
 <%
   postgres_host = ""
   postgres_port = ""
@@ -49,15 +46,22 @@ downgrade_from=$(ls -t /var/vcap/data/packages/atc/ | grep -v $downgrade_to | he
   postgres_sslmode = p("postgresql.sslmode", "disable")
 %>
 
+downgrade_to=$(ls -al /var/vcap/packages/atc | awk -F/ '{print $NF}' | head -1)
+downgrade_from=$(ls -t /var/vcap/data/packages/atc/ | grep -v $downgrade_to | head -1)
+
 test -n "$downgrade_from" && {
-  version=$(/var/vcap/data/packages/atc/${downgrade_to}/bin/atc --postgres-user=<%= esc(postgres_role_name) %> --supported-db-version)
+  version=$(/var/vcap/data/packages/atc/${downgrade_to}/bin/atc --supported-db-version)
 }
 
 test -n "$version" && {
-  sudo /var/vcap/bosh/bin/monit stop atc
+  until sudo /var/vcap/bosh/bin/monit stop atc; do sleep 2; done
   until sudo /var/vcap/bosh/bin/monit summary | grep -E "atc.*not monitored"; do sleep 2; done
 
-  /var/vcap/data/packages/atc/${downgrade_from}/bin/atc --postgres-user=<%= esc(postgres_role_name) %> --postgres-host=<%= esc(postgres_host) %> --postgres-password=<%= esc(postgres_role_password) %> --migrate-db-to-version ${version}
+  /var/vcap/data/packages/atc/${downgrade_from}/bin/atc \
+    --postgres-host=<%= esc(postgres_host) %> \
+    --postgres-user=<%= esc(postgres_role_name) %> \
+    --postgres-password=<%= esc(postgres_role_password) %> \
+    --migrate-db-to-version ${version}
 
   until sudo /var/vcap/bosh/bin/monit start atc; do sleep 2; done
   until sudo /var/vcap/bosh/bin/monit summary | grep -E "atc.*running"; do sleep 2; done

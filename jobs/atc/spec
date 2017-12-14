@@ -7,7 +7,6 @@ description: |
 
 templates:
   atc_ctl.erb: bin/atc_ctl
-  atc_downgrade_db.erb: bin/atc_downgrade_db
   tls_cert.erb: config/tls_cert
   tls_key.erb: config/tls_key
   cf_ca_cert.erb: config/cf_ca_cert
@@ -19,6 +18,7 @@ templates:
   vault_client_key.erb: config/vault_client_key
   credhub_ca_cert.erb: config/credhub_ca_cert
   token_signing_key.erb: config/token_signing_key
+  downgrade_db.erb: bin/experimental_downgrade_db
 
 packages:
   - pid_utils
