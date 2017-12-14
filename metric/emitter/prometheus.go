@@ -27,6 +27,10 @@ type PrometheusEmitter struct {
 	workerVolumes    *prometheus.GaugeVec
 
 	httpRequestsDuration *prometheus.HistogramVec
+
+	schedulingFullDuration    *prometheus.GaugeVec
+	schedulingLoadingDuration *prometheus.GaugeVec
+	schedulingJobDuration     *prometheus.GaugeVec
 }
 
 type PrometheusConfig struct {
@@ -47,6 +51,7 @@ func (config *PrometheusConfig) bind() string {
 }
 
 func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
+	// build metrics
 	buildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
 		Subsystem: "builds",
@@ -117,6 +122,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(buildDurationsVec)
 
+	// worker metrics
 	workerContainers := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "concourse",
@@ -127,6 +133,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		[]string{"worker"},
 	)
 	prometheus.MustRegister(workerContainers)
+
 	workerVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "concourse",
@@ -138,6 +145,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(workerVolumes)
 
+	// http metrics
 	httpRequestsDuration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "concourse",
@@ -148,6 +156,40 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		[]string{"method", "route"},
 	)
 	prometheus.MustRegister(httpRequestsDuration)
+
+	// scheduling metrics
+	schedulingFullDuration := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "scheduling",
+			Name:      "full_duration_seconds",
+			Help:      "Last time taken to schedule an entire pipeline.",
+		},
+		[]string{"pipeline"},
+	)
+	prometheus.MustRegister(schedulingFullDuration)
+
+	schedulingLoadingDuration := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "scheduling",
+			Name:      "loading_duration_seconds",
+			Help:      "Last time taken to load version information from the database for a pipeline.",
+		},
+		[]string{"pipeline"},
+	)
+	prometheus.MustRegister(schedulingLoadingDuration)
+
+	schedulingJobDuration := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "scheduling",
+			Name:      "job_duration_seconds",
+			Help:      "Last time taken to calculate the set of valid input versions for a pipeline.",
+		},
+		[]string{"pipeline"},
+	)
+	prometheus.MustRegister(schedulingJobDuration)
 
 	listener, err := net.Listen("tcp", config.bind())
 	if err != nil {
@@ -170,6 +212,10 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		workerVolumes:    workerVolumes,
 
 		httpRequestsDuration: httpRequestsDuration,
+
+		schedulingFullDuration:    schedulingFullDuration,
+		schedulingLoadingDuration: schedulingLoadingDuration,
+		schedulingJobDuration:     schedulingJobDuration,
 	}, nil
 }
 
@@ -184,11 +230,17 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
 	case "worker containers":
-		emitter.workerContainersMetrics(logger, event)
+		emitter.workerContainersMetric(logger, event)
 	case "worker volumes":
-		emitter.workerVolumesMetrics(logger, event)
+		emitter.workerVolumesMetric(logger, event)
 	case "http response time":
 		emitter.httpResponseTimeMetrics(logger, event)
+	case "scheduling: full duration (ms)":
+		emitter.schedulingMetrics(logger, event)
+	case "scheduling: loading versions duration (ms)":
+		emitter.schedulingMetrics(logger, event)
+	case "scheduling: job duration (ms)":
+		emitter.schedulingMetrics(logger, event)
 	default:
 		// unless we have a specific metric, we do nothing
 	}
@@ -241,7 +293,7 @@ func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, even
 	emitter.buildDurationsVec.WithLabelValues(team, pipeline).Observe(duration)
 }
 
-func (emitter *PrometheusEmitter) workerContainersMetrics(logger lager.Logger, event metric.Event) {
+func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, event metric.Event) {
 	worker, exists := event.Attributes["worker"]
 	if !exists {
 		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
@@ -255,7 +307,7 @@ func (emitter *PrometheusEmitter) workerContainersMetrics(logger lager.Logger, e
 	emitter.workerContainers.WithLabelValues(worker).Set(float64(containers))
 }
 
-func (emitter *PrometheusEmitter) workerVolumesMetrics(logger lager.Logger, event metric.Event) {
+func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event metric.Event) {
 	worker, exists := event.Attributes["worker"]
 	if !exists {
 		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
@@ -287,4 +339,28 @@ func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, e
 
 	emitter.httpRequestsDuration.WithLabelValues(method, route).Observe(responseTime / 1000)
 }
+
+func (emitter *PrometheusEmitter) schedulingMetrics(logger lager.Logger, event metric.Event) {
+	pipeline, exists := event.Attributes["pipeline"]
+	if !exists {
+		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
+	}
+
+	duration, ok := event.Value.(float64)
+	if !ok {
+		logger.Error("scheduling-full-duration-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
+	}
+
+	switch event.Name {
+	case "scheduling: full duration (ms)":
+		// concourse_scheduling_full_duration_seconds
+		emitter.schedulingFullDuration.WithLabelValues(pipeline).Set(duration / 1000)
+	case "scheduling: loading versions duration (ms)":
+		// concourse_scheduling_loading_duration_seconds
+		emitter.schedulingLoadingDuration.WithLabelValues(pipeline).Set(duration / 1000)
+	case "scheduling: job duration (ms)":
+		// concourse_scheduling_job_duration_seconds
+		emitter.schedulingJobDuration.WithLabelValues(pipeline).Set(duration / 1000)
+	default:
+	}
 }
