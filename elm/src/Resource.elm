@@ -6,6 +6,9 @@ import Concourse.Pagination exposing (Pagination, Paginated, Page, equal)
 import Concourse.Resource
 import Dict
 import DictView
+import Date exposing (Date)
+import Date.Format
+import Duration exposing (Duration)
 import Erl
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, title)
@@ -28,6 +31,7 @@ type alias Ports =
 
 type alias Model =
     { ports : Ports
+    , now : Maybe Time.Time
     , resourceIdentifier : Concourse.ResourceIdentifier
     , resource : WebData Concourse.Resource
     , pausedChanging : PauseChangingOrErrored
@@ -60,6 +64,7 @@ type Msg
     | PausedToggled (Result Http.Error ())
     | VersionedResourcesFetched (Maybe Page) (Result Http.Error (Paginated Concourse.VersionedResource))
     | LoadPage Page
+    | ClockTick Time.Time
     | ToggleVersionedResource Int
     | VersionedResourceToggled Int (Result Http.Error ())
     | ExpandVersionedResource Int
@@ -99,6 +104,7 @@ init ports flags =
                     }
                 , versionedUIStates = Dict.empty
                 , ports = ports
+                , now = Nothing
                 , csrfToken = flags.csrfToken
                 }
     in
@@ -405,6 +411,9 @@ update action model =
                 _ ->
                     ( model, Cmd.none )
 
+        ClockTick now ->
+            ( { model | now = Just now }, Cmd.none )
+
         OutputOfFetched versionID (Ok builds) ->
             let
                 oldState =
@@ -543,6 +552,7 @@ view model =
                                     ]
                                 ]
                             , Html.h1 [] [ Html.text resource.name ]
+                            , Html.table [ class "last-checked" ] <| [ viewLastChecked model.now resource.lastChecked ]
                             ]
                         ]
                     , Html.div [ class "scrollable-body" ]
@@ -737,6 +747,24 @@ viewBuilds buildDict =
     List.concatMap (viewBuildsByJob buildDict) <| Dict.keys buildDict
 
 
+viewLastChecked : Maybe Time -> Date -> Html a
+viewLastChecked now date =
+    case now of
+        Nothing ->
+            Html.text ""
+
+        Just now ->
+            let
+                ago =
+                    Duration.between (Date.toTime date) now
+            in
+                Html.tr []
+                    [ Html.td [ class "dict-key" ] [ Html.text "checked" ]
+                    , Html.td [ title (Date.Format.format "%b %d %Y %I:%M:%S %p" date), class "dict-value" ]
+                        [ Html.span [] [ Html.text (Duration.format ago ++ " ago") ] ]
+                    ]
+
+
 viewBuildsByJob : Dict.Dict String (List Concourse.Build) -> String -> List (Html Msg)
 viewBuildsByJob buildDict jobName =
     let
@@ -864,4 +892,7 @@ fetchOutputOf versionedResourceIdentifier =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every (5 * Time.second) AutoupdateTimerTicked
+    Sub.batch
+        [ Time.every (5 * Time.second) AutoupdateTimerTicked
+        , Time.every Time.second ClockTick
+        ]

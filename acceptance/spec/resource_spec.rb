@@ -103,6 +103,18 @@ describe 'resource', type: :feature do
     end
   end
 
+  describe 'last checked timestamp' do
+    it 'shows last checked time' do
+      visit dash_route
+
+      page.find('a > text', text: 'some-resource').click
+
+      expect(page).to have_current_path("/teams/#{team_name}/pipelines/pipeline/resources/some-resource")
+      expect(page).to have_css('h1', text: 'some-resource')
+      expect(page).to have_css('.last-checked')
+    end
+  end
+
   describe 'pagination' do
     before do
       fly('set-pipeline -n -p pipeline -c fixtures/resource-checking.yml')

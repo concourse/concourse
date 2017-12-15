@@ -481,6 +481,7 @@ decodeBuildStepOnFailure =
             |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
             |: (Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildPlan_))
 
+
 decodeBuildStepOnAbort : Json.Decode.Decoder BuildStep
 decodeBuildStepOnAbort =
     Json.Decode.map BuildStepOnAbort <|
@@ -676,6 +677,7 @@ type alias Resource =
     , paused : Bool
     , failingToCheck : Bool
     , checkError : String
+    , lastChecked : Maybe Date
     }
 
 
@@ -711,6 +713,7 @@ decodeResource =
         |: (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
         |: (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
         |: (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
+        |: (Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.float)))
 
 
 decodeVersionedResource : Json.Decode.Decoder VersionedResource
