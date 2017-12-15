@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
@@ -19,6 +20,7 @@ type Resource interface {
 	Type() string
 	Source() atc.Source
 	CheckEvery() string
+	LastChecked() time.Time
 	Tags() atc.Tags
 	CheckError() error
 	Paused() bool
@@ -33,7 +35,7 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.pipeline_id, p.name, r.nonce").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.last_checked, r.pipeline_id, p.name, r.nonce").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Where(sq.Eq{"r.active": true})
@@ -46,6 +48,7 @@ type resource struct {
 	type_        string
 	source       atc.Source
 	checkEvery   string
+	lastChecked  time.Time
 	tags         atc.Tags
 	checkError   error
 	paused       bool
@@ -91,17 +94,18 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 	return configs
 }
 
-func (r *resource) ID() int              { return r.id }
-func (r *resource) Name() string         { return r.name }
-func (r *resource) PipelineID() int      { return r.pipelineID }
-func (r *resource) PipelineName() string { return r.pipelineName }
-func (r *resource) Type() string         { return r.type_ }
-func (r *resource) Source() atc.Source   { return r.source }
-func (r *resource) CheckEvery() string   { return r.checkEvery }
-func (r *resource) Tags() atc.Tags       { return r.tags }
-func (r *resource) CheckError() error    { return r.checkError }
-func (r *resource) Paused() bool         { return r.paused }
-func (r *resource) WebhookToken() string { return r.webhookToken }
+func (r *resource) ID() int                { return r.id }
+func (r *resource) Name() string           { return r.name }
+func (r *resource) PipelineID() int        { return r.pipelineID }
+func (r *resource) PipelineName() string   { return r.pipelineName }
+func (r *resource) Type() string           { return r.type_ }
+func (r *resource) Source() atc.Source     { return r.source }
+func (r *resource) CheckEvery() string     { return r.checkEvery }
+func (r *resource) LastChecked() time.Time { return r.lastChecked }
+func (r *resource) Tags() atc.Tags         { return r.tags }
+func (r *resource) CheckError() error      { return r.checkError }
+func (r *resource) Paused() bool           { return r.paused }
+func (r *resource) WebhookToken() string   { return r.webhookToken }
 func (r *resource) FailingToCheck() bool {
 	return r.checkError != nil
 }
@@ -166,7 +170,7 @@ func scanResource(r *resource, row scannable) error {
 		checkErr, nonce sql.NullString
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &r.pipelineID, &r.pipelineName, &nonce)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &r.lastChecked, &r.pipelineID, &r.pipelineName, &nonce)
 	if err != nil {
 		return err
 	}

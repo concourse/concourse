@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -62,6 +63,15 @@ type FakeResource struct {
 	}
 	checkEveryReturnsOnCall map[int]struct {
 		result1 string
+	}
+	LastCheckedStub        func() time.Time
+	lastCheckedMutex       sync.RWMutex
+	lastCheckedArgsForCall []struct{}
+	lastCheckedReturns     struct {
+		result1 time.Time
+	}
+	lastCheckedReturnsOnCall map[int]struct {
+		result1 time.Time
 	}
 	TagsStub        func() atc.Tags
 	tagsMutex       sync.RWMutex
@@ -389,6 +399,46 @@ func (fake *FakeResource) CheckEveryReturnsOnCall(i int, result1 string) {
 	}
 	fake.checkEveryReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) LastChecked() time.Time {
+	fake.lastCheckedMutex.Lock()
+	ret, specificReturn := fake.lastCheckedReturnsOnCall[len(fake.lastCheckedArgsForCall)]
+	fake.lastCheckedArgsForCall = append(fake.lastCheckedArgsForCall, struct{}{})
+	fake.recordInvocation("LastChecked", []interface{}{})
+	fake.lastCheckedMutex.Unlock()
+	if fake.LastCheckedStub != nil {
+		return fake.LastCheckedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.lastCheckedReturns.result1
+}
+
+func (fake *FakeResource) LastCheckedCallCount() int {
+	fake.lastCheckedMutex.RLock()
+	defer fake.lastCheckedMutex.RUnlock()
+	return len(fake.lastCheckedArgsForCall)
+}
+
+func (fake *FakeResource) LastCheckedReturns(result1 time.Time) {
+	fake.LastCheckedStub = nil
+	fake.lastCheckedReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeResource) LastCheckedReturnsOnCall(i int, result1 time.Time) {
+	fake.LastCheckedStub = nil
+	if fake.lastCheckedReturnsOnCall == nil {
+		fake.lastCheckedReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.lastCheckedReturnsOnCall[i] = struct {
+		result1 time.Time
 	}{result1}
 }
 
@@ -778,6 +828,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.sourceMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
+	fake.lastCheckedMutex.RLock()
+	defer fake.lastCheckedMutex.RUnlock()
 	fake.tagsMutex.RLock()
 	defer fake.tagsMutex.RUnlock()
 	fake.checkErrorMutex.RLock()

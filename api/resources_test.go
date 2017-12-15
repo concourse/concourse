@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -49,6 +50,7 @@ var _ = Describe("Resources API", func() {
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.NameReturns("resource-1")
 				resource1.TypeReturns("type-1")
+				resource1.LastCheckedReturns(time.Unix(1513364881, 0))
 
 				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
@@ -118,6 +120,7 @@ var _ = Describe("Resources API", func() {
 						"type": "type-1",
 						"groups": ["group-1", "group-2"],
 						"paused": true,
+						"last_checked": 1513364881,
 						"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1"
 					},
 					{
@@ -159,6 +162,7 @@ var _ = Describe("Resources API", func() {
 							"type": "type-1",
 							"groups": ["group-1", "group-2"],
 							"paused": true,
+							"last_checked": 1513364881,
 							"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1"
 						},
 						{
@@ -248,6 +252,7 @@ var _ = Describe("Resources API", func() {
 					resource1.NameReturns("resource-1")
 					resource1.FailingToCheckReturns(true)
 					resource1.TypeReturns("type-1")
+					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
 
 					fakePipeline.ResourceReturns(resource1, true, nil)
 				})
@@ -266,6 +271,7 @@ var _ = Describe("Resources API", func() {
 						"type": "type-1",
 						"groups": [],
 						"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1",
+						"last_checked": 1513364881,
 						"failing_to_check": true
 					}`))
 				})
@@ -312,6 +318,7 @@ var _ = Describe("Resources API", func() {
 					resource1.NameReturns("resource-1")
 					resource1.FailingToCheckReturns(true)
 					resource1.TypeReturns("type-1")
+					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
 
 					fakePipeline.ResourceReturns(resource1, true, nil)
 					fakePipeline.GroupsReturns([]atc.GroupConfig{
@@ -340,6 +347,7 @@ var _ = Describe("Resources API", func() {
 								"type": "type-1",
 								"groups": ["group-1", "group-2"],
 								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1",
+								"last_checked": 1513364881,
 								"paused": true,
 								"failing_to_check": true,
 								"check_error": "sup"

@@ -37,7 +37,7 @@ func Resource(resource db.Resource, groups atc.GroupConfigs, showCheckError bool
 		checkErrString = resource.CheckError().Error()
 	}
 
-	return atc.Resource{
+	atcResource := atc.Resource{
 		Name:   resource.Name(),
 		Type:   resource.Type(),
 		Groups: groupNames,
@@ -48,4 +48,10 @@ func Resource(resource db.Resource, groups atc.GroupConfigs, showCheckError bool
 		FailingToCheck: resource.FailingToCheck(),
 		CheckError:     checkErrString,
 	}
+
+	if !resource.LastChecked().IsZero() {
+		atcResource.LastChecked = resource.LastChecked().Unix()
+	}
+
+	return atcResource
 }
