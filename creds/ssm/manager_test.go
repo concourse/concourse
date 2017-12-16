@@ -1,8 +1,6 @@
 package ssm_test
 
 import (
-	"os"
-
 	"github.com/concourse/atc/creds/ssm"
 	flags "github.com/jessevdk/go-flags"
 
@@ -28,11 +26,6 @@ var _ = Describe("SsmManager", func() {
 			manager.AwsRegion = "test-region"
 			Expect(manager.IsConfigured()).To(BeTrue())
 		})
-
-		It("passes if AWS_REGION environment is set", func() {
-			os.Setenv("AWS_REGION", "env-region")
-			Expect(manager.IsConfigured()).To(BeTrue())
-		})
 	})
 
 	Describe("Validate()", func() {
@@ -40,7 +33,7 @@ var _ = Describe("SsmManager", func() {
 			manager = ssm.SsmManager{AwsRegion: "test-region"}
 			_, err := flags.ParseArgs(&manager, []string{})
 			Expect(err).To(BeNil())
-			Expect(manager.PipeSecretTemplate).To(Equal(ssm.DefaultPipeSecretTemplate))
+			Expect(manager.PipelineSecretTemplate).To(Equal(ssm.DefaultPipelineSecretTemplate))
 			Expect(manager.TeamSecretTemplate).To(Equal(ssm.DefaultTeamSecretTemplate))
 		})
 
@@ -71,22 +64,22 @@ var _ = Describe("SsmManager", func() {
 		)
 
 		It("passes on pipe secret template containing less specialization", func() {
-			manager.PipeSecretTemplate = "{{.Secret}}"
+			manager.PipelineSecretTemplate = "{{.Secret}}"
 			Expect(manager.Validate()).To(BeNil())
 		})
 
 		It("passes on pipe secret template containing no specialization", func() {
-			manager.PipeSecretTemplate = "var"
+			manager.PipelineSecretTemplate = "var"
 			Expect(manager.Validate()).To(BeNil())
 		})
 
 		It("fails on empty pipe secret template", func() {
-			manager.PipeSecretTemplate = ""
+			manager.PipelineSecretTemplate = ""
 			Expect(manager.Validate()).ToNot(BeNil())
 		})
 
 		It("fails on pipe secret template containing invalid parameters", func() {
-			manager.PipeSecretTemplate = "{{.Teams}}"
+			manager.PipelineSecretTemplate = "{{.Teams}}"
 			Expect(manager.Validate()).ToNot(BeNil())
 		})
 

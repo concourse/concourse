@@ -89,7 +89,7 @@ var _ = Describe("Ssm", func() {
 
 	JustBeforeEach(func() {
 		varDef = varTemplate.VariableDefinition{Name: "cheery"}
-		t1, err := template.New("test").Parse(DefaultPipeSecretTemplate)
+		t1, err := template.New("test").Parse(DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
 		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)

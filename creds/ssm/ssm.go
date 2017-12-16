@@ -43,27 +43,36 @@ func (s *Ssm) buildSecretName(nameTemplate *template.Template, varName string) (
 
 func (s *Ssm) Get(varDef varTemplate.VariableDefinition) (interface{}, bool, error) {
 	for _, st := range s.SecretTemplates {
-		if secret, err := s.buildSecretName(st, varDef.Name); err != nil {
-			s.log.Error("Failed to build SSM parameter path from secret", err, lager.Data{
+		// Try to get the parameter as string value
+		secret, err := s.buildSecretName(st, varDef.Name)
+		if err != nil {
+			s.log.Error("failed-to-build-ssm-parameter-path-from-secret", err, lager.Data{
 				"template": st.Name(),
 				"secret":   varDef.Name,
 			})
 			return nil, false, err
-		} else if value, found, err := s.getParameterByName(secret); err != nil {
-			s.log.Error("Failed to get SSM paramter by name", err, lager.Data{
+		}
+		value, found, err := s.getParameterByName(secret)
+		if err != nil {
+			s.log.Error("failed-to-get-ssm-parameter-by-name", err, lager.Data{
 				"template": st.Name(),
 				"secret":   secret,
 			})
 			return nil, false, err
-		} else if found {
+		}
+		if found {
 			return value, true, nil
-		} else if value, found, err = s.getParameterByPath(secret); err != nil {
-			s.log.Error("Failed to get SSM paramter by path", err, lager.Data{
+		}
+		// Paramter may exist as a complex value so try again using paramter name as root path
+		value, found, err = s.getParameterByPath(secret)
+		if err != nil {
+			s.log.Error("failed-to-get-ssm-parameter-by-path", err, lager.Data{
 				"template": st.Name(),
 				"secret":   secret,
 			})
 			return nil, false, err
-		} else if found {
+		}
+		if found {
 			return value, true, nil
 		}
 	}

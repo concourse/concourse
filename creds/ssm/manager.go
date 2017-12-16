@@ -3,7 +3,6 @@ package ssm
 import (
 	"errors"
 	"io/ioutil"
-	"os"
 	"text/template"
 	"text/template/parse"
 
@@ -14,16 +13,16 @@ import (
 	"github.com/concourse/atc/creds"
 )
 
-const DefaultPipeSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type SsmManager struct {
-	AwsAccessKeyID     string `long:"aws-access-key" description:"AWS Access key ID"`
-	AwsSecretAccessKey string `long:"aws-secret-key" description:"AWS Secret Access Key"`
-	AwsSessionToken    string `long:"aws-session-token" description:"AWS Session Token"`
-	AwsRegion          string `long:"aws-region" description:"AWS region to send requests to. Enviroment variable AWS_REGION is used if this flag is not provided."`
-	PipeSecretTemplate string `long:"pipe-secret-template" description:"AWS SSM parameter name template used for pipeline specific paramter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	TeamSecretTemplate string `long:"team-secret-template" description:"AWS SSM parameter name template used for team specific paramter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	AwsAccessKeyID         string `long:"access-key" description:"AWS Access key ID"`
+	AwsSecretAccessKey     string `long:"secret-key" description:"AWS Secret Access Key"`
+	AwsSessionToken        string `long:"session-token" description:"AWS Session Token"`
+	AwsRegion              string `long:"region" description:"AWS region to send requests to" env:"AWS_REGION"`
+	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS SSM parameter name template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
+	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS SSM parameter name template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
 }
 
 type SsmSecret struct {
@@ -47,12 +46,12 @@ func buildSecretTemplate(name, tmpl string) (*template.Template, error) {
 }
 
 func (manager SsmManager) IsConfigured() bool {
-	return manager.AwsRegion != "" || os.Getenv("AWS_REGION") != ""
+	return manager.AwsRegion != ""
 }
 
 func (manager SsmManager) Validate() error {
 	// Make sure that the template is valid
-	pipeSecretTemplate, err := buildSecretTemplate("pipe-secret-template", manager.PipeSecretTemplate)
+	pipelineSecretTemplate, err := buildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
 	if err != nil {
 		return err
 	}
@@ -62,7 +61,7 @@ func (manager SsmManager) Validate() error {
 	}
 	// Execute the templates on dummy data to verify that it does not expect additional data
 	dummy := SsmSecret{Team: "team", Pipeline: "pipeline", Secret: "secret"}
-	if err = pipeSecretTemplate.Execute(ioutil.Discard, &dummy); err != nil {
+	if err = pipelineSecretTemplate.Execute(ioutil.Discard, &dummy); err != nil {
 		return err
 	}
 	if err = teamSecretTemplate.Execute(ioutil.Discard, &dummy); err != nil {
@@ -90,26 +89,18 @@ func (manager SsmManager) Validate() error {
 }
 
 func (manager SsmManager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
-	log.Info("Creating new SSM variables factory", lager.Data{
-		"pipe-secret-template": manager.PipeSecretTemplate,
-		"team-secret-template": manager.TeamSecretTemplate,
-	})
-	config := &aws.Config{}
-	if manager.AwsRegion != "" {
-		config.Region = &manager.AwsRegion
-	}
+	config := &aws.Config{Region: &manager.AwsRegion}
 	if manager.AwsAccessKeyID != "" {
-		log.Info("Using AWS credentials provided by user", lager.Data{"aws-access-key": manager.AwsAccessKeyID})
 		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)
 	}
 
 	session, err := session.NewSession(config)
 	if err != nil {
-		log.Error("Failed to establish AWS session", err)
+		log.Error("failed-to-create-aws-session", err)
 		return nil, err
 	}
 
-	pipeSecretTemplate, err := buildSecretTemplate("pipe-secret-template", manager.PipeSecretTemplate)
+	pipelineSecretTemplate, err := buildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -119,5 +110,5 @@ func (manager SsmManager) NewVariablesFactory(log lager.Logger) (creds.Variables
 		return nil, err
 	}
 
-	return NewSsmFactory(log, session, []*template.Template{pipeSecretTemplate, teamSecretTemplate}), nil
+	return NewSsmFactory(log, session, []*template.Template{pipelineSecretTemplate, teamSecretTemplate}), nil
 }
