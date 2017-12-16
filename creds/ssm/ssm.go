@@ -31,12 +31,12 @@ func NewSsm(log lager.Logger, api ssmiface.SSMAPI, teamName string, pipelineName
 	}
 }
 
-func (s *Ssm) buildSecretName(nameTemplate *template.Template, varName string) (string, error) {
+func (s *Ssm) transformSecret(nameTemplate *template.Template, secret string) (string, error) {
 	var buf bytes.Buffer
 	err := nameTemplate.Execute(&buf, &SsmSecret{
 		Team:     s.TeamName,
 		Pipeline: s.PipelineName,
-		Secret:   varName,
+		Secret:   secret,
 	})
 	return buf.String(), err
 }
@@ -44,7 +44,7 @@ func (s *Ssm) buildSecretName(nameTemplate *template.Template, varName string) (
 func (s *Ssm) Get(varDef varTemplate.VariableDefinition) (interface{}, bool, error) {
 	for _, st := range s.SecretTemplates {
 		// Try to get the parameter as string value
-		secret, err := s.buildSecretName(st, varDef.Name)
+		parameter, err := s.transformSecret(st, varDef.Name)
 		if err != nil {
 			s.log.Error("failed-to-build-ssm-parameter-path-from-secret", err, lager.Data{
 				"template": st.Name(),
@@ -52,23 +52,29 @@ func (s *Ssm) Get(varDef varTemplate.VariableDefinition) (interface{}, bool, err
 			})
 			return nil, false, err
 		}
-		value, found, err := s.getParameterByName(secret)
+		// If pipeline name is empty, double slashes may be present in the parameter name
+		if strings.Contains(parameter, "//") {
+			continue
+		}
+		value, found, err := s.getParameterByName(parameter)
 		if err != nil {
 			s.log.Error("failed-to-get-ssm-parameter-by-name", err, lager.Data{
-				"template": st.Name(),
-				"secret":   secret,
+				"template":  st.Name(),
+				"secret":    varDef.Name,
+				"parameter": parameter,
 			})
 			return nil, false, err
 		}
 		if found {
 			return value, true, nil
 		}
-		// Paramter may exist as a complex value so try again using paramter name as root path
-		value, found, err = s.getParameterByPath(secret)
+		// // Paramter may exist as a complex value so try again using paramter name as root path
+		value, found, err = s.getParameterByPath(parameter)
 		if err != nil {
 			s.log.Error("failed-to-get-ssm-parameter-by-path", err, lager.Data{
-				"template": st.Name(),
-				"secret":   secret,
+				"template":  st.Name(),
+				"secret":    varDef.Name,
+				"parameter": parameter,
 			})
 			return nil, false, err
 		}
