@@ -1,10 +1,10 @@
 ---
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=atc/properties/aws-ssm?
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/aws_ssm?
   value:
-    aws_region: ((aws_region))
-    aws_access_key: ((aws_access_key))
-    aws_secret_key: ((aws_secret_key))
-    aws_session_token: ((aws_session_token))
+    region: ((aws_region))
+    access_key: ((aws_access_key))
+    secret_key: ((aws_secret_key))
+    session_token: ((aws_session_token))
     pipeline_secret_template: /concourse-topgun/{{.Team}}/{{.Pipeline}}/{{.Secret}}
     team_secret_template: /concourse-topgun/{{.Team}}/{{.Secret}}

@@ -159,18 +159,18 @@ var _ = Describe("AWS SSM", func() {
 					Expect(session).To(gbytes.Say("./some-resource/input")) // build echoed it; nothing we can do
 				})
 			})
-		})
-		Context("with a one-off build", func() {
-			It("parameterizes image_resource and params in a task config", func() {
-				By("executing a task that parameterizes image_resource")
-				watch := spawnFly("execute", "-c", "tasks/credential-management.yml")
-				wait(watch)
-				Expect(watch).To(gbytes.Say("SECRET: Hiii"))
+			Context("with a one-off build", func() {
+				It("parameterizes image_resource and params in a task config", func() {
+					By("executing a task that parameterizes image_resource")
+					watch := spawnFly("execute", "-c", "tasks/credential-management.yml")
+					wait(watch)
+					Expect(watch).To(gbytes.Say("SECRET: Hiii"))
 
-				By("taking a dump")
-				session := pgDump()
-				Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-				Expect(session).To(gbytes.Say("Hiii")) // build echoed it; nothing we can do
+					By("taking a dump")
+					session := pgDump()
+					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
+					Expect(session).To(gbytes.Say("Hiii")) // build echoed it; nothing we can do
+				})
 			})
 		})
 	})
