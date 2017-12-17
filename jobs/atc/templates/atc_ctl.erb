@@ -260,22 +260,22 @@ case $1 in
       --vault-path-prefix <%= esc(p("vault.path_prefix")) %> \
       <% end %> \
       <% end %> \
-      <% if_p("aws-ssm.aws_region") do |aws_region| %> \
+      <% if_p("aws_ssm.region") do |aws_region| %> \
       --aws-ssm-region <%= esc(aws_region) %> \
       <% end %> \
-      <% if_p("aws-ssm.aws_access_key") do |aws_access_key| %> \
+      <% if_p("aws_ssm.access_key") do |aws_access_key| %> \
       --aws-ssm-access-key <%= esc(aws_access_key) %> \
       <% end %> \
-      <% if_p("aws-ssm.aws_secret_key") do |aws_secret_key| %> \
+      <% if_p("aws_ssm.secret_key") do |aws_secret_key| %> \
       --aws-ssm-secret-key <%= esc(aws_secret_key) %> \
       <% end %> \
-      <% if_p("aws-ssm.aws_session_token") do |aws_session_token| %> \
+      <% if_p("aws_ssm.session_token") do |aws_session_token| %> \
       --aws-ssm-session-token <%= esc(aws_session_token) %> \
       <% end %> \
-      <% if_p("aws-ssm.pipeline_secret_template") do |pipeline_secret_template| %> \
+      <% if_p("aws_ssm.pipeline_secret_template") do |pipeline_secret_template| %> \
       --aws-ssm-pipeline-secret-template <%= esc(pipeline_secret_template) %> \
       <% end %> \
-      <% if_p("aws-ssm.team_secret_template") do |team_secret_template| %> \
+      <% if_p("aws_ssm.team_secret_template") do |team_secret_template| %> \
       --aws-ssm-team-secret-template <%= esc(team_secret_template) %> \
       <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
