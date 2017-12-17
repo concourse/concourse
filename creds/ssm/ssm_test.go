@@ -167,5 +167,17 @@ var _ = Describe("Ssm", func() {
 			Expect(found).To(BeFalse())
 			Expect(err).NotTo(BeNil())
 		})
+
+		It("should allow empty pipeline name", func() {
+			ssmAccess.PipelineName = ""
+			mockService.stubGetParameter = func(input string) (string, error) {
+				Expect(input).To(Equal("/concourse/alpha/cheery"))
+				return "team power", nil
+			}
+			value, found, err := ssmAccess.Get(varDef)
+			Expect(value).To(BeEquivalentTo("team power"))
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
 	})
 })
