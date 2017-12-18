@@ -93,13 +93,17 @@ var _ = Describe("AWS SSM", func() {
 
 	Describe("A deployment with SSM", func() {
 		BeforeEach(func() {
+			sessionToken := awsCreds.SessionToken
+			if sessionToken == "" {
+				sessionToken = `""`
+			}
 			Deploy(
 				"deployments/concourse.yml",
 				"-o", "operations/configure-ssm.yml",
 				"-v", "aws_region="+awsRegion,
 				"-v", "aws_access_key="+awsCreds.AccessKeyID,
 				"-v", "aws_secret_key="+awsCreds.SecretAccessKey,
-				"-v", "aws_session_token="+awsCreds.SessionToken,
+				"-v", "aws_session_token="+sessionToken,
 			)
 		})
 		Context("with a pipeline build", func() {
