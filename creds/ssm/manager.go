@@ -68,7 +68,7 @@ func (manager SsmManager) Validate() error {
 		return err
 	}
 	// All of the AWS credential variables may be empty since credentials may be obtained via environemnt variables
-	// or other means. However, if one of them is provided, then all of them must be provided.
+	// or other means. However, if one of them is provided, then all of them (except session token) must be provided.
 	if manager.AwsAccessKeyID == "" && manager.AwsSecretAccessKey == "" && manager.AwsSessionToken == "" {
 		return nil
 	}
@@ -79,10 +79,6 @@ func (manager SsmManager) Validate() error {
 
 	if manager.AwsSecretAccessKey == "" {
 		return errors.New("must provide aws secret access key")
-	}
-
-	if manager.AwsSessionToken == "" {
-		return errors.New("must provide aws session token")
 	}
 
 	return nil
