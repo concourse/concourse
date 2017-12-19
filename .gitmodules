@@ -407,4 +407,4 @@
 [submodule "src/github.com/aws/aws-sdk-go"]
 	path = src/github.com/aws/aws-sdk-go
 	url = https://github.com/aws/aws-sdk-go
-	branch = release
+	branch = master
