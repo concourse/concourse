@@ -23,6 +23,7 @@ inputs:
 - name: postgres-release
 - name: git-server-release
 - name: vault-release
+- name: credhub-release
 - name: stemcell
 - name: bosh-cli
 
