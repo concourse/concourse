@@ -404,3 +404,7 @@
 	path = src/github.com/go-openapi/swag
 	url = https://github.com/go-openapi/swag
 	branch = master
+[submodule "src/github.com/aws/aws-sdk-go"]
+	path = src/github.com/aws/aws-sdk-go
+	url = https://github.com/aws/aws-sdk-go
+	branch = release
