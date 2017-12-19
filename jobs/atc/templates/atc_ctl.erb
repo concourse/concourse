@@ -231,12 +231,18 @@ case $1 in
       <% if_p("credhub.tls.ca_cert") do |ca_cert| %> \
       --credhub-ca-cert /var/vcap/jobs/atc/config/credhub_ca_cert \
       <% end %> \
+      <% if_p("credhub.tls.client_cert") do %> \
+      --credhub-client-cert /var/vcap/jobs/atc/config/credhub_client_cert \
+      --credhub-client-key /var/vcap/jobs/atc/config/credhub_client_key \
+      <% end %> \
       <% if p("credhub.tls.insecure_skip_verify") %> \
       --credhub-insecure-skip-verify \
       <% end %> \
-      --credhub-client-id <%= esc p("credhub.client_id") %> \
-      --credhub-client-secret <%= esc p("credhub.client_secret") %> \
-      --credhub-path-prefix <%= esc p("credhub.path_prefix") %> \
+      <% if_p("credhub.tls.client_id", "credhub.tls.client_secret") do |id, secret| %> \
+      --credhub-client-id <%= esc(id) %> \
+      --credhub-client-secret <%= esc(secret) %> \
+      <% end %> \
+      --credhub-path-prefix <%= esc(p("credhub.path_prefix")) %> \
       <% end %> \
       <% if_p("vault.url") do |url| %> \
       --vault-url <%= esc(url) %> \

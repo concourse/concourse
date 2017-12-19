@@ -17,6 +17,8 @@ templates:
   vault_client_cert.erb: config/vault_client_cert
   vault_client_key.erb: config/vault_client_key
   credhub_ca_cert.erb: config/credhub_ca_cert
+  credhub_client_cert.erb: config/credhub_client_cert
+  credhub_client_key.erb: config/credhub_client_key
   token_signing_key.erb: config/token_signing_key
   downgrade_db.erb: bin/experimental_downgrade_db
 
@@ -496,6 +498,10 @@ properties:
     type: certificate
     description: |
       A PEM-encoded CA cert to use to verify the Credhub server SSL cert.
+  credhub.tls.client_cert:
+    type: certificate
+    description: |
+      Client certificate for CredHub mutual TLS auth.
   credhub.tls.insecure_skip_verify:
     description: |
       Enable insecure SSL verification.
@@ -503,11 +509,9 @@ properties:
   credhub.client_id:
     description: |
       Client ID for CredHub authorization.
-    default: ""
   credhub.client_secret:
     description: |
       Client secret for CredHub authorization.
-    default: ""
 
   aws_ssm.region:
     description: |
