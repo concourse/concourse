@@ -36,6 +36,7 @@ import (
 
 var (
 	deploymentName, flyTarget string
+	instances                 map[string][]boshInstance
 	jobInstances              map[string][]boshInstance
 
 	dbInstance *boshInstance
@@ -45,7 +46,7 @@ var (
 	atcExternalURL string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion, postgresReleaseVersion string
-	gitServerReleaseVersion, vaultReleaseVersion                              string
+	gitServerReleaseVersion, vaultReleaseVersion, credhubReleaseVersion       string
 	stemcellVersion                                                           string
 
 	pipelineName string
@@ -122,6 +123,11 @@ var _ = BeforeEach(func() {
 		vaultReleaseVersion = "latest"
 	}
 
+	credhubReleaseVersion = os.Getenv("CREDHUB_RELEASE_VERSION")
+	if credhubReleaseVersion == "" {
+		credhubReleaseVersion = "latest"
+	}
+
 	stemcellVersion = os.Getenv("STEMCELL_VERSION")
 	if stemcellVersion == "" {
 		stemcellVersion = "latest"
@@ -137,6 +143,7 @@ var _ = BeforeEach(func() {
 
 	bosh("delete-deployment")
 
+	instances = map[string][]boshInstance{}
 	jobInstances = map[string][]boshInstance{}
 
 	dbInstance = nil
@@ -169,6 +176,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 			"-v", "garden_runc_release_version='" + gardenRuncReleaseVersion + "'",
 			"-v", "postgres_release_version='" + postgresReleaseVersion + "'",
 			"-v", "vault_release_version='" + vaultReleaseVersion + "'",
+			"-v", "credhub_release_version='" + credhubReleaseVersion + "'",
 			"-v", "git_server_release_version='" + gitServerReleaseVersion + "'",
 			"-v", "stemcell_version='" + stemcellVersion + "'",
 		}, args...)...,
@@ -182,9 +190,13 @@ func Deploy(manifest string, args ...string) {
 		boshLogs = nil
 	}
 
+	if dbConn != nil {
+		Expect(dbConn.Close()).To(Succeed())
+	}
+
 	wait(StartDeploy(manifest, args...))
 
-	jobInstances = loadJobInstances()
+	instances, jobInstances = loadJobInstances()
 
 	atcInstance = JobInstance("atc")
 	if atcInstance != nil {
@@ -209,6 +221,19 @@ func Deploy(manifest string, args ...string) {
 	boshLogs = spawnBosh("logs", "-f")
 }
 
+func Instance(name string) *boshInstance {
+	is := instances[name]
+	if len(is) == 0 {
+		return nil
+	}
+
+	return &is[0]
+}
+
+func Instances(name string) []boshInstance {
+	return instances[name]
+}
+
 func JobInstance(job string) *boshInstance {
 	is := jobInstances[job]
 	if len(is) == 0 {
@@ -218,8 +243,8 @@ func JobInstance(job string) *boshInstance {
 	return &is[0]
 }
 
-func JobInstances(instance string) []boshInstance {
-	return jobInstances[instance]
+func JobInstances(job string) []boshInstance {
+	return jobInstances[job]
 }
 
 type boshInstance struct {
@@ -227,16 +252,17 @@ type boshInstance struct {
 	IP   string
 }
 
-var instanceRow = regexp.MustCompile(`^([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s*$`)
+var instanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s*$`)
 var jobRow = regexp.MustCompile(`^([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s*$`)
 
-func loadJobInstances() map[string][]boshInstance {
+func loadJobInstances() (map[string][]boshInstance, map[string][]boshInstance) {
 	session := spawnBosh("instances", "-p")
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
 
 	output := string(session.Out.Contents())
 
+	instances := map[string][]boshInstance{}
 	jobInstances := map[string][]boshInstance{}
 
 	lines := strings.Split(output, "\n")
@@ -244,10 +270,15 @@ func loadJobInstances() map[string][]boshInstance {
 	for _, line := range lines {
 		instanceMatch := instanceRow.FindStringSubmatch(line)
 		if len(instanceMatch) > 0 {
+			group := instanceMatch[1]
+			id := instanceMatch[2]
+
 			instance = boshInstance{
-				Name: instanceMatch[1],
-				IP:   instanceMatch[3],
+				Name: group + "/" + id,
+				IP:   instanceMatch[4],
 			}
+
+			instances[group] = append(instances[group], instance)
 
 			continue
 		}
@@ -259,7 +290,7 @@ func loadJobInstances() map[string][]boshInstance {
 		}
 	}
 
-	return jobInstances
+	return instances, jobInstances
 }
 
 func bosh(argv ...string) *gexec.Session {

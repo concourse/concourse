@@ -2,14 +2,19 @@ package topgun_test
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var _ = Describe("Credhub", func() {
@@ -31,50 +36,79 @@ var _ = Describe("Credhub", func() {
 		return session
 	}
 
-	credhub := func(args ...string) *gexec.Session {
-		login := exec.Command("credhub", "login",
-			"-u", os.Getenv("CREDHUB_USERNAME"),
-			"-p", os.Getenv("CREDHUB_PASSWORD"),
-			"-s", os.Getenv("CREDHUB_URL"),
-			"--skip-tls-validation",
-		)
-		loginSession, err := gexec.Start(login, GinkgoWriter, GinkgoWriter)
-		Expect(err).ToNot(HaveOccurred())
-		<-loginSession.Exited
-		Expect(loginSession.ExitCode()).To(Equal(0))
-
-		cmd := exec.Command("credhub", args...)
-		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).ToNot(HaveOccurred())
-		<-session.Exited
-		Expect(session.ExitCode()).To(Equal(0))
-		return session
-	}
-
 	BeforeEach(func() {
 		if !strings.Contains(string(bosh("releases").Out.Contents()), "credhub") {
 			Skip("credhub release not uploaded")
 		}
+
 	})
 
 	Describe("A deployment with credhub", func() {
+		var credhubClient *credhub.CredHub
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "operations/credhub.yml",
-				"-v", "credhub_url="+os.Getenv("CREDHUB_URL"),
-				"-v", "credhub_client_id="+os.Getenv("CREDHUB_CLIENT_ID"),
-				"-v", "credhub_client_secret="+os.Getenv("CREDHUB_CLIENT_SECRET"),
+				"-o", "operations/add-empty-credhub.yml",
 			)
+
+			credhubInstance := Instance("credhub")
+			postgresInstance := JobInstance("postgres")
+
+			varsDir, err := ioutil.TempDir("", "vars")
+			Expect(err).ToNot(HaveOccurred())
+
+			defer os.RemoveAll(varsDir)
+
+			varsStore := filepath.Join(varsDir, "vars.yml")
+
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/add-credhub.yml",
+				"--vars-store", varsStore,
+				"-v", "credhub_ip="+credhubInstance.IP,
+				"-v", "postgres_ip="+postgresInstance.IP,
+			)
+
+			varsBytes, err := ioutil.ReadFile(varsStore)
+			Expect(err).ToNot(HaveOccurred())
+
+			var vars struct {
+				CredHubClient struct {
+					CA          string `yaml:"ca"`
+					Certificate string `yaml:"certificate"`
+					PrivateKey  string `yaml:"private_key"`
+				} `yaml:"credhub_client"`
+			}
+
+			err = yaml.Unmarshal(varsBytes, &vars)
+			Expect(err).ToNot(HaveOccurred())
+
+			clientCert := filepath.Join(varsDir, "client.cert")
+			err = ioutil.WriteFile(clientCert, []byte(vars.CredHubClient.Certificate), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			clientKey := filepath.Join(varsDir, "client.key")
+			err = ioutil.WriteFile(clientKey, []byte(vars.CredHubClient.PrivateKey), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			credhubClient, err = credhub.New(
+				"https://"+credhubInstance.IP+":8844",
+				credhub.CaCerts(vars.CredHubClient.CA),
+				credhub.ClientCert(clientCert, clientKey),
+			)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("with a pipeline build", func() {
 			BeforeEach(func() {
-				credhub("set", "--type", "value", "--name", "/concourse/main/pipeline-credhub-test/resource_type_repository", "-v", "concourse/time-resource")
-				credhub("set", "--type", "value", "--name", "/concourse/main/pipeline-credhub-test/time_resource_interval", "-v", "10m")
-				credhub("set", "--type", "user", "--name", "/concourse/main/pipeline-credhub-test/job_secret", "-z", "Hello", "-w", "World")
-				credhub("set", "--type", "value", "--name", "/concourse/main/team_secret", "-v", "Sauce")
-				credhub("set", "--type", "value", "--name", "/concourse/main/pipeline-credhub-test/image_resource_repository", "-v", "busybox")
+				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/resource_type_repository", values.Value("concourse/time-resource"), credhub.Overwrite)
+				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/time_resource_interval", values.Value("10m"), credhub.Overwrite)
+				credhubClient.SetUser("/concourse/main/pipeline-credhub-test/job_secret", values.User{
+					Username: "Hello",
+					Password: "World",
+				}, credhub.Overwrite)
+				credhubClient.SetValue("/concourse/main/team_secret", values.Value("Sauce"), credhub.Overwrite)
+				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/image_resource_repository", values.Value("busybox"), credhub.Overwrite)
 
 				By("setting a pipeline that contains credhub secrets")
 				fly("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "pipeline-credhub-test")
@@ -137,8 +171,8 @@ var _ = Describe("Credhub", func() {
 
 		Context("with a one-off build", func() {
 			BeforeEach(func() {
-				credhub("set", "--type", "value", "--name", "/concourse/main/task_secret", "-v", "Hiii")
-				credhub("set", "--type", "value", "--name", "/concourse/main/image_resource_repository", "-v", "busybox")
+				credhubClient.SetValue("/concourse/main/task_secret", values.Value("Hiii"), credhub.Overwrite)
+				credhubClient.SetValue("/concourse/main/image_resource_repository", values.Value("busybox"), credhub.Overwrite)
 			})
 
 			It("parameterizes image_resource and params in a task config", func() {
