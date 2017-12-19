@@ -41,12 +41,16 @@ var _ = Describe("SsmManager", func() {
 			Expect(manager.Validate()).To(BeNil())
 		})
 
-		It("passes if all aws credentials are specified", func() {
-			manager.AwsAccessKeyID = "access"
-			manager.AwsSecretAccessKey = "secret"
-			manager.AwsSessionToken = "token"
-			Expect(manager.Validate()).To(BeNil())
-		})
+		DescribeTable("passes if all aws credentials are specified",
+			func(accessKey, secretKey, sessionToken string) {
+				manager.AwsAccessKeyID = accessKey
+				manager.AwsSecretAccessKey = secretKey
+				manager.AwsSessionToken = sessionToken
+				Expect(manager.Validate()).To(BeNil())
+			},
+			Entry("all values", "access", "secret", "token"),
+			Entry("access & secret", "access", "secret", ""),
+		)
 
 		DescribeTable("fails on partial AWS credentials",
 			func(accessKey, secretKey, sessionToken string) {
@@ -56,7 +60,6 @@ var _ = Describe("SsmManager", func() {
 				Expect(manager.Validate()).ToNot(BeNil())
 			},
 			Entry("only access", "access", "", ""),
-			Entry("access & secret", "access", "secret", ""),
 			Entry("access & token", "access", "", "token"),
 			Entry("only secret", "", "secret", ""),
 			Entry("secret & token", "", "secret", "token"),
