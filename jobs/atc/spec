@@ -508,3 +508,27 @@ properties:
     description: |
       Client secret for CredHub authorization.
     default: ""
+
+  aws_ssm.region:
+    description: |
+      AWS region to use for fetching SSM parameters.
+  aws_ssm.access_key:
+    description: |
+      AWS Access key ID used as credentials for accessing SSM parameters.
+  aws_ssm.secret_key:
+    description: |
+      AWS Secret Access Key used as credentials for accessing SSM parameters.
+  aws_ssm.session_token:
+    description: |
+      AWS Session Token used as credentials for accessing SSM parameters.
+  aws_ssm.pipeline_secret_template:
+    description: |
+      AWS SSM parameter name template used to resolve pipeline specific secrets. If this flag contains slashes, be sure
+      to start it with a /. Maximum 5 slashes are permitted by AWS in parameter names.
+    default: /concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}
+  aws_ssm.team_secret_template:
+    description: |
+      AWS SSM parameter name template used to resolve team specific secrets. If this flag contains slashes, be sure
+      to start it with a /. Maximum 5 slashes are permitted by AWS in parameter names.
+      names.
+    default: /concourse/{{.Team}}/{{.Secret}}
