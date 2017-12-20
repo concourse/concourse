@@ -203,7 +203,7 @@ func Deploy(manifest string, args ...string) {
 	for _, is := range instances {
 		for _, i := range is {
 			By("waiting for logs from " + i.Name)
-			Eventually(boshLogs.Out.Contents()).Should(ContainSubstring(i.Name))
+			Eventually(boshLogs.Out.Contents).Should(ContainSubstring(i.Name))
 		}
 	}
 
