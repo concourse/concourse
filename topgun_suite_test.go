@@ -198,6 +198,15 @@ func Deploy(manifest string, args ...string) {
 
 	instances, jobInstances = loadJobInstances()
 
+	boshLogs = spawnBosh("logs", "-f")
+
+	for _, is := range instances {
+		for _, i := range is {
+			By("waiting for logs from " + i.Name)
+			Eventually(boshLogs.Out.Contents()).Should(ContainSubstring(i.Name))
+		}
+	}
+
 	atcInstance = JobInstance("atc")
 	if atcInstance != nil {
 		atcExternalURL = fmt.Sprintf("http://%s:8080", atcInstance.IP)
@@ -217,8 +226,6 @@ func Deploy(manifest string, args ...string) {
 		dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
 		Expect(err).ToNot(HaveOccurred())
 	}
-
-	boshLogs = spawnBosh("logs", "-f")
 }
 
 func Instance(name string) *boshInstance {
