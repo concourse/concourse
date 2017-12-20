@@ -119,8 +119,6 @@ var _ = Describe("ContainerProvider", func() {
 			fakeClock,
 			fakeImageFactory,
 			fakeDBVolumeFactory,
-			fakeDBResourceCacheFactory,
-			fakeDBResourceConfigFactory,
 			fakeDBTeamFactory,
 			fakeLockFactory,
 		)
@@ -240,6 +238,11 @@ var _ = Describe("ContainerProvider", func() {
 		})
 	})
 
+	CertsVolumeExists := func() {
+		fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
+		fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
+	}
+
 	ItHandlesContainerInCreatingState := func() {
 		Context("when container exists in garden", func() {
 			BeforeEach(func() {
@@ -263,6 +266,7 @@ var _ = Describe("ContainerProvider", func() {
 			BeforeEach(func() {
 				fakeGardenClient.LookupReturns(nil, garden.ContainerNotFoundError{})
 			})
+			BeforeEach(CertsVolumeExists)
 
 			It("gets image", func() {
 				Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
@@ -341,6 +345,29 @@ var _ = Describe("ContainerProvider", func() {
 	}
 
 	ItHandlesNonExistentContainer := func(createDatabaseCallCountFunc func() int) {
+		Context("when the certs volume does not exist on the worker", func() {
+			BeforeEach(func() {
+				fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
+			})
+			It("creates the container in garden, but does not bind mount any certs", func() {
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+				actualSpec := fakeGardenClient.CreateArgsForCall(0)
+				Expect(actualSpec.BindMounts).ToNot(ContainElement(
+					garden.BindMount{
+						SrcPath: "/the/certs/volume/path",
+						DstPath: "/etc/ssl/certs",
+						Mode:    garden.BindMountModeRO,
+					},
+				))
+			})
+		})
+
+		BeforeEach(func() {
+			fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
+			fakeCertsVolume.PathReturns("/the/certs/volume/path")
+			fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
+		})
+
 		It("gets image", func() {
 			Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
 			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualDelegate, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
@@ -379,6 +406,11 @@ var _ = Describe("ContainerProvider", func() {
 				RootFSPath: "some-image-url",
 				Properties: garden.Properties{"user": "some-user"},
 				BindMounts: []garden.BindMount{
+					{
+						SrcPath: "/the/certs/volume/path",
+						DstPath: "/etc/ssl/certs",
+						Mode:    garden.BindMountModeRO,
+					},
 					{
 						SrcPath: "/fake/scratch/volume",
 						DstPath: "/scratch",
@@ -485,6 +517,11 @@ var _ = Describe("ContainerProvider", func() {
 
 				actualSpec := fakeGardenClient.CreateArgsForCall(0)
 				Expect(actualSpec.BindMounts).To(Equal([]garden.BindMount{
+					{
+						SrcPath: "/the/certs/volume/path",
+						DstPath: "/etc/ssl/certs",
+						Mode:    garden.BindMountModeRO,
+					},
 					{
 						SrcPath: "/fake/scratch/volume",
 						DstPath: "/scratch",

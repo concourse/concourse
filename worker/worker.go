@@ -33,7 +33,7 @@ func (err MalformedMetadataError) Error() string {
 	return fmt.Sprintf("malformed image metadata: %s", err.UnmarshalError)
 }
 
-const certsVolumeName = "resource-certs"
+const certsVolumeName = "certificates"
 
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
@@ -168,7 +168,8 @@ func (worker *gardenWorker) EnsureCertsVolumeExists(logger lager.Logger) error {
 
 	_, err = baggageclaimClient.CreateVolume(logger, certsVolumeName, baggageclaim.VolumeSpec{
 		Strategy: baggageclaim.ImportStrategy{
-			Path: "/etc/ssl/certs",
+			Path:           "/etc/ssl/certs",
+			FollowSymlinks: true,
 		},
 	})
 

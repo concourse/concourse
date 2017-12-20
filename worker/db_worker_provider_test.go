@@ -80,6 +80,10 @@ var _ = Describe("DBProvider", func() {
 			http.StatusOK,
 			baggageclaim.VolumeResponse{Handle: "vol-handle"},
 		))
+		baggageclaimServer.RouteToHandler("GET", "/volumes/certificates", ghttp.RespondWithJSONEncoded(
+			http.StatusOK,
+			baggageclaim.VolumeResponse{Handle: "certificates", Path: "/resource/certs"},
+		))
 
 		gardenAddr = fmt.Sprintf("0.0.0.0:%d", 8888+GinkgoParallelNode())
 		fakeGardenBackend = new(gfakes.FakeBackend)

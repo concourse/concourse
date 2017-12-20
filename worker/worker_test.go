@@ -176,7 +176,7 @@ var _ = Describe("Worker", func() {
 
 	Describe("EnsureCertsVolumeExists", func() {
 		var ensureErr error
-		var expectedCertsVolumeName = "resource-certs"
+		var expectedCertsVolumeName = "certificates"
 		JustBeforeEach(func() {
 			ensureErr = gardenWorker.EnsureCertsVolumeExists(logger)
 		})
@@ -209,7 +209,10 @@ var _ = Describe("Worker", func() {
 
 		Context("when the volume does not exist", func() {
 			It("uses certs directory from the host", func() {
-				expectedStrategy := baggageclaim.ImportStrategy{Path: "/etc/ssl/certs"}
+				expectedStrategy := baggageclaim.ImportStrategy{
+					Path:           "/etc/ssl/certs",
+					FollowSymlinks: true,
+				}
 				By("creating the volume")
 				Expect(fakeBaggageClaimClient.CreateVolumeCallCount()).To(Equal(1))
 				_, certsVolumeName, volumeSpec := fakeBaggageClaimClient.CreateVolumeArgsForCall(0)
