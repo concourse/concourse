@@ -140,7 +140,7 @@ func (p *pipeline) checkIfResourceIntervalUpdated(
 
 	condition := ""
 	if !immediate {
-		condition = "AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
+		condition = "AND (now() - last_checked > ($3 || ' SECONDS')::INTERVAL OR last_checked IS NULL)"
 		params = append(params, interval.Seconds())
 	}
 

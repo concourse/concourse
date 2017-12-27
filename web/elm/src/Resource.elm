@@ -747,13 +747,10 @@ viewBuilds buildDict =
     List.concatMap (viewBuildsByJob buildDict) <| Dict.keys buildDict
 
 
-viewLastChecked : Maybe Time -> Date -> Html a
+viewLastChecked : Maybe Time -> Maybe Date -> Html a
 viewLastChecked now date =
-    case now of
-        Nothing ->
-            Html.text ""
-
-        Just now ->
+    case ( now, date ) of
+        ( Just now, Just date ) ->
             let
                 ago =
                     Duration.between (Date.toTime date) now
@@ -763,6 +760,9 @@ viewLastChecked now date =
                     , Html.td [ title (Date.Format.format "%b %d %Y %I:%M:%S %p" date), class "dict-value" ]
                         [ Html.span [] [ Html.text (Duration.format ago ++ " ago") ] ]
                     ]
+
+        ( _, _ ) ->
+            Html.text ""
 
 
 viewBuildsByJob : Dict.Dict String (List Concourse.Build) -> String -> List (Html Msg)

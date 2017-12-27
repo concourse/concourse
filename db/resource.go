@@ -9,6 +9,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . Resource
@@ -168,12 +169,15 @@ func scanResource(r *resource, row scannable) error {
 	var (
 		configBlob      []byte
 		checkErr, nonce sql.NullString
+		lastChecked     pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &r.lastChecked, &r.pipelineID, &r.pipelineName, &nonce)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &lastChecked, &r.pipelineID, &r.pipelineName, &nonce)
 	if err != nil {
 		return err
 	}
+
+	r.lastChecked = lastChecked.Time
 
 	es := r.conn.EncryptionStrategy()
 
