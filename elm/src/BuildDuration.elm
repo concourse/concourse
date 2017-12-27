@@ -24,13 +24,12 @@ view duration now =
 
             ( Just startedAt, Just finishedAt ) ->
                 let
-                    durationElmIssue =
-                        -- https://github.com/elm-lang/elm-compiler/issues/1223
+                    duration =
                         Duration.between (Date.toTime startedAt) (Date.toTime finishedAt)
                 in
                     [ labeledRelativeDate "started" now startedAt
                     , labeledRelativeDate "finished" now finishedAt
-                    , labeledDuration "duration" durationElmIssue
+                    , labeledDuration "duration" duration
                     ]
 
 
