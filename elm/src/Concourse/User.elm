@@ -8,7 +8,7 @@ import Concourse
 
 fetchUser : Task Http.Error Concourse.User
 fetchUser =
-    HttpBuilder.get "/api/v1/user"
+    HttpBuilder.get "/auth/userinfo"
         |> HttpBuilder.withExpect (Http.expectJson Concourse.decodeUser)
         |> HttpBuilder.toTask
 

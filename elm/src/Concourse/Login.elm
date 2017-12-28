@@ -12,7 +12,7 @@ noAuth teamName =
     Http.toTask <|
         Http.request
             { method = "GET"
-            , url = "/api/v1/teams/" ++ teamName ++ "/auth/token"
+            , url = "/auth/basic/token?team_name=" ++ teamName
             , headers = []
             , body = Http.emptyBody
             , expect = Http.expectStringResponse parseResponse
@@ -38,7 +38,7 @@ basicAuth teamName username password =
     Http.toTask <|
         Http.request
             { method = "GET"
-            , url = "/api/v1/teams/" ++ teamName ++ "/auth/token"
+            , url = "/auth/basic/token?team_name=" ++ teamName
             , headers = [ encodedAuthHeader username password ]
             , body = Http.emptyBody
             , expect = Http.expectStringResponse parseResponse

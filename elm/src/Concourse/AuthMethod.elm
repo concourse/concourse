@@ -11,6 +11,5 @@ fetchAll teamName =
     Http.toTask
         << flip Http.get (Json.Decode.list Concourse.decodeAuthMethod)
     <|
-        "/api/v1/teams/"
+        "/auth/list_methods?team_name="
             ++ teamName
-            ++ "/auth/methods"
