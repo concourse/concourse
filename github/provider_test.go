@@ -22,7 +22,7 @@ var _ = Describe("GitHub Provider", func() {
 			Expect(authMethod).To(Equal(provider.AuthMethod{
 				Type:        provider.AuthTypeOAuth,
 				DisplayName: "GitHub",
-				AuthURL:     "http://bum-bum-bum.com/oauth/github?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/auth/github?team_name=dudududum",
 			}))
 		})
 	})

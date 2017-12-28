@@ -22,7 +22,7 @@ var _ = Describe("Bitbucket Provider", func() {
 			Expect(authMethod).To(Equal(provider.AuthMethod{
 				Type:        provider.AuthTypeOAuth,
 				DisplayName: "Bitbucket Cloud",
-				AuthURL:     "http://bum-bum-bum.com/oauth/bitbucket-cloud?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/auth/bitbucket-cloud?team_name=dudududum",
 			}))
 		})
 	})

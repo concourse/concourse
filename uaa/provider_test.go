@@ -148,7 +148,7 @@ K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
 			Expect(authMethod).To(Equal(provider.AuthMethod{
 				Type:        provider.AuthTypeOAuth,
 				DisplayName: "UAA",
-				AuthURL:     "http://bum-bum-bum.com/oauth/uaa?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/auth/uaa?team_name=dudududum",
 			}))
 		})
 	})

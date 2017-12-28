@@ -115,7 +115,7 @@ var _ = Describe("Generic OAuth Provider", func() {
 			Expect(authMethod).To(Equal(provider.AuthMethod{
 				Type:        provider.AuthTypeOAuth,
 				DisplayName: "duck-song",
-				AuthURL:     "http://bum-bum-bum.com/oauth/oauth?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/auth/oauth?team_name=dudududum",
 			}))
 		})
 	})

@@ -2,12 +2,13 @@ package server
 
 import (
 	"encoding/json"
+	"strings"
+
 	"github.com/concourse/skymarshal/bitbucket"
 	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/skymarshal/verifier"
 	"github.com/dghubble/oauth1"
 	"github.com/jessevdk/go-flags"
-	"strings"
 )
 
 const ProviderName = "bitbucket-server"

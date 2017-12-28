@@ -26,7 +26,7 @@ var _ = Describe("GitLab Provider", func() {
 			Expect(authMethod).To(Equal(provider.AuthMethod{
 				Type:        provider.AuthTypeOAuth,
 				DisplayName: "GitLab",
-				AuthURL:     "http://bum-bum-bum.com/oauth/gitlab?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/auth/gitlab?team_name=dudududum",
 			}))
 		})
 	})

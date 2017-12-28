@@ -78,7 +78,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 		fakeProviderFactory.GetProviderReturns(fakeProvider, true, nil)
 	})
 
-	Describe("GET /oauth/:provider/teams/:team_name", func() {
+	Describe("GET /auth/:provider/teams/:team_name", func() {
 		var redirectTarget *ghttp.Server
 		var request *http.Request
 		var response *http.Response
@@ -114,7 +114,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 			Context("to a known provider", func() {
 				BeforeEach(func() {
-					request.URL.Path = "/oauth/provider-name"
+					request.URL.Path = "/auth/provider-name"
 					fakeProvider.AuthCodeURLReturns(redirectTarget.URL(), nil)
 				})
 
@@ -155,7 +155,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 			Context("to an unknown provider", func() {
 				BeforeEach(func() {
-					request.URL.Path = "/oauth/bogus"
+					request.URL.Path = "/auth/bogus"
 				})
 
 				It("returns 404 not found", func() {
@@ -166,7 +166,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		Context("when the team doesn't exist", func() {
 			BeforeEach(func() {
-				request.URL.Path = "/oauth/b"
+				request.URL.Path = "/auth/b"
 
 				fakeTeamFactory.FindTeamReturns(fakeTeam, false, nil)
 			})
@@ -179,7 +179,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 		Context("when looking up the team fails", func() {
 			var disaster error
 			BeforeEach(func() {
-				request.URL.Path = "/oauth/b"
+				request.URL.Path = "/auth/b"
 
 				disaster = errors.New("out of service")
 				fakeTeamFactory.FindTeamReturns(fakeTeam, false, disaster)

@@ -106,7 +106,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		mux := http.NewServeMux()
-		mux.Handle("/oauth/", handler)
+		mux.Handle("/auth/", handler)
 		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			redirectRequest = r
 			fmt.Fprintln(w, "main page")
@@ -123,7 +123,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		}
 	})
 
-	Describe("GET /oauth/:provider/callback", func() {
+	Describe("GET /auth/:provider/callback", func() {
 		var redirectTarget *ghttp.Server
 		var request *http.Request
 		var response *http.Response
@@ -147,7 +147,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		Context("to a known provider", func() {
 			BeforeEach(func() {
-				request.URL.Path = "/oauth/some-provider/callback"
+				request.URL.Path = "/auth/some-provider/callback"
 			})
 
 			Context("when the request's state is valid", func() {
@@ -520,7 +520,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		Context("to an unknown provider", func() {
 			BeforeEach(func() {
-				request.URL.Path = "/oauth/bogus/callback"
+				request.URL.Path = "/auth/bogus/callback"
 			})
 
 			Context("when the request's state is valid", func() {

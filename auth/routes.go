@@ -11,9 +11,9 @@ const (
 )
 
 var Routes = rata.Routes{
-	{Path: "/oauth/logout", Method: "GET", Name: LogOut},
-	{Path: "/oauth/:provider/callback", Method: "GET", Name: OAuthCallback},
-	{Path: "/oauth/:provider", Method: "GET", Name: OAuthBegin},
+	{Path: "/auth/logout", Method: "GET", Name: LogOut},
+	{Path: "/auth/:provider/callback", Method: "GET", Name: OAuthCallback},
+	{Path: "/auth/:provider", Method: "GET", Name: OAuthBegin},
 }
 
 var V1Routes = rata.Routes{

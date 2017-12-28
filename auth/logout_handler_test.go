@@ -15,7 +15,7 @@ import (
 )
 
 var _ = Describe("LogOutHandler", func() {
-	Describe("GET /oauth/logout", func() {
+	Describe("GET /auth/logout", func() {
 		var (
 			fakeProviderFactory    *authfakes.FakeProviderFactory
 			fakeCSRFTokenGenerator *authfakes.FakeCSRFTokenGenerator
@@ -48,7 +48,7 @@ var _ = Describe("LogOutHandler", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			mux := http.NewServeMux()
-			mux.Handle("/oauth/", handler)
+			mux.Handle("/auth/", handler)
 
 			server = httptest.NewServer(mux)
 
@@ -56,7 +56,7 @@ var _ = Describe("LogOutHandler", func() {
 				Transport: &http.Transport{},
 			}
 
-			request, err = http.NewRequest("GET", server.URL+"/oauth/logout", nil)
+			request, err = http.NewRequest("GET", server.URL+"/auth/logout", nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

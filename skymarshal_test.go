@@ -16,7 +16,7 @@ import (
 )
 
 var _ = Describe("Auth API", func() {
-	Describe("GET /oauth/basic/token?team_name=some-team", func() {
+	Describe("GET /auth/basic/token?team_name=some-team", func() {
 		var (
 			request  *http.Request
 			response *http.Response
@@ -32,7 +32,7 @@ var _ = Describe("Auth API", func() {
 			dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 
 			var err error
-			request, err = http.NewRequest("GET", server.URL+"/oauth/basic/token?team_name=some-team", nil)
+			request, err = http.NewRequest("GET", server.URL+"/auth/basic/token?team_name=some-team", nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -121,7 +121,7 @@ var _ = Describe("Auth API", func() {
 		})
 	})
 
-	Describe("GET /oauth/list_methods?team_name=some-team", func() {
+	Describe("GET /auth/list_methods?team_name=some-team", func() {
 		Context("when providers are present", func() {
 			var (
 				request  *http.Request
@@ -159,7 +159,7 @@ var _ = Describe("Auth API", func() {
 				})
 
 				var err error
-				request, err = http.NewRequest("GET", server.URL+"/oauth/list_methods?team_name=some-team", nil)
+				request, err = http.NewRequest("GET", server.URL+"/auth/list_methods?team_name=some-team", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -215,7 +215,7 @@ var _ = Describe("Auth API", func() {
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 
 				var err error
-				request, err = http.NewRequest("GET", server.URL+"/oauth/list_methods?team_name=some-team", nil)
+				request, err = http.NewRequest("GET", server.URL+"/auth/list_methods?team_name=some-team", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -251,7 +251,7 @@ var _ = Describe("Auth API", func() {
 				dbTeamFactory.FindTeamReturns(fakeTeam, false, nil)
 
 				var err error
-				request, err = http.NewRequest("GET", server.URL+"/oauth/list_methods?team_name=some-team", nil)
+				request, err = http.NewRequest("GET", server.URL+"/auth/list_methods?team_name=some-team", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -274,7 +274,7 @@ var _ = Describe("Auth API", func() {
 		})
 	})
 
-	Describe("GET /oauth/userinfo", func() {
+	Describe("GET /auth/userinfo", func() {
 		var (
 			request  *http.Request
 			response *http.Response
@@ -289,7 +289,7 @@ var _ = Describe("Auth API", func() {
 			fakeTeam.NameReturns("some-team")
 			fakeTeam.AdminReturns(true)
 
-			request, err = http.NewRequest("GET", server.URL+"/oauth/userinfo", nil)
+			request, err = http.NewRequest("GET", server.URL+"/auth/userinfo", nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

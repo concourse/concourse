@@ -116,10 +116,10 @@ func NewHandlerWithOptions(config *DetailedConfig) (http.Handler, error) {
 	)
 
 	webMux := http.NewServeMux()
-	webMux.Handle("/oauth/list_methods", http.HandlerFunc(authServer.ListAuthMethods))
-	webMux.Handle("/oauth/basic/token", http.HandlerFunc(authServer.GetAuthToken))
-	webMux.Handle("/oauth/userinfo", http.HandlerFunc(authServer.GetUser))
+	webMux.Handle("/auth/list_methods", http.HandlerFunc(authServer.ListAuthMethods))
+	webMux.Handle("/auth/basic/token", http.HandlerFunc(authServer.GetAuthToken))
+	webMux.Handle("/auth/userinfo", http.HandlerFunc(authServer.GetUser))
+	webMux.Handle("/auth/", oauthHandler)
 	webMux.Handle("/oauth/v1/", oauthV1Handler)
-	webMux.Handle("/oauth/", oauthHandler)
 	return webMux, nil
 }
