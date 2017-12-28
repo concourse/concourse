@@ -9,8 +9,8 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/provider/providerfakes"
+	"github.com/concourse/skymarshal/provider"
+	"github.com/concourse/skymarshal/provider/providerfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"

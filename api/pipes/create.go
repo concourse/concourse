@@ -9,7 +9,7 @@ import (
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
 )
 
 func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {

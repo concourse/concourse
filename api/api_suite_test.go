@@ -14,15 +14,15 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 
+	"github.com/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/atc/api/containerserver/containerserverfakes"
 	"github.com/concourse/atc/api/jobserver/jobserverfakes"
 	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
-	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/atc/wrappa"
@@ -35,11 +35,7 @@ var (
 	oAuthBaseURL = "https://oauth.example.com"
 
 	jwtValidator            *authfakes.FakeValidator
-	getTokenValidator       *authfakes.FakeValidator
 	userContextReader       *authfakes.FakeUserContextReader
-	fakeAuthTokenGenerator  *authfakes.FakeAuthTokenGenerator
-	fakeCSRFTokenGenerator  *authfakes.FakeCSRFTokenGenerator
-	providerFactory         *authfakes.FakeProviderFactory
 	fakeEngine              *enginefakes.FakeEngine
 	fakeWorkerClient        *workerfakes.FakeClient
 	fakeWorkerProvider      *workerfakes.FakeWorkerProvider
@@ -112,12 +108,7 @@ var _ = BeforeEach(func() {
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
 
 	jwtValidator = new(authfakes.FakeValidator)
-	getTokenValidator = new(authfakes.FakeValidator)
-
 	userContextReader = new(authfakes.FakeUserContextReader)
-	fakeAuthTokenGenerator = new(authfakes.FakeAuthTokenGenerator)
-	fakeCSRFTokenGenerator = new(authfakes.FakeCSRFTokenGenerator)
-	providerFactory = new(authfakes.FakeProviderFactory)
 
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
@@ -166,7 +157,6 @@ var _ = BeforeEach(func() {
 
 		wrappa.NewAPIAuthWrappa(
 			jwtValidator,
-			getTokenValidator,
 			userContextReader,
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
@@ -174,9 +164,6 @@ var _ = BeforeEach(func() {
 			checkWorkerTeamAccessHandlerFactory,
 		),
 
-		fakeAuthTokenGenerator,
-		fakeCSRFTokenGenerator,
-		providerFactory,
 		oAuthBaseURL,
 
 		dbTeamFactory,

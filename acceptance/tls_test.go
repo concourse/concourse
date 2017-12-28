@@ -13,8 +13,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/agouti"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/skymarshal/provider"
 	"github.com/lib/pq"
 )
 
@@ -55,7 +55,7 @@ var _ = Describe("TLS", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		defer resp.Body.Close()
-		var atcToken atc.AuthToken
+		var atcToken provider.AuthToken
 		body, err := ioutil.ReadAll(resp.Body)
 		Expect(err).NotTo(HaveOccurred())
 

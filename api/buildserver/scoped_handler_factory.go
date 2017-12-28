@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/db"
 )
 

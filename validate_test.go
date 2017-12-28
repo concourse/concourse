@@ -13,8 +13,7 @@ var _ = Describe("ValidateConfig", func() {
 	var (
 		config Config
 
-		errorMessages  []string
-		configWarnings []Warning
+		errorMessages []string
 	)
 
 	BeforeEach(func() {
@@ -85,7 +84,7 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		configWarnings, errorMessages = config.Validate()
+		_, errorMessages = config.Validate()
 	})
 
 	Context("when the config is valid", func() {

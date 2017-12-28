@@ -2,13 +2,12 @@ package wrappa
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
 	"github.com/tedsuo/rata"
 )
 
 type APIAuthWrappa struct {
 	authValidator                       auth.Validator
-	getTokenValidator                   auth.Validator
 	userContextReader                   auth.UserContextReader
 	checkPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
 	checkBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
@@ -18,7 +17,6 @@ type APIAuthWrappa struct {
 
 func NewAPIAuthWrappa(
 	authValidator auth.Validator,
-	getTokenValidator auth.Validator,
 	userContextReader auth.UserContextReader,
 	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory,
 	checkBuildReadAccessHandlerFactory auth.CheckBuildReadAccessHandlerFactory,
@@ -27,7 +25,6 @@ func NewAPIAuthWrappa(
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
 		authValidator:                       authValidator,
-		getTokenValidator:                   getTokenValidator,
 		userContextReader:                   userContextReader,
 		checkPipelineAccessHandlerFactory:   checkPipelineAccessHandlerFactory,
 		checkBuildReadAccessHandlerFactory:  checkBuildReadAccessHandlerFactory,
@@ -48,7 +45,6 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		// unauthenticated / delegating to handler
 		case atc.DownloadCLI,
 			atc.CheckResourceWebHook,
-			atc.ListAuthMethods,
 			atc.GetInfo,
 			atc.ListTeams,
 			atc.ListAllPipelines,
@@ -95,8 +91,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			newHandler = wrappa.checkPipelineAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		// authenticated
-		case atc.GetAuthToken,
-			atc.CreateBuild,
+		case atc.CreateBuild,
 			atc.CreatePipe,
 			atc.GetContainer,
 			atc.HijackContainer,
@@ -110,8 +105,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.RenameTeam,
 			atc.DestroyTeam,
 			atc.WritePipe,
-			atc.ListVolumes,
-			atc.GetUser:
+			atc.ListVolumes:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 
 		case atc.GetLogLevel,
@@ -146,11 +140,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			panic("you missed a spot")
 		}
 
-		if name == atc.GetAuthToken {
-			newHandler = auth.WrapHandler(newHandler, wrappa.getTokenValidator, wrappa.userContextReader)
-		} else {
-			newHandler = auth.WrapHandler(newHandler, wrappa.authValidator, wrappa.userContextReader)
-		}
+		newHandler = auth.WrapHandler(newHandler, wrappa.authValidator, wrappa.userContextReader)
 		wrapped[name] = auth.CSRFValidationHandler(newHandler, rejector, wrappa.userContextReader)
 	}
 

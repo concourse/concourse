@@ -19,9 +19,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/containerserver"
-	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/creds/noop"
@@ -45,6 +45,7 @@ import (
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/wrappa"
 	"github.com/concourse/retryhttp"
+	"github.com/concourse/skymarshal"
 	"github.com/cppforlife/go-semi-semantic/version"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
@@ -55,16 +56,15 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/xoebus/zest"
 
-	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/routes"
+	"github.com/concourse/skymarshal/provider"
 
 	// dynamically registered auth providers
-	_ "github.com/concourse/atc/auth/bitbucket/cloud"
-	_ "github.com/concourse/atc/auth/bitbucket/server"
-	_ "github.com/concourse/atc/auth/genericoauth"
-	_ "github.com/concourse/atc/auth/github"
-	_ "github.com/concourse/atc/auth/gitlab"
-	_ "github.com/concourse/atc/auth/uaa"
+	_ "github.com/concourse/skymarshal/bitbucket/cloud"
+	_ "github.com/concourse/skymarshal/bitbucket/server"
+	_ "github.com/concourse/skymarshal/genericoauth"
+	_ "github.com/concourse/skymarshal/github"
+	_ "github.com/concourse/skymarshal/gitlab"
+	_ "github.com/concourse/skymarshal/uaa"
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/atc/metric/emitter"
@@ -455,26 +455,6 @@ func (cmd *ATCCommand) constructMembers(
 		return nil, err
 	}
 
-	providerFactoryV2 := auth.NewOAuthFactory(
-		logger.Session("oauth-provider-factory"),
-		cmd.oauthBaseURL(),
-		routes.OAuthRoutes,
-		routes.OAuthCallback,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	providerFactoryV1 := auth.NewOAuthFactory(
-		logger.Session("oauth-v1-provider-factory"),
-		cmd.oauthBaseURL(),
-		routes.OAuthV1Routes,
-		routes.OAuthV1Callback,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	drain := make(chan struct{})
 
 	apiHandler, err := cmd.constructAPIHandler(
@@ -486,7 +466,6 @@ func (cmd *ATCCommand) constructMembers(
 		dbVolumeFactory,
 		dbContainerRepository,
 		dbBuildFactory,
-		providerFactoryV2,
 		signingKey,
 		engine,
 		workerClient,
@@ -501,26 +480,17 @@ func (cmd *ATCCommand) constructMembers(
 		return nil, err
 	}
 
-	oauthV2Handler, err := auth.NewOAuthHandler(
-		logger,
-		providerFactoryV2,
-		teamFactory,
-		signingKey,
-		cmd.AuthDuration,
-		cmd.isTLSEnabled(),
-	)
-	if err != nil {
-		return nil, err
+	config := &skymarshal.Config{
+		BaseUrl:      cmd.ExternalURL.String(),
+		BaseAuthUrl:  cmd.oauthBaseURL(),
+		SigningKey:   signingKey,
+		Expiration:   cmd.AuthDuration,
+		IsTLSEnabled: cmd.isTLSEnabled(),
+		TeamFactory:  teamFactory,
+		Logger:       logger,
 	}
 
-	oauthV1Handler, err := auth.NewOAuthV1Handler(
-		logger,
-		providerFactoryV1,
-		teamFactory,
-		signingKey,
-		cmd.AuthDuration,
-		cmd.isTLSEnabled(),
-	)
+	authHandler, err := skymarshal.NewHandler(config)
 	if err != nil {
 		return nil, err
 	}
@@ -529,6 +499,7 @@ func (cmd *ATCCommand) constructMembers(
 	if err != nil {
 		return nil, err
 	}
+
 	webHandler = metric.WrapHandler(logger, "web", webHandler)
 
 	publicHandler, err := publichandler.NewHandler()
@@ -560,11 +531,7 @@ func (cmd *ATCCommand) constructMembers(
 
 			tlsRedirectHandler{
 				externalHost: cmd.ExternalURL.URL().Host,
-				baseHandler:  oauthV2Handler,
-			},
-			tlsRedirectHandler{
-				externalHost: cmd.ExternalURL.URL().Host,
-				baseHandler:  oauthV1Handler,
+				baseHandler:  authHandler,
 			},
 		)
 
@@ -573,8 +540,7 @@ func (cmd *ATCCommand) constructMembers(
 			webHandler,
 			publicHandler,
 			apiHandler,
-			oauthV2Handler,
-			oauthV1Handler,
+			authHandler,
 		)
 	} else {
 		httpHandler = cmd.constructHTTPHandler(
@@ -582,8 +548,7 @@ func (cmd *ATCCommand) constructMembers(
 			webHandler,
 			publicHandler,
 			apiHandler,
-			oauthV2Handler,
-			oauthV1Handler,
+			authHandler,
 		)
 	}
 
@@ -1103,13 +1068,12 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webHandler http.Handler,
 	publicHandler http.Handler,
 	apiHandler http.Handler,
-	oauthV2Handler http.Handler,
-	oauthV1Handler http.Handler,
+	authHandler http.Handler,
 ) http.Handler {
 	webMux := http.NewServeMux()
 	webMux.Handle("/api/v1/", apiHandler)
-	webMux.Handle("/auth/", oauthV2Handler)
-	webMux.Handle("/oauth/v1/", oauthV1Handler)
+	webMux.Handle("/oauth/", authHandler)
+	webMux.Handle("/auth/", authHandler)
 	webMux.Handle("/public/", publicHandler)
 	webMux.Handle("/manifest.json", manifest.NewHandler())
 	webMux.Handle("/robots.txt", robotstxt.Handler{})
@@ -1141,7 +1105,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 	dbVolumeFactory db.VolumeFactory,
 	dbContainerRepository db.ContainerRepository,
 	dbBuildFactory db.BuildFactory,
-	providerFactory auth.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	engine engine.Engine,
 	workerClient worker.Client,
@@ -1151,27 +1114,16 @@ func (cmd *ATCCommand) constructAPIHandler(
 	radarScannerFactory radar.ScannerFactory,
 	variablesFactory creds.VariablesFactory,
 ) (http.Handler, error) {
-	authValidator := auth.JWTValidator{
-		PublicKey: &signingKey.PublicKey,
-	}
 
-	getTokenValidator := auth.NewGetTokenValidator(teamFactory)
-
-	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(
-		teamFactory,
-	)
-
+	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
 	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(dbBuildFactory)
-
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
-
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
-			authValidator,
-			getTokenValidator,
+			auth.JWTValidator{PublicKey: &signingKey.PublicKey},
 			auth.JWTReader{PublicKey: &signingKey.PublicKey},
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
@@ -1186,9 +1138,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.ExternalURL.String(),
 		apiWrapper,
 
-		auth.NewAuthTokenGenerator(signingKey),
-		auth.NewCSRFTokenGenerator(),
-		providerFactory,
 		cmd.oauthBaseURL(),
 
 		teamFactory,

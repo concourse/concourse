@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/api/pipelineserver"
-	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 

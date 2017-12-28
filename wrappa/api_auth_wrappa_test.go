@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/authfakes"
+	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
@@ -17,7 +17,6 @@ import (
 var _ = Describe("APIAuthWrappa", func() {
 	var (
 		fakeAuthValidator                       auth.Validator
-		fakeGetTokenValidator                   auth.Validator
 		rejector                                auth.Rejector
 		fakeUserContextReader                   *authfakes.FakeUserContextReader
 		fakeCheckPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
@@ -29,7 +28,6 @@ var _ = Describe("APIAuthWrappa", func() {
 
 	BeforeEach(func() {
 		fakeAuthValidator = new(authfakes.FakeValidator)
-		fakeGetTokenValidator = new(authfakes.FakeValidator)
 		fakeUserContextReader = new(authfakes.FakeUserContextReader)
 		fakeTeamFactory := new(dbfakes.FakeTeamFactory)
 		workerFactory := new(dbfakes.FakeWorkerFactory)
@@ -79,21 +77,6 @@ var _ = Describe("APIAuthWrappa", func() {
 					rejector,
 				),
 				fakeAuthValidator,
-				fakeUserContextReader,
-			),
-			rejector,
-			fakeUserContextReader,
-		)
-	}
-
-	authenticatedWithGetTokenValidator := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			auth.WrapHandler(
-				auth.CheckAuthenticationHandler(
-					handler,
-					rejector,
-				),
-				fakeGetTokenValidator,
 				fakeUserContextReader,
 			),
 			rejector,
@@ -211,7 +194,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.GetInfo:              unauthenticated(inputHandlers[atc.GetInfo]),
 				atc.DownloadCLI:          unauthenticated(inputHandlers[atc.DownloadCLI]),
 				atc.CheckResourceWebHook: unauthenticated(inputHandlers[atc.CheckResourceWebHook]),
-				atc.ListAuthMethods:      unauthenticated(inputHandlers[atc.ListAuthMethods]),
 				atc.ListAllPipelines:     unauthenticated(inputHandlers[atc.ListAllPipelines]),
 				atc.ListBuilds:           unauthenticated(inputHandlers[atc.ListBuilds]),
 				atc.ListPipelines:        unauthenticated(inputHandlers[atc.ListPipelines]),
@@ -254,7 +236,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				// authenticated
 				atc.CreateBuild:     authenticated(inputHandlers[atc.CreateBuild]),
 				atc.CreatePipe:      authenticated(inputHandlers[atc.CreatePipe]),
-				atc.GetAuthToken:    authenticatedWithGetTokenValidator(inputHandlers[atc.GetAuthToken]),
 				atc.GetContainer:    authenticated(inputHandlers[atc.GetContainer]),
 				atc.HijackContainer: authenticated(inputHandlers[atc.HijackContainer]),
 				atc.ListContainers:  authenticated(inputHandlers[atc.ListContainers]),
@@ -269,7 +250,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.RenameTeam:  authenticated(inputHandlers[atc.RenameTeam]),
 				atc.DestroyTeam: authenticated(inputHandlers[atc.DestroyTeam]),
 				atc.WritePipe:   authenticated(inputHandlers[atc.WritePipe]),
-				atc.GetUser:     authenticated(inputHandlers[atc.GetUser]),
 
 				// authenticated and is admin
 				atc.GetLogLevel: authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),
@@ -302,7 +282,6 @@ var _ = Describe("APIAuthWrappa", func() {
 		JustBeforeEach(func() {
 			wrappedHandlers = wrappa.NewAPIAuthWrappa(
 				fakeAuthValidator,
-				fakeGetTokenValidator,
 				fakeUserContextReader,
 				fakeCheckPipelineAccessHandlerFactory,
 				fakeCheckBuildReadAccessHandlerFactory,

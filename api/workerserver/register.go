@@ -11,7 +11,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 )

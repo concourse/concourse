@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/skymarshal/provider"
 )
 
 var _ = Describe("Multiple ATCs", func() {
@@ -49,7 +50,7 @@ var _ = Describe("Multiple ATCs", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 			defer resp.Body.Close()
-			var atcToken atc.AuthToken
+			var atcToken provider.AuthToken
 			body, err := ioutil.ReadAll(resp.Body)
 			Expect(err).NotTo(HaveOccurred())
 

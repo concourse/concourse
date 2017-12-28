@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
 )
 
 // RenameTeam allows an authenticated user with authority or admin to rename a team

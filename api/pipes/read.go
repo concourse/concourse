@@ -7,7 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
 )
 
 func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {

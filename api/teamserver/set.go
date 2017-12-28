@@ -8,10 +8,10 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/skymarshal/provider"
 )
 
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {

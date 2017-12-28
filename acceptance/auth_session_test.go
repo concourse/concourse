@@ -6,7 +6,8 @@ import (
 	"github.com/sclevine/agouti"
 	. "github.com/sclevine/agouti/matchers"
 
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/skymarshal/provider"
 
 	"encoding/json"
 	"io/ioutil"
@@ -127,7 +128,7 @@ var _ = Describe("Auth Session", func() {
 	})
 
 	Context("when request has authorization token in header", func() {
-		var atcToken atc.AuthToken
+		var atcToken provider.AuthToken
 		var client *http.Client
 
 		BeforeEach(func() {

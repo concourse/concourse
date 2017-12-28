@@ -9,7 +9,6 @@ import (
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/authserver"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/cliserver"
 	"github.com/concourse/atc/api/configserver"
@@ -24,7 +23,6 @@ import (
 	"github.com/concourse/atc/api/teamserver"
 	"github.com/concourse/atc/api/volumeserver"
 	"github.com/concourse/atc/api/workerserver"
-	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -40,9 +38,6 @@ func NewHandler(
 
 	wrapper wrappa.Wrappa,
 
-	authTokenGenerator auth.AuthTokenGenerator,
-	csrfTokenGenerator auth.CSRFTokenGenerator,
-	providerFactory auth.ProviderFactory,
 	oAuthBaseURL string,
 
 	dbTeamFactory db.TeamFactory,
@@ -75,6 +70,7 @@ func NewHandler(
 	variablesFactory creds.VariablesFactory,
 	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
 ) (http.Handler, error) {
+
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
 	if err != nil {
 		return nil, err
@@ -84,62 +80,28 @@ func NewHandler(
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
-	authServer := authserver.NewServer(
-		logger,
-		externalURL,
-		oAuthBaseURL,
-		authTokenGenerator,
-		csrfTokenGenerator,
-		providerFactory,
-		dbTeamFactory,
-		expire,
-		isTLSEnabled,
-	)
-
-	buildServer := buildserver.NewServer(
-		logger,
-		externalURL,
-		engine,
-		workerClient,
-		dbTeamFactory,
-		dbBuildFactory,
-		eventHandlerFactory,
-		drain,
-	)
-
+	buildServer := buildserver.NewServer(logger, externalURL, engine, workerClient, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, externalURL, dbTeamFactory)
-
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, engine)
-
 	configServer := configserver.NewServer(logger, dbTeamFactory)
-
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
-
 	logLevelServer := loglevelserver.NewServer(logger, sink)
-
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-
 	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory)
-
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
-
 	teamServer := teamserver.NewServer(logger, dbTeamFactory)
-
 	infoServer := infoserver.NewServer(logger, version, workerVersion)
 
 	handlers := map[string]http.Handler{
-		atc.ListAuthMethods: http.HandlerFunc(authServer.ListAuthMethods),
-		atc.GetAuthToken:    http.HandlerFunc(authServer.GetAuthToken),
-
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
 
-		atc.GetBuild:            buildHandlerFactory.HandlerFor(buildServer.GetBuild),
 		atc.ListBuilds:          http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild:         teamHandlerFactory.HandlerFor(buildServer.CreateBuild),
+		atc.GetBuild:            buildHandlerFactory.HandlerFor(buildServer.GetBuild),
 		atc.BuildResources:      buildHandlerFactory.HandlerFor(buildServer.BuildResources),
 		atc.AbortBuild:          buildHandlerFactory.HandlerFor(buildServer.AbortBuild),
 		atc.GetBuildPlan:        buildHandlerFactory.HandlerFor(buildServer.GetBuildPlan),
@@ -203,7 +165,6 @@ func NewHandler(
 
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:     http.HandlerFunc(infoServer.Info),
-		atc.GetUser:     http.HandlerFunc(authServer.GetUser),
 
 		atc.ListContainers:  teamHandlerFactory.HandlerFor(containerServer.ListContainers),
 		atc.GetContainer:    teamHandlerFactory.HandlerFor(containerServer.GetContainer),
