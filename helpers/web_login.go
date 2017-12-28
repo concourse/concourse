@@ -3,7 +3,7 @@ package helpers
 import (
 	"net/http"
 
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/skymarshal/auth"
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/agouti"
 )
