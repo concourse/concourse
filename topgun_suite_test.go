@@ -23,8 +23,8 @@ import (
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -406,13 +406,13 @@ func wait(session *gexec.Session) {
 	Expect(session.ExitCode()).To(Equal(0))
 }
 
-func getATCToken(atcURL string) (*atc.AuthToken, error) {
-	response, err := http.Get(atcURL + "/api/v1/teams/main/auth/token")
+func getATCToken(atcURL string) (*provider.AuthToken, error) {
+	response, err := http.Get(atcURL + "/auth/basic/token?team_name=main")
 	if err != nil {
 		return nil, err
 	}
 
-	var token *atc.AuthToken
+	var token *provider.AuthToken
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
@@ -426,7 +426,7 @@ func getATCToken(atcURL string) (*atc.AuthToken, error) {
 	return token, nil
 }
 
-func oauthClient(atcToken *atc.AuthToken) *http.Client {
+func oauthClient(atcToken *provider.AuthToken) *http.Client {
 	return &http.Client{
 		Transport: &oauth2.Transport{
 			Source: oauth2.StaticTokenSource(&oauth2.Token{
