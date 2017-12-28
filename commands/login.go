@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/skymarshal/provider"
 	"github.com/vito/go-interact/interact"
 )
 
@@ -84,10 +85,10 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	var chosenMethod atc.AuthMethod
+	var chosenMethod provider.AuthMethod
 	if command.Username != "" && command.Password != "" {
 		for _, method := range authMethods {
-			if method.Type == atc.AuthTypeBasic {
+			if method.Type == provider.AuthTypeBasic {
 				chosenMethod = method
 				break
 			}
@@ -177,15 +178,15 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 }
 
 func (command *LoginCommand) loginWith(
-	method atc.AuthMethod,
+	method provider.AuthMethod,
 	client concourse.Client,
 	caCert string,
 	targetUrl string,
-) (*atc.AuthToken, error) {
-	var token atc.AuthToken
+) (*provider.AuthToken, error) {
+	var token provider.AuthToken
 
 	switch method.Type {
-	case atc.AuthTypeOAuth:
+	case provider.AuthTypeOAuth:
 		var tokenStr string
 
 		stdinChannel := make(chan string)
@@ -218,7 +219,7 @@ func (command *LoginCommand) loginWith(
 		token.Type = segments[0]
 		token.Value = segments[1]
 
-	case atc.AuthTypeBasic:
+	case provider.AuthTypeBasic:
 		var username string
 		if command.Username != "" {
 			username = command.Username

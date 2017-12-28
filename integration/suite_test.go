@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -24,7 +25,7 @@ var homeDir string
 var atcServer *ghttp.Server
 
 const targetName = "testserver"
-const teamName   = "main"
+const teamName = "main"
 const atcVersion = "1.2.3"
 const workerVersion = "4.5.6"
 
@@ -53,7 +54,7 @@ func infoHandler() http.HandlerFunc {
 
 func tokenHandler(teamName string) http.HandlerFunc {
 	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("GET", "/api/v1/teams/"+teamName+"/auth/token"),
+		ghttp.VerifyRequest("GET", "/auth/basic/token", "team_name="+teamName),
 		ghttp.RespondWithJSONEncoded(
 			200,
 			token(),
@@ -65,8 +66,8 @@ func tokenString() string {
 	return string(token().Type) + " " + string(token().Value)
 }
 
-func token() atc.AuthToken {
-	return atc.AuthToken{
+func token() provider.AuthToken {
+	return provider.AuthToken{
 		Type:  "Bearer",
 		Value: "some-token",
 	}
@@ -78,8 +79,8 @@ var _ = BeforeEach(func() {
 	atcServer.AppendHandlers(
 		infoHandler(),
 		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/api/v1/teams/"+teamName+"/auth/methods"),
-			ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+			ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name="+teamName),
+			ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 		),
 		tokenHandler(teamName),
 		infoHandler(),

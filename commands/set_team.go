@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"

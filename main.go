@@ -5,19 +5,19 @@ import (
 	"net"
 	"os"
 
-	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/fly/commands"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/jessevdk/go-flags"
 
-	_ "github.com/concourse/atc/auth/bitbucket/cloud"
-	_ "github.com/concourse/atc/auth/bitbucket/server"
-	_ "github.com/concourse/atc/auth/genericoauth"
-	_ "github.com/concourse/atc/auth/github"
-	_ "github.com/concourse/atc/auth/gitlab"
-	_ "github.com/concourse/atc/auth/uaa"
+	_ "github.com/concourse/skymarshal/bitbucket/cloud"
+	_ "github.com/concourse/skymarshal/bitbucket/server"
+	_ "github.com/concourse/skymarshal/genericoauth"
+	_ "github.com/concourse/skymarshal/github"
+	_ "github.com/concourse/skymarshal/gitlab"
+	_ "github.com/concourse/skymarshal/uaa"
 )
 
 func main() {
