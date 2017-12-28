@@ -56,13 +56,22 @@ func NewConnection(apiURL string, httpClient *http.Client, tracing bool) Connect
 	}
 
 	apiURL = strings.TrimRight(apiURL, "/")
+	routes := append(atc.Routes, rata.Route{
+		Name:   "ListAuthMethods",
+		Path:   "/auth/list_methods",
+		Method: "GET",
+	}, rata.Route{
+		Name:   "GetAuthToken",
+		Path:   "/auth/basic/token",
+		Method: "GET",
+	})
 
 	return &connection{
 		url:        apiURL,
 		httpClient: httpClient,
 		tracing:    tracing,
 
-		requestGenerator: rata.NewRequestGenerator(apiURL, atc.Routes),
+		requestGenerator: rata.NewRequestGenerator(apiURL, routes),
 	}
 }
 

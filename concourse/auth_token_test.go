@@ -3,7 +3,7 @@ package concourse_test
 import (
 	"net/http"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -11,19 +11,20 @@ import (
 
 var _ = Describe("ATC Handler Auth Token", func() {
 	Describe("AuthToken", func() {
-		var expectedAuthToken atc.AuthToken
+		var expectedAuthToken provider.AuthToken
 
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/some-team/auth/token"
+			expectedURL := "/auth/basic/token"
+			expectedRawQuery := "team_name=some-team"
 
-			expectedAuthToken = atc.AuthToken{
+			expectedAuthToken = provider.AuthToken{
 				Type:  "Bearer",
 				Value: "gobbeldigook",
 			}
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.VerifyRequest("GET", expectedURL, expectedRawQuery),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedAuthToken),
 				),
 			)

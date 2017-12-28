@@ -1,16 +1,17 @@
 package concourse
 
 import (
-	"github.com/concourse/atc"
+	"net/url"
+
 	"github.com/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
+	"github.com/concourse/skymarshal/provider"
 )
 
-func (team *team) ListAuthMethods() ([]atc.AuthMethod, error) {
-	var authMethods []atc.AuthMethod
+func (team *team) ListAuthMethods() ([]provider.AuthMethod, error) {
+	var authMethods []provider.AuthMethod
 	err := team.connection.Send(internal.Request{
-		RequestName: atc.ListAuthMethods,
-		Params:      rata.Params{"team_name": team.name},
+		RequestName: "ListAuthMethods",
+		Query:       url.Values{"team_name": []string{team.name}},
 	}, &internal.Response{
 		Result: &authMethods,
 	})

@@ -1,16 +1,17 @@
 package concourse
 
 import (
-	"github.com/concourse/atc"
+	"net/url"
+
 	"github.com/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
+	"github.com/concourse/skymarshal/provider"
 )
 
-func (team *team) AuthToken() (atc.AuthToken, error) {
-	var authToken atc.AuthToken
+func (team *team) AuthToken() (provider.AuthToken, error) {
+	var authToken provider.AuthToken
 	err := team.connection.Send(internal.Request{
-		RequestName: atc.GetAuthToken,
-		Params:      rata.Params{"team_name": team.name},
+		RequestName: "GetAuthToken",
+		Query:       url.Values{"team_name": []string{team.name}},
 	}, &internal.Response{
 		Result: &authToken,
 	})

@@ -3,7 +3,7 @@ package concourse_test
 import (
 	"net/http"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -11,17 +11,17 @@ import (
 
 var _ = Describe("ATC Handler Auth Methods", func() {
 	Describe("ListAuthMethods", func() {
-		var expectedAuthMethods []atc.AuthMethod
+		var expectedAuthMethods []provider.AuthMethod
 
 		BeforeEach(func() {
-			expectedAuthMethods = []atc.AuthMethod{
+			expectedAuthMethods = []provider.AuthMethod{
 				{
-					Type:        atc.AuthTypeBasic,
+					Type:        provider.AuthTypeBasic,
 					DisplayName: "Basic",
 					AuthURL:     "/teams/some-team/login/basic",
 				},
 				{
-					Type:        atc.AuthTypeOAuth,
+					Type:        provider.AuthTypeOAuth,
 					DisplayName: "GitHub",
 					AuthURL:     "/auth/github",
 				},
@@ -29,7 +29,7 @@ var _ = Describe("ATC Handler Auth Methods", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
+					ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedAuthMethods),
 				),
 			)

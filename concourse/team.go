@@ -3,6 +3,7 @@ package concourse
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse/internal"
+	"github.com/concourse/skymarshal/provider"
 )
 
 //go:generate counterfeiter . Team
@@ -10,8 +11,8 @@ import (
 type Team interface {
 	Name() string
 
-	ListAuthMethods() ([]atc.AuthMethod, error)
-	AuthToken() (atc.AuthToken, error)
+	ListAuthMethods() ([]provider.AuthMethod, error)
+	AuthToken() (provider.AuthToken, error)
 
 	CreateOrUpdate(team atc.Team) (atc.Team, bool, bool, error)
 	RenameTeam(teamName, name string) (bool, error)
