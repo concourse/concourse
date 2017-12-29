@@ -535,6 +535,14 @@ view model =
                                     }
                             in
                                 ( "btn-page-link next", LoadPage updatedPage )
+
+                lastCheckedView =
+                    case ( model.now, resource.lastChecked ) of
+                        ( Just now, Just date ) ->
+                            viewLastChecked now date
+
+                        ( _, _ ) ->
+                            Html.text ""
             in
                 Html.div [ class "with-fixed-header" ]
                     [ Html.div [ class "fixed-header" ]
@@ -552,7 +560,7 @@ view model =
                                     ]
                                 ]
                             , Html.h1 [] [ Html.text resource.name ]
-                            , Html.table [ class "last-checked" ] <| [ viewLastChecked model.now resource.lastChecked ]
+                            , lastCheckedView
                             ]
                         ]
                     , Html.div [ class "scrollable-body" ]
@@ -747,22 +755,20 @@ viewBuilds buildDict =
     List.concatMap (viewBuildsByJob buildDict) <| Dict.keys buildDict
 
 
-viewLastChecked : Maybe Time -> Maybe Date -> Html a
+viewLastChecked : Time -> Date -> Html a
 viewLastChecked now date =
-    case ( now, date ) of
-        ( Just now, Just date ) ->
-            let
-                ago =
-                    Duration.between (Date.toTime date) now
-            in
-                Html.tr []
-                    [ Html.td [ class "dict-key" ] [ Html.text "checked" ]
-                    , Html.td [ title (Date.Format.format "%b %d %Y %I:%M:%S %p" date), class "dict-value" ]
-                        [ Html.span [] [ Html.text (Duration.format ago ++ " ago") ] ]
-                    ]
-
-        ( _, _ ) ->
-            Html.text ""
+    let
+        ago =
+            Duration.between (Date.toTime date) now
+    in
+        Html.table [ class "last-checked" ]
+            [ Html.tr
+                []
+                [ Html.td [ class "dict-key" ] [ Html.text "checked" ]
+                , Html.td [ title (Date.Format.format "%b %d %Y %I:%M:%S %p" date), class "dict-value" ]
+                    [ Html.span [] [ Html.text (Duration.format ago ++ " ago") ] ]
+                ]
+            ]
 
 
 viewBuildsByJob : Dict.Dict String (List Concourse.Build) -> String -> List (Html Msg)
