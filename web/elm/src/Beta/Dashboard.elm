@@ -17,6 +17,8 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Keyboard
 import Mouse
+import Dom
+import Char
 import NewTopBar
 import RemoteData
 import Task exposing (Task)
@@ -34,6 +36,7 @@ type alias Model =
     , concourseVersion : String
     , turbulenceImgSrc : String
     , now : Maybe Time
+    , showHelp : Bool
     , hideFooter : Bool
     , hideFooterCounter : Time
     , fetchedPipelines : List Concourse.Pipeline
@@ -41,12 +44,14 @@ type alias Model =
 
 
 type Msg
-    = PipelinesResponse (RemoteData.WebData (List Concourse.Pipeline))
+    = Noop
+    | PipelinesResponse (RemoteData.WebData (List Concourse.Pipeline))
     | JobsResponse Int (RemoteData.WebData (List Concourse.Job))
     | ClockTick Time.Time
     | VersionFetched (Result Http.Error String)
     | AutoRefresh Time
     | ShowFooter
+    | KeyPressed Keyboard.KeyCode
     | TopBarMsg NewTopBar.Msg
 
 
@@ -82,6 +87,7 @@ init turbulencePath =
           , now = Nothing
           , turbulenceImgSrc = turbulencePath
           , concourseVersion = ""
+          , showHelp = False
           , hideFooter = False
           , hideFooterCounter = 0
           , fetchedPipelines = []
@@ -99,6 +105,9 @@ init turbulencePath =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Noop ->
+            ( model, Cmd.none )
+
         PipelinesResponse response ->
             ( { model | pipelines = response }
             , case response of
@@ -127,6 +136,9 @@ update msg model =
 
         AutoRefresh _ ->
             ( model, Cmd.batch [ fetchPipelines, fetchVersion, Cmd.map TopBarMsg NewTopBar.fetchUser ] )
+
+        KeyPressed keycode ->
+            handleKeyPressed (Char.fromCode keycode) model
 
         ShowFooter ->
             ( { model | hideFooter = False, hideFooterCounter = 0 }, Cmd.none )
@@ -157,7 +169,7 @@ subscriptions model =
         , Time.every (5 * Time.second) AutoRefresh
         , Mouse.moves (\_ -> ShowFooter)
         , Mouse.clicks (\_ -> ShowFooter)
-        , Keyboard.presses (\_ -> ShowFooter)
+        , Keyboard.presses KeyPressed
         ]
 
 
@@ -232,13 +244,30 @@ showPipelinesView model pipelines =
         Html.div
             [ class "dashboard" ]
         <|
-            [ Html.div [ class "dashboard-content" ] <| listPipelinesByTeam, showFooterView model ]
+            [ Html.div [ class "dashboard-content" ] <| listPipelinesByTeam
+            , showFooterView model
+            , helpView model
+            ]
+
+
+helpView : Model -> Html Msg
+helpView model =
+    Html.div
+        [ classList
+            [ ( "keyboard-help", True )
+            , ( "hidden", not model.showHelp )
+            ]
+        ]
+        [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
+        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "/" ] ], Html.text "focus search input" ]
+        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "?" ] ], Html.text "hide/show help" ]
+        ]
 
 
 showFooterView : Model -> Html Msg
 showFooterView model =
     Html.div
-        [ if model.hideFooter then
+        [ if model.hideFooter || model.showHelp then
             class "dashboard-footer hidden"
           else
             class "dashboard-footer"
@@ -283,6 +312,19 @@ showTurbulenceView model =
             , Html.p [ class "explanation" ] []
             ]
         ]
+
+
+handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )
+handleKeyPressed key model =
+    case key of
+        '/' ->
+            ( model, Task.attempt (always Noop) (Dom.focus "search-input-field") )
+
+        '?' ->
+            ( { model | showHelp = not model.showHelp }, Cmd.none )
+
+        _ ->
+            update ShowFooter model
 
 
 addPipelineState : List ( String, List PipelineWithJobs ) -> ( String, PipelineWithJobs ) -> List ( String, List PipelineWithJobs )

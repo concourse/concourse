@@ -111,7 +111,7 @@ describe 'resource', type: :feature do
 
       expect(page).to have_current_path("/teams/#{team_name}/pipelines/pipeline/resources/some-resource")
       expect(page).to have_css('h1', text: 'some-resource')
-      expect(page).to have_css('.last-checked', wait: 5)
+      expect(page).to have_css('.last-checked', wait: 15)
     end
   end
 
