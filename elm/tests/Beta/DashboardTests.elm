@@ -308,6 +308,7 @@ searchTermList =
                     , turbulenceImgSrc = ""
                     , concourseVersion = ""
                     , hideFooter = False
+                    , showHelp = False
                     , hideFooterCounter = 0
                     , fetchedPipelines = []
                     }
