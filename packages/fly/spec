@@ -25,19 +25,6 @@ files:
   - github.com/cloudfoundry/bosh-cli/vendor/github.com/cppforlife/go-patch/patch/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry/bosh-cli/vendor/gopkg.in/yaml.v2/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/bitbucket/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/bitbucket/cloud/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/bitbucket/server/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/genericoauth/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/github/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/gitlab/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/gitlab/vendor/github.com/google/go-querystring/query/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/gitlab/vendor/github.com/xanzy/go-gitlab/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/provider/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/routes/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/uaa/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/auth/verifier/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/creds/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/algorithm/*.{go,s,c,h} # gosub
@@ -64,6 +51,18 @@ files:
   - github.com/concourse/go-concourse/concourse/*.{go,s,c,h} # gosub
   - github.com/concourse/go-concourse/concourse/eventstream/*.{go,s,c,h} # gosub
   - github.com/concourse/go-concourse/concourse/internal/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/auth/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/bitbucket/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/bitbucket/cloud/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/bitbucket/server/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/genericoauth/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/github/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/gitlab/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/gitlab/vendor/github.com/google/go-querystring/query/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/gitlab/vendor/github.com/xanzy/go-gitlab/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/provider/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/uaa/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/verifier/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/tsaflags/*.{go,s,c,h} # gosub
   - github.com/cppforlife/go-semi-semantic/version/*.{go,s,c,h} # gosub
   - github.com/dghubble/oauth1/*.{go,s,c,h} # gosub
