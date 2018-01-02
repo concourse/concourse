@@ -480,17 +480,16 @@ func (cmd *ATCCommand) constructMembers(
 		return nil, err
 	}
 
-	config := &skymarshal.Config{
-		BaseUrl:      cmd.ExternalURL.String(),
-		BaseAuthUrl:  cmd.oauthBaseURL(),
-		SigningKey:   signingKey,
-		Expiration:   cmd.AuthDuration,
-		IsTLSEnabled: cmd.isTLSEnabled(),
-		TeamFactory:  teamFactory,
-		Logger:       logger,
-	}
+	authHandler, err := skymarshal.NewHandler(&skymarshal.Config{
+		cmd.ExternalURL.String(),
+		cmd.oauthBaseURL(),
+		signingKey,
+		cmd.AuthDuration,
+		cmd.isTLSEnabled(),
+		teamFactory,
+		logger,
+	})
 
-	authHandler, err := skymarshal.NewHandler(config)
 	if err != nil {
 		return nil, err
 	}

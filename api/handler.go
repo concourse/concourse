@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc/api/containerserver"
 	"github.com/concourse/atc/api/infoserver"
 	"github.com/concourse/atc/api/jobserver"
+	"github.com/concourse/atc/api/legacyserver"
 	"github.com/concourse/atc/api/loglevelserver"
 	"github.com/concourse/atc/api/pipelineserver"
 	"github.com/concourse/atc/api/pipes"
@@ -94,6 +95,7 @@ func NewHandler(
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory)
 	infoServer := infoserver.NewServer(logger, version, workerVersion)
+	legacyServer := legacyserver.NewServer(logger)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
@@ -171,6 +173,10 @@ func NewHandler(
 		atc.HijackContainer: teamHandlerFactory.HandlerFor(containerServer.HijackContainer),
 
 		atc.ListVolumes: teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
+
+		atc.LegacyListAuthMethods: http.HandlerFunc(legacyServer.ListAuthMethods),
+		atc.LegacyGetAuthToken:    http.HandlerFunc(legacyServer.GetAuthToken),
+		atc.LegacyGetUser:         http.HandlerFunc(legacyServer.GetUser),
 
 		atc.ListTeams:   http.HandlerFunc(teamServer.ListTeams),
 		atc.SetTeam:     http.HandlerFunc(teamServer.SetTeam),
