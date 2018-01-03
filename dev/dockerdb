@@ -7,20 +7,8 @@ DEVDIR=/tmp/concourse-dev
 DBDIR=$DEVDIR/db
 docker_postgres="${DOCKER_POSTGRES:-concourse-db}"
 
-<<<<<<< HEAD
 if [ $(docker ps --filter name=${docker_postgres} | grep -c ${docker_postgres}) = 0 ] ; then
   exec docker run --rm --name ${docker_postgres} -p 127.0.0.1:${POSTGRES_PORT:-6543}:5432 -d postgres:alpine "$@"
 else
   echo "Docker container ${docker_postgres} is already up and running"
 fi
-=======
-docker_not_there() {
-  exec docker run --rm --name ${docker_postgres} -p 127.0.0.1:${POSTGRES_PORT:-6543}:5432 -d postgres:alpine "$@"
-}
-
-trap docker_not_there ERR
-
-docker ps --filter name=${docker_postgres} | grep -q ${docker_postgres}
-
-echo "Docker container ${docker_postgres} already up and running"
->>>>>>> 3e652db4621ac2ed2734dc678c93dbeb0d52693c
