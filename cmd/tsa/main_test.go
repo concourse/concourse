@@ -24,7 +24,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/baggageclaim"
 	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
