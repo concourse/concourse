@@ -7,4 +7,12 @@ DEVDIR=/tmp/concourse-dev
 DBDIR=$DEVDIR/db
 docker_postgres="${DOCKER_POSTGRES:-concourse-db}"
 
-exec docker run --rm --name ${docker_postgres} -p 127.0.0.1:${POSTGRES_PORT:-6543}:5432 -d postgres:alpine "$@"
+docker_not_there() {
+  exec docker run --rm --name ${docker_postgres} -p 127.0.0.1:${POSTGRES_PORT:-6543}:5432 -d postgres:alpine "$@"
+}
+
+trap docker_not_there ERR
+
+docker ps --filter name=${docker_postgres} | grep -q ${docker_postgres}
+
+echo "Docker container ${docker_postgres} already up and running"
