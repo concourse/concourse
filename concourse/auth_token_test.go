@@ -14,8 +14,7 @@ var _ = Describe("ATC Handler Auth Token", func() {
 		var expectedAuthToken provider.AuthToken
 
 		BeforeEach(func() {
-			expectedURL := "/auth/basic/token"
-			expectedRawQuery := "team_name=some-team"
+			expectedURL := "/api/v1/teams/some-team/auth/token"
 
 			expectedAuthToken = provider.AuthToken{
 				Type:  "Bearer",
@@ -24,7 +23,7 @@ var _ = Describe("ATC Handler Auth Token", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL, expectedRawQuery),
+					ghttp.VerifyRequest("GET", expectedURL),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedAuthToken),
 				),
 			)

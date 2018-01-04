@@ -29,7 +29,7 @@ var _ = Describe("ATC Handler Auth Methods", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedAuthMethods),
 				),
 			)
