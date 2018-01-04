@@ -1515,19 +1515,15 @@ func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
 		END
 	FROM
 		(
-			SELECT COALESCE(MAX(bo.modified_time), 'epoch') as bo_max
+			SELECT
+				COALESCE(MAX(bo.modified_time), 'epoch') as bo_max,
+				COALESCE(MAX(bi.modified_time), 'epoch') as bi_max
 			FROM build_outputs bo
+			LEFT OUTER JOIN build_inputs bi ON bi.versioned_resource_id = bo.versioned_resource_id
 			LEFT OUTER JOIN versioned_resources v ON v.id = bo.versioned_resource_id
 			LEFT OUTER JOIN resources r ON r.id = v.resource_id
 			WHERE r.pipeline_id = $1
-		) bo,
-		(
-			SELECT COALESCE(MAX(bi.modified_time), 'epoch') as bi_max
-			FROM build_inputs bi
-			LEFT OUTER JOIN versioned_resources v ON v.id = bi.versioned_resource_id
-			LEFT OUTER JOIN resources r ON r.id = v.resource_id
-			WHERE r.pipeline_id = $1
-		) bi,
+		) bobi,
 		(
 			SELECT COALESCE(MAX(vr.modified_time), 'epoch') as vr_max
 			FROM versioned_resources vr
