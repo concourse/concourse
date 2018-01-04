@@ -50,7 +50,7 @@ var _ = Describe("login Command", func() {
 			loginATCServer.AppendHandlers(
 				infoHandler(),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 					ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 				),
 			)
@@ -85,7 +85,7 @@ var _ = Describe("login Command", func() {
 			loginATCServer.AppendHandlers(
 				infoHandler(),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=main"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 					ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 				),
 				tokenHandler("main"),
@@ -107,7 +107,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("some-team"),
@@ -122,7 +122,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("some-team"),
@@ -176,7 +176,7 @@ var _ = Describe("login Command", func() {
 			loginATCServer.AppendHandlers(
 				infoHandler(),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 					ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 				),
 				tokenHandler("some-team"),
@@ -198,7 +198,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("some-team"),
@@ -209,8 +209,8 @@ var _ = Describe("login Command", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Consistently(sess.Err).ShouldNot(gbytes.Say("GET /auth/list_methods\\?team_name=some-team HTTP/1.1"))
-				Consistently(sess.Out).ShouldNot(gbytes.Say("GET /auth/list_methods\\?team_name=some-team HTTP/1.1"))
+				Consistently(sess.Err).ShouldNot(gbytes.Say("GET /api/v1/teams/some-team/auth/methods HTTP/1.1"))
+				Consistently(sess.Out).ShouldNot(gbytes.Say("GET /api/v1/teams/some-team/auth/methods HTTP/1.1"))
 				Consistently(sess.Err).ShouldNot(gbytes.Say("HTTP/1.1 200 OK"))
 				Consistently(sess.Out).ShouldNot(gbytes.Say("HTTP/1.1 200 OK"))
 
@@ -224,7 +224,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("some-team"),
@@ -235,7 +235,7 @@ var _ = Describe("login Command", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say("GET /auth/list_methods\\?team_name=some-team HTTP/1.1"))
+				Eventually(sess.Err).Should(gbytes.Say("GET /api/v1/teams/some-team/auth/methods HTTP/1.1"))
 				Eventually(sess.Err).Should(gbytes.Say("HTTP/1.1 200 OK"))
 
 				<-sess.Exited
@@ -248,7 +248,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("some-team"),
@@ -263,7 +263,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-other-team"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-other-team/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("some-other-team"),
@@ -303,7 +303,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("some-team"),
@@ -339,7 +339,7 @@ var _ = Describe("login Command", func() {
 					loginATCServer.AppendHandlers(
 						infoHandler(),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=some-team"),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 							ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 						),
 						tokenHandler("some-team"),
@@ -396,7 +396,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=main"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("main"),
@@ -418,7 +418,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=main"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
 							{
 								Type:        provider.AuthTypeBasic,
@@ -465,7 +465,7 @@ var _ = Describe("login Command", func() {
 						},
 					}
 
-					response, err := client.Get(fmt.Sprintf("http://localhost:%s/auth/callback?token=Bearer%%20the-token", port))
+					response, err := client.Get(fmt.Sprintf("http://localhost:%s/oauth/callback?token=Bearer%%20the-token", port))
 					Expect(err).ToNot(HaveOccurred())
 					Expect(response.StatusCode).To(Equal(http.StatusTemporaryRedirect))
 					Expect(response.Header.Get("Location")).To(Equal(fmt.Sprintf("%s/public/fly_success", loginATCServer.URL())))
@@ -507,7 +507,7 @@ var _ = Describe("login Command", func() {
 				BeforeEach(func() {
 					loginATCServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/auth/basic/token", "team_name=main"),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 							ghttp.VerifyBasicAuth("some_username", "some_password"),
 							ghttp.RespondWithJSONEncoded(200, provider.AuthToken{
 								Type:  "Bearer",
@@ -644,7 +644,7 @@ var _ = Describe("login Command", func() {
 							loginATCServer.AppendHandlers(
 								infoHandler(),
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=main"),
+									ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 									ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
 										{
 											Type:        provider.AuthTypeBasic,
@@ -654,7 +654,7 @@ var _ = Describe("login Command", func() {
 									}),
 								),
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/auth/basic/token", "team_name=main"),
+									ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 									ghttp.VerifyBasicAuth("some_username", "some_password"),
 									ghttp.RespondWithJSONEncoded(200, provider.AuthToken{
 										Type:  "Bearer",
@@ -722,7 +722,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=main"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
 							{
 								Type:        provider.AuthTypeOAuth,
@@ -763,7 +763,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=main"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
 							{
 								Type:        provider.AuthTypeBasic,
@@ -773,7 +773,7 @@ var _ = Describe("login Command", func() {
 						}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/basic/token", "team_name=main"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 						ghttp.VerifyBasicAuth("some username", "some password"),
 						ghttp.RespondWithJSONEncoded(200, provider.AuthToken{
 							Type:  "Bearer",
@@ -814,7 +814,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=main"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("main"),
@@ -868,7 +868,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name=main"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWith(500, ""),
 					),
 				)

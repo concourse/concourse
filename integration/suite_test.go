@@ -54,7 +54,7 @@ func infoHandler() http.HandlerFunc {
 
 func tokenHandler(teamName string) http.HandlerFunc {
 	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("GET", "/auth/basic/token", "team_name="+teamName),
+		ghttp.VerifyRequest("GET", "/api/v1/teams/"+teamName+"/auth/token"),
 		ghttp.RespondWithJSONEncoded(
 			200,
 			token(),
@@ -79,7 +79,7 @@ var _ = BeforeEach(func() {
 	atcServer.AppendHandlers(
 		infoHandler(),
 		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/auth/list_methods", "team_name="+teamName),
+			ghttp.VerifyRequest("GET", "/api/v1/teams/"+teamName+"/auth/methods"),
 			ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 		),
 		tokenHandler(teamName),
