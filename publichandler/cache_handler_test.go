@@ -8,9 +8,10 @@ import (
 	"net/http/httptest"
 	"strings"
 
-	"github.com/concourse/atc/web/publichandler"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/concourse/web/publichandler"
 )
 
 var _ = Describe("CacheNearlyForever", func() {

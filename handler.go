@@ -1,59 +1,34 @@
 package web
 
 import (
-	"html/template"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/web/indexhandler"
+	"github.com/concourse/web/manifesthandler"
+	"github.com/concourse/web/publichandler"
+	"github.com/concourse/web/robotshandler"
 )
 
-type templateData struct {
-	CSRFToken string
-}
-
-type handler struct {
-	logger   lager.Logger
-	template *template.Template
-}
-
 func NewHandler(logger lager.Logger) (http.Handler, error) {
-	tfuncs := &templateFuncs{
-		assetIDs: map[string]string{},
-	}
 
-	funcs := template.FuncMap{
-		"asset": tfuncs.asset,
-	}
-
-	src, err := Asset("index.html")
+	indexHandler, err := indexhandler.NewHandler(logger)
 	if err != nil {
 		return nil, err
 	}
 
-	t, err := template.New("index").Funcs(funcs).Parse(string(src))
+	publicHandler, err := publichandler.NewHandler()
 	if err != nil {
 		return nil, err
 	}
 
-	return &handler{
-		logger:   logger,
-		template: t,
-	}, nil
-}
+	manifestHandler := manifesthandler.NewHandler()
+	robotsHandler := robotshandler.NewHandler()
 
-func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log := h.logger.Session("index")
-
-	// csrfToken passed after logging in. Its validity is verified on server
-	// based on auth token in Cookie.
-	csrfToken := r.FormValue("csrf_token")
-	err := h.template.Execute(w, templateData{
-		CSRFToken: csrfToken,
-	})
-
-	if err != nil {
-		log.Fatal("failed-to-build-template", err, lager.Data{})
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
+	webMux := http.NewServeMux()
+	webMux.Handle("/public/", publicHandler)
+	webMux.Handle("/manifest.json", manifestHandler)
+	webMux.Handle("/robots.txt", robotsHandler)
+	webMux.Handle("/", indexHandler)
+	return webMux, nil
 }

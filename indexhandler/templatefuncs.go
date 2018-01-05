@@ -1,9 +1,11 @@
-package web
+package indexhandler
 
 import (
 	"crypto/md5"
 	"fmt"
 	"sync"
+
+	"github.com/concourse/web/bindata"
 )
 
 type templateFuncs struct {
@@ -19,7 +21,7 @@ func (funcs *templateFuncs) asset(asset string) (string, error) {
 	if !found {
 		hash := md5.New()
 
-		contents, err := Asset("public/" + asset)
+		contents, err := bindata.Asset("public/" + asset)
 		if err != nil {
 			return "", err
 		}

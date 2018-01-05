@@ -33,8 +33,8 @@ test-watch: all
 	cd elm && elm-test --watch
 
 bindata.go: index.html $(PUBLIC_FILES)
-	go-bindata ${DEV} -pkg web index.html public/...
-	go fmt bindata.go
+	go-bindata ${DEV} -pkg bindata -o bindata/bindata.go index.html public/...
+	go fmt bindata/bindata.go
 
 help:
 	@ echo "$$HELP_INFO"

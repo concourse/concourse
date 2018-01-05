@@ -1,4 +1,4 @@
-package manifest
+package manifesthandler
 
 import (
 	"encoding/json"
@@ -42,16 +42,13 @@ type icon struct {
 // * https://www.w3.org/TR/appmanifest/
 // * https://developer.mozilla.org/en-US/docs/Web/Manifest
 // * https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/
-type Handler interface {
-	ServeHTTP(w http.ResponseWriter, r *http.Request)
-}
 
 type handler struct {
 	m manifest
 }
 
 // NewHandler creates a new handler that is able to serve web app manifest.
-func NewHandler() Handler {
+func NewHandler() http.Handler {
 	return &handler{
 		m: manifest{
 			Schema:          "http://json.schemastore.org/web-manifest#",

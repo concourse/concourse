@@ -1,7 +1,7 @@
-package web
+package bindata
 
 // used by go-bindata
-var rootDir = "./web"
+var rootDir = "../web"
 
 func init() {
 	// satisfy go-unused
