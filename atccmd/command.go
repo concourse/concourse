@@ -37,15 +37,12 @@ import (
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/manifest"
-	"github.com/concourse/atc/web/publichandler"
-	"github.com/concourse/atc/web/robotstxt"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/wrappa"
 	"github.com/concourse/retryhttp"
 	"github.com/concourse/skymarshal"
+	"github.com/concourse/web"
 	"github.com/cppforlife/go-semi-semantic/version"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
@@ -501,22 +498,14 @@ func (cmd *ATCCommand) constructMembers(
 
 	webHandler = metric.WrapHandler(logger, "web", webHandler)
 
-	publicHandler, err := publichandler.NewHandler()
-	if err != nil {
-		return nil, err
-	}
-
 	var httpHandler, httpsHandler http.Handler
 	if cmd.isTLSEnabled() {
 		httpHandler = cmd.constructHTTPHandler(
 			logger,
+
 			tlsRedirectHandler{
 				externalHost: cmd.ExternalURL.URL().Host,
 				baseHandler:  webHandler,
-			},
-			tlsRedirectHandler{
-				externalHost: cmd.ExternalURL.URL().Host,
-				baseHandler:  publicHandler,
 			},
 
 			// note: intentionally not wrapping API; redirecting is more trouble than
@@ -537,7 +526,6 @@ func (cmd *ATCCommand) constructMembers(
 		httpsHandler = cmd.constructHTTPHandler(
 			logger,
 			webHandler,
-			publicHandler,
 			apiHandler,
 			authHandler,
 		)
@@ -545,7 +533,6 @@ func (cmd *ATCCommand) constructMembers(
 		httpHandler = cmd.constructHTTPHandler(
 			logger,
 			webHandler,
-			publicHandler,
 			apiHandler,
 			authHandler,
 		)
@@ -1065,7 +1052,6 @@ func (cmd *ATCCommand) constructEngine(
 func (cmd *ATCCommand) constructHTTPHandler(
 	logger lager.Logger,
 	webHandler http.Handler,
-	publicHandler http.Handler,
 	apiHandler http.Handler,
 	authHandler http.Handler,
 ) http.Handler {
@@ -1073,9 +1059,6 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webMux.Handle("/api/v1/", apiHandler)
 	webMux.Handle("/oauth/", authHandler)
 	webMux.Handle("/auth/", authHandler)
-	webMux.Handle("/public/", publicHandler)
-	webMux.Handle("/manifest.json", manifest.NewHandler())
-	webMux.Handle("/robots.txt", robotstxt.Handler{})
 	webMux.Handle("/", webHandler)
 
 	httpHandler := wrappa.LoggerHandler{

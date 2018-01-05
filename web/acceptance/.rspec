@@ -1,5 +1,0 @@
---color
---require spec_helper
---order rand
---format progress
---format ParallelTests::RSpec::FailuresLogger --out /tmp/failing_specs.log

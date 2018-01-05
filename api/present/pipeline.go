@@ -3,7 +3,7 @@ package present
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web"
+	"github.com/concourse/web"
 	"github.com/tedsuo/rata"
 )
 
