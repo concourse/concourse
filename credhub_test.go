@@ -1,12 +1,20 @@
 package topgun_test
 
 import (
+	"bufio"
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values"
@@ -60,6 +68,8 @@ var _ = Describe("Credhub", func() {
 			defer os.RemoveAll(varsDir)
 
 			varsStore := filepath.Join(varsDir, "vars.yml")
+			err = generateCredhubCerts(varsStore)
+			Expect(err).ToNot(HaveOccurred())
 
 			Deploy(
 				"deployments/concourse.yml",
@@ -77,7 +87,7 @@ var _ = Describe("Credhub", func() {
 					CA          string `yaml:"ca"`
 					Certificate string `yaml:"certificate"`
 					PrivateKey  string `yaml:"private_key"`
-				} `yaml:"credhub_client"`
+				} `yaml:"credhub_client_topgun"`
 			}
 
 			err = yaml.Unmarshal(varsBytes, &vars)
@@ -101,7 +111,9 @@ var _ = Describe("Credhub", func() {
 
 		Context("with a pipeline build", func() {
 			BeforeEach(func() {
-				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/resource_type_repository", values.Value("concourse/time-resource"), credhub.Overwrite)
+				_, err := credhubClient.SetValue("/concourse/main/pipeline-credhub-test/resource_type_repository", values.Value("concourse/time-resource"), credhub.Overwrite)
+				Expect(err).ToNot(HaveOccurred())
+
 				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/time_resource_interval", values.Value("10m"), credhub.Overwrite)
 				credhubClient.SetUser("/concourse/main/pipeline-credhub-test/job_secret", values.User{
 					Username: "Hello",
@@ -171,7 +183,9 @@ var _ = Describe("Credhub", func() {
 
 		Context("with a one-off build", func() {
 			BeforeEach(func() {
-				credhubClient.SetValue("/concourse/main/task_secret", values.Value("Hiii"), credhub.Overwrite)
+				_, err := credhubClient.SetValue("/concourse/main/task_secret", values.Value("Hiii"), credhub.Overwrite)
+				Expect(err).ToNot(HaveOccurred())
+
 				credhubClient.SetValue("/concourse/main/image_resource_repository", values.Value("busybox"), credhub.Overwrite)
 			})
 
@@ -189,3 +203,109 @@ var _ = Describe("Credhub", func() {
 		})
 	})
 })
+
+type Cert struct {
+	CA          string `yaml:"ca"`
+	Certificate string `yaml:"certificate"`
+	PrivateKey  string `yaml:"private_key"`
+}
+
+func generateCredhubCerts(filepath string) (err error) {
+	var vars struct {
+		CredHubCA           Cert `yaml:"credhub_ca"`
+		CredHubClientAtc    Cert `yaml:"credhub_client_atc"`
+		CredHubClientTopgun Cert `yaml:"credhub_client_topgun"`
+	}
+
+	key, _ := rsa.GenerateKey(rand.Reader, 2048)
+
+	// root ca cert
+	rootCaTemplate, rootCaCert, err := generateCert("credhubCA", "", true, x509.ExtKeyUsageServerAuth, nil, key)
+	if err != nil {
+		return err
+	}
+
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+
+	pem.Encode(writer, &pem.Block{Type: "CERTIFICATE", Bytes: rootCaCert})
+	writer.Flush()
+	rootCa := b.String()
+	b.Reset()
+
+	pem.Encode(writer, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	writer.Flush()
+	rootCaKey := b.String()
+	b.Reset()
+
+	vars.CredHubCA.CA = rootCa
+	vars.CredHubCA.Certificate = rootCa
+	vars.CredHubCA.PrivateKey = rootCaKey
+
+	// client topgun cert
+	_, clientTopgunCert, err := generateCert("credhubCA", "app:eef9440f-7d2b-44b4-99e2-a619cbec99e6", false, x509.ExtKeyUsageClientAuth, &rootCaTemplate, key)
+	if err != nil {
+		return err
+	}
+
+	pem.Encode(writer, &pem.Block{Type: "CERTIFICATE", Bytes: clientTopgunCert})
+	writer.Flush()
+	clientTopgun := b.String()
+	b.Reset()
+
+	vars.CredHubClientTopgun.CA = rootCa
+	vars.CredHubClientTopgun.Certificate = clientTopgun
+	vars.CredHubClientTopgun.PrivateKey = rootCaKey
+
+	// client atc cert
+	_, clientAtcCert, err := generateCert("concourse", "app:df4d7e2c-edfa-432d-ab7e-ee97846b06d0", false, x509.ExtKeyUsageClientAuth, &rootCaTemplate, key)
+	if err != nil {
+		return err
+	}
+
+	pem.Encode(writer, &pem.Block{Type: "CERTIFICATE", Bytes: clientAtcCert})
+	writer.Flush()
+	clientAtc := b.String()
+	b.Reset()
+
+	vars.CredHubClientAtc.CA = rootCa
+	vars.CredHubClientAtc.Certificate = clientAtc
+	vars.CredHubClientAtc.PrivateKey = rootCaKey
+
+	varsYaml, _ := yaml.Marshal(&vars)
+	ioutil.WriteFile(filepath, varsYaml, 0644)
+	return nil
+}
+
+func generateCert(commonName string, orgUnit string, isCA bool, extKeyUsage x509.ExtKeyUsage, parent *x509.Certificate, priv *rsa.PrivateKey) (template x509.Certificate, cert []byte, err error) {
+
+	random := rand.Reader
+	now := time.Now()
+	then := now.Add(60 * 60 * 24 * 1000 * 1000 * 1000) // 24 hours
+
+	template = x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName:         commonName,
+			Organization:       []string{"Cloud Foundry"},
+			OrganizationalUnit: []string{orgUnit},
+		},
+		NotBefore: now,
+		NotAfter:  then,
+
+		SubjectKeyId: []byte{1, 2, 3, 4},
+		KeyUsage:     x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{extKeyUsage},
+
+		BasicConstraintsValid: true,
+		IsCA: isCA,
+	}
+
+	if isCA {
+		parent = &template
+	}
+
+	cert, err = x509.CreateCertificate(random, &template, parent, &priv.PublicKey, priv)
+
+	return template, cert, err
+}
