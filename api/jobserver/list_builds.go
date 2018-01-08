@@ -68,6 +68,7 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 			s.addPreviousLink(w, teamName, pipeline.Name(), jobName, *pagination.Previous)
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
 		jobBuilds := make([]atc.Build, len(builds))
