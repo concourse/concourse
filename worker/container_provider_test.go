@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -57,6 +58,8 @@ var _ = Describe("ContainerProvider", func() {
 		fakeLocalVolume                *workerfakes.FakeVolume
 		fakeOutputVolume               *workerfakes.FakeVolume
 		fakeLocalCOWVolume             *workerfakes.FakeVolume
+
+		fakeCertsVolume *baggageclaimfakes.FakeVolume
 
 		cancel             <-chan os.Signal
 		containerSpec      ContainerSpec
@@ -239,7 +242,7 @@ var _ = Describe("ContainerProvider", func() {
 	})
 
 	CertsVolumeExists := func() {
-		fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
+		fakeCertsVolume = new(baggageclaimfakes.FakeVolume)
 		fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
 	}
 
@@ -345,27 +348,11 @@ var _ = Describe("ContainerProvider", func() {
 	}
 
 	ItHandlesNonExistentContainer := func(createDatabaseCallCountFunc func() int) {
-		Context("when the certs volume does not exist on the worker", func() {
-			BeforeEach(func() {
-				fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
-			})
-			It("creates the container in garden, but does not bind mount any certs", func() {
-				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-				actualSpec := fakeGardenClient.CreateArgsForCall(0)
-				Expect(actualSpec.BindMounts).ToNot(ContainElement(
-					garden.BindMount{
-						SrcPath: "/the/certs/volume/path",
-						DstPath: "/etc/ssl/certs",
-						Mode:    garden.BindMountModeRO,
-					},
-				))
-			})
-		})
+		certsVolumeStream := ioutil.NopCloser(strings.NewReader("certs"))
 
 		BeforeEach(func() {
-			fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
-			fakeCertsVolume.PathReturns("/the/certs/volume/path")
-			fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
+			CertsVolumeExists()
+			fakeCertsVolume.StreamOutReturns(certsVolumeStream, nil)
 		})
 
 		It("gets image", func() {
@@ -406,11 +393,6 @@ var _ = Describe("ContainerProvider", func() {
 				RootFSPath: "some-image-url",
 				Properties: garden.Properties{"user": "some-user"},
 				BindMounts: []garden.BindMount{
-					{
-						SrcPath: "/the/certs/volume/path",
-						DstPath: "/etc/ssl/certs",
-						Mode:    garden.BindMountModeRO,
-					},
 					{
 						SrcPath: "/fake/scratch/volume",
 						DstPath: "/scratch",
@@ -455,6 +437,16 @@ var _ = Describe("ContainerProvider", func() {
 				"/some/work-dir/local-input":  VolumeSpec{Strategy: fakeLocalVolume.COWStrategy()},
 				"/some/work-dir/remote-input": VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
 			}))
+		})
+
+		It("streams certs into the container", func() {
+			Expect(fakeCertsVolume.StreamOutCallCount()).To(Equal(1))
+
+			Expect(fakeGardenContainer.StreamInCallCount()).To(Equal(1))
+
+			streamInSpec := fakeGardenContainer.StreamInArgsForCall(0)
+			Expect(streamInSpec.TarStream).To(Equal(certsVolumeStream))
+			Expect(streamInSpec.Path).To(Equal("/etc/ssl/certs/"))
 		})
 
 		It("streams remote inputs into newly created container volumes", func() {
@@ -517,11 +509,6 @@ var _ = Describe("ContainerProvider", func() {
 
 				actualSpec := fakeGardenClient.CreateArgsForCall(0)
 				Expect(actualSpec.BindMounts).To(Equal([]garden.BindMount{
-					{
-						SrcPath: "/the/certs/volume/path",
-						DstPath: "/etc/ssl/certs",
-						Mode:    garden.BindMountModeRO,
-					},
 					{
 						SrcPath: "/fake/scratch/volume",
 						DstPath: "/scratch",
