@@ -15,7 +15,7 @@ export DISPLAY=:99.0
 Xvfb $DISPLAY -ac +extension RANDR &
 trap "kill $!" EXIT
 
-cd concourse/src/github.com/concourse/atc/web/acceptance/
+cd concourse/src/github.com/concourse/web/acceptance/
 bundle
 if ! bundle exec parallel_rspec spec ; then
   echo "************ RERUNNING FAILURES ************"

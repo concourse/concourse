@@ -7,8 +7,8 @@ dependencies:
   - worker_version
 
 files:
-  - github.com/concourse/atc/web/index.html
-  - github.com/concourse/atc/web/public/**/*
+  - github.com/concourse/web/index.html
+  - github.com/concourse/web/public/**/*
   - code.cloudfoundry.org/clock/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/client/*.{go,s,c,h} # gosub
@@ -152,10 +152,6 @@ files:
   - github.com/concourse/atc/scheduler/inputmapper/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/scheduler/inputmapper/inputconfig/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/scheduler/maxinflight/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/web/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/web/manifest/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/web/publichandler/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/web/robotstxt/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/worker/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/worker/image/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/worker/transport/*.{go,s,c,h} # gosub
@@ -182,6 +178,12 @@ files:
   - github.com/concourse/skymarshal/uaa/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/verifier/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/tsaflags/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/bindata/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/indexhandler/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/manifesthandler/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/publichandler/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/robotshandler/*.{go,s,c,h} # gosub
   - github.com/contraband/holler/*.{go,s,c,h} # gosub
   - github.com/cppforlife/go-semi-semantic/version/*.{go,s,c,h} # gosub
   - github.com/dghubble/oauth1/*.{go,s,c,h} # gosub

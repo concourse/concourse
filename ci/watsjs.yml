@@ -13,7 +13,7 @@ inputs:
 - name: fly-rc
 
 caches:
-- path: concourse/src/github.com/concourse/atc/web/wats/node_modules
+- path: concourse/src/github.com/concourse/web/wats/node_modules
 - path: concourse/pkg
 
 run:

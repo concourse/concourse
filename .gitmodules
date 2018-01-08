@@ -411,3 +411,8 @@
 [submodule "src/github.com/concourse/skymarshal"]
 	path = src/github.com/concourse/skymarshal
 	url = https://github.com/concourse/skymarshal
+	branch = master
+[submodule "src/github.com/concourse/web"]
+	path = src/github.com/concourse/web
+	url = https://github.com/concourse/web
+	branch = master

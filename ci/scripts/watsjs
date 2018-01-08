@@ -5,7 +5,7 @@ set -e
 
 install fly-rc/fly_linux_amd64 /usr/local/bin/fly
 
-cd concourse/src/github.com/concourse/atc/web/wats/
+cd concourse/src/github.com/concourse/web/wats/
 
 yarn install --no-progress
 yarn test -v --color

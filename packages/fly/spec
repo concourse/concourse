@@ -10,6 +10,7 @@ files:
   - code.cloudfoundry.org/lager/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/urljoiner/*.{go,s,c,h} # gosub
   - github.com/Masterminds/squirrel/*.{go,s,c,h} # gosub
+  - github.com/NYTimes/gziphandler/*.{go,s,c,h} # gosub
   - github.com/SHyx0rmZ/go-bitbucket/bitbucket/*.{go,s,c,h} # gosub
   - github.com/SHyx0rmZ/go-bitbucket/cloud/*.{go,s,c,h} # gosub
   - github.com/SHyx0rmZ/go-bitbucket/server/*.{go,s,c,h} # gosub
@@ -31,7 +32,6 @@ files:
   - github.com/concourse/atc/db/lock/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/migration/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/event/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/web/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/commands/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/commands/internal/displayhelpers/*.{go,s,c,h} # gosub
@@ -64,9 +64,16 @@ files:
   - github.com/concourse/skymarshal/uaa/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/verifier/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/tsaflags/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/bindata/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/indexhandler/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/manifesthandler/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/publichandler/*.{go,s,c,h} # gosub
+  - github.com/concourse/web/robotshandler/*.{go,s,c,h} # gosub
   - github.com/cppforlife/go-semi-semantic/version/*.{go,s,c,h} # gosub
   - github.com/dghubble/oauth1/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
+  - github.com/elazarl/go-bindata-assetfs/*.{go,s,c,h} # gosub
   - github.com/fatih/color/*.{go,s,c,h} # gosub
   - github.com/google/go-github/github/*.{go,s,c,h} # gosub
   - github.com/google/go-querystring/query/*.{go,s,c,h} # gosub

@@ -3,7 +3,7 @@
 
 set -e -x
 
-cd concourse/src/github.com/concourse/atc/web/elm
+cd concourse/src/github.com/concourse/web/elm
 elm-package install -y
 
 cd tests
