@@ -9,12 +9,12 @@ import (
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	temp "github.com/concourse/fly/template"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/web"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-interact/interact"

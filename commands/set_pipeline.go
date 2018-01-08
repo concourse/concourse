@@ -2,10 +2,10 @@ package commands
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/web"
 	"github.com/tedsuo/rata"
 )
 
