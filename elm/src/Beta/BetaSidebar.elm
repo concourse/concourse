@@ -1,6 +1,5 @@
 module BetaSideBar exposing (Model, Msg(..), init, update, view, subscriptions, fetchPipelines)
 
-import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, disabled, attribute, style)
 import Html.Events as Events
@@ -13,6 +12,7 @@ import Concourse
 import LoginRedirect
 import Concourse.Pipeline
 import StrictEvents exposing (onLeftClick, onLeftMouseDownCapturing)
+import BetaRoutes
 
 
 type alias Model =
@@ -610,8 +610,8 @@ viewDraggable maybeDragInfo uip =
             [ viewPauseButton uip
             , Html.a
                 [ class "pipeline"
-                , onLeftClick <| NavToPipeline <| prependBeta uip.pipeline.url
-                , href <| prependBeta uip.pipeline.url
+                , onLeftClick <| NavToPipeline <| BetaRoutes.pipelineRoute uip.pipeline
+                , href <| BetaRoutes.pipelineRoute uip.pipeline
                 ]
                 [ Html.text uip.pipeline.name ]
             ]

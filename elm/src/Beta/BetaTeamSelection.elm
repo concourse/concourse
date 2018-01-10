@@ -1,7 +1,6 @@
 module BetaTeamSelection exposing (Model, Msg, init, update, view, subscriptions)
 
 import Erl
-import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (id, class)
 import Html.Events as Events
@@ -12,6 +11,7 @@ import Task
 import Concourse
 import Concourse.Team
 import StrictEvents exposing (onLeftClick)
+import BetaRoutes
 
 
 type alias Ports =
@@ -74,7 +74,7 @@ update action model =
 
 loginRoute : String -> String -> String
 loginRoute redirect teamName =
-    routeMaybeRedirect redirect <| prependBeta <| "/teams/" ++ teamName ++ "/login"
+    routeMaybeRedirect redirect <| BetaRoutes.teamNameLoginRoute teamName
 
 
 routeMaybeRedirect : String -> String -> String

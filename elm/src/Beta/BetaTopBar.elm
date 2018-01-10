@@ -4,7 +4,6 @@ import BetaRoutes
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
-import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
 import Html.Events exposing (onClick)
@@ -135,7 +134,7 @@ update msg model =
                 | selectedGroups = []
                 , pipeline = Nothing
               }
-            , Navigation.newUrl <| prependBeta "/login"
+            , Navigation.newUrl BetaRoutes.loginRoute
             )
 
         LogOut ->
@@ -147,7 +146,7 @@ update msg model =
                 , pipeline = Nothing
                 , selectedGroups = []
               }
-            , Navigation.newUrl <| prependBeta "/"
+            , Navigation.newUrl BetaRoutes.baseRoute
             )
 
         NavTo url ->
@@ -354,9 +353,9 @@ view model =
 
                     Just pipeline ->
                         ( List.map
-                            (viewGroup (getSelectedGroupsForRoute model) pipeline.url)
+                            (viewGroup (getSelectedGroupsForRoute model) (BetaRoutes.pipelineRoute pipeline))
                             pipeline.groups
-                        , pipeline.url
+                        , BetaRoutes.pipelineRoute pipeline
                         )
           in
             Html.ul [ class "groups" ] <|
@@ -371,8 +370,8 @@ view model =
                     ]
                 , Html.li [ class "main" ]
                     [ Html.a
-                        [ StrictEvents.onLeftClick <| NavTo <| prependBeta pipelineUrl
-                        , Html.Attributes.href <| prependBeta pipelineUrl
+                        [ StrictEvents.onLeftClick <| NavTo <| pipelineUrl
+                        , Html.Attributes.href <| pipelineUrl
                         ]
                         [ Html.i [ class "fa fa-home" ] []
                         ]
@@ -402,7 +401,7 @@ viewUserState userState userMenuVisible =
             Html.div [ class "user-info" ]
                 [ Html.a
                     [ StrictEvents.onLeftClick <| LogIn
-                    , href <| prependBeta "/login"
+                    , href <| BetaRoutes.loginRoute
                     , Html.Attributes.attribute "aria-label" "Log In"
                     , class "login-button"
                     ]

@@ -1,5 +1,6 @@
-module Routes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, toString)
+module Routes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, pipelineRoute, jobRoute, buildRoute, toString)
 
+import Concourse
 import Concourse.Pagination as Pagination
 import Navigation exposing (Location)
 import QueryString
@@ -68,6 +69,30 @@ pipeline =
 teamLogin : Route.Route Route
 teamLogin =
     TeamLogin := static "teams" </> string </> static "login"
+
+
+
+-- route utils
+
+
+buildRoute : Concourse.Build -> String
+buildRoute build =
+    case build.job of
+        Just j ->
+            (Build j.teamName j.pipelineName j.jobName build.name) |> toString
+
+        Nothing ->
+            (OneOffBuild (Basics.toString build.id)) |> toString
+
+
+jobRoute : Concourse.Job -> String
+jobRoute j =
+    (Job j.teamName j.pipelineName j.name) |> toString
+
+
+pipelineRoute : Concourse.Pipeline -> String
+pipelineRoute p =
+    (Pipeline p.teamName p.name) |> toString
 
 
 
@@ -154,21 +179,21 @@ createPageFromSearch search =
         limit =
             Maybe.withDefault 100 <| QueryString.one QueryString.int "limit" q
     in
-    case ( since, until ) of
-        ( Nothing, Just u ) ->
-            Just
-                { direction = Pagination.Until u
-                , limit = limit
-                }
+        case ( since, until ) of
+            ( Nothing, Just u ) ->
+                Just
+                    { direction = Pagination.Until u
+                    , limit = limit
+                    }
 
-        ( Just s, Nothing ) ->
-            Just
-                { direction = Pagination.Since s
-                , limit = limit
-                }
+            ( Just s, Nothing ) ->
+                Just
+                    { direction = Pagination.Since s
+                    , limit = limit
+                    }
 
-        _ ->
-            Nothing
+            _ ->
+                Nothing
 
 
 navigateTo : Route -> Cmd msg

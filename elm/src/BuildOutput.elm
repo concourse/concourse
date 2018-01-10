@@ -9,13 +9,13 @@ import Html.Attributes exposing (action, class, classList, id, method, title)
 import Http
 import Task exposing (Task)
 import Concourse
-import Concourse.Build
 import Concourse.BuildPlan
 import Concourse.BuildEvents
 import Concourse.BuildStatus
 import Concourse.BuildResources exposing (empty, fetch)
 import LoadingIndicator
 import StepTree exposing (StepTree)
+import Routes
 
 
 type alias Model =
@@ -373,7 +373,7 @@ viewLoginButton build =
         , Html.input
             [ Html.Attributes.type_ "hidden"
             , Html.Attributes.name "redirect"
-            , Html.Attributes.value (Concourse.Build.url build)
+            , Html.Attributes.value (Routes.buildRoute build)
             ]
             []
         ]

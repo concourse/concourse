@@ -1,8 +1,9 @@
-module BetaRoutes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString, customToString)
+module BetaRoutes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString, customToString, baseRoute, loginRoute, pipelineRoute, jobRoute, jobIdentifierRoute, buildRoute, teamNameLoginRoute, loginWithRedirectRoute)
 
 import Navigation exposing (Location)
 import Route exposing (..)
 import QueryString
+import Concourse
 import Concourse.Pagination as Pagination
 
 
@@ -73,6 +74,55 @@ betaTeamLogin =
 betaHome : Route.Route Route
 betaHome =
     BetaHome := static "beta"
+
+
+
+-- route utils
+
+
+baseRoute : String
+baseRoute =
+    "/beta"
+
+
+loginRoute : String
+loginRoute =
+    baseRoute ++ "/login"
+
+
+loginWithRedirectRoute : String -> String
+loginWithRedirectRoute r =
+    baseRoute ++ "/login?redirect=" ++ r
+
+
+teamNameLoginRoute : String -> String
+teamNameLoginRoute teamName =
+    (BetaTeamLogin teamName) |> toString
+
+
+buildRoute : Concourse.Build -> String
+buildRoute build =
+    case build.job of
+        Just j ->
+            ((BetaBuild j.teamName j.pipelineName j.jobName build.name) |> toString)
+
+        Nothing ->
+            ((BetaOneOffBuild (Basics.toString build.id)) |> toString)
+
+
+jobRoute : Concourse.Job -> String
+jobRoute j =
+    ((BetaJob j.teamName j.pipelineName j.name) |> toString)
+
+
+jobIdentifierRoute : Concourse.JobIdentifier -> String
+jobIdentifierRoute j =
+    ((BetaJob j.teamName j.pipelineName j.jobName) |> toString)
+
+
+pipelineRoute : Concourse.Pipeline -> String
+pipelineRoute p =
+    ((BetaPipeline p.teamName p.name) |> toString)
 
 
 sitemap : Router Route

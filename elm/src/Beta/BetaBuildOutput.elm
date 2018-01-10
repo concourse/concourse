@@ -4,17 +4,16 @@ import Ansi.Log
 import Array exposing (Array)
 import Dict exposing (Dict)
 import Date exposing (Date)
-import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes exposing (action, class, classList, id, method, title)
 import Http
 import Task exposing (Task)
 import Concourse
-import Concourse.Build
 import Concourse.BuildPlan
 import Concourse.BuildEvents
 import Concourse.BuildStatus
 import Concourse.BuildResources exposing (empty, fetch)
+import BetaRoutes
 import LoadingIndicator
 import StepTree exposing (StepTree)
 
@@ -364,7 +363,7 @@ viewLoginButton build =
     Html.form
         [ class "build-login"
         , Html.Attributes.method "get"
-        , Html.Attributes.action <| prependBeta "/login"
+        , Html.Attributes.action <| BetaRoutes.loginRoute
         ]
         [ Html.input
             [ Html.Attributes.type_ "submit"
@@ -374,7 +373,7 @@ viewLoginButton build =
         , Html.input
             [ Html.Attributes.type_ "hidden"
             , Html.Attributes.name "redirect"
-            , Html.Attributes.value <| prependBeta (Concourse.Build.url build)
+            , Html.Attributes.value <| (BetaRoutes.buildRoute build)
             ]
             []
         ]

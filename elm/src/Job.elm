@@ -20,6 +20,7 @@ import StrictEvents exposing (onLeftClick)
 import LoginRedirect
 import RemoteData exposing (WebData)
 import UpdateMsg exposing (UpdateMsg)
+import Routes
 
 
 type alias Ports =
@@ -566,8 +567,8 @@ viewBuildHeader : Model -> Concourse.Build -> Html Msg
 viewBuildHeader model b =
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
-        , StrictEvents.onLeftClick <| NavTo <| Concourse.Build.url b
-        , href <| Concourse.Build.url b
+        , StrictEvents.onLeftClick <| NavTo <| Routes.buildRoute b
+        , href <| Routes.buildRoute b
         ]
         [ Html.text ("#" ++ b.name)
         ]

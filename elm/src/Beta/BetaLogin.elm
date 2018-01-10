@@ -1,7 +1,6 @@
 module BetaLogin exposing (Model, Msg(..), init, update, view, subscriptions)
 
 import String
-import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (id, class)
 import Html.Events exposing (onInput, onSubmit)
@@ -12,6 +11,7 @@ import Concourse
 import Concourse.AuthMethod
 import Concourse.Login
 import StrictEvents exposing (onLeftClick)
+import BetaRoutes
 
 
 type alias Ports =
@@ -164,7 +164,7 @@ update action model =
 
 redirectUrl : Maybe String -> String
 redirectUrl redirectParam =
-    Maybe.withDefault (prependBeta "/") redirectParam
+    Maybe.withDefault (BetaRoutes.baseRoute ++ "/") redirectParam
 
 
 teamSelectionRoute : Maybe String -> String
@@ -172,10 +172,10 @@ teamSelectionRoute redirectParam =
     -- TODO: Replace this back with Erl...if we ever go back (#134461889)
     case redirectParam of
         Nothing ->
-            prependBeta "/login"
+            BetaRoutes.loginRoute
 
         Just r ->
-            prependBeta ("/login?redirect=" ++ r)
+            BetaRoutes.loginWithRedirectRoute r
 
 
 routeWithRedirect : Maybe String -> String -> String

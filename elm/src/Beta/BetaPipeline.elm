@@ -1,7 +1,6 @@
 module BetaPipeline exposing (Flags, Model, Msg, init, changeToPipelineAndGroups, update, view, subscriptions)
 
 import Dict exposing (Dict)
-import Format exposing (prependBeta)
 import Graph exposing (Graph)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, style, rowspan)
@@ -14,6 +13,7 @@ import Concourse.BuildStatus
 import Grid exposing (Grid)
 import BetaRoutes
 import QueryString
+import BetaRoutes
 
 
 type alias Model =
@@ -229,28 +229,28 @@ viewJobNode job =
         ( classes, linkTarget ) =
             case ( job.paused, job.finishedBuild, job.nextBuild ) of
                 ( True, _, Nothing ) ->
-                    ( class "job paused", job.url )
+                    ( class "job paused", (BetaRoutes.jobRoute job) )
 
                 ( True, _, Just nb ) ->
-                    ( class "job paused started", nb.url )
+                    ( class "job paused started", (BetaRoutes.buildRoute nb) )
 
                 ( False, Just fb, Just nb ) ->
-                    ( class ("job " ++ Concourse.BuildStatus.show fb.status ++ " started"), nb.url )
+                    ( class ("job " ++ Concourse.BuildStatus.show fb.status ++ " started"), (BetaRoutes.buildRoute nb) )
 
                 ( False, Just fb, Nothing ) ->
-                    ( class ("job " ++ Concourse.BuildStatus.show fb.status), fb.url )
+                    ( class ("job " ++ Concourse.BuildStatus.show fb.status), (BetaRoutes.buildRoute fb) )
 
                 ( False, Nothing, Just nb ) ->
-                    ( class "job no-builds started", nb.url )
+                    ( class "job no-builds started", (BetaRoutes.buildRoute nb) )
 
                 ( False, Nothing, Nothing ) ->
-                    ( class "job no-builds", job.url )
+                    ( class "job no-builds", (BetaRoutes.jobRoute job) )
     in
         Html.div [ classes ]
-            [ Html.a [ class "job-name", href (prependBeta linkTarget) ]
+            [ Html.a [ class "job-name", href linkTarget ]
                 [ Html.text job.name
                 ]
-            , Html.a [ class "job-status", href (prependBeta linkTarget) ]
+            , Html.a [ class "job-status", href linkTarget ]
                 []
             ]
 

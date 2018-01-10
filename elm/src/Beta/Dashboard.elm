@@ -10,7 +10,6 @@ import Concourse.PipelineStatus
 import DashboardPreview
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src, attribute)
 import Html.Attributes.Aria exposing (ariaLabel)
@@ -24,6 +23,7 @@ import RemoteData
 import Task exposing (Task)
 import Time exposing (Time)
 import Simple.Fuzzy exposing (match, root, filter)
+import BetaRoutes
 
 
 port pinTeamNames : () -> Cmd msg
@@ -382,7 +382,7 @@ viewPipeline now state =
             [ Html.div [ class "dashboard-pipeline-banner" ] []
             , Html.div
                 [ class "dashboard-pipeline-content" ]
-                [ Html.a [ href <| prependBeta state.pipeline.url ]
+                [ Html.a [ href <| BetaRoutes.pipelineRoute state.pipeline ]
                     [ Html.div
                         [ class "dashboard-pipeline-header" ]
                         [ Html.div [ class "dashboard-pipeline-name" ]

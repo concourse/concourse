@@ -23,12 +23,12 @@ import Concourse.BuildPrep
 import Concourse.BuildStatus
 import Concourse.Job
 import Concourse.Pagination exposing (Paginated)
+import BetaRoutes
 import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
 import Favicon
-import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled, attribute, tabindex)
 import Html.Lazy
@@ -224,7 +224,7 @@ update action model =
             ( model, Cmd.none )
 
         SwitchToBuild build ->
-            ( model, Navigation.newUrl <| prependBeta <| Concourse.Build.url build )
+            ( model, Navigation.newUrl <| BetaRoutes.buildRoute build )
 
         TriggerBuild job ->
             case job of
@@ -836,16 +836,16 @@ viewBuildHeader build { now, job, history } =
 
         buildTitle =
             case build.job of
-                Just { jobName, teamName, pipelineName } ->
+                Just jobId ->
                     let
                         jobUrl =
-                            prependBeta <| "/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName
+                            BetaRoutes.jobIdentifierRoute jobId
                     in
                         Html.a
                             [ StrictEvents.onLeftClick <| NavTo jobUrl
                             , href jobUrl
                             ]
-                            [ Html.text (jobName ++ " #" ++ build.name) ]
+                            [ Html.text (jobId.jobName ++ " #" ++ build.name) ]
 
                 _ ->
                     Html.text ("build #" ++ toString build.id)
@@ -889,7 +889,7 @@ viewHistoryItem currentBuild build =
         ]
         [ Html.a
             [ onLeftClick (SwitchToBuild build)
-            , href <| prependBeta (Concourse.Build.url build)
+            , href <| (BetaRoutes.buildRoute build)
             ]
             [ Html.text (build.name)
             ]

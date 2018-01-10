@@ -45,6 +45,7 @@ import String
 import Task exposing (Task)
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
+import Routes
 
 
 type alias Ports =
@@ -228,7 +229,7 @@ update action model =
             ( model, Cmd.none )
 
         SwitchToBuild build ->
-            ( model, Navigation.newUrl <| Concourse.Build.url build )
+            ( model, Navigation.newUrl <| Routes.buildRoute build )
 
         TriggerBuild job ->
             case job of
@@ -906,7 +907,7 @@ viewHistoryItem currentBuild build =
         ]
         [ Html.a
             [ onLeftClick (SwitchToBuild build)
-            , href (Concourse.Build.url build)
+            , href (Routes.buildRoute build)
             ]
             [ Html.text (build.name)
             ]

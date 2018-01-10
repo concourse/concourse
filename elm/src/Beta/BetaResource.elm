@@ -833,8 +833,8 @@ viewBuildCausality build =
     in
         Html.div [ class <| "causality-build " ++ Concourse.BuildStatus.show build.status ]
             [ Html.a
-                [ StrictEvents.onLeftClick <| NavTo build.url
-                , href build.url
+                [ StrictEvents.onLeftClick <| NavTo (BetaRoutes.buildRoute build)
+                , href (BetaRoutes.buildRoute build)
                 ]
                 [ Html.text <| jobName ++ " #" ++ build.name ]
             ]

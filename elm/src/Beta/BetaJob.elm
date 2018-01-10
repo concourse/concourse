@@ -15,12 +15,12 @@ import Concourse.Pagination exposing (Pagination, Paginated, Page)
 import Concourse.BuildResources exposing (fetch)
 import BuildDuration
 import DictView
-import Format exposing (prependBeta)
 import Navigation
 import StrictEvents exposing (onLeftClick)
 import LoginRedirect
 import RemoteData exposing (WebData)
 import UpdateMsg exposing (UpdateMsg)
+import BetaRoutes
 
 
 type alias Ports =
@@ -154,16 +154,7 @@ update action model =
                     Cmd.none
 
                 Just job ->
-                    Navigation.newUrl <|
-                        prependBeta <|
-                            "/teams/"
-                                ++ job.teamName
-                                ++ "/pipelines/"
-                                ++ job.pipelineName
-                                ++ "/jobs/"
-                                ++ job.jobName
-                                ++ "/builds/"
-                                ++ build.name
+                    Navigation.newUrl (BetaRoutes.buildRoute build)
             )
 
         BuildTriggered (Err err) ->
@@ -498,15 +489,9 @@ viewPaginationBar model =
             Just page ->
                 let
                     jobUrl =
-                        prependBeta <|
-                            "/teams/"
-                                ++ model.jobIdentifier.teamName
-                                ++ "/pipelines/"
-                                ++ model.jobIdentifier.pipelineName
-                                ++ "/jobs/"
-                                ++ model.jobIdentifier.jobName
-                                ++ "?"
-                                ++ paginationParam page
+                        BetaRoutes.jobIdentifierRoute model.jobIdentifier
+                            ++ "?"
+                            ++ paginationParam page
                 in
                     Html.div [ class "btn-page-link" ]
                         [ Html.a
@@ -529,15 +514,9 @@ viewPaginationBar model =
             Just page ->
                 let
                     jobUrl =
-                        prependBeta <|
-                            "/teams/"
-                                ++ model.jobIdentifier.teamName
-                                ++ "/pipelines/"
-                                ++ model.jobIdentifier.pipelineName
-                                ++ "/jobs/"
-                                ++ model.jobIdentifier.jobName
-                                ++ "?"
-                                ++ paginationParam page
+                        BetaRoutes.jobIdentifierRoute model.jobIdentifier
+                            ++ "?"
+                            ++ paginationParam page
                 in
                     Html.div [ class "btn-page-link" ]
                         [ Html.a
@@ -570,8 +549,8 @@ viewBuildHeader : Model -> Concourse.Build -> Html Msg
 viewBuildHeader model b =
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
-        , StrictEvents.onLeftClick <| NavTo <| prependBeta (Concourse.Build.url b)
-        , href <| prependBeta (Concourse.Build.url b)
+        , StrictEvents.onLeftClick <| NavTo <| (BetaRoutes.buildRoute b)
+        , href <| (BetaRoutes.buildRoute b)
         ]
         [ Html.text ("#" ++ b.name)
         ]

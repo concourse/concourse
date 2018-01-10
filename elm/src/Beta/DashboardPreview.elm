@@ -4,9 +4,9 @@ import Concourse
 import Concourse.BuildStatus
 import Debug
 import Dict exposing (Dict)
-import Format exposing (prependBeta)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href)
+import BetaRoutes
 
 
 view : List Concourse.Job -> Html msg
@@ -70,10 +70,10 @@ viewJob job =
         <|
             case latestBuild of
                 Nothing ->
-                    [ Html.a [ href <| prependBeta job.url ] [ Html.text "" ] ]
+                    [ Html.a [ href <| BetaRoutes.jobRoute job ] [ Html.text "" ] ]
 
                 Just build ->
-                    [ Html.a [ href <| prependBeta build.url ] [ Html.text "" ] ]
+                    [ Html.a [ href <| BetaRoutes.buildRoute build ] [ Html.text "" ] ]
 
 
 jobGroups : List Concourse.Job -> Dict Int (List Concourse.Job)

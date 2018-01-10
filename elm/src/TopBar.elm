@@ -360,9 +360,9 @@ view model =
 
                     Just pipeline ->
                         ( List.map
-                            (viewGroup (getSelectedGroupsForRoute model) pipeline.url)
+                            (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
                             pipeline.groups
-                        , pipeline.url
+                        , (Routes.pipelineRoute pipeline)
                         )
           in
             Html.ul [ class "groups" ] <|

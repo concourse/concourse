@@ -12,6 +12,7 @@ import Concourse
 import LoginRedirect
 import Concourse.Pipeline
 import StrictEvents exposing (onLeftClick, onLeftMouseDownCapturing)
+import Routes
 
 
 type alias Model =
@@ -609,8 +610,8 @@ viewDraggable maybeDragInfo uip =
             [ viewPauseButton uip
             , Html.a
                 [ class "pipeline"
-                , onLeftClick <| NavToPipeline uip.pipeline.url
-                , href uip.pipeline.url
+                , onLeftClick <| NavToPipeline (Routes.pipelineRoute uip.pipeline)
+                , href (Routes.pipelineRoute uip.pipeline)
                 ]
                 [ Html.text uip.pipeline.name ]
             ]

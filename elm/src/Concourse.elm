@@ -193,7 +193,6 @@ type alias JobBuildIdentifier =
 
 type alias Build =
     { id : BuildId
-    , url : String
     , name : BuildName
     , job : Maybe JobIdentifier
     , status : BuildStatus
@@ -221,7 +220,6 @@ decodeBuild : Json.Decode.Decoder Build
 decodeBuild =
     Json.Decode.succeed Build
         |: (Json.Decode.field "id" Json.Decode.int)
-        |: (Json.Decode.field "url" Json.Decode.string)
         |: (Json.Decode.field "name" Json.Decode.string)
         |: (Json.Decode.maybe
                 (Json.Decode.succeed JobIdentifier
@@ -549,7 +547,8 @@ type alias JobIdentifier =
 type alias Job =
     { pipeline : PipelineIdentifier
     , name : JobName
-    , url : String
+    , pipelineName : PipelineName
+    , teamName : TeamName
     , nextBuild : Maybe Build
     , finishedBuild : Maybe Build
     , transitionBuild : Maybe Build
@@ -579,7 +578,8 @@ decodeJob : PipelineIdentifier -> Json.Decode.Decoder Job
 decodeJob pi =
     Json.Decode.succeed (Job pi)
         |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.field "url" Json.Decode.string)
+        |: (Json.Decode.field "pipeline_name" Json.Decode.string)
+        |: (Json.Decode.field "team_name" Json.Decode.string)
         |: (Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild))
         |: (Json.Decode.maybe (Json.Decode.field "finished_build" decodeBuild))
         |: (Json.Decode.maybe (Json.Decode.field "transition_build" decodeBuild))
@@ -623,7 +623,6 @@ type alias PipelineIdentifier =
 type alias Pipeline =
     { id : Int
     , name : PipelineName
-    , url : String
     , paused : Bool
     , public : Bool
     , teamName : TeamName
@@ -653,7 +652,6 @@ decodePipeline =
     Json.Decode.succeed Pipeline
         |: (Json.Decode.field "id" Json.Decode.int)
         |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.field "url" Json.Decode.string)
         |: (Json.Decode.field "paused" Json.Decode.bool)
         |: (Json.Decode.field "public" Json.Decode.bool)
         |: (Json.Decode.field "team_name" Json.Decode.string)
