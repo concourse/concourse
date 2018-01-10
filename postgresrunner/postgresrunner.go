@@ -242,25 +242,10 @@ func (runner *Runner) Truncate() {
 			END;
 			$$ LANGUAGE plpgsql;
 
-			CREATE OR REPLACE FUNCTION reinsert_default_data() RETURNS void AS $$
-			DECLARE
-					statements CURSOR FOR
-							SELECT tablename FROM pg_tables
-							WHERE tablename = 'teams';
-			BEGIN
-					FOR stmt IN statements LOOP
-						INSERT INTO teams (name) VALUES ('main');
-						CREATE TABLE team_build_events_1 ()
-						INHERITS (build_events);
-					END LOOP;
-			END;
-			$$ LANGUAGE plpgsql;
-
 			SELECT truncate_tables();
 			SELECT drop_ephemeral_sequences();
 			SELECT drop_ephemeral_tables();
 			SELECT reset_global_sequences();
-			SELECT reinsert_default_data();
 		`,
 	)
 
