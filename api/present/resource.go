@@ -3,26 +3,9 @@ package present
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/web"
-	"github.com/tedsuo/rata"
 )
 
 func Resource(resource db.Resource, groups atc.GroupConfigs, showCheckError bool, teamName string) atc.Resource {
-	generator := rata.NewRequestGenerator("", web.Routes)
-
-	req, err := generator.CreateRequest(
-		web.GetResource,
-		rata.Params{
-			"resource":      resource.Name(),
-			"team_name":     teamName,
-			"pipeline_name": resource.PipelineName(),
-		},
-		nil,
-	)
-	if err != nil {
-		panic("failed to generate url: " + err.Error())
-	}
-
 	groupNames := []string{}
 	for _, group := range groups {
 		for _, name := range group.Resources {
@@ -38,10 +21,11 @@ func Resource(resource db.Resource, groups atc.GroupConfigs, showCheckError bool
 	}
 
 	atcResource := atc.Resource{
-		Name:   resource.Name(),
-		Type:   resource.Type(),
-		Groups: groupNames,
-		URL:    req.URL.String(),
+		Name:         resource.Name(),
+		PipelineName: resource.PipelineName(),
+		TeamName:     teamName,
+		Type:         resource.Type(),
+		Groups:       groupNames,
 
 		Paused: resource.Paused(),
 
