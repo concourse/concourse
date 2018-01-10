@@ -683,6 +683,9 @@ paginationParam page =
         Concourse.Pagination.To i ->
             "to=" ++ toString i
 
+        Concourse.Pagination.Around i ->
+            "around=" ++ toString i
+
 
 pauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Msg
 pauseJob jobIdentifier csrfToken =

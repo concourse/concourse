@@ -10,6 +10,10 @@
   }
 }
 
+.build-header {
+  clear: left;
+}
+
 .build-duration {
   line-height: 16px;
 }
@@ -119,8 +123,42 @@ button.build-action[disabled] i {
   list-style: none;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
   white-space: nowrap;
+}
+
+#builds {
+  height: 2.5em;
+  width: 100%;
+  float: left;
+}
+
+#builds.nav-both {
+  width: ~"calc(100% - 75px)";
+}
+
+#builds.only-nav-right {
+  width: ~"calc(100% - 30px)";
+}
+
+#builds.only-nav-left {
+  width: ~"calc(100% - 45px)";
+}
+
+.build-nav-right {
+  float: left;
+  height: 2.5em;
+  width: 30px;
+}
+
+.build-nav-right a {
+  margin-left: 4px;
+}
+
+.build-nav-left {
+  float: left;
+  height: 2.5em;
+  width: 45px;
 }
 
 .builds-list li {
@@ -129,12 +167,12 @@ button.build-action[disabled] i {
 }
 
 .jobs-builds-list {
-	background: none;
+  background: none;
 }
 
 .jobs-builds-list li{
-	background-color: @base02;
-	width:100%;
+  background-color: @base02;
+  width:100%;
   float: none;
   margin: 0px;
   margin-bottom: 10px;
@@ -159,6 +197,26 @@ button.build-action[disabled] i {
   display: block;
   font-weight: bold;
   text-decoration: none;
+}
+
+.pagination {
+}
+
+.svg-icon {
+  width: 1em;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: block;
+  float:left;
+  padding: 20px 5px 10px 5px;
+}
+
+.ellipsis-icon {
+  background-image: url(images/ic_more_horiz_white.svg);
+}
+
+.latest-build-icon {
+  background-image: url('images/ic_skip_previous_white.svg');
 }
 
 #build-requires-auth {

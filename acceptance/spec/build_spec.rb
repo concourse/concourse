@@ -14,6 +14,62 @@ describe 'build', type: :feature do
     dash_login team_name
   end
 
+  describe 'build history' do
+    before do
+      fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p pipeline')
+
+      for i in 1..101 do
+         fly('trigger-job -j pipeline/passing')
+         fly("abort-build -j pipeline/passing -b %d" % [i])
+      end
+
+    end
+
+    it 'shows up to 100 builds' do
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/101")
+      expect(page).to have_selector('#builds li', count: 100,  :visible => false)
+    end
+
+    it 'shows the "more builds" link on the right' do
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/101")
+      expect(page).to have_selector('.build-nav-right')
+    end
+
+    it 'navigates to the last build when the right navigation button is clicked' do
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/101")
+      page.find('.build-nav-right').click
+
+      visit current_url
+      expect(page).to have_content 'passing #2'
+    end
+
+    it 'shows nav links on the left when there are newer builds' do
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/1")
+      expect(page).to have_selector('.build-nav-left')
+    end
+
+    it 'navigates to the last build when the left navigation button is clicked' do
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/1")
+      page.find('.build-nav-left').click
+
+      visit current_url
+      expect(page).to have_content 'passing #100'
+    end
+
+    it 'shows a link to navigate to the most recent finished build' do
+      # wait for the running builds to finish
+      sleep 5
+
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/1")
+      page.find('a.latest-build-icon').click
+
+      visit current_url
+      expect(page).to have_content 'passing #101'
+    end
+
+  end
+
   describe 'build logs' do
     let(:timestamp_regex) { /\d{2}:\d{2}:\d{2}/ }
 
