@@ -7,9 +7,9 @@ golang/golang-linux-amd64-1.9.2.tar.gz:
   object_id: 78ad4712-ac1d-4b85-5ceb-49c70c2c31b8
   sha: 94c889e039e3d2e94ed95e8f8cb747c5bc1c2b58
 resources/archive-resource-3ee27e9.tar.gz:
-  size: 8523651
-  object_id: e8046e24-dc46-4b43-489e-f1cece6e22da
-  sha: 40282960ba0fb3716be3f0264c9b559dd36af399
+  size: 8523373
+  object_id: c6601a98-6cea-4275-6cf4-36620407a478
+  sha: 1265a131dd9f4f18d5126782d94a25d079315d93
 resources/bosh-deployment-resource-2ec4621.tar.gz:
   size: 16063942
   object_id: f714bdf9-4ba1-4557-7b30-2f9b4794047a
