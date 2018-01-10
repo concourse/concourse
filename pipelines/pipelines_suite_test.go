@@ -10,7 +10,6 @@ import (
 
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/testflight/gitserver"
-	"github.com/concourse/testflight/guidserver"
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,7 +42,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	client := helpers.ConcourseClient(atcURL)
 
 	gitserver.Cleanup(client)
-	guidserver.Cleanup(client)
 
 	team = client.Team("main")
 

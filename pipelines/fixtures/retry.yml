@@ -2,45 +2,58 @@
 jobs:
 - name: retry-job
   plan:
+  - &init-task
+    task: initial-output
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+
+      outputs:
+      - name: attempts-log
+
+      run:
+        path: touch
+        args: ['attempts-log/attempts']
   - &attempts-task
-    task: register-server-until-3-registrations
+    task: succeed-on-3rd-attempt
     attempts: 5
     config:
       platform: linux
       image_resource:
         type: docker-image
-        source: {repository: concourse/bosh-deployment-resource}
-      params:
-        REGISTER_COMMAND: {{guid-server-register-command}}
-        REGISTRATIONS_COMMAND: {{guid-server-registrations-command}}
+        source: {repository: busybox}
+      inputs:
+      - name: attempts-log
+        path: old
+      outputs:
+      - name: attempts-log
+        path: new
       run:
-        path: ruby
+        path: sh
         args:
-        - -e
+        - -ec
         - |
-          require "json"
-          require "securerandom"
+          cp old/attempts new/
 
-          register = ENV["REGISTER_COMMAND"]
-          registrations = ENV["REGISTRATIONS_COMMAND"]
+          echo attempt >> new/attempts
+          attempts=$(cat new/attempts | wc -l)
 
-          system "echo #{SecureRandom.uuid} | #{register}"
+          echo $attempts > /tmp/retry_number
+          echo -n "attempts: $attempts; "
 
-          registrations = JSON.parse(`#{registrations}`)
-
-          print "registrations: #{registrations.length}; "
-
-          if registrations.length == 3
-            `echo 3 > /tmp/retry_number`
-            puts "success!"
+          if [ $attempts -eq 3 ]; then
+            echo 'success!'
           else
-            `echo #{registrations.length} > /tmp/retry_number`
-            puts "failing"
+            echo 'failing'
             exit 1
-          end
+          fi
 
 - name: retry-job-fail-for-hijacking
   plan:
+  - *init-task
   - *attempts-task
   - task: fail
     config:
