@@ -186,9 +186,9 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-							{Name: "some-pipeline-1", URL: "/pipelines/some-pipeline-1", Paused: false, Public: false},
-							{Name: "some-pipeline-2", URL: "/pipelines/some-pipeline-2", Paused: false, Public: false},
-							{Name: "another-pipeline", URL: "/pipelines/another-pipeline", Paused: false, Public: false},
+							{Name: "some-pipeline-1", Paused: false, Public: false},
+							{Name: "some-pipeline-2", Paused: false, Public: false},
+							{Name: "another-pipeline", Paused: false, Public: false},
 						}),
 					),
 				)

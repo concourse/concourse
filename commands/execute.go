@@ -81,24 +81,37 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
-	var build atc.Build
-	if command.InputsFrom.PipelineName != "" {
-		build, err = target.Team().CreatePipelineBuild(command.InputsFrom.PipelineName, plan)
-	} else {
-		build, err = client.CreateBuild(plan)
-	}
-	if err != nil {
-		return err
-	}
-
 	clientURL, err := url.Parse(client.URL())
 	if err != nil {
 		return err
 	}
-	buildURL, err := url.Parse(build.URL)
-	if err != nil {
-		return err
+
+	var build atc.Build
+	var buildURL *url.URL
+
+	if command.InputsFrom.PipelineName != "" {
+		build, err = target.Team().CreatePipelineBuild(command.InputsFrom.PipelineName, plan)
+		if err != nil {
+			return err
+		}
+
+		buildURL, err = url.Parse(fmt.Sprintf("/teams/%s/pipelines/%s/builds/%s", build.TeamName, build.PipelineName, build.Name))
+		if err != nil {
+			return err
+		}
+
+	} else {
+		build, err = client.CreateBuild(plan)
+		if err != nil {
+			return err
+		}
+
+		buildURL, err = url.Parse(fmt.Sprintf("/builds/%d", build.ID))
+		if err != nil {
+			return err
+		}
 	}
+
 	fmt.Printf("executing build %d at %s \n", build.ID, clientURL.ResolveReference(buildURL))
 
 	terminate := make(chan os.Signal, 1)

@@ -29,9 +29,9 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "pipeline-1-longer", URL: "/pipelines/pipeline-1", Paused: false, Public: false},
-								{Name: "pipeline-2", URL: "/pipelines/pipeline-2", Paused: true, Public: false},
-								{Name: "pipeline-3", URL: "/pipelines/pipeline-3", Paused: false, Public: true},
+								{Name: "pipeline-1-longer", Paused: false, Public: false},
+								{Name: "pipeline-2", Paused: true, Public: false},
+								{Name: "pipeline-3", Paused: false, Public: true},
 							}),
 						),
 					)
@@ -64,11 +64,11 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "pipeline-1-longer", URL: "/pipelines/pipeline-1", Paused: false, Public: false, TeamName: "main"},
-								{Name: "pipeline-2", URL: "/pipelines/pipeline-2", Paused: true, Public: false, TeamName: "main"},
-								{Name: "pipeline-3", URL: "/pipelines/pipeline-3", Paused: false, Public: true, TeamName: "main"},
-								{Name: "foreign-pipeline-1", URL: "/pipelines/foreign-pipeline-1", Paused: false, Public: true, TeamName: "other"},
-								{Name: "foreign-pipeline-2", URL: "/pipelines/foreign-pipeline-2", Paused: false, Public: true, TeamName: "other"},
+								{Name: "pipeline-1-longer", Paused: false, Public: false, TeamName: "main"},
+								{Name: "pipeline-2", Paused: true, Public: false, TeamName: "main"},
+								{Name: "pipeline-3", Paused: false, Public: true, TeamName: "main"},
+								{Name: "foreign-pipeline-1", Paused: false, Public: true, TeamName: "other"},
+								{Name: "foreign-pipeline-2", Paused: false, Public: true, TeamName: "other"},
 							}),
 						),
 					)
@@ -103,9 +103,9 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "some-pipeline-1", URL: "/pipelines/some-pipeline-1", Paused: false, Public: false},
-								{Name: "some-pipeline-2", URL: "/pipelines/some-pipeline-2", Paused: false, Public: false},
-								{Name: "another-pipeline", URL: "/pipelines/another-pipeline", Paused: false, Public: false},
+								{Name: "some-pipeline-1", Paused: false, Public: false},
+								{Name: "some-pipeline-2", Paused: false, Public: false},
+								{Name: "another-pipeline", Paused: false, Public: false},
 							}),
 						),
 					)

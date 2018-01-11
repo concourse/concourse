@@ -3,6 +3,7 @@ package setpipelinehelpers
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 
 	yaml "gopkg.in/yaml.v2"
@@ -14,17 +15,15 @@ import (
 	temp "github.com/concourse/fly/template"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/concourse/web"
 	"github.com/onsi/gomega/gexec"
-	"github.com/tedsuo/rata"
 	"github.com/vito/go-interact/interact"
 )
 
 type ATCConfig struct {
-	PipelineName        string
-	Team                concourse.Team
-	WebRequestGenerator *rata.RequestGenerator
-	SkipInteraction     bool
+	PipelineName    string
+	Team            concourse.Team
+	Target          string
+	SkipInteraction bool
 }
 
 func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
@@ -249,23 +248,19 @@ func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {
 	if updated {
 		fmt.Println("configuration updated")
 	} else if created {
-		pipelineWebReq, _ := atcConfig.WebRequestGenerator.CreateRequest(
-			web.Pipeline,
-			rata.Params{
-				"pipeline":  atcConfig.PipelineName,
-				"team_name": atcConfig.Team.Name(),
-			},
-			nil,
-		)
+
+		targetURL, err := url.Parse(atcConfig.Target)
+		if err != nil {
+			fmt.Println("Could not parse targetURL")
+		}
+
+		pipelineURL, err := url.Parse("/teams/" + atcConfig.Team.Name() + "/pipelines/" + atcConfig.PipelineName)
+		if err != nil {
+			fmt.Println("Could not parse pipelineURL")
+		}
 
 		fmt.Println("pipeline created!")
-
-		pipelineURL := pipelineWebReq.URL
-		// don't show username and password
-		pipelineURL.User = nil
-
-		fmt.Printf("you can view your pipeline here: %s\n", pipelineURL.String())
-
+		fmt.Printf("you can view your pipeline here: %s\n", targetURL.ResolveReference(pipelineURL))
 		fmt.Println("")
 		fmt.Println("the pipeline is currently paused. to unpause, either:")
 		fmt.Println("  - run the unpause-pipeline command")

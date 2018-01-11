@@ -22,7 +22,6 @@ var _ = Describe("AbortBuild", func() {
 		Name:    "42",
 		Status:  "running",
 		JobName: "myjob",
-		URL:     "/pipelines/my-pipeline/jobs/my-job/builds/42",
 		APIURL:  "api/v1/builds/123",
 	}
 

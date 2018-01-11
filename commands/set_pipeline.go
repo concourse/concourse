@@ -5,8 +5,6 @@ import (
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/fly/rc"
-	"github.com/concourse/web"
-	"github.com/tedsuo/rata"
 )
 
 type SetPipelineCommand struct {
@@ -44,13 +42,11 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	webRequestGenerator := rata.NewRequestGenerator(target.Client().URL(), web.Routes)
-
 	atcConfig := setpipelinehelpers.ATCConfig{
-		Team:                target.Team(),
-		PipelineName:        pipelineName,
-		WebRequestGenerator: webRequestGenerator,
-		SkipInteraction:     command.SkipInteractive,
+		Team:            target.Team(),
+		PipelineName:    pipelineName,
+		Target:          target.Client().URL(),
+		SkipInteraction: command.SkipInteractive,
 	}
 
 	return atcConfig.Set(configPath, command.Var, command.YAMLVar, templateVariablesFiles)

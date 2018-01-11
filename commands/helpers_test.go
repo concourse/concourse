@@ -26,7 +26,6 @@ var _ = Describe("Helper Functions", func() {
 			Name:    expectedBuildName,
 			Status:  "Great Success",
 			JobName: expectedJobName,
-			URL:     fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", expectedPipelineName, expectedJobName, expectedBuildName),
 			APIURL:  fmt.Sprintf("api/v1/builds/%s", expectedBuildID),
 		}
 
@@ -169,7 +168,6 @@ var _ = Describe("Helper Functions", func() {
 				Name:    expectedBuildName,
 				Status:  "success",
 				JobName: "",
-				URL:     fmt.Sprintf("/builds/%s", expectedBuildID),
 				APIURL:  fmt.Sprintf("api/v1/builds/%s", expectedBuildID),
 			}
 
@@ -179,7 +177,6 @@ var _ = Describe("Helper Functions", func() {
 						ID:      i,
 						Name:    strconv.Itoa(i),
 						JobName: "some-job",
-						URL:     fmt.Sprintf("/jobs/some-job/builds/%s", i),
 						APIURL:  fmt.Sprintf("api/v1/builds/%s", i),
 					}
 				}

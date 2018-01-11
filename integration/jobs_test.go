@@ -49,7 +49,6 @@ var _ = Describe("Fly CLI", func() {
 
 				return atc.Job{
 					Name:          fmt.Sprintf("job-%d", num),
-					URL:           fmt.Sprintf("/teams/main/pipelines/pipeline/jobs/job-%d", num),
 					Paused:        paused,
 					FinishedBuild: build,
 					NextBuild:     nextBuild,

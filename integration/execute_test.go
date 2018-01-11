@@ -151,7 +151,7 @@ run:
 						Expires: time.Now().Add(1 * time.Minute),
 					})
 				},
-				ghttp.RespondWith(201, `{"id":128, "url":"some/url"}`),
+				ghttp.RespondWith(201, `{"id":128}`),
 			),
 		)
 		atcServer.RouteToHandler("GET", "/api/v1/builds/128/events",
@@ -233,7 +233,7 @@ run:
 		Eventually(streaming).Should(BeClosed())
 
 		buildURL, _ := url.Parse(atcServer.URL())
-		buildURL.Path = path.Join(buildURL.Path, "some/url")
+		buildURL.Path = path.Join(buildURL.Path, "builds/128")
 		Eventually(sess.Out).Should(gbytes.Say("executing build 128 at %s", buildURL.String()))
 
 		events <- event.Log{Payload: "sup"}
