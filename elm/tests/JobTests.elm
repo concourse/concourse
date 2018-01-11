@@ -27,7 +27,6 @@ all =
                     someBuild : Build
                     someBuild =
                         { id = 123
-                        , url = ""
                         , name = "45"
                         , job = Just someJobInfo
                         , status = BuildStatusSucceeded
@@ -42,8 +41,9 @@ all =
                         someJob : Concourse.Job
                         someJob =
                             { name = "some-job"
+                            , pipelineName = "some-pipeline"
+                            , teamName = "some-team"
                             , pipeline = { pipelineName = "some-pipeline", teamName = "some-team" }
-                            , url = ""
                             , nextBuild = Nothing
                             , finishedBuild = Just someBuild
                             , transitionBuild = Nothing

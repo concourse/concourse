@@ -23,7 +23,6 @@ pipelineBosh =
     , paused = False
     , public = True
     , teamName = "YYZ"
-    , url = "http://google.com"
     }
 
 
@@ -34,7 +33,6 @@ pipelineMain =
     , paused = False
     , public = True
     , teamName = "YYZ"
-    , url = "http://google.com"
     }
 
 
@@ -45,7 +43,6 @@ pipelineMaintenance =
     , paused = False
     , public = True
     , teamName = "SFO"
-    , url = "http://google.com"
     }
 
 
@@ -56,7 +53,6 @@ pipelineMiami =
     , paused = False
     , public = True
     , teamName = "DWF"
-    , url = "http://google.com"
     }
 
 
@@ -67,7 +63,6 @@ pipelineTest =
     , paused = False
     , public = True
     , teamName = "DWF"
-    , url = "http://google.com"
     }
 
 
@@ -78,7 +73,6 @@ pipelineSucceeded =
     , paused = False
     , public = True
     , teamName = "DWF"
-    , url = "http://google.com"
     }
 
 
@@ -89,7 +83,6 @@ pipelineErrored =
     , paused = False
     , public = True
     , teamName = "DWF"
-    , url = "http://google.com"
     }
 
 
@@ -100,7 +93,6 @@ pipelineAborted =
     , paused = False
     , public = True
     , teamName = "DWF"
-    , url = "http://google.com"
     }
 
 
@@ -111,7 +103,6 @@ pipelinePaused =
     , paused = False
     , public = True
     , teamName = "DWF"
-    , url = "http://google.com"
     }
 
 
@@ -122,7 +113,6 @@ pipelineFailed =
     , paused = False
     , public = True
     , teamName = "DWF"
-    , url = "http://google.com"
     }
 
 
@@ -133,7 +123,6 @@ pipelinePending =
     , paused = False
     , public = True
     , teamName = "DWF"
-    , url = "http://google.com"
     }
 
 
@@ -144,7 +133,6 @@ pipelineRunning =
     , paused = False
     , public = True
     , teamName = "DWF"
-    , url = "http://google.com"
     }
 
 
@@ -280,7 +268,6 @@ searchTermList =
                     , name = "failing"
                     , reapTime = Nothing
                     , status = Concourse.BuildStatusFailed
-                    , url = "http://example.com"
                     }
 
                 jobMock : List Concourse.Job
@@ -290,12 +277,13 @@ searchTermList =
                       , groups = []
                       , inputs = []
                       , name = "failing"
+                      , pipelineName = "main:team:pipeline"
+                      , teamName = "YYZ"
                       , nextBuild = Nothing
                       , outputs = []
                       , paused = False
                       , pipeline = { teamName = "YYZ", pipelineName = "main:team:pipeline" }
                       , transitionBuild = Just buildMock
-                      , url = "http://example.com"
                       }
                     ]
 
@@ -333,7 +321,6 @@ pipelineStatus =
         someBuild : Concourse.Build
         someBuild =
             { id = 1
-            , url = ""
             , name = "build-succeeded"
             , job = Just someJobInfo
             , status = Concourse.BuildStatusSucceeded
@@ -347,7 +334,6 @@ pipelineStatus =
         someBuildAborted : Concourse.Build
         someBuildAborted =
             { id = 111
-            , url = ""
             , name = "build-aborted"
             , job = Just someJobInfo
             , status = Concourse.BuildStatusAborted
@@ -361,7 +347,6 @@ pipelineStatus =
         someBuildErrored : Concourse.Build
         someBuildErrored =
             { id = 222
-            , url = ""
             , name = "build-errored"
             , job = Just someJobInfo
             , status = Concourse.BuildStatusErrored
@@ -375,7 +360,6 @@ pipelineStatus =
         someBuildFailed : Concourse.Build
         someBuildFailed =
             { id = 333
-            , url = ""
             , name = "build-failed"
             , job = Just someJobInfo
             , status = Concourse.BuildStatusFailed
@@ -389,7 +373,6 @@ pipelineStatus =
         someBuildPending : Concourse.Build
         someBuildPending =
             { id = 444
-            , url = ""
             , name = "build-pending"
             , job = Just someJobInfo
             , status = Concourse.BuildStatusPending
@@ -403,7 +386,6 @@ pipelineStatus =
         someBuildPaused : Concourse.Build
         someBuildPaused =
             { id = 555
-            , url = ""
             , name = "build-paused"
             , job = Just someJobInfo
             , status = Concourse.BuildStatusPending
@@ -417,7 +399,6 @@ pipelineStatus =
         someBuildRunning : Concourse.Build
         someBuildRunning =
             { id = 666
-            , url = ""
             , name = "build-started"
             , job = Just someJobInfo
             , status = Concourse.BuildStatusStarted
@@ -431,7 +412,6 @@ pipelineStatus =
         someBuildSucceeded : Concourse.Build
         someBuildSucceeded =
             { id = 777
-            , url = ""
             , name = "build-succeeded"
             , job = Just someJobInfo
             , status = Concourse.BuildStatusSucceeded
