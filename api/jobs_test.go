@@ -203,22 +203,22 @@ var _ = Describe("Jobs API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
-					It("returns the job's name, url, if it's paused, and any running and finished builds", func() {
+					It("returns the job's name, if it's paused, and any running and finished builds", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{
 							"id": 1,
 							"name": "some-job",
+							"pipeline_name": "some-pipeline",
+							"team_name": "some-team",
 							"paused": true,
 							"first_logged_build_id": 99,
-							"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job",
 							"next_build": {
 								"id": 3,
 								"name": "2",
 								"job_name": "some-job",
 								"status": "started",
-								"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/2",
 								"api_url": "/api/v1/builds/3",
 								"pipeline_name": "some-pipeline",
 								"team_name": "some-team"
@@ -228,7 +228,6 @@ var _ = Describe("Jobs API", func() {
 								"name": "1",
 								"job_name": "some-job",
 								"status": "succeeded",
-								"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/1",
 								"api_url": "/api/v1/builds/1",
 								"pipeline_name": "some-pipeline",
 								"team_name": "some-team",
@@ -783,7 +782,7 @@ var _ = Describe("Jobs API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				It("returns each job's name, url, and any running and finished builds", func() {
+				It("returns each job's name and any running and finished builds", func() {
 					body, err := ioutil.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -791,14 +790,14 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 1,
 								"name": "job-1",
+								"pipeline_name": "another-pipeline",
+								"team_name": "some-team",
 								"paused": true,
-								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1",
 								"next_build": {
 									"id": 3,
 									"name": "2",
 									"job_name": "job-1",
 									"status": "started",
-									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/2",
 									"api_url": "/api/v1/builds/3",
 									"pipeline_name": "another-pipeline",
 									"team_name": "some-team"
@@ -808,7 +807,6 @@ var _ = Describe("Jobs API", func() {
 									"name": "1",
 									"job_name": "job-1",
 									"status": "succeeded",
-									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/1",
 									"api_url": "/api/v1/builds/1",
 									"pipeline_name":"another-pipeline",
 									"team_name": "some-team",
@@ -820,7 +818,6 @@ var _ = Describe("Jobs API", func() {
 									"name": "five",
 									"job_name": "job-1",
 									"status": "failed",
-									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/five",
 									"api_url": "/api/v1/builds/5",
 									"pipeline_name":"another-pipeline",
 									"team_name": "some-team",
@@ -834,15 +831,15 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 2,
 								"name": "job-2",
+								"pipeline_name": "another-pipeline",
+								"team_name": "some-team",
 								"paused": true,
-								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2",
 								"next_build": null,
 								"finished_build": {
 									"id": 4,
 									"name": "1",
 									"job_name": "job-2",
 									"status": "succeeded",
-									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2/builds/1",
 									"api_url": "/api/v1/builds/4",
 									"pipeline_name": "another-pipeline",
 									"team_name": "some-team",
@@ -856,8 +853,9 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 3,
 								"name": "job-3",
+								"pipeline_name": "another-pipeline",
+								"team_name": "some-team",
 								"paused": true,
-								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-3",
 								"next_build": null,
 								"finished_build": null,
 								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
@@ -877,7 +875,7 @@ var _ = Describe("Jobs API", func() {
 						fakePipeline.DashboardReturns(dashboardResponse, groups, nil)
 					})
 
-					It("returns each job's name, url, manual trigger state and any running and finished builds", func() {
+					It("returns each job's name, manual trigger state and any running and finished builds", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
@@ -885,15 +883,15 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 1,
 								"name": "job-1",
+								"pipeline_name": "another-pipeline",
+								"team_name": "some-team",
 								"paused": true,
-								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1",
 								"disable_manual_trigger": true,
 								"next_build": {
 									"id": 3,
 									"name": "2",
 									"job_name": "job-1",
 									"status": "started",
-									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/2",
 									"api_url": "/api/v1/builds/3",
 									"pipeline_name":"another-pipeline",
 									"team_name": "some-team"
@@ -903,7 +901,6 @@ var _ = Describe("Jobs API", func() {
 									"name": "1",
 									"job_name": "job-1",
 									"status": "succeeded",
-									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/1",
 									"api_url": "/api/v1/builds/1",
 									"pipeline_name":"another-pipeline",
 									"team_name": "some-team",
@@ -915,7 +912,6 @@ var _ = Describe("Jobs API", func() {
 									"name": "five",
 									"job_name": "job-1",
 									"status": "failed",
-									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/five",
 									"api_url": "/api/v1/builds/5",
 									"pipeline_name":"another-pipeline",
 									"team_name": "some-team",
@@ -929,15 +925,15 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 2,
 								"name": "job-2",
+								"pipeline_name": "another-pipeline",
+								"team_name": "some-team",
 								"paused": true,
-								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2",
 								"next_build": null,
 								"finished_build": {
 									"id": 4,
 									"name": "1",
 									"job_name": "job-2",
 									"status": "succeeded",
-									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2/builds/1",
 									"api_url": "/api/v1/builds/4",
 									"pipeline_name": "another-pipeline",
 									"team_name": "some-team",
@@ -951,8 +947,9 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 3,
 								"name": "job-3",
+								"pipeline_name": "another-pipeline",
+								"team_name": "some-team",
 								"paused": true,
-								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-3",
 								"next_build": null,
 								"finished_build": null,
 								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
@@ -1111,7 +1108,6 @@ var _ = Describe("Jobs API", func() {
 						"name": "2",
 						"job_name": "some-job",
 						"status": "started",
-						"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/2",
 						"api_url": "/api/v1/builds/4",
 						"pipeline_name":"some-pipeline",
 						"team_name": "some-team",
@@ -1123,7 +1119,6 @@ var _ = Describe("Jobs API", func() {
 						"name": "1",
 						"job_name": "some-job",
 						"status": "succeeded",
-						"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/1",
 						"api_url": "/api/v1/builds/2",
 						"pipeline_name": "some-pipeline",
 						"team_name": "some-team",
@@ -1304,7 +1299,6 @@ var _ = Describe("Jobs API", func() {
 							"name": "1",
 							"job_name": "some-job",
 							"status": "started",
-							"url": "/teams/some-team/pipelines/a-pipeline/jobs/some-job/builds/1",
 							"api_url": "/api/v1/builds/42",
 							"pipeline_name": "a-pipeline",
 							"team_name": "some-team",
@@ -1614,7 +1608,6 @@ var _ = Describe("Jobs API", func() {
 					"name": "1",
 					"job_name": "some-job",
 					"status": "succeeded",
-					"url": "/teams/some-team/pipelines/a-pipeline/jobs/some-job/builds/1",
 					"api_url": "/api/v1/builds/1",
 					"pipeline_name": "a-pipeline",
 					"team_name": "some-team",
