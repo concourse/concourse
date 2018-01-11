@@ -35,12 +35,10 @@ var _ = Describe("ATC Handler Jobs", func() {
 				expectedJobs = []atc.Job{
 					{
 						Name:      "myjob-1",
-						URL:       fmt.Sprint("/pipelines/mypipeline/jobs/myjob-1"),
 						NextBuild: nil,
 					},
 					{
 						Name:      "myjob-2",
-						URL:       fmt.Sprint("/pipelines/mypipeline/jobs/myjob-2"),
 						NextBuild: nil,
 					},
 				}
@@ -73,14 +71,12 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 				expectedJob = atc.Job{
 					Name:      "myjob",
-					URL:       fmt.Sprint("/pipelines/mypipeline/jobs/myjob"),
 					NextBuild: nil,
 					FinishedBuild: &atc.Build{
 						ID:      123,
 						Name:    "mybuild",
 						Status:  "succeeded",
 						JobName: "myjob",
-						URL:     fmt.Sprint("/pipelines/mypipeline/jobs/myjob/builds/mybuild"),
 						APIURL:  "api/v1/teams/some-team/builds/123",
 					},
 					Inputs: []atc.JobInput{

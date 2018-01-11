@@ -427,7 +427,6 @@ var _ = Describe("ATC Handler Pipelines", func() {
 					Name:         "mybuild",
 					Status:       "succeeded",
 					PipelineName: "mypipeline",
-					URL:          "/builds/123",
 					APIURL:       "/api/v1/builds/123",
 				}
 				atcServer.AppendHandlers(
