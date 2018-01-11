@@ -5,10 +5,9 @@ import (
 	"encoding/pem"
 	"net/http"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/uaa"
+	"github.com/concourse/skymarshal/auth"
+	"github.com/concourse/skymarshal/provider"
+	"github.com/concourse/skymarshal/uaa"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -137,7 +136,7 @@ K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
 
 	Describe("AuthMethod", func() {
 		var (
-			authMethod atc.AuthMethod
+			authMethod provider.AuthMethod
 			authConfig *uaa.UAAAuthConfig
 		)
 		BeforeEach(func() {
@@ -146,10 +145,10 @@ K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
 		})
 
 		It("creates path for route", func() {
-			Expect(authMethod).To(Equal(atc.AuthMethod{
-				Type:        atc.AuthTypeOAuth,
+			Expect(authMethod).To(Equal(provider.AuthMethod{
+				Type:        provider.AuthTypeOAuth,
 				DisplayName: "UAA",
-				AuthURL:     "http://bum-bum-bum.com/auth/uaa?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/oauth/uaa?team_name=dudududum",
 			}))
 		})
 	})

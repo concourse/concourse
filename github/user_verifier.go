@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/verifier"
 )
 
 type UserVerifier struct {

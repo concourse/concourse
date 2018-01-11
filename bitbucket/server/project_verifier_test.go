@@ -3,9 +3,9 @@ package server_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
-	"github.com/concourse/atc/auth/bitbucket/bitbucketfakes"
-	"github.com/concourse/atc/auth/bitbucket/server"
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/bitbucket/bitbucketfakes"
+	"github.com/concourse/skymarshal/bitbucket/server"
+	"github.com/concourse/skymarshal/verifier"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"net/http"

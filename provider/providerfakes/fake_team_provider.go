@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/skymarshal/provider"
 	"github.com/jessevdk/go-flags"
 )
 

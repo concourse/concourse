@@ -2,9 +2,9 @@ package cloud
 
 import (
 	"encoding/json"
-	"github.com/concourse/atc/auth/bitbucket"
-	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/bitbucket"
+	"github.com/concourse/skymarshal/provider"
+	"github.com/concourse/skymarshal/verifier"
 	"github.com/jessevdk/go-flags"
 	"golang.org/x/oauth2"
 	bitbucketOAuth "golang.org/x/oauth2/bitbucket"

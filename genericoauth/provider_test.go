@@ -7,9 +7,8 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/genericoauth"
-	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/skymarshal/genericoauth"
+	"github.com/concourse/skymarshal/provider"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -104,7 +103,7 @@ var _ = Describe("Generic OAuth Provider", func() {
 
 	Describe("AuthMethod", func() {
 		var (
-			authMethod atc.AuthMethod
+			authMethod provider.AuthMethod
 			authConfig *genericoauth.GenericOAuthConfig
 		)
 		BeforeEach(func() {
@@ -113,10 +112,10 @@ var _ = Describe("Generic OAuth Provider", func() {
 		})
 
 		It("creates path for route", func() {
-			Expect(authMethod).To(Equal(atc.AuthMethod{
-				Type:        atc.AuthTypeOAuth,
+			Expect(authMethod).To(Equal(provider.AuthMethod{
+				Type:        provider.AuthTypeOAuth,
 				DisplayName: "duck-song",
-				AuthURL:     "http://bum-bum-bum.com/auth/oauth?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/oauth/oauth?team_name=dudududum",
 			}))
 		})
 	})

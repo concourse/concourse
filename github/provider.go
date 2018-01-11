@@ -12,10 +12,9 @@ import (
 
 	"encoding/json"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/routes"
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/auth"
+	"github.com/concourse/skymarshal/provider"
+	"github.com/concourse/skymarshal/verifier"
 	"github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
@@ -39,9 +38,9 @@ type GitHubAuthConfig struct {
 	APIURL        string             `json:"api_url,omitempty"       long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
 }
 
-func (*GitHubAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
-	path, err := routes.OAuthRoutes.CreatePathForRoute(
-		routes.OAuthBegin,
+func (config *GitHubAuthConfig) AuthMethod(oauthBaseURL string, teamName string) provider.AuthMethod {
+	path, err := auth.Routes.CreatePathForRoute(
+		auth.OAuthBegin,
 		rata.Params{"provider": ProviderName},
 	)
 	if err != nil {
@@ -50,30 +49,30 @@ func (*GitHubAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.Au
 
 	path = path + fmt.Sprintf("?team_name=%s", teamName)
 
-	return atc.AuthMethod{
-		Type:        atc.AuthTypeOAuth,
+	return provider.AuthMethod{
+		Type:        provider.AuthTypeOAuth,
 		DisplayName: DisplayName,
 		AuthURL:     oauthBaseURL + path,
 	}
 }
 
-func (auth *GitHubAuthConfig) IsConfigured() bool {
-	return auth.ClientID != "" ||
-		auth.ClientSecret != "" ||
-		len(auth.Organizations) > 0 ||
-		len(auth.Teams) > 0 ||
-		len(auth.Users) > 0
+func (config *GitHubAuthConfig) IsConfigured() bool {
+	return config.ClientID != "" ||
+		config.ClientSecret != "" ||
+		len(config.Organizations) > 0 ||
+		len(config.Teams) > 0 ||
+		len(config.Users) > 0
 }
 
-func (auth *GitHubAuthConfig) Validate() error {
+func (config *GitHubAuthConfig) Validate() error {
 	var errs *multierror.Error
-	if auth.ClientID == "" || auth.ClientSecret == "" {
+	if config.ClientID == "" || config.ClientSecret == "" {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth."),
 		)
 	}
-	if len(auth.Organizations) == 0 && len(auth.Teams) == 0 && len(auth.Users) == 0 {
+	if len(config.Organizations) == 0 && len(config.Teams) == 0 && len(config.Users) == 0 {
 		errs = multierror.Append(
 			errs,
 			errors.New("at least one of the following is required for github-auth: organizations, teams, users."),

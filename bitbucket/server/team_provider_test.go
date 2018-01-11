@@ -1,8 +1,8 @@
 package server_test
 
 import (
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/bitbucket/server"
+	"github.com/concourse/skymarshal/bitbucket/server"
+	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -10,7 +10,7 @@ import (
 var _ = Describe("Bitbucket Server Provider", func() {
 	Describe("AuthMethod", func() {
 		var (
-			authMethod atc.AuthMethod
+			authMethod provider.AuthMethod
 			authConfig *server.AuthConfig
 		)
 		BeforeEach(func() {
@@ -19,8 +19,8 @@ var _ = Describe("Bitbucket Server Provider", func() {
 		})
 
 		It("creates a path for route", func() {
-			Expect(authMethod).To(Equal(atc.AuthMethod{
-				Type:        atc.AuthTypeOAuth,
+			Expect(authMethod).To(Equal(provider.AuthMethod{
+				Type:        provider.AuthTypeOAuth,
 				DisplayName: "Bitbucket Server",
 				AuthURL:     "http://bum-bum-bum.com/oauth/v1/bitbucket-server?team_name=dudududum",
 			}))

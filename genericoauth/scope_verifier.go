@@ -9,7 +9,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/verifier"
 	"github.com/dgrijalva/jwt-go"
 )
 

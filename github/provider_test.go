@@ -1,8 +1,8 @@
 package github_test
 
 import (
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/github"
+	"github.com/concourse/skymarshal/github"
+	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -10,7 +10,7 @@ import (
 var _ = Describe("GitHub Provider", func() {
 	Describe("AuthMethod", func() {
 		var (
-			authMethod atc.AuthMethod
+			authMethod provider.AuthMethod
 			authConfig *github.GitHubAuthConfig
 		)
 		BeforeEach(func() {
@@ -19,10 +19,10 @@ var _ = Describe("GitHub Provider", func() {
 		})
 
 		It("creates path for route", func() {
-			Expect(authMethod).To(Equal(atc.AuthMethod{
-				Type:        atc.AuthTypeOAuth,
+			Expect(authMethod).To(Equal(provider.AuthMethod{
+				Type:        provider.AuthTypeOAuth,
 				DisplayName: "GitHub",
-				AuthURL:     "http://bum-bum-bum.com/auth/github?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/oauth/github?team_name=dudududum",
 			}))
 		})
 	})

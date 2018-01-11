@@ -10,10 +10,9 @@ import (
 
 	"encoding/json"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/routes"
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/auth"
+	"github.com/concourse/skymarshal/provider"
+	"github.com/concourse/skymarshal/verifier"
 	"github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
@@ -35,9 +34,9 @@ type GitLabAuthConfig struct {
 	APIURL   string   `json:"api_url,omitempty"       long:"api-url"       description:"Override default API endpoint URL for GitLab."`
 }
 
-func (*GitLabAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
-	path, err := routes.OAuthRoutes.CreatePathForRoute(
-		routes.OAuthBegin,
+func (config *GitLabAuthConfig) AuthMethod(oauthBaseURL string, teamName string) provider.AuthMethod {
+	path, err := auth.Routes.CreatePathForRoute(
+		auth.OAuthBegin,
 		rata.Params{"provider": ProviderName},
 	)
 	if err != nil {
@@ -46,28 +45,28 @@ func (*GitLabAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.Au
 
 	path = path + fmt.Sprintf("?team_name=%s", teamName)
 
-	return atc.AuthMethod{
-		Type:        atc.AuthTypeOAuth,
+	return provider.AuthMethod{
+		Type:        provider.AuthTypeOAuth,
 		DisplayName: DisplayName,
 		AuthURL:     oauthBaseURL + path,
 	}
 }
 
-func (auth *GitLabAuthConfig) IsConfigured() bool {
-	return auth.ClientID != "" ||
-		auth.ClientSecret != "" ||
-		len(auth.Groups) > 0
+func (config *GitLabAuthConfig) IsConfigured() bool {
+	return config.ClientID != "" ||
+		config.ClientSecret != "" ||
+		len(config.Groups) > 0
 }
 
-func (auth *GitLabAuthConfig) Validate() error {
+func (config *GitLabAuthConfig) Validate() error {
 	var errs *multierror.Error
-	if auth.ClientID == "" || auth.ClientSecret == "" {
+	if config.ClientID == "" || config.ClientSecret == "" {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --gitlab-auth-client-id and --gitlab-auth-client-secret to use GitLab OAuth."),
 		)
 	}
-	if len(auth.Groups) == 0 {
+	if len(config.Groups) == 0 {
 		errs = multierror.Append(
 			errs,
 			errors.New("the following is required for gitlab-auth: groups"),

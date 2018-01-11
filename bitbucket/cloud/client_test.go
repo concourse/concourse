@@ -2,8 +2,8 @@ package cloud_test
 
 import (
 	"fmt"
-	"github.com/concourse/atc/auth/bitbucket"
-	"github.com/concourse/atc/auth/bitbucket/cloud"
+	"github.com/concourse/skymarshal/bitbucket"
+	"github.com/concourse/skymarshal/bitbucket/cloud"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"

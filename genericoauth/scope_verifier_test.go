@@ -7,8 +7,8 @@ import (
 	"golang.org/x/oauth2"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/concourse/atc/auth/genericoauth"
-	"github.com/concourse/atc/auth/verifier"
+	. "github.com/concourse/skymarshal/genericoauth"
+	"github.com/concourse/skymarshal/verifier"
 	"github.com/dgrijalva/jwt-go"
 
 	. "github.com/onsi/ginkgo"

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/concourse/atc/auth/bitbucket"
+	"github.com/concourse/skymarshal/bitbucket"
 )
 
 type FakeClient struct {

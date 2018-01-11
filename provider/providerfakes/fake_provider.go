@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/skymarshal/provider"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )

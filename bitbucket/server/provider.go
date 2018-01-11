@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/verifier"
 	"github.com/dghubble/oauth1"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"

@@ -11,11 +11,9 @@ import (
 
 	"encoding/json"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/routes"
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/auth"
+	"github.com/concourse/skymarshal/provider"
+	"github.com/concourse/skymarshal/verifier"
 	"github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
@@ -54,9 +52,9 @@ type GenericOAuthConfig struct {
 	CACert        auth.FileContentsFlag `json:"ca_cert,omitempty"           long:"ca-cert"         description:"PEM-encoded CA certificate string"`
 }
 
-func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
-	path, err := routes.OAuthRoutes.CreatePathForRoute(
-		routes.OAuthBegin,
+func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName string) provider.AuthMethod {
+	path, err := auth.Routes.CreatePathForRoute(
+		auth.OAuthBegin,
 		rata.Params{"provider": ProviderName},
 	)
 	if err != nil {
@@ -65,8 +63,8 @@ func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName strin
 
 	path = path + fmt.Sprintf("?team_name=%s", teamName)
 
-	return atc.AuthMethod{
-		Type:        atc.AuthTypeOAuth,
+	return provider.AuthMethod{
+		Type:        provider.AuthTypeOAuth,
 		DisplayName: config.DisplayName,
 		AuthURL:     oauthBaseURL + path,
 	}

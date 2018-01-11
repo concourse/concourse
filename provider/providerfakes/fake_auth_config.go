@@ -4,8 +4,7 @@ package providerfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/skymarshal/provider"
 )
 
 type FakeAuthConfig struct {
@@ -27,17 +26,17 @@ type FakeAuthConfig struct {
 	validateReturnsOnCall map[int]struct {
 		result1 error
 	}
-	AuthMethodStub        func(oauthBaseURL string, teamName string) atc.AuthMethod
+	AuthMethodStub        func(oauthBaseURL string, teamName string) provider.AuthMethod
 	authMethodMutex       sync.RWMutex
 	authMethodArgsForCall []struct {
 		oauthBaseURL string
 		teamName     string
 	}
 	authMethodReturns struct {
-		result1 atc.AuthMethod
+		result1 provider.AuthMethod
 	}
 	authMethodReturnsOnCall map[int]struct {
-		result1 atc.AuthMethod
+		result1 provider.AuthMethod
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -123,7 +122,7 @@ func (fake *FakeAuthConfig) ValidateReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
+func (fake *FakeAuthConfig) AuthMethod(oauthBaseURL string, teamName string) provider.AuthMethod {
 	fake.authMethodMutex.Lock()
 	ret, specificReturn := fake.authMethodReturnsOnCall[len(fake.authMethodArgsForCall)]
 	fake.authMethodArgsForCall = append(fake.authMethodArgsForCall, struct {
@@ -153,22 +152,22 @@ func (fake *FakeAuthConfig) AuthMethodArgsForCall(i int) (string, string) {
 	return fake.authMethodArgsForCall[i].oauthBaseURL, fake.authMethodArgsForCall[i].teamName
 }
 
-func (fake *FakeAuthConfig) AuthMethodReturns(result1 atc.AuthMethod) {
+func (fake *FakeAuthConfig) AuthMethodReturns(result1 provider.AuthMethod) {
 	fake.AuthMethodStub = nil
 	fake.authMethodReturns = struct {
-		result1 atc.AuthMethod
+		result1 provider.AuthMethod
 	}{result1}
 }
 
-func (fake *FakeAuthConfig) AuthMethodReturnsOnCall(i int, result1 atc.AuthMethod) {
+func (fake *FakeAuthConfig) AuthMethodReturnsOnCall(i int, result1 provider.AuthMethod) {
 	fake.AuthMethodStub = nil
 	if fake.authMethodReturnsOnCall == nil {
 		fake.authMethodReturnsOnCall = make(map[int]struct {
-			result1 atc.AuthMethod
+			result1 provider.AuthMethod
 		})
 	}
 	fake.authMethodReturnsOnCall[i] = struct {
-		result1 atc.AuthMethod
+		result1 provider.AuthMethod
 	}{result1}
 }
 

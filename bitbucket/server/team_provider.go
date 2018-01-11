@@ -2,9 +2,9 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/concourse/atc/auth/bitbucket"
-	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/bitbucket"
+	"github.com/concourse/skymarshal/provider"
+	"github.com/concourse/skymarshal/verifier"
 	"github.com/dghubble/oauth1"
 	"github.com/jessevdk/go-flags"
 	"strings"

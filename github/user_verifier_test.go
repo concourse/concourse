@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/concourse/atc/auth/github"
-	"github.com/concourse/atc/auth/github/githubfakes"
-	"github.com/concourse/atc/auth/verifier"
+	. "github.com/concourse/skymarshal/github"
+	"github.com/concourse/skymarshal/github/githubfakes"
+	"github.com/concourse/skymarshal/verifier"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

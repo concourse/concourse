@@ -2,8 +2,8 @@ package server_test
 
 import (
 	"fmt"
-	"github.com/concourse/atc/auth/bitbucket"
-	"github.com/concourse/atc/auth/bitbucket/server"
+	"github.com/concourse/skymarshal/bitbucket"
+	"github.com/concourse/skymarshal/bitbucket/server"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"

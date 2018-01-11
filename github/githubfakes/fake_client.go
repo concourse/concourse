@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/concourse/atc/auth/github"
+	"github.com/concourse/skymarshal/github"
 )
 
 type FakeClient struct {

@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	api "github.com/SHyx0rmZ/go-bitbucket/server"
-	"github.com/concourse/atc/auth/bitbucket"
+	"github.com/concourse/skymarshal/bitbucket"
 	"net/http"
 )
 

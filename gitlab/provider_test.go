@@ -1,15 +1,15 @@
 package gitlab_test
 
 import (
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/gitlab"
+	"github.com/concourse/skymarshal/gitlab"
+	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("GitLab Provider", func() {
 	var (
-		authMethod atc.AuthMethod
+		authMethod provider.AuthMethod
 		authConfig *gitlab.GitLabAuthConfig
 	)
 
@@ -23,10 +23,10 @@ var _ = Describe("GitLab Provider", func() {
 		})
 
 		It("creates path for route", func() {
-			Expect(authMethod).To(Equal(atc.AuthMethod{
-				Type:        atc.AuthTypeOAuth,
+			Expect(authMethod).To(Equal(provider.AuthMethod{
+				Type:        provider.AuthTypeOAuth,
 				DisplayName: "GitLab",
-				AuthURL:     "http://bum-bum-bum.com/auth/gitlab?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/oauth/gitlab?team_name=dudududum",
 			}))
 		})
 	})

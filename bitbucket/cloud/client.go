@@ -2,7 +2,7 @@ package cloud
 
 import (
 	api "github.com/SHyx0rmZ/go-bitbucket/cloud"
-	"github.com/concourse/atc/auth/bitbucket"
+	"github.com/concourse/skymarshal/bitbucket"
 	"net/http"
 )
 

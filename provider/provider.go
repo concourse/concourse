@@ -3,7 +3,6 @@ package provider
 import (
 	"net/http"
 
-	"github.com/concourse/atc"
 	flags "github.com/jessevdk/go-flags"
 
 	"code.cloudfoundry.org/lager"
@@ -13,6 +12,31 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
+
+type AuthType string
+
+const (
+	AuthTypeBasic AuthType = "basic"
+	AuthTypeOAuth AuthType = "oauth"
+)
+
+type AuthMethod struct {
+	Type AuthType `json:"type"`
+
+	DisplayName string `json:"display_name"`
+	AuthURL     string `json:"auth_url"`
+}
+
+type AuthToken struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+// ==================================
+// ==================================
+// ==================================
+// ==================================
+// ==================================
 
 //go:generate counterfeiter . Provider
 
@@ -40,7 +64,7 @@ type Verifier interface {
 type AuthConfig interface {
 	IsConfigured() bool
 	Validate() error
-	AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod
+	AuthMethod(oauthBaseURL string, teamName string) AuthMethod
 }
 
 type AuthConfigs map[string]AuthConfig

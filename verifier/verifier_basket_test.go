@@ -8,9 +8,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/auth/provider/providerfakes"
+	"github.com/concourse/skymarshal/provider/providerfakes"
 
-	. "github.com/concourse/atc/auth/verifier"
+	. "github.com/concourse/skymarshal/verifier"
 )
 
 var _ = Describe("VerifierBasket", func() {

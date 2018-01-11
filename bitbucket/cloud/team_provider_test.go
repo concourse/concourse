@@ -1,8 +1,8 @@
 package cloud_test
 
 import (
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth/bitbucket/cloud"
+	"github.com/concourse/skymarshal/bitbucket/cloud"
+	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -10,7 +10,7 @@ import (
 var _ = Describe("Bitbucket Provider", func() {
 	Describe("AuthMethod", func() {
 		var (
-			authMethod atc.AuthMethod
+			authMethod provider.AuthMethod
 			authConfig *cloud.AuthConfig
 		)
 		BeforeEach(func() {
@@ -19,10 +19,10 @@ var _ = Describe("Bitbucket Provider", func() {
 		})
 
 		It("creates a path for route", func() {
-			Expect(authMethod).To(Equal(atc.AuthMethod{
-				Type:        atc.AuthTypeOAuth,
+			Expect(authMethod).To(Equal(provider.AuthMethod{
+				Type:        provider.AuthTypeOAuth,
 				DisplayName: "Bitbucket Cloud",
-				AuthURL:     "http://bum-bum-bum.com/auth/bitbucket-cloud?team_name=dudududum",
+				AuthURL:     "http://bum-bum-bum.com/oauth/bitbucket-cloud?team_name=dudududum",
 			}))
 		})
 	})

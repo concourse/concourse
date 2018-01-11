@@ -2,7 +2,7 @@ package bitbucket
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/verifier"
 	"net/http"
 )
 

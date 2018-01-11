@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/atc/auth/github"
+	"github.com/concourse/skymarshal/github"
 )
 
 var _ = Describe("Client", func() {

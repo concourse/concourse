@@ -1,7 +1,7 @@
 package cloud
 
 import (
-	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/skymarshal/verifier"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"net/http"
