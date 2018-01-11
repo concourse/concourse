@@ -43,6 +43,9 @@ func (manager KubernetesManager) NewVariablesFactory(logger lager.Logger) (creds
 		return nil, err
 	}
 
+	config.QPS = 100
+	config.Burst = 100
+
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
