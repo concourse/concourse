@@ -303,7 +303,7 @@ function createGraph(svg, jobs, resources) {
 
   for (var i in resources) {
     var resource = resources[i];
-    resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+resource.name;
+    resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name);
     resourceFailing[resource.name] = resource.failing_to_check;
     resourcePaused[resource.name] = resource.paused;
   }
@@ -315,13 +315,13 @@ function createGraph(svg, jobs, resources) {
 
     var classes = ["job"];
 
-    var url = "/teams/"+job.team_name+"/pipelines/"+job.pipeline_name+"/jobs/"+job.name;
+    var url = "/teams/"+job.team_name+"/pipelines/"+job.pipeline_name+"/jobs/"+encodeURIComponent(job.name);
     if (job.next_build) {
       var build = job.next_build
-      url = "/teams/"+build.team_name+"/pipelines/"+build.pipeline_name+"/jobs/"+build.job_name+"/builds/"+build.name;
+      url = "/teams/"+build.team_name+"/pipelines/"+build.pipeline_name+"/jobs/"+encodeURIComponent(build.job_name)+"/builds/"+build.name;
     } else if (job.finished_build) {
       var build = job.finished_build
-      url = "/teams/"+build.team_name+"/pipelines/"+build.pipeline_name+"/jobs/"+build.job_name+"/builds/"+build.name;
+      url = "/teams/"+build.team_name+"/pipelines/"+build.pipeline_name+"/jobs/"+encodeURIComponent(build.job_name)+"/builds/"+build.name;
     }
 
     var status;

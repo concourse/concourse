@@ -28,6 +28,17 @@ describe 'pipeline', type: :feature do
       page.find('a > text', text: 'some/resource').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/resources/some%2Fresource"
     end
+
+    context 'with builds triggered' do
+      it 'can navigate to the build of escaped links of job name' do
+        fly('unpause-pipeline -p test-pipeline')
+        fly('trigger-job -j test-pipeline/some/job')
+        dash_login team_name
+
+        page.find('a > text', text: 'some/job').click
+        expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/some%2Fjob/builds/1"
+      end
+    end
   end
 
   it 'is linked in the sidebar' do
