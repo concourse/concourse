@@ -7,6 +7,8 @@ type Page struct {
 	From int // inclusive
 	To   int // inclusive
 
+	Around int
+
 	Limit int
 }
 

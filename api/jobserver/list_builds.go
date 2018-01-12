@@ -19,6 +19,9 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 			until  int
 			since  int
 			limit  int
+			from   int
+			around int
+			to     int
 		)
 
 		logger := s.logger.Session("list-job-builds")
@@ -31,6 +34,15 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 
 		urlSince := r.FormValue(atc.PaginationQuerySince)
 		since, _ = strconv.Atoi(urlSince)
+
+		urlFrom := r.FormValue(atc.PaginationQueryFrom)
+		from, _ = strconv.Atoi(urlFrom)
+
+		urlTo := r.FormValue(atc.PaginationQueryTo)
+		to, _ = strconv.Atoi(urlTo)
+
+		urlAround := r.FormValue(atc.PaginationQueryAround)
+		around, _ = strconv.Atoi(urlAround)
 
 		urlLimit := r.FormValue(atc.PaginationQueryLimit)
 		limit, _ = strconv.Atoi(urlLimit)
@@ -51,9 +63,12 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 		}
 
 		builds, pagination, err := job.Builds(db.Page{
-			Since: since,
-			Until: until,
-			Limit: limit,
+			Since:  since,
+			Until:  until,
+			To:     to,
+			From:   from,
+			Limit:  limit,
+			Around: around,
 		})
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
