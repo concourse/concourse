@@ -1513,17 +1513,27 @@ func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
 			WHEN bi_max > vr_max THEN bi_max
 			ELSE vr_max
 		END
-	FROM (
-		SELECT
-			COALESCE(MAX(bo.modified_time), 'epoch') as bo_max,
-			COALESCE(MAX(bi.modified_time), 'epoch') as bi_max,
-			COALESCE(MAX(vr.modified_time), 'epoch') as vr_max
-		FROM resources r
-		INNER JOIN versioned_resources vr ON r.id = vr.resource_id
-		LEFT OUTER JOIN build_inputs bi ON vr.id = bi.versioned_resource_id
-		LEFT OUTER JOIN build_outputs bo ON vr.id = bo.versioned_resource_id
-		WHERE r.pipeline_id = $1
-	) x
+	FROM
+		(
+			SELECT COALESCE(MAX(bo.modified_time), 'epoch') as bo_max
+			FROM build_outputs bo
+			LEFT OUTER JOIN versioned_resources v ON v.id = bo.versioned_resource_id
+			LEFT OUTER JOIN resources r ON r.id = v.resource_id
+			WHERE r.pipeline_id = $1
+		) bo,
+		(
+			SELECT COALESCE(MAX(bi.modified_time), 'epoch') as bi_max
+			FROM build_inputs bi
+			LEFT OUTER JOIN versioned_resources v ON v.id = bi.versioned_resource_id
+			LEFT OUTER JOIN resources r ON r.id = v.resource_id
+			WHERE r.pipeline_id = $1
+		) bi,
+		(
+			SELECT COALESCE(MAX(vr.modified_time), 'epoch') as vr_max
+			FROM versioned_resources vr
+			LEFT OUTER JOIN resources r ON r.id = vr.resource_id
+			WHERE r.pipeline_id = $1
+		) vr
 	`, p.id).Scan(&maxModifiedTime)
 
 	return maxModifiedTime, err
