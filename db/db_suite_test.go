@@ -3,7 +3,6 @@ package db_test
 import (
 	"os"
 	"testing"
-	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
@@ -182,5 +181,5 @@ var _ = AfterEach(func() {
 
 var _ = AfterSuite(func() {
 	dbProcess.Signal(os.Interrupt)
-	Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
+	<-dbProcess.Wait()
 })
