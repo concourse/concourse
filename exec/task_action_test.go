@@ -610,6 +610,59 @@ var _ = Describe("TaskAction", func() {
 					})
 				})
 
+				Context("when some inputs are optional", func() {
+					var (
+						optionalInputSource, optionalInput2Source, requiredInputSource *workerfakes.FakeArtifactSource
+					)
+
+					BeforeEach(func() {
+						optionalInputSource = new(workerfakes.FakeArtifactSource)
+						optionalInput2Source = new(workerfakes.FakeArtifactSource)
+						requiredInputSource = new(workerfakes.FakeArtifactSource)
+						configSource.GetTaskConfigReturns(atc.TaskConfig{
+							Run: atc.TaskRunConfig{
+								Path: "ls",
+							},
+							Inputs: []atc.TaskInputConfig{
+								{Name: "optional-input", Optional: true},
+								{Name: "optional-input-2", Optional: true},
+								{Name: "required-input"},
+							},
+						}, nil)
+					})
+
+					Context("when an optional input is missing", func() {
+						BeforeEach(func() {
+							artifactRepository.RegisterSource("required-input", requiredInputSource)
+							artifactRepository.RegisterSource("optional-input-2", optionalInput2Source)
+						})
+
+						It("runs successfully without the optional input", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+							_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
+							Expect(spec.Inputs).To(HaveLen(2))
+							Expect(spec.Inputs[0].Source()).To(Equal(optionalInput2Source))
+							Expect(spec.Inputs[0].DestinationPath()).To(Equal("some-artifact-root/optional-input-2"))
+							Expect(spec.Inputs[1].Source()).To(Equal(requiredInputSource))
+							Expect(spec.Inputs[1].DestinationPath()).To(Equal("some-artifact-root/required-input"))
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+						})
+					})
+
+					Context("when a required input is missing", func() {
+						BeforeEach(func() {
+							artifactRepository.RegisterSource("optional-input", optionalInputSource)
+							artifactRepository.RegisterSource("optional-input-2", optionalInput2Source)
+						})
+						It("exits with failure", func() {
+							var err error
+							Eventually(process.Wait()).Should(Receive(&err))
+							Expect(err).To(BeAssignableToTypeOf(exec.MissingInputsError{}))
+							Expect(err.(exec.MissingInputsError).Inputs).To(ConsistOf("required-input"))
+						})
+					})
+				})
+
 				Context("when the configuration specifies paths for caches", func() {
 					var (
 						inputSource      *workerfakes.FakeArtifactSource
