@@ -138,6 +138,15 @@ cleanup use:
 
   `docker stop <container ID>`.
 
+### Troubleshooting `dev/worker`
+If your `worker` fails to start on macOS with the error
+```
+docker: Error response from daemon: Mounts denied: EOF
+```
+a fix is to open your Docker preferences, go to the "File Sharing" tab
+and add the directory `/private` to the list
+(Click `+` then Cmd + Shift + G to get a "Go to folder" prompt).
+
 
 ## Making changes to Concourse
 
