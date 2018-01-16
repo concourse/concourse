@@ -138,7 +138,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   }
 
   \define-attribute{inputs: [object]}{
-    \italic{Optional.} The set of artifacts required by task, determining which
+    \italic{Optional.} The set of artifacts used by task, determining which
     artifacts will be available in the current directory when the task runs.
 
     These are satisfied by \reference{get-step} steps or artifacts produced by
@@ -147,8 +147,8 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     \code{-i} with \reference{fly-execute}.
 
     This determines which artifacts will propagate into the task, as the
-    \reference{build-plans}{build plan} executes. If any specified inputs
-    are not present, the task will end with an error, without running.
+    \reference{build-plans}{build plan} executes. If any required inputs
+    are missing at run-time, then the task will error immediately.
 
     Each input has the following attributes:
 
@@ -163,6 +163,14 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 
         Paths are relative to the working directory of the task. Absolute paths are not respected.
       }{input-path}
+
+      \define-attribute{optional: bool}{
+        \italic{Optional.}  If \code{true}, then the input is not required by the task.
+        The task may run even if this input is missing.
+
+        An \code{optional} input that is missing will not appear in the current directory
+        of the running task.
+      }{optional}
     }
   }
 
