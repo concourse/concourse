@@ -15,6 +15,12 @@ engine](https://vito.github.io/booklit/).
 * Clone this repository:
   [https://github.com/concourse/docs](https://github.com/concourse/docs)
 
+* Set your GOPATH and initialize submodules
+  ```
+  direnv allow  # or source .envrc
+  git submodule update --init --recursive
+  ```
+
 ## Compiling the Docs
 
 Run the following:
