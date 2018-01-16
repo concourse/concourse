@@ -30,7 +30,7 @@ jobs:
             - name: git-repo-b
           run:
             path: sh
-            args: 
+            args:
               - -c
               - |
                 echo a has $(cat git-repo-a/guids)
