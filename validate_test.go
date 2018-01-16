@@ -808,6 +808,36 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a job ensure hook refers to a resource that does exist", func() {
+				BeforeEach(func() {
+					job.Ensure = &PlanConfig{
+						Get: "some-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Expect(errorMessages).To(HaveLen(0))
+				})
+			})
+
+			Context("when a job ensure hook refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.Ensure = &PlanConfig{
+						Get: "some-nonexistent-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.ensure.get.some-nonexistent-resource refers to a resource that does not exist"))
+				})
+			})
+
 			Context("when a get plan refers to a 'put' resource that exists in another job's hook", func() {
 				var (
 					job1 JobConfig
