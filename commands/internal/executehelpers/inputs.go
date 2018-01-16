@@ -65,7 +65,11 @@ func DetermineInputs(
 		if !found {
 			input, found = inputsFromJob[taskInput.Name]
 			if !found {
-				return nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
+				if taskInput.Optional {
+					continue
+				} else {
+					return nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
+				}
 			}
 		}
 

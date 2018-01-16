@@ -535,10 +535,98 @@ run: {}
 		})
 	})
 
-	Context("when the task specifies more than one input", func() {
-
+	Context("when the task specifies an optional input", func() {
 		BeforeEach(func() {
-			// missing platform and run path
+			err := ioutil.WriteFile(
+				filepath.Join(buildDir, "task.yml"),
+				[]byte(`---
+platform: some-platform
+
+image_resource:
+  type: docker-image
+  source:
+    repository: ubuntu
+
+inputs:
+- name: fixture
+- name: some-optional-input
+  optional: true
+
+params:
+  FOO: bar
+  BAZ: buzz
+  X: 1
+
+run:
+  path: find
+  args: [.]
+`),
+				0644,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			(*expectedPlan.Do)[1].Task.Config.Inputs = []atc.TaskInputConfig{
+				{Name: "fixture"},
+				{Name: "some-optional-input", Optional: true},
+			}
+		})
+
+		Context("when the required input is specified but the optional input is omitted", func() {
+			It("runs successfully", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture=.")
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(streaming).Should(BeClosed())
+
+				buildURL, _ := url.Parse(atcServer.URL())
+				buildURL.Path = path.Join(buildURL.Path, "builds/128")
+				Eventually(sess.Out).Should(gbytes.Say("executing build 128 at %s", buildURL.String()))
+
+				events <- event.Log{Payload: "sup"}
+
+				Eventually(sess.Out).Should(gbytes.Say("sup"))
+
+				close(events)
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+
+				Expect(uploadingBits).To(BeClosed())
+			})
+		})
+
+		Context("when the required input is not specified on the command line", func() {
+			It("runs infers the required input successfully", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(streaming).Should(BeClosed())
+
+				buildURL, _ := url.Parse(atcServer.URL())
+				buildURL.Path = path.Join(buildURL.Path, "builds/128")
+				Eventually(sess.Out).Should(gbytes.Say("executing build 128 at %s", buildURL.String()))
+
+				events <- event.Log{Payload: "sup"}
+
+				Eventually(sess.Out).Should(gbytes.Say("sup"))
+
+				close(events)
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+
+				Expect(uploadingBits).To(BeClosed())
+			})
+		})
+	})
+
+	Context("when the task specifies more than one required input", func() {
+		BeforeEach(func() {
 			err := ioutil.WriteFile(
 				filepath.Join(buildDir, "task.yml"),
 				[]byte(`---
@@ -566,6 +654,7 @@ run:
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
+
 		Context("When some required inputs are not passed", func() {
 			It("Prints an error", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "something=.")
