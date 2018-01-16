@@ -63,6 +63,7 @@ inputs:
 - name: fixture
 - name: input-1
 - name: input-2
+  optional: true
 
 outputs:
 - name: output-1
@@ -281,6 +282,29 @@ wait
 
 			// build should have been aborted
 			Eventually(flyS).Should(gexec.Exit(3))
+		})
+	})
+
+	Context("when an optional input is not provided", func() {
+		It("runs the task without error", func() {
+			err := ioutil.WriteFile(
+				filepath.Join(fixture, "run"),
+				[]byte(`#!/bin/sh
+ls`),
+				0755,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1")
+			fly.Dir = tmpdir
+
+			session := helpers.StartFly(fly)
+			Eventually(session).Should(gexec.Exit(0))
+
+			fileList := string(session.Out.Contents())
+			Expect(fileList).To(ContainSubstring("fixture"))
+			Expect(fileList).To(ContainSubstring("input-1"))
+			Expect(fileList).NotTo(ContainSubstring("input-2"))
 		})
 	})
 })
