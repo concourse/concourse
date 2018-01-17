@@ -9,6 +9,7 @@ import Concourse.Build
 import Dict
 import RemoteData
 import Navigation
+import Routes
 
 
 all : Test
@@ -24,7 +25,6 @@ all =
 
                 content =
                     [ { id = 15
-                      , url = "/teams/main/pipelines/states/jobs/passing/builds/7"
                       , name = "7"
                       , job = Just { teamName = "main", pipelineName = "states", jobName = "passing" }
                       , status = Concourse.BuildStatusPending
@@ -51,7 +51,6 @@ all =
                     RemoteData.Success
                         { build =
                             { id = 15
-                            , url = "/teams/main/pipelines/states/jobs/passing/builds/7"
                             , name = "7"
                             , job = Just { teamName = "main", pipelineName = "states", jobName = "passing" }
                             , status = Concourse.BuildStatusPending
@@ -90,7 +89,6 @@ all =
                         let
                             build =
                                 { id = 16
-                                , url = "/teams/main/pipelines/states/jobs/passing/builds/8"
                                 , name = "8"
                                 , job = Just { teamName = "main", pipelineName = "states", jobName = "passing" }
                                 , status = Concourse.BuildStatusPending
@@ -118,6 +116,6 @@ all =
                             result =
                                 Build.update (BuildTriggered (Ok build)) theModel
                         in
-                            Expect.equal result ( expectedModel, Navigation.newUrl <| Concourse.Build.url build )
+                            Expect.equal result ( expectedModel, Navigation.newUrl <| Routes.buildRoute build )
                 ]
         ]
