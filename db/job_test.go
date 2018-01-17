@@ -331,6 +331,58 @@ var _ = Describe("Job", func() {
 				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
 			})
 		})
+
+		Context("around", func() {
+			Context("with an around that places it in the middle of the builds", func() {
+				It("returns the builds, with previous/next pages", func() {
+					buildsPage, pagination, err := someJob.Builds(db.Page{Around: builds[5].ID(), Limit: 4})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(buildsPage)).To(Equal(4))
+
+					buildNames := []string{}
+					for _, b := range buildsPage {
+						buildNames = append(buildNames, b.Name())
+					}
+					Expect(buildNames).To(Equal([]string{builds[6].Name(), builds[5].Name(), builds[4].Name(), builds[3].Name()}))
+
+					Expect(pagination.Next).ToNot(BeNil())
+					Expect(pagination.Previous).ToNot(BeNil())
+				})
+			})
+
+			Context("with an around that places it at the start of the builds", func() {
+				It("returns the builds, with next page", func() {
+					buildsPage, _, err := someJob.Builds(db.Page{Around: builds[9].ID(), Limit: 4})
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(buildsPage)).To(Equal(4))
+
+					buildNames := []string{}
+					for _, b := range buildsPage {
+						buildNames = append(buildNames, b.Name())
+					}
+
+					Expect(buildNames).To(Equal([]string{builds[9].Name(), builds[8].Name(), builds[7].Name(), builds[6].Name()}))
+				})
+			})
+
+			Context("with an around that places it at the end of the builds", func() {
+				It("returns the builds, with previous page", func() {
+					buildsPage, _, err := someJob.Builds(db.Page{Around: builds[1].ID(), Limit: 4})
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(buildsPage)).To(Equal(4))
+
+					buildNames := []string{}
+					for _, b := range buildsPage {
+						buildNames = append(buildNames, b.Name())
+					}
+
+					Expect(buildNames).To(Equal([]string{builds[3].Name(), builds[2].Name(), builds[1].Name(), builds[0].Name()}))
+				})
+			})
+		})
+
 	})
 
 	Describe("Build", func() {
