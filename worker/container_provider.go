@@ -227,27 +227,6 @@ func (p *containerProvider) FindOrCreateContainer(
 			logger.Debug("created-container-in-garden")
 		}
 
-		certsVolume, found, err := p.baggageclaimClient.LookupVolume(logger, certsVolumeName)
-		if err != nil {
-			return nil, err
-		}
-
-		if found {
-			reader, err := certsVolume.StreamOut("/")
-			if err != nil {
-				return nil, err
-			}
-
-			err = gardenContainer.StreamIn(garden.StreamInSpec{
-				Path:      "/etc/ssl/certs/",
-				TarStream: reader,
-			})
-
-			if err != nil {
-				return nil, err
-			}
-		}
-
 		createdContainer, err = creatingContainer.Created()
 		if err != nil {
 			logger.Error("failed-to-mark-container-as-created", err)
@@ -467,6 +446,21 @@ func (p *containerProvider) createGardenContainer(
 	}
 
 	bindMounts := []garden.BindMount{}
+
+	certsVolume, found, err := p.baggageclaimClient.LookupVolume(logger, certsVolumeName)
+	if err != nil {
+		return nil, err
+	}
+
+	if found {
+		bindMounts = append(bindMounts,
+			garden.BindMount{
+				SrcPath: certsVolume.Path(),
+				DstPath: "/etc/ssl/certs",
+				Mode:    garden.BindMountModeRO,
+			},
+		)
+	}
 
 	volumeHandleMounts := map[string]string{}
 	for _, mount := range volumeMounts {
