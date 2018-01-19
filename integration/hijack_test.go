@@ -251,6 +251,38 @@ var _ = Describe("Hijacking", func() {
 
 			Expect(sess.Err).To(gbytes.Say("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.\n"))
 		})
+
+		Context("when a url is passed", func() {
+			It("return a friendly error message", func() {
+				flyCmd := exec.Command(flyPath, "hijack", "-s", "some-step", "-u", fmt.Sprintf("%s/teams/%s", atcServer.URL(), teamName))
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(1))
+
+				Expect(sess.Err).To(gbytes.Say("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.\n"))
+			})
+
+			It("returns an error when target from url is not found", func() {
+				flyCmd := exec.Command(flyPath, "hijack", "-s", "some-step", "-u", fmt.Sprintf("%s/teams/%s", "http://faketarget.com", teamName))
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(1))
+
+				Expect(sess.Err).To(gbytes.Say("no target matching url"))
+			})
+
+			It("returns an error when team name from url is not found", func() {
+				flyCmd := exec.Command(flyPath, "hijack", "-s", "some-step", "-u", fmt.Sprintf("%s/teams/%s/builds/0", atcServer.URL(), "faketeam"))
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(1))
+
+				Expect(sess.Err).To(gbytes.Say("no target matching url"))
+			})
+		})
 	})
 
 	Context("when no containers are found", func() {

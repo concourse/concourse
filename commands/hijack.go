@@ -34,9 +34,27 @@ type HijackCommand struct {
 }
 
 func (command *HijackCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
+	var (
+		target rc.Target
+		name   rc.TargetName
+		err    error
+	)
+	if Fly.Target == "" && command.Url != "" {
+		u, err := url.Parse(command.Url)
+		if err != nil {
+			return err
+		}
+		urlMap := parseUrlPath(u.Path)
+		target, name, err = rc.LoadTargetFromURL(fmt.Sprintf("%s://%s", u.Scheme, u.Host), urlMap["teams"], Fly.Verbose)
+		if err != nil {
+			return err
+		}
+		Fly.Target = name
+	} else {
+		target, err = rc.LoadTarget(Fly.Target, Fly.Verbose)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = target.Validate()
@@ -171,8 +189,8 @@ func parseUrlPath(urlPath string) map[string]string {
 	urlComponents := strings.Split(pathWithoutFirstSlash, "/")
 	urlMap := make(map[string]string)
 
-	for i:=0; i<len(urlComponents)/2; i++ {
-		keyIndex := i*2
+	for i := 0; i < len(urlComponents)/2; i++ {
+		keyIndex := i * 2
 		valueIndex := keyIndex + 1
 		urlMap[urlComponents[keyIndex]] = urlComponents[valueIndex]
 	}
@@ -181,38 +199,38 @@ func parseUrlPath(urlPath string) map[string]string {
 }
 
 func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, urlParam string) (*containerFingerprint, error) {
-		u, err := url.Parse(urlParam)
-		if err != nil {
-			return nil, err
-		}
+	u, err := url.Parse(urlParam)
+	if err != nil {
+		return nil, err
+	}
 
-		urlMap := parseUrlPath(u.Path)
+	urlMap := parseUrlPath(u.Path)
 
-		parsedTargetUrl := url.URL{
-			Scheme: u.Scheme,
-			Host:   u.Host,
-		}
+	parsedTargetUrl := url.URL{
+		Scheme: u.Scheme,
+		Host:   u.Host,
+	}
 
-		host := parsedTargetUrl.String()
-		if host != target.URL() {
-			err = fmt.Errorf("URL doesn't match that of target")
-			return nil, err
-		}
+	host := parsedTargetUrl.String()
+	if host != target.URL() {
+		err = fmt.Errorf("URL doesn't match that of target")
+		return nil, err
+	}
 
-		team := urlMap["teams"]
-		if team != target.Team().Name() {
-			err = fmt.Errorf("Team in URL doesn't match the current team of the target")
-			return nil, err
-		}
+	team := urlMap["teams"]
+	if team != target.Team().Name() {
+		err = fmt.Errorf("Team in URL doesn't match the current team of the target")
+		return nil, err
+	}
 
-		fingerprint := &containerFingerprint{
-			pipelineName:  urlMap["pipelines"],
-			jobName:       urlMap["jobs"],
-			buildNameOrID: urlMap["builds"],
-			checkName:     urlMap["resources"],
-		}
+	fingerprint := &containerFingerprint{
+		pipelineName:  urlMap["pipelines"],
+		jobName:       urlMap["jobs"],
+		buildNameOrID: urlMap["builds"],
+		checkName:     urlMap["resources"],
+	}
 
-		return fingerprint, nil
+	return fingerprint, nil
 }
 
 func (command *HijackCommand) getContainerFingerprint(target rc.Target) (*containerFingerprint, error) {
@@ -231,16 +249,16 @@ func (command *HijackCommand) getContainerFingerprint(target rc.Target) (*contai
 		pipelineName = command.Job.PipelineName
 	}
 
-	for _, field := range []struct{
-		fp *string
+	for _, field := range []struct {
+		fp  *string
 		cmd string
-	} {
-		{fp: &fingerprint.pipelineName,  cmd: pipelineName},
+	}{
+		{fp: &fingerprint.pipelineName, cmd: pipelineName},
 		{fp: &fingerprint.buildNameOrID, cmd: command.Build},
-		{fp: &fingerprint.stepName,      cmd: command.StepName},
-		{fp: &fingerprint.jobName,       cmd: command.Job.JobName},
-		{fp: &fingerprint.checkName,     cmd: command.Check.ResourceName},
-		{fp: &fingerprint.attempt,       cmd: command.Attempt},
+		{fp: &fingerprint.stepName, cmd: command.StepName},
+		{fp: &fingerprint.jobName, cmd: command.Job.JobName},
+		{fp: &fingerprint.checkName, cmd: command.Check.ResourceName},
+		{fp: &fingerprint.attempt, cmd: command.Attempt},
 	} {
 		if field.cmd != "" {
 			*field.fp = field.cmd

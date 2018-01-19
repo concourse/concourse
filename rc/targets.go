@@ -13,7 +13,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var ErrNoTargetSpecified = errors.New("no target specified")
+var (
+	ErrNoTargetSpecified = errors.New("no target specified")
+	ErrNoTargetFromURL   = errors.New("no target matching url")
+)
 
 type UnknownTargetError struct {
 	TargetName TargetName
