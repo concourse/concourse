@@ -21,6 +21,8 @@ until docker run --rm --name create-db --link ${docker_postgres}:postgres postgr
   sleep 1
 done
 
+docker run --rm --name enable-stats --link ${docker_postgres}:postgres postgres:alpine psql -c 'create extension pg_stat_statements' -U postgres -h postgres atc
+
 # run from atc dir so that an atc built with 'make DEV=-dev' can find the assets
 cd $ROOT/src/github.com/concourse/atc
 
