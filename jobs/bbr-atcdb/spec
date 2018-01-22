@@ -1,0 +1,56 @@
+---
+name: bbr-atcdb
+
+templates:
+  config.json.erb: config/config.json
+  backup.sh.erb: bin/bbr/backup
+  restore.sh.erb: bin/bbr/restore
+
+packages: []
+
+consumes:
+- name: db
+  type: postgresql
+  optional: true
+- name: postgres
+  type: database
+  optional: true
+  
+properties:
+  postgresql_database:
+    description: |
+      Name of the database to use from the `postgresql` link.
+
+  postgresql.host:
+    description: |
+      IP address or DNS name of a PostgreSQL server to connect to.
+
+      If not specified, one will be autodiscovered via BOSH links.
+
+  postgresql.port:
+    description: |
+      Port on which to connect to the server specified by `postgresql.host`.
+
+      If `postgresql.host` is not specified, this will be autodiscovered via
+      BOSH links, along with the host.
+    default: 5432
+
+  postgresql.address:
+    description: |
+      Deprecated. Shorthand for specifying `postgresql.host` and
+      `postgresql.port`.
+
+  postgresql.database:
+    description: |
+      Name of the database to use.
+    default: atc
+
+  postgresql.role.name:
+    description: |
+      Name of role to connect with.
+    default: atc
+
+  postgresql.role.password:
+    description: |
+      Password to use when connecting.
+

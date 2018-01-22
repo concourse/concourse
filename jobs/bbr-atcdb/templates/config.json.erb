@@ -1,0 +1,50 @@
+<%=
+    require 'json'
+
+    postgres_host = ""
+    postgres_port = ""
+    postgres_role_name = ""
+    postgres_role_password = ""
+    postgres_database = ""
+
+    if_p("postgresql.address") do |addr|
+      postgres_host, postgres_port = addr.split(":")
+    end
+
+    postgres_host = p("postgresql.host", "")
+    postgres_port = p("postgresql.port")
+    postgres_database = p("postgresql.database")
+    postgres_role_name = p("postgresql.role.name")
+    postgres_role_password = p("postgresql.role.password", "")
+
+    if_link("db") do |db|
+      postgres_host = db.instances.first.address
+      postgres_port = db.p("bind_port")
+      postgres_database = p("postgresql_database")
+
+      postgres_db = db.p("databases").find { |db| db["name"] == postgres_database }
+      if postgres_db.nil?
+        raise "database '#{db_name}' not provided by 'postgresql' link"
+      end
+
+      postgres_role_name = postgres_db["role"]
+      postgres_role_password = postgres_db["password"]
+    end if postgres_host.empty?
+
+    if_link("postgres") do |l|
+      postgres_host = l.instances.first.address
+    end if postgres_host.empty?
+
+    if postgres_host.empty?
+      raise "postgres.host not set and no 'db' or 'postgres' link available"
+    end
+
+    JSON.pretty_generate(
+      'username' => postgres_role_name,
+      'password' => postgres_role_password,
+      'host' => postgres_host,
+      'port' => postgres_port,
+      'database' => postgres_database,
+      'adapter' => 'postgres'
+    )
+%>
