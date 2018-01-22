@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/creds/noop"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/encryption"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/migration"
 	"github.com/concourse/atc/engine"
@@ -181,6 +182,7 @@ func (cmd *ATCCommand) currentDBVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
+		encryption.NewNoEncryption(),
 	)
 
 	version, err := helper.CurrentVersion()
@@ -197,6 +199,7 @@ func (cmd *ATCCommand) supportedDBVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
+		encryption.NewNoEncryption(),
 	)
 
 	version, err := helper.SupportedVersion()
@@ -211,6 +214,11 @@ func (cmd *ATCCommand) supportedDBVersion() error {
 func (cmd *ATCCommand) migrateDBToVersion() error {
 	version := cmd.Migration.MigrateDBToVersion
 
+	var newKey *encryption.Key
+	if cmd.EncryptionKey.AEAD != nil {
+		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
+	}
+
 	lockConn, err := cmd.constructLockConn(defaultDriverName)
 	if err != nil {
 		return err
@@ -221,6 +229,7 @@ func (cmd *ATCCommand) migrateDBToVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		lock.NewLockFactory(lockConn),
+		newKey,
 	)
 
 	err = helper.MigrateToVersion(version)
@@ -349,14 +358,14 @@ func (cmd *ATCCommand) constructMembers(
 		break
 	}
 
-	var newKey *db.EncryptionKey
+	var newKey *encryption.Key
 	if cmd.EncryptionKey.AEAD != nil {
-		newKey = db.NewEncryptionKey(cmd.EncryptionKey.AEAD)
+		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
 	}
 
-	var oldKey *db.EncryptionKey
+	var oldKey *encryption.Key
 	if cmd.OldEncryptionKey.AEAD != nil {
-		oldKey = db.NewEncryptionKey(cmd.OldEncryptionKey.AEAD)
+		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
 	}
 
 	lockConn, err := cmd.constructLockConn(retryingDriverName)
@@ -897,8 +906,8 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) error {
 func (cmd *ATCCommand) constructDBConn(
 	driverName string,
 	logger lager.Logger,
-	newKey *db.EncryptionKey,
-	oldKey *db.EncryptionKey,
+	newKey *encryption.Key,
+	oldKey *encryption.Key,
 	maxConn int,
 	connectionName string,
 	lockFactory lock.LockFactory,

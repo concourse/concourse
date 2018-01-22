@@ -1,4 +1,4 @@
-package db
+package encryption
 
 type NoEncryption struct{}
 

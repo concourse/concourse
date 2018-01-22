@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db/encryption"
 	"github.com/concourse/atc/db/lock"
 	"github.com/mattes/migrate"
 	"github.com/mattes/migrate/database/postgres"
@@ -17,11 +18,12 @@ import (
 	_ "github.com/mattes/migrate/source/file"
 )
 
-func NewOpenHelper(driver, name string, lockFactory lock.LockFactory) *OpenHelper {
+func NewOpenHelper(driver, name string, lockFactory lock.LockFactory, es encryption.Strategy) *OpenHelper {
 	return &OpenHelper{
 		driver,
 		name,
 		lockFactory,
+		es,
 	}
 }
 
@@ -29,6 +31,7 @@ type OpenHelper struct {
 	driver         string
 	dataSourceName string
 	lockFactory    lock.LockFactory
+	strategy       encryption.Strategy
 }
 
 func (self *OpenHelper) CurrentVersion() (int, error) {
@@ -39,7 +42,7 @@ func (self *OpenHelper) CurrentVersion() (int, error) {
 
 	defer db.Close()
 
-	return NewMigrator(db, self.lockFactory).CurrentVersion()
+	return NewMigrator(db, self.lockFactory, self.strategy).CurrentVersion()
 }
 
 func (self *OpenHelper) SupportedVersion() (int, error) {
@@ -50,7 +53,7 @@ func (self *OpenHelper) SupportedVersion() (int, error) {
 
 	defer db.Close()
 
-	return NewMigrator(db, self.lockFactory).SupportedVersion()
+	return NewMigrator(db, self.lockFactory, self.strategy).SupportedVersion()
 }
 
 func (self *OpenHelper) Open() (*sql.DB, error) {
@@ -59,7 +62,7 @@ func (self *OpenHelper) Open() (*sql.DB, error) {
 		return nil, err
 	}
 
-	if err := NewMigrator(db, self.lockFactory).Up(); err != nil {
+	if err := NewMigrator(db, self.lockFactory, self.strategy).Up(); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -75,7 +78,7 @@ func (self *OpenHelper) MigrateToVersion(version int) error {
 
 	defer db.Close()
 
-	if err := NewMigrator(db, self.lockFactory).Migrate(version); err != nil {
+	if err := NewMigrator(db, self.lockFactory, self.strategy).Migrate(version); err != nil {
 		return err
 	}
 
@@ -89,14 +92,15 @@ type Migrator interface {
 	Up() error
 }
 
-func NewMigrator(db *sql.DB, lockFactory lock.LockFactory) Migrator {
-	return NewMigratorForMigrations(db, lockFactory, AssetNames())
+func NewMigrator(db *sql.DB, lockFactory lock.LockFactory, es encryption.Strategy) Migrator {
+	return NewMigratorForMigrations(db, lockFactory, es, AssetNames())
 }
 
-func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, migrations []string) Migrator {
+func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, es encryption.Strategy, migrations []string) Migrator {
 	return &migrator{
 		db,
 		lockFactory,
+		es,
 		lager.NewLogger("migrations"),
 		migrations,
 	}
@@ -105,8 +109,9 @@ func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, migratio
 type migrator struct {
 	db          *sql.DB
 	lockFactory lock.LockFactory
+	strategy    encryption.Strategy
 	logger      lager.Logger
-	migrations  migrations
+	migrations  filenames
 }
 
 func (self *migrator) SupportedVersion() (int, error) {
@@ -198,7 +203,9 @@ func (self *migrator) open() (*migrate.Migrate, error) {
 		return nil, err
 	}
 
-	m, err := migrate.NewWithInstance("go-bindata", s, "postgres", d)
+	driver := NewDriver(d, self.db, self.strategy)
+
+	m, err := migrate.NewWithInstance("go-bindata", s, "postgres", driver)
 	if err != nil {
 		return nil, err
 	}
@@ -266,23 +273,23 @@ func (self *migrator) checkLegacyVersion() (int, error) {
 	return newMigrationStartVersion, nil
 }
 
-type migrations []string
+type filenames []string
 
-func (m migrations) Len() int {
+func (m filenames) Len() int {
 	return len(m)
 }
 
-func (m migrations) Swap(i, j int) {
+func (m filenames) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
 
-func (m migrations) Less(i, j int) bool {
+func (m filenames) Less(i, j int) bool {
 	m1, _ := source.Parse(m[i])
 	m2, _ := source.Parse(m[j])
 	return m1.Version < m2.Version
 }
 
-func (m migrations) Latest() string {
+func (m filenames) Latest() string {
 	sort.Sort(m)
 
 	return m[len(m)-1]

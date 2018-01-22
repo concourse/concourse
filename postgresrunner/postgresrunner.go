@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/encryption"
 	"github.com/concourse/atc/db/migration"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -100,6 +101,7 @@ func (runner *Runner) OpenDB() *sql.DB {
 		"postgres",
 		runner.DataSourceName(),
 		nil,
+		encryption.NewNoEncryption(),
 	).Open()
 	Expect(err).NotTo(HaveOccurred())
 

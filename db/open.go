@@ -12,6 +12,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/concourse/atc/db/encryption"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/migration"
 	multierror "github.com/hashicorp/go-multierror"
@@ -22,7 +23,7 @@ import (
 
 type Conn interface {
 	Bus() NotificationsBus
-	EncryptionStrategy() EncryptionStrategy
+	EncryptionStrategy() encryption.Strategy
 
 	Ping() error
 	Driver() driver.Driver
@@ -53,16 +54,16 @@ type Tx interface {
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 }
 
-func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *EncryptionKey, oldKey *EncryptionKey, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
+func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
 	for {
-		var strategy EncryptionStrategy
+		var strategy encryption.Strategy
 		if newKey != nil {
 			strategy = newKey
 		} else {
-			strategy = NewNoEncryption()
+			strategy = encryption.NewNoEncryption()
 		}
 
-		sqlDb, err := migration.NewOpenHelper(sqlDriver, sqlDataSource, lockFactory).Open()
+		sqlDb, err := migration.NewOpenHelper(sqlDriver, sqlDataSource, lockFactory, strategy).Open()
 		if err != nil {
 			if strings.Contains(err.Error(), "dial ") {
 				logger.Error("failed-to-open-db-retrying", err)
@@ -110,7 +111,7 @@ var encryptedColumns = map[string]string{
 	"builds":         "engine_metadata",
 }
 
-func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *EncryptionKey) error {
+func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *encryption.Key) error {
 	for table, col := range encryptedColumns {
 		rows, err := sqlDB.Query(`
 			SELECT id, ` + col + `
@@ -176,7 +177,7 @@ func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *EncryptionKey) er
 	return nil
 }
 
-func decryptToPlaintext(logger lager.Logger, sqlDB *sql.DB, oldKey *EncryptionKey) error {
+func decryptToPlaintext(logger lager.Logger, sqlDB *sql.DB, oldKey *encryption.Key) error {
 	for table, col := range encryptedColumns {
 		rows, err := sqlDB.Query(`
 			SELECT id, nonce, ` + col + `
@@ -240,7 +241,7 @@ func decryptToPlaintext(logger lager.Logger, sqlDB *sql.DB, oldKey *EncryptionKe
 
 var ErrEncryptedWithUnknownKey = errors.New("row encrypted with neither old nor new key")
 
-func encryptWithNewKey(logger lager.Logger, sqlDB *sql.DB, newKey *EncryptionKey, oldKey *EncryptionKey) error {
+func encryptWithNewKey(logger lager.Logger, sqlDB *sql.DB, newKey *encryption.Key, oldKey *encryption.Key) error {
 	for table, col := range encryptedColumns {
 		rows, err := sqlDB.Query(`
 			SELECT id, nonce, ` + col + `
@@ -318,7 +319,7 @@ type db struct {
 	*sql.DB
 
 	bus        NotificationsBus
-	encryption EncryptionStrategy
+	encryption encryption.Strategy
 	name       string
 }
 
@@ -330,7 +331,7 @@ func (db *db) Bus() NotificationsBus {
 	return db.bus
 }
 
-func (db *db) EncryptionStrategy() EncryptionStrategy {
+func (db *db) EncryptionStrategy() encryption.Strategy {
 	return db.encryption
 }
 
