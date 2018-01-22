@@ -28,8 +28,10 @@ files:
   - github.com/concourse/atc/creds/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/algorithm/*.{go,s,c,h} # gosub
+  - github.com/concourse/atc/db/encryption/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/lock/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/migration/*.{go,s,c,h} # gosub
+  - github.com/concourse/atc/db/migration/migrations/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/event/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/commands/*.{go,s,c,h} # gosub
