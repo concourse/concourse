@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -20,6 +21,16 @@ type TeamFactory interface {
 	GetTeams() ([]Team, error)
 	GetByID(teamID int) Team
 	CreateDefaultTeamIfNotExists() (Team, error)
+}
+
+var ErrDataIsEncrypted = errors.New("failed to decrypt data that is encrypted")
+var ErrDataIsNotEncrypted = errors.New("failed to decrypt data that is not encrypted")
+
+//go:generate counterfeiter . EncryptionStrategy
+
+type EncryptionStrategy interface {
+	Encrypt([]byte) (string, *string, error)
+	Decrypt(string, *string) ([]byte, error)
 }
 
 type teamFactory struct {

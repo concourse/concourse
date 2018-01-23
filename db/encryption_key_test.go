@@ -1,17 +1,17 @@
-package encryption_test
+package db_test
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 
-	"github.com/concourse/atc/db/encryption"
+	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Encryption Key", func() {
 	var (
-		key       *encryption.Key
+		key       *db.EncryptionKey
 		plaintext []byte
 	)
 
@@ -24,7 +24,7 @@ var _ = Describe("Encryption Key", func() {
 		aesgcm, err := cipher.NewGCM(block)
 		Expect(err).ToNot(HaveOccurred())
 
-		key = encryption.NewKey(aesgcm)
+		key = db.NewEncryptionKey(aesgcm)
 	})
 
 	Context("when the key is valid", func() {
@@ -75,7 +75,7 @@ var _ = Describe("Encryption Key", func() {
 				aesgcm, err := cipher.NewGCM(block)
 				Expect(err).ToNot(HaveOccurred())
 
-				wrongKey := encryption.NewKey(aesgcm)
+				wrongKey := db.NewEncryptionKey(aesgcm)
 
 				_, err = wrongKey.Decrypt(encryptedText, nonce)
 				Expect(err).To(HaveOccurred())

@@ -11,7 +11,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/encryption"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
@@ -960,7 +959,7 @@ func buildEventSeq(buildid int) string {
 	return fmt.Sprintf("build_event_id_seq_%d", buildid)
 }
 
-func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
+func scanBuild(b *build, row scannable, encryptionStrategy EncryptionStrategy) error {
 	var (
 		jobID, pipelineID                                         sql.NullInt64
 		engine, engineMetadata, jobName, pipelineName, publicPlan sql.NullString

@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/atc/db/encryption"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/migration"
 
@@ -26,7 +25,6 @@ var _ = Describe("Migration", func() {
 		db          *sql.DB
 		lockDB      *sql.DB
 		lockFactory lock.LockFactory
-		strategy    encryption.Strategy
 	)
 
 	BeforeEach(func() {
@@ -37,22 +35,11 @@ var _ = Describe("Migration", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		lockFactory = lock.NewLockFactory(lockDB)
-
-		strategy = encryption.NewNoEncryption()
 	})
 
 	AfterEach(func() {
 		_ = db.Close()
 		_ = lockDB.Close()
-	})
-
-	Context("Migration test run", func() {
-		It("Runs all the migrations", func() {
-			migrator := migration.NewMigrator(db, lockFactory, strategy)
-
-			err := migrator.Up()
-			Expect(err).NotTo(HaveOccurred())
-		})
 	})
 
 	Context("Version Check", func() {
@@ -62,7 +49,7 @@ var _ = Describe("Migration", func() {
 
 			SetupSchemaMigrationsTableToExistAtVersion(db, myDatabaseVersion)
 
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
 				"1000_some_migration.up.sql",
 				"1510262030_initial_schema.up.sql",
 				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
@@ -78,7 +65,7 @@ var _ = Describe("Migration", func() {
 
 			SetupSchemaMigrationsTableToExistAtVersion(db, initialSchemaVersion)
 
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
 				"1000_some_migration.up.sql",
 				"1510262030_initial_schema.up.sql",
 				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
@@ -93,124 +80,107 @@ var _ = Describe("Migration", func() {
 	})
 
 	Context("Upgrade", func() {
-		Context("sql migrations", func() {
-			It("Fails if trying to upgrade from a migration_version < 189", func() {
-				SetupMigrationVersionTableToExistAtVersion(db, 188)
+		It("Fails if trying to upgrade from a migration_version < 189", func() {
+			SetupMigrationVersionTableToExistAtVersion(db, 188)
 
-				migrator := migration.NewMigrator(db, lockFactory, strategy)
+			migrator := migration.NewMigrator(db, lockFactory)
 
-				err := migrator.Up()
-				Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 188"))
+			err := migrator.Up()
+			Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 188"))
 
-				_, err = db.Exec("SELECT version FROM migration_version")
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("Fails if trying to upgrade from a migration_version > 189", func() {
-				SetupMigrationVersionTableToExistAtVersion(db, 190)
-
-				migrator := migration.NewMigrator(db, lockFactory, strategy)
-
-				err := migrator.Up()
-				Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 190"))
-
-				_, err = db.Exec("SELECT version FROM migration_version")
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("Forces mattes/migrate to a known first version if migration_version is 189", func() {
-				SetupMigrationVersionTableToExistAtVersion(db, 189)
-
-				SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
-
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
-					"1510262030_initial_schema.up.sql",
-				})
-
-				err := migrator.Up()
-				Expect(err).NotTo(HaveOccurred())
-
-				ExpectSchemaMigrationsTableToHaveVersion(db, initialSchemaVersion)
-
-				ExpectMigrationVersionTableNotToExist(db)
-
-				ExpectToBeAbleToInsertData(db)
-			})
-
-			It("Runs mattes/migrate if migration_version table does not exist", func() {
-
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
-					"1510262030_initial_schema.up.sql",
-				})
-
-				err := migrator.Up()
-				Expect(err).NotTo(HaveOccurred())
-
-				ExpectSchemaMigrationsTableToHaveVersion(db, initialSchemaVersion)
-
-				ExpectMigrationVersionTableNotToExist(db)
-
-				ExpectToBeAbleToInsertData(db)
-			})
-
-			It("Doesn't fail if there are no migrations to run", func() {
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
-					"1510262030_initial_schema.up.sql",
-				})
-
-				err := migrator.Up()
-				Expect(err).NotTo(HaveOccurred())
-
-				err = migrator.Up()
-				Expect(err).NotTo(HaveOccurred())
-
-				ExpectSchemaMigrationsTableToHaveVersion(db, initialSchemaVersion)
-
-				ExpectMigrationVersionTableNotToExist(db)
-
-				ExpectToBeAbleToInsertData(db)
-			})
-
-			It("Locks the database so multiple ATCs don't all run migrations at the same time", func() {
-				SetupMigrationVersionTableToExistAtVersion(db, 189)
-
-				SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
-
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
-					"1510262030_initial_schema.up.sql",
-				})
-
-				var wg sync.WaitGroup
-				wg.Add(3)
-
-				go TryRunUpAndVerifyResult(db, migrator, &wg)
-				go TryRunUpAndVerifyResult(db, migrator, &wg)
-				go TryRunUpAndVerifyResult(db, migrator, &wg)
-
-				wg.Wait()
-			})
+			_, err = db.Exec("SELECT version FROM migration_version")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("golang migrations", func() {
-			It("contains the correct migration version", func() {
+		It("Fails if trying to upgrade from a migration_version > 189", func() {
+			SetupMigrationVersionTableToExistAtVersion(db, 190)
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
-					"1510262030_initial_schema.up.sql",
-					"1516643303_update_auth_providers.up.go",
-				})
+			migrator := migration.NewMigrator(db, lockFactory)
 
-				err := migrator.Up()
-				Expect(err).NotTo(HaveOccurred())
+			err := migrator.Up()
+			Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 190"))
 
-				ExpectSchemaMigrationsTableToHaveVersion(db, 1516643303)
+			_, err = db.Exec("SELECT version FROM migration_version")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Forces mattes/migrate to a known first version if migration_version is 189", func() {
+			SetupMigrationVersionTableToExistAtVersion(db, 189)
+
+			SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
+
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
+				"1510262030_initial_schema.up.sql",
 			})
+
+			err := migrator.Up()
+			Expect(err).NotTo(HaveOccurred())
+
+			ExpectSchemaMigrationsTableToHaveVersion(db, initialSchemaVersion)
+
+			ExpectMigrationVersionTableNotToExist(db)
+
+			ExpectToBeAbleToInsertData(db)
+		})
+
+		It("Runs mattes/migrate if migration_version table does not exist", func() {
+
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
+				"1510262030_initial_schema.up.sql",
+			})
+
+			err := migrator.Up()
+			Expect(err).NotTo(HaveOccurred())
+
+			ExpectSchemaMigrationsTableToHaveVersion(db, initialSchemaVersion)
+
+			ExpectMigrationVersionTableNotToExist(db)
+
+			ExpectToBeAbleToInsertData(db)
+		})
+
+		It("Doesn't fail if there are no migrations to run", func() {
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
+				"1510262030_initial_schema.up.sql",
+			})
+
+			err := migrator.Up()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = migrator.Up()
+			Expect(err).NotTo(HaveOccurred())
+
+			ExpectSchemaMigrationsTableToHaveVersion(db, initialSchemaVersion)
+
+			ExpectMigrationVersionTableNotToExist(db)
+
+			ExpectToBeAbleToInsertData(db)
+		})
+
+		It("Locks the database so multiple ATCs don't all run migrations at the same time", func() {
+			SetupMigrationVersionTableToExistAtVersion(db, 189)
+
+			SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
+
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
+				"1510262030_initial_schema.up.sql",
+			})
+
+			var wg sync.WaitGroup
+			wg.Add(3)
+
+			go TryRunUpAndVerifyResult(db, migrator, &wg)
+			go TryRunUpAndVerifyResult(db, migrator, &wg)
+			go TryRunUpAndVerifyResult(db, migrator, &wg)
+
+			wg.Wait()
 		})
 	})
 
 	Context("Downgrade", func() {
 
 		It("Downgrades to a given version", func() {
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
 				"1510262030_initial_schema.up.sql",
 				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 			})
@@ -229,7 +199,7 @@ var _ = Describe("Migration", func() {
 		})
 
 		It("Doesn't fail if already at the requested version", func() {
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
 				"1510262030_initial_schema.up.sql",
 				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 			})
@@ -248,7 +218,7 @@ var _ = Describe("Migration", func() {
 		})
 
 		It("Locks the database so multiple consumers don't run downgrade at the same time", func() {
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, []string{
 				"1510262030_initial_schema.up.sql",
 				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 			})

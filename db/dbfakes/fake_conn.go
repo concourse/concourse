@@ -8,7 +8,6 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/encryption"
 )
 
 type FakeConn struct {
@@ -21,14 +20,14 @@ type FakeConn struct {
 	busReturnsOnCall map[int]struct {
 		result1 db.NotificationsBus
 	}
-	EncryptionStrategyStub        func() encryption.Strategy
+	EncryptionStrategyStub        func() db.EncryptionStrategy
 	encryptionStrategyMutex       sync.RWMutex
 	encryptionStrategyArgsForCall []struct{}
 	encryptionStrategyReturns     struct {
-		result1 encryption.Strategy
+		result1 db.EncryptionStrategy
 	}
 	encryptionStrategyReturnsOnCall map[int]struct {
-		result1 encryption.Strategy
+		result1 db.EncryptionStrategy
 	}
 	PingStub        func() error
 	pingMutex       sync.RWMutex
@@ -193,7 +192,7 @@ func (fake *FakeConn) BusReturnsOnCall(i int, result1 db.NotificationsBus) {
 	}{result1}
 }
 
-func (fake *FakeConn) EncryptionStrategy() encryption.Strategy {
+func (fake *FakeConn) EncryptionStrategy() db.EncryptionStrategy {
 	fake.encryptionStrategyMutex.Lock()
 	ret, specificReturn := fake.encryptionStrategyReturnsOnCall[len(fake.encryptionStrategyArgsForCall)]
 	fake.encryptionStrategyArgsForCall = append(fake.encryptionStrategyArgsForCall, struct{}{})
@@ -214,22 +213,22 @@ func (fake *FakeConn) EncryptionStrategyCallCount() int {
 	return len(fake.encryptionStrategyArgsForCall)
 }
 
-func (fake *FakeConn) EncryptionStrategyReturns(result1 encryption.Strategy) {
+func (fake *FakeConn) EncryptionStrategyReturns(result1 db.EncryptionStrategy) {
 	fake.EncryptionStrategyStub = nil
 	fake.encryptionStrategyReturns = struct {
-		result1 encryption.Strategy
+		result1 db.EncryptionStrategy
 	}{result1}
 }
 
-func (fake *FakeConn) EncryptionStrategyReturnsOnCall(i int, result1 encryption.Strategy) {
+func (fake *FakeConn) EncryptionStrategyReturnsOnCall(i int, result1 db.EncryptionStrategy) {
 	fake.EncryptionStrategyStub = nil
 	if fake.encryptionStrategyReturnsOnCall == nil {
 		fake.encryptionStrategyReturnsOnCall = make(map[int]struct {
-			result1 encryption.Strategy
+			result1 db.EncryptionStrategy
 		})
 	}
 	fake.encryptionStrategyReturnsOnCall[i] = struct {
-		result1 encryption.Strategy
+		result1 db.EncryptionStrategy
 	}{result1}
 }
 

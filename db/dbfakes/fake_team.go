@@ -69,10 +69,8 @@ type FakeTeam struct {
 	}
 	RenameStub        func(string) error
 	renameMutex       sync.RWMutex
-	renameArgsForCall []struct {
-		arg1 string
-	}
-	renameReturns struct {
+	renameArgsForCall []struct{ name string }
+	renameReturns     struct {
 		result1 error
 	}
 	renameReturnsOnCall map[int]struct {
@@ -617,16 +615,14 @@ func (fake *FakeTeam) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) Rename(arg1 string) error {
+func (fake *FakeTeam) Rename(name string) error {
 	fake.renameMutex.Lock()
 	ret, specificReturn := fake.renameReturnsOnCall[len(fake.renameArgsForCall)]
-	fake.renameArgsForCall = append(fake.renameArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("Rename", []interface{}{arg1})
+	fake.renameArgsForCall = append(fake.renameArgsForCall, struct{ name string }{name})
+	fake.recordInvocation("Rename", []interface{}{})
 	fake.renameMutex.Unlock()
 	if fake.RenameStub != nil {
-		return fake.RenameStub(arg1)
+		return fake.RenameStub(name)
 	}
 	if specificReturn {
 		return ret.result1
@@ -643,26 +639,7 @@ func (fake *FakeTeam) RenameCallCount() int {
 func (fake *FakeTeam) RenameArgsForCall(i int) string {
 	fake.renameMutex.RLock()
 	defer fake.renameMutex.RUnlock()
-	return fake.renameArgsForCall[i].arg1
-}
-
-func (fake *FakeTeam) RenameReturns(result1 error) {
-	fake.RenameStub = nil
-	fake.renameReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeTeam) RenameReturnsOnCall(i int, result1 error) {
-	fake.RenameStub = nil
-	if fake.renameReturnsOnCall == nil {
-		fake.renameReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.renameReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+	return fake.renameArgsForCall[i].name
 }
 
 func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from db.ConfigVersion, pausedState db.PipelinePausedState) (db.Pipeline, bool, error) {
@@ -1790,8 +1767,6 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.authMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
-	fake.renameMutex.RLock()
-	defer fake.renameMutex.RUnlock()
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
 	fake.pipelineMutex.RLock()

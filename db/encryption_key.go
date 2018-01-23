@@ -1,4 +1,4 @@
-package encryption
+package db
 
 import (
 	"crypto/cipher"
@@ -7,17 +7,17 @@ import (
 	"io"
 )
 
-type Key struct {
+type EncryptionKey struct {
 	aesgcm cipher.AEAD
 }
 
-func NewKey(a cipher.AEAD) *Key {
-	return &Key{
+func NewEncryptionKey(a cipher.AEAD) *EncryptionKey {
+	return &EncryptionKey{
 		aesgcm: a,
 	}
 }
 
-func (e Key) Encrypt(plaintext []byte) (string, *string, error) {
+func (e EncryptionKey) Encrypt(plaintext []byte) (string, *string, error) {
 	nonce := make([]byte, 12)
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return "", nil, err
@@ -30,7 +30,7 @@ func (e Key) Encrypt(plaintext []byte) (string, *string, error) {
 	return hex.EncodeToString(ciphertext), &noncense, nil
 }
 
-func (e Key) Decrypt(text string, n *string) ([]byte, error) {
+func (e EncryptionKey) Decrypt(text string, n *string) ([]byte, error) {
 	if n == nil {
 		return nil, ErrDataIsNotEncrypted
 	}
