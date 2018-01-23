@@ -87,6 +87,22 @@ func newTarget(
 	}
 }
 
+func LoadTargetFromURL(url, team string, tracing bool) (Target, TargetName, error) {
+	flyTargets, err := LoadTargets()
+	if err != nil {
+		return nil, "", err
+	}
+
+	for name, props := range flyTargets.Targets {
+		if props.API == url && props.TeamName == team {
+			target, err := LoadTarget(name, tracing)
+			return target, name, err
+		}
+	}
+
+	return nil, "", ErrNoTargetFromURL
+}
+
 func LoadTarget(selectedTarget TargetName, tracing bool) (Target, error) {
 	targetProps, err := selectTarget(selectedTarget)
 	if err != nil {
