@@ -40,8 +40,6 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hLog.Debug("configured-authentication", lager.Data{"ProviderAuth": atcTeam.Auth})
-
 	providers := provider.GetProviders()
 
 	for providerName, config := range atcTeam.Auth {
@@ -54,24 +52,33 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 		authConfig, err := p.UnmarshalConfig(config)
 		if err != nil {
-			hLog.Error("failed-to-unmarshal-auth", err)
+			hLog.Error("failed-to-unmarshal-auth", err, lager.Data{"provider": providerName})
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		err = authConfig.Validate()
 		if err != nil {
-			hLog.Error("request-body-validation-error", err)
+			hLog.Error("request-body-validation-error", err, lager.Data{"provider": providerName})
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		err = authConfig.Finalize()
 		if err != nil {
-			hLog.Error("cannot-finalize-auth-config", err)
+			hLog.Error("cannot-finalize-auth-config", err, lager.Data{"provider": providerName})
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		jsonConfig, err := p.MarshalConfig(authConfig)
+		if err != nil {
+			hLog.Error("cannot-marshal-auth-config", err, lager.Data{"provider": providerName})
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		atcTeam.Auth[providerName] = jsonConfig
 	}
 
 	team, found, err := s.teamFactory.FindTeam(teamName)

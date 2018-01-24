@@ -24,6 +24,12 @@ func jsonEncode(object interface{}) *bytes.Buffer {
 	return bytes.NewBuffer(reqPayload)
 }
 
+func fakeData(contents string) *json.RawMessage {
+	data := []byte(contents)
+
+	return (*json.RawMessage)(&data)
+}
+
 var _ = Describe("Teams API", func() {
 	var (
 		fakeTeam *dbfakes.FakeTeam
@@ -74,18 +80,16 @@ var _ = Describe("Teams API", func() {
 				fakeTeamOne.IDReturns(5)
 				fakeTeamOne.NameReturns("avengers")
 
-				basicAuthData := []byte(`{"username": "fake user", "password": "no, bad"}`)
 				fakeTeamTwo.IDReturns(9)
 				fakeTeamTwo.NameReturns("aliens")
 				fakeTeamTwo.AuthReturns(map[string]*json.RawMessage{
-					"basicauth": (*json.RawMessage)(&basicAuthData),
+					"basicauth": fakeData(`{"username": "fake user", "password": "no, bad"}`),
 				})
 
-				fakeProviderData := []byte(`{"hello": "world"}`)
 				fakeTeamThree.IDReturns(22)
 				fakeTeamThree.NameReturns("predators")
 				fakeTeamThree.AuthReturns(map[string]*json.RawMessage{
-					"fake-provider": (*json.RawMessage)(&fakeProviderData),
+					"fake-provider": fakeData(`{"hello": "world"}`),
 				})
 
 				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
@@ -150,15 +154,17 @@ var _ = Describe("Teams API", func() {
 					fakeAuthConfig      *providerfakes.FakeAuthConfig
 				)
 				BeforeEach(func() {
-					data := []byte(`{"username":"fries","password":"shake"}`)
+					fakeAuthData := fakeData(`{"username":"fries","password":"shake"}`)
+
 					atcTeam = atc.Team{
 						Auth: map[string]*json.RawMessage{
-							fakeProviderName: (*json.RawMessage)(&data),
+							fakeProviderName: fakeAuthData,
 						},
 					}
 					fakeAuthConfig = new(providerfakes.FakeAuthConfig)
 					fakeProviderFactory = new(providerfakes.FakeProviderFactory)
 					fakeProviderFactory.UnmarshalConfigReturns(fakeAuthConfig, nil)
+					fakeProviderFactory.MarshalConfigReturns(fakeAuthData, nil)
 
 					provider.Register(fakeProviderName, fakeProviderFactory)
 				})
@@ -166,10 +172,9 @@ var _ = Describe("Teams API", func() {
 				Context("when the basic auth is invalid", func() {
 					Context("when only password is given", func() {
 						BeforeEach(func() {
-							data := []byte(`{"password": "fries"}`)
 							atcTeam = atc.Team{
 								Auth: map[string]*json.RawMessage{
-									fakeProviderName: (*json.RawMessage)(&data),
+									fakeProviderName: fakeData(`{"password": "fries"}`),
 								},
 							}
 							fakeAuthConfig.ValidateReturns(errors.New("nope"))
@@ -182,10 +187,9 @@ var _ = Describe("Teams API", func() {
 
 					Context("when only username is given", func() {
 						BeforeEach(func() {
-							data := []byte(`{"username": "fries"}`)
 							atcTeam = atc.Team{
 								Auth: map[string]*json.RawMessage{
-									fakeProviderName: (*json.RawMessage)(&data),
+									fakeProviderName: fakeData(`{"username": "fries"}`),
 								},
 							}
 							fakeAuthConfig.ValidateReturns(errors.New("nope"))
@@ -199,13 +203,17 @@ var _ = Describe("Teams API", func() {
 
 				Context("when the auth config cannot be finalized", func() {
 					BeforeEach(func() {
-						data := []byte(`{"password": "fries"}`)
-						atcTeam = atc.Team{
-							Auth: map[string]*json.RawMessage{
-								fakeProviderName: (*json.RawMessage)(&data),
-							},
-						}
 						fakeAuthConfig.FinalizeReturns(errors.New("finalize error"))
+					})
+
+					It("returns a 400 Bad Request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				Context("when the auth config marshaling fails", func() {
+					BeforeEach(func() {
+						fakeProviderFactory.MarshalConfigReturns(nil, errors.New("fail"))
 					})
 
 					It("returns a 400 Bad Request", func() {
@@ -251,10 +259,9 @@ var _ = Describe("Teams API", func() {
 				})
 				Context("when the provider is not found", func() {
 					BeforeEach(func() {
-						data := []byte(`{"mcdonalds": "fries"}`)
 						atcTeam = atc.Team{
 							Auth: map[string]*json.RawMessage{
-								"fake-suraci": (*json.RawMessage)(&data),
+								"fake-suraci": fakeData(`{"mcdonalds": "fries"}`),
 							},
 						}
 					})
@@ -266,10 +273,9 @@ var _ = Describe("Teams API", func() {
 				Context("when the provider is found", func() {
 					Context("when the auth is malformed", func() {
 						BeforeEach(func() {
-							data := []byte(`{"cold": "fries"}`)
 							atcTeam = atc.Team{
 								Auth: map[string]*json.RawMessage{
-									fakeProviderName: (*json.RawMessage)(&data),
+									fakeProviderName: fakeData(`{"cold": "fries"}`),
 								},
 							}
 							fakeProviderFactory.UnmarshalConfigReturns(nil, errors.New("nope not this time"))
@@ -283,13 +289,14 @@ var _ = Describe("Teams API", func() {
 						var fakeAuthConfig *providerfakes.FakeAuthConfig
 						BeforeEach(func() {
 							fakeAuthConfig = new(providerfakes.FakeAuthConfig)
-							data := []byte(`{"mcdonalds":"fries"}`)
+							fakeAuthData := fakeData(`{"mcdonalds":"fries"}`)
 							atcTeam = atc.Team{
 								Auth: map[string]*json.RawMessage{
-									fakeProviderName: (*json.RawMessage)(&data),
+									fakeProviderName: fakeAuthData,
 								},
 							}
 							fakeProviderFactory.UnmarshalConfigReturns(fakeAuthConfig, nil)
+							fakeProviderFactory.MarshalConfigReturns(fakeAuthData, nil)
 						})
 						Context("when the auth is invalid", func() {
 							BeforeEach(func() {

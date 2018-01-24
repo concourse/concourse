@@ -818,11 +818,11 @@ func (cmd *ATCCommand) validate() error {
 	var errs *multierror.Error
 	isConfigured := false
 
-	for name, p := range cmd.ProviderAuth {
-		if p.IsConfigured() {
+	for name, config := range cmd.ProviderAuth {
+		if config.IsConfigured() {
 			fmt.Println("auth-provider-configured: " + name)
 
-			err := p.Validate()
+			err := config.Validate()
 
 			if err != nil {
 				errs = multierror.Append(errs, err)
@@ -1008,19 +1008,31 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 	// 	return err
 	// }
 
+	providers := provider.GetProviders()
 	teamAuth := make(map[string]*json.RawMessage)
 
 	for name, config := range cmd.ProviderAuth {
+
 		if config.IsConfigured() {
 			if err := config.Finalize(); err == nil {
-				data, err := json.Marshal(config)
+
+				p, found := providers[name]
+				if !found {
+					return errors.New("provider not found: " + name)
+				}
+
+				data, err := p.MarshalConfig(config)
 				if err != nil {
 					return err
 				}
 
-				teamAuth[name] = (*json.RawMessage)(&data)
+				teamAuth[name] = data
 			}
 		}
+	}
+
+	if len(teamAuth) > 1 {
+		delete(teamAuth, "noauth")
 	}
 
 	err = team.UpdateProviderAuth(teamAuth)
