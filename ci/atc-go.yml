@@ -9,8 +9,8 @@ image_resource:
 inputs:
 - name: concourse
 
-caches:
-- path: concourse/pkg
+# caches:
+# - path: concourse/pkg
 
 run:
   path: concourse/ci/scripts/atc-go
