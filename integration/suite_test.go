@@ -80,7 +80,13 @@ var _ = BeforeEach(func() {
 		infoHandler(),
 		ghttp.CombineHandlers(
 			ghttp.VerifyRequest("GET", "/api/v1/teams/"+teamName+"/auth/methods"),
-			ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+			ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+				{
+					DisplayName: "No Auth",
+					Type:        provider.AuthTypeNone,
+					AuthURL:     atcServer.URL() + "/api/v1/teams/" + teamName + "/auth/token",
+				},
+			}),
 		),
 		tokenHandler(teamName),
 		infoHandler(),

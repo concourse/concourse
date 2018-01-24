@@ -86,7 +86,13 @@ var _ = Describe("login Command", func() {
 				infoHandler(),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
-					ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+					ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+						{
+							Type:        provider.AuthTypeNone,
+							DisplayName: "No Auth",
+							AuthURL:     "https://example.com/login/none?team_name=main",
+						},
+					}),
 				),
 				tokenHandler("main"),
 			)
@@ -108,7 +114,13 @@ var _ = Describe("login Command", func() {
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+							{
+								Type:        provider.AuthTypeNone,
+								DisplayName: "No Auth",
+								AuthURL:     "https://example.com/login/none?team_name=main",
+							},
+						}),
 					),
 					tokenHandler("some-team"),
 				)
@@ -123,7 +135,13 @@ var _ = Describe("login Command", func() {
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+							{
+								Type:        provider.AuthTypeNone,
+								DisplayName: "No Auth",
+								AuthURL:     "https://example.com/login/none?team_name=main",
+							},
+						}),
 					),
 					tokenHandler("some-team"),
 				)
@@ -163,6 +181,7 @@ var _ = Describe("login Command", func() {
 			Expect(sess.Err).To(gbytes.Say(`unexpected argument \[unknown-argument, blah\]`))
 		})
 	})
+
 	Context("with a team name", func() {
 		BeforeEach(func() {
 			loginATCServer = ghttp.NewServer()
@@ -177,7 +196,13 @@ var _ = Describe("login Command", func() {
 				infoHandler(),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
-					ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+					ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+						{
+							Type:        provider.AuthTypeNone,
+							DisplayName: "No Auth",
+							AuthURL:     "https://example.com/login/none?team_name=main",
+						},
+					}),
 				),
 				tokenHandler("some-team"),
 			)
@@ -199,7 +224,13 @@ var _ = Describe("login Command", func() {
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+							{
+								Type:        provider.AuthTypeNone,
+								DisplayName: "No Auth",
+								AuthURL:     "https://example.com/login/none?team_name=main",
+							},
+						}),
 					),
 					tokenHandler("some-team"),
 				)
@@ -225,7 +256,13 @@ var _ = Describe("login Command", func() {
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+							{
+								Type:        provider.AuthTypeNone,
+								DisplayName: "No Auth",
+								AuthURL:     "https://example.com/login/none?team_name=main",
+							},
+						}),
 					),
 					tokenHandler("some-team"),
 				)
@@ -249,7 +286,13 @@ var _ = Describe("login Command", func() {
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+							{
+								Type:        provider.AuthTypeNone,
+								DisplayName: "No Auth",
+								AuthURL:     "https://example.com/login/none?team_name=main",
+							},
+						}),
 					),
 					tokenHandler("some-team"),
 				)
@@ -264,7 +307,13 @@ var _ = Describe("login Command", func() {
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-other-team/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+							{
+								Type:        provider.AuthTypeNone,
+								DisplayName: "No Auth",
+								AuthURL:     "https://example.com/login/none?team_name=main",
+							},
+						}),
 					),
 					tokenHandler("some-other-team"),
 				)
@@ -304,7 +353,13 @@ var _ = Describe("login Command", func() {
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+							{
+								Type:        provider.AuthTypeNone,
+								DisplayName: "No Auth",
+								AuthURL:     "https://example.com/login/none?team_name=main",
+							},
+						}),
 					),
 					tokenHandler("some-team"),
 				)
@@ -340,7 +395,13 @@ var _ = Describe("login Command", func() {
 						infoHandler(),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
-							ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+							ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+								{
+									Type:        provider.AuthTypeNone,
+									DisplayName: "No Auth",
+									AuthURL:     "https://example.com/login/none?team_name=main",
+								},
+							}),
 						),
 						tokenHandler("some-team"),
 					)
@@ -397,7 +458,13 @@ var _ = Describe("login Command", func() {
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+							{
+								Type:        provider.AuthTypeNone,
+								DisplayName: "No Auth",
+								AuthURL:     "https://example.com/login/none?team_name=main",
+							},
+						}),
 					),
 					tokenHandler("main"),
 				)
@@ -815,7 +882,13 @@ var _ = Describe("login Command", func() {
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
+							{
+								Type:        provider.AuthTypeNone,
+								DisplayName: "No Auth",
+								AuthURL:     "https://example.com/login/none?team_name=main",
+							},
+						}),
 					),
 					tokenHandler("main"),
 				)

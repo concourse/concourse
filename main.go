@@ -5,18 +5,20 @@ import (
 	"net"
 	"os"
 
-	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/fly/commands"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/skymarshal/provider"
 	"github.com/jessevdk/go-flags"
 
+	_ "github.com/concourse/skymarshal/basicauth"
 	_ "github.com/concourse/skymarshal/bitbucket/cloud"
 	_ "github.com/concourse/skymarshal/bitbucket/server"
 	_ "github.com/concourse/skymarshal/genericoauth"
 	_ "github.com/concourse/skymarshal/github"
 	_ "github.com/concourse/skymarshal/gitlab"
+	_ "github.com/concourse/skymarshal/noauth"
 	_ "github.com/concourse/skymarshal/uaa"
 )
 

@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
+	"github.com/concourse/skymarshal/provider"
 	"github.com/vito/go-interact/interact"
 )
 
@@ -38,7 +38,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 
 	fmt.Println("Team Name:", command.TeamName)
-	fmt.Println("Basic Auth:", authMethodStatusDescription(command.Authentication.BasicAuth.IsConfigured()))
+	fmt.Println("Basic Auth:", authMethodStatusDescription(command.ProviderAuth["basicauth"].IsConfigured()))
 	fmt.Println("Bitbucket Cloud Auth:", authMethodStatusDescription(command.ProviderAuth["bitbucket-cloud"].IsConfigured()))
 	fmt.Println("Bitbucket Server Auth:", authMethodStatusDescription(command.ProviderAuth["bitbucket-server"].IsConfigured()))
 	fmt.Println("GitHub Auth:", authMethodStatusDescription(command.ProviderAuth["github"].IsConfigured()))
@@ -59,15 +59,6 @@ func (command *SetTeamCommand) Execute([]string) error {
 		displayhelpers.Failf("bailing out")
 	}
 
-	team := atc.Team{}
-
-	if command.Authentication.BasicAuth.IsConfigured() {
-		team.BasicAuth = &atc.BasicAuth{
-			BasicAuthUsername: command.Authentication.BasicAuth.Username,
-			BasicAuthPassword: command.Authentication.BasicAuth.Password,
-		}
-	}
-
 	teamAuth := make(map[string]*json.RawMessage)
 	for name, config := range command.ProviderAuth {
 		if config.IsConfigured() {
@@ -79,6 +70,8 @@ func (command *SetTeamCommand) Execute([]string) error {
 			teamAuth[name] = (*json.RawMessage)(&data)
 		}
 	}
+
+	team := atc.Team{}
 	team.Auth = teamAuth
 
 	_, created, updated, err := target.Client().Team(command.TeamName).CreateOrUpdate(team)
@@ -98,14 +91,6 @@ func (command *SetTeamCommand) Execute([]string) error {
 func (command *SetTeamCommand) ValidateFlags() error {
 	isConfigured := false
 
-	if command.Authentication.BasicAuth.IsConfigured() {
-		err := command.Authentication.BasicAuth.Validate()
-		if err != nil {
-			return err
-		}
-		isConfigured = true
-	}
-
 	for _, p := range command.ProviderAuth {
 		if p.IsConfigured() {
 			err := p.Validate()
@@ -118,15 +103,15 @@ func (command *SetTeamCommand) ValidateFlags() error {
 	}
 
 	if !isConfigured {
-		if !command.Authentication.NoAuth {
-			fmt.Fprintln(ui.Stderr, "no auth methods configured! to continue, run:")
-			fmt.Fprintln(ui.Stderr, "")
-			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
-			fmt.Fprintln(ui.Stderr, "")
-			fmt.Fprintln(ui.Stderr, "this will leave the team open to anyone to mess with!")
-			os.Exit(1)
-		}
+		fmt.Fprintln(ui.Stderr, "no auth methods configured! to continue, run:")
+		fmt.Fprintln(ui.Stderr, "")
+		fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
+		fmt.Fprintln(ui.Stderr, "")
+		fmt.Fprintln(ui.Stderr, "this will leave the team open to anyone to mess with!")
+		os.Exit(1)
+	}
 
+	if command.ProviderAuth["noauth"].IsConfigured() {
 		displayhelpers.PrintWarningHeader()
 		fmt.Fprintln(ui.Stderr, ui.WarningColor("no auth methods configured. you asked for it!"))
 		fmt.Fprintln(ui.Stderr, "")

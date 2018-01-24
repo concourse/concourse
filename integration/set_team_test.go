@@ -79,7 +79,6 @@ var _ = Describe("Fly CLI", func() {
 
 				})
 			})
-
 		})
 
 		Describe("basic auth", func() {
@@ -595,11 +594,11 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
 						ghttp.VerifyJSON(`{
-							"basic_auth": {
-								"basic_auth_username": "brock obama",
-								"basic_auth_password": "brock123"
-							},
 							"auth": {
+								"basicauth": {
+									"username": "brock obama",
+									"password": "brock123"
+								},
 								"github": {
 									"client_id": "barack samson",
 									"client_secret": "barack123",
@@ -712,11 +711,11 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
 						ghttp.VerifyJSON(`{
-							"basic_auth": {
-								"basic_auth_username": "brock obama",
-								"basic_auth_password": "brock123"
-							},
 							"auth": {
+								"basicauth": {
+									"username": "brock obama",
+									"password": "brock123"
+								},
 								"github": {
 									"client_id": "barack samson",
 									"client_secret": "barack123",
@@ -810,9 +809,11 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
 						ghttp.VerifyJSON(`{
-							"basic_auth": {
-								"basic_auth_username": "brock obama",
-								"basic_auth_password": "brock123"
+							"auth": {
+								"basicauth": {
+									"username": "brock obama",
+									"password": "brock123"
+								}
 							}
 						}`),
 						ghttp.RespondWith(http.StatusInternalServerError, "sorry bro"),

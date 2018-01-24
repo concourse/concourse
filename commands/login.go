@@ -86,7 +86,9 @@ func (command *LoginCommand) Execute(args []string) error {
 	}
 
 	var chosenMethod provider.AuthMethod
-	if command.Username != "" && command.Password != "" {
+
+	if command.Username != "" || command.Password != "" {
+
 		for _, method := range authMethods {
 			if method.Type == provider.AuthTypeBasic {
 				chosenMethod = method
@@ -97,45 +99,27 @@ func (command *LoginCommand) Execute(args []string) error {
 		if chosenMethod.Type == "" {
 			return errors.New("basic auth is not available")
 		}
+
 	} else {
-		switch len(authMethods) {
-		case 0:
-			target, err := rc.NewNoAuthTarget(
-				Fly.Target,
-				target.Client().URL(),
-				command.TeamName,
-				command.Insecure,
-				target.CACert(),
-				Fly.Verbose,
-			)
-			if err != nil {
-				return err
-			}
 
-			token, err := target.Team().AuthToken()
-			if err != nil {
-				return err
-			}
+		choices := make([]interact.Choice, len(authMethods))
 
-			return command.saveTarget(
-				target.Client().URL(),
-				&rc.TargetToken{
-					Type:  token.Type,
-					Value: token.Value,
-				},
-				target.CACert(),
-			)
-		case 1:
+		for i, method := range authMethods {
+			choices[i] = interact.Choice{
+				Display: method.DisplayName,
+				Value:   method,
+			}
+		}
+
+		if len(choices) == 0 {
+			return errors.New("no methods to choose from")
+		}
+
+		if len(choices) == 1 {
 			chosenMethod = authMethods[0]
-		default:
-			choices := make([]interact.Choice, len(authMethods))
-			for i, method := range authMethods {
-				choices[i] = interact.Choice{
-					Display: method.DisplayName,
-					Value:   method,
-				}
-			}
+		}
 
+		if len(choices) > 1 {
 			err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
 			if err != nil {
 				return err
@@ -144,7 +128,7 @@ func (command *LoginCommand) Execute(args []string) error {
 	}
 
 	client := target.Client()
-	token, err := command.loginWith(chosenMethod, client, caCert, target.Client().URL())
+	token, err := command.loginWith(chosenMethod, client, target.CACert(), target.Client().URL())
 	if err != nil {
 		return err
 	}
@@ -258,6 +242,25 @@ func (command *LoginCommand) loginWith(
 
 		token, err = target.Team().AuthToken()
 		if err != nil {
+			return nil, err
+		}
+	case provider.AuthTypeNone:
+		target, err := rc.NewNoAuthTarget(
+			Fly.Target,
+			client.URL(),
+			command.TeamName,
+			command.Insecure,
+			caCert,
+			Fly.Verbose,
+		)
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+
+		token, err = target.Team().AuthToken()
+		if err != nil {
+			fmt.Println(err)
 			return nil, err
 		}
 	}
