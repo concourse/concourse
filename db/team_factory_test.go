@@ -3,8 +3,6 @@ package db_test
 import (
 	"encoding/json"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -20,10 +18,10 @@ var _ = Describe("Team Factory", func() {
 		data := []byte(`{"foo":"bar"}`)
 		atcTeam = atc.Team{
 			Name: "some-team",
-			BasicAuth: &atc.BasicAuth{
-				BasicAuthUsername: "hello",
-				BasicAuthPassword: "people",
-			},
+			// BasicAuth: &atc.BasicAuth{
+			// 	BasicAuthUsername: "hello",
+			// 	BasicAuthPassword: "people",
+			// },
 			Auth: map[string]*json.RawMessage{
 				"fake-provider": (*json.RawMessage)(&data),
 			},
@@ -40,9 +38,9 @@ var _ = Describe("Team Factory", func() {
 
 		It("creates the correct team", func() {
 			Expect(team.Name()).To(Equal(atcTeam.Name))
-			Expect(team.BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
-			err := bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
-			Expect(err).NotTo(HaveOccurred())
+			// Expect(team.BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
+			// err := bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
+			// Expect(err).NotTo(HaveOccurred())
 			Expect(team.Auth()).To(Equal(atcTeam.Auth))
 
 			t, found, err := teamFactory.FindTeam(atcTeam.Name)
@@ -73,9 +71,9 @@ var _ = Describe("Team Factory", func() {
 
 			It("finds the correct team", func() {
 				Expect(team.Name()).To(Equal(atcTeam.Name))
-				Expect(team.BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
-				err := bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
-				Expect(err).ToNot(HaveOccurred())
+				// Expect(team.BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
+				// err := bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
+				// Expect(err).ToNot(HaveOccurred())
 				Expect(team.Auth()).To(Equal(atcTeam.Auth))
 			})
 		})
@@ -146,9 +144,9 @@ var _ = Describe("Team Factory", func() {
 				Expect(teams).To(HaveLen(1))
 
 				Expect(teams[0].Name()).To(Equal(atcTeam.Name))
-				Expect(teams[0].BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
-				err := bcrypt.CompareHashAndPassword([]byte(teams[0].BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
-				Expect(err).ToNot(HaveOccurred())
+				// Expect(teams[0].BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
+				// err := bcrypt.CompareHashAndPassword([]byte(teams[0].BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
+				// Expect(err).ToNot(HaveOccurred())
 				Expect(teams[0].Auth()).To(Equal(atcTeam.Auth))
 			})
 		})
@@ -160,10 +158,10 @@ var _ = Describe("Team Factory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				_, err = teamFactory.CreateTeam(atc.Team{
 					Name: "some-other-team",
-					BasicAuth: &atc.BasicAuth{
-						BasicAuthUsername: "boring-user",
-						BasicAuthPassword: "boring-password",
-					},
+					// BasicAuth: &atc.BasicAuth{
+					// 	BasicAuthUsername: "boring-user",
+					// 	BasicAuthPassword: "boring-password",
+					// },
 				})
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -172,15 +170,15 @@ var _ = Describe("Team Factory", func() {
 				Expect(teams).To(HaveLen(2))
 
 				Expect(teams[0].Name()).To(Equal(atcTeam.Name))
-				Expect(teams[0].BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
-				err := bcrypt.CompareHashAndPassword([]byte(teams[0].BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
-				Expect(err).ToNot(HaveOccurred())
+				// Expect(teams[0].BasicAuth().BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
+				// err := bcrypt.CompareHashAndPassword([]byte(teams[0].BasicAuth().BasicAuthPassword), []byte(atcTeam.BasicAuth.BasicAuthPassword))
+				// Expect(err).ToNot(HaveOccurred())
 				Expect(teams[0].Auth()).To(Equal(atcTeam.Auth))
 
 				Expect(teams[1].Name()).To(Equal("some-other-team"))
-				Expect(teams[1].BasicAuth().BasicAuthUsername).To(Equal("boring-user"))
-				err = bcrypt.CompareHashAndPassword([]byte(teams[1].BasicAuth().BasicAuthPassword), []byte("boring-password"))
-				Expect(err).ToNot(HaveOccurred())
+				// Expect(teams[1].BasicAuth().BasicAuthUsername).To(Equal("boring-user"))
+				// err = bcrypt.CompareHashAndPassword([]byte(teams[1].BasicAuth().BasicAuthPassword), []byte("boring-password"))
+				// Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})

@@ -208,6 +208,21 @@ var _ = Describe("Migration", func() {
 				wg.Wait()
 			})
 		})
+
+		Context("golang migrations", func() {
+			It("contains the correct migration version", func() {
+
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
+					"1510262030_initial_schema.up.sql",
+					"1516643303_update_auth_providers.up.go",
+				})
+
+				err := migrator.Up()
+				Expect(err).NotTo(HaveOccurred())
+
+				ExpectSchemaMigrationsTableToHaveVersion(db, 1516643303)
+			})
+		})
 	})
 
 	Context("Downgrade", func() {

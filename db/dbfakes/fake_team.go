@@ -40,15 +40,6 @@ type FakeTeam struct {
 	adminReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	BasicAuthStub        func() *atc.BasicAuth
-	basicAuthMutex       sync.RWMutex
-	basicAuthArgsForCall []struct{}
-	basicAuthReturns     struct {
-		result1 *atc.BasicAuth
-	}
-	basicAuthReturnsOnCall map[int]struct {
-		result1 *atc.BasicAuth
-	}
 	AuthStub        func() map[string]*json.RawMessage
 	authMutex       sync.RWMutex
 	authArgsForCall []struct{}
@@ -69,8 +60,10 @@ type FakeTeam struct {
 	}
 	RenameStub        func(string) error
 	renameMutex       sync.RWMutex
-	renameArgsForCall []struct{ name string }
-	renameReturns     struct {
+	renameArgsForCall []struct {
+		arg1 string
+	}
+	renameReturns struct {
 		result1 error
 	}
 	renameReturnsOnCall map[int]struct {
@@ -324,17 +317,6 @@ type FakeTeam struct {
 		result1 db.CreatingContainer
 		result2 error
 	}
-	UpdateBasicAuthStub        func(basicAuth *atc.BasicAuth) error
-	updateBasicAuthMutex       sync.RWMutex
-	updateBasicAuthArgsForCall []struct {
-		basicAuth *atc.BasicAuth
-	}
-	updateBasicAuthReturns struct {
-		result1 error
-	}
-	updateBasicAuthReturnsOnCall map[int]struct {
-		result1 error
-	}
 	UpdateProviderAuthStub        func(auth map[string]*json.RawMessage) error
 	updateProviderAuthMutex       sync.RWMutex
 	updateProviderAuthArgsForCall []struct {
@@ -495,46 +477,6 @@ func (fake *FakeTeam) AdminReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeTeam) BasicAuth() *atc.BasicAuth {
-	fake.basicAuthMutex.Lock()
-	ret, specificReturn := fake.basicAuthReturnsOnCall[len(fake.basicAuthArgsForCall)]
-	fake.basicAuthArgsForCall = append(fake.basicAuthArgsForCall, struct{}{})
-	fake.recordInvocation("BasicAuth", []interface{}{})
-	fake.basicAuthMutex.Unlock()
-	if fake.BasicAuthStub != nil {
-		return fake.BasicAuthStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.basicAuthReturns.result1
-}
-
-func (fake *FakeTeam) BasicAuthCallCount() int {
-	fake.basicAuthMutex.RLock()
-	defer fake.basicAuthMutex.RUnlock()
-	return len(fake.basicAuthArgsForCall)
-}
-
-func (fake *FakeTeam) BasicAuthReturns(result1 *atc.BasicAuth) {
-	fake.BasicAuthStub = nil
-	fake.basicAuthReturns = struct {
-		result1 *atc.BasicAuth
-	}{result1}
-}
-
-func (fake *FakeTeam) BasicAuthReturnsOnCall(i int, result1 *atc.BasicAuth) {
-	fake.BasicAuthStub = nil
-	if fake.basicAuthReturnsOnCall == nil {
-		fake.basicAuthReturnsOnCall = make(map[int]struct {
-			result1 *atc.BasicAuth
-		})
-	}
-	fake.basicAuthReturnsOnCall[i] = struct {
-		result1 *atc.BasicAuth
-	}{result1}
-}
-
 func (fake *FakeTeam) Auth() map[string]*json.RawMessage {
 	fake.authMutex.Lock()
 	ret, specificReturn := fake.authReturnsOnCall[len(fake.authArgsForCall)]
@@ -615,14 +557,16 @@ func (fake *FakeTeam) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) Rename(name string) error {
+func (fake *FakeTeam) Rename(arg1 string) error {
 	fake.renameMutex.Lock()
 	ret, specificReturn := fake.renameReturnsOnCall[len(fake.renameArgsForCall)]
-	fake.renameArgsForCall = append(fake.renameArgsForCall, struct{ name string }{name})
-	fake.recordInvocation("Rename", []interface{}{})
+	fake.renameArgsForCall = append(fake.renameArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Rename", []interface{}{arg1})
 	fake.renameMutex.Unlock()
 	if fake.RenameStub != nil {
-		return fake.RenameStub(name)
+		return fake.RenameStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -639,7 +583,26 @@ func (fake *FakeTeam) RenameCallCount() int {
 func (fake *FakeTeam) RenameArgsForCall(i int) string {
 	fake.renameMutex.RLock()
 	defer fake.renameMutex.RUnlock()
-	return fake.renameArgsForCall[i].name
+	return fake.renameArgsForCall[i].arg1
+}
+
+func (fake *FakeTeam) RenameReturns(result1 error) {
+	fake.RenameStub = nil
+	fake.renameReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) RenameReturnsOnCall(i int, result1 error) {
+	fake.RenameStub = nil
+	if fake.renameReturnsOnCall == nil {
+		fake.renameReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.renameReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from db.ConfigVersion, pausedState db.PipelinePausedState) (db.Pipeline, bool, error) {
@@ -1556,54 +1519,6 @@ func (fake *FakeTeam) CreateContainerReturnsOnCall(i int, result1 db.CreatingCon
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
-	fake.updateBasicAuthMutex.Lock()
-	ret, specificReturn := fake.updateBasicAuthReturnsOnCall[len(fake.updateBasicAuthArgsForCall)]
-	fake.updateBasicAuthArgsForCall = append(fake.updateBasicAuthArgsForCall, struct {
-		basicAuth *atc.BasicAuth
-	}{basicAuth})
-	fake.recordInvocation("UpdateBasicAuth", []interface{}{basicAuth})
-	fake.updateBasicAuthMutex.Unlock()
-	if fake.UpdateBasicAuthStub != nil {
-		return fake.UpdateBasicAuthStub(basicAuth)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.updateBasicAuthReturns.result1
-}
-
-func (fake *FakeTeam) UpdateBasicAuthCallCount() int {
-	fake.updateBasicAuthMutex.RLock()
-	defer fake.updateBasicAuthMutex.RUnlock()
-	return len(fake.updateBasicAuthArgsForCall)
-}
-
-func (fake *FakeTeam) UpdateBasicAuthArgsForCall(i int) *atc.BasicAuth {
-	fake.updateBasicAuthMutex.RLock()
-	defer fake.updateBasicAuthMutex.RUnlock()
-	return fake.updateBasicAuthArgsForCall[i].basicAuth
-}
-
-func (fake *FakeTeam) UpdateBasicAuthReturns(result1 error) {
-	fake.UpdateBasicAuthStub = nil
-	fake.updateBasicAuthReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeTeam) UpdateBasicAuthReturnsOnCall(i int, result1 error) {
-	fake.UpdateBasicAuthStub = nil
-	if fake.updateBasicAuthReturnsOnCall == nil {
-		fake.updateBasicAuthReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.updateBasicAuthReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeTeam) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
 	fake.updateProviderAuthMutex.Lock()
 	ret, specificReturn := fake.updateProviderAuthReturnsOnCall[len(fake.updateProviderAuthArgsForCall)]
@@ -1761,12 +1676,12 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.nameMutex.RUnlock()
 	fake.adminMutex.RLock()
 	defer fake.adminMutex.RUnlock()
-	fake.basicAuthMutex.RLock()
-	defer fake.basicAuthMutex.RUnlock()
 	fake.authMutex.RLock()
 	defer fake.authMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
+	fake.renameMutex.RLock()
+	defer fake.renameMutex.RUnlock()
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
 	fake.pipelineMutex.RLock()
@@ -1803,8 +1718,6 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.findContainerOnWorkerMutex.RUnlock()
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
-	fake.updateBasicAuthMutex.RLock()
-	defer fake.updateBasicAuthMutex.RUnlock()
 	fake.updateProviderAuthMutex.RLock()
 	defer fake.updateProviderAuthMutex.RUnlock()
 	fake.createPipeMutex.RLock()

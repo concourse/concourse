@@ -74,19 +74,20 @@ var _ = Describe("Teams API", func() {
 				fakeTeamOne.IDReturns(5)
 				fakeTeamOne.NameReturns("avengers")
 
+				basicAuthData := []byte(`{"username": "fake user", "password": "no, bad"}`)
 				fakeTeamTwo.IDReturns(9)
 				fakeTeamTwo.NameReturns("aliens")
-				fakeTeamTwo.BasicAuthReturns(&atc.BasicAuth{
-					BasicAuthUsername: "fake user",
-					BasicAuthPassword: "no, bad",
+				fakeTeamTwo.AuthReturns(map[string]*json.RawMessage{
+					"basicauth": (*json.RawMessage)(&basicAuthData),
 				})
 
-				data := []byte(`{"hello": "world"}`)
+				fakeProviderData := []byte(`{"hello": "world"}`)
 				fakeTeamThree.IDReturns(22)
 				fakeTeamThree.NameReturns("predators")
 				fakeTeamThree.AuthReturns(map[string]*json.RawMessage{
-					"fake-provider": (*json.RawMessage)(&data),
+					"fake-provider": (*json.RawMessage)(&fakeProviderData),
 				})
+
 				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
 			})
 
@@ -143,14 +144,35 @@ var _ = Describe("Teams API", func() {
 
 		authorizedTeamTests := func() {
 			Context("when the team has basic auth configured", func() {
+				var (
+					fakeProviderName    = "basicauth"
+					fakeProviderFactory *providerfakes.FakeProviderFactory
+					fakeAuthConfig      *providerfakes.FakeAuthConfig
+				)
+				BeforeEach(func() {
+					data := []byte(`{"username":"fries","password":"shake"}`)
+					atcTeam = atc.Team{
+						Auth: map[string]*json.RawMessage{
+							fakeProviderName: (*json.RawMessage)(&data),
+						},
+					}
+					fakeAuthConfig = new(providerfakes.FakeAuthConfig)
+					fakeProviderFactory = new(providerfakes.FakeProviderFactory)
+					fakeProviderFactory.UnmarshalConfigReturns(fakeAuthConfig, nil)
+
+					provider.Register(fakeProviderName, fakeProviderFactory)
+				})
+
 				Context("when the basic auth is invalid", func() {
 					Context("when only password is given", func() {
 						BeforeEach(func() {
+							data := []byte(`{"password": "fries"}`)
 							atcTeam = atc.Team{
-								BasicAuth: &atc.BasicAuth{
-									BasicAuthPassword: "Batman",
+								Auth: map[string]*json.RawMessage{
+									fakeProviderName: (*json.RawMessage)(&data),
 								},
 							}
+							fakeAuthConfig.ValidateReturns(errors.New("nope"))
 						})
 
 						It("returns a 400 Bad Request", func() {
@@ -160,11 +182,13 @@ var _ = Describe("Teams API", func() {
 
 					Context("when only username is given", func() {
 						BeforeEach(func() {
+							data := []byte(`{"username": "fries"}`)
 							atcTeam = atc.Team{
-								BasicAuth: &atc.BasicAuth{
-									BasicAuthUsername: "Ironman",
+								Auth: map[string]*json.RawMessage{
+									fakeProviderName: (*json.RawMessage)(&data),
 								},
 							}
+							fakeAuthConfig.ValidateReturns(errors.New("nope"))
 						})
 
 						It("returns a 400 Bad Request", func() {
@@ -174,15 +198,6 @@ var _ = Describe("Teams API", func() {
 				})
 
 				Context("when the basic auth is valid", func() {
-					BeforeEach(func() {
-						atcTeam = atc.Team{
-							BasicAuth: &atc.BasicAuth{
-								BasicAuthPassword: "Kool",
-								BasicAuthUsername: "Aid",
-							},
-						}
-					})
-
 					Context("when the team is found", func() {
 						BeforeEach(func() {
 							dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
@@ -190,15 +205,15 @@ var _ = Describe("Teams API", func() {
 
 						It("updates basic auth", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
-							Expect(fakeTeam.UpdateBasicAuthCallCount()).To(Equal(1))
+							Expect(fakeTeam.UpdateProviderAuthCallCount()).To(Equal(1))
 
-							updatedBasicAuth := fakeTeam.UpdateBasicAuthArgsForCall(0)
-							Expect(updatedBasicAuth).To(Equal(atcTeam.BasicAuth))
+							updatedBasicAuth := fakeTeam.UpdateProviderAuthArgsForCall(0)
+							Expect(updatedBasicAuth).To(Equal(atcTeam.Auth))
 						})
 
 						Context("when updating basic auth fails", func() {
 							BeforeEach(func() {
-								fakeTeam.UpdateBasicAuthReturns(errors.New("stop trying to make fetch happen"))
+								fakeTeam.UpdateProviderAuthReturns(errors.New("stop trying to make fetch happen"))
 							})
 
 							It("returns 500 Internal Server error", func() {
@@ -212,10 +227,10 @@ var _ = Describe("Teams API", func() {
 			Context("when the team has provider auth configured", func() {
 				var (
 					fakeProviderName    = "FakeProvider"
-					fakeProviderFactory *providerfakes.FakeTeamProvider
+					fakeProviderFactory *providerfakes.FakeProviderFactory
 				)
 				BeforeEach(func() {
-					fakeProviderFactory = new(providerfakes.FakeTeamProvider)
+					fakeProviderFactory = new(providerfakes.FakeProviderFactory)
 					provider.Register(fakeProviderName, fakeProviderFactory)
 				})
 				Context("when the provider is not found", func() {

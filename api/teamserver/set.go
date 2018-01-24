@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/skymarshal/provider"
 )
 
@@ -41,15 +40,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hLog.Debug("configured-authentication", lager.Data{"BasicAuth": atcTeam.BasicAuth, "ProviderAuth": atcTeam.Auth})
-
-	if atcTeam.BasicAuth != nil {
-		if atcTeam.BasicAuth.BasicAuthUsername == "" || atcTeam.BasicAuth.BasicAuthPassword == "" {
-			hLog.Info("missing-basic-auth-username-or-password")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
+	hLog.Debug("configured-authentication", lager.Data{"ProviderAuth": atcTeam.Auth})
 
 	providers := provider.GetProviders()
 
@@ -85,7 +76,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 	if found {
 		hLog.Debug("updating-credentials")
-		err = s.updateCredentials(atcTeam, team)
+		err = team.UpdateProviderAuth(atcTeam.Auth)
 		if err != nil {
 			hLog.Error("failed-to-update-team", err, lager.Data{"teamName": teamName})
 			w.WriteHeader(http.StatusInternalServerError)
@@ -113,14 +104,4 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		hLog.Error("failed-to-encode-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-}
-
-func (s *Server) updateCredentials(atcTeam atc.Team, team db.Team) error {
-	err := team.UpdateBasicAuth(atcTeam.BasicAuth)
-	if err != nil {
-		return err
-	}
-
-	err = team.UpdateProviderAuth(atcTeam.Auth)
-	return err
 }

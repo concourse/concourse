@@ -57,11 +57,13 @@ import (
 	"github.com/concourse/skymarshal/provider"
 
 	// dynamically registered auth providers
+	_ "github.com/concourse/skymarshal/basicauth"
 	_ "github.com/concourse/skymarshal/bitbucket/cloud"
 	_ "github.com/concourse/skymarshal/bitbucket/server"
 	_ "github.com/concourse/skymarshal/genericoauth"
 	_ "github.com/concourse/skymarshal/github"
 	_ "github.com/concourse/skymarshal/gitlab"
+	_ "github.com/concourse/skymarshal/noauth"
 	_ "github.com/concourse/skymarshal/uaa"
 
 	// dynamically registered metric emitters
@@ -816,8 +818,10 @@ func (cmd *ATCCommand) validate() error {
 	var errs *multierror.Error
 	isConfigured := false
 
-	for _, p := range cmd.ProviderAuth {
+	for name, p := range cmd.ProviderAuth {
 		if p.IsConfigured() {
+			fmt.Println("Auth provider configured: " + name)
+
 			err := p.Validate()
 
 			if err != nil {
@@ -828,15 +832,7 @@ func (cmd *ATCCommand) validate() error {
 		}
 	}
 
-	if cmd.Authentication.BasicAuth.IsConfigured() {
-		err := cmd.Authentication.BasicAuth.Validate()
-		if err != nil {
-			errs = multierror.Append(errs, err)
-		}
-		isConfigured = true
-	}
-
-	if !isConfigured && !cmd.Authentication.NoAuth {
+	if !isConfigured {
 		errs = multierror.Append(
 			errs,
 			errors.New("must configure basic auth, OAuth, UAAAuth, or provide no-auth flag"),
@@ -999,18 +995,18 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return errors.New("default team not found")
 	}
 
-	var basicAuth *atc.BasicAuth
-	if cmd.Authentication.BasicAuth.IsConfigured() {
-		basicAuth = &atc.BasicAuth{
-			BasicAuthUsername: cmd.Authentication.BasicAuth.Username,
-			BasicAuthPassword: cmd.Authentication.BasicAuth.Password,
-		}
-	}
+	// var basicAuth *atc.BasicAuth
+	// if cmd.Authentication.BasicAuth.IsConfigured() {
+	// 	basicAuth = &atc.BasicAuth{
+	// 		BasicAuthUsername: cmd.Authentication.BasicAuth.Username,
+	// 		BasicAuthPassword: cmd.Authentication.BasicAuth.Password,
+	// 	}
+	// }
 
-	err = team.UpdateBasicAuth(basicAuth)
-	if err != nil {
-		return err
-	}
+	// err = team.UpdateBasicAuth(basicAuth)
+	// if err != nil {
+	// 	return err
+	// }
 
 	teamAuth := make(map[string]*json.RawMessage)
 	for name, config := range cmd.ProviderAuth {

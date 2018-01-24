@@ -7,9 +7,9 @@ import (
 )
 
 type AuthFlags struct {
-	NoAuth bool `long:"no-really-i-dont-want-any-auth" description:"Ignore warnings about not configuring auth"`
+	// NoAuth bool `long:"no-really-i-dont-want-any-auth" description:"Ignore warnings about not configuring auth"`
 
-	BasicAuth BasicAuthFlag `group:"Basic Authentication" namespace:"basic-auth"`
+	// BasicAuth BasicAuthFlag `group:"Basic Authentication" namespace:"basic-auth"`
 }
 
 type BasicAuthFlag struct {
