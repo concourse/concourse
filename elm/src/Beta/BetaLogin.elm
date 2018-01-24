@@ -346,6 +346,9 @@ viewOAuthButtons redirectParam methods =
 viewOAuthButton : Maybe String -> Concourse.AuthMethod -> Maybe (Html Msg)
 viewOAuthButton redirect method =
     case method of
+        Concourse.AuthMethodNone ->
+            Nothing
+
         Concourse.AuthMethodBasic ->
             Nothing
 

@@ -73,6 +73,7 @@ import Json.Decode.Extra exposing ((|:))
 
 type AuthMethod
     = AuthMethodBasic
+    | AuthMethodNone
     | AuthMethodOAuth OAuthAuthMethod
 
 
@@ -96,6 +97,9 @@ decodeAuthMethod =
 authMethodFromTuple : ( String, Maybe String, Maybe String ) -> Result String AuthMethod
 authMethodFromTuple tuple =
     case tuple of
+        ( "none", _, _ ) ->
+            Ok AuthMethodNone
+
         ( "basic", _, _ ) ->
             Ok AuthMethodBasic
 

@@ -348,6 +348,9 @@ viewOAuthButton redirect method =
         Concourse.AuthMethodBasic ->
             Nothing
 
+        Concourse.AuthMethodNone ->
+            Nothing
+
         Concourse.AuthMethodOAuth oAuthMethod ->
             Just <|
                 Html.div [ class "auth-method login-button" ]
