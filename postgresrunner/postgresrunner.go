@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/encryption"
 	"github.com/concourse/atc/db/migration"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -95,11 +96,38 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return ginkgoRunner.Run(signals, ready)
 }
 
+func (runner *Runner) MigrateToVersion(version int) {
+	err := migration.NewOpenHelper(
+		"postgres",
+		runner.DataSourceName(),
+		nil,
+		encryption.NewNoEncryption(),
+	).MigrateToVersion(version)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func (runner *Runner) OpenDBAtVersion(version int) *sql.DB {
+	dbConn, err := migration.NewOpenHelper(
+		"postgres",
+		runner.DataSourceName(),
+		nil,
+		encryption.NewNoEncryption(),
+	).OpenAtVersion(version)
+	Expect(err).NotTo(HaveOccurred())
+
+	// only allow one connection so that we can detect any code paths that
+	// require more than one, which will deadlock if it's at the limit
+	dbConn.SetMaxOpenConns(1)
+
+	return dbConn
+}
+
 func (runner *Runner) OpenDB() *sql.DB {
 	dbConn, err := migration.NewOpenHelper(
 		"postgres",
 		runner.DataSourceName(),
 		nil,
+		encryption.NewNoEncryption(),
 	).Open()
 	Expect(err).NotTo(HaveOccurred())
 

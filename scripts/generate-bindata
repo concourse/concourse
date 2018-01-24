@@ -8,4 +8,5 @@ go-bindata \
   -pkg migration \
   -o db/migration/bindata.go \
   -prefix db/migration/migrations/ \
+  -ignore 'db/migration/migrations/migrations.go' \
   db/migration/migrations/*
