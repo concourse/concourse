@@ -76,7 +76,32 @@ var _ = Describe("Fly CLI", func() {
 					yes(stdin)
 
 					Eventually(sess).Should(gexec.Exit(0))
+				})
+			})
 
+			Context("no really I don't want any auth flag provided with other providers", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--basic-auth-password", "brock123", "--basic-auth-username", "asdf", "--no-really-i-dont-want-any-auth"}
+					confirmHandlers()
+				})
+
+				It("doesn't warn you because noauth has been removed", func() {
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Consistently(sess.Err).ShouldNot(gbytes.Say("WARNING:\nno auth methods configured. you asked for it!"))
+
+					Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
+					Eventually(sess.Out).Should(gbytes.Say("Basic Auth: enabled"))
+					Eventually(sess.Out).Should(gbytes.Say("GitHub Auth: disabled"))
+					Eventually(sess.Out).Should(gbytes.Say("UAA Auth: disabled"))
+
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					yes(stdin)
+
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 			})
 		})

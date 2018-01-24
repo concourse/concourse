@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -59,16 +60,28 @@ func (command *SetTeamCommand) Execute([]string) error {
 		displayhelpers.Failf("bailing out")
 	}
 
+	providers := provider.GetProviders()
 	teamAuth := make(map[string]*json.RawMessage)
+
 	for name, config := range command.ProviderAuth {
 		if config.IsConfigured() {
-			data, err := json.Marshal(config)
+
+			p, found := providers[name]
+			if !found {
+				return errors.New("provider not found: " + name)
+			}
+
+			data, err := p.MarshalConfig(config)
 			if err != nil {
 				return err
 			}
 
-			teamAuth[name] = (*json.RawMessage)(&data)
+			teamAuth[name] = data
 		}
+	}
+
+	if len(teamAuth) > 1 {
+		delete(teamAuth, "noauth")
 	}
 
 	team := atc.Team{}
@@ -89,7 +102,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 }
 
 func (command *SetTeamCommand) ValidateFlags() error {
-	isConfigured := false
+	configured := 0
 
 	for _, p := range command.ProviderAuth {
 		if p.IsConfigured() {
@@ -98,11 +111,11 @@ func (command *SetTeamCommand) ValidateFlags() error {
 			if err != nil {
 				return err
 			}
-			isConfigured = true
+			configured += 1
 		}
 	}
 
-	if !isConfigured {
+	if configured == 0 {
 		fmt.Fprintln(ui.Stderr, "no auth methods configured! to continue, run:")
 		fmt.Fprintln(ui.Stderr, "")
 		fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
@@ -111,7 +124,7 @@ func (command *SetTeamCommand) ValidateFlags() error {
 		os.Exit(1)
 	}
 
-	if command.ProviderAuth["noauth"].IsConfigured() {
+	if configured == 1 && command.ProviderAuth["noauth"].IsConfigured() {
 		displayhelpers.PrintWarningHeader()
 		fmt.Fprintln(ui.Stderr, ui.WarningColor("no auth methods configured. you asked for it!"))
 		fmt.Fprintln(ui.Stderr, "")
