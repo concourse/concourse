@@ -103,6 +103,10 @@ func (config *UAAAuthConfig) Validate() error {
 	return errs.ErrorOrNil()
 }
 
+func (config *UAAAuthConfig) Finalize() error {
+	return nil
+}
+
 type UAATeamProvider struct{}
 
 func (UAATeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
@@ -131,7 +135,7 @@ func (UAATeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthCo
 
 func (UAATeamProvider) ProviderConstructor(
 	config provider.AuthConfig,
-	redirectURL string,
+	args ...string,
 ) (provider.Provider, bool) {
 	uaaAuth := config.(*UAAAuthConfig)
 
@@ -151,7 +155,7 @@ func (UAATeamProvider) ProviderConstructor(
 			ClientSecret: uaaAuth.ClientSecret,
 			Endpoint:     endpoint,
 			Scopes:       Scopes,
-			RedirectURL:  redirectURL,
+			RedirectURL:  args[0],
 		},
 		CFCACert: string(uaaAuth.CFCACert),
 	}, true

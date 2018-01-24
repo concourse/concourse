@@ -101,6 +101,10 @@ func (config *GenericOAuthConfig) Validate() error {
 	return errs.ErrorOrNil()
 }
 
+func (config *GenericOAuthConfig) Finalize() error {
+	return nil
+}
+
 type GenericTeamProvider struct{}
 
 func (GenericTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
@@ -129,7 +133,7 @@ func (GenericTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.Au
 
 func (GenericTeamProvider) ProviderConstructor(
 	config provider.AuthConfig,
-	redirectURL string,
+	args ...string,
 ) (provider.Provider, bool) {
 	genericOAuth := config.(*GenericOAuthConfig)
 
@@ -153,7 +157,7 @@ func (GenericTeamProvider) ProviderConstructor(
 				ClientID:     genericOAuth.ClientID,
 				ClientSecret: genericOAuth.ClientSecret,
 				Endpoint:     endpoint,
-				RedirectURL:  redirectURL,
+				RedirectURL:  args[0],
 			},
 			AuthURLParams: genericOAuth.AuthURLParams,
 		},

@@ -70,3 +70,7 @@ func (config *AuthConfig) Validate() error {
 	}
 	return errs.ErrorOrNil()
 }
+
+func (config *AuthConfig) Finalize() error {
+	return nil
+}

@@ -63,6 +63,7 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	if !found {
 		hLog.Info("failed-to-find-team", lager.Data{
 			"teamName": teamName,
+			"provider": providerName,
 		})
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -71,8 +72,8 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	provider, found, err := handler.providerFactory.GetProvider(team, providerName)
 	if err != nil {
 		handler.logger.Error("failed-to-get-provider", err, lager.Data{
-			"provider": providerName,
 			"teamName": teamName,
+			"provider": providerName,
 		})
 
 		w.WriteHeader(http.StatusInternalServerError)
@@ -81,6 +82,7 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	if !found {
 		handler.logger.Info("team-does-not-have-auth-provider", lager.Data{
+			"teamName": teamName,
 			"provider": providerName,
 		})
 
@@ -110,8 +112,8 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	authCodeURL, err := provider.AuthCodeURL(encodedState)
 	if err != nil {
 		handler.logger.Error("failed-to-get-auth-code-url", err, lager.Data{
-			"provider": providerName,
 			"teamName": teamName,
+			"provider": providerName,
 		})
 		w.WriteHeader(http.StatusInternalServerError)
 		return

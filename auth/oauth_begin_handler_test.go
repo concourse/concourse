@@ -16,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/skymarshal/auth"
 	"github.com/concourse/skymarshal/auth/authfakes"
@@ -108,7 +107,6 @@ var _ = Describe("OAuthBeginHandler", func() {
 		Context("when the team exists", func() {
 			BeforeEach(func() {
 				fakeTeam.NameReturns("some-team")
-				fakeTeam.BasicAuthReturns(&atc.BasicAuth{BasicAuthUsername: "some-username"})
 				fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 			})
 

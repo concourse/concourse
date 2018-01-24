@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/skymarshal/provider/providerfakes"
@@ -128,13 +127,13 @@ var _ = Describe("Auth API", func() {
 				response *http.Response
 
 				fakeTeam            *dbfakes.FakeTeam
-				fakeProviderFactory *providerfakes.FakeTeamProvider
+				fakeProviderFactory *providerfakes.FakeProviderFactory
 				fakeProviderName    = "FakeProvider"
 				fakeAuthConfig      *providerfakes.FakeAuthConfig
 			)
 			BeforeEach(func() {
 				fakeTeam = new(dbfakes.FakeTeam)
-				fakeProviderFactory = new(providerfakes.FakeTeamProvider)
+				fakeProviderFactory = new(providerfakes.FakeProviderFactory)
 				fakeAuthConfig = new(providerfakes.FakeAuthConfig)
 
 				provider.Register(fakeProviderName, fakeProviderFactory)
@@ -142,10 +141,6 @@ var _ = Describe("Auth API", func() {
 				data := []byte(`{"mcdonalds": "fries"}`)
 				fakeTeam.IDReturns(0)
 				fakeTeam.NameReturns("some-team")
-				fakeTeam.BasicAuthReturns(&atc.BasicAuth{
-					BasicAuthUsername: "user",
-					BasicAuthPassword: "password",
-				})
 				fakeTeam.AuthReturns(map[string]*json.RawMessage{
 					fakeProviderName: (*json.RawMessage)(&data),
 				})
@@ -191,11 +186,6 @@ var _ = Describe("Auth API", func() {
 						"type": "oauth",
 						"display_name": "fake display",
 						"auth_url": "https://example.com/some-auth-url"
-					},
-					{
-						"type": "basic",
-						"display_name": "Basic Auth",
-						"auth_url": "https://example.com/teams/some-team/login"
 					}
 				]`))
 			})

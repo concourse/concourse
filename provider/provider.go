@@ -16,6 +16,7 @@ import (
 type AuthType string
 
 const (
+	AuthTypeNone  AuthType = "none"
 	AuthTypeBasic AuthType = "basic"
 	AuthTypeOAuth AuthType = "oauth"
 )
@@ -64,45 +65,43 @@ type Verifier interface {
 type AuthConfig interface {
 	IsConfigured() bool
 	Validate() error
+	Finalize() error
 	AuthMethod(oauthBaseURL string, teamName string) AuthMethod
 }
 
 type AuthConfigs map[string]AuthConfig
 
-//go:generate counterfeiter . TeamProvider
+//go:generate counterfeiter . ProviderFactory
 
-type TeamProvider interface { // XXX rename to ProviderFactory
-	ProviderConstructor(AuthConfig, string) (Provider, bool)
+type ProviderFactory interface {
+	ProviderConstructor(AuthConfig, ...string) (Provider, bool)
 	AddAuthGroup(*flags.Group) AuthConfig
 	UnmarshalConfig(*json.RawMessage) (AuthConfig, error)
 }
 
-var providers map[string]TeamProvider
+var providers map[string]ProviderFactory
 
 func init() {
-	providers = make(map[string]TeamProvider)
+	providers = make(map[string]ProviderFactory)
 }
 
-func Register(providerName string, providerConstructor TeamProvider) {
+func Register(providerName string, providerConstructor ProviderFactory) {
 	providers[providerName] = providerConstructor
 }
 
-func NewProvider(
-	auth *json.RawMessage,
-	providerName string,
-	redirectURL string,
-) (Provider, bool) {
-	teamProvider, found := providers[providerName]
+func NewProvider(auth *json.RawMessage, providerName string, args ...string) (Provider, bool) {
+
+	providerFactory, found := providers[providerName]
 	if !found {
 		return nil, false
 	}
 
-	authConfig, err := teamProvider.UnmarshalConfig(auth)
+	authConfig, err := providerFactory.UnmarshalConfig(auth)
 	if err != nil {
 		return nil, false
 	}
 
-	newProvider, ok := teamProvider.ProviderConstructor(authConfig, redirectURL)
+	newProvider, ok := providerFactory.ProviderConstructor(authConfig, args...)
 	if !ok {
 		return nil, false
 	}
@@ -110,6 +109,6 @@ func NewProvider(
 	return newProvider, ok
 }
 
-func GetProviders() map[string]TeamProvider {
+func GetProviders() map[string]ProviderFactory {
 	return providers
 }

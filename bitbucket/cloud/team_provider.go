@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"encoding/json"
+
 	"github.com/concourse/skymarshal/bitbucket"
 	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/skymarshal/verifier"
@@ -22,7 +23,7 @@ func init() {
 type TeamProvider struct {
 }
 
-func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
+func (TeamProvider) ProviderConstructor(config provider.AuthConfig, args ...string) (provider.Provider, bool) {
 	bitbucketAuth := config.(*AuthConfig)
 
 	endpoint := bitbucketOAuth.Endpoint
@@ -49,7 +50,7 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 			ClientSecret: bitbucketAuth.ClientSecret,
 			Endpoint:     endpoint,
 			Scopes:       Scopes,
-			RedirectURL:  redirectURL,
+			RedirectURL:  args[0],
 		},
 	}, true
 }

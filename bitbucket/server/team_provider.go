@@ -36,7 +36,7 @@ func (TeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
 	return flags
 }
 
-func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL string) (provider.Provider, bool) {
+func (TeamProvider) ProviderConstructor(config provider.AuthConfig, args ...string) (provider.Provider, bool) {
 	bitbucketAuth := config.(*AuthConfig)
 
 	endpoint := oauth1.Endpoint{
@@ -58,7 +58,7 @@ func (TeamProvider) ProviderConstructor(config provider.AuthConfig, redirectURL 
 		),
 		Config: &oauth1.Config{
 			ConsumerKey: bitbucketAuth.ConsumerKey,
-			CallbackURL: redirectURL,
+			CallbackURL: args[0],
 			Endpoint:    endpoint,
 			Signer: &oauth1.RSASigner{
 				PrivateKey: bitbucketAuth.PrivateKey.PrivateKey,

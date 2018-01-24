@@ -75,6 +75,10 @@ func (config *GitLabAuthConfig) Validate() error {
 	return errs.ErrorOrNil()
 }
 
+func (config *GitLabAuthConfig) Finalize() error {
+	return nil
+}
+
 type GitLabGroupConfig struct {
 	GroupName string `json:"group_name,omitempty"`
 }
@@ -125,7 +129,7 @@ func (GitLabTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.Aut
 
 func (GitLabTeamProvider) ProviderConstructor(
 	config provider.AuthConfig,
-	redirectURL string,
+	args ...string,
 ) (provider.Provider, bool) {
 	gitlabAuth := config.(*GitLabAuthConfig)
 
@@ -146,7 +150,7 @@ func (GitLabTeamProvider) ProviderConstructor(
 			ClientSecret: gitlabAuth.ClientSecret,
 			Endpoint:     endpoint,
 			Scopes:       Scopes,
-			RedirectURL:  redirectURL,
+			RedirectURL:  args[0],
 		},
 	}, true
 }

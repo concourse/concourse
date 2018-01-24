@@ -2,15 +2,14 @@ package auth
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/skymarshal/provider"
-
-	"golang.org/x/crypto/bcrypt"
+	"github.com/concourse/skymarshal/basicauth"
 )
 
 var ErrUnparsableHeader = errors.New("cannot parse 'Authorization' header")
@@ -28,6 +27,7 @@ func NewBasicAuthValidator(logger lager.Logger, teamFactory db.TeamFactory) Vali
 }
 
 func (v basicAuthValidator) IsAuthenticated(r *http.Request) bool {
+	v.logger.Info("IsAuthenticated")
 
 	teamName := r.FormValue("team_name")
 	team, found, err := v.teamFactory.FindTeam(teamName)
@@ -35,11 +35,17 @@ func (v basicAuthValidator) IsAuthenticated(r *http.Request) bool {
 		return false
 	}
 
-	if !v.IsAuthConfigured(team) {
+	v.logger.Info("IsAuthenticated: " + team.Name())
+
+	_, configured := team.Auth()["noauth"]
+	if configured {
+		v.logger.Info("IsAuthenticated noauth is configured")
 		return true
 	}
 
-	if team.BasicAuth() == nil {
+	config, configured := team.Auth()["basicauth"]
+	if !configured {
+		v.logger.Info("IsAuthenticated basic auth is NOT configured")
 		return false
 	}
 
@@ -49,27 +55,7 @@ func (v basicAuthValidator) IsAuthenticated(r *http.Request) bool {
 		return false
 	}
 
-	return v.verifyCredentials(
-		team.BasicAuth().BasicAuthUsername,
-		team.BasicAuth().BasicAuthPassword,
-		username,
-		password,
-	)
-}
-
-func (v basicAuthValidator) IsAuthConfigured(team db.Team) bool {
-	if team.BasicAuth() != nil {
-		return true
-	}
-
-	for name := range provider.GetProviders() {
-		_, configured := team.Auth()[name]
-		if configured {
-			return true
-		}
-	}
-
-	return false
+	return v.verifyCredentials(config, username, password)
 }
 
 func (v basicAuthValidator) extractCredentials(header string) (string, string, error) {
@@ -90,16 +76,26 @@ func (v basicAuthValidator) extractCredentials(header string) (string, string, e
 	return parts[0], parts[1], nil
 }
 
-func (v basicAuthValidator) verifyCredentials(
-	teamUsername string,
-	teamPassword string,
-	checkUsername string,
-	checkPassword string,
-) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(teamPassword), []byte(checkPassword))
+func (v basicAuthValidator) verifyCredentials(config *json.RawMessage, username string, password string) bool {
+	provider := basicauth.BasicAuthTeamProvider{}
+
+	authConfig, err := provider.UnmarshalConfig(config)
 	if err != nil {
-		v.logger.Error("verify", err)
+		v.logger.Info("verifyCredentials: " + err.Error())
 		return false
 	}
-	return teamUsername == checkUsername
+
+	p, ok := provider.ProviderConstructor(authConfig, username, password)
+	if !ok {
+		v.logger.Info("verifyCredentials: constructor fail")
+		return false
+	}
+
+	valid, err := p.Verify(v.logger, nil)
+	if err != nil {
+		v.logger.Info("verifyCredentials: " + err.Error())
+		return false
+	}
+
+	return valid
 }

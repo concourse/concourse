@@ -12,8 +12,6 @@ import (
 	"github.com/google/jsonapi"
 )
 
-const BasicAuthDisplayName = "Basic Auth"
-
 func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-auth-methods")
 
@@ -73,22 +71,17 @@ func (s *Server) authMethods(team db.Team) ([]provider.AuthMethod, error) {
 		methods = append(methods, authConfig.AuthMethod(s.oAuthBaseURL, team.Name()))
 	}
 
-	if team.BasicAuth() != nil {
-		methods = append(methods, provider.AuthMethod{
-			Type:        provider.AuthTypeBasic,
-			DisplayName: BasicAuthDisplayName,
-			AuthURL:     s.externalURL + "/teams/" + team.Name() + "/login",
-		})
-	}
-
 	return methods, nil
 }
 
 type byTypeAndName []provider.AuthMethod
 
-func (ms byTypeAndName) Len() int          { return len(ms) }
+func (ms byTypeAndName) Len() int { return len(ms) }
+
 func (ms byTypeAndName) Swap(i int, j int) { ms[i], ms[j] = ms[j], ms[i] }
+
 func (ms byTypeAndName) Less(i int, j int) bool {
+
 	if ms[i].Type == provider.AuthTypeBasic && ms[j].Type == provider.AuthTypeOAuth {
 		return false
 	}

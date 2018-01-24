@@ -9,12 +9,12 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-type FakeTeamProvider struct {
-	ProviderConstructorStub        func(provider.AuthConfig, string) (provider.Provider, bool)
+type FakeProviderFactory struct {
+	ProviderConstructorStub        func(provider.AuthConfig, ...string) (provider.Provider, bool)
 	providerConstructorMutex       sync.RWMutex
 	providerConstructorArgsForCall []struct {
 		arg1 provider.AuthConfig
-		arg2 string
+		arg2 []string
 	}
 	providerConstructorReturns struct {
 		result1 provider.Provider
@@ -52,17 +52,17 @@ type FakeTeamProvider struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTeamProvider) ProviderConstructor(arg1 provider.AuthConfig, arg2 string) (provider.Provider, bool) {
+func (fake *FakeProviderFactory) ProviderConstructor(arg1 provider.AuthConfig, arg2 ...string) (provider.Provider, bool) {
 	fake.providerConstructorMutex.Lock()
 	ret, specificReturn := fake.providerConstructorReturnsOnCall[len(fake.providerConstructorArgsForCall)]
 	fake.providerConstructorArgsForCall = append(fake.providerConstructorArgsForCall, struct {
 		arg1 provider.AuthConfig
-		arg2 string
+		arg2 []string
 	}{arg1, arg2})
 	fake.recordInvocation("ProviderConstructor", []interface{}{arg1, arg2})
 	fake.providerConstructorMutex.Unlock()
 	if fake.ProviderConstructorStub != nil {
-		return fake.ProviderConstructorStub(arg1, arg2)
+		return fake.ProviderConstructorStub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -70,19 +70,19 @@ func (fake *FakeTeamProvider) ProviderConstructor(arg1 provider.AuthConfig, arg2
 	return fake.providerConstructorReturns.result1, fake.providerConstructorReturns.result2
 }
 
-func (fake *FakeTeamProvider) ProviderConstructorCallCount() int {
+func (fake *FakeProviderFactory) ProviderConstructorCallCount() int {
 	fake.providerConstructorMutex.RLock()
 	defer fake.providerConstructorMutex.RUnlock()
 	return len(fake.providerConstructorArgsForCall)
 }
 
-func (fake *FakeTeamProvider) ProviderConstructorArgsForCall(i int) (provider.AuthConfig, string) {
+func (fake *FakeProviderFactory) ProviderConstructorArgsForCall(i int) (provider.AuthConfig, []string) {
 	fake.providerConstructorMutex.RLock()
 	defer fake.providerConstructorMutex.RUnlock()
 	return fake.providerConstructorArgsForCall[i].arg1, fake.providerConstructorArgsForCall[i].arg2
 }
 
-func (fake *FakeTeamProvider) ProviderConstructorReturns(result1 provider.Provider, result2 bool) {
+func (fake *FakeProviderFactory) ProviderConstructorReturns(result1 provider.Provider, result2 bool) {
 	fake.ProviderConstructorStub = nil
 	fake.providerConstructorReturns = struct {
 		result1 provider.Provider
@@ -90,7 +90,7 @@ func (fake *FakeTeamProvider) ProviderConstructorReturns(result1 provider.Provid
 	}{result1, result2}
 }
 
-func (fake *FakeTeamProvider) ProviderConstructorReturnsOnCall(i int, result1 provider.Provider, result2 bool) {
+func (fake *FakeProviderFactory) ProviderConstructorReturnsOnCall(i int, result1 provider.Provider, result2 bool) {
 	fake.ProviderConstructorStub = nil
 	if fake.providerConstructorReturnsOnCall == nil {
 		fake.providerConstructorReturnsOnCall = make(map[int]struct {
@@ -104,7 +104,7 @@ func (fake *FakeTeamProvider) ProviderConstructorReturnsOnCall(i int, result1 pr
 	}{result1, result2}
 }
 
-func (fake *FakeTeamProvider) AddAuthGroup(arg1 *flags.Group) provider.AuthConfig {
+func (fake *FakeProviderFactory) AddAuthGroup(arg1 *flags.Group) provider.AuthConfig {
 	fake.addAuthGroupMutex.Lock()
 	ret, specificReturn := fake.addAuthGroupReturnsOnCall[len(fake.addAuthGroupArgsForCall)]
 	fake.addAuthGroupArgsForCall = append(fake.addAuthGroupArgsForCall, struct {
@@ -121,26 +121,26 @@ func (fake *FakeTeamProvider) AddAuthGroup(arg1 *flags.Group) provider.AuthConfi
 	return fake.addAuthGroupReturns.result1
 }
 
-func (fake *FakeTeamProvider) AddAuthGroupCallCount() int {
+func (fake *FakeProviderFactory) AddAuthGroupCallCount() int {
 	fake.addAuthGroupMutex.RLock()
 	defer fake.addAuthGroupMutex.RUnlock()
 	return len(fake.addAuthGroupArgsForCall)
 }
 
-func (fake *FakeTeamProvider) AddAuthGroupArgsForCall(i int) *flags.Group {
+func (fake *FakeProviderFactory) AddAuthGroupArgsForCall(i int) *flags.Group {
 	fake.addAuthGroupMutex.RLock()
 	defer fake.addAuthGroupMutex.RUnlock()
 	return fake.addAuthGroupArgsForCall[i].arg1
 }
 
-func (fake *FakeTeamProvider) AddAuthGroupReturns(result1 provider.AuthConfig) {
+func (fake *FakeProviderFactory) AddAuthGroupReturns(result1 provider.AuthConfig) {
 	fake.AddAuthGroupStub = nil
 	fake.addAuthGroupReturns = struct {
 		result1 provider.AuthConfig
 	}{result1}
 }
 
-func (fake *FakeTeamProvider) AddAuthGroupReturnsOnCall(i int, result1 provider.AuthConfig) {
+func (fake *FakeProviderFactory) AddAuthGroupReturnsOnCall(i int, result1 provider.AuthConfig) {
 	fake.AddAuthGroupStub = nil
 	if fake.addAuthGroupReturnsOnCall == nil {
 		fake.addAuthGroupReturnsOnCall = make(map[int]struct {
@@ -152,7 +152,7 @@ func (fake *FakeTeamProvider) AddAuthGroupReturnsOnCall(i int, result1 provider.
 	}{result1}
 }
 
-func (fake *FakeTeamProvider) UnmarshalConfig(arg1 *json.RawMessage) (provider.AuthConfig, error) {
+func (fake *FakeProviderFactory) UnmarshalConfig(arg1 *json.RawMessage) (provider.AuthConfig, error) {
 	fake.unmarshalConfigMutex.Lock()
 	ret, specificReturn := fake.unmarshalConfigReturnsOnCall[len(fake.unmarshalConfigArgsForCall)]
 	fake.unmarshalConfigArgsForCall = append(fake.unmarshalConfigArgsForCall, struct {
@@ -169,19 +169,19 @@ func (fake *FakeTeamProvider) UnmarshalConfig(arg1 *json.RawMessage) (provider.A
 	return fake.unmarshalConfigReturns.result1, fake.unmarshalConfigReturns.result2
 }
 
-func (fake *FakeTeamProvider) UnmarshalConfigCallCount() int {
+func (fake *FakeProviderFactory) UnmarshalConfigCallCount() int {
 	fake.unmarshalConfigMutex.RLock()
 	defer fake.unmarshalConfigMutex.RUnlock()
 	return len(fake.unmarshalConfigArgsForCall)
 }
 
-func (fake *FakeTeamProvider) UnmarshalConfigArgsForCall(i int) *json.RawMessage {
+func (fake *FakeProviderFactory) UnmarshalConfigArgsForCall(i int) *json.RawMessage {
 	fake.unmarshalConfigMutex.RLock()
 	defer fake.unmarshalConfigMutex.RUnlock()
 	return fake.unmarshalConfigArgsForCall[i].arg1
 }
 
-func (fake *FakeTeamProvider) UnmarshalConfigReturns(result1 provider.AuthConfig, result2 error) {
+func (fake *FakeProviderFactory) UnmarshalConfigReturns(result1 provider.AuthConfig, result2 error) {
 	fake.UnmarshalConfigStub = nil
 	fake.unmarshalConfigReturns = struct {
 		result1 provider.AuthConfig
@@ -189,7 +189,7 @@ func (fake *FakeTeamProvider) UnmarshalConfigReturns(result1 provider.AuthConfig
 	}{result1, result2}
 }
 
-func (fake *FakeTeamProvider) UnmarshalConfigReturnsOnCall(i int, result1 provider.AuthConfig, result2 error) {
+func (fake *FakeProviderFactory) UnmarshalConfigReturnsOnCall(i int, result1 provider.AuthConfig, result2 error) {
 	fake.UnmarshalConfigStub = nil
 	if fake.unmarshalConfigReturnsOnCall == nil {
 		fake.unmarshalConfigReturnsOnCall = make(map[int]struct {
@@ -203,7 +203,7 @@ func (fake *FakeTeamProvider) UnmarshalConfigReturnsOnCall(i int, result1 provid
 	}{result1, result2}
 }
 
-func (fake *FakeTeamProvider) Invocations() map[string][][]interface{} {
+func (fake *FakeProviderFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.providerConstructorMutex.RLock()
@@ -219,7 +219,7 @@ func (fake *FakeTeamProvider) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeTeamProvider) recordInvocation(key string, args []interface{}) {
+func (fake *FakeProviderFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -231,4 +231,4 @@ func (fake *FakeTeamProvider) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ provider.TeamProvider = new(FakeTeamProvider)
+var _ provider.ProviderFactory = new(FakeProviderFactory)

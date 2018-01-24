@@ -81,6 +81,10 @@ func (config *GitHubAuthConfig) Validate() error {
 	return errs.ErrorOrNil()
 }
 
+func (config *GitHubAuthConfig) Finalize() error {
+	return nil
+}
+
 type GitHubTeamConfig struct {
 	OrganizationName string `json:"organization_name,omitempty"`
 	TeamName         string `json:"team_name,omitempty"`
@@ -144,7 +148,7 @@ func (GitHubTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.Aut
 
 func (GitHubTeamProvider) ProviderConstructor(
 	config provider.AuthConfig,
-	redirectURL string,
+	args ...string,
 ) (provider.Provider, bool) {
 	githubAuth := config.(*GitHubAuthConfig)
 
@@ -167,7 +171,7 @@ func (GitHubTeamProvider) ProviderConstructor(
 			ClientSecret: githubAuth.ClientSecret,
 			Endpoint:     endpoint,
 			Scopes:       Scopes,
-			RedirectURL:  redirectURL,
+			RedirectURL:  args[0],
 		},
 	}, true
 }

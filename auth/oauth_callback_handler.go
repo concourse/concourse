@@ -110,6 +110,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	if !found {
 		hLog.Info("failed-to-find-team", lager.Data{
 			"teamName": teamName,
+			"provider": providerName,
 		})
 		http.Error(w, "failed to find team", http.StatusNotFound)
 		return
@@ -118,8 +119,8 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	provider, found, err := handler.providerFactory.GetProvider(team, providerName)
 	if err != nil {
 		handler.logger.Error("failed-to-get-provider", err, lager.Data{
-			"provider": providerName,
 			"teamName": teamName,
+			"provider": providerName,
 		})
 
 		w.WriteHeader(http.StatusInternalServerError)
@@ -128,8 +129,8 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	if !found {
 		handler.logger.Info("provider-not-found-for-team", lager.Data{
-			"provider": providerName,
 			"teamName": teamName,
+			"provider": providerName,
 		})
 
 		w.WriteHeader(http.StatusNotFound)
@@ -139,8 +140,8 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	preTokenClient, err := provider.PreTokenClient()
 	if err != nil {
 		handler.logger.Error("failed-to-construct-pre-token-client", err, lager.Data{
-			"provider": providerName,
 			"teamName": teamName,
+			"provider": providerName,
 		})
 
 		http.Error(w, "unable to connect to provider: "+err.Error(), http.StatusInternalServerError)

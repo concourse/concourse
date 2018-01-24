@@ -26,6 +26,15 @@ type FakeAuthConfig struct {
 	validateReturnsOnCall map[int]struct {
 		result1 error
 	}
+	FinalizeStub        func() error
+	finalizeMutex       sync.RWMutex
+	finalizeArgsForCall []struct{}
+	finalizeReturns     struct {
+		result1 error
+	}
+	finalizeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	AuthMethodStub        func(oauthBaseURL string, teamName string) provider.AuthMethod
 	authMethodMutex       sync.RWMutex
 	authMethodArgsForCall []struct {
@@ -122,6 +131,46 @@ func (fake *FakeAuthConfig) ValidateReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeAuthConfig) Finalize() error {
+	fake.finalizeMutex.Lock()
+	ret, specificReturn := fake.finalizeReturnsOnCall[len(fake.finalizeArgsForCall)]
+	fake.finalizeArgsForCall = append(fake.finalizeArgsForCall, struct{}{})
+	fake.recordInvocation("Finalize", []interface{}{})
+	fake.finalizeMutex.Unlock()
+	if fake.FinalizeStub != nil {
+		return fake.FinalizeStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.finalizeReturns.result1
+}
+
+func (fake *FakeAuthConfig) FinalizeCallCount() int {
+	fake.finalizeMutex.RLock()
+	defer fake.finalizeMutex.RUnlock()
+	return len(fake.finalizeArgsForCall)
+}
+
+func (fake *FakeAuthConfig) FinalizeReturns(result1 error) {
+	fake.FinalizeStub = nil
+	fake.finalizeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeAuthConfig) FinalizeReturnsOnCall(i int, result1 error) {
+	fake.FinalizeStub = nil
+	if fake.finalizeReturnsOnCall == nil {
+		fake.finalizeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.finalizeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeAuthConfig) AuthMethod(oauthBaseURL string, teamName string) provider.AuthMethod {
 	fake.authMethodMutex.Lock()
 	ret, specificReturn := fake.authMethodReturnsOnCall[len(fake.authMethodArgsForCall)]
@@ -178,6 +227,8 @@ func (fake *FakeAuthConfig) Invocations() map[string][][]interface{} {
 	defer fake.isConfiguredMutex.RUnlock()
 	fake.validateMutex.RLock()
 	defer fake.validateMutex.RUnlock()
+	fake.finalizeMutex.RLock()
+	defer fake.finalizeMutex.RUnlock()
 	fake.authMethodMutex.RLock()
 	defer fake.authMethodMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
