@@ -197,6 +197,22 @@ var _ = Describe("Teams API", func() {
 					})
 				})
 
+				Context("when the auth config cannot be finalized", func() {
+					BeforeEach(func() {
+						data := []byte(`{"password": "fries"}`)
+						atcTeam = atc.Team{
+							Auth: map[string]*json.RawMessage{
+								fakeProviderName: (*json.RawMessage)(&data),
+							},
+						}
+						fakeAuthConfig.FinalizeReturns(errors.New("finalize error"))
+					})
+
+					It("returns a 400 Bad Request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
 				Context("when the basic auth is valid", func() {
 					Context("when the team is found", func() {
 						BeforeEach(func() {

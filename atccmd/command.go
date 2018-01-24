@@ -820,7 +820,7 @@ func (cmd *ATCCommand) validate() error {
 
 	for name, p := range cmd.ProviderAuth {
 		if p.IsConfigured() {
-			fmt.Println("Auth provider configured: " + name)
+			fmt.Println("auth-provider-configured: " + name)
 
 			err := p.Validate()
 
@@ -1009,14 +1009,17 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 	// }
 
 	teamAuth := make(map[string]*json.RawMessage)
+
 	for name, config := range cmd.ProviderAuth {
 		if config.IsConfigured() {
-			data, err := json.Marshal(config)
-			if err != nil {
-				return err
-			}
+			if err := config.Finalize(); err == nil {
+				data, err := json.Marshal(config)
+				if err != nil {
+					return err
+				}
 
-			teamAuth[name] = (*json.RawMessage)(&data)
+				teamAuth[name] = (*json.RawMessage)(&data)
+			}
 		}
 	}
 

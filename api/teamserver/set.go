@@ -54,7 +54,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 		authConfig, err := p.UnmarshalConfig(config)
 		if err != nil {
-			hLog.Error("failed-to-unmarshall-auth", err)
+			hLog.Error("failed-to-unmarshal-auth", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -62,6 +62,13 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		err = authConfig.Validate()
 		if err != nil {
 			hLog.Error("request-body-validation-error", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		err = authConfig.Finalize()
+		if err != nil {
+			hLog.Error("cannot-finalize-auth-config", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
