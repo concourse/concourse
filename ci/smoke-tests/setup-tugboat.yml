@@ -18,7 +18,7 @@ params:
   SSH_USER:
   SSH_KEY:
 
-  REGION: sfo1
+  REGION: nyc1
   IMAGE: ""
   SIZE: 1gb
   PRIVATE_NETWORKING: 'false'
