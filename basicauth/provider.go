@@ -93,6 +93,14 @@ func (BasicAuthTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.
 	return flags, nil
 }
 
+func (BasicAuthTeamProvider) MarshalConfig(config provider.AuthConfig) (*json.RawMessage, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return (*json.RawMessage)(&data), nil
+}
+
 func (BasicAuthTeamProvider) ProviderConstructor(config provider.AuthConfig, args ...string) (provider.Provider, bool) {
 
 	if c, ok := config.(*BasicAuthConfig); ok && len(args) == 2 {

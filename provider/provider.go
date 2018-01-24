@@ -77,6 +77,7 @@ type ProviderFactory interface {
 	ProviderConstructor(AuthConfig, ...string) (Provider, bool)
 	AddAuthGroup(*flags.Group) AuthConfig
 	UnmarshalConfig(*json.RawMessage) (AuthConfig, error)
+	MarshalConfig(AuthConfig) (*json.RawMessage, error)
 }
 
 var providers map[string]ProviderFactory

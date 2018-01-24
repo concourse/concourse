@@ -72,6 +72,14 @@ func (NoAuthTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.Aut
 	return flags, nil
 }
 
+func (NoAuthTeamProvider) MarshalConfig(config provider.AuthConfig) (*json.RawMessage, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return (*json.RawMessage)(&data), nil
+}
+
 func (NoAuthTeamProvider) ProviderConstructor(config provider.AuthConfig, args ...string) (provider.Provider, bool) {
 
 	if c, ok := config.(*NoAuthConfig); ok {

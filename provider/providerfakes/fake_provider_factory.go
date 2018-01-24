@@ -48,6 +48,19 @@ type FakeProviderFactory struct {
 		result1 provider.AuthConfig
 		result2 error
 	}
+	MarshalConfigStub        func(provider.AuthConfig) (*json.RawMessage, error)
+	marshalConfigMutex       sync.RWMutex
+	marshalConfigArgsForCall []struct {
+		arg1 provider.AuthConfig
+	}
+	marshalConfigReturns struct {
+		result1 *json.RawMessage
+		result2 error
+	}
+	marshalConfigReturnsOnCall map[int]struct {
+		result1 *json.RawMessage
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -203,6 +216,57 @@ func (fake *FakeProviderFactory) UnmarshalConfigReturnsOnCall(i int, result1 pro
 	}{result1, result2}
 }
 
+func (fake *FakeProviderFactory) MarshalConfig(arg1 provider.AuthConfig) (*json.RawMessage, error) {
+	fake.marshalConfigMutex.Lock()
+	ret, specificReturn := fake.marshalConfigReturnsOnCall[len(fake.marshalConfigArgsForCall)]
+	fake.marshalConfigArgsForCall = append(fake.marshalConfigArgsForCall, struct {
+		arg1 provider.AuthConfig
+	}{arg1})
+	fake.recordInvocation("MarshalConfig", []interface{}{arg1})
+	fake.marshalConfigMutex.Unlock()
+	if fake.MarshalConfigStub != nil {
+		return fake.MarshalConfigStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.marshalConfigReturns.result1, fake.marshalConfigReturns.result2
+}
+
+func (fake *FakeProviderFactory) MarshalConfigCallCount() int {
+	fake.marshalConfigMutex.RLock()
+	defer fake.marshalConfigMutex.RUnlock()
+	return len(fake.marshalConfigArgsForCall)
+}
+
+func (fake *FakeProviderFactory) MarshalConfigArgsForCall(i int) provider.AuthConfig {
+	fake.marshalConfigMutex.RLock()
+	defer fake.marshalConfigMutex.RUnlock()
+	return fake.marshalConfigArgsForCall[i].arg1
+}
+
+func (fake *FakeProviderFactory) MarshalConfigReturns(result1 *json.RawMessage, result2 error) {
+	fake.MarshalConfigStub = nil
+	fake.marshalConfigReturns = struct {
+		result1 *json.RawMessage
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeProviderFactory) MarshalConfigReturnsOnCall(i int, result1 *json.RawMessage, result2 error) {
+	fake.MarshalConfigStub = nil
+	if fake.marshalConfigReturnsOnCall == nil {
+		fake.marshalConfigReturnsOnCall = make(map[int]struct {
+			result1 *json.RawMessage
+			result2 error
+		})
+	}
+	fake.marshalConfigReturnsOnCall[i] = struct {
+		result1 *json.RawMessage
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeProviderFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -212,6 +276,8 @@ func (fake *FakeProviderFactory) Invocations() map[string][][]interface{} {
 	defer fake.addAuthGroupMutex.RUnlock()
 	fake.unmarshalConfigMutex.RLock()
 	defer fake.unmarshalConfigMutex.RUnlock()
+	fake.marshalConfigMutex.RLock()
+	defer fake.marshalConfigMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

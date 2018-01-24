@@ -131,6 +131,14 @@ func (GenericTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.Au
 	return flags, nil
 }
 
+func (GenericTeamProvider) MarshalConfig(config provider.AuthConfig) (*json.RawMessage, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return (*json.RawMessage)(&data), nil
+}
+
 func (GenericTeamProvider) ProviderConstructor(
 	config provider.AuthConfig,
 	args ...string,

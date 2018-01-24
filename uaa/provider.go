@@ -133,6 +133,14 @@ func (UAATeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthCo
 	return flags, nil
 }
 
+func (UAATeamProvider) MarshalConfig(config provider.AuthConfig) (*json.RawMessage, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return (*json.RawMessage)(&data), nil
+}
+
 func (UAATeamProvider) ProviderConstructor(
 	config provider.AuthConfig,
 	args ...string,

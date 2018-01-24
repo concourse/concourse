@@ -127,6 +127,14 @@ func (GitLabTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.Aut
 	return flags, nil
 }
 
+func (GitLabTeamProvider) MarshalConfig(config provider.AuthConfig) (*json.RawMessage, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return (*json.RawMessage)(&data), nil
+}
+
 func (GitLabTeamProvider) ProviderConstructor(
 	config provider.AuthConfig,
 	args ...string,

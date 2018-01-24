@@ -78,3 +78,11 @@ func (TeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfi
 	}
 	return flags, nil
 }
+
+func (TeamProvider) MarshalConfig(config provider.AuthConfig) (*json.RawMessage, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return (*json.RawMessage)(&data), nil
+}
