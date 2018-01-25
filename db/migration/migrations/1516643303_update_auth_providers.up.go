@@ -45,18 +45,21 @@ func (self *migrations) Up_1516643303() error {
 
 		decryptedAuth, err := self.Strategy.Decrypt(string(team.auth), noncense)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 
 		var authConfig map[string]interface{}
-		err = json.Unmarshal(decryptedAuth, &authConfig)
-		if err != nil {
+		json.Unmarshal(decryptedAuth, &authConfig)
+
+		if authConfig == nil {
 			authConfig = map[string]interface{}{}
 		}
 
 		var basicAuthConfig map[string]string
-		err = json.Unmarshal(team.basicAuth, &basicAuthConfig)
-		if err != nil {
+		json.Unmarshal(team.basicAuth, &basicAuthConfig)
+
+		if basicAuthConfig == nil {
 			basicAuthConfig = map[string]string{}
 		}
 
@@ -78,6 +81,7 @@ func (self *migrations) Up_1516643303() error {
 
 		newAuth, err := json.Marshal(authConfig)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 

@@ -51,12 +51,14 @@ func (self *migrations) Down_1516643303() error {
 
 		decryptedAuth, err := self.Strategy.Decrypt(string(team.auth), noncense)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 
 		var authConfig map[string]interface{}
 		err = json.Unmarshal(decryptedAuth, &authConfig)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 
@@ -68,6 +70,7 @@ func (self *migrations) Down_1516643303() error {
 				basicAuthConfig["basic_auth_username"] = configMap["username"].(string)
 				basicAuthConfig["basic_auth_password"] = configMap["password"].(string)
 			} else {
+				tx.Rollback()
 				return errors.New("malformed basicauth provider")
 			}
 		}
@@ -77,11 +80,13 @@ func (self *migrations) Down_1516643303() error {
 
 		newAuth, err := json.Marshal(authConfig)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 
 		newBasicAuth, err := json.Marshal(basicAuthConfig)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 

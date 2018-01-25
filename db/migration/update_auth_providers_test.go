@@ -63,10 +63,21 @@ var _ = Describe("Update auth providers", func() {
 	})
 
 	Context("Up", func() {
-		It("migrates basic auth data to providers", func() {
+		It("migrates basic auth data to empty providers", func() {
 
 			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)
 			SetupTeamForUpMigration(db, "main", `{"basic_auth_username": "username", "basic_auth_password": "password"}`, ``)
+			db.Close()
+
+			db = postgresRunner.OpenDBAtVersion(postMigrationVersion)
+			ExpectTeamWithBasicAuthProvider(db, "main", "username", "password")
+			db.Close()
+		})
+
+		It("migrates basic auth data to null providers", func() {
+
+			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)
+			SetupTeamForUpMigration(db, "main", `{"basic_auth_username": "username", "basic_auth_password": "password"}`, `null`)
 			db.Close()
 
 			db = postgresRunner.OpenDBAtVersion(postMigrationVersion)
