@@ -28,8 +28,10 @@ files:
   - github.com/concourse/atc/creds/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/algorithm/*.{go,s,c,h} # gosub
+  - github.com/concourse/atc/db/encryption/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/lock/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/migration/*.{go,s,c,h} # gosub
+  - github.com/concourse/atc/db/migration/migrations/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/event/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/commands/*.{go,s,c,h} # gosub
@@ -51,6 +53,7 @@ files:
   - github.com/concourse/go-concourse/concourse/eventstream/*.{go,s,c,h} # gosub
   - github.com/concourse/go-concourse/concourse/internal/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/auth/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/basicauth/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/bitbucket/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/bitbucket/cloud/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/bitbucket/server/*.{go,s,c,h} # gosub
@@ -59,6 +62,7 @@ files:
   - github.com/concourse/skymarshal/gitlab/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/gitlab/vendor/github.com/google/go-querystring/query/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/gitlab/vendor/github.com/xanzy/go-gitlab/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/noauth/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/provider/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/uaa/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/verifier/*.{go,s,c,h} # gosub
