@@ -8,6 +8,7 @@ image_resource:
 inputs:
 - name: docs
 - name: version
+  optional: true
 
 outputs:
 - name: built-docs
