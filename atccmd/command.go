@@ -221,6 +221,13 @@ func (cmd *ATCCommand) migrateDBToVersion() error {
 		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
 	}
 
+	var strategy encryption.Strategy
+	if newKey != nil {
+		strategy = newKey
+	} else {
+		strategy = encryption.NewNoEncryption()
+	}
+
 	lockConn, err := cmd.constructLockConn(defaultDriverName)
 	if err != nil {
 		return err
@@ -231,7 +238,7 @@ func (cmd *ATCCommand) migrateDBToVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		lock.NewLockFactory(lockConn),
-		newKey,
+		strategy,
 	)
 
 	err = helper.MigrateToVersion(version)
