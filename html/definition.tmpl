@@ -1,8 +1,9 @@
 <div class="definition">
-  <div class="thumb">
-    {{.Partial "Targets" | render}}
+  <div class="definition-thumb">
     {{.Partial "Thumb" | render}}
   </div>
 
-  {{.Content | render}}
+  <div class="definition-content">
+    {{.Content | render}}
+  </div>
 </div>

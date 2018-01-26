@@ -1,8 +1,6 @@
-\title{Installing}{installing}
+\title{Install}{installing}
 
 \use-plugin{concourse-docs}
-
-So you want to get yourself a Concourse.
 
 There are a few supported ways to get going. All distributions of Concourse are
 equivalent in feature set, the only difference being operational concerns like

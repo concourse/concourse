@@ -41,6 +41,28 @@ func (p Plugin) Codeblock(language string, code booklit.Content) (booklit.Conten
 	return p.chroma.Syntax(language, code, "concourseci")
 }
 
+func (p Plugin) SplashExample(title booklit.Content, content booklit.Content, example booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style: "splash-example",
+		Block: true,
+
+		Content: content,
+
+		Partials: booklit.Partials{
+			"Title":   title,
+			"Example": example,
+		},
+	}
+}
+
+func (p Plugin) ExamplePipeline() booklit.Content {
+	return booklit.Styled{
+		Style:   "example-pipeline",
+		Block:   true,
+		Content: booklit.Empty,
+	}
+}
+
 func (p Plugin) TitledCodeblock(title booklit.Content, language string, code booklit.Content) (booklit.Content, error) {
 	codeblock, err := p.Codeblock(language, code)
 	if err != nil {
@@ -49,6 +71,7 @@ func (p Plugin) TitledCodeblock(title booklit.Content, language string, code boo
 
 	return booklit.Styled{
 		Style: "titled-codeblock",
+		Block: true,
 
 		Content: codeblock,
 

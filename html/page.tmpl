@@ -1,35 +1,31 @@
 <!DOCTYPE html>
 <html>
   <head>
-    {{template "header.tmpl" .}}
-
-    <link type="text/css" rel="stylesheet" href="css/docs.css">
-    <link type="text/css" rel="stylesheet" href="css/resources-table.css">
-    <link type="text/css" rel="stylesheet" href="css/literate.css">
-    <link type="text/css" rel="stylesheet" href="css/flex-pipeline-image.css">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{{.Title.String}}</title>
+    <link rel="stylesheet" type="text/css" href="css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="css/pipeline.css" />
+    <link rel="stylesheet" type="text/css" href="css/iosevka.css" />
+    <link rel="stylesheet" type="text/css" href="css/booklit.css" />
+    <link rel="stylesheet" type="text/css" href="css/highlight.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+    <link href="https://fonts.googleapis.com/css?family=PT+Serif:400,400i,700" rel="stylesheet" />
   </head>
-  <body class="split_sections toc">
-    <div id="everything">
-      {{template "docs-header.tmpl" .}}
-      <div id="middle">
-        <div id="page">
-          <div id="sidebar">
-            <div class="sidebar-spacing">
-              <div class="single-page-link">
-                <a href="single-page.html">view all docs on one page</a>
-              </div>
-
-              {{template "sidebar-toc.tmpl" walkContext . .Top}}
-            </div>
-          </div>
-          <div id="content">
-            <div class="content-spacing">
-              {{template "section.tmpl" .}}
-            </div>
-          </div>
-        </div>
-      </div>
-      {{template "footer.tmpl" .}}
+  <body>
+    <div class="side">
+      {{template "sidebar.tmpl" .}}
     </div>
+    <div class="page{{if not .Parent}} top{{end}}">
+      {{. | render}}
+    </div>
+    <script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-60508041-1', 'auto');
+ga('send', 'pageview');
+    </script>
   </body>
 </html>

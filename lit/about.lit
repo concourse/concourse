@@ -1,0 +1,51 @@
+\title{About}{about}
+
+Concourse started as a side-project by
+\link{\code{@vito}}{https://github.com/vito} (hi!) and
+\link{\code{@xoebus}}{https://github.com/xoebus} in 2014, and has since grown
+to a small but dedicated team made up of both full-time engineers and
+individual contributors. You can find us all in
+\link{Slack}{http://slack.concourse.ci}!
+
+\section{
+  \title{Why make Concourse?}
+
+  For any sizeable project, having a pipeline to reliably test, deploy, and
+  publish the product is crucial for rapid iteration.
+
+  But with every CI system we used, we found ourselves constantly dealing with
+  the same old problems: complicated config hidden in many pages of the web UI,
+  not knowing who changed what & when, managing dependencies and state on the
+  workers, build pollution, annoying UX...
+
+  Our project was growing larger, and with every box we checked and for every
+  worker we hand-tweaked, the anxiety of having to do it all over again if
+  something went wrong grew and grew. We started writing software to manage our
+  CI, instead of writing the software we wanted to write.
+
+  We want Concourse to be a CI system that lets you sleep easier at night. One
+  that's simple enough to fully grok, and easy to manage as your project grows,
+  in both the complexity of the product and the size of your team. We want
+  stronger abstractions and fewer things to learn, so that it can be easier to
+  understand and so that Concourse can age gracefully.
+}
+
+\section{
+  \title{How can I help?}
+
+  As it turns out, it's pretty hard to write a CI system that makes everyone
+  happy! Concourse is not perfect, and it sometimes takes a while for us to
+  understand a problem space enough to figure out how it should work in
+  Concourse's somewhat puritanical world.
+
+  We tend to move slowly rather than tack on feature request after feature
+  request, and are extremely cautious about
+  \link{anti-patterns}{https://github.com/concourse/concourse/wiki/Anti-Patterns}
+  and introducing ways for users to shoot themselves in the foot.
+
+  Concourse is getting bigger and bigger, and we really appreciate any help we
+  can get. Being active in GitHub issues, voting with reactions for issues that
+  matter to you, engaging in discussions while we map out a feature request,
+  hanging out in \link{Slack}{http://slack.concourse.ci} and of course
+  contributing code are all incredibly helpful.
+}

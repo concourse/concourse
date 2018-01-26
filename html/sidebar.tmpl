@@ -1,0 +1,70 @@
+{{define "section-link"}}
+<a href="{{.Section.PrimaryTag | url}}" {{if eq .Section.PrimaryTag.Name .Current.PrimaryTag.Name}} class="self"{{end}}>
+  {{- .Section.Title | stripAux | render -}}
+</a>
+{{end}}
+
+{{define "context"}}
+{{if .Section.Parent}}
+{{template "context" walkContext .Current .Section.Parent}}
+{{end}}
+
+{{if .Section.Children}}
+<div class="context">
+  <nav>
+    <div class="top">
+      {{template "section-link" .}}
+    </div>
+
+    {{if .Section.Children}}
+    <input type="checkbox" class="toggle" {{if .Section.IsOrHasChild .Current}}checked{{end}} />
+    <span class="arrow"></span>
+    <div class="children">
+      <table>
+      {{range .Section.Children}}
+        <tr>
+          <td class="number-cell" align="right">{{.Number}}&nbsp;</td>
+          <td class="title-cell">{{template "section-link" walkContext $.Current .}}</td>
+        </tr>
+      {{end}}
+      </table>
+    </div>
+    {{end}}
+  </nav>
+</div>
+{{end}}
+{{end}}
+
+{{template "context" walkContext $ .}}
+
+{{if .HasAnchors}}
+<div class="context">
+  <div class="top">
+    On this page:
+  </div>
+
+  <nav>
+    <div class="children">
+      <table>
+        {{range .AnchorTags}}
+        <tr>
+          <td colspan="2" class="title-cell"><a href="{{. | url}}">{{.Display | render}}</a></td>
+        </tr>
+        {{end}}
+        {{range .Children}}
+        <tr>
+          <td class="number-cell" align="right">{{.Number}}&nbsp;</td>
+          <td class="title-cell">{{template "section-link" walkContext $ .}}</td>
+        </tr>
+          {{range .AnchorTags}}
+          <tr>
+            <td class="number-cell" align="right"></td>
+            <td class="title-cell"><a href="{{. | url}}">{{.Display | render}}</a></td>
+          </tr>
+          {{end}}
+        {{end}}
+      </table>
+    </div>
+  </nav>
+</div>
+{{end}}
