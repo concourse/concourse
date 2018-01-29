@@ -3,8 +3,3 @@
 .idea
 /README.html
 cmd/atc/atc
-web/public/elm.js
-web/public/elm.min.js
-web/public/elm-beta.js
-web/public/elm-beta.min.js
-web/public/main.css
