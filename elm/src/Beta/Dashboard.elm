@@ -214,11 +214,16 @@ showNoResultsView query =
     in
         Html.div
             [ class "dashboard" ]
-            [ Html.div [ class "dashboard-content no-results" ]
-                [ Html.span []
-                    [ Html.text "No results for "
-                    , boldedQuery
-                    , Html.text " matched your search."
+            [ Html.div [ class "dashboard-content " ]
+                [ Html.div
+                    [ class "dashboard-team-group" ]
+                    [ Html.div [ class "pin-wrapper" ]
+                        [ Html.div [ class "dashboard-team-name no-results" ]
+                            [ Html.text "No results for "
+                            , boldedQuery
+                            , Html.text " matched your search."
+                            ]
+                        ]
                     ]
                 ]
             ]

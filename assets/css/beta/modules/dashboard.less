@@ -5,10 +5,6 @@
 .dashboard {
   .dashboard-content {
     padding: 64px 0 30px 30px;
-    &.no-results {
-      padding: 60px 30px;
-      text-align: center;
-    }
   }
 
   .pending   { background: @grey-primary; &:hover { background: @grey-secondary }}
@@ -85,6 +81,9 @@
     padding-bottom: (25px * @scale);
     z-index: 1;
     opacity: 0.9;
+    &.no-results {
+      text-align: center;
+    }
   }
 
   .dashboard-pipeline {
