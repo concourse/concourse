@@ -876,7 +876,7 @@ var _ = Describe("login Command", func() {
 			})
 		})
 
-		Context("when no auth methods are returned from the API", func() {
+		Context("when a noauth method is returned from the API", func() {
 			BeforeEach(func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
@@ -889,6 +889,60 @@ var _ = Describe("login Command", func() {
 								AuthURL:     "https://example.com/login/none?team_name=main",
 							},
 						}),
+					),
+					tokenHandler("main"),
+				)
+			})
+
+			It("prints a message and exits", func() {
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("target saved"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+			})
+
+			Describe("running other commands", func() {
+				BeforeEach(func() {
+					loginATCServer.AppendHandlers(
+						infoHandler(),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+								{Name: "pipeline-1"},
+							}),
+						),
+					)
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("target saved"))
+				})
+
+				It("uses the saved target", func() {
+					otherCmd := exec.Command(flyPath, "-t", "some-target", "pipelines")
+
+					sess, err := gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+
+					Expect(sess).To(gbytes.Say("pipeline-1"))
+
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+			})
+		})
+
+		Context("when no auth methods are returned from the API", func() {
+			BeforeEach(func() {
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{}),
 					),
 					tokenHandler("main"),
 				)

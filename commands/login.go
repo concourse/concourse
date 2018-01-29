@@ -112,7 +112,10 @@ func (command *LoginCommand) Execute(args []string) error {
 		}
 
 		if len(choices) == 0 {
-			return errors.New("no methods to choose from")
+			// FIXME: this is put here for backwards compatibility, eventually this should throw an error
+			chosenMethod = provider.AuthMethod{
+				Type: provider.AuthTypeNone,
+			}
 		}
 
 		if len(choices) == 1 {
