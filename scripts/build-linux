@@ -29,8 +29,11 @@ pushd garden-runc-release/
 
     export GOPATH=$PWD
 
-    go install code.cloudfoundry.org/guardian/cmd/dadoo
-    go install code.cloudfoundry.org/guardian/cmd/init
+    go build -o $ASSETS_DIR/bin/dadoo code.cloudfoundry.org/guardian/cmd/dadoo
+
+    pushd src/code.cloudfoundry.org/guardian/cmd/init
+      gcc -static -o $ASSETS_DIR/bin/init init.c
+    popd
 
     pushd src/github.com/opencontainers/runc
       PKG_CONFIG_PATH=/opt/static-assets/libseccomp/lib/pkgconfig \
@@ -45,8 +48,6 @@ pushd garden-runc-release/
       make
       mv nstar $ASSETS_DIR/bin
     popd
-
-    cp bin/{init,dadoo} $ASSETS_DIR/bin
   )
 popd
 
