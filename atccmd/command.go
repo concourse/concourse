@@ -392,7 +392,6 @@ func (cmd *ATCCommand) constructMembers(
 	bus := dbConn.Bus()
 
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
-	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory)
 	dbVolumeFactory := db.NewVolumeFactory(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
@@ -410,7 +409,6 @@ func (cmd *ATCCommand) constructMembers(
 
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
-		resourceFactoryFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		clock.NewClock(),
@@ -437,7 +435,7 @@ func (cmd *ATCCommand) constructMembers(
 	)
 
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
-	resourceFactory := resourceFactoryFactory.FactoryFor(workerClient)
+	resourceFactory := resource.NewResourceFactory(workerClient)
 	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(

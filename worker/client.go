@@ -43,6 +43,12 @@ type InputSource interface {
 	DestinationPath() string
 }
 
+//go:generate counterfeiter . BindMountSource
+
+type BindMountSource interface {
+	VolumeOn(Worker) (garden.BindMount, bool, error)
+}
+
 type VolumeSpec struct {
 	Strategy   baggageclaim.Strategy
 	Properties VolumeProperties

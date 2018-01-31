@@ -34,7 +34,6 @@ var _ = Describe("Image", func() {
 	var fakeImageResource *resourcefakes.FakeResource
 	var fakeResourceFetcherFactory *resourcefakes.FakeFetcherFactory
 	var fakeResourceFetcher *resourcefakes.FakeFetcher
-	var fakeResourceFactoryFactory *resourcefakes.FakeResourceFactoryFactory
 	var fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 	var fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 	var fakeCreatingContainer *dbfakes.FakeCreatingContainer
@@ -65,10 +64,8 @@ var _ = Describe("Image", func() {
 		fakeImageResource = new(resourcefakes.FakeResource)
 		fakeResourceFetcherFactory = new(resourcefakes.FakeFetcherFactory)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
-		fakeResourceFactoryFactory = new(resourcefakes.FakeResourceFactoryFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeResourceFetcherFactory.FetcherForReturns(fakeResourceFetcher)
-		fakeResourceFactoryFactory.FactoryForReturns(fakeResourceFactory)
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 		stderrBuf = gbytes.NewBuffer()
@@ -118,12 +115,12 @@ var _ = Describe("Image", func() {
 	JustBeforeEach(func() {
 		imageResourceFetcher = image.NewImageResourceFetcherFactory(
 			fakeResourceFetcherFactory,
-			fakeResourceFactoryFactory,
 			fakeResourceCacheFactory,
 			fakeResourceConfigFactory,
 			fakeClock,
 		).NewImageResourceFetcher(
 			fakeWorker,
+			fakeResourceFactory,
 			imageResource,
 			version,
 			teamID,

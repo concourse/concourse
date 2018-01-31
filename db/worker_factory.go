@@ -36,6 +36,7 @@ var workersQuery = psql.Select(`
 		w.addr,
 		w.state,
 		w.baggageclaim_url,
+		w.certs_path,
 		w.http_proxy_url,
 		w.https_proxy_url,
 		w.no_proxy,
@@ -104,6 +105,7 @@ func scanWorker(worker *worker, row scannable) error {
 		addStr        sql.NullString
 		state         string
 		bcURLStr      sql.NullString
+		certsPathStr  sql.NullString
 		httpProxyURL  sql.NullString
 		httpsProxyURL sql.NullString
 		noProxy       sql.NullString
@@ -122,6 +124,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&addStr,
 		&state,
 		&bcURLStr,
+		&certsPathStr,
 		&httpProxyURL,
 		&httpsProxyURL,
 		&noProxy,
@@ -148,6 +151,10 @@ func scanWorker(worker *worker, row scannable) error {
 
 	if bcURLStr.Valid {
 		worker.baggageclaimURL = &bcURLStr.String
+	}
+
+	if certsPathStr.Valid {
+		worker.certsPath = &certsPathStr.String
 	}
 
 	worker.state = WorkerState(state)
@@ -340,6 +347,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 					"tags",
 					"platform",
 					"baggageclaim_url",
+					"certs_path",
 					"http_proxy_url",
 					"https_proxy_url",
 					"no_proxy",
@@ -357,6 +365,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 					tags,
 					atcWorker.Platform,
 					atcWorker.BaggageclaimURL,
+					atcWorker.CertsPath,
 					atcWorker.HTTPProxyURL,
 					atcWorker.HTTPSProxyURL,
 					atcWorker.NoProxy,
@@ -388,6 +397,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			Set("tags", tags).
 			Set("platform", atcWorker.Platform).
 			Set("baggageclaim_url", atcWorker.BaggageclaimURL).
+			Set("certs_path", atcWorker.CertsPath).
 			Set("http_proxy_url", atcWorker.HTTPProxyURL).
 			Set("https_proxy_url", atcWorker.HTTPSProxyURL).
 			Set("no_proxy", atcWorker.NoProxy).
@@ -416,6 +426,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		state:            workerState,
 		gardenAddr:       &atcWorker.GardenAddr,
 		baggageclaimURL:  &atcWorker.BaggageclaimURL,
+		certsPath:        &atcWorker.CertsPath,
 		httpProxyURL:     atcWorker.HTTPProxyURL,
 		httpsProxyURL:    atcWorker.HTTPSProxyURL,
 		noProxy:          atcWorker.NoProxy,
@@ -488,6 +499,17 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		Exec()
 	if err != nil {
 		return nil, err
+	}
+
+	if atcWorker.CertsPath != "" {
+		_, err := WorkerResourceCerts{
+			WorkerName: atcWorker.Name,
+			CertsPath:  atcWorker.CertsPath,
+		}.Create(tx)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return savedWorker, nil

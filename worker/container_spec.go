@@ -33,6 +33,9 @@ type ContainerSpec struct {
 	// Outputs for which volumes should be created and mounted into the container.
 	Outputs OutputPaths
 
+	// Local volumes to bind mount directly to the container when creating in garden.
+	BindMounts []BindMountSource
+
 	// Optional user to run processes as. Overwrites the one specified in the docker image.
 	User string
 }

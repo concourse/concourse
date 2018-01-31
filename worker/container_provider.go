@@ -365,17 +365,17 @@ func (p *containerProvider) createGardenContainer(
 		})
 	}
 
+	worker := NewGardenWorker(
+		p.gardenClient,
+		p.baggageclaimClient,
+		p,
+		p.volumeClient,
+		p.worker,
+		p.clock,
+	)
+
 	for _, inputSource := range spec.Inputs {
 		var inputVolume Volume
-
-		worker := NewGardenWorker(
-			p.gardenClient,
-			p.baggageclaimClient,
-			p,
-			p.volumeClient,
-			p.worker,
-			p.clock,
-		)
 
 		localVolume, found, err := inputSource.Source().VolumeOn(worker)
 		if err != nil {
@@ -447,19 +447,14 @@ func (p *containerProvider) createGardenContainer(
 
 	bindMounts := []garden.BindMount{}
 
-	certsVolume, found, err := p.baggageclaimClient.LookupVolume(logger, certsVolumeName)
-	if err != nil {
-		return nil, err
-	}
-
-	if found {
-		bindMounts = append(bindMounts,
-			garden.BindMount{
-				SrcPath: certsVolume.Path(),
-				DstPath: "/etc/ssl/certs",
-				Mode:    garden.BindMountModeRO,
-			},
-		)
+	for _, mount := range spec.BindMounts {
+		bindMount, found, mountErr := mount.VolumeOn(worker)
+		if mountErr != nil {
+			return nil, mountErr
+		}
+		if found {
+			bindMounts = append(bindMounts, bindMount)
+		}
 	}
 
 	volumeHandleMounts := map[string]string{}

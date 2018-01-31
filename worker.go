@@ -10,6 +10,8 @@ type Worker struct {
 	GardenAddr      string `json:"addr"`
 	BaggageclaimURL string `json:"baggageclaim_url"`
 
+	CertsPath string `json:"certs_path,omitempty"`
+
 	HTTPProxyURL  string `json:"http_proxy_url,omitempty"`
 	HTTPSProxyURL string `json:"https_proxy_url,omitempty"`
 	NoProxy       string `json:"no_proxy,omitempty"`

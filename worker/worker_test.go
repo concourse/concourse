@@ -1,7 +1,6 @@
 package worker_test
 
 import (
-	"errors"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -14,7 +13,6 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
 
@@ -174,65 +172,6 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
-	Describe("EnsureCertsVolumeExists", func() {
-		var ensureErr error
-		var expectedCertsVolumeName = "certificates"
-		JustBeforeEach(func() {
-			ensureErr = gardenWorker.EnsureCertsVolumeExists(logger)
-		})
-
-		It("looks up the existing volume in baggageclaim", func() {
-			Expect(fakeBaggageClaimClient.LookupVolumeCallCount()).To(Equal(1))
-			_, certsVolumeName := fakeBaggageClaimClient.LookupVolumeArgsForCall(0)
-			Expect(certsVolumeName).To(Equal(expectedCertsVolumeName))
-		})
-
-		Context("when looking the volume up fails", func() {
-			var lookupErr = errors.New("failure")
-			BeforeEach(func() {
-				fakeBaggageClaimClient.LookupVolumeReturns(nil, true, lookupErr)
-			})
-			It("returns the error", func() {
-				Expect(ensureErr).To(Equal(lookupErr))
-			})
-		})
-
-		Context("when the volume already exists", func() {
-			BeforeEach(func() {
-				fakeBaggageClaimClient.LookupVolumeReturns(nil, true, nil)
-			})
-
-			It("does not create a new volume", func() {
-				Expect(fakeBaggageClaimClient.CreateVolumeCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("when the volume does not exist", func() {
-			It("uses certs directory from the host", func() {
-				expectedStrategy := baggageclaim.ImportStrategy{
-					Path:           "/etc/ssl/certs",
-					FollowSymlinks: true,
-				}
-				By("creating the volume")
-				Expect(fakeBaggageClaimClient.CreateVolumeCallCount()).To(Equal(1))
-				_, certsVolumeName, volumeSpec := fakeBaggageClaimClient.CreateVolumeArgsForCall(0)
-
-				Expect(certsVolumeName).To(Equal(expectedCertsVolumeName))
-				Expect(volumeSpec.Strategy).To(Equal(expectedStrategy))
-			})
-
-			Context("when looking the volume up fails", func() {
-				var createErr = errors.New("failure")
-				BeforeEach(func() {
-					fakeBaggageClaimClient.CreateVolumeReturns(nil, createErr)
-				})
-				It("returns the error", func() {
-					Expect(ensureErr).To(Equal(createErr))
-				})
-			})
-
-		})
-	})
 	Describe("FindCreatedContainerByHandle", func() {
 		var (
 			handle            string

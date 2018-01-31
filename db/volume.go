@@ -48,11 +48,12 @@ const (
 type VolumeType string
 
 const (
-	VolumeTypeContainer    VolumeType = "container"
-	VolumeTypeResource     VolumeType = "resource"
-	VolumeTypeResourceType VolumeType = "resource-type"
-	VolumeTypeTaskCache    VolumeType = "task-cache"
-	VolumeTypeUknown       VolumeType = "unknown" // for migration to life
+	VolumeTypeContainer     VolumeType = "container"
+	VolumeTypeResource      VolumeType = "resource"
+	VolumeTypeResourceType  VolumeType = "resource-type"
+	VolumeTypeResourceCerts VolumeType = "resource-certs"
+	VolumeTypeTaskCache     VolumeType = "task-cache"
+	VolumeTypeUknown        VolumeType = "unknown" // for migration to life
 )
 
 //go:generate counterfeiter . CreatingVolume
@@ -76,6 +77,7 @@ type creatingVolume struct {
 	resourceCacheID          int
 	workerBaseResourceTypeID int
 	workerTaskCacheID        int
+	workerResourceCertsID    int
 	conn                     Conn
 }
 
@@ -110,6 +112,7 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 		resourceCacheID:          volume.resourceCacheID,
 		workerBaseResourceTypeID: volume.workerBaseResourceTypeID,
 		workerTaskCacheID:        volume.workerTaskCacheID,
+		workerResourceCertsID:    volume.workerResourceCertsID,
 	}, nil
 }
 
@@ -166,6 +169,7 @@ type createdVolume struct {
 	resourceCacheID          int
 	workerBaseResourceTypeID int
 	workerTaskCacheID        int
+	workerResourceCertsID    int
 	conn                     Conn
 }
 

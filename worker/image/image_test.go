@@ -251,7 +251,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches image without custom resource type", func() {
-				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, _, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-image-resource-type"))
 				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{"some": "source"})))
@@ -332,7 +332,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches unprivileged image without custom resource type", func() {
-				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, _, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-base-resource-type"))
 				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{
@@ -427,7 +427,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches image without custom resource type", func() {
-				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, _, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-base-image-resource-type"))
 				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{

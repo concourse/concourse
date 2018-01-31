@@ -58,6 +58,10 @@ type VolumeClient interface {
 		stepName string,
 		path string,
 	) (Volume, error)
+	FindOrCreateVolumeForResourceCerts(
+		logger lager.Logger,
+	) (volume Volume, found bool, err error)
+
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
 
@@ -221,6 +225,45 @@ func (c *volumeClient) CreateVolumeForTaskCache(
 			return c.dbVolumeFactory.CreateTaskCacheVolume(teamID, taskCache)
 		},
 	)
+}
+
+func (c *volumeClient) FindOrCreateVolumeForResourceCerts(logger lager.Logger) (Volume, bool, error) {
+
+	logger.Debug("finding-worker-resource-certs")
+	usedResourceCerts, found, err := c.dbWorker.ResourceCerts()
+	if err != nil {
+		logger.Error("failed-to-find-worker-resource-certs", err)
+		return nil, false, err
+	}
+
+	if !found {
+		logger.Debug("worker-resource-certs-not-found")
+		return nil, false, nil
+	}
+
+	certsPath := c.dbWorker.CertsPath()
+	if certsPath == nil {
+		logger.Debug("worker-certs-path-is-empty")
+		return nil, false, nil
+	}
+
+	volume, err := c.findOrCreateVolume(
+		logger.Session("find-or-create-volume-for-resource-certs"),
+		VolumeSpec{
+			Strategy: baggageclaim.ImportStrategy{
+				Path:           *certsPath,
+				FollowSymlinks: true,
+			},
+		},
+		func() (db.CreatingVolume, db.CreatedVolume, error) {
+			return c.dbVolumeFactory.FindResourceCertsVolume(c.dbWorker.Name(), usedResourceCerts)
+		},
+		func() (db.CreatingVolume, error) {
+			return c.dbVolumeFactory.CreateResourceCertsVolume(c.dbWorker.Name(), usedResourceCerts)
+		},
+	)
+
+	return volume, true, err
 }
 
 func (c *volumeClient) FindVolumeForTaskCache(

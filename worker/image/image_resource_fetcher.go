@@ -29,6 +29,7 @@ var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not prod
 type ImageResourceFetcherFactory interface {
 	NewImageResourceFetcher(
 		worker.Worker,
+		resource.ResourceFactory,
 		worker.ImageResource,
 		atc.Version,
 		int,
@@ -50,7 +51,6 @@ type ImageResourceFetcher interface {
 
 type imageResourceFetcherFactory struct {
 	resourceFetcherFactory  resource.FetcherFactory
-	resourceFactoryFactory  resource.ResourceFactoryFactory
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 	clock                   clock.Clock
@@ -58,14 +58,12 @@ type imageResourceFetcherFactory struct {
 
 func NewImageResourceFetcherFactory(
 	resourceFetcherFactory resource.FetcherFactory,
-	resourceFactoryFactory resource.ResourceFactoryFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	clock clock.Clock,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
 		resourceFetcherFactory:  resourceFetcherFactory,
-		resourceFactoryFactory:  resourceFactoryFactory,
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
 		clock: clock,
@@ -74,6 +72,7 @@ func NewImageResourceFetcherFactory(
 
 func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	worker worker.Worker,
+	resourceFactory resource.ResourceFactory,
 	imageResource worker.ImageResource,
 	version atc.Version,
 	teamID int,
@@ -82,7 +81,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 ) ImageResourceFetcher {
 	return &imageResourceFetcher{
 		resourceFetcher:         f.resourceFetcherFactory.FetcherFor(worker),
-		resourceFactory:         f.resourceFactoryFactory.FactoryFor(worker),
+		resourceFactory:         resourceFactory,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
 		clock: f.clock,

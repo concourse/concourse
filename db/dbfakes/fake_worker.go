@@ -55,6 +55,28 @@ type FakeWorker struct {
 	baggageclaimURLReturnsOnCall map[int]struct {
 		result1 *string
 	}
+	CertsPathStub        func() *string
+	certsPathMutex       sync.RWMutex
+	certsPathArgsForCall []struct{}
+	certsPathReturns     struct {
+		result1 *string
+	}
+	certsPathReturnsOnCall map[int]struct {
+		result1 *string
+	}
+	ResourceCertsStub        func() (*db.UsedWorkerResourceCerts, bool, error)
+	resourceCertsMutex       sync.RWMutex
+	resourceCertsArgsForCall []struct{}
+	resourceCertsReturns     struct {
+		result1 *db.UsedWorkerResourceCerts
+		result2 bool
+		result3 error
+	}
+	resourceCertsReturnsOnCall map[int]struct {
+		result1 *db.UsedWorkerResourceCerts
+		result2 bool
+		result3 error
+	}
 	HTTPProxyURLStub        func() string
 	hTTPProxyURLMutex       sync.RWMutex
 	hTTPProxyURLArgsForCall []struct{}
@@ -403,6 +425,92 @@ func (fake *FakeWorker) BaggageclaimURLReturnsOnCall(i int, result1 *string) {
 	fake.baggageclaimURLReturnsOnCall[i] = struct {
 		result1 *string
 	}{result1}
+}
+
+func (fake *FakeWorker) CertsPath() *string {
+	fake.certsPathMutex.Lock()
+	ret, specificReturn := fake.certsPathReturnsOnCall[len(fake.certsPathArgsForCall)]
+	fake.certsPathArgsForCall = append(fake.certsPathArgsForCall, struct{}{})
+	fake.recordInvocation("CertsPath", []interface{}{})
+	fake.certsPathMutex.Unlock()
+	if fake.CertsPathStub != nil {
+		return fake.CertsPathStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.certsPathReturns.result1
+}
+
+func (fake *FakeWorker) CertsPathCallCount() int {
+	fake.certsPathMutex.RLock()
+	defer fake.certsPathMutex.RUnlock()
+	return len(fake.certsPathArgsForCall)
+}
+
+func (fake *FakeWorker) CertsPathReturns(result1 *string) {
+	fake.CertsPathStub = nil
+	fake.certsPathReturns = struct {
+		result1 *string
+	}{result1}
+}
+
+func (fake *FakeWorker) CertsPathReturnsOnCall(i int, result1 *string) {
+	fake.CertsPathStub = nil
+	if fake.certsPathReturnsOnCall == nil {
+		fake.certsPathReturnsOnCall = make(map[int]struct {
+			result1 *string
+		})
+	}
+	fake.certsPathReturnsOnCall[i] = struct {
+		result1 *string
+	}{result1}
+}
+
+func (fake *FakeWorker) ResourceCerts() (*db.UsedWorkerResourceCerts, bool, error) {
+	fake.resourceCertsMutex.Lock()
+	ret, specificReturn := fake.resourceCertsReturnsOnCall[len(fake.resourceCertsArgsForCall)]
+	fake.resourceCertsArgsForCall = append(fake.resourceCertsArgsForCall, struct{}{})
+	fake.recordInvocation("ResourceCerts", []interface{}{})
+	fake.resourceCertsMutex.Unlock()
+	if fake.ResourceCertsStub != nil {
+		return fake.ResourceCertsStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.resourceCertsReturns.result1, fake.resourceCertsReturns.result2, fake.resourceCertsReturns.result3
+}
+
+func (fake *FakeWorker) ResourceCertsCallCount() int {
+	fake.resourceCertsMutex.RLock()
+	defer fake.resourceCertsMutex.RUnlock()
+	return len(fake.resourceCertsArgsForCall)
+}
+
+func (fake *FakeWorker) ResourceCertsReturns(result1 *db.UsedWorkerResourceCerts, result2 bool, result3 error) {
+	fake.ResourceCertsStub = nil
+	fake.resourceCertsReturns = struct {
+		result1 *db.UsedWorkerResourceCerts
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorker) ResourceCertsReturnsOnCall(i int, result1 *db.UsedWorkerResourceCerts, result2 bool, result3 error) {
+	fake.ResourceCertsStub = nil
+	if fake.resourceCertsReturnsOnCall == nil {
+		fake.resourceCertsReturnsOnCall = make(map[int]struct {
+			result1 *db.UsedWorkerResourceCerts
+			result2 bool
+			result3 error
+		})
+	}
+	fake.resourceCertsReturnsOnCall[i] = struct {
+		result1 *db.UsedWorkerResourceCerts
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeWorker) HTTPProxyURL() string {
@@ -1061,6 +1169,10 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.gardenAddrMutex.RUnlock()
 	fake.baggageclaimURLMutex.RLock()
 	defer fake.baggageclaimURLMutex.RUnlock()
+	fake.certsPathMutex.RLock()
+	defer fake.certsPathMutex.RUnlock()
+	fake.resourceCertsMutex.RLock()
+	defer fake.resourceCertsMutex.RUnlock()
 	fake.hTTPProxyURLMutex.RLock()
 	defer fake.hTTPProxyURLMutex.RUnlock()
 	fake.hTTPSProxyURLMutex.RLock()

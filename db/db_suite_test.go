@@ -119,6 +119,7 @@ var _ = BeforeEach(func() {
 		Name:            "default-worker",
 		GardenAddr:      "1.2.3.4:7777",
 		BaggageclaimURL: "5.6.7.8:7878",
+		CertsPath:       "/etc/ssl/certs",
 	}
 
 	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)

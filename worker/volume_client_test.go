@@ -436,6 +436,129 @@ var _ = Describe("VolumeClient", func() {
 		})
 	})
 
+	Describe("FindOrCreateVolumeForResourceCerts", func() {
+		var (
+			fakeBaggageclaimVolume *baggageclaimfakes.FakeVolume
+			fakeCreatingVolume     *dbfakes.FakeCreatingVolume
+			fakeCreatedVolume      *dbfakes.FakeCreatedVolume
+			volume                 worker.Volume
+			found                  bool
+			err                    error
+		)
+
+		BeforeEach(func() {
+			fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
+			fakeBaggageclaimVolume.HandleReturns("fake-handle")
+
+			fakeCreatedVolume = new(dbfakes.FakeCreatedVolume)
+			fakeCreatedVolume.HandleReturns("fake-handle")
+
+			fakeCreatingVolume = new(dbfakes.FakeCreatingVolume)
+			fakeCreatingVolume.HandleReturns("fake-handle")
+			fakeCreatingVolume.CreatedReturns(fakeCreatedVolume, nil)
+
+			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
+
+			certPath := "/some/path/to/a/directory/of/certs"
+			dbWorker.ResourceCertsReturns(&db.UsedWorkerResourceCerts{ID: 123}, true, nil)
+			dbWorker.CertsPathReturns(&certPath)
+
+			fakeBaggageclaimClient.LookupVolumeReturns(fakeBaggageclaimVolume, true, nil)
+		})
+
+		JustBeforeEach(func() {
+			volume, found, err = volumeClient.FindOrCreateVolumeForResourceCerts(testLogger)
+		})
+
+		Context("when the worker resource certs entry does not exist", func() {
+			BeforeEach(func() {
+				dbWorker.ResourceCertsReturns(nil, false, nil)
+			})
+
+			It("doesn't find a volume", func() {
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when a created volume exists in the database", func() {
+			BeforeEach(func() {
+				fakeCreatedVolume.HandleReturns("created-handle")
+				fakeDBVolumeFactory.FindResourceCertsVolumeReturns(nil, fakeCreatedVolume, nil)
+			})
+
+			It("looks up the volume in baggageclaim", func() {
+				Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
+				_, handle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
+				Expect(handle).To(Equal("created-handle"))
+			})
+		})
+
+		Context("when a creating volume exists in the database", func() {
+			BeforeEach(func() {
+				fakeCreatingVolume.HandleReturns("creating-handle")
+				fakeDBVolumeFactory.FindResourceCertsVolumeReturns(fakeCreatingVolume, nil, nil)
+			})
+
+			It("looks up the volume in baggageclaim", func() {
+				Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
+				_, handle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
+				Expect(handle).To(Equal("creating-handle"))
+			})
+
+			It("marks the volume as created in the db", func() {
+				Expect(fakeCreatingVolume.CreatedCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when the volume doesn't exist on the worker", func() {
+			BeforeEach(func() {
+				fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
+				fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
+				fakeDBVolumeFactory.CreateResourceCertsVolumeReturns(fakeCreatingVolume, nil)
+			})
+
+			Context("when the resource certs volume doesn't exist in the db", func() {
+				BeforeEach(func() {
+					fakeDBVolumeFactory.FindResourceCertsVolumeReturns(nil, nil, nil)
+				})
+
+				It("creates the resource certs volume in the db", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeDBVolumeFactory.CreateResourceCertsVolumeCallCount()).To(Equal(1))
+				})
+
+				It("creates the volume in baggageclaim", func() {
+					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+				})
+			})
+
+			Context("when a creating volume exists in the database", func() {
+				BeforeEach(func() {
+					fakeCreatingVolume.HandleReturns("creating-handle")
+					fakeDBVolumeFactory.FindResourceCertsVolumeReturns(fakeCreatingVolume, nil, nil)
+				})
+
+				It("looks up the volume in baggageclaim", func() {
+					Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
+					_, handle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
+					Expect(handle).To(Equal("creating-handle"))
+				})
+
+				It("marks the volume as created in the db", func() {
+					Expect(fakeCreatingVolume.CreatedCallCount()).To(Equal(1))
+				})
+			})
+
+			It("marks the volume as created in the db", func() {
+				Expect(fakeCreatingVolume.CreatedCallCount()).To(Equal(1))
+			})
+
+			It("creates the volume in baggageclaim", func() {
+				Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+			})
+		})
+	})
+
 	Describe("FindVolumeForTaskCache", func() {
 		Context("when worker task cache does not exist", func() {
 			BeforeEach(func() {

@@ -130,6 +130,7 @@ var _ = Describe("Workers API", func() {
 				Name:             "worker-name",
 				GardenAddr:       "1.2.3.4:7777",
 				BaggageclaimURL:  "5.6.7.8:7788",
+				CertsPath:        "/etc/ssl/certs",
 				HTTPProxyURL:     "http://example.com",
 				HTTPSProxyURL:    "https://example.com",
 				NoProxy:          "example.com,127.0.0.1,localhost",
@@ -173,6 +174,7 @@ var _ = Describe("Workers API", func() {
 					GardenAddr:       "1.2.3.4:7777",
 					Name:             "worker-name",
 					BaggageclaimURL:  "5.6.7.8:7788",
+					CertsPath:        "/etc/ssl/certs",
 					HTTPProxyURL:     "http://example.com",
 					HTTPSProxyURL:    "https://example.com",
 					NoProxy:          "example.com,127.0.0.1,localhost",
@@ -272,6 +274,7 @@ var _ = Describe("Workers API", func() {
 						GardenAddr:       "1.2.3.4:7777",
 						Name:             "1.2.3.4:7777",
 						BaggageclaimURL:  "5.6.7.8:7788",
+						CertsPath:        "/etc/ssl/certs",
 						HTTPProxyURL:     "http://example.com",
 						HTTPSProxyURL:    "https://example.com",
 						NoProxy:          "example.com,127.0.0.1,localhost",
@@ -297,25 +300,6 @@ var _ = Describe("Workers API", func() {
 
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("ensures the worker has a certs volume in its baggageclaim", func() {
-					Expect(fakeWorkerProvider.NewGardenWorkerCallCount()).To(Equal(1))
-					_, _, savedWorker := fakeWorkerProvider.NewGardenWorkerArgsForCall(0)
-					Expect(savedWorker).To(Equal(fakeWorker))
-
-					Expect(fakeGardenWorker.EnsureCertsVolumeExistsCallCount()).To(Equal(1))
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				Context("when ensuring the certs volume exists fails", func() {
-					BeforeEach(func() {
-						fakeGardenWorker.EnsureCertsVolumeExistsReturns(errors.New("failure"))
-					})
-
-					It("returns a non 200 status code", func() {
-						Expect(response.StatusCode).ToNot(Equal(http.StatusOK))
-					})
 				})
 
 			})

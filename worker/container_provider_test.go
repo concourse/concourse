@@ -53,6 +53,8 @@ var _ = Describe("ContainerProvider", func() {
 		fakeRemoteInput   *workerfakes.FakeInputSource
 		fakeRemoteInputAS *workerfakes.FakeArtifactSource
 
+		fakeBindMount *workerfakes.FakeBindMountSource
+
 		fakeRemoteInputContainerVolume *workerfakes.FakeVolume
 		fakeLocalVolume                *workerfakes.FakeVolume
 		fakeOutputVolume               *workerfakes.FakeVolume
@@ -133,6 +135,13 @@ var _ = Describe("ContainerProvider", func() {
 		})
 		fakeLocalInputAS.VolumeOnReturns(fakeLocalVolume, true, nil)
 		fakeLocalInput.SourceReturns(fakeLocalInputAS)
+
+		fakeBindMount = new(workerfakes.FakeBindMountSource)
+		fakeBindMount.VolumeOnReturns(garden.BindMount{
+			SrcPath: "some/source",
+			DstPath: "some/destination",
+			Mode:    garden.BindMountModeRO,
+		}, true, nil)
 
 		fakeRemoteInput = new(workerfakes.FakeInputSource)
 		fakeRemoteInput.DestinationPathReturns("/some/work-dir/remote-input")
@@ -224,6 +233,9 @@ var _ = Describe("ContainerProvider", func() {
 
 			Outputs: OutputPaths{
 				"some-output": "/some/work-dir/output",
+			},
+			BindMounts: []BindMountSource{
+				fakeBindMount,
 			},
 		}
 
@@ -407,8 +419,8 @@ var _ = Describe("ContainerProvider", func() {
 				Properties: garden.Properties{"user": "some-user"},
 				BindMounts: []garden.BindMount{
 					{
-						SrcPath: "/the/certs/volume/path",
-						DstPath: "/etc/ssl/certs",
+						SrcPath: "some/source",
+						DstPath: "some/destination",
 						Mode:    garden.BindMountModeRO,
 					},
 					{
@@ -518,8 +530,8 @@ var _ = Describe("ContainerProvider", func() {
 				actualSpec := fakeGardenClient.CreateArgsForCall(0)
 				Expect(actualSpec.BindMounts).To(Equal([]garden.BindMount{
 					{
-						SrcPath: "/the/certs/volume/path",
-						DstPath: "/etc/ssl/certs",
+						SrcPath: "some/source",
+						DstPath: "some/destination",
 						Mode:    garden.BindMountModeRO,
 					},
 					{

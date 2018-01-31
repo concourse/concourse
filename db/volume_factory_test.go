@@ -161,6 +161,7 @@ var _ = Describe("VolumeFactory", func() {
 		var (
 			expectedCreatedHandles    []string
 			expectedDestroyingHandles []string
+			certsVolumeHandle         string
 		)
 
 		BeforeEach(func() {
@@ -203,6 +204,21 @@ var _ = Describe("VolumeFactory", func() {
 			err = resourceCacheVolumeCreated.InitializeResourceCache(usedResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
+			tx, err := dbConn.Begin()
+			Expect(err).NotTo(HaveOccurred())
+			workerResourceCerts, err := db.WorkerResourceCerts{
+				WorkerName: defaultWorker.Name(),
+				CertsPath:  "/etc/blah/blah/certs",
+			}.Create(tx)
+			Expect(err).NotTo(HaveOccurred())
+			err = tx.Commit()
+			Expect(err).NotTo(HaveOccurred())
+
+			certsVolume, err := volumeFactory.CreateResourceCertsVolume(defaultWorker.Name(), workerResourceCerts)
+			Expect(err).NotTo(HaveOccurred())
+
+			certsVolumeHandle = certsVolume.Handle()
+
 			deleted, err := build.Delete()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(deleted).To(BeTrue())
@@ -233,6 +249,7 @@ var _ = Describe("VolumeFactory", func() {
 				Expect(vol.WorkerName()).To(Equal("default-worker"))
 			}
 			Expect(createdHandles).To(Equal(expectedCreatedHandles))
+			Expect(createdHandles).ToNot(ContainElement(certsVolumeHandle))
 
 			destroyingHandles := []string{}
 			for _, vol := range destoryingVolumes {
@@ -241,12 +258,13 @@ var _ = Describe("VolumeFactory", func() {
 			}
 
 			Expect(destroyingHandles).To(Equal(expectedDestroyingHandles))
+			Expect(destroyingHandles).ToNot(ContainElement(certsVolumeHandle))
 		})
 
 		Context("when worker is stalled", func() {
 			BeforeEach(func() {
 				var err error
-				defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
+				defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -11*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 				stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
 				Expect(err).NotTo(HaveOccurred())
