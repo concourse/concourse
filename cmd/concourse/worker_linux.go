@@ -21,6 +21,10 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 )
 
+type Certs struct {
+	Dir string `long:"certs-dir" description:"Directory to use when creating the resource certificates volume."`
+}
+
 type GardenBackend struct {
 	guardiancmd.ServerCommand
 
@@ -69,9 +73,10 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 	cmd.Garden.Network.AllowHostAccess = true
 
 	worker := atc.Worker{
-		Platform: "linux",
-		Tags:     cmd.Tags,
-		Team:     cmd.TeamName,
+		Platform:  "linux",
+		Tags:      cmd.Tags,
+		Team:      cmd.TeamName,
+		CertsPath: &cmd.Certs.Dir,
 
 		HTTPProxyURL:  cmd.HTTPProxy.String(),
 		HTTPSProxyURL: cmd.HTTPSProxy.String(),
