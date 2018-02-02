@@ -1,0 +1,20 @@
+---
+resources:
+- name: no-certs
+  type: time
+  tags: ["no-certs"]
+  source:
+    interval: 29s
+- name: certs
+  type: time
+  tags: ["certs"]
+  source:
+    interval: 30s
+
+jobs:
+- name: use-em
+  plan:
+  - get: no-certs
+    tags: ["no-certs"]
+  - get: certs
+    tags: ["certs"]
