@@ -53,8 +53,8 @@
     "resource_types" => p("additional_resource_types"),
   }
 
-  if_p("certificates_path") do |certificates_path|
-    payload["certificates_path"] = certificates_path
+  if_p("certs_path") do |certs_path|
+    payload["certs_path"] = certs_path
   end
 
   if_p("http_proxy_url") do |http_proxy_url|
