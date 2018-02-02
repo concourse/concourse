@@ -58,6 +58,10 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		registration.Name = registration.GardenAddr
 	}
 
+	if registration.CertsPath != nil && *registration.CertsPath == "" {
+		registration.CertsPath = nil
+	}
+
 	metric.WorkerContainers{
 		WorkerName: registration.Name,
 		Containers: registration.ActiveContainers,
@@ -67,8 +71,6 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		WorkerName: registration.Name,
 		Volumes:    registration.ActiveVolumes,
 	}.Emit(s.logger)
-
-	registration.CertsPath = "/etc/ssl/certs"
 
 	if registration.Team != "" {
 		team, found, err := s.teamFactory.FindTeam(registration.Team)

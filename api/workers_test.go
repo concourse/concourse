@@ -118,19 +118,21 @@ var _ = Describe("Workers API", func() {
 
 	Describe("POST /api/v1/workers", func() {
 		var (
-			worker atc.Worker
-			ttl    string
+			worker    atc.Worker
+			ttl       string
+			certsPath string
 
 			response         *http.Response
 			fakeGardenWorker *workerfakes.FakeWorker
 		)
 
 		BeforeEach(func() {
+			certsPath = "/some/certs/path"
 			worker = atc.Worker{
 				Name:             "worker-name",
 				GardenAddr:       "1.2.3.4:7777",
 				BaggageclaimURL:  "5.6.7.8:7788",
-				CertsPath:        "/etc/ssl/certs",
+				CertsPath:        &certsPath,
 				HTTPProxyURL:     "http://example.com",
 				HTTPSProxyURL:    "https://example.com",
 				NoProxy:          "example.com,127.0.0.1,localhost",
@@ -174,7 +176,7 @@ var _ = Describe("Workers API", func() {
 					GardenAddr:       "1.2.3.4:7777",
 					Name:             "worker-name",
 					BaggageclaimURL:  "5.6.7.8:7788",
-					CertsPath:        "/etc/ssl/certs",
+					CertsPath:        &certsPath,
 					HTTPProxyURL:     "http://example.com",
 					HTTPSProxyURL:    "https://example.com",
 					NoProxy:          "example.com,127.0.0.1,localhost",
@@ -274,7 +276,68 @@ var _ = Describe("Workers API", func() {
 						GardenAddr:       "1.2.3.4:7777",
 						Name:             "1.2.3.4:7777",
 						BaggageclaimURL:  "5.6.7.8:7788",
-						CertsPath:        "/etc/ssl/certs",
+						CertsPath:        &certsPath,
+						HTTPProxyURL:     "http://example.com",
+						HTTPSProxyURL:    "https://example.com",
+						NoProxy:          "example.com,127.0.0.1,localhost",
+						ActiveContainers: 2,
+						ResourceTypes: []atc.WorkerResourceType{
+							{Type: "some-resource", Image: "some-resource-image"},
+						},
+						Platform: "haiku",
+						Tags:     []string{"not", "a", "limerick"},
+						Version:  "1.2.3",
+					}))
+
+					Expect(savedTTL.String()).To(Equal(ttl))
+				})
+			})
+
+			Context("when the certs path is null", func() {
+				BeforeEach(func() {
+					worker.CertsPath = nil
+				})
+
+				It("saves the worker with a null certs path", func() {
+					Expect(dbWorkerFactory.SaveWorkerCallCount()).To(Equal(1))
+
+					savedInfo, savedTTL := dbWorkerFactory.SaveWorkerArgsForCall(0)
+					Expect(savedInfo).To(Equal(atc.Worker{
+						GardenAddr:       "1.2.3.4:7777",
+						Name:             "worker-name",
+						BaggageclaimURL:  "5.6.7.8:7788",
+						CertsPath:        nil,
+						HTTPProxyURL:     "http://example.com",
+						HTTPSProxyURL:    "https://example.com",
+						NoProxy:          "example.com,127.0.0.1,localhost",
+						ActiveContainers: 2,
+						ResourceTypes: []atc.WorkerResourceType{
+							{Type: "some-resource", Image: "some-resource-image"},
+						},
+						Platform: "haiku",
+						Tags:     []string{"not", "a", "limerick"},
+						Version:  "1.2.3",
+					}))
+
+					Expect(savedTTL.String()).To(Equal(ttl))
+				})
+			})
+
+			Context("when the certs path is an empty string", func() {
+				BeforeEach(func() {
+					emptyString := ""
+					worker.CertsPath = &emptyString
+				})
+
+				It("saves the worker with a null certs path", func() {
+					Expect(dbWorkerFactory.SaveWorkerCallCount()).To(Equal(1))
+
+					savedInfo, savedTTL := dbWorkerFactory.SaveWorkerArgsForCall(0)
+					Expect(savedInfo).To(Equal(atc.Worker{
+						GardenAddr:       "1.2.3.4:7777",
+						Name:             "worker-name",
+						BaggageclaimURL:  "5.6.7.8:7788",
+						CertsPath:        nil,
 						HTTPProxyURL:     "http://example.com",
 						HTTPSProxyURL:    "https://example.com",
 						NoProxy:          "example.com,127.0.0.1,localhost",

@@ -209,7 +209,7 @@ var _ = Describe("VolumeFactory", func() {
 			workerResourceCerts, err := db.WorkerResourceCerts{
 				WorkerName: defaultWorker.Name(),
 				CertsPath:  "/etc/blah/blah/certs",
-			}.Create(tx)
+			}.FindOrCreate(tx)
 			Expect(err).NotTo(HaveOccurred())
 			err = tx.Commit()
 			Expect(err).NotTo(HaveOccurred())

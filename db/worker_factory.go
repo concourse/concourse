@@ -426,7 +426,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		state:            workerState,
 		gardenAddr:       &atcWorker.GardenAddr,
 		baggageclaimURL:  &atcWorker.BaggageclaimURL,
-		certsPath:        &atcWorker.CertsPath,
+		certsPath:        atcWorker.CertsPath,
 		httpProxyURL:     atcWorker.HTTPProxyURL,
 		httpsProxyURL:    atcWorker.HTTPSProxyURL,
 		noProxy:          atcWorker.NoProxy,
@@ -501,11 +501,11 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		return nil, err
 	}
 
-	if atcWorker.CertsPath != "" {
+	if atcWorker.CertsPath != nil {
 		_, err := WorkerResourceCerts{
 			WorkerName: atcWorker.Name,
-			CertsPath:  atcWorker.CertsPath,
-		}.Create(tx)
+			CertsPath:  *atcWorker.CertsPath,
+		}.FindOrCreate(tx)
 
 		if err != nil {
 			return nil, err

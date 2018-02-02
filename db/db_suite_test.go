@@ -114,12 +114,14 @@ var _ = BeforeEach(func() {
 		Version: "some-brt-version",
 	}
 
+	certsPath := "/etc/ssl/certs"
+
 	defaultWorkerPayload = atc.Worker{
 		ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
 		Name:            "default-worker",
 		GardenAddr:      "1.2.3.4:7777",
 		BaggageclaimURL: "5.6.7.8:7878",
-		CertsPath:       "/etc/ssl/certs",
+		CertsPath:       &certsPath,
 	}
 
 	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
