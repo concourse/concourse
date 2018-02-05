@@ -1,0 +1,24 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+export GOPATH=$PWD/concourse
+export PATH=$GOPATH/bin:$PATH
+
+go install github.com/jteeuwen/go-bindata/...
+
+pushd ${GOPATH}/src/github.com/concourse/${REPO}
+  ./scripts/generate-bindata
+
+  set +ex
+  git diff '*/bindata.go' | grep '+var.*\[\]byte'
+
+  if [ $? -ne 0 ]
+  then
+    exit 0
+  else
+    echo "Bindata changes detected!"
+    exit 1
+  fi
+popd
