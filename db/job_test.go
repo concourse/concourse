@@ -397,6 +397,8 @@ var _ = Describe("Job", func() {
 
 			It("finds the latest build", func() {
 				secondBuild, err := job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
 				build, found, err := job.Build("latest")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())

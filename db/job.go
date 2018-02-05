@@ -125,44 +125,24 @@ func (j *job) Unpause() error {
 }
 
 func (j *job) FinishedAndNextBuild() (Build, Build, error) {
-	row := buildsQuery.
-		Where(sq.Eq{
-			"j.name":        j.name,
-			"j.pipeline_id": j.pipelineID,
-		}).
-		Where(sq.Expr("b.status NOT IN ('pending', 'started')")).
-		OrderBy("b.id DESC").
-		Limit(1).
-		RunWith(j.conn).
-		QueryRow()
-
-	var finished, next Build
-
-	finishedBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err := scanBuild(finishedBuild, row, j.conn.EncryptionStrategy())
-	if err == nil {
-		finished = finishedBuild
-	} else if err != sql.ErrNoRows {
+	next, err := j.nextBuild()
+	if err != nil {
 		return nil, nil, err
 	}
 
-	row = buildsQuery.
-		Where(sq.Eq{
-			"j.name":        j.name,
-			"j.pipeline_id": j.pipelineID,
-			"b.status":      []BuildStatus{BuildStatusPending, BuildStatusStarted},
-		}).
-		OrderBy("b.id ASC").
-		Limit(1).
-		RunWith(j.conn).
-		QueryRow()
-
-	nextBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err = scanBuild(nextBuild, row, j.conn.EncryptionStrategy())
-	if err == nil {
-		next = nextBuild
-	} else if err != sql.ErrNoRows {
+	finished, err := j.finishedBuild()
+	if err != nil {
 		return nil, nil, err
+	}
+
+	// query next build again if the build state changed between the two queries
+	if next != nil && finished != nil && next.ID() == finished.ID() {
+		next = nil
+
+		next, err = j.nextBuild()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	return finished, next, nil
@@ -859,6 +839,56 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 	}
 
 	return tx.Commit()
+}
+
+func (j *job) nextBuild() (Build, error) {
+	var next Build
+
+	row := buildsQuery.
+		Where(sq.Eq{
+			"j.name":        j.name,
+			"j.pipeline_id": j.pipelineID,
+			"b.status":      []BuildStatus{BuildStatusPending, BuildStatusStarted},
+		}).
+		OrderBy("b.id ASC").
+		Limit(1).
+		RunWith(j.conn).
+		QueryRow()
+
+	nextBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
+	err := scanBuild(nextBuild, row, j.conn.EncryptionStrategy())
+	if err == nil {
+		next = nextBuild
+	} else if err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	return next, nil
+}
+
+func (j *job) finishedBuild() (Build, error) {
+	var finished Build
+
+	row := buildsQuery.
+		Where(sq.Eq{
+			"j.name":        j.name,
+			"j.pipeline_id": j.pipelineID,
+		}).
+		Where(sq.Expr("b.status NOT IN ('pending', 'started')")).
+		OrderBy("b.id DESC").
+		Limit(1).
+		RunWith(j.conn).
+		QueryRow()
+
+	finishedBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
+	err := scanBuild(finishedBuild, row, j.conn.EncryptionStrategy())
+	if err == nil {
+		finished = finishedBuild
+	} else if err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	return finished, nil
 }
 
 func scanJob(j *job, row scannable) error {
