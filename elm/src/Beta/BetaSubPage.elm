@@ -13,6 +13,7 @@ import NoPipeline
 import BetaRoutes
 import QueryString
 import Dashboard
+import DashboardHd
 import BetaBuild
 import BetaJob
 import BetaLogin
@@ -36,6 +37,7 @@ type Model
     | NoPipelineModel
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
+    | DashboardHdModel DashboardHd.Model
     | BetaBuildModel (Autoscroll.Model BetaBuild.Model)
     | BetaJobModel BetaJob.Model
     | BetaLoginModel BetaLogin.Model
@@ -50,6 +52,7 @@ type Msg
     | DefaultPipelineFetched (Maybe Concourse.Pipeline)
     | NoPipelineMsg NoPipeline.Msg
     | DashboardMsg Dashboard.Msg
+    | DashboardHdMsg DashboardHd.Msg
     | BetaBuildMsg (Autoscroll.Msg BetaBuild.Msg)
     | BetaJobMsg BetaJob.Msg
     | BetaLoginMsg BetaLogin.Msg
@@ -75,6 +78,10 @@ init turbulencePath route =
         BetaRoutes.Dashboard ->
             superDupleWrap ( DashboardModel, DashboardMsg ) <|
                 Dashboard.init turbulencePath
+
+        BetaRoutes.DashboardHd ->
+            superDupleWrap ( DashboardHdModel, DashboardHdMsg ) <|
+                DashboardHd.init turbulencePath
 
         BetaRoutes.BetaBuild teamName pipelineName jobName buildName ->
             superDupleWrap ( BetaBuildModel, BetaBuildMsg ) <|
@@ -194,6 +201,9 @@ update turbulence notFound csrfToken msg mdl =
         ( DashboardMsg message, DashboardModel model ) ->
             superDupleWrap ( DashboardModel, DashboardMsg ) <| Dashboard.update message model
 
+        ( DashboardHdMsg message, DashboardHdModel model ) ->
+            superDupleWrap ( DashboardHdModel, DashboardHdMsg ) <| DashboardHd.update message model
+
         ( DefaultPipelineFetched pipeline, WaitingModel route ) ->
             case pipeline of
                 Nothing ->
@@ -311,6 +321,9 @@ view mdl =
         DashboardModel model ->
             Html.map DashboardMsg <| Dashboard.view model
 
+        DashboardHdModel model ->
+            Html.map DashboardHdMsg <| DashboardHd.view model
+
         BetaBuildModel model ->
             Html.map BetaBuildMsg <| Autoscroll.view BetaBuild.view model
 
@@ -344,6 +357,9 @@ subscriptions mdl =
 
         DashboardModel model ->
             Sub.map DashboardMsg <| Dashboard.subscriptions model
+
+        DashboardHdModel model ->
+            Sub.map DashboardHdMsg <| DashboardHd.subscriptions model
 
         BetaBuildModel model ->
             Sub.map BetaBuildMsg <| Autoscroll.subscriptions BetaBuild.subscriptions model

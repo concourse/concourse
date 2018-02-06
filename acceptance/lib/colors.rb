@@ -7,7 +7,8 @@ AMBER = Color::RGB.by_hex('#F5A623')
 BROWN = Color::RGB.by_hex('#8B572A')
 BLUE = Color::RGB.by_hex('#4A90E2')
 GRAY = Color::RGB.by_hex('#9B9B9B')
-PALETTE = [RED, GREEN, AMBER, BROWN, BLUE, GRAY].freeze
+BLACK = Color::RGB.by_hex('#2A2929')
+PALETTE = [RED, GREEN, AMBER, BROWN, BLUE, GRAY, BLACK].freeze
 
 RSpec::Matchers.define :be_greyscale do
   match do |actual|

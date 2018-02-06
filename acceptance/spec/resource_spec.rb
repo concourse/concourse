@@ -125,7 +125,7 @@ describe 'resource', type: :feature do
       Timeout.timeout timeout do
         begin
           yield
-        rescue
+        rescue StandardError
           retry
         end
       end

@@ -3,7 +3,7 @@ module NewTopBar exposing (Model, Msg(FilterMsg, UserFetched), init, fetchUser, 
 import Concourse
 import Concourse.User
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, src, type_, placeholder, value)
+import Html.Attributes exposing (class, classList, href, id, src, type_, placeholder, value)
 import Html.Events exposing (..)
 import RemoteData exposing (RemoteData)
 
@@ -11,6 +11,7 @@ import RemoteData exposing (RemoteData)
 type alias Model =
     { user : RemoteData.WebData Concourse.User
     , query : String
+    , showSearch : Bool
     }
 
 
@@ -19,10 +20,11 @@ type Msg
     | FilterMsg String
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Bool -> ( Model, Cmd Msg )
+init showSearch =
     ( { user = RemoteData.Loading
       , query = ""
+      , showSearch = showSearch
       }
     , fetchUser
     )
@@ -58,7 +60,7 @@ view : Model -> Html Msg
 view model =
     Html.div [ class "module-topbar" ]
         [ Html.div [ class "topbar-logo" ] [ Html.a [ class "logo-image-link", href "#" ] [] ]
-        , Html.div [ class "topbar-search" ]
+        , Html.div [ classList [ ( "topbar-search", True ), ( "hidden", not model.showSearch ) ] ]
             [ Html.div
                 [ class "topbar-search-form" ]
                 [ Html.input

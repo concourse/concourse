@@ -19,16 +19,15 @@ describe 'build', type: :feature do
       fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
       fly('unpause-pipeline -p pipeline')
 
-      for i in 1..101 do
-         fly('trigger-job -j pipeline/passing')
-         fly("abort-build -j pipeline/passing -b %d" % [i])
+      (1..101).each do |i|
+        fly('trigger-job -j pipeline/passing')
+        fly("abort-build -j pipeline/passing -b #{i}")
       end
-
     end
 
     it 'shows up to 100 builds' do
       visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/passing/builds/101")
-      expect(page).to have_selector('#builds li', count: 100,  :visible => false)
+      expect(page).to have_selector('#builds li', count: 100, visible: false)
     end
 
     it 'shows the "more builds" link on the right' do
@@ -67,17 +66,16 @@ describe 'build', type: :feature do
       visit current_url
       expect(page).to have_content 'passing #101'
     end
-
   end
 
   describe 'build logs' do
     let(:timestamp_regex) { /\d{2}:\d{2}:\d{2}/ }
 
-    def timestamp_for_line i
+    def timestamp_for_line(i)
       page.evaluate_script "window.getComputedStyle($('.timestamp')[#{i}], ':before').getPropertyValue('content')"
     end
 
-    def timestamp_color_for_line i
+    def timestamp_color_for_line(i)
       color = page.evaluate_script "window.getComputedStyle($('.timestamp')[#{i}], ':before').getPropertyValue('color')"
       by_rgb(color).closest_match(PALETTE)
     end

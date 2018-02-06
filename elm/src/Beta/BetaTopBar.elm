@@ -215,6 +215,9 @@ extractPidFromRoute route =
         BetaRoutes.Dashboard ->
             Nothing
 
+        BetaRoutes.DashboardHd ->
+            Nothing
+
 
 setGroups : List String -> Model -> ( Model, Cmd Msg )
 setGroups newGroups model =

@@ -1,0 +1,69 @@
+.dashboard-hd {
+  .dashboard-content {
+    display: flex;
+    flex-wrap: wrap;
+    padding-left: 90px;
+  }
+
+  .dashboard-team-group {
+    width: 8.5%;
+    padding: 0 1%;
+  }
+
+  .dashboard-team-name {
+    padding-top: 10px;
+    padding-bottom: 5px;
+    font-size: 22px;
+  }
+
+  .dashboard-team-pipelines {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-pipeline {
+    display: flex;
+    height: 60px;
+    max-height: 60px;
+    overflow: hidden;
+    margin-bottom: 4px;
+    margin-right: 0;
+
+    &.dashboard-status-failed {
+      box-shadow: 0 0 0 10px rgba(237,75,53,0.5);
+      border-radius: 1px;
+
+      .dashboard-pipeline-content {
+        background-color: @red-primary;
+      }
+    }
+
+    &.dashboard-status-errored {
+      .dashboard-pipeline-content {
+        background-color: @amber-primary;
+      }
+    }
+  }
+
+  .dashboard-pipeline-banner {
+    width: 6px;
+    height: 100% !important;
+    z-index: 1;
+  }
+
+  .dashboard-pipeline-content {
+    display: table !important;
+    // 100% - banner width - left/right padding
+    width: ~"calc(100% - 16px)";
+    height: 100%;
+    padding: 0 5px;
+
+    a {
+      display: table-cell;
+      vertical-align: middle;
+      text-align: center;
+      font-size: 22px;
+      line-height: 22px;
+    }
+  }
+}
