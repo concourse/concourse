@@ -270,3 +270,27 @@ h2, h3 {
 .pipeline-grid a {
   text-decoration: none;
 }
+
+.schema-content {
+  display: none;
+}
+
+.schema-content:target {
+  display: block;
+}
+
+.definition {
+  margin-bottom: 3em;
+}
+
+.definition .definition {
+  margin-left: 0em;
+  margin-bottom: 0;
+}
+
+.definition-thumb {
+}
+
+.definition-content {
+  border-left: 1px solid #E6E7E8;
+}

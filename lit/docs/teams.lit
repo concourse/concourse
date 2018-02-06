@@ -1,4 +1,4 @@
-\title{Multiple Teams}{teams}
+\title{Teams}{teams}
 
 \use-plugin{concourse-docs}
 
@@ -13,6 +13,9 @@ Importantly, a team does not have "users" added to and removed from it; it's
 only a configuration of auth methods, which themselves may provide user info
 that we add semantics to in the future (i.e. which GitHub user you authorized
 as).
+
+\split-sections
+\table-of-contents
 
 \section{
   \title{\code{main}\aux{: the magical mystery team}}{main-team}

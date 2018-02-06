@@ -1,29 +1,23 @@
-\use-plugin{concourse-docs}
+\title{Jobs}{jobs}
 
-\title{\code{jobs}\aux{: Plans to execute against resources}}{configuring-jobs}
+\use-plugin{concourse-docs}
 
 \reference{jobs}{Jobs} determine the \italic{actions} of your pipeline, how
 resources progress through it, and how everything is visualized. They are
 listed under the \code{jobs} key in the pipeline configuration.
 
-The following example defines a simple unit-level job that will trigger
-whenever new code arrives at the \code{concourse} resource:
-
-\codeblock{yaml}{{
-jobs:
-- name: atc-unit
-  plan:
-  - get: concourse
-  - task: unit
-    file: concourse/ci/atc.yml
-}}
-
-Each configured job consists of the following attributes:
+The most important attribute of a job is its build plan, configured as
+\reference{job-plan}. This determines the sequence of \reference{steps} to
+execute in any builds of the job.
 
 \define-attribute{name: string}{
   \italic{Required.} The name of the job. This should be short; it will show up
   in URLs.
 }{job-name}
+
+\define-attribute{plan: [step]}{
+  \italic{Required.} The sequence of \reference{steps}{steps} to execute.
+}{job-plan}
 
 \define-attribute{serial: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, builds will
@@ -122,6 +116,4 @@ Each configured job consists of the following attributes:
   fails, errors, or aborts. Equivalent to the \reference{ensure} step attribute.
 }{job-ensure}
 
-\define-attribute{plan: [step]}{
-  \italic{Required.} The \reference{build-plans}{Build Plan} to execute.
-}{job-plan}
+\include-section{steps.lit}

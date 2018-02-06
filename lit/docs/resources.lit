@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{resources}\aux{: Objects flowing through the pipeline}}{configuring-resources}
+\title{Resources}{resources}
 
 \reference{resources}{Resources} are the objects that are going to be used
 for jobs in the pipeline. They are listed under the \code{resources} key in
