@@ -98,7 +98,7 @@ between the philosophy of BOSH and Concourse.
 
   Another handy reference is the \link{release documentation on
   bosh.io}{https://bosh.io/releases/github.com/concourse/concourse}, which
-  makesit easy to peruse the available properties for each job. We
+  makes it easy to peruse the available properties for each job. We
   intentionally keep all documentation and examples within the release itself
   to ensure there is no out-of-date documentation.
 
