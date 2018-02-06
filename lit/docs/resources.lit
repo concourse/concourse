@@ -6,25 +6,7 @@
 for jobs in the pipeline. They are listed under the \code{resources} key in
 the pipeline configuration.
 
-The following example defines a resource representing Concourse's BOSH
-release repository:
-
-\codeblock{yaml}{{
-resources:
-- name: concourse
-  type: git
-  source:
-    uri: https://github.com/concourse/concourse.git
-    branch: master
-}}
-
-Any time commits are pushed, the resource will detect them and save new
-versions of the resource. Any jobs immediately downstream of the resource
-will then be triggered with the latest version, potentially starting a
-chain of builds as it makes its way through the pipeline's jobs.
-
-Resources can also be updated via a \reference{put-step}{\code{put} step} in
-the pipeline's jobs.
+Resources are fetched via \reference{get-step}{\code{get} steps} and pushed to via \reference{put-step}{\code{put} steps}.
 
 Each configured resource consists of the following attributes:
 

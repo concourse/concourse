@@ -376,3 +376,18 @@ func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit
 		},
 	}
 }
+
+func (p Plugin) Examples(content booklit.Content) {
+	p.section.SetPartial("Examples", content)
+}
+
+func (p Plugin) Example(title, content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "example",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Title": title,
+		},
+	}
+}

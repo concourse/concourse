@@ -514,7 +514,7 @@ A task's configuration specifies the following:
 }
 
 \section{
-  \title{Task Anatomy}{task-anatomy}
+  \title{Task Environment}{task-environment}
 
   A task runs in a new container every time, using the image provided by
   \reference{image_resource} as its base filesystem (i.e. \code{/}).

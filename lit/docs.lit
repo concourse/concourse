@@ -8,6 +8,7 @@
 \include-section{./docs/resources.lit}
 \include-section{./docs/resource-types.lit}
 \include-section{./docs/teams.lit}
+\include-section{./docs/administration.lit}
 
 \split-sections
 \table-of-contents
