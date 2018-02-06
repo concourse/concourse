@@ -1,0 +1,64 @@
+\title{Resources Provided With Concourse}
+
+\use-plugin{concourse-docs}
+
+The following resource types come with Concourse out of the box, and are
+officially supported by the Concourse team:
+
+\list{
+  The \link{\code{git}}{https://github.com/concourse/git-resource} resource can
+  pull and push to git repositories.
+}{
+  The \link{\code{hg}}{https://github.com/concourse/hg-resource} resource can
+  pull and push to Mercurial repositories.
+}{
+  The \link{\code{time}}{https://github.com/concourse/time-resource} resource
+  can start jobs on a schedule or timestamp outputs.
+}{
+  The \link{\code{s3}}{https://github.com/concourse/s3-resource} resource can
+  fetch from and upload to S3 buckets.
+}{
+  The \link{\code{archive}}{https://github.com/concourse/archive-resource}
+  resource can fetch and extract .tar.gz archives.
+}{
+  The \link{\code{semver}}{https://github.com/concourse/semver-resource}
+  resource can set or bump version numbers.
+}{
+  The
+  \link{\code{github-release}}{https://github.com/concourse/github-release-resource}
+  resource can fetch and publish versioned GitHub resources.
+}{
+  The
+  \link{\code{docker-image}}{https://github.com/concourse/docker-image-resource}
+  resource can fetch, build, and push Docker images
+}{
+  The \link{\code{tracker}}{https://github.com/concourse/tracker-resource}
+  resource can deliver stories and bugs on Pivotal Tracker
+}{
+  The \link{\code{pool}}{https://github.com/concourse/pool-resource} resource
+  allows you to configure how to serialize use of an external system. This
+  lets you prevent test interference or overwork on shared systems.
+}{
+  The \link{\code{cf}}{https://github.com/concourse/cf-resource}
+  resource can deploy an application to Cloud Foundry.
+}{
+  The
+  \link{\code{bosh-io-release}}{https://github.com/concourse/bosh-io-release-resource}
+  resource can track and fetch new BOSH releases from bosh.io.
+}{
+  The
+  \link{\code{bosh-io-stemcell}}{https://github.com/concourse/bosh-io-stemcell-resource}
+  resource can track and fetch new BOSH stemcells from bosh.io.
+}
+
+\section{
+  \title{Deprecated Resources}
+
+  The following resource types come with Concourse out of the box, but are deprecated:
+
+  \list{
+    The
+    \link{\code{bosh-deployment}}{https://github.com/concourse/bosh-deployment-resource}
+    resource can deploy BOSH stemcells and releases. (Please use \link{\code{cloudfoundry/bosh-deployment-resource}}{https://github.com/cloudfoundry/bosh-deployment-resource})
+  }
+}

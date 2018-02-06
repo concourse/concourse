@@ -2,6 +2,7 @@
 
 \include-section{./docs/getting-started.lit}
 \include-section{./docs/tasks.lit}
+\include-section{./docs/builds.lit}
 \include-section{./docs/pipelines.lit}
 \include-section{./docs/jobs.lit}
 \include-section{./docs/resources.lit}

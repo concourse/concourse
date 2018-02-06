@@ -1,0 +1,165 @@
+\title{Builds}{builds}
+
+\use-plugin{concourse-docs}
+
+A build is an execution of a \italic{build plan}, which is either configured as
+a sequence of \reference{steps} in a \reference{jobs}{job}, or submitted
+directly to Concourse as a one-off build via \reference{fly-execute}.
+
+As a build executes its plan, containers and volumes are created in order to
+fetch resources, run \reference{tasks}, or push to resources. When a build completes successfully, these containers go away.
+
+A failed build's containers and volumes are kept around so that you can debug
+the build via \reference{fly-intercept}. If the build belongs to a
+\reference{jobs}{job}, the containers will go away when the next build starts.
+If the build is a one-off, its containers will be removed immediately, so make
+sure you intercept while it's running if you want to debug it.
+
+\section{
+  \title{\code{fly builds}}{fly-builds}
+
+  To list the most recent builds, run:
+
+  \codeblock{bash}{{
+  $ fly -t example builds
+  }}
+
+  To list the builds of a job, run:
+
+  \codeblock{bash}{{
+  $ fly -t example builds -j pipeline-name/job-name
+  }}
+
+  This can be useful for periodically monitoring the state of a job. The output
+  also works well with tools like \code{awk} and \code{grep}.
+
+  By default the most recent 50 builds are shown. To see more builds, use
+  the \code{-c} flag, like so:
+
+  \codeblock{bash}{{
+  $ fly -t example builds -c 100
+  }}
+}
+
+\section{
+  \title{\code{fly intercept}}{fly-intercept}
+
+  Sometimes it's helpful to be on the same machine as your tasks so that you
+  can profile or inspect them as they run or see the state the machine at the
+  end of a run. Due to Concourse running tasks in containers on remote
+  machines this would typically be hard to access.
+
+  To this end, there is a \code{fly intercept} command that will give you an
+  interactive shell inside the specified container. Containers are identified
+  by a few things, so you may need to specify a few flags to hone down the
+  results. If there are multiple containers that the flags could refer to, an
+  interactive prompt will show up allowing you to disambiguate.
+
+  \aside{
+    The command \code{fly hijack} is an alias of \code{fly intercept}. Both can
+    be used interchangably.
+  }
+
+  For example, running the following will run a task and then enter the
+  finished task's container:
+
+  \codeblock{bash}{{
+  $ fly -t example execute
+  $ fly -t example intercept --step build
+  }}
+
+  \aside{
+    When intercepting a job running on a windows worker, you will need to
+    specifically tell fly to target PowerShell as an additional argument:
+      \codeblock{bash}{{
+      $ fly -t example intercept powershell
+      }}
+  }
+
+  \aside{
+    Be warned, if more than one person is using a Concourse server for running
+    one-off builds then you may end up in a build that you did not expect!
+  }
+
+  Containers are around for a short time after a build finishes in order to
+  allow people to intercept them.
+
+  You can also intercept builds that were run in your pipeline. By using
+  \code{--job}, \code{--build}, and \code{--step} you can intercept a specific
+  step from a build of a job in your pipeline. These flags also have short
+  forms, like so:
+
+  \codeblock{bash}{{
+  $ fly -t example intercept -j some-pipeline/some-job -b some-build -s some-step
+  }}
+
+  Note that \code{--build} can be omitted, and will default to the most recent
+  build of the job. One-off builds can be reached by passing in their build ID
+  to \code{--build} which can be found on the build list page.
+
+  The \code{--step} flag can also be omitted; this will let you pick the step
+  interactively if you don't know the exact name.
+
+  Resource checking containers can also be intercepted with \code{--check} or
+  \code{-c}:
+
+  \codeblock{bash}{{
+  $ fly -t example intercept --check some-pipeline/some-resource
+  }}
+
+  A specific command can also be given, e.g. \code{fly intercept ps auxf} or
+  \code{fly intercept htop}. This allows for patterns such as \code{watch fly
+  intercept ps auxf}, which will continuously show the process tree of the
+  current build's task, even as the "current build" changes.
+
+  The working directory and any relevant environment variables (e.g. those
+  having come from \reference{task-params}) used by the original process will
+  also be used for the process run by intercept.
+}
+
+\section{
+  \title{\code{fly abort-build}}{fly-abort-build}
+
+  To abort a build of a job, run:
+
+  \codeblock{bash}{{
+  $ fly -t example abort-build --job my-pipeline/my-job --build 3
+  }}
+
+  This will cancel build \code{3} of the \code{my-job} job in the
+  \code{my-pipeline} pipeline.
+}
+
+
+\section{
+  \title{\code{fly watch}}{fly-watch}
+
+  Concourse emits streaming colored logs on the website but it can be helpful
+  to have the logs availiable to the command line. (e.g. so that they can be
+  processed by other commands).
+
+  The \code{watch} command can be used to do just this. You can also view
+  builds that are running in your pipeline, or builds that have already
+  finished.
+
+  Note that unlike \reference{fly-execute}, killing \code{fly watch} via
+  \code{SIGINT} or \code{SIGTERM} will \italic{not} abort the build.
+
+  To watch the most recent one-off build, just run \code{fly watch} with no
+  arguments. To watch a specific build (one-off or no), pass \code{--build}
+  with the ID of the build to watch. This ID is available at the start of
+  \reference{fly-execute}'s output or by browsing to the builds list in the web
+  UI.
+
+  By using the \code{--job} and \code{--build} flags you can pick out a
+  specific build of a job to watch. For example, the following command will
+  either show the archived logs for an old build if it has finished running or
+  it will stream the current logs if the build is still in progress.
+
+  \codeblock{bash}{{
+  $ fly -t example watch --job my-pipeline/tests --build 52
+  }}
+
+  If the \code{--job} flag is specified and \code{--build} is omitted, the most
+  recent build of the specified job will be selected.
+}

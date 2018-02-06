@@ -71,9 +71,10 @@ input resources change.
   \link{Concourse pipeline}{https://ci.concourse.ci}.
 }{pipeline-groups}
 
+\split-sections
+
+\include-section{pipelines/configuring.lit}
+\include-section{pipelines/managing.lit}
 {-
-\include-section{./configuring/resources.lit}
-\include-section{./configuring/resource_types.lit}
-\include-section{./configuring/jobs.lit}
 \include-section{./configuring/groups.lit}
 -}

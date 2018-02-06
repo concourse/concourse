@@ -88,3 +88,7 @@ Each configured resource consists of the following attributes:
   You should configure the resource as if you're not using web hooks, as the
   resource config is still the "source of truth."
 }{resource-webhook-token}
+
+\split-sections
+
+\include-section{resources/managing.lit}

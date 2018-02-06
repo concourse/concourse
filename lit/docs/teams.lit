@@ -39,6 +39,24 @@ as).
 }
 
 \section{
+  \title{\code{fly set-team}}{fly-set-team}
+
+  To create a new team or update an existing team's auth, first log in as the
+  \reference{main-team}{\code{main} team}, and then run:
+
+  \codeblock{bash}{{{
+  $ fly -t example set-team --team-name my-team \
+      --basic-auth-username foo \
+      --basic-auth-password bar
+  }}}
+
+  Teams can also update their own configuration with the same command.
+
+  There are many different ways to configure auth; see
+  \reference{authentication} for more information.
+}
+
+\section{
   \title{Creating Teams}
 
   Once you've \reference{fly-login}{logged in as the \code{main} team with
@@ -367,7 +385,7 @@ as).
 }
 
 \section{
-  \title{Caveats}{teams-caveats}
+  \title{Security Caveats}{teams-caveats}
 
   At present, teams only provide \italic{trusted multi-tenancy}. This means it
   should be used for cases where you know and trust who you're allowing access
@@ -391,5 +409,35 @@ as).
     access to the internal network, but this is not detailed in our docs, and
     we'll probably want to find a better answer than configuration in the
     future.
+  }
+}
+
+\section{
+  \title{Managing Teams}{managing-teams}
+
+  \section{
+    \title{\code{fly teams}}{fly-teams}
+
+    To list all the teams, run:
+
+    \codeblock{bash}{{
+    $ fly -t example teams
+    }}
+
+    This can be useful if you've forgotten your team name.
+  }
+
+  \section{
+    \title{\code{fly destroy-team}}{fly-destroy-team}
+
+    To remove a team, including all of its pipelines and one-off builds, first
+    log in as the \reference{main-team}{\code{main} team}, and then run:
+
+    \codeblock{bash}{{
+    $ fly -t example destroy-team --team-name my-team
+    }}
+
+    Currently, if there were any workers assigned specifically to this team,
+    they'll be orphaned, without having their containers or volumes cleaned up.
   }
 }

@@ -116,4 +116,7 @@ execute in any builds of the job.
   fails, errors, or aborts. Equivalent to the \reference{ensure} step attribute.
 }{job-ensure}
 
-\include-section{steps.lit}
+\split-sections
+
+\include-section{jobs/steps.lit}
+\include-section{jobs/managing.lit}
