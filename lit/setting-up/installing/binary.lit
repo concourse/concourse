@@ -33,7 +33,7 @@ hand or orchestrating it with Docker, Chef, or other ops tooling.
 
   \definitions{
     \definition{\code{session_signing_key} (currently must be RSA)}{
-      Used for signing user session tokens, and by the TSA to sign its own
+      Used for signing user session tokens, and by the \link{TSA}{https://github.com/concourse/tsa} to sign its own
       tokens in the requests it makes to the ATC.
     }
   }{
