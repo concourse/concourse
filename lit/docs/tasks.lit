@@ -21,30 +21,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 \split-sections
 
 Conventionally a task's configuration is placed in the same repository as the
-code it's testing, possibly under some \code{ci} directory. For a simple Ruby
-app with unit tests it may be called \code{ci/unit.yml}, and looks something
-like:
-
-\titled-codeblock{task.yml}{yaml}{{
----
-platform: linux
-
-image_resource:
-  type: docker-image
-  source:
-    repository: ruby
-    tag: '2.1'
-
-inputs:
-- name: my-app
-
-run:
-  path: my-app/scripts/test
-}}
-
-This configuration specifies that the task must run with the
-\code{ruby:2.1} Docker image with a \code{my-app} input, and when the task
-is executed it will run the \code{scripts/test} script in the same repo.
+code it's testing, possibly under some \code{ci} directory.
 
 A task's configuration specifies the following:
 
@@ -86,29 +63,6 @@ A task's configuration specifies the following:
 
   \italic{Optional.} The base image of the container, as provided by a
   \reference{resources}{resource} definition.
-
-  The following example configures the task to use the \code{golang:1.6}
-  Docker image:
-
-  \codeblock{yaml}{{{
-  image_resource:
-    type: docker-image
-    source: {repository: golang, tag: "1.6"}
-  }}}
-
-  ...and the following example uses an insecure private Docker registry with
-  a username and password:
-
-  \codeblock{yaml}{{
-  image_resource:
-    type: docker-image
-    source:
-      repository: my.local.registry:8080/my/image
-      insecure_registries: ["my.local.registry:8080"]
-      username: myuser
-      password: mypass
-      email: x@x.com
-  }}
 
   You can use any resource that returns a filesystem in the correct format (a
   \code{/rootfs} directory and a \code{metadata.json} file in the top level)
@@ -196,49 +150,6 @@ A task's configuration specifies the following:
   \reference{build-plans}{build plan}. The directory will be automatically
   created before the task runs, and the task should place any artifacts it
   wants to export in the directory.
-
-  For example, the following task and script would be used to propagate a
-  built binary to later steps:
-
-  \codeblock{yaml}{{
-  ---
-  platform: linux
-
-  image_resource: # ...
-
-  inputs:
-  - name: project-src
-
-  outputs:
-  - name: built-project
-
-  run:
-    path: project-src/ci/build
-  }}
-
-  ...assuming \code{project-src/ci/build} looks something like:
-
-  \codeblock{bash}{{
-  #!/bin/bash
-
-  set -e -u -x
-
-  export GOPATH=$PWD/project-src
-
-  go build -o built-project/my-project github.com/concourse/my-project
-  }}
-
-  ...this task could then be used in a \reference{build-plans}{build plan}
-  like so:
-
-  \codeblock{yaml}{{
-  plan:
-  - get: project-src
-  - task: build-bin
-    file: project-src/ci/build.yml
-  - put: project-bin
-    params: {file: built-project/my-project}
-  }}
 }
 
 \define-attribute{caches: [cache]}{
@@ -272,41 +183,6 @@ A task's configuration specifies the following:
   job. As a consequence, if the job name, step name or cache path are
   changed, the cache will not be used. This also means that caches do not
   exist for one-off builds.
-
-  For example, the following task and script define a node project that takes
-  advantage of task caches for its node modules:
-
-  \codeblock{yaml}{{
-  ---
-  platform: linux
-
-  image_resource: # ...
-
-  inputs:
-  - name: project-src
-
-  caches:
-  - path: project-src/node_modules
-
-  run:
-    path: project-src/ci/build
-  }}
-
-  ...assuming \code{project-src/ci/build} looks something like:
-
-  \codeblock{bash}{{
-  #!/bin/bash
-
-  set -e -u -x
-
-  cd project-src
-  npm install
-
-  # ...
-  }}
-
-  ...this task would cache the contents of \code{project-src/node_modules} between runs of this
-  task on the same worker.
 }
 
 \define-attribute{run: run-config}{
@@ -354,6 +230,146 @@ A task's configuration specifies the following:
   Use this to provide things like credentials, not to set up the task's
   Bash environment (they do not support interpolation).
 }{task-params}
+
+\examples{
+  \example{Ruby App}{
+    This configuration specifies that the task must run with the
+    \code{ruby:2.1} Docker image with a \code{my-app} input, and when the task
+    is executed it will run the \code{scripts/test} script in the same repo.
+
+    \codeblock{yaml}{{
+    ---
+    platform: linux
+
+    image_resource:
+      type: docker-image
+      source:
+        repository: ruby
+        tag: '2.1'
+
+    inputs:
+    - name: my-app
+
+    run:
+      path: my-app/scripts/test
+    }}
+  }
+
+  \example{Producing Outputs}{
+    A task can configure \reference{task-outputs} to produce artifacts that can
+    then be propagated to a \reference{put-step} or another
+    \reference{task-step} in the same plan. They can also be downloaded with
+    \reference{fly-execute} by passing \code{-o}.
+
+    \codeblock{yaml}{{
+      ---
+      platform: linux
+
+      image_resource: # ...
+
+      inputs:
+      - name: project-src
+
+      outputs:
+      - name: built-project
+
+      run:
+        path: project-src/ci/build
+    }}
+
+    ...assuming \code{project-src/ci/build} looks something like:
+
+    \codeblock{bash}{{
+      #!/bin/bash
+
+      set -e -u -x
+
+      export GOPATH=$PWD/project-src
+
+      go build -o built-project/my-project \\
+        github.com/concourse/my-project
+    }}
+
+    ...this task could then be used in a \reference{build-plans}{build plan}
+    like so:
+
+    \codeblock{yaml}{{
+      plan:
+      - get: project-src
+      - task: build-bin
+        file: project-src/ci/build.yml
+      - put: project-bin
+        params: {file: built-project/my-project}
+    }}
+  }
+
+  \example{Caching Ephemeral State}{
+    The following task and script could be used by a Node project to cache the
+    \code{node_modules} directory:
+
+    \codeblock{yaml}{{
+    ---
+    platform: linux
+
+    image_resource: # ...
+
+    inputs:
+    - name: project-src
+
+    caches:
+    - path: project-src/node_modules
+
+    run:
+      path: project-src/ci/build
+    }}
+
+    ...assuming \code{project-src/ci/build} looks something like:
+
+    \codeblock{bash}{{
+    #!/bin/bash
+
+    set -e -u -x
+
+    cd project-src
+    npm install
+
+    # ...
+    }}
+
+    ...this task would cache the contents of \code{project-src/node_modules}
+    between runs of this task on the same worker.
+  }
+
+  \example{Private Docker Registry}{
+    The following task uses an image from a private registry. Assuming the CA
+    is configured properly on the workers, SSL should Just Work™.
+
+    Note that, at present, credentials must be inlined when using
+    \reference{image_resource}. We recognize that this kind of sucks, since
+    tasks are often checked in. Until we fix this, you can use
+    \reference{task-step-image} in your pipeline instead. (However this will
+    prevent \reference{fly-execute} from having an image available. Bummer.)
+
+    \codeblock{yaml}{{{
+      ---
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source:
+          repository: my.local.registry:8080/my/image
+          username: myuser
+          password: mypass
+          email: x@x.com
+
+      inputs:
+      - name: my-app
+
+      run:
+        path: my-app/scripts/test
+    }}}
+  }
+}
 
 \section{
   \title{Running Tasks}{running-tasks}
