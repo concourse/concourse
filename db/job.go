@@ -212,7 +212,7 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 
 		args = append(args, sinceArgs...)
 
-		query = query.Where("b.id IN ( (" + fromQuery + ") UNION (" + sinceQuery + ") )").OrderBy("b.id DESC")
+		query = query.Where("b.id IN ( (" + fromQuery + ") UNION (" + sinceQuery + ") )").OrderBy("b.id ASC")
 	} else {
 		query = query.OrderBy("b.id DESC").Limit(limit)
 	}
@@ -249,33 +249,6 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 
 	if len(builds) == 0 {
 		return []Build{}, Pagination{}, nil
-	}
-
-	if page.Around != 0 && len(builds) > int(limit) {
-		buildsLeft := []Build{}
-		buildsRight := []Build{}
-
-		for i, b := range builds {
-			if b.ID() != page.Around {
-				buildsLeft = append(buildsLeft, b)
-			} else {
-				buildsLeft = append(buildsLeft, b)
-				buildsRight = builds[i+1:]
-				break
-			}
-		}
-
-		if len(buildsLeft) == len(buildsRight) {
-			half := float64(len(buildsRight)) / 2
-			builds = append(buildsLeft[int(half):], buildsRight[:int(half)]...)
-		} else if len(buildsLeft) < len(buildsRight) {
-			remainder := len(buildsRight) - len(buildsLeft)
-			builds = append(buildsLeft, buildsRight[:remainder]...)
-		} else if len(buildsLeft) > len(buildsRight) {
-			remainder := len(buildsLeft) - len(buildsRight)
-			builds = append(buildsLeft[len(buildsLeft)-remainder:], buildsRight...)
-		}
-
 	}
 
 	var maxID, minID int
