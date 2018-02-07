@@ -495,9 +495,6 @@ paginationRoute rid page =
                 Concourse.Pagination.To bound ->
                     ( "to", Basics.toString bound )
 
-                Concourse.Pagination.Around bound ->
-                    ( "around", Basics.toString bound )
-
         parsedRoute =
             Erl.parse <|
                 "/teams/"

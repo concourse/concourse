@@ -32,7 +32,6 @@ type Direction
     | Until Int
     | From Int
     | To Int
-    | Around Int
 
 
 previousRel : String
@@ -81,14 +80,6 @@ equal one two =
             case two.direction of
                 To tt ->
                     t == tt
-
-                _ ->
-                    False
-
-        Around a ->
-            case two.direction of
-                To aa ->
-                    a == aa
 
                 _ ->
                     False
@@ -244,16 +235,11 @@ fromQuery query =
         to =
             Maybe.map Since <|
                 (Dict.get "to" query |> Maybe.andThen parseNum)
-
-        around =
-            Maybe.map Around <|
-                (Dict.get "around" query |> Maybe.andThen parseNum)
     in
         Maybe.map (\direction -> { direction = direction, limit = limit }) <|
             Maybe.Extra.or until <|
                 Maybe.Extra.or since <|
-                    Maybe.Extra.or around <|
-                        Maybe.Extra.or from to
+                    Maybe.Extra.or from to
 
 
 toQuery : Maybe Page -> Dict String String
@@ -277,9 +263,6 @@ toQuery page =
 
                         To id ->
                             ( "to", toString id )
-
-                        Around id ->
-                            ( "around", toString id )
 
                 limitParam =
                     ( "limit", toString somePage.limit )
