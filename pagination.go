@@ -8,7 +8,6 @@ const (
 	PaginationQueryUntil      = "until"
 	PaginationQueryFrom       = "from"
 	PaginationQueryTo         = "to"
-	PaginationQueryAround     = "around"
 	PaginationQueryLimit      = "limit"
 	PaginationWebLimit        = 100
 	PaginationAPIDefaultLimit = 100
