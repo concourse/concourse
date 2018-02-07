@@ -289,7 +289,7 @@ searchTermList =
 
                 modelMock : Dashboard.Model
                 modelMock =
-                    { topBar = { user = RemoteData.NotAsked, query = "" }
+                    { topBar = { user = RemoteData.NotAsked, query = "", showSearch = True }
                     , pipelines = RemoteData.NotAsked
                     , jobs = Dict.fromList [ ( 2, RemoteData.Success jobMock ) ]
                     , now = Nothing
