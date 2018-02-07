@@ -188,7 +188,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			It("creates container with volume and worker", func() {
 				Expect(initErr).NotTo(HaveOccurred())
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, _, delegate, owner, metadata, spec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				logger, _, delegate, owner, metadata, spec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(delegate).To(Equal(fakeDelegate))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"))))
 				Expect(metadata).To(BeZero())
@@ -198,6 +198,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "fake-resource-type",
 					},
+					BindMounts: []worker.BindMountSource{&worker.CertsVolumeMount{Logger: logger}},
 					Outputs: map[string]string{
 						"resource": resource.ResourcesDir("get"),
 					},

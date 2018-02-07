@@ -45,7 +45,7 @@ func (f *resourceFactory) NewResource(
 ) (Resource, error) {
 
 	containerSpec.BindMounts = []worker.BindMountSource{
-		&worker.CertsVolumeMount{Logger: logger.Session("certs-volume-mount")},
+		&worker.CertsVolumeMount{Logger: logger},
 	}
 
 	container, err := f.workerClient.FindOrCreateContainer(

@@ -110,29 +110,26 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 		},
 	}
 
-	container, err := s.worker.FindOrCreateContainer(
+	resourceFactory := NewResourceFactory(s.worker)
+	resource, err := resourceFactory.NewResource(
 		s.logger,
 		nil,
-		s.imageFetchingDelegate,
 		s.resourceInstance.ContainerOwner(),
 		s.session.Metadata,
 		containerSpec,
 		s.resourceTypes,
+		s.imageFetchingDelegate,
 	)
-	if err != nil {
-		sLog.Error("failed-to-create-container", err)
-		return nil, err
-	}
 
 	var volume worker.Volume
-	for _, mount := range container.VolumeMounts() {
+	for _, mount := range resource.Container().VolumeMounts() {
 		if mount.MountPath == mountPath {
 			volume = mount.Volume
 			break
 		}
 	}
 
-	versionedSource, err = NewResourceForContainer(container).Get(
+	versionedSource, err = resource.Get(
 		volume,
 		IOConfig{
 			Stdout: s.imageFetchingDelegate.Stdout(),
@@ -146,7 +143,7 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 	)
 	if err != nil {
 		if err == ErrAborted {
-			sLog.Error("get-run-resource-aborted", err, lager.Data{"container": container.Handle()})
+			sLog.Error("get-run-resource-aborted", err, lager.Data{"container": resource.Container().Handle()})
 			return nil, ErrInterrupted
 		}
 
