@@ -178,13 +178,26 @@ showPipelinesView model pipelines =
                 []
                 pipelineStates
 
+        sortedPipelinesByTeam =
+            case model.topBar.user of
+                RemoteData.Success user ->
+                    case pipelinesByTeam of
+                        [] ->
+                            []
+
+                        p :: ps ->
+                            p :: (List.reverse <| List.sortBy (List.length << Tuple.second) pipelinesByTeam)
+
+                _ ->
+                    List.reverse <| List.sortBy (List.length << Tuple.second) pipelinesByTeam
+
         listPipelinesByTeam =
-            List.map (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) pipelinesByTeam
+            List.concatMap (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) sortedPipelinesByTeam
     in
         Html.div
             [ class "dashboard dashboard-hd" ]
         <|
-            [ Html.div [ class "dashboard-content" ] <| listPipelinesByTeam
+            [ Html.div [ class "dashboard-content" ] listPipelinesByTeam
             , showFooterView model
             ]
 
@@ -257,13 +270,19 @@ addPipelineState pipelineStates ( teamName, pipelineState ) =
                 s :: (addPipelineState ss ( teamName, pipelineState ))
 
 
-viewGroup : Maybe Time -> String -> List PipelineWithJobs -> Html msg
+viewGroup : Maybe Time -> String -> List PipelineWithJobs -> List (Html msg)
 viewGroup now teamName pipelines =
-    Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
-        [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ]
-        , Html.div [ class "dashboard-team-pipelines" ]
-            (List.map (viewPipeline now) pipelines)
-        ]
+    let
+        teamPiplines =
+            List.map (viewPipeline now) pipelines
+    in
+        case teamPiplines of
+            [] ->
+                [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ] ]
+
+            p :: ps ->
+                -- Wrap the team name and the first pipeline together so the team name is not the last element in a column
+                List.append [ Html.div [ class "dashboard-team-name-wrapper" ] [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ], p ] ] ps
 
 
 viewPipeline : Maybe Time -> PipelineWithJobs -> Html msg

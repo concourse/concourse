@@ -1,19 +1,27 @@
 .dashboard-hd {
   .dashboard-content {
-    display: flex;
-    flex-wrap: wrap;
-    padding-left: 90px;
+    column-count: 9;
+    column-gap: 60px;
+    max-width: 95%;
+    height: ~"calc(100vh - 180px)";
+    margin: 60px auto;
+    padding: 0;
+    letter-spacing: 0.2em;
   }
 
   .dashboard-team-group {
-    width: 8.5%;
-    padding: 0 1%;
+    display: inline-block;
+    width: 100%
   }
 
   .dashboard-team-name {
     padding-top: 10px;
     padding-bottom: 5px;
-    font-size: 22px;
+    font-size: 20px;
+  }
+
+  .dashboard-team-name-wrapper {
+    break-inside: avoid;
   }
 
   .dashboard-team-pipelines {
@@ -28,11 +36,15 @@
     overflow: hidden;
     margin-bottom: 4px;
     margin-right: 0;
+    break-inside: avoid;
+
+    &.dashboard-status-succeeded {
+      .dashboard-pipeline-content {
+        background-color: rgba(17,197,96, 0.2);
+      }
+    }
 
     &.dashboard-status-failed {
-      box-shadow: 0 0 0 10px rgba(237,75,53,0.5);
-      border-radius: 1px;
-
       .dashboard-pipeline-content {
         background-color: @red-primary;
       }
@@ -46,7 +58,8 @@
   }
 
   .dashboard-pipeline-banner {
-    width: 6px;
+    min-width: 8px;
+    width: 8px;
     height: 100% !important;
     z-index: 1;
   }
@@ -54,7 +67,8 @@
   .dashboard-pipeline-content {
     display: table !important;
     // 100% - banner width - left/right padding
-    width: ~"calc(100% - 16px)";
+    width: ~"calc(100% - 18px)";
+    min-width: 170px;
     height: 100%;
     padding: 0 5px;
 
@@ -62,8 +76,8 @@
       display: table-cell;
       vertical-align: middle;
       text-align: center;
-      font-size: 22px;
-      line-height: 22px;
+      font-size: 20px;
+      line-height: 20px;
     }
   }
 }

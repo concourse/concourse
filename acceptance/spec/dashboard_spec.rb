@@ -386,6 +386,51 @@ describe 'dashboard', type: :feature do
         expect(banner_palette).to eq(GREEN)
       end
     end
+
+    context 'with multiple teams' do
+      let(:other_team_name) { generate_team_name }
+
+      before do
+        fly_login 'main'
+        fly_with_input("set-team -n #{other_team_name} --no-really-i-dont-want-any-auth", 'y')
+
+        fly_login other_team_name
+        fly('set-pipeline -n -p other-pipeline-private -c fixtures/states-pipeline.yml')
+        fly('unpause-pipeline -p other-pipeline-private')
+        fly('set-pipeline -n -p other-pipeline-public -c fixtures/states-pipeline.yml')
+        fly('unpause-pipeline -p other-pipeline-public')
+        fly('expose-pipeline -p other-pipeline-public')
+
+        fly_login team_name
+      end
+
+      after do
+        fly_login 'main'
+        fly_with_input("destroy-team -n #{other_team_name}", other_team_name)
+      end
+
+      it 'shows all pipelines from the authenticated team and public pipelines from other teams' do
+        visit_hd_dashboard
+        expect(page).to have_content 'some-pipeline'
+        expect(page).to have_content 'other-pipeline-public'
+        expect(page).to_not have_content 'other-pipeline-private'
+      end
+
+      it 'shows the teams in ordered by the number of pipelines' do
+        fly_login other_team_name
+        fly('expose-pipeline -p other-pipeline-private')
+
+        visit_hd_dashboard
+        expect(page).to have_css('.dashboard-team-name')
+        expect(page.first('.dashboard-team-name').text).to eq(other_team_name)
+
+        dash_login(team_name)
+        visit_hd_dashboard
+        expect(page).to have_content(team_name)
+        expect(page).to have_content(other_team_name)
+        expect(page.first('.dashboard-team-name').text).to eq(team_name)
+      end
+    end
   end
 
   private
