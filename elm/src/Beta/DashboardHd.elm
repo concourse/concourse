@@ -186,7 +186,7 @@ showPipelinesView model pipelines =
                             []
 
                         p :: ps ->
-                            p :: (List.reverse <| List.sortBy (List.length << Tuple.second) pipelinesByTeam)
+                            p :: (List.reverse <| List.sortBy (List.length << Tuple.second) ps)
 
                 _ ->
                     List.reverse <| List.sortBy (List.length << Tuple.second) pipelinesByTeam

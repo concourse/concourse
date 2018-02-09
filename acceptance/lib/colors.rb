@@ -38,7 +38,7 @@ module Colors
   end
 
   def by_rgb(rgb)
-    /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.match(rgb) do |m|
+    /rgba?\((\d+),\s*(\d+),\s*(\d+)(,\s*\d*\.?\d+)?\)/.match(rgb) do |m|
       Color::RGB.new(m[1].to_i, m[2].to_i, m[3].to_i)
     end
   end

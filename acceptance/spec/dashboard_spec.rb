@@ -327,7 +327,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'displays its name in a black background' do
-        expect(title_palette).to eq(BLACK)
+        expect(title_palette).to eq(GREEN)
       end
     end
 
@@ -420,7 +420,7 @@ describe 'dashboard', type: :feature do
         fly_login other_team_name
         fly('expose-pipeline -p other-pipeline-private')
 
-        visit_hd_dashboard
+        visit dash_route('/beta/dashboard/hd')
         expect(page).to have_css('.dashboard-team-name')
         expect(page.first('.dashboard-team-name').text).to eq(other_team_name)
 
