@@ -27,6 +27,7 @@ type Worker struct {
 	Name      string   `json:"name"`
 	Version   string   `json:"version"`
 	StartTime int64    `json:"start_time"`
+	Ephemeral bool     `json:"ephemeral"`
 	State     string   `json:"state"`
 }
 

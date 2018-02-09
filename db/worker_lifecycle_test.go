@@ -39,9 +39,39 @@ var _ = Describe("Worker Lifecycle", func() {
 			},
 			Platform:  "some-platform",
 			Tags:      atc.Tags{"some", "tags"},
+			Ephemeral: true,
 			Name:      "some-name",
 			StartTime: 55,
 		}
+	})
+
+	Describe("DeleteUnresponsiveEphemeralWorkers", func() {
+		Context("when the worker has heartbeated recently", func() {
+			BeforeEach(func() {
+				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("leaves the worker alone", func() {
+				deletedWorkers, err := workerLifecycle.DeleteUnresponsiveEphemeralWorkers()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(deletedWorkers).To(BeEmpty())
+			})
+		})
+
+		Context("when the worker has not heartbeated recently", func() {
+			BeforeEach(func() {
+				_, err := workerFactory.SaveWorker(atcWorker, -1*time.Minute)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("deletes the ephemeral worker", func() {
+				deletedWorkers, err := workerLifecycle.DeleteUnresponsiveEphemeralWorkers()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(deletedWorkers)).To(Equal(1))
+				Expect(deletedWorkers[0]).To(Equal("some-name"))
+			})
+		})
 	})
 
 	Describe("StallUnresponsiveWorkers", func() {

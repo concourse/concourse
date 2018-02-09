@@ -45,6 +45,7 @@ type Worker interface {
 	TeamName() string
 	StartTime() int64
 	ExpiresAt() time.Time
+	Ephemeral() bool
 
 	Reload() (bool, error)
 
@@ -74,6 +75,7 @@ type worker struct {
 	startTime        int64
 	expiresAt        time.Time
 	certsPath        *string
+	ephemeral        bool
 }
 
 func (worker *worker) Name() string                            { return worker.name }
@@ -91,6 +93,7 @@ func (worker *worker) Platform() string                        { return worker.p
 func (worker *worker) Tags() []string                          { return worker.tags }
 func (worker *worker) TeamID() int                             { return worker.teamID }
 func (worker *worker) TeamName() string                        { return worker.teamName }
+func (worker *worker) Ephemeral() bool                         { return worker.ephemeral }
 
 // TODO: normalize time values
 func (worker *worker) StartTime() int64     { return worker.startTime }

@@ -137,6 +137,7 @@ var _ = Describe("Workers API", func() {
 				HTTPSProxyURL:    "https://example.com",
 				NoProxy:          "example.com,127.0.0.1,localhost",
 				ActiveContainers: 2,
+				Ephemeral:        true,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource", Image: "some-resource-image"},
 				},
@@ -180,6 +181,7 @@ var _ = Describe("Workers API", func() {
 					HTTPProxyURL:     "http://example.com",
 					HTTPSProxyURL:    "https://example.com",
 					NoProxy:          "example.com,127.0.0.1,localhost",
+					Ephemeral:        true,
 					ActiveContainers: 2,
 					ResourceTypes: []atc.WorkerResourceType{
 						{Type: "some-resource", Image: "some-resource-image"},
@@ -281,6 +283,7 @@ var _ = Describe("Workers API", func() {
 						HTTPSProxyURL:    "https://example.com",
 						NoProxy:          "example.com,127.0.0.1,localhost",
 						ActiveContainers: 2,
+						Ephemeral:        true,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
@@ -311,6 +314,7 @@ var _ = Describe("Workers API", func() {
 						HTTPSProxyURL:    "https://example.com",
 						NoProxy:          "example.com,127.0.0.1,localhost",
 						ActiveContainers: 2,
+						Ephemeral:        true,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
@@ -342,6 +346,7 @@ var _ = Describe("Workers API", func() {
 						HTTPSProxyURL:    "https://example.com",
 						NoProxy:          "example.com,127.0.0.1,localhost",
 						ActiveContainers: 2,
+						Ephemeral:        true,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
@@ -755,6 +760,7 @@ var _ = Describe("Workers API", func() {
 			fakeWorker.TagsReturns([]string{"some-tag"})
 			fakeWorker.StateReturns(db.WorkerStateRunning)
 			fakeWorker.TeamNameReturns("some-team")
+			fakeWorker.EphemeralReturns(false)
 
 			ttlStr = "30s"
 			ttl, err = time.ParseDuration(ttlStr)
@@ -797,6 +803,7 @@ var _ = Describe("Workers API", func() {
 				"active_volumes": 0,
 				"resource_types": null,
 				"platform": "penguin",
+				"ephemeral": false,
 				"tags": ["some-tag"],
 				"team": "some-team",
 				"start_time": 0,

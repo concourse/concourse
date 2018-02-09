@@ -176,6 +176,15 @@ type FakeWorker struct {
 	expiresAtReturnsOnCall map[int]struct {
 		result1 time.Time
 	}
+	EphemeralStub        func() bool
+	ephemeralMutex       sync.RWMutex
+	ephemeralArgsForCall []struct{}
+	ephemeralReturns     struct {
+		result1 bool
+	}
+	ephemeralReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	ReloadStub        func() (bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct{}
@@ -953,6 +962,46 @@ func (fake *FakeWorker) ExpiresAtReturnsOnCall(i int, result1 time.Time) {
 	}{result1}
 }
 
+func (fake *FakeWorker) Ephemeral() bool {
+	fake.ephemeralMutex.Lock()
+	ret, specificReturn := fake.ephemeralReturnsOnCall[len(fake.ephemeralArgsForCall)]
+	fake.ephemeralArgsForCall = append(fake.ephemeralArgsForCall, struct{}{})
+	fake.recordInvocation("Ephemeral", []interface{}{})
+	fake.ephemeralMutex.Unlock()
+	if fake.EphemeralStub != nil {
+		return fake.EphemeralStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.ephemeralReturns.result1
+}
+
+func (fake *FakeWorker) EphemeralCallCount() int {
+	fake.ephemeralMutex.RLock()
+	defer fake.ephemeralMutex.RUnlock()
+	return len(fake.ephemeralArgsForCall)
+}
+
+func (fake *FakeWorker) EphemeralReturns(result1 bool) {
+	fake.EphemeralStub = nil
+	fake.ephemeralReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeWorker) EphemeralReturnsOnCall(i int, result1 bool) {
+	fake.EphemeralStub = nil
+	if fake.ephemeralReturnsOnCall == nil {
+		fake.ephemeralReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.ephemeralReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeWorker) Reload() (bool, error) {
 	fake.reloadMutex.Lock()
 	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
@@ -1195,6 +1244,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.startTimeMutex.RUnlock()
 	fake.expiresAtMutex.RLock()
 	defer fake.expiresAtMutex.RUnlock()
+	fake.ephemeralMutex.RLock()
+	defer fake.ephemeralMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
 	fake.landMutex.RLock()

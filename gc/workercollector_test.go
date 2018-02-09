@@ -26,12 +26,20 @@ var _ = Describe("WorkerCollector", func() {
 			fakeWorkerLifecycle,
 		)
 
+		fakeWorkerLifecycle.DeleteUnresponsiveEphemeralWorkersReturns(nil, nil)
 		fakeWorkerLifecycle.StallUnresponsiveWorkersReturns(nil, nil)
 		fakeWorkerLifecycle.DeleteFinishedRetiringWorkersReturns(nil, nil)
 		fakeWorkerLifecycle.LandFinishedLandingWorkersReturns(nil, nil)
 	})
 
 	Describe("Run", func() {
+		It("tells the worker factory to delete unresponsive ephemeral workers", func() {
+			err := workerCollector.Run()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeWorkerLifecycle.DeleteUnresponsiveEphemeralWorkersCallCount()).To(Equal(1))
+		})
+
 		It("tells the worker factory to expired stalled workers", func() {
 			err := workerCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
