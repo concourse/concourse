@@ -59,6 +59,11 @@ func (config *BasicAuthConfig) Validate() error {
 }
 
 func (config *BasicAuthConfig) Finalize() error {
+	if cost, err := bcrypt.Cost([]byte(config.Password)); err == nil && cost > 0 {
+		// This password has already been hashed so nothing to see here
+		return nil
+	}
+
 	if encrypted, err := bcrypt.GenerateFromPassword([]byte(config.Password), bcrypt.MinCost); err != nil {
 		return err
 	} else {

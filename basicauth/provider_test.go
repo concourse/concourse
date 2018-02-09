@@ -62,6 +62,7 @@ var _ = Describe("Basic Auth Provider", func() {
 			provider, found = teamProvider.ProviderConstructor(nil, "username", "password")
 			Expect(found).To(BeFalse())
 		})
+
 	})
 
 	Describe("Config", func() {
@@ -82,6 +83,24 @@ var _ = Describe("Basic Auth Provider", func() {
 					DisplayName: "Basic Auth",
 					AuthURL:     "http://bum-bum-bum.com/auth/basic/token?team_name=dudududum",
 				}))
+			})
+		})
+
+		Context("Finalize", func() {
+			It("won't double hash passwords if finalize is called multiple times", func() {
+				authConfig = &basicauth.BasicAuthConfig{"username", "password"}
+
+				err := authConfig.Finalize()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = bcrypt.CompareHashAndPassword([]byte(authConfig.Password), []byte("password"))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = authConfig.Finalize()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = bcrypt.CompareHashAndPassword([]byte(authConfig.Password), []byte("password"))
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 	})
