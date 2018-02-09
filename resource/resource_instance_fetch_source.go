@@ -120,6 +120,10 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 		s.resourceTypes,
 		s.imageFetchingDelegate,
 	)
+	if err != nil {
+		sLog.Error("failed-to-construct-resource", err)
+		return nil, err
+	}
 
 	var volume worker.Volume
 	for _, mount := range resource.Container().VolumeMounts() {
