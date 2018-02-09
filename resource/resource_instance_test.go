@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -19,17 +18,15 @@ import (
 
 var _ = Describe("ResourceInstance", func() {
 	var (
-		logger                   lager.Logger
-		resourceInstance         ResourceInstance
-		fakeWorker               *workerfakes.FakeWorker
-		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		disaster                 error
+		logger           lager.Logger
+		resourceInstance ResourceInstance
+		fakeWorker       *workerfakes.FakeWorker
+		disaster         error
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeWorker = new(workerfakes.FakeWorker)
-		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		disaster = errors.New("disaster")
 
 		resourceInstance = NewResourceInstance(
