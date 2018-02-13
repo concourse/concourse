@@ -26,6 +26,7 @@ func NewOAuthHandler(
 	csrfTokenGenerator CSRFTokenGenerator,
 	authTokenGenerator AuthTokenGenerator,
 	expire time.Duration,
+	cookieSecure bool,
 	isTLSEnabled bool,
 ) (http.Handler, error) {
 	return rata.NewRouter(
@@ -36,6 +37,7 @@ func NewOAuthHandler(
 				providerFactory,
 				teamFactory,
 				expire,
+				cookieSecure,
 				isTLSEnabled,
 			),
 			OAuthCallback: NewOAuthCallbackHandler(
@@ -45,6 +47,7 @@ func NewOAuthHandler(
 				csrfTokenGenerator,
 				authTokenGenerator,
 				expire,
+				cookieSecure,
 				isTLSEnabled,
 				oauthV2StateValidator{},
 			),
@@ -62,6 +65,7 @@ func NewOAuthV1Handler(
 	csrfTokenGenerator CSRFTokenGenerator,
 	authTokenGenerator AuthTokenGenerator,
 	expire time.Duration,
+	cookieSecure bool,
 	isTLSEnabled bool,
 ) (http.Handler, error) {
 	return rata.NewRouter(
@@ -72,6 +76,7 @@ func NewOAuthV1Handler(
 				providerFactory,
 				teamFactory,
 				expire,
+				cookieSecure,
 				isTLSEnabled,
 			),
 			OAuthV1Callback: NewOAuthCallbackHandler(
@@ -81,6 +86,7 @@ func NewOAuthV1Handler(
 				csrfTokenGenerator,
 				authTokenGenerator,
 				expire,
+				cookieSecure,
 				isTLSEnabled,
 				oauthV1StateValidator{},
 			),

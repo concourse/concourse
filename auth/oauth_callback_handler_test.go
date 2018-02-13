@@ -102,6 +102,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 			fakeAuthTokenGenerator,
 			expire,
 			false,
+			false,
 		)
 		Expect(err).ToNot(HaveOccurred())
 

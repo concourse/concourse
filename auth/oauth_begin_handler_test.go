@@ -61,6 +61,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 			fakeAuthTokenGenerator,
 			expire,
 			false,
+			false,
 		)
 		Expect(err).ToNot(HaveOccurred())
 

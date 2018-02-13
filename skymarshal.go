@@ -16,6 +16,7 @@ type Config struct {
 	BaseAuthUrl  string
 	SigningKey   *rsa.PrivateKey
 	Expiration   time.Duration
+	CookieSecure bool
 	IsTLSEnabled bool
 	TeamFactory  db.TeamFactory
 	Logger       lager.Logger
@@ -25,6 +26,7 @@ type DetailedConfig struct {
 	BaseUrl            string
 	BaseAuthUrl        string
 	Expiration         time.Duration
+	CookieSecure       bool
 	IsTLSEnabled       bool
 	TeamFactory        db.TeamFactory
 	Logger             lager.Logger
@@ -59,6 +61,7 @@ func NewHandler(config *Config) (http.Handler, error) {
 		config.BaseUrl,
 		config.BaseAuthUrl,
 		config.Expiration,
+		config.CookieSecure,
 		config.IsTLSEnabled,
 		config.TeamFactory,
 		config.Logger,
@@ -81,6 +84,7 @@ func NewHandlerWithOptions(config *DetailedConfig) (http.Handler, error) {
 		config.CSRFTokenGenerator,
 		config.AuthTokenGenerator,
 		config.Expiration,
+		config.CookieSecure,
 		config.IsTLSEnabled,
 	)
 	if err != nil {
@@ -94,6 +98,7 @@ func NewHandlerWithOptions(config *DetailedConfig) (http.Handler, error) {
 		config.CSRFTokenGenerator,
 		config.AuthTokenGenerator,
 		config.Expiration,
+		config.CookieSecure,
 		config.IsTLSEnabled,
 	)
 	if err != nil {
@@ -105,6 +110,7 @@ func NewHandlerWithOptions(config *DetailedConfig) (http.Handler, error) {
 		config.BaseUrl,
 		config.BaseAuthUrl,
 		config.Expiration,
+		config.CookieSecure,
 		config.IsTLSEnabled,
 		config.TeamFactory,
 		config.OAuthFactory,
