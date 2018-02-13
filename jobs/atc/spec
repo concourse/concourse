@@ -53,6 +53,10 @@ properties:
       Port on which the ATC should listen for HTTP traffic.
     default: 8080
 
+  cookie_secure:
+    description: Set secure flag on auth cookies
+    default: false
+
   tls_bind_port:
     description: |
       Port on which the ATC should listen for HTTPS traffic.
