@@ -416,3 +416,7 @@
 	path = src/github.com/concourse/web
 	url = https://github.com/concourse/web
 	branch = master
+[submodule "src/github.com/concourse/worker"]
+	path = src/github.com/concourse/worker
+	url = https://github.com/concourse/worker
+	branch = master
