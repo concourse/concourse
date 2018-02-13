@@ -823,10 +823,8 @@ func (cmd *ATCCommand) validate() error {
 	var errs *multierror.Error
 	isConfigured := false
 
-	for name, config := range cmd.ProviderAuth {
+	for _, config := range cmd.ProviderAuth {
 		if config.IsConfigured() {
-			fmt.Println("auth-provider-configured: " + name)
-
 			err := config.Validate()
 
 			if err != nil {
