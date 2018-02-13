@@ -3,15 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/worker"
 	"github.com/concourse/worker/beacon"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/restart"
-	"golang.org/x/crypto/ssh"
 )
 
 // overridden via linker flags
@@ -42,7 +40,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	runner := BeaconRunner(lager.NewLogger("beacon"), atc.Worker{
+	logger := lager.NewLogger("worker")
+	//TODO support changing the log level
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.INFO))
+	runner := worker.BeaconRunner(logger.Session("beacon"), atc.Worker{
 		GardenAddr:      cmd.GardenAddr,
 		BaggageclaimURL: cmd.BaggageclaimURL,
 		Platform:        cmd.Platform,
@@ -50,37 +51,7 @@ func main() {
 		Team:            cmd.Team,
 		Name:            cmd.Name,
 		Version:         cmd.Version,
-	})
+	}, cmd.BeaconConfig)
 
-	ifrit.Invoke(runner).Wait()
-}
-
-func BeaconRunner(logger lager.Logger, worker atc.Worker) ifrit.Runner {
-
-	var client beacon.Client
-
-	beacon := beacon.Beacon{
-		Logger: logger,
-		Worker: worker,
-		Client: client,
-	}
-
-	var beaconRunner ifrit.RunFunc = beacon.Register
-
-	return restart.Restarter{
-		Runner: beaconRunner,
-		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
-			if prevErr == nil {
-				return nil
-			}
-
-			if _, ok := prevErr.(*ssh.ExitError); !ok {
-				logger.Error("restarting", prevErr)
-				time.Sleep(5 * time.Second)
-				return beaconRunner
-			}
-
-			return nil
-		},
-	}
+	<-ifrit.Invoke(runner).Wait()
 }

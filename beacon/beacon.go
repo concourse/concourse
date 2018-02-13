@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"os"
 
 	"code.cloudfoundry.org/lager"
@@ -15,6 +16,11 @@ import (
 const gardenForwardAddr = "0.0.0.0:7777"
 const baggageclaimForwardAddr = "0.0.0.0:7788"
 
+//go:generate counterfeiter . Closable
+type Closeable interface {
+	Close() error
+}
+
 //go:generate counterfeiter . Client
 
 type Client interface {
@@ -22,7 +28,7 @@ type Client interface {
 	NewSession(stdin io.Reader, stdout io.Writer, stderr io.Writer) (Session, error)
 	Listen(n, addr string) (net.Listener, error)
 	Proxy(from, to string) error
-	Close() error
+	Dial() (Closeable, error)
 }
 
 //go:generate counterfeiter . Session
@@ -47,6 +53,7 @@ const (
 )
 
 func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) error {
+	beacon.Logger.Debug("registering")
 	if beacon.RegistrationMode == Direct {
 		return beacon.registerDirect(signals, ready)
 	}
@@ -55,6 +62,7 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 }
 
 func (beacon *Beacon) registerForwarded(signals <-chan os.Signal, ready chan<- struct{}) error {
+	beacon.Logger.Debug("forward-worker")
 	return beacon.run(
 		"forward-worker "+
 			"--garden "+gardenForwardAddr+" "+
@@ -65,10 +73,12 @@ func (beacon *Beacon) registerForwarded(signals <-chan os.Signal, ready chan<- s
 }
 
 func (beacon *Beacon) registerDirect(signals <-chan os.Signal, ready chan<- struct{}) error {
+	beacon.Logger.Debug("register-worker")
 	return beacon.run("register-worker", signals, ready)
 }
 
 func (beacon *Beacon) RetireWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
+	beacon.Logger.Debug("retire-worker")
 	return beacon.run("retire-worker", signals, ready)
 }
 
@@ -77,7 +87,11 @@ func (beacon *Beacon) LandWorker(signals <-chan os.Signal, ready chan<- struct{}
 }
 
 func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<- struct{}) error {
-	defer beacon.Client.Close()
+	conn, err := beacon.Client.Dial()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 
 	keepaliveFailed, cancelKeepalive := beacon.Client.KeepAlive()
 
@@ -102,25 +116,12 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 	}
 
 	beacon.Client.Proxy(gardenForwardAddr, beacon.Worker.GardenAddr)
-	beacon.Client.Proxy(baggageclaimForwardAddr, beacon.Worker.BaggageclaimURL)
-	// gardenRemoteListener, err := beacon.Client.Listen("tcp", gardenForwardAddr)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to listen remotely: %s", err)
-	// }
 
-	// go beacon.proxyListenerTo(gardenRemoteListener, beacon.Worker.GardenAddr)
-
-	// bcURL, err := url.Parse(beacon.Worker.BaggageclaimURL)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to parse baggageclaim url: %s", err)
-	// }
-
-	// baggageclaimRemoteListener, err := beacon.Client.Listen("tcp", baggageclaimForwardAddr)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to listen remotely: %s", err)
-	// }
-
-	// go beacon.proxyListenerTo(baggageclaimRemoteListener, bcURL.Host)
+	bcURL, err := url.Parse(beacon.Worker.BaggageclaimURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse baggageclaim url: %s", err)
+	}
+	beacon.Client.Proxy(baggageclaimForwardAddr, bcURL.Host)
 
 	close(ready)
 

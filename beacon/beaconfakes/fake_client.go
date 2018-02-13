@@ -62,14 +62,16 @@ type FakeClient struct {
 	proxyReturnsOnCall map[int]struct {
 		result1 error
 	}
-	CloseStub        func() error
-	closeMutex       sync.RWMutex
-	closeArgsForCall []struct{}
-	closeReturns     struct {
-		result1 error
+	DialStub        func() (beacon.Closeable, error)
+	dialMutex       sync.RWMutex
+	dialArgsForCall []struct{}
+	dialReturns     struct {
+		result1 beacon.Closeable
+		result2 error
 	}
-	closeReturnsOnCall map[int]struct {
-		result1 error
+	dialReturnsOnCall map[int]struct {
+		result1 beacon.Closeable
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -272,44 +274,47 @@ func (fake *FakeClient) ProxyReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) Close() error {
-	fake.closeMutex.Lock()
-	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
-	fake.closeArgsForCall = append(fake.closeArgsForCall, struct{}{})
-	fake.recordInvocation("Close", []interface{}{})
-	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
-		return fake.CloseStub()
+func (fake *FakeClient) Dial() (beacon.Closeable, error) {
+	fake.dialMutex.Lock()
+	ret, specificReturn := fake.dialReturnsOnCall[len(fake.dialArgsForCall)]
+	fake.dialArgsForCall = append(fake.dialArgsForCall, struct{}{})
+	fake.recordInvocation("Dial", []interface{}{})
+	fake.dialMutex.Unlock()
+	if fake.DialStub != nil {
+		return fake.DialStub()
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fake.closeReturns.result1
+	return fake.dialReturns.result1, fake.dialReturns.result2
 }
 
-func (fake *FakeClient) CloseCallCount() int {
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
-	return len(fake.closeArgsForCall)
+func (fake *FakeClient) DialCallCount() int {
+	fake.dialMutex.RLock()
+	defer fake.dialMutex.RUnlock()
+	return len(fake.dialArgsForCall)
 }
 
-func (fake *FakeClient) CloseReturns(result1 error) {
-	fake.CloseStub = nil
-	fake.closeReturns = struct {
-		result1 error
-	}{result1}
+func (fake *FakeClient) DialReturns(result1 beacon.Closeable, result2 error) {
+	fake.DialStub = nil
+	fake.dialReturns = struct {
+		result1 beacon.Closeable
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeClient) CloseReturnsOnCall(i int, result1 error) {
-	fake.CloseStub = nil
-	if fake.closeReturnsOnCall == nil {
-		fake.closeReturnsOnCall = make(map[int]struct {
-			result1 error
+func (fake *FakeClient) DialReturnsOnCall(i int, result1 beacon.Closeable, result2 error) {
+	fake.DialStub = nil
+	if fake.dialReturnsOnCall == nil {
+		fake.dialReturnsOnCall = make(map[int]struct {
+			result1 beacon.Closeable
+			result2 error
 		})
 	}
-	fake.closeReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+	fake.dialReturnsOnCall[i] = struct {
+		result1 beacon.Closeable
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
@@ -323,8 +328,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.listenMutex.RUnlock()
 	fake.proxyMutex.RLock()
 	defer fake.proxyMutex.RUnlock()
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
+	fake.dialMutex.RLock()
+	defer fake.dialMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

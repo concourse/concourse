@@ -15,7 +15,7 @@ type Config struct {
 	Port             int              `long:"port" default:"2222" description:"TSA port to connect to."`
 	PublicKey        FileFlag         `long:"public-key" description:"File containing a public key to expect from the TSA."`
 	WorkerPrivateKey FileFlag         `long:"worker-private-key" description:"File containing the private key to use when authenticating to the TSA."`
-	RegistrationMode RegistrationMode `long:"registration-mode" default:"forward" choice:"forward" choice:"register"`
+	RegistrationMode RegistrationMode `long:"registration-mode" default:"forward" choice:"forward" choice:"direct"`
 }
 
 func (config Config) checkHostKey(hostname string, remote net.Addr, key ssh.PublicKey) error {

@@ -13,17 +13,22 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func NewSSHClient(logger lager.Logger, config Config) (Client, error) {
-	client, err := dial(config)
+func NewSSHClient(logger lager.Logger, config Config) Client {
 	return &sshClient{
 		logger: logger,
-		client: client,
 		config: config,
-	}, err
+	}
 }
 
-func dial(config Config) (*ssh.Client, error) {
-	workerPrivateKeyBytes, err := ioutil.ReadFile(string(config.WorkerPrivateKey))
+type sshClient struct {
+	logger lager.Logger
+	client *ssh.Client
+	config Config
+	conn   ssh.Conn
+}
+
+func (c *sshClient) Dial() (Closeable, error) {
+	workerPrivateKeyBytes, err := ioutil.ReadFile(string(c.config.WorkerPrivateKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read worker private key: %s", err)
 	}
@@ -33,7 +38,7 @@ func dial(config Config) (*ssh.Client, error) {
 		return nil, fmt.Errorf("failed to parse worker private key: %s", err)
 	}
 
-	tsaAddr := fmt.Sprintf("%s:%d", config.Host, config.Port)
+	tsaAddr := fmt.Sprintf("%s:%d", c.config.Host, c.config.Port)
 
 	conn, err := keepaliveDialer("tcp", tsaAddr, 10*time.Second)
 	if err != nil {
@@ -43,7 +48,7 @@ func dial(config Config) (*ssh.Client, error) {
 	clientConfig := &ssh.ClientConfig{
 		User: "beacon", // doesn't matter
 
-		HostKeyCallback: config.checkHostKey,
+		HostKeyCallback: c.config.checkHostKey,
 
 		Auth: []ssh.AuthMethod{ssh.PublicKeys(workerPrivateKey)},
 	}
@@ -53,14 +58,9 @@ func dial(config Config) (*ssh.Client, error) {
 		return nil, fmt.Errorf("failed to construct client connection: %s", err)
 	}
 
-	return ssh.NewClient(clientConn, chans, reqs), nil
-}
+	c.client = ssh.NewClient(clientConn, chans, reqs)
 
-type sshClient struct {
-	logger lager.Logger
-	client *ssh.Client
-	config Config
-	conn   ssh.Conn
+	return c.client, nil
 }
 
 func (c *sshClient) KeepAlive() (<-chan error, chan<- struct{}) {
@@ -98,16 +98,24 @@ func (c *sshClient) KeepAlive() (<-chan error, chan<- struct{}) {
 }
 
 func (c *sshClient) Listen(n, addr string) (net.Listener, error) {
-	return c.Listen(n, addr)
+	return c.client.Listen(n, addr)
 }
 
 func (c *sshClient) Close() error {
 	return c.client.Close()
 }
 
-func (c *sshClient) NewSession(io.Reader, io.Writer, io.Writer) (Session, error) {
+func (c *sshClient) NewSession(stdin io.Reader, stdout io.Writer, stderr io.Writer) (Session, error) {
+	sess, err := c.client.NewSession()
+	if err != nil {
+		return nil, err
+	}
 
-	return c.client.NewSession()
+	sess.Stdin = stdin
+	sess.Stdout = stdout
+	sess.Stderr = stderr
+
+	return sess, nil
 }
 
 func (c *sshClient) Proxy(from, to string) error {
