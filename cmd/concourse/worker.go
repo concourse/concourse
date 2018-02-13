@@ -4,17 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
-
-	"golang.org/x/crypto/ssh"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/bin/bindata"
+	concourseWorker "github.com/concourse/worker"
+	"github.com/concourse/worker/beacon"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
-	"github.com/tedsuo/ifrit/restart"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
@@ -27,26 +24,24 @@ type WorkerCommand struct {
 	HTTPProxy  URLFlag  `long:"http-proxy"  env:"http_proxy"                  description:"HTTP proxy endpoint to use for containers."`
 	HTTPSProxy URLFlag  `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
 	NoProxy    []string `long:"no-proxy"    env:"no_proxy"    env-delim:","   description:"Blacklist of addresses to skip the proxy when reaching."`
-
-	Certs Certs
+	Certs      Certs
 
 	WorkDir DirFlag `long:"work-dir" required:"true" description:"Directory in which to place container data."`
 
 	BindIP   IPFlag `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
 	BindPort uint16 `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`
-
-	PeerIP IPFlag `long:"peer-ip" description:"IP used to reach this worker from the ATC nodes. If omitted, the worker will be forwarded through the SSH connection to the TSA."`
+	PeerIP   IPFlag `long:"peer-ip" description:"IP used to reach this worker from the ATC nodes."`
 
 	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
 
 	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
 
-	TSA BeaconConfig `group:"TSA Configuration" namespace:"tsa"`
-
 	Metrics struct {
 		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
 		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
 	} `group:"Metrics & Diagnostics"`
+
+	TSA beacon.Config `group:"TSA Configuration" namespace:"tsa"`
 }
 
 func (cmd *WorkerCommand) Execute(args []string) error {
@@ -82,9 +77,21 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	}
 
 	if cmd.TSA.WorkerPrivateKey != "" {
+		if cmd.PeerIP != nil {
+			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP(), cmd.BindPort)
+			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP(), cmd.Baggageclaim.BindPort)
+		} else {
+			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP(), cmd.BindPort)
+			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.Baggageclaim.BindIP.IP(), cmd.Baggageclaim.BindPort)
+		}
+
 		members = append(members, grouper.Member{
-			Name:   "beacon",
-			Runner: cmd.beaconRunner(logger.Session("beacon"), worker),
+			Name: "beacon",
+			Runner: concourseWorker.BeaconRunner(
+				logger.Session("beacon"),
+				worker,
+				cmd.TSA,
+			),
 		})
 	}
 
@@ -170,41 +177,4 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger, hasAssets bool
 	}
 
 	return cmd.Baggageclaim.Runner(nil)
-}
-
-func (cmd *WorkerCommand) beaconRunner(logger lager.Logger, worker atc.Worker) ifrit.Runner {
-	beacon := Beacon{
-		Logger: logger,
-		Config: cmd.TSA,
-	}
-
-	var beaconRunner ifrit.RunFunc
-	if cmd.PeerIP != nil {
-		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP(), cmd.BindPort)
-		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP(), cmd.Baggageclaim.BindPort)
-		beaconRunner = beacon.Register
-	} else {
-		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP(), cmd.BindPort)
-		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.Baggageclaim.BindIP.IP(), cmd.Baggageclaim.BindPort)
-		beaconRunner = beacon.Forward
-	}
-
-	beacon.Worker = worker
-
-	return restart.Restarter{
-		Runner: beaconRunner,
-		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
-			if prevErr == nil {
-				return nil
-			}
-
-			if _, ok := prevErr.(*ssh.ExitError); !ok {
-				logger.Error("restarting", prevErr)
-				time.Sleep(5 * time.Second)
-				return beaconRunner
-			}
-
-			return nil
-		},
-	}
 }

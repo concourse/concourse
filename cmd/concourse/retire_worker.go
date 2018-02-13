@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/worker"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -24,14 +25,13 @@ func (cmd *RetireWorkerCommand) Execute(args []string) error {
 }
 
 func (cmd *RetireWorkerCommand) retireWorkerRunner(logger lager.Logger) ifrit.Runner {
-	beacon := Beacon{
-		Logger: logger,
-		Config: cmd.TSA.canonical(),
-	}
-
-	beacon.Worker = atc.Worker{
-		Name: cmd.WorkerName,
-	}
+	beacon := worker.NewBeacon(
+		logger,
+		atc.Worker{
+			Name: cmd.WorkerName,
+		},
+		cmd.TSA.canonical(),
+	)
 
 	return ifrit.RunFunc(beacon.RetireWorker)
 }
