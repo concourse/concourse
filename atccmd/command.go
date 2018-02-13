@@ -87,9 +87,10 @@ type ATCCommand struct {
 	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
-	TLSBindPort uint16   `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
-	TLSCert     FileFlag `long:"tls-cert"      description:"File containing an SSL certificate."`
-	TLSKey      FileFlag `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
+	CookieSecure bool     `long:"cookie-secure" description:"Set secure flag on auth cookies"`
+	TLSBindPort  uint16   `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
+	TLSCert      FileFlag `long:"tls-cert"      description:"File containing an SSL certificate."`
+	TLSKey       FileFlag `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
@@ -498,6 +499,7 @@ func (cmd *ATCCommand) constructMembers(
 		cmd.oauthBaseURL(),
 		signingKey,
 		cmd.AuthDuration,
+		cmd.CookieSecure,
 		cmd.isTLSEnabled(),
 		teamFactory,
 		logger,
