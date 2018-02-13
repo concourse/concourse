@@ -264,3 +264,25 @@ UI, so you should make your output pretty.
   increasing build number). They are not provided to \reference{task-step}
   steps to avoid this anti-pattern.
 }
+
+\section{
+  \title{Certificate Propagation}{resource-certs}
+
+  Certificates can be automatically propagated into each resource container, if
+  the worker is configured to do so. The \reference{clusters-with-bosh}{BOSH
+  distribution} configures this automatically, while the
+  \reference{binaries}{binary distribution} must be given a \code{--certs-dir}
+  flag pointing to the path containing the CA certificate bundle.
+
+  The worker's certificate directory will then be always mounted at
+  \code{/etc/ssl/certs}, read-only, in each resource container created on the
+  worker. There's no single standard path for this so we picked one that would
+  work out of the box in most cases.
+
+  This approach to certificate configuration is similar in mindset to the
+  propagation of \code{http_proxy}/\code{https_proxy} - certs are kind of a
+  baseline assumption when deploying software, so Concourse should do its best
+  to respect it out-of-the-box, especially as they're often used in tandem with
+  a man-in-the-middle corporate SSL proxy. (In this way it doesn't feel too
+  much like the anti-pattern of hand-tuning workers.)
+}

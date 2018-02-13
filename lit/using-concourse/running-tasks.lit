@@ -170,7 +170,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 
         An \code{optional} input that is missing will not appear in the current directory
         of the running task.
-      }{optional}
+      }{input-optional}
     }
   }
 
