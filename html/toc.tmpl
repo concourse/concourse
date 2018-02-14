@@ -2,7 +2,10 @@
 <ol{{if or .SplitSections (not .Parent)}} id="table-of-contents" class="toc"{{end}}>
 {{range .Children}}
   <li>
-    <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+    {{- if .Parent -}}
+      <span class="section-number">{{.Number}} </span>
+    {{- end -}}
+    <a href="{{.PrimaryTag | url}}">{{- .Title | render -}}</a>
 
     {{template "toc.tmpl" .}}
   </li>

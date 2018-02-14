@@ -13,19 +13,32 @@
     <link href="https://fonts.googleapis.com/css?family=PT+Serif:400,400i,700" rel="stylesheet" />
   </head>
   <body{{if .Partial "Examples"}} class="with-examples"{{end}}>
-    <div class="side">
-      {{template "sidebar.tmpl" .}}
-    </div>
-    <div class="page{{if not .Parent}} top{{end}}">
-      {{. | render}}
-    </div>
-    {{if .Partial "Examples"}}
-    <div class="examples">
-      <h2>Examples</h2>
+    <div id="top">
+      <div class="header">
+        <h1><a href="/">Concourse</a></h1>
 
-      {{.Partial "Examples" | render}}
+        <nav>
+          <a href="https://concoursetutorial.com">tutorial</a>
+          <a href="https://community.concourse.ci">community</a>
+          <a href="downloads.html">version 3.9.0</a>
+        </nav>
+      </div>
     </div>
-    {{end}}
+    <div id="content">
+      <div class="side">
+        {{template "sidebar.tmpl" .}}
+      </div>
+      <div class="page{{if not .Parent}} top{{end}}">
+        {{. | render}}
+      </div>
+      {{if .Partial "Examples"}}
+      <div class="examples">
+        <h2>Examples</h2>
+
+        {{.Partial "Examples" | render}}
+      </div>
+      {{end}}
+    </div>
     <script>
 (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),

@@ -2,10 +2,14 @@
 
 \use-plugin{concourse-docs}
 
-Concourse is an open-source continuous thing-doer. It's often used for
-\link{CI}{https://en.wikipedia.org/wiki/Continuous_integration}/\link{CD}{https://en.wikipedia.org/wiki/Continuous_delivery}
-but can be used for just about anything that can be expressed with dependencies
-and things to run or push when those dependencies change.
+\splash-intro{
+  Concourse is an open-source continuous thing-doer.
+}{
+  It's often used for
+  \link{CI}{https://en.wikipedia.org/wiki/Continuous_integration}/\link{CD}{https://en.wikipedia.org/wiki/Continuous_delivery}
+  but can be used for just about anything that can be expressed with
+  dependencies and things to run or push when those dependencies change.
+}
 
 \splash-example{Configuration As Code}{
   You can think of a \reference{pipelines}{pipeline} as a distributed,
