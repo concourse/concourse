@@ -3,10 +3,11 @@
 \use-plugin{concourse-docs}
 
 \trademark-guidelines{
-  \bold{PURPOSE.} Alex Suraci, Chris Brown and Pivotal Software, Inc.
-  (collectively, “\bold{Concourse}”) owns a number of international trademarks and
-  logos that identify the Concourse community and individual Concourse projects
-  (“\bold{Concourse Marks}”). These trademarks include, but are not limited to:
+  \bold{PURPOSE.} Alex Suraci, Christopher Brown and Pivotal Software, Inc.
+  (collectively, “\bold{Concourse}”) owns a number of international trademarks
+  and logos that identify the Concourse community and individual Concourse
+  projects (“\bold{Concourse Marks}”). These trademarks include, but are not
+  limited to:
 
   \list{
     \bold{Words: CONCOURSE}
