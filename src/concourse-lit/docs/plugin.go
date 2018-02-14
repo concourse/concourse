@@ -404,3 +404,13 @@ func (p Plugin) Example(title, content booklit.Content) booklit.Content {
 		},
 	}
 }
+
+func (p Plugin) TrademarkGuidelines(content ...booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style: "trademark-guidelines",
+		Block: true,
+		Content: booklit.List{
+			Items: content,
+		},
+	}
+}
