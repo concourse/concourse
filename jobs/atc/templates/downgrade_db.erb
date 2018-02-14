@@ -4,6 +4,12 @@
 set -e
 
 <%
+  require "shellwords"
+
+  def esc(x)
+    Shellwords.shellescape(x)
+  end
+
   postgres_host = ""
   postgres_port = ""
   postgres_role_name = ""
