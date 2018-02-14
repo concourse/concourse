@@ -259,7 +259,7 @@ appendStepLog output mtime tree =
                     List.foldl
                         setLineTimestamp
                         step.timestamps
-                        (List.range 1 (Array.length newLog.lines))
+                        (List.range 0 ((Array.length newLog.lines) - 1))
             in
                 { step | log = newLog, timestamps = newTimestamps }
 
