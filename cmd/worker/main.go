@@ -20,10 +20,16 @@ type WorkerCommand struct {
 	BaggageclaimURL string `long:"baggageclaim-url" required:"true" `
 
 	Platform string   `long:"platform"`
-	Tags     []string `long:"tags"`
+	Tags     []string `long:"tag"`
 	Team     string   `long:"team"`
 	Name     string   `long:"name"`
 	Version  string   `long:"version"`
+
+	CertsPath *string `long:"certs_path"`
+
+	HTTPProxyURL  string `long:"http_proxy_url"`
+	HTTPSProxyURL string `long:"https_proxy_url"`
+	NoProxy       string `long:"no_proxy"`
 
 	BeaconConfig beacon.Config `group:"Beacon Configuration" namespace:"beacon"`
 }
@@ -51,6 +57,10 @@ func main() {
 		Team:            cmd.Team,
 		Name:            cmd.Name,
 		Version:         cmd.Version,
+		CertsPath:       cmd.CertsPath,
+		HTTPProxyURL:    cmd.HTTPProxyURL,
+		HTTPSProxyURL:   cmd.HTTPSProxyURL,
+		NoProxy:         cmd.NoProxy,
 	}, cmd.BeaconConfig)
 
 	<-ifrit.Invoke(runner).Wait()
