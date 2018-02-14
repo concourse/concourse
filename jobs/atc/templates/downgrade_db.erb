@@ -2,6 +2,13 @@
 # vim: set ft=sh
 
 set -e
+<%
+  require "shellwords"
+
+  def esc(x)
+    Shellwords.shellescape(x)
+  end
+%>
 
 <%
   require "shellwords"
