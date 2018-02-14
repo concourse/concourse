@@ -22,6 +22,7 @@ type BuildsCommand struct {
 	Count    int                      `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
 	Job      flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
 	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
+	Team     bool                     `short:"t"  long:"team" description:"Only show builds for the currently targeted team"`
 }
 
 func (command *BuildsCommand) Execute([]string) error {
@@ -74,6 +75,11 @@ func (command *BuildsCommand) Execute([]string) error {
 
 		if !found {
 			displayhelpers.Failf("pipeline/job not found")
+		}
+	} else if command.Team {
+		builds, _, err = team.Builds(page)
+		if err != nil {
+			return err
 		}
 	} else {
 		builds, _, err = client.Builds(page)
