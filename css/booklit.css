@@ -31,7 +31,7 @@ body.with-examples {
 }
 
 .side, .page, .examples {
-  padding-top: 110px;
+  padding-top: 70px;
 }
 
 .page {
@@ -103,7 +103,7 @@ body.with-examples {
 
 .header nav a {
   margin-right: 50px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .logo {
