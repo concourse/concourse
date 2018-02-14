@@ -141,3 +141,34 @@ func (client *client) AbortBuild(buildID string) error {
 		Params:      params,
 	}, nil)
 }
+
+func (team *team) Builds(page Page) ([]atc.Build, Pagination, error) {
+	var builds []atc.Build
+
+	headers := http.Header{}
+
+	params := rata.Params{
+		"team_name": team.name,
+	}
+
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.ListTeamBuilds,
+		Params:      params,
+		Query:       page.QueryParams(),
+	}, &internal.Response{
+		Result:  &builds,
+		Headers: &headers,
+	})
+
+	switch err.(type) {
+	case nil:
+		pagination, err := paginationFromHeaders(headers)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+
+		return builds, pagination, nil
+	default:
+		return nil, Pagination{}, err
+	}
+}

@@ -154,3 +154,35 @@ func (team *team) RenamePipeline(pipelineName, name string) (bool, error) {
 		return false, err
 	}
 }
+
+func (team *team) PipelineBuilds(pipelineName string, page Page) ([]atc.Build, Pagination, bool, error) {
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name":     team.name,
+	}
+
+	var builds []atc.Build
+
+	headers := http.Header{}
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.ListPipelineBuilds,
+		Params:      params,
+		Query:       page.QueryParams(),
+	}, &internal.Response{
+		Result:  &builds,
+		Headers: &headers,
+	})
+	switch err.(type) {
+	case nil:
+		pagination, err := paginationFromHeaders(headers)
+		if err != nil {
+			return builds, Pagination{}, false, err
+		}
+
+		return builds, pagination, true, nil
+	case internal.ResourceNotFoundError:
+		return builds, Pagination{}, false, nil
+	default:
+		return builds, Pagination{}, false, err
+	}
+}
