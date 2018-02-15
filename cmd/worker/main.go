@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"code.cloudfoundry.org/lager"
@@ -16,20 +18,19 @@ import (
 var Version = "0.0.0-dev"
 
 type WorkerCommand struct {
-	GardenAddr      string `long:"garden-addr" required:"true" `
-	BaggageclaimURL string `long:"baggageclaim-url" required:"true" `
+	JSON beacon.FileFlag `long:"json"`
 
-	Platform string   `long:"platform"`
-	Tags     []string `long:"tag"`
-	Team     string   `long:"team"`
-	Name     string   `long:"name"`
-	Version  string   `long:"version"`
-
-	CertsPath *string `long:"certs_path"`
-
-	HTTPProxyURL  string `long:"http_proxy_url"`
-	HTTPSProxyURL string `long:"https_proxy_url"`
-	NoProxy       string `long:"no_proxy"`
+	GardenAddr      string   `long:"garden-addr"`
+	BaggageclaimURL string   `long:"baggageclaim-url"`
+	Platform        string   `long:"platform"`
+	Tags            []string `long:"tag"`
+	Team            string   `long:"team"`
+	Name            string   `long:"name"`
+	Version         string   `long:"version"`
+	CertsPath       *string  `long:"certs_path"`
+	HTTPProxyURL    string   `long:"http_proxy_url"`
+	HTTPSProxyURL   string   `long:"https_proxy_url"`
+	NoProxy         string   `long:"no_proxy"`
 
 	BeaconConfig beacon.Config `group:"Beacon Configuration" namespace:"beacon"`
 }
@@ -46,22 +47,40 @@ func main() {
 		os.Exit(1)
 	}
 
+	var atcWorker atc.Worker
+	if cmd.JSON != "" {
+		workerJSON, err := ioutil.ReadFile(string(cmd.JSON))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+		err = json.Unmarshal(workerJSON, &atcWorker)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+	} else {
+		atcWorker = atc.Worker{
+			GardenAddr:      cmd.GardenAddr,
+			BaggageclaimURL: cmd.BaggageclaimURL,
+			Platform:        cmd.Platform,
+			Tags:            cmd.Tags,
+			Team:            cmd.Team,
+			Name:            cmd.Name,
+			Version:         cmd.Version,
+			CertsPath:       cmd.CertsPath,
+			HTTPProxyURL:    cmd.HTTPProxyURL,
+			HTTPSProxyURL:   cmd.HTTPSProxyURL,
+			NoProxy:         cmd.NoProxy,
+		}
+	}
+
 	logger := lager.NewLogger("worker")
 	//TODO support changing the log level
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.INFO))
-	runner := worker.BeaconRunner(logger.Session("beacon"), atc.Worker{
-		GardenAddr:      cmd.GardenAddr,
-		BaggageclaimURL: cmd.BaggageclaimURL,
-		Platform:        cmd.Platform,
-		Tags:            cmd.Tags,
-		Team:            cmd.Team,
-		Name:            cmd.Name,
-		Version:         cmd.Version,
-		CertsPath:       cmd.CertsPath,
-		HTTPProxyURL:    cmd.HTTPProxyURL,
-		HTTPSProxyURL:   cmd.HTTPSProxyURL,
-		NoProxy:         cmd.NoProxy,
-	}, cmd.BeaconConfig)
+	runner := worker.BeaconRunner(logger.Session("beacon"), atcWorker, cmd.BeaconConfig)
 
 	<-ifrit.Invoke(runner).Wait()
 }
