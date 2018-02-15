@@ -238,7 +238,7 @@ case $1 in
       <% if p("credhub.tls.insecure_skip_verify") %> \
       --credhub-insecure-skip-verify \
       <% end %> \
-      <% if_p("credhub.tls.client_id", "credhub.tls.client_secret") do |id, secret| %> \
+      <% if_p("credhub.client_id", "credhub.client_secret") do |id, secret| %> \
       --credhub-client-id <%= esc(id) %> \
       --credhub-client-secret <%= esc(secret) %> \
       <% end %> \
