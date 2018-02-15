@@ -1,7 +1,4 @@
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=groundcrew/properties/garden?
-  value: {forward_address: "127.0.0.1:7777"}
+  path: /instance_groups/name=concourse/jobs/name=groundcrew/properties/tsa/registration_mode?
+  value: "forward"
 
-- type: replace
-  path: /instance_groups/name=concourse/jobs/name=groundcrew/properties/baggageclaim?
-  value: {forward_address: "127.0.0.1:7788"}
