@@ -10,6 +10,7 @@ templates:
   drain.erb: bin/drain
   beacon_ctl.erb: bin/beacon_ctl
 
+  tsa_host_key.pub.erb: config/tsa_host_key.pub
   known_hosts.erb: config/known_hosts
   worker_key.erb: config/worker_key
   worker.json.erb: config/worker.json
@@ -18,6 +19,7 @@ packages:
   - pid_utils
   - resource_discovery
   - groundcrew
+  - worker
   - worker_version
 
   # colocate base resources
@@ -80,6 +82,17 @@ properties:
         -----END RSA PRIVATE KEY-----
       public_key: 'ssh-rsa ...'
 
+  tsa.registration_mode:
+    description: |
+      The registration 'mode' (direct, or forward), to use when registering the
+      worker with the ATC.
+      If "forward" is specified, the worker's Baggageclaim and Garden address
+      will be forwarded through SSH to the TSA.
+
+      If "direct" is specified, the worker will be registered directly without
+      forwarding over SSH.
+    default: direct
+
   garden.address:
     description: |
       Garden server connection address to advertise directly to the TSA.
@@ -88,12 +101,6 @@ properties:
       the instance's address is advertised if the link is not
       found.
 
-  garden.forward_address:
-    description: |
-      Garden server connection address to forward through SSH to the TSA.
-
-      If not specified, the Garden server address is registered directly.
-
   baggageclaim.url:
     description: |
       Baggageclaim server URL to advertise directly to the
@@ -101,12 +108,6 @@ properties:
 
       If not specified, either the `baggageclaim` link is
       used.
-
-  baggageclaim.forward_address:
-    description: |
-      Baggageclaim server connection address to forward through SSH to the TSA.
-
-      If not specified, the Baggageclaim server address is registered directly.
 
   platform:
     description: |

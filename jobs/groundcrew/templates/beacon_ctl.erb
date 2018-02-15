@@ -34,14 +34,16 @@ chown -R vcap:vcap $LOG_DIR
     tsa_addrs = tsa.instances.collect(&:address)
     tsa_port = tsa.p("bind_port")
   end
-%>
+
+ %>
 
 WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
 chown vcap:vcap $WORKER_KEY
 chmod 0400 $WORKER_KEY
 
-KNOWN_HOSTS=/var/vcap/jobs/groundcrew/config/known_hosts
-chown vcap:vcap $KNOWN_HOSTS
+TSA_HOST_KEY=/var/vcap/jobs/groundcrew/config/tsa_host_key.pub
+chown vcap:vcap $TSA_HOST_KEY
+chmod 0400 $TSA_HOST_KEY
 
 kill_session_siblings_of() {
   pidfile=$1
@@ -80,30 +82,15 @@ case $1 in
       rand=$RANDOM
       tsa_addr=${tsa_addrs[$rand % ${#tsa_addrs[@]}]}
 
-      exitstatus=0
-      chpst -u vcap:vcap ssh \
-        -p <%= tsa_port %> $tsa_addr \
-        -i ${WORKER_KEY} \
-        -o UserKnownHostsFile=${KNOWN_HOSTS} \
-        -o ConnectTimeout=30 \
-        -o ServerAliveInterval=8 \
-        -o ServerAliveCountMax=3 \
-        <% if p("garden.forward_address", nil) %> \
-          -R0.0.0.0:7777:<%= p("garden.forward_address") %> \
-          <% if p("baggageclaim.forward_address", nil) %> \
-          -R0.0.0.0:7788:<%= p("baggageclaim.forward_address") %> \
-          <% end %> \
-          forward-worker \
-          --garden 0.0.0.0:7777 \
-          <% if p("baggageclaim.forward_address", nil) %> \
-          --baggageclaim 0.0.0.0:7788 \
-          <% end %> \
-        <% else %> \
-          register-worker \
-        <% end %> \
-        < $RUN_DIR/worker.json \
-        1>>$LOG_DIR/beacon.stdout.log \
-        2>>$LOG_DIR/beacon.stderr.log || exitstatus=$?
+      chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker \
+             --json=$RUN_DIR/worker.json \
+             --beacon-host=$tsa_addr\
+             --beacon-port=<%= tsa_port %>\
+             --beacon-public-key=${TSA_HOST_KEY}\
+             --beacon-worker-private-key=${WORKER_KEY}\
+             --beacon-registration-mode=<%=p("tsa.registration_mode")%>\
+              1>>$LOG_DIR/beacon.stdout.log \
+              2>>$LOG_DIR/beacon.stderr.log || exitstatus=$?
 
       if [ $exitstatus -eq 0 ]; then
         break
