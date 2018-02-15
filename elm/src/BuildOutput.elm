@@ -240,26 +240,23 @@ appendStepLog output mtime tree =
     flip StepTree.map tree <|
         \step ->
             let
-                newLog =
-                    Ansi.Log.update output step.log
+                outputLineCount =
+                    Ansi.Log.update output (Ansi.Log.init Ansi.Log.Cooked) |> .lines |> Array.length
+
+                logLineCount =
+                    max ((Array.length step.log.lines) - 1) 0
 
                 setLineTimestamp line timestamps =
-                    Dict.update line
-                        (\mval ->
-                            case mval of
-                                Nothing ->
-                                    mtime
-
-                                x ->
-                                    x
-                        )
-                        timestamps
+                    Dict.update line (\mval -> mtime) timestamps
 
                 newTimestamps =
                     List.foldl
                         setLineTimestamp
                         step.timestamps
-                        (List.range 0 ((Array.length newLog.lines) - 1))
+                        (List.range logLineCount (logLineCount + outputLineCount - 1))
+
+                newLog =
+                    Ansi.Log.update output step.log
             in
                 { step | log = newLog, timestamps = newTimestamps }
 

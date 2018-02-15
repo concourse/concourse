@@ -30,7 +30,6 @@ import Focus exposing (Focus, (=>))
 import Html exposing (Html)
 import Html.Events exposing (onClick, onMouseDown)
 import Html.Attributes exposing (attribute, class, classList, href)
-import Html.Lazy
 import Concourse
 import DictView
 import StrictEvents
@@ -781,7 +780,7 @@ viewTimestampedLine timestamps hl id lineNo line =
 viewLine : Ansi.Log.Line -> Html Msg
 viewLine line =
     Html.td [ class "timestamped-content" ]
-        [ Html.Lazy.lazy Ansi.Log.viewLine line
+        [ Ansi.Log.viewLine line
         ]
 
 
