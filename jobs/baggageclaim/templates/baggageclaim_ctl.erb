@@ -47,6 +47,8 @@ case $1 in
     done
 <% end %>
 
+    umask 0022
+
     echo $$ > $PIDFILE
 
     exec /var/vcap/packages/baggageclaim/bin/baggageclaim \
