@@ -9,8 +9,8 @@
       CredHub integration has a bug in this release, please see \ghissue{2034} 
       for more details
     }{
-      GardenRunC 1.9.0 does not work work with Stemcell version 3541.2. You may
-      see \code{permission denied} errors as a result. Please see \link{\bold{#46}}{https://github.com/concourse/concourse-deployment/issues/46} 
+      Latest stemcells do not seem to work (3541.2 as of this update).
+      Use Stemcell v3468.22 instead. Please see \link{\bold{#46}}{https://github.com/concourse/concourse-deployment/issues/46} for more details.
     }
   }
   \note{feature}{
