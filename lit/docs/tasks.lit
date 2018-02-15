@@ -42,11 +42,7 @@ A task's configuration specifies the following:
 
   \define-attribute{source: object}{
     \italic{Required.} The configuration for the resource; see
-    \reference{resource-source}. If not specified, the input's \code{name}
-    is used.
-
-    Paths are relative to the working directory of the task. Absolute paths
-    are not respected.
+    \reference{resource-source}.
   }{image-resource-source}
 
   \define-attribute{params: object}{
@@ -189,12 +185,12 @@ A task's configuration specifies the following:
   Where \italic{\code{run-config}} is:
 
   \define-attribute{path: string}{
-    \italic{Required.} The command to execute, relative to the task's
-    working directory. For a script living in a resource's repo, you must
-    specify the full path to the resource, i.e.
-    \code{my-resource/scripts/test}.
+    \italic{Required.} The command to execute.
 
-    Paths are relative to the working directory of the task. Absolute paths are not respected.
+    This is commonly a path to a script provided by one of the task's inputs,
+    e.g. \code{my-resource/scripts/test}. It could also be a command like
+    \code{bash} (respecting standard \code{$PATH} lookup rules), or an absolute
+    path to a file to execute, e.g. \code{/bin/bash}.
   }{task-run-path}
 
   \define-attribute{args: [string]}{
