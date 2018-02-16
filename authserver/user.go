@@ -17,27 +17,27 @@ type Team struct {
 }
 
 func (s *Server) GetUser(w http.ResponseWriter, r *http.Request) {
-	hLog := s.logger.Session("user")
+	logger := s.logger.Session("user")
 
 	w.Header().Set("Content-Type", "application/json")
 
 	isAuthenticated := s.tokenValidator.IsAuthenticated(r)
 	if !isAuthenticated {
-		hLog.Error("not-authorized", errors.New("not-authorized"))
+		logger.Debug("not-authorized")
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	user, err := s.parseUser(r)
 	if err != nil {
-		hLog.Error("failed-to-get-team", err)
+		logger.Error("failed-to-get-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
-		hLog.Error("failed-to-encode-user", errors.New("failed-to-get-team"))
+		logger.Error("failed-to-encode-user", errors.New("failed-to-get-team"))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
