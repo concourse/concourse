@@ -17,7 +17,4 @@ trap "kill $!" EXIT
 
 cd concourse/src/github.com/concourse/web/acceptance/
 bundle
-if ! bundle exec parallel_rspec spec -o "--tag ~perf"; then
-  echo "************ RERUNNING FAILURES ************"
-  bundle exec rspec $(grep "rspec ./spec" /tmp/failing_specs.log | cut -d' ' -f2 | grep -o ".*:[0-9]\+")
-fi
+bundle exec parallel_rspec spec -o "--tag perf"
