@@ -684,4 +684,157 @@ var _ = Describe("Resources API", func() {
 			})
 		})
 	})
+
+	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check/webhook", func() {
+		var (
+			fakeScanner      *radarfakes.FakeScanner
+			checkRequestBody atc.CheckRequestBody
+			response         *http.Response
+			versionMap       atc.Version
+			fakeResource     *dbfakes.FakeResource
+		)
+
+		BeforeEach(func() {
+			fakeScanner = new(radarfakes.FakeScanner)
+			fakeScannerFactory.NewResourceScannerReturns(fakeScanner)
+			checkRequestBody = atc.CheckRequestBody{}
+
+			fakeResource = new(dbfakes.FakeResource)
+			fakeResource.NameReturns("resource-name")
+		})
+
+		JustBeforeEach(func() {
+			reqPayload, err := json.Marshal(checkRequestBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/check/webhook?webhook_token=fake-token", bytes.NewBuffer(reqPayload))
+			Expect(err).NotTo(HaveOccurred())
+			request.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authorized", func() {
+			BeforeEach(func() {
+				fakeResource.WebhookTokenReturns("fake-token")
+				fakePipeline.ResourceReturns(fakeResource, true, nil)
+			})
+
+			It("injects the proper pipelineDB", func() {
+				resourceName := fakePipeline.ResourceArgsForCall(0)
+				Expect(resourceName).To(Equal("resource-name"))
+			})
+
+			It("tries to scan with no version specified", func() {
+				Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+				_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+				Expect(actualResourceName).To(Equal("resource-name"))
+				Expect(actualFromVersion).To(BeNil())
+			})
+
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			Context("when checking with a version specified", func() {
+				BeforeEach(func() {
+					resourceVersion := map[string]string{"some-version": "some-key"}
+					versionMap = atc.Version(resourceVersion)
+					fakePipeline.GetLatestVersionedResourceReturns(
+						db.SavedVersionedResource{VersionedResource: db.VersionedResource{Version: resourceVersion}}, true, nil)
+				})
+
+				It("tries to scan with the version specified", func() {
+					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+					Expect(actualResourceName).To(Equal("resource-name"))
+					Expect(actualFromVersion).To(Equal(versionMap))
+				})
+			})
+
+			Context("when the resource already has versions", func() {
+				BeforeEach(func() {
+					returnedVersion := db.SavedVersionedResource{
+						ID:      4,
+						Enabled: true,
+						VersionedResource: db.VersionedResource{
+							Resource: "some-resource",
+							Type:     "some-type",
+							Version: db.ResourceVersion{
+								"some": "version",
+							},
+							Metadata: []db.ResourceMetadataField{
+								{
+									Name:  "some",
+									Value: "metadata",
+								},
+							},
+						},
+					}
+					fakePipeline.GetLatestVersionedResourceReturns(returnedVersion, true, nil)
+				})
+
+				It("tries to scan with the latest version when no version is passed", func() {
+					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+					Expect(actualResourceName).To(Equal("resource-name"))
+					Expect(actualFromVersion).To(Equal(atc.Version{"some": "version"}))
+				})
+			})
+
+			Context("when failing to get latest version for resource", func() {
+				BeforeEach(func() {
+					fakePipeline.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, errors.New("disaster"))
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+
+				It("does not scan from version", func() {
+					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when checking fails with ResourceNotFoundError", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanFromVersionReturns(db.ResourceNotFoundError{})
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when checking the resource fails internally", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanFromVersionReturns(errors.New("welp"))
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when checking the resource fails with err", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanFromVersionReturns(errors.New("error"))
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+			Context("when unauthorized", func() {
+				BeforeEach(func() {
+					fakeResource.WebhookTokenReturns("wrong-token")
+					fakePipeline.ResourceReturns(fakeResource, true, nil)
+				})
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+		})
+	})
 })
