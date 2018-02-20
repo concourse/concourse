@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"strings"
@@ -31,6 +32,8 @@ func (d Data) Less(i int, j int) bool {
 
 func (table Table) Render(dst io.Writer, isPrintHeader bool) error {
 	dst, isTTY := ForTTY(dst)
+	bdst := bufio.NewWriter(dst)
+	defer bdst.Flush()
 
 	columnWidths := map[int]int{}
 
@@ -55,17 +58,19 @@ func (table Table) Render(dst io.Writer, isPrintHeader bool) error {
 	}
 
 	if (isPrintHeader || isTTY) && table.Headers != nil {
-		err := table.renderRow(dst, table.Headers, columnWidths, isTTY)
+		err := table.renderRow(bdst, table.Headers, columnWidths, isTTY)
 		if err != nil {
 			return err
 		}
+		bdst.Flush()
 	}
 
 	for _, row := range table.Data {
-		err := table.renderRow(dst, row, columnWidths, isTTY)
+		err := table.renderRow(bdst, row, columnWidths, isTTY)
 		if err != nil {
 			return err
 		}
+		bdst.Flush()
 	}
 
 	return nil
