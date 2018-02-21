@@ -48,7 +48,7 @@ plan:
 }
 
 \define-attribute{config: object}{
-  \italic{Required.} The \reference{configuring-tasks}{task config} to execute.
+  \italic{Required.} The \reference{configuring-tasks}{task config} to execute. An alternative to \reference{file}.
 }
 
 \define-attribute{file: string}{
