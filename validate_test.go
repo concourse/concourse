@@ -635,7 +635,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			FContext("when a task plan has neither a config or a path set", func() {
+			Context("when a task plan has neither a config or a path set", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
 						Task:              "lol",
