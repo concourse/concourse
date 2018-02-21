@@ -1,6 +1,6 @@
 ---
 jobs:
-- name: 25k-output
+- name: 10k-output
   plan:
   - task: print
     config:
@@ -15,7 +15,7 @@ jobs:
         args:
         - '-ec'
         - |
-          for i in $(seq 1 25000)
+          for i in $(seq 1 10000)
             do
             echo "Line $i"
           done

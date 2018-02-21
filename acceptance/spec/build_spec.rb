@@ -16,16 +16,16 @@ describe 'build', type: :feature do
 
   describe 'long build logs', :perf do
     before do
-      fly('set-pipeline -n -p pipeline -c fixtures/pipeline-with-25k-output.yml')
+      fly('set-pipeline -n -p pipeline -c fixtures/pipeline-with-10k-output.yml')
       fly('unpause-pipeline -p pipeline')
-      fly('trigger-job -w -j pipeline/25k-output')
-      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/25k-output/builds/1")
+      fly('trigger-job -w -j pipeline/10k-output')
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/10k-output/builds/1")
     end
 
-    context 'when output has 25k lines' do
+    context 'when output has 10k lines' do
       it 'should load the page' do
         page.find('.build-step .header', text: 'print').click
-        expect(page).to have_content 'Line 25000', wait: 99999 # don't time out
+        expect(page).to have_content 'Line 10000'
       end
     end
   end
