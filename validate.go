@@ -466,7 +466,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []st
 	case plan.Task != "":
 		identifier = fmt.Sprintf("%s.task.%s", identifier, plan.Task)
 
-		if plan.TaskConfig == nil && plan.TaskConfigPath == "" && plan.ImageArtifactName == "" {
+		if plan.TaskConfig == nil && plan.TaskConfigPath == "" {
 			errorMessages = append(errorMessages, identifier+" does not specify any task configuration")
 		}
 
