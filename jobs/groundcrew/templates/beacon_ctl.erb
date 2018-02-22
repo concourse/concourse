@@ -82,6 +82,7 @@ case $1 in
       rand=$RANDOM
       tsa_addr=${tsa_addrs[$rand % ${#tsa_addrs[@]}]}
 
+      exitstatus=0
       chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker \
              --json=$RUN_DIR/worker.json \
              --beacon-host=$tsa_addr\
