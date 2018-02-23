@@ -25,22 +25,25 @@ func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) bea
 
 func BeaconRunner(logger lager.Logger, worker atc.Worker, config beacon.Config) ifrit.Runner {
 	beacon := NewBeacon(logger, worker, config)
-	var beaconRunner ifrit.RunFunc = beacon.Register
+	var beaconRunner ifrit.Runner = ifrit.RunFunc(beacon.Register)
 
-	return restart.Restarter{
-		Runner: beaconRunner,
-		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
-			if prevErr == nil {
+	if config.Retry {
+		beaconRunner = restart.Restarter{
+			Runner: ifrit.RunFunc(beacon.Register),
+			Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
+				if prevErr == nil {
+					return nil
+				}
+
+				if _, ok := prevErr.(*ssh.ExitError); !ok {
+					logger.Error("restarting", prevErr)
+					time.Sleep(5 * time.Second)
+					return ifrit.RunFunc(beacon.Register)
+				}
 				return nil
-			}
-
-			if _, ok := prevErr.(*ssh.ExitError); !ok {
-				logger.Error("restarting", prevErr)
-				time.Sleep(5 * time.Second)
-				return beaconRunner
-			}
-
-			return nil
-		},
+			},
+		}
 	}
+
+	return beaconRunner
 }
