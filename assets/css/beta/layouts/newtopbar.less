@@ -61,6 +61,35 @@
         right: 0;
       }
     }
+
+    .search-options {
+      position: relative;
+      top: -13px;
+      list-style-type: none;
+      background: #2E2E2E;
+      border: 1px solid @base03;
+      border-bottom: none;
+    }
+
+    .search-option {
+      text-align: left;
+      line-height: 24px;
+      padding: 5px 0 5px 42px;
+      color: @grey-primary;
+      border: 1px solid #363636;
+      font-weight: bold;
+      max-width: 304px;
+      cursor: pointer;
+
+      &:last-of-type {
+        border-bottom: 1px solid @base03;
+      }
+
+      &.active {
+        background: @base00;
+        color: white;
+      }
+    }
   }
 
   .topbar-login {

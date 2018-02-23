@@ -52,6 +52,7 @@ type Msg
     | AutoRefresh Time
     | ShowFooter
     | KeyPressed Keyboard.KeyCode
+    | KeyDowns Keyboard.KeyCode
     | TopBarMsg NewTopBar.Msg
 
 
@@ -140,6 +141,9 @@ update msg model =
         KeyPressed keycode ->
             handleKeyPressed (Char.fromCode keycode) model
 
+        KeyDowns keycode ->
+            update (TopBarMsg (NewTopBar.KeyDown keycode)) model
+
         ShowFooter ->
             ( { model | hideFooter = False, hideFooterCounter = 0 }, Cmd.none )
 
@@ -156,7 +160,16 @@ update msg model =
                                 , fetchedPipelines = filterModelPipelines query model
                             }
 
-                        NewTopBar.UserFetched _ ->
+                        NewTopBar.KeyDown keycode ->
+                            if keycode == 13 then
+                                { model
+                                    | topBar = newTopBar
+                                    , fetchedPipelines = filterModelPipelines newTopBar.query model
+                                }
+                            else
+                                { model | topBar = newTopBar }
+
+                        _ ->
                             { model | topBar = newTopBar }
             in
                 ( newModel, Cmd.map TopBarMsg newTopBarMsg )
@@ -170,6 +183,7 @@ subscriptions model =
         , Mouse.moves (\_ -> ShowFooter)
         , Mouse.clicks (\_ -> ShowFooter)
         , Keyboard.presses KeyPressed
+        , Keyboard.downs KeyDowns
         ]
 
 
