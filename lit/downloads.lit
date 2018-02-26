@@ -7,10 +7,18 @@
 \omit-children-from-table-of-contents
 
 \warn{
-  If you are currently on a version older than \reference{v3.6.0}, \bold{you
-  must first upgrade to \reference{v3.6.0} before upgrading past it!}
+  \list{
+    If you are currently on a version older than \reference{v3.6.0}, \bold{you
+    must first upgrade to \reference{v3.6.0} before upgrading past it!}
+  }{
+    Latest BOSH stemcells do not work (v3541.x as of this update). Use Stemcell
+    v3468.x instead. Please see
+    \link{\bold{#46}}{https://github.com/concourse/concourse-deployment/issues/46}
+    for more details.
+  }
 }
 
+\include-section{./release-notes/v3.9.1.lit}
 \include-section{./release-notes/v3.9.0.lit}
 \include-section{./release-notes/v3.8.0.lit}
 \include-section{./release-notes/v3.7.0.lit}
