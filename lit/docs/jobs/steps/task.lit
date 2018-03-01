@@ -1,14 +1,14 @@
 \use-plugin{concourse-docs}
 
-\title{\code{task}\aux{: execute a task}}{task-step}
+\title{\code{task} step}{task-step}
 
 Executes a \reference{tasks}{Task}, either from a file fetched via the
 preceding steps, or with inlined configuration.
 
 If any task in the build plan fails, the build will complete with failure. By
 default, any subsequent steps will not be performed. You can perform additional
-steps after failure by adding a \reference{on-failure-step}{\code{on_failure}}
-or \reference{ensure-step}{\code{ensure}} step.
+steps after failure by adding a \reference{on-failure-step-hook}{\code{on_failure}}
+or \reference{ensure-step-hook}{\code{ensure}} step hook.
 
 For example, the following plan fetches a single repository and executes
 multiple tasks, using the \reference{aggregate-step}{\code{aggregate}} step,
@@ -48,15 +48,15 @@ plan:
 }
 
 \define-attribute{config: object}{
-  \italic{Required.} The \reference{configuring-tasks}{task config} to execute.
+  \italic{Required.} The \reference{tasks}{task config} to execute.
 }
 
 \define-attribute{file: string}{
   \italic{Required.} A dynamic alternative to \reference{config}.
 
   \code{file} points at a \code{.yml} file containing the
-  \reference{configuring-tasks}{task config}, which allows this to be tracked
-  with your resources.
+  \reference{tasks}{task config}, which allows this to be tracked with your
+  resources.
 
   The first segment in the path should refer to another source from the plan,
   and the rest of the path is relative to that source.
@@ -103,7 +103,7 @@ plan:
   }}
 
   This is often used in combination with
-  \reference{parameters}{\code{((parameters))}} in the pipeline.
+  \reference{pipeline-params}{\code{((parameters))}} in the pipeline.
 
   For example:
 
@@ -185,7 +185,7 @@ plan:
   This can also be used in the simpler case of explicitly keeping track of
   dependent images, in which case you just wouldn't have a job building it
   (\code{build-task-image} in the above example).
-}{task-image}
+}{task-step-image}
 
 \define-attribute{input_mapping: object}{
   \italic{Optional.} A map from task input names to concrete names in the build

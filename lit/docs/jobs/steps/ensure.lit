@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{ensure}\aux{: guarantee execution of a step}}{ensure-step}
+\title{\code{ensure} step hook}{ensure-step-hook}
 
 Any step can have \code{ensure} tacked onto it, whose value is a second step to
 execute regardless of the result of the parent step.
@@ -13,8 +13,8 @@ execute regardless of the result of the parent step.
   If the parent step succeeds and the ensured step fails, the parent step is
   considered to have failed.
 
-  The ensured step executes after any \reference{on-success-step} or
-  \reference{on-failure-step} hooks.
+  The ensured step executes after any \reference{on-success-step-hook}s or
+  \reference{on-failure-step-hook}s.
 }
 
 For example, the following build plan acquires a lock, and then \code{ensure}s

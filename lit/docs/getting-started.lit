@@ -1,18 +1,14 @@
-\title{Getting Started}{getting-started}
+\title{\aux{The }\code{fly}\aux{ CLI}}{fly}{fly-cli}
 
 \use-plugin{concourse-docs}
 
-The first step to getting started with Concourse is to install the \code{fly}
-CLI.
+Concourse is primarily driven from the command-line; there is no GUI config
+wizard.
 
-The \code{fly} tool is a command line interface to Concourse. It is used for
-a number of tasks from connecting to a shell in one of your build's
-containers to uploading new pipeline configuration into a running Concourse.
-Learning how to use \code{fly} will make using Concourse faster and more
-useful.
-
-You can download \code{fly} from any Concourse installation. There are download
-links for common platforms in the bottom right hand corner of the main page.
+So, the first step to getting started with Concourse is to install the
+\code{fly} CLI tool. You can download \code{fly} from any Concourse
+installation. There are download links for common platforms in the bottom right
+hand corner of the main page.
 
 Throughout the Concourse documentation we'll stick to the long-form name of
 every command and flag. Once you've learned what the commands do, you may want

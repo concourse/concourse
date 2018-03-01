@@ -20,10 +20,11 @@
   }
 
   \note{feature}{
-    Tasks now support caching arbitrary paths by configuring \reference{caches}
-    in the task config. This can be used to speed up builds that fetch
-    dependencies at runtime or compile into a common directory (e.g. \code{pkg}
-    for Go). For more information, see \reference{caches}.
+    Tasks now support caching arbitrary paths by configuring
+    \reference{task-caches} in the task config. This can be used to speed up
+    builds that fetch dependencies at runtime or compile into a common
+    directory (e.g. \code{pkg} for Go). For more information, see
+    \reference{task-caches}.
   }
 
   \note{feature,security}{

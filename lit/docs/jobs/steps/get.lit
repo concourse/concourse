@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{get}\aux{: fetch a resource}}{get-step}
+\title{\code{get} step}{get-step}
 
 Fetches a resource, making it available to subsequent steps via the given
 name.
@@ -32,7 +32,7 @@ plan:
 
 \define-attribute{resource: string}{
   \italic{Optional. Defaults to \code{get}, the name.} The resource to fetch,
-  as configured in \reference{configuring-resources}{\code{resources}}.
+  as configured in \reference{pipeline-resources}.
 
   Use this attribute to rename a resource from the overall pipeline context
   into the job-specific context.

@@ -3,4 +3,5 @@
 \split-sections
 \table-of-contents
 
+\include-section{./setting-up/architecture.lit}
 \include-section{./reference/internals.lit}

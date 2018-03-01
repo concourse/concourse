@@ -2,12 +2,6 @@
 
 \use-plugin{concourse-docs}
 
-\warn{
-  This topic isn't crucial to understanding Concourse; if you're just getting
-  started and have finished the \reference{installing} section, you may want to
-  first move on to \reference{using-concourse}.
-}
-
 Automating everything means authorizing something to automate many things. This
 makes CI systems a high-risk target for security leaks.
 

@@ -2,12 +2,6 @@
 
 \use-plugin{concourse-docs}
 
-\warn{
-  This topic isn't crucial to understanding Concourse; if you're just getting
-  started and have finished the \reference{installing} section, you may want to
-  first move on to \reference{using-concourse}.
-}
-
 Metrics are essential in understanding how any large system is behaving and
 performing. Concourse can emit metrics about both the system health itself and
 about the builds that it is running. Operators can tap into these metrics in

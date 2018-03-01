@@ -1,4 +1,4 @@
-\title{Steps}{steps}
+\title{Steps}{steps}{build-plans}
 
 \use-plugin{concourse-docs}
 
@@ -18,18 +18,17 @@ appear as outputs.
 
 \split-sections
 \table-of-contents
-\omit-children-from-table-of-contents
 
 \include-section{./steps/get.lit}
 \include-section{./steps/put.lit}
 \include-section{./steps/task.lit}
 \include-section{./steps/aggregate.lit}
 \include-section{./steps/do.lit}
+\include-section{./steps/try.lit}
 \include-section{./steps/on_success.lit}
 \include-section{./steps/on_failure.lit}
 \include-section{./steps/on_abort.lit}
 \include-section{./steps/ensure.lit}
 \include-section{./steps/tags.lit}
-\include-section{./steps/try.lit}
 \include-section{./steps/timeout.lit}
 \include-section{./steps/attempts.lit}

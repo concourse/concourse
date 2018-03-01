@@ -1,12 +1,6 @@
-\title{Concourse Architecture}{architecture}
+\title{Concourse Components}{components}
 
 \use-plugin{concourse-docs}
-
-\warn{
-  This topic isn't crucial to understanding Concourse; if you're just getting
-  started and have finished the \reference{installing} section, you may want to
-  first move on to \reference{using-concourse}.
-}
 
 Concourse is a fairly simple distributed system built up from the following
 components. You'll see them referenced here and there throughout the

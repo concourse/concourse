@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{attempts}\aux{: retry a step}}{retry-step}
+\title{\code{attempts} step modifier}{attempts-step-modifier}
 
 Any step can set the number of times it should be attempted by attaching
 an \code{attempts} parameter with the number of times it should be tried.

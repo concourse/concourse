@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{aggregate}\aux{: run steps in parallel}}{aggregate-step}
+\title{\code{aggregate} step}{aggregate-step}
 
 \define-attribute{aggregate: [step]}{
   Performs the given steps in parallel.

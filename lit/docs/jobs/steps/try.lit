@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{try}\aux{: permit failure of a step}}{try-step}
+\title{\code{try} step}{try-step}
 
 \define-attribute{try: step}{
   Performs the given step, swallowing any failure.

@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{do}\aux{: run steps in series}}{do-step}
+\title{\code{do} step}{do-step}
 
 \define-attribute{do: [step]}{
   Simply performs the given steps serially, with the same semantics as if they

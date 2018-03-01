@@ -15,9 +15,9 @@
   You can think of a \reference{pipelines}{pipeline} as a distributed,
   higher-level, continuously-running \code{Makefile}.
 
-  Each entry under \reference{configuring-resources} is a dependency, and each
-  entry under \reference{configuring-jobs} describes a
-  \reference{build-plans}{\code{plan}} to run when its dependencies change.
+  Each entry under \code{resources} is a dependency, and each entry under
+  \code{jobs} describes a \reference{build-plans}{\code{plan}} to run when the
+  job is triggered (either manually or by a \reference{get-step}).
 
   Jobs can depend on resources that have \reference{get-step-passed} through prior jobs.
   The resulting sequence of jobs and resources is a dependency graph that
@@ -113,8 +113,8 @@
   Concourse does not have a complex plugin system. Instead, it has a single
   strong abstraction.
 
-  The \reference{configuring-resources} section of a pipeline describes
-  abstract external locations where your pipeline will monitor for changes,
+  The \code{resources} section of a pipeline lists \reference{resources}, which
+  are abstract external locations where your pipeline will monitor for changes,
   fetch bits from, and push bits to.
 
   For example, a resource with type \code{git} refers to a git repository,
@@ -157,8 +157,9 @@
 
 \include-section{./about.lit}
 \include-section{./downloads.lit}
-\include-section{./setting-up/installing.lit}
+\include-section{./install.lit}
 \include-section{./docs.lit}
 \include-section{./reference.lit}
+\include-section{./advanced-setup.lit}
 \include-section{./trademarks.lit}
 \include-section{./thanks.lit}

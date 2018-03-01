@@ -2,9 +2,9 @@
 
 \release-with-garden-linux{2016-02-26}{0.74.0}{0.334.0}{
   \note{feature}{
-    You can now \reference{configuring-resource-types}{configure resource types
-    in your pipeline} rather than redeploying your workers with additional
-    resource types. This should make it much easier to use the
+    You can now \reference{resource-types}{configure resource types in your
+    pipeline} rather than redeploying your workers with additional resource
+    types. This should make it much easier to use the
     \reference{community-resources}{community resources} that people have
     built!
   }

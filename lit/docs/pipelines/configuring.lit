@@ -1,6 +1,8 @@
-\title{Configuring Pipelines}{configuring-pipelines}
+\title{Setting Pipelines}{setting-pipelines}
 
 \use-plugin{concourse-docs}
+
+Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
 
 \section{
   \title{\code{fly set-pipeline}}{fly-set-pipeline}
@@ -11,87 +13,70 @@
   you can use the \code{-c} or \code{--config} flag, like so:
 
   \codeblock{bash}{{
-  $ fly -t example set-pipeline --config pipeline.yml --pipeline my-pipeline
+  $ fly -t example set-pipeline \\
+      --pipeline my-pipeline \\
+      --config pipeline.yml
   }}
 
   This will present a diff of the changes and ask you to confirm the changes.
   If you accept then Concourse's pipeline configuration will switch to the
   pipeline definition in the YAML file specified.
-}
 
-\section{
-  \title{\aux{Using }\code{((params))}}{pipeline-params}
+  \section{
+    \title{\aux{Pipeline }\code{((params))}}{pipeline-params}
 
-  The pipeline configuration can contain template variables in the form of
-  \code{((foo-bar))}. They will be replaced with YAML values populated by
-  repeated \code{--var} or \code{--load-vars-from} flags.
+    The pipeline configuration can contain template variables in the form of
+    \code{((foo-bar))}. They will be replaced with YAML values populated by
+    repeated \code{--var} or \code{--load-vars-from} flags.
 
-  This allows for credentials to be extracted from a pipeline config, making it
-  safe to check in to a public repository or pass around.
+    This allows for credentials to be extracted from a pipeline config, making it
+    safe to check in to a public repository or pass around.
 
-  For example, if you have a \code{pipeline.yml} as follows:
+    For example, if you have a \code{pipeline.yml} as follows:
 
-  \codeblock{yaml}{{
-  resources:
-  - name: private-repo
-    type: git
-    source:
-      uri: git@...
-      branch: master
-      private_key: ((private-repo-key))
-  }}
+    \codeblock{yaml}{{
+    resources:
+    - name: private-repo
+      type: git
+      source:
+        uri: git@...
+        branch: master
+        private_key: ((private-repo-key))
+    }}
 
-  ...you could then configure this pipeline like so:
+    ...you could then configure this pipeline like so:
 
-  \codeblock{bash}{{
-  $ fly -t example set-pipeline --pipeline my-pipeline --config pipeline.yml --var "private-repo-key=$(cat id_rsa)"
-  }}
+    \codeblock{bash}{{
+    $ fly -t example set-pipeline \\
+        --pipeline my-pipeline \\
+        --config pipeline.yml \\
+        --var "private-repo-key=$(cat id_rsa)"
+    }}
 
-  Or, if you had a \code{credentials.yml} as follows:
+    Or, if you had a \code{credentials.yml} as follows:
 
-  \codeblock{yaml}{{
-  private-repo-key: |
-    -----BEGIN RSA PRIVATE KEY-----
-    ...
-    -----END RSA PRIVATE KEY-----
-  }}
+    \codeblock{yaml}{{
+    private-repo-key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      ...
+      -----END RSA PRIVATE KEY-----
+    }}
 
-  ...you could configure it like so:
+    ...you could configure it like so:
 
-  \codeblock{bash}{{
-  $ fly -t example set-pipeline --pipeline my-pipeline --config pipeline.yml --load-vars-from credentials.yml
-  }}
+    \codeblock{bash}{{
+    $ fly -t example set-pipeline \\
+        --pipeline my-pipeline \\
+        --config pipeline.yml \\
+        --load-vars-from credentials.yml
+    }}
 
-  If both \code{--var} and \code{--load-vars-from} are specified, the \code{--var}
-  flags take precedence.
+    If both \code{--var} and \code{--load-vars-from} are specified, the \code{--var}
+    flags take precedence.
 
-  Values other than strings (e.g. bools, arrays) may also be specified via
-  params. Concatenation is also supported in the form of \code{foo-((bar))}.
-}
-
-\section{
-  \title{Combining with \code{get-pipeline}}
-
-  You can use \link{process
-  substitution}{https://en.wikipedia.org/wiki/Process_substitution} to
-  quickly replicate a pipeline by composing \reference{fly-get-pipeline} and
-  \reference{fly-set-pipeline} together like so:
-
-  \codeblock{bash}{{
-  $ fly -t new set-pipeline -c <(fly -t old get-pipeline -p foo) -p foo
-  }}
-
-  While this replication method may be useful for migrating pipelines
-  between concourse instances, note the following caveats:
-
-  \code{get-pipeline} fetches the current pipeline configuration with variables
-  already interpolated. So you are working around any previous parameterization.
-
-  Replicating a pipeline, unmodified, risks resource contention.
-  For example, you could end up with two pipelines pushing to the same S3 bucket.
-
-  If you're starting a new pipeline, we recommend you try to work through
-  the above examples before using this one-step clone.
+    Values other than strings (e.g. bools, arrays) may also be specified via
+    params. Concatenation is also supported in the form of \code{foo-((bar))}.
+  }
 }
 
 \section{

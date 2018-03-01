@@ -53,7 +53,7 @@
   }
 
   \note{feature}{
-    \reference{fly-checklist} now generates a \code{Checkfile} with the team
+    \code{fly checklist} now generates a \code{Checkfile} with the team
     name present, thanks to a PR by \ghuser{Amit-PivotalLabs}.
 
     Be sure to upgrade \link{Checkman}{http://github.com/cppforlife/checkman}

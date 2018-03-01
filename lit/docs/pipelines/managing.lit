@@ -18,7 +18,9 @@
   To rename a pipeline, run:
 
   \codeblock{bash}{{
-  $ fly -t example rename-pipeline --old-name my-pipeline --new-name my-cool-pipeline
+  $ fly -t example rename-pipeline \\
+      --old-name my-pipeline \\
+      --new-name my-cool-pipeline
   }}
 }
 

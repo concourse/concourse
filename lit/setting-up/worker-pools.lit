@@ -2,12 +2,6 @@
 
 \use-plugin{concourse-docs}
 
-\warn{
-  This topic isn't crucial to understanding Concourse; if you're just getting
-  started and have finished the \reference{installing} section, you may want to
-  first move on to \reference{using-concourse}.
-}
-
 The \reference{architecture-atc}{ATC} does all of its scheduling using the pool
 of \reference{architecture-worker}{workers} registered with it. There is no way
 to configure the workers through the ATC itself; instead, each worker
@@ -19,9 +13,9 @@ Each worker has a \code{platform} and an optional set of \code{tags}, both of
 which determine the workloads that the ATC can run on the worker. A
 \reference{running-tasks}{Task} that configures its \code{platform} as
 \code{linux} can only run on workers advertising the same platform. Similarly,
-a step in a \reference{build-plans}{build plan} that configures
-\reference{step-tags} can only run on workers matching a superset of those
-tags.
+a step in a \reference{build-plans}{build plan} that configures a
+\reference{tags-step-modifier} can only run on workers matching a superset of
+those tags.
 
 A worker's \code{platform} is typically one of \code{linux}, \code{windows}, or
 \code{darwin}, but this is just convention; if you have some esoteric platform
@@ -33,7 +27,7 @@ know that the worker meets some special requirement, such as living within a
 particular network or having particular hardware capabilities. If a worker
 specifies \code{tags}, it is taken out of the "default" placement pool, and
 steps only run on the worker if they explicitly specify a common subset of the
-worker's tags, by setting \reference{step-tags}.
+worker's tags, by setting a \reference{tags-step-modifier}.
 
 Each worker also advertises which resource types it supports natively. This is
 just a mapping from resource type (e.g. \code{git}) to the location of the
@@ -41,8 +35,8 @@ resource's image on the worker (e.g. \code{/opt/resources/git}). You likely
 won't have to configure this yourself as all official Concourse distributions
 have a default set of core \reference{resource-types}{resource types} that
 they'll automatically advertise, and the rest should really be configured in
-your pipeline via \reference{configuring-resource-types} rather than being
-added to your workers.
+your pipeline via \reference{pipeline-resource-types} rather than being added
+to your workers.
 
 \split-sections
 \table-of-contents

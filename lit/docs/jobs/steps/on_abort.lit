@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{on_abort}\aux{: perform a step when another aborts}}{on-abort-step}
+\title{\code{on_abort} step hook}{on-abort-step-hook}
 
 Any step can have \code{on_abort} tacked onto it, whose value is a second
 step to execute only if the parent step aborts.

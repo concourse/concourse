@@ -35,7 +35,7 @@ UI, so you should make your output pretty.
   \list{
     \code{source} is an arbitrary JSON object which specifies the location of
     the resource, including any credentials. This is passed verbatim from the
-    \reference{configuring-resources}{pipeline configuration}.
+    \reference{resources}{resource configuration}.
 
     For \code{git} this would be the repo URI, which branch, and a private key
     if necessary.

@@ -46,9 +46,8 @@
   }
 
   \note{feature}{
-    Custom resource types can now be added via
-    \reference{configuring-resource-types} in the pipeline, rather than
-    reconfiguring your workers.
+    Custom resource types can now be added via \reference{resource-types} in
+    the pipeline, rather than reconfiguring your workers.
   }
 
   \note{fix}{
@@ -67,8 +66,8 @@
   }
 
   \note{feature}{
-    Tasks have explicit \reference{inputs} and \reference{outputs}, making
-    artifact consumption and production a lot easier to follow.
+    Tasks have explicit \reference{task-inputs} and \reference{task-outputs},
+    making artifact consumption and production a lot easier to follow.
   }
 
   \note{feature}{
@@ -91,11 +90,10 @@
   }
 
   \note{fix}{
-    Resources backed by a resource type defined in
-    \reference{configuring-resource-types} will now periodically check for new
-    versions of the resource type and use the latest one for checking.
-    Previously the same container would be reused forever even if a new version
-    of the resource type was released.
+    Resources backed by a resource type defined in \reference{resource-types}
+    will now periodically check for new versions of the resource type and use
+    the latest one for checking. Previously the same container would be reused
+    forever even if a new version of the resource type was released.
   }
 
   \note{feature}{
@@ -115,8 +113,7 @@
   }
 
   \note{fix}{
-    Connections from \reference{architecture-atc} to Baggage Claim
-    will now retry on connection errors.
+    Connections from ATC to Baggage Claim will now retry on connection errors.
   }
 
   \note{fix}{

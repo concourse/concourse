@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{on_success}\aux{: perform a step when another succeeds}}{on-success-step}
+\title{\code{on_success} step hook}{on-success-step-hook}
 
 Any step can have \code{on_success} tacked onto it, whose value is a second
 step to execute only if the parent step succeeds.
@@ -34,4 +34,5 @@ plan:
 }}
 
 ...however it is provided mainly for cases where there is an equivalent
-\reference{on-failure-step}, and having them next to each other is more clear.
+\reference{on-failure-step-hook}, and having them next to each other is more
+clear.

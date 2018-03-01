@@ -117,6 +117,7 @@ execute in any builds of the job.
 }{job-ensure}
 
 \split-sections
+\table-of-contents
 
 \include-section{jobs/steps.lit}
 \include-section{jobs/managing.lit}

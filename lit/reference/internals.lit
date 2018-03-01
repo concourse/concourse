@@ -165,8 +165,8 @@
       A use can be tied to a \reference{containers-table}, in which case the
       use can be removed when the container goes away. A cache is in use by a
       container when it's being used as the container's image, either via
-      \reference{image_resource} or a
-      \reference{configuring-resource-types}{custom resource type}.
+      \reference{image_resource} or a \reference{resource-types}{resource
+      type}.
     }
 
     \define-table{build_image_resource_caches}{
@@ -466,7 +466,7 @@
 
     Containers and volumes are the costliest resources consumed by Concourse.
     There are also many of them created over time as builds execute and
-    pipelines perform their \reference{version-collection}{resource checking}.
+    pipelines perform their \reference{pipeline-resources}{resource checking}.
     Therefore it is important to parallelize this aspect of garbage collection
     so that one slow delete or one slow worker does not cause them to pile up.
 
@@ -646,7 +646,7 @@
 
       \italic{Task containers} are created when a \reference{task-step} is
       exectuted in a build plan. They are based on the image produced by the
-      configured \reference{image_resource} or \reference{task-image}.
+      configured \reference{image_resource} or \reference{task-step-image}.
     }
 
     \section{

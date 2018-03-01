@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{tags}\aux{: perform a step on certain workers}}{step-tags}
+\title{\code{tags} step modifier}{tags-step-modifier}
 
 Any step can be directed at a pool of workers for a given set of tags, by
 adding the \code{tags} attribute to it.

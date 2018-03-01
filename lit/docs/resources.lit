@@ -51,7 +51,7 @@ Each configured resource consists of the following attributes:
   \italic{Optional. Default \code{[]}.} A list of tags to determine which
   workers the checks will be performed on. You'll want to specify this if the
   source is internal to a worker's network, for example. See also
-  \reference{step-tags} on a step.
+  \reference{tags-step-modifier}.
 }{resource-tags}
 
 \define-attribute{webhook_token: string}{
@@ -72,5 +72,6 @@ Each configured resource consists of the following attributes:
 }{resource-webhook-token}
 
 \split-sections
+\table-of-contents
 
 \include-section{resources/managing.lit}

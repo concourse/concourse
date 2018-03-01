@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{on_failure}\aux{: perform a step when another fails}}{on-failure-step}
+\title{\code{on_failure} step hook}{on-failure-step-hook}
 
 Any step can have \code{on_failure} tacked onto it, whose value is a second
 step to execute only if the parent step fails.

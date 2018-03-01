@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{\code{put}\aux{: update a resource}}{put-step}
+\title{\code{put} step}{put-step}
 
 Pushes to the given \reference{resources}{Resource}. All artifacts collected
 during the plan's execution will be available in the working directory.
@@ -51,8 +51,8 @@ plan:
 }{put-step-put}
 
 \define-attribute{resource: string}{
-  \italic{Optional. Defaults to \code{name}.} The resource to update,
-  as configured in \reference{configuring-resources}{\code{resources}}.
+  \italic{Optional. Defaults to \code{name}.} The resource to update, as
+  configured in \reference{pipeline-resources}.
 }{put-step-resource}
 
 \define-attribute{params: object}{
