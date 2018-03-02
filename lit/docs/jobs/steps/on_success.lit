@@ -10,29 +10,33 @@ step to execute only if the parent step succeeds.
   fails, the outer step is considered to have failed.
 }
 
-The following will perform the second task only if the first one succeeds:
+\examples{
+  \example{Running on Success}{
+    The following will perform the second task only if the first one succeeds:
 
-\codeblock{yaml}{{
-plan:
-- get: foo
-- task: unit
-  file: foo/unit.yml
-  on_success:
-    task: alert
-    file: foo/alert.yml
-}}
+    \codeblock{yaml}{{
+    plan:
+    - get: foo
+    - task: unit
+      file: foo/unit.yml
+      on_success:
+        task: alert
+        file: foo/alert.yml
+    }}
 
-Note that this is semantically equivalent to the following:
+    Note that this is semantically equivalent to the following:
 
-\codeblock{yaml}{{
-plan:
-- get: foo
-- task: unit
-  file: foo/unit.yml
-- task: alert
-  file: foo/alert.yml
-}}
+    \codeblock{yaml}{{
+    plan:
+    - get: foo
+    - task: unit
+      file: foo/unit.yml
+    - task: alert
+      file: foo/alert.yml
+    }}
 
-...however it is provided mainly for cases where there is an equivalent
-\reference{on-failure-step-hook}, and having them next to each other is more
-clear.
+    ...however it is provided mainly for cases where there is an equivalent
+    \reference{on-failure-step-hook}, and having them next to each other is more
+    clear.
+  }
+}

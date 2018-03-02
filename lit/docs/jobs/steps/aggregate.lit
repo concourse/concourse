@@ -9,31 +9,40 @@
   whole is considered to have errored.
 
   Similarly, when aggregating \reference{task-step}{\code{task}} steps, if any
-  \italic{fail}, the aggregate step will fail. This is useful for build matrixes:
+  \italic{fail}, the aggregate step will fail.
+}
 
-  \codeblock{yaml}{{
-  plan:
-  - get: some-repo
-  - aggregate:
-    - task: unit-windows
-      file: some-repo/ci/windows.yml
-    - task: unit-linux
-      file: some-repo/ci/linux.yml
-    - task: unit-darwin
-      file: some-repo/ci/darwin.yml
-  }}
+\examples{
+  \example{Build Matrix}{
+    If any step in the \code{aggregate} fails, the build will fail, making it
+    useful for build matrices:
 
-  The \code{aggregate} step is also useful for performing arbitrary steps in
-  parallel, for the sake of speeding up the build. It is often used to fetch
-  all dependent resources together:
+    \codeblock{yaml}{{
+    plan:
+    - get: some-repo
+    - aggregate:
+      - task: unit-windows
+        file: some-repo/ci/windows.yml
+      - task: unit-linux
+        file: some-repo/ci/linux.yml
+      - task: unit-darwin
+        file: some-repo/ci/darwin.yml
+    }}
+  }
 
-  \codeblock{yaml}{{
-  plan:
-  - aggregate:
-    - get: component-a
-    - get: component-b
-    - get: integration-suite
-  - task: integration
-    file: integration-suite/task.yml
-  }}
+  \example{Parallel Fetching}{
+    The \code{aggregate} step is also useful for performing arbitrary steps in
+    parallel, for the sake of speeding up the build. It is often used to fetch
+    all dependent resources together:
+
+    \codeblock{yaml}{{
+    plan:
+    - aggregate:
+      - get: component-a
+      - get: component-b
+      - get: integration-suite
+    - task: integration
+      file: integration-suite/task.yml
+    }}
+  }
 }

@@ -15,13 +15,17 @@ the number of seconds to limit it to.
   inforced).
 }
 
-The following will run the task, and cancel it if it takes longer than 1 hour
-and 30 minutes:
+\examples{
+  \example{Giving Up}{
+    The following will run the \code{unit} task and cancel it if it takes
+    longer than 1 hour and 30 minutes:
 
-\codeblock{yaml}{{
-plan:
-- get: foo
-- task: unit
-  file: foo/unit.yml
-  timeout: 1h30m
-}}
+    \codeblock{yaml}{{
+    plan:
+    - get: foo
+    - task: unit
+      file: foo/unit.yml
+      timeout: 1h30m
+    }}
+  }
+}

@@ -5,20 +5,62 @@
 Fetches a resource, making it available to subsequent steps via the given
 name.
 
-For example, the following plan fetches a version number via the
-\code{semver} resource, bumps it to the next release candidate, and
-\reference{put-step}{\code{put}}s it back.
+\examples{
+  \example{Simple Fetch & Test}{
+    Almost every simple unit test job will look something like this: fetch my
+    code with a \reference{get-step} and run its tests with a
+    \reference{task-step}.
 
-\codeblock{yaml}{{
-plan:
-- get: version
-  params:
-    bump: minor
-    rc: true
-- put: version
-  params:
-    version: version/number
-}}
+    \codeblock{yaml}{{
+    plan:
+    - get: my-repo
+      trigger: true
+    - task: unit
+      file: my-repo/ci/unit.yml
+    }}
+  }
+
+  \example{Fanning In}{
+    If multiple \code{get}s are configured with \code{passed} constraints, all
+    of the mentioned jobs are correlated. That is, with the following set of
+    inputs:
+
+    \codeblock{yaml}{{
+    plan:
+    - get: a
+      passed: [a-unit, integration]
+    - get: b
+      passed: [b-unit, integration]
+    - get: x
+      passed: [integration]
+    }}
+
+    This means "give me the versions of \code{a}, \code{b}, and \code{x} that
+    have passed the \italic{same build} of \code{integration}, with the same
+    version of \code{a} passing \code{a-unit} and the same version of \code{b}
+    passing \code{b-unit}."
+
+    This is crucial to being able to implement safe "fan-in" semantics as
+    things progress through a pipeline.
+  }
+
+  \example{Fetching with \code{params}}{
+    The following plan fetches a version number via the \code{semver} resource,
+    bumps it to the next release candidate, and \reference{put-step}{\code{put}}s
+    it back.
+
+    \codeblock{yaml}{{
+    plan:
+    - get: version
+      params:
+        bump: minor
+        rc: true
+    - put: version
+      params:
+        version: version/number
+    }}
+  }
+}
 
 \define-attribute{get: string}{
   \italic{Required.} The name of the resource once it is fetched. This name
@@ -62,28 +104,6 @@ plan:
   \italic{Optional.} When specified, only the versions of the resource that
   made it through the given list of jobs will be considered when triggering
   and fetching.
-
-  Note that if multiple \code{get}s are configured with \code{passed}
-  constraints, all of the mentioned jobs are correlated. That is, with the
-  following set of inputs:
-
-  \codeblock{yaml}{{
-  plan:
-  - get: a
-    passed: [a-unit, integration]
-  - get: b
-    passed: [b-unit, integration]
-  - get: x
-    passed: [integration]
-  }}
-
-  This means "give me the versions of \code{a}, \code{b}, and \code{x} that
-  have passed the \italic{same build} of \code{integration}, with the same
-  version of \code{a} passing \code{a-unit} and the same version of
-  \code{b} passing \code{b-unit}."
-
-  This is crucial to being able to implement safe "fan-in" semantics as
-  things progress through a pipeline.
 }{get-step-passed}
 
 \define-attribute{params: object}{
