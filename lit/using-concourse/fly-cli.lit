@@ -295,7 +295,7 @@ flag. Once you've learned what the commands do, you may want to consult
     $ fly -t example execute --input code=. --config build-stemcell.yml --output stemcell=/tmp/stemcell
     }}
 
-    This would work together with a \code{task.yml} if its \code{outputs:}
+    This would work together with a \code{build-stemcell.yml} if its \code{outputs:}
     section was as follows:
 
     \codeblock{yaml}{{
