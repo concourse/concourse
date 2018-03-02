@@ -21,7 +21,7 @@
 
   \note{fix}{
     We've improved the error message returned when the
-    \reference{file}{\code{file}} used by a \reference{task-step} step does not
+    \reference{file}{\code{file}} used by a \reference{task-step} does not
     exist.
   }
 }

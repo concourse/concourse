@@ -261,6 +261,6 @@ UI, so you should make your output pretty.
   automated commit so its origin can be discovered.
 
   They should \italic{not} be used to emulate versioning (e.g. by using the
-  increasing build number). They are not provided to \reference{task-step}
-  steps to avoid this anti-pattern.
+  increasing build number). They are not provided to \reference{task-step}s
+  to avoid this anti-pattern.
 }

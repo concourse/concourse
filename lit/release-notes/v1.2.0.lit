@@ -16,7 +16,7 @@
   }
 
   \note{feature}{
-    \reference{get-step} steps can now be pinned to a specific version.
+    \reference{get-step}s can now be pinned to a specific version.
 
     Example:
 
@@ -36,8 +36,8 @@
   }
 
   \note{feature}{
-    \reference{get-step} steps can now be configured to run with every version
-    of its resource, rather than skipping to the latest.
+    \reference{get-step}s can now be configured to run with every version of
+    its resource, rather than skipping to the latest.
 
     Example:
 

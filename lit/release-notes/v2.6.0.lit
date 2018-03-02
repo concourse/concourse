@@ -50,9 +50,9 @@
   }
 
   \note{feature}{
-    Previously if you configured a job with multiple \reference{get-step} steps
-    with the same name, the job would never be able to schedule.
-    \ghuser{cnelson} did a PR to add a validation for this borked configuration
+    Previously if you configured a job with multiple \reference{get-step}s with
+    the same name, the job would never be able to schedule. \ghuser{cnelson}
+    did a PR to add a validation for this borked configuration
     - thanks!
   }
 

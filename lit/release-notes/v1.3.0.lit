@@ -40,7 +40,7 @@
   }
 
   \note{feature}{
-    A \reference{task-step} step in a plan can now be configured with an
+    A \reference{task-step} in a plan can now be configured with an
     \reference{task-step-image} field specifying an artifact source to use.
     This allows for build-and-test flows, where your pipeline produces an image
     and then propagates the exact image to a task that uses it as its rootfs.

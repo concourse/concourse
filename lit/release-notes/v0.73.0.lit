@@ -66,7 +66,7 @@
     produces the \code{docker save}d image by default. This is to reduce disk
     usage when using the resource as an \reference{image_resource}. You must
     now pass \code{save: true} as part of \code{params} on the
-    \reference{get-step} step to produce the \code{image} file.
+    \reference{get-step} to produce the \code{image} file.
   }
 
   \note{feature}{
