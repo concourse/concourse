@@ -1,9 +1,0 @@
-\title{Advanced Setup}{advanced-setup}
-
-\split-sections
-\table-of-contents
-
-\include-section{setting-up/encryption.lit}
-\include-section{setting-up/credential-management.lit}
-\include-section{setting-up/metrics.lit}
-\include-section{setting-up/worker-pools.lit}

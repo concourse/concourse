@@ -139,7 +139,7 @@ between the philosophy of BOSH and Concourse.
   for testing with iOS or in some special network), you'll need to make some
   tweaks to the default configuration of the \code{tsa} job.
 
-  The \reference{architecture-tsa} is the entryway for workers to join the
+  The \reference{component-tsa} is the entryway for workers to join the
   cluster. For every new worker key pair, the TSA will be told to authorize
   its public key, and the workers must also know the TSA's public key ahead
   of time, so they know who they're connecting to.

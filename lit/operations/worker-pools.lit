@@ -2,7 +2,7 @@
 
 \use-plugin{concourse-docs}
 
-The \reference{architecture-atc}{ATC} does all of its scheduling using the pool
+The \reference{component-atc}{ATC} does all of its scheduling using the pool
 of \reference{architecture-worker}{workers} registered with it. There is no way
 to configure the workers through the ATC itself; instead, each worker
 continuously heartbeats its presence to the ATC, along with basic statistics
@@ -135,7 +135,7 @@ to your workers.
   long as the server it's advertising is healthy.
 
   A typical Concourse installation includes a component called the
-  \reference{architecture-tsa}{TSA}. The TSA is used to securely register
+  \reference{component-tsa}{TSA}. The TSA is used to securely register
   workers via SSH, and continuously health-check and heartbeat them to the ATC.
   These workers can come from any network that can reach the TSA, which is
   usually colocated with the ATC and possibly sitting behind the same load
@@ -149,7 +149,7 @@ to your workers.
   private networks. Rather than making the worker VM publicly reachable (very
   dangerous!) or using a VPN (a bit sketchy depending on where the ATC lives, and
   often error prone), workers can listen on \code{127.0.0.1} and forward their
-  connections through the \reference{architecture-tsa}{TSA} via a reverse SSH
+  connections through the \reference{component-tsa}{TSA} via a reverse SSH
   tunnel.
 
   \section{

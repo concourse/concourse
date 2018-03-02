@@ -151,6 +151,8 @@ as).
   \section{
     \title{GitHub oAuth}{github-auth}
 
+    \omit-children-from-table-of-contents
+
     A Concourse server can authenticate against GitHub to take advantage of
     their permission model and other security improvements in their
     infrastructure. There are a number of steps you need to take to enable
@@ -236,6 +238,8 @@ as).
   \section{
     \title{UAA/CF oAuth}{uaa-cf-auth}
 
+    \omit-children-from-table-of-contents
+
     The \code{--uaa-auth-*} flags allow you to authorize members of a
     particular space in a CF deployment. In the future we'll make this generic
     to UAA and request scopes.
@@ -288,6 +292,8 @@ as).
 
   \section{
     \title{Generic oAuth}{generic-oauth}
+
+    \omit-children-from-table-of-contents
 
     The \code{--generic-oauth-*} flags configure a generic oAuth provider which
     performs no additional verification about the individual user signing in

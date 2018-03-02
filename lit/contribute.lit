@@ -1,0 +1,9 @@
+\title{Contribute}{contribute}
+
+\use-plugin{concourse-docs}
+
+\split-sections
+\table-of-contents
+
+\include-section{./operations/architecture.lit}
+\include-section{./internals.lit}

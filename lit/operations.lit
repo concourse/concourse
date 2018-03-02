@@ -1,0 +1,16 @@
+\title{Operations}{operations}
+
+The following sections are available to provide a deeper understanding of some
+of the concepts surrounding Concourse. They aren't necessary for using
+Concourse and understanding its general concept of pipelines and how to use
+them, but we do recommend at least learning how to set up \reference{creds} and
+\reference{encryption}.
+
+\split-sections
+\table-of-contents
+
+\include-section{./operations/topology.lit}
+\include-section{./operations/encryption.lit}
+\include-section{./operations/creds.lit}
+\include-section{./operations/metrics.lit}
+\include-section{./operations/worker-pools.lit}

@@ -81,7 +81,7 @@ management} as well.
   random character sequence and configure it as \code{--encryption-key} flag to
   the \code{web} command. For BOSH, this is the \boshprop{atc}{encryption_key} property.
 
-  On startup, the \reference{architecture-atc} will encrypt all existing
+  On startup, the \reference{component-atc} will encrypt all existing
   plaintext data, and any new data being written will be encrypted before it's
   sent over the network to the database.
 
@@ -98,7 +98,7 @@ management} as well.
   \code{--old-encryption-key} (or \boshprop{atc}{old_encryption_key}), and the new key
   as \code{--encryption-key} (or \boshprop{atc}{encryption_key}).
 
-  On startup, the \reference{architecture-atc} will decrypt all existing data
+  On startup, the \reference{component-atc} will decrypt all existing data
   and re-encrypt it with the new key, in one go. If it encounters a row which
   is already encrypted with the new key, it will continue on (as may be the
   case when restarting with the flags again, or if the ATC died in the middle
@@ -117,6 +117,6 @@ management} as well.
 
   To opt out of encryption entirely (I'm sure you have your reasons), simply
   pass \code{--old-encryption-key} (or \boshprop{atc}{old_encryption_key})
-  alone. With no new encryption key, the \reference{architecture-atc} will
+  alone. With no new encryption key, the \reference{component-atc} will
   decrypt all existing data on start.
 }

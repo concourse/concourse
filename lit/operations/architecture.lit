@@ -10,7 +10,7 @@ they are.
 \tutorial-image{images/concourse_architecture.png}
 
 \section{
-  \title{ATC\aux{: web UI & build scheduler}}{architecture-atc}
+  \title{ATC\aux{: web UI & build scheduler}}{component-atc}
 
   The ATC is the heart of Concourse. It runs the web UI and API and is
   responsible for all pipeline scheduling. It connects to PostgreSQL, which it
@@ -21,18 +21,18 @@ they are.
   roughly spread work across the cluster.
 
   The ATC by default listens on port \code{8080}, and is usually colocated with
-  the \reference{architecture-tsa}{TSA} and sitting behind a load balancer.
+  the \reference{component-tsa}{TSA} and sitting behind a load balancer.
 
   \bold{Note:} for \reference{fly-intercept} to function, make sure your load
   balancer is configured to do TCP or SSL forwarding, not HTTP or HTTPS.
 }
 
 \section{
-  \title{TSA\aux{: worker registration & forwarding}}{architecture-tsa}
+  \title{TSA\aux{: worker registration & forwarding}}{component-tsa}
 
   The TSA is a custom-built SSH server that is used solely for securely
   registering \reference{architecture-worker}{workers} with the
-  \reference{architecture-atc}{ATC}.
+  \reference{component-atc}{ATC}.
 
   The TSA only supports two commands: \code{register-worker} and
   \code{forward-worker}.
@@ -48,7 +48,15 @@ they are.
   up to the outside world.
 
   The TSA by default listens on port \code{2222}, and is usually colocated with
-  the \reference{architecture-atc}{ATC} and sitting behind a load balancer.
+  the \reference{component-atc}{ATC} and sitting behind a load balancer.
+}
+
+\section{
+  \title{Garden\aux{: container orchestration}}{component-garden}
+}
+
+\section{
+  \title{BaggageClaim\aux{: volume management}}{component-baggageclaim}
 }
 
 \section{
@@ -57,7 +65,7 @@ they are.
   Workers are machines running
   \link{Garden}{https://github.com/cloudfoundry-incubator/garden} and
   \link{Baggageclaim}{https://github.com/concourse/baggageclaim} servers
-  and registering themselves via the \reference{architecture-tsa}{TSA}.
+  and registering themselves via the \reference{component-tsa}{TSA}.
 
   Workers have no important state configured on their machines, as everything
   runs in a container and thus shouldn't care about what packages are installed
@@ -67,12 +75,12 @@ they are.
   your pipeline works or not.
 
   Each worker registers itself with the Concourse cluster via the
-  \reference{architecture-tsa}{TSA}.
+  \reference{component-tsa}{TSA}.
 
   Workers by default listen on port \code{7777} for Garden and port \code{7788}
   for Baggageclaim. If they are within a private network reachable by the
-  \reference{architecture-atc}{ATC}, they'll probably bind on all addresses
+  \reference{component-atc}{ATC}, they'll probably bind on all addresses
   (\code{0.0.0.0}) and register themselves directly. Otherwise they should bind
   on \code{127.0.0.1} and forward themselves through the
-  \reference{architecture-tsa}{TSA}.
+  \reference{component-tsa}{TSA}.
 }

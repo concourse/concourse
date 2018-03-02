@@ -20,7 +20,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
 
 \split-sections
 
-\include-section{setting-up/installing/lite.lit}
-\include-section{setting-up/installing/binary.lit}
-\include-section{setting-up/installing/docker.lit}
-\include-section{setting-up/installing/bosh.lit}
+\include-section{./install/lite.lit}
+\include-section{./install/binary.lit}
+\include-section{./install/docker.lit}
+\include-section{./install/bosh.lit}

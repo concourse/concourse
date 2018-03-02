@@ -1,6 +1,6 @@
 \title{Docs}{docs}
 
-\include-section{./docs/getting-started.lit}
+\include-section{./docs/fly.lit}
 \include-section{./docs/tasks.lit}
 \include-section{./docs/builds.lit}
 \include-section{./docs/pipelines.lit}
