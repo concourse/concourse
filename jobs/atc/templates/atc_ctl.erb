@@ -16,6 +16,7 @@ LOG_DIR=/var/vcap/sys/log/atc
 SIGNING_KEY=/var/vcap/jobs/atc/config/token_signing_key
 PIDFILE=$RUN_DIR/atc.pid
 CF_CA_CERT=/var/vcap/jobs/atc/config/cf_ca_cert
+GENERIC_OAUTH_CA_CERT=/var/vcap/jobs/atc/config/generic_oauth_ca_cert
 POSTGRESQL_CA_CERT=/var/vcap/jobs/atc/config/postgres_ca_cert
 POSTGRESQL_CLIENT_CERT=/var/vcap/jobs/atc/config/postgres_client_cert
 POSTGRESQL_CLIENT_KEY=/var/vcap/jobs/atc/config/postgres_client_key
@@ -185,6 +186,9 @@ case $1 in
       <% end %> \
       --generic-oauth-token-url <%= esc(p("generic_oauth.token_url")) %> \
       --generic-oauth-display-name <%= esc(p("generic_oauth.display_name")) %> \
+      <% if_p("generic_oauth.ca_cert") do %> \
+      --generic-oauth-ca-cert $GENERIC_OAUTH_CA_CERT \
+      <% end %> \
       --session-signing-key $SIGNING_KEY \
       <% if_p("intercept_idle_timeout") do |timeout| %> \
 	      --intercept-idle-timeout <%= esc(timeout) %> \

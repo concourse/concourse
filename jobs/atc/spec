@@ -19,6 +19,7 @@ templates:
   credhub_ca_cert.erb: config/credhub_ca_cert
   credhub_client_cert.erb: config/credhub_client_cert
   credhub_client_key.erb: config/credhub_client_key
+  generic_oauth_ca_cert.erb: config/generic_oauth_ca_cert
   token_signing_key.erb: config/token_signing_key
   downgrade_db.erb: bin/experimental_downgrade_db
 
@@ -263,6 +264,9 @@ properties:
   generic_oauth.display_name:
     description: Name of the authentication method to be displayed on the Web UI
     default: ""
+
+  generic_oauth.ca_cert:
+    description: The CA certificate for the Generic OAuth provider's endpoints.
 
   intercept_idle_timeout:
     description: Length of time for a intercepted session to be idle before terminating, in Go duration format.
