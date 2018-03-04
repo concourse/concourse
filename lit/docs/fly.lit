@@ -15,131 +15,119 @@ every command and flag. Once you've learned what the commands do, you may want
 to consult \code{fly -h} to learn the short forms.
 
 \section{
-  \title{Targeting your Concourse}
+  \title{\code{fly login}}{fly-login}
 
-  \section{
-    \title{\code{fly login}}{fly-login}
+  The first thing you'll want to do is authenticate with your target. This is
+  done with the \reference{fly-login} command. This is also useful to save
+  targets under a more convenient alias, so you don't have to type out the URL
+  all the time:
 
-    The first thing you'll want to do is authenticate with your target. This is
-    done with the \reference{fly-login} command. This is also useful to save
-    targets under a more convenient alias, so you don't have to type out the URL
-    all the time:
+  The \code{login} command serves double duty: it authenticates with a given
+  endpoint, and saves it under a more convenient name. The name and token are
+  stored in \code{~/.flyrc} (though you shouldn't really edit the file
+  manually).
 
-    The \code{login} command serves double duty: it authenticates with a given
-    endpoint, and saves it under a more convenient name. The name and token are
-    stored in \code{~/.flyrc} (though you shouldn't really edit the file
-    manually).
+  Concourse deployments can be occupied by multiple \reference{teams}{teams}.
+  To specify the team to which to log in, specify the \code{--team-name} or
+  \code{-n} flag. If not specified, this defaults to
+  \reference{main-team}{\code{main}}.
 
-    Concourse deployments can be occupied by multiple \reference{teams}{teams}.
-    To specify the team to which to log in, specify the \code{--team-name} or
-    \code{-n} flag. If not specified, this defaults to
-    \reference{main-team}{\code{main}}.
+  So, to log in to a team \code{my-team} an endpoint served at
+  \code{https://ci.example.com} and save it as the more convenient name
+  \code{example}, you would run:
 
-    So, to log in to a team \code{my-team} an endpoint served at
-    \code{https://ci.example.com} and save it as the more convenient name
-    \code{example}, you would run:
+  \codeblock{bash}{{{
+  $ fly --target example login --team-name my-team \
+      --concourse-url https://ci.example.com
+  }}}
 
-    \codeblock{bash}{{{
-    $ fly --target example login --team-name my-team \
-        --concourse-url https://ci.example.com
-    }}}
+  The \code{login} command will see which authentication methods are available
+  for the specified team and prompt you to choose one. For basic auth, it will
+  ask your username and password and use them to acquire a token. For OAuth, it
+  will give you a link to click, and after you've gone through the OAuth flow
+  it will print an OAuth token on the page that you can then then copy and
+  paste into the prompt.
 
-    The \code{login} command will see which authentication methods are available
-    for the specified team and prompt you to choose one. For basic auth, it will
-    ask your username and password and use them to acquire a token. For OAuth, it
-    will give you a link to click, and after you've gone through the OAuth flow
-    it will print an OAuth token on the page that you can then then copy and
-    paste into the prompt.
+  Note that if no authentication methods are configured (e.g. when targeting a
+  \reference{concourse-lite}{Concourse Lite VM}), \code{fly} will acquire a
+  token without any prompting. You can then use the alias like normal.
 
-    Note that if no authentication methods are configured (e.g. when targeting a
-    \reference{concourse-lite}{Concourse Lite VM}), \code{fly} will acquire a
-    token without any prompting. You can then use the alias like normal.
+  In any case, a token is saved in your \code{~/.flyrc}, which will expire
+  after one day.
 
-    In any case, a token is saved in your \code{~/.flyrc}, which will expire
-    after one day.
+  If your Concourse uses SSL but does not have a certificate signed by a
+  trusted CA, you can use the \code{--ca-cert} flag so that \code{fly} can
+  trust the connection, like so:
 
-    If your Concourse uses SSL but does not have a certificate signed by a
-    trusted CA, you can use the \code{--ca-cert} flag so that \code{fly} can
-    trust the connection, like so:
+  \codeblock{bash}{{
+  $ fly -t example login -c https://ci.example.com --ca-cert ./ca.crt
+  }}
 
-    \codeblock{bash}{{
-    $ fly -t example login -c https://ci.example.com --ca-cert ./ca.crt
-    }}
+  This will read the value out of the file \code{./ca.crt} and save it into
+  \code{~/.flyrc} so you don't have to pass it on every \code{login}
+  invocation.
 
-    This will read the value out of the file \code{./ca.crt} and save it into
-    \code{~/.flyrc} so you don't have to pass it on every \code{login}
-    invocation.
+  After you've logged in you can use \code{--target example} (or \code{-t
+  example} for short) to run a command against the saved target \code{example}.
+  For eample, \code{fly -t example builds} will list the last few builds on the
+  \code{example} Concourse instance.
 
-    After you've logged in you can use \code{--target example} (or \code{-t
-    example} for short) to run a command against the saved target \code{example}.
-    For eample, \code{fly -t example builds} will list the last few builds on the
-    \code{example} Concourse instance.
-
-    The \code{-t} flag is intentionally stateless and must be explicitly added
-    to each command. This reduces the risk of accidentally running a command against the
-    wrong environment when you have multiple targets defined.
-  }
+  The \code{-t} flag is intentionally stateless and must be explicitly added
+  to each command. This reduces the risk of accidentally running a command against the
+  wrong environment when you have multiple targets defined.
 }
 
 \section{
-  \title{Managing Targets}
+  \title{\code{fly targets}}{fly-targets}
 
-  \section{
-    \title{\code{fly targets}}{fly-targets}
+  To see what targets are currently known to \code{fly}, run:
 
-    To see what targets are currently known to \code{fly}, run:
+  \codeblock{bash}{{
+  $ fly targets
+  }}
 
-    \codeblock{bash}{{
-    $ fly targets
-    }}
-
-    This will show each target's name, URL, and when its token expires.
-  }
-
-  \section{
-    \title{\code{fly logout}}{fly-logout}
-
-    There are cases when you would like to remove all evidence of a particular
-    target. This is achieved by the \code{logout} command. There are two variants
-    of this command, one to get rid of a specific target, and another to remove
-    all targets from the \code{~/.flyrc} file.
-
-    To remove a specific target run:
-
-    \codeblock{bash}{{
-    $ fly -t example logout
-    }}
-
-    To remove all targets run:
-
-    \codeblock{bash}{{
-    $ fly logout -a
-    }}
-
-    Note: These two variations are mutually exclusive. If the target parameter
-    \code{-t} and all parameter \code{-a} are both specified, an error will occur.
-  }
+  This will show each target's name, URL, and when its token expires.
 }
 
 \section{
-  \title{Upgrading & Downgrading \code{fly}}
+  \title{\code{fly logout}}{fly-logout}
 
-  \section{
-    \title{\code{fly sync}}{fly-sync}
+  There are cases when you would like to remove all evidence of a particular
+  target. This is achieved by the \code{logout} command. There are two variants
+  of this command, one to get rid of a specific target, and another to remove
+  all targets from the \code{~/.flyrc} file.
 
-    Occasionally we add additional features to \code{fly} or make changes to the
-    communiction between it and Concourse's API server. To make sure you're
-    running the latest and greatest version that works with the Concourse you
-    are targeting we provide a command called \code{sync} that will update your
-    local \code{fly}. It can be used like so:
+  To remove a specific target run:
 
-    \codeblock{bash}{{
-    $ fly -t example sync
-    }}
+  \codeblock{bash}{{
+  $ fly -t example logout
+  }}
 
-    If you see anything odd, for example the output of builds not rendering or
-    certain commands throwing errors, be sure to run this command before
-    investigating any further; it's pretty likely that something has changed with
-    the API, especially while we're pre-1.0.
-  }
+  To remove all targets run:
+
+  \codeblock{bash}{{
+  $ fly logout -a
+  }}
+
+  Note: These two variations are mutually exclusive. If the target parameter
+  \code{-t} and all parameter \code{-a} are both specified, an error will occur.
+}
+
+\section{
+  \title{\code{fly sync}}{fly-sync}
+
+  Occasionally we add additional features to \code{fly} or make changes to the
+  communiction between it and Concourse's API server. To make sure you're
+  running the latest and greatest version that works with the Concourse you
+  are targeting we provide a command called \code{sync} that will update your
+  local \code{fly}. It can be used like so:
+
+  \codeblock{bash}{{
+  $ fly -t example sync
+  }}
+
+  If you see anything odd, for example the output of builds not rendering or
+  certain commands throwing errors, be sure to run this command before
+  investigating any further; it's pretty likely that something has changed with
+  the API, especially while we're pre-1.0.
 }

@@ -13,4 +13,3 @@ them, but we do recommend at least learning how to set up \reference{creds} and
 \include-section{./operations/encryption.lit}
 \include-section{./operations/creds.lit}
 \include-section{./operations/metrics.lit}
-\include-section{./operations/worker-pools.lit}
