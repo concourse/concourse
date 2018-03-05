@@ -84,7 +84,11 @@ body.with-examples {
   font-size: 20px;
 }
 
-.toc ol a {
+.toc a {
+  text-decoration: none;
+}
+
+.toc ol a, .toc ol .section-number {
   font-size: 18px;
 }
 
