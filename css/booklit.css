@@ -391,6 +391,15 @@ h2, h3 {
   padding-top: 20px;
 }
 
+.example {
+  margin-bottom: 3em;
+}
+
+.example h3 {
+  font-size: 24px;
+  margin-bottom: -4px;
+}
+
 .with-examples .page {
   border-right: 1px solid #ddd;
 }
