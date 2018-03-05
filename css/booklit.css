@@ -84,6 +84,14 @@ body.with-examples {
   font-size: 20px;
 }
 
+.toc li {
+  margin-bottom: 10px;
+}
+
+.toc li li {
+  margin-bottom: 0;
+}
+
 .toc a {
   text-decoration: none;
 }
