@@ -58,8 +58,15 @@ body.with-examples {
 .header h1 {
   margin: 0;
   border: 0;
-  font-size: 24px;
+  font-size: 36px;
   width: 200px;
+}
+
+.header nav a {
+  margin-right: 50px;
+  font-size: 18px;
+  position: relative;
+  bottom: -6px;
 }
 
 .page h1 {
@@ -96,11 +103,6 @@ body.with-examples {
 .header a:hover {
   border-bottom: 1px solid #868585;
   text-decoration: none;
-}
-
-.header nav a {
-  margin-right: 50px;
-  font-size: 15px;
 }
 
 .logo {
