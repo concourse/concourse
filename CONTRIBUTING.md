@@ -41,7 +41,10 @@ There are a few ways you can help out here:
   grow the community. We try to help out through the day but relying on one
   timezone doesn't scale.
 
-
+* You can triage issues which may include reproducing bug reports or asking for
+  vital information, such as version numbers or reproduction instructions. If
+  you would like to start triaging issues, one easy way to get started is to
+  [subscribe to concourse on CodeTriage](https://www.codetriage.com/concourse/concourse).
 
 # Contributing Code
 
