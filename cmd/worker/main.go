@@ -82,5 +82,12 @@ func main() {
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.INFO))
 	runner := worker.BeaconRunner(logger.Session("beacon"), atcWorker, cmd.BeaconConfig)
 
-	<-ifrit.Invoke(runner).Wait()
+	select {
+	case err := <-ifrit.Invoke(runner).Wait():
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
 }
