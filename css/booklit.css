@@ -20,7 +20,7 @@ body.with-examples {
 #top {
   background: #1E1D1D;
   color: #fff;
-  font-family: 'Saira Condensed', monospace;
+  font-family: 'Iosevka', monospace;
   line-height: 90px;
 }
 
@@ -44,8 +44,8 @@ body.with-examples {
   background: #fff;
   width: 200px;
   padding-left: 70px;
-  font-family: 'Saira Condensed', monospace;
-  font-size: 16px;
+  font-family: 'Iosevka', monospace;
+  font-size: 14px;
   color: #7A7373;
 }
 
@@ -58,15 +58,15 @@ body.with-examples {
 .header h1 {
   margin: 0;
   border: 0;
-  font-size: 36px;
+  font-size: 26px;
   width: 200px;
 }
 
 .header nav a {
   margin-right: 50px;
-  font-size: 18px;
+  font-size: 16px;
   position: relative;
-  bottom: -6px;
+  bottom: -4px;
 }
 
 .page h1 {
@@ -80,8 +80,8 @@ body.with-examples {
 }
 
 .toc {
-  font-family: 'Saira Condensed', monospace;
-  font-size: 20px;
+  font-family: 'Iosevka', monospace;
+  font-size: 18px;
 }
 
 .toc li {
@@ -186,12 +186,12 @@ nav ul {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Saira Condensed', monospace;
+  font-family: 'Iosevka', monospace;
   font-weight: normal;
 }
 
 h1 {
-  font-size: 36px;
+  font-size: 32px;
   margin-top: 0;
   font-weight: 500;
 }
@@ -202,7 +202,7 @@ h2 {
 }
 
 h3 {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 h2, h3 {
@@ -225,8 +225,7 @@ h2, h3 {
 }
 
 .side .context a {
-  border-left: .25em solid transparent;
-  border-right: .25em solid transparent;
+  border: .25em solid transparent;
   margin: 0 -.25em;
 }
 
@@ -245,7 +244,7 @@ h2, h3 {
 
 .side .toggle {
   position: absolute;
-  top: .35em;
+  top: .15em;
   left: 0;
   line-height: 1.4rem;
   z-index: 2;
@@ -258,10 +257,11 @@ h2, h3 {
 
 .side .arrow:after, .side .toggle:after {
   position: absolute;
-  top: .35em;
+  top: .15em;
   left: 0;
   content: "\25ba";
   line-height: 1.4rem;
+  font-family: sans-serif;
   font-size: .75rem;
   z-index: 1;
   cursor: pointer;
@@ -324,11 +324,10 @@ h2, h3 {
   padding: 0 1em;
 }
 
-
 .splash-intro {
   border-bottom: 5px solid #1E1D1D;
-  font-family: 'Saira Condensed', monospace;
-  font-size: 20px;
+  font-family: 'Iosevka', monospace;
+  font-size: 18px;
   padding-bottom: 30px;
   margin-bottom: 40px;
 }
@@ -336,14 +335,14 @@ h2, h3 {
 .splash-intro h2 {
   margin: 0;
   border: 0;
-  font-size: 36px;
+  font-size: 26px;
   font-weight: 500;
   margin-top: -4px;
 }
 
 .splash-example h2 {
   margin-bottom: 14px;
-  font-size: 24px;
+  font-size: 19px;
   border: 0;
 }
 
