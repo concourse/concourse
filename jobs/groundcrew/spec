@@ -101,6 +101,12 @@ properties:
       the instance's address is advertised if the link is not
       found.
 
+  garden.forward_address:
+    description: |
+      Garden server connection address to forward through SSH to the TSA.
+
+      If not specified, the Garden server address is registered directly.
+
   baggageclaim.url:
     description: |
       Baggageclaim server URL to advertise directly to the
@@ -108,6 +114,12 @@ properties:
 
       If not specified, either the `baggageclaim` link is
       used.
+
+  baggageclaim.forward_address:
+    description: |
+      Baggageclaim server connection address to forward through SSH to the TSA.
+
+      If not specified, the Baggageclaim server address is registered directly.
 
   platform:
     description: |
