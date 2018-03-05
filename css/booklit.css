@@ -20,7 +20,7 @@ body.with-examples {
 #top {
   background: #1E1D1D;
   color: #fff;
-  font-family: 'Iosevka', monospace;
+  font-family: 'Saira Condensed', monospace;
   line-height: 90px;
 }
 
@@ -44,8 +44,8 @@ body.with-examples {
   background: #fff;
   width: 200px;
   padding-left: 70px;
-  font-family: 'Iosevka', monospace;
-  font-size: 14px;
+  font-family: 'Saira Condensed', monospace;
+  font-size: 16px;
   color: #7A7373;
 }
 
@@ -73,15 +73,12 @@ body.with-examples {
 }
 
 .toc {
-  font-family: 'Iosevka', monospace;
-}
-
-.toc a {
-  font-size: 18px;
+  font-family: 'Saira Condensed', monospace;
+  font-size: 20px;
 }
 
 .toc ol a {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .toc, .toc ol {
@@ -175,37 +172,27 @@ nav ul {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Iosevka', monospace;
+  font-family: 'Saira Condensed', monospace;
   font-weight: normal;
 }
 
 h1 {
-  font-size: 32px;
+  font-size: 36px;
   margin-top: 0;
   font-weight: 500;
 }
 
 h2 {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 500;
 }
 
 h3 {
-  font-size: 18px;
+  font-size: 24px;
 }
 
 h2, h3 {
   margin-top: 2rem;
-}
-
-.page.top h1 {
-  font-size: 32px;
-  border-bottom: 0;
-}
-
-.page.top .section > p {
-  font-family: 'Iosevka', monospace;
-  color: #9B9B9B;
 }
 
 .side a {
@@ -223,10 +210,16 @@ h2, h3 {
   margin-left: -.15rem;
 }
 
+.side .context a {
+  border-left: .25em solid transparent;
+  border-right: .25em solid transparent;
+  margin: 0 -.25em;
+}
+
 .side .context a.self {
   color: #000;
-  background: rgba(51, 152, 220, 0.25);
-  box-shadow: rgba(51, 152, 220, 0.25) 0 0 0 0.25em;
+  background: #cde6f7;
+  border-color: #cde6f7;
   text-decoration: underline;
   display: inline;
 }
@@ -238,7 +231,7 @@ h2, h3 {
 
 .side .toggle {
   position: absolute;
-  top: 0;
+  top: .35em;
   left: 0;
   line-height: 1.4rem;
   z-index: 2;
@@ -251,7 +244,7 @@ h2, h3 {
 
 .side .arrow:after, .side .toggle:after {
   position: absolute;
-  top: 0;
+  top: .35em;
   left: 0;
   content: "\25ba";
   line-height: 1.4rem;
@@ -270,7 +263,7 @@ h2, h3 {
 
 .side .children {
   border-left: 1px solid #403430;
-  margin-left: .15rem;
+  margin-left: .35rem;
   padding-left: .8rem;
 }
 
@@ -320,23 +313,23 @@ h2, h3 {
 
 .splash-intro {
   border-bottom: 5px solid #1E1D1D;
-  font-family: 'Iosevka', monospace;
+  font-family: 'Saira Condensed', monospace;
+  font-size: 20px;
   padding-bottom: 30px;
   margin-bottom: 40px;
-  font-size: 18px;
 }
 
 .splash-intro h2 {
   margin: 0;
   border: 0;
-  font-size: 26px;
+  font-size: 36px;
   font-weight: 500;
   margin-top: -4px;
 }
 
 .splash-example h2 {
   margin-bottom: 14px;
-  font-size: 19px;
+  font-size: 24px;
   border: 0;
 }
 
@@ -375,9 +368,6 @@ h2, h3 {
 .definition .definition {
   margin-left: 0em;
   margin-bottom: 0;
-}
-
-.definition-thumb {
 }
 
 .definition-content {
