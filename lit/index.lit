@@ -159,7 +159,6 @@
 \include-section{./downloads.lit}
 \include-section{./install.lit}
 \include-section{./docs.lit}
-\include-section{./operations.lit}
 \include-section{./contribute.lit}
 \include-section{./trademarks.lit}
 \include-section{./thanks.lit}

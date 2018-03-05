@@ -5,5 +5,5 @@
 \split-sections
 \table-of-contents
 
-\include-section{./operations/architecture.lit}
-\include-section{./internals.lit}
+\include-section{./contribute/architecture.lit}
+\include-section{./contribute/internals.lit}

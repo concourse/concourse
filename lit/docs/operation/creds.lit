@@ -45,6 +45,8 @@ values are not present, the action will error.
 \section{
   \title{Using Vault}{vault}
 
+  \omit-children-from-table-of-contents
+
   \section{
     \title{Configuration}
 
@@ -230,6 +232,8 @@ values are not present, the action will error.
 
 \section{
   \title{Using Credhub}{credhub}
+
+  \omit-children-from-table-of-contents
 
   \section{
     \title{Configuration}

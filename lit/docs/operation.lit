@@ -1,4 +1,4 @@
-\title{Operations}{operations}
+\title{Operation}{operation}
 
 The following sections are available to provide a deeper understanding of some
 of the concepts surrounding Concourse. They aren't necessary for using
@@ -9,7 +9,7 @@ them, but we do recommend at least learning how to set up \reference{creds} and
 \split-sections
 \table-of-contents
 
-\include-section{./operations/topology.lit}
-\include-section{./operations/encryption.lit}
-\include-section{./operations/creds.lit}
-\include-section{./operations/metrics.lit}
+\include-section{./operation/topology.lit}
+\include-section{./operation/encryption.lit}
+\include-section{./operation/creds.lit}
+\include-section{./operation/metrics.lit}
