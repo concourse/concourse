@@ -420,3 +420,7 @@
 	path = src/github.com/concourse/worker
 	url = https://github.com/concourse/worker
 	branch = master
+[submodule "src/github.com/concourse/flag"]
+	path = src/github.com/concourse/flag
+	url = https://github.com/concourse/flag
+	branch = master

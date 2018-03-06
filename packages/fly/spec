@@ -33,6 +33,7 @@ files:
   - github.com/concourse/atc/db/migration/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/migration/migrations/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/event/*.{go,s,c,h} # gosub
+  - github.com/concourse/flag/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/commands/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/commands/internal/displayhelpers/*.{go,s,c,h} # gosub
@@ -66,7 +67,6 @@ files:
   - github.com/concourse/skymarshal/provider/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/uaa/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/verifier/*.{go,s,c,h} # gosub
-  - github.com/concourse/tsa/tsaflags/*.{go,s,c,h} # gosub
   - github.com/cppforlife/go-semi-semantic/version/*.{go,s,c,h} # gosub
   - github.com/dghubble/oauth1/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
