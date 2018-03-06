@@ -3,7 +3,6 @@ package beacon
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"sync"
@@ -28,16 +27,6 @@ type sshClient struct {
 }
 
 func (c *sshClient) Dial() (Closeable, error) {
-	workerPrivateKeyBytes, err := ioutil.ReadFile(string(c.config.WorkerPrivateKey))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read worker private key: %s", err)
-	}
-
-	workerPrivateKey, err := ssh.ParsePrivateKey(workerPrivateKeyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse worker private key: %s", err)
-	}
-
 	tsaAddr := fmt.Sprintf("%s:%d", c.config.Host, c.config.Port)
 
 	conn, err := keepaliveDialer("tcp", tsaAddr, 10*time.Second)
@@ -45,12 +34,17 @@ func (c *sshClient) Dial() (Closeable, error) {
 		return nil, fmt.Errorf("failed to connect to TSA: %s", err)
 	}
 
+	pk, err := ssh.NewSignerFromKey(c.config.WorkerPrivateKey.PrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct ssh public key from worker key: %s", err)
+	}
+
 	clientConfig := &ssh.ClientConfig{
 		User: "beacon", // doesn't matter
 
 		HostKeyCallback: c.config.checkHostKey,
 
-		Auth: []ssh.AuthMethod{ssh.PublicKeys(workerPrivateKey)},
+		Auth: []ssh.AuthMethod{ssh.PublicKeys(pk)},
 	}
 
 	clientConn, chans, reqs, err := ssh.NewClientConn(conn, tsaAddr, clientConfig)
