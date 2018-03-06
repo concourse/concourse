@@ -28,9 +28,9 @@ type TSACommand struct {
 
 	PeerIP string `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
 
-	HostKeyPath            flag.File                `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
-	AuthorizedKeysPath     flag.File                `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
-	TeamAuthorizedKeysPath []tsaflags.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	HostKey            flag.PrivateKey          `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
+	AuthorizedKeys     flag.AuthorizedKeys      `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	TeamAuthorizedKeys []tsaflags.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 
 	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
 
@@ -63,11 +63,6 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 	atcEndpointPicker := tsa.NewRandomATCEndpointPicker(cmd.ATCURLs)
 
-	authorizedKeys, err := cmd.loadAuthorizedKeys()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load authorized keys: %s", err)
-	}
-
 	teamAuthorizedKeys, err := cmd.loadTeamAuthorizedKeys()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load team authorized keys: %s", err)
@@ -78,7 +73,7 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		lock:         &sync.RWMutex{},
 	}
 
-	config, err := cmd.configureSSHServer(sessionAuthTeam, authorizedKeys, teamAuthorizedKeys)
+	config, err := cmd.configureSSHServer(sessionAuthTeam, cmd.AuthorizedKeys.Keys, teamAuthorizedKeys)
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure SSH server: %s", err)
 	}
@@ -113,35 +108,13 @@ func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSin
 	return logger, reconfigurableSink
 }
 
-func (cmd *TSACommand) loadAuthorizedKeys() ([]ssh.PublicKey, error) {
-	authorizedKeysBytes, err := ioutil.ReadFile(string(cmd.AuthorizedKeysPath))
-	if err != nil {
-		return nil, err
-	}
-
-	var authorizedKeys []ssh.PublicKey
-
-	for {
-		key, _, _, rest, err := ssh.ParseAuthorizedKey(authorizedKeysBytes)
-		if err != nil {
-			break
-		}
-
-		authorizedKeys = append(authorizedKeys, key)
-
-		authorizedKeysBytes = rest
-	}
-
-	return authorizedKeys, nil
-}
-
 func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 	var teamKeys []TeamAuthKeys
 
-	for i := range cmd.TeamAuthorizedKeysPath {
+	for i := range cmd.TeamAuthorizedKeys {
 		var teamAuthorizedKeys []ssh.PublicKey
 
-		teamAuthKeysBytes, err := ioutil.ReadFile(string(cmd.TeamAuthorizedKeysPath[i].Path))
+		teamAuthKeysBytes, err := ioutil.ReadFile(string(cmd.TeamAuthorizedKeys[i].Path))
 
 		if err != nil {
 			return nil, err
@@ -158,7 +131,7 @@ func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 			teamAuthKeysBytes = rest
 		}
 
-		teamKeys = append(teamKeys, TeamAuthKeys{Team: cmd.TeamAuthorizedKeysPath[i].Name, AuthKeys: teamAuthorizedKeys})
+		teamKeys = append(teamKeys, TeamAuthKeys{Team: cmd.TeamAuthorizedKeys[i].Name, AuthKeys: teamAuthorizedKeys})
 	}
 
 	return teamKeys, nil
@@ -196,17 +169,12 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authoriz
 		},
 	}
 
-	privateBytes, err := ioutil.ReadFile(string(cmd.HostKeyPath))
+	signer, err := ssh.NewSignerFromKey(cmd.HostKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create signer from host key: %s", err)
 	}
 
-	private, err := ssh.ParsePrivateKey(privateBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	config.AddHostKey(private)
+	config.AddHostKey(signer)
 
 	return config, nil
 }
