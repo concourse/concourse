@@ -474,7 +474,7 @@ var _ = Describe("TaskAction", func() {
 					Expect(spec.Args).To(Equal([]string{"some", "args"}))
 					Expect(spec.Dir).To(Equal("some-artifact-root"))
 					Expect(spec.User).To(BeEmpty())
-					Expect(spec.TTY).To(Equal(&garden.TTYSpec{}))
+					Expect(spec.TTY).To(Equal(&garden.TTYSpec{WindowSize: &garden.WindowSize{Columns: 500, Rows: 500}}))
 				})
 
 				It("directs the process's stdout/stderr to the io config", func() {
@@ -505,7 +505,7 @@ var _ = Describe("TaskAction", func() {
 							Path: "ls",
 							Args: []string{"some", "args"},
 							Dir:  "some-artifact-root",
-							TTY:  &garden.TTYSpec{},
+							TTY:  &garden.TTYSpec{WindowSize: &garden.WindowSize{Columns: 500, Rows: 500}},
 						}))
 					})
 				})

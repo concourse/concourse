@@ -238,7 +238,10 @@ func (action *TaskAction) Run(
 			Args: config.Run.Args,
 
 			Dir: path.Join(action.artifactsRoot, config.Run.Dir),
-			TTY: &garden.TTYSpec{},
+
+			// Guardian sets the default TTY window size to width: 80, height: 24,
+			// which creates ANSI control sequences that do not work with other window sizes
+			TTY: &garden.TTYSpec{WindowSize: &garden.WindowSize{Columns: 500, Rows: 500}},
 		}, processIO)
 	}
 	if err != nil {
