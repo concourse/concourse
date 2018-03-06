@@ -24,15 +24,15 @@ type WebCommand struct {
 
 const cliArtifactsBindata = "cli-artifacts"
 
-func (WebCommand) lessenRequirements(prefix string, command *flags.Command) {
+func (WebCommand) lessenRequirements(command *flags.Command) {
 	// defaults to address from external URL
-	command.FindOptionByLongName(prefix + "tsa-peer-ip").Required = false
+	command.FindOptionByLongName("tsa-peer-ip").Required = false
 
 	// defaults to atc external URL
-	command.FindOptionByLongName(prefix + "tsa-atc-url").Required = false
+	command.FindOptionByLongName("tsa-atc-url").Required = false
 
 	// defaults to atc session signing key
-	command.FindOptionByLongName(prefix + "tsa-session-signing-key").Required = false
+	command.FindOptionByLongName("tsa-session-signing-key").Required = false
 }
 
 func (cmd *WebCommand) Execute(args []string) error {

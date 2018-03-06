@@ -31,25 +31,25 @@ type GardenBackend struct {
 	DNS DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 }
 
-func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
-	command.FindOptionByLongName("garden-bind-port").Default = []string{"7777"}
+func (cmd WorkerCommand) lessenRequirements(prefix string, command *flags.Command) {
+	command.FindOptionByLongName(prefix + "garden-bind-port").Default = []string{"7777"}
 
 	// configured as work-dir/depot
-	command.FindOptionByLongName("garden-depot").Required = false
+	command.FindOptionByLongName(prefix + "garden-depot").Required = false
 
 	// un-configure graph (default /var/gdn/graph)
-	command.FindOptionByLongName("garden-graph").Required = false
-	command.FindOptionByLongName("garden-graph").Default = []string{}
+	command.FindOptionByLongName(prefix + "garden-graph").Required = false
+	command.FindOptionByLongName(prefix + "garden-graph").Default = []string{}
 
 	// these are provided as assets embedded in the 'concourse' binary
-	command.FindOptionByLongName("garden-runtime-plugin").Required = false
-	command.FindOptionByLongName("garden-dadoo-bin").Required = false
-	command.FindOptionByLongName("garden-init-bin").Required = false
-	command.FindOptionByLongName("garden-nstar-bin").Required = false
-	command.FindOptionByLongName("garden-tar-bin").Required = false
+	command.FindOptionByLongName(prefix + "garden-runtime-plugin").Required = false
+	command.FindOptionByLongName(prefix + "garden-dadoo-bin").Required = false
+	command.FindOptionByLongName(prefix + "garden-init-bin").Required = false
+	command.FindOptionByLongName(prefix + "garden-nstar-bin").Required = false
+	command.FindOptionByLongName(prefix + "garden-tar-bin").Required = false
 
 	// configured as work-dir/volumes
-	command.FindOptionByLongName("baggageclaim-volumes").Required = false
+	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
 }
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc.Worker, ifrit.Runner, error) {
