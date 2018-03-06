@@ -350,6 +350,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  &:hover {
+    text-overflow: initial;
+    animation: marquee 5s linear infinite;
+  }
 }
 
 [data-tooltip] {
