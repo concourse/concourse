@@ -46,24 +46,33 @@ type WorkerCommand struct {
 }
 
 func (cmd *WorkerCommand) Execute(args []string) error {
+	runner, err := cmd.Runner(args)
+	if err != nil {
+		return err
+	}
+
+	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
+}
+
+func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	logger := lager.NewLogger("worker")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.INFO))
 
 	hasAssets, err := cmd.setup(logger.Session("setup"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	worker, gardenRunner, err := cmd.gardenRunner(logger.Session("garden"), hasAssets)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	worker.Version = WorkerVersion
 
 	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"), hasAssets)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	members := grouper.Members{
@@ -77,7 +86,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		},
 	}
 
-	if cmd.TSA.WorkerPrivateKey != "" {
+	if cmd.TSA.WorkerPrivateKey.PrivateKey != nil {
 		if cmd.PeerIP.IP != nil {
 			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP, cmd.BindPort)
 			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, cmd.Baggageclaim.BindPort)
@@ -96,9 +105,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		})
 	}
 
-	runner := sigmon.New(grouper.NewParallel(os.Interrupt, members))
-
-	return <-ifrit.Invoke(runner).Wait()
+	return grouper.NewParallel(os.Interrupt, members), nil
 }
 
 func (cmd *WorkerCommand) assetPath(paths ...string) string {

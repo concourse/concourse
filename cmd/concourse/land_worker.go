@@ -5,16 +5,17 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/flag"
 	"github.com/concourse/worker"
 	"github.com/concourse/worker/beacon"
 	"github.com/tedsuo/ifrit"
 )
 
 type BeaconConfigRequired struct {
-	Host             string          `long:"host" required:"true" default:"127.0.0.1" description:"TSA host to negotiate the worker draining through."`
-	Port             int             `long:"port" required:"true" default:"2222" description:"TSA port to connect to."`
-	PublicKey        beacon.FileFlag `long:"public-key" required:"true" description:"File containing a public key to expect from the TSA."`
-	WorkerPrivateKey beacon.FileFlag `long:"worker-private-key" required:"true" description:"File containing the private key to use when authenticating to the TSA."`
+	Host             string              `long:"host" required:"true" default:"127.0.0.1" description:"TSA host to negotiate the worker draining through."`
+	Port             int                 `long:"port" required:"true" default:"2222" description:"TSA port to connect to."`
+	PublicKey        flag.AuthorizedKeys `long:"public-key" required:"true" description:"File containing a public key to expect from the TSA."`
+	WorkerPrivateKey flag.PrivateKey     `long:"worker-private-key" required:"true" description:"File containing the private key to use when authenticating to the TSA."`
 }
 
 func (b BeaconConfigRequired) canonical() beacon.Config {

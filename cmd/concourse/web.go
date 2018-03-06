@@ -17,50 +17,55 @@ import (
 )
 
 type WebCommand struct {
-	atccmd.ATCCommand
+	*atccmd.ATCCommand
 
-	tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
+	*tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
 }
 
 const cliArtifactsBindata = "cli-artifacts"
 
-func (cmd WebCommand) lessenRequirements(command *flags.Command) {
+func (WebCommand) lessenRequirements(prefix string, command *flags.Command) {
 	// defaults to address from external URL
-	command.FindOptionByLongName("tsa-peer-ip").Required = false
+	command.FindOptionByLongName(prefix + "tsa-peer-ip").Required = false
 
 	// defaults to atc external URL
-	command.FindOptionByLongName("tsa-atc-url").Required = false
+	command.FindOptionByLongName(prefix + "tsa-atc-url").Required = false
 
 	// defaults to atc session signing key
-	command.FindOptionByLongName("tsa-session-signing-key").Required = false
+	command.FindOptionByLongName(prefix + "tsa-session-signing-key").Required = false
 }
 
 func (cmd *WebCommand) Execute(args []string) error {
-	err := bindata.RestoreAssets(os.TempDir(), cliArtifactsBindata)
+	runner, err := cmd.Runner(args)
 	if err != nil {
 		return err
 	}
 
-	cmd.ATCCommand.CLIArtifactsDir = flag.Dir(filepath.Join(os.TempDir(), cliArtifactsBindata))
+	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
+}
+
+func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
+	err := bindata.RestoreAssets(os.TempDir(), cliArtifactsBindata)
+	if err == nil {
+		cmd.ATCCommand.CLIArtifactsDir = flag.Dir(filepath.Join(os.TempDir(), cliArtifactsBindata))
+	}
 
 	cmd.populateTSAFlagsFromATCFlags()
 
 	atcRunner, err := cmd.ATCCommand.Runner(args)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tsaRunner, err := cmd.TSACommand.Runner(args)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	runner := sigmon.New(grouper.NewParallel(os.Interrupt, grouper.Members{
+	return grouper.NewParallel(os.Interrupt, grouper.Members{
 		{Name: "atc", Runner: atcRunner},
 		{Name: "tsa", Runner: tsaRunner},
-	}))
-
-	return <-ifrit.Invoke(runner).Wait()
+	}), nil
 }
 
 func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {

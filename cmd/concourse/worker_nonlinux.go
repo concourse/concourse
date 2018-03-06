@@ -15,8 +15,9 @@ type GardenBackend struct{}
 
 type Certs struct{}
 
-func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
-	command.FindOptionByLongName("baggageclaim-volumes").Required = false
+func (cmd WorkerCommand) lessenRequirements(prefix string, command *flags.Command) {
+	// created in the work-dir
+	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
 }
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc.Worker, ifrit.Runner, error) {
