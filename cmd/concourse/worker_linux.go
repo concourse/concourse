@@ -67,7 +67,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 		return atc.Worker{}, nil, err
 	}
 
-	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP)
+	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP.IP)
 	cmd.Garden.Containers.Dir = depotDir
 
 	cmd.Garden.Network.AllowHostAccess = true

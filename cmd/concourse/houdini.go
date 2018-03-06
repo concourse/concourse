@@ -54,5 +54,5 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (a
 }
 
 func (cmd *WorkerCommand) bindAddr() string {
-	return fmt.Sprintf("%s:%d", cmd.BindIP.IP(), cmd.BindPort)
+	return fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
 }

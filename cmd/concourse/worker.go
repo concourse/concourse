@@ -22,16 +22,16 @@ type WorkerCommand struct {
 
 	TeamName string `long:"team" description:"The name of the team that this worker will be assigned to."`
 
-	HTTPProxy  URLFlag  `long:"http-proxy"  env:"http_proxy"                  description:"HTTP proxy endpoint to use for containers."`
-	HTTPSProxy URLFlag  `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
+	HTTPProxy  flag.URL `long:"http-proxy"  env:"http_proxy"                  description:"HTTP proxy endpoint to use for containers."`
+	HTTPSProxy flag.URL `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
 	NoProxy    []string `long:"no-proxy"    env:"no_proxy"    env-delim:","   description:"Blacklist of addresses to skip the proxy when reaching."`
 	Certs      Certs
 
-	WorkDir DirFlag `long:"work-dir" required:"true" description:"Directory in which to place container data."`
+	WorkDir flag.Dir `long:"work-dir" required:"true" description:"Directory in which to place container data."`
 
-	BindIP   IPFlag `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
-	BindPort uint16 `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`
-	PeerIP   IPFlag `long:"peer-ip" description:"IP used to reach this worker from the ATC nodes."`
+	BindIP   flag.IP `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
+	BindPort uint16  `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`
+	PeerIP   flag.IP `long:"peer-ip" description:"IP used to reach this worker from the ATC nodes."`
 
 	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
 
@@ -78,11 +78,11 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	}
 
 	if cmd.TSA.WorkerPrivateKey != "" {
-		if cmd.PeerIP != nil {
-			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP(), cmd.BindPort)
-			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP(), cmd.Baggageclaim.BindPort)
+		if cmd.PeerIP.IP != nil {
+			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP, cmd.BindPort)
+			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, cmd.Baggageclaim.BindPort)
 		} else {
-			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP(), cmd.BindPort)
+			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
 			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.Baggageclaim.BindIP.IP, cmd.Baggageclaim.BindPort)
 		}
 
