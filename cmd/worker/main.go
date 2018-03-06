@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/flag"
 	"github.com/concourse/worker"
 	"github.com/concourse/worker/beacon"
 	flags "github.com/jessevdk/go-flags"
@@ -31,8 +31,8 @@ type WorkerCommand struct {
 	HTTPProxyURL    string   `long:"http_proxy_url"`
 	HTTPSProxyURL   string   `long:"https_proxy_url"`
 	NoProxy         string   `long:"no_proxy"`
-
-	BeaconConfig beacon.Config `group:"Beacon Configuration" namespace:"beacon"`
+	Logger          flag.Lager
+	BeaconConfig    beacon.Config `group:"Beacon Configuration" namespace:"beacon"`
 }
 
 func main() {
@@ -77,10 +77,8 @@ func main() {
 		}
 	}
 
-	logger := lager.NewLogger("worker")
-	//TODO support changing the log level
-	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.INFO))
-	runner := worker.BeaconRunner(logger.Session("beacon"), atcWorker, cmd.BeaconConfig)
+	logger, _ := cmd.Logger.Logger("beacon")
+	runner := worker.BeaconRunner(logger, atcWorker, cmd.BeaconConfig)
 
 	select {
 	case err := <-ifrit.Invoke(runner).Wait():
