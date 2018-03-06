@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/concourse/flag"
 	"github.com/concourse/skymarshal/auth"
 	"github.com/concourse/skymarshal/bitbucket"
 	"github.com/concourse/skymarshal/provider"
@@ -12,9 +13,9 @@ import (
 )
 
 type AuthConfig struct {
-	ConsumerKey string           `json:"consumer_key" long:"consumer-key" description:"Application consumer key for enabling Bitbucket OAuth"`
-	PrivateKey  privateKeyConfig `json:"private_key" long:"private-key" description:"Path to application private key for enabling Bitbucket OAuth"`
-	Endpoint    string           `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
+	ConsumerKey string          `json:"consumer_key" long:"consumer-key" description:"Application consumer key for enabling Bitbucket OAuth"`
+	PrivateKey  flag.PrivateKey `json:"private_key" long:"private-key" description:"Path to application private key for enabling Bitbucket OAuth"`
+	Endpoint    string          `json:"endpoint" long:"endpoint" description:"Endpoint for Bitbucket Server"`
 
 	Users        []string                     `json:"users,omitempty" long:"user" description:"Bitbucket users that are allowed to log in" value-name:"USER"`
 	Projects     []string                     `json:"projects,omitempty" long:"project" description:"Bitbucket projects whose members are allowed to log in" value-name:"PROJ"`
