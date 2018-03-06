@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/tsa/tsaflags"
+	"github.com/concourse/flag"
 	"github.com/tedsuo/rata"
 )
 
@@ -13,7 +13,7 @@ type randomATCEndpointPicker struct {
 	ATCEndpoints []*rata.RequestGenerator
 }
 
-func NewRandomATCEndpointPicker(atcURLFlags []tsaflags.URLFlag) EndpointPicker {
+func NewRandomATCEndpointPicker(atcURLFlags []flag.URL) EndpointPicker {
 	atcEndpoints := []*rata.RequestGenerator{}
 	for _, f := range atcURLFlags {
 		atcEndpoints = append(atcEndpoints, rata.NewRequestGenerator(f.String(), atc.Routes))

@@ -2,7 +2,6 @@ package tsacmd
 
 import (
 	"bytes"
-	"crypto/rsa"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,28 +12,29 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/concourse/flag"
 	"github.com/concourse/tsa"
 	"github.com/concourse/tsa/tsaflags"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/xoebus/zest"
 )
 
 type TSACommand struct {
-	Logger tsaflags.LagerFlag
+	Logger flag.Lager
 
-	BindIP   tsaflags.IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
-	BindPort uint16          `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
+	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
+	BindPort uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
 
 	PeerIP string `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
 
-	HostKeyPath            tsaflags.FileFlag        `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
-	AuthorizedKeysPath     tsaflags.FileFlag        `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	HostKeyPath            flag.File                `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
+	AuthorizedKeysPath     flag.File                `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 	TeamAuthorizedKeysPath []tsaflags.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 
-	ATCURLs               []tsaflags.URLFlag `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
-	SessionSigningKeyPath tsaflags.FileFlag  `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
+	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
+
+	SessionSigningKey flag.PrivateKey `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
 
 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
 
@@ -73,11 +73,6 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, fmt.Errorf("failed to load team authorized keys: %s", err)
 	}
 
-	sessionSigningKey, err := cmd.loadSessionSigningKey()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load session signing key: %s", err)
-	}
-
 	sessionAuthTeam := &sessionTeam{
 		sessionTeams: make(map[string]string),
 		lock:         &sync.RWMutex{},
@@ -90,7 +85,7 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 
-	tokenGenerator := tsa.NewTokenGenerator(sessionSigningKey)
+	tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
 
 	server := &registrarSSHServer{
 		logger:            logger,
@@ -167,20 +162,6 @@ func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 	}
 
 	return teamKeys, nil
-}
-
-func (cmd *TSACommand) loadSessionSigningKey() (*rsa.PrivateKey, error) {
-	rsaKeyBlob, err := ioutil.ReadFile(string(cmd.SessionSigningKeyPath))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read session signing key file: %s", err)
-	}
-
-	signingKey, err := jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse session signing key as RSA: %s", err)
-	}
-
-	return signingKey, nil
 }
 
 func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authorizedKeys []ssh.PublicKey, teamAuthorizedKeys []TeamAuthKeys) (*ssh.ServerConfig, error) {
