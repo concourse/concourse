@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/bin/bindata"
+	"github.com/concourse/flag"
 	concourseWorker "github.com/concourse/worker"
 	"github.com/concourse/worker/beacon"
 	"github.com/tedsuo/ifrit"
@@ -82,7 +83,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP(), cmd.Baggageclaim.BindPort)
 		} else {
 			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP(), cmd.BindPort)
-			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.Baggageclaim.BindIP.IP(), cmd.Baggageclaim.BindPort)
+			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.Baggageclaim.BindIP.IP, cmd.Baggageclaim.BindPort)
 		}
 
 		members = append(members, grouper.Member{
@@ -167,7 +168,7 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger, hasAssets bool
 	}
 
 	cmd.Baggageclaim.Metrics = cmd.Metrics
-	cmd.Baggageclaim.VolumesDir = baggageclaimcmd.DirFlag(volumesDir)
+	cmd.Baggageclaim.VolumesDir = flag.Dir(volumesDir)
 
 	cmd.Baggageclaim.OverlaysDir = filepath.Join(cmd.WorkDir.Path(), "overlays")
 

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/atc/atccmd"
+	"github.com/concourse/flag"
 	"github.com/concourse/tsa/tsacmd"
-	"github.com/concourse/tsa/tsaflags"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -41,7 +41,7 @@ func (cmd *WebCommand) Execute(args []string) error {
 		return err
 	}
 
-	cmd.ATCCommand.CLIArtifactsDir = atccmd.DirFlag(filepath.Join(os.TempDir(), cliArtifactsBindata))
+	cmd.ATCCommand.CLIArtifactsDir = flag.Dir(filepath.Join(os.TempDir(), cliArtifactsBindata))
 
 	cmd.populateTSAFlagsFromATCFlags()
 
@@ -64,19 +64,13 @@ func (cmd *WebCommand) Execute(args []string) error {
 }
 
 func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
-	var f tsaflags.URLFlag
-	err := f.UnmarshalFlag(cmd.ATCCommand.PeerURL.String())
-	if err != nil {
-		return err
-	}
+	cmd.TSACommand.SessionSigningKey = cmd.ATCCommand.SessionSigningKey
 
 	if len(cmd.TSACommand.ATCURLs) == 0 {
-		cmd.TSACommand.ATCURLs = append(cmd.TSACommand.ATCURLs, f)
+		cmd.TSACommand.ATCURLs = []flag.URL{cmd.ATCCommand.PeerURL}
 	}
 
-	cmd.TSACommand.SessionSigningKeyPath = tsaflags.FileFlag(cmd.ATCCommand.SessionSigningKey)
-
-	host, _, err := net.SplitHostPort(cmd.ATCCommand.PeerURL.URL().Host)
+	host, _, err := net.SplitHostPort(cmd.ATCCommand.PeerURL.URL.Host)
 	if err != nil {
 		return err
 	}
