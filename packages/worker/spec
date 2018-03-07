@@ -10,9 +10,11 @@ files:
   - code.cloudfoundry.org/lager/*.{go,s,c,h} # gosub
   - github.com/bmizerany/pat/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/*.{go,s,c,h} # gosub
+  - github.com/concourse/flag/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/beacon/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/cmd/worker/*.{go,s,c,h} # gosub
+  - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/felixge/tcpkeepalive/*.{go,s,c,h} # gosub
   - github.com/hashicorp/go-multierror/*.{go,s,c,h} # gosub
   - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.{go,s,c,h} # gosub
