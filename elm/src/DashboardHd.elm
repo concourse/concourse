@@ -16,7 +16,7 @@ import NewTopBar
 import RemoteData
 import Task exposing (Task)
 import Time exposing (Time)
-import BetaRoutes
+import Routes
 
 
 type alias Model =
@@ -227,7 +227,7 @@ showFooterView model =
                 [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "succeeded" ]
             , Html.div [] [ Html.text "|" ]
             , Html.div [ class "dashboard-high-density" ]
-                [ Html.a [ class "toggle-high-density", href "/beta/dashboard", ariaLabel "Toggle high-density view" ]
+                [ Html.a [ class "toggle-high-density", href Routes.dashboardRoute, ariaLabel "Toggle high-density view" ]
                     [ Html.div [ class "dashboard-pipeline-icon hd-on" ] [], Html.text "high-density" ]
                 ]
             ]
@@ -306,7 +306,7 @@ viewPipeline now state =
             [ Html.div [ class "dashboard-pipeline-banner" ] []
             , Html.div
                 [ class "dashboard-pipeline-content" ]
-                [ Html.a [ href <| BetaRoutes.pipelineRoute state.pipeline ]
+                [ Html.a [ href <| Routes.pipelineRoute state.pipeline ]
                     [ Html.text state.pipeline.name ]
                 ]
             ]

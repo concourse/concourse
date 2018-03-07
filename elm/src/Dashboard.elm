@@ -23,7 +23,7 @@ import RemoteData
 import Task exposing (Task)
 import Time exposing (Time)
 import Simple.Fuzzy exposing (match, root, filter)
-import BetaRoutes
+import Routes
 
 
 port pinTeamNames : () -> Cmd msg
@@ -308,7 +308,7 @@ showFooterView model =
                 [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "succeeded" ]
             , Html.div [] [ Html.text "|" ]
             , Html.div [ class "dashboard-high-density" ]
-                [ Html.a [ class "toggle-high-density", href "/beta/dashboard/hd", ariaLabel "Toggle high-density view" ]
+                [ Html.a [ class "toggle-high-density", href Routes.dashboardHdRoute, ariaLabel "Toggle high-density view" ]
                     [ Html.div [ class "dashboard-pipeline-icon hd-off" ] [], Html.text "high-density" ]
                 ]
             ]
@@ -406,7 +406,7 @@ viewPipeline now state =
             [ Html.div [ class "dashboard-pipeline-banner" ] []
             , Html.div
                 [ class "dashboard-pipeline-content" ]
-                [ Html.a [ href <| BetaRoutes.pipelineRoute state.pipeline ]
+                [ Html.a [ href <| Routes.pipelineRoute state.pipeline ]
                     [ Html.div
                         [ class "dashboard-pipeline-header" ]
                         [ Html.div [ class "dashboard-pipeline-name" ]

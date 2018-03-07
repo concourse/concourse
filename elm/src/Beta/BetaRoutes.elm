@@ -9,8 +9,6 @@ import Concourse.Pagination as Pagination
 
 type Route
     = BetaHome
-    | Dashboard
-    | DashboardHd
     | BetaPipeline String String
     | BetaBuild String String String String
     | BetaOneOffBuild String
@@ -30,16 +28,6 @@ type alias ConcourseRoute =
 
 
 -- pages
-
-
-dashboard : Route.Route Route
-dashboard =
-    Dashboard := static "beta" </> static "dashboard"
-
-
-dashboardHd : Route.Route Route
-dashboardHd =
-    DashboardHd := static "beta" </> static "dashboard" </> static "hd"
 
 
 betaBuild : Route.Route Route
@@ -134,9 +122,7 @@ pipelineRoute p =
 sitemap : Router Route
 sitemap =
     router
-        [ dashboard
-        , dashboardHd
-        , betaPipeline
+        [ betaPipeline
         , betaBuild
         , betaOneOffBuild
         , betaResource
@@ -156,12 +142,6 @@ match =
 toString : Route -> String
 toString route =
     case route of
-        Dashboard ->
-            reverse dashboard []
-
-        DashboardHd ->
-            reverse dashboardHd []
-
         BetaPipeline teamName pipelineName ->
             reverse betaPipeline [ teamName, pipelineName ]
 

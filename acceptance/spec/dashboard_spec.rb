@@ -19,22 +19,22 @@ describe 'dashboard', type: :feature do
     context 'when the view is the default view' do
       it 'switches to compact view' do
         dash_login team_name
-        visit dash_route('/beta/dashboard')
+        visit dash_route('/dashboard')
         expect(page).to have_content('HIGH-DENSITY')
 
         click_on 'high-density'
-        expect(page).to have_current_path '/beta/dashboard/hd'
+        expect(page).to have_current_path '/dashboard/hd'
       end
     end
 
     context 'when the view is the compact view' do
       it 'switches to default view' do
         dash_login team_name
-        visit dash_route('/beta/dashboard/hd')
+        visit dash_route('/dashboard/hd')
         expect(page).to have_content('HIGH-DENSITY')
 
         click_on 'high-density'
-        expect(page).to have_current_path '/beta/dashboard'
+        expect(page).to have_current_path '/dashboard'
       end
     end
   end
@@ -64,7 +64,7 @@ describe 'dashboard', type: :feature do
 
       it 'shows all pipelines from the authenticated team and public pipelines from other teams' do
         dash_login team_name
-        visit dash_route('/beta/dashboard')
+        visit dash_route('/dashboard')
         within '.dashboard-team-group', text: team_name do
           expect(page).to have_content 'some-pipeline'
         end
@@ -78,7 +78,7 @@ describe 'dashboard', type: :feature do
       it 'shows authenticated team first' do
         dash_login team_name
 
-        visit dash_route('/beta/dashboard')
+        visit dash_route('/dashboard')
 
         expect(page).to have_content(team_name)
         expect(page).to have_content(other_team_name)
@@ -265,8 +265,8 @@ describe 'dashboard', type: :feature do
     it 'links to latest build in the preview' do
       fly_fail('trigger-job -w -j some-pipeline/failing')
       visit_dashboard
-      expect(page).to have_css("a[href=\"/beta/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]")
-      expect(page.find("a[href=\"/beta/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
+      expect(page).to have_css("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]")
+      expect(page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
     end
   end
 
@@ -420,7 +420,7 @@ describe 'dashboard', type: :feature do
         fly_login other_team_name
         fly('expose-pipeline -p other-pipeline-private')
 
-        visit dash_route('/beta/dashboard/hd')
+        visit dash_route('/dashboard/hd')
         expect(page).to have_css('.dashboard-team-name')
         expect(page.first('.dashboard-team-name').text).to eq(other_team_name)
 
@@ -461,12 +461,12 @@ describe 'dashboard', type: :feature do
 
   def visit_dashboard
     login
-    visit dash_route('/beta/dashboard')
+    visit dash_route('/dashboard')
   end
 
   def visit_hd_dashboard
     login
-    visit dash_route('/beta/dashboard/hd')
+    visit dash_route('/dashboard/hd')
   end
 end
 Capybara.current_session.current_window.resize_to(2000, 2000)

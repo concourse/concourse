@@ -334,9 +334,6 @@ view model =
                     ""
     in
         case model.subModel of
-            BetaSubPage.DashboardModel _ ->
-                Html.map (BetaSubMsg model.navIndex) (BetaSubPage.view model.subModel)
-
             _ ->
                 Html.div [ class "content-frame" ]
                     [ Html.div [ id "top-bar-app" ]

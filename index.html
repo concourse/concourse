@@ -22,7 +22,7 @@
       $(window).on("load", prependBeta);
       function prependBeta() {
         var root, path = window.location.pathname;
-        if (path.startsWith("/beta")) {
+        if (path.startsWith("/beta") || path.startsWith("/dashboard")) {
           root = document.getElementsByTagName('html')[0];
           root.setAttribute('class', 'beta');
         }

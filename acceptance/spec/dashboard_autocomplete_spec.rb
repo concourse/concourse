@@ -15,7 +15,7 @@ describe 'dashboard autocomplete', type: :feature do
     fly('set-pipeline -n -p other-pipeline -c fixtures/states-pipeline.yml')
     fly('unpause-pipeline -p other-pipeline')
 
-    visit dash_route('/beta/dashboard')
+    visit dash_route('/dashboard')
   end
 
   context 'without focus' do
@@ -89,7 +89,7 @@ describe 'dashboard autocomplete', type: :feature do
           teams << team
         end
 
-        visit dash_route('/beta/dashboard')
+        visit dash_route('/dashboard')
         search 'team:'
         expect(page).to have_css '.search-option', count: 10
 

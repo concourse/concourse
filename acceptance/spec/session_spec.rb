@@ -36,7 +36,7 @@ describe 'session', type: :feature do
 
     it 'displays the correct state in the dashboard top bar' do
       dash_login team_name
-      visit dash_route('/beta/dashboard')
+      visit dash_route('/dashboard')
       expect(page).to have_content team_name
 
       within_window open_new_window do

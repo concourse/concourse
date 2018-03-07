@@ -1,4 +1,4 @@
-module Routes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, pipelineRoute, jobRoute, buildRoute, toString)
+module Routes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, pipelineRoute, jobRoute, buildRoute, dashboardRoute, dashboardHdRoute, toString)
 
 import Concourse
 import Concourse.Pagination as Pagination
@@ -11,12 +11,13 @@ type Route
     = Home
     | Build String String String String
     | Resource String String String
-    | BetaResource String String String
     | Job String String String
     | OneOffBuild String
     | Pipeline String String
     | SelectTeam
     | TeamLogin String
+    | Dashboard
+    | DashboardHd
 
 
 type alias ConcourseRoute =
@@ -46,11 +47,6 @@ resource =
     Resource := static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
 
 
-betaResource : Route.Route Route
-betaResource =
-    BetaResource := static "beta" </> static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
-
-
 job : Route.Route Route
 job =
     Job := static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string
@@ -69,6 +65,16 @@ pipeline =
 teamLogin : Route.Route Route
 teamLogin =
     TeamLogin := static "teams" </> string </> static "login"
+
+
+dashboard : Route.Route Route
+dashboard =
+    Dashboard := static "dashboard"
+
+
+dashboardHd : Route.Route Route
+dashboardHd =
+    DashboardHd := static "dashboard" </> static "hd"
 
 
 
@@ -95,6 +101,16 @@ pipelineRoute p =
     (Pipeline p.teamName p.name) |> toString
 
 
+dashboardRoute : String
+dashboardRoute =
+    Dashboard |> toString
+
+
+dashboardHdRoute : String
+dashboardHdRoute =
+    DashboardHd |> toString
+
+
 
 -- router
 
@@ -104,12 +120,13 @@ sitemap =
     router
         [ build
         , resource
-        , betaResource
         , job
         , login
         , oneOffBuild
         , pipeline
         , teamLogin
+        , dashboard
+        , dashboardHd
         ]
 
 
@@ -131,9 +148,6 @@ toString route =
         Resource teamName pipelineName resourceName ->
             reverse job [ teamName, pipelineName, resourceName ]
 
-        BetaResource teamName pipelineName resourceName ->
-            reverse betaResource [ teamName, pipelineName, resourceName ]
-
         OneOffBuild buildId ->
             reverse oneOffBuild [ buildId ]
 
@@ -145,6 +159,12 @@ toString route =
 
         TeamLogin teamName ->
             reverse teamLogin [ teamName ]
+
+        Dashboard ->
+            reverse dashboard []
+
+        DashboardHd ->
+            reverse dashboardHd []
 
         Home ->
             "/"
