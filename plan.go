@@ -17,27 +17,11 @@ type Plan struct {
 	Timeout   *TimeoutPlan   `json:"timeout,omitempty"`
 	Retry     *RetryPlan     `json:"retry,omitempty"`
 
-	// used for 'fly execute'
-	PipeRead  *PipeReadPlan  `json:"pipe_read,omitempty"`
-	PipeWrite *PipeWritePlan `json:"pipe_read,omitempty"`
-
 	// deprecated, kept for backwards compatibility to be able to show old builds
 	DependentGet *DependentGetPlan `json:"dependent_get,omitempty"`
 }
 
 type PlanID string
-
-type PipeReadPlan struct {
-	Pipe  string `json:"pipe"`
-	To    string `json:"to"`
-	Token string `json:"token"`
-}
-
-type PipeWritePlan struct {
-	Pipe  string `json:"pipe"`
-	From  string `json:"from"`
-	Token string `json:"token"`
-}
 
 type OnAbortPlan struct {
 	Step Plan `json:"step"`
