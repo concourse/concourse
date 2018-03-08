@@ -280,6 +280,7 @@ wait
 			flyS.Signal(syscall.SIGTERM)
 
 			Eventually(flyS).Should(gbytes.Say("task got sigterm"))
+			Eventually(flyS).Should(gbytes.Say("interrupted"))
 
 			// build should have been aborted
 			Eventually(flyS).Should(gexec.Exit(3))
