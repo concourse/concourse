@@ -13,7 +13,7 @@ key of the target TSA. This can be created with `ssh-keyscan`, but be sure to
 check the key matches what you expect!
 
 1. Create `/etc/concourse-beacon/worker.json`, which should contain your worker
-payload as documented in [Worker Pools](http://concourse.ci/worker-pools.html).
+payload as documented in [Worker Pools](http://concourse-ci.org/worker-pools.html).
 
 1. Create a SSH keypair under `/etc/concourse-beacon/keypair`, named `id_rsa`.
 

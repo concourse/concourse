@@ -48,7 +48,7 @@ The variables here should be set to:
 |----------------------|-----------------------------------------------------------------------------------------------------------|
 | `$PEER_IP`           | The host or IP where this machine can be reached by the ATC for the purpose of forwarding traffic to remote workers. |
 | `$SIGNING_KEY`       | RSA key used to sign the tokens used when communicating to the ATC.                                                    |
-| `$ATC_URL`           | ATC URL reachable by the TSA (e.g. `https://ci.concourse.ci`).                                                        |
+| `$ATC_URL`           | ATC URL reachable by the TSA (e.g. `https://ci.concourse-ci.org`).                                                     |
 
 ### registering workers
 
