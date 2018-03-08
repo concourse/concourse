@@ -18,7 +18,7 @@
   your builds as quickly as possible.
 
   For a live example, see \link{Concourse's own
-  pipeline}{https://ci.concourse.ci}.
+  pipeline}{https://ci.concourse-ci.org}.
 }
 
 \value-prop-left{Dependable Results}{value_prop_repeatable_f2}{

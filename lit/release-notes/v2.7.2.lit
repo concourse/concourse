@@ -38,7 +38,7 @@
     pipeline names.
 
     (...Ok, \link{we do
-    too}{https://wings.concourse.ci/teams/main/pipelines/releases:2.7}, but I
+    too}{https://wings.concourse-ci.org/teams/main/pipelines/releases:2.7}, but I
     was hoping we were the odd ones.)
   }
 }

@@ -29,7 +29,7 @@ otherwise they will not be visible.
 
 For a real world example of how groups can be used to simplify navigation and
 provide logical grouping, see the groups used at the top of the page in the
-\link{Concourse pipeline}{https://ci.concourse.ci}.
+\link{Concourse pipeline}{https://ci.concourse-ci.org}.
 
 Each configured group consists of the following attributes:
 

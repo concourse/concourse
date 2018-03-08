@@ -41,7 +41,7 @@
   We use \link{Slack}{https://slack.com} for public discussions.
   To chit chat with us or the rest of the community, join us in the
   \link{Concourse Slack team}{http://concourseci.slack.com}. To sign up,
-  use our \link{Slack inviter}{http://slack.concourse.ci}.
+  use our \link{Slack inviter}{http://slack.concourse-ci.org}.
 }
 
 \section{
@@ -50,7 +50,7 @@
   \community-image{./images/community_blog.svg}
 
   We often write long-form articles and project updates on our Concourse publication,
-  hosted on \link{Medium}{https://medium.com/concourse-ci}. 
+  hosted on \link{Medium}{https://medium.com/concourse-ci}.
 }
 
 \section{
@@ -62,7 +62,7 @@
   \link{Concourse Security mailing
   list}{https://groups.google.com/group/concourse-security}. To report a
   security issue, send an email to
-  \link{security@concourse.ci}{mailto:security@concourse.ci}.
+  \link{concourseteam+security@gmail.com}{mailto:concourseteam+security@gmail.com}.
 }
 
 \section{
