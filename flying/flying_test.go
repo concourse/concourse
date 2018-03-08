@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"syscall"
 
+	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -305,6 +306,70 @@ ls`),
 			Expect(fileList).To(ContainSubstring("fixture"))
 			Expect(fileList).To(ContainSubstring("input-1"))
 			Expect(fileList).NotTo(ContainSubstring("input-2"))
+		})
+	})
+
+	Context("when excute with -j inputs-from", func() {
+		var gitServer *gitserver.Server
+		BeforeEach(func() {
+			gitServer = gitserver.Start(concourseClient)
+			flyHelper.ConfigurePipeline(
+				"some-pipeline",
+				"-c", "fixtures/config-test.yml",
+				"-v", "git-server="+gitServer.URI(),
+			)
+
+			taskFileContents := `---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: busybox}
+
+inputs:
+- name: git-repo
+
+outputs:
+- name: output-1
+
+run:
+  path: git-repo/run
+`
+			runFileContents := `#!/bin/sh
+echo hello > output-1/file-1
+`
+
+			err := ioutil.WriteFile(
+				filepath.Join(tmpdir, "task.yml"),
+				[]byte(taskFileContents),
+				0644,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			gitServer.WriteFile("some-repo/task.yml", taskFileContents)
+			gitServer.WriteFile("some-repo/run", runFileContents)
+			gitServer.CommitResourceWithFile("task.yml", "run")
+
+			watch := flyHelper.CheckResource("-r", "some-pipeline/git-repo")
+			<-watch.Exited
+		})
+
+		AfterEach(func() {
+			gitServer.Stop()
+		})
+
+		It("runs the task without error", func() {
+			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/input-test", "-o", "output-1=./output-1")
+			fly.Dir = tmpdir
+
+			session := helpers.StartFly(fly)
+			<-session.Exited
+
+			Eventually(session).Should(gexec.Exit(0))
+
+			file1 := filepath.Join(tmpdir, "output-1", "file-1")
+
+			Expect(ioutil.ReadFile(file1)).To(Equal([]byte("hello\n")))
 		})
 	})
 })

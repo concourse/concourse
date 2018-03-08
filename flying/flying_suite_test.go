@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,6 +16,7 @@ var (
 	flyBin  string
 	tmpHome string
 
+	flyHelper       *helpers.FlyHelper
 	concourseClient concourse.Client
 )
 
@@ -27,12 +29,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse)
 	Expect(err).NotTo(HaveOccurred())
 
+	concourseClient := helpers.ConcourseClient(atcURL)
+	gitserver.Cleanup(concourseClient)
+
 	return data
 }, func(data []byte) {
 	var err error
 	flyBin, tmpHome, err = helpers.AllNodeFlySetup(data)
 	Expect(err).NotTo(HaveOccurred())
 
+	flyHelper = &helpers.FlyHelper{Path: flyBin}
 	concourseClient, err = helpers.AllNodeClientSetup(data)
 	Expect(err).NotTo(HaveOccurred())
 })

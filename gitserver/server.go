@@ -259,7 +259,7 @@ func (server *Server) WriteFile(fileName string, fileContents string) {
 			`cat > ` + fileName + ` <<EOF
 ` + fileContents + `
 EOF
-`,
+` + `chmod +x ` + fileName,
 		},
 		User: "root",
 	}, garden.ProcessIO{
@@ -276,8 +276,11 @@ EOF
 	Expect(process.Wait()).To(Equal(0))
 }
 
-func (server *Server) CommitResourceWithFile(fileName string) {
-
+func (server *Server) CommitResourceWithFile(fileNames ...string) {
+	var fileNamesBuf bytes.Buffer
+	for _, s := range fileNames {
+		fileNamesBuf.WriteString(s + " ")
+	}
 	process, err := server.container.Run(garden.ProcessSpec{
 		Path: "sh",
 		Args: []string{
@@ -347,7 +350,7 @@ EOF
 				chmod +x rootfs/opt/resource/*
 
 				git checkout -B master
-				git add rootfs metadata.json ` + fileName + `
+				git add rootfs metadata.json ` + fileNamesBuf.String() + `
 				git commit -qm 'created resource rootfs'
 			`,
 		},
