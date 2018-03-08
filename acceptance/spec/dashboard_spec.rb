@@ -40,6 +40,13 @@ describe 'dashboard', type: :feature do
   end
 
   describe 'default view' do
+    context 'with no user logged in' do
+      it 'displays a login button' do
+        visit dash_route('/dashboard')
+        expect(page).to have_link('login', href: '/login')
+      end
+    end
+
     context 'with multiple teams' do
       let(:other_team_name) { generate_team_name }
 
@@ -271,6 +278,13 @@ describe 'dashboard', type: :feature do
   end
 
   describe 'high density view' do
+    context 'with no user logged in' do
+      it 'displays a login button' do
+        visit dash_route('/dashboard/hd')
+        expect(page).to have_link('login', href: '/login')
+      end
+    end
+
     context 'when a pipeline is paused' do
       before do
         fly('pause-pipeline -p some-pipeline')
@@ -469,4 +483,3 @@ describe 'dashboard', type: :feature do
     visit dash_route('/dashboard/hd')
   end
 end
-Capybara.current_session.current_window.resize_to(2000, 2000)

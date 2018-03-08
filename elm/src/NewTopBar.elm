@@ -129,7 +129,12 @@ showUserInfo model =
             Html.text user.team.name
 
         RemoteData.Failure _ ->
-            Html.text "login"
+            Html.a
+                [ href "/login"
+                , Html.Attributes.attribute "aria-label" "Log In"
+                ]
+                [ Html.text "login"
+                ]
 
 
 view : Model -> Html Msg
