@@ -674,7 +674,7 @@ func (cmd *ATCCommand) constructMembers(
 	}
 
 	if cmd.TelemetryOptIn {
-		url := fmt.Sprintf("http://telemetry.concourse.ci/?version=%s", Version)
+		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", Version)
 		go func() {
 			_, err := http.Get(url)
 			if err != nil {
