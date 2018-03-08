@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"os"
+	"context"
 
 	"github.com/concourse/atc/worker"
 )
@@ -39,15 +39,14 @@ func (o OnFailureStep) Using(repo *worker.ArtifactRepository) Step {
 //
 // If the first step fails (that is, its Success result is false), the second
 // step is executed. If the second step errors, its error is returned.
-func (o *OnFailureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	err := o.step.Run(signals, ready)
-
+func (o *OnFailureStep) Run(ctx context.Context) error {
+	err := o.step.Run(ctx)
 	if err != nil {
 		return err
 	}
 
 	if !o.step.Succeeded() {
-		return o.failureFactory.Using(o.repo).Run(signals, make(chan struct{}))
+		return o.failureFactory.Using(o.repo).Run(ctx)
 	}
 
 	return nil

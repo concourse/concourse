@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"os"
+	"context"
 
 	"github.com/concourse/atc/worker"
 )
@@ -19,7 +19,7 @@ type IdentityStep struct {
 }
 
 // Run does nothing.
-func (IdentityStep) Run(<-chan os.Signal, chan<- struct{}) error {
+func (IdentityStep) Run(context.Context) error {
 	return nil
 }
 

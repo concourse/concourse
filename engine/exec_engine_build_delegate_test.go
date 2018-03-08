@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"context"
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -42,7 +43,7 @@ var _ = Describe("BuildDelegate", func() {
 	Describe("Finish", func() {
 		Context("when build was aborted", func() {
 			BeforeEach(func() {
-				delegate.Finish(logger, nil, exec.Success(false), true)
+				delegate.Finish(logger, context.Canceled, false)
 			})
 
 			It("updates build status to aborted", func() {
@@ -53,7 +54,7 @@ var _ = Describe("BuildDelegate", func() {
 
 		Context("when build had error", func() {
 			BeforeEach(func() {
-				delegate.Finish(logger, errors.New("disaster"), exec.Success(false), false)
+				delegate.Finish(logger, errors.New("disaster"), false)
 			})
 
 			It("updates build status to errorred", func() {
@@ -80,7 +81,7 @@ var _ = Describe("BuildDelegate", func() {
 						Version: atc.Version{"version": "some-version-2"},
 					},
 				})
-				delegate.Finish(logger, nil, exec.Success(true), false)
+				delegate.Finish(logger, nil, true)
 			})
 
 			It("updates build status to succeeded", func() {

@@ -18,8 +18,6 @@ import (
 
 	"testing"
 	"time"
-
-	"github.com/concourse/atc"
 )
 
 func TestAcceptance(t *testing.T) {
@@ -87,11 +85,8 @@ var _ = BeforeEach(func() {
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 
 	var err error
-	var found bool
-	defaultTeam, found, err = teamFactory.FindTeam(atc.DefaultTeamName)
+	defaultTeam, err = teamFactory.CreateDefaultTeamIfNotExists()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(found).To(BeTrue()) // created by postgresRunner
-
 })
 
 var _ = AfterEach(func() {

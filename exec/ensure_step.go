@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"os"
+	"context"
 
 	"github.com/concourse/atc/worker"
 	"github.com/hashicorp/go-multierror"
@@ -41,19 +41,29 @@ func (o EnsureStep) Using(repo *worker.ArtifactRepository) Step {
 //
 // If the first step or the second step errors, an aggregate of their errors is
 // returned.
-func (o *EnsureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (o *EnsureStep) Run(ctx context.Context) error {
 	var errors error
 
-	originalErr := o.step.Run(signals, ready)
+	originalErr := o.step.Run(ctx)
 	if originalErr != nil {
 		errors = multierror.Append(errors, originalErr)
 	}
 
 	o.ensure = o.ensureFactory.Using(o.repo)
 
-	hookErr := o.ensure.Run(signals, make(chan struct{}))
+	hookCtx := ctx
+	if ctx.Err() != nil {
+		// prevent hook from being immediately canceled
+		hookCtx = context.Background()
+	}
+
+	hookErr := o.ensure.Run(hookCtx)
 	if hookErr != nil {
 		errors = multierror.Append(errors, hookErr)
+	}
+
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 
 	return errors

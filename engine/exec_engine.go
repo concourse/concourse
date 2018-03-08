@@ -1,18 +1,16 @@
 package engine
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 	"strings"
-
-	"os"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
-	"github.com/tedsuo/ifrit"
 )
 
 type execMetadata struct {
@@ -46,6 +44,8 @@ func (engine *execEngine) Name() string {
 }
 
 func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &execBuild{
 		dbBuild: build,
 
@@ -57,12 +57,15 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan 
 			Plan: plan,
 		},
 
+		ctx:       ctx,
+		cancel:    cancel,
 		releaseCh: engine.releaseCh,
-		signals:   make(chan os.Signal, 1),
 	}, nil
 }
 
 func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	var metadata execMetadata
 	err := json.Unmarshal([]byte(build.EngineMetadata()), &metadata)
 	if err != nil {
@@ -79,8 +82,9 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 		delegate: engine.delegateFactory.Delegate(build),
 		metadata: metadata,
 
+		ctx:       ctx,
+		cancel:    cancel,
 		releaseCh: engine.releaseCh,
-		signals:   make(chan os.Signal, 1),
 	}, nil
 }
 
@@ -107,7 +111,8 @@ type execBuild struct {
 	factory  exec.Factory
 	delegate BuildDelegate
 
-	signals   chan os.Signal
+	ctx       context.Context
+	cancel    func()
 	releaseCh chan struct{}
 
 	metadata execMetadata
@@ -123,7 +128,7 @@ func (build *execBuild) Metadata() string {
 }
 
 func (build *execBuild) Abort(lager.Logger) error {
-	build.signals <- os.Kill
+	build.cancel()
 	return nil
 }
 
@@ -131,32 +136,19 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	stepFactory := build.buildStepFactory(logger, build.metadata.Plan)
 	source := stepFactory.Using(worker.NewArtifactRepository())
 
-	process := ifrit.Background(source)
-
-	exited := process.Wait()
-
-	aborted := false
-	var succeeded bool
+	done := make(chan error, 1)
+	go func() {
+		done <- source.Run(build.ctx)
+	}()
 
 	for {
 		select {
 		case <-build.releaseCh:
 			logger.Info("releasing")
 			return
-		case err := <-exited:
-			if !aborted {
-				succeeded = source.Succeeded()
-			}
-
-			build.delegate.Finish(logger.Session("finish"), err, exec.Success(succeeded), aborted)
+		case err := <-done:
+			build.delegate.Finish(logger.Session("finish"), err, source.Succeeded())
 			return
-
-		case sig := <-build.signals:
-			process.Signal(sig)
-
-			if sig == os.Kill {
-				aborted = true
-			}
 		}
 	}
 }

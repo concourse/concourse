@@ -2,7 +2,7 @@
 package execfakes
 
 import (
-	"os"
+	"context"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -11,13 +11,12 @@ import (
 )
 
 type FakeAction struct {
-	RunStub        func(lager.Logger, *worker.ArtifactRepository, <-chan os.Signal, chan<- struct{}) error
+	RunStub        func(context.Context, lager.Logger, *worker.ArtifactRepository) error
 	runMutex       sync.RWMutex
 	runArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 *worker.ArtifactRepository
-		arg3 <-chan os.Signal
-		arg4 chan<- struct{}
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 *worker.ArtifactRepository
 	}
 	runReturns struct {
 		result1 error
@@ -38,19 +37,18 @@ type FakeAction struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAction) Run(arg1 lager.Logger, arg2 *worker.ArtifactRepository, arg3 <-chan os.Signal, arg4 chan<- struct{}) error {
+func (fake *FakeAction) Run(arg1 context.Context, arg2 lager.Logger, arg3 *worker.ArtifactRepository) error {
 	fake.runMutex.Lock()
 	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 *worker.ArtifactRepository
-		arg3 <-chan os.Signal
-		arg4 chan<- struct{}
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("Run", []interface{}{arg1, arg2, arg3, arg4})
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 *worker.ArtifactRepository
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Run", []interface{}{arg1, arg2, arg3})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		return fake.RunStub(arg1, arg2, arg3, arg4)
+		return fake.RunStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -64,10 +62,10 @@ func (fake *FakeAction) RunCallCount() int {
 	return len(fake.runArgsForCall)
 }
 
-func (fake *FakeAction) RunArgsForCall(i int) (lager.Logger, *worker.ArtifactRepository, <-chan os.Signal, chan<- struct{}) {
+func (fake *FakeAction) RunArgsForCall(i int) (context.Context, lager.Logger, *worker.ArtifactRepository) {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	return fake.runArgsForCall[i].arg1, fake.runArgsForCall[i].arg2, fake.runArgsForCall[i].arg3, fake.runArgsForCall[i].arg4
+	return fake.runArgsForCall[i].arg1, fake.runArgsForCall[i].arg2, fake.runArgsForCall[i].arg3
 }
 
 func (fake *FakeAction) RunReturns(result1 error) {

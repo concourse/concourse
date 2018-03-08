@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
-	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -404,10 +403,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				Expect(outputStep.RunCallCount()).To(Equal(0))
 
-				_, cbErr, successful, aborted := fakeDelegate.FinishArgsForCall(0)
+				_, cbErr, successful := fakeDelegate.FinishArgsForCall(0)
 				Expect(cbErr).NotTo(HaveOccurred())
-				Expect(successful).To(Equal(exec.Success(false)))
-				Expect(aborted).To(BeFalse())
+				Expect(successful).To(BeFalse())
 			})
 		})
 

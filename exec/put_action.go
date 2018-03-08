@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"os"
+	"context"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -75,15 +75,12 @@ func NewPutAction(
 // All worker.ArtifactSources present in the worker.ArtifactRepository are then brought into
 // the container, using volumes if possible, and streaming content over if not.
 //
-// The resource's put script is then invoked. The PutStep is ready as soon as
-// the resource's script starts, and signals will be forwarded to the script.
+// The resource's put script is then invoked. If the context is canceled, the
+// script will be interrupted.
 func (action *PutAction) Run(
+	ctx context.Context,
 	logger lager.Logger,
 	repository *worker.ArtifactRepository,
-
-	// TODO: consider passing these as context
-	signals <-chan os.Signal,
-	ready chan<- struct{},
 ) error {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
@@ -105,8 +102,8 @@ func (action *PutAction) Run(
 	}
 
 	putResource, err := action.resourceFactory.NewResource(
+		ctx,
 		logger,
-		signals,
 		db.NewBuildStepContainerOwner(action.buildID, action.planID),
 		action.containerMetadata,
 		containerSpec,
@@ -128,14 +125,13 @@ func (action *PutAction) Run(
 	}
 
 	versionedSource, err := putResource.Put(
+		ctx,
 		resource.IOConfig{
 			Stdout: action.buildStepDelegate.Stdout(),
 			Stderr: action.buildStepDelegate.Stderr(),
 		},
 		source,
 		params,
-		signals,
-		ready,
 	)
 
 	if err != nil {
@@ -143,6 +139,7 @@ func (action *PutAction) Run(
 			action.exitStatus = ExitStatus(err.ExitStatus)
 			return nil
 		}
+
 		return err
 	}
 

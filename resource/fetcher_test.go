@@ -1,8 +1,8 @@
 package resource_test
 
 import (
+	"context"
 	"errors"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -26,8 +26,8 @@ var _ = Describe("Fetcher", func() {
 		fakeClock               *fakeclock.FakeClock
 		fakeLockFactory         *lockfakes.FakeLockFactory
 		fetcher                 resource.Fetcher
-		signals                 chan os.Signal
-		ready                   chan struct{}
+		ctx                     context.Context
+		cancel                  func()
 		fakeVersionedSource     *resourcefakes.FakeVersionedSource
 		fakeBuildStepDelegate   *workerfakes.FakeImageFetchingDelegate
 
@@ -50,8 +50,7 @@ var _ = Describe("Fetcher", func() {
 			fakeFetchSourceProviderFactory,
 		)
 
-		signals = make(chan os.Signal)
-		ready = make(chan struct{})
+		ctx, cancel = context.WithCancel(context.Background())
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 
 		fakeBuildStepDelegate = new(workerfakes.FakeImageFetchingDelegate)
@@ -59,6 +58,7 @@ var _ = Describe("Fetcher", func() {
 
 	JustBeforeEach(func() {
 		versionedSource, fetchErr = fetcher.Fetch(
+			ctx,
 			lagertest.NewTestLogger("test"),
 			resource.Session{},
 			atc.Tags{},
@@ -67,8 +67,6 @@ var _ = Describe("Fetcher", func() {
 			new(resourcefakes.FakeResourceInstance),
 			resource.EmptyMetadata{},
 			fakeBuildStepDelegate,
-			signals,
-			ready,
 		)
 	})
 
@@ -87,10 +85,6 @@ var _ = Describe("Fetcher", func() {
 
 			It("returns the source", func() {
 				Expect(versionedSource).To(Equal(fakeVersionedSource))
-			})
-
-			It("closes the ready channel", func() {
-				Expect(ready).To(BeClosed())
 			})
 		})
 
@@ -191,15 +185,13 @@ var _ = Describe("Fetcher", func() {
 			})
 		})
 
-		Context("when signal is received", func() {
+		Context("when cancelled", func() {
 			BeforeEach(func() {
-				go func() {
-					signals <- os.Interrupt
-				}()
+				cancel()
 			})
 
-			It("returns ErrInterrupted", func() {
-				Expect(fetchErr).To(Equal(resource.ErrInterrupted))
+			It("returns the context err", func() {
+				Expect(fetchErr).To(Equal(context.Canceled))
 			})
 		})
 	})

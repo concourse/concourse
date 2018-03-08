@@ -1,8 +1,8 @@
 package worker_test
 
 import (
+	"context"
 	"errors"
-	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
@@ -387,7 +387,7 @@ var _ = Describe("Pool", func() {
 
 	Describe("FindOrCreateContainer", func() {
 		var (
-			signals                   <-chan os.Signal
+			ctx                       context.Context
 			fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 			metadata                  db.ContainerMetadata
 			spec                      ContainerSpec
@@ -404,6 +404,8 @@ var _ = Describe("Pool", func() {
 		)
 
 		BeforeEach(func() {
+			ctx = context.Background()
+
 			fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 			fakeOwner = new(dbfakes.FakeContainerOwner)
@@ -469,8 +471,8 @@ var _ = Describe("Pool", func() {
 
 		JustBeforeEach(func() {
 			createdContainer, createErr = pool.FindOrCreateContainer(
+				ctx,
 				logger,
-				signals,
 				fakeImageFetchingDelegate,
 				fakeOwner,
 				metadata,

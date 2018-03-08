@@ -2,12 +2,11 @@ package exec_test
 
 import (
 	"archive/tar"
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
-	"os"
 	"strings"
-	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
@@ -25,11 +24,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("TaskAction", func() {
 	var (
+		ctx    context.Context
+		cancel func()
+
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
@@ -59,10 +60,13 @@ var _ = Describe("TaskAction", func() {
 
 		taskAction *exec.TaskAction
 		actionStep exec.Step
-		process    ifrit.Process
+
+		stepErr error
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
@@ -110,6 +114,8 @@ var _ = Describe("TaskAction", func() {
 			Type:     db.ContainerTypeTask,
 			StepName: "some-step",
 		}
+
+		stepErr = nil
 	})
 
 	JustBeforeEach(func() {
@@ -140,7 +146,7 @@ var _ = Describe("TaskAction", func() {
 			fakeBuildEventsDelegate,
 		).Using(artifactRepository)
 
-		process = ifrit.Invoke(actionStep)
+		stepErr = actionStep.Run(ctx)
 	})
 
 	Context("when getting the config works", func() {
@@ -283,8 +289,8 @@ var _ = Describe("TaskAction", func() {
 					}
 				})
 
-				It("exits with success", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
+				It("returns no error", func() {
+					Expect(stepErr).ToNot(HaveOccurred())
 				})
 
 				It("does not attach to any process", func() {
@@ -292,12 +298,10 @@ var _ = Describe("TaskAction", func() {
 				})
 
 				It("is not successful as the exit status is nonzero", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
 					Expect(actionStep.Succeeded()).To(BeFalse())
 				})
 
 				It("reports its exit status", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
 					Expect(taskAction.ExitStatus()).To(Equal(exec.ExitStatus(123)))
 				})
 
@@ -560,11 +564,9 @@ var _ = Describe("TaskAction", func() {
 							artifactRepository.RegisterSource("some-input", inputSource)
 						})
 
-						It("exits with failure", func() {
-							var err error
-							Eventually(process.Wait()).Should(Receive(&err))
-							Expect(err).To(BeAssignableToTypeOf(exec.MissingInputsError{}))
-							Expect(err.(exec.MissingInputsError).Inputs).To(ConsistOf("some-other-input"))
+						It("returns a MissingInputsError", func() {
+							Expect(stepErr).To(BeAssignableToTypeOf(exec.MissingInputsError{}))
+							Expect(stepErr.(exec.MissingInputsError).Inputs).To(ConsistOf("some-other-input"))
 						})
 					})
 				})
@@ -596,16 +598,14 @@ var _ = Describe("TaskAction", func() {
 							Expect(spec.Inputs).To(HaveLen(1))
 							Expect(spec.Inputs[0].Source()).To(Equal(remappedInputSource))
 							Expect(spec.Inputs[0].DestinationPath()).To(Equal("some-artifact-root/remapped-input"))
-							Eventually(process.Wait()).Should(Receive(BeNil()))
+							Expect(stepErr).ToNot(HaveOccurred())
 						})
 					})
 
 					Context("when any of the inputs are missing", func() {
-						It("exits with failure", func() {
-							var err error
-							Eventually(process.Wait()).Should(Receive(&err))
-							Expect(err).To(BeAssignableToTypeOf(exec.MissingInputsError{}))
-							Expect(err.(exec.MissingInputsError).Inputs).To(ConsistOf("remapped-input-src"))
+						It("returns a MissingInputsError", func() {
+							Expect(stepErr).To(BeAssignableToTypeOf(exec.MissingInputsError{}))
+							Expect(stepErr.(exec.MissingInputsError).Inputs).To(ConsistOf("remapped-input-src"))
 						})
 					})
 				})
@@ -638,14 +638,13 @@ var _ = Describe("TaskAction", func() {
 						})
 
 						It("runs successfully without the optional input", func() {
-							Eventually(process.Wait()).Should(Receive(BeNil()))
+							Expect(stepErr).ToNot(HaveOccurred())
 							_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 							Expect(spec.Inputs).To(HaveLen(2))
 							Expect(spec.Inputs[0].Source()).To(Equal(optionalInput2Source))
 							Expect(spec.Inputs[0].DestinationPath()).To(Equal("some-artifact-root/optional-input-2"))
 							Expect(spec.Inputs[1].Source()).To(Equal(requiredInputSource))
 							Expect(spec.Inputs[1].DestinationPath()).To(Equal("some-artifact-root/required-input"))
-							Eventually(process.Wait()).Should(Receive(BeNil()))
 						})
 					})
 
@@ -654,11 +653,10 @@ var _ = Describe("TaskAction", func() {
 							artifactRepository.RegisterSource("optional-input", optionalInputSource)
 							artifactRepository.RegisterSource("optional-input-2", optionalInput2Source)
 						})
-						It("exits with failure", func() {
-							var err error
-							Eventually(process.Wait()).Should(Receive(&err))
-							Expect(err).To(BeAssignableToTypeOf(exec.MissingInputsError{}))
-							Expect(err.(exec.MissingInputsError).Inputs).To(ConsistOf("required-input"))
+
+						It("returns a MissingInputsError", func() {
+							Expect(stepErr).To(BeAssignableToTypeOf(exec.MissingInputsError{}))
+							Expect(stepErr.(exec.MissingInputsError).Inputs).To(ConsistOf("required-input"))
 						})
 					})
 				})
@@ -713,7 +711,7 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					It("registers cache volumes as task caches", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(stepErr).ToNot(HaveOccurred())
 
 						Expect(fakeVolume1.InitializeTaskCacheCallCount()).To(Equal(1))
 						_, jID, stepName, cachePath, p := fakeVolume1.InitializeTaskCacheArgsForCall(0)
@@ -736,7 +734,7 @@ var _ = Describe("TaskAction", func() {
 						})
 
 						It("does not initialize caches", func() {
-							Eventually(process.Wait()).Should(Receive(BeNil()))
+							Expect(stepErr).ToNot(HaveOccurred())
 							Expect(fakeVolume1.InitializeTaskCacheCallCount()).To(Equal(0))
 							Expect(fakeVolume2.InitializeTaskCacheCallCount()).To(Equal(0))
 						})
@@ -826,7 +824,7 @@ var _ = Describe("TaskAction", func() {
 							})
 
 							JustBeforeEach(func() {
-								Eventually(process.Wait()).Should(Receive(BeNil()))
+								Expect(stepErr).ToNot(HaveOccurred())
 
 								var found bool
 								artifactSource1, found = artifactRepository.SourceFor("some-output")
@@ -960,8 +958,8 @@ var _ = Describe("TaskAction", func() {
 								fakeContainer.SetPropertyReturns(nil)
 							})
 
-							It("exits successfully", func() {
-								Eventually(process.Wait()).Should(Receive(BeNil()))
+							It("returns successfully", func() {
+								Expect(stepErr).ToNot(HaveOccurred())
 							})
 						})
 
@@ -980,8 +978,8 @@ var _ = Describe("TaskAction", func() {
 								}
 							})
 
-							It("exits with the error", func() {
-								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							It("returns the error", func() {
+								Expect(stepErr).To(Equal(disaster))
 							})
 						})
 					})
@@ -1002,13 +1000,14 @@ var _ = Describe("TaskAction", func() {
 								close(stopped)
 								return nil
 							}
+
+							cancel()
 						})
 
 						It("stops the container", func() {
-							process.Signal(os.Interrupt)
-							Eventually(fakeContainer.StopCallCount, 8*time.Second).Should(Equal(1))
+							Expect(fakeContainer.StopCallCount()).To(Equal(1))
 							Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
-							Eventually(process.Wait()).Should(Receive(Equal(exec.ErrInterrupted)))
+							Expect(stepErr).To(Equal(context.Canceled))
 						})
 
 						Context("when container.stop returns an error", func() {
@@ -1024,8 +1023,7 @@ var _ = Describe("TaskAction", func() {
 							})
 
 							It("doesn't return the error", func() {
-								process.Signal(os.Interrupt)
-								Eventually(process.Wait()).Should(Receive(Equal(exec.ErrInterrupted)))
+								Expect(stepErr).To(Equal(context.Canceled))
 							})
 						})
 
@@ -1076,8 +1074,8 @@ var _ = Describe("TaskAction", func() {
 							})
 
 							It("registers the outputs as sources", func() {
-								process.Signal(os.Interrupt)
-								Eventually(process.Wait()).Should(Receive(Equal(exec.ErrInterrupted)))
+								cancel()
+								Expect(stepErr).To(Equal(context.Canceled))
 
 								artifactSource1, found := artifactRepository.SourceFor("some-output")
 								Expect(found).To(BeTrue())
@@ -1125,7 +1123,7 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					JustBeforeEach(func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(stepErr).ToNot(HaveOccurred())
 					})
 
 					It("registers the outputs as sources with specific name", func() {
@@ -1169,7 +1167,7 @@ var _ = Describe("TaskAction", func() {
 								})
 
 								JustBeforeEach(func() {
-									Eventually(process.Wait()).Should(Receive(BeNil()))
+									Expect(stepErr).ToNot(HaveOccurred())
 								})
 
 								Context("when the task config also specifies image", func() {
@@ -1259,8 +1257,8 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					Context("when the image artifact is NOT registered in the source artifactRepository", func() {
-						It("exits with the MissingTaskImageSourceError", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(exec.MissingTaskImageSourceError{"some-image-artifact"})))
+						It("returns a MissingTaskImageSourceError", func() {
+							Expect(stepErr).To(Equal(exec.MissingTaskImageSourceError{"some-image-artifact"}))
 						})
 					})
 				})
@@ -1300,8 +1298,6 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					It("saves the exit status property", func() {
-						<-process.Wait()
-
 						Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
 
 						name, value := fakeContainer.SetPropertyArgsForCall(0)
@@ -1310,20 +1306,17 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					It("is successful", func() {
-						Expect(<-process.Wait()).To(BeNil())
-
+						Expect(stepErr).To(BeNil())
 						Expect(actionStep.Succeeded()).To(BeTrue())
 					})
 
 					It("reports its exit status", func() {
-						<-process.Wait()
-
 						Expect(taskAction.ExitStatus()).To(Equal(exec.ExitStatus(0)))
 						Expect(actionStep.Succeeded()).To(BeTrue())
 					})
 
 					It("doesn't register a source", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(stepErr).ToNot(HaveOccurred())
 
 						sourceMap := artifactRepository.AsMap()
 						Expect(sourceMap).To(BeEmpty())
@@ -1334,8 +1327,8 @@ var _ = Describe("TaskAction", func() {
 							fakeContainer.SetPropertyReturns(nil)
 						})
 
-						It("exits successfully", func() {
-							Eventually(process.Wait()).Should(Receive(BeNil()))
+						It("returns successfully", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
 						})
 					})
 
@@ -1354,8 +1347,8 @@ var _ = Describe("TaskAction", func() {
 							}
 						})
 
-						It("exits with the error", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						It("returns the error", func() {
+							Expect(stepErr).To(Equal(disaster))
 						})
 					})
 				})
@@ -1366,7 +1359,7 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					It("saves the exit status property", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(stepErr).ToNot(HaveOccurred())
 
 						Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
 
@@ -1376,13 +1369,13 @@ var _ = Describe("TaskAction", func() {
 					})
 
 					It("is not successful", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(stepErr).ToNot(HaveOccurred())
 
 						Expect(actionStep.Succeeded()).To(BeFalse())
 					})
 
 					It("reports its exit status", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(stepErr).ToNot(HaveOccurred())
 
 						Expect(taskAction.ExitStatus()).To(Equal(exec.ExitStatus(1)))
 						Expect(actionStep.Succeeded()).To(BeFalse())
@@ -1393,8 +1386,8 @@ var _ = Describe("TaskAction", func() {
 							fakeContainer.SetPropertyReturns(nil)
 						})
 
-						It("exits successfully", func() {
-							Eventually(process.Wait()).Should(Receive(BeNil()))
+						It("returns successfully", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
 						})
 					})
 
@@ -1413,8 +1406,8 @@ var _ = Describe("TaskAction", func() {
 							}
 						})
 
-						It("exits with the error", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						It("returns the error", func() {
+							Expect(stepErr).To(Equal(disaster))
 						})
 					})
 				})
@@ -1426,8 +1419,8 @@ var _ = Describe("TaskAction", func() {
 						fakeProcess.WaitReturns(0, disaster)
 					})
 
-					It("exits with the failure", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					It("returns the error", func() {
+						Expect(stepErr).To(Equal(disaster))
 					})
 				})
 
@@ -1447,13 +1440,14 @@ var _ = Describe("TaskAction", func() {
 							close(stopped)
 							return nil
 						}
+
+						cancel()
 					})
 
 					It("stops the container", func() {
-						process.Signal(os.Interrupt)
-						Eventually(fakeContainer.StopCallCount, 8*time.Second).Should(Equal(1))
+						Expect(fakeContainer.StopCallCount()).To(Equal(1))
 						Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
-						Eventually(process.Wait()).Should(Receive(Equal(exec.ErrInterrupted)))
+						Expect(stepErr).To(Equal(context.Canceled))
 					})
 
 					Context("when container.stop returns an error", func() {
@@ -1469,15 +1463,11 @@ var _ = Describe("TaskAction", func() {
 						})
 
 						It("doesn't return the error", func() {
-							process.Signal(os.Interrupt)
-							Eventually(process.Wait()).Should(Receive(Equal(exec.ErrInterrupted)))
+							Expect(stepErr).To(Equal(context.Canceled))
 						})
 					})
 
 					It("doesn't register a source", func() {
-						process.Signal(os.Interrupt)
-						Eventually(process.Wait()).Should(Receive(Equal(exec.ErrInterrupted)))
-
 						sourceMap := artifactRepository.AsMap()
 						Expect(sourceMap).To(BeEmpty())
 					})
@@ -1490,8 +1480,8 @@ var _ = Describe("TaskAction", func() {
 						fakeContainer.RunReturns(nil, disaster)
 					})
 
-					It("exits with the error", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					It("returns the error", func() {
+						Expect(stepErr).To(Equal(disaster))
 					})
 				})
 			})
@@ -1504,8 +1494,8 @@ var _ = Describe("TaskAction", func() {
 				fakeWorkerClient.FindOrCreateContainerReturns(nil, disaster)
 			})
 
-			It("exits with the error", func() {
-				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+			It("returns the error", func() {
+				Expect(stepErr).To(Equal(disaster))
 			})
 		})
 
@@ -1516,8 +1506,8 @@ var _ = Describe("TaskAction", func() {
 				configSource.GetTaskConfigReturns(atc.TaskConfig{}, disaster)
 			})
 
-			It("exits with the failure", func() {
-				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+			It("returns the error", func() {
+				Expect(stepErr).To(Equal(disaster))
 			})
 		})
 	})

@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"os"
+	"context"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -25,12 +25,9 @@ type FetchConfigAction struct {
 
 // Run first load the TaskConfig
 func (action *FetchConfigAction) Run(
+	ctx context.Context,
 	logger lager.Logger,
 	repository *worker.ArtifactRepository,
-
-	// TODO: consider passing these as context
-	signals <-chan os.Signal,
-	ready chan<- struct{},
 ) error {
 	var err error
 	action.result, err = action.configFetcher.FetchConfig(repository)

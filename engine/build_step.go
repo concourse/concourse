@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -43,7 +42,7 @@ func (build *execBuild) buildTimeoutStep(logger lager.Logger, plan atc.Plan) exe
 	innerPlan := plan.Timeout.Step
 	innerPlan.Attempts = plan.Attempts
 	step := build.buildStepFactory(logger, innerPlan)
-	return exec.Timeout(step, plan.Timeout.Duration, clock.NewClock())
+	return exec.Timeout(step, plan.Timeout.Duration)
 }
 
 func (build *execBuild) buildTryStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {

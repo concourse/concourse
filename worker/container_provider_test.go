@@ -2,10 +2,10 @@ package worker_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -60,7 +60,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeOutputVolume               *workerfakes.FakeVolume
 		fakeLocalCOWVolume             *workerfakes.FakeVolume
 
-		cancel             <-chan os.Signal
+		ctx                context.Context
 		containerSpec      ContainerSpec
 		fakeContainerOwner *dbfakes.FakeContainerOwner
 		containerMetadata  db.ContainerMetadata
@@ -198,7 +198,7 @@ var _ = Describe("ContainerProvider", func() {
 			return volume, nil
 		}
 
-		cancel = make(chan os.Signal)
+		ctx = context.Background()
 
 		fakeContainerOwner = new(dbfakes.FakeContainerOwner)
 
@@ -396,9 +396,9 @@ var _ = Describe("ContainerProvider", func() {
 			Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 			Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
-			_, actualCancel, actualContainer := fakeImage.FetchForContainerArgsForCall(0)
+			actualCtx, _, actualContainer := fakeImage.FetchForContainerArgsForCall(0)
 			Expect(actualContainer).To(Equal(fakeCreatingContainer))
-			Expect(actualCancel).To(Equal(cancel))
+			Expect(actualCtx).To(Equal(ctx))
 		})
 
 		It("creates container in database", func() {
@@ -603,8 +603,8 @@ var _ = Describe("ContainerProvider", func() {
 
 		JustBeforeEach(func() {
 			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateContainer(
+				ctx,
 				logger,
-				cancel,
 				fakeContainerOwner,
 				fakeImageFetchingDelegate,
 				containerMetadata,

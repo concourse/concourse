@@ -2,10 +2,10 @@ package image
 
 import (
 	"archive/tar"
+	"context"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -42,8 +42,8 @@ type ImageResourceFetcherFactory interface {
 
 type ImageResourceFetcher interface {
 	Fetch(
+		ctx context.Context,
 		logger lager.Logger,
-		cancel <-chan os.Signal,
 		container db.CreatingContainer,
 		privileged bool,
 	) (worker.Volume, io.ReadCloser, atc.Version, error)
@@ -112,15 +112,15 @@ type imageResourceFetcher struct {
 }
 
 func (i *imageResourceFetcher) Fetch(
+	ctx context.Context,
 	logger lager.Logger,
-	signals <-chan os.Signal,
 	container db.CreatingContainer,
 	privileged bool,
 ) (worker.Volume, io.ReadCloser, atc.Version, error) {
 	version := i.version
 	if version == nil {
 		var err error
-		version, err = i.getLatestVersion(logger, signals, container)
+		version, err = i.getLatestVersion(ctx, logger, container)
 		if err != nil {
 			logger.Error("failed-to-get-latest-image-version", err)
 			return nil, nil, nil, err
@@ -173,6 +173,7 @@ func (i *imageResourceFetcher) Fetch(
 	}
 
 	versionedSource, err := i.resourceFetcher.Fetch(
+		ctx,
 		logger.Session("init-image"),
 		getSess,
 		i.worker.Tags(),
@@ -181,8 +182,6 @@ func (i *imageResourceFetcher) Fetch(
 		resourceInstance,
 		resource.EmptyMetadata{},
 		i.imageFetchingDelegate,
-		signals,
-		make(chan struct{}),
 	)
 	if err != nil {
 		logger.Error("failed-to-fetch-image", err)
@@ -215,15 +214,15 @@ func (i *imageResourceFetcher) Fetch(
 }
 
 func (i *imageResourceFetcher) ensureVersionOfType(
+	ctx context.Context,
 	logger lager.Logger,
-	signals <-chan os.Signal,
 	container db.CreatingContainer,
 	resourceType creds.VersionedResourceType,
 ) error {
 
 	checkResourceType, err := i.resourceFactory.NewResource(
+		ctx,
 		logger,
-		signals,
 		db.NewImageCheckContainerOwner(container),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
@@ -263,14 +262,14 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 }
 
 func (i *imageResourceFetcher) getLatestVersion(
+	ctx context.Context,
 	logger lager.Logger,
-	signals <-chan os.Signal,
 	container db.CreatingContainer,
 ) (atc.Version, error) {
 
 	resourceType, found := i.customTypes.Lookup(i.imageResource.Type)
 	if found && resourceType.Version == nil {
-		err := i.ensureVersionOfType(logger, signals, container, resourceType)
+		err := i.ensureVersionOfType(ctx, logger, container, resourceType)
 		if err != nil {
 			return nil, err
 		}
@@ -290,8 +289,8 @@ func (i *imageResourceFetcher) getLatestVersion(
 	}
 
 	checkingResource, err := i.resourceFactory.NewResource(
+		ctx,
 		logger,
-		signals,
 		db.NewImageCheckContainerOwner(container),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,

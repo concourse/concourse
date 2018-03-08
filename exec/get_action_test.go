@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"archive/tar"
+	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -24,11 +25,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("GetAction", func() {
 	var (
+		ctx    context.Context
+		cancel func()
+
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFetcher        *resourcefakes.FakeFetcher
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
@@ -45,7 +48,7 @@ var _ = Describe("GetAction", func() {
 
 		factory exec.Factory
 		getStep exec.Step
-		process ifrit.Process
+		stepErr error
 
 		containerMetadata = db.ContainerMetadata{
 			PipelineID: 4567,
@@ -61,6 +64,8 @@ var _ = Describe("GetAction", func() {
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+
 		fakeBuildStepDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
@@ -119,12 +124,15 @@ var _ = Describe("GetAction", func() {
 			fakeBuildStepDelegate,
 		).Using(artifactRepository)
 
-		process = ifrit.Invoke(getStep)
+		stepErr = getStep.Run(ctx)
 	})
 
 	It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
+		Expect(stepErr).ToNot(HaveOccurred())
+
 		Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-		_, sid, tags, actualTeamID, actualResourceTypes, resourceInstance, sm, delegate, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+		fctx, _, sid, tags, actualTeamID, actualResourceTypes, resourceInstance, sm, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+		Expect(fctx).To(Equal(ctx))
 		Expect(sm).To(Equal(stepMetadata))
 		Expect(sid).To(Equal(resource.Session{
 			Metadata: db.ContainerMetadata{
@@ -166,8 +174,6 @@ var _ = Describe("GetAction", func() {
 			var artifactSource worker.ArtifactSource
 
 			JustBeforeEach(func() {
-				Eventually(process.Wait()).Should(Receive(BeNil()))
-
 				var found bool
 				artifactSource, found = artifactRepository.SourceFor("some-resource")
 				Expect(found).To(BeTrue())

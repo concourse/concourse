@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"sync"
 
 	"code.cloudfoundry.org/clock"
@@ -18,7 +19,7 @@ type BuildDelegate interface {
 	DBTaskBuildEventsDelegate(atc.PlanID) exec.TaskBuildEventsDelegate
 	BuildStepDelegate(atc.PlanID) exec.BuildStepDelegate
 
-	Finish(lager.Logger, error, exec.Success, bool)
+	Finish(lager.Logger, error, bool)
 }
 
 //go:generate counterfeiter . BuildDelegateFactory
@@ -69,8 +70,8 @@ func (delegate *delegate) BuildStepDelegate(planID atc.PlanID) exec.BuildStepDel
 	return NewBuildStepDelegate(delegate.build, planID, clock.NewClock())
 }
 
-func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.Success, aborted bool) {
-	if aborted {
+func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded bool) {
+	if err == context.Canceled {
 		delegate.saveStatus(logger, atc.StatusAborted)
 
 		logger.Info("aborted")
@@ -78,7 +79,7 @@ func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.
 		delegate.saveStatus(logger, atc.StatusErrored)
 
 		logger.Info("errored", lager.Data{"error": err.Error()})
-	} else if bool(succeeded) {
+	} else if succeeded {
 		delegate.saveStatus(logger, atc.StatusSucceeded)
 
 		implicits := logger.Session("implicit-outputs")

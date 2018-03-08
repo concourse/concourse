@@ -1,8 +1,8 @@
 package exec_test
 
 import (
+	"context"
 	"errors"
-	"os"
 	"sync"
 
 	. "github.com/concourse/atc/exec"
@@ -11,11 +11,13 @@ import (
 	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("Aggregate", func() {
 	var (
+		ctx    context.Context
+		cancel func()
+
 		fakeStepA *execfakes.FakeStepFactory
 		fakeStepB *execfakes.FakeStepFactory
 
@@ -28,10 +30,12 @@ var _ = Describe("Aggregate", func() {
 		outStepB *execfakes.FakeStep
 
 		step    Step
-		process ifrit.Process
+		stepErr error
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+
 		fakeStepA = new(execfakes.FakeStepFactory)
 		fakeStepB = new(execfakes.FakeStepFactory)
 
@@ -52,7 +56,7 @@ var _ = Describe("Aggregate", func() {
 
 	JustBeforeEach(func() {
 		step = aggregate.Using(repo)
-		process = ifrit.Invoke(step)
+		stepErr = step.Run(ctx)
 	})
 
 	It("uses the input source for all steps", func() {
@@ -65,8 +69,8 @@ var _ = Describe("Aggregate", func() {
 		Expect(repo).To(Equal(repo))
 	})
 
-	It("exits successfully", func() {
-		Eventually(process.Wait()).Should(Receive(BeNil()))
+	It("succeeds", func() {
+		Expect(stepErr).ToNot(HaveOccurred())
 	})
 
 	Describe("executing each source", func() {
@@ -74,17 +78,15 @@ var _ = Describe("Aggregate", func() {
 			wg := new(sync.WaitGroup)
 			wg.Add(2)
 
-			outStepA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			outStepA.RunStub = func(context.Context) error {
 				wg.Done()
 				wg.Wait()
-				close(ready)
 				return nil
 			}
 
-			outStepB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			outStepB.RunStub = func(context.Context) error {
 				wg.Done()
 				wg.Wait()
-				close(ready)
 				return nil
 			}
 		})
@@ -95,37 +97,19 @@ var _ = Describe("Aggregate", func() {
 		})
 	})
 
-	Describe("signalling", func() {
-		var receivedSignals chan os.Signal
-		var actuallyExit chan struct{}
-
+	Describe("canceling", func() {
 		BeforeEach(func() {
-			receivedSignals = make(chan os.Signal, 2)
-			actuallyExit = make(chan struct{}, 1)
-
-			outStepA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
-				close(ready)
-				receivedSignals <- <-signals
-				<-actuallyExit
-				return ErrInterrupted
-			}
-
-			outStepB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
-				close(ready)
-				receivedSignals <- <-signals
-				<-actuallyExit
-				return ErrInterrupted
-			}
+			cancel()
 		})
 
-		It("returns ErrInterrupted", func() {
-			process.Signal(os.Interrupt)
+		It("cancels each substep", func() {
+			Expect(outStepA.RunArgsForCall(0).Err()).To(Equal(context.Canceled))
+			Expect(outStepB.RunArgsForCall(0).Err()).To(Equal(context.Canceled))
+			Expect(stepErr).To(Equal(context.Canceled))
+		})
 
-			Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
-			Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
-			Consistently(process.Wait()).ShouldNot(Receive())
-			close(actuallyExit)
-			Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+		It("returns ctx.Err()", func() {
+			Expect(stepErr).To(Equal(context.Canceled))
 		})
 	})
 
@@ -139,11 +123,8 @@ var _ = Describe("Aggregate", func() {
 		})
 
 		It("exits with an error including the original message", func() {
-			var err error
-			Eventually(process.Wait()).Should(Receive(&err))
-
-			Expect(err.Error()).To(ContainSubstring("nope A"))
-			Expect(err.Error()).To(ContainSubstring("nope B"))
+			Expect(stepErr.Error()).To(ContainSubstring("nope A"))
+			Expect(stepErr.Error()).To(ContainSubstring("nope B"))
 		})
 	})
 

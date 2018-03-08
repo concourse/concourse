@@ -1,10 +1,10 @@
 package worker
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -130,8 +130,8 @@ func (pool *pool) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes
 }
 
 func (pool *pool) FindOrCreateContainer(
+	ctx context.Context,
 	logger lager.Logger,
-	signals <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
@@ -160,8 +160,8 @@ func (pool *pool) FindOrCreateContainer(
 	}
 
 	return worker.FindOrCreateContainer(
+		ctx,
 		logger,
-		signals,
 		delegate,
 		owner,
 		metadata,

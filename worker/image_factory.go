@@ -1,9 +1,9 @@
 package worker
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
-	"os"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -36,8 +36,8 @@ type FetchedImage struct {
 
 type Image interface {
 	FetchForContainer(
+		ctx context.Context,
 		logger lager.Logger,
-		cancel <-chan os.Signal,
 		container db.CreatingContainer,
 	) (FetchedImage, error)
 }

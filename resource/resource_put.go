@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"os"
+	"context"
 
 	"github.com/concourse/atc"
 )
@@ -12,11 +12,10 @@ type putRequest struct {
 }
 
 func (resource *resource) Put(
+	ctx context.Context,
 	ioConfig IOConfig,
 	source atc.Source,
 	params atc.Params,
-	signals <-chan os.Signal,
-	ready chan<- struct{},
 ) (VersionedSource, error) {
 	resourceDir := ResourcesDir("put")
 
@@ -25,7 +24,8 @@ func (resource *resource) Put(
 		resourceDir: resourceDir,
 	}
 
-	runner := resource.runScript(
+	err := resource.runScript(
+		ctx,
 		"/opt/resource/out",
 		[]string{resourceDir},
 		putRequest{
@@ -36,8 +36,6 @@ func (resource *resource) Put(
 		ioConfig.Stderr,
 		true,
 	)
-
-	err := runner.Run(signals, ready)
 	if err != nil {
 		return nil, err
 	}

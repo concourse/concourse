@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"os"
+	"context"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -83,7 +83,7 @@ func (s *resourceInstanceFetchSource) Find() (VersionedSource, bool, error) {
 
 // Create runs under the lock but we need to make sure volume does not exist
 // yet before creating it under the lock
-func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready chan<- struct{}) (VersionedSource, error) {
+func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSource, error) {
 	sLog := s.logger.Session("create")
 
 	versionedSource, found, err := s.Find()
@@ -112,8 +112,8 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 
 	resourceFactory := NewResourceFactory(s.worker)
 	resource, err := resourceFactory.NewResource(
+		ctx,
 		s.logger,
-		nil,
 		s.resourceInstance.ContainerOwner(),
 		s.session.Metadata,
 		containerSpec,
@@ -134,6 +134,7 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 	}
 
 	versionedSource, err = resource.Get(
+		ctx,
 		volume,
 		IOConfig{
 			Stdout: s.imageFetchingDelegate.Stdout(),
@@ -142,15 +143,8 @@ func (s *resourceInstanceFetchSource) Create(signals <-chan os.Signal, ready cha
 		s.resourceInstance.Source(),
 		s.resourceInstance.Params(),
 		s.resourceInstance.Version(),
-		signals,
-		ready,
 	)
 	if err != nil {
-		if err == ErrAborted {
-			sLog.Error("get-run-resource-aborted", err, lager.Data{"container": resource.Container().Handle()})
-			return nil, ErrInterrupted
-		}
-
 		sLog.Error("failed-to-fetch-resource", err)
 		return nil, err
 	}

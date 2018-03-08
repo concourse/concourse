@@ -1,17 +1,16 @@
 package exec_test
 
 import (
+	"context"
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
-	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("ActionsStep", func() {
@@ -21,6 +20,7 @@ var _ = Describe("ActionsStep", func() {
 		fakeAction2             *execfakes.FakeAction
 		artifactRepository      *worker.ArtifactRepository
 		actionsStep             exec.Step
+		stepErr                 error
 	)
 
 	BeforeEach(func() {
@@ -34,10 +34,12 @@ var _ = Describe("ActionsStep", func() {
 			[]exec.Action{fakeAction1, fakeAction2},
 			fakeBuildEventsDelegate,
 		).Using(artifactRepository)
+
+		stepErr = nil
 	})
 
 	JustBeforeEach(func() {
-		ifrit.Invoke(actionsStep)
+		stepErr = actionsStep.Run(context.Background())
 	})
 
 	Context("when actions return no error", func() {
@@ -88,22 +90,6 @@ var _ = Describe("ActionsStep", func() {
 			Expect(fakeBuildEventsDelegate.FailedCallCount()).To(Equal(1))
 			_, failedErr := fakeBuildEventsDelegate.FailedArgsForCall(0)
 			Expect(failedErr).To(Equal(disaster))
-		})
-
-		It("does not execute subsequent actions", func() {
-			Expect(fakeAction2.RunCallCount()).To(Equal(0))
-		})
-	})
-
-	Context("when action returns ErrAborted", func() {
-		BeforeEach(func() {
-			fakeAction1.RunReturns(resource.ErrAborted)
-		})
-
-		It("invoked the delegate's Failed callback with ErrInterrupted", func() {
-			Expect(fakeBuildEventsDelegate.FailedCallCount()).To(Equal(1))
-			_, failedErr := fakeBuildEventsDelegate.FailedArgsForCall(0)
-			Expect(failedErr).To(Equal(exec.ErrInterrupted))
 		})
 
 		It("does not execute subsequent actions", func() {

@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"os"
+	"context"
 
 	"github.com/concourse/atc/worker"
 )
@@ -30,17 +30,15 @@ type RetryStep struct {
 
 // Run iterates through each step, stopping once a step succeeds. If all steps
 // fail, the RetryStep will fail.
-func (step *RetryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	close(ready)
-
+func (step *RetryStep) Run(ctx context.Context) error {
 	var attemptErr error
 
 	for _, attempt := range step.Attempts {
 		step.LastAttempt = attempt
 
-		attemptErr = attempt.Run(signals, make(chan struct{}))
-		if attemptErr == ErrInterrupted {
-			return attemptErr
+		attemptErr = attempt.Run(ctx)
+		if ctx.Err() != nil {
+			return ctx.Err()
 		}
 
 		if attemptErr != nil {

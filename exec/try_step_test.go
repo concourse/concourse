@@ -1,6 +1,7 @@
 package exec_test
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/concourse/atc/exec"
@@ -12,6 +13,9 @@ import (
 
 var _ = Describe("Try Step", func() {
 	var (
+		ctx    context.Context
+		cancel func()
+
 		fakeStepFactoryStep *execfakes.FakeStepFactory
 
 		runStep *execfakes.FakeStep
@@ -21,6 +25,8 @@ var _ = Describe("Try Step", func() {
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+
 		fakeStepFactoryStep = new(execfakes.FakeStepFactory)
 		runStep = new(execfakes.FakeStep)
 		fakeStepFactoryStep.UsingReturns(runStep)
@@ -36,14 +42,14 @@ var _ = Describe("Try Step", func() {
 	})
 
 	Describe("Run", func() {
-		Context("when the inner step is interrupted", func() {
+		Context("when interrupted", func() {
 			BeforeEach(func() {
-				runStep.RunReturns(ErrInterrupted)
+				runStep.RunReturns(context.Canceled)
 			})
 
 			It("propagates the error", func() {
-				err := step.Run(nil, nil)
-				Expect(err).To(Equal(ErrInterrupted))
+				err := step.Run(ctx)
+				Expect(err).To(Equal(context.Canceled))
 			})
 		})
 
@@ -53,7 +59,7 @@ var _ = Describe("Try Step", func() {
 			})
 
 			It("swallows the error", func() {
-				err := step.Run(nil, nil)
+				err := step.Run(ctx)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})

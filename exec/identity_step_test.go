@@ -1,7 +1,7 @@
 package exec_test
 
 import (
-	"os"
+	"context"
 
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
@@ -31,16 +31,13 @@ var _ = Describe("Identity", func() {
 
 	Describe("Run", func() {
 		It("is a no-op", func() {
-			ready := make(chan struct{})
-			signals := make(chan os.Signal)
-
-			err := step.Run(signals, ready)
+			err := step.Run(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	Describe("Succeeded", func() {
-		It("calls through to the input source", func() {
+		It("returns true", func() {
 			Expect(step.Succeeded()).To(BeTrue())
 		})
 	})

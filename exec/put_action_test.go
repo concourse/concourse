@@ -1,8 +1,8 @@
 package exec_test
 
 import (
+	"context"
 	"errors"
-	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -13,18 +13,19 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
-	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("PutAction", func() {
 	var (
+		ctx    context.Context
+		cancel func()
+
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFactory        *resourcefakes.FakeResourceFactory
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
@@ -51,10 +52,12 @@ var _ = Describe("PutAction", func() {
 
 		putAction  *exec.PutAction
 		actionStep exec.Step
-		process    ifrit.Process
+		stepErr    error
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
@@ -82,6 +85,8 @@ var _ = Describe("PutAction", func() {
 				Version: atc.Version{"some-custom": "version"},
 			},
 		})
+
+		stepErr = nil
 	})
 
 	JustBeforeEach(func() {
@@ -108,7 +113,7 @@ var _ = Describe("PutAction", func() {
 			fakeBuildEventsDelegate,
 		).Using(artifactRepository)
 
-		process = ifrit.Invoke(actionStep)
+		stepErr = actionStep.Run(ctx)
 	})
 
 	Context("when artifactRepository contains sources", func() {
@@ -172,10 +177,16 @@ var _ = Describe("PutAction", func() {
 				Expect(delegate).To(Equal(fakeBuildStepDelegate))
 			})
 
+			It("puts the resource with the given context", func() {
+				Expect(fakeResource.PutCallCount()).To(Equal(1))
+				putCtx, _, _, _ := fakeResource.PutArgsForCall(0)
+				Expect(putCtx).To(Equal(ctx))
+			})
+
 			It("puts the resource with the correct source and params", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 
-				_, putSource, putParams, _, _ := fakeResource.PutArgsForCall(0)
+				_, _, putSource, putParams := fakeResource.PutArgsForCall(0)
 				Expect(putSource).To(Equal(atc.Source{"some": "super-secret-source"}))
 				Expect(putParams).To(Equal(atc.Params{"some-param": "some-value"}))
 			})
@@ -183,7 +194,7 @@ var _ = Describe("PutAction", func() {
 			It("puts the resource with the io config forwarded", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 
-				ioConfig, _, _, _, _ := fakeResource.PutArgsForCall(0)
+				_, ioConfig, _, _ := fakeResource.PutArgsForCall(0)
 				Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
 				Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 			})
@@ -202,54 +213,15 @@ var _ = Describe("PutAction", func() {
 				Expect(putAction.ExitStatus()).To(Equal(exec.ExitStatus(0)))
 			})
 
-			Describe("signalling", func() {
-				var receivedSignals <-chan os.Signal
+			Context("when performing the put fails", func() {
+				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					sigs := make(chan os.Signal)
-					receivedSignals = sigs
-
-					fakeResource.PutStub = func(
-						ioConfig resource.IOConfig,
-						source atc.Source,
-						params atc.Params,
-						signals <-chan os.Signal,
-						ready chan<- struct{},
-					) (resource.VersionedSource, error) {
-						close(ready)
-						sigs <- <-signals
-						return fakeVersionedSource, nil
-					}
+					fakeResource.PutReturns(nil, disaster)
 				})
 
-				It("forwards to the resource", func() {
-					process.Signal(os.Interrupt)
-					Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
-					Eventually(process.Wait()).Should(Receive())
-				})
-			})
-
-			Context("when performing the put fails", func() {
-				Context("with an unknown error", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeResource.PutReturns(nil, disaster)
-					})
-
-					It("exits with the failure", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					})
-				})
-
-				Context("by being interrupted", func() {
-					BeforeEach(func() {
-						fakeResource.PutReturns(nil, resource.ErrAborted)
-					})
-
-					It("exits with ErrInterrupted", func() {
-						Expect(<-process.Wait()).To(Equal(exec.ErrInterrupted))
-					})
+				It("returns the error", func() {
+					Expect(stepErr).To(Equal(disaster))
 				})
 			})
 		})
@@ -261,8 +233,8 @@ var _ = Describe("PutAction", func() {
 				fakeResourceFactory.NewResourceReturns(nil, disaster)
 			})
 
-			It("exits with the failure", func() {
-				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+			It("returns the failure", func() {
+				Expect(stepErr).To(Equal(disaster))
 			})
 		})
 	})
