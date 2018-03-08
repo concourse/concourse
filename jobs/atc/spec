@@ -78,7 +78,7 @@ properties:
 
       Typically this is the URL that you as a user would use to reach your CI.
       For multiple ATCs it would go to some sort of load balancer.
-    example: https://ci.concourse.ci
+    example: https://ci.concourse-ci.org
 
   peer_url:
     description: |

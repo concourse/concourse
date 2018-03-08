@@ -1,14 +1,14 @@
-# concourse [![slack.concourse.ci](http://slack.concourse.ci/badge.svg)](http://slack.concourse.ci)
+# concourse [![slack.concourse-ci.org](http://slack.concourse-ci.org/badge.svg)](http://slack.concourse-ci.org)
 
-[Concourse](https://concourse.ci) is a pipeline-based CI system written in Go.
+[Concourse](https://concourse-ci.org) is a pipeline-based CI system written in Go.
 
-* Website: [concourse.ci](https://concourse.ci)
+* Website: [concourse-ci.org](https://concourse-ci.org)
 * Documentation:
-  * [Introduction](https://concourse.ci/introduction.html)
-  * [Setting Up](https://concourse.ci/setting-up.html)
-  * [Using Concourse](https://concourse.ci/using-concourse.html)
+  * [Introduction](https://concourse-ci.org/introduction.html)
+  * [Setting Up](https://concourse-ci.org/setting-up.html)
+  * [Using Concourse](https://concourse-ci.org/using-concourse.html)
 * Slack:
-  * [Invitation](http://slack.concourse.ci)
+  * [Invitation](http://slack.concourse-ci.org)
   * [#general](https://concourseci.slack.com) for help and chit-chat
 * Roadmap:
   * [GitHub Milestones](https://github.com/concourse/concourse/milestones)
@@ -35,7 +35,7 @@ Each component has its own repository:
   managing caches and artifacts on the workers
 
 To learn more about how they fit together, see [Concourse
-Architecture](https://concourse.ci/architecture.html).
+Architecture](https://concourse-ci.org/architecture.html).
 
 Please note that this project is released with a Contributor Code of Conduct.
 By participating in this project you agree to abide by its terms. You can review
