@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 
 	"code.cloudfoundry.org/lager"
 
@@ -59,6 +60,12 @@ func (s *ActionsStep) Run(ctx context.Context) error {
 	for _, action := range s.actions {
 		err := action.Run(ctx, s.logger, s.repository)
 		if err != nil {
+			if err == context.DeadlineExceeded || err == context.Canceled {
+				// XXX: here for backwards-compatibility. this shouldn't be so coupled.
+				s.buildEventsDelegate.Failed(s.logger, errors.New("interrupted"))
+				return err
+			}
+
 			s.logger.Error("failed-to-run-action", err)
 			s.buildEventsDelegate.Failed(s.logger, err)
 			return err
