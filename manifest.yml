@@ -4,11 +4,7 @@ instances: 2
 memory: 64M
 routes:
 - route: concourse-ci.org
-- route: concourse-ci.net
-- route: concourse-ci.com
-- route: concourse.ci
-- route: concourse.cl
-- route: www.concourse.ci
+- route: www.concourse-ci.org
 - route: concourse-ci.cfapps.io
 path: .
 buildpack: "https://github.com/cloudfoundry/staticfile-buildpack#v1.3.2"
