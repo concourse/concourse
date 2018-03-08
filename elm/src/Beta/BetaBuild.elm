@@ -683,7 +683,7 @@ view model =
                                         [ class "explanation" ]
                                         [ Html.text "This log has been "
                                         , Html.a
-                                            [ Html.Attributes.href "http://concourse.ci/configuring-jobs.html#build_logs_to_retain" ]
+                                            [ Html.Attributes.href "http://concourse-ci.org/configuring-jobs.html#build_logs_to_retain" ]
                                             [ Html.text "reaped." ]
                                         ]
                                     ]

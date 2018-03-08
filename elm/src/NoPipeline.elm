@@ -38,7 +38,7 @@ view =
             , Html.a
                 [ class "ansi-blue-fg"
                 , target "_blank"
-                , href "https://concourse.ci/fly-set-pipeline.html"
+                , href "https://concourse-ci.org/fly-set-pipeline.html"
                 ]
                 [ Html.text "fly set-pipeline" ]
             , Html.text "` to set up your new pipeline"
