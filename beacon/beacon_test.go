@@ -164,35 +164,35 @@ var _ = Describe("Beacon", func() {
 				})
 			})
 
-			Context("when the registration mode is 'forward'", func() {
-				BeforeEach(func() {
-					beacon.RegistrationMode = Forward
-				})
+			// Context("when the registration mode is 'forward'", func() {
+			// 	BeforeEach(func() {
+			// 		beacon.RegistrationMode = Forward
+			// 	})
 
-				It("Forwards the worker's Garden and Baggageclaim to TSA", func() {
-					By("using the forward-worker command")
-					Expect(fakeSession.StartCallCount()).To(Equal(1))
-					Expect(fakeSession.StartArgsForCall(0)).To(Equal("forward-worker --garden 0.0.0.0:7777 --baggageclaim 0.0.0.0:7788"))
-				})
-			})
+			// 	It("Forwards the worker's Garden and Baggageclaim to TSA", func() {
+			// 		By("using the forward-worker command")
+			// 		Expect(fakeSession.StartCallCount()).To(Equal(1))
+			// 		Expect(fakeSession.StartArgsForCall(0)).To(Equal("forward-worker --garden 0.0.0.0:7777 --baggageclaim 0.0.0.0:7788"))
+			// 	})
+			// })
 
-			Context("when the registration mode is 'direct'", func() {
-				BeforeEach(func() {
-					beacon.RegistrationMode = Direct
-				})
+			// Context("when the registration mode is 'direct'", func() {
+			// 	BeforeEach(func() {
+			// 		beacon.RegistrationMode = Direct
+			// 	})
 
-				It("Registers directly with the TSA", func() {
-					By("using the register-worker command")
-					Expect(fakeSession.StartCallCount()).To(Equal(1))
-					Expect(fakeSession.StartArgsForCall(0)).To(Equal("register-worker"))
-				})
-			})
+			// 	It("Registers directly with the TSA", func() {
+			// 		By("using the register-worker command")
+			// 		Expect(fakeSession.StartCallCount()).To(Equal(1))
+			// 		Expect(fakeSession.StartArgsForCall(0)).To(Equal("register-worker"))
+			// 	})
+			// })
 
-			It("Forwards the worker's Garden and Baggageclaim to TSA by default", func() {
-				By("using the forward-worker command")
-				Expect(fakeSession.StartCallCount()).To(Equal(1))
-				Expect(fakeSession.StartArgsForCall(0)).To(Equal("forward-worker --garden 0.0.0.0:7777 --baggageclaim 0.0.0.0:7788"))
-			})
+			// It("Forwards the worker's Garden and Baggageclaim to TSA by default", func() {
+			// 	By("using the forward-worker command")
+			// 	Expect(fakeSession.StartCallCount()).To(Equal(1))
+			// 	Expect(fakeSession.StartArgsForCall(0)).To(Equal("forward-worker --garden 0.0.0.0:7777 --baggageclaim 0.0.0.0:7788"))
+			// })
 
 			It("sets up a proxy for the Garden server using the correct host", func() {
 				Expect(fakeClient.ProxyCallCount()).To(Equal(2))

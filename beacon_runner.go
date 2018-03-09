@@ -16,10 +16,11 @@ func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) bea
 	client := beacon.NewSSHClient(logger.Session("beacon-client"), config)
 
 	return beacon.Beacon{
-		Logger:           logger,
-		Worker:           worker,
-		Client:           client,
-		RegistrationMode: config.RegistrationMode,
+		Logger:                  logger,
+		Worker:                  worker,
+		Client:                  client,
+		GardenForwardAddr:       config.GardenForwardAddr,
+		BaggageclaimForwardAddr: config.BaggageclaimForwardAddr,
 	}
 }
 

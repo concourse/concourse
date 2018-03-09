@@ -10,12 +10,14 @@ import (
 )
 
 type Config struct {
-	Host             string              `long:"host" default:"127.0.0.1" description:"TSA host to forward the worker through."`
-	Port             int                 `long:"port" default:"2222" description:"TSA port to connect to."`
-	PublicKey        flag.AuthorizedKeys `long:"public-key" description:"File containing a public key to expect from the TSA."`
-	WorkerPrivateKey flag.PrivateKey     `long:"worker-private-key" description:"File containing the private key to use when authenticating to the TSA."`
-	RegistrationMode RegistrationMode    `long:"registration-mode" default:"forward" choice:"forward" choice:"direct"`
-	Retry            bool                `long:"retry" description:"Retry connection on failure"`
+	Host                    string              `long:"host" default:"127.0.0.1" description:"TSA host to forward the worker through."`
+	Port                    int                 `long:"port" default:"2222" description:"TSA port to connect to."`
+	PublicKey               flag.AuthorizedKeys `long:"public-key" description:"File containing a public key to expect from the TSA."`
+	WorkerPrivateKey        flag.PrivateKey     `long:"worker-private-key" description:"File containing the private key to use when authenticating to the TSA."`
+	GardenForwardAddr       string              `long:"garden-forward-addr" description:"Garden address to forward through SSH to the TSA."`
+	BaggageclaimForwardAddr string              `long:"baggageclaim-forward-addr" description:"Baggageclaim address to forward through SSH to the TSA."`
+
+	Retry bool `long:"retry" description:"Retry connection on failure"`
 }
 
 func (config Config) checkHostKey(hostname string, remote net.Addr, remoteKey ssh.PublicKey) error {

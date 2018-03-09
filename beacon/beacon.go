@@ -39,10 +39,11 @@ type Session interface {
 }
 
 type Beacon struct {
-	Logger           lager.Logger
-	Worker           atc.Worker
-	Client           Client
-	RegistrationMode RegistrationMode
+	Logger                  lager.Logger
+	Worker                  atc.Worker
+	Client                  Client
+	GardenForwardAddr       string
+	BaggageclaimForwardAddr string
 }
 
 type RegistrationMode string
@@ -54,7 +55,7 @@ const (
 
 func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) error {
 	beacon.Logger.Debug("registering")
-	if beacon.RegistrationMode == Direct {
+	if beacon.GardenForwardAddr == "" {
 		return beacon.registerDirect(signals, ready)
 	}
 
@@ -63,10 +64,16 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 
 func (beacon *Beacon) registerForwarded(signals <-chan os.Signal, ready chan<- struct{}) error {
 	beacon.Logger.Debug("forward-worker")
+	command := "forward-worker"
+	if beacon.GardenForwardAddr != "" {
+		command += " --garden " + gardenForwardAddr
+
+		if beacon.BaggageclaimForwardAddr != "" {
+			command += " --baggageclaim " + baggageclaimForwardAddr
+		}
+	}
 	return beacon.run(
-		"forward-worker "+
-			"--garden "+gardenForwardAddr+" "+
-			"--baggageclaim "+baggageclaimForwardAddr,
+		command,
 		signals,
 		ready,
 	)
@@ -115,13 +122,24 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 		return err
 	}
 
-	beacon.Client.Proxy(gardenForwardAddr, beacon.Worker.GardenAddr)
-
 	bcURL, err := url.Parse(beacon.Worker.BaggageclaimURL)
 	if err != nil {
 		return fmt.Errorf("failed to parse baggageclaim url: %s", err)
 	}
-	beacon.Client.Proxy(baggageclaimForwardAddr, bcURL.Host)
+
+	var gardenForwardAddrRemote = beacon.Worker.GardenAddr
+	var bcForwardAddrRemote = bcURL.Host
+
+	if beacon.GardenForwardAddr != "" {
+		gardenForwardAddrRemote = beacon.GardenForwardAddr
+
+		if beacon.BaggageclaimForwardAddr != "" {
+			bcForwardAddrRemote = beacon.BaggageclaimForwardAddr
+		}
+	}
+
+	beacon.Client.Proxy(gardenForwardAddr, gardenForwardAddrRemote)
+	beacon.Client.Proxy(baggageclaimForwardAddr, bcForwardAddrRemote)
 
 	close(ready)
 
