@@ -34,15 +34,6 @@ chown -R vcap:vcap $LOG_DIR
     tsa_addrs = tsa.instances.collect(&:address)
     tsa_port = tsa.p("bind_port")
   end
-
-  tsa_registration_mode=p("tsa.registration_mode")
-
-  if_p("garden.forward_address") do |_|
-    tsa_registration_mode="forward"
-  end
-  if_p("baggageclaim.forward_address") do |_|
-    tsa_registration_mode="forward"
-  end
  %>
 
 WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
@@ -93,11 +84,16 @@ case $1 in
       exitstatus=0
       chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker \
              --json=$RUN_DIR/worker.json \
-             --beacon-host=$tsa_addr\
-             --beacon-port=<%= tsa_port %>\
-             --beacon-public-key=${TSA_HOST_KEY}\
-             --beacon-worker-private-key=${WORKER_KEY}\
-             --beacon-registration-mode=<%= tsa_registration_mode %>\
+             --beacon-host=$tsa_addr \
+             --beacon-port=<%= tsa_port %> \
+             --beacon-public-key=${TSA_HOST_KEY} \
+             --beacon-worker-private-key=${WORKER_KEY} \
+             <% if p("garden.forward_address", nil) %> \
+               --beacon-garden-forward-addr=<%= p("garden.forward_address") %> \
+               <% if p("baggageclaim.forward_address", nil) %> \
+                 --beacon-baggageclaim-forward-addr=<%= p("baggageclaim.forward_address") %> \
+               <% end %> \
+             <% end %> \
               1>>$LOG_DIR/beacon.stdout.log \
               2>>$LOG_DIR/beacon.stderr.log || exitstatus=$?
 
