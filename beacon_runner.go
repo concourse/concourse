@@ -21,6 +21,7 @@ func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) bea
 		Client:                  client,
 		GardenForwardAddr:       config.GardenForwardAddr,
 		BaggageclaimForwardAddr: config.BaggageclaimForwardAddr,
+		RegistrationMode:        config.RegistrationMode,
 	}
 }
 

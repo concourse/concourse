@@ -44,6 +44,7 @@ type Beacon struct {
 	Client                  Client
 	GardenForwardAddr       string
 	BaggageclaimForwardAddr string
+	RegistrationMode        RegistrationMode
 }
 
 type RegistrationMode string
@@ -55,7 +56,7 @@ const (
 
 func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) error {
 	beacon.Logger.Debug("registering")
-	if beacon.GardenForwardAddr == "" {
+	if beacon.RegistrationMode == Direct {
 		return beacon.registerDirect(signals, ready)
 	}
 
@@ -64,16 +65,10 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 
 func (beacon *Beacon) registerForwarded(signals <-chan os.Signal, ready chan<- struct{}) error {
 	beacon.Logger.Debug("forward-worker")
-	command := "forward-worker"
-	if beacon.GardenForwardAddr != "" {
-		command += " --garden " + gardenForwardAddr
-
-		if beacon.BaggageclaimForwardAddr != "" {
-			command += " --baggageclaim " + baggageclaimForwardAddr
-		}
-	}
 	return beacon.run(
-		command,
+		"forward-worker "+
+			"--garden "+gardenForwardAddr+" "+
+			"--baggageclaim "+baggageclaimForwardAddr,
 		signals,
 		ready,
 	)
