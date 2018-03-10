@@ -51,21 +51,6 @@ func (err TaskImageSourceParametersError) Error() string {
 	return fmt.Sprintf("failed to evaluate image resource parameters: %s", err.Err)
 }
 
-//go:generate counterfeiter . TaskConfigSource
-
-type TaskConfigSource interface {
-	GetTaskConfig() (atc.TaskConfig, error)
-}
-
-type FetchConfigActionTaskConfigSource struct {
-	Action FetchConfigResultAction
-}
-
-func (s *FetchConfigActionTaskConfigSource) GetTaskConfig() (atc.TaskConfig, error) {
-	taskConfig := s.Action.Result()
-	return taskConfig, nil
-}
-
 //go:generate counterfeiter . TaskBuildEventsDelegate
 
 type TaskBuildEventsDelegate interface {
@@ -165,7 +150,7 @@ func (action *TaskAction) Run(
 	logger lager.Logger,
 	repository *worker.ArtifactRepository,
 ) error {
-	config, err := action.configSource.GetTaskConfig()
+	config, err := action.configSource.FetchConfig(repository)
 	if err != nil {
 		return err
 	}

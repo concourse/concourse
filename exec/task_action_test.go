@@ -170,7 +170,7 @@ var _ = Describe("TaskAction", func() {
 				},
 			}
 
-			configSource.GetTaskConfigReturns(fetchedConfig, nil)
+			configSource.FetchConfigReturns(fetchedConfig, nil)
 		})
 
 		Context("when the task's container is either found or created", func() {
@@ -242,7 +242,7 @@ var _ = Describe("TaskAction", func() {
 						},
 					}
 
-					configSource.GetTaskConfigReturns(fetchedConfig, nil)
+					configSource.FetchConfigReturns(fetchedConfig, nil)
 				})
 
 				It("finds or creates a container", func() {
@@ -321,7 +321,7 @@ var _ = Describe("TaskAction", func() {
 					)
 
 					BeforeEach(func() {
-						configSource.GetTaskConfigReturns(atc.TaskConfig{
+						configSource.FetchConfigReturns(atc.TaskConfig{
 							Platform:  "some-platform",
 							RootfsURI: "some-image",
 							Params:    map[string]string{"SOME": "params"},
@@ -522,7 +522,7 @@ var _ = Describe("TaskAction", func() {
 						inputSource = new(workerfakes.FakeArtifactSource)
 						otherInputSource = new(workerfakes.FakeArtifactSource)
 
-						configSource.GetTaskConfigReturns(atc.TaskConfig{
+						configSource.FetchConfigReturns(atc.TaskConfig{
 							Platform:  "some-platform",
 							RootfsURI: "some-image",
 							Params:    map[string]string{"SOME": "params"},
@@ -577,7 +577,7 @@ var _ = Describe("TaskAction", func() {
 					BeforeEach(func() {
 						remappedInputSource = new(workerfakes.FakeArtifactSource)
 						inputMapping = map[string]string{"remapped-input": "remapped-input-src"}
-						configSource.GetTaskConfigReturns(atc.TaskConfig{
+						configSource.FetchConfigReturns(atc.TaskConfig{
 							Run: atc.TaskRunConfig{
 								Path: "ls",
 							},
@@ -619,7 +619,7 @@ var _ = Describe("TaskAction", func() {
 						optionalInputSource = new(workerfakes.FakeArtifactSource)
 						optionalInput2Source = new(workerfakes.FakeArtifactSource)
 						requiredInputSource = new(workerfakes.FakeArtifactSource)
-						configSource.GetTaskConfigReturns(atc.TaskConfig{
+						configSource.FetchConfigReturns(atc.TaskConfig{
 							Run: atc.TaskRunConfig{
 								Path: "ls",
 							},
@@ -674,7 +674,7 @@ var _ = Describe("TaskAction", func() {
 						inputSource = new(workerfakes.FakeArtifactSource)
 						otherInputSource = new(workerfakes.FakeArtifactSource)
 
-						configSource.GetTaskConfigReturns(atc.TaskConfig{
+						configSource.FetchConfigReturns(atc.TaskConfig{
 							Platform:  "some-platform",
 							RootfsURI: "some-image",
 							Run:       atc.TaskRunConfig{},
@@ -743,7 +743,7 @@ var _ = Describe("TaskAction", func() {
 
 				Context("when the configuration specifies paths for outputs", func() {
 					BeforeEach(func() {
-						configSource.GetTaskConfigReturns(atc.TaskConfig{
+						configSource.FetchConfigReturns(atc.TaskConfig{
 							Platform:  "some-platform",
 							RootfsURI: "some-image",
 							Params:    map[string]string{"SOME": "params"},
@@ -1100,7 +1100,7 @@ var _ = Describe("TaskAction", func() {
 
 					BeforeEach(func() {
 						outputMapping = map[string]string{"generic-remapped-output": "specific-remapped-output"}
-						configSource.GetTaskConfigReturns(atc.TaskConfig{
+						configSource.FetchConfigReturns(atc.TaskConfig{
 							Run: atc.TaskRunConfig{
 								Path: "ls",
 							},
@@ -1182,7 +1182,7 @@ var _ = Describe("TaskAction", func() {
 											},
 										}
 
-										configSource.GetTaskConfigReturns(configWithImage, nil)
+										configSource.FetchConfigReturns(configWithImage, nil)
 									})
 
 									It("still creates the container with the volume and a metadata stream", func() {
@@ -1211,7 +1211,7 @@ var _ = Describe("TaskAction", func() {
 											},
 										}
 
-										configSource.GetTaskConfigReturns(configWithImageResource, nil)
+										configSource.FetchConfigReturns(configWithImageResource, nil)
 									})
 
 									It("still creates the container with the volume and a metadata stream", func() {
@@ -1241,7 +1241,7 @@ var _ = Describe("TaskAction", func() {
 											},
 										}
 
-										configSource.GetTaskConfigReturns(configWithImageAndImageResource, nil)
+										configSource.FetchConfigReturns(configWithImageAndImageResource, nil)
 									})
 
 									It("still creates the container with the volume and a metadata stream", func() {
@@ -1266,7 +1266,7 @@ var _ = Describe("TaskAction", func() {
 				Context("when a run dir is specified", func() {
 					BeforeEach(func() {
 						fetchedConfig.Run.Dir = "/some/dir"
-						configSource.GetTaskConfigReturns(fetchedConfig, nil)
+						configSource.FetchConfigReturns(fetchedConfig, nil)
 					})
 
 					It("runs a process in the specified (custom) directory", func() {
@@ -1278,7 +1278,7 @@ var _ = Describe("TaskAction", func() {
 				Context("when a run user is specified", func() {
 					BeforeEach(func() {
 						fetchedConfig.Run.User = "some-user"
-						configSource.GetTaskConfigReturns(fetchedConfig, nil)
+						configSource.FetchConfigReturns(fetchedConfig, nil)
 					})
 
 					It("adds the user to the container spec", func() {
@@ -1503,7 +1503,7 @@ var _ = Describe("TaskAction", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				configSource.GetTaskConfigReturns(atc.TaskConfig{}, disaster)
+				configSource.FetchConfigReturns(atc.TaskConfig{}, disaster)
 			})
 
 			It("returns the error", func() {

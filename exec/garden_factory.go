@@ -161,38 +161,30 @@ func (factory *gardenFactory) Task(
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
-	var taskConfigFetcher TaskConfigFetcher
+	var taskConfigSource TaskConfigSource
 	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
-		taskConfigFetcher = MergedConfigFetcher{
-			A: FileConfigFetcher{plan.Task.ConfigPath},
-			B: StaticConfigFetcher{Plan: *plan.Task},
+		taskConfigSource = MergedConfigSource{
+			A: FileConfigSource{plan.Task.ConfigPath},
+			B: StaticConfigSource{Plan: *plan.Task},
 		}
 	} else if plan.Task.Config != nil {
-		taskConfigFetcher = StaticConfigFetcher{Plan: *plan.Task}
+		taskConfigSource = StaticConfigSource{Plan: *plan.Task}
 	} else if plan.Task.ConfigPath != "" {
-		taskConfigFetcher = FileConfigFetcher{plan.Task.ConfigPath}
+		taskConfigSource = FileConfigSource{plan.Task.ConfigPath}
 	}
 
-	taskConfigFetcher = ValidatingConfigFetcher{ConfigFetcher: taskConfigFetcher}
+	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
 
-	taskConfigFetcher = DeprecationConfigFetcher{
-		Delegate: taskConfigFetcher,
+	taskConfigSource = DeprecationConfigSource{
+		Delegate: taskConfigSource,
 		Stderr:   buildStepDelegate.Stderr(),
-	}
-
-	fetchConfigAction := &FetchConfigAction{
-		configFetcher: taskConfigFetcher,
-	}
-
-	configSource := &FetchConfigActionTaskConfigSource{
-		Action: fetchConfigAction,
 	}
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
 	taskAction := &TaskAction{
 		privileged:    Privileged(plan.Task.Privileged),
-		configSource:  configSource,
+		configSource:  taskConfigSource,
 		tags:          plan.Task.Tags,
 		inputMapping:  plan.Task.InputMapping,
 		outputMapping: plan.Task.OutputMapping,
@@ -215,7 +207,7 @@ func (factory *gardenFactory) Task(
 		variables: variables,
 	}
 
-	actions := []Action{fetchConfigAction, taskAction}
+	actions := []Action{taskAction}
 
 	return TaskStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
 }
