@@ -17,16 +17,12 @@ var _ = Describe("On Abort Step", func() {
 		ctx    context.Context
 		cancel func()
 
-		stepFactory  *execfakes.FakeStepFactory
-		abortFactory *execfakes.FakeStepFactory
-
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
 		repo *worker.ArtifactRepository
 
-		onAbortFactory exec.StepFactory
-		onAbortStep    exec.Step
+		onAbortStep exec.Step
 
 		stepErr error
 	)
@@ -34,25 +30,18 @@ var _ = Describe("On Abort Step", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		stepFactory = &execfakes.FakeStepFactory{}
-		abortFactory = &execfakes.FakeStepFactory{}
-
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
 
-		stepFactory.UsingReturns(step)
-		abortFactory.UsingReturns(hook)
-
 		repo = worker.NewArtifactRepository()
 
-		onAbortFactory = exec.OnAbort(stepFactory, abortFactory)
-		onAbortStep = onAbortFactory.Using(repo)
+		onAbortStep = exec.OnAbort(step, hook)
 
 		stepErr = nil
 	})
 
 	JustBeforeEach(func() {
-		stepErr = onAbortStep.Run(ctx)
+		stepErr = onAbortStep.Run(ctx, repo)
 	})
 
 	Context("when the step is aborted", func() {

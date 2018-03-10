@@ -20,8 +20,8 @@ func NewActionsStep(
 	logger lager.Logger, // TODO: can we move that to method? need to change all steps though
 	actions []Action,
 	buildEventsDelegate ActionsBuildEventsDelegate,
-) ActionsStep {
-	return ActionsStep{
+) Step {
+	return &ActionsStep{
 		logger:              logger,
 		actions:             actions,
 		buildEventsDelegate: buildEventsDelegate,
@@ -43,22 +43,16 @@ type ActionsStep struct {
 
 	logger lager.Logger // TODO: can we move that to method? need to change all steps though
 
-	repository *worker.ArtifactRepository
-	succeeded  bool
-}
-
-func (s ActionsStep) Using(repo *worker.ArtifactRepository) Step {
-	s.repository = repo
-	return &s
+	succeeded bool
 }
 
 // Run will first call Initializing on build events delegate. Then it will call
 // Run on every action. If any action fails it will notify delegate with Failed.
 // It will call ActionCompleted after each action run that succeeds.
-func (s *ActionsStep) Run(ctx context.Context) error {
+func (s *ActionsStep) Run(ctx context.Context, repo *worker.ArtifactRepository) error {
 	succeeded := true
 	for _, action := range s.actions {
-		err := action.Run(ctx, s.logger, s.repository)
+		err := action.Run(ctx, s.logger, repo)
 		if err != nil {
 			if err == context.DeadlineExceeded || err == context.Canceled {
 				// XXX: here for backwards-compatibility. this shouldn't be so coupled.

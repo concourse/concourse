@@ -41,35 +41,6 @@ func NewGardenFactory(
 	}
 }
 
-type GetStepFactory struct {
-	ActionsStep
-}
-type GetStep Step
-
-func (s GetStepFactory) Using(repository *worker.ArtifactRepository) Step {
-	return GetStep(s.ActionsStep.Using(repository))
-}
-
-type PutStepFactory struct {
-	ActionsStep
-}
-
-type PutStep Step
-
-func (s PutStepFactory) Using(repository *worker.ArtifactRepository) Step {
-	return PutStep(s.ActionsStep.Using(repository))
-}
-
-type TaskStepFactory struct {
-	ActionsStep
-}
-
-type TaskStep Step
-
-func (s TaskStepFactory) Using(repository *worker.ArtifactRepository) Step {
-	return TaskStep(s.ActionsStep.Using(repository))
-}
-
 func (factory *gardenFactory) Get(
 	logger lager.Logger,
 	plan atc.Plan,
@@ -78,7 +49,7 @@ func (factory *gardenFactory) Get(
 	workerMetadata db.ContainerMetadata,
 	buildEventsDelegate ActionsBuildEventsDelegate,
 	buildStepDelegate BuildStepDelegate,
-) StepFactory {
+) Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
@@ -108,7 +79,7 @@ func (factory *gardenFactory) Get(
 
 	actions := []Action{getAction}
 
-	return GetStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
+	return NewActionsStep(logger, actions, buildEventsDelegate)
 }
 
 func (factory *gardenFactory) Put(
@@ -119,7 +90,7 @@ func (factory *gardenFactory) Put(
 	workerMetadata db.ContainerMetadata,
 	buildEventsDelegate ActionsBuildEventsDelegate,
 	buildStepDelegate BuildStepDelegate,
-) StepFactory {
+) Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
@@ -146,7 +117,7 @@ func (factory *gardenFactory) Put(
 
 	actions := []Action{putAction}
 
-	return PutStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
+	return NewActionsStep(logger, actions, buildEventsDelegate)
 }
 
 func (factory *gardenFactory) Task(
@@ -157,7 +128,7 @@ func (factory *gardenFactory) Task(
 	taskBuildEventsDelegate TaskBuildEventsDelegate,
 	buildEventsDelegate ActionsBuildEventsDelegate,
 	buildStepDelegate BuildStepDelegate,
-) StepFactory {
+) Step {
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
@@ -209,7 +180,7 @@ func (factory *gardenFactory) Task(
 
 	actions := []Action{taskAction}
 
-	return TaskStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
+	return NewActionsStep(logger, actions, buildEventsDelegate)
 }
 
 func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {

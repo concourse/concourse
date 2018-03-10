@@ -144,9 +144,9 @@ var _ = Describe("TaskAction", func() {
 			lagertest.NewTestLogger("put-action-test"),
 			[]exec.Action{taskAction},
 			fakeBuildEventsDelegate,
-		).Using(artifactRepository)
+		)
 
-		stepErr = actionStep.Run(ctx)
+		stepErr = actionStep.Run(ctx, artifactRepository)
 	})
 
 	Context("when getting the config works", func() {

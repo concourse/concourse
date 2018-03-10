@@ -33,13 +33,13 @@ var _ = Describe("ActionsStep", func() {
 			lagertest.NewTestLogger("actions-step-test"),
 			[]exec.Action{fakeAction1, fakeAction2},
 			fakeBuildEventsDelegate,
-		).Using(artifactRepository)
+		)
 
 		stepErr = nil
 	})
 
 	JustBeforeEach(func() {
-		stepErr = actionsStep.Run(context.Background())
+		stepErr = actionsStep.Run(context.Background(), artifactRepository)
 	})
 
 	Context("when actions return no error", func() {

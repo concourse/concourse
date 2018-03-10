@@ -6,21 +6,6 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-// Retry constructs a Step that will run the steps in order until one of them
-// succeeds.
-type Retry []StepFactory
-
-// Using constructs a *RetryStep.
-func (stepFactory Retry) Using(repo *worker.ArtifactRepository) Step {
-	retry := &RetryStep{}
-
-	for _, subStepFactory := range stepFactory {
-		retry.Attempts = append(retry.Attempts, subStepFactory.Using(repo))
-	}
-
-	return retry
-}
-
 // RetryStep is a step that will run the steps in order until one of them
 // succeeds.
 type RetryStep struct {
@@ -28,15 +13,21 @@ type RetryStep struct {
 	LastAttempt Step
 }
 
+func Retry(attempts ...Step) Step {
+	return &RetryStep{
+		Attempts: attempts,
+	}
+}
+
 // Run iterates through each step, stopping once a step succeeds. If all steps
 // fail, the RetryStep will fail.
-func (step *RetryStep) Run(ctx context.Context) error {
+func (step *RetryStep) Run(ctx context.Context, repo *worker.ArtifactRepository) error {
 	var attemptErr error
 
 	for _, attempt := range step.Attempts {
 		step.LastAttempt = attempt
 
-		attemptErr = attempt.Run(ctx)
+		attemptErr = attempt.Run(ctx, repo)
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}

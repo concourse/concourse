@@ -111,9 +111,9 @@ var _ = Describe("PutAction", func() {
 			lagertest.NewTestLogger("put-action-test"),
 			[]exec.Action{putAction},
 			fakeBuildEventsDelegate,
-		).Using(artifactRepository)
+		)
 
-		stepErr = actionStep.Run(ctx)
+		stepErr = actionStep.Run(ctx, artifactRepository)
 	})
 
 	Context("when artifactRepository contains sources", func() {

@@ -17,16 +17,12 @@ var _ = Describe("On Success Step", func() {
 		ctx    context.Context
 		cancel func()
 
-		stepFactory    *execfakes.FakeStepFactory
-		successFactory *execfakes.FakeStepFactory
-
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
 		repo *worker.ArtifactRepository
 
-		onSuccessFactory exec.StepFactory
-		onSuccessStep    exec.Step
+		onSuccessStep exec.Step
 
 		stepErr error
 	)
@@ -34,25 +30,18 @@ var _ = Describe("On Success Step", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		stepFactory = &execfakes.FakeStepFactory{}
-		successFactory = &execfakes.FakeStepFactory{}
-
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
 
-		stepFactory.UsingReturns(step)
-		successFactory.UsingReturns(hook)
-
 		repo = worker.NewArtifactRepository()
 
-		onSuccessFactory = exec.OnSuccess(stepFactory, successFactory)
-		onSuccessStep = onSuccessFactory.Using(repo)
+		onSuccessStep = exec.OnSuccess(step, hook)
 
 		stepErr = nil
 	})
 
 	JustBeforeEach(func() {
-		stepErr = onSuccessStep.Run(ctx)
+		stepErr = onSuccessStep.Run(ctx, repo)
 	})
 
 	Context("when the step succeeds", func() {
@@ -65,15 +54,16 @@ var _ = Describe("On Success Step", func() {
 			Expect(hook.RunCallCount()).To(Equal(1))
 		})
 
-		It("constructs the hook with the artifact repo", func() {
-			Expect(successFactory.UsingCallCount()).To(Equal(1))
+		It("runs the hook with the artifact repo", func() {
+			Expect(hook.RunCallCount()).To(Equal(1))
 
-			argsRepo := successFactory.UsingArgsForCall(0)
+			_, argsRepo := hook.RunArgsForCall(0)
 			Expect(argsRepo).To(Equal(repo))
 		})
 
 		It("propagates the context to the hook", func() {
-			Expect(hook.RunArgsForCall(0)).To(Equal(ctx))
+			runCtx, _ := hook.RunArgsForCall(0)
+			Expect(runCtx).To(Equal(ctx))
 		})
 
 		It("returns nil", func() {
@@ -114,7 +104,8 @@ var _ = Describe("On Success Step", func() {
 	})
 
 	It("propagates the context to the step", func() {
-		Expect(step.RunArgsForCall(0)).To(Equal(ctx))
+		runCtx, _ := step.RunArgsForCall(0)
+		Expect(runCtx).To(Equal(ctx))
 	})
 
 	Describe("Succeeded", func() {

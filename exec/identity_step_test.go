@@ -14,25 +14,23 @@ var _ = Describe("Identity", func() {
 	var (
 		repo *worker.ArtifactRepository
 
-		identity Identity
+		step IdentityStep
 
-		step Step
+		stepErr error
 	)
 
 	BeforeEach(func() {
-		identity = Identity{}
-
+		step = IdentityStep{}
 		repo = worker.NewArtifactRepository()
 	})
 
 	JustBeforeEach(func() {
-		step = identity.Using(repo)
+		stepErr = step.Run(context.Background(), repo)
 	})
 
 	Describe("Run", func() {
 		It("is a no-op", func() {
-			err := step.Run(context.TODO())
-			Expect(err).NotTo(HaveOccurred())
+			Expect(stepErr).ToNot(HaveOccurred())
 		})
 	})
 

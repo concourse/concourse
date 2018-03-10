@@ -18,16 +18,11 @@ var _ = Describe("Aggregate", func() {
 		ctx    context.Context
 		cancel func()
 
-		fakeStepA *execfakes.FakeStepFactory
-		fakeStepB *execfakes.FakeStepFactory
-
-		aggregate StepFactory
+		fakeStepA *execfakes.FakeStep
+		fakeStepB *execfakes.FakeStep
 
 		inStep *execfakes.FakeStep
 		repo   *worker.ArtifactRepository
-
-		outStepA *execfakes.FakeStep
-		outStepB *execfakes.FakeStep
 
 		step    Step
 		stepErr error
@@ -36,41 +31,34 @@ var _ = Describe("Aggregate", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		fakeStepA = new(execfakes.FakeStepFactory)
-		fakeStepB = new(execfakes.FakeStepFactory)
+		fakeStepA = new(execfakes.FakeStep)
+		fakeStepB = new(execfakes.FakeStep)
 
-		aggregate = Aggregate{
+		step = AggregateStep{
 			fakeStepA,
 			fakeStepB,
 		}
 
 		inStep = new(execfakes.FakeStep)
 		repo = worker.NewArtifactRepository()
-
-		outStepA = new(execfakes.FakeStep)
-		fakeStepA.UsingReturns(outStepA)
-
-		outStepB = new(execfakes.FakeStep)
-		fakeStepB.UsingReturns(outStepB)
 	})
 
 	JustBeforeEach(func() {
-		step = aggregate.Using(repo)
-		stepErr = step.Run(ctx)
-	})
-
-	It("uses the input source for all steps", func() {
-		Expect(fakeStepA.UsingCallCount()).To(Equal(1))
-		repo := fakeStepA.UsingArgsForCall(0)
-		Expect(repo).To(Equal(repo))
-
-		Expect(fakeStepB.UsingCallCount()).To(Equal(1))
-		repo = fakeStepB.UsingArgsForCall(0)
-		Expect(repo).To(Equal(repo))
+		stepErr = step.Run(ctx, repo)
 	})
 
 	It("succeeds", func() {
 		Expect(stepErr).ToNot(HaveOccurred())
+	})
+
+	It("passes the artifact repo to all steps", func() {
+		Expect(fakeStepA.RunCallCount()).To(Equal(1))
+		_, repo := fakeStepA.RunArgsForCall(0)
+		Expect(repo).To(Equal(repo))
+
+		Expect(fakeStepB.RunCallCount()).To(Equal(1))
+		_, repo = fakeStepB.RunArgsForCall(0)
+		Expect(repo).To(Equal(repo))
 	})
 
 	Describe("executing each source", func() {
@@ -78,13 +66,13 @@ var _ = Describe("Aggregate", func() {
 			wg := new(sync.WaitGroup)
 			wg.Add(2)
 
-			outStepA.RunStub = func(context.Context) error {
+			fakeStepA.RunStub = func(context.Context, *worker.ArtifactRepository) error {
 				wg.Done()
 				wg.Wait()
 				return nil
 			}
 
-			outStepB.RunStub = func(context.Context) error {
+			fakeStepB.RunStub = func(context.Context, *worker.ArtifactRepository) error {
 				wg.Done()
 				wg.Wait()
 				return nil
@@ -92,8 +80,8 @@ var _ = Describe("Aggregate", func() {
 		})
 
 		It("happens concurrently", func() {
-			Expect(outStepA.RunCallCount()).To(Equal(1))
-			Expect(outStepB.RunCallCount()).To(Equal(1))
+			Expect(fakeStepA.RunCallCount()).To(Equal(1))
+			Expect(fakeStepB.RunCallCount()).To(Equal(1))
 		})
 	})
 
@@ -103,9 +91,10 @@ var _ = Describe("Aggregate", func() {
 		})
 
 		It("cancels each substep", func() {
-			Expect(outStepA.RunArgsForCall(0).Err()).To(Equal(context.Canceled))
-			Expect(outStepB.RunArgsForCall(0).Err()).To(Equal(context.Canceled))
-			Expect(stepErr).To(Equal(context.Canceled))
+			ctx, _ := fakeStepA.RunArgsForCall(0)
+			Expect(ctx.Err()).To(Equal(context.Canceled))
+			ctx, _ = fakeStepB.RunArgsForCall(0)
+			Expect(ctx.Err()).To(Equal(context.Canceled))
 		})
 
 		It("returns ctx.Err()", func() {
@@ -118,8 +107,8 @@ var _ = Describe("Aggregate", func() {
 		disasterB := errors.New("nope B")
 
 		BeforeEach(func() {
-			outStepA.RunReturns(disasterA)
-			outStepB.RunReturns(disasterB)
+			fakeStepA.RunReturns(disasterA)
+			fakeStepB.RunReturns(disasterB)
 		})
 
 		It("exits with an error including the original message", func() {
@@ -131,8 +120,8 @@ var _ = Describe("Aggregate", func() {
 	Describe("Succeeded", func() {
 		Context("when all sources are successful", func() {
 			BeforeEach(func() {
-				outStepA.SucceededReturns(true)
-				outStepB.SucceededReturns(true)
+				fakeStepA.SucceededReturns(true)
+				fakeStepB.SucceededReturns(true)
 			})
 
 			It("yields true", func() {
@@ -142,8 +131,8 @@ var _ = Describe("Aggregate", func() {
 
 		Context("and some branches are not successful", func() {
 			BeforeEach(func() {
-				outStepA.SucceededReturns(true)
-				outStepB.SucceededReturns(false)
+				fakeStepA.SucceededReturns(true)
+				fakeStepB.SucceededReturns(false)
 			})
 
 			It("yields false", func() {
@@ -151,22 +140,10 @@ var _ = Describe("Aggregate", func() {
 			})
 		})
 
-		//		Context("when some branches do not indicate success", func() {
-		//			BeforeEach(func() {
-		//				outStepA.ResultStub = successResult(true)
-		//				outStepB.ResultReturns(false)
-		//			})
-		//
-		//			It("only considers the branches that do", func() {
-		//				Expect(step.Succeeded(&result)).To(BeTrue())
-		//				Expect(result).To(Equal(Success(true)))
-		//			})
-		//		})
-
 		Context("when no branches indicate success", func() {
 			BeforeEach(func() {
-				outStepA.SucceededReturns(false)
-				outStepB.SucceededReturns(false)
+				fakeStepA.SucceededReturns(false)
+				fakeStepB.SucceededReturns(false)
 			})
 
 			It("returns false", func() {
@@ -176,7 +153,7 @@ var _ = Describe("Aggregate", func() {
 
 		Context("when there are no branches", func() {
 			BeforeEach(func() {
-				aggregate = Aggregate{}
+				step = AggregateStep{}
 			})
 
 			It("returns true", func() {

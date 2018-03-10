@@ -9,28 +9,16 @@ import (
 // OnFailureStep will run one step, and then a second step if the first step
 // fails (but not errors).
 type OnFailureStep struct {
-	stepFactory    StepFactory
-	failureFactory StepFactory
-
-	repo *worker.ArtifactRepository
-
 	step Step
+	hook Step
 }
 
 // OnFailure constructs an OnFailureStep factory.
-func OnFailure(firstStep StepFactory, secondStep StepFactory) OnFailureStep {
+func OnFailure(firstStep Step, secondStep Step) OnFailureStep {
 	return OnFailureStep{
-		stepFactory:    firstStep,
-		failureFactory: secondStep,
+		step: firstStep,
+		hook: secondStep,
 	}
-}
-
-// Using constructs an *OnFailureStep.
-func (o OnFailureStep) Using(repo *worker.ArtifactRepository) Step {
-	o.repo = repo
-
-	o.step = o.stepFactory.Using(o.repo)
-	return &o
 }
 
 // Run will call Run on the first step and wait for it to complete. If the
@@ -39,14 +27,14 @@ func (o OnFailureStep) Using(repo *worker.ArtifactRepository) Step {
 //
 // If the first step fails (that is, its Success result is false), the second
 // step is executed. If the second step errors, its error is returned.
-func (o *OnFailureStep) Run(ctx context.Context) error {
-	err := o.step.Run(ctx)
+func (o OnFailureStep) Run(ctx context.Context, repo *worker.ArtifactRepository) error {
+	err := o.step.Run(ctx, repo)
 	if err != nil {
 		return err
 	}
 
 	if !o.step.Succeeded() {
-		return o.failureFactory.Using(o.repo).Run(ctx)
+		return o.hook.Run(ctx, repo)
 	}
 
 	return nil
@@ -54,6 +42,6 @@ func (o *OnFailureStep) Run(ctx context.Context) error {
 
 // Succeeded is true if the first step doesn't exist, or if it
 // completed successfully.
-func (o *OnFailureStep) Succeeded() bool {
+func (o OnFailureStep) Succeeded() bool {
 	return o.step.Succeeded()
 }

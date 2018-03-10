@@ -68,34 +68,23 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 	Context("running hooked composes", func() {
 		var (
-			taskStepFactory *execfakes.FakeStepFactory
-			taskStep        *execfakes.FakeStep
-
-			inputStepFactory *execfakes.FakeStepFactory
-			inputStep        *execfakes.FakeStep
-
-			outputStepFactory *execfakes.FakeStepFactory
-			outputStep        *execfakes.FakeStep
+			taskStep   *execfakes.FakeStep
+			inputStep  *execfakes.FakeStep
+			outputStep *execfakes.FakeStep
 		)
 
 		BeforeEach(func() {
-			taskStepFactory = new(execfakes.FakeStepFactory)
 			taskStep = new(execfakes.FakeStep)
 			taskStep.SucceededReturns(true)
-			taskStepFactory.UsingReturns(taskStep)
-			fakeFactory.TaskReturns(taskStepFactory)
+			fakeFactory.TaskReturns(taskStep)
 
-			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
 			inputStep.SucceededReturns(true)
-			inputStepFactory.UsingReturns(inputStep)
-			fakeFactory.GetReturns(inputStepFactory)
+			fakeFactory.GetReturns(inputStep)
 
-			outputStepFactory = new(execfakes.FakeStepFactory)
 			outputStep = new(execfakes.FakeStep)
 			outputStep.SucceededReturns(true)
-			outputStepFactory.UsingReturns(outputStep)
-			fakeFactory.PutReturns(outputStepFactory)
+			fakeFactory.PutReturns(outputStep)
 
 			taskStep.RunReturns(nil)
 			inputStep.RunReturns(nil)

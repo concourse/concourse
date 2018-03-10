@@ -51,14 +51,9 @@ var _ = Describe("ExecEngine", func() {
 
 			build engine.Build
 
-			inputStepFactory *execfakes.FakeStepFactory
-			inputStep        *execfakes.FakeStep
-
-			taskStepFactory *execfakes.FakeStepFactory
-			taskStep        *execfakes.FakeStep
-
-			outputStepFactory *execfakes.FakeStepFactory
-			outputStep        *execfakes.FakeStep
+			inputStep  *execfakes.FakeStep
+			taskStep   *execfakes.FakeStep
+			outputStep *execfakes.FakeStep
 
 			planFactory atc.PlanFactory
 		)
@@ -91,23 +86,17 @@ var _ = Describe("ExecEngine", func() {
 			fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 			fakeDelegate.DBActionsBuildEventsDelegateReturns(fakeBuildEventsDelegate)
 
-			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
 			inputStep.SucceededReturns(true)
-			inputStepFactory.UsingReturns(inputStep)
-			fakeFactory.GetReturns(inputStepFactory)
+			fakeFactory.GetReturns(inputStep)
 
-			taskStepFactory = new(execfakes.FakeStepFactory)
 			taskStep = new(execfakes.FakeStep)
 			taskStep.SucceededReturns(true)
-			taskStepFactory.UsingReturns(taskStep)
-			fakeFactory.TaskReturns(taskStepFactory)
+			fakeFactory.TaskReturns(taskStep)
 
-			outputStepFactory = new(execfakes.FakeStepFactory)
 			outputStep = new(execfakes.FakeStep)
 			outputStep.SucceededReturns(true)
-			outputStepFactory.UsingReturns(outputStep)
-			fakeFactory.PutReturns(outputStepFactory)
+			fakeFactory.PutReturns(outputStep)
 		})
 
 		Describe("with a putget in an aggregate", func() {
@@ -619,11 +608,9 @@ var _ = Describe("ExecEngine", func() {
 				fakeDelegate := new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-				inputStepFactory := new(execfakes.FakeStepFactory)
 				inputStep := new(execfakes.FakeStep)
 				inputStep.SucceededReturns(true)
-				inputStepFactory.UsingReturns(inputStep)
-				fakeFactory.GetReturns(inputStepFactory)
+				fakeFactory.GetReturns(inputStep)
 			})
 
 			It("constructs the get correctly", func() {
@@ -665,11 +652,9 @@ var _ = Describe("ExecEngine", func() {
 				fakeDelegate := new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-				inputStepFactory := new(execfakes.FakeStepFactory)
 				inputStep := new(execfakes.FakeStep)
 				inputStep.SucceededReturns(true)
-				inputStepFactory.UsingReturns(inputStep)
-				fakeFactory.GetReturns(inputStepFactory)
+				fakeFactory.GetReturns(inputStep)
 			})
 
 			It("does not error", func() {

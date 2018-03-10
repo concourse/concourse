@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	. "github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 
 	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
@@ -16,23 +17,21 @@ var _ = Describe("Try Step", func() {
 		ctx    context.Context
 		cancel func()
 
-		fakeStepFactoryStep *execfakes.FakeStepFactory
-
 		runStep *execfakes.FakeStep
 
-		try  StepFactory
+		repo *worker.ArtifactRepository
+
 		step Step
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		fakeStepFactoryStep = new(execfakes.FakeStepFactory)
 		runStep = new(execfakes.FakeStep)
-		fakeStepFactoryStep.UsingReturns(runStep)
 
-		try = Try(fakeStepFactoryStep)
-		step = try.Using(nil)
+		repo = worker.NewArtifactRepository()
+
+		step = Try(runStep)
 	})
 
 	Describe("Succeeded", func() {
@@ -48,7 +47,7 @@ var _ = Describe("Try Step", func() {
 			})
 
 			It("propagates the error", func() {
-				err := step.Run(ctx)
+				err := step.Run(ctx, repo)
 				Expect(err).To(Equal(context.Canceled))
 			})
 		})
@@ -59,7 +58,7 @@ var _ = Describe("Try Step", func() {
 			})
 
 			It("swallows the error", func() {
-				err := step.Run(ctx)
+				err := step.Run(ctx, repo)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})

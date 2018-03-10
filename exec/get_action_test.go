@@ -122,9 +122,9 @@ var _ = Describe("GetAction", func() {
 			containerMetadata,
 			fakeBuildEventsDelegate,
 			fakeBuildStepDelegate,
-		).Using(artifactRepository)
+		)
 
-		stepErr = getStep.Run(ctx)
+		stepErr = getStep.Run(ctx, artifactRepository)
 	})
 
 	It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {

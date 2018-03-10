@@ -7,17 +7,6 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-//go:generate counterfeiter . StepFactory
-
-// StepFactory constructs a step. The previous step and source repository are
-// provided.
-//
-// Some steps, i.e. DependentGetStep, use information from the previous step to
-// determine how to run.
-type StepFactory interface {
-	Using(*worker.ArtifactRepository) Step
-}
-
 //go:generate counterfeiter . Step
 
 // A Step is an object that can be executed, whose result (e.g. Success) can be
@@ -32,7 +21,7 @@ type Step interface {
 	//
 	// Steps must be idempotent. Each step is responsible for handling its own
 	// idempotency.
-	Run(context.Context) error
+	Run(context.Context, *worker.ArtifactRepository) error
 
 	// Succeeded is true when the Step succeeded, and false otherwise.
 	// Succeeded is not guaranteed to be truthful until after you run Run()

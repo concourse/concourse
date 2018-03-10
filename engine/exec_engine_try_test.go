@@ -69,25 +69,18 @@ var _ = Describe("Exec Engine with Try", func() {
 
 	Context("running try steps", func() {
 		var (
-			taskStepFactory *execfakes.FakeStepFactory
-			taskStep        *execfakes.FakeStep
-
-			inputStepFactory *execfakes.FakeStepFactory
-			inputStep        *execfakes.FakeStep
+			taskStep  *execfakes.FakeStep
+			inputStep *execfakes.FakeStep
 		)
 
 		BeforeEach(func() {
-			taskStepFactory = new(execfakes.FakeStepFactory)
 			taskStep = new(execfakes.FakeStep)
 			taskStep.SucceededReturns(true)
-			taskStepFactory.UsingReturns(taskStep)
-			fakeFactory.TaskReturns(taskStepFactory)
+			fakeFactory.TaskReturns(taskStep)
 
-			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
 			inputStep.SucceededReturns(true)
-			inputStepFactory.UsingReturns(inputStep)
-			fakeFactory.GetReturns(inputStepFactory)
+			fakeFactory.GetReturns(inputStep)
 		})
 
 		Context("constructing steps", func() {

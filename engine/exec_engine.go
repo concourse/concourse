@@ -133,12 +133,12 @@ func (build *execBuild) Abort(lager.Logger) error {
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	stepFactory := build.buildStepFactory(logger, build.metadata.Plan)
-	source := stepFactory.Using(worker.NewArtifactRepository())
+	step := build.buildStep(logger, build.metadata.Plan)
+	repo := worker.NewArtifactRepository()
 
 	done := make(chan error, 1)
 	go func() {
-		done <- source.Run(build.ctx)
+		done <- step.Run(build.ctx, repo)
 	}()
 
 	for {
@@ -147,13 +147,13 @@ func (build *execBuild) Resume(logger lager.Logger) {
 			logger.Info("releasing")
 			return
 		case err := <-done:
-			build.delegate.Finish(logger.Session("finish"), err, source.Succeeded())
+			build.delegate.Finish(logger.Session("finish"), err, step.Succeeded())
 			return
 		}
 	}
 }
 
-func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exec.StepFactory {
+func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step {
 	if plan.Aggregate != nil {
 		return build.buildAggregateStep(logger, plan)
 	}
@@ -202,7 +202,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 		return build.buildRetryStep(logger, plan)
 	}
 
-	return exec.Identity{}
+	return exec.IdentityStep{}
 }
 
 func (build *execBuild) containerMetadata(

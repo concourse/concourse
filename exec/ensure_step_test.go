@@ -14,108 +14,136 @@ import (
 
 var _ = Describe("Ensure Step", func() {
 	var (
-		stepFactory *execfakes.FakeStepFactory
-		hookFactory *execfakes.FakeStepFactory
+		ctx    context.Context
+		cancel func()
 
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
-		previousStep *execfakes.FakeStep
-
 		repo *worker.ArtifactRepository
 
-		ensureFactory exec.StepFactory
-		ensureStep    exec.Step
+		ensure exec.Step
+
+		stepErr error
 	)
 
 	BeforeEach(func() {
-		stepFactory = &execfakes.FakeStepFactory{}
-		hookFactory = &execfakes.FakeStepFactory{}
+		ctx, cancel = context.WithCancel(context.Background())
 
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
 
-		step.RunStub = func(ctx context.Context) error {
+		step = &execfakes.FakeStep{}
+		hook = &execfakes.FakeStep{}
+
+		step.RunStub = func(ctx context.Context, repo *worker.ArtifactRepository) error {
 			return ctx.Err()
 		}
 
-		hook.RunStub = func(ctx context.Context) error {
+		hook.RunStub = func(ctx context.Context, repo *worker.ArtifactRepository) error {
 			return ctx.Err()
 		}
-
-		previousStep = &execfakes.FakeStep{}
-
-		stepFactory.UsingReturns(step)
-		hookFactory.UsingReturns(hook)
 
 		repo = worker.NewArtifactRepository()
 
-		ensureFactory = exec.Ensure(stepFactory, hookFactory)
-		ensureStep = ensureFactory.Using(repo)
+		ensure = exec.Ensure(step, hook)
 	})
 
-	It("runs the ensure hook if the step succeeds", func() {
-		step.SucceededReturns(true)
-
-		Expect(ensureStep.Run(context.TODO())).To(Succeed())
-
-		Expect(step.RunCallCount()).To(Equal(1))
-		Expect(hook.RunCallCount()).To(Equal(1))
+	JustBeforeEach(func() {
+		stepErr = ensure.Run(ctx, repo)
 	})
 
-	It("runs the ensure hook if the step fails", func() {
-		step.SucceededReturns(false)
+	Context("when the step succeeds", func() {
+		BeforeEach(func() {
+			step.SucceededReturns(true)
+		})
 
-		Expect(ensureStep.Run(context.TODO())).To(Succeed())
+		It("returns nil", func() {
+			Expect(stepErr).ToNot(HaveOccurred())
+		})
 
-		Expect(step.RunCallCount()).To(Equal(1))
-		Expect(hook.RunCallCount()).To(Equal(1))
+		It("runs the ensure hook", func() {
+			Expect(step.RunCallCount()).To(Equal(1))
+			Expect(hook.RunCallCount()).To(Equal(1))
+		})
 	})
 
-	It("provides the step as the previous step to the hook", func() {
-		Expect(ensureStep.Run(context.TODO())).To(Succeed())
+	Context("when the step fails", func() {
+		BeforeEach(func() {
+			step.SucceededReturns(false)
+		})
 
-		Expect(step.RunCallCount()).To(Equal(1))
+		It("returns nil", func() {
+			Expect(stepErr).ToNot(HaveOccurred())
+		})
 
-		Expect(hookFactory.UsingCallCount()).To(Equal(1))
-
-		argsRepo := hookFactory.UsingArgsForCall(0)
-		Expect(argsRepo).To(Equal(repo))
+		It("runs the ensure hook", func() {
+			Expect(step.RunCallCount()).To(Equal(1))
+			Expect(hook.RunCallCount()).To(Equal(1))
+		})
 	})
 
-	It("runs the ensured hook even if the step errors", func() {
-		step.RunReturns(errors.New("disaster"))
+	Context("when the step errors", func() {
+		disaster := errors.New("disaster")
 
-		err := ensureStep.Run(context.TODO())
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("disaster"))
+		BeforeEach(func() {
+			step.RunReturns(disaster)
+		})
 
-		Expect(step.RunCallCount()).To(Equal(1))
-		Expect(hook.RunCallCount()).To(Equal(1))
+		It("returns the error", func() {
+			Expect(stepErr).To(HaveOccurred())
+			Expect(stepErr.Error()).To(ContainSubstring("disaster"))
+		})
+
+		It("runs the ensure hook", func() {
+			Expect(step.RunCallCount()).To(Equal(1))
+			Expect(hook.RunCallCount()).To(Equal(1))
+		})
 	})
 
-	It("allows canceling the first step, and runs the hook", func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
+	Context("when the context is canceled during the first step", func() {
+		BeforeEach(func() {
+			cancel()
+		})
 
-		Expect(ensureStep.Run(ctx)).To(Equal(context.Canceled))
-		Expect(step.RunCallCount()).To(Equal(1))
-		Expect(hook.RunCallCount()).To(Equal(1))
-		Expect(step.RunArgsForCall(0).Err()).To(Equal(context.Canceled))
-		Expect(hook.RunArgsForCall(0).Err()).ToNot(HaveOccurred())
+		It("returns context.Canceled", func() {
+			Expect(stepErr).To(Equal(context.Canceled))
+		})
+
+		It("cancels the first step and runs the hook (without canceling it)", func() {
+			Expect(step.RunCallCount()).To(Equal(1))
+			Expect(hook.RunCallCount()).To(Equal(1))
+
+			stepCtx, _ := step.RunArgsForCall(0)
+			Expect(stepCtx.Err()).To(Equal(context.Canceled))
+
+			hookCtx, _ := hook.RunArgsForCall(0)
+			Expect(hookCtx.Err()).ToNot(HaveOccurred())
+		})
 	})
 
-	It("allows canceling the hook if the first step has not been canceled", func() {
-		ctx, cancel := context.WithCancel(context.Background())
+	Context("when the context is canceled during the hook", func() {
+		BeforeEach(func() {
+			hook.RunStub = func(context.Context, *worker.ArtifactRepository) error {
+				cancel()
+				return ctx.Err()
+			}
+		})
 
-		Expect(ensureStep.Run(ctx)).To(Succeed())
-		Expect(step.RunCallCount()).To(Equal(1))
-		Expect(hook.RunCallCount()).To(Equal(1))
-		Expect(step.RunArgsForCall(0).Err()).ToNot(HaveOccurred())
-		Expect(hook.RunArgsForCall(0).Err()).ToNot(HaveOccurred())
-		cancel()
-		Expect(step.RunArgsForCall(0).Err()).To(Equal(context.Canceled))
-		Expect(hook.RunArgsForCall(0).Err()).To(Equal(context.Canceled))
+		It("returns context.Canceled", func() {
+			Expect(stepErr).To(Equal(context.Canceled))
+		})
+
+		It("allows canceling the hook if the first step has not been canceled", func() {
+			Expect(step.RunCallCount()).To(Equal(1))
+			Expect(hook.RunCallCount()).To(Equal(1))
+
+			stepCtx, _ := step.RunArgsForCall(0)
+			Expect(stepCtx.Err()).To(Equal(context.Canceled))
+
+			hookCtx, _ := hook.RunArgsForCall(0)
+			Expect(hookCtx.Err()).To(Equal(context.Canceled))
+		})
 	})
 
 	Describe("Succeeded", func() {
@@ -127,8 +155,7 @@ var _ = Describe("Ensure Step", func() {
 				})
 
 				It("succeeds", func() {
-					ensureStep.Run(context.TODO())
-					Expect(ensureStep.Succeeded()).To(BeTrue())
+					Expect(ensure.Succeeded()).To(BeTrue())
 				})
 			})
 
@@ -139,8 +166,7 @@ var _ = Describe("Ensure Step", func() {
 				})
 
 				It("does not succeed", func() {
-					ensureStep.Run(context.TODO())
-					Expect(ensureStep.Succeeded()).To(BeFalse())
+					Expect(ensure.Succeeded()).To(BeFalse())
 				})
 			})
 
@@ -151,7 +177,7 @@ var _ = Describe("Ensure Step", func() {
 				})
 
 				It("does not succeed", func() {
-					Expect(ensureStep.Succeeded()).To(BeFalse())
+					Expect(ensure.Succeeded()).To(BeFalse())
 				})
 			})
 
@@ -162,7 +188,7 @@ var _ = Describe("Ensure Step", func() {
 				})
 
 				It("does not succeed", func() {
-					Expect(ensureStep.Succeeded()).To(BeFalse())
+					Expect(ensure.Succeeded()).To(BeFalse())
 				})
 			})
 		})

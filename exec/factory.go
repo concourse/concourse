@@ -21,7 +21,7 @@ type Factory interface {
 		db.ContainerMetadata,
 		ActionsBuildEventsDelegate,
 		BuildStepDelegate,
-	) StepFactory
+	) Step
 
 	// Put constructs a ActionsStep factory for Put.
 	Put(
@@ -32,7 +32,7 @@ type Factory interface {
 		db.ContainerMetadata,
 		ActionsBuildEventsDelegate,
 		BuildStepDelegate,
-	) StepFactory
+	) Step
 
 	// Task constructs a ActionsStep factory for Task.
 	Task(
@@ -43,7 +43,7 @@ type Factory interface {
 		TaskBuildEventsDelegate,
 		ActionsBuildEventsDelegate,
 		BuildStepDelegate,
-	) StepFactory
+	) Step
 }
 
 // StepMetadata is used to inject metadata to make available to the step when

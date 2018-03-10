@@ -6,6 +6,7 @@ import (
 	"time"
 
 	. "github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 
 	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
@@ -17,12 +18,11 @@ var _ = Describe("Timeout Step", func() {
 		ctx    context.Context
 		cancel func()
 
-		fakeStepFactoryStep *execfakes.FakeStepFactory
+		fakeStep *execfakes.FakeStep
 
-		runStep *execfakes.FakeStep
+		repo *worker.ArtifactRepository
 
-		timeout StepFactory
-		step    Step
+		step Step
 
 		timeoutDuration string
 
@@ -32,22 +32,22 @@ var _ = Describe("Timeout Step", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		fakeStepFactoryStep = new(execfakes.FakeStepFactory)
-		runStep = new(execfakes.FakeStep)
-		fakeStepFactoryStep.UsingReturns(runStep)
+		fakeStep = new(execfakes.FakeStep)
+
+		repo = worker.NewArtifactRepository()
 
 		timeoutDuration = "1h"
 	})
 
 	JustBeforeEach(func() {
-		timeout = Timeout(fakeStepFactoryStep, timeoutDuration)
-		step = timeout.Using(nil)
-		stepErr = step.Run(ctx)
+		step = Timeout(fakeStep, timeoutDuration)
+		stepErr = step.Run(ctx, repo)
 	})
 
 	Context("when the duration is valid", func() {
 		It("runs the step with a deadline", func() {
-			deadline, ok := runStep.RunArgsForCall(0).Deadline()
+			runCtx, _ := fakeStep.RunArgsForCall(0)
+			deadline, ok := runCtx.Deadline()
 			Expect(ok).To(BeTrue())
 			Expect(deadline).To(BeTemporally("~", time.Now().Add(time.Hour), 10*time.Second))
 		})
@@ -57,8 +57,8 @@ var _ = Describe("Timeout Step", func() {
 
 			BeforeEach(func() {
 				someError = errors.New("some error")
-				runStep.SucceededReturns(false)
-				runStep.RunReturns(someError)
+				fakeStep.SucceededReturns(false)
+				fakeStep.RunReturns(someError)
 			})
 
 			It("returns the error", func() {
@@ -69,8 +69,8 @@ var _ = Describe("Timeout Step", func() {
 
 		Context("when the step exceeds the timeout", func() {
 			BeforeEach(func() {
-				runStep.SucceededReturns(true)
-				runStep.RunReturns(context.DeadlineExceeded)
+				fakeStep.SucceededReturns(true)
+				fakeStep.RunReturns(context.DeadlineExceeded)
 			})
 
 			It("returns no error", func() {
@@ -88,7 +88,8 @@ var _ = Describe("Timeout Step", func() {
 			})
 
 			It("forwards the context down", func() {
-				Expect(runStep.RunArgsForCall(0).Err()).To(Equal(context.Canceled))
+				runCtx, _ := fakeStep.RunArgsForCall(0)
+				Expect(runCtx.Err()).To(Equal(context.Canceled))
 			})
 
 			It("is not successful", func() {
@@ -98,7 +99,7 @@ var _ = Describe("Timeout Step", func() {
 
 		Context("when the step is successful", func() {
 			BeforeEach(func() {
-				runStep.SucceededReturns(true)
+				fakeStep.SucceededReturns(true)
 			})
 
 			It("is successful", func() {
@@ -108,7 +109,7 @@ var _ = Describe("Timeout Step", func() {
 
 		Context("when the step fails", func() {
 			BeforeEach(func() {
-				runStep.SucceededReturns(false)
+				fakeStep.SucceededReturns(false)
 			})
 
 			It("is not successful", func() {
@@ -124,7 +125,7 @@ var _ = Describe("Timeout Step", func() {
 
 		It("errors immediately without running the step", func() {
 			Expect(stepErr).To(HaveOccurred())
-			Expect(runStep.RunCallCount()).To(BeZero())
+			Expect(fakeStep.RunCallCount()).To(BeZero())
 		})
 	})
 })

@@ -17,16 +17,12 @@ var _ = Describe("On Failure Step", func() {
 		ctx    context.Context
 		cancel func()
 
-		stepFactory    *execfakes.FakeStepFactory
-		failureFactory *execfakes.FakeStepFactory
-
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
 		repo *worker.ArtifactRepository
 
-		onFailureFactory exec.StepFactory
-		onFailureStep    exec.Step
+		onFailureStep exec.Step
 
 		stepErr error
 	)
@@ -34,23 +30,16 @@ var _ = Describe("On Failure Step", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		stepFactory = &execfakes.FakeStepFactory{}
-		failureFactory = &execfakes.FakeStepFactory{}
-
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
 
-		stepFactory.UsingReturns(step)
-		failureFactory.UsingReturns(hook)
-
 		repo = worker.NewArtifactRepository()
 
-		onFailureFactory = exec.OnFailure(stepFactory, failureFactory)
-		onFailureStep = onFailureFactory.Using(repo)
+		onFailureStep = exec.OnFailure(step, hook)
 	})
 
 	JustBeforeEach(func() {
-		stepErr = onFailureStep.Run(ctx)
+		stepErr = onFailureStep.Run(ctx, repo)
 	})
 
 	Context("when the step fails", func() {
@@ -63,15 +52,14 @@ var _ = Describe("On Failure Step", func() {
 			Expect(hook.RunCallCount()).To(Equal(1))
 		})
 
-		It("constructs the hook with the artifact repo", func() {
-			Expect(failureFactory.UsingCallCount()).To(Equal(1))
-
-			argsRepo := failureFactory.UsingArgsForCall(0)
+		It("runs the hook with the artifact repo", func() {
+			_, argsRepo := hook.RunArgsForCall(0)
 			Expect(argsRepo).To(Equal(repo))
 		})
 
 		It("propagates the context to the hook", func() {
-			Expect(hook.RunArgsForCall(0)).To(Equal(ctx))
+			runCtx, _ := hook.RunArgsForCall(0)
+			Expect(runCtx).To(Equal(ctx))
 		})
 
 		It("succeeds", func() {
@@ -112,7 +100,8 @@ var _ = Describe("On Failure Step", func() {
 	})
 
 	It("propagates the context to the step", func() {
-		Expect(step.RunArgsForCall(0)).To(Equal(ctx))
+		runCtx, _ := step.RunArgsForCall(0)
+		Expect(runCtx).To(Equal(ctx))
 	})
 
 	Describe("Succeeded", func() {
