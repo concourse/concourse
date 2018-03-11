@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"time"
-
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc/db"
@@ -30,19 +28,6 @@ func NewDBActionsBuildEventsDelegate(
 
 func (d *dbActionsBuildEventsDelegate) ActionCompleted(logger lager.Logger, action exec.Action) {
 	switch a := action.(type) {
-	case *exec.TaskAction:
-		exitStatus := a.ExitStatus()
-		err := d.build.SaveEvent(event.FinishTask{
-			ExitStatus: int(exitStatus),
-			Time:       time.Now().Unix(),
-			Origin:     d.eventOrigin,
-		})
-		if err != nil {
-			logger.Error("failed-to-save-finish-event", err)
-			return
-		}
-
-		logger.Info("finished", lager.Data{"exit-status": exitStatus})
 	case *exec.GetAction:
 		versionInfo := a.VersionInfo()
 		exitStatus := a.ExitStatus()

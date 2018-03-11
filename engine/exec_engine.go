@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
@@ -136,9 +137,11 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	step := build.buildStep(logger, build.metadata.Plan)
 	repo := worker.NewArtifactRepository()
 
+	runCtx := lagerctx.NewContext(build.ctx, logger)
+
 	done := make(chan error, 1)
 	go func() {
-		done <- step.Run(build.ctx, repo)
+		done <- step.Run(runCtx, repo)
 	}()
 
 	for {

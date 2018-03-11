@@ -16,7 +16,9 @@ import (
 
 type BuildDelegate interface {
 	DBActionsBuildEventsDelegate(atc.PlanID) exec.ActionsBuildEventsDelegate
-	DBTaskBuildEventsDelegate(atc.PlanID) exec.TaskBuildEventsDelegate
+
+	TaskDelegate(atc.PlanID) exec.TaskDelegate
+
 	BuildStepDelegate(atc.PlanID) exec.BuildStepDelegate
 
 	Finish(lager.Logger, error, bool)
@@ -60,10 +62,10 @@ func (delegate *delegate) DBActionsBuildEventsDelegate(
 	return NewDBActionsBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)}, delegate.implicitOutputsRepo)
 }
 
-func (delegate *delegate) DBTaskBuildEventsDelegate(
+func (delegate *delegate) TaskDelegate(
 	planID atc.PlanID,
-) exec.TaskBuildEventsDelegate {
-	return NewDBTaskBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)})
+) exec.TaskDelegate {
+	return NewTaskDelegate(delegate.build, planID, clock.NewClock())
 }
 
 func (delegate *delegate) BuildStepDelegate(planID atc.PlanID) exec.BuildStepDelegate {

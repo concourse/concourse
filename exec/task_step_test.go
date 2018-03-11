@@ -11,7 +11,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -26,7 +25,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("TaskAction", func() {
+var _ = Describe("TaskStep", func() {
 	var (
 		ctx    context.Context
 		cancel func()
@@ -40,9 +39,7 @@ var _ = Describe("TaskAction", func() {
 		imageArtifactName string
 		containerMetadata db.ContainerMetadata
 
-		fakeBuildEventsDelegate     *execfakes.FakeActionsBuildEventsDelegate
-		fakeTaskBuildEventsDelegate *execfakes.FakeTaskBuildEventsDelegate
-		fakeBuildStepDelegate       *execfakes.FakeBuildStepDelegate
+		fakeDelegate *execfakes.FakeTaskDelegate
 
 		privileged    exec.Privileged
 		tags          []string
@@ -58,8 +55,7 @@ var _ = Describe("TaskAction", func() {
 
 		artifactRepository *worker.ArtifactRepository
 
-		taskAction *exec.TaskAction
-		actionStep exec.Step
+		taskStep exec.Step
 
 		stepErr error
 	)
@@ -73,11 +69,9 @@ var _ = Describe("TaskAction", func() {
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 
-		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
-		fakeTaskBuildEventsDelegate = new(execfakes.FakeTaskBuildEventsDelegate)
-		fakeBuildStepDelegate = new(execfakes.FakeBuildStepDelegate)
-		fakeBuildStepDelegate.StdoutReturns(stdoutBuf)
-		fakeBuildStepDelegate.StderrReturns(stderrBuf)
+		fakeDelegate = new(execfakes.FakeTaskDelegate)
+		fakeDelegate.StdoutReturns(stdoutBuf)
+		fakeDelegate.StderrReturns(stderrBuf)
 
 		privileged = false
 		tags = []string{"step", "tags"}
@@ -119,7 +113,7 @@ var _ = Describe("TaskAction", func() {
 	})
 
 	JustBeforeEach(func() {
-		taskAction = exec.NewTaskAction(
+		taskStep = exec.NewTaskStep(
 			privileged,
 			configSource,
 			tags,
@@ -127,8 +121,7 @@ var _ = Describe("TaskAction", func() {
 			outputMapping,
 			"some-artifact-root",
 			imageArtifactName,
-			fakeTaskBuildEventsDelegate,
-			fakeBuildStepDelegate,
+			fakeDelegate,
 			fakeWorkerClient,
 			teamID,
 			buildID,
@@ -140,13 +133,7 @@ var _ = Describe("TaskAction", func() {
 			variables,
 		)
 
-		actionStep = exec.NewActionsStep(
-			lagertest.NewTestLogger("put-action-test"),
-			[]exec.Action{taskAction},
-			fakeBuildEventsDelegate,
-		)
-
-		stepErr = actionStep.Run(ctx, artifactRepository)
+		stepErr = taskStep.Run(ctx, artifactRepository)
 	})
 
 	Context("when getting the config works", func() {
@@ -186,14 +173,14 @@ var _ = Describe("TaskAction", func() {
 
 			Describe("before creating a container", func() {
 				BeforeEach(func() {
-					fakeTaskBuildEventsDelegate.InitializingStub = func(lager.Logger, atc.TaskConfig) {
+					fakeDelegate.InitializingStub = func(lager.Logger, atc.TaskConfig) {
 						defer GinkgoRecover()
 						Expect(fakeWorkerClient.FindOrCreateContainerCallCount()).To(BeZero())
 					}
 				})
 
 				It("invoked the delegate's Initializing callback", func() {
-					Expect(fakeTaskBuildEventsDelegate.InitializingCallCount()).To(Equal(1))
+					Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
 				})
 			})
 
@@ -207,7 +194,7 @@ var _ = Describe("TaskAction", func() {
 					StepName: "some-step",
 				}))
 
-				Expect(delegate).To(Equal(fakeBuildStepDelegate))
+				Expect(delegate).To(Equal(fakeDelegate))
 
 				Expect(spec).To(Equal(worker.ContainerSpec{
 					Platform: "some-platform",
@@ -255,7 +242,7 @@ var _ = Describe("TaskAction", func() {
 						StepName: "some-step",
 					}))
 
-					Expect(delegate).To(Equal(fakeBuildStepDelegate))
+					Expect(delegate).To(Equal(fakeDelegate))
 
 					Expect(spec).To(Equal(worker.ContainerSpec{
 						Platform: "some-platform",
@@ -298,11 +285,7 @@ var _ = Describe("TaskAction", func() {
 				})
 
 				It("is not successful as the exit status is nonzero", func() {
-					Expect(actionStep.Succeeded()).To(BeFalse())
-				})
-
-				It("reports its exit status", func() {
-					Expect(taskAction.ExitStatus()).To(Equal(exec.ExitStatus(123)))
+					Expect(taskStep.Succeeded()).To(BeFalse())
 				})
 
 				Context("when outputs are configured and present on the container", func() {
@@ -458,14 +441,14 @@ var _ = Describe("TaskAction", func() {
 
 				Describe("before running a process", func() {
 					BeforeEach(func() {
-						fakeTaskBuildEventsDelegate.StartingStub = func(lager.Logger, atc.TaskConfig) {
+						fakeDelegate.StartingStub = func(lager.Logger, atc.TaskConfig) {
 							defer GinkgoRecover()
 							Expect(fakeContainer.RunCallCount()).To(BeZero())
 						}
 					})
 
 					It("invoked the delegate's Starting callback", func() {
-						Expect(fakeTaskBuildEventsDelegate.StartingCallCount()).To(Equal(1))
+						Expect(fakeDelegate.StartingCallCount()).To(Equal(1))
 					})
 				})
 
@@ -771,6 +754,12 @@ var _ = Describe("TaskAction", func() {
 					Context("when the process exits 0", func() {
 						BeforeEach(func() {
 							fakeProcess.WaitReturns(0, nil)
+						})
+
+						It("finishes the task via the delegate", func() {
+							Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+							_, status := fakeDelegate.FinishedArgsForCall(0)
+							Expect(status).To(Equal(exec.ExitStatus(0)))
 						})
 
 						Describe("the registered sources", func() {
@@ -1307,12 +1296,7 @@ var _ = Describe("TaskAction", func() {
 
 					It("is successful", func() {
 						Expect(stepErr).To(BeNil())
-						Expect(actionStep.Succeeded()).To(BeTrue())
-					})
-
-					It("reports its exit status", func() {
-						Expect(taskAction.ExitStatus()).To(Equal(exec.ExitStatus(0)))
-						Expect(actionStep.Succeeded()).To(BeTrue())
+						Expect(taskStep.Succeeded()).To(BeTrue())
 					})
 
 					It("doesn't register a source", func() {
@@ -1358,6 +1342,12 @@ var _ = Describe("TaskAction", func() {
 						fakeProcess.WaitReturns(1, nil)
 					})
 
+					It("finishes the task via the delegate", func() {
+						Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+						_, status := fakeDelegate.FinishedArgsForCall(0)
+						Expect(status).To(Equal(exec.ExitStatus(1)))
+					})
+
 					It("saves the exit status property", func() {
 						Expect(stepErr).ToNot(HaveOccurred())
 
@@ -1371,14 +1361,7 @@ var _ = Describe("TaskAction", func() {
 					It("is not successful", func() {
 						Expect(stepErr).ToNot(HaveOccurred())
 
-						Expect(actionStep.Succeeded()).To(BeFalse())
-					})
-
-					It("reports its exit status", func() {
-						Expect(stepErr).ToNot(HaveOccurred())
-
-						Expect(taskAction.ExitStatus()).To(Equal(exec.ExitStatus(1)))
-						Expect(actionStep.Succeeded()).To(BeFalse())
+						Expect(taskStep.Succeeded()).To(BeFalse())
 					})
 
 					Context("when saving the exit status succeeds", func() {

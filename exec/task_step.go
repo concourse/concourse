@@ -12,6 +12,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
@@ -51,35 +52,37 @@ func (err TaskImageSourceParametersError) Error() string {
 	return fmt.Sprintf("failed to evaluate image resource parameters: %s", err.Err)
 }
 
-//go:generate counterfeiter . TaskBuildEventsDelegate
+//go:generate counterfeiter . TaskDelegate
 
-type TaskBuildEventsDelegate interface {
+type TaskDelegate interface {
+	BuildStepDelegate
+
 	Initializing(lager.Logger, atc.TaskConfig)
 	Starting(lager.Logger, atc.TaskConfig)
+	Finished(lager.Logger, ExitStatus)
 }
 
-// TaskAction executes a TaskConfig, whose inputs will be fetched from the
+// TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // worker.ArtifactRepository and outputs will be added to the worker.ArtifactRepository.
-type TaskAction struct {
+type TaskStep struct {
 	privileged    Privileged
 	configSource  TaskConfigSource
 	tags          atc.Tags
 	inputMapping  map[string]string
 	outputMapping map[string]string
 
-	// TODO: replace with RootFSSource
 	artifactsRoot     string
 	imageArtifactName string
 
-	buildEventsDelegate TaskBuildEventsDelegate
-	buildStepDelegate   BuildStepDelegate
-	workerPool          worker.Client
-	teamID              int
-	buildID             int
-	jobID               int
-	stepName            string
-	planID              atc.PlanID
-	containerMetadata   db.ContainerMetadata
+	delegate TaskDelegate
+
+	workerPool        worker.Client
+	teamID            int
+	buildID           int
+	jobID             int
+	stepName          string
+	planID            atc.PlanID
+	containerMetadata db.ContainerMetadata
 
 	resourceTypes creds.VersionedResourceTypes
 
@@ -88,7 +91,7 @@ type TaskAction struct {
 	exitStatus ExitStatus
 }
 
-func NewTaskAction(
+func NewTaskStep(
 	privileged Privileged,
 	configSource TaskConfigSource,
 	tags atc.Tags,
@@ -96,8 +99,7 @@ func NewTaskAction(
 	outputMapping map[string]string,
 	artifactsRoot string,
 	imageArtifactName string,
-	buildEventsDelegate TaskBuildEventsDelegate,
-	buildStepDelegate BuildStepDelegate,
+	delegate TaskDelegate,
 	workerPool worker.Client,
 	teamID int,
 	buildID int,
@@ -107,26 +109,25 @@ func NewTaskAction(
 	containerMetadata db.ContainerMetadata,
 	resourceTypes creds.VersionedResourceTypes,
 	variables creds.Variables,
-) *TaskAction {
-	return &TaskAction{
-		privileged:          privileged,
-		configSource:        configSource,
-		tags:                tags,
-		inputMapping:        inputMapping,
-		outputMapping:       outputMapping,
-		artifactsRoot:       artifactsRoot,
-		imageArtifactName:   imageArtifactName,
-		buildEventsDelegate: buildEventsDelegate,
-		buildStepDelegate:   buildStepDelegate,
-		workerPool:          workerPool,
-		teamID:              teamID,
-		buildID:             buildID,
-		jobID:               jobID,
-		stepName:            stepName,
-		planID:              planID,
-		containerMetadata:   containerMetadata,
-		resourceTypes:       resourceTypes,
-		variables:           variables,
+) Step {
+	return &TaskStep{
+		privileged:        privileged,
+		configSource:      configSource,
+		tags:              tags,
+		inputMapping:      inputMapping,
+		outputMapping:     outputMapping,
+		artifactsRoot:     artifactsRoot,
+		imageArtifactName: imageArtifactName,
+		delegate:          delegate,
+		workerPool:        workerPool,
+		teamID:            teamID,
+		buildID:           buildID,
+		jobID:             jobID,
+		stepName:          stepName,
+		planID:            planID,
+		containerMetadata: containerMetadata,
+		resourceTypes:     resourceTypes,
+		variables:         variables,
 	}
 }
 
@@ -145,17 +146,15 @@ func NewTaskAction(
 // are registered with the worker.ArtifactRepository. If no outputs are specified, the
 // task's entire working directory is registered as an ArtifactSource under the
 // name of the task.
-func (action *TaskAction) Run(
-	ctx context.Context,
-	logger lager.Logger,
-	repository *worker.ArtifactRepository,
-) error {
+func (action *TaskStep) Run(ctx context.Context, repository *worker.ArtifactRepository) error {
+	logger := lagerctx.FromContext(ctx)
+
 	config, err := action.configSource.FetchConfig(repository)
 	if err != nil {
 		return err
 	}
 
-	action.buildEventsDelegate.Initializing(logger, config)
+	action.delegate.Initializing(logger, config)
 
 	containerSpec, err := action.containerSpec(logger, repository, config)
 	if err != nil {
@@ -165,7 +164,7 @@ func (action *TaskAction) Run(
 	container, err := action.workerPool.FindOrCreateContainer(
 		ctx,
 		logger,
-		action.buildStepDelegate,
+		action.delegate,
 		db.NewBuildStepContainerOwner(action.buildID, action.planID),
 		action.containerMetadata,
 		containerSpec,
@@ -188,6 +187,7 @@ func (action *TaskAction) Run(
 		if err != nil {
 			return err
 		}
+
 		return nil
 	}
 
@@ -200,8 +200,8 @@ func (action *TaskAction) Run(
 	}
 
 	processIO := garden.ProcessIO{
-		Stdout: action.buildStepDelegate.Stdout(),
-		Stderr: action.buildStepDelegate.Stderr(),
+		Stdout: action.delegate.Stdout(),
+		Stderr: action.delegate.Stderr(),
 	}
 
 	process, err := container.Attach(processID, processIO)
@@ -210,7 +210,7 @@ func (action *TaskAction) Run(
 	} else {
 		logger.Info("spawning")
 
-		action.buildEventsDelegate.Starting(logger, config)
+		action.delegate.Starting(logger, config)
 
 		process, err = container.Run(garden.ProcessSpec{
 			ID: taskProcessID,
@@ -268,6 +268,8 @@ func (action *TaskAction) Run(
 
 		action.exitStatus = ExitStatus(processStatus)
 
+		action.delegate.Finished(logger, action.exitStatus)
+
 		err = container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
 		if err != nil {
 			return err
@@ -277,12 +279,11 @@ func (action *TaskAction) Run(
 	}
 }
 
-// ExitStatus returns exit status of task script.
-func (action *TaskAction) ExitStatus() ExitStatus {
-	return action.exitStatus
+func (action *TaskStep) Succeeded() bool {
+	return action.exitStatus == 0
 }
 
-func (action *TaskAction) containerSpec(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ContainerSpec, error) {
+func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ContainerSpec, error) {
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(action.privileged),
 	}
@@ -368,7 +369,7 @@ func (action *TaskAction) containerSpec(logger lager.Logger, repository *worker.
 	return containerSpec, nil
 }
 
-func (action *TaskAction) registerOutputs(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig, container worker.Container) error {
+func (action *TaskStep) registerOutputs(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig, container worker.Container) error {
 	volumeMounts := container.VolumeMounts()
 
 	logger.Debug("registering-outputs", lager.Data{"outputs": config.Outputs})
@@ -412,7 +413,7 @@ func (action *TaskAction) registerOutputs(logger lager.Logger, repository *worke
 	return nil
 }
 
-func (TaskAction) envForParams(params map[string]string) []string {
+func (TaskStep) envForParams(params map[string]string) []string {
 	env := make([]string, 0, len(params))
 
 	for k, v := range params {

@@ -6,11 +6,12 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 )
 
-type FakeBuildStepDelegate struct {
+type FakeTaskDelegate struct {
 	ImageVersionDeterminedStub        func(*db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -46,11 +47,29 @@ type FakeBuildStepDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
+	InitializingStub        func(lager.Logger, atc.TaskConfig)
+	initializingMutex       sync.RWMutex
+	initializingArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 atc.TaskConfig
+	}
+	StartingStub        func(lager.Logger, atc.TaskConfig)
+	startingMutex       sync.RWMutex
+	startingArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 atc.TaskConfig
+	}
+	FinishedStub        func(lager.Logger, exec.ExitStatus)
+	finishedMutex       sync.RWMutex
+	finishedArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 exec.ExitStatus
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildStepDelegate) ImageVersionDetermined(arg1 *db.UsedResourceCache) error {
+func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 *db.UsedResourceCache) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	ret, specificReturn := fake.imageVersionDeterminedReturnsOnCall[len(fake.imageVersionDeterminedArgsForCall)]
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
@@ -67,26 +86,26 @@ func (fake *FakeBuildStepDelegate) ImageVersionDetermined(arg1 *db.UsedResourceC
 	return fake.imageVersionDeterminedReturns.result1
 }
 
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedCallCount() int {
+func (fake *FakeTaskDelegate) ImageVersionDeterminedCallCount() int {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedArgsForCall(i int) *db.UsedResourceCache {
+func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) *db.UsedResourceCache {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return fake.imageVersionDeterminedArgsForCall[i].arg1
 }
 
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturns(result1 error) {
+func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
 	fake.ImageVersionDeterminedStub = nil
 	fake.imageVersionDeterminedReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
+func (fake *FakeTaskDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
 	fake.ImageVersionDeterminedStub = nil
 	if fake.imageVersionDeterminedReturnsOnCall == nil {
 		fake.imageVersionDeterminedReturnsOnCall = make(map[int]struct {
@@ -98,7 +117,7 @@ func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturnsOnCall(i int, re
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) Stdout() io.Writer {
+func (fake *FakeTaskDelegate) Stdout() io.Writer {
 	fake.stdoutMutex.Lock()
 	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
 	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct{}{})
@@ -113,20 +132,20 @@ func (fake *FakeBuildStepDelegate) Stdout() io.Writer {
 	return fake.stdoutReturns.result1
 }
 
-func (fake *FakeBuildStepDelegate) StdoutCallCount() int {
+func (fake *FakeTaskDelegate) StdoutCallCount() int {
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
 	return len(fake.stdoutArgsForCall)
 }
 
-func (fake *FakeBuildStepDelegate) StdoutReturns(result1 io.Writer) {
+func (fake *FakeTaskDelegate) StdoutReturns(result1 io.Writer) {
 	fake.StdoutStub = nil
 	fake.stdoutReturns = struct {
 		result1 io.Writer
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
+func (fake *FakeTaskDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	fake.StdoutStub = nil
 	if fake.stdoutReturnsOnCall == nil {
 		fake.stdoutReturnsOnCall = make(map[int]struct {
@@ -138,7 +157,7 @@ func (fake *FakeBuildStepDelegate) StdoutReturnsOnCall(i int, result1 io.Writer)
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) Stderr() io.Writer {
+func (fake *FakeTaskDelegate) Stderr() io.Writer {
 	fake.stderrMutex.Lock()
 	ret, specificReturn := fake.stderrReturnsOnCall[len(fake.stderrArgsForCall)]
 	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct{}{})
@@ -153,20 +172,20 @@ func (fake *FakeBuildStepDelegate) Stderr() io.Writer {
 	return fake.stderrReturns.result1
 }
 
-func (fake *FakeBuildStepDelegate) StderrCallCount() int {
+func (fake *FakeTaskDelegate) StderrCallCount() int {
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	return len(fake.stderrArgsForCall)
 }
 
-func (fake *FakeBuildStepDelegate) StderrReturns(result1 io.Writer) {
+func (fake *FakeTaskDelegate) StderrReturns(result1 io.Writer) {
 	fake.StderrStub = nil
 	fake.stderrReturns = struct {
 		result1 io.Writer
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
+func (fake *FakeTaskDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
 	fake.StderrStub = nil
 	if fake.stderrReturnsOnCall == nil {
 		fake.stderrReturnsOnCall = make(map[int]struct {
@@ -178,7 +197,7 @@ func (fake *FakeBuildStepDelegate) StderrReturnsOnCall(i int, result1 io.Writer)
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) Errored(arg1 lager.Logger, arg2 string) {
+func (fake *FakeTaskDelegate) Errored(arg1 lager.Logger, arg2 string) {
 	fake.erroredMutex.Lock()
 	fake.erroredArgsForCall = append(fake.erroredArgsForCall, struct {
 		arg1 lager.Logger
@@ -191,19 +210,94 @@ func (fake *FakeBuildStepDelegate) Errored(arg1 lager.Logger, arg2 string) {
 	}
 }
 
-func (fake *FakeBuildStepDelegate) ErroredCallCount() int {
+func (fake *FakeTaskDelegate) ErroredCallCount() int {
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
 	return len(fake.erroredArgsForCall)
 }
 
-func (fake *FakeBuildStepDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
+func (fake *FakeTaskDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
 	return fake.erroredArgsForCall[i].arg1, fake.erroredArgsForCall[i].arg2
 }
 
-func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
+func (fake *FakeTaskDelegate) Initializing(arg1 lager.Logger, arg2 atc.TaskConfig) {
+	fake.initializingMutex.Lock()
+	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 atc.TaskConfig
+	}{arg1, arg2})
+	fake.recordInvocation("Initializing", []interface{}{arg1, arg2})
+	fake.initializingMutex.Unlock()
+	if fake.InitializingStub != nil {
+		fake.InitializingStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeTaskDelegate) InitializingCallCount() int {
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
+	return len(fake.initializingArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) (lager.Logger, atc.TaskConfig) {
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
+	return fake.initializingArgsForCall[i].arg1, fake.initializingArgsForCall[i].arg2
+}
+
+func (fake *FakeTaskDelegate) Starting(arg1 lager.Logger, arg2 atc.TaskConfig) {
+	fake.startingMutex.Lock()
+	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 atc.TaskConfig
+	}{arg1, arg2})
+	fake.recordInvocation("Starting", []interface{}{arg1, arg2})
+	fake.startingMutex.Unlock()
+	if fake.StartingStub != nil {
+		fake.StartingStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeTaskDelegate) StartingCallCount() int {
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
+	return len(fake.startingArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) StartingArgsForCall(i int) (lager.Logger, atc.TaskConfig) {
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
+	return fake.startingArgsForCall[i].arg1, fake.startingArgsForCall[i].arg2
+}
+
+func (fake *FakeTaskDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus) {
+	fake.finishedMutex.Lock()
+	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 exec.ExitStatus
+	}{arg1, arg2})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2})
+	fake.finishedMutex.Unlock()
+	if fake.FinishedStub != nil {
+		fake.FinishedStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeTaskDelegate) FinishedCallCount() int {
+	fake.finishedMutex.RLock()
+	defer fake.finishedMutex.RUnlock()
+	return len(fake.finishedArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus) {
+	fake.finishedMutex.RLock()
+	defer fake.finishedMutex.RUnlock()
+	return fake.finishedArgsForCall[i].arg1, fake.finishedArgsForCall[i].arg2
+}
+
+func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
@@ -214,6 +308,12 @@ func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stderrMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
+	fake.finishedMutex.RLock()
+	defer fake.finishedMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
@@ -221,7 +321,7 @@ func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeBuildStepDelegate) recordInvocation(key string, args []interface{}) {
+func (fake *FakeTaskDelegate) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -233,4 +333,4 @@ func (fake *FakeBuildStepDelegate) recordInvocation(key string, args []interface
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ exec.BuildStepDelegate = new(FakeBuildStepDelegate)
+var _ exec.TaskDelegate = new(FakeTaskDelegate)

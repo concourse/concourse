@@ -40,9 +40,7 @@ type Factory interface {
 		atc.Plan,
 		db.Build,
 		db.ContainerMetadata,
-		TaskBuildEventsDelegate,
-		ActionsBuildEventsDelegate,
-		BuildStepDelegate,
+		TaskDelegate,
 	) Step
 }
 
@@ -56,8 +54,11 @@ type StepMetadata interface {
 
 type BuildStepDelegate interface {
 	ImageVersionDetermined(*db.UsedResourceCache) error
+
 	Stdout() io.Writer
 	Stderr() io.Writer
+
+	Errored(lager.Logger, string)
 }
 
 // Privileged is used to indicate whether the given step should run with

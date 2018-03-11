@@ -125,9 +125,7 @@ func (factory *gardenFactory) Task(
 	plan atc.Plan,
 	build db.Build,
 	containerMetadata db.ContainerMetadata,
-	taskBuildEventsDelegate TaskBuildEventsDelegate,
-	buildEventsDelegate ActionsBuildEventsDelegate,
-	buildStepDelegate BuildStepDelegate,
+	taskDelegate TaskDelegate,
 ) Step {
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
@@ -148,39 +146,36 @@ func (factory *gardenFactory) Task(
 
 	taskConfigSource = DeprecationConfigSource{
 		Delegate: taskConfigSource,
-		Stderr:   buildStepDelegate.Stderr(),
+		Stderr:   taskDelegate.Stderr(),
 	}
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
-	taskAction := &TaskAction{
-		privileged:    Privileged(plan.Task.Privileged),
-		configSource:  taskConfigSource,
-		tags:          plan.Task.Tags,
-		inputMapping:  plan.Task.InputMapping,
-		outputMapping: plan.Task.OutputMapping,
+	taskStep := NewTaskStep(
+		Privileged(plan.Task.Privileged),
+		taskConfigSource,
+		plan.Task.Tags,
+		plan.Task.InputMapping,
+		plan.Task.OutputMapping,
 
-		artifactsRoot:     workingDirectory,
-		imageArtifactName: plan.Task.ImageArtifactName,
+		workingDirectory,
+		plan.Task.ImageArtifactName,
 
-		buildEventsDelegate: taskBuildEventsDelegate,
-		buildStepDelegate:   buildStepDelegate,
-		workerPool:          factory.workerClient,
-		teamID:              build.TeamID(),
-		buildID:             build.ID(),
-		jobID:               build.JobID(),
-		stepName:            plan.Task.Name,
-		planID:              plan.ID,
-		containerMetadata:   containerMetadata,
+		taskDelegate,
 
-		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Task.VersionedResourceTypes),
+		factory.workerClient,
+		build.TeamID(),
+		build.ID(),
+		build.JobID(),
+		plan.Task.Name,
+		plan.ID,
+		containerMetadata,
 
-		variables: variables,
-	}
+		creds.NewVersionedResourceTypes(variables, plan.Task.VersionedResourceTypes),
+		variables,
+	)
 
-	actions := []Action{taskAction}
-
-	return NewActionsStep(logger, actions, buildEventsDelegate)
+	return LogError(taskStep, taskDelegate)
 }
 
 func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {

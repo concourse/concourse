@@ -284,7 +284,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				logger, plan, build, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				logger, plan, build, containerMetadata, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(build).To(Equal(dbBuild))
 				expectedPlan := taskPlan
@@ -302,7 +302,7 @@ var _ = Describe("ExecEngine", func() {
 					Attempt:      "2.1",
 				}))
 
-				logger, plan, build, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				logger, plan, build, containerMetadata, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
 				Expect(build).To(Equal(dbBuild))
 				expectedPlan = taskPlan
@@ -371,15 +371,15 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				_, _, _, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				_, _, _, containerMetadata, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				_, _, _, containerMetadata, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(2)
+				_, _, _, containerMetadata, _ = fakeFactory.TaskArgsForCall(2)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(3)
+				_, _, _, containerMetadata, _ = fakeFactory.TaskArgsForCall(3)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(4)
+				_, _, _, containerMetadata, _ = fakeFactory.TaskArgsForCall(4)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
 			})
 		})
@@ -462,7 +462,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-					logger, plan, build, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, plan, build, containerMetadata, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(expectedPlan))

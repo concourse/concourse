@@ -99,9 +99,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		plan,
 		build.dbBuild,
 		containerMetadata,
-		build.delegate.DBTaskBuildEventsDelegate(plan.ID),
-		build.delegate.DBActionsBuildEventsDelegate(plan.ID),
-		build.delegate.BuildStepDelegate(plan.ID),
+		build.delegate.TaskDelegate(plan.ID),
 	)
 }
 

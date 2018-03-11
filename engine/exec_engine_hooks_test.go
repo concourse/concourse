@@ -178,7 +178,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the completion hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					logger, plan, dbBuild, containerMetadata, _ := fakeFactory.TaskArgsForCall(2)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(completionTaskPlan))
@@ -196,7 +196,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the failure hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, plan, dbBuild, containerMetadata, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(failureTaskPlan))
@@ -214,7 +214,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the success hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					logger, plan, dbBuild, containerMetadata, _ := fakeFactory.TaskArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(successTaskPlan))
@@ -232,7 +232,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the next step correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					logger, plan, dbBuild, containerMetadata, _ := fakeFactory.TaskArgsForCall(3)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(nextTaskPlan))
