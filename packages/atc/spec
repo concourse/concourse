@@ -16,6 +16,7 @@ files:
   - code.cloudfoundry.org/garden/routes/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/transport/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/lager/*.{go,s,c,h} # gosub
+  - code.cloudfoundry.org/lager/lagerctx/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/urljoiner/*.{go,s,c,h} # gosub
   - github.com/Masterminds/squirrel/*.{go,s,c,h} # gosub
   - github.com/NYTimes/gziphandler/*.{go,s,c,h} # gosub

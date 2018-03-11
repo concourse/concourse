@@ -122,6 +122,7 @@
 [submodule "src/github.com/vito/gosub"]
 	path = src/github.com/vito/gosub
 	url = https://github.com/vito/gosub
+	branch = master
 [submodule "src/github.com/jessevdk/go-flags"]
 	path = src/github.com/jessevdk/go-flags
 	url = https://github.com/jessevdk/go-flags
