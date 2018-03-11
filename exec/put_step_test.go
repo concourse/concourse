@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"code.cloudfoundry.org/lager/lagertest"
-
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -13,6 +11,7 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
+	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -21,10 +20,12 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("PutAction", func() {
+var _ = Describe("PutStep", func() {
 	var (
 		ctx    context.Context
 		cancel func()
+
+		fakeBuild *dbfakes.FakeBuild
 
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFactory        *resourcefakes.FakeResourceFactory
@@ -37,11 +38,8 @@ var _ = Describe("PutAction", func() {
 			Type:     db.ContainerTypePut,
 			StepName: "some-step",
 		}
-		teamID                  = 123
-		buildID                 = 42
-		planID                  = 56
-		fakeBuildEventsDelegate *execfakes.FakeActionsBuildEventsDelegate
-		fakeBuildStepDelegate   *execfakes.FakeBuildStepDelegate
+		planID       = 56
+		fakeDelegate *execfakes.FakePutDelegate
 
 		resourceTypes creds.VersionedResourceTypes
 
@@ -50,13 +48,16 @@ var _ = Describe("PutAction", func() {
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
-		putAction  *exec.PutAction
-		actionStep exec.Step
-		stepErr    error
+		putStep *exec.PutStep
+		stepErr error
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
+
+		fakeBuild = new(dbfakes.FakeBuild)
+		fakeBuild.IDReturns(42)
+		fakeBuild.TeamIDReturns(123)
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -66,12 +67,11 @@ var _ = Describe("PutAction", func() {
 			"source-param": "super-secret-source",
 		}
 
-		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
-		fakeBuildStepDelegate = new(execfakes.FakeBuildStepDelegate)
+		fakeDelegate = new(execfakes.FakePutDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
-		fakeBuildStepDelegate.StdoutReturns(stdoutBuf)
-		fakeBuildStepDelegate.StderrReturns(stderrBuf)
+		fakeDelegate.StdoutReturns(stdoutBuf)
+		fakeDelegate.StderrReturns(stderrBuf)
 
 		artifactRepository = worker.NewArtifactRepository()
 
@@ -90,30 +90,23 @@ var _ = Describe("PutAction", func() {
 	})
 
 	JustBeforeEach(func() {
-		putAction = exec.NewPutAction(
+		putStep = exec.NewPutStep(
+			fakeBuild,
 			"some-resource-type",
 			"some-resource",
 			"some-resource",
 			creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
 			creds.NewParams(variables, atc.Params{"some-param": "some-value"}),
 			[]string{"some", "tags"},
-			fakeBuildStepDelegate,
+			fakeDelegate,
 			fakeResourceFactory,
-			teamID,
-			buildID,
 			atc.PlanID(planID),
 			containerMetadata,
 			stepMetadata,
 			resourceTypes,
 		)
 
-		actionStep = exec.NewActionsStep(
-			lagertest.NewTestLogger("put-action-test"),
-			[]exec.Action{putAction},
-			fakeBuildEventsDelegate,
-		)
-
-		stepErr = actionStep.Run(ctx, artifactRepository)
+		stepErr = putStep.Run(ctx, artifactRepository)
 	})
 
 	Context("when artifactRepository contains sources", func() {
@@ -174,7 +167,7 @@ var _ = Describe("PutAction", func() {
 					exec.PutResourceSource{fakeMountedSource},
 				))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
-				Expect(delegate).To(Equal(fakeBuildStepDelegate))
+				Expect(delegate).To(Equal(fakeDelegate))
 			})
 
 			It("puts the resource with the given context", func() {
@@ -203,25 +196,88 @@ var _ = Describe("PutAction", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 			})
 
-			It("artifactRepositoryrts the created version info", func() {
-				info := putAction.VersionInfo()
+			It("reports the created version info", func() {
+				info := putStep.VersionInfo()
 				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
 				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 			})
 
 			It("is successful", func() {
-				Expect(putAction.ExitStatus()).To(Equal(exec.ExitStatus(0)))
+				Expect(putStep.Succeeded()).To(BeTrue())
 			})
 
-			Context("when performing the put fails", func() {
+			It("saves the build output", func() {
+				Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
+
+				vr := fakeBuild.SaveOutputArgsForCall(0)
+				Expect(vr).To(Equal(db.VersionedResource{
+					Resource: "some-resource",
+					Type:     "some-resource-type",
+					Version:  db.ResourceVersion{"some": "version"},
+					Metadata: db.NewResourceMetadataFields([]atc.MetadataField{{"some", "metadata"}}),
+				}))
+			})
+
+			It("finishes via the delegate", func() {
+				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+				_, status, info := fakeDelegate.FinishedArgsForCall(0)
+				Expect(status).To(Equal(exec.ExitStatus(0)))
+				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+			})
+
+			Context("when saving the build output fails", func() {
 				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeBuild.SaveOutputReturns(disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(stepErr).To(Equal(disaster))
+				})
+			})
+
+			Context("when performing the put exits unsuccessfully", func() {
+				BeforeEach(func() {
+					fakeResource.PutReturns(nil, resource.ErrResourceScriptFailed{
+						ExitStatus: 42,
+					})
+				})
+
+				It("finishes the step via the delegate", func() {
+					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+					_, status, info := fakeDelegate.FinishedArgsForCall(0)
+					Expect(status).To(Equal(exec.ExitStatus(42)))
+					Expect(info).To(BeZero())
+				})
+
+				It("returns nil", func() {
+					Expect(stepErr).ToNot(HaveOccurred())
+				})
+
+				It("is not successful", func() {
+					Expect(putStep.Succeeded()).To(BeFalse())
+				})
+			})
+
+			Context("when performing the put errors", func() {
+				disaster := errors.New("oh no")
 
 				BeforeEach(func() {
 					fakeResource.PutReturns(nil, disaster)
 				})
 
+				It("does not finish the step via the delegate", func() {
+					Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))
+				})
+
 				It("returns the error", func() {
 					Expect(stepErr).To(Equal(disaster))
+				})
+
+				It("is not successful", func() {
+					Expect(putStep.Succeeded()).To(BeFalse())
 				})
 			})
 		})

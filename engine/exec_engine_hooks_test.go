@@ -93,16 +93,12 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 		Context("constructing steps", func() {
 			var (
-				fakeDelegate            *enginefakes.FakeBuildDelegate
-				fakeBuildEventsDelegate *execfakes.FakeActionsBuildEventsDelegate
+				fakeDelegate *enginefakes.FakeBuildDelegate
 			)
 
 			BeforeEach(func() {
 				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
-
-				fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
-				fakeDelegate.DBActionsBuildEventsDelegateReturns(fakeBuildEventsDelegate)
 			})
 
 			Context("with all the hooks", func() {

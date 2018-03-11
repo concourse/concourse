@@ -8,15 +8,15 @@ import (
 
 func NewVersionSourceFromPlan(
 	getPlan *atc.GetPlan,
-	putActions map[atc.PlanID]*PutAction,
+	putSteps map[atc.PlanID]*PutStep,
 ) VersionSource {
 	if getPlan.Version != nil {
 		return &StaticVersionSource{
 			Version: *getPlan.Version,
 		}
 	} else if getPlan.VersionFrom != nil {
-		return &PutActionVersionSource{
-			Action: putActions[*getPlan.VersionFrom],
+		return &PutStepVersionSource{
+			Step: putSteps[*getPlan.VersionFrom],
 		}
 	} else {
 		return &EmptyVersionSource{}
@@ -35,16 +35,16 @@ func (p *StaticVersionSource) GetVersion() (atc.Version, error) {
 	return p.Version, nil
 }
 
-var ErrPutActionVersionMissing = errors.New("version is missing from put action")
+var ErrPutStepVersionMissing = errors.New("version is missing from put step")
 
-type PutActionVersionSource struct {
-	Action *PutAction
+type PutStepVersionSource struct {
+	Step *PutStep
 }
 
-func (p *PutActionVersionSource) GetVersion() (atc.Version, error) {
-	versionInfo := p.Action.VersionInfo()
+func (p *PutStepVersionSource) GetVersion() (atc.Version, error) {
+	versionInfo := p.Step.VersionInfo()
 	if versionInfo.Version == nil {
-		return atc.Version{}, ErrPutActionVersionMissing
+		return atc.Version{}, ErrPutStepVersionMissing
 	}
 
 	return versionInfo.Version, nil

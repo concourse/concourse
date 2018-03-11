@@ -41,8 +41,7 @@ var _ = Describe("ExecEngine", func() {
 
 	Describe("Resume", func() {
 		var (
-			fakeDelegate            *enginefakes.FakeBuildDelegate
-			fakeBuildEventsDelegate *execfakes.FakeActionsBuildEventsDelegate
+			fakeDelegate *enginefakes.FakeBuildDelegate
 
 			dbBuild          *dbfakes.FakeBuild
 			expectedMetadata engine.StepMetadata
@@ -82,9 +81,6 @@ var _ = Describe("ExecEngine", func() {
 
 			fakeDelegate = new(enginefakes.FakeBuildDelegate)
 			fakeDelegateFactory.DelegateReturns(fakeDelegate)
-
-			fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
-			fakeDelegate.DBActionsBuildEventsDelegateReturns(fakeBuildEventsDelegate)
 
 			inputStep = new(execfakes.FakeStep)
 			inputStep.SucceededReturns(true)
@@ -145,7 +141,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
-					logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.PutArgsForCall(0)
+					logger, plan, build, stepMetadata, containerMetadata, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(putPlan))
@@ -161,7 +157,7 @@ var _ = Describe("ExecEngine", func() {
 						BuildName:    "42",
 					}))
 
-					logger, plan, build, stepMetadata, containerMetadata, _, _ = fakeFactory.PutArgsForCall(1)
+					logger, plan, build, stepMetadata, containerMetadata, _ = fakeFactory.PutArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(otherPutPlan))
@@ -514,7 +510,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(1))
 
-					logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.PutArgsForCall(0)
+					logger, plan, build, stepMetadata, containerMetadata, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(putPlan))
@@ -529,10 +525,6 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      expectedBuildID,
 						BuildName:    "42",
 					}))
-					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(0)
-					Expect(originID).To(Equal(putPlan.ID))
-					planID := fakeDelegate.BuildStepDelegateArgsForCall(0)
-					Expect(planID).To(Equal(putPlan.ID))
 				})
 
 				It("constructs the dependent get correctly", func() {

@@ -21,7 +21,7 @@ type gardenFactory struct {
 	dbResourceCacheFactory db.ResourceCacheFactory
 	variablesFactory       creds.VariablesFactory
 
-	putActions map[atc.PlanID]*PutAction
+	putSteps map[atc.PlanID]*PutStep
 }
 
 func NewGardenFactory(
@@ -37,7 +37,7 @@ func NewGardenFactory(
 		resourceFactory:        resourceFactory,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 		variablesFactory:       variablesFactory,
-		putActions:             map[atc.PlanID]*PutAction{},
+		putSteps:               map[atc.PlanID]*PutStep{},
 	}
 }
 
@@ -47,7 +47,7 @@ func (factory *gardenFactory) Get(
 	build db.Build,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	getDelegate GetDelegate,
+	delegate GetDelegate,
 ) Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
@@ -59,10 +59,10 @@ func (factory *gardenFactory) Get(
 		plan.Get.Resource,
 		creds.NewSource(variables, plan.Get.Source),
 		creds.NewParams(variables, plan.Get.Params),
-		NewVersionSourceFromPlan(plan.Get, factory.putActions),
+		NewVersionSourceFromPlan(plan.Get, factory.putSteps),
 		plan.Get.Tags,
 
-		getDelegate,
+		delegate,
 		factory.resourceFetcher,
 		build.TeamID(),
 		build.ID(),
@@ -74,7 +74,7 @@ func (factory *gardenFactory) Get(
 		creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
 	)
 
-	return LogError(getStep, getDelegate)
+	return LogError(getStep, delegate)
 }
 
 func (factory *gardenFactory) Put(
@@ -83,36 +83,34 @@ func (factory *gardenFactory) Put(
 	build db.Build,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	buildEventsDelegate ActionsBuildEventsDelegate,
-	buildStepDelegate BuildStepDelegate,
+	delegate PutDelegate,
 ) Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
-	putAction := &PutAction{
-		Type:     plan.Put.Type,
-		Name:     plan.Put.Name,
-		Resource: plan.Put.Resource,
-		Source:   creds.NewSource(variables, plan.Put.Source),
-		Params:   creds.NewParams(variables, plan.Put.Params),
-		Tags:     plan.Put.Tags,
+	putStep := NewPutStep(
+		build,
 
-		buildStepDelegate: buildStepDelegate,
-		resourceFactory:   factory.resourceFactory,
-		teamID:            build.TeamID(),
-		buildID:           build.ID(),
-		planID:            plan.ID,
-		containerMetadata: workerMetadata,
-		stepMetadata:      stepMetadata,
+		plan.Put.Type,
+		plan.Put.Name,
+		plan.Put.Resource,
+		creds.NewSource(variables, plan.Put.Source),
+		creds.NewParams(variables, plan.Put.Params),
+		plan.Put.Tags,
 
-		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
-	}
-	factory.putActions[plan.ID] = putAction
+		delegate,
+		factory.resourceFactory,
+		plan.ID,
+		workerMetadata,
+		stepMetadata,
 
-	actions := []Action{putAction}
+		creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
+	)
 
-	return NewActionsStep(logger, actions, buildEventsDelegate)
+	factory.putSteps[plan.ID] = putStep
+
+	return LogError(putStep, delegate)
 }
 
 func (factory *gardenFactory) Task(
@@ -120,7 +118,7 @@ func (factory *gardenFactory) Task(
 	plan atc.Plan,
 	build db.Build,
 	containerMetadata db.ContainerMetadata,
-	taskDelegate TaskDelegate,
+	delegate TaskDelegate,
 ) Step {
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
@@ -141,7 +139,7 @@ func (factory *gardenFactory) Task(
 
 	taskConfigSource = DeprecationConfigSource{
 		Delegate: taskConfigSource,
-		Stderr:   taskDelegate.Stderr(),
+		Stderr:   delegate.Stderr(),
 	}
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
@@ -156,7 +154,7 @@ func (factory *gardenFactory) Task(
 		workingDirectory,
 		plan.Task.ImageArtifactName,
 
-		taskDelegate,
+		delegate,
 
 		factory.workerClient,
 		build.TeamID(),
@@ -170,7 +168,7 @@ func (factory *gardenFactory) Task(
 		variables,
 	)
 
-	return LogError(taskStep, taskDelegate)
+	return LogError(taskStep, delegate)
 }
 
 func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {

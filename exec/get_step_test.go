@@ -27,7 +27,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("GetAction", func() {
+var _ = Describe("GetStep", func() {
 	var (
 		ctx    context.Context
 		cancel func()

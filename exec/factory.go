@@ -12,7 +12,7 @@ import (
 
 // Factory is used when building up the steps for a build.
 type Factory interface {
-	// Get constructs a ActionsStep factory for Get.
+	// Get constructs a Get step.
 	Get(
 		lager.Logger,
 		atc.Plan,
@@ -22,18 +22,17 @@ type Factory interface {
 		GetDelegate,
 	) Step
 
-	// Put constructs a ActionsStep factory for Put.
+	// Put constructs a Put step.
 	Put(
 		lager.Logger,
 		atc.Plan,
 		db.Build,
 		StepMetadata,
 		db.ContainerMetadata,
-		ActionsBuildEventsDelegate,
-		BuildStepDelegate,
+		PutDelegate,
 	) Step
 
-	// Task constructs a ActionsStep factory for Task.
+	// Task constructs a Task step.
 	Task(
 		lager.Logger,
 		atc.Plan,

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
@@ -11,20 +12,28 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-// PutAction produces a resource version using preconfigured params and any data
-// available in the worker.ArtifactRepository.
-type PutAction struct {
-	Type     string
-	Name     string
-	Resource string
-	Source   creds.Source
-	Params   creds.Params
-	Tags     atc.Tags
+//go:generate counterfeiter . PutDelegate
 
-	buildStepDelegate BuildStepDelegate
+type PutDelegate interface {
+	BuildStepDelegate
+
+	Finished(lager.Logger, ExitStatus, VersionInfo)
+}
+
+// PutStep produces a resource version using preconfigured params and any data
+// available in the worker.ArtifactRepository.
+type PutStep struct {
+	build db.Build
+
+	resourceType string
+	name         string
+	resource     string
+	source       creds.Source
+	params       creds.Params
+	tags         atc.Tags
+
+	delegate          PutDelegate
 	resourceFactory   resource.ResourceFactory
-	teamID            int
-	buildID           int
 	planID            atc.PlanID
 	containerMetadata db.ContainerMetadata
 	stepMetadata      StepMetadata
@@ -32,36 +41,35 @@ type PutAction struct {
 	resourceTypes creds.VersionedResourceTypes
 
 	versionInfo VersionInfo
-	exitStatus  ExitStatus
+	succeeded   bool
 }
 
-func NewPutAction(
+func NewPutStep(
+	build db.Build,
 	resourceType string,
 	name string,
 	resourceName string,
 	source creds.Source,
 	params creds.Params,
 	tags atc.Tags,
-	buildStepDelegate BuildStepDelegate,
+	delegate PutDelegate,
 	resourceFactory resource.ResourceFactory,
-	teamID int,
-	buildID int,
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	stepMetadata StepMetadata,
 	resourceTypes creds.VersionedResourceTypes,
-) *PutAction {
-	return &PutAction{
-		Type:              resourceType,
-		Name:              name,
-		Resource:          resourceName,
-		Source:            source,
-		Params:            params,
-		Tags:              tags,
-		buildStepDelegate: buildStepDelegate,
+) *PutStep {
+	return &PutStep{
+		build: build,
+
+		resourceType:      resourceType,
+		name:              name,
+		resource:          resourceName,
+		source:            source,
+		params:            params,
+		tags:              tags,
+		delegate:          delegate,
 		resourceFactory:   resourceFactory,
-		teamID:            teamID,
-		buildID:           buildID,
 		planID:            planID,
 		containerMetadata: containerMetadata,
 		stepMetadata:      stepMetadata,
@@ -77,21 +85,19 @@ func NewPutAction(
 //
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
-func (action *PutAction) Run(
-	ctx context.Context,
-	logger lager.Logger,
-	repository *worker.ArtifactRepository,
-) error {
+func (step *PutStep) Run(ctx context.Context, repository *worker.ArtifactRepository) error {
+	logger := lagerctx.FromContext(ctx)
+
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: action.Type,
+			ResourceType: step.resourceType,
 		},
-		Tags:   action.Tags,
-		TeamID: action.teamID,
+		Tags:   step.tags,
+		TeamID: step.build.TeamID(),
 
 		Dir: resource.ResourcesDir("put"),
 
-		Env: action.stepMetadata.Env(),
+		Env: step.stepMetadata.Env(),
 	}
 
 	for name, source := range repository.AsMap() {
@@ -101,25 +107,25 @@ func (action *PutAction) Run(
 		})
 	}
 
-	putResource, err := action.resourceFactory.NewResource(
+	putResource, err := step.resourceFactory.NewResource(
 		ctx,
 		logger,
-		db.NewBuildStepContainerOwner(action.buildID, action.planID),
-		action.containerMetadata,
+		db.NewBuildStepContainerOwner(step.build.ID(), step.planID),
+		step.containerMetadata,
 		containerSpec,
-		action.resourceTypes,
-		action.buildStepDelegate,
+		step.resourceTypes,
+		step.delegate,
 	)
 	if err != nil {
 		return err
 	}
 
-	source, err := action.Source.Evaluate()
+	source, err := step.source.Evaluate()
 	if err != nil {
 		return err
 	}
 
-	params, err := action.Params.Evaluate()
+	params, err := step.params.Evaluate()
 	if err != nil {
 		return err
 	}
@@ -127,40 +133,57 @@ func (action *PutAction) Run(
 	versionedSource, err := putResource.Put(
 		ctx,
 		resource.IOConfig{
-			Stdout: action.buildStepDelegate.Stdout(),
-			Stderr: action.buildStepDelegate.Stderr(),
+			Stdout: step.delegate.Stdout(),
+			Stderr: step.delegate.Stderr(),
 		},
 		source,
 		params,
 	)
 
 	if err != nil {
+		logger.Error("failed-to-put-resource", err)
+
 		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-			action.exitStatus = ExitStatus(err.ExitStatus)
+			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), VersionInfo{})
 			return nil
 		}
 
 		return err
 	}
 
-	action.versionInfo = VersionInfo{
+	step.versionInfo = VersionInfo{
 		Version:  versionedSource.Version(),
 		Metadata: versionedSource.Metadata(),
 	}
-	action.exitStatus = ExitStatus(0)
+
+	err = step.build.SaveOutput(
+		db.VersionedResource{
+			Resource: step.resource,
+			Type:     step.resourceType,
+			Version:  db.ResourceVersion(step.versionInfo.Version),
+			Metadata: db.NewResourceMetadataFields(step.versionInfo.Metadata),
+		},
+	)
+	if err != nil {
+		logger.Error("failed-to-save-output", err)
+		return err
+	}
+
+	step.succeeded = true
+
+	step.delegate.Finished(logger, 0, step.versionInfo)
 
 	return nil
 }
 
-// VersionInfo returns the produced resource's version
-// and metadata.
-func (action *PutAction) VersionInfo() VersionInfo {
-	return action.versionInfo
+// VersionInfo returns the info of the pushed version.
+func (step *PutStep) VersionInfo() VersionInfo {
+	return step.versionInfo
 }
 
-// ExitStatus returns exit status of resource put script.
-func (action *PutAction) ExitStatus() ExitStatus {
-	return action.exitStatus
+// Succeeded returns true if the resource script exited successfully.
+func (step *PutStep) Succeeded() bool {
+	return step.succeeded
 }
 
 type PutResourceSource struct {

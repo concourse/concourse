@@ -7,16 +7,14 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 )
 
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	DBActionsBuildEventsDelegate(atc.PlanID) exec.ActionsBuildEventsDelegate
-
 	GetDelegate(atc.PlanID) exec.GetDelegate
+	PutDelegate(atc.PlanID) exec.PutDelegate
 	TaskDelegate(atc.PlanID) exec.TaskDelegate
 
 	BuildStepDelegate(atc.PlanID) exec.BuildStepDelegate
@@ -50,14 +48,12 @@ func newBuildDelegate(build db.Build) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) DBActionsBuildEventsDelegate(
-	planID atc.PlanID,
-) exec.ActionsBuildEventsDelegate {
-	return NewDBActionsBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)})
-}
-
 func (delegate *delegate) GetDelegate(planID atc.PlanID) exec.GetDelegate {
 	return NewGetDelegate(delegate.build, planID, clock.NewClock())
+}
+
+func (delegate *delegate) PutDelegate(planID atc.PlanID) exec.PutDelegate {
+	return NewPutDelegate(delegate.build, planID, clock.NewClock())
 }
 
 func (delegate *delegate) TaskDelegate(planID atc.PlanID) exec.TaskDelegate {

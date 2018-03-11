@@ -27,7 +27,7 @@ type FakeFactory struct {
 	getReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
-	PutStub        func(lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.ActionsBuildEventsDelegate, exec.BuildStepDelegate) exec.Step
+	PutStub        func(lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 lager.Logger
@@ -35,8 +35,7 @@ type FakeFactory struct {
 		arg3 db.Build
 		arg4 exec.StepMetadata
 		arg5 db.ContainerMetadata
-		arg6 exec.ActionsBuildEventsDelegate
-		arg7 exec.BuildStepDelegate
+		arg6 exec.PutDelegate
 	}
 	putReturns struct {
 		result1 exec.Step
@@ -116,7 +115,7 @@ func (fake *FakeFactory) GetReturnsOnCall(i int, result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 atc.Plan, arg3 db.Build, arg4 exec.StepMetadata, arg5 db.ContainerMetadata, arg6 exec.ActionsBuildEventsDelegate, arg7 exec.BuildStepDelegate) exec.Step {
+func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 atc.Plan, arg3 db.Build, arg4 exec.StepMetadata, arg5 db.ContainerMetadata, arg6 exec.PutDelegate) exec.Step {
 	fake.putMutex.Lock()
 	ret, specificReturn := fake.putReturnsOnCall[len(fake.putArgsForCall)]
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
@@ -125,13 +124,12 @@ func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 atc.Plan, arg3 db.Build, ar
 		arg3 db.Build
 		arg4 exec.StepMetadata
 		arg5 db.ContainerMetadata
-		arg6 exec.ActionsBuildEventsDelegate
-		arg7 exec.BuildStepDelegate
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
-	fake.recordInvocation("Put", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+		arg6 exec.PutDelegate
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("Put", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
-		return fake.PutStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return fake.PutStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1
@@ -145,10 +143,10 @@ func (fake *FakeFactory) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeFactory) PutArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.ActionsBuildEventsDelegate, exec.BuildStepDelegate) {
+func (fake *FakeFactory) PutArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
-	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5, fake.putArgsForCall[i].arg6, fake.putArgsForCall[i].arg7
+	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5, fake.putArgsForCall[i].arg6
 }
 
 func (fake *FakeFactory) PutReturns(result1 exec.Step) {

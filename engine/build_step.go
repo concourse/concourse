@@ -84,7 +84,6 @@ func (build *execBuild) buildEnsureStep(logger lager.Logger, plan atc.Plan) exec
 	return exec.Ensure(step, next)
 }
 
-// needs rootfs
 func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.Step {
 	logger = logger.Session("task")
 
@@ -103,7 +102,6 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 	)
 }
 
-// needs rootfs
 func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.Step {
 	logger = logger.Session("get", lager.Data{
 		"name": plan.Get.Name,
@@ -125,7 +123,6 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 	)
 }
 
-// needs rootfs
 func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.Step {
 	logger = logger.Session("put", lager.Data{
 		"name": plan.Put.Name,
@@ -143,8 +140,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		build.dbBuild,
 		build.stepMetadata,
 		containerMetadata,
-		build.delegate.DBActionsBuildEventsDelegate(plan.ID),
-		build.delegate.BuildStepDelegate(plan.ID),
+		build.delegate.PutDelegate(plan.ID),
 	)
 }
 
