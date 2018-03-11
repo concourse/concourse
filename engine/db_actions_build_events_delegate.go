@@ -53,7 +53,6 @@ func (d *dbActionsBuildEventsDelegate) ActionCompleted(logger lager.Logger, acti
 					Version:  db.ResourceVersion(versionInfo.Version),
 					Metadata: db.NewResourceMetadataFields(versionInfo.Metadata),
 				},
-				true,
 			)
 			if err != nil {
 				logger.Error("failed-to-save-output", err)

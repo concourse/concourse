@@ -73,7 +73,7 @@ type Build interface {
 	SaveEvent(event atc.Event) error
 
 	SaveInput(input BuildInput) error
-	SaveOutput(vr VersionedResource, explicit bool) error
+	SaveOutput(vr VersionedResource) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
@@ -723,7 +723,7 @@ func (b *build) SaveInput(input BuildInput) error {
 	return tx.Commit()
 }
 
-func (b *build) SaveOutput(vr VersionedResource, explicit bool) error {
+func (b *build) SaveOutput(vr VersionedResource) error {
 	if b.pipelineID == 0 {
 		return nil
 	}
@@ -738,7 +738,7 @@ func (b *build) SaveOutput(vr VersionedResource, explicit bool) error {
 		return err
 	}
 
-	return pipeline.saveOutput(b.id, vr, explicit)
+	return pipeline.saveOutput(b.id, vr)
 }
 
 func (b *build) UseInputs(inputs []BuildInput) error {
@@ -802,7 +802,6 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			FROM build_outputs o
 			WHERE o.versioned_resource_id = v.id
 			AND o.build_id = i.build_id
-			AND o.explicit
 		)
 	`, b.id)
 	if err != nil {
@@ -846,7 +845,6 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		AND o.build_id = b.id
 		AND o.versioned_resource_id = v.id
     AND r.id = v.resource_id
-		AND o.explicit
 	`, b.id)
 	if err != nil {
 		return nil, nil, err
@@ -911,7 +909,8 @@ func (b *build) GetVersionedResources() (SavedVersionedResources, error) {
 		INNER JOIN build_outputs bo ON bo.build_id = b.id
 		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
 		INNER JOIN resources r ON vr.resource_id = r.id
-		WHERE b.id = $1 AND bo.explicit`)
+		WHERE b.id = $1
+	`)
 }
 
 func (b *build) getVersionedResources(resourceRequest string) (SavedVersionedResources, error) {

@@ -309,11 +309,10 @@ type FakeBuild struct {
 	saveInputReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SaveOutputStub        func(vr db.VersionedResource, explicit bool) error
+	SaveOutputStub        func(vr db.VersionedResource) error
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
-		vr       db.VersionedResource
-		explicit bool
+		vr db.VersionedResource
 	}
 	saveOutputReturns struct {
 		result1 error
@@ -1677,17 +1676,16 @@ func (fake *FakeBuild) SaveInputReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) SaveOutput(vr db.VersionedResource, explicit bool) error {
+func (fake *FakeBuild) SaveOutput(vr db.VersionedResource) error {
 	fake.saveOutputMutex.Lock()
 	ret, specificReturn := fake.saveOutputReturnsOnCall[len(fake.saveOutputArgsForCall)]
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
-		vr       db.VersionedResource
-		explicit bool
-	}{vr, explicit})
-	fake.recordInvocation("SaveOutput", []interface{}{vr, explicit})
+		vr db.VersionedResource
+	}{vr})
+	fake.recordInvocation("SaveOutput", []interface{}{vr})
 	fake.saveOutputMutex.Unlock()
 	if fake.SaveOutputStub != nil {
-		return fake.SaveOutputStub(vr, explicit)
+		return fake.SaveOutputStub(vr)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1701,10 +1699,10 @@ func (fake *FakeBuild) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakeBuild) SaveOutputArgsForCall(i int) (db.VersionedResource, bool) {
+func (fake *FakeBuild) SaveOutputArgsForCall(i int) db.VersionedResource {
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
-	return fake.saveOutputArgsForCall[i].vr, fake.saveOutputArgsForCall[i].explicit
+	return fake.saveOutputArgsForCall[i].vr
 }
 
 func (fake *FakeBuild) SaveOutputReturns(result1 error) {

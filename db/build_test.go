@@ -452,26 +452,7 @@ var _ = Describe("Build", func() {
 					},
 				}
 
-				err = build.SaveOutput(versionedResource, true)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = build.SaveOutput(db.VersionedResource{
-					Resource: "some-implicit-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
-					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
-					},
-				}, false)
+				err = build.SaveOutput(versionedResource)
 				Expect(err).ToNot(HaveOccurred())
 
 				actualBuildOutput, err := build.GetVersionedResources()
@@ -504,26 +485,7 @@ var _ = Describe("Build", func() {
 					},
 				}
 
-				err = build.SaveOutput(versionedResource, true)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = build.SaveOutput(db.VersionedResource{
-					Resource: "some-implicit-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
-					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
-					},
-				}, false)
+				err = build.SaveOutput(versionedResource)
 				Expect(err).ToNot(HaveOccurred())
 
 				actualBuildOutput, err := build.GetVersionedResources()
@@ -582,7 +544,7 @@ var _ = Describe("Build", func() {
 			Expect(found).To(BeTrue())
 		})
 
-		It("correctly distinguishes them", func() {
+		It("returns build inputs and outputs", func() {
 			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -593,27 +555,13 @@ var _ = Describe("Build", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			// save implicit output from 'get'
-			err = build.SaveOutput(vr1, false)
-			Expect(err).NotTo(HaveOccurred())
-
 			// save explicit output from 'put'
-			err = build.SaveOutput(vr2, true)
-			Expect(err).NotTo(HaveOccurred())
-
-			// save the dependent get
-			err = build.SaveInput(db.BuildInput{
-				Name:              "some-dependent-input",
-				VersionedResource: vr2,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			// save the dependent 'get's implicit output
-			err = build.SaveOutput(vr2, false)
+			err = build.SaveOutput(vr2)
 			Expect(err).NotTo(HaveOccurred())
 
 			inputs, outputs, err := build.Resources()
 			Expect(err).NotTo(HaveOccurred())
+
 			Expect(inputs).To(ConsistOf([]db.BuildInput{
 				{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
 			}))
@@ -621,7 +569,6 @@ var _ = Describe("Build", func() {
 			Expect(outputs).To(ConsistOf([]db.BuildOutput{
 				{VersionedResource: vr2},
 			}))
-
 		})
 
 		It("fails to save build output if resource does not exist", func() {
@@ -634,7 +581,7 @@ var _ = Describe("Build", func() {
 				Version:  db.ResourceVersion{"ver": "2"},
 			}
 
-			err = build.SaveOutput(vr, false)
+			err = build.SaveOutput(vr)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("resource 'unknown-resource' not found"))
 		})

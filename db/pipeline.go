@@ -195,7 +195,6 @@ func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 				INNER JOIN build_outputs bo ON bo.build_id = t.build_id
 				INNER JOIN build_inputs bi ON bi.versioned_resource_id = bo.versioned_resource_id
 				INNER JOIN builds b ON b.id = bi.build_id
-				WHERE bo.explicit
 				AND NOT EXISTS (
 					SELECT 1
 					FROM build_outputs obo
@@ -1272,7 +1271,7 @@ func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Dura
 	return lock, true, nil
 }
 
-func (p *pipeline) saveOutput(buildID int, vr VersionedResource, explicit bool) error {
+func (p *pipeline) saveOutput(buildID int, vr VersionedResource) error {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return err
@@ -1313,8 +1312,8 @@ func (p *pipeline) saveOutput(buildID int, vr VersionedResource, explicit bool) 
 	}
 
 	_, err = psql.Insert("build_outputs").
-		Columns("build_id", "versioned_resource_id", "explicit").
-		Values(buildID, svr.ID, explicit).
+		Columns("build_id", "versioned_resource_id").
+		Values(buildID, svr.ID).
 		RunWith(tx).
 		Exec()
 	if err != nil {
