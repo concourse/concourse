@@ -1,0 +1,27 @@
+---
+resources:
+- name: timed-trigger
+  type: time
+  source: {interval: 1h}
+
+- name: pushed-resource
+  type: time
+  source: {interval: 24h}
+
+jobs:
+- name: first-job
+  plan:
+  - get: timed-trigger
+
+- name: pushing-job
+  plan:
+  - get: timed-trigger
+    passed: [first-job]
+  - put: pushed-resource
+
+- name: downstream-job
+  plan:
+  - get: timed-trigger
+    passed: [pushing-job]
+  - get: pushed-resource
+    passed: [pushing-job]
