@@ -159,7 +159,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the step correctly", func() {
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
-					logger, plan, dbBuild, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, plan, dbBuild, stepMetadata, containerMetadata, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(inputPlan))

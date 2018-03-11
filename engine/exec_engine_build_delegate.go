@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"sync"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -17,6 +16,7 @@ import (
 type BuildDelegate interface {
 	DBActionsBuildEventsDelegate(atc.PlanID) exec.ActionsBuildEventsDelegate
 
+	GetDelegate(atc.PlanID) exec.GetDelegate
 	TaskDelegate(atc.PlanID) exec.TaskDelegate
 
 	BuildStepDelegate(atc.PlanID) exec.BuildStepDelegate
@@ -41,30 +41,26 @@ func (factory buildDelegateFactory) Delegate(build db.Build) BuildDelegate {
 }
 
 type delegate struct {
-	build               db.Build
-	implicitOutputsRepo *implicitOutputsRepo
+	build db.Build
 }
 
 func newBuildDelegate(build db.Build) BuildDelegate {
 	return &delegate{
 		build: build,
-
-		implicitOutputsRepo: &implicitOutputsRepo{
-			outputs: make(map[string]implicitOutput),
-			lock:    &sync.Mutex{},
-		},
 	}
 }
 
 func (delegate *delegate) DBActionsBuildEventsDelegate(
 	planID atc.PlanID,
 ) exec.ActionsBuildEventsDelegate {
-	return NewDBActionsBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)}, delegate.implicitOutputsRepo)
+	return NewDBActionsBuildEventsDelegate(delegate.build, event.Origin{ID: event.OriginID(planID)})
 }
 
-func (delegate *delegate) TaskDelegate(
-	planID atc.PlanID,
-) exec.TaskDelegate {
+func (delegate *delegate) GetDelegate(planID atc.PlanID) exec.GetDelegate {
+	return NewGetDelegate(delegate.build, planID, clock.NewClock())
+}
+
+func (delegate *delegate) TaskDelegate(planID atc.PlanID) exec.TaskDelegate {
 	return NewTaskDelegate(delegate.build, planID, clock.NewClock())
 }
 
@@ -75,25 +71,15 @@ func (delegate *delegate) BuildStepDelegate(planID atc.PlanID) exec.BuildStepDel
 func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded bool) {
 	if err == context.Canceled {
 		delegate.saveStatus(logger, atc.StatusAborted)
-
 		logger.Info("aborted")
 	} else if err != nil {
 		delegate.saveStatus(logger, atc.StatusErrored)
-
 		logger.Info("errored", lager.Data{"error": err.Error()})
 	} else if succeeded {
 		delegate.saveStatus(logger, atc.StatusSucceeded)
-
-		implicits := logger.Session("implicit-outputs")
-
-		for resourceName, o := range delegate.implicitOutputsRepo.outputs {
-			delegate.saveImplicitOutput(implicits.Session(resourceName), resourceName, o.resourceType, o.info)
-		}
-
 		logger.Info("succeeded")
 	} else {
 		delegate.saveStatus(logger, atc.StatusFailed)
-
 		logger.Info("failed")
 	}
 }
@@ -103,27 +89,4 @@ func (delegate *delegate) saveStatus(logger lager.Logger, status atc.BuildStatus
 	if err != nil {
 		logger.Error("failed-to-finish-build", err)
 	}
-}
-
-func (delegate *delegate) saveImplicitOutput(logger lager.Logger, resourceName string, resourceType string, info exec.VersionInfo) {
-	metadata := make([]db.ResourceMetadataField, len(info.Metadata))
-	for i, md := range info.Metadata {
-		metadata[i] = db.ResourceMetadataField{
-			Name:  md.Name,
-			Value: md.Value,
-		}
-	}
-
-	err := delegate.build.SaveOutput(db.VersionedResource{
-		Resource: resourceName,
-		Type:     resourceType,
-		Version:  db.ResourceVersion(info.Version),
-		Metadata: metadata,
-	}, false)
-	if err != nil {
-		logger.Error("failed-to-save", err)
-		return
-	}
-
-	logger.Info("saved", lager.Data{"resource": resourceName})
 }

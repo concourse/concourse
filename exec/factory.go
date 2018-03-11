@@ -19,8 +19,7 @@ type Factory interface {
 		db.Build,
 		StepMetadata,
 		db.ContainerMetadata,
-		ActionsBuildEventsDelegate,
-		BuildStepDelegate,
+		GetDelegate,
 	) Step
 
 	// Put constructs a ActionsStep factory for Put.

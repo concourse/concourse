@@ -47,39 +47,34 @@ func (factory *gardenFactory) Get(
 	build db.Build,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	buildEventsDelegate ActionsBuildEventsDelegate,
-	buildStepDelegate BuildStepDelegate,
+	getDelegate GetDelegate,
 ) Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
-	getAction := &GetAction{
-		Type:          plan.Get.Type,
-		Name:          plan.Get.Name,
-		Resource:      plan.Get.Resource,
-		Source:        creds.NewSource(variables, plan.Get.Source),
-		Params:        creds.NewParams(variables, plan.Get.Params),
-		VersionSource: NewVersionSourceFromPlan(plan.Get, factory.putActions),
-		Tags:          plan.Get.Tags,
-		Outputs:       []string{plan.Get.Name},
+	getStep := NewGetStep(
+		plan.Get.Type,
+		plan.Get.Name,
+		plan.Get.Resource,
+		creds.NewSource(variables, plan.Get.Source),
+		creds.NewParams(variables, plan.Get.Params),
+		NewVersionSourceFromPlan(plan.Get, factory.putActions),
+		plan.Get.Tags,
 
-		buildStepDelegate:      buildStepDelegate,
-		resourceFetcher:        factory.resourceFetcher,
-		teamID:                 build.TeamID(),
-		buildID:                build.ID(),
-		planID:                 plan.ID,
-		containerMetadata:      workerMetadata,
-		dbResourceCacheFactory: factory.dbResourceCacheFactory,
-		stepMetadata:           stepMetadata,
+		getDelegate,
+		factory.resourceFetcher,
+		build.TeamID(),
+		build.ID(),
+		plan.ID,
+		workerMetadata,
+		factory.dbResourceCacheFactory,
+		stepMetadata,
 
-		// TODO: remove after all actions are introduced
-		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
-	}
+		creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
+	)
 
-	actions := []Action{getAction}
-
-	return NewActionsStep(logger, actions, buildEventsDelegate)
+	return LogError(getStep, getDelegate)
 }
 
 func (factory *gardenFactory) Put(

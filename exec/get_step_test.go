@@ -35,11 +35,10 @@ var _ = Describe("GetAction", func() {
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFetcher        *resourcefakes.FakeFetcher
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeBuildStepDelegate      *execfakes.FakeBuildStepDelegate
-		fakeBuildEventsDelegate    *execfakes.FakeActionsBuildEventsDelegate
 		fakeVariablesFactory       *credsfakes.FakeVariablesFactory
 		variables                  creds.Variables
 		fakeBuild                  *dbfakes.FakeBuild
+		fakeDelegate               *execfakes.FakeGetDelegate
 
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 		resourceTypes       atc.VersionedResourceTypes
@@ -66,8 +65,6 @@ var _ = Describe("GetAction", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		fakeBuildStepDelegate = new(execfakes.FakeBuildStepDelegate)
-		fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
@@ -100,6 +97,8 @@ var _ = Describe("GetAction", func() {
 		}
 
 		factory = exec.NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory, fakeVariablesFactory)
+
+		fakeDelegate = new(execfakes.FakeGetDelegate)
 	})
 
 	JustBeforeEach(func() {
@@ -120,8 +119,7 @@ var _ = Describe("GetAction", func() {
 			fakeBuild,
 			stepMetadata,
 			containerMetadata,
-			fakeBuildEventsDelegate,
-			fakeBuildStepDelegate,
+			fakeDelegate,
 		)
 
 		stepErr = getStep.Run(ctx, artifactRepository)
@@ -154,7 +152,7 @@ var _ = Describe("GetAction", func() {
 			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID)),
 		)))
 		Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
-		Expect(delegate).To(Equal(fakeBuildStepDelegate))
+		Expect(delegate).To(Equal(fakeDelegate))
 		expectedLockName := fmt.Sprintf("%x",
 			sha256.Sum256([]byte(
 				`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"super-secret-source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,
@@ -168,6 +166,22 @@ var _ = Describe("GetAction", func() {
 		BeforeEach(func() {
 			fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
 			fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
+		})
+
+		It("returns nil", func() {
+			Expect(stepErr).ToNot(HaveOccurred())
+		})
+
+		It("is successful", func() {
+			Expect(getStep.Succeeded()).To(BeTrue())
+		})
+
+		It("finishes the step via the delegate", func() {
+			Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+			_, status, info := fakeDelegate.FinishedArgsForCall(0)
+			Expect(status).To(Equal(exec.ExitStatus(0)))
+			Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+			Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 		})
 
 		Describe("the source registered with the repository", func() {
@@ -320,6 +334,49 @@ var _ = Describe("GetAction", func() {
 					})
 				})
 			})
+		})
+	})
+
+	Context("when fetching the resource exits unsuccessfully", func() {
+		BeforeEach(func() {
+			fakeResourceFetcher.FetchReturns(nil, resource.ErrResourceScriptFailed{
+				ExitStatus: 42,
+			})
+		})
+
+		It("finishes the step via the delegate", func() {
+			Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+			_, status, info := fakeDelegate.FinishedArgsForCall(0)
+			Expect(status).To(Equal(exec.ExitStatus(42)))
+			Expect(info).To(BeZero())
+		})
+
+		It("returns nil", func() {
+			Expect(stepErr).ToNot(HaveOccurred())
+		})
+
+		It("is not successful", func() {
+			Expect(getStep.Succeeded()).To(BeFalse())
+		})
+	})
+
+	Context("when fetching the resource errors", func() {
+		disaster := errors.New("oh no")
+
+		BeforeEach(func() {
+			fakeResourceFetcher.FetchReturns(nil, disaster)
+		})
+
+		It("does not finish the step via the delegate", func() {
+			Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))
+		})
+
+		It("returns the error", func() {
+			Expect(stepErr).To(Equal(disaster))
+		})
+
+		It("is not successful", func() {
+			Expect(getStep.Succeeded()).To(BeFalse())
 		})
 	})
 })

@@ -1065,7 +1065,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		db.BuildOutputs = append(db.BuildOutputs, output)
 	}
 
-	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id").
+	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
 		From("build_inputs i, builds b, versioned_resources v, resources r").
 		Where(sq.Expr("v.id = i.versioned_resource_id")).
 		Where(sq.Expr("b.id = i.build_id")).
@@ -1083,8 +1083,10 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	defer Close(rows)
 
 	for rows.Next() {
+		var succeeded bool
+
 		var input algorithm.BuildInput
-		err = rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.BuildID, &input.InputName, &input.JobID)
+		err = rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.BuildID, &input.InputName, &input.JobID, &succeeded)
 		if err != nil {
 			return nil, err
 		}
@@ -1092,6 +1094,15 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		input.ResourceVersion.CheckOrder = input.CheckOrder
 
 		db.BuildInputs = append(db.BuildInputs, input)
+
+		if succeeded {
+			// implicit output
+			db.BuildOutputs = append(db.BuildOutputs, algorithm.BuildOutput{
+				ResourceVersion: input.ResourceVersion,
+				JobID:           input.JobID,
+				BuildID:         input.BuildID,
+			})
+		}
 	}
 
 	rows, err = psql.Select("v.id, v.check_order, r.id").

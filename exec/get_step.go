@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
@@ -13,19 +14,27 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-// GetAction will fetch a version of a resource on a worker that supports the
-// resource type.
-type GetAction struct {
-	Type          string
-	Name          string
-	Resource      string
-	Source        creds.Source
-	Params        creds.Params
-	VersionSource VersionSource
-	Tags          atc.Tags
-	Outputs       []string
+//go:generate counterfeiter . GetDelegate
 
-	buildStepDelegate      BuildStepDelegate
+type GetDelegate interface {
+	BuildStepDelegate
+
+	Finished(lager.Logger, ExitStatus, VersionInfo)
+}
+
+// GetStep will fetch a version of a resource on a worker that supports the
+// resource type.
+type GetStep struct {
+	resourceType  string
+	name          string
+	resource      string
+	source        creds.Source
+	params        creds.Params
+	versionSource VersionSource
+	tags          atc.Tags
+
+	delegate GetDelegate
+
 	resourceFetcher        resource.Fetcher
 	teamID                 int
 	buildID                int
@@ -36,8 +45,51 @@ type GetAction struct {
 
 	resourceTypes creds.VersionedResourceTypes
 
-	versionInfo VersionInfo
-	exitStatus  ExitStatus
+	succeeded bool
+}
+
+func NewGetStep(
+	resourceType string,
+	name string,
+	resource string,
+	source creds.Source,
+	params creds.Params,
+	versionSource VersionSource,
+	tags atc.Tags,
+
+	delegate GetDelegate,
+
+	resourceFetcher resource.Fetcher,
+	teamID int,
+	buildID int,
+	planID atc.PlanID,
+	containerMetadata db.ContainerMetadata,
+	dbResourceCacheFactory db.ResourceCacheFactory,
+	stepMetadata StepMetadata,
+
+	resourceTypes creds.VersionedResourceTypes,
+) Step {
+	return &GetStep{
+		resourceType:  resourceType,
+		name:          name,
+		resource:      resource,
+		source:        source,
+		params:        params,
+		versionSource: versionSource,
+		tags:          tags,
+
+		delegate: delegate,
+
+		resourceFetcher:        resourceFetcher,
+		teamID:                 teamID,
+		buildID:                buildID,
+		planID:                 planID,
+		containerMetadata:      containerMetadata,
+		dbResourceCacheFactory: dbResourceCacheFactory,
+		stepMetadata:           stepMetadata,
+
+		resourceTypes: resourceTypes,
+	}
 }
 
 // Run ultimately registers the configured resource version's ArtifactSource
@@ -63,34 +115,32 @@ type GetAction struct {
 //
 // At the end, the resulting ArtifactSource (either from using the cache or
 // fetching the resource) is registered under the step's SourceName.
-func (action *GetAction) Run(
-	ctx context.Context,
-	logger lager.Logger,
-	repository *worker.ArtifactRepository,
-) error {
-	version, err := action.VersionSource.GetVersion()
+func (step *GetStep) Run(ctx context.Context, repository *worker.ArtifactRepository) error {
+	logger := lagerctx.FromContext(ctx)
+
+	version, err := step.versionSource.GetVersion()
 	if err != nil {
 		return err
 	}
 
-	source, err := action.Source.Evaluate()
+	source, err := step.source.Evaluate()
 	if err != nil {
 		return err
 	}
 
-	params, err := action.Params.Evaluate()
+	params, err := step.params.Evaluate()
 	if err != nil {
 		return err
 	}
 
-	resourceCache, err := action.dbResourceCacheFactory.FindOrCreateResourceCache(
+	resourceCache, err := step.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
-		db.ForBuild(action.buildID),
-		action.Type,
+		db.ForBuild(step.buildID),
+		step.resourceType,
 		version,
 		source,
 		params,
-		action.resourceTypes,
+		step.resourceTypes,
 	)
 	if err != nil {
 		logger.Error("failed-to-create-resource-cache", err)
@@ -98,64 +148,58 @@ func (action *GetAction) Run(
 	}
 
 	resourceInstance := resource.NewResourceInstance(
-		resource.ResourceType(action.Type),
+		resource.ResourceType(step.resourceType),
 		version,
 		source,
 		params,
-		action.resourceTypes,
+		step.resourceTypes,
 		resourceCache,
-		db.NewBuildStepContainerOwner(action.buildID, action.planID),
+		db.NewBuildStepContainerOwner(step.buildID, step.planID),
 	)
 
-	versionedSource, err := action.resourceFetcher.Fetch(
+	versionedSource, err := step.resourceFetcher.Fetch(
 		ctx,
 		logger,
 		resource.Session{
-			Metadata: action.containerMetadata,
+			Metadata: step.containerMetadata,
 		},
-		action.Tags,
-		action.teamID,
-		action.resourceTypes,
+		step.tags,
+		step.teamID,
+		step.resourceTypes,
 		resourceInstance,
-		action.stepMetadata,
-		action.buildStepDelegate,
+		step.stepMetadata,
+		step.delegate,
 	)
 	if err != nil {
 		logger.Error("failed-to-fetch-resource", err)
+
 		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-			action.exitStatus = ExitStatus(err.ExitStatus)
+			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), VersionInfo{})
 			return nil
 		}
 
 		return err
 	}
 
-	for _, outputName := range action.Outputs {
-		repository.RegisterSource(worker.ArtifactName(outputName), &getArtifactSource{
-			logger:           logger,
-			resourceInstance: resourceInstance,
-			versionedSource:  versionedSource,
-		})
-	}
+	repository.RegisterSource(worker.ArtifactName(step.name), &getArtifactSource{
+		logger:           logger,
+		resourceInstance: resourceInstance,
+		versionedSource:  versionedSource,
+	})
 
-	action.versionInfo = VersionInfo{
+	step.succeeded = true
+
+	step.delegate.Finished(logger, 0, VersionInfo{
 		Version:  versionedSource.Version(),
 		Metadata: versionedSource.Metadata(),
-	}
-	action.exitStatus = ExitStatus(0)
+	})
 
 	return nil
 }
 
-// VersionInfo returns the fetched or cached resource's version
-// and metadata.
-func (action *GetAction) VersionInfo() VersionInfo {
-	return action.versionInfo
-}
-
-// ExitStatus returns exit status of resource get script.
-func (action *GetAction) ExitStatus() ExitStatus {
-	return action.exitStatus
+// Succeeded returns true if the resource was successfully fetched.
+func (step *GetStep) Succeeded() bool {
+	return step.succeeded
 }
 
 type getArtifactSource struct {

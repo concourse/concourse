@@ -9,78 +9,23 @@ import (
 )
 
 type dbActionsBuildEventsDelegate struct {
-	build               db.Build
-	eventOrigin         event.Origin
-	implicitOutputsRepo *implicitOutputsRepo
+	build       db.Build
+	eventOrigin event.Origin
 }
 
 func NewDBActionsBuildEventsDelegate(
 	build db.Build,
 	eventOrigin event.Origin,
-	implicitOutputsRepo *implicitOutputsRepo,
 ) exec.ActionsBuildEventsDelegate {
 	return &dbActionsBuildEventsDelegate{
-		build:               build,
-		eventOrigin:         eventOrigin,
-		implicitOutputsRepo: implicitOutputsRepo,
+		build:       build,
+		eventOrigin: eventOrigin,
 	}
 }
 
 func (d *dbActionsBuildEventsDelegate) ActionCompleted(logger lager.Logger, action exec.Action) {
 	switch a := action.(type) {
-	case *exec.GetAction:
-		versionInfo := a.VersionInfo()
-		exitStatus := a.ExitStatus()
-
-		if exitStatus == exec.ExitStatus(0) {
-			err := d.build.SaveInput(db.BuildInput{
-				Name: a.Name,
-				VersionedResource: db.VersionedResource{
-					Resource: a.Resource,
-					Type:     a.Type,
-					Version:  db.ResourceVersion(versionInfo.Version),
-					Metadata: db.NewResourceMetadataFields(versionInfo.Metadata),
-				},
-			})
-			if err != nil {
-				logger.Error("failed-to-save-input", err)
-			}
-
-			d.implicitOutputsRepo.Register(a.Resource, implicitOutput{
-				resourceType: a.Type,
-				info:         versionInfo,
-			})
-		}
-
-		eventPlan := event.GetPlan{
-			Name:     a.Name,
-			Resource: a.Resource,
-			Type:     a.Type,
-		}
-		version, err := a.VersionSource.GetVersion()
-		if err != nil {
-			logger.Error("failed-to-get-version-from-get-action-version-source", err)
-			return
-		}
-
-		eventPlan.Version = version
-
-		err = d.build.SaveEvent(event.FinishGet{
-			Origin:          d.eventOrigin,
-			Plan:            eventPlan,
-			ExitStatus:      int(exitStatus),
-			FetchedVersion:  versionInfo.Version,
-			FetchedMetadata: versionInfo.Metadata,
-		})
-		if err != nil {
-			logger.Error("failed-to-save-input-event", err)
-			return
-		}
-
-		logger.Info("finished", lager.Data{"version-info": versionInfo})
 	case *exec.PutAction:
-		d.implicitOutputsRepo.Unregister(a.Resource)
-
 		versionInfo := a.VersionInfo()
 		exitStatus := a.ExitStatus()
 

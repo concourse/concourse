@@ -121,8 +121,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		build.dbBuild,
 		build.stepMetadata,
 		containerMetadata,
-		build.delegate.DBActionsBuildEventsDelegate(plan.ID),
-		build.delegate.BuildStepDelegate(plan.ID),
+		build.delegate.GetDelegate(plan.ID),
 	)
 }
 
