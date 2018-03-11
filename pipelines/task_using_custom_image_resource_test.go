@@ -16,7 +16,7 @@ var _ = Describe("A task using a custom resource as image_resource", func() {
 		)
 	})
 
-	It("sucessfully runs the job when initially triggered", func() {
+	It("successfully runs the job when initially triggered", func() {
 		watch := flyHelper.TriggerJob(pipelineName, "task-using-custom-type")
 		<-watch.Exited
 		Expect(watch).To(gexec.Exit(0))

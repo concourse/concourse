@@ -28,7 +28,7 @@ var _ = Describe("A job with a task with a timeout", func() {
 		By("aborting when the step takes too long")
 		<-failedWatch.Exited
 		Expect(failedWatch).To(gbytes.Say("initializing"))
-		Expect(failedWatch).To(gbytes.Say("interrupted"))
+		Expect(failedWatch).To(gbytes.Say("timeout exceeded"))
 		Expect(failedWatch).To(gexec.Exit(1))
 	})
 })
