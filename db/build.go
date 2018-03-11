@@ -724,10 +724,6 @@ func (b *build) SaveInput(input BuildInput) error {
 }
 
 func (b *build) SaveOutput(vr VersionedResource) error {
-	if b.pipelineID == 0 {
-		return nil
-	}
-
 	row := pipelinesQuery.
 		Where(sq.Eq{"p.id": b.pipelineID}).
 		RunWith(b.conn).

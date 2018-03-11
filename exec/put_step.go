@@ -25,12 +25,13 @@ type PutDelegate interface {
 type PutStep struct {
 	build db.Build
 
-	resourceType string
 	name         string
-	resource     string
+	resourceType string
 	source       creds.Source
 	params       creds.Params
 	tags         atc.Tags
+
+	resource string
 
 	delegate          PutDelegate
 	resourceFactory   resource.ResourceFactory
@@ -46,8 +47,8 @@ type PutStep struct {
 
 func NewPutStep(
 	build db.Build,
-	resourceType string,
 	name string,
+	resourceType string,
 	resourceName string,
 	source creds.Source,
 	params creds.Params,
@@ -156,17 +157,19 @@ func (step *PutStep) Run(ctx context.Context, repository *worker.ArtifactReposit
 		Metadata: versionedSource.Metadata(),
 	}
 
-	err = step.build.SaveOutput(
-		db.VersionedResource{
-			Resource: step.resource,
-			Type:     step.resourceType,
-			Version:  db.ResourceVersion(step.versionInfo.Version),
-			Metadata: db.NewResourceMetadataFields(step.versionInfo.Metadata),
-		},
-	)
-	if err != nil {
-		logger.Error("failed-to-save-output", err)
-		return err
+	if step.resource != "" {
+		err = step.build.SaveOutput(
+			db.VersionedResource{
+				Resource: step.resource,
+				Type:     step.resourceType,
+				Version:  db.ResourceVersion(step.versionInfo.Version),
+				Metadata: db.NewResourceMetadataFields(step.versionInfo.Metadata),
+			},
+		)
+		if err != nil {
+			logger.Error("failed-to-save-output", err)
+			return err
+		}
 	}
 
 	step.succeeded = true

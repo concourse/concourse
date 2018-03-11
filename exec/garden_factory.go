@@ -92,8 +92,8 @@ func (factory *gardenFactory) Put(
 	putStep := NewPutStep(
 		build,
 
-		plan.Put.Type,
 		plan.Put.Name,
+		plan.Put.Type,
 		plan.Put.Resource,
 		creds.NewSource(variables, plan.Put.Source),
 		creds.NewParams(variables, plan.Put.Params),

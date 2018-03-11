@@ -27,6 +27,8 @@ var _ = Describe("PutStep", func() {
 
 		fakeBuild *dbfakes.FakeBuild
 
+		pipelineResourceName string
+
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeResourceFactory        *resourcefakes.FakeResourceFactory
 		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
@@ -58,6 +60,8 @@ var _ = Describe("PutStep", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(42)
 		fakeBuild.TeamIDReturns(123)
+
+		pipelineResourceName = "some-resource"
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -92,9 +96,9 @@ var _ = Describe("PutStep", func() {
 	JustBeforeEach(func() {
 		putStep = exec.NewPutStep(
 			fakeBuild,
+			"some-name",
 			"some-resource-type",
-			"some-resource",
-			"some-resource",
+			pipelineResourceName,
 			creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
 			creds.NewParams(variables, atc.Params{"some-param": "some-value"}),
 			[]string{"some", "tags"},
@@ -216,6 +220,20 @@ var _ = Describe("PutStep", func() {
 					Version:  db.ResourceVersion{"some": "version"},
 					Metadata: db.NewResourceMetadataFields([]atc.MetadataField{{"some", "metadata"}}),
 				}))
+			})
+
+			Context("when the resource is blank", func() {
+				BeforeEach(func() {
+					pipelineResourceName = ""
+				})
+
+				It("is successful", func() {
+					Expect(putStep.Succeeded()).To(BeTrue())
+				})
+
+				It("does not save the build output", func() {
+					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(0))
+				})
 			})
 
 			It("finishes via the delegate", func() {
