@@ -1883,11 +1883,11 @@ var _ = Describe("Pipeline", func() {
 				Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same object")
 			})
 
-			It("will not cache VersionsDB if a change occured", func() {
+			It("will not cache VersionsDB if a build has completed", func() {
 				versionsDB, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = build.SaveOutput(savedVR.VersionedResource)
+				err = build.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
 				cachedVersionsDB, err := pipeline.LoadVersionsDB()

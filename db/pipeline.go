@@ -1519,17 +1519,15 @@ func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
 	err := p.conn.QueryRow(`
 	SELECT
 		CASE
-			WHEN bo_max > vr_max AND bo_max > bi_max THEN bo_max
+			WHEN b_max > vr_max AND b_max > bi_max THEN b_max
 			WHEN bi_max > vr_max THEN bi_max
 			ELSE vr_max
 		END
 	FROM
 		(
-			SELECT COALESCE(MAX(bo.modified_time), 'epoch') as bo_max
-			FROM build_outputs bo
-			LEFT OUTER JOIN versioned_resources v ON v.id = bo.versioned_resource_id
-			LEFT OUTER JOIN resources r ON r.id = v.resource_id
-			WHERE r.pipeline_id = $1
+			SELECT COALESCE(MAX(b.end_time), 'epoch') as b_max
+			FROM builds b
+			WHERE b.pipeline_id = $1
 		) bo,
 		(
 			SELECT COALESCE(MAX(bi.modified_time), 'epoch') as bi_max
