@@ -98,8 +98,8 @@ var _ = Describe("GetStep", func() {
 		}
 
 		getPlan = &atc.GetPlan{
-			Type:                   "some-resource-type",
 			Name:                   "some-name",
+			Type:                   "some-resource-type",
 			Source:                 atc.Source{"some": "((source-param))"},
 			Params:                 atc.Params{"some-param": "some-value"},
 			Tags:                   []string{"some", "tags"},
@@ -227,7 +227,7 @@ var _ = Describe("GetStep", func() {
 
 			JustBeforeEach(func() {
 				var found bool
-				artifactSource, found = artifactRepository.SourceFor("some-resource")
+				artifactSource, found = artifactRepository.SourceFor("some-name")
 				Expect(found).To(BeTrue())
 			})
 
