@@ -326,73 +326,37 @@ var _ = Describe("Build", func() {
 			Expect(found).To(BeTrue())
 		})
 
-		Context("when a job build", func() {
-			It("saves the build's input", func() {
-				build, err := job.CreateBuild()
-				Expect(err).ToNot(HaveOccurred())
+		It("saves the build's input", func() {
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
 
-				versionedResource := db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
+			versionedResource := db.VersionedResource{
+				Resource: "some-resource",
+				Type:     "some-type",
+				Version: db.ResourceVersion{
+					"some": "version",
+				},
+				Metadata: []db.ResourceMetadataField{
+					{
+						Name:  "meta1",
+						Value: "data1",
 					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
+					{
+						Name:  "meta2",
+						Value: "data2",
 					},
-				}
-				err = build.SaveInput(db.BuildInput{
-					Name:              "some-input",
-					VersionedResource: versionedResource,
-				})
-				Expect(err).ToNot(HaveOccurred())
-
-				actualBuildInput, err := build.GetVersionedResources()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(actualBuildInput)).To(Equal(1))
-				Expect(actualBuildInput[0].VersionedResource).To(Equal(versionedResource))
+				},
+			}
+			err = build.SaveInput(db.BuildInput{
+				Name:              "some-input",
+				VersionedResource: versionedResource,
 			})
-		})
+			Expect(err).ToNot(HaveOccurred())
 
-		Context("when a one off build", func() {
-			It("does not save the build's input", func() {
-				build, err := team.CreateOneOffBuild()
-				Expect(err).ToNot(HaveOccurred())
-
-				versionedResource := db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
-					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
-					},
-				}
-				err = build.SaveInput(db.BuildInput{
-					Name:              "some-input",
-					VersionedResource: versionedResource,
-				})
-				Expect(err).ToNot(HaveOccurred())
-
-				actualBuildInput, err := build.GetVersionedResources()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(actualBuildInput)).To(Equal(0))
-			})
+			actualBuildInput, err := build.GetVersionedResources()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actualBuildInput)).To(Equal(1))
+			Expect(actualBuildInput[0].VersionedResource).To(Equal(versionedResource))
 		})
 	})
 
