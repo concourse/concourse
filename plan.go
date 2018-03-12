@@ -19,7 +19,7 @@ type Plan struct {
 
 	// used for 'fly execute'
 	PipeRead  *PipeReadPlan  `json:"pipe_read,omitempty"`
-	PipeWrite *PipeWritePlan `json:"pipe_read,omitempty"`
+	PipeWrite *PipeWritePlan `json:"pipe_write,omitempty"`
 
 	// deprecated, kept for backwards compatibility to be able to show old builds
 	DependentGet *DependentGetPlan `json:"dependent_get,omitempty"`
