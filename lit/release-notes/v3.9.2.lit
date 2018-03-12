@@ -24,12 +24,6 @@
   }
 
   \note{fix}{
-    When working with the \code{docker-image} resource, \code{sanitize_cgroups}
-    will exit with status 1 now when system has cgroups subystem is available
-    but the container process is not in it
-  }
-
-  \note{fix}{
     Tasks would fail when interacting with a Vault backend, this has now been
     fixed
   }
