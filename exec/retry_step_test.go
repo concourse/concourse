@@ -21,7 +21,8 @@ var _ = Describe("Retry Step", func() {
 		attempt2 *execfakes.FakeStep
 		attempt3 *execfakes.FakeStep
 
-		repo *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		step Step
 	)
@@ -34,6 +35,8 @@ var _ = Describe("Retry Step", func() {
 		attempt3 = new(execfakes.FakeStep)
 
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		step = Retry(attempt1, attempt2, attempt3)
 	})
@@ -47,7 +50,7 @@ var _ = Describe("Retry Step", func() {
 			var stepErr error
 
 			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, repo)
+				stepErr = step.Run(ctx, state)
 			})
 
 			It("returns nil having only run the first attempt", func() {
@@ -83,7 +86,7 @@ var _ = Describe("Retry Step", func() {
 			var stepErr error
 
 			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, repo)
+				stepErr = step.Run(ctx, state)
 			})
 
 			It("returns nil having only run the first and second attempts", func() {
@@ -119,7 +122,7 @@ var _ = Describe("Retry Step", func() {
 			var stepErr error
 
 			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, repo)
+				stepErr = step.Run(ctx, state)
 			})
 
 			It("returns nil having only run the first and second attempts", func() {
@@ -148,7 +151,7 @@ var _ = Describe("Retry Step", func() {
 	Context("when attempt 1 errors, and attempt 2 is interrupted", func() {
 		BeforeEach(func() {
 			attempt1.RunReturns(errors.New("nope"))
-			attempt2.RunStub = func(c context.Context, r *worker.ArtifactRepository) error {
+			attempt2.RunStub = func(c context.Context, r RunState) error {
 				cancel()
 				return c.Err()
 			}
@@ -158,7 +161,7 @@ var _ = Describe("Retry Step", func() {
 			var stepErr error
 
 			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, repo)
+				stepErr = step.Run(ctx, state)
 			})
 
 			It("returns the context error having only run the first and second attempts", func() {
@@ -187,7 +190,7 @@ var _ = Describe("Retry Step", func() {
 	Context("when attempt 1 errors, attempt 2 times out, and attempt 3 succeeds", func() {
 		BeforeEach(func() {
 			attempt1.RunReturns(errors.New("nope"))
-			attempt2.RunStub = func(c context.Context, r *worker.ArtifactRepository) error {
+			attempt2.RunStub = func(c context.Context, r RunState) error {
 				timeout, subCancel := context.WithTimeout(c, 0)
 				defer subCancel()
 				<-timeout.Done()
@@ -199,7 +202,7 @@ var _ = Describe("Retry Step", func() {
 			var stepErr error
 
 			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, repo)
+				stepErr = step.Run(ctx, state)
 			})
 
 			It("returns nil after running all 3 steps", func() {
@@ -236,7 +239,7 @@ var _ = Describe("Retry Step", func() {
 			var stepErr error
 
 			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, repo)
+				stepErr = step.Run(ctx, state)
 			})
 
 			It("returns nil after running all 3 steps", func() {
@@ -275,7 +278,7 @@ var _ = Describe("Retry Step", func() {
 			var stepErr error
 
 			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, repo)
+				stepErr = step.Run(ctx, state)
 			})
 
 			It("returns the error", func() {
@@ -312,7 +315,7 @@ var _ = Describe("Retry Step", func() {
 			var stepErr error
 
 			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, repo)
+				stepErr = step.Run(ctx, state)
 			})
 
 			It("returns nil having only run the first and second attempts", func() {

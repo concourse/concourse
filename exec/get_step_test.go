@@ -45,6 +45,7 @@ var _ = Describe("GetStep", func() {
 		resourceTypes       atc.VersionedResourceTypes
 
 		artifactRepository *worker.ArtifactRepository
+		state              *execfakes.FakeRunState
 
 		factory exec.Factory
 		getStep exec.Step
@@ -77,6 +78,9 @@ var _ = Describe("GetStep", func() {
 		fakeVariablesFactory.NewVariablesReturns(variables)
 
 		artifactRepository = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(artifactRepository)
+
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 		fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
@@ -125,7 +129,7 @@ var _ = Describe("GetStep", func() {
 			fakeDelegate,
 		)
 
-		stepErr = getStep.Run(ctx, artifactRepository)
+		stepErr = getStep.Run(ctx, state)
 	})
 
 	It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {

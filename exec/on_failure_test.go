@@ -20,7 +20,8 @@ var _ = Describe("On Failure Step", func() {
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
-		repo *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		onFailureStep exec.Step
 
@@ -34,12 +35,14 @@ var _ = Describe("On Failure Step", func() {
 		hook = &execfakes.FakeStep{}
 
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		onFailureStep = exec.OnFailure(step, hook)
 	})
 
 	JustBeforeEach(func() {
-		stepErr = onFailureStep.Run(ctx, repo)
+		stepErr = onFailureStep.Run(ctx, state)
 	})
 
 	Context("when the step fails", func() {
@@ -52,9 +55,11 @@ var _ = Describe("On Failure Step", func() {
 			Expect(hook.RunCallCount()).To(Equal(1))
 		})
 
-		It("runs the hook with the artifact repo", func() {
-			_, argsRepo := hook.RunArgsForCall(0)
-			Expect(argsRepo).To(Equal(repo))
+		It("runs the hook with the run state", func() {
+			Expect(hook.RunCallCount()).To(Equal(1))
+
+			_, argsState := hook.RunArgsForCall(0)
+			Expect(argsState).To(Equal(state))
 		})
 
 		It("propagates the context to the hook", func() {

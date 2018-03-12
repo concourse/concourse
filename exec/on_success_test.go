@@ -20,7 +20,8 @@ var _ = Describe("On Success Step", func() {
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
-		repo *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		onSuccessStep exec.Step
 
@@ -34,6 +35,8 @@ var _ = Describe("On Success Step", func() {
 		hook = &execfakes.FakeStep{}
 
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		onSuccessStep = exec.OnSuccess(step, hook)
 
@@ -41,7 +44,7 @@ var _ = Describe("On Success Step", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = onSuccessStep.Run(ctx, repo)
+		stepErr = onSuccessStep.Run(ctx, state)
 	})
 
 	Context("when the step succeeds", func() {
@@ -54,11 +57,11 @@ var _ = Describe("On Success Step", func() {
 			Expect(hook.RunCallCount()).To(Equal(1))
 		})
 
-		It("runs the hook with the artifact repo", func() {
+		It("runs the hook with the run state", func() {
 			Expect(hook.RunCallCount()).To(Equal(1))
 
-			_, argsRepo := hook.RunArgsForCall(0)
-			Expect(argsRepo).To(Equal(repo))
+			_, argsState := hook.RunArgsForCall(0)
+			Expect(argsState).To(Equal(state))
 		})
 
 		It("propagates the context to the hook", func() {

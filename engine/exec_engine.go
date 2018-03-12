@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/worker"
 )
 
 type execMetadata struct {
@@ -135,13 +134,13 @@ func (build *execBuild) Abort(lager.Logger) error {
 
 func (build *execBuild) Resume(logger lager.Logger) {
 	step := build.buildStep(logger, build.metadata.Plan)
-	repo := worker.NewArtifactRepository()
 
 	runCtx := lagerctx.NewContext(build.ctx, logger)
+	state := exec.NewRunState()
 
 	done := make(chan error, 1)
 	go func() {
-		done <- step.Run(runCtx, repo)
+		done <- step.Run(runCtx, state)
 	}()
 
 	for {

@@ -40,12 +40,13 @@ var _ = Describe("PutStep", func() {
 			Type:     db.ContainerTypePut,
 			StepName: "some-step",
 		}
-		planID       = 56
+		planID       atc.PlanID
 		fakeDelegate *execfakes.FakePutDelegate
 
 		resourceTypes creds.VersionedResourceTypes
 
-		artifactRepository *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
@@ -60,6 +61,8 @@ var _ = Describe("PutStep", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(42)
 		fakeBuild.TeamIDReturns(123)
+
+		planID = atc.PlanID("some-plan-id")
 
 		pipelineResourceName = "some-resource"
 
@@ -77,7 +80,9 @@ var _ = Describe("PutStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
-		artifactRepository = worker.NewArtifactRepository()
+		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 			{
@@ -104,16 +109,16 @@ var _ = Describe("PutStep", func() {
 			[]string{"some", "tags"},
 			fakeDelegate,
 			fakeResourceFactory,
-			atc.PlanID(planID),
+			planID,
 			containerMetadata,
 			stepMetadata,
 			resourceTypes,
 		)
 
-		stepErr = putStep.Run(ctx, artifactRepository)
+		stepErr = putStep.Run(ctx, state)
 	})
 
-	Context("when artifactRepository contains sources", func() {
+	Context("when repo contains sources", func() {
 		var (
 			fakeSource        *workerfakes.FakeArtifactSource
 			fakeOtherSource   *workerfakes.FakeArtifactSource
@@ -125,9 +130,9 @@ var _ = Describe("PutStep", func() {
 			fakeOtherSource = new(workerfakes.FakeArtifactSource)
 			fakeMountedSource = new(workerfakes.FakeArtifactSource)
 
-			artifactRepository.RegisterSource("some-source", fakeSource)
-			artifactRepository.RegisterSource("some-other-source", fakeOtherSource)
-			artifactRepository.RegisterSource("some-mounted-source", fakeMountedSource)
+			repo.RegisterSource("some-source", fakeSource)
+			repo.RegisterSource("some-other-source", fakeOtherSource)
+			repo.RegisterSource("some-mounted-source", fakeMountedSource)
 		})
 
 		Context("when the tracker can initialize the resource", func() {
@@ -242,6 +247,16 @@ var _ = Describe("PutStep", func() {
 				Expect(status).To(Equal(exec.ExitStatus(0)))
 				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
 				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+			})
+
+			It("stores the version info as the step result", func() {
+				Expect(state.StoreResultCallCount()).To(Equal(1))
+				sID, sVal := state.StoreResultArgsForCall(0)
+				Expect(sID).To(Equal(planID))
+				Expect(sVal).To(Equal(exec.VersionInfo{
+					Version:  atc.Version{"some": "version"},
+					Metadata: []atc.MetadataField{{"some", "metadata"}},
+				}))
 			})
 
 			Context("when saving the build output fails", func() {

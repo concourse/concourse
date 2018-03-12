@@ -146,8 +146,10 @@ func NewTaskStep(
 // are registered with the worker.ArtifactRepository. If no outputs are specified, the
 // task's entire working directory is registered as an ArtifactSource under the
 // name of the task.
-func (action *TaskStep) Run(ctx context.Context, repository *worker.ArtifactRepository) error {
+func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
+
+	repository := state.Artifacts()
 
 	config, err := action.configSource.FetchConfig(repository)
 	if err != nil {

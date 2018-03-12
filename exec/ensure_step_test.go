@@ -20,7 +20,8 @@ var _ = Describe("Ensure Step", func() {
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
-		repo *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		ensure exec.Step
 
@@ -36,21 +37,23 @@ var _ = Describe("Ensure Step", func() {
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
 
-		step.RunStub = func(ctx context.Context, repo *worker.ArtifactRepository) error {
+		step.RunStub = func(ctx context.Context, state exec.RunState) error {
 			return ctx.Err()
 		}
 
-		hook.RunStub = func(ctx context.Context, repo *worker.ArtifactRepository) error {
+		hook.RunStub = func(ctx context.Context, state exec.RunState) error {
 			return ctx.Err()
 		}
 
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		ensure = exec.Ensure(step, hook)
 	})
 
 	JustBeforeEach(func() {
-		stepErr = ensure.Run(ctx, repo)
+		stepErr = ensure.Run(ctx, state)
 	})
 
 	Context("when the step succeeds", func() {
@@ -124,7 +127,7 @@ var _ = Describe("Ensure Step", func() {
 
 	Context("when the context is canceled during the hook", func() {
 		BeforeEach(func() {
-			hook.RunStub = func(context.Context, *worker.ArtifactRepository) error {
+			hook.RunStub = func(context.Context, exec.RunState) error {
 				cancel()
 				return ctx.Err()
 			}

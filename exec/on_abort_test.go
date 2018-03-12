@@ -20,7 +20,8 @@ var _ = Describe("On Abort Step", func() {
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
-		repo *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		onAbortStep exec.Step
 
@@ -34,6 +35,8 @@ var _ = Describe("On Abort Step", func() {
 		hook = &execfakes.FakeStep{}
 
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		onAbortStep = exec.OnAbort(step, hook)
 
@@ -41,7 +44,7 @@ var _ = Describe("On Abort Step", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = onAbortStep.Run(ctx, repo)
+		stepErr = onAbortStep.Run(ctx, state)
 	})
 
 	Context("when the step is aborted", func() {

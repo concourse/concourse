@@ -86,7 +86,7 @@ func NewPutStep(
 //
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
-func (step *PutStep) Run(ctx context.Context, repository *worker.ArtifactRepository) error {
+func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 
 	containerSpec := worker.ContainerSpec{
@@ -101,7 +101,7 @@ func (step *PutStep) Run(ctx context.Context, repository *worker.ArtifactReposit
 		Env: step.stepMetadata.Env(),
 	}
 
-	for name, source := range repository.AsMap() {
+	for name, source := range state.Artifacts().AsMap() {
 		containerSpec.Inputs = append(containerSpec.Inputs, &putInputSource{
 			name:   name,
 			source: PutResourceSource{source},
@@ -171,6 +171,8 @@ func (step *PutStep) Run(ctx context.Context, repository *worker.ArtifactReposit
 			return err
 		}
 	}
+
+	state.StoreResult(step.planID, step.versionInfo)
 
 	step.succeeded = true
 

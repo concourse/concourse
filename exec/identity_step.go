@@ -2,15 +2,13 @@ package exec
 
 import (
 	"context"
-
-	"github.com/concourse/atc/worker"
 )
 
 // IdentityStep does nothing.
 type IdentityStep struct{}
 
 // Run does nothing.
-func (IdentityStep) Run(context.Context, *worker.ArtifactRepository) error {
+func (IdentityStep) Run(context.Context, RunState) error {
 	return nil
 }
 

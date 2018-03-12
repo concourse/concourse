@@ -121,10 +121,10 @@ func NewGetStep(
 //
 // At the end, the resulting ArtifactSource (either from using the cache or
 // fetching the resource) is registered under the step's SourceName.
-func (step *GetStep) Run(ctx context.Context, repository *worker.ArtifactRepository) error {
+func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 
-	version, err := step.versionSource.GetVersion()
+	version, err := step.versionSource.Version(state)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (step *GetStep) Run(ctx context.Context, repository *worker.ArtifactReposit
 		return err
 	}
 
-	repository.RegisterSource(worker.ArtifactName(step.name), &getArtifactSource{
+	state.Artifacts().RegisterSource(worker.ArtifactName(step.name), &getArtifactSource{
 		logger:           logger,
 		resourceInstance: resourceInstance,
 		versionedSource:  versionedSource,

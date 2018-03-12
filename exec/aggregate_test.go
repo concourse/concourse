@@ -23,6 +23,7 @@ var _ = Describe("Aggregate", func() {
 
 		inStep *execfakes.FakeStep
 		repo   *worker.ArtifactRepository
+		state  *execfakes.FakeRunState
 
 		step    Step
 		stepErr error
@@ -41,10 +42,12 @@ var _ = Describe("Aggregate", func() {
 
 		inStep = new(execfakes.FakeStep)
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 	})
 
 	JustBeforeEach(func() {
-		stepErr = step.Run(ctx, repo)
+		stepErr = step.Run(ctx, state)
 	})
 
 	It("succeeds", func() {
@@ -66,13 +69,13 @@ var _ = Describe("Aggregate", func() {
 			wg := new(sync.WaitGroup)
 			wg.Add(2)
 
-			fakeStepA.RunStub = func(context.Context, *worker.ArtifactRepository) error {
+			fakeStepA.RunStub = func(context.Context, RunState) error {
 				wg.Done()
 				wg.Wait()
 				return nil
 			}
 
-			fakeStepB.RunStub = func(context.Context, *worker.ArtifactRepository) error {
+			fakeStepB.RunStub = func(context.Context, RunState) error {
 				wg.Done()
 				wg.Wait()
 				return nil

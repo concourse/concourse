@@ -3,8 +3,6 @@ package exec
 import (
 	"context"
 	"time"
-
-	"github.com/concourse/atc/worker"
 )
 
 // TimeoutStep applies a fixed timeout to a step's Run.
@@ -30,7 +28,7 @@ func Timeout(step Step, duration string) *TimeoutStep {
 // the nested step's error).
 //
 // The result of the nested step's Run is returned.
-func (ts *TimeoutStep) Run(ctx context.Context, repo *worker.ArtifactRepository) error {
+func (ts *TimeoutStep) Run(ctx context.Context, state RunState) error {
 	parsedDuration, err := time.ParseDuration(ts.duration)
 	if err != nil {
 		return err
@@ -39,7 +37,7 @@ func (ts *TimeoutStep) Run(ctx context.Context, repo *worker.ArtifactRepository)
 	timeoutCtx, cancel := context.WithTimeout(ctx, parsedDuration)
 	defer cancel()
 
-	err = ts.step.Run(timeoutCtx, repo)
+	err = ts.step.Run(timeoutCtx, state)
 	if err == context.DeadlineExceeded {
 		ts.timedOut = true
 		return nil

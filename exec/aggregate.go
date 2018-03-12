@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-
-	"github.com/concourse/atc/worker"
 )
 
 // AggregateStep is a step of steps to run in parallel.
@@ -18,13 +16,13 @@ type AggregateStep []Step
 // It will wait for all steps to exit, even if one step fails or errors. After
 // all steps finish, their errors (if any) will be aggregated and returned as a
 // single error.
-func (step AggregateStep) Run(ctx context.Context, repo *worker.ArtifactRepository) error {
+func (step AggregateStep) Run(ctx context.Context, state RunState) error {
 	errs := make(chan error, len(step))
 
 	for _, s := range step {
 		s := s
 		go func() {
-			errs <- s.Run(ctx, repo)
+			errs <- s.Run(ctx, state)
 		}()
 	}
 

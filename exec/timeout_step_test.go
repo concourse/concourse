@@ -20,7 +20,8 @@ var _ = Describe("Timeout Step", func() {
 
 		fakeStep *execfakes.FakeStep
 
-		repo *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		step Step
 
@@ -35,13 +36,15 @@ var _ = Describe("Timeout Step", func() {
 		fakeStep = new(execfakes.FakeStep)
 
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		timeoutDuration = "1h"
 	})
 
 	JustBeforeEach(func() {
 		step = Timeout(fakeStep, timeoutDuration)
-		stepErr = step.Run(ctx, repo)
+		stepErr = step.Run(ctx, state)
 	})
 
 	Context("when the duration is valid", func() {

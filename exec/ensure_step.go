@@ -3,7 +3,6 @@ package exec
 import (
 	"context"
 
-	"github.com/concourse/atc/worker"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -28,10 +27,10 @@ func Ensure(step Step, hook Step) EnsureStep {
 //
 // If the first step or the second step errors, an aggregate of their errors is
 // returned.
-func (o EnsureStep) Run(ctx context.Context, repo *worker.ArtifactRepository) error {
+func (o EnsureStep) Run(ctx context.Context, state RunState) error {
 	var errors error
 
-	originalErr := o.step.Run(ctx, repo)
+	originalErr := o.step.Run(ctx, state)
 	if originalErr != nil {
 		errors = multierror.Append(errors, originalErr)
 	}
@@ -42,7 +41,7 @@ func (o EnsureStep) Run(ctx context.Context, repo *worker.ArtifactRepository) er
 		hookCtx = context.Background()
 	}
 
-	hookErr := o.hook.Run(hookCtx, repo)
+	hookErr := o.hook.Run(hookCtx, state)
 	if hookErr != nil {
 		errors = multierror.Append(errors, hookErr)
 	}

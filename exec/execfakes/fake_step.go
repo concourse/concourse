@@ -6,15 +6,14 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/worker"
 )
 
 type FakeStep struct {
-	RunStub        func(context.Context, *worker.ArtifactRepository) error
+	RunStub        func(context.Context, exec.RunState) error
 	runMutex       sync.RWMutex
 	runArgsForCall []struct {
 		arg1 context.Context
-		arg2 *worker.ArtifactRepository
+		arg2 exec.RunState
 	}
 	runReturns struct {
 		result1 error
@@ -35,12 +34,12 @@ type FakeStep struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeStep) Run(arg1 context.Context, arg2 *worker.ArtifactRepository) error {
+func (fake *FakeStep) Run(arg1 context.Context, arg2 exec.RunState) error {
 	fake.runMutex.Lock()
 	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
 		arg1 context.Context
-		arg2 *worker.ArtifactRepository
+		arg2 exec.RunState
 	}{arg1, arg2})
 	fake.recordInvocation("Run", []interface{}{arg1, arg2})
 	fake.runMutex.Unlock()
@@ -59,7 +58,7 @@ func (fake *FakeStep) RunCallCount() int {
 	return len(fake.runArgsForCall)
 }
 
-func (fake *FakeStep) RunArgsForCall(i int) (context.Context, *worker.ArtifactRepository) {
+func (fake *FakeStep) RunArgsForCall(i int) (context.Context, exec.RunState) {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	return fake.runArgsForCall[i].arg1, fake.runArgsForCall[i].arg2

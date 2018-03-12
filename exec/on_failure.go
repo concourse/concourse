@@ -2,8 +2,6 @@ package exec
 
 import (
 	"context"
-
-	"github.com/concourse/atc/worker"
 )
 
 // OnFailureStep will run one step, and then a second step if the first step
@@ -27,14 +25,14 @@ func OnFailure(firstStep Step, secondStep Step) OnFailureStep {
 //
 // If the first step fails (that is, its Success result is false), the second
 // step is executed. If the second step errors, its error is returned.
-func (o OnFailureStep) Run(ctx context.Context, repo *worker.ArtifactRepository) error {
-	err := o.step.Run(ctx, repo)
+func (o OnFailureStep) Run(ctx context.Context, state RunState) error {
+	err := o.step.Run(ctx, state)
 	if err != nil {
 		return err
 	}
 
 	if !o.step.Succeeded() {
-		return o.hook.Run(ctx, repo)
+		return o.hook.Run(ctx, state)
 	}
 
 	return nil

@@ -5,7 +5,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/atc/worker"
 )
 
 const AbortedLogMessage = "interrupted"
@@ -25,10 +24,10 @@ func LogError(step Step, delegate BuildStepDelegate) Step {
 	}
 }
 
-func (step LogErrorStep) Run(ctx context.Context, repo *worker.ArtifactRepository) error {
+func (step LogErrorStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 
-	runErr := step.Step.Run(ctx, repo)
+	runErr := step.Step.Run(ctx, state)
 
 	var message string
 	switch runErr {

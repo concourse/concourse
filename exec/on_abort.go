@@ -2,8 +2,6 @@ package exec
 
 import (
 	"context"
-
-	"github.com/concourse/atc/worker"
 )
 
 // OnAbortStep will run one step, and then a second step if the first step
@@ -27,15 +25,15 @@ func OnAbort(step Step, hook Step) OnAbortStep {
 //
 // If the first step aborts (that is, it gets interrupted), the second
 // step is executed. If the second step errors, its error is returned.
-func (o OnAbortStep) Run(ctx context.Context, repo *worker.ArtifactRepository) error {
-	stepRunErr := o.step.Run(ctx, repo)
+func (o OnAbortStep) Run(ctx context.Context, state RunState) error {
+	stepRunErr := o.step.Run(ctx, state)
 	if stepRunErr == nil {
 		return nil
 	}
 
 	if stepRunErr == context.Canceled {
 		// run only on abort, not timeout
-		o.hook.Run(context.Background(), repo)
+		o.hook.Run(context.Background(), state)
 	}
 
 	return stepRunErr

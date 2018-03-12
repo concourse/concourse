@@ -6,17 +6,14 @@ import (
 	"github.com/concourse/atc"
 )
 
-func NewVersionSourceFromPlan(
-	getPlan *atc.GetPlan,
-	putSteps map[atc.PlanID]*PutStep,
-) VersionSource {
+func NewVersionSourceFromPlan(getPlan *atc.GetPlan) VersionSource {
 	if getPlan.Version != nil {
 		return &StaticVersionSource{
-			Version: *getPlan.Version,
+			version: *getPlan.Version,
 		}
 	} else if getPlan.VersionFrom != nil {
 		return &PutStepVersionSource{
-			Step: putSteps[*getPlan.VersionFrom],
+			planID: *getPlan.VersionFrom,
 		}
 	} else {
 		return &EmptyVersionSource{}
@@ -24,34 +21,34 @@ func NewVersionSourceFromPlan(
 }
 
 type VersionSource interface {
-	GetVersion() (atc.Version, error)
+	Version(RunState) (atc.Version, error)
 }
 
 type StaticVersionSource struct {
-	Version atc.Version
+	version atc.Version
 }
 
-func (p *StaticVersionSource) GetVersion() (atc.Version, error) {
-	return p.Version, nil
+func (p *StaticVersionSource) Version(RunState) (atc.Version, error) {
+	return p.version, nil
 }
 
 var ErrPutStepVersionMissing = errors.New("version is missing from put step")
 
 type PutStepVersionSource struct {
-	Step *PutStep
+	planID atc.PlanID
 }
 
-func (p *PutStepVersionSource) GetVersion() (atc.Version, error) {
-	versionInfo := p.Step.VersionInfo()
-	if versionInfo.Version == nil {
+func (p *PutStepVersionSource) Version(state RunState) (atc.Version, error) {
+	var info VersionInfo
+	if !state.Result(p.planID, &info) {
 		return atc.Version{}, ErrPutStepVersionMissing
 	}
 
-	return versionInfo.Version, nil
+	return info.Version, nil
 }
 
 type EmptyVersionSource struct{}
 
-func (p *EmptyVersionSource) GetVersion() (atc.Version, error) {
+func (p *EmptyVersionSource) Version(RunState) (atc.Version, error) {
 	return atc.Version{}, nil
 }

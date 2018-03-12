@@ -21,11 +21,20 @@ type Step interface {
 	//
 	// Steps must be idempotent. Each step is responsible for handling its own
 	// idempotency.
-	Run(context.Context, *worker.ArtifactRepository) error
+	Run(context.Context, RunState) error
 
 	// Succeeded is true when the Step succeeded, and false otherwise.
 	// Succeeded is not guaranteed to be truthful until after you run Run()
 	Succeeded() bool
+}
+
+//go:generate counterfeiter . RunState
+
+type RunState interface {
+	Artifacts() *worker.ArtifactRepository
+
+	Result(atc.PlanID, interface{}) bool
+	StoreResult(atc.PlanID, interface{})
 }
 
 // ExitStatus is the resulting exit code from the process that the step ran.

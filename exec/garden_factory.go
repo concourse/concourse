@@ -20,8 +20,6 @@ type gardenFactory struct {
 	resourceFactory        resource.ResourceFactory
 	dbResourceCacheFactory db.ResourceCacheFactory
 	variablesFactory       creds.VariablesFactory
-
-	putSteps map[atc.PlanID]*PutStep
 }
 
 func NewGardenFactory(
@@ -37,7 +35,6 @@ func NewGardenFactory(
 		resourceFactory:        resourceFactory,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 		variablesFactory:       variablesFactory,
-		putSteps:               map[atc.PlanID]*PutStep{},
 	}
 }
 
@@ -61,7 +58,7 @@ func (factory *gardenFactory) Get(
 		plan.Get.Resource,
 		creds.NewSource(variables, plan.Get.Source),
 		creds.NewParams(variables, plan.Get.Params),
-		NewVersionSourceFromPlan(plan.Get, factory.putSteps),
+		NewVersionSourceFromPlan(plan.Get),
 		plan.Get.Tags,
 
 		delegate,
@@ -109,8 +106,6 @@ func (factory *gardenFactory) Put(
 
 		creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
 	)
-
-	factory.putSteps[plan.ID] = putStep
 
 	return LogError(putStep, delegate)
 }

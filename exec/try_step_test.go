@@ -19,7 +19,8 @@ var _ = Describe("Try Step", func() {
 
 		runStep *execfakes.FakeStep
 
-		repo *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		step Step
 	)
@@ -30,6 +31,8 @@ var _ = Describe("Try Step", func() {
 		runStep = new(execfakes.FakeStep)
 
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		step = Try(runStep)
 	})
@@ -47,7 +50,7 @@ var _ = Describe("Try Step", func() {
 			})
 
 			It("propagates the error", func() {
-				err := step.Run(ctx, repo)
+				err := step.Run(ctx, state)
 				Expect(err).To(Equal(context.Canceled))
 			})
 		})
@@ -58,7 +61,7 @@ var _ = Describe("Try Step", func() {
 			})
 
 			It("swallows the error", func() {
-				err := step.Run(ctx, repo)
+				err := step.Run(ctx, state)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})

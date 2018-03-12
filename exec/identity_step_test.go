@@ -4,7 +4,7 @@ import (
 	"context"
 
 	. "github.com/concourse/atc/exec"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/exec/execfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -12,7 +12,7 @@ import (
 
 var _ = Describe("Identity", func() {
 	var (
-		repo *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		step IdentityStep
 
@@ -21,11 +21,11 @@ var _ = Describe("Identity", func() {
 
 	BeforeEach(func() {
 		step = IdentityStep{}
-		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
 	})
 
 	JustBeforeEach(func() {
-		stepErr = step.Run(context.Background(), repo)
+		stepErr = step.Run(context.Background(), state)
 	})
 
 	Describe("Run", func() {

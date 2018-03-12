@@ -20,7 +20,8 @@ var _ = Describe("LogErrorStep", func() {
 		fakeStep     *execfakes.FakeStep
 		fakeDelegate *execfakes.FakeBuildStepDelegate
 
-		repo *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		step Step
 	)
@@ -32,6 +33,8 @@ var _ = Describe("LogErrorStep", func() {
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		step = LogError(fakeStep, fakeDelegate)
 	})
@@ -40,7 +43,7 @@ var _ = Describe("LogErrorStep", func() {
 		var runErr error
 
 		JustBeforeEach(func() {
-			runErr = step.Run(ctx, repo)
+			runErr = step.Run(ctx, state)
 		})
 
 		Context("when the inner step does not error", func() {

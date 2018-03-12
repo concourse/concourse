@@ -53,7 +53,8 @@ var _ = Describe("TaskStep", func() {
 		outputMapping map[string]string
 		variables     creds.Variables
 
-		artifactRepository *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		taskStep exec.Step
 
@@ -81,7 +82,9 @@ var _ = Describe("TaskStep", func() {
 		jobID = 12345
 		configSource = new(execfakes.FakeTaskConfigSource)
 
-		artifactRepository = worker.NewArtifactRepository()
+		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
 		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 			{
@@ -133,7 +136,7 @@ var _ = Describe("TaskStep", func() {
 			variables,
 		)
 
-		stepErr = taskStep.Run(ctx, artifactRepository)
+		stepErr = taskStep.Run(ctx, state)
 	})
 
 	Context("when getting the config works", func() {
@@ -350,16 +353,16 @@ var _ = Describe("TaskStep", func() {
 					})
 
 					It("re-registers the outputs as sources", func() {
-						artifactSource1, found := artifactRepository.SourceFor("some-output")
+						artifactSource1, found := repo.SourceFor("some-output")
 						Expect(found).To(BeTrue())
 
-						artifactSource2, found := artifactRepository.SourceFor("some-other-output")
+						artifactSource2, found := repo.SourceFor("some-other-output")
 						Expect(found).To(BeTrue())
 
-						artifactSource3, found := artifactRepository.SourceFor("some-trailing-slash-output")
+						artifactSource3, found := repo.SourceFor("some-trailing-slash-output")
 						Expect(found).To(BeTrue())
 
-						sourceMap := artifactRepository.AsMap()
+						sourceMap := repo.AsMap()
 						Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
 					})
 				})
@@ -522,8 +525,8 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when all inputs are present", func() {
 						BeforeEach(func() {
-							artifactRepository.RegisterSource("some-input", inputSource)
-							artifactRepository.RegisterSource("some-other-input", otherInputSource)
+							repo.RegisterSource("some-input", inputSource)
+							repo.RegisterSource("some-other-input", otherInputSource)
 						})
 
 						It("creates the container with the inputs configured correctly", func() {
@@ -544,7 +547,7 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when any of the inputs are missing", func() {
 						BeforeEach(func() {
-							artifactRepository.RegisterSource("some-input", inputSource)
+							repo.RegisterSource("some-input", inputSource)
 						})
 
 						It("returns a MissingInputsError", func() {
@@ -573,7 +576,7 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when all inputs are present in the in source repository", func() {
 						BeforeEach(func() {
-							artifactRepository.RegisterSource("remapped-input-src", remappedInputSource)
+							repo.RegisterSource("remapped-input-src", remappedInputSource)
 						})
 
 						It("uses remapped input", func() {
@@ -616,8 +619,8 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when an optional input is missing", func() {
 						BeforeEach(func() {
-							artifactRepository.RegisterSource("required-input", requiredInputSource)
-							artifactRepository.RegisterSource("optional-input-2", optionalInput2Source)
+							repo.RegisterSource("required-input", requiredInputSource)
+							repo.RegisterSource("optional-input-2", optionalInput2Source)
 						})
 
 						It("runs successfully without the optional input", func() {
@@ -633,8 +636,8 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when a required input is missing", func() {
 						BeforeEach(func() {
-							artifactRepository.RegisterSource("optional-input", optionalInputSource)
-							artifactRepository.RegisterSource("optional-input-2", optionalInput2Source)
+							repo.RegisterSource("optional-input", optionalInputSource)
+							repo.RegisterSource("optional-input-2", optionalInput2Source)
 						})
 
 						It("returns a MissingInputsError", func() {
@@ -816,18 +819,18 @@ var _ = Describe("TaskStep", func() {
 								Expect(stepErr).ToNot(HaveOccurred())
 
 								var found bool
-								artifactSource1, found = artifactRepository.SourceFor("some-output")
+								artifactSource1, found = repo.SourceFor("some-output")
 								Expect(found).To(BeTrue())
 
-								artifactSource2, found = artifactRepository.SourceFor("some-other-output")
+								artifactSource2, found = repo.SourceFor("some-other-output")
 								Expect(found).To(BeTrue())
 
-								artifactSource3, found = artifactRepository.SourceFor("some-trailing-slash-output")
+								artifactSource3, found = repo.SourceFor("some-trailing-slash-output")
 								Expect(found).To(BeTrue())
 							})
 
 							It("does not register the task as a source", func() {
-								sourceMap := artifactRepository.AsMap()
+								sourceMap := repo.AsMap()
 								Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
 							})
 
@@ -1066,16 +1069,16 @@ var _ = Describe("TaskStep", func() {
 								cancel()
 								Expect(stepErr).To(Equal(context.Canceled))
 
-								artifactSource1, found := artifactRepository.SourceFor("some-output")
+								artifactSource1, found := repo.SourceFor("some-output")
 								Expect(found).To(BeTrue())
 
-								artifactSource2, found := artifactRepository.SourceFor("some-other-output")
+								artifactSource2, found := repo.SourceFor("some-other-output")
 								Expect(found).To(BeTrue())
 
-								artifactSource3, found := artifactRepository.SourceFor("some-trailing-slash-output")
+								artifactSource3, found := repo.SourceFor("some-trailing-slash-output")
 								Expect(found).To(BeTrue())
 
-								sourceMap := artifactRepository.AsMap()
+								sourceMap := repo.AsMap()
 								Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
 							})
 						})
@@ -1116,10 +1119,10 @@ var _ = Describe("TaskStep", func() {
 					})
 
 					It("registers the outputs as sources with specific name", func() {
-						artifactSource, found := artifactRepository.SourceFor("specific-remapped-output")
+						artifactSource, found := repo.SourceFor("specific-remapped-output")
 						Expect(found).To(BeTrue())
 
-						sourceMap := artifactRepository.AsMap()
+						sourceMap := repo.AsMap()
 						Expect(sourceMap).To(ConsistOf(artifactSource))
 					})
 				})
@@ -1131,12 +1134,12 @@ var _ = Describe("TaskStep", func() {
 						fakeProcess.WaitReturns(0, nil)
 					})
 
-					Context("when the image artifact is registered in the source artifactRepository", func() {
+					Context("when the image artifact is registered in the source repo", func() {
 						var imageArtifactSource *workerfakes.FakeArtifactSource
 
 						BeforeEach(func() {
 							imageArtifactSource = new(workerfakes.FakeArtifactSource)
-							artifactRepository.RegisterSource("some-image-artifact", imageArtifactSource)
+							repo.RegisterSource("some-image-artifact", imageArtifactSource)
 						})
 
 						It("creates the container with the image artifact source", func() {
@@ -1245,7 +1248,7 @@ var _ = Describe("TaskStep", func() {
 						})
 					})
 
-					Context("when the image artifact is NOT registered in the source artifactRepository", func() {
+					Context("when the image artifact is NOT registered in the source repo", func() {
 						It("returns a MissingTaskImageSourceError", func() {
 							Expect(stepErr).To(Equal(exec.MissingTaskImageSourceError{"some-image-artifact"}))
 						})
@@ -1302,7 +1305,7 @@ var _ = Describe("TaskStep", func() {
 					It("doesn't register a source", func() {
 						Expect(stepErr).ToNot(HaveOccurred())
 
-						sourceMap := artifactRepository.AsMap()
+						sourceMap := repo.AsMap()
 						Expect(sourceMap).To(BeEmpty())
 					})
 
@@ -1451,7 +1454,7 @@ var _ = Describe("TaskStep", func() {
 					})
 
 					It("doesn't register a source", func() {
-						sourceMap := artifactRepository.AsMap()
+						sourceMap := repo.AsMap()
 						Expect(sourceMap).To(BeEmpty())
 					})
 				})
