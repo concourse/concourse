@@ -2,6 +2,7 @@ package radar_test
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -26,8 +27,6 @@ var _ = Describe("Runner", func() {
 		process                ifrit.Process
 		fakeResourceRunner     *radarfakes.FakeIntervalRunner
 		fakeResourceTypeRunner *radarfakes.FakeIntervalRunner
-		fakeContext            context.Context
-		fakeCancel             context.CancelFunc
 
 		fakeResource1 *dbfakes.FakeResource
 		fakeResource2 *dbfakes.FakeResource
@@ -60,17 +59,13 @@ var _ = Describe("Runner", func() {
 		fakeResourceTypeRunner = new(radarfakes.FakeIntervalRunner)
 		scanRunnerFactory.ScanResourceTypeRunnerReturns(fakeResourceTypeRunner)
 
-		fcon, fcanc := context.WithCancel(context.Background())
-		fakeContext = fcon
-		fakeCancel = fcanc
-
 		fakeResourceRunner.RunStub = func(ctx context.Context) error {
-			<-fcon.Done()
+			<-ctx.Done()
 			return nil
 		}
 
 		fakeResourceTypeRunner.RunStub = func(ctx context.Context) error {
-			<-fcon.Done()
+			<-ctx.Done()
 			return nil
 		}
 	})
@@ -86,7 +81,8 @@ var _ = Describe("Runner", func() {
 	})
 
 	AfterEach(func() {
-		ginkgomon.Interrupt(process)
+		process.Signal(os.Interrupt)
+		<-process.Wait()
 	})
 
 	It("scans for every configured resource", func() {
@@ -100,6 +96,13 @@ var _ = Describe("Runner", func() {
 	})
 
 	Context("when new resources are configured", func() {
+		BeforeEach(func() {
+			fakeResource3 := new(dbfakes.FakeResource)
+			fakeResource3.NameReturns("another-resource")
+
+			fakePipeline.ResourcesReturnsOnCall(1, db.Resources{fakeResource1, fakeResource2, fakeResource3}, nil)
+		})
+
 		It("scans for them eventually", func() {
 			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount).Should(Equal(2))
 
@@ -107,10 +110,6 @@ var _ = Describe("Runner", func() {
 			_, call2Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
 			resources := []string{call1Resource, call2Resource}
 			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource"}))
-
-			fakeResource3 := new(dbfakes.FakeResource)
-			fakeResource3.NameReturns("another-resource")
-			fakePipeline.ResourcesReturns(db.Resources{fakeResource1, fakeResource2, fakeResource3}, nil)
 
 			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount, time.Second).Should(Equal(3))
 
@@ -123,6 +122,16 @@ var _ = Describe("Runner", func() {
 	})
 
 	Context("when resources stop being able to check", func() {
+		var exit chan struct{}
+
+		BeforeEach(func() {
+			exit = make(chan struct{})
+			fakeResourceRunner.RunStub = func(ctx context.Context) error {
+				<-exit
+				return nil
+			}
+		})
+
 		It("starts scanning again eventually", func() {
 			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount).Should(Equal(2))
 
@@ -132,7 +141,7 @@ var _ = Describe("Runner", func() {
 
 			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource"}))
 
-			fakeCancel()
+			close(exit)
 
 			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount, 10*syncInterval).Should(Equal(4))
 
@@ -145,6 +154,16 @@ var _ = Describe("Runner", func() {
 	})
 
 	Context("when resource types stop being able to check", func() {
+		var exit chan struct{}
+
+		BeforeEach(func() {
+			exit = make(chan struct{})
+			fakeResourceTypeRunner.RunStub = func(ctx context.Context) error {
+				<-exit
+				return nil
+			}
+		})
+
 		It("starts scanning again eventually", func() {
 			Eventually(scanRunnerFactory.ScanResourceTypeRunnerCallCount).Should(Equal(2))
 
@@ -152,7 +171,7 @@ var _ = Describe("Runner", func() {
 			_, call2Resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(1)
 			resources := []string{call1Resource, call2Resource}
 
-			fakeCancel()
+			close(exit)
 
 			Eventually(scanRunnerFactory.ScanResourceTypeRunnerCallCount, 10*syncInterval).Should(Equal(4))
 
