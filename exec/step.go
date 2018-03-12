@@ -28,9 +28,6 @@ type Step interface {
 	Succeeded() bool
 }
 
-// Success indicates whether a step completed successfully.
-type Success bool
-
 // ExitStatus is the resulting exit code from the process that the step ran.
 // Typically if the ExitStatus result is 0, the Success result is true.
 type ExitStatus int
