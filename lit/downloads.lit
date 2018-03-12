@@ -18,6 +18,7 @@
   }
 }
 
+\include-section{./release-notes/v3.9.2.lit}
 \include-section{./release-notes/v3.9.1.lit}
 \include-section{./release-notes/v3.9.0.lit}
 \include-section{./release-notes/v3.8.0.lit}

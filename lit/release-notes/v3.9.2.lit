@@ -1,0 +1,45 @@
+\use-plugin{concourse-docs}
+
+\release{2018-3-12}{3.9.2}{1.11.1}{
+  \note{feature}{
+    Due to popular demand, we're graduating the pipeline dashboard out of beta
+    and moved back into `dashboard/`. This will let you do useful things like
+    login and click through to the normal pipeline and build pages.
+  }
+
+  \note{feature}{
+    New Relic metrics emitter has now been improved thanks to
+    \ghuser{novas0x2a}!
+  }
+
+  \note{fix}{
+    Removed a pesky database constraint
+    (\code{cannot_invalidate_during_initialization}) that's no longer
+    necessary.
+  }
+
+  \note{fix}{
+    The previous release snuck some code that wasn't quite ready yet into the
+    BOSH release and broke registration of external workers. This is now fixed.
+  }
+
+  \note{fix}{
+    When working with the \code{docker-image} resource, \code{sanitize_cgroups}
+    will exit with status 1 now when system has cgroups subystem is available
+    but the container process is not in it
+  }
+
+  \note{fix}{
+    Tasks would fail when interacting with a Vault backend, this has now been
+    fixed
+  }
+
+  \note{fix}{
+    ANSI cursor escapes would wreak havoc on the Concourse build output page.
+    That's been fixed
+  }
+
+  \note{fix}{
+    Fixed an issue where Firefox users couldn't click around on the build page.
+  }
+}
