@@ -693,10 +693,6 @@ func (b *build) SaveEvent(event atc.Event) error {
 }
 
 func (b *build) SaveInput(input BuildInput) error {
-	if b.pipelineID == 0 {
-		return nil
-	}
-
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err

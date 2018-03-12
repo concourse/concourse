@@ -54,8 +54,10 @@ func (factory *gardenFactory) Get(
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
 	getStep := NewGetStep(
-		plan.Get.Type,
+		build,
+
 		plan.Get.Name,
+		plan.Get.Type,
 		plan.Get.Resource,
 		creds.NewSource(variables, plan.Get.Source),
 		creds.NewParams(variables, plan.Get.Params),

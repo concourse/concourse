@@ -39,6 +39,7 @@ var _ = Describe("GetStep", func() {
 		variables                  creds.Variables
 		fakeBuild                  *dbfakes.FakeBuild
 		fakeDelegate               *execfakes.FakeGetDelegate
+		getPlan                    *atc.GetPlan
 
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 		resourceTypes       atc.VersionedResourceTypes
@@ -96,6 +97,16 @@ var _ = Describe("GetStep", func() {
 			},
 		}
 
+		getPlan = &atc.GetPlan{
+			Type:                   "some-resource-type",
+			Name:                   "some-name",
+			Source:                 atc.Source{"some": "((source-param))"},
+			Params:                 atc.Params{"some-param": "some-value"},
+			Tags:                   []string{"some", "tags"},
+			Version:                &atc.Version{"some-version": "some-value"},
+			VersionedResourceTypes: resourceTypes,
+		}
+
 		factory = exec.NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory, fakeVariablesFactory)
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
@@ -105,16 +116,8 @@ var _ = Describe("GetStep", func() {
 		getStep = factory.Get(
 			lagertest.NewTestLogger("get-action-test"),
 			atc.Plan{
-				ID: atc.PlanID(planID),
-				Get: &atc.GetPlan{
-					Type:                   "some-resource-type",
-					Name:                   "some-resource",
-					Source:                 atc.Source{"some": "((source-param))"},
-					Params:                 atc.Params{"some-param": "some-value"},
-					Tags:                   []string{"some", "tags"},
-					Version:                &atc.Version{"some-version": "some-value"},
-					VersionedResourceTypes: resourceTypes,
-				},
+				ID:  atc.PlanID(planID),
+				Get: getPlan,
 			},
 			fakeBuild,
 			stepMetadata,
@@ -182,6 +185,41 @@ var _ = Describe("GetStep", func() {
 			Expect(status).To(Equal(exec.ExitStatus(0)))
 			Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
 			Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+		})
+
+		Context("when getting a pipeline resource", func() {
+			BeforeEach(func() {
+				getPlan.Resource = "some-pipeline-resource"
+			})
+
+			It("saves the build input so that the metadata is visible", func() {
+				// TODO: this can be removed once /check returns metadata
+
+				Expect(fakeBuild.SaveInputCallCount()).To(Equal(1))
+
+				input := fakeBuild.SaveInputArgsForCall(0)
+				Expect(input).To(Equal(db.BuildInput{
+					Name: "some-name",
+					VersionedResource: db.VersionedResource{
+						Resource: "some-pipeline-resource",
+						Type:     "some-resource-type",
+						Version:  db.ResourceVersion{"some": "version"},
+						Metadata: db.NewResourceMetadataFields([]atc.MetadataField{{"some", "metadata"}}),
+					},
+				}))
+			})
+		})
+
+		Context("when getting an anonymous resource", func() {
+			BeforeEach(func() {
+				getPlan.Resource = ""
+			})
+
+			It("does not save the build input", func() {
+				// TODO: this can be removed once /check returns metadata
+
+				Expect(fakeBuild.SaveInputCallCount()).To(Equal(0))
+			})
 		})
 
 		Describe("the source registered with the repository", func() {

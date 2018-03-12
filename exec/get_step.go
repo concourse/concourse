@@ -25,8 +25,10 @@ type GetDelegate interface {
 // GetStep will fetch a version of a resource on a worker that supports the
 // resource type.
 type GetStep struct {
-	resourceType  string
+	build db.Build
+
 	name          string
+	resourceType  string
 	resource      string
 	source        creds.Source
 	params        creds.Params
@@ -49,8 +51,10 @@ type GetStep struct {
 }
 
 func NewGetStep(
-	resourceType string,
+	build db.Build,
+
 	name string,
+	resourceType string,
 	resource string,
 	source creds.Source,
 	params creds.Params,
@@ -70,8 +74,10 @@ func NewGetStep(
 	resourceTypes creds.VersionedResourceTypes,
 ) Step {
 	return &GetStep{
-		resourceType:  resourceType,
+		build: build,
+
 		name:          name,
+		resourceType:  resourceType,
 		resource:      resource,
 		source:        source,
 		params:        params,
@@ -186,6 +192,22 @@ func (step *GetStep) Run(ctx context.Context, repository *worker.ArtifactReposit
 		resourceInstance: resourceInstance,
 		versionedSource:  versionedSource,
 	})
+
+	if step.resource != "" {
+		err := step.build.SaveInput(db.BuildInput{
+			Name: step.name,
+			VersionedResource: db.VersionedResource{
+				Resource: step.resource,
+				Type:     step.resourceType,
+				Version:  db.ResourceVersion(versionedSource.Version()),
+				Metadata: db.NewResourceMetadataFields(versionedSource.Metadata()),
+			},
+		})
+		if err != nil {
+			logger.Error("failed-to-save-input", err)
+			return nil
+		}
+	}
 
 	step.succeeded = true
 
