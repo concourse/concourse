@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\release{2018-3-12}{3.9.2}{1.11.1}{
+\release{2018-3-12}{3.9.2}{1.12.0}{
   \note{feature}{
     Due to popular demand, we're graduating the pipeline dashboard out of beta
     and back into \code{/dashboard}. You can now also do useful things like log
