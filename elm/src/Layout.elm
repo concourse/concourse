@@ -337,6 +337,9 @@ view model =
             SubPage.DashboardModel _ ->
                 Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
 
+            SubPage.DashboardHdModel _ ->
+                Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+
             _ ->
                 Html.div [ class "content-frame" ]
                     [ Html.div [ id "top-bar-app" ]

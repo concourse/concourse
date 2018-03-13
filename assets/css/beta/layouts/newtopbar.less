@@ -112,3 +112,38 @@
     width: 160px;
   }
 }
+
+@media (max-width : 812px) {
+  .module-topbar {
+    position: unset;
+    flex-flow: row wrap;
+    height: unset;
+    line-height: unset;
+
+    .topbar-search {
+      width: 100%;
+      order: 1;
+
+      .topbar-search-form {
+        margin: 16px;
+
+        .search-input-field {
+          width: 100%;
+        }
+      }
+
+      .search-options {
+        top: -17px;
+        margin: 16px;
+
+        .search-option {
+          max-width: unset;
+        }
+      }
+    }
+
+    .topbar-login .topbar-user-info {
+      border: none;
+    }
+  }
+}

@@ -317,16 +317,58 @@
   }
 }
 
-@media (max-width : 1279px) {
+
+@media (max-width : 1440px) {
   .dashboard-footer {
+    height: unset;
+    line-height: 35px;
     text-align: left;
 
     .dashboard-legend {
       float: none;
+      margin-top: 22px;
+
+      & > div {
+        width: 111px;
+      }
+
+      .dashboard-status-separator, .dashboard-high-density {
+        width: auto;
+      }
     }
 
-    .concourse-version {
-      margin: 10px 30px 0 30px;
+    .concourse-info {
+      margin-left: 34px;
+      margin-bottom: 22px;
+    }
+  }
+}
+
+@media (max-width : 812px) {
+  .dashboard .dashboard-content {
+    padding-top: 0px;
+  }
+
+  .dashboard-footer {
+    position: inherit;
+    display: block;
+
+    .dashboard-legend {
+      margin-top: 0;
+      padding-top: 22px;
+
+      .dashboard-running .dashboard-pipeline-icon {
+        width: 20px;
+      }
+
+      .dashboard-status-separator {
+        display: none;
+      }
+    }
+
+    .concourse-info {
+      margin-bottom: 0;
+      padding-bottom: 22px;
     }
   }
 }
