@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 )
@@ -22,7 +24,17 @@ func UserArtifact(id atc.PlanID, name worker.ArtifactName) Step {
 }
 
 func (step *UserArtifactStep) Run(ctx context.Context, state RunState) error {
-	state.Artifacts().RegisterSource(step.name, streamSource{step.id, state})
+	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
+		"plan-id": step.id,
+		"name":    step.name,
+	})
+
+	state.Artifacts().RegisterSource(step.name, streamSource{
+		logger,
+		step.id,
+		state,
+	})
+
 	return nil
 }
 
@@ -31,12 +43,14 @@ func (step *UserArtifactStep) Succeeded() bool {
 }
 
 type streamSource struct {
-	id    atc.PlanID
-	state RunState
+	logger lager.Logger
+	id     atc.PlanID
+	state  RunState
 }
 
 func (source streamSource) StreamTo(dest worker.ArtifactDestination) error {
 	return source.state.ReadUserInput(source.id, func(rc io.ReadCloser) error {
+		source.logger.Debug("reading-user-input")
 		return dest.StreamIn(".", rc)
 	})
 }

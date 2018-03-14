@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 )
@@ -21,6 +23,11 @@ func ArtifactOutput(id atc.PlanID, name worker.ArtifactName) Step {
 }
 
 func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
+	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
+		"plan-id": step.id,
+		"source":  step.name,
+	})
+
 	source, found := state.Artifacts().SourceFor(step.name)
 	if !found {
 		return UnknownArtifactSourceError{
@@ -29,6 +36,7 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	return state.SendPlanOutput(step.id, func(w io.Writer) error {
+		logger.Debug("sending-plan-output")
 		return source.StreamTo(streamDestination{w})
 	})
 }

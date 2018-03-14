@@ -22,6 +22,8 @@ func (s *Server) ReadOutputFromBuildPlan(build db.Build) http.Handler {
 			return
 		}
 
+		logger.Debug("reading-output", lager.Data{"plan": planID})
+
 		if build.Tracker() == s.peerURL {
 			engineBuild, err := s.engine.LookupBuild(logger, build)
 			if err != nil {
@@ -34,7 +36,7 @@ func (s *Server) ReadOutputFromBuildPlan(build db.Build) http.Handler {
 
 			engineBuild.SendOutput(logger, planID, w)
 		} else {
-			logger.Info("forwarding", lager.Data{"to": build.Tracker()})
+			logger.Debug("forwarding", lager.Data{"to": build.Tracker()})
 
 			err := s.forwardRequest(w, r, build.Tracker(), atc.ReadOutputFromBuildPlan)
 			if err != nil {

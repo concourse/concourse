@@ -2,6 +2,7 @@ package image_test
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -248,7 +249,7 @@ var _ = Describe("Image", func() {
 							fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 							fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
-							fakeVersionedSource.StreamOutReturns(tarStreamWith("some-tar-contents"), nil)
+							fakeVersionedSource.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
 							fakeVolume := new(workerfakes.FakeVolume)
 							fakeVersionedSource.VolumeReturns(fakeVolume)
 
@@ -509,7 +510,7 @@ var _ = Describe("Image", func() {
 					fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 					fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
-					fakeVersionedSource.StreamOutReturns(tarStreamWith("some-tar-contents"), nil)
+					fakeVersionedSource.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
 					fakeVolume := new(workerfakes.FakeVolume)
 					fakeVersionedSource.VolumeReturns(fakeVolume)
 
@@ -634,10 +635,12 @@ var _ = Describe("Image", func() {
 	})
 })
 
-func tarStreamWith(metadata string) io.ReadCloser {
+func tgzStreamWith(metadata string) io.ReadCloser {
 	buffer := gbytes.NewBuffer()
 
-	tarWriter := tar.NewWriter(buffer)
+	gzWriter := gzip.NewWriter(buffer)
+	tarWriter := tar.NewWriter(gzWriter)
+
 	err := tarWriter.WriteHeader(&tar.Header{
 		Name: "metadata.json",
 		Mode: 0600,
@@ -649,6 +652,9 @@ func tarStreamWith(metadata string) io.ReadCloser {
 	Expect(err).NotTo(HaveOccurred())
 
 	err = tarWriter.Close()
+	Expect(err).NotTo(HaveOccurred())
+
+	err = gzWriter.Close()
 	Expect(err).NotTo(HaveOccurred())
 
 	return buffer

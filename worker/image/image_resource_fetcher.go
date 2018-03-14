@@ -2,6 +2,7 @@ package image
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -198,7 +199,12 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	tarReader := tar.NewReader(reader)
+	gzReader, err := gzip.NewReader(reader)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	tarReader := tar.NewReader(gzReader)
 
 	_, err = tarReader.Next()
 	if err != nil {

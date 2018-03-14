@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"errors"
 	"io"
@@ -874,17 +875,21 @@ var _ = Describe("TaskStep", func() {
 									var (
 										fileContent = "file-content"
 
-										tarBuffer *gbytes.Buffer
+										tgzBuffer *gbytes.Buffer
 									)
 
 									BeforeEach(func() {
-										tarBuffer = gbytes.NewBuffer()
-										fakeVolume1.StreamOutReturns(tarBuffer, nil)
+										tgzBuffer = gbytes.NewBuffer()
+										fakeVolume1.StreamOutReturns(tgzBuffer, nil)
 									})
 
 									Context("when the file exists", func() {
 										BeforeEach(func() {
-											tarWriter := tar.NewWriter(tarBuffer)
+											gzWriter := gzip.NewWriter(tgzBuffer)
+											defer gzWriter.Close()
+
+											tarWriter := tar.NewWriter(gzWriter)
+											defer tarWriter.Close()
 
 											err := tarWriter.WriteHeader(&tar.Header{
 												Name: "some-file",
@@ -912,12 +917,12 @@ var _ = Describe("TaskStep", func() {
 												reader, err := artifactSource1.StreamFile("some-path")
 												Expect(err).NotTo(HaveOccurred())
 
-												Expect(tarBuffer.Closed()).To(BeFalse())
+												Expect(tgzBuffer.Closed()).To(BeFalse())
 
 												err = reader.Close()
 												Expect(err).NotTo(HaveOccurred())
 
-												Expect(tarBuffer.Closed()).To(BeTrue())
+												Expect(tgzBuffer.Closed()).To(BeTrue())
 											})
 										})
 									})

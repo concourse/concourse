@@ -2,6 +2,7 @@ package exec
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -457,7 +458,12 @@ func (src *taskArtifactSource) StreamFile(filename string) (io.ReadCloser, error
 		return nil, err
 	}
 
-	tarReader := tar.NewReader(out)
+	gzReader, err := gzip.NewReader(out)
+	if err != nil {
+		return nil, FileNotFoundError{Path: filename}
+	}
+
+	tarReader := tar.NewReader(gzReader)
 
 	_, err = tarReader.Next()
 	if err != nil {
