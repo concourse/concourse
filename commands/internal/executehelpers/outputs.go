@@ -6,21 +6,19 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/go-concourse/concourse"
 )
 
 type Output struct {
 	Name string
 	Path string
-	Pipe atc.Pipe
+	Plan atc.Plan
 }
 
 func DetermineOutputs(
-	client concourse.Client,
+	fact atc.PlanFactory,
 	taskOutputs []atc.TaskOutputConfig,
 	outputMappings []flaghelpers.OutputPairFlag,
 ) ([]Output, error) {
-
 	outputs := []Output{}
 
 	for _, i := range outputMappings {
@@ -32,6 +30,7 @@ func DetermineOutputs(
 				notInConfig = false
 			}
 		}
+
 		if notInConfig {
 			return nil, fmt.Errorf("unknown output '%s'", outputName)
 		}
@@ -41,15 +40,12 @@ func DetermineOutputs(
 			return nil, err
 		}
 
-		pipe, err := client.CreatePipe()
-		if err != nil {
-			return nil, err
-		}
-
 		outputs = append(outputs, Output{
 			Name: outputName,
 			Path: absPath,
-			Pipe: pipe,
+			Plan: fact.NewPlan(atc.ArtifactOutputPlan{
+				Name: outputName,
+			}),
 		})
 	}
 

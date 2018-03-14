@@ -2,31 +2,29 @@ package executehelpers
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-archive/tgzfs"
 	"github.com/concourse/go-concourse/concourse"
 )
 
-func Download(client concourse.Client, output Output) {
-	path := output.Path
-	pipe := output.Pipe
-
-	response, err := client.HTTPClient().Get(pipe.ReadURL)
+func Download(client concourse.Client, buildID int, output Output) {
+	out, found, err := client.ReadOutputFromBuildPlan(buildID, output.Plan.ID)
 	if err != nil {
-		fmt.Fprintln(ui.Stderr, "download request failed:", err)
+		fmt.Fprintf(ui.Stderr, "failed to download output '%s': %s", output.Name, err)
+		return
 	}
 
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		fmt.Fprintln(ui.Stderr, badResponseError("downloading bits", response))
-		panic("unexpected-response-code")
+	if !found {
+		fmt.Fprintf(ui.Stderr, "build disappeared while downloading '%s'", output.Name)
+		return
 	}
 
-	err = tgzfs.Extract(response.Body, path)
+	defer out.Close()
+
+	err = tgzfs.Extract(out, output.Path)
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(ui.Stderr, "failed to extract output '%s': %s", output.Name, err)
+		return
 	}
 }

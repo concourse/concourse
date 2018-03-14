@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -82,13 +83,8 @@ run:
 
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
 			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.GetPlan{
+				planFactory.NewPlan(atc.UserArtifactPlan{
 					Name: "some-input",
-					Type: "archive",
-					Source: atc.Source{
-						"authorization": tokenString(),
-						"uri":           atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-					},
 				}),
 				planFactory.NewPlan(atc.GetPlan{
 					Name:    "some-other-input",
@@ -130,16 +126,6 @@ run:
 	JustBeforeEach(func() {
 		uploading = make(chan struct{})
 
-		atcServer.RouteToHandler("POST", "/api/v1/pipes",
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
-				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "some-pipe-id",
-					ReadURL:  atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-					WriteURL: atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-				}),
-			),
-		)
 		atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs"),
@@ -223,9 +209,8 @@ run:
 				},
 			),
 		)
-		atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-pipe-id",
+		atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
 				func(w http.ResponseWriter, req *http.Request) {
 					close(uploading)
 

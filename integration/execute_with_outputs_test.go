@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -89,13 +90,8 @@ run:
 		expectedPlan = planFactory.NewPlan(atc.EnsurePlan{
 			Step: planFactory.NewPlan(atc.DoPlan{
 				planFactory.NewPlan(atc.AggregatePlan{
-					planFactory.NewPlan(atc.GetPlan{
+					planFactory.NewPlan(atc.UserArtifactPlan{
 						Name: filepath.Base(buildDir),
-						Type: "archive",
-						Source: atc.Source{
-							"authorization": tokenString(),
-							"uri":           atcServer.URL() + "/api/v1/pipes/input-pipe-id",
-						},
 					}),
 				}),
 				planFactory.NewPlan(atc.TaskPlan{
@@ -127,16 +123,8 @@ run:
 				}),
 			}),
 			Next: planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.PutPlan{
+				planFactory.NewPlan(atc.ArtifactOutputPlan{
 					Name: "some-dir",
-					Type: "archive",
-					Source: atc.Source{
-						"authorization": tokenString(),
-						"uri":           atcServer.URL() + "/api/v1/pipes/output-pipe-id",
-					},
-					Params: atc.Params{
-						"directory": "some-dir",
-					},
 				}),
 			}),
 		})
@@ -151,24 +139,6 @@ run:
 	})
 
 	JustBeforeEach(func() {
-		atcServer.AppendHandlers(
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
-				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "input-pipe-id",
-					ReadURL:  atcServer.URL() + "/api/v1/pipes/input-pipe-id",
-					WriteURL: atcServer.URL() + "/api/v1/pipes/input-pipe-id",
-				}),
-			),
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
-				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "output-pipe-id",
-					ReadURL:  atcServer.URL() + "/api/v1/pipes/output-pipe-id",
-					WriteURL: atcServer.URL() + "/api/v1/pipes/output-pipe-id",
-				}),
-			),
-		)
 		atcServer.RouteToHandler("POST", "/api/v1/builds",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/builds"),
@@ -227,55 +197,50 @@ run:
 				},
 			),
 		)
-		atcServer.RouteToHandler("PUT", "/api/v1/pipes/input-pipe-id",
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/pipes/input-pipe-id"),
-				func(w http.ResponseWriter, req *http.Request) {
-					gr, err := gzip.NewReader(req.Body)
-					Expect(err).NotTo(HaveOccurred())
+		atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
+			func(w http.ResponseWriter, req *http.Request) {
+				gr, err := gzip.NewReader(req.Body)
+				Expect(err).NotTo(HaveOccurred())
 
-					tr := tar.NewReader(gr)
+				tr := tar.NewReader(gr)
 
-					hdr, err := tr.Next()
-					Expect(err).NotTo(HaveOccurred())
+				hdr, err := tr.Next()
+				Expect(err).NotTo(HaveOccurred())
 
-					Expect(hdr.Name).To(Equal("./"))
+				Expect(hdr.Name).To(Equal("./"))
 
-					hdr, err = tr.Next()
-					Expect(err).NotTo(HaveOccurred())
+				hdr, err = tr.Next()
+				Expect(err).NotTo(HaveOccurred())
 
-					Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
-				},
-				ghttp.RespondWith(200, ""),
-			),
+				Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
+
+				w.WriteHeader(http.StatusNoContent)
+			},
 		)
-		atcServer.RouteToHandler("GET", "/api/v1/pipes/output-pipe-id",
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/api/v1/pipes/output-pipe-id"),
-				func(w http.ResponseWriter, req *http.Request) {
-					gw := gzip.NewWriter(w)
+		atcServer.RouteToHandler("GET", regexp.MustCompile(`/api/v1/builds/128/plan/.*/output`),
+			func(w http.ResponseWriter, req *http.Request) {
+				gw := gzip.NewWriter(w)
 
-					tw := tar.NewWriter(gw)
+				tw := tar.NewWriter(gw)
 
-					tarContents := []byte("tar-contents")
+				tarContents := []byte("tar-contents")
 
-					err := tw.WriteHeader(&tar.Header{
-						Name: "some-file",
-						Mode: 0644,
-						Size: int64(len(tarContents)),
-					})
-					Expect(err).NotTo(HaveOccurred())
+				err := tw.WriteHeader(&tar.Header{
+					Name: "some-file",
+					Mode: 0644,
+					Size: int64(len(tarContents)),
+				})
+				Expect(err).NotTo(HaveOccurred())
 
-					_, err = tw.Write(tarContents)
-					Expect(err).NotTo(HaveOccurred())
+				_, err = tw.Write(tarContents)
+				Expect(err).NotTo(HaveOccurred())
 
-					err = tw.Close()
-					Expect(err).NotTo(HaveOccurred())
+				err = tw.Close()
+				Expect(err).NotTo(HaveOccurred())
 
-					err = gw.Close()
-					Expect(err).NotTo(HaveOccurred())
-				},
-			),
+				err = gw.Close()
+				Expect(err).NotTo(HaveOccurred())
+			},
 		)
 	})
 

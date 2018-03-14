@@ -13,15 +13,13 @@ import (
 
 type Input struct {
 	Name string
-
 	Path string
-	Pipe atc.Pipe
 
-	BuildInput atc.BuildInput
+	Plan atc.Plan
 }
 
 func DetermineInputs(
-	client concourse.Client,
+	fact atc.PlanFactory,
 	team concourse.Team,
 	taskInputs []atc.TaskInputConfig,
 	inputMappings []flaghelpers.InputPairFlag,
@@ -49,12 +47,12 @@ func DetermineInputs(
 		})
 	}
 
-	inputsFromLocal, err := GenerateLocalInputs(client, inputMappings)
+	inputsFromLocal, err := GenerateLocalInputs(fact, inputMappings)
 	if err != nil {
 		return nil, err
 	}
 
-	inputsFromJob, err := FetchInputsFromJob(team, inputsFrom)
+	inputsFromJob, err := FetchInputsFromJob(fact, team, inputsFrom)
 	if err != nil {
 		return nil, err
 	}
@@ -113,29 +111,26 @@ func TaskInputsContainsName(inputs []atc.TaskInputConfig, name string) bool {
 	return false
 }
 
-func GenerateLocalInputs(client concourse.Client, inputMappings []flaghelpers.InputPairFlag) (map[string]Input, error) {
+func GenerateLocalInputs(fact atc.PlanFactory, inputMappings []flaghelpers.InputPairFlag) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 
 	for _, i := range inputMappings {
 		inputName := i.Name
 		absPath := i.Path
 
-		pipe, err := client.CreatePipe()
-		if err != nil {
-			return nil, err
-		}
-
 		kvMap[inputName] = Input{
 			Name: inputName,
 			Path: absPath,
-			Pipe: pipe,
+			Plan: fact.NewPlan(atc.UserArtifactPlan{
+				Name: inputName,
+			}),
 		}
 	}
 
 	return kvMap, nil
 }
 
-func FetchInputsFromJob(team concourse.Team, inputsFrom flaghelpers.JobFlag) (map[string]Input, error) {
+func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		return kvMap, nil
@@ -151,9 +146,19 @@ func FetchInputsFromJob(team concourse.Team, inputsFrom flaghelpers.JobFlag) (ma
 	}
 
 	for _, buildInput := range buildInputs {
+		version := buildInput.Version
+
 		kvMap[buildInput.Name] = Input{
-			Name:       buildInput.Name,
-			BuildInput: buildInput,
+			Name: buildInput.Name,
+
+			Plan: fact.NewPlan(atc.GetPlan{
+				Name:    buildInput.Name,
+				Type:    buildInput.Type,
+				Source:  buildInput.Source,
+				Version: &version,
+				Params:  buildInput.Params,
+				Tags:    buildInput.Tags,
+			}),
 		}
 	}
 

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net/http"
 	"os/exec"
 
 	"github.com/concourse/fly/ui"
@@ -13,9 +12,8 @@ import (
 	"github.com/concourse/go-concourse/concourse"
 )
 
-func Upload(client concourse.Client, input Input, includeIgnored bool) {
+func Upload(client concourse.Client, buildID int, input Input, includeIgnored bool) {
 	path := input.Path
-	pipe := input.Pipe
 
 	var files []string
 	var err error
@@ -35,22 +33,18 @@ func Upload(client concourse.Client, input Input, includeIgnored bool) {
 		archiveWriter.CloseWithError(tgzfs.Compress(archiveWriter, path, files...))
 	}()
 
-	upload, err := http.NewRequest("PUT", pipe.WriteURL, archiveStream)
+	found, err := client.SendInputToBuildPlan(buildID, input.Plan.ID, archiveStream)
 	if err != nil {
-		panic(err)
-	}
-
-	response, err := client.HTTPClient().Do(upload)
-	if err != nil {
-		fmt.Fprintln(ui.Stderr, "upload request failed:", err)
+		fmt.Fprintf(ui.Stderr, "failed to upload input '%s': %s", input.Name, err)
 		return
 	}
 
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		fmt.Fprintln(ui.Stderr, badResponseError("uploading bits", response))
+	if !found {
+		fmt.Fprintf(ui.Stderr, "build disappeared while uploading '%s'", input.Name)
+		return
 	}
+
+	return
 }
 
 func getGitFiles(dir string) ([]string, error) {

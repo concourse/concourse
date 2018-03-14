@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/commands/internal/executehelpers"
@@ -48,8 +49,11 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	}
 
 	client := target.Client()
+
+	fact := atc.NewPlanFactory(time.Now().Unix())
+
 	inputs, err := executehelpers.DetermineInputs(
-		client,
+		fact,
 		target.Team(),
 		taskConfig.Inputs,
 		command.Inputs,
@@ -60,7 +64,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	}
 
 	outputs, err := executehelpers.DetermineOutputs(
-		client,
+		fact,
 		taskConfig.Outputs,
 		command.Outputs,
 	)
@@ -69,6 +73,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	}
 
 	plan, err := executehelpers.CreateBuildPlan(
+		fact,
 		target,
 		command.Privileged,
 		inputs,
@@ -124,7 +129,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	go func() {
 		for _, i := range inputs {
 			if i.Path != "" {
-				executehelpers.Upload(client, i, includeIgnored)
+				executehelpers.Upload(client, build.ID, i, includeIgnored)
 			}
 		}
 		close(inputChan)
@@ -136,7 +141,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 			outputChans = append(outputChans, make(chan interface{}, 1))
 			go func(o executehelpers.Output, outputChan chan<- interface{}) {
 				if o.Path != "" {
-					executehelpers.Download(client, o)
+					executehelpers.Download(client, build.ID, o)
 				}
 
 				close(outputChan)

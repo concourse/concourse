@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -83,21 +85,11 @@ run:
 
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
 			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.GetPlan{
+				planFactory.NewPlan(atc.UserArtifactPlan{
 					Name: "some-input",
-					Type: "archive",
-					Source: atc.Source{
-						"authorization": tokenString(),
-						"uri":           atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-					},
 				}),
-				planFactory.NewPlan(atc.GetPlan{
+				planFactory.NewPlan(atc.UserArtifactPlan{
 					Name: "some-other-input",
-					Type: "archive",
-					Source: atc.Source{
-						"authorization": tokenString(),
-						"uri":           atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
-					},
 				}),
 			}),
 			planFactory.NewPlan(atc.TaskPlan{
@@ -132,24 +124,6 @@ run:
 		uploading = make(chan struct{})
 		uploadingTwo = make(chan struct{})
 
-		atcServer.AppendHandlers(
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
-				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "some-pipe-id",
-					ReadURL:  atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-					WriteURL: atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-				}),
-			),
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
-				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "some-other-pipe-id",
-					ReadURL:  atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
-					WriteURL: atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
-				}),
-			),
-		)
 		atcServer.RouteToHandler("POST", "/api/v1/builds",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/builds"),
@@ -208,12 +182,9 @@ run:
 				},
 			),
 		)
-		atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-pipe-id",
+		atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
 				func(w http.ResponseWriter, req *http.Request) {
-					close(uploading)
-
 					gr, err := gzip.NewReader(req.Body)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -227,31 +198,13 @@ run:
 					hdr, err = tr.Next()
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
-				},
-				ghttp.RespondWith(200, ""),
-			),
-		)
-		atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-other-pipe-id",
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-other-pipe-id"),
-				func(w http.ResponseWriter, req *http.Request) {
-					close(uploadingTwo)
+					if strings.HasSuffix(hdr.Name, "task.yml") {
+						close(uploading)
+					} else if strings.HasSuffix(hdr.Name, "s3-asset-file") {
+						close(uploadingTwo)
+					}
 
-					gr, err := gzip.NewReader(req.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					tr := tar.NewReader(gr)
-
-					hdr, err := tr.Next()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(hdr.Name).To(Equal("./"))
-
-					hdr, err = tr.Next()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(hdr.Name).To(MatchRegexp("(./)?s3-asset-file$"))
+					Expect(hdr.Name).To(MatchRegexp("(./)?(task.yml|s3-asset-file)$"))
 				},
 				ghttp.RespondWith(200, ""),
 			),

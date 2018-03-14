@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
@@ -26,7 +27,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
-	"github.com/concourse/fly/rc"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -85,13 +85,8 @@ run:
 
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
 			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.GetPlan{
+				planFactory.NewPlan(atc.UserArtifactPlan{
 					Name: filepath.Base(buildDir),
-					Type: "archive",
-					Source: atc.Source{
-						"authorization": tokenString(),
-						"uri":           atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-					},
 				}),
 			}),
 			planFactory.NewPlan(atc.TaskPlan{
@@ -129,16 +124,6 @@ run:
 		uploading := make(chan struct{})
 		uploadingBits = uploading
 
-		atcServer.RouteToHandler("POST", "/api/v1/pipes",
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
-				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "some-pipe-id",
-					ReadURL:  atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-					WriteURL: atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-				}),
-			),
-		)
 		atcServer.RouteToHandler("POST", "/api/v1/builds",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/builds"),
@@ -197,9 +182,8 @@ run:
 				},
 			),
 		)
-		atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-pipe-id",
+		atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
 				func(w http.ResponseWriter, req *http.Request) {
 					close(uploading)
 
@@ -328,12 +312,10 @@ run: {}
 
 			Context("when arguments not include --include-ignored", func() {
 				It("by default apply .gitignore", func() {
-
 					uploading := make(chan struct{})
 					uploadingBits = uploading
-					atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-pipe-id",
+					atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
 
@@ -382,9 +364,8 @@ run: {}
 				It("uploading with everything", func() {
 					uploading := make(chan struct{})
 					uploadingBits = uploading
-					atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-pipe-id",
+					atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
 
@@ -824,63 +805,6 @@ run:
 				})
 			})
 		}
-	})
-
-	Context("when the target has an auth token", func() {
-		var tmpDir string
-		var targetName string
-
-		BeforeEach(func() {
-			var err error
-			tmpDir, err = ioutil.TempDir("", "fly-test")
-			Expect(err).NotTo(HaveOccurred())
-
-			os.Setenv("HOME", tmpDir)
-
-			targetName = "foo"
-			token := rc.TargetToken{
-				Type:  "Bearer",
-				Value: "some-token",
-			}
-
-			err = rc.SaveTarget(
-				rc.TargetName(targetName),
-				atcServer.URL(),
-				true,
-				"some-team",
-				&token,
-				"",
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			(*(*expectedPlan.Do)[0].Aggregate)[0].Get.Source = atc.Source{
-				"uri":                 atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-				"authorization":       tokenString(),
-				"skip_ssl_validation": true,
-			}
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tmpDir)
-		})
-
-		It("connects with the auth token", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)
-			flyCmd.Dir = buildDir
-
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).ToNot(HaveOccurred())
-
-			Eventually(streaming).Should(BeClosed())
-
-			events <- event.Status{Status: atc.StatusSucceeded}
-			close(events)
-
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
-
-			Expect(uploadingBits).To(BeClosed())
-		})
 	})
 
 	Context("when the build succeeds", func() {
