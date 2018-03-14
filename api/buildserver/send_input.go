@@ -13,7 +13,7 @@ import (
 
 func (s *Server) SendInputToBuild(build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := s.logger.Session("abort", lager.Data{
+		logger := s.logger.Session("send-input", lager.Data{
 			"build": build.ID(),
 		})
 
