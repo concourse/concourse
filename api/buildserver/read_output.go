@@ -2,6 +2,7 @@ package buildserver
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -23,6 +24,29 @@ func (s *Server) ReadOutputFromBuildPlan(build db.Build) http.Handler {
 		}
 
 		logger.Debug("reading-output", lager.Data{"plan": planID})
+
+		cn := w.(http.CloseNotifier).CloseNotify()
+
+		for build.Tracker() == "" {
+			found, err := build.Reload()
+			if err != nil {
+				logger.Error("failed-to-reload-build", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if !found {
+				logger.Info("build-disappeared")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			select {
+			case <-time.After(time.Second):
+			case <-cn:
+				return
+			}
+		}
 
 		if build.Tracker() == s.peerURL {
 			engineBuild, err := s.engine.LookupBuild(logger, build)

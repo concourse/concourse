@@ -1527,6 +1527,35 @@ var _ = Describe("Builds API", func() {
 							It("returns No Content", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
 							})
+
+							Context("when the build is initially not tracked", func() {
+								BeforeEach(func() {
+									build.ReloadReturns(true, nil)
+
+									build.TrackerReturnsOnCall(0, "")
+									build.TrackerReturnsOnCall(2, "http://127.0.0.1:1234")
+								})
+
+								It("waits until it is", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+
+									Expect(engineBuild.ReceiveInputCallCount()).To(Equal(1))
+
+									_, id, _ := engineBuild.ReceiveInputArgsForCall(0)
+									Expect(id).To(Equal(atc.PlanID("some-plan")))
+									Expect(streamedBody).To(Equal("some-payload"))
+								})
+							})
+						})
+
+						Context("when the engine returns no build", func() {
+							BeforeEach(func() {
+								fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
+							})
+
+							It("returns Internal Server Error", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
 						})
 					})
 
@@ -1544,15 +1573,22 @@ var _ = Describe("Builds API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusTeapot))
 							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("im a teapot")))
 						})
-					})
 
-					Context("when the engine returns no build", func() {
-						BeforeEach(func() {
-							fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
-						})
+						Context("when the build is initially not tracked", func() {
+							BeforeEach(func() {
+								build.ReloadReturns(true, nil)
 
-						It("returns Internal Server Error", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+								build.TrackerReturnsOnCall(0, "")
+								build.TrackerReturnsOnCall(2, otherTracker.URL())
+							})
+
+							It("waits until it is", func() {
+								Expect(fakeEngine.LookupBuildCallCount()).To(Equal(0))
+
+								Expect(otherTracker.ReceivedRequests()).To(HaveLen(1))
+								Expect(response.StatusCode).To(Equal(http.StatusTeapot))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("im a teapot")))
+							})
 						})
 					})
 				})
@@ -1680,6 +1716,35 @@ var _ = Describe("Builds API", func() {
 							It("returns OK", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
+
+							Context("when the build is initially not tracked", func() {
+								BeforeEach(func() {
+									build.ReloadReturns(true, nil)
+
+									build.TrackerReturnsOnCall(0, "")
+									build.TrackerReturnsOnCall(2, "http://127.0.0.1:1234")
+								})
+
+								It("waits until it is", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+									Expect(engineBuild.SendOutputCallCount()).To(Equal(1))
+
+									_, id, _ := engineBuild.SendOutputArgsForCall(0)
+									Expect(id).To(Equal(atc.PlanID("some-plan")))
+									Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("hello from build\n")))
+								})
+							})
+						})
+
+						Context("when the engine returns no build", func() {
+							BeforeEach(func() {
+								fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
+							})
+
+							It("returns Internal Server Error", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
 						})
 					})
 
@@ -1697,15 +1762,22 @@ var _ = Describe("Builds API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusTeapot))
 							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("im a teapot")))
 						})
-					})
 
-					Context("when the engine returns no build", func() {
-						BeforeEach(func() {
-							fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
-						})
+						Context("when the build is initially not tracked", func() {
+							BeforeEach(func() {
+								build.ReloadReturns(true, nil)
 
-						It("returns Internal Server Error", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+								build.TrackerReturnsOnCall(0, "")
+								build.TrackerReturnsOnCall(2, otherTracker.URL())
+							})
+
+							It("waits until it is", func() {
+								Expect(fakeEngine.LookupBuildCallCount()).To(Equal(0))
+
+								Expect(otherTracker.ReceivedRequests()).To(HaveLen(1))
+								Expect(response.StatusCode).To(Equal(http.StatusTeapot))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("im a teapot")))
+							})
 						})
 					})
 				})
