@@ -127,17 +127,6 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	CreatePipeStub        func() (atc.Pipe, error)
-	createPipeMutex       sync.RWMutex
-	createPipeArgsForCall []struct{}
-	createPipeReturns     struct {
-		result1 atc.Pipe
-		result2 error
-	}
-	createPipeReturnsOnCall map[int]struct {
-		result1 atc.Pipe
-		result2 error
-	}
 	ListContainersStub        func(queryList map[string]string) ([]atc.Container, error)
 	listContainersMutex       sync.RWMutex
 	listContainersArgsForCall []struct {
@@ -708,49 +697,6 @@ func (fake *FakeClient) BuildPlanReturnsOnCall(i int, result1 atc.PublicBuildPla
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) CreatePipe() (atc.Pipe, error) {
-	fake.createPipeMutex.Lock()
-	ret, specificReturn := fake.createPipeReturnsOnCall[len(fake.createPipeArgsForCall)]
-	fake.createPipeArgsForCall = append(fake.createPipeArgsForCall, struct{}{})
-	fake.recordInvocation("CreatePipe", []interface{}{})
-	fake.createPipeMutex.Unlock()
-	if fake.CreatePipeStub != nil {
-		return fake.CreatePipeStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.createPipeReturns.result1, fake.createPipeReturns.result2
-}
-
-func (fake *FakeClient) CreatePipeCallCount() int {
-	fake.createPipeMutex.RLock()
-	defer fake.createPipeMutex.RUnlock()
-	return len(fake.createPipeArgsForCall)
-}
-
-func (fake *FakeClient) CreatePipeReturns(result1 atc.Pipe, result2 error) {
-	fake.CreatePipeStub = nil
-	fake.createPipeReturns = struct {
-		result1 atc.Pipe
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) CreatePipeReturnsOnCall(i int, result1 atc.Pipe, result2 error) {
-	fake.CreatePipeStub = nil
-	if fake.createPipeReturnsOnCall == nil {
-		fake.createPipeReturnsOnCall = make(map[int]struct {
-			result1 atc.Pipe
-			result2 error
-		})
-	}
-	fake.createPipeReturnsOnCall[i] = struct {
-		result1 atc.Pipe
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeClient) ListContainers(queryList map[string]string) ([]atc.Container, error) {
 	fake.listContainersMutex.Lock()
 	ret, specificReturn := fake.listContainersReturnsOnCall[len(fake.listContainersArgsForCall)]
@@ -1241,8 +1187,6 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.createBuildMutex.RUnlock()
 	fake.buildPlanMutex.RLock()
 	defer fake.buildPlanMutex.RUnlock()
-	fake.createPipeMutex.RLock()
-	defer fake.createPipeMutex.RUnlock()
 	fake.listContainersMutex.RLock()
 	defer fake.listContainersMutex.RUnlock()
 	fake.listVolumesMutex.RLock()
