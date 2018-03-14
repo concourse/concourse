@@ -275,7 +275,8 @@ A task's configuration specifies the following:
       For example:
 
       \codeblock{bash}{{
-      $ fly -t example execute --input code=. --input stemcells=../stemcells
+      $ fly -t example execute --input code=.
+          --input stemcells=../stemcells
       }}
 
       This would work together with a \code{task.yml} if its \code{inputs:}
@@ -308,7 +309,8 @@ A task's configuration specifies the following:
       For example:
 
       \codeblock{bash}{{
-      $ fly -t example execute --config task.yml --inputs-from main/integration --input foo=./foo
+      $ fly -t example execute --config task.yml
+          --inputs-from main/integration --input foo=./foo
       }}
 
       This will trigger a one-off-build using the \code{task.yml} task
@@ -328,7 +330,9 @@ A task's configuration specifies the following:
       the build and back to your local system. For example:
 
       \codeblock{bash}{{
-      $ fly -t example execute --input code=. --config build-stemcell.yml --output stemcell=/tmp/stemcell
+      $ fly -t example execute --input code=.
+          --config build-stemcell.yml
+          --output stemcell=/tmp/stemcell
       }}
 
       This would work together with a \code{task.yml} if its \code{outputs:}

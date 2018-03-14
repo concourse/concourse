@@ -35,15 +35,16 @@ body.with-examples {
 }
 
 .page {
-  width: 660px;
+  width: 500px;
   background: #fff;
   padding-right: 30px;
 }
 
 .side {
   background: #fff;
-  width: 200px;
+  width: 190px;
   padding-left: 70px;
+  padding-right: 10px;
   font-family: 'Iosevka', monospace;
   font-size: 14px;
   color: #7A7373;
@@ -150,6 +151,7 @@ pre {
   background: #2A2929;
   color: #fff;
   padding: .5rem;
+  overflow-x: auto;
 }
 
 code code {
