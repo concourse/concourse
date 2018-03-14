@@ -23,7 +23,7 @@ files:
   - github.com/concourse/baggageclaim/uidgid/*.{go,s,c,h} # gosub
   - github.com/concourse/baggageclaim/volume/*.{go,s,c,h} # gosub
   - github.com/concourse/flag/*.{go,s,c,h} # gosub
-  - github.com/concourse/go-archive/tarfs/*.{go,s,c,h} # gosub
+  - github.com/concourse/go-archive/tgzfs/*.{go,s,c,h} # gosub
   - github.com/concourse/retryhttp/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/cmd/tsa/*.{go,s,c,h} # gosub

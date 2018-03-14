@@ -20,7 +20,7 @@ files:
   - github.com/concourse/baggageclaim/volume/*.{go,s,c,h} # gosub
   - github.com/concourse/baggageclaim/volume/driver/*.{go,s,c,h} # gosub
   - github.com/concourse/flag/*.{go,s,c,h} # gosub
-  - github.com/concourse/go-archive/tarfs/*.{go,s,c,h} # gosub
+  - github.com/concourse/go-archive/tgzfs/*.{go,s,c,h} # gosub
   - github.com/contraband/holler/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/hashicorp/go-multierror/*.{go,s,c,h} # gosub
