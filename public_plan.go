@@ -19,8 +19,7 @@ func (plan Plan) Public() *json.RawMessage {
 		DependentGet *json.RawMessage `json:"dependent_get,omitempty"`
 		Timeout      *json.RawMessage `json:"timeout,omitempty"`
 		Retry        *json.RawMessage `json:"retry,omitempty"`
-		PipeRead     *json.RawMessage `json:"pipe_read,omitempty"`
-		PipeWrite    *json.RawMessage `json:"pipe_write,omitempty"`
+		UserArtifact *json.RawMessage `json:"user_artifact,omitempty"`
 	}
 
 	public.ID = plan.ID
@@ -73,12 +72,8 @@ func (plan Plan) Public() *json.RawMessage {
 		public.Retry = plan.Retry.Public()
 	}
 
-	if plan.PipeRead != nil {
-		public.PipeRead = plan.PipeRead.Public()
-	}
-
-	if plan.PipeWrite != nil {
-		public.PipeWrite = plan.PipeWrite.Public()
+	if plan.UserArtifact != nil {
+		public.UserArtifact = plan.UserArtifact.Public()
 	}
 
 	if plan.DependentGet != nil {
@@ -224,24 +219,8 @@ func (plan RetryPlan) Public() *json.RawMessage {
 	return enc(public)
 }
 
-func (plan PipeReadPlan) Public() *json.RawMessage {
-	return enc(struct {
-		Pipe string `json:"pipe"`
-		To   string `json:"to"`
-	}{
-		Pipe: plan.Pipe,
-		To:   plan.To,
-	})
-}
-
-func (plan PipeWritePlan) Public() *json.RawMessage {
-	return enc(struct {
-		Pipe string `json:"pipe"`
-		From string `json:"from"`
-	}{
-		Pipe: plan.Pipe,
-		From: plan.From,
-	})
+func (plan UserArtifactPlan) Public() *json.RawMessage {
+	return enc(plan)
 }
 
 func enc(public interface{}) *json.RawMessage {

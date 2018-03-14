@@ -158,3 +158,7 @@ func (build *execBuild) buildRetryStep(logger lager.Logger, plan atc.Plan) exec.
 
 	return exec.Retry(steps...)
 }
+
+func (build *execBuild) buildUserArtifactStep(logger lager.Logger, plan atc.Plan) exec.Step {
+	return exec.UserArtifact(plan.ID, plan.UserArtifact.Name)
+}

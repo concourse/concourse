@@ -2,6 +2,7 @@
 package execfakes
 
 import (
+	"io"
 	"sync"
 
 	"github.com/concourse/atc"
@@ -36,6 +37,24 @@ type FakeRunState struct {
 	storeResultArgsForCall []struct {
 		arg1 atc.PlanID
 		arg2 interface{}
+	}
+	SendUserInputStub        func(atc.PlanID, io.ReadCloser)
+	sendUserInputMutex       sync.RWMutex
+	sendUserInputArgsForCall []struct {
+		arg1 atc.PlanID
+		arg2 io.ReadCloser
+	}
+	ReadUserInputStub        func(atc.PlanID, exec.InputHandler) error
+	readUserInputMutex       sync.RWMutex
+	readUserInputArgsForCall []struct {
+		arg1 atc.PlanID
+		arg2 exec.InputHandler
+	}
+	readUserInputReturns struct {
+		result1 error
+	}
+	readUserInputReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -155,6 +174,80 @@ func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, interface{}
 	return fake.storeResultArgsForCall[i].arg1, fake.storeResultArgsForCall[i].arg2
 }
 
+func (fake *FakeRunState) SendUserInput(arg1 atc.PlanID, arg2 io.ReadCloser) {
+	fake.sendUserInputMutex.Lock()
+	fake.sendUserInputArgsForCall = append(fake.sendUserInputArgsForCall, struct {
+		arg1 atc.PlanID
+		arg2 io.ReadCloser
+	}{arg1, arg2})
+	fake.recordInvocation("SendUserInput", []interface{}{arg1, arg2})
+	fake.sendUserInputMutex.Unlock()
+	if fake.SendUserInputStub != nil {
+		fake.SendUserInputStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeRunState) SendUserInputCallCount() int {
+	fake.sendUserInputMutex.RLock()
+	defer fake.sendUserInputMutex.RUnlock()
+	return len(fake.sendUserInputArgsForCall)
+}
+
+func (fake *FakeRunState) SendUserInputArgsForCall(i int) (atc.PlanID, io.ReadCloser) {
+	fake.sendUserInputMutex.RLock()
+	defer fake.sendUserInputMutex.RUnlock()
+	return fake.sendUserInputArgsForCall[i].arg1, fake.sendUserInputArgsForCall[i].arg2
+}
+
+func (fake *FakeRunState) ReadUserInput(arg1 atc.PlanID, arg2 exec.InputHandler) error {
+	fake.readUserInputMutex.Lock()
+	ret, specificReturn := fake.readUserInputReturnsOnCall[len(fake.readUserInputArgsForCall)]
+	fake.readUserInputArgsForCall = append(fake.readUserInputArgsForCall, struct {
+		arg1 atc.PlanID
+		arg2 exec.InputHandler
+	}{arg1, arg2})
+	fake.recordInvocation("ReadUserInput", []interface{}{arg1, arg2})
+	fake.readUserInputMutex.Unlock()
+	if fake.ReadUserInputStub != nil {
+		return fake.ReadUserInputStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.readUserInputReturns.result1
+}
+
+func (fake *FakeRunState) ReadUserInputCallCount() int {
+	fake.readUserInputMutex.RLock()
+	defer fake.readUserInputMutex.RUnlock()
+	return len(fake.readUserInputArgsForCall)
+}
+
+func (fake *FakeRunState) ReadUserInputArgsForCall(i int) (atc.PlanID, exec.InputHandler) {
+	fake.readUserInputMutex.RLock()
+	defer fake.readUserInputMutex.RUnlock()
+	return fake.readUserInputArgsForCall[i].arg1, fake.readUserInputArgsForCall[i].arg2
+}
+
+func (fake *FakeRunState) ReadUserInputReturns(result1 error) {
+	fake.ReadUserInputStub = nil
+	fake.readUserInputReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRunState) ReadUserInputReturnsOnCall(i int, result1 error) {
+	fake.ReadUserInputStub = nil
+	if fake.readUserInputReturnsOnCall == nil {
+		fake.readUserInputReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.readUserInputReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -164,6 +257,10 @@ func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	defer fake.resultMutex.RUnlock()
 	fake.storeResultMutex.RLock()
 	defer fake.storeResultMutex.RUnlock()
+	fake.sendUserInputMutex.RLock()
+	defer fake.sendUserInputMutex.RUnlock()
+	fake.readUserInputMutex.RLock()
+	defer fake.readUserInputMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

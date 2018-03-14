@@ -81,7 +81,7 @@ func NewHandler(
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
-	buildServer := buildserver.NewServer(logger, externalURL, engine, workerClient, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
+	buildServer := buildserver.NewServer(logger, externalURL, peerURL, engine, workerClient, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
@@ -109,6 +109,7 @@ func NewHandler(
 		atc.GetBuildPlan:        buildHandlerFactory.HandlerFor(buildServer.GetBuildPlan),
 		atc.GetBuildPreparation: buildHandlerFactory.HandlerFor(buildServer.GetBuildPreparation),
 		atc.BuildEvents:         buildHandlerFactory.HandlerFor(buildServer.BuildEvents),
+		atc.SendInputToBuild:    buildHandlerFactory.HandlerFor(buildServer.SendInputToBuild),
 
 		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
 		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob),

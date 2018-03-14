@@ -87,6 +87,8 @@ const (
 	SetTeam     = "SetTeam"
 	RenameTeam  = "RenameTeam"
 	DestroyTeam = "DestroyTeam"
+
+	SendInputToBuild = "SendInputToBuild"
 )
 
 var Routes = rata.Routes([]rata.Route{
@@ -97,6 +99,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},
 	{Path: "/api/v1/builds/:build_id", Method: "GET", Name: GetBuild},
 	{Path: "/api/v1/builds/:build_id/plan", Method: "GET", Name: GetBuildPlan},
+	{Path: "/api/v1/builds/:build_id/plan/:plan_id/input", Method: "PUT", Name: SendInputToBuild},
 	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},
 	{Path: "/api/v1/builds/:build_id/resources", Method: "GET", Name: BuildResources},
 	{Path: "/api/v1/builds/:build_id/abort", Method: "PUT", Name: AbortBuild},

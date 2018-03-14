@@ -284,19 +284,8 @@ var _ = Describe("Plan", func() {
 
 					atc.Plan{
 						ID: "31",
-						PipeRead: &atc.PipeReadPlan{
-							Pipe:  "some-pipe",
-							To:    "some-name",
-							Token: "some-token",
-						},
-					},
-
-					atc.Plan{
-						ID: "32",
-						PipeWrite: &atc.PipeWritePlan{
-							Pipe:  "some-pipe",
-							From:  "some-name",
-							Token: "some-token",
+						UserArtifact: &atc.UserArtifactPlan{
+							Name: "some-name",
 						},
 					},
 				},
@@ -505,16 +494,8 @@ var _ = Describe("Plan", func() {
     },
 		{
 			"id": "31",
-			"pipe_read": {
-				"pipe": "some-pipe",
-				"to": "some-name"
-			}
-		},
-		{
-			"id": "32",
-			"pipe_write": {
-				"pipe": "some-pipe",
-				"from": "some-name"
+			"user_artifact": {
+				"name": "some-name"
 			}
 		}
   ]

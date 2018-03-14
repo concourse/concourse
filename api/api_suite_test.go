@@ -54,7 +54,7 @@ var (
 	fakeVariablesFactory    *credsfakes.FakeVariablesFactory
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
-	peerAddr                string
+	peerURL                 string
 	drain                   chan struct{}
 	expire                  time.Duration
 	isTLSEnabled            bool
@@ -110,7 +110,7 @@ var _ = BeforeEach(func() {
 	jwtValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
 
-	peerAddr = "127.0.0.1:1234"
+	peerURL = "http://127.0.0.1:1234"
 	drain = make(chan struct{})
 
 	fakeEngine = new(enginefakes.FakeEngine)
@@ -173,7 +173,7 @@ var _ = BeforeEach(func() {
 		fakeContainerRepository,
 		dbBuildFactory,
 
-		peerAddr,
+		peerURL,
 		constructedEventHandler.Construct,
 		drain,
 

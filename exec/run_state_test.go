@@ -1,6 +1,12 @@
 package exec_test
 
 import (
+	"bytes"
+	"errors"
+	"io"
+	"io/ioutil"
+	"runtime"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/exec"
 	. "github.com/onsi/ginkgo"
@@ -91,6 +97,53 @@ var _ = Describe("RunState", func() {
 					Expect(ok).To(BeFalse())
 				})
 			})
+		})
+	})
+
+	Describe("User Input", func() {
+		It("can be passed around asynchronously", func() {
+			buf := ioutil.NopCloser(bytes.NewBufferString("some-payload"))
+
+			go state.SendUserInput("some-plan-id", buf)
+			runtime.Gosched()
+
+			err := state.ReadUserInput("some-plan-id", func(rc io.ReadCloser) error {
+				Expect(rc).To(Equal(buf))
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("blocks the sender until the reader is finished", func() {
+			buf := ioutil.NopCloser(bytes.NewBufferString("some-payload"))
+
+			var done bool
+			go func() {
+				defer GinkgoRecover()
+				state.SendUserInput("some-plan-id", buf)
+				Expect(done).To(BeTrue())
+			}()
+
+			runtime.Gosched()
+
+			err := state.ReadUserInput("some-plan-id", func(rc io.ReadCloser) error {
+				Expect(rc).To(Equal(buf))
+				done = true
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("bubbles up the handler error", func() {
+			buf := ioutil.NopCloser(bytes.NewBufferString("some-payload"))
+
+			go state.SendUserInput("some-plan-id", buf)
+
+			disaster := errors.New("nope")
+			err := state.ReadUserInput("some-plan-id", func(rc io.ReadCloser) error {
+				return disaster
+			})
+			Expect(err).To(Equal(disaster))
 		})
 	})
 })

@@ -1071,7 +1071,7 @@ func (cmd *ATCCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine})
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURL.String())
 }
 
 func (cmd *ATCCommand) constructHTTPHandler(

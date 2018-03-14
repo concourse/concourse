@@ -112,6 +112,26 @@ var _ = Describe("Build", func() {
 		})
 	})
 
+	Describe("TrackedBy", func() {
+		var build db.Build
+
+		BeforeEach(func() {
+			var err error
+			build, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("updates build status", func() {
+			Expect(build.TrackedBy("http://1.2.3.4:8080")).To(Succeed())
+
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(build.Tracker()).To(Equal("http://1.2.3.4:8080"))
+		})
+	})
+
 	Describe("Finish", func() {
 		var build db.Build
 		BeforeEach(func() {
@@ -968,7 +988,7 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("UseInput", func() {
+	Describe("UseInputs", func() {
 		var build db.Build
 		BeforeEach(func() {
 			pipelineConfig := atc.Config{

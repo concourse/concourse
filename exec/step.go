@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"io"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -30,11 +31,16 @@ type Step interface {
 
 //go:generate counterfeiter . RunState
 
+type InputHandler func(io.ReadCloser) error
+
 type RunState interface {
 	Artifacts() *worker.ArtifactRepository
 
 	Result(atc.PlanID, interface{}) bool
 	StoreResult(atc.PlanID, interface{})
+
+	SendUserInput(atc.PlanID, io.ReadCloser)
+	ReadUserInput(atc.PlanID, InputHandler) error
 }
 
 // ExitStatus is the resulting exit code from the process that the step ran.

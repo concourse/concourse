@@ -49,10 +49,8 @@ func (factory PlanFactory) NewPlan(step Step) Plan {
 		plan.Timeout = &t
 	case RetryPlan:
 		plan.Retry = &t
-	case PipeReadPlan:
-		plan.PipeRead = &t
-	case PipeWritePlan:
-		plan.PipeWrite = &t
+	case UserArtifactPlan:
+		plan.UserArtifact = &t
 	default:
 		panic(fmt.Sprintf("don't know how to construct plan from %T", step))
 	}

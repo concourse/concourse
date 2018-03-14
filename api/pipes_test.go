@@ -87,7 +87,7 @@ var _ = Describe("Pipes API", func() {
 					pipe = createPipe()
 					dbTeam.GetPipeReturns(db.Pipe{
 						ID:       pipe.ID,
-						URL:      peerAddr,
+						URL:      peerURL,
 						TeamName: "team1",
 					}, nil)
 				})

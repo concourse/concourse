@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"io"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -23,6 +25,8 @@ type Build interface {
 
 	Abort(lager.Logger) error
 	Resume(lager.Logger)
+
+	ReceiveInput(lager.Logger, atc.PlanID, io.ReadCloser)
 }
 
 type Engines []Engine
