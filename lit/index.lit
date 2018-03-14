@@ -46,7 +46,7 @@
   The visualization also provides a "gut check" feedback loop - if it
   \italic{looks} wrong, it probably \italic{is} wrong.
 }{
-  \example-pipeline
+  \image{images/concourse-pipeline.png}
 }
 
 \splash-example{CI Under Source Control}{
