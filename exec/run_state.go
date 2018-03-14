@@ -13,6 +13,7 @@ type runState struct {
 	artifacts *worker.ArtifactRepository
 	results   *sync.Map
 	inputs    *sync.Map
+	outputs   *sync.Map
 }
 
 func NewRunState() RunState {
@@ -20,6 +21,7 @@ func NewRunState() RunState {
 		artifacts: worker.NewArtifactRepository(),
 		results:   &sync.Map{},
 		inputs:    &sync.Map{},
+		outputs:   &sync.Map{},
 	}
 }
 
@@ -68,6 +70,34 @@ func (state *runState) ReadUserInput(id atc.PlanID, handler InputHandler) error 
 
 	// wait for stream from request to arrive
 	stream := <-inputs
+
+	// synchronously stream in
+	return handler(stream)
+}
+
+func (state *runState) ReadPlanOutput(id atc.PlanID, output io.Writer) {
+	i, _ := state.outputs.LoadOrStore(id, make(chan io.Writer))
+	outputs := i.(chan io.Writer)
+
+	// send input (blocking) to a reader
+	outputs <- output
+
+	// wait for reader to close channel signifying that they're done
+	<-outputs
+
+	// clear out the channel
+	state.outputs.Delete(id)
+}
+
+func (state *runState) SendPlanOutput(id atc.PlanID, handler OutputHandler) error {
+	i, _ := state.outputs.LoadOrStore(id, make(chan io.Writer))
+	outputs := i.(chan io.Writer)
+
+	// signal to sender that we're done
+	defer close(outputs)
+
+	// wait for stream from request to arrive
+	stream := <-outputs
 
 	// synchronously stream in
 	return handler(stream)

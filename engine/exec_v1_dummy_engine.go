@@ -55,3 +55,6 @@ func (execV1DummyBuild) Resume(logger lager.Logger) {
 
 func (execV1DummyBuild) ReceiveInput(logger lager.Logger, id atc.PlanID, input io.ReadCloser) {
 }
+
+func (execV1DummyBuild) SendOutput(logger lager.Logger, id atc.PlanID, output io.Writer) {
+}

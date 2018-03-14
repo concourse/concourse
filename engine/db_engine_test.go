@@ -730,11 +730,37 @@ var _ = Describe("DBEngine", func() {
 				build.ReceiveInput(lagertest.NewTestLogger("test"), "some-plan-id", input)
 			})
 
-			It("sends input to the real build", func() {
+			It("delegates to the real build", func() {
 				Expect(realBuild.ReceiveInputCallCount()).To(Equal(1))
 				_, id, in := realBuild.ReceiveInputArgsForCall(0)
 				Expect(id).To(Equal(atc.PlanID("some-plan-id")))
 				Expect(in).To(Equal(input))
+			})
+		})
+
+		Describe("SendOutput", func() {
+			var (
+				output *bytes.Buffer
+
+				realBuild *enginefakes.FakeBuild
+			)
+
+			BeforeEach(func() {
+				output = new(bytes.Buffer)
+				dbBuild.EngineReturns("fake-engine-b")
+				realBuild = new(enginefakes.FakeBuild)
+				fakeEngineB.LookupBuildReturns(realBuild, nil)
+			})
+
+			JustBeforeEach(func() {
+				build.SendOutput(lagertest.NewTestLogger("test"), "some-plan-id", output)
+			})
+
+			It("delegates to the real build", func() {
+				Expect(realBuild.SendOutputCallCount()).To(Equal(1))
+				_, id, out := realBuild.SendOutputArgsForCall(0)
+				Expect(id).To(Equal(atc.PlanID("some-plan-id")))
+				Expect(out).To(Equal(output))
 			})
 		})
 	})

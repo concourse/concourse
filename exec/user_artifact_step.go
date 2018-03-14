@@ -11,10 +11,10 @@ import (
 
 type UserArtifactStep struct {
 	id   atc.PlanID
-	name string
+	name worker.ArtifactName
 }
 
-func UserArtifact(id atc.PlanID, name string) Step {
+func UserArtifact(id atc.PlanID, name worker.ArtifactName) Step {
 	return &UserArtifactStep{
 		id:   id,
 		name: name,
@@ -22,11 +22,7 @@ func UserArtifact(id atc.PlanID, name string) Step {
 }
 
 func (step *UserArtifactStep) Run(ctx context.Context, state RunState) error {
-	state.Artifacts().RegisterSource(
-		worker.ArtifactName(step.name),
-		streamSource{step.id, state},
-	)
-
+	state.Artifacts().RegisterSource(step.name, streamSource{step.id, state})
 	return nil
 }
 

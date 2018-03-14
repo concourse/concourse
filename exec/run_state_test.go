@@ -146,4 +146,51 @@ var _ = Describe("RunState", func() {
 			Expect(err).To(Equal(disaster))
 		})
 	})
+
+	Describe("Plan Output", func() {
+		It("can be passed around asynchronously", func() {
+			out := new(bytes.Buffer)
+
+			go state.ReadPlanOutput("some-plan-id", out)
+			runtime.Gosched()
+
+			err := state.SendPlanOutput("some-plan-id", func(w io.Writer) error {
+				Expect(w).To(Equal(out))
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("blocks the sender until the reader is finished", func() {
+			buf := new(bytes.Buffer)
+
+			var done bool
+			go func() {
+				defer GinkgoRecover()
+				state.ReadPlanOutput("some-plan-id", buf)
+				Expect(done).To(BeTrue())
+			}()
+
+			runtime.Gosched()
+
+			err := state.SendPlanOutput("some-plan-id", func(w io.Writer) error {
+				Expect(w).To(Equal(buf))
+				done = true
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("bubbles up the handler error", func() {
+			buf := new(bytes.Buffer)
+
+			go state.ReadPlanOutput("some-plan-id", buf)
+
+			disaster := errors.New("nope")
+			err := state.SendPlanOutput("some-plan-id", func(w io.Writer) error {
+				return disaster
+			})
+			Expect(err).To(Equal(disaster))
+		})
+	})
 })

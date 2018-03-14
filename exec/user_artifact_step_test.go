@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("GetStep", func() {
+var _ = Describe("UserArtifactStep", func() {
 	var (
 		ctx    context.Context
 		cancel func()

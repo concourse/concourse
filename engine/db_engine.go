@@ -327,6 +327,28 @@ func (build *dbBuild) ReceiveInput(logger lager.Logger, id atc.PlanID, input io.
 	engineBuild.ReceiveInput(logger, id, input)
 }
 
+func (build *dbBuild) SendOutput(logger lager.Logger, id atc.PlanID, output io.Writer) {
+	buildEngineName := build.build.Engine()
+	if buildEngineName == "" {
+		logger.Info("sending-input-to-build-with-no-engine")
+		return
+	}
+
+	buildEngine, found := build.engines.Lookup(buildEngineName)
+	if !found {
+		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
+		return
+	}
+
+	engineBuild, err := buildEngine.LookupBuild(logger, build.build)
+	if err != nil {
+		logger.Error("failed-to-lookup-build-in-engine", err)
+		return
+	}
+
+	engineBuild.SendOutput(logger, id, output)
+}
+
 func (build *dbBuild) finishWithError(logger lager.Logger, finishErr error) {
 	err := build.build.FinishWithError(finishErr)
 	if err != nil {

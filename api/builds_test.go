@@ -1603,4 +1603,157 @@ var _ = Describe("Builds API", func() {
 			})
 		})
 	})
+
+	Describe("GET /api/v1/builds/:build_id/plan/:plan_id/output", func() {
+		var (
+			otherTracker *ghttp.Server
+
+			response *http.Response
+		)
+
+		BeforeEach(func() {
+			otherTracker = ghttp.NewServer()
+
+			otherTracker.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/builds/128/plan/some-plan/output"),
+					ghttp.RespondWith(http.StatusTeapot, "im a teapot"),
+				),
+			)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/builds/128/plan/some-plan/output", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			otherTracker.Close()
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				jwtValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when the build can be found", func() {
+				BeforeEach(func() {
+					build.TeamNameReturns("some-team")
+					dbBuildFactory.BuildReturns(build, true, nil)
+				})
+
+				Context("when accessing same team's build", func() {
+					BeforeEach(func() {
+						userContextReader.GetTeamReturns("some-team", true, true)
+					})
+
+					Context("when the build is tracked by the current ATC", func() {
+						BeforeEach(func() {
+							build.TrackerReturns("http://127.0.0.1:1234")
+						})
+
+						Context("when the engine returns a build", func() {
+							var engineBuild *enginefakes.FakeBuild
+
+							BeforeEach(func() {
+								engineBuild = new(enginefakes.FakeBuild)
+								fakeEngine.LookupBuildReturns(engineBuild, nil)
+
+								engineBuild.SendOutputStub = func(logger lager.Logger, id atc.PlanID, dest io.Writer) {
+									fmt.Fprintln(dest, "hello from build")
+								}
+							})
+
+							It("sends the plan's output to the response body", func() {
+								Expect(engineBuild.SendOutputCallCount()).To(Equal(1))
+
+								_, id, _ := engineBuild.SendOutputArgsForCall(0)
+								Expect(id).To(Equal(atc.PlanID("some-plan")))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("hello from build\n")))
+							})
+
+							It("returns OK", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
+						})
+					})
+
+					Context("when the build is tracked by another ATC", func() {
+						BeforeEach(func() {
+							build.TrackerReturns(otherTracker.URL())
+						})
+
+						It("does not bother looking up the build in the engine", func() {
+							Expect(fakeEngine.LookupBuildCallCount()).To(Equal(0))
+						})
+
+						It("forwards the request to the other ATC", func() {
+							Expect(otherTracker.ReceivedRequests()).To(HaveLen(1))
+							Expect(response.StatusCode).To(Equal(http.StatusTeapot))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("im a teapot")))
+						})
+					})
+
+					Context("when the engine returns no build", func() {
+						BeforeEach(func() {
+							fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
+						})
+
+						It("returns Internal Server Error", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+				})
+
+				Context("when accessing other team's build", func() {
+					BeforeEach(func() {
+						userContextReader.GetTeamReturns("some-other-team", true, true)
+					})
+
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
+			})
+
+			Context("when the build can not be found", func() {
+				BeforeEach(func() {
+					dbBuildFactory.BuildReturns(nil, false, nil)
+				})
+
+				It("returns Not Found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when calling the database fails", func() {
+				BeforeEach(func() {
+					dbBuildFactory.BuildReturns(nil, false, errors.New("nope"))
+				})
+
+				It("returns Internal Server Error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				jwtValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not abort the build", func() {
+				Expect(otherTracker.ReceivedRequests()).To(BeEmpty())
+			})
+		})
+	})
 })

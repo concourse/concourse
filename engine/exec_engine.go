@@ -173,6 +173,10 @@ func (build *execBuild) ReceiveInput(logger lager.Logger, plan atc.PlanID, strea
 	build.runState().SendUserInput(plan, stream)
 }
 
+func (build *execBuild) SendOutput(logger lager.Logger, plan atc.PlanID, output io.Writer) {
+	build.runState().ReadPlanOutput(plan, output)
+}
+
 func (build *execBuild) runState() exec.RunState {
 	existingState, _ := build.trackedStates.LoadOrStore(build.dbBuild.ID(), exec.NewRunState())
 	return existingState.(exec.RunState)
@@ -233,6 +237,10 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 
 	if plan.UserArtifact != nil {
 		return build.buildUserArtifactStep(logger, plan)
+	}
+
+	if plan.ArtifactOutput != nil {
+		return build.buildArtifactOutputStep(logger, plan)
 	}
 
 	return exec.IdentityStep{}

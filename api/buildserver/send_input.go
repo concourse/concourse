@@ -11,7 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-func (s *Server) SendInputToBuild(build db.Build) http.Handler {
+func (s *Server) SendInputToBuildPlan(build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("send-input", lager.Data{
 			"build": build.ID(),
@@ -36,9 +36,9 @@ func (s *Server) SendInputToBuild(build db.Build) http.Handler {
 
 			w.WriteHeader(http.StatusNoContent)
 		} else {
-			logger.Info("forwarding-user-input-request", lager.Data{"to": build.Tracker()})
+			logger.Info("forwarding", lager.Data{"to": build.Tracker()})
 
-			err := s.forwardRequest(w, r, build.Tracker(), atc.SendInputToBuild)
+			err := s.forwardRequest(w, r, build.Tracker(), atc.SendInputToBuildPlan)
 			if err != nil {
 				logger.Error("failed-to-forward-request", err)
 				w.WriteHeader(http.StatusInternalServerError)

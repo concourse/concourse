@@ -213,8 +213,9 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.GetBuildPreparation: checksIfPrivateJob(inputHandlers[atc.GetBuildPreparation]),
 
 				// resource belongs to authorized team
-				atc.AbortBuild:       checkWritePermissionForBuild(inputHandlers[atc.AbortBuild]),
-				atc.SendInputToBuild: checkWritePermissionForBuild(inputHandlers[atc.SendInputToBuild]),
+				atc.AbortBuild:              checkWritePermissionForBuild(inputHandlers[atc.AbortBuild]),
+				atc.SendInputToBuildPlan:    checkWritePermissionForBuild(inputHandlers[atc.SendInputToBuildPlan]),
+				atc.ReadOutputFromBuildPlan: checkWritePermissionForBuild(inputHandlers[atc.ReadOutputFromBuildPlan]),
 
 				// resource belongs to authorized team
 				atc.PruneWorker:  checkTeamAccessForWorker(inputHandlers[atc.PruneWorker]),

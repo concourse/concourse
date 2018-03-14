@@ -27,6 +27,7 @@ type Build interface {
 	Resume(lager.Logger)
 
 	ReceiveInput(lager.Logger, atc.PlanID, io.ReadCloser)
+	SendOutput(lager.Logger, atc.PlanID, io.Writer)
 }
 
 type Engines []Engine

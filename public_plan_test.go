@@ -288,6 +288,13 @@ var _ = Describe("Plan", func() {
 							Name: "some-name",
 						},
 					},
+
+					atc.Plan{
+						ID: "32",
+						ArtifactOutput: &atc.ArtifactOutputPlan{
+							Name: "some-name",
+						},
+					},
 				},
 			}
 
@@ -495,6 +502,12 @@ var _ = Describe("Plan", func() {
 		{
 			"id": "31",
 			"user_artifact": {
+				"name": "some-name"
+			}
+		},
+		{
+			"id": "32",
+			"artifact_output": {
 				"name": "some-name"
 			}
 		}

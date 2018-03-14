@@ -51,6 +51,8 @@ func (factory PlanFactory) NewPlan(step Step) Plan {
 		plan.Retry = &t
 	case UserArtifactPlan:
 		plan.UserArtifact = &t
+	case ArtifactOutputPlan:
+		plan.ArtifactOutput = &t
 	default:
 		panic(fmt.Sprintf("don't know how to construct plan from %T", step))
 	}
