@@ -264,7 +264,6 @@ files:
   - golang.org/x/oauth2/bitbucket/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/github/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/internal/*.{go,s,c,h} # gosub
-  - golang.org/x/sync/syncmap/*.{go,s,c,h} # gosub
   - golang.org/x/text/secure/bidirule/*.{go,s,c,h} # gosub
   - golang.org/x/text/transform/*.{go,s,c,h} # gosub
   - golang.org/x/text/unicode/bidi/*.{go,s,c,h} # gosub
