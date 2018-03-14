@@ -48,7 +48,12 @@ func (state *runState) StoreResult(id atc.PlanID, val interface{}) {
 }
 
 func (state *runState) SendUserInput(id atc.PlanID, input io.ReadCloser) {
-	i, _ := state.inputs.LoadOrStore(id, make(chan io.ReadCloser))
+	i, loaded := state.inputs.LoadOrStore(id, make(chan io.ReadCloser))
+	if loaded {
+		// clear out the channel
+		state.inputs.Delete(id)
+	}
+
 	inputs := i.(chan io.ReadCloser)
 
 	// send input (blocking) to a reader
@@ -56,13 +61,15 @@ func (state *runState) SendUserInput(id atc.PlanID, input io.ReadCloser) {
 
 	// wait for reader to close channel signifying that they're done
 	<-inputs
-
-	// clear out the channel
-	state.inputs.Delete(id)
 }
 
 func (state *runState) ReadUserInput(id atc.PlanID, handler InputHandler) error {
-	i, _ := state.inputs.LoadOrStore(id, make(chan io.ReadCloser))
+	i, loaded := state.inputs.LoadOrStore(id, make(chan io.ReadCloser))
+	if loaded {
+		// clear out the channel
+		state.inputs.Delete(id)
+	}
+
 	inputs := i.(chan io.ReadCloser)
 
 	// signal to sender that we're done
@@ -76,7 +83,12 @@ func (state *runState) ReadUserInput(id atc.PlanID, handler InputHandler) error 
 }
 
 func (state *runState) ReadPlanOutput(id atc.PlanID, output io.Writer) {
-	i, _ := state.outputs.LoadOrStore(id, make(chan io.Writer))
+	i, loaded := state.outputs.LoadOrStore(id, make(chan io.Writer))
+	if loaded {
+		// clear out the channel
+		state.outputs.Delete(id)
+	}
+
 	outputs := i.(chan io.Writer)
 
 	// send input (blocking) to a reader
@@ -84,13 +96,15 @@ func (state *runState) ReadPlanOutput(id atc.PlanID, output io.Writer) {
 
 	// wait for reader to close channel signifying that they're done
 	<-outputs
-
-	// clear out the channel
-	state.outputs.Delete(id)
 }
 
 func (state *runState) SendPlanOutput(id atc.PlanID, handler OutputHandler) error {
-	i, _ := state.outputs.LoadOrStore(id, make(chan io.Writer))
+	i, loaded := state.outputs.LoadOrStore(id, make(chan io.Writer))
+	if loaded {
+		// clear out the channel
+		state.outputs.Delete(id)
+	}
+
 	outputs := i.(chan io.Writer)
 
 	// signal to sender that we're done

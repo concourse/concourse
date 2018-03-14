@@ -104,14 +104,14 @@ var _ = Describe("RunState", func() {
 		It("can be passed around asynchronously", func() {
 			buf := ioutil.NopCloser(bytes.NewBufferString("some-payload"))
 
-			go state.SendUserInput("some-plan-id", buf)
-			runtime.Gosched()
+			for i := 0; i < 1000; i++ {
+				go state.SendUserInput("some-plan-id", buf)
 
-			err := state.ReadUserInput("some-plan-id", func(rc io.ReadCloser) error {
-				Expect(rc).To(Equal(buf))
-				return nil
-			})
-			Expect(err).ToNot(HaveOccurred())
+				state.ReadUserInput("some-plan-id", func(rc io.ReadCloser) error {
+					Expect(rc).To(Equal(buf))
+					return nil
+				})
+			}
 		})
 
 		It("blocks the sender until the reader is finished", func() {
@@ -151,14 +151,14 @@ var _ = Describe("RunState", func() {
 		It("can be passed around asynchronously", func() {
 			out := new(bytes.Buffer)
 
-			go state.ReadPlanOutput("some-plan-id", out)
-			runtime.Gosched()
+			for i := 0; i < 1000; i++ {
+				go state.ReadPlanOutput("some-plan-id", out)
 
-			err := state.SendPlanOutput("some-plan-id", func(w io.Writer) error {
-				Expect(w).To(Equal(out))
-				return nil
-			})
-			Expect(err).ToNot(HaveOccurred())
+				state.SendPlanOutput("some-plan-id", func(w io.Writer) error {
+					Expect(w).To(Equal(out))
+					return nil
+				})
+			}
 		})
 
 		It("blocks the sender until the reader is finished", func() {
