@@ -1,6 +1,8 @@
 package concourse
 
 import (
+	"io"
+	"net/http"
 	"strconv"
 
 	"github.com/concourse/atc"
@@ -28,5 +30,52 @@ func (client *client) BuildPlan(buildID int) (atc.PublicBuildPlan, bool, error) 
 		return buildPlan, false, nil
 	default:
 		return buildPlan, false, err
+	}
+}
+
+func (client *client) SendInputToBuildPlan(buildID int, planID atc.PlanID, src io.Reader) (bool, error) {
+	params := rata.Params{
+		"build_id": strconv.Itoa(buildID),
+		"plan_id":  string(planID),
+	}
+
+	response := internal.Response{}
+	err := client.connection.Send(internal.Request{
+		Header:      http.Header{"Content-Type": {"application/octet-stream"}},
+		RequestName: atc.SendInputToBuildPlan,
+		Params:      params,
+		Body:        src,
+	}, &response)
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
+func (client *client) ReadOutputFromBuildPlan(buildID int, planID atc.PlanID) (io.ReadCloser, bool, error) {
+	params := rata.Params{
+		"build_id": strconv.Itoa(buildID),
+		"plan_id":  string(planID),
+	}
+
+	response := internal.Response{}
+	err := client.connection.Send(internal.Request{
+		RequestName:        atc.ReadOutputFromBuildPlan,
+		Params:             params,
+		ReturnResponseBody: true,
+	}, &response)
+
+	switch err.(type) {
+	case nil:
+		return response.Result.(io.ReadCloser), true, nil
+	case internal.ResourceNotFoundError:
+		return nil, false, nil
+	default:
+		return nil, false, err
 	}
 }

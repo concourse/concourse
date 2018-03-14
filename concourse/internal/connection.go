@@ -1,8 +1,8 @@
 package internal
 
 import (
-	"bytes"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -32,7 +32,7 @@ type Request struct {
 	Params             rata.Params
 	Query              url.Values
 	Header             http.Header
-	Body               *bytes.Buffer
+	Body               io.Reader
 	ReturnResponseBody bool
 }
 
@@ -167,7 +167,7 @@ func (connection *connection) createHTTPRequest(passedRequest Request) (*http.Re
 	return req, nil
 }
 
-func (connection *connection) getBody(passedRequest Request) *bytes.Buffer {
+func (connection *connection) getBody(passedRequest Request) io.Reader {
 	if passedRequest.Header != nil && passedRequest.Body != nil {
 		if _, ok := passedRequest.Header["Content-Type"]; !ok {
 			panic("You must pass a 'Content-Type' Header with a body")
@@ -175,7 +175,7 @@ func (connection *connection) getBody(passedRequest Request) *bytes.Buffer {
 		return passedRequest.Body
 	}
 
-	return &bytes.Buffer{}
+	return nil
 }
 
 func (connection *connection) populateResponse(response *http.Response, returnResponseBody bool, passedResponse *Response) error {
