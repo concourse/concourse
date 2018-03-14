@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -27,7 +28,7 @@ type sshClient struct {
 }
 
 func (c *sshClient) Dial() (Closeable, error) {
-	tsaAddr := fmt.Sprintf("%s:%d", c.config.Host, c.config.Port)
+	tsaAddr := c.config.Host[rand.Intn(len(c.config.Host))]
 
 	conn, err := keepaliveDialer("tcp", tsaAddr, 10*time.Second)
 	if err != nil {
