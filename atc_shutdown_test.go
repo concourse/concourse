@@ -26,12 +26,11 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 			atc0URL = "http://" + atcs[0].IP + ":8080"
 			atc1URL = "http://" + atcs[1].IP + ":8080"
 
-			<-spawnFly("login", "-c", atc0URL).Exited
+			Eventually(spawnFly("login", "-c", atc0URL)).Should(gexec.Exit(0))
 		})
 
-		Describe("tracking builds previously tracked by shutdown ATC", func() {
+		Context("when one of the ATCS is stopped", func() {
 			var stopSession *gexec.Session
-
 			BeforeEach(func() {
 				By("stopping one of the web instances")
 				stopSession = spawnBosh("stop", atcs[1].Name)
@@ -39,10 +38,38 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 			})
 
 			AfterEach(func() {
-				<-stopSession.Exited
+				restartSession := spawnBosh("start", atcs[0].Name)
+				<-restartSession.Exited
+				Eventually(restartSession).Should(gexec.Exit(0))
 			})
 
-			Context("with a build in-flight", func() {
+			Describe("workers registering with random TSA address", func() {
+				It("recovers from the TSA going down by registering with a random TSA", func() {
+					waitForRunningWorker()
+
+					By("stopping the other web instance")
+					stopSession = spawnBosh("stop", atcs[0].Name)
+					Eventually(stopSession).Should(gexec.Exit(0))
+
+					By("starting the stopped web instance")
+					startSession := spawnBosh("start", atcs[1].Name)
+					Eventually(startSession).Should(gexec.Exit(0))
+
+					atcs = JobInstances("atc")
+					atc0URL = "http://" + atcs[0].IP + ":8080"
+					atc1URL = "http://" + atcs[1].IP + ":8080"
+
+					Eventually(func() int {
+						flySession := spawnFly("login", "-c", atc1URL)
+						<-flySession.Exited
+						return flySession.ExitCode()
+					}).Should(Equal(0))
+
+					waitForRunningWorker()
+				})
+			})
+
+			Describe("tracking builds previously tracked by shutdown ATC", func() {
 				var buildID string
 
 				BeforeEach(func() {
@@ -61,7 +88,7 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 					<-startSession.Exited
 					Eventually(startSession).Should(gexec.Exit(0))
 
-					<-spawnFly("login", "-c", atc1URL).Exited
+					Eventually(spawnFly("login", "-c", atc1URL)).Should(gexec.Exit(0))
 				})
 
 				AfterEach(func() {
