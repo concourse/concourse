@@ -326,7 +326,8 @@ func deleteAllContainers() {
 	workers, err := client.ListWorkers()
 	Expect(err).NotTo(HaveOccurred())
 
-	containers, err := client.ListContainers(map[string]string{})
+	mainTeam := client.Team("main")
+	containers, err := mainTeam.ListContainers(map[string]string{})
 	Expect(err).NotTo(HaveOccurred())
 
 	for _, worker := range workers {
@@ -543,8 +544,8 @@ func waitForWorkersToBeRunning() {
 }
 
 func workersWithContainers() []string {
-	client := concourseClient()
-	containers, err := client.ListContainers(map[string]string{})
+	mainTeam := concourseClient().Team("main")
+	containers, err := mainTeam.ListContainers(map[string]string{})
 	Expect(err).NotTo(HaveOccurred())
 
 	usedWorkers := map[string]struct{}{}
