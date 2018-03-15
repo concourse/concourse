@@ -95,6 +95,7 @@ files:
   - github.com/mattes/migrate/source/go-bindata/*.{go,s,c,h} # gosub
   - github.com/mattn/go-colorable/*.{go,s,c,h} # gosub
   - github.com/mattn/go-isatty/*.{go,s,c,h} # gosub
+  - github.com/mattn/go-runewidth/*.{go,s,c,h} # gosub
   - github.com/mgutz/ansi/*.{go,s,c,h} # gosub
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub

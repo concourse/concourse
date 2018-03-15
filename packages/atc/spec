@@ -231,6 +231,7 @@ files:
   - github.com/mattes/migrate/source/*.{go,s,c,h} # gosub
   - github.com/mattes/migrate/source/file/*.{go,s,c,h} # gosub
   - github.com/mattes/migrate/source/go-bindata/*.{go,s,c,h} # gosub
+  - github.com/mattn/go-runewidth/*.{go,s,c,h} # gosub
   - github.com/matttproud/golang_protobuf_extensions/pbutil/*.{go,s,c,h} # gosub
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub
@@ -264,11 +265,13 @@ files:
   - golang.org/x/oauth2/bitbucket/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/github/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/internal/*.{go,s,c,h} # gosub
+  - golang.org/x/sys/unix/*.{go,s,c,h} # gosub
   - golang.org/x/text/secure/bidirule/*.{go,s,c,h} # gosub
   - golang.org/x/text/transform/*.{go,s,c,h} # gosub
   - golang.org/x/text/unicode/bidi/*.{go,s,c,h} # gosub
   - golang.org/x/text/unicode/norm/*.{go,s,c,h} # gosub
   - golang.org/x/text/width/*.{go,s,c,h} # gosub
+  - gopkg.in/cheggaaa/pb.v1/*.{go,s,c,h} # gosub
   - gopkg.in/yaml.v2/*.{go,s,c,h} # gosub
   - k8s.io/api/admissionregistration/v1alpha1/*.{go,s,c,h} # gosub
   - k8s.io/api/apps/v1/*.{go,s,c,h} # gosub
