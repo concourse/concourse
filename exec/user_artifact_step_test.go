@@ -17,7 +17,8 @@ var _ = Describe("UserArtifactStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		state exec.RunState
+		state    exec.RunState
+		delegate *execfakes.FakeBuildStepDelegate
 
 		step    exec.Step
 		stepErr error
@@ -27,13 +28,16 @@ var _ = Describe("UserArtifactStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		state = exec.NewRunState()
+
+		delegate = new(execfakes.FakeBuildStepDelegate)
+		delegate.StdoutReturns(ioutil.Discard)
 	})
 
 	JustBeforeEach(func() {
 		step = exec.UserArtifact(
 			"some-plan-id",
 			"some-name",
-			new(execfakes.FakeBuildStepDelegate),
+			delegate,
 		)
 
 		stepErr = step.Run(ctx, state)
@@ -59,6 +63,6 @@ var _ = Describe("UserArtifactStep", func() {
 
 		path, stream := dest.StreamInArgsForCall(0)
 		Expect(path).To(Equal("."))
-		Expect(stream).To(Equal(input))
+		Expect(ioutil.ReadAll(stream)).To(Equal([]byte("hello")))
 	})
 })

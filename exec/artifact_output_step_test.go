@@ -3,6 +3,7 @@ package exec_test
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
@@ -16,7 +17,8 @@ var _ = Describe("ArtifactOutputStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		state exec.RunState
+		state    exec.RunState
+		delegate *execfakes.FakeBuildStepDelegate
 
 		step    exec.Step
 		stepErr error
@@ -26,13 +28,16 @@ var _ = Describe("ArtifactOutputStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		state = exec.NewRunState()
+
+		delegate = new(execfakes.FakeBuildStepDelegate)
+		delegate.StdoutReturns(ioutil.Discard)
 	})
 
 	JustBeforeEach(func() {
 		step = exec.ArtifactOutput(
 			"some-plan-id",
 			"some-name",
-			new(execfakes.FakeBuildStepDelegate),
+			delegate,
 		)
 
 		stepErr = step.Run(ctx, state)
