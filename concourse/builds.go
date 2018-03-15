@@ -11,7 +11,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (client *client) CreateBuild(plan atc.Plan) (atc.Build, error) {
+func (team *team) CreateBuild(plan atc.Plan) (atc.Build, error) {
 	var build atc.Build
 
 	buffer := &bytes.Buffer{}
@@ -19,10 +19,12 @@ func (client *client) CreateBuild(plan atc.Plan) (atc.Build, error) {
 	if err != nil {
 		return build, fmt.Errorf("Unable to marshal plan: %s", err)
 	}
-
-	err = client.connection.Send(internal.Request{
+	err = team.connection.Send(internal.Request{
 		RequestName: atc.CreateBuild,
 		Body:        buffer,
+		Params: rata.Params{
+			"team_name": team.Name(),
+		},
 		Header: http.Header{
 			"Content-Type": {"application/json"},
 		},

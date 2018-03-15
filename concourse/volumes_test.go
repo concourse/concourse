@@ -17,7 +17,7 @@ var _ = Describe("ATC Handler Volumes", func() {
 		)
 
 		BeforeEach(func() {
-			expectedURL := "/api/v1/volumes"
+			expectedURL := "/api/v1/teams/some-team/volumes"
 
 			expectedVolumes = []atc.Volume{
 				{
@@ -43,7 +43,7 @@ var _ = Describe("ATC Handler Volumes", func() {
 		})
 
 		It("returns all the volumes", func() {
-			volumes, err := client.ListVolumes()
+			volumes, err := team.ListVolumes()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(volumes).To(Equal(expectedVolumes))
 		})

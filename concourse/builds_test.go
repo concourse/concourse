@@ -44,7 +44,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				APIURL:  "/api/v1/builds/123",
 			}
 
-			expectedURL := "/api/v1/builds"
+			expectedURL := "/api/v1/teams/some-team/builds"
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -56,7 +56,7 @@ var _ = Describe("ATC Handler Builds", func() {
 		})
 
 		It("takes a plan and creates the build", func() {
-			build, err := client.CreateBuild(plan)
+			build, err := team.CreateBuild(plan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(build).To(Equal(expectedBuild))
 		})

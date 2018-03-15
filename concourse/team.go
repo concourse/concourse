@@ -50,6 +50,10 @@ type Team interface {
 
 	BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 	BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
+
+	ListContainers(queryList map[string]string) ([]atc.Container, error)
+	ListVolumes() ([]atc.Volume, error)
+	CreateBuild(plan atc.Plan) (atc.Build, error)
 }
 
 type team struct {

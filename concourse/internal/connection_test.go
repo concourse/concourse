@@ -130,7 +130,7 @@ var _ = Describe("ATC Connection", func() {
 		})
 
 		It("makes a request with the given parameters to the given route", func() {
-			expectedURL := "/api/v1/containers"
+			expectedURL := "/api/v1/teams/some-team/containers"
 			expectedResponse := []atc.Container{
 				{
 					ID:           "first-container",
@@ -158,6 +158,7 @@ var _ = Describe("ATC Connection", func() {
 			var containers []atc.Container
 			err := connection.Send(Request{
 				RequestName: atc.ListContainers,
+				Params:      rata.Params{"team_name": "some-team"},
 				Query:       url.Values{"pipeline_name": {"my-special-pipeline"}},
 			}, &Response{
 				Result: &containers,
@@ -464,7 +465,7 @@ var _ = Describe("ATC Connection", func() {
 					},
 				}
 
-				expectedURL := "/api/v1/builds"
+				expectedURL := "/api/v1/teams/some-team/builds"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -488,6 +489,7 @@ var _ = Describe("ATC Connection", func() {
 				err = connection.Send(Request{
 					RequestName: atc.CreateBuild,
 					Body:        buffer,
+					Params:      rata.Params{"team_name": "some-team"},
 					Header: http.Header{
 						"Content-Type": {"application/json"},
 					},

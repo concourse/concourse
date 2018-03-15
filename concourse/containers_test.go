@@ -16,7 +16,7 @@ var _ = Describe("ATC Handler Containers", func() {
 			var expectedContainers []atc.Container
 
 			BeforeEach(func() {
-				expectedURL := "/api/v1/containers"
+				expectedURL := "/api/v1/teams/some-team/containers"
 
 				expectedContainers = []atc.Container{
 					{
@@ -40,7 +40,7 @@ var _ = Describe("ATC Handler Containers", func() {
 			})
 
 			It("returns all the containers", func() {
-				containers, err := client.ListContainers(map[string]string{})
+				containers, err := team.ListContainers(map[string]string{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(containers).To(Equal(expectedContainers))
 			})
@@ -53,7 +53,7 @@ var _ = Describe("ATC Handler Containers", func() {
 			)
 
 			BeforeEach(func() {
-				expectedURL := "/api/v1/containers"
+				expectedURL := "/api/v1/teams/some-team/containers"
 				expectedQueryList = map[string]string{
 					"query1": "value1",
 				}
@@ -75,7 +75,7 @@ var _ = Describe("ATC Handler Containers", func() {
 			})
 
 			It("returns the specified containers", func() {
-				containers, err := client.ListContainers(expectedQueryList)
+				containers, err := team.ListContainers(expectedQueryList)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(containers).To(Equal(expectedContainers))
 			})

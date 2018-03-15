@@ -99,19 +99,6 @@ type FakeClient struct {
 	abortBuildReturnsOnCall map[int]struct {
 		result1 error
 	}
-	CreateBuildStub        func(plan atc.Plan) (atc.Build, error)
-	createBuildMutex       sync.RWMutex
-	createBuildArgsForCall []struct {
-		plan atc.Plan
-	}
-	createBuildReturns struct {
-		result1 atc.Build
-		result2 error
-	}
-	createBuildReturnsOnCall map[int]struct {
-		result1 atc.Build
-		result2 error
-	}
 	BuildPlanStub        func(buildID int) (atc.PublicBuildPlan, bool, error)
 	buildPlanMutex       sync.RWMutex
 	buildPlanArgsForCall []struct {
@@ -157,30 +144,6 @@ type FakeClient struct {
 		result1 io.ReadCloser
 		result2 bool
 		result3 error
-	}
-	ListContainersStub        func(queryList map[string]string) ([]atc.Container, error)
-	listContainersMutex       sync.RWMutex
-	listContainersArgsForCall []struct {
-		queryList map[string]string
-	}
-	listContainersReturns struct {
-		result1 []atc.Container
-		result2 error
-	}
-	listContainersReturnsOnCall map[int]struct {
-		result1 []atc.Container
-		result2 error
-	}
-	ListVolumesStub        func() ([]atc.Volume, error)
-	listVolumesMutex       sync.RWMutex
-	listVolumesArgsForCall []struct{}
-	listVolumesReturns     struct {
-		result1 []atc.Volume
-		result2 error
-	}
-	listVolumesReturnsOnCall map[int]struct {
-		result1 []atc.Volume
-		result2 error
 	}
 	SaveWorkerStub        func(atc.Worker, *time.Duration) (*atc.Worker, error)
 	saveWorkerMutex       sync.RWMutex
@@ -623,57 +586,6 @@ func (fake *FakeClient) AbortBuildReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) CreateBuild(plan atc.Plan) (atc.Build, error) {
-	fake.createBuildMutex.Lock()
-	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
-	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
-		plan atc.Plan
-	}{plan})
-	fake.recordInvocation("CreateBuild", []interface{}{plan})
-	fake.createBuildMutex.Unlock()
-	if fake.CreateBuildStub != nil {
-		return fake.CreateBuildStub(plan)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.createBuildReturns.result1, fake.createBuildReturns.result2
-}
-
-func (fake *FakeClient) CreateBuildCallCount() int {
-	fake.createBuildMutex.RLock()
-	defer fake.createBuildMutex.RUnlock()
-	return len(fake.createBuildArgsForCall)
-}
-
-func (fake *FakeClient) CreateBuildArgsForCall(i int) atc.Plan {
-	fake.createBuildMutex.RLock()
-	defer fake.createBuildMutex.RUnlock()
-	return fake.createBuildArgsForCall[i].plan
-}
-
-func (fake *FakeClient) CreateBuildReturns(result1 atc.Build, result2 error) {
-	fake.CreateBuildStub = nil
-	fake.createBuildReturns = struct {
-		result1 atc.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) CreateBuildReturnsOnCall(i int, result1 atc.Build, result2 error) {
-	fake.CreateBuildStub = nil
-	if fake.createBuildReturnsOnCall == nil {
-		fake.createBuildReturnsOnCall = make(map[int]struct {
-			result1 atc.Build
-			result2 error
-		})
-	}
-	fake.createBuildReturnsOnCall[i] = struct {
-		result1 atc.Build
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeClient) BuildPlan(buildID int) (atc.PublicBuildPlan, bool, error) {
 	fake.buildPlanMutex.Lock()
 	ret, specificReturn := fake.buildPlanReturnsOnCall[len(fake.buildPlanArgsForCall)]
@@ -834,100 +746,6 @@ func (fake *FakeClient) ReadOutputFromBuildPlanReturnsOnCall(i int, result1 io.R
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeClient) ListContainers(queryList map[string]string) ([]atc.Container, error) {
-	fake.listContainersMutex.Lock()
-	ret, specificReturn := fake.listContainersReturnsOnCall[len(fake.listContainersArgsForCall)]
-	fake.listContainersArgsForCall = append(fake.listContainersArgsForCall, struct {
-		queryList map[string]string
-	}{queryList})
-	fake.recordInvocation("ListContainers", []interface{}{queryList})
-	fake.listContainersMutex.Unlock()
-	if fake.ListContainersStub != nil {
-		return fake.ListContainersStub(queryList)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.listContainersReturns.result1, fake.listContainersReturns.result2
-}
-
-func (fake *FakeClient) ListContainersCallCount() int {
-	fake.listContainersMutex.RLock()
-	defer fake.listContainersMutex.RUnlock()
-	return len(fake.listContainersArgsForCall)
-}
-
-func (fake *FakeClient) ListContainersArgsForCall(i int) map[string]string {
-	fake.listContainersMutex.RLock()
-	defer fake.listContainersMutex.RUnlock()
-	return fake.listContainersArgsForCall[i].queryList
-}
-
-func (fake *FakeClient) ListContainersReturns(result1 []atc.Container, result2 error) {
-	fake.ListContainersStub = nil
-	fake.listContainersReturns = struct {
-		result1 []atc.Container
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) ListContainersReturnsOnCall(i int, result1 []atc.Container, result2 error) {
-	fake.ListContainersStub = nil
-	if fake.listContainersReturnsOnCall == nil {
-		fake.listContainersReturnsOnCall = make(map[int]struct {
-			result1 []atc.Container
-			result2 error
-		})
-	}
-	fake.listContainersReturnsOnCall[i] = struct {
-		result1 []atc.Container
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) ListVolumes() ([]atc.Volume, error) {
-	fake.listVolumesMutex.Lock()
-	ret, specificReturn := fake.listVolumesReturnsOnCall[len(fake.listVolumesArgsForCall)]
-	fake.listVolumesArgsForCall = append(fake.listVolumesArgsForCall, struct{}{})
-	fake.recordInvocation("ListVolumes", []interface{}{})
-	fake.listVolumesMutex.Unlock()
-	if fake.ListVolumesStub != nil {
-		return fake.ListVolumesStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.listVolumesReturns.result1, fake.listVolumesReturns.result2
-}
-
-func (fake *FakeClient) ListVolumesCallCount() int {
-	fake.listVolumesMutex.RLock()
-	defer fake.listVolumesMutex.RUnlock()
-	return len(fake.listVolumesArgsForCall)
-}
-
-func (fake *FakeClient) ListVolumesReturns(result1 []atc.Volume, result2 error) {
-	fake.ListVolumesStub = nil
-	fake.listVolumesReturns = struct {
-		result1 []atc.Volume
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) ListVolumesReturnsOnCall(i int, result1 []atc.Volume, result2 error) {
-	fake.ListVolumesStub = nil
-	if fake.listVolumesReturnsOnCall == nil {
-		fake.listVolumesReturnsOnCall = make(map[int]struct {
-			result1 []atc.Volume
-			result2 error
-		})
-	}
-	fake.listVolumesReturnsOnCall[i] = struct {
-		result1 []atc.Volume
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeClient) SaveWorker(arg1 atc.Worker, arg2 *time.Duration) (*atc.Worker, error) {
@@ -1322,18 +1140,12 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.buildResourcesMutex.RUnlock()
 	fake.abortBuildMutex.RLock()
 	defer fake.abortBuildMutex.RUnlock()
-	fake.createBuildMutex.RLock()
-	defer fake.createBuildMutex.RUnlock()
 	fake.buildPlanMutex.RLock()
 	defer fake.buildPlanMutex.RUnlock()
 	fake.sendInputToBuildPlanMutex.RLock()
 	defer fake.sendInputToBuildPlanMutex.RUnlock()
 	fake.readOutputFromBuildPlanMutex.RLock()
 	defer fake.readOutputFromBuildPlanMutex.RUnlock()
-	fake.listContainersMutex.RLock()
-	defer fake.listContainersMutex.RUnlock()
-	fake.listVolumesMutex.RLock()
-	defer fake.listVolumesMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.listWorkersMutex.RLock()
