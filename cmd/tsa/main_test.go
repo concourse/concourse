@@ -24,7 +24,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/baggageclaim"
 	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
@@ -96,7 +96,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 			hostKey    string
 			hostKeyPub string
 
-			jwtValidator           auth.JWTValidator
+			accessFactory          accessor.AccessFactory
 			authorizedKeysFile     string
 			teamAuthorizedKeysFile string
 
@@ -199,9 +199,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 			signingKey, err := jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
 			Expect(err).NotTo(HaveOccurred())
 
-			jwtValidator = auth.JWTValidator{
-				PublicKey: &signingKey.PublicKey,
-			}
+			accessFactory = accessor.NewAccessFactory(&signingKey.PublicKey)
 
 			tsaCommand := exec.Command(
 				tsaPath,
@@ -308,7 +306,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+								Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
@@ -323,7 +321,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+								Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
@@ -490,7 +488,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 						Context("when the ATC returns a 404 for the heartbeat", func() {
 							BeforeEach(func() {
 								atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
-									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									w.WriteHeader(404)
 								})
 							})
@@ -573,7 +571,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+								Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
@@ -586,7 +584,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+								Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
@@ -747,7 +745,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 						Context("when the ATC returns a 404 for the heartbeat", func() {
 							BeforeEach(func() {
 								atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
-									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									w.WriteHeader(404)
 								})
 							})
@@ -804,7 +802,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							atcServer.AppendHandlers(ghttp.CombineHandlers(
 								ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 								http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 								}),
 								ghttp.RespondWith(200, nil, nil),
 							))
@@ -825,7 +823,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							atcServer.AppendHandlers(ghttp.CombineHandlers(
 								ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 								http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 								}),
 								ghttp.RespondWith(404, nil, nil),
 							))
@@ -847,7 +845,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							atcServer.AppendHandlers(ghttp.CombineHandlers(
 								ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 								http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 								}),
 								ghttp.RespondWith(500, nil, nil),
 							))
@@ -930,7 +928,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+								Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
@@ -945,7 +943,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+								Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
@@ -1112,7 +1110,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+								Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
@@ -1125,7 +1123,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+								Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
@@ -1298,7 +1296,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 								atcServer.AppendHandlers(ghttp.CombineHandlers(
 									ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+										Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									}),
 									ghttp.RespondWith(200, nil, nil),
 								))
@@ -1315,7 +1313,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 								atcServer.AppendHandlers(ghttp.CombineHandlers(
 									ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+										Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									}),
 									ghttp.RespondWith(404, nil, nil),
 								))
@@ -1333,7 +1331,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 								atcServer.AppendHandlers(ghttp.CombineHandlers(
 									ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+										Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									}),
 									ghttp.RespondWith(500, nil, nil),
 								))
@@ -1404,7 +1402,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 								atcServer.AppendHandlers(ghttp.CombineHandlers(
 									ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
 									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+										Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									}),
 									ghttp.RespondWith(200, nil, nil),
 								))
@@ -1421,7 +1419,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 								atcServer.AppendHandlers(ghttp.CombineHandlers(
 									ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
 									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+										Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									}),
 									ghttp.RespondWith(404, nil, nil),
 								))
@@ -1438,7 +1436,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 								atcServer.AppendHandlers(ghttp.CombineHandlers(
 									ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
 									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+										Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									}),
 									ghttp.RespondWith(500, nil, nil),
 								))
@@ -1509,7 +1507,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 								atcServer.AppendHandlers(ghttp.CombineHandlers(
 									ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
 									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+										Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									}),
 									ghttp.RespondWith(200, nil, nil),
 								))
@@ -1526,7 +1524,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 								atcServer.AppendHandlers(ghttp.CombineHandlers(
 									ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
 									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+										Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
 									}),
 									ghttp.RespondWith(500, nil, nil),
 								))
