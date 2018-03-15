@@ -124,9 +124,9 @@ run:
 		uploading = make(chan struct{})
 		uploadingTwo = make(chan struct{})
 
-		atcServer.RouteToHandler("POST", "/api/v1/builds",
+		atcServer.RouteToHandler("POST", "/api/v1/teams/main/builds",
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/builds"),
+				ghttp.VerifyRequest("POST", "/api/v1/teams/main/builds"),
 				VerifyPlan(expectedPlan),
 				func(w http.ResponseWriter, r *http.Request) {
 					http.SetCookie(w, &http.Cookie{

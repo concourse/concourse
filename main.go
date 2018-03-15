@@ -42,7 +42,7 @@ func main() {
 		authConfigs[name] = p.AddAuthGroup(authGroup)
 	}
 
-	commands.Fly.SetTeam.ProviderAuth = authConfigs
+	commands.Fly.SetTeam.Auth.Configs = authConfigs
 
 	helpParser := flags.NewParser(&commands.Fly, flags.HelpFlag)
 	helpParser.NamespaceDelimiter = "-"

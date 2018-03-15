@@ -27,7 +27,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/volumes"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/volumes"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Volume{
 							{
 								ID:              "bbbbbb",
@@ -207,7 +207,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/volumes"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/volumes"),
 						ghttp.RespondWith(500, ""),
 					),
 				)

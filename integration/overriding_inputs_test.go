@@ -125,7 +125,6 @@ run:
 
 	JustBeforeEach(func() {
 		uploading = make(chan struct{})
-
 		atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs"),

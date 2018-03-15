@@ -15,11 +15,12 @@ import (
 )
 
 type SetTeamCommand struct {
-	TeamName        string        `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
-	SkipInteractive bool          `long:"non-interactive" description:"Force apply configuration"`
-	Authentication  atc.AuthFlags `group:"Authentication"`
+	TeamName        string `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
+	SkipInteractive bool   `long:"non-interactive" description:"Force apply configuration"`
 
-	ProviderAuth map[string]provider.AuthConfig
+	Auth struct {
+		Configs provider.AuthConfigs
+	} `group:"Authentication"`
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
@@ -39,13 +40,13 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 
 	fmt.Println("Team Name:", command.TeamName)
-	fmt.Println("Basic Auth:", authMethodStatusDescription(command.ProviderAuth["basicauth"].IsConfigured()))
-	fmt.Println("Bitbucket Cloud Auth:", authMethodStatusDescription(command.ProviderAuth["bitbucket-cloud"].IsConfigured()))
-	fmt.Println("Bitbucket Server Auth:", authMethodStatusDescription(command.ProviderAuth["bitbucket-server"].IsConfigured()))
-	fmt.Println("GitHub Auth:", authMethodStatusDescription(command.ProviderAuth["github"].IsConfigured()))
-	fmt.Println("GitLab Auth:", authMethodStatusDescription(command.ProviderAuth["gitlab"].IsConfigured()))
-	fmt.Println("UAA Auth:", authMethodStatusDescription(command.ProviderAuth["uaa"].IsConfigured()))
-	fmt.Println("Generic OAuth:", authMethodStatusDescription(command.ProviderAuth["oauth"].IsConfigured()))
+	fmt.Println("Basic Auth:", authMethodStatusDescription(command.Auth.Configs["basicauth"].IsConfigured()))
+	fmt.Println("Bitbucket Cloud Auth:", authMethodStatusDescription(command.Auth.Configs["bitbucket-cloud"].IsConfigured()))
+	fmt.Println("Bitbucket Server Auth:", authMethodStatusDescription(command.Auth.Configs["bitbucket-server"].IsConfigured()))
+	fmt.Println("GitHub Auth:", authMethodStatusDescription(command.Auth.Configs["github"].IsConfigured()))
+	fmt.Println("GitLab Auth:", authMethodStatusDescription(command.Auth.Configs["gitlab"].IsConfigured()))
+	fmt.Println("UAA Auth:", authMethodStatusDescription(command.Auth.Configs["uaa"].IsConfigured()))
+	fmt.Println("Generic OAuth:", authMethodStatusDescription(command.Auth.Configs["oauth"].IsConfigured()))
 
 	confirm := true
 	if !command.SkipInteractive {
@@ -63,7 +64,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 	providers := provider.GetProviders()
 	teamAuth := make(map[string]*json.RawMessage)
 
-	for name, config := range command.ProviderAuth {
+	for name, config := range command.Auth.Configs {
 		if config.IsConfigured() {
 
 			p, found := providers[name]
@@ -104,7 +105,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 func (command *SetTeamCommand) ValidateFlags() error {
 	configured := 0
 
-	for _, p := range command.ProviderAuth {
+	for _, p := range command.Auth.Configs {
 		if p.IsConfigured() {
 			err := p.Validate()
 
@@ -124,7 +125,7 @@ func (command *SetTeamCommand) ValidateFlags() error {
 		os.Exit(1)
 	}
 
-	if configured == 1 && command.ProviderAuth["noauth"].IsConfigured() {
+	if configured == 1 && command.Auth.Configs["noauth"].IsConfigured() {
 		displayhelpers.PrintWarningHeader()
 		fmt.Fprintln(ui.Stderr, ui.WarningColor("no auth methods configured. you asked for it!"))
 		fmt.Fprintln(ui.Stderr, "")

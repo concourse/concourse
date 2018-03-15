@@ -27,7 +27,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/containers"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Container{
 							{
 								ID:           "handle-1",
@@ -100,7 +100,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/containers"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers"),
 						ghttp.RespondWith(500, ""),
 					),
 				)

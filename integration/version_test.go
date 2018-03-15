@@ -24,7 +24,7 @@ var _ = Describe("Version Checks", func() {
 	BeforeEach(func() {
 		atcServer.AppendHandlers(
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/api/v1/containers"),
+				ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers"),
 				ghttp.RespondWith(http.StatusOK, "[]"),
 			),
 		)

@@ -139,9 +139,9 @@ run:
 	})
 
 	JustBeforeEach(func() {
-		atcServer.RouteToHandler("POST", "/api/v1/builds",
+		atcServer.RouteToHandler("POST", "/api/v1/teams/main/builds",
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/builds"),
+				ghttp.VerifyRequest("POST", "/api/v1/teams/main/builds"),
 				VerifyPlan(expectedPlan),
 				func(w http.ResponseWriter, r *http.Request) {
 					http.SetCookie(w, &http.Cookie{
@@ -220,7 +220,6 @@ run:
 		atcServer.RouteToHandler("GET", regexp.MustCompile(`/api/v1/builds/128/plan/.*/output`),
 			func(w http.ResponseWriter, req *http.Request) {
 				gw := gzip.NewWriter(w)
-
 				tw := tar.NewWriter(gw)
 
 				tarContents := []byte("tar-contents")

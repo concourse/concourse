@@ -23,7 +23,7 @@ func (command *ContainersCommand) Execute([]string) error {
 		return err
 	}
 
-	containers, err := target.Client().ListContainers(map[string]string{})
+	containers, err := target.Team().ListContainers(map[string]string{})
 	if err != nil {
 		return err
 	}

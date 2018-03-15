@@ -67,7 +67,7 @@ func (command *HijackCommand) Execute([]string) error {
 		return err
 	}
 
-	containers, err := command.getContainerIDs(target.Client(), fingerprint)
+	containers, err := command.getContainerIDs(target, fingerprint)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (command *HijackCommand) Execute([]string) error {
 
 		h := hijacker.New(target.TLSConfig(), reqGenerator, target.Token())
 
-		return h.Hijack(chosenContainer.ID, spec, io)
+		return h.Hijack(target.Team().Name(), chosenContainer.ID, spec, io)
 	}()
 
 	if err != nil {
@@ -268,13 +268,13 @@ func (command *HijackCommand) getContainerFingerprint(target rc.Target) (*contai
 	return fingerprint, nil
 }
 
-func (command *HijackCommand) getContainerIDs(client concourse.Client, fingerprint *containerFingerprint) ([]atc.Container, error) {
-	reqValues, err := locateContainer(client, fingerprint)
+func (command *HijackCommand) getContainerIDs(target rc.Target, fingerprint *containerFingerprint) ([]atc.Container, error) {
+	reqValues, err := locateContainer(target.Client(), fingerprint)
 	if err != nil {
 		return nil, err
 	}
 
-	containers, err := client.ListContainers(reqValues)
+	containers, err := target.Team().ListContainers(reqValues)
 	if err != nil {
 		return nil, err
 	}

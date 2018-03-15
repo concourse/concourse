@@ -27,8 +27,7 @@ type Hijacker struct {
 	tlsConfig        *tls.Config
 	requestGenerator *rata.RequestGenerator
 	token            *rc.TargetToken
-
-	interval time.Duration
+	interval         time.Duration
 }
 
 func New(tlsConfig *tls.Config, requestGenerator *rata.RequestGenerator, token *rc.TargetToken) *Hijacker {
@@ -44,8 +43,8 @@ func (h *Hijacker) SetHeartbeatInterval(interval time.Duration) {
 	h.interval = interval
 }
 
-func (h *Hijacker) Hijack(handle string, spec atc.HijackProcessSpec, pio ProcessIO) (int, error) {
-	url, header, err := h.hijackRequestParts(handle)
+func (h *Hijacker) Hijack(teamName, handle string, spec atc.HijackProcessSpec, pio ProcessIO) (int, error) {
+	url, header, err := h.hijackRequestParts(teamName, handle)
 	if err != nil {
 		return -1, err
 	}
@@ -83,12 +82,16 @@ func (h *Hijacker) Hijack(handle string, spec atc.HijackProcessSpec, pio Process
 	return exitStatus, nil
 }
 
-func (h *Hijacker) hijackRequestParts(handle string) (string, http.Header, error) {
-	hijackReq, _ := h.requestGenerator.CreateRequest(
+func (h *Hijacker) hijackRequestParts(teamName, handle string) (string, http.Header, error) {
+	hijackReq, err := h.requestGenerator.CreateRequest(
 		atc.HijackContainer,
-		rata.Params{"id": handle},
+		rata.Params{"id": handle, "team_name": teamName},
 		nil,
 	)
+
+	if err != nil {
+		panic(err)
+	}
 
 	if h.token != nil {
 		hijackReq.Header.Add("Authorization", h.token.Type+" "+h.token.Value)

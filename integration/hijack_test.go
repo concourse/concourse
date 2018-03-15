@@ -34,7 +34,7 @@ var _ = Describe("Hijacking", func() {
 
 	hijackHandler := func(id string, didHijack chan<- struct{}, errorMessages []string) http.HandlerFunc {
 		return ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/containers/%s/hijack", id)),
+			ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/main/containers/%s/hijack", id)),
 			func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
 
@@ -148,7 +148,7 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=3&step_name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
 						{ID: "container-id-1", BuildID: 3, Type: "task", StepName: "some-step", User: user},
 					}),
@@ -180,7 +180,7 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=3&step_name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
 						{ID: "container-id-1", BuildID: 3, Type: "task", StepName: "some-step", WorkingDirectory: workingDirectory, User: user},
 					}),
@@ -208,7 +208,7 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=3&step_name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
 						{ID: "container-id-1", BuildID: 3, Type: "task", StepName: "some-step", User: "amelia"},
 					}),
@@ -235,7 +235,7 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=1&step_name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=1&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -291,7 +291,7 @@ var _ = Describe("Hijacking", func() {
 			hijacked = didHijack
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=0"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=0"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{}),
 				),
 			)
@@ -323,7 +323,7 @@ var _ = Describe("Hijacking", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "pipeline_name=pipeline-name-1&job_name=some-job"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "pipeline_name=pipeline-name-1&job_name=some-job"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
 						{
 							ID:           "container-id-1",
@@ -443,7 +443,7 @@ var _ = Describe("Hijacking", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", containerArguments),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", containerArguments),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
 						{ID: "container-id-1", WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, Type: stepType, StepName: stepName, ResourceName: resourceName, Attempt: attempt, User: user},
 					}),

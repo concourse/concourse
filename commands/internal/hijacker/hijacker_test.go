@@ -25,7 +25,7 @@ var _ = Describe("Hijacker", func() {
 
 	wasPingedHandler := func(id string, didHijack chan<- struct{}, didGetPinged chan<- struct{}) http.HandlerFunc {
 		return ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/containers/%s/hijack", id)),
+			ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/some-team/containers/%s/hijack", id)),
 			func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
 
@@ -87,7 +87,7 @@ var _ = Describe("Hijacker", func() {
 			stderr := gbytes.NewBuffer()
 
 			h := hijacker.New(tlsConfig, reqGenerator, nil)
-			_, err := h.Hijack("hello", atc.HijackProcessSpec{
+			_, err := h.Hijack("some-team", "hello", atc.HijackProcessSpec{
 				Path: "/bin/echo",
 				Args: []string{"hello", "world"},
 			}, hijacker.ProcessIO{

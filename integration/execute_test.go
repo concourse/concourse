@@ -124,9 +124,9 @@ run:
 		uploading := make(chan struct{})
 		uploadingBits = uploading
 
-		atcServer.RouteToHandler("POST", "/api/v1/builds",
+		atcServer.RouteToHandler("POST", "/api/v1/teams/main/builds",
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/builds"),
+				ghttp.VerifyRequest("POST", "/api/v1/teams/main/builds"),
 				VerifyPlan(expectedPlan),
 				func(w http.ResponseWriter, r *http.Request) {
 					http.SetCookie(w, &http.Cookie{
@@ -718,7 +718,7 @@ run:
 			}
 		})
 
-		It("overrides the build's parameter values", func() {
+		It("overrides the builds parameter values", func() {
 			atcServer.AllowUnhandledRequests = true
 
 			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)

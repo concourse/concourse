@@ -30,7 +30,7 @@ func (command *VolumesCommand) Execute([]string) error {
 		return err
 	}
 
-	volumes, err := target.Client().ListVolumes()
+	volumes, err := target.Team().ListVolumes()
 	if err != nil {
 		return err
 	}
