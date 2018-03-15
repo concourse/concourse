@@ -29,6 +29,8 @@ case $1 in
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
+    umask 0022
+
     OVERLAYS_DIR=/var/vcap/data/baggageclaim/overlays
     mkdir -p ${OVERLAYS_DIR}
 
@@ -46,8 +48,6 @@ case $1 in
       fi
     done
 <% end %>
-
-    umask 0022
 
     echo $$ > $PIDFILE
 
