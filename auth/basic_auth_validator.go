@@ -27,25 +27,19 @@ func NewBasicAuthValidator(logger lager.Logger, teamFactory db.TeamFactory) Vali
 }
 
 func (v basicAuthValidator) IsAuthenticated(r *http.Request) bool {
-	v.logger.Info("IsAuthenticated")
-
 	teamName := r.FormValue("team_name")
 	team, found, err := v.teamFactory.FindTeam(teamName)
 	if err != nil || !found {
 		return false
 	}
 
-	v.logger.Info("IsAuthenticated: " + team.Name())
-
 	_, configured := team.Auth()["noauth"]
 	if configured {
-		v.logger.Info("IsAuthenticated noauth is configured")
 		return true
 	}
 
 	config, configured := team.Auth()["basicauth"]
 	if !configured {
-		v.logger.Info("IsAuthenticated basic auth is NOT configured")
 		return false
 	}
 
