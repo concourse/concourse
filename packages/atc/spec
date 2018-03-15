@@ -79,6 +79,7 @@ files:
   - github.com/cloudfoundry/bosh-cli/vendor/gopkg.in/yaml.v2/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/*.{go,s,c,h} # gosub
+  - github.com/concourse/atc/api/accessor/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/auth/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/buildserver/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/cliserver/*.{go,s,c,h} # gosub

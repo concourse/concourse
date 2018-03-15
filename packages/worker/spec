@@ -16,8 +16,6 @@ files:
   - github.com/concourse/worker/cmd/worker/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/felixge/tcpkeepalive/*.{go,s,c,h} # gosub
-  - github.com/hashicorp/go-multierror/*.{go,s,c,h} # gosub
-  - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.{go,s,c,h} # gosub
   - github.com/jessevdk/go-flags/*.{go,s,c,h} # gosub
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/*.{go,s,c,h} # gosub
