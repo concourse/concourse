@@ -65,7 +65,7 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *e
 
 		sqlDb, err := migration.NewOpenHelper(sqlDriver, sqlDataSource, lockFactory, strategy).Open()
 		if err != nil {
-			if strings.Contains(err.Error(), "dial ") {
+			if shouldRetry(err) {
 				logger.Error("failed-to-open-db-retrying", err)
 				time.Sleep(5 * time.Second)
 				continue
@@ -101,6 +101,18 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *e
 			name:       connectionName,
 		}, nil
 	}
+}
+
+func shouldRetry(err error) bool {
+	if strings.Contains(err.Error(), "dial ") {
+		return true
+	}
+
+	if pqErr, ok := err.(*pq.Error); ok {
+		return pqErr.Code.Name() == "cannot_connect_now"
+	}
+
+	return false
 }
 
 var encryptedColumns = map[string]string{
