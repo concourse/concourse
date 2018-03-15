@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,6 +32,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 		step = exec.ArtifactOutput(
 			"some-plan-id",
 			"some-name",
+			new(execfakes.FakeBuildStepDelegate),
 		)
 
 		stepErr = step.Run(ctx, state)

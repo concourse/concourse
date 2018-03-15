@@ -11,14 +11,16 @@ import (
 )
 
 type ArtifactOutputStep struct {
-	id   atc.PlanID
-	name worker.ArtifactName
+	id       atc.PlanID
+	name     worker.ArtifactName
+	delegate BuildStepDelegate
 }
 
-func ArtifactOutput(id atc.PlanID, name worker.ArtifactName) Step {
+func ArtifactOutput(id atc.PlanID, name worker.ArtifactName, delegate BuildStepDelegate) Step {
 	return &ArtifactOutputStep{
-		id:   id,
-		name: name,
+		id:       id,
+		name:     name,
+		delegate: delegate,
 	}
 }
 
@@ -35,9 +37,14 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
 		}
 	}
 
+	pb := progress(string(step.name)+":", step.delegate.Stdout())
+
 	return state.SendPlanOutput(step.id, func(w io.Writer) error {
+		pb.Start()
+		defer pb.Finish()
+
 		logger.Debug("sending-plan-output")
-		return source.StreamTo(streamDestination{w})
+		return source.StreamTo(streamDestination{io.MultiWriter(w, pb)})
 	})
 }
 

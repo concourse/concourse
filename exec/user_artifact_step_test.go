@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,6 +33,7 @@ var _ = Describe("UserArtifactStep", func() {
 		step = exec.UserArtifact(
 			"some-plan-id",
 			"some-name",
+			new(execfakes.FakeBuildStepDelegate),
 		)
 
 		stepErr = step.Run(ctx, state)

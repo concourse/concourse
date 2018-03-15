@@ -12,14 +12,16 @@ import (
 )
 
 type UserArtifactStep struct {
-	id   atc.PlanID
-	name worker.ArtifactName
+	id       atc.PlanID
+	name     worker.ArtifactName
+	delegate BuildStepDelegate
 }
 
-func UserArtifact(id atc.PlanID, name worker.ArtifactName) Step {
+func UserArtifact(id atc.PlanID, name worker.ArtifactName, delegate BuildStepDelegate) Step {
 	return &UserArtifactStep{
-		id:   id,
-		name: name,
+		id:       id,
+		name:     name,
+		delegate: delegate,
 	}
 }
 
@@ -31,7 +33,7 @@ func (step *UserArtifactStep) Run(ctx context.Context, state RunState) error {
 
 	state.Artifacts().RegisterSource(step.name, streamSource{
 		logger,
-		step.id,
+		step,
 		state,
 	})
 
@@ -44,14 +46,19 @@ func (step *UserArtifactStep) Succeeded() bool {
 
 type streamSource struct {
 	logger lager.Logger
-	id     atc.PlanID
+	step   *UserArtifactStep
 	state  RunState
 }
 
 func (source streamSource) StreamTo(dest worker.ArtifactDestination) error {
-	return source.state.ReadUserInput(source.id, func(rc io.ReadCloser) error {
+	pb := progress(string(source.step.name)+":", source.step.delegate.Stdout())
+
+	return source.state.ReadUserInput(source.step.id, func(rc io.ReadCloser) error {
+		pb.Start()
+		defer pb.Finish()
+
 		source.logger.Debug("reading-user-input")
-		return dest.StreamIn(".", rc)
+		return dest.StreamIn(".", pb.NewProxyReader(rc))
 	})
 }
 
