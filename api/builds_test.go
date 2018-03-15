@@ -12,22 +12,33 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
-
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine/enginefakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Builds API", func() {
+	var fakeaccess *accessorfakes.FakeAccess
+
+	BeforeEach(func() {
+		fakeaccess = new(accessorfakes.FakeAccess)
+	})
+
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
+	})
+
 	Describe("POST /api/v1/builds", func() {
 		var plan atc.Plan
 		var response *http.Response
 
 		BeforeEach(func() {
+			fakeaccess = new(accessorfakes.FakeAccess)
 			plan = atc.Plan{
 				Task: &atc.TaskPlan{
 					Config: &atc.TaskConfig{
@@ -37,13 +48,16 @@ var _ = Describe("Builds API", func() {
 					},
 				},
 			}
+			fakeaccess.IsAuthenticatedReturns(true)
 		})
 
 		JustBeforeEach(func() {
+			fakeAccessor.CreateReturns(fakeaccess)
+
 			reqPayload, err := json.Marshal(plan)
 			Expect(err).NotTo(HaveOccurred())
 
-			req, err := http.NewRequest("POST", server.URL+"/api/v1/builds", bytes.NewBuffer(reqPayload))
+			req, err := http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/builds", bytes.NewBuffer(reqPayload))
 			Expect(err).NotTo(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
@@ -54,8 +68,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", false, true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when creating a one-off build succeeds", func() {
@@ -158,7 +171,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -168,6 +181,273 @@ var _ = Describe("Builds API", func() {
 			It("does not trigger a build", func() {
 				Expect(dbTeam.CreateOneOffBuildCallCount()).To(BeZero())
 				Expect(fakeEngine.CreateBuildCallCount()).To(BeZero())
+			})
+		})
+	})
+	Describe("GET /api/v1/builds", func() {
+		var response *http.Response
+		var queryParams string
+		var returnedBuilds []db.Build
+
+		BeforeEach(func() {
+			queryParams = ""
+			build1 := new(dbfakes.FakeBuild)
+			build1.IDReturns(4)
+			build1.NameReturns("2")
+			build1.JobNameReturns("job2")
+			build1.PipelineNameReturns("pipeline2")
+			build1.TeamNameReturns("some-team")
+			build1.StatusReturns(db.BuildStatusStarted)
+			build1.StartTimeReturns(time.Unix(1, 0))
+			build1.EndTimeReturns(time.Unix(100, 0))
+			build1.ReapTimeReturns(time.Unix(300, 0))
+
+			build2 := new(dbfakes.FakeBuild)
+			build2.IDReturns(3)
+			build2.NameReturns("1")
+			build2.JobNameReturns("job1")
+			build2.PipelineNameReturns("pipeline1")
+			build2.TeamNameReturns("some-team")
+			build2.StatusReturns(db.BuildStatusSucceeded)
+			build2.StartTimeReturns(time.Unix(101, 0))
+			build2.EndTimeReturns(time.Unix(200, 0))
+			build2.ReapTimeReturns(time.Unix(400, 0))
+
+			returnedBuilds = []db.Build{build1, build2}
+			fakeaccess.TeamNamesReturns([]string{"some-team"})
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Get(server.URL + "/api/v1/builds" + queryParams)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			Context("when no params are passed", func() {
+				BeforeEach(func() {
+					queryParams = ""
+				})
+
+				It("does not set defaults for since and until", func() {
+					Expect(dbBuildFactory.VisibleBuildsCallCount()).To(Equal(1))
+
+					teamName, page := dbBuildFactory.VisibleBuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 0,
+						Until: 0,
+						Limit: 100,
+					}))
+					Expect(teamName).To(ConsistOf("some-team"))
+				})
+			})
+
+			Context("when all the params are passed", func() {
+				BeforeEach(func() {
+					queryParams = "?since=2&until=3&limit=8"
+				})
+
+				It("passes them through", func() {
+					Expect(dbBuildFactory.VisibleBuildsCallCount()).To(Equal(1))
+
+					_, page := dbBuildFactory.VisibleBuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 2,
+						Until: 3,
+						Limit: 8,
+					}))
+				})
+			})
+
+			Context("when getting the builds succeeds", func() {
+				BeforeEach(func() {
+					dbBuildFactory.VisibleBuildsReturns(returnedBuilds, db.Pagination{}, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns Content-Type 'application/json'", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
+				It("returns all builds", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+						{
+							"id": 4,
+							"name": "2",
+							"job_name": "job2",
+							"pipeline_name": "pipeline2",
+							"team_name": "some-team",
+							"status": "started",
+							"api_url": "/api/v1/builds/4",
+							"start_time": 1,
+							"end_time": 100,
+							"reap_time": 300
+						},
+						{
+							"id": 3,
+							"name": "1",
+							"job_name": "job1",
+							"pipeline_name": "pipeline1",
+							"team_name": "some-team",
+							"status": "succeeded",
+							"api_url": "/api/v1/builds/3",
+							"start_time": 101,
+							"end_time": 200,
+							"reap_time": 400
+						}
+					]`))
+				})
+			})
+
+			Context("when next/previous pages are available", func() {
+				BeforeEach(func() {
+					dbBuildFactory.VisibleBuildsReturns(returnedBuilds, db.Pagination{
+						Previous: &db.Page{Until: 4, Limit: 2},
+						Next:     &db.Page{Since: 3, Limit: 2},
+					}, nil)
+				})
+
+				It("returns Link headers per rfc5988", func() {
+					Expect(response.Header["Link"]).To(ConsistOf([]string{
+						fmt.Sprintf(`<%s/api/v1/builds?until=4&limit=2>; rel="previous"`, externalURL),
+						fmt.Sprintf(`<%s/api/v1/builds?since=3&limit=2>; rel="next"`, externalURL),
+					}))
+				})
+			})
+
+			Context("when getting all builds fails", func() {
+				BeforeEach(func() {
+					dbBuildFactory.VisibleBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
+				})
+
+				It("returns 500 Internal Server Error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when no params are passed", func() {
+				BeforeEach(func() {
+					queryParams = ""
+				})
+
+				It("does not set defaults for since and until", func() {
+					Expect(dbBuildFactory.VisibleBuildsCallCount()).To(Equal(1))
+
+					_, page := dbBuildFactory.VisibleBuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 0,
+						Until: 0,
+						Limit: 100,
+					}))
+				})
+			})
+
+			Context("when all the params are passed", func() {
+				BeforeEach(func() {
+					queryParams = "?since=2&until=3&limit=8"
+				})
+
+				It("passes them through", func() {
+					Expect(dbBuildFactory.VisibleBuildsCallCount()).To(Equal(1))
+
+					_, page := dbBuildFactory.VisibleBuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 2,
+						Until: 3,
+						Limit: 8,
+					}))
+				})
+			})
+
+			Context("when getting the builds succeeds", func() {
+				BeforeEach(func() {
+					dbBuildFactory.VisibleBuildsReturns(returnedBuilds, db.Pagination{}, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns all builds", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+						{
+							"id": 4,
+							"name": "2",
+							"job_name": "job2",
+							"pipeline_name": "pipeline2",
+							"team_name": "some-team",
+							"status": "started",
+							"api_url": "/api/v1/builds/4",
+							"start_time": 1,
+							"end_time": 100,
+							"reap_time": 300
+						},
+						{
+							"id": 3,
+							"name": "1",
+							"job_name": "job1",
+							"pipeline_name": "pipeline1",
+							"team_name": "some-team",
+							"status": "succeeded",
+							"api_url": "/api/v1/builds/3",
+							"start_time": 101,
+							"end_time": 200,
+							"reap_time": 400
+						}
+					]`))
+				})
+
+				It("returns builds for teams from the token", func() {
+					Expect(dbBuildFactory.VisibleBuildsCallCount()).To(Equal(1))
+					teamName, _ := dbBuildFactory.VisibleBuildsArgsForCall(0)
+					Expect(teamName).To(ConsistOf("some-team"))
+				})
+			})
+
+			Context("when next/previous pages are available", func() {
+				BeforeEach(func() {
+					dbBuildFactory.VisibleBuildsReturns(returnedBuilds, db.Pagination{
+						Previous: &db.Page{Until: 4, Limit: 2},
+						Next:     &db.Page{Since: 3, Limit: 2},
+					}, nil)
+				})
+
+				It("returns Link headers per rfc5988", func() {
+					Expect(response.Header["Link"]).To(ConsistOf([]string{
+						fmt.Sprintf(`<%s/api/v1/builds?until=4&limit=2>; rel="previous"`, externalURL),
+						fmt.Sprintf(`<%s/api/v1/builds?since=3&limit=2>; rel="next"`, externalURL),
+					}))
+				})
+			})
+
+			Context("when getting all builds fails", func() {
+				BeforeEach(func() {
+					dbBuildFactory.VisibleBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
+				})
+
+				It("returns 500 Internal Server Error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 	})
@@ -228,11 +508,14 @@ var _ = Describe("Builds API", func() {
 					build.EndTimeReturns(time.Unix(100, 0))
 					build.ReapTimeReturns(time.Unix(200, 0))
 					dbBuildFactory.BuildReturns(build, true, nil)
+					build.PipelineReturns(fakePipeline, true, nil)
+					fakePipeline.PublicReturns(true)
 				})
 
 				Context("when not authenticated", func() {
 					BeforeEach(func() {
-						jwtValidator.IsAuthenticatedReturns(false)
+						fakeaccess.IsAuthenticatedReturns(false)
+						fakeaccess.IsAuthorizedReturns(false)
 					})
 
 					Context("and build is one off", func() {
@@ -270,22 +553,37 @@ var _ = Describe("Builds API", func() {
 
 				Context("when authenticated", func() {
 					BeforeEach(func() {
-						jwtValidator.IsAuthenticatedReturns(true)
+						fakeaccess.IsAuthenticatedReturns(true)
 					})
 
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Context("when user is not authorized", func() {
+						BeforeEach(func() {
+							fakeaccess.IsAuthorizedReturns(false)
+
+						})
+						It("returns 200 OK", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
 					})
 
-					It("returns the build with the given build_id", func() {
-						Expect(dbBuildFactory.BuildCallCount()).To(Equal(1))
-						buildID := dbBuildFactory.BuildArgsForCall(0)
-						Expect(buildID).To(Equal(1))
+					Context("when user is authorized", func() {
+						BeforeEach(func() {
+							fakeaccess.IsAuthorizedReturns(true)
+						})
 
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
+						It("returns 200 OK", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
 
-						Expect(body).To(MatchJSON(`{
+						It("returns the build with the given build_id", func() {
+							Expect(dbBuildFactory.BuildCallCount()).To(Equal(1))
+							buildID := dbBuildFactory.BuildArgsForCall(0)
+							Expect(buildID).To(Equal(1))
+
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{
 						"id": 1,
 						"name": "1",
 						"status": "succeeded",
@@ -297,6 +595,7 @@ var _ = Describe("Builds API", func() {
 						"end_time": 100,
 						"reap_time": 200
 					}`))
+						})
 					})
 				})
 			})
@@ -324,7 +623,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(false)
+					fakeaccess.IsAuthenticatedReturns(false)
 				})
 
 				Context("and build is one off", func() {
@@ -362,8 +661,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-other-team", false, true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(false)
 				})
 
 				It("returns 403", func() {
@@ -371,10 +670,10 @@ var _ = Describe("Builds API", func() {
 				})
 			})
 
-			Context("when authorized", func() {
+			Context("when authenticaed and authorized", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", false, true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
 				It("returns 200 OK", func() {
@@ -534,277 +833,6 @@ var _ = Describe("Builds API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/builds", func() {
-		var response *http.Response
-		var queryParams string
-		var returnedBuilds []db.Build
-
-		BeforeEach(func() {
-			queryParams = ""
-			build1 := new(dbfakes.FakeBuild)
-			build1.IDReturns(4)
-			build1.NameReturns("2")
-			build1.JobNameReturns("job2")
-			build1.PipelineNameReturns("pipeline2")
-			build1.TeamNameReturns("some-team")
-			build1.StatusReturns(db.BuildStatusStarted)
-			build1.StartTimeReturns(time.Unix(1, 0))
-			build1.EndTimeReturns(time.Unix(100, 0))
-			build1.ReapTimeReturns(time.Unix(300, 0))
-
-			build2 := new(dbfakes.FakeBuild)
-			build2.IDReturns(3)
-			build2.NameReturns("1")
-			build2.JobNameReturns("job1")
-			build2.PipelineNameReturns("pipeline1")
-			build2.TeamNameReturns("some-team")
-			build2.StatusReturns(db.BuildStatusSucceeded)
-			build2.StartTimeReturns(time.Unix(101, 0))
-			build2.EndTimeReturns(time.Unix(200, 0))
-			build2.ReapTimeReturns(time.Unix(400, 0))
-
-			returnedBuilds = []db.Build{build1, build2}
-
-			jwtValidator.IsAuthenticatedReturns(false)
-		})
-
-		JustBeforeEach(func() {
-			var err error
-
-			response, err = client.Get(server.URL + "/api/v1/builds" + queryParams)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", false, false)
-			})
-
-			Context("when no params are passed", func() {
-				BeforeEach(func() {
-					queryParams = ""
-				})
-
-				It("does not set defaults for since and until", func() {
-					Expect(dbBuildFactory.PublicBuildsCallCount()).To(Equal(1))
-
-					page := dbBuildFactory.PublicBuildsArgsForCall(0)
-					Expect(page).To(Equal(db.Page{
-						Since: 0,
-						Until: 0,
-						Limit: 100,
-					}))
-				})
-			})
-
-			Context("when all the params are passed", func() {
-				BeforeEach(func() {
-					queryParams = "?since=2&until=3&limit=8"
-				})
-
-				It("passes them through", func() {
-					Expect(dbBuildFactory.PublicBuildsCallCount()).To(Equal(1))
-
-					page := dbBuildFactory.PublicBuildsArgsForCall(0)
-					Expect(page).To(Equal(db.Page{
-						Since: 2,
-						Until: 3,
-						Limit: 8,
-					}))
-				})
-			})
-
-			Context("when getting the builds succeeds", func() {
-				BeforeEach(func() {
-					dbBuildFactory.PublicBuildsReturns(returnedBuilds, db.Pagination{}, nil)
-				})
-
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-				})
-
-				It("returns all builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(body).To(MatchJSON(`[
-						{
-							"id": 4,
-							"name": "2",
-							"job_name": "job2",
-							"pipeline_name": "pipeline2",
-							"team_name": "some-team",
-							"status": "started",
-							"api_url": "/api/v1/builds/4",
-							"start_time": 1,
-							"end_time": 100,
-							"reap_time": 300
-						},
-						{
-							"id": 3,
-							"name": "1",
-							"job_name": "job1",
-							"pipeline_name": "pipeline1",
-							"team_name": "some-team",
-							"status": "succeeded",
-							"api_url": "/api/v1/builds/3",
-							"start_time": 101,
-							"end_time": 200,
-							"reap_time": 400
-						}
-					]`))
-				})
-			})
-
-			Context("when next/previous pages are available", func() {
-				BeforeEach(func() {
-					dbBuildFactory.PublicBuildsReturns(returnedBuilds, db.Pagination{
-						Previous: &db.Page{Until: 4, Limit: 2},
-						Next:     &db.Page{Since: 3, Limit: 2},
-					}, nil)
-				})
-
-				It("returns Link headers per rfc5988", func() {
-					Expect(response.Header["Link"]).To(ConsistOf([]string{
-						fmt.Sprintf(`<%s/api/v1/builds?until=4&limit=2>; rel="previous"`, externalURL),
-						fmt.Sprintf(`<%s/api/v1/builds?since=3&limit=2>; rel="next"`, externalURL),
-					}))
-				})
-			})
-
-			Context("when getting all builds fails", func() {
-				BeforeEach(func() {
-					dbBuildFactory.PublicBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
-				})
-
-				It("returns 500 Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-		})
-
-		Context("when authenticated", func() {
-			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("some-team", false, true)
-			})
-
-			Context("when no params are passed", func() {
-				BeforeEach(func() {
-					queryParams = ""
-				})
-
-				It("does not set defaults for since and until", func() {
-					Expect(dbTeam.PrivateAndPublicBuildsCallCount()).To(Equal(1))
-
-					page := dbTeam.PrivateAndPublicBuildsArgsForCall(0)
-					Expect(page).To(Equal(db.Page{
-						Since: 0,
-						Until: 0,
-						Limit: 100,
-					}))
-				})
-			})
-
-			Context("when all the params are passed", func() {
-				BeforeEach(func() {
-					queryParams = "?since=2&until=3&limit=8"
-				})
-
-				It("passes them through", func() {
-					Expect(dbTeam.PrivateAndPublicBuildsCallCount()).To(Equal(1))
-
-					page := dbTeam.PrivateAndPublicBuildsArgsForCall(0)
-					Expect(page).To(Equal(db.Page{
-						Since: 2,
-						Until: 3,
-						Limit: 8,
-					}))
-				})
-			})
-
-			Context("when getting the builds succeeds", func() {
-				BeforeEach(func() {
-					dbTeam.PrivateAndPublicBuildsReturns(returnedBuilds, db.Pagination{}, nil)
-				})
-
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns all builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(body).To(MatchJSON(`[
-						{
-							"id": 4,
-							"name": "2",
-							"job_name": "job2",
-							"pipeline_name": "pipeline2",
-							"team_name": "some-team",
-							"status": "started",
-							"api_url": "/api/v1/builds/4",
-							"start_time": 1,
-							"end_time": 100,
-							"reap_time": 300
-						},
-						{
-							"id": 3,
-							"name": "1",
-							"job_name": "job1",
-							"pipeline_name": "pipeline1",
-							"team_name": "some-team",
-							"status": "succeeded",
-							"api_url": "/api/v1/builds/3",
-							"start_time": 101,
-							"end_time": 200,
-							"reap_time": 400
-						}
-					]`))
-				})
-
-				It("returns builds for team in the context", func() {
-					Expect(dbTeam.PrivateAndPublicBuildsCallCount()).To(Equal(1))
-					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
-					teamName := dbTeamFactory.FindTeamArgsForCall(0)
-					Expect(teamName).To(Equal("some-team"))
-				})
-			})
-
-			Context("when next/previous pages are available", func() {
-				BeforeEach(func() {
-					dbTeam.PrivateAndPublicBuildsReturns(returnedBuilds, db.Pagination{
-						Previous: &db.Page{Until: 4, Limit: 2},
-						Next:     &db.Page{Since: 3, Limit: 2},
-					}, nil)
-				})
-
-				It("returns Link headers per rfc5988", func() {
-					Expect(response.Header["Link"]).To(ConsistOf([]string{
-						fmt.Sprintf(`<%s/api/v1/builds?until=4&limit=2>; rel="previous"`, externalURL),
-						fmt.Sprintf(`<%s/api/v1/builds?since=3&limit=2>; rel="next"`, externalURL),
-					}))
-				})
-			})
-
-			Context("when getting all builds fails", func() {
-				BeforeEach(func() {
-					dbTeam.PrivateAndPublicBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
-				})
-
-				It("returns 500 Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-		})
-	})
-
 	Describe("GET /api/v1/builds/:build_id/events", func() {
 		var (
 			request  *http.Request
@@ -835,8 +863,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-other-team", false, true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(false)
 				})
 
 				It("returns 403", func() {
@@ -846,8 +874,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", false, true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
 				It("returns 200", func() {
@@ -869,7 +897,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(false)
+					fakeaccess.IsAuthenticatedReturns(false)
 				})
 
 				Context("and the pipeline is private", func() {
@@ -1007,7 +1035,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when the build can be found", func() {
@@ -1018,7 +1046,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when accessing same team's build", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-team", true, true)
+						fakeaccess.IsAuthorizedReturns(true)
 					})
 
 					Context("when the engine returns a build", func() {
@@ -1067,7 +1095,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when accessing other team's build", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-other-team", true, true)
+						fakeaccess.IsAuthorizedReturns(false)
 					})
 
 					It("returns 403", func() {
@@ -1099,7 +1127,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -1141,9 +1169,9 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(false)
 					build.PipelineReturns(fakePipeline, true, nil)
-					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
 
 				It("returns 403", func() {
@@ -1153,7 +1181,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(false)
+					fakeaccess.IsAuthenticatedReturns(false)
 				})
 
 				Context("and build is one off", func() {
@@ -1241,8 +1269,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", false, true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
 				It("fetches data from the db", func() {
@@ -1348,9 +1376,10 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(false)
+
 					build.PipelineReturns(fakePipeline, true, nil)
-					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
 
 				It("returns 403", func() {
@@ -1360,7 +1389,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(false)
+					fakeaccess.IsAuthenticatedReturns(false)
 				})
 
 				Context("and build is one off", func() {
@@ -1398,8 +1427,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", false, true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
 				Context("when the build returns a plan", func() {
@@ -1481,7 +1510,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when the build can be found", func() {
@@ -1490,9 +1519,9 @@ var _ = Describe("Builds API", func() {
 					dbBuildFactory.BuildReturns(build, true, nil)
 				})
 
-				Context("when accessing same team's build", func() {
+				Context("when accessing same teams build", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-team", true, true)
+						fakeaccess.IsAuthorizedReturns(true)
 					})
 
 					Context("when the build is tracked by the current ATC", func() {
@@ -1593,9 +1622,9 @@ var _ = Describe("Builds API", func() {
 					})
 				})
 
-				Context("when accessing other team's build", func() {
+				Context("when accessing other teams build", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-other-team", true, true)
+						fakeaccess.IsAuthorizedReturns(false)
 					})
 
 					It("returns 403", func() {
@@ -1627,7 +1656,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -1674,7 +1703,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when the build can be found", func() {
@@ -1685,7 +1714,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when accessing same team's build", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-team", true, true)
+						fakeaccess.IsAuthorizedReturns(true)
 					})
 
 					Context("when the build is tracked by the current ATC", func() {
@@ -1784,7 +1813,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when accessing other team's build", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-other-team", true, true)
+						fakeaccess.IsAuthorizedReturns(false)
 					})
 
 					It("returns 403", func() {
@@ -1816,7 +1845,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {

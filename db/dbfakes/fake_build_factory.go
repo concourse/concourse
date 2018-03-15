@@ -23,6 +23,22 @@ type FakeBuildFactory struct {
 		result2 bool
 		result3 error
 	}
+	VisibleBuildsStub        func([]string, db.Page) ([]db.Build, db.Pagination, error)
+	visibleBuildsMutex       sync.RWMutex
+	visibleBuildsArgsForCall []struct {
+		arg1 []string
+		arg2 db.Page
+	}
+	visibleBuildsReturns struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
+	visibleBuildsReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
 	PublicBuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
 	publicBuildsMutex       sync.RWMutex
 	publicBuildsArgsForCall []struct {
@@ -112,6 +128,66 @@ func (fake *FakeBuildFactory) BuildReturnsOnCall(i int, result1 db.Build, result
 	fake.buildReturnsOnCall[i] = struct {
 		result1 db.Build
 		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildFactory) VisibleBuilds(arg1 []string, arg2 db.Page) ([]db.Build, db.Pagination, error) {
+	var arg1Copy []string
+	if arg1 != nil {
+		arg1Copy = make([]string, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	fake.visibleBuildsMutex.Lock()
+	ret, specificReturn := fake.visibleBuildsReturnsOnCall[len(fake.visibleBuildsArgsForCall)]
+	fake.visibleBuildsArgsForCall = append(fake.visibleBuildsArgsForCall, struct {
+		arg1 []string
+		arg2 db.Page
+	}{arg1Copy, arg2})
+	fake.recordInvocation("VisibleBuilds", []interface{}{arg1Copy, arg2})
+	fake.visibleBuildsMutex.Unlock()
+	if fake.VisibleBuildsStub != nil {
+		return fake.VisibleBuildsStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.visibleBuildsReturns.result1, fake.visibleBuildsReturns.result2, fake.visibleBuildsReturns.result3
+}
+
+func (fake *FakeBuildFactory) VisibleBuildsCallCount() int {
+	fake.visibleBuildsMutex.RLock()
+	defer fake.visibleBuildsMutex.RUnlock()
+	return len(fake.visibleBuildsArgsForCall)
+}
+
+func (fake *FakeBuildFactory) VisibleBuildsArgsForCall(i int) ([]string, db.Page) {
+	fake.visibleBuildsMutex.RLock()
+	defer fake.visibleBuildsMutex.RUnlock()
+	return fake.visibleBuildsArgsForCall[i].arg1, fake.visibleBuildsArgsForCall[i].arg2
+}
+
+func (fake *FakeBuildFactory) VisibleBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.VisibleBuildsStub = nil
+	fake.visibleBuildsReturns = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildFactory) VisibleBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.VisibleBuildsStub = nil
+	if fake.visibleBuildsReturnsOnCall == nil {
+		fake.visibleBuildsReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 db.Pagination
+			result3 error
+		})
+	}
+	fake.visibleBuildsReturnsOnCall[i] = struct {
+		result1 []db.Build
+		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
@@ -258,6 +334,8 @@ func (fake *FakeBuildFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
+	fake.visibleBuildsMutex.RLock()
+	defer fake.visibleBuildsMutex.RUnlock()
 	fake.publicBuildsMutex.RLock()
 	defer fake.publicBuildsMutex.RUnlock()
 	fake.getAllStartedBuildsMutex.RLock()

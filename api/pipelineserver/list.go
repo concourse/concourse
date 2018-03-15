@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
 )
@@ -26,9 +26,9 @@ func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var pipelines []db.Pipeline
+	acc := accessor.GetAccessor(r)
 
-	authTeam, authTeamFound := auth.GetTeam(r)
-	if authTeamFound && authTeam.IsAuthorized(requestTeamName) {
+	if acc.IsAuthorized(requestTeamName) {
 		pipelines, err = team.Pipelines()
 	} else {
 		pipelines, err = team.PublicPipelines()

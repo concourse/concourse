@@ -7,12 +7,13 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
 )
 
 func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
+
 	logger := s.logger.Session("list-builds")
 
 	var (
@@ -40,25 +41,8 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	var builds []db.Build
 	var pagination db.Pagination
 
-	authTeam, authTeamFound := auth.GetTeam(r)
-	if authTeamFound {
-		var team db.Team
-		var found bool
-		team, found, err = s.teamFactory.FindTeam(authTeam.Name())
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !found {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		builds, pagination, err = team.PrivateAndPublicBuilds(page)
-	} else {
-		builds, pagination, err = s.buildFactory.PublicBuilds(page)
-	}
+	acc := accessor.GetAccessor(r)
+	builds, pagination, err = s.buildFactory.VisibleBuilds(acc.TeamNames(), page)
 
 	if err != nil {
 		logger.Error("failed-to-get-all-builds", err)

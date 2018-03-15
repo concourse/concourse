@@ -8,8 +8,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 
+	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/api/auth"
-	"github.com/concourse/atc/api/auth/authfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,9 +23,11 @@ var _ = Describe("CsrfValidationHandler", func() {
 		request               *http.Request
 		response              *http.Response
 		delegateHandlerCalled bool
-		fakeUserContextReader *authfakes.FakeUserContextReader
+		fakeAccessor          *accessorfakes.FakeAccessFactory
+		fakeaccess            *accessorfakes.FakeAccess
 		isCSRFRequired        bool
 		logger                *lagertest.TestLogger
+		isLoggerSet           bool
 	)
 
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +35,9 @@ var _ = Describe("CsrfValidationHandler", func() {
 	})
 
 	csrfRequiredWrapHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r = request.WithContext(context.WithValue(r.Context(), "logger", logger))
+		if isLoggerSet {
+			r = request.WithContext(context.WithValue(r.Context(), "logger", logger))
+		}
 		if isCSRFRequired {
 			r = request.WithContext(context.WithValue(r.Context(), auth.CSRFRequiredKey, true))
 		}
@@ -40,14 +45,17 @@ var _ = Describe("CsrfValidationHandler", func() {
 	})
 
 	BeforeEach(func() {
+		isLoggerSet = true
+		fakeAccessor = new(accessorfakes.FakeAccessFactory)
+		fakeaccess = new(accessorfakes.FakeAccess)
 		delegateHandlerCalled = false
 		isCSRFRequired = false
 		logger = lagertest.NewTestLogger("csrf-validation-test")
-		fakeUserContextReader = new(authfakes.FakeUserContextReader)
-		csrfValidationHandler = auth.CSRFValidationHandler(
+
+		csrfValidationHandler = accessor.NewHandler(auth.CSRFValidationHandler(
 			simpleHandler,
 			auth.UnauthorizedRejector{},
-			fakeUserContextReader,
+		), fakeAccessor,
 		)
 
 		server = httptest.NewServer(csrfRequiredWrapHandler)
@@ -61,13 +69,15 @@ var _ = Describe("CsrfValidationHandler", func() {
 		server.Close()
 	})
 
-	JustBeforeEach(func() {
-		var err error
-		response, err = http.DefaultClient.Do(request)
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Context("when request does not require CSRF validation", func() {
+		JustBeforeEach(func() {
+			fakeAccessor.CreateReturns(fakeaccess)
+
+			var err error
+			response, err = http.DefaultClient.Do(request)
+
+			Expect(err).NotTo(HaveOccurred())
+		})
 		Context("when CSRF token is not provided", func() {
 			It("returns 200 OK", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
@@ -80,6 +90,15 @@ var _ = Describe("CsrfValidationHandler", func() {
 	})
 
 	Context("when request requires CSRF validation", func() {
+		JustBeforeEach(func() {
+			fakeAccessor.CreateReturns(fakeaccess)
+
+			var err error
+			response, err = http.DefaultClient.Do(request)
+
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		BeforeEach(func() {
 			isCSRFRequired = true
 		})
@@ -89,6 +108,9 @@ var _ = Describe("CsrfValidationHandler", func() {
 				var err error
 				request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
 				Expect(err).NotTo(HaveOccurred())
+
+				request.Header.Set(auth.CSRFHeaderName, "some-token")
+				fakeaccess.CSRFTokenReturns("some-token")
 			})
 
 			It("returns 200 OK", func() {
@@ -117,7 +139,7 @@ var _ = Describe("CsrfValidationHandler", func() {
 
 			Context("when auth token does not contain CSRF", func() {
 				BeforeEach(func() {
-					fakeUserContextReader.GetCSRFTokenReturns("", false)
+					fakeaccess.CSRFTokenReturns("")
 				})
 
 				It("returns 401 Bad Request", func() {
@@ -131,7 +153,7 @@ var _ = Describe("CsrfValidationHandler", func() {
 
 			Context("when auth token contains non-matching CSRF", func() {
 				BeforeEach(func() {
-					fakeUserContextReader.GetCSRFTokenReturns("some-other-csrf", true)
+					fakeaccess.CSRFTokenReturns("some-other-csrf")
 				})
 
 				It("returns 401 Not Authorized", func() {
@@ -145,7 +167,7 @@ var _ = Describe("CsrfValidationHandler", func() {
 
 			Context("when auth token contains matching CSRF", func() {
 				BeforeEach(func() {
-					fakeUserContextReader.GetCSRFTokenReturns("some-csrf-token", true)
+					fakeaccess.CSRFTokenReturns("some-csrf-token")
 				})
 
 				It("returns 200 OK", func() {

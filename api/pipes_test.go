@@ -9,16 +9,20 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/onsi/gomega/ghttp"
 
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Pipes API", func() {
+	var fakeaccess *accessorfakes.FakeAccess
+
 	createPipe := func() atc.Pipe {
-		req, err := http.NewRequest("POST", server.URL+"/api/v1/pipes", nil)
+		fakeAccessor.CreateReturns(fakeaccess)
+		req, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipes", nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		response, err := client.Do(req)
@@ -34,7 +38,8 @@ var _ = Describe("Pipes API", func() {
 	}
 
 	createPipeWithError := func(statusCode int) {
-		req, err := http.NewRequest("POST", server.URL+"/api/v1/pipes", nil)
+		fakeAccessor.CreateReturns(fakeaccess)
+		req, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipes", nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		response, err := client.Do(req)
@@ -44,14 +49,16 @@ var _ = Describe("Pipes API", func() {
 	}
 
 	readPipe := func(id string) *http.Response {
-		response, err := http.Get(server.URL + "/api/v1/pipes/" + id)
+		fakeAccessor.CreateReturns(fakeaccess)
+		response, err := http.Get(server.URL + "/api/v1/teams/a-team/pipes/" + id)
 		Expect(err).NotTo(HaveOccurred())
 
 		return response
 	}
 
 	writePipe := func(id string, body io.Reader) *http.Response {
-		req, err := http.NewRequest("PUT", server.URL+"/api/v1/pipes/"+id, body)
+		fakeAccessor.CreateReturns(fakeaccess)
+		req, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipes/"+id, body)
 		Expect(err).NotTo(HaveOccurred())
 
 		response, err := client.Do(req)
@@ -60,35 +67,36 @@ var _ = Describe("Pipes API", func() {
 		return response
 	}
 
+	BeforeEach(func() {
+		fakeaccess = new(accessorfakes.FakeAccess)
+	})
+
 	Context("when authenticated", func() {
 		BeforeEach(func() {
-			jwtValidator.IsAuthenticatedReturns(true)
+			fakeaccess.IsAuthenticatedReturns(true)
+			fakeaccess.IsAuthorizedReturns(true)
 		})
 
-		Describe("POST /api/v1/pipes", func() {
+		Describe("POST /api/v1/teams/a-team/pipes", func() {
 			Context("when team not found", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("", false, false)
+					dbTeamFactory.FindTeamReturns(nil, false, nil)
 				})
-				It("returns 500", func() {
-					createPipeWithError(http.StatusInternalServerError)
+				It("returns 404", func() {
+					createPipeWithError(http.StatusNotFound)
 				})
 			})
 
 			Context("when team is found", func() {
-				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
-				})
-
 				var pipe atc.Pipe
 
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("team1", false, true)
+					dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 					pipe = createPipe()
 					dbTeam.GetPipeReturns(db.Pipe{
 						ID:       pipe.ID,
 						URL:      peerURL,
-						TeamName: "team1",
+						TeamName: "a-team",
 					}, nil)
 				})
 
@@ -98,44 +106,43 @@ var _ = Describe("Pipes API", func() {
 				})
 
 				It("returns the pipe's read/write URLs", func() {
-					Expect(pipe.ReadURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/pipes/%s", pipe.ID)))
-					Expect(pipe.WriteURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/pipes/%s", pipe.ID)))
+					Expect(pipe.ReadURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/teams/a-team/pipes/%s", pipe.ID)))
+					Expect(pipe.WriteURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/teams/a-team/pipes/%s", pipe.ID)))
 				})
 
 				It("saves it", func() {
 					teamName := dbTeamFactory.FindTeamArgsForCall(0)
-					Expect(teamName).To(Equal("team1"))
+					Expect(teamName).To(Equal("a-team"))
 					Expect(dbTeam.CreatePipeCallCount()).To(Equal(1))
 				})
 
-				Describe("GET /api/v1/pipes/:pipe", func() {
+				Describe("GET /api/v1/teams/a-team/pipes/:pipe", func() {
 					var readRes *http.Response
 					Context("when not authorized", func() {
 						BeforeEach(func() {
-							userContextReader.GetTeamReturns("team", false, true)
 							pipe := createPipe()
-							userContextReader.GetTeamReturns("another-team", false, true)
+							fakeaccess.IsAuthorizedReturns(false)
 							readRes = readPipe(pipe.ID)
 						})
-						It("returns 403 Forbidden", func() {
-							Expect(readRes.StatusCode).To(Equal(http.StatusForbidden))
+						It("returns 401 Unauthorized", func() {
+							Expect(readRes.StatusCode).To(Equal(http.StatusUnauthorized))
 						})
 					})
 
 					Context("when team not found", func() {
 						BeforeEach(func() {
-							userContextReader.GetTeamReturns("team", false, true)
 							pipe := createPipe()
-							userContextReader.GetTeamReturns("", false, false)
+							dbTeamFactory.FindTeamReturns(nil, false, nil)
 							readRes = readPipe(pipe.ID)
 						})
-						It("returns 500", func() {
-							Expect(readRes.StatusCode).To(Equal(http.StatusInternalServerError))
+						It("returns 401", func() {
+							Expect(readRes.StatusCode).To(Equal(http.StatusNotFound))
 						})
 					})
 
 					Context("when authorized", func() {
 						BeforeEach(func() {
+							fakeaccess.IsAuthorizedReturns(true)
 							readRes = readPipe(pipe.ID)
 						})
 
@@ -147,11 +154,11 @@ var _ = Describe("Pipes API", func() {
 							Expect(readRes.StatusCode).To(Equal(http.StatusOK))
 						})
 
-						Describe("PUT /api/v1/pipes/:pipe", func() {
+						Describe("PUT /api/v1/teams/a-team/pipes/:pipe", func() {
 							var writeRes *http.Response
 							Context("when not authorized", func() {
 								BeforeEach(func() {
-									userContextReader.GetTeamReturns("another-team", false, true)
+									fakeaccess.IsAuthorizedReturns(false)
 									writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
 								})
 								It("returns 403 Forbidden", func() {
@@ -161,7 +168,8 @@ var _ = Describe("Pipes API", func() {
 
 							Context("when team not found", func() {
 								BeforeEach(func() {
-									userContextReader.GetTeamReturns("", false, false)
+									fakeaccess.IsAuthorizedReturns(true)
+									dbTeamFactory.FindTeamReturns(nil, false, nil)
 									writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
 								})
 								It("returns 500", func() {
@@ -171,7 +179,7 @@ var _ = Describe("Pipes API", func() {
 
 							Context("when authorized", func() {
 								BeforeEach(func() {
-									userContextReader.GetTeamReturns("team1", false, true)
+									fakeaccess.IsAuthorizedReturns(true)
 									writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
 								})
 
@@ -238,7 +246,7 @@ var _ = Describe("Pipes API", func() {
 						dbTeam.GetPipeReturns(db.Pipe{
 							ID:       "some-guid",
 							URL:      otherATCServer.URL(),
-							TeamName: "team1",
+							TeamName: "a-team",
 						}, nil)
 					})
 
@@ -246,7 +254,7 @@ var _ = Describe("Pipes API", func() {
 						BeforeEach(func() {
 							otherATCServer.AppendHandlers(
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/api/v1/pipes/some-guid"),
+									ghttp.VerifyRequest("GET", "/api/v1/teams/a-team/pipes/some-guid"),
 									ghttp.VerifyHeaderKV("Connection", "close"),
 									ghttp.RespondWith(200, "hello from the other side"),
 								),
@@ -254,7 +262,7 @@ var _ = Describe("Pipes API", func() {
 						})
 
 						It("forwards request to that ATC with disabled keep-alive", func() {
-							req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
+							req, err := http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/pipes/some-guid", nil)
 							Expect(err).NotTo(HaveOccurred())
 
 							response, err := client.Do(req)
@@ -272,7 +280,7 @@ var _ = Describe("Pipes API", func() {
 						})
 
 						It("returns the same status code", func() {
-							req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
+							req, err := http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/pipes/some-guid", nil)
 							Expect(err).NotTo(HaveOccurred())
 
 							response, err := client.Do(req)
@@ -289,15 +297,19 @@ var _ = Describe("Pipes API", func() {
 	})
 
 	Context("when not authenticated", func() {
+
 		BeforeEach(func() {
-			jwtValidator.IsAuthenticatedReturns(false)
+			fakeaccess.IsAuthenticatedReturns(false)
+		})
+		JustBeforeEach(func() {
+			fakeAccessor.CreateReturns(fakeaccess)
 		})
 
-		Describe("POST /api/v1/pipes", func() {
+		Describe("POST /api/v1/teams/a-team/pipes", func() {
 			var response *http.Response
 
-			BeforeEach(func() {
-				req, err := http.NewRequest("POST", server.URL+"/api/v1/pipes", nil)
+			JustBeforeEach(func() {
+				req, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipes", nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				response, err = client.Do(req)
@@ -313,11 +325,11 @@ var _ = Describe("Pipes API", func() {
 			})
 		})
 
-		Describe("GET /api/v1/pipes/:pipe", func() {
+		Describe("GET /api/v1/teams/a-team/pipes/:pipe", func() {
 			var response *http.Response
 
-			BeforeEach(func() {
-				req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
+			JustBeforeEach(func() {
+				req, err := http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/pipes/some-guid", nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				response, err = client.Do(req)

@@ -187,6 +187,57 @@ var _ = Describe("BuildFactory", func() {
 		})
 	})
 
+	Describe("VisibleBuilds", func() {
+		var err error
+		var build1 db.Build
+		var build2 db.Build
+		var build3 db.Build
+		var build4 db.Build
+
+		BeforeEach(func() {
+			build1, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
+			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			privateJob, found, err := privatePipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build2, err = privateJob.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+			err = publicPipeline.Expose()
+			Expect(err).NotTo(HaveOccurred())
+
+			publicJob, found, err := publicPipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build3, err = publicJob.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
+			Expect(err).NotTo(HaveOccurred())
+
+			build4, err = otherTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns visible builds for the given teams", func() {
+			builds, _, err := buildFactory.VisibleBuilds([]string{"some-team"}, db.Page{Limit: 10})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(builds).To(HaveLen(3))
+			Expect(builds).To(ConsistOf(build1, build2, build3))
+			Expect(builds).NotTo(ContainElement(build4))
+		})
+	})
+
 	Describe("PublicBuilds", func() {
 		var publicBuild db.Build
 

@@ -2,13 +2,12 @@ package teamserver
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/skymarshal/provider"
 )
@@ -18,12 +17,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 	hLog.Debug("setting-team")
 
-	authTeam, authTeamFound := auth.GetTeam(r)
-	if !authTeamFound {
-		hLog.Error("failed-to-get-team-from-auth", errors.New("failed-to-get-team-from-auth"))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	acc := accessor.GetAccessor(r)
 
 	teamName := r.FormValue(":team_name")
 
@@ -35,7 +29,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	atcTeam.Name = teamName
-	if !authTeam.IsAdmin() && !authTeam.IsAuthorized(teamName) {
+	if !acc.IsAdmin() && !acc.IsAuthorized(teamName) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -98,7 +92,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-	} else if authTeam.IsAdmin() {
+	} else if acc.IsAdmin() {
 		hLog.Debug("creating team")
 
 		team, err = s.teamFactory.CreateTeam(atcTeam)

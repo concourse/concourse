@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/db"
 )
 
@@ -75,8 +76,9 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	authTeam, authTeamFound := GetTeam(r)
-	if !IsAuthenticated(r) || (authTeamFound && !authTeam.IsAuthorized(build.TeamName())) {
+	acc := accessor.GetAccessor(r)
+
+	if !acc.IsAuthenticated() || !acc.IsAuthorized(build.TeamName()) {
 		pipeline, found, err := build.Pipeline()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -89,7 +91,7 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		}
 
 		if !pipeline.Public() {
-			if IsAuthenticated(r) {
+			if acc.IsAuthenticated() {
 				h.rejector.Forbidden(w, r)
 				return
 			}
@@ -111,7 +113,7 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 			}
 
 			if !job.Config().Public {
-				if IsAuthenticated(r) {
+				if acc.IsAuthenticated() {
 					h.rejector.Forbidden(w, r)
 					return
 				}

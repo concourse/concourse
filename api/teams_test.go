@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/skymarshal/provider"
@@ -32,12 +33,17 @@ func fakeData(contents string) *json.RawMessage {
 
 var _ = Describe("Teams API", func() {
 	var (
-		fakeTeam *dbfakes.FakeTeam
+		fakeTeam   *dbfakes.FakeTeam
+		fakeaccess *accessorfakes.FakeAccess
 	)
 
 	BeforeEach(func() {
 		fakeTeam = new(dbfakes.FakeTeam)
+		fakeaccess = new(accessorfakes.FakeAccess)
+	})
 
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
 	})
 
 	Describe("GET /api/v1/teams", func() {
@@ -104,19 +110,19 @@ var _ = Describe("Teams API", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`[
-					{
-						"id": 5,
-						"name": "avengers"
-					},
-					{
-						"id": 9,
-						"name": "aliens"
-					},
-					{
-						"id": 22,
-						"name": "predators"
-					}
-				]`))
+ 					{
+ 						"id": 5,
+ 						"name": "avengers"
+ 					},
+ 					{
+ 						"id": 9,
+ 						"name": "aliens"
+ 					},
+ 					{
+ 						"id": 22,
+ 						"name": "predators"
+ 					}
+ 				]`))
 			})
 		})
 	})
@@ -124,8 +130,7 @@ var _ = Describe("Teams API", func() {
 	Describe("PUT /api/v1/teams/:team_name", func() {
 		var (
 			response *http.Response
-
-			atcTeam atc.Team
+			atcTeam  atc.Team
 		)
 
 		BeforeEach(func() {
@@ -343,8 +348,9 @@ var _ = Describe("Teams API", func() {
 
 		Context("when the requester team is authorized as an admin team", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("magic-admin-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAdminReturns(true)
 			})
 
 			authorizedTeamTests()
@@ -379,8 +385,8 @@ var _ = Describe("Teams API", func() {
 
 		Context("when the requester team is authorized as the team being set", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", false, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			authorizedTeamTests()
@@ -403,7 +409,6 @@ var _ = Describe("Teams API", func() {
 		var request *http.Request
 		var response *http.Response
 
-		var team db.Team
 		var teamName string
 
 		BeforeEach(func() {
@@ -426,8 +431,8 @@ var _ = Describe("Teams API", func() {
 			})
 
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns(atc.DefaultTeamName, true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAdminReturns(true)
 			})
 
 			Context("when there's a problem finding teams", func() {
@@ -449,6 +454,10 @@ var _ = Describe("Teams API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
 				})
 
+				It("receives the correct team name", func() {
+					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal(teamName))
+				})
 				It("deletes the team from the DB", func() {
 					Expect(fakeTeam.DeleteCallCount()).To(Equal(1))
 					//TODO delete the build events via a table drop rather
@@ -504,34 +513,12 @@ var _ = Describe("Teams API", func() {
 			})
 
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns(atc.DefaultTeamName, false, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAdminReturns(false)
 			})
 
 			It("returns 403 forbidden", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-			})
-		})
-
-		Context("when the requester's team cannot be determined", func() {
-			JustBeforeEach(func() {
-				path := fmt.Sprintf("%s/api/v1/teams/%s", server.URL, teamName)
-
-				var err error
-				request, err = http.NewRequest("DELETE", path, jsonEncode(team))
-				Expect(err).NotTo(HaveOccurred())
-
-				response, err = client.Do(request)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("", false, false)
-			})
-
-			It("returns 500 internal server error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})
@@ -558,13 +545,13 @@ var _ = Describe("Teams API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
 			})
 			Context("when requester belongs to an admin team", func() {
 				BeforeEach(func() {
 					teamName = "a-team"
 					fakeTeam.NameReturns(teamName)
-					userContextReader.GetTeamReturns(atc.DefaultTeamName, true, true)
+					fakeaccess.IsAdminReturns(true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
 
@@ -587,7 +574,7 @@ var _ = Describe("Teams API", func() {
 				BeforeEach(func() {
 					teamName = "a-team"
 					fakeTeam.NameReturns(teamName)
-					userContextReader.GetTeamReturns("a-team", true, true)
+					fakeaccess.IsAuthorizedReturns(true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
 
@@ -610,7 +597,7 @@ var _ = Describe("Teams API", func() {
 				BeforeEach(func() {
 					teamName = "a-team"
 					fakeTeam.NameReturns(teamName)
-					userContextReader.GetTeamReturns("another-team", false, true)
+					fakeaccess.IsAuthorizedReturns(false)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
 
@@ -623,7 +610,7 @@ var _ = Describe("Teams API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {

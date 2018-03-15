@@ -6,8 +6,9 @@ import (
 	"net/http/httptest"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/api/auth"
-	"github.com/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 
@@ -23,20 +24,17 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		buildFactory   *dbfakes.FakeBuildFactory
 		handlerFactory auth.CheckBuildReadAccessHandlerFactory
 		handler        http.Handler
-
-		authValidator     *authfakes.FakeValidator
-		userContextReader *authfakes.FakeUserContextReader
-
-		build    *dbfakes.FakeBuild
-		pipeline *dbfakes.FakePipeline
+		fakeAccessor   *accessorfakes.FakeAccessFactory
+		fakeaccess     *accessorfakes.FakeAccess
+		build          *dbfakes.FakeBuild
+		pipeline       *dbfakes.FakePipeline
 	)
 
 	BeforeEach(func() {
 		buildFactory = new(dbfakes.FakeBuildFactory)
 		handlerFactory = auth.NewCheckBuildReadAccessHandlerFactory(buildFactory)
-
-		authValidator = new(authfakes.FakeValidator)
-		userContextReader = new(authfakes.FakeUserContextReader)
+		fakeAccessor = new(accessorfakes.FakeAccessFactory)
+		fakeaccess = new(accessorfakes.FakeAccess)
 
 		delegate = &buildDelegateHandler{}
 
@@ -48,9 +46,10 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 	})
 
 	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
 		server = httptest.NewServer(handler)
 
-		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:build_id=55", nil)
+		request, err := http.NewRequest("POST", server.URL+"?:build_id=55", nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		response, err = new(http.Client).Do(request)
@@ -105,13 +104,13 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 	Context("AnyJobHandler", func() {
 		BeforeEach(func() {
 			checkBuildReadAccessHandler := handlerFactory.AnyJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = auth.WrapHandler(checkBuildReadAccessHandler, authValidator, userContextReader)
+			handler = accessor.NewHandler(checkBuildReadAccessHandler, fakeAccessor)
 		})
 
 		Context("when authenticated and accessing same team's build", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			WithExistingBuild(ItReturnsTheBuild)
@@ -119,8 +118,8 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 		Context("when authenticated but accessing different team's build", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("other-team-name", false, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(false)
 			})
 
 			WithExistingBuild(func() {
@@ -143,13 +142,28 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
+				Context("when fetching pipeline throws error", func() {
+					BeforeEach(func() {
+						build.PipelineReturns(pipeline, true, errors.New("some-error"))
+					})
+					It("return 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+				Context("when pipeline is not found", func() {
+					BeforeEach(func() {
+						build.PipelineReturns(nil, false, nil)
+					})
+					It("return 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
 			})
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", false, false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			WithExistingBuild(func() {
@@ -172,6 +186,22 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
+				Context("when fetching pipeline throws error", func() {
+					BeforeEach(func() {
+						build.PipelineReturns(pipeline, true, errors.New("some-error"))
+					})
+					It("return 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+				Context("when pipeline is not found", func() {
+					BeforeEach(func() {
+						build.PipelineReturns(nil, false, nil)
+					})
+					It("return 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
 			})
 		})
 	})
@@ -182,7 +212,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		BeforeEach(func() {
 			fakeJob = new(dbfakes.FakeJob)
 			checkBuildReadAccessHandler := handlerFactory.CheckIfPrivateJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = auth.WrapHandler(checkBuildReadAccessHandler, authValidator, userContextReader)
+			handler = accessor.NewHandler(checkBuildReadAccessHandler, fakeAccessor)
 		})
 
 		ItChecksIfJobIsPrivate := func(status int) {
@@ -257,8 +287,8 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 		Context("when authenticated and accessing same team's build", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			WithExistingBuild(ItReturnsTheBuild)
@@ -266,8 +296,8 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 		Context("when authenticated but accessing different team's build", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("other-team-name", false, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(false)
 			})
 
 			WithExistingBuild(func() {
@@ -277,8 +307,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", false, false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			WithExistingBuild(func() {

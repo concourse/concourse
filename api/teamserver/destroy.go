@@ -1,26 +1,19 @@
 package teamserver
 
 import (
-	"errors"
 	"net/http"
 
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 )
 
 func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 	hLog := s.logger.Session("destroy-team")
 	hLog.Debug("destroying-team")
 
-	authTeam, authTeamFound := auth.GetTeam(r)
-	if !authTeamFound {
-		hLog.Error("failed-to-get-team-from-auth", errors.New("failed-to-get-team-from-auth"))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	teamName := r.FormValue(":team_name")
 
-	if !authTeam.IsAdmin() {
+	acc := accessor.GetAccessor(r)
+	if !acc.IsAdmin() {
 		hLog.Info("requesting-team-is-not-admin")
 		w.WriteHeader(http.StatusForbidden)
 		return

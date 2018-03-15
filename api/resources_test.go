@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/radar/radarfakes"
@@ -23,12 +24,17 @@ var _ = Describe("Resources API", func() {
 	var (
 		fakePipeline *dbfakes.FakePipeline
 		resource1    *dbfakes.FakeResource
+		fakeaccess   = new(accessorfakes.FakeAccess)
 	)
 
 	BeforeEach(func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
+	})
+
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
 	})
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources", func() {
@@ -87,8 +93,8 @@ var _ = Describe("Resources API", func() {
 
 			Context("when not authorized", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(false)
-					userContextReader.GetTeamReturns("", false, false)
+					fakeaccess.IsAuthenticatedReturns(false)
+					fakeaccess.IsAuthorizedReturns(false)
 				})
 
 				Context("and the pipeline is private", func() {
@@ -97,7 +103,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("returns 401", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
 
@@ -147,8 +153,8 @@ var _ = Describe("Resources API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", true, true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
 				It("returns 200 OK", func() {
@@ -233,8 +239,8 @@ var _ = Describe("Resources API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", false, false)
+				fakeaccess.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthorizedReturns(false)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -243,7 +249,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 
@@ -287,8 +293,8 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			It("looks it up in the database", func() {
@@ -388,55 +394,60 @@ var _ = Describe("Resources API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authorized", func() {
+		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
 			})
-
-			It("injects the proper pipelineDB", func() {
-				pipelineName := dbTeam.PipelineArgsForCall(0)
-				Expect(pipelineName).To(Equal("a-pipeline"))
-			})
-
-			Context("when pausing the resource succeeds", func() {
+			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeResource.PauseReturns(nil)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-			})
-
-			Context("when resource can not be found", func() {
-				BeforeEach(func() {
-					fakePipeline.ResourceReturns(nil, false, nil)
+				It("injects the proper pipelineDB", func() {
+					Expect(dbTeam.PipelineCallCount()).To(Equal(1))
+					pipelineName := dbTeam.PipelineArgsForCall(0)
+					Expect(pipelineName).To(Equal("a-pipeline"))
 				})
 
-				It("returns 404", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
+				Context("when pausing the resource succeeds", func() {
+					BeforeEach(func() {
+						fakeResource.PauseReturns(nil)
+					})
 
-			Context("when pausing the resource fails", func() {
-				BeforeEach(func() {
-					fakeResource.PauseReturns(errors.New("welp"))
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
 				})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				Context("when resource can not be found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when pausing the resource fails", func() {
+					BeforeEach(func() {
+						fakeResource.PauseReturns(errors.New("welp"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Unauthorized", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			It("returns Forbidden", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 		})
 	})
@@ -464,55 +475,60 @@ var _ = Describe("Resources API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authorized", func() {
+		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
 			})
-
-			It("injects the proper pipelineDB", func() {
-				pipelineName := dbTeam.PipelineArgsForCall(0)
-				Expect(pipelineName).To(Equal("a-pipeline"))
-			})
-
-			Context("when unpausing the resource succeeds", func() {
+			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeResource.UnpauseReturns(nil)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-			})
-
-			Context("when resource can not be found", func() {
-				BeforeEach(func() {
-					fakePipeline.ResourceReturns(nil, false, nil)
+				It("injects the proper pipelineDB", func() {
+					Expect(dbTeam.PipelineCallCount()).To(Equal(1))
+					pipelineName := dbTeam.PipelineArgsForCall(0)
+					Expect(pipelineName).To(Equal("a-pipeline"))
 				})
 
-				It("returns 404", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
+				Context("when unpausing the resource succeeds", func() {
+					BeforeEach(func() {
+						fakeResource.UnpauseReturns(nil)
+					})
 
-			Context("when unpausing the resource fails", func() {
-				BeforeEach(func() {
-					fakeResource.UnpauseReturns(errors.New("welp"))
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
 				})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				Context("when resource can not be found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when unpausing the resource fails", func() {
+					BeforeEach(func() {
+						fakeResource.UnpauseReturns(errors.New("welp"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Unauthorized", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			It("returns Status Forbidden", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 		})
 	})
@@ -543,11 +559,12 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			It("injects the proper pipelineDB", func() {
+				Expect(dbTeam.PipelineCallCount()).To(Equal(1))
 				pipelineName := dbTeam.PipelineArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
 			})
@@ -676,11 +693,11 @@ var _ = Describe("Resources API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Unauthorized", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			It("returns Forbidden", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 		})
 	})
@@ -722,6 +739,7 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
+				Expect(dbTeam.PipelineCallCount()).To(Equal(1))
 				resourceName := fakePipeline.ResourceArgsForCall(0)
 				Expect(resourceName).To(Equal("resource-name"))
 			})

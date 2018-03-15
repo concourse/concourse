@@ -156,7 +156,7 @@ func NewHandler(
 		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
 		atc.ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
 
-		atc.ListWorkers:     teamHandlerFactory.HandlerFor(workerServer.ListWorkers),
+		atc.ListWorkers:     http.HandlerFunc(workerServer.ListWorkers),
 		atc.RegisterWorker:  http.HandlerFunc(workerServer.RegisterWorker),
 		atc.LandWorker:      http.HandlerFunc(workerServer.LandWorker),
 		atc.RetireWorker:    http.HandlerFunc(workerServer.RetireWorker),

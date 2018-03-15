@@ -2,31 +2,39 @@ package pipes
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 )
 
 func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("create-pipe")
+
+	teamName := r.FormValue(":team_name")
+	acc := accessor.GetAccessor(r)
+
+	if !acc.IsAuthorized(teamName) {
+		logger.Error("team-not-authorized-to-create-pipe",
+			errors.New("team-not-authorized-to-create-pipe"),
+			lager.Data{"TeamName": teamName})
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	guid, err := uuid.NewV4()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	authTeam, found := auth.GetTeam(r)
-	if !found {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	team, found, err := s.teamFactory.FindTeam(authTeam.Name())
+	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
 		logger.Error("failed-to-find-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -53,7 +61,8 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 	reqGen := rata.NewRequestGenerator(s.externalURL, atc.Routes)
 
 	readReq, err := reqGen.CreateRequest(atc.ReadPipe, rata.Params{
-		"pipe_id": pipeID,
+		"team_name": teamName,
+		"pipe_id":   pipeID,
 	}, nil)
 	if err != nil {
 		logger.Error("failed-to-create-pipe", err)
@@ -62,7 +71,8 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeReq, err := reqGen.CreateRequest(atc.WritePipe, rata.Params{
-		"pipe_id": pipeID,
+		"team_name": teamName,
+		"pipe_id":   pipeID,
 	}, nil)
 	if err != nil {
 		logger.Error("failed-to-create-pipe", err)

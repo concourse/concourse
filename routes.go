@@ -96,7 +96,8 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/config", Method: "PUT", Name: SaveConfig},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/config", Method: "GET", Name: GetConfig},
 
-	{Path: "/api/v1/builds", Method: "POST", Name: CreateBuild},
+	{Path: "/api/v1/teams/:team_name/builds", Method: "POST", Name: CreateBuild},
+
 	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},
 	{Path: "/api/v1/builds/:build_id", Method: "GET", Name: GetBuild},
 	{Path: "/api/v1/builds/:build_id/plan", Method: "GET", Name: GetBuildPlan},
@@ -147,9 +148,9 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/causality", Method: "GET", Name: GetResourceCausality},
 
-	{Path: "/api/v1/pipes", Method: "POST", Name: CreatePipe},
-	{Path: "/api/v1/pipes/:pipe_id", Method: "PUT", Name: WritePipe},
-	{Path: "/api/v1/pipes/:pipe_id", Method: "GET", Name: ReadPipe},
+	{Path: "/api/v1/teams/:team_name/pipes", Method: "POST", Name: CreatePipe},
+	{Path: "/api/v1/teams/:team_name/pipes/:pipe_id", Method: "PUT", Name: WritePipe},
+	{Path: "/api/v1/teams/:team_name/pipes/:pipe_id", Method: "GET", Name: ReadPipe},
 
 	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
 	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
@@ -165,11 +166,11 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/cli", Method: "GET", Name: DownloadCLI},
 	{Path: "/api/v1/info", Method: "GET", Name: GetInfo},
 
-	{Path: "/api/v1/containers", Method: "GET", Name: ListContainers},
-	{Path: "/api/v1/containers/:id", Method: "GET", Name: GetContainer},
-	{Path: "/api/v1/containers/:id/hijack", Method: "GET", Name: HijackContainer},
+	{Path: "/api/v1/teams/:team_name/containers", Method: "GET", Name: ListContainers},
+	{Path: "/api/v1/teams/:team_name/containers/:id", Method: "GET", Name: GetContainer},
+	{Path: "/api/v1/teams/:team_name/containers/:id/hijack", Method: "GET", Name: HijackContainer},
 
-	{Path: "/api/v1/volumes", Method: "GET", Name: ListVolumes},
+	{Path: "/api/v1/teams/:team_name/volumes", Method: "GET", Name: ListVolumes},
 
 	{Path: "/api/v1/teams/:team_name/auth/methods", Method: "GET", Name: LegacyListAuthMethods},
 	{Path: "/api/v1/teams/:team_name/auth/token", Method: "GET", Name: LegacyGetAuthToken},

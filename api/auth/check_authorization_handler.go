@@ -1,6 +1,10 @@
 package auth
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/concourse/atc/api/accessor"
+)
 
 type checkAuthorizationHandler struct {
 	handler  http.Handler
@@ -18,13 +22,17 @@ func CheckAuthorizationHandler(
 }
 
 func (h checkAuthorizationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !IsAuthenticated(r) {
-		h.rejector.Unauthorized(w, r)
+	acc := accessor.GetAccessor(r)
+
+	if !acc.IsAuthenticated() {
+		h.rejector.Forbidden(w, r)
 		return
 	}
 
-	if !IsAuthorized(r) {
-		h.rejector.Forbidden(w, r)
+	teamName := r.URL.Query().Get(":team_name")
+
+	if !acc.IsAuthorized(teamName) {
+		h.rejector.Unauthorized(w, r)
 		return
 	}
 

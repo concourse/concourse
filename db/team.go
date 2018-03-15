@@ -27,7 +27,6 @@ type Team interface {
 	Name() string
 	Admin() bool
 
-	// BasicAuth() *atc.BasicAuth
 	Auth() map[string]*json.RawMessage
 
 	Delete() error
@@ -64,7 +63,6 @@ type Team interface {
 	FindContainerOnWorker(workerName string, owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
 	CreateContainer(workerName string, owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
 
-	// UpdateBasicAuth(basicAuth *atc.BasicAuth) error
 	UpdateProviderAuth(auth map[string]*json.RawMessage) error
 
 	CreatePipe(string, string) error
@@ -79,8 +77,6 @@ type team struct {
 	name  string
 	admin bool
 
-	// basicAuth *atc.BasicAuth
-
 	auth map[string]*json.RawMessage
 }
 
@@ -88,7 +84,6 @@ func (t *team) ID() int      { return t.id }
 func (t *team) Name() string { return t.name }
 func (t *team) Admin() bool  { return t.admin }
 
-// func (t *team) BasicAuth() *atc.BasicAuth         { return t.basicAuth }
 func (t *team) Auth() map[string]*json.RawMessage { return t.auth }
 
 func (t *team) Delete() error {
@@ -769,24 +764,6 @@ func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, erro
 	return savedWorker, nil
 }
 
-// func (t *team) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
-// 	encryptedBasicAuth, err := encryptedJSON(basicAuth)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	query := `
-// 		UPDATE teams
-// 		SET basic_auth = $1
-// 		WHERE id = $2
-// 		RETURNING id, name, admin, basic_auth, auth, nonce
-// 	`
-
-// 	params := []interface{}{encryptedBasicAuth, t.id}
-
-// 	return t.queryTeam(query, params)
-// }
-
 func (t *team) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
 	jsonEncodedProviderAuth, err := json.Marshal(auth)
 	if err != nil {
@@ -1093,13 +1070,6 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 	if err != nil {
 		return err
 	}
-	// if basicAuth.Valid {
-	// 	err = json.Unmarshal([]byte(basicAuth.String), &t.basicAuth)
-
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
 
 	if providerAuth.Valid {
 		es := t.conn.EncryptionStrategy()
@@ -1122,20 +1092,3 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 
 	return nil
 }
-
-// func encryptedJSON(b *atc.BasicAuth) (string, error) {
-// 	var result *atc.BasicAuth
-// 	if b != nil && b.BasicAuthUsername != "" && b.BasicAuthPassword != "" {
-// 		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(b.BasicAuthPassword), 4)
-// 		if err != nil {
-// 			return "", err
-// 		}
-// 		result = &atc.BasicAuth{
-// 			BasicAuthPassword: string(encryptedPw),
-// 			BasicAuthUsername: b.BasicAuthUsername,
-// 		}
-// 	}
-
-// 	json, err := json.Marshal(result)
-// 	return string(json), err
-// }

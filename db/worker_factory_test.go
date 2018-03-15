@@ -250,6 +250,77 @@ var _ = Describe("WorkerFactory", func() {
 		})
 	})
 
+	Describe("VisibleWorkers", func() {
+		BeforeEach(func() {
+			postgresRunner.Truncate()
+		})
+
+		Context("when there are public and private workers on multiple teams", func() {
+			BeforeEach(func() {
+				team1, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+				Expect(err).NotTo(HaveOccurred())
+				team2, err := teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
+				Expect(err).NotTo(HaveOccurred())
+				team3, err := teamFactory.CreateTeam(atc.Team{Name: "not-this-team"})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = workerFactory.SaveWorker(atcWorker, 0)
+				Expect(err).NotTo(HaveOccurred())
+
+				atcWorker.Name = "some-new-worker"
+				atcWorker.GardenAddr = "some-other-garden-addr"
+				atcWorker.BaggageclaimURL = "some-other-bc-url"
+				_, err = team1.SaveWorker(atcWorker, 0)
+				Expect(err).NotTo(HaveOccurred())
+
+				atcWorker.Name = "some-other-new-worker"
+				atcWorker.GardenAddr = "some-other-other-garden-addr"
+				atcWorker.BaggageclaimURL = "some-other-other-bc-url"
+				_, err = team2.SaveWorker(atcWorker, 0)
+				Expect(err).NotTo(HaveOccurred())
+
+				atcWorker.Name = "not-this-worker"
+				atcWorker.GardenAddr = "not-this-garden-addr"
+				atcWorker.BaggageclaimURL = "not-this-bc-url"
+				_, err = team3.SaveWorker(atcWorker, 0)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("finds visble workers for the given teams", func() {
+				workers, err := workerFactory.VisibleWorkers([]string{"some-team", "some-other-team"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(workers)).To(Equal(3))
+
+				w1, found, err := workerFactory.GetWorker("some-name")
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				w2, found, err := workerFactory.GetWorker("some-new-worker")
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				w3, found, err := workerFactory.GetWorker("some-other-new-worker")
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				w4, found, err := workerFactory.GetWorker("not-this-worker")
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(workers).To(ConsistOf(w1, w2, w3))
+				Expect(workers).NotTo(ContainElement(w4))
+			})
+		})
+
+		Context("when there are no workers", func() {
+			It("returns an error", func() {
+				workers, err := workerFactory.VisibleWorkers([]string{"some-team"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(workers).To(BeEmpty())
+			})
+		})
+	})
+
 	Describe("Workers", func() {
 		BeforeEach(func() {
 			postgresRunner.Truncate()

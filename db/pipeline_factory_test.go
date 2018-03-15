@@ -79,6 +79,55 @@ var _ = Describe("Pipeline Factory", func() {
 		})
 	})
 
+	Describe("VisiblePipelines", func() {
+		var (
+			pipeline1 db.Pipeline
+			pipeline2 db.Pipeline
+			pipeline3 db.Pipeline
+		)
+
+		BeforeEach(func() {
+			err := defaultPipeline.Destroy()
+			Expect(err).ToNot(HaveOccurred())
+
+			team, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+			Expect(err).ToNot(HaveOccurred())
+
+			pipeline1, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{Name: "job-name"},
+				},
+			}, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pipeline1.Reload()).To(BeTrue())
+
+			pipeline2, _, err = defaultTeam.SavePipeline("fake-pipeline-two", atc.Config{
+				Jobs: atc.JobConfigs{
+					{Name: "job-fake"},
+				},
+			}, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pipeline2.Reload()).To(BeTrue())
+
+			pipeline3, _, err = defaultTeam.SavePipeline("fake-pipeline-three", atc.Config{
+				Jobs: atc.JobConfigs{
+					{Name: "job-fake-two"},
+				},
+			}, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pipeline3.Expose()).To(Succeed())
+			Expect(pipeline3.Reload()).To(BeTrue())
+		})
+
+		It("returns all pipelines visible to the given teams", func() {
+			pipelines, err := pipelineFactory.VisiblePipelines([]string{"some-team"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pipelines)).To(Equal(2))
+			Expect(pipelines[0].Name()).To(Equal(pipeline1.Name()))
+			Expect(pipelines[1].Name()).To(Equal(pipeline3.Name()))
+		})
+	})
+
 	Describe("AllPipelines", func() {
 		var (
 			pipeline1 db.Pipeline

@@ -46,11 +46,6 @@ func (factory *teamFactory) createTeam(t atc.Team, admin bool) (Team, error) {
 
 	defer Rollback(tx)
 
-	// encryptedBasicAuthJSON, err := encryptedJSON(t.BasicAuth)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	auth, err := json.Marshal(t.Auth)
 	if err != nil {
 		return nil, err
@@ -64,7 +59,6 @@ func (factory *teamFactory) createTeam(t atc.Team, admin bool) (Team, error) {
 
 	row := psql.Insert("teams").
 		Columns("name, auth, nonce, admin").
-		// Values(t.Name, encryptedBasicAuthJSON, encryptedAuth, nonce, admin).
 		Values(t.Name, encryptedAuth, nonce, admin).
 		Suffix("RETURNING id, name, admin, auth, nonce").
 		RunWith(tx).
@@ -196,13 +190,6 @@ func (factory *teamFactory) scanTeam(t *team, rows scannable) error {
 		&providerAuth,
 		&nonce,
 	)
-
-	// if basicAuth.Valid {
-	// 	err = json.Unmarshal([]byte(basicAuth.String), &t.basicAuth)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
 
 	if providerAuth.Valid {
 		var pAuth []byte

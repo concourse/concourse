@@ -45,7 +45,7 @@ func (s *Server) forwardRequest(w http.ResponseWriter, r *http.Request, host str
 
 	req, err := generator.CreateRequest(
 		route,
-		rata.Params{"pipe_id": pipeID},
+		rata.Params{"pipe_id": pipeID, "team_name": r.FormValue(":team_name")},
 		r.Body,
 	)
 

@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -15,15 +16,18 @@ var _ = Describe("Log Level API", func() {
 	Describe("PUT /api/v1/log-level", func() {
 		var (
 			logLevelPayload string
+			fakeaccess      *accessorfakes.FakeAccess
 
 			response *http.Response
 		)
 
 		BeforeEach(func() {
+			fakeaccess = new(accessorfakes.FakeAccess)
 			logLevelPayload = ""
 		})
 
 		JustBeforeEach(func() {
+			fakeAccessor.CreateReturns(fakeaccess)
 			req, err := http.NewRequest("PUT", server.URL+"/api/v1/log-level", bytes.NewBufferString(logLevelPayload))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -33,12 +37,12 @@ var _ = Describe("Log Level API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("is admin", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("main", true, true)
+					fakeaccess.IsAdminReturns(true)
 				})
 
 				for x, y := range map[atc.LogLevel]lager.LogLevel{
@@ -101,7 +105,7 @@ var _ = Describe("Log Level API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {

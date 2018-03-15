@@ -11,22 +11,22 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"code.cloudfoundry.org/garden"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
-	"github.com/gorilla/websocket"
-
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker/workerfakes"
+	"github.com/gorilla/websocket"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Containers API", func() {
 	var (
 		stepType         = db.ContainerTypeTask
+		fakeaccess       *accessorfakes.FakeAccess
 		stepName         = "some-step"
 		pipelineID       = 1111
 		jobID            = 2222
@@ -42,6 +42,7 @@ var _ = Describe("Containers API", func() {
 	)
 
 	BeforeEach(func() {
+		fakeaccess = new(accessorfakes.FakeAccess)
 		fakeContainer1 = new(dbfakes.FakeContainer)
 		fakeContainer1.HandleReturns("some-handle")
 		fakeContainer1.WorkerNameReturns("some-worker-name")
@@ -76,18 +77,21 @@ var _ = Describe("Containers API", func() {
 			User:             user + "-other",
 		})
 	})
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
+	})
 
-	Describe("GET /api/v1/containers", func() {
+	Describe("GET /api/v1/teams/a-team/containers", func() {
 		BeforeEach(func() {
 			var err error
-			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers", nil)
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/containers", nil)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -100,8 +104,8 @@ var _ = Describe("Containers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("with no params", func() {
@@ -371,14 +375,14 @@ var _ = Describe("Containers API", func() {
 			dbTeam.FindContainerByHandleReturns(fakeContainer1, true, nil)
 
 			var err error
-			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/"+handle, nil)
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/containers/"+handle, nil)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -391,8 +395,8 @@ var _ = Describe("Containers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when the container is not found", func() {
@@ -443,19 +447,19 @@ var _ = Describe("Containers API", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`
-						{
-							"id": "some-handle",
-							"worker_name": "some-worker-name",
-							"type": "task",
-							"step_name": "some-step",
-							"attempt": "1.5",
-							"pipeline_id": 1111,
-							"job_id": 2222,
-							"build_id": 3333,
-							"working_directory": "/tmp/build/my-favorite-guid",
-							"user": "snoopy"
-						}
-					`))
+	 					{
+	 						"id": "some-handle",
+	 						"worker_name": "some-worker-name",
+	 						"type": "task",
+	 						"step_name": "some-step",
+	 						"attempt": "1.5",
+	 						"pipeline_id": 1111,
+	 						"job_id": 2222,
+	 						"build_id": 3333,
+	 						"working_directory": "/tmp/build/my-favorite-guid",
+	 						"user": "snoopy"
+	 					}
+	 				`))
 				})
 			})
 
@@ -501,7 +505,7 @@ var _ = Describe("Containers API", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			wsURL.Scheme = "ws"
-			wsURL.Path = "/api/v1/containers/" + handle + "/hijack"
+			wsURL.Path = "/api/v1/teams/a-team/containers/" + handle + "/hijack"
 
 			dialer := websocket.Dialer{}
 			conn, response, err = dialer.Dial(wsURL.String(), nil)
@@ -527,8 +531,8 @@ var _ = Describe("Containers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("and the worker client returns a container", func() {
@@ -825,7 +829,7 @@ var _ = Describe("Containers API", func() {
 			BeforeEach(func() {
 				expectBadHandshake = true
 
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {

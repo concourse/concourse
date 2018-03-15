@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/api/auth/authfakes"
 
@@ -16,9 +18,9 @@ import (
 
 var _ = Describe("CheckAuthenticationHandler", func() {
 	var (
-		fakeValidator         *authfakes.FakeValidator
-		fakeUserContextReader *authfakes.FakeUserContextReader
-		fakeRejector          *authfakes.FakeRejector
+		fakeAccessor *accessorfakes.FakeAccessFactory
+		fakeRejector *authfakes.FakeRejector
+		fakeaccess   *accessorfakes.FakeAccess
 
 		server *httptest.Server
 		client *http.Client
@@ -32,26 +34,27 @@ var _ = Describe("CheckAuthenticationHandler", func() {
 	})
 
 	BeforeEach(func() {
-		fakeValidator = new(authfakes.FakeValidator)
-		fakeUserContextReader = new(authfakes.FakeUserContextReader)
+		fakeAccessor = new(accessorfakes.FakeAccessFactory)
+		fakeaccess = new(accessorfakes.FakeAccess)
 		fakeRejector = new(authfakes.FakeRejector)
 
 		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "nope", http.StatusUnauthorized)
 		}
 
-		server = httptest.NewServer(auth.WrapHandler(
-			auth.CheckAuthenticationHandler(
-				simpleHandler,
-				fakeRejector,
-			),
-			fakeValidator,
-			fakeUserContextReader,
+		server = httptest.NewServer(accessor.NewHandler(auth.CheckAuthenticationHandler(
+			simpleHandler,
+			fakeRejector,
+		), fakeAccessor,
 		))
 
 		client = &http.Client{
 			Transport: &http.Transport{},
 		}
+	})
+
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
 	})
 
 	Context("when a request is made", func() {
@@ -72,9 +75,9 @@ var _ = Describe("CheckAuthenticationHandler", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when the validator returns true", func() {
+		Context("when the user is authenticated ", func() {
 			BeforeEach(func() {
-				fakeValidator.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
 			It("returns 200", func() {
@@ -88,9 +91,9 @@ var _ = Describe("CheckAuthenticationHandler", func() {
 			})
 		})
 
-		Context("when the validator returns false", func() {
+		Context("when the user is not authenticated", func() {
 			BeforeEach(func() {
-				fakeValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("rejects the request", func() {

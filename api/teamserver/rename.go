@@ -2,27 +2,20 @@ package teamserver
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 )
 
 // RenameTeam allows an authenticated user with authority or admin to rename a team
 func (s *Server) RenameTeam(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("rename-team")
-
-	authTeam, authTeamFound := auth.GetTeam(r)
-	if !authTeamFound {
-		logger.Error("failed-to-get-team-from-auth", errors.New("failed-to-get-team-from-auth"))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	acc := accessor.GetAccessor(r)
 
 	teamName := r.FormValue(":team_name")
-	if !authTeam.IsAdmin() && !authTeam.IsAuthorized(teamName) {
+	if !acc.IsAdmin() && !acc.IsAuthorized(teamName) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
