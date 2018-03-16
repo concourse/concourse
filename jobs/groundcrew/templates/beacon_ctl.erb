@@ -66,7 +66,7 @@ chown -R vcap:vcap $LOG_DIR
   end
 
   name_prefix = spec.id.split("-")[0]
- %>
+%>
 
 WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
 chown vcap:vcap $WORKER_KEY
@@ -125,6 +125,18 @@ case $1 in
            --baggageclaim-url=<%= baggageclaim_url %> \
            $resource_metadata \
            $additional_resource_metadata \
+           <% if p("certs_path", nil) %> \
+             --certs_path=<%= p("certs_path") %> \
+           <% end %> \
+           <% if p("http_proxy_url", nil) %> \
+             --http_proxy_url=<%= p("http_proxy_url") %> \
+           <% end %> \
+           <% if p("https_proxy_url", nil) %> \
+             --https_proxy_url=<%= p("https_proxy_url") %> \
+           <% end %> \
+           <% if p("no_proxy", nil) %> \
+             --no_proxy=<%= p("no_proxy").join(",") %> \
+           <% end %> \
            <% tsa_addrs.each do |tsa_addr| %> \
              --tsa-host=<%= tsa_addr %> \
            <% end %> \
