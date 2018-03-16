@@ -335,8 +335,8 @@ A task's configuration specifies the following:
           --output stemcell=/tmp/stemcell
       }}
 
-      This would work together with a \code{task.yml} if its \code{outputs:}
-      section was as follows:
+      This would work together with a \code{build-stemcell.yml} if its
+      \code{outputs:} section was as follows:
 
       \codeblock{yaml}{{
       outputs:
