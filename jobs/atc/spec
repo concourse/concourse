@@ -302,12 +302,6 @@ properties:
       Options are "volume-locality" and "random".
     default: "volume-locality"
 
-  old_resource_grace_period:
-    description: |
-      How long to cache the result of a get step after a newer version of the
-      resource is found. Use Go duration format (1m = 1 minute).
-    default: 5m
-
   baggageclaim_response_header_timeout:
     description: |
       How long to wait for Baggageclaim to send the response header. Use Go duration
