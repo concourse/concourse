@@ -90,7 +90,6 @@ files:
   - github.com/concourse/atc/api/legacyserver/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/loglevelserver/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/pipelineserver/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/api/pipes/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/present/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/resourceserver/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/resourceserver/versionserver/*.{go,s,c,h} # gosub
