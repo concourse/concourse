@@ -10,12 +10,6 @@ chmod +x $CONCOURSE
 yes "" | su postgres -c "createuser -s -P $(whoami)"
 createdb atc
 
-# set up keys
-mkdir /etc/concourse
-ssh-keygen -f /etc/concourse/tsa-host -N ''
-ssh-keygen -f /etc/concourse/worker -N ''
-ssh-keygen -f /etc/concourse/session-signing-key -N ''
-
 function wait_for_proc_port() {
   name=$1
   pid=$2
@@ -32,49 +26,58 @@ function wait_for_proc_port() {
   done
 }
 
-# don't leak client id/secret
-set +x
+webpid=1
+workerpid=1
 
-github_auth_config=""
-if [ -n "$GITHUB_AUTH_CONFIG_ORGANIZATION" ]; then
-  github_auth_config="$github_auth_config --github-auth-organization $GITHUB_AUTH_CONFIG_ORGANIZATION"
+if [ "$QUICKSTART" = "true" ]; then
+  $CONCOURSE quickstart \
+    --postgres-socket /var/run/postgresql \
+    --log-level debug \
+    --no-really-i-dont-want-any-auth \
+    --worker-work-dir /scratch/concourse \
+    --worker-garden-network-pool 10.255.0.0/22 \
+    &
+
+  quickstartpid=$!
+
+  wait_for_proc_port atc $quickstartpid 8080
+  wait_for_proc_port tsa $quickstartpid 2222
+  wait_for_proc_port garden $quickstartpid 7777
+  wait_for_proc_port baggageclaim $quickstartpid 7788
+else
+  # set up keys
+  mkdir /etc/concourse
+  ssh-keygen -f /etc/concourse/tsa-host -N ''
+  ssh-keygen -f /etc/concourse/worker -N ''
+  ssh-keygen -f /etc/concourse/session-signing-key -N ''
+
+  $CONCOURSE web \
+    --postgres-socket /var/run/postgresql \
+    --tsa-host-key /etc/concourse/tsa-host \
+    --tsa-authorized-keys /etc/concourse/worker.pub \
+    --session-signing-key /etc/concourse/session-signing-key \
+    --log-level debug \
+    --no-really-i-dont-want-any-auth \
+    &
+
+  webpid=$!
+
+  wait_for_proc_port atc $webpid 8080
+  wait_for_proc_port tsa $webpid 2222
+
+  $CONCOURSE worker \
+    --work-dir /scratch/concourse \
+    --tsa-worker-private-key /etc/concourse/worker \
+    --tsa-public-key /etc/concourse/tsa-host.pub \
+    --garden-network-pool 10.255.0.0/22 \
+    > /tmp/worker.log \
+    &
+
+  workerpid=$!
+  wait_for_proc_port garden $workerpid 7777
+  wait_for_proc_port baggageclaim $workerpid 7788
 fi
 
-$CONCOURSE web \
-  --external-url "http://$(hostname -i):8080" \
-  --oauth-base-url "http://127.0.0.1:8080" \
-  --postgres-socket /var/run/postgresql \
-  --tsa-host-key /etc/concourse/tsa-host \
-  --tsa-authorized-keys /etc/concourse/worker.pub \
-  --session-signing-key /etc/concourse/session-signing-key \
-  --log-level debug \
-  --no-really-i-dont-want-any-auth \
-  --resource-checking-interval 5s \
-  --basic-auth-username "$BASIC_AUTH_USERNAME" \
-  --basic-auth-password "$BASIC_AUTH_PASSWORD" \
-  --github-auth-client-id "$GITHUB_AUTH_CONFIG_CLIENT_ID" \
-  --github-auth-client-secret "$GITHUB_AUTH_CONFIG_CLIENT_SECRET" \
-  $github_auth_config \
-  &
-
-# reenable tracing now that atc is launched
-set -x
-
-webpid=$!
-
-wait_for_proc_port web $webpid 8080
-
-$CONCOURSE worker \
-  --work-dir /scratch/concourse \
-  --tsa-worker-private-key /etc/concourse/worker \
-  --tsa-public-key /etc/concourse/tsa-host.pub \
-  --garden-network-pool 10.255.0.0/22 \
-  > /tmp/worker.log \
-  &
-
-workerpid=$!
-
-wait_for_proc_port worker $workerpid 7777
 
 export ATC_URL=http://127.0.0.1:8080
 

@@ -6,13 +6,7 @@ image_resource:
   source: {repository: concourse/bin-testflight-ci}
 
 params:
-  BASIC_AUTH_USERNAME:
-  BASIC_AUTH_PASSWORD:
-  GITHUB_AUTH_USERNAME:
-  GITHUB_AUTH_PASSWORD:
-  GITHUB_AUTH_CONFIG_ORGANIZATION:
-  GITHUB_AUTH_CONFIG_CLIENT_ID:
-  GITHUB_AUTH_CONFIG_CLIENT_SECRET:
+  QUICKSTART: false
 
 inputs:
 - name: linux-binary
