@@ -40,17 +40,10 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 		return nil, err
 	}
 
-	stmt := pipelinesQuery.
+	rows, err = pipelinesQuery.
+		Where(sq.NotEq{"t.name": teamNames}).
 		Where(sq.Eq{"public": true}).
-		OrderBy("team_id ASC", "ordering ASC")
-
-	if len(teamNames) > 0 {
-		// otherwise we get NOT IN (NULL) which postgres
-		// considers an undefined list, and returns nothing
-		stmt = stmt.Where(sq.NotEq{"t.name": teamNames})
-	}
-
-	rows, err = stmt.
+		OrderBy("team_id ASC", "ordering ASC").
 		RunWith(f.conn).
 		Query()
 	if err != nil {
