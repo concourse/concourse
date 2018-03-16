@@ -16,8 +16,6 @@ type Config struct {
 	GardenForwardAddr       string              `long:"garden-forward-addr" description:"Garden address to forward through SSH to the TSA."`
 	BaggageclaimForwardAddr string              `long:"baggageclaim-forward-addr" description:"Baggageclaim address to forward through SSH to the TSA."`
 	RegistrationMode        RegistrationMode    `long:"registration-mode" default:"forward" choice:"forward" choice:"direct"`
-
-	Retry bool `long:"retry" description:"Retry connection on failure"`
 }
 
 func (config Config) checkHostKey(hostname string, remote net.Addr, remoteKey ssh.PublicKey) error {
