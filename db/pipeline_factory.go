@@ -9,7 +9,6 @@ import (
 
 type PipelineFactory interface {
 	VisiblePipelines([]string) ([]Pipeline, error)
-	PublicPipelines() ([]Pipeline, error)
 	AllPipelines() ([]Pipeline, error)
 }
 
@@ -56,24 +55,6 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 	}
 
 	return append(currentTeamPipelines, otherTeamPublicPipelines...), nil
-}
-
-func (f *pipelineFactory) PublicPipelines() ([]Pipeline, error) {
-	rows, err := pipelinesQuery.
-		Where(sq.Eq{"p.public": true}).
-		OrderBy("t.name, ordering").
-		RunWith(f.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	pipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
-	if err != nil {
-		return nil, err
-	}
-
-	return pipelines, nil
 }
 
 func (f *pipelineFactory) AllPipelines() ([]Pipeline, error) {
