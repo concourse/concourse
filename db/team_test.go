@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	uuid "github.com/nu7hatch/gouuid"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -1783,22 +1782,6 @@ var _ = Describe("Team", func() {
 				_, _, err = team.SavePipeline("steve", otherConfig, otherTeamPipeline.ConfigVersion(), db.PipelinePaused)
 				Expect(err).To(HaveOccurred())
 			})
-		})
-	})
-
-	Describe("CreatePipe/GetPipe", func() {
-		It("saves a pipe to the db", func() {
-			myGuid, err := uuid.NewV4()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = team.CreatePipe(myGuid.String(), "a-url")
-			Expect(err).ToNot(HaveOccurred())
-
-			pipe, err := team.GetPipe(myGuid.String())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(pipe.ID).To(Equal(myGuid.String()))
-			Expect(pipe.URL).To(Equal("a-url"))
-			Expect(pipe.TeamName).To(Equal("some-team"))
 		})
 	})
 

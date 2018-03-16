@@ -190,21 +190,17 @@ var _ = Describe("APIAuthWrappa", func() {
 
 				// authenticated
 				atc.CreateBuild:     authenticated(inputHandlers[atc.CreateBuild]),
-				atc.CreatePipe:      authenticated(inputHandlers[atc.CreatePipe]),
 				atc.GetContainer:    authenticated(inputHandlers[atc.GetContainer]),
 				atc.HijackContainer: authenticated(inputHandlers[atc.HijackContainer]),
 				atc.ListContainers:  authenticated(inputHandlers[atc.ListContainers]),
 				atc.ListVolumes:     authenticated(inputHandlers[atc.ListVolumes]),
 				atc.ListWorkers:     authenticated(inputHandlers[atc.ListWorkers]),
-				atc.ReadPipe:        authenticated(inputHandlers[atc.ReadPipe]),
 				atc.RegisterWorker:  authenticated(inputHandlers[atc.RegisterWorker]),
 				atc.HeartbeatWorker: authenticated(inputHandlers[atc.HeartbeatWorker]),
 				atc.DeleteWorker:    authenticated(inputHandlers[atc.DeleteWorker]),
-
-				atc.SetTeam:     authenticated(inputHandlers[atc.SetTeam]),
-				atc.RenameTeam:  authenticated(inputHandlers[atc.RenameTeam]),
-				atc.DestroyTeam: authenticated(inputHandlers[atc.DestroyTeam]),
-				atc.WritePipe:   authenticated(inputHandlers[atc.WritePipe]),
+				atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
+				atc.RenameTeam:      authenticated(inputHandlers[atc.RenameTeam]),
+				atc.DestroyTeam:     authenticated(inputHandlers[atc.DestroyTeam]),
 
 				// authenticated and is admin
 				atc.GetLogLevel: authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),

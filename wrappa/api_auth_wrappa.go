@@ -91,19 +91,16 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 
 		// authenticated
 		case atc.CreateBuild,
-			atc.CreatePipe,
 			atc.GetContainer,
 			atc.HijackContainer,
 			atc.ListContainers,
 			atc.ListWorkers,
-			atc.ReadPipe,
 			atc.RegisterWorker,
 			atc.HeartbeatWorker,
 			atc.DeleteWorker,
 			atc.SetTeam,
 			atc.RenameTeam,
 			atc.DestroyTeam,
-			atc.WritePipe,
 			atc.ListVolumes:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 

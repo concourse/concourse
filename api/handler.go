@@ -18,7 +18,6 @@ import (
 	"github.com/concourse/atc/api/legacyserver"
 	"github.com/concourse/atc/api/loglevelserver"
 	"github.com/concourse/atc/api/pipelineserver"
-	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/api/resourceserver/versionserver"
 	"github.com/concourse/atc/api/teamserver"
@@ -85,7 +84,6 @@ func NewHandler(
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
-	pipeServer := pipes.NewServer(logger, peerURL, externalURL, dbTeamFactory)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, engine)
 	configServer := configserver.NewServer(logger, dbTeamFactory)
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
@@ -151,10 +149,6 @@ func NewHandler(
 		atc.ListBuildsWithVersionAsInput:  pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput),
 		atc.ListBuildsWithVersionAsOutput: pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput),
 		atc.GetResourceCausality:          pipelineHandlerFactory.HandlerFor(versionServer.GetCausality),
-
-		atc.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
-		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
-		atc.ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
 
 		atc.ListWorkers:     http.HandlerFunc(workerServer.ListWorkers),
 		atc.RegisterWorker:  http.HandlerFunc(workerServer.RegisterWorker),

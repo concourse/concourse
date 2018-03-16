@@ -55,10 +55,6 @@ const (
 	CreatePipelineBuild = "CreatePipelineBuild"
 	PipelineBadge       = "PipelineBadge"
 
-	CreatePipe = "CreatePipe"
-	WritePipe  = "WritePipe"
-	ReadPipe   = "ReadPipe"
-
 	RegisterWorker  = "RegisterWorker"
 	LandWorker      = "LandWorker"
 	RetireWorker    = "RetireWorker"
@@ -147,10 +143,6 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/input_to", Method: "GET", Name: ListBuildsWithVersionAsInput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/causality", Method: "GET", Name: GetResourceCausality},
-
-	{Path: "/api/v1/teams/:team_name/pipes", Method: "POST", Name: CreatePipe},
-	{Path: "/api/v1/teams/:team_name/pipes/:pipe_id", Method: "PUT", Name: WritePipe},
-	{Path: "/api/v1/teams/:team_name/pipes/:pipe_id", Method: "GET", Name: ReadPipe},
 
 	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
 	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
