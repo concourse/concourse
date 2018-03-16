@@ -142,7 +142,6 @@ case $1 in
            <% end %> \
            --tsa-public-key=${TSA_HOST_KEY} \
            --tsa-worker-private-key=${WORKER_KEY} \
-           --tsa-retry \
            <% if p("garden.forward_address", nil) %> \
              --tsa-garden-forward-addr=<%= p("garden.forward_address") %> \
              <% if p("baggageclaim.forward_address", nil) %> \
