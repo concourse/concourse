@@ -119,12 +119,33 @@ var _ = Describe("Pipeline Factory", func() {
 			Expect(pipeline3.Reload()).To(BeTrue())
 		})
 
-		It("returns all pipelines visible to the given teams", func() {
+		It("returns all pipelines visible for the given teams", func() {
 			pipelines, err := pipelineFactory.VisiblePipelines([]string{"some-team"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(pipelines)).To(Equal(2))
 			Expect(pipelines[0].Name()).To(Equal(pipeline1.Name()))
 			Expect(pipelines[1].Name()).To(Equal(pipeline3.Name()))
+		})
+
+		It("returns all pipelines visible when empty team name provided", func() {
+			pipelines, err := pipelineFactory.VisiblePipelines([]string{""})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pipelines)).To(Equal(1))
+			Expect(pipelines[0].Name()).To(Equal(pipeline3.Name()))
+		})
+
+		It("returns all pipelines visible when empty teams provided", func() {
+			pipelines, err := pipelineFactory.VisiblePipelines([]string{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pipelines)).To(Equal(1))
+			Expect(pipelines[0].Name()).To(Equal(pipeline3.Name()))
+		})
+
+		It("returns all pipelines visible when nil teams provided", func() {
+			pipelines, err := pipelineFactory.VisiblePipelines(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pipelines)).To(Equal(1))
+			Expect(pipelines[0].Name()).To(Equal(pipeline3.Name()))
 		})
 	})
 
