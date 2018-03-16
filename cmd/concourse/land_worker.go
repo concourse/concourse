@@ -12,8 +12,7 @@ import (
 )
 
 type BeaconConfigRequired struct {
-	Host             string              `long:"host" required:"true" default:"127.0.0.1" description:"TSA host to negotiate the worker draining through."`
-	Port             int                 `long:"port" required:"true" default:"2222" description:"TSA port to connect to."`
+	Host             []string            `long:"host" required:"true" default:"127.0.0.1:2222" description:"TSA host to negotiate the worker draining through."`
 	PublicKey        flag.AuthorizedKeys `long:"public-key" required:"true" description:"File containing a public key to expect from the TSA."`
 	WorkerPrivateKey flag.PrivateKey     `long:"worker-private-key" required:"true" description:"File containing the private key to use when authenticating to the TSA."`
 }
@@ -21,7 +20,6 @@ type BeaconConfigRequired struct {
 func (b BeaconConfigRequired) canonical() beacon.Config {
 	return beacon.Config{
 		Host:             b.Host,
-		Port:             b.Port,
 		PublicKey:        b.PublicKey,
 		WorkerPrivateKey: b.WorkerPrivateKey,
 	}
