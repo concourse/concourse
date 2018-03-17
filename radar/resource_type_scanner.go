@@ -201,7 +201,7 @@ func (scanner *resourceTypeScanner) check(
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResourceType.Type(),
 		},
-		Tags:   []string{},
+		Tags:   savedResourceType.Tags(),
 		TeamID: scanner.dbPipeline.TeamID(),
 	}
 

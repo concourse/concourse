@@ -65,6 +65,7 @@ var _ = Describe("Config API", func() {
 					Name:   "custom-resource",
 					Type:   "custom-type",
 					Source: atc.Source{"custom": "source"},
+					Tags:   atc.Tags{"some-tag"},
 				},
 			},
 
@@ -255,6 +256,7 @@ var _ = Describe("Config API", func() {
 									fakeResourceType.NameReturns("custom-resource")
 									fakeResourceType.TypeReturns("custom-type")
 									fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
+									fakeResourceType.TagsReturns(atc.Tags{"some-tag"})
 
 									fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeResourceType}, nil)
 								})

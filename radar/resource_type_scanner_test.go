@@ -55,6 +55,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Name:   "some-custom-resource",
 				Type:   "docker-image",
 				Source: atc.Source{"custom": "((source-params))"},
+				Tags:   atc.Tags{"some-tag"},
 			},
 			Version: atc.Version{"custom": "version"},
 		}
@@ -75,6 +76,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceType.TypeReturns("docker-image")
 		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
+		fakeResourceType.TagsReturns(atc.Tags{"some-tag"})
 		fakeResourceType.SetResourceConfigReturns(nil)
 
 		fakeDBPipeline.IDReturns(42)
@@ -156,7 +158,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "docker-image",
 					},
-					Tags:   []string{},
+					Tags:   []string{"some-tag"},
 					TeamID: 123,
 				}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
@@ -204,7 +206,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 						ImageSpec: worker.ImageSpec{
 							ResourceType: "docker-image",
 						},
-						Tags:   []string{},
 						TeamID: 123,
 					}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
@@ -366,7 +367,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "docker-image",
 					},
-					Tags:   []string{},
+					Tags:   []string{"some-tag"},
 					TeamID: 123,
 				}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
@@ -479,7 +480,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 						ImageSpec: worker.ImageSpec{
 							ResourceType: "docker-image",
 						},
-						Tags:   []string{},
 						TeamID: 123,
 					}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
