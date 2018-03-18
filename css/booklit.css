@@ -504,3 +504,11 @@ h2, h3 {
   color: #D58808;
   padding-left: 16px;
 }
+
+.tutorial-image {
+  text-align: center;
+}
+.tutorial-image img {
+  width:70%;
+
+}

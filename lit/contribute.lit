@@ -2,6 +2,61 @@
 
 \use-plugin{concourse-docs}
 
+As a free and Open Source project, the Concourse team relies on the contributions of
+sponsors and volunteers from around the world. As a growing community of continuous thing-doers,
+we're always in need of more people to help out in our community.
+
+Even if you're just getting started with Concourse, you can contribute in
+a few ways:
+
+\list{
+  \bold{Discuss and Share} your experiences with Concourse in our
+  \link{Discord forums}{https://discuss.concourse-ci.org/}
+}{
+  \bold{Blog about Concourse}. We would love to hear how you got started with Concourse,
+  the type of pipelines you're building, or any tips & tricks that you can share with
+  the community.
+}{
+  \bold{Answer questions} about Concourse in the \link{Support}{https://discuss.concourse-ci.org/c/support}
+   section of our forums or on \link{Stack Overflow}{https://stackoverflow.com/questions/tagged/concourse}
+}
+
+As you become more comfortable with Concourse, you might be interested
+in contributing to Concourse's development:
+\list{
+  \bold{Review issues and report bugs} in the \link{\code{concourse/concourse}}{https://github.com/concourse/concourse/issues}
+  repo. We are by no means experts in every subject area; sometimes takes us while
+  to understand a problem space well enough to figure out how it should work
+  in Concourse's puritanical world. You can help us by:
+    \list{
+      Voting for issues by adding an emoji reaction to the issue
+    }{
+      Submitting new bugs when you run into a new problem with Concourse
+    }{
+      Review GitHub issues submitted by other members of the community; ask for
+      (or provide!) clarification when necessary. A lot of the issues that come
+      in are simply unclear and we spend a lot of time just trying to figure
+      out what's wrong
+    }
+}{
+  \bold{Writing Documentation} for the project. You can get started by reviewing
+  the docs code at \link{\code{concourse/docs}}{https://github.com/concourse/docs}
+  and making PRs against the project.
+}{
+  \bold{Contributing Code}. If you're interested in contributing some work to
+  the core project, you can get started by reviewing the \link{\code{CONTRIBUTING.md}}{https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md}
+  getting started guide. You can also get an overview of the Concourse architecture
+  by reviewing some of the documentation under \link{Concourse Components}{components.html} and \link{Concourse Internals}{internals.html}
+}
+
+The Concourse project is committed to fostering an open and welcoming environment
+for all project members, maintainers and community members. The Concourse project
+pledges to make our community  a harassment-free experience for everyone,
+regardless of age, body size, disability, ethnicity, gender identity and expression,
+ level of experience, nationality, personal appearance, race, religion,
+ or sexual identity and orientation. You can read more about our commitment in
+the project's \link{Contributor Code of Conduct}{https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md}
+
 \split-sections
 \table-of-contents
 

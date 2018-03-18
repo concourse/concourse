@@ -9,7 +9,7 @@ part-time contributors.
 \section{
   \title{Why make Concourse?}
 
-  When working on a sizeable project, having a pipeline to reliably test,
+  When working on a sizable project, having a pipeline to reliably test,
   deploy, and publish the product is crucial for rapid iteration.
 
   But with every CI system we used, we found ourselves constantly dealing with
