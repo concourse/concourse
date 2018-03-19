@@ -10,13 +10,14 @@ import (
 
 	"encoding/json"
 
+	"context"
+
 	"github.com/concourse/skymarshal/auth"
 	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/skymarshal/verifier"
 	"github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
-	"golang.org/x/net/context"
 )
 
 const ProviderName = "gitlab"

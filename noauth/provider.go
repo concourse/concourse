@@ -8,10 +8,11 @@ import (
 
 	"encoding/json"
 
+	"context"
+
 	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/skymarshal/verifier"
 	flags "github.com/jessevdk/go-flags"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 

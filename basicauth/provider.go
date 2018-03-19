@@ -8,12 +8,13 @@ import (
 
 	"encoding/json"
 
+	"context"
+
 	"github.com/concourse/skymarshal/provider"
 	"github.com/concourse/skymarshal/verifier"
 	multierror "github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 

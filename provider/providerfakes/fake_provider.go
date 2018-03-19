@@ -2,12 +2,12 @@
 package providerfakes
 
 import (
+	"context"
 	"net/http"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/skymarshal/provider"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 

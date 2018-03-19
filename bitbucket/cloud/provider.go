@@ -1,10 +1,11 @@
 package cloud
 
 import (
-	"github.com/concourse/skymarshal/verifier"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
+	"context"
 	"net/http"
+
+	"github.com/concourse/skymarshal/verifier"
+	"golang.org/x/oauth2"
 )
 
 type Provider struct {
