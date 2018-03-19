@@ -3,6 +3,7 @@ package topgun_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("A pipeline-provided resource type", func() {
@@ -53,5 +54,26 @@ var _ = Describe("A pipeline-provided resource type", func() {
 
 		By("expecting to only have new containers for build task image check and build task")
 		Expect(flyTable("containers")).Should(HaveLen(expectedContainersBefore + 2))
+	})
+})
+
+var _ = Describe("tagged resource types", func() {
+	BeforeEach(func() {
+		Deploy("deployments/concourse.yml", "-o", "operations/tagged-worker.yml")
+		_ = waitForRunningWorker()
+
+		By("setting a pipeline with tagged custom types")
+		fly("set-pipeline", "-n", "-c", "pipelines/tagged-custom-types.yml", "-p", "pipe")
+		fly("unpause-pipeline", "-p", "pipe")
+	})
+
+	It("is able to be used with tagged workers", func() {
+		By("running a check which uses the tagged custom resource")
+		Eventually(spawnFly("check-resource", "-r", "pipe/10m")).Should(gexec.Exit(0))
+
+		By("triggering a build which uses the tagged custom resource")
+		buildSession := spawnFly("trigger-job", "-w", "-j", "pipe/get-10m")
+		<-buildSession.Exited
+		Expect(buildSession.ExitCode()).To(Equal(0))
 	})
 })
