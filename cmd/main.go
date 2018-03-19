@@ -10,7 +10,7 @@ func main() {
 
 	config := &skymarshal.Config{}
 
-	server, err := skymarshal.NewHandler(config)
+	server, err := skymarshal.NewServer(config)
 	if err != nil {
 		panic(err)
 	}
