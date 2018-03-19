@@ -360,7 +360,7 @@ viewLoginButton build =
     Html.form
         [ class "build-login"
         , Html.Attributes.method "get"
-        , Html.Attributes.action "/login"
+        , Html.Attributes.action "/sky/login"
         ]
         [ Html.input
             [ Html.Attributes.type_ "submit"
@@ -369,7 +369,7 @@ viewLoginButton build =
             []
         , Html.input
             [ Html.Attributes.type_ "hidden"
-            , Html.Attributes.name "redirect"
+            , Html.Attributes.name "redirect_uri"
             , Html.Attributes.value (Routes.buildRoute build)
             ]
             []

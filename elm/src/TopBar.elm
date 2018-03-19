@@ -96,15 +96,7 @@ update msg model =
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        case model.route.logical of
-                            Routes.SelectTeam ->
-                                ( model, Cmd.none )
-
-                            Routes.TeamLogin _ ->
-                                ( model, Cmd.none )
-
-                            _ ->
-                                ( model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, LoginRedirect.requestLoginRedirect "" )
                     else
                         ( model, Cmd.none )
 
@@ -119,7 +111,7 @@ update msg model =
             ( { model
                 | pipeline = Nothing
               }
-            , Navigation.newUrl "/login"
+            , LoginRedirect.requestLoginRedirect ""
             )
 
         LogOut ->
@@ -194,12 +186,6 @@ extractPidFromRoute route =
             Nothing
 
         Routes.DashboardHd ->
-            Nothing
-
-        Routes.SelectTeam ->
-            Nothing
-
-        Routes.TeamLogin teamName ->
             Nothing
 
         Routes.Home ->
@@ -348,7 +334,7 @@ viewUserState userState userMenuVisible =
             Html.div [ class "user-info" ]
                 [ Html.a
                     [ StrictEvents.onLeftClick <| LogIn
-                    , href "/login"
+                    , href "/sky/login"
                     , Html.Attributes.attribute "aria-label" "Log In"
                     , class "login-button"
                     ]
@@ -356,12 +342,12 @@ viewUserState userState userMenuVisible =
                     ]
                 ]
 
-        UserStateLoggedIn { team } ->
+        UserStateLoggedIn user ->
             Html.div [ class "user-info" ]
                 [ Html.div [ class "user-id", onClick ToggleUserMenu ]
                     [ Html.i [ class "fa fa-user" ] []
                     , Html.text " "
-                    , Html.text team.name
+                    , Html.text user.name
                     , Html.text " "
                     , Html.i [ class "fa fa-caret-down" ] []
                     ]

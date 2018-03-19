@@ -5,7 +5,10 @@ require 'fly'
 require 'dash'
 require 'tmpdir'
 
-ATC_URL = ENV.fetch('ATC_URL', 'http://127.0.0.1:8080').freeze
+ATC_URL = ENV.fetch('ATC_URL', 'http://localhost:8080').freeze
+
+ATC_USERNAME = ENV.fetch('ATC_USERNAME', 'test').freeze
+ATC_PASSWORD = ENV.fetch('ATC_PASSWORD', 'test').freeze
 
 RSpec.configure do |config|
   include Fly

@@ -8,13 +8,13 @@ import Concourse
 
 fetchUser : Task Http.Error Concourse.User
 fetchUser =
-    HttpBuilder.get "/auth/userinfo"
+    HttpBuilder.get "/sky/userinfo"
         |> HttpBuilder.withExpect (Http.expectJson Concourse.decodeUser)
         |> HttpBuilder.toTask
 
 
 logOut : Task Http.Error ()
 logOut =
-    HttpBuilder.get "/auth/logout"
+    HttpBuilder.get "/sky/logout"
         |> HttpBuilder.withExpect (Http.expectStringResponse (\_ -> Ok ()))
         |> HttpBuilder.toTask

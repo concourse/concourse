@@ -37,34 +37,6 @@ async function showsPipelineState(t, setup, assertions) {
   await assertions(t, text, color(background), group);
 };
 
-test('shows the current team first, followed by other teams and their public pipelines', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
-
-  await t.context.fly.loginAs('main');
-  const otherTeamName = await t.context.fly.newTeam();
-
-  await t.context.fly.loginAs(otherTeamName);
-  await t.context.fly.run("set-pipeline -n -p other-pipeline-private -c fixtures/states-pipeline.yml");
-  await t.context.fly.run("set-pipeline -n -p other-pipeline-public -c fixtures/states-pipeline.yml");
-  await t.context.fly.run("expose-pipeline -p other-pipeline-public");
-
-  await t.context.page.goto(t.context.web.route('/dashboard'));
-
-  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  const otherGroup = `.dashboard-team-group[data-team-name="${otherTeamName}"]`;
-
-  await t.context.page.waitFor(`${group} .dashboard-pipeline`);
-  let firstGroupText = await t.context.web.text(t.context.page, await t.context.page.$('.dashboard-team-group:nth-child(1)'));
-  t.regex(firstGroupText, new RegExp(t.context.teamName));
-  t.regex(firstGroupText, /some-pipeline/);
-
-  await t.context.page.waitFor(`${otherGroup} .dashboard-pipeline`);
-  let otherTeamText = await t.context.web.text(t.context.page, await t.context.page.$(otherGroup));
-  t.regex(otherTeamText, new RegExp(otherTeamName));
-  t.regex(otherTeamText, /other-pipeline-public/);
-  t.notRegex(otherTeamText, /other-pipeline-private/);
-});
-
 test('shows pipelines in their correct order', async t => {
   let pipelineOrder = ['first', 'second', 'third', 'fourth', 'fifth'];
 

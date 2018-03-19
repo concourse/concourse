@@ -3,7 +3,6 @@ port module Layout exposing (Flags, Model, Msg, init, locationMsg, subscriptions
 import Favicon
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
-import Login exposing (Msg(..))
 import Navigation
 import Routes
 import SideBar
@@ -170,31 +169,6 @@ update msg model =
                 , Cmd.batch
                     [ Cmd.map (SubMsg anyNavIndex) subCmd
                     , Cmd.map (SideMsg anyNavIndex) sideCmd
-                    ]
-                )
-
-        SubMsg navIndex (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) ->
-            let
-                ( layoutModel, layoutCmd ) =
-                    update (SaveToken val.csrfToken) model
-
-                ( subModel, subCmd ) =
-                    SubPage.update model.turbulenceImgSrc model.notFoundImgSrc val.csrfToken (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) model.subModel
-
-                ( sideModel, sideCmd ) =
-                    SideBar.update (SideBar.NewCSRFToken val.csrfToken) model.sideModel
-            in
-                ( { model
-                    | subModel = subModel
-                    , sideModel = sideModel
-                    , csrfToken = val.csrfToken
-                  }
-                , Cmd.batch
-                    [ layoutCmd
-                    , Cmd.map (SideMsg anyNavIndex) sideCmd
-                    , Cmd.map (TopMsg anyNavIndex) TopBar.fetchUser
-                    , Cmd.map (SideMsg anyNavIndex) SideBar.fetchPipelines
-                    , Cmd.map (SubMsg navIndex) subCmd
                     ]
                 )
 
@@ -372,12 +346,6 @@ subscriptions model =
 routeMatchesModel : Routes.ConcourseRoute -> Model -> Bool
 routeMatchesModel route model =
     case ( route.logical, model.subModel ) of
-        ( Routes.SelectTeam, SubPage.SelectTeamModel _ ) ->
-            True
-
-        ( Routes.TeamLogin _, SubPage.LoginModel _ ) ->
-            True
-
         ( Routes.Pipeline _ _, SubPage.PipelineModel _ ) ->
             True
 

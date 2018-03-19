@@ -10,7 +10,7 @@ describe 'job', type: :feature do
     fly('set-pipeline -n -p test-pipeline -c fixtures/passing-pipeline.yml')
     fly('unpause-pipeline -p test-pipeline')
 
-    dash_login team_name
+    dash_login
   end
 
   context 'without builds' do

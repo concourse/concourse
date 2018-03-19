@@ -5,8 +5,10 @@ const uuidv4 = require('uuid/v4');
 const tmp = require('tmp-promise');
 
 class Fly {
-  constructor(url) {
+  constructor(url, username, password) {
     this.url = url;
+    this.username = username;
+    this.password = password;
     this.target = `wats-target-${uuidv4()}`;
 
     this.teams = [];
@@ -29,7 +31,7 @@ class Fly {
 
     var name = `watsjs-team-${uuidv4()}`;
 
-    await this.run(`set-team -n ${name} --no-really-i-dont-want-any-auth --non-interactive`);
+    await this.run(`set-team -n ${name} --local-user=${this.username} --non-interactive`);
 
     this.teams.push(name);
 
@@ -47,7 +49,7 @@ class Fly {
   }
 
   loginAs(teamName) {
-    return this.run(`login -c ${this.url} -n ${teamName}`);
+    return this.run(`login -c ${this.url} -n ${teamName} -u ${this.username} -p ${this.password}`);
   }
 
   async cleanUpTestTeams() {

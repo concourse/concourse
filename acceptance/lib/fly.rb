@@ -20,7 +20,7 @@ module Fly
   end
 
   def fly_login(team_name)
-    fly("login -k -c #{ATC_URL} -n #{team_name}")
+    fly("login -k -c #{ATC_URL} -n #{team_name} -u #{ATC_USERNAME} -p #{ATC_PASSWORD}")
   end
 
   def fly_with_input(command, input)

@@ -406,12 +406,12 @@ viewUserState userState userMenuVisible =
                     ]
                 ]
 
-        UserStateLoggedIn { team } ->
+        UserStateLoggedIn user ->
             Html.div [ class "user-info" ]
                 [ Html.div [ class "user-id", onClick ToggleUserMenu ]
                     [ Html.i [ class "fa fa-user" ] []
                     , Html.text " "
-                    , Html.text team.name
+                    , Html.text user.name
                     , Html.text " "
                     , Html.i [ class "fa fa-caret-down" ] []
                     ]

@@ -798,14 +798,14 @@ decodeTeam =
 
 
 type alias User =
-    { team : Team
+    { name : String
     }
 
 
 decodeUser : Json.Decode.Decoder User
 decodeUser =
     Json.Decode.succeed User
-        |: (Json.Decode.field "team" decodeTeam)
+        |: (Json.Decode.field "user_name" Json.Decode.string)
 
 
 

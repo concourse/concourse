@@ -8,7 +8,6 @@ import Html exposing (Html)
 import Http
 import Job
 import Json.Encode
-import Login
 import Resource
 import Build
 import NoPipeline
@@ -19,7 +18,6 @@ import Resource
 import Routes
 import String
 import Task
-import TeamSelection
 import UpdateMsg exposing (UpdateMsg)
 import Dashboard
 import DashboardHd
@@ -40,9 +38,7 @@ type Model
     | BuildModel (Autoscroll.Model Build.Model)
     | JobModel Job.Model
     | ResourceModel Resource.Model
-    | LoginModel Login.Model
     | PipelineModel Pipeline.Model
-    | SelectTeamModel TeamSelection.Model
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
     | DashboardHdModel DashboardHd.Model
@@ -55,9 +51,7 @@ type Msg
     | BuildMsg (Autoscroll.Msg Build.Msg)
     | JobMsg Job.Msg
     | ResourceMsg Resource.Msg
-    | LoginMsg Login.Msg
     | PipelineMsg Pipeline.Msg
-    | SelectTeamMsg TeamSelection.Msg
     | NewCSRFToken String
     | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DashboardMsg Dashboard.Msg
@@ -124,18 +118,6 @@ init turbulencePath route =
                     , paging = route.page
                     , csrfToken = ""
                     }
-
-        Routes.SelectTeam ->
-            let
-                redirect =
-                    Maybe.withDefault "" <| QueryString.one QueryString.string "redirect" route.queries
-            in
-                superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <|
-                    TeamSelection.init { title = setTitle } redirect
-
-        Routes.TeamLogin teamName ->
-            superDupleWrap ( LoginModel, LoginMsg ) <|
-                Login.init { title = setTitle } teamName (QueryString.one QueryString.string "redirect" route.queries)
 
         Routes.Pipeline teamName pipelineName ->
             superDupleWrap ( PipelineModel, PipelineMsg ) <|
@@ -208,15 +190,6 @@ update turbulence notFound csrfToken msg mdl =
         ( JobMsg message, JobModel model ) ->
             handleNotFound notFound ( JobModel, JobMsg ) (Job.updateWithMessage message { model | csrfToken = csrfToken })
 
-        ( LoginMsg message, LoginModel model ) ->
-            let
-                ( mdl, msg ) =
-                    Login.update message model
-
-                --            superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
-            in
-                ( LoginModel mdl, Cmd.map LoginMsg msg )
-
         ( PipelineMsg message, PipelineModel model ) ->
             handleNotFound notFound ( PipelineModel, PipelineMsg ) (Pipeline.updateWithMessage message model)
 
@@ -225,9 +198,6 @@ update turbulence notFound csrfToken msg mdl =
 
         ( ResourceMsg message, ResourceModel model ) ->
             handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
-
-        ( SelectTeamMsg message, SelectTeamModel model ) ->
-            superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <| TeamSelection.update message model
 
         ( DefaultPipelineFetched pipeline, WaitingModel route ) ->
             case pipeline of
@@ -327,17 +297,11 @@ view mdl =
         JobModel model ->
             Html.map JobMsg <| Job.view model
 
-        LoginModel model ->
-            Html.map LoginMsg <| Login.view model
-
         PipelineModel model ->
             Html.map PipelineMsg <| Pipeline.view model
 
         ResourceModel model ->
             Html.map ResourceMsg <| Resource.view model
-
-        SelectTeamModel model ->
-            Html.map SelectTeamMsg <| TeamSelection.view model
 
         DashboardModel model ->
             Html.map DashboardMsg <| Dashboard.view model
@@ -364,9 +328,6 @@ subscriptions mdl =
         JobModel model ->
             Sub.map JobMsg <| Job.subscriptions model
 
-        LoginModel model ->
-            Sub.map LoginMsg <| Login.subscriptions model
-
         NoPipelineModel ->
             Sub.map NoPipelineMsg <| NoPipeline.subscriptions
 
@@ -375,9 +336,6 @@ subscriptions mdl =
 
         ResourceModel model ->
             Sub.map ResourceMsg <| Resource.subscriptions model
-
-        SelectTeamModel model ->
-            Sub.map SelectTeamMsg <| TeamSelection.subscriptions model
 
         DashboardModel model ->
             Sub.map DashboardMsg <| Dashboard.subscriptions model

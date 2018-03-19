@@ -11,7 +11,7 @@ describe 'dashboard search', type: :feature do
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
-    dash_login team_name
+    dash_login
 
     fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml')
     fly('unpause-pipeline -p some-pipeline')
@@ -72,7 +72,7 @@ describe 'dashboard search', type: :feature do
 
     before do
       fly_login 'main'
-      fly_with_input("set-team -n #{other_team_name} --no-really-i-dont-want-any-auth", 'y')
+      fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
 
       fly_login other_team_name
 
@@ -83,6 +83,9 @@ describe 'dashboard search', type: :feature do
       fly('set-pipeline -n -p other-pipeline -c fixtures/states-pipeline.yml')
       fly('unpause-pipeline -p other-pipeline')
       fly('expose-pipeline -p other-pipeline')
+
+      fly_with_input("set-team -n #{other_team_name} --local-user=bad-username", 'y')
+      fly_login team_name
 
       dash_login team_name
       visit dash_route('/dashboard')

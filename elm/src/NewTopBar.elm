@@ -126,11 +126,11 @@ showUserInfo model =
             Html.text "loading"
 
         RemoteData.Success user ->
-            Html.text user.team.name
+            Html.text user.name
 
         RemoteData.Failure _ ->
             Html.a
-                [ href "/login"
+                [ href "/sky/login"
                 , Html.Attributes.attribute "aria-label" "Log In"
                 ]
                 [ Html.text "login"

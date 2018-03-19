@@ -71,26 +71,12 @@
         }, 0)
       });
 
-      var teamNameRegExp =  /\/teams\/([^/]+)\/.*/;
-
       app.ports.requestLoginRedirect.subscribe(function (message) {
-        setTimeout(function(){
-          var path = document.location.pathname;
-          var query = document.location.search;
-
-          if(path.charAt(0) == "/") {
-              var redirect = encodeURIComponent(path + query );
-              var matches = path.match(teamNameRegExp);
-              var loginUrl;
-              if(matches) {
-                  var teamName = matches[1];
-                  loginUrl = "/teams/" + teamName + "/login?redirect="+ redirect;
-              } else {
-                  loginUrl = "/login?redirect="+ redirect;
-              }
-              app.ports.newUrl.send(loginUrl);
-          }
-        }, 0)
+        var path = document.location.pathname;
+        var query = document.location.search;
+        var redirect = encodeURIComponent(path + query);
+        var loginUrl = "/sky/login?redirect_uri="+ redirect;
+        document.location.href = loginUrl;
       });
 
       app.ports.setTitle.subscribe(function(title) {

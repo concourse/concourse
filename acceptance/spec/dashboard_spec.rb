@@ -18,7 +18,7 @@ describe 'dashboard', type: :feature do
   describe 'view toggle' do
     context 'when the view is the default view' do
       it 'switches to compact view' do
-        dash_login team_name
+        dash_login
         visit dash_route('/dashboard')
         expect(page).to have_content('HIGH-DENSITY')
 
@@ -29,7 +29,7 @@ describe 'dashboard', type: :feature do
 
     context 'when the view is the compact view' do
       it 'switches to default view' do
-        dash_login team_name
+        dash_login
         visit dash_route('/dashboard/hd')
         expect(page).to have_content('HIGH-DENSITY')
 
@@ -43,7 +43,7 @@ describe 'dashboard', type: :feature do
     context 'with no user logged in' do
       it 'displays a login button' do
         visit dash_route('/dashboard')
-        expect(page).to have_link('login', href: '/login')
+        expect(page).to have_link('login', href: '/sky/login')
       end
     end
 
@@ -52,7 +52,7 @@ describe 'dashboard', type: :feature do
 
       before do
         fly_login 'main'
-        fly_with_input("set-team -n #{other_team_name} --no-really-i-dont-want-any-auth", 'y')
+        fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
 
         fly_login other_team_name
         fly('set-pipeline -n -p other-pipeline-private -c fixtures/states-pipeline.yml')
@@ -61,6 +61,7 @@ describe 'dashboard', type: :feature do
         fly('unpause-pipeline -p other-pipeline-public')
         fly('expose-pipeline -p other-pipeline-public')
 
+        fly_with_input("set-team -n #{other_team_name} --local-user=bad-username", 'y')
         fly_login team_name
       end
 
@@ -70,7 +71,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'shows all pipelines from the authenticated team and public pipelines from other teams' do
-        dash_login team_name
+        dash_login
         visit dash_route('/dashboard')
         within '.dashboard-team-group', text: team_name do
           expect(page).to have_content 'some-pipeline'
@@ -83,7 +84,7 @@ describe 'dashboard', type: :feature do
       end
 
       it 'shows authenticated team first' do
-        dash_login team_name
+        dash_login
 
         visit dash_route('/dashboard')
 
@@ -290,7 +291,7 @@ describe 'dashboard', type: :feature do
     context 'with no user logged in' do
       it 'displays a login button' do
         visit dash_route('/dashboard/hd')
-        expect(page).to have_link('login', href: '/login')
+        expect(page).to have_link('login', href: '/sky/login')
       end
     end
 
@@ -415,7 +416,7 @@ describe 'dashboard', type: :feature do
 
       before do
         fly_login 'main'
-        fly_with_input("set-team -n #{other_team_name} --no-really-i-dont-want-any-auth", 'y')
+        fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
 
         fly_login other_team_name
         fly('set-pipeline -n -p other-pipeline-private -c fixtures/states-pipeline.yml')
@@ -424,6 +425,7 @@ describe 'dashboard', type: :feature do
         fly('unpause-pipeline -p other-pipeline-public')
         fly('expose-pipeline -p other-pipeline-public')
 
+        fly_with_input("set-team -n #{other_team_name} --local-user=bad-username", 'y')
         fly_login team_name
       end
 
@@ -439,15 +441,21 @@ describe 'dashboard', type: :feature do
         expect(page).to_not have_content 'other-pipeline-private'
       end
 
-      it 'shows the teams in ordered by the number of pipelines' do
+      it 'shows the teams ordered by the number of pipelines' do
+        fly_login 'main'
+        fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
+
         fly_login other_team_name
         fly('expose-pipeline -p other-pipeline-private')
+
+        fly_with_input("set-team -n #{other_team_name} --local-user=bad-username", 'y')
+        fly_login team_name
 
         visit dash_route('/dashboard/hd')
         expect(page).to have_css('.dashboard-team-name')
         expect(page.first('.dashboard-team-name').text).to eq(other_team_name)
 
-        dash_login(team_name)
+        dash_login
         visit_hd_dashboard
         expect(page).to have_content(team_name)
         expect(page).to have_content(other_team_name)
@@ -459,7 +467,7 @@ describe 'dashboard', type: :feature do
   private
 
   def login
-    @login ||= dash_login team_name
+    @login ||= dash_login
   end
 
   def banner_palette(pipeline = 'some-pipeline')

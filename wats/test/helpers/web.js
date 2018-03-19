@@ -4,8 +4,10 @@ const { exec } = require('child-process-promise');
 const uuidv4 = require('uuid/v4');
 
 class Web {
-  constructor(url) {
+  constructor(url, username, password) {
     this.url = url;
+    this.username = username;
+    this.password = password;
   }
 
   route(path) {
@@ -29,9 +31,12 @@ class Web {
     }, text)
   }
 
-  async loginAs(t, page, teamName) {
-    await page.goto(`${this.url}/teams/${teamName}/login`);
-    await this.clickAndWait(page, '.login-page button');
+  async login(t, page) {
+    await page.goto(`${this.url}/sky/login`);
+    await this.clickAndWait(page, '.dex-btn-icon--local')
+    await page.type('#login', this.username);
+    await page.type('#password', this.password);
+    await this.clickAndWait(page, '#submit-login')
     t.notRegex(await this.text(page), /login/);
   }
 
@@ -40,7 +45,8 @@ class Web {
     await page.click(selector);
     await page.waitForNavigation({
       waitUntil: 'networkidle',
-      networkIdleInflight: 0
+      networkIdleInflight: 0,
+      timeout: 60000
     });
   }
 

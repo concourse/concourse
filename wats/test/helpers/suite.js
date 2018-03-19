@@ -8,10 +8,12 @@ process.setMaxListeners(Infinity);
 
 class Suite {
   constructor() {
-    this.url = process.env.ATC_URL || 'http://127.0.0.1:8080';
+    this.url = process.env.ATC_URL || 'http://localhost:8080';
+    this.username = process.env.ATC_USERNAME || 'test';
+    this.password = process.env.ATC_PASSWORD || 'test';
 
-    this.fly = new Fly(this.url);
-    this.web = new Web(this.url);
+    this.fly = new Fly(this.url, this.username, this.password);
+    this.web = new Web(this.url, this.username, this.password);
   }
 
   async start(t) {
@@ -31,7 +33,7 @@ class Suite {
     t.log("team:", this.teamName);
 
     await this.fly.loginAs(this.teamName);
-    await this.web.loginAs(t, this.page, this.teamName);
+    await this.web.login(t, this.page);
 
     this.succeeded = false;
   }

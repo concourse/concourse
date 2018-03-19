@@ -7,17 +7,6 @@ describe 'session', type: :feature do
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
   end
 
-  context 'when logging into a team with space in its name' do
-    it 'displays the team name correctly' do
-      fly_with_input("set-team -n \"#{team_name} test\" --no-really-i-dont-want-any-auth", 'y')
-
-      visit dash_route("/teams/#{team_name}%20test/login")
-      expect(page).to have_content "logging in to #{team_name} test"
-
-      fly_with_input("destroy-team -n \"#{team_name} test\"", "#{team_name} test")
-    end
-  end
-
   context 'when not logged in' do
     before(:each) do
       fly_login team_name
@@ -41,7 +30,7 @@ describe 'session', type: :feature do
 
   xcontext 'when session expires' do
     it 'displays the correct state in the top bar' do
-      dash_login team_name
+      dash_login
       visit dash_route
       expect(page).to have_content team_name
 
@@ -56,7 +45,7 @@ describe 'session', type: :feature do
     end
 
     it 'displays the correct state in the dashboard top bar' do
-      dash_login team_name
+      dash_login
       visit dash_route('/dashboard')
       expect(page).to have_content team_name
 

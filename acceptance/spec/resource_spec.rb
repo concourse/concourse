@@ -7,7 +7,7 @@ describe 'resource', type: :feature do
     fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
 
     fly_login team_name
-    dash_login team_name
+    dash_login
 
     fly('set-pipeline -n -p pipeline -c fixtures/states-pipeline.yml')
     fly('unpause-pipeline -p pipeline')
