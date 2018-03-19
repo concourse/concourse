@@ -129,10 +129,10 @@ func LoadTarget(selectedTarget TargetName, tracing bool) (Target, error) {
 	), nil
 }
 
-func LoadTargetWithInsecure(
+func LoadUnauthenticatedTarget(
 	selectedTarget TargetName,
 	teamName string,
-	commandInsecure bool,
+	insecure bool,
 	caCert string,
 	tracing bool,
 ) (Target, error) {
@@ -149,7 +149,7 @@ func LoadTargetWithInsecure(
 		caCert = targetProps.CACert
 	}
 
-	if commandInsecure {
+	if insecure {
 		caCert = ""
 	}
 
@@ -158,7 +158,7 @@ func LoadTargetWithInsecure(
 		return nil, err
 	}
 
-	httpClient := defaultHttpClient(targetProps.Token, commandInsecure, caCertPool)
+	httpClient := &http.Client{Transport: transport(insecure, caCertPool)}
 
 	return newTarget(
 		selectedTarget,
@@ -185,7 +185,7 @@ func NewUnauthenticatedTarget(
 		return nil, err
 	}
 
-	httpClient := unauthenticatedHttpClient(insecure, caCertPool)
+	httpClient := &http.Client{Transport: transport(insecure, caCertPool)}
 	client := concourse.NewClient(url, httpClient, tracing)
 	return newTarget(
 		name,
@@ -214,34 +214,6 @@ func NewBasicAuthTarget(
 		return nil, err
 	}
 	httpClient := basicAuthHttpClient(username, password, insecure, caCertPool)
-	client := concourse.NewClient(url, httpClient, tracing)
-
-	return newTarget(
-		name,
-		teamName,
-		url,
-		nil,
-		caCert,
-		caCertPool,
-		insecure,
-		client,
-	), nil
-}
-
-func NewNoAuthTarget(
-	name TargetName,
-	url string,
-	teamName string,
-	insecure bool,
-	caCert string,
-	tracing bool,
-) (Target, error) {
-	caCertPool, err := loadCACertPool(caCert)
-	if err != nil {
-		return nil, err
-	}
-
-	httpClient := &http.Client{Transport: transport(insecure, caCertPool)}
 	client := concourse.NewClient(url, httpClient, tracing)
 
 	return newTarget(
@@ -380,12 +352,6 @@ func (t *target) getInfo() (atc.Info, error) {
 	var err error
 	t.info, err = t.client.GetInfo()
 	return t.info, err
-}
-
-func unauthenticatedHttpClient(insecure bool, caCertPool *x509.CertPool) *http.Client {
-	return &http.Client{
-		Transport: transport(insecure, caCertPool),
-	}
 }
 
 func defaultHttpClient(token *TargetToken, insecure bool, caCertPool *x509.CertPool) *http.Client {

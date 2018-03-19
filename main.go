@@ -9,41 +9,12 @@ import (
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/concourse/skymarshal/provider"
 	"github.com/jessevdk/go-flags"
-
-	_ "github.com/concourse/skymarshal/basicauth"
-	_ "github.com/concourse/skymarshal/bitbucket/cloud"
-	_ "github.com/concourse/skymarshal/bitbucket/server"
-	_ "github.com/concourse/skymarshal/genericoauth"
-	_ "github.com/concourse/skymarshal/genericoauth_oidc"
-	_ "github.com/concourse/skymarshal/github"
-	_ "github.com/concourse/skymarshal/gitlab"
-	_ "github.com/concourse/skymarshal/noauth"
-	_ "github.com/concourse/skymarshal/uaa"
 )
 
 func main() {
 	parser := flags.NewParser(&commands.Fly, flags.HelpFlag|flags.PassDoubleDash)
 	parser.NamespaceDelimiter = "-"
-
-	groups := parser.Find("set-team").Groups()
-	var authGroup *flags.Group
-
-	for _, group := range groups {
-		if group.ShortDescription == "Authentication" {
-			authGroup = group
-			break
-		}
-	}
-
-	authConfigs := make(provider.AuthConfigs)
-
-	for name, p := range provider.GetProviders() {
-		authConfigs[name] = p.AddAuthGroup(authGroup)
-	}
-
-	commands.Fly.SetTeam.Auth.Configs = authConfigs
 
 	helpParser := flags.NewParser(&commands.Fly, flags.HelpFlag)
 	helpParser.NamespaceDelimiter = "-"

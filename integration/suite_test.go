@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -52,9 +51,9 @@ func infoHandler() http.HandlerFunc {
 	)
 }
 
-func tokenHandler(teamName string) http.HandlerFunc {
+func tokenHandler() http.HandlerFunc {
 	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("GET", "/api/v1/teams/"+teamName+"/auth/token"),
+		ghttp.VerifyRequest("POST", "/sky/token"),
 		ghttp.RespondWithJSONEncoded(
 			200,
 			token(),
@@ -62,14 +61,10 @@ func tokenHandler(teamName string) http.HandlerFunc {
 	)
 }
 
-func tokenString() string {
-	return string(token().Type) + " " + string(token().Value)
-}
-
-func token() provider.AuthToken {
-	return provider.AuthToken{
-		Type:  "Bearer",
-		Value: "some-token",
+func token() map[string]string {
+	return map[string]string{
+		"token_type":   "Bearer",
+		"access_token": "some-token",
 	}
 }
 
@@ -78,17 +73,7 @@ var _ = BeforeEach(func() {
 
 	atcServer.AppendHandlers(
 		infoHandler(),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/api/v1/teams/"+teamName+"/auth/methods"),
-			ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
-				{
-					DisplayName: "No Auth",
-					Type:        provider.AuthTypeNone,
-					AuthURL:     atcServer.URL() + "/api/v1/teams/" + teamName + "/auth/token",
-				},
-			}),
-		),
-		tokenHandler(teamName),
+		tokenHandler(),
 		infoHandler(),
 	)
 
@@ -98,7 +83,7 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	os.Setenv("HOME", homeDir)
-	loginCmd := exec.Command(flyPath, "-t", targetName, "login", "-c", atcServer.URL(), "-n", teamName)
+	loginCmd := exec.Command(flyPath, "-t", targetName, "login", "-u", "user", "-p", "pass", "-c", atcServer.URL(), "-n", teamName)
 
 	session, err := gexec.Start(loginCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())

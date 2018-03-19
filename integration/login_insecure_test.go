@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"encoding/pem"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -16,7 +15,6 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/fly/rc"
-	"github.com/concourse/skymarshal/provider"
 )
 
 var _ = Describe("login -k Command", func() {
@@ -42,27 +40,10 @@ var _ = Describe("login -k Command", func() {
 			BeforeEach(func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
-						ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
-							{
-								Type:        provider.AuthTypeBasic,
-								DisplayName: "Basic",
-								AuthURL:     "https://example.com/login/basic",
-							},
-						}),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
-						ghttp.VerifyBasicAuth("some username", "some password"),
-						ghttp.RespondWithJSONEncoded(200, provider.AuthToken{
-							Type:  "Bearer",
-							Value: "some-token",
-						}),
-					),
+					tokenHandler(),
 				)
 
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-k")
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-k", "-u", "some_user", "-p", "some_pass")
 
 				var err error
 				stdin, err = flyCmd.StdinPipe()
@@ -73,17 +54,7 @@ var _ = Describe("login -k Command", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Out).Should(gbytes.Say("username: "))
-
-				_, err = fmt.Fprintf(stdin, "some username\n")
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess.Out).Should(gbytes.Say("password: "))
-
-				_, err = fmt.Fprintf(stdin, "some password\n")
-				Expect(err).NotTo(HaveOccurred())
-
-				Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
+				Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some_pass"))
 
 				Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
@@ -99,38 +70,13 @@ var _ = Describe("login -k Command", func() {
 				BeforeEach(func() {
 					loginATCServer.AppendHandlers(
 						infoHandler(),
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
-							ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
-								{
-									Type:        provider.AuthTypeBasic,
-									DisplayName: "Basic",
-									AuthURL:     "https://example.com/login/basic",
-								},
-							}),
-						),
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
-							ghttp.VerifyBasicAuth("some username", "some password"),
-							ghttp.RespondWithJSONEncoded(200, provider.AuthToken{
-								Type:  "Bearer",
-								Value: "some-token",
-							}),
-						),
+						tokenHandler(),
 					)
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess.Out).Should(gbytes.Say("username: "))
-					_, err = fmt.Fprintf(stdin, "some username\n")
-					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess.Out).Should(gbytes.Say("password: "))
-					_, err = fmt.Fprintf(stdin, "some password\n")
-					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-					err = stdin.Close()
-					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
@@ -138,34 +84,14 @@ var _ = Describe("login -k Command", func() {
 
 				Context("with -k", func() {
 					BeforeEach(func() {
-						otherCmd = exec.Command(flyPath, "-t", "some-target", "login", "-k")
-
-						var err error
-						stdin, err = otherCmd.StdinPipe()
-						Expect(err).NotTo(HaveOccurred())
+						otherCmd = exec.Command(flyPath, "-t", "some-target", "login", "-k", "-u", "some_user", "-p", "some_pass")
 					})
 
 					It("succeeds", func() {
 						sess, err := gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess.Out).Should(gbytes.Say("username: "))
-
-						_, err = fmt.Fprintf(stdin, "some username\n")
-						Expect(err).NotTo(HaveOccurred())
-
-						Eventually(sess.Out).Should(gbytes.Say("password: "))
-
-						_, err = fmt.Fprintf(stdin, "some password\n")
-						Expect(err).NotTo(HaveOccurred())
-
 						Eventually(sess.Out).Should(gbytes.Say("target saved"))
-
-						err = stdin.Close()
-						Expect(err).NotTo(HaveOccurred())
-
-						err = stdin.Close()
-						Expect(err).NotTo(HaveOccurred())
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
@@ -174,7 +100,7 @@ var _ = Describe("login -k Command", func() {
 
 				Context("without -k", func() {
 					BeforeEach(func() {
-						otherCmd = exec.Command(flyPath, "-t", "some-target", "login")
+						otherCmd = exec.Command(flyPath, "-t", "some-target", "login", "-u", "some_user", "-p", "some_pass")
 					})
 
 					It("errors", func() {
@@ -187,13 +113,12 @@ var _ = Describe("login -k Command", func() {
 					})
 				})
 			})
-
 		})
 
 		Context("to new target with invalid SSL without -k", func() {
 			Context("without --ca-cert", func() {
 				BeforeEach(func() {
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "some_user", "-p", "some_pass")
 
 					var err error
 					stdin, err = flyCmd.StdinPipe()
@@ -231,30 +156,11 @@ var _ = Describe("login -k Command", func() {
 					_, err = caCertFile.WriteString(sslCert)
 					Expect(err).NotTo(HaveOccurred())
 
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "--ca-cert", caCertFile.Name())
-					stdin, err = flyCmd.StdinPipe()
-					Expect(err).NotTo(HaveOccurred())
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "--ca-cert", caCertFile.Name(), "-u", "some_user", "-p", "some_pass")
 
 					loginATCServer.AppendHandlers(
 						infoHandler(),
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
-							ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
-								{
-									Type:        provider.AuthTypeBasic,
-									DisplayName: "Basic",
-									AuthURL:     "https://example.com/login/basic",
-								},
-							}),
-						),
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
-							ghttp.VerifyBasicAuth("some username", "some password"),
-							ghttp.RespondWithJSONEncoded(200, provider.AuthToken{
-								Type:  "Bearer",
-								Value: "some-token",
-							}),
-						),
+						tokenHandler(),
 					)
 
 					tmpDir, err = ioutil.TempDir("", "fly-test")
@@ -267,22 +173,9 @@ var _ = Describe("login -k Command", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Out).Should(gbytes.Say("username: "))
-
-					_, err = fmt.Fprintf(stdin, "some username\n")
-					Expect(err).NotTo(HaveOccurred())
-
-					Eventually(sess.Out).Should(gbytes.Say("password: "))
-
-					_, err = fmt.Fprintf(stdin, "some password\n")
-					Expect(err).NotTo(HaveOccurred())
-
-					Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
+					Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some_pass"))
 
 					Eventually(sess.Out).Should(gbytes.Say("target saved"))
-
-					err = stdin.Close()
-					Expect(err).NotTo(HaveOccurred())
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
@@ -314,53 +207,19 @@ var _ = Describe("login -k Command", func() {
 					BeforeEach(func() {
 						loginATCServer.AppendHandlers(
 							infoHandler(),
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
-								ghttp.RespondWithJSONEncoded(200, []provider.AuthMethod{
-									{
-										Type:        provider.AuthTypeBasic,
-										DisplayName: "Basic",
-										AuthURL:     "https://example.com/login/basic",
-									},
-								}),
-							),
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
-								ghttp.VerifyBasicAuth("some username", "some password"),
-								ghttp.RespondWithJSONEncoded(200, provider.AuthToken{
-									Type:  "Bearer",
-									Value: "some-token",
-								}),
-							),
+							tokenHandler(),
 						)
 
-						flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-k")
-
-						var err error
-						stdin, err = flyCmd.StdinPipe()
-						Expect(err).NotTo(HaveOccurred())
+						flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-k", "-u", "some_user", "-p", "some_pass")
 					})
 
 					It("succeeds", func() {
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess.Out).Should(gbytes.Say("username: "))
-
-						_, err = fmt.Fprintf(stdin, "some username\n")
-						Expect(err).NotTo(HaveOccurred())
-
-						Eventually(sess.Out).Should(gbytes.Say("password: "))
-
-						_, err = fmt.Fprintf(stdin, "some password\n")
-						Expect(err).NotTo(HaveOccurred())
-
-						Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
+						Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some_pass"))
 
 						Eventually(sess.Out).Should(gbytes.Say("target saved"))
-
-						err = stdin.Close()
-						Expect(err).NotTo(HaveOccurred())
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
