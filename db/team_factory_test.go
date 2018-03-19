@@ -1,8 +1,6 @@
 package db_test
 
 import (
-	"encoding/json"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -15,11 +13,10 @@ var _ = Describe("Team Factory", func() {
 	)
 
 	BeforeEach(func() {
-		data := []byte(`{"foo":"bar"}`)
 		atcTeam = atc.Team{
 			Name: "some-team",
-			Auth: map[string]*json.RawMessage{
-				"fake-provider": (*json.RawMessage)(&data),
+			Auth: map[string][]string{
+				"users": []string{"local:username"},
 			},
 		}
 	})

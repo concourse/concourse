@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/skymarshal/provider"
 )
 
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
@@ -32,47 +31,6 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	if !acc.IsAdmin() && !acc.IsAuthorized(teamName) {
 		w.WriteHeader(http.StatusForbidden)
 		return
-	}
-
-	providers := provider.GetProviders()
-
-	for providerName, config := range atcTeam.Auth {
-		p, found := providers[providerName]
-		if !found {
-			hLog.Error("failed-to-find-provider", err, lager.Data{"provider": providerName})
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		authConfig, err := p.UnmarshalConfig(config)
-		if err != nil {
-			hLog.Error("failed-to-unmarshal-auth", err, lager.Data{"provider": providerName})
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		err = authConfig.Validate()
-		if err != nil {
-			hLog.Error("request-body-validation-error", err, lager.Data{"provider": providerName})
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		err = authConfig.Finalize()
-		if err != nil {
-			hLog.Error("cannot-finalize-auth-config", err, lager.Data{"provider": providerName})
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		jsonConfig, err := p.MarshalConfig(authConfig)
-		if err != nil {
-			hLog.Error("cannot-marshal-auth-config", err, lager.Data{"provider": providerName})
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		atcTeam.Auth[providerName] = jsonConfig
 	}
 
 	team, found, err := s.teamFactory.FindTeam(teamName)

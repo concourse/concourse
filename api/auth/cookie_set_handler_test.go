@@ -49,7 +49,7 @@ var _ = Describe("CookieSetHandler", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("does not set ATC-Authorization", func() {
+		It("does not set auth cookie", func() {
 			Expect(response.Cookies()).To(HaveLen(0))
 		})
 
@@ -62,7 +62,7 @@ var _ = Describe("CookieSetHandler", func() {
 			Expect(csrfRequiredContext).To(BeNil())
 		})
 
-		Context("with the ATC-Authorization cookie", func() {
+		Context("with the auth cookie", func() {
 			BeforeEach(func() {
 				request.AddCookie(&http.Cookie{
 					Name:  auth.AuthCookieName,

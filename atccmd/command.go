@@ -1,11 +1,9 @@
 package atccmd
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -44,28 +42,16 @@ import (
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/concourse/skymarshal"
+	"github.com/concourse/skymarshal/skycmd"
 	"github.com/concourse/web"
 	"github.com/cppforlife/go-semi-semantic/version"
-	multierror "github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/hashicorp/go-multierror"
+	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/xoebus/zest"
-
-	"github.com/concourse/skymarshal/provider"
-
-	// dynamically registered auth providers
-	_ "github.com/concourse/skymarshal/basicauth"
-	_ "github.com/concourse/skymarshal/bitbucket/cloud"
-	_ "github.com/concourse/skymarshal/bitbucket/server"
-	_ "github.com/concourse/skymarshal/genericoauth"
-	_ "github.com/concourse/skymarshal/genericoauth_oidc"
-	_ "github.com/concourse/skymarshal/github"
-	_ "github.com/concourse/skymarshal/gitlab"
-	_ "github.com/concourse/skymarshal/noauth"
-	_ "github.com/concourse/skymarshal/uaa"
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/atc/metric/emitter"
@@ -89,21 +75,12 @@ type ATCCommand struct {
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
-	CookieSecure bool `long:"cookie-secure" description:"Set secure flag on auth cookies"`
-
 	TLSBindPort uint16    `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
 	TLSCert     flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	ExternalURL flag.URL `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     flag.URL `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
-
-	Auth struct {
-		Configs provider.AuthConfigs
-	} `group:"Authentication"`
-
-	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
-	OAuthBaseURL flag.URL      `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -115,8 +92,6 @@ type ATCCommand struct {
 
 	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16  `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
-
-	SessionSigningKey *flag.PrivateKey `long:"session-signing-key" description:"File containing an RSA private key, used to sign session tokens."`
 
 	InterceptIdleTimeout              time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 	ResourceCheckingInterval          time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -160,6 +135,11 @@ type ATCCommand struct {
 
 	DefaultBuildLogsToRetain uint64 `long:"default-build-logs-to-retain" description:"Default build logs to retain, 0 means all"`
 	MaxBuildLogsToRetain     uint64 `long:"max-build-logs-to-retain" description:"Maximum build logs to retain, 0 means not specified. Will override values configured in jobs"`
+
+	Auth struct {
+		AuthFlags skycmd.AuthFlags
+		TeamFlags skycmd.AuthTeamFlags `group:"Default Team" namespace:"default-team"`
+	} `group:"Authentication"`
 }
 
 type Migration struct {
@@ -257,17 +237,12 @@ func (cmd *ATCCommand) migrateDBToVersion() error {
 }
 
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
-	var authGroup *flags.Group
 	var metricsGroup *flags.Group
 	var credsGroup *flags.Group
 
 	groups := commandFlags.Groups()
 	for i := 0; i < len(groups); i++ {
 		group := groups[i]
-
-		if authGroup == nil && group.ShortDescription == "Authentication" {
-			authGroup = group
-		}
 
 		if credsGroup == nil && group.ShortDescription == "Credential Management" {
 			credsGroup = group
@@ -277,15 +252,11 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 			metricsGroup = group
 		}
 
-		if metricsGroup != nil && authGroup != nil && credsGroup != nil {
+		if metricsGroup != nil && credsGroup != nil {
 			break
 		}
 
 		groups = append(groups, group.Groups()...)
-	}
-
-	if authGroup == nil {
-		panic("could not find Authentication group for registering providers")
 	}
 
 	if metricsGroup == nil {
@@ -295,12 +266,6 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	if credsGroup == nil {
 		panic("could not find Credential Management group for registering managers")
 	}
-
-	authConfigs := make(provider.AuthConfigs)
-	for name, p := range provider.GetProviders() {
-		authConfigs[name] = p.AddAuthGroup(authGroup)
-	}
-	cmd.Auth.Configs = authConfigs
 
 	managerConfigs := make(creds.Managers)
 	for name, p := range creds.ManagerFactories() {
@@ -456,11 +421,6 @@ func (cmd *ATCCommand) constructMembers(
 		variablesFactory,
 	)
 
-	signingKey, err := cmd.loadOrGenerateSigningKey()
-	if err != nil {
-		return nil, err
-	}
-
 	_, err = teamFactory.CreateDefaultTeamIfNotExists()
 	if err != nil {
 		return nil, err
@@ -473,17 +433,55 @@ func (cmd *ATCCommand) constructMembers(
 
 	drain := make(chan struct{})
 
-	authHandler, err := skymarshal.NewHandler(&skymarshal.Config{
-		cmd.ExternalURL.String(),
-		cmd.oauthBaseURL(),
-		signingKey,
-		cmd.AuthDuration,
-		cmd.CookieSecure,
-		cmd.isTLSEnabled(),
-		teamFactory,
-		logger,
-	})
+	httpClient := http.DefaultClient
 
+	var tlsConfig *tls.Config
+
+	if cmd.isTLSEnabled() {
+		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+		if err != nil {
+			return nil, err
+		}
+
+		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
+		if err != nil {
+			return nil, err
+		}
+
+		certpool := x509.NewCertPool()
+		certpool.AddCert(x509Cert)
+
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: certpool,
+			},
+		}
+
+		tlsConfig = &tls.Config{
+			Certificates:     []tls.Certificate{cert},
+			MinVersion:       tls.VersionTLS12,
+			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+			},
+			PreferServerCipherSuites: true,
+			NextProtos:               []string{"h2"},
+		}
+
+		cmd.Auth.AuthFlags.SecureCookies = true
+	}
+
+	authHandler, err := skymarshal.NewServer(&skymarshal.Config{
+		Logger:      logger,
+		TeamFactory: teamFactory,
+		Flags:       cmd.Auth.AuthFlags,
+		ServerURL:   cmd.ExternalURL.String(),
+		HttpClient:  httpClient,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -500,7 +498,6 @@ func (cmd *ATCCommand) constructMembers(
 		dbContainerRepository,
 		gcContainerDestroyer,
 		dbBuildFactory,
-		signingKey,
 		engine,
 		workerClient,
 		workerProvider,
@@ -514,7 +511,7 @@ func (cmd *ATCCommand) constructMembers(
 		return nil, err
 	}
 
-	accessFactory := accessor.NewAccessFactory(&signingKey.PublicKey)
+	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
 	apiHandler = accessor.NewHandler(apiHandler, accessFactory)
 
 	webHandler, err := web.NewHandler(logger)
@@ -673,26 +670,6 @@ func (cmd *ATCCommand) constructMembers(
 	}
 
 	if httpsHandler != nil {
-		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
-		if err != nil {
-			return nil, err
-		}
-
-		tlsConfig := &tls.Config{
-			Certificates:     []tls.Certificate{cert},
-			MinVersion:       tls.VersionTLS12,
-			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-			},
-			PreferServerCipherSuites: true,
-			NextProtos:               []string{"h2"},
-		}
-
 		members = append(members, grouper.Member{"web-tls", http_server.NewTLSServer(
 			cmd.tlsBindAddr(),
 			httpsHandler,
@@ -826,36 +803,8 @@ func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
 	})
 }
 
-func (cmd *ATCCommand) oauthBaseURL() string {
-	baseURL := cmd.OAuthBaseURL.String()
-	if baseURL == "" {
-		baseURL = cmd.ExternalURL.String()
-	}
-	return baseURL
-}
-
 func (cmd *ATCCommand) validate() error {
 	var errs *multierror.Error
-	isConfigured := false
-
-	for _, config := range cmd.Auth.Configs {
-		if config.IsConfigured() {
-			err := config.Validate()
-
-			if err != nil {
-				errs = multierror.Append(errs, err)
-			}
-
-			isConfigured = true
-		}
-	}
-
-	if !isConfigured {
-		errs = multierror.Append(
-			errs,
-			errors.New("must configure basic auth, OAuth, UAAAuth, or provide no-auth flag"),
-		)
-	}
 
 	tlsFlagCount := 0
 	if cmd.TLSBindPort != 0 {
@@ -978,23 +927,6 @@ func (cmd *ATCCommand) constructWorkerPool(
 	)
 }
 
-func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
-	var signingKey *rsa.PrivateKey
-
-	if cmd.SessionSigningKey.PrivateKey == nil {
-		generatedKey, err := rsa.GenerateKey(rand.Reader, 2048)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate session signing key: %s", err)
-		}
-
-		signingKey = generatedKey
-	} else {
-		signingKey = cmd.SessionSigningKey.PrivateKey
-	}
-
-	return signingKey, nil
-}
-
 func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
 	team, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 	if err != nil {
@@ -1005,34 +937,11 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return errors.New("default team not found")
 	}
 
-	providers := provider.GetProviders()
-	teamAuth := make(map[string]*json.RawMessage)
-
-	for name, config := range cmd.Auth.Configs {
-
-		if config.IsConfigured() {
-			if err := config.Finalize(); err == nil {
-
-				p, found := providers[name]
-				if !found {
-					return errors.New("provider not found: " + name)
-				}
-
-				data, err := p.MarshalConfig(config)
-				if err != nil {
-					return err
-				}
-
-				teamAuth[name] = data
-			}
-		}
+	if !cmd.Auth.TeamFlags.IsValid() {
+		return errors.New("default team auth not configured")
 	}
 
-	if len(teamAuth) > 1 {
-		delete(teamAuth, "noauth")
-	}
-
-	err = team.UpdateProviderAuth(teamAuth)
+	err = team.UpdateProviderAuth(cmd.Auth.TeamFlags.Format())
 	if err != nil {
 		return err
 	}
@@ -1074,8 +983,7 @@ func (cmd *ATCCommand) constructHTTPHandler(
 ) http.Handler {
 	webMux := http.NewServeMux()
 	webMux.Handle("/api/v1/", apiHandler)
-	webMux.Handle("/oauth/", authHandler)
-	webMux.Handle("/auth/", authHandler)
+	webMux.Handle("/sky/", authHandler)
 	webMux.Handle("/", webHandler)
 
 	httpHandler := wrappa.LoggerHandler{
@@ -1107,7 +1015,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 	dbContainerRepository db.ContainerRepository,
 	gcContainerDestroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
-	signingKey *rsa.PrivateKey,
 	engine engine.Engine,
 	workerClient worker.Client,
 	workerProvider worker.WorkerProvider,
@@ -1138,8 +1045,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.ExternalURL.String(),
 		apiWrapper,
 
-		cmd.oauthBaseURL(),
-
 		teamFactory,
 		dbPipelineFactory,
 		dbJobFactory,
@@ -1161,8 +1066,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		radarScannerFactory,
 
 		reconfigurableSink,
-
-		cmd.AuthDuration,
 
 		cmd.isTLSEnabled(),
 

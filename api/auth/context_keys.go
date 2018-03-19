@@ -5,7 +5,7 @@ const PipelineContextKey = "pipeline"
 
 const TokenTypeBearer = "Bearer"
 
-const AuthCookieName = "ATC-Authorization"
+const AuthCookieName = "skymarshal_auth"
 const CSRFRequiredKey = "CSRFRequired"
 const CSRFHeaderName = "X-Csrf-Token"
 

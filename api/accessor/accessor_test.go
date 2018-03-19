@@ -47,16 +47,15 @@ var _ = Describe("Accessor", func() {
 
 		Context("when request has admin claim set", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"isAdmin": true}
+				claims = &jwt.MapClaims{"is_admin": true}
 			})
 			It("returns true", func() {
-
 				Expect(access.IsAdmin()).To(BeTrue())
 			})
 		})
 		Context("when request has admin claim set to empty", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"isAdmin": ""}
+				claims = &jwt.MapClaims{"is_admin": ""}
 			})
 			It("returns false", func() {
 				Expect(access.IsAdmin()).To(BeFalse())
@@ -64,7 +63,7 @@ var _ = Describe("Accessor", func() {
 		})
 		Context("when request has admin claim set to nil", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"isAdmin": nil}
+				claims = &jwt.MapClaims{"is_admin": nil}
 			})
 			It("returns false", func() {
 				Expect(access.IsAdmin()).To(BeFalse())
@@ -72,7 +71,7 @@ var _ = Describe("Accessor", func() {
 		})
 		Context("when request has admin claim set to false", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"isAdmin": false}
+				claims = &jwt.MapClaims{"is_admin": false}
 			})
 			It("returns false", func() {
 				Expect(access.IsAdmin()).To(BeFalse())
@@ -171,7 +170,7 @@ var _ = Describe("Accessor", func() {
 
 		Context("when request has team name claim set to some-team", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teamName": "some-team"}
+				claims = &jwt.MapClaims{"teams": []string{"some-team"}}
 			})
 			It("returns true", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeTrue())
@@ -180,7 +179,7 @@ var _ = Describe("Accessor", func() {
 
 		Context("when request hasteam name claim set to empty", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teamName": ""}
+				claims = &jwt.MapClaims{"teams": []string{""}}
 			})
 			It("returns false", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeFalse())
@@ -189,7 +188,7 @@ var _ = Describe("Accessor", func() {
 
 		Context("when request hasteam name claim set to nil", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teamName": nil}
+				claims = &jwt.MapClaims{"teams": nil}
 			})
 			It("returns false", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeFalse())
@@ -198,7 +197,7 @@ var _ = Describe("Accessor", func() {
 
 		Context("when request has team name claim set to other team", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teamName": "other-team"}
+				claims = &jwt.MapClaims{"teams": []string{"other-team"}}
 			})
 			It("returns false", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeFalse())
@@ -269,31 +268,31 @@ var _ = Describe("Accessor", func() {
 			access = accessorFactory.Create(req)
 		})
 
-		Context("when request has team names claim set", func() {
+		Context("when request has teams claim set", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teamName": "fake-team-name"}
+				claims = &jwt.MapClaims{"teams": []string{"fake-team-name"}}
 			})
-			It("returns list of team names", func() {
+			It("returns list of teams", func() {
 				Expect(access.TeamNames()).To(Equal([]string{"fake-team-name"}))
 			})
 		})
-		Context("when request has team names claim set to empty", func() {
+		Context("when request has teams claim set to empty", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teamName": ""}
+				claims = &jwt.MapClaims{"teams": []string{""}}
 			})
 			It("returns empty list", func() {
 				Expect(access.TeamNames()).To(Equal([]string{""}))
 			})
 		})
-		Context("when request has team names claim set to nil", func() {
+		Context("when request has teams claim set to nil", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teamName": nil}
+				claims = &jwt.MapClaims{"teams": nil}
 			})
 			It("returns empty list", func() {
 				Expect(access.TeamNames()).To(BeEmpty())
 			})
 		})
-		Context("when request does not have team names claim set", func() {
+		Context("when request does not have teams claim set", func() {
 			BeforeEach(func() {
 				claims = &jwt.MapClaims{}
 			})

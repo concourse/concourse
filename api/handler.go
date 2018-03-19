@@ -3,7 +3,6 @@ package api
 import (
 	"net/http"
 	"path/filepath"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
@@ -39,8 +38,6 @@ func NewHandler(
 
 	wrapper wrappa.Wrappa,
 
-	oAuthBaseURL string,
-
 	dbTeamFactory db.TeamFactory,
 	dbPipelineFactory db.PipelineFactory,
 	dbJobFactory db.JobFactory,
@@ -63,8 +60,6 @@ func NewHandler(
 	scannerFactory resourceserver.ScannerFactory,
 
 	sink *lager.ReconfigurableSink,
-
-	expire time.Duration,
 
 	isTLSEnabled bool,
 

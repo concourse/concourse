@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"encoding/json"
 	"strconv"
 	"time"
 
@@ -701,13 +700,12 @@ var _ = Describe("Team", func() {
 
 	Describe("Updating Auth", func() {
 		var (
-			authProvider map[string]*json.RawMessage
+			authProvider map[string][]string
 		)
 
 		BeforeEach(func() {
-			data := []byte(`{"credit_card":"please"}`)
-			authProvider = map[string]*json.RawMessage{
-				"fake-provider": (*json.RawMessage)(&data),
+			authProvider = map[string][]string{
+				"users": []string{"local:username"},
 			}
 		})
 

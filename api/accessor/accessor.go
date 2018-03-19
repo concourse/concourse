@@ -34,7 +34,7 @@ func (a *access) IsAuthorized(team string) bool {
 
 func (a *access) IsAdmin() bool {
 	if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
-		if isAdminClaim, ok := claims["isAdmin"]; ok {
+		if isAdminClaim, ok := claims["is_admin"]; ok {
 			isAdmin, ok := isAdminClaim.(bool)
 			return ok && isAdmin
 		}
@@ -54,9 +54,15 @@ func (a *access) IsSystem() bool {
 
 func (a *access) TeamNames() []string {
 	if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
-		if teamNameClaim, ok := claims["teamName"]; ok {
-			if teamName, ok := teamNameClaim.(string); ok {
-				return []string{teamName}
+		if teamsClaim, ok := claims["teams"]; ok {
+			if teamsArr, ok := teamsClaim.([]interface{}); ok {
+				var teams []string
+				for _, teamObj := range teamsArr {
+					if team, ok := teamObj.(string); ok {
+						teams = append(teams, team)
+					}
+				}
+				return teams
 			}
 		}
 	}
