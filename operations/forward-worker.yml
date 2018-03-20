@@ -1,4 +1,4 @@
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=groundcrew/properties/tsa/registration_mode?
+  path: /instance_groups/name=concourse/jobs/name=worker/properties/tsa/registration_mode?
   value: "forward"
 

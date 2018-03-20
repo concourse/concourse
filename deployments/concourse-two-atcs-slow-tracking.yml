@@ -65,7 +65,7 @@ instance_groups:
   stemcell: trusty
   jobs:
   - release: concourse
-    name: groundcrew
+    name: worker
     properties:
       tsa:
         worker_key: ((worker_key))

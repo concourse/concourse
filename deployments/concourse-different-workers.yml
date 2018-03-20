@@ -55,7 +55,7 @@ instance_groups:
   stemcell: trusty
   jobs:
   - release: concourse
-    name: groundcrew
+    name: worker
     consumes: {baggageclaim: {from: bc}}
     properties:
       tsa: {worker_key: ((worker_key))}
@@ -85,7 +85,7 @@ instance_groups:
   stemcell: trusty
   jobs:
   - release: concourse
-    name: groundcrew
+    name: worker
     consumes: {baggageclaim: {from: other_bc}}
     properties:
       tsa: {worker_key: ((worker_key))}
