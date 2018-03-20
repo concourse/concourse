@@ -528,7 +528,7 @@ h2, h3 {
 }
 
 .platform + .platform {
-  margin-top: 30px;
+  margin-top: 20px;
 }
 
 .platform-image {
@@ -542,6 +542,10 @@ h2, h3 {
 
 .platform-note {
   padding-left: 20px;
+}
+
+.platform-note p {
+  margin: 0;
 }
 
 .platform-image img {
@@ -569,20 +573,7 @@ h2, h3 {
   margin-bottom: 20px;
 }
 
-.release {
-  color: #9B9B9B;
-}
-
-.release.latest {
-  color: inherit;
-}
-
 .release .version-header {
-  border-top-color: #ddd;
-  color: #9B9B9B;
-}
-
-.release.latest .version-header {
   border-top-color: #3D3C3C;
   color: #2A2929;
 }
@@ -626,7 +617,6 @@ h2, h3 {
 
 .release-note {
   padding: 15px 0;
-  margin-bottom: 30px;
   display: flex;
   flex-direction: row;
 }

@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{Download}{download}{downloads}
+\title{Download}{download}{downloads}{v0.0.0} {- v0.0.0 tag is just so the following reference work with no version specified -}
 
 \wide
 
@@ -11,8 +11,9 @@
   must first upgrade to \reference{v3.6.0} before upgrading past it!}
 }
 
-The latest version is \reference{v3.8.0}. Older assets are available in our
-\link{GitHub releases}{https://github.com/concourse/concourse/releases}.
+The latest version is \reference{v\current-version}{v\current-version}. Older
+assets are available in our \link{GitHub
+releases}{https://github.com/concourse/concourse/releases}.
 
 After grabbing the binaries for your appropriate platform, head to
 \reference{installing} for further instructions.
@@ -45,6 +46,17 @@ After grabbing the binaries for your appropriate platform, head to
   \italic{Note: \reference{resources} require at least one Linux worker.}
 }
 
+\docker-platform{
+  \table{
+    \table-row{\code{concourse/concourse:\current-version}}
+  }
+}{
+  \italic{
+    See the \link{Concourse Docker
+    repo}{https://github.com/concourse/concourse-docker} for documentation.
+  }
+}
+
 \bosh-platform{
   \table{
     \table-row{\code{concourse} release:}{\link{bosh.io}{http://bosh.io/releases/github.com/concourse/concourse?version=\current-version}}
@@ -52,17 +64,8 @@ After grabbing the binaries for your appropriate platform, head to
 }{
   \italic{
     See the \link{Concourse BOSH Deployment
-    repo}{https://github.com/concourse/concourse-bosh-deployment} for more
-    information.
-  }
-}
-
-\docker-platform{
-  \code{concourse/concourse:\current-version}
-}{
-  \italic{
-    See the \link{Concourse Docker
-    repo}{https://github.com/concourse/concourse-docker} for more information.
+    repo}{https://github.com/concourse/concourse-bosh-deployment} for
+    documentation.
   }
 }
 
