@@ -2,6 +2,8 @@
 
 \use-plugin{concourse-docs}
 
+\wide
+
 \splash-intro{
   Concourse is an open-source continuous thing-doer.
 }{

@@ -431,7 +431,7 @@ h2, h3 {
 }
 
 @media (min-width: 1115px) {
-  .page.top {
+  .page.wide {
     width: 800px;
   }
 
@@ -522,18 +522,36 @@ h2, h3 {
   border-bottom: 1px dotted #1E1D1D;
 }
 
+.platform-content td {
+  padding-right: 10px;
+  white-space: nowrap;
+}
+
 .platform + .platform {
   margin-top: 30px;
 }
 
 .platform-image {
   flex-grow: 0;
+  flex-shrink: 0;
   padding-right: 20px;
   padding-top: 10px;
+  width: 120px;
+  text-align: center;
+}
+
+.platform-note {
+  padding-left: 20px;
 }
 
 .platform-image img {
-  width: 80px;
+  height: 70px;
+  max-width: 100px;
+}
+
+.platform-content {
+  flex-basis: 250px;
+  flex-shrink: 0;
 }
 
 .platform-content h3 {
@@ -545,11 +563,18 @@ h2, h3 {
   flex-direction: row;
   font-family: 'Iosevka', monospace;
   border-top: 3px solid #3D3C3C;
-  justify-content: space-between;
-  align-content: center;
+  align-items: flex-start;
   padding-top: 10px;
   margin-top: 50px;
   margin-bottom: 20px;
+}
+
+.release {
+  color: #9B9B9B;
+}
+
+.release.latest {
+  color: inherit;
 }
 
 .release .version-header {
@@ -564,6 +589,8 @@ h2, h3 {
 
 .version-header h3 {
   margin: 0;
+  flex-basis: 100px;
+  flex-shrink: 0;
 }
 
 .version-header h3 a {
@@ -571,59 +598,79 @@ h2, h3 {
   color: inherit;
 }
 
-.release .version-header h3:after {
+.version-header .release-date {
+  font-size: 20px;
+}
+
+.release .version-header {
+  position: relative;
+}
+
+.release .version-header:after {
+  position: absolute;
+  top: 15px;
+  right: 0;
   content: "outdated";
   font-size: 14px;
   background: #9B9B9B;
   color: #fff;
-  margin-left: 5px;
-  padding: 4px;
+  margin-left: 10px;
+  padding: 0px 3px;
+  float: right;
 }
 
-.release.latest .version-header h3:after {
+.release.latest .version-header:after {
   content: "latest";
-  font-size: 14px;
   background: #11C560;
-  color: #fff;
-  margin-left: 5px;
-  padding: 4px;
 }
 
 .release-note {
   padding: 15px 0;
   margin-bottom: 30px;
+  display: flex;
+  flex-direction: row;
 }
 
-.release-note p:last-of-type {
+.note-content p:first-of-type {
+  margin-top: 0;
+}
+
+.note-content p:last-of-type {
   margin-bottom: 0;
 }
 
-.tags {
+.notes {
+  padding-left: 100px;
+}
+
+.note-tags {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   font-family: 'Iosevka', monospace;
-  margin-bottom: -0.5em;
+  flex-basis: 100px;
+  flex-shrink: 0;
+  align-items: flex-start;
+  margin-left: -100px;
 }
 
 .note-tag {
-  padding: 0px 5px;
-  background: #3D3C3C;
-  color: #fff;
-  margin-right: 5px;
+  border-bottom: 2px solid #3D3C3C;
+  margin-bottom: 10px;
 }
 
 .note-tag.feature {
-  background-color: #11C560;
+  border-color: #11C560;
 }
 
 .note-tag.security {
-  background-color: #1E1D1D;
+  border-color: #1E1D1D;
 }
 
 .note-tag.fix {
-  background-color: #4A90E2;
+  border-color: #4A90E2;
 }
 
 .note-tag.breaking {
-  background-color: #ED4B35;
+  border-color: #ED4B35;
+  color: #ED4B35;
 }

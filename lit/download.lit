@@ -2,6 +2,8 @@
 
 \title{Download}{download}{downloads}
 
+\wide
+
 \omit-children-from-table-of-contents
 
 \warn{
@@ -16,38 +18,38 @@ After grabbing the binaries for your appropriate platform, head to
 \reference{installing} for further instructions.
 
 \linux-platform{
-  \list{
-    \release-link{concourse_linux_amd64}{\code{concourse} binary}
+  \table{
+    \table-row{\code{concourse}}{\release-link{concourse_linux_amd64}{amd64}}
   }{
-    \release-link{fly_linux_amd64}{\code{fly} CLI}
+    \table-row{\code{fly}}{\release-link{fly_linux_amd64}{amd64}}
   }
 }
 
 \darwin-platform{
-  \list{
-    \release-link{concourse_darwin_amd64}{\code{concourse} binary}
+  \table{
+    \table-row{\code{concourse}}{\release-link{concourse_darwin_amd64}{amd64}}
   }{
-    \release-link{fly_darwin_amd64}{\code{fly} CLI}
+    \table-row{\code{fly}}{\release-link{fly_darwin_amd64}{amd64}}
   }
-
+}{
   \italic{Note: \reference{resources} require at least one Linux worker.}
 }
 
 \windows-platform{
-  \list{
-    \release-link{concourse_windows_amd64}{\code{concourse} binary}
+  \table{
+    \table-row{\code{concourse.exe}}{\release-link{concourse_windows_amd64.exe}{amd64}}
   }{
-    \release-link{fly_windows_amd64}{\code{fly} CLI}
+    \table-row{\code{fly.exe}}{\release-link{fly_windows_amd64.exe}{amd64}}
   }
-
+}{
   \italic{Note: \reference{resources} require at least one Linux worker.}
 }
 
 \bosh-platform{
-  \list{
-    \link{BOSH release}{http://bosh.io/releases/github.com/concourse/concourse?version=\current-version}
+  \table{
+    \table-row{\code{concourse} release:}{\link{bosh.io}{http://bosh.io/releases/github.com/concourse/concourse?version=\current-version}}
   }
-
+}{
   \italic{
     See the \link{Concourse BOSH Deployment
     repo}{https://github.com/concourse/concourse-bosh-deployment} for more
@@ -56,10 +58,8 @@ After grabbing the binaries for your appropriate platform, head to
 }
 
 \docker-platform{
-  \list{
-    Repository: \code{concourse/concourse:\current-version}
-  }
-
+  \code{concourse/concourse:\current-version}
+}{
   \italic{
     See the \link{Concourse Docker
     repo}{https://github.com/concourse/concourse-docker} for more information.

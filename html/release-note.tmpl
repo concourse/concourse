@@ -1,7 +1,9 @@
 <div class="release-note">
-  <div class="tags">
+  <div class="note-tags">
     {{.Partial "Tags" | render}}
   </div>
 
-  {{.Content | render}}
+  <div class="note-content">
+    {{.Content | render}}
+  </div>
 </div>

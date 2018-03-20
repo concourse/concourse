@@ -8,4 +8,10 @@
 
     {{.Content | render}}
   </div>
+
+  {{range .Partial "Note"}}
+  <div class="platform-note">
+    {{. | render}}
+  </div>
+  {{end}}
 </div>
