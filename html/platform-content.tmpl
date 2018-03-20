@@ -1,0 +1,11 @@
+<div class="platform">
+  <div class="platform-image">
+    {{.Partial "Image" | render}}
+  </div>
+
+  <div class="platform-content">
+    <h3>{{.Partial "Name" | render}}</h3>
+
+    {{.Content | render}}
+  </div>
+</div>

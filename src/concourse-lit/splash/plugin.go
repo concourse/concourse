@@ -1,8 +1,6 @@
 package splash
 
 import (
-	"os"
-
 	_ "concourse-lit/chromastyle"
 
 	"github.com/vito/booklit"
@@ -75,19 +73,6 @@ func (p Plugin) ValuePropRight(title booklit.Content, image string, content book
 				Description: "value prop",
 			},
 		},
-	}
-}
-
-func (p Plugin) ReleaseLink(file string) booklit.Content {
-	version := os.Getenv("CONCOURSE_VERSION")
-	if version == "" {
-		version = "0.0.0"
-	}
-
-	url := "https://github.com/concourse/concourse/releases/download/v" + version + "/" + file
-	return booklit.Link{
-		Target:  url,
-		Content: booklit.String(url),
 	}
 }
 

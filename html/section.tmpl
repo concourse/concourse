@@ -12,7 +12,7 @@
 
   {{if not .SplitSections}}
     {{range .Children}}
-      {{template "section.tmpl" .}}
+      {{. | render}}
     {{end}}
   {{end}}
 </div>

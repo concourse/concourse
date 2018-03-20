@@ -2,6 +2,7 @@ package docs
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -328,18 +329,137 @@ func (p Plugin) Release(date string, concourseVersion string, gardenRunCVersion 
 	return p.release(date, concourseVersion, gardenRunCVersion, content)
 }
 
+func (p Plugin) CurrentVersion() booklit.Content {
+	currentVersion := os.Getenv("CONCOURSE_VERSION")
+	if currentVersion == "" {
+		currentVersion = "0.0.0"
+	}
+
+	return booklit.String(currentVersion)
+}
+
+func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit.Content {
+	tags := strings.Split(commaSeparatedTags, ",")
+
+	tagNotes := []booklit.Content{}
+	for _, t := range tags {
+		tagNotes = append(tagNotes, booklit.Styled{
+			Style:   "release-note-tag",
+			Content: booklit.String(t),
+		})
+	}
+
+	return booklit.Styled{
+		Style:   "release-note",
+		Content: content,
+		Partials: booklit.Partials{
+			"Tags": booklit.Sequence(tagNotes),
+		},
+	}
+}
+
+func (p Plugin) Examples(content booklit.Content) {
+	p.section.SetPartial("Examples", content)
+}
+
+func (p Plugin) Example(title, content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "example",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Title": title,
+		},
+	}
+}
+
+func (p Plugin) TrademarkGuidelines(content ...booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style: "trademark-guidelines",
+		Block: true,
+		Content: booklit.List{
+			Items: content,
+		},
+	}
+}
+
+func (p Plugin) LinuxPlatform(content booklit.Content) booklit.Content {
+	return p.platform(content, "Linux", "linux", "lewing@isc.tamu.edu Larry Ewing and The GIMP [Attribution or CC0], via Wikimedia Commons")
+}
+
+func (p Plugin) DarwinPlatform(content booklit.Content) booklit.Content {
+	return p.platform(content, "Mac OS X", "darwin", "By Rob Janoff [Public domain], via Wikimedia Commons")
+}
+
+func (p Plugin) WindowsPlatform(content booklit.Content) booklit.Content {
+	return p.platform(content, "Windows", "windows", "By Microsoft [Public domain], via Wikimedia Commons")
+}
+
+func (p Plugin) BoshPlatform(content booklit.Content) booklit.Content {
+	return p.platform(content, "BOSH", "bosh", "")
+}
+
+func (p Plugin) DockerPlatform(content booklit.Content) booklit.Content {
+	return p.platform(content, "Docker", "docker", "")
+}
+
+func (p Plugin) ReleaseLink(file string, contentOptional ...booklit.Content) booklit.Content {
+	version := os.Getenv("CONCOURSE_VERSION")
+	if version == "" {
+		version = "0.0.0"
+	}
+
+	url := "https://github.com/concourse/concourse/releases/download/v" + version + "/" + file
+
+	var content booklit.Content
+	if len(contentOptional) == 0 {
+		content = booklit.String(url)
+	} else {
+		content = contentOptional[0]
+	}
+
+	return booklit.Link{
+		Target:  url,
+		Content: content,
+	}
+}
+
+func (p Plugin) platform(content booklit.Content, name string, filename string, description string) booklit.Content {
+	return booklit.Styled{
+		Style:   "platform-content",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Name": booklit.String(name),
+			"Image": booklit.Image{
+				Description: description,
+				Path:        "images/platforms/" + filename + ".svg",
+			},
+		},
+	}
+}
+
 func (p Plugin) release(
 	date string,
 	concourseVersion string,
 	gardenVersion string,
 	content booklit.Content,
 ) (booklit.Content, error) {
+	currentVersion := os.Getenv("CONCOURSE_VERSION")
+	if currentVersion == "" {
+		currentVersion = "0.0.0"
+	}
+
 	t, err := time.Parse("2006-1-2", date)
 	if err != nil {
 		return nil, err
 	}
 
+	p.section.Style = "release"
+
 	p.section.SetTitle(booklit.String("v" + concourseVersion))
+
+	p.section.SetPartial("CurrentVersion", booklit.String(currentVersion))
 
 	p.section.SetPartial("Version", booklit.String(concourseVersion))
 	p.section.SetPartial("VersionLabel", booklit.Styled{
@@ -368,49 +488,4 @@ func (p Plugin) release(
 	}
 
 	return content, nil
-}
-
-func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit.Content {
-	tags := strings.Split(commaSeparatedTags, ",")
-
-	tagNotes := []booklit.Content{}
-	for _, t := range tags {
-		tagNotes = append(tagNotes, booklit.Styled{
-			Style:   "release-note-tag",
-			Content: booklit.String(t),
-		})
-	}
-
-	return booklit.Styled{
-		Style:   "release-note",
-		Content: content,
-		Partials: booklit.Partials{
-			"Tags": booklit.List{Items: tagNotes},
-		},
-	}
-}
-
-func (p Plugin) Examples(content booklit.Content) {
-	p.section.SetPartial("Examples", content)
-}
-
-func (p Plugin) Example(title, content booklit.Content) booklit.Content {
-	return booklit.Styled{
-		Style:   "example",
-		Block:   true,
-		Content: content,
-		Partials: booklit.Partials{
-			"Title": title,
-		},
-	}
-}
-
-func (p Plugin) TrademarkGuidelines(content ...booklit.Content) booklit.Content {
-	return booklit.Styled{
-		Style: "trademark-guidelines",
-		Block: true,
-		Content: booklit.List{
-			Items: content,
-		},
-	}
 }

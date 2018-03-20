@@ -155,7 +155,7 @@
 \split-sections
 
 \include-section{./about.lit}
-\include-section{./downloads.lit}
+\include-section{./download.lit}
 \include-section{./install.lit}
 \include-section{./docs.lit}
 \include-section{./contribute.lit}
