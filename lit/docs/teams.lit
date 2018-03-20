@@ -18,7 +18,7 @@ as).
 \table-of-contents
 
 \section{
-  \title{\code{main}\aux{: the magical mystery team}}{main-team}
+  \title{\aux{The }\code{main} team}{main-team}
 
   Out of the box, Concourse comes with a single team called \code{main}.
 
@@ -31,10 +31,7 @@ as).
   up. This is so that you can't get locked out, and so that you can have
   Concourse sanely configured as soon as it comes up.
 
-  Consult either \code{web --help} for a \reference{binaries}{\code{concourse}
-  binary deployment} or
-  \link{bosh.io}{http://bosh.io/jobs/atc?source=github.com/concourse/concourse}
-  for a \reference{clusters-with-bosh}{BOSH deployment} to configure the
+  Consult \code{web --help} to discover the flags for configuring auth for the
   \code{main} team.
 }
 
@@ -98,7 +95,7 @@ as).
     \title{\code{fly destroy-team}}{fly-destroy-team}
 
     To remove a team, including all of its pipelines and one-off builds, first
-    log in as the \reference{main-team}{\code{main} team}, and then run:
+    log in as the \reference{main-team}, and then run:
 
     \codeblock{bash}{{
     $ fly -t example destroy-team --team-name my-team
@@ -124,8 +121,8 @@ as).
   }
 
   The authentication methods for teams are determined by flags passed to
-  \reference{fly-set-team}, except for the \reference{main-team}{\code{main}
-  team}, which is configured as part of the deployment.
+  \reference{fly-set-team}, except for the \reference{main-team}, which is
+  configured as part of the deployment.
 
   Any number of the following providers can be enabled at any one time. Users
   will be given a choice when logging in as to which one they would like to

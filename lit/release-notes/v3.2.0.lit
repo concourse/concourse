@@ -23,11 +23,11 @@
   }
 
   \note{feature}{
-    The \reference{docker-repository} now supports resolving addresses within
-    Concourse containers via Docker's magic local DNS server! This fixes a
-    longstanding hurdle our Docker users would run in to pretty frequently when
-    wanting to e.g. point Concourse at other Docker-deployed things like a
-    registry within the cluster. It also removes the need for setting
+    The Docker repository now supports resolving addresses within Concourse
+    containers via Docker's magic local DNS server! This fixes a longstanding
+    hurdle our Docker users would run in to pretty frequently when wanting to
+    e.g. point Concourse at other Docker-deployed things like a registry within
+    the cluster. It also removes the need for setting
     \code{CONCOURSE_GARDEN_DNS_SERVER}.
 
     No configuration is necessary for this change.

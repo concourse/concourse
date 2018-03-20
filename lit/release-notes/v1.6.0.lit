@@ -2,8 +2,7 @@
 
 \release{2016-07-25}{1.6.0}{0.4.0}{
   \note{feature}{
-    We now provide an official \reference{docker-repository}{Docker
-    repository} at \code{concourse/concourse}!
+    We now provide an official Docker repository at \code{concourse/concourse}!
 
     As part of this, the \reference{binaries}{binary distribution} has been
     updated to support environment variables for configuration, in addition to

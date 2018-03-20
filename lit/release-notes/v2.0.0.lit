@@ -28,8 +28,7 @@
     }
 
     Everything else (pipelines and such) should continue to work the same as
-    before, only now they'll belong to a team called
-    \reference{main-team}{\code{main}}.
+    before, only now they'll belong to the \reference{main-team}.
   }
 
   \note{feature,deprecation}{

@@ -84,9 +84,7 @@
 
   \note{feature,breaking}{
     The Concourse BOSH release is now built for BOSH 2.0. You will
-    need a recent director to upgrade. Consult
-    \reference{clusters-with-bosh} for information on the new BOSH
-    2.0 deployment scheme.
+    need a recent director to upgrade.
   }
 
   \note{fix}{

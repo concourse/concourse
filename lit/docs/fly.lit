@@ -29,8 +29,7 @@ to consult \code{fly -h} to learn the short forms.
 
   Concourse deployments can be occupied by multiple \reference{teams}{teams}.
   To specify the team to which to log in, specify the \code{--team-name} or
-  \code{-n} flag. If not specified, this defaults to
-  \reference{main-team}{\code{main}}.
+  \code{-n} flag. If not specified, this defaults to the \reference{main-team}.
 
   So, to log in to a team \code{my-team} an endpoint served at
   \code{https://ci.example.com} and save it as the more convenient name
@@ -48,9 +47,9 @@ to consult \code{fly -h} to learn the short forms.
   it will print an OAuth token on the page that you can then then copy and
   paste into the prompt.
 
-  Note that if no authentication methods are configured (e.g. when targeting a
-  \reference{concourse-lite}{Concourse Lite VM}), \code{fly} will acquire a
-  token without any prompting. You can then use the alias like normal.
+  Note that if no authentication methods are configured, \code{fly} will
+  acquire a token without any prompting. You can then use the alias like
+  normal.
 
   In any case, a token is saved in your \code{~/.flyrc}, which will expire
   after one day.
