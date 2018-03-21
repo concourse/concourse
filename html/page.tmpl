@@ -44,9 +44,11 @@
       </div>
       {{if .Partial "Examples"}}
       <div class="examples">
-        <h2>Examples</h2>
+        <div class="examples-page">
+          <h2>Examples</h2>
 
-        {{.Partial "Examples" | render}}
+          {{.Partial "Examples" | render}}
+        </div>
       </div>
       {{end}}
     </div>

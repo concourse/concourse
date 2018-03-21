@@ -13,10 +13,6 @@ body {
   width: 100%;
 }
 
-body.with-examples {
-  background: #f5f5f5;
-}
-
 #top {
   background: #1E1D1D;
   color: #fff;
@@ -397,25 +393,24 @@ h2, h3 {
 .examples {
   background: #f5f5f5;
   flex-shrink: 1;
-  min-width: 400px;
+  flex-grow: 1;
   flex-basis: 500px;
-  padding-left: 300px;
+  padding-left: 270px;
   border-top: 1px solid #ddd;
-  border-left: 1px solid #ddd;
   padding-top: 20px;
 }
 
-.example {
+.examples-page {
+  width: 500px;
+}
+
+.examples .example {
   margin-bottom: 3em;
 }
 
 .example h3 {
   font-size: 24px;
   margin-bottom: -4px;
-}
-
-.with-examples .page {
-  border-right: 1px solid #ddd;
 }
 
 .examples pre {
@@ -462,8 +457,12 @@ h2, h3 {
   .examples {
     flex-basis: 400px;
     padding-left: 30px;
-    border-left: 0;
+    border-left: 1px solid #ddd;
     border-top: 0;
+  }
+
+  .examples-page {
+    width: 400px;
   }
 }
 
