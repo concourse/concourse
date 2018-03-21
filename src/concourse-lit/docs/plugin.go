@@ -387,26 +387,6 @@ func (p Plugin) TrademarkGuidelines(content ...booklit.Content) booklit.Content 
 	}
 }
 
-func (p Plugin) LinuxPlatform(content booklit.Content) booklit.Content {
-	return p.platform(content, "Linux", "linux", "lewing@isc.tamu.edu Larry Ewing and The GIMP [Attribution or CC0], via Wikimedia Commons")
-}
-
-func (p Plugin) DarwinPlatform(content booklit.Content, note booklit.Content) booklit.Content {
-	return p.platform(content, "Mac OS X", "darwin", "By Rob Janoff [Public domain], via Wikimedia Commons", note)
-}
-
-func (p Plugin) WindowsPlatform(content booklit.Content, note booklit.Content) booklit.Content {
-	return p.platform(content, "Windows", "windows", "By Microsoft [Public domain], via Wikimedia Commons", note)
-}
-
-func (p Plugin) BoshPlatform(content booklit.Content, note booklit.Content) booklit.Content {
-	return p.platform(content, "BOSH", "bosh", "", note)
-}
-
-func (p Plugin) DockerPlatform(content booklit.Content, note booklit.Content) booklit.Content {
-	return p.platform(content, "Docker", "docker", "", note)
-}
-
 func (p Plugin) ReleaseLink(file string, contentOptional ...booklit.Content) booklit.Content {
 	version := os.Getenv("CONCOURSE_VERSION")
 	if version == "" {
@@ -425,22 +405,6 @@ func (p Plugin) ReleaseLink(file string, contentOptional ...booklit.Content) boo
 	return booklit.Link{
 		Target:  url,
 		Content: content,
-	}
-}
-
-func (p Plugin) platform(content booklit.Content, name string, filename string, description string, rest ...booklit.Content) booklit.Content {
-	return booklit.Styled{
-		Style:   "platform-content",
-		Block:   true,
-		Content: content,
-		Partials: booklit.Partials{
-			"Name": booklit.String(name),
-			"Image": booklit.Image{
-				Description: description,
-				Path:        "images/platforms/" + filename + ".svg",
-			},
-			"Note": booklit.Sequence(rest),
-		},
 	}
 }
 

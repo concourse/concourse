@@ -158,6 +158,11 @@ code code {
   font-size: 1em;
 }
 
+table, tr, td {
+  padding: 0;
+  border-collapse: collapse;
+}
+
 .page code {
   white-space: nowrap;
   background: #eee;
@@ -519,11 +524,11 @@ h2, h3 {
   margin-top: 50px;
   margin-bottom: 20px;
   padding-bottom: 20px;
-  border-bottom: 1px dotted #1E1D1D;
 }
 
 .platform-content td {
   padding-right: 10px;
+  padding-bottom: 5px;
   white-space: nowrap;
 }
 
@@ -534,14 +539,20 @@ h2, h3 {
 .platform-image {
   flex-grow: 0;
   flex-shrink: 0;
-  padding-right: 20px;
   padding-top: 10px;
-  width: 120px;
+  width: 80px;
+  padding-right: 20px;
   text-align: center;
+}
+
+.platform-image.windows img {
+  width: 60px;
 }
 
 .platform-note {
   padding-left: 20px;
+  padding-top: 32px;
+  line-height: 30px;
 }
 
 .platform-note p {
@@ -550,7 +561,7 @@ h2, h3 {
 
 .platform-image img {
   height: 70px;
-  max-width: 100px;
+  max-width: 70px;
 }
 
 .platform-content {
@@ -566,53 +577,47 @@ h2, h3 {
   display: flex;
   flex-direction: row;
   font-family: 'Iosevka', monospace;
-  border-top: 3px solid #3D3C3C;
   align-items: flex-start;
   padding-top: 10px;
-  margin-top: 50px;
+  margin-top: 70px;
   margin-bottom: 20px;
-}
-
-.release .version-header {
-  border-top-color: #3D3C3C;
   color: #2A2929;
 }
 
-.version-header h3 {
+.version-header h2 {
   margin: 0;
-  flex-basis: 100px;
-  flex-shrink: 0;
+  margin-right: 20px;
 }
 
-.version-header h3 a {
+.version-header h2 a {
   text-decoration: none;
   color: inherit;
 }
 
 .version-header .release-date {
-  font-size: 20px;
-}
-
-.release .version-header {
+  font-size: 16px;
   position: relative;
+  bottom: -9px;
+  color: #7A7373;
 }
 
-.release .version-header:after {
-  position: absolute;
-  top: 15px;
-  right: 0;
-  content: "outdated";
+.version-tag {
+  flex-basis: 100px;
+  line-height: 32px;
+}
+
+.version-tag span {
   font-size: 14px;
-  background: #9B9B9B;
   color: #fff;
-  margin-left: 10px;
-  padding: 0px 3px;
-  float: right;
+  padding: 3px;
 }
 
-.release.latest .version-header:after {
-  content: "latest";
+.version-latest {
   background: #11C560;
+}
+
+.version-outdated {
+  background: #9B9B9B;
 }
 
 .release-note {
@@ -664,3 +669,55 @@ h2, h3 {
   border-color: #ED4B35;
   color: #ED4B35;
 }
+
+.downloads-toggle {
+  position: relative;
+  border-left: 2px solid #1E1D1D;
+  padding-left: 10px;
+  margin-left: 100px;
+}
+
+.downloads-toggle .platform {
+  margin-top: 20px;
+}
+
+.downloads-toggle .toggle {
+  position: absolute;
+  top: .15em;
+  left: 10px;
+  line-height: 1.4rem;
+  z-index: 2;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.downloads-toggle .toggle:focus {
+  outline: none;
+}
+
+.downloads-toggle .arrow:after, .downloads-toggle .toggle:after {
+  position: absolute;
+  top: .15em;
+  left: 10px;
+  content: "\25ba";
+  line-height: 1.4rem;
+  font-family: sans-serif;
+  font-size: .75rem;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.downloads-toggle .arrow {
+  padding-left: 20px;
+  display: block;
+  font-family: 'Iosevka', monospace;
+}
+
+.downloads-toggle .toggle:checked + .arrow:after {
+  content: "\25bc";
+}
+
+.downloads-toggle .toggle:not(:checked) + .arrow + .older-downloads {
+  display: none;
+}
+

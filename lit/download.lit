@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\title{Download}{download}{downloads}{v0.0.0} {- v0.0.0 tag is just so the following reference work with no version specified -}
+\title{Download}{download}{downloads}
 
 \wide
 
@@ -11,118 +11,56 @@
   must first upgrade to \reference{v3.6.0} before upgrading past it!}
 }
 
-The latest version is \reference{v\current-version}{v\current-version}. Older
-assets are available in our \link{GitHub
-releases}{https://github.com/concourse/concourse/releases}.
-
-After grabbing the binaries for your appropriate platform, head to
-\reference{installing} for further instructions.
-
-\linux-platform{
-  \table{
-    \table-row{\code{concourse}}{\release-link{concourse_linux_amd64}{amd64}}
-  }{
-    \table-row{\code{fly}}{\release-link{fly_linux_amd64}{amd64}}
-  }
-}
-
-\darwin-platform{
-  \table{
-    \table-row{\code{concourse}}{\release-link{concourse_darwin_amd64}{amd64}}
-  }{
-    \table-row{\code{fly}}{\release-link{fly_darwin_amd64}{amd64}}
-  }
-}{
-  \italic{Note: \reference{resources} require at least one Linux worker.}
-}
-
-\windows-platform{
-  \table{
-    \table-row{\code{concourse.exe}}{\release-link{concourse_windows_amd64.exe}{amd64}}
-  }{
-    \table-row{\code{fly.exe}}{\release-link{fly_windows_amd64.exe}{amd64}}
-  }
-}{
-  \italic{Note: \reference{resources} require at least one Linux worker.}
-}
-
-\docker-platform{
-  \table{
-    \table-row{\code{concourse/concourse:\current-version}}
-  }
-}{
-  \italic{
-    See the \link{Concourse Docker
-    repo}{https://github.com/concourse/concourse-docker} for documentation.
-  }
-}
-
-\bosh-platform{
-  \table{
-    \table-row{\code{concourse} release:}{\link{bosh.io}{http://bosh.io/releases/github.com/concourse/concourse?version=\current-version}}
-  }
-}{
-  \italic{
-    See the \link{Concourse BOSH Deployment
-    repo}{https://github.com/concourse/concourse-bosh-deployment} for
-    documentation.
-  }
-}
-
-\section{
-  \title{Release Notes}
-
-  \include-section{./release-notes/v3.8.0.lit}
-  \include-section{./release-notes/v3.7.0.lit}
-  \include-section{./release-notes/v3.6.0.lit}
-  \include-section{./release-notes/v3.5.0.lit}
-  \include-section{./release-notes/v3.4.1.lit}
-  \include-section{./release-notes/v3.4.0.lit}
-  \include-section{./release-notes/v3.3.4.lit}
-  \include-section{./release-notes/v3.3.3.lit}
-  \include-section{./release-notes/v3.3.2.lit}
-  \include-section{./release-notes/v3.3.1.lit}
-  \include-section{./release-notes/v3.3.0.lit}
-  \include-section{./release-notes/v3.2.1.lit}
-  \include-section{./release-notes/v3.2.0.lit}
-  \include-section{./release-notes/v3.1.1.lit}
-  \include-section{./release-notes/v3.1.0.lit}
-  \include-section{./release-notes/v3.0.1.lit}
-  \include-section{./release-notes/v3.0.0.lit}
-  \include-section{./release-notes/v2.7.7.lit}
-  \include-section{./release-notes/v2.7.6.lit}
-  \include-section{./release-notes/v2.7.5.lit}
-  \include-section{./release-notes/v2.7.4.lit}
-  \include-section{./release-notes/v2.7.3.lit}
-  \include-section{./release-notes/v2.7.2.lit}
-  \include-section{./release-notes/v2.7.1.lit}
-  \include-section{./release-notes/v2.7.0.lit}
-  \include-section{./release-notes/v2.6.0.lit}
-  \include-section{./release-notes/v2.5.1.lit}
-  \include-section{./release-notes/v2.5.0.lit}
-  \include-section{./release-notes/v2.4.0.lit}
-  \include-section{./release-notes/v2.3.1.lit}
-  \include-section{./release-notes/v2.3.0.lit}
-  \include-section{./release-notes/v2.2.1.lit}
-  \include-section{./release-notes/v2.2.0.lit}
-  \include-section{./release-notes/v2.1.0.lit}
-  \include-section{./release-notes/v2.0.2.lit}
-  \include-section{./release-notes/v2.0.1.lit}
-  \include-section{./release-notes/v2.0.0.lit}
-  \include-section{./release-notes/v1.6.0.lit}
-  \include-section{./release-notes/v1.5.1.lit}
-  \include-section{./release-notes/v1.5.0.lit}
-  \include-section{./release-notes/v1.4.1.lit}
-  \include-section{./release-notes/v1.4.0.lit}
-  \include-section{./release-notes/v1.3.1.lit}
-  \include-section{./release-notes/v1.3.0.lit}
-  \include-section{./release-notes/v1.2.0.lit}
-  \include-section{./release-notes/v1.1.0.lit}
-  \include-section{./release-notes/v1.0.0.lit}
-  \include-section{./release-notes/v0.76.0.lit}
-  \include-section{./release-notes/v0.75.0.lit}
-  \include-section{./release-notes/v0.74.0.lit}
-  \include-section{./release-notes/v0.73.0.lit}
-  \include-section{./release-notes/v0.72.1.lit}
-  \include-section{./release-notes/v0.72.0.lit}
-}
+\include-section{./release-notes/v3.8.0.lit}
+\include-section{./release-notes/v3.7.0.lit}
+\include-section{./release-notes/v3.6.0.lit}
+\include-section{./release-notes/v3.5.0.lit}
+\include-section{./release-notes/v3.4.1.lit}
+\include-section{./release-notes/v3.4.0.lit}
+\include-section{./release-notes/v3.3.4.lit}
+\include-section{./release-notes/v3.3.3.lit}
+\include-section{./release-notes/v3.3.2.lit}
+\include-section{./release-notes/v3.3.1.lit}
+\include-section{./release-notes/v3.3.0.lit}
+\include-section{./release-notes/v3.2.1.lit}
+\include-section{./release-notes/v3.2.0.lit}
+\include-section{./release-notes/v3.1.1.lit}
+\include-section{./release-notes/v3.1.0.lit}
+\include-section{./release-notes/v3.0.1.lit}
+\include-section{./release-notes/v3.0.0.lit}
+\include-section{./release-notes/v2.7.7.lit}
+\include-section{./release-notes/v2.7.6.lit}
+\include-section{./release-notes/v2.7.5.lit}
+\include-section{./release-notes/v2.7.4.lit}
+\include-section{./release-notes/v2.7.3.lit}
+\include-section{./release-notes/v2.7.2.lit}
+\include-section{./release-notes/v2.7.1.lit}
+\include-section{./release-notes/v2.7.0.lit}
+\include-section{./release-notes/v2.6.0.lit}
+\include-section{./release-notes/v2.5.1.lit}
+\include-section{./release-notes/v2.5.0.lit}
+\include-section{./release-notes/v2.4.0.lit}
+\include-section{./release-notes/v2.3.1.lit}
+\include-section{./release-notes/v2.3.0.lit}
+\include-section{./release-notes/v2.2.1.lit}
+\include-section{./release-notes/v2.2.0.lit}
+\include-section{./release-notes/v2.1.0.lit}
+\include-section{./release-notes/v2.0.2.lit}
+\include-section{./release-notes/v2.0.1.lit}
+\include-section{./release-notes/v2.0.0.lit}
+\include-section{./release-notes/v1.6.0.lit}
+\include-section{./release-notes/v1.5.1.lit}
+\include-section{./release-notes/v1.5.0.lit}
+\include-section{./release-notes/v1.4.1.lit}
+\include-section{./release-notes/v1.4.0.lit}
+\include-section{./release-notes/v1.3.1.lit}
+\include-section{./release-notes/v1.3.0.lit}
+\include-section{./release-notes/v1.2.0.lit}
+\include-section{./release-notes/v1.1.0.lit}
+\include-section{./release-notes/v1.0.0.lit}
+\include-section{./release-notes/v0.76.0.lit}
+\include-section{./release-notes/v0.75.0.lit}
+\include-section{./release-notes/v0.74.0.lit}
+\include-section{./release-notes/v0.73.0.lit}
+\include-section{./release-notes/v0.72.1.lit}
+\include-section{./release-notes/v0.72.0.lit}
