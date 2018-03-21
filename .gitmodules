@@ -242,10 +242,6 @@
 	path = src/github.com/concourse/topgun
 	url = https://github.com/concourse/topgun
 	branch = master
-[submodule "src/github.com/concourse/groundcrew"]
-	path = src/github.com/concourse/groundcrew
-	url = https://github.com/concourse/groundcrew
-	branch = master
 [submodule "src/github.com/The-Cloud-Source/goryman"]
 	path = src/github.com/The-Cloud-Source/goryman
 	url = https://github.com/The-Cloud-Source/goryman

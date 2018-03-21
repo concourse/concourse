@@ -1,5 +1,0 @@
-check process beacon
-  with pidfile /var/vcap/sys/run/groundcrew/beacon.pid
-  start program "/var/vcap/jobs/groundcrew/bin/beacon_ctl start"
-  stop program "/var/vcap/jobs/groundcrew/bin/beacon_ctl stop"
-  group vcap

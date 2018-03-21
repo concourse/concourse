@@ -2,8 +2,8 @@
 
 set -e
 
-RUN_DIR=/var/vcap/sys/run/groundcrew
-LOG_DIR=/var/vcap/sys/log/groundcrew
+RUN_DIR=/var/vcap/sys/run/worker
+LOG_DIR=/var/vcap/sys/log/worker
 
 mkdir -p $RUN_DIR
 chown -R vcap:vcap $RUN_DIR
@@ -37,23 +37,23 @@ fi
   end
 %>
 
-WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
+WORKER_KEY=/var/vcap/jobs/worker/config/worker_key
 chown vcap:vcap $WORKER_KEY
 chmod 0400 $WORKER_KEY
 
-KNOWN_HOSTS=/var/vcap/jobs/groundcrew/config/known_hosts
+KNOWN_HOSTS=/var/vcap/jobs/worker/config/known_hosts
 chown vcap:vcap $KNOWN_HOSTS
 
 WORKER_VERSION=$(cat /var/vcap/packages/worker_version/version)
 
-cat /var/vcap/jobs/groundcrew/config/worker.json | \
+cat /var/vcap/jobs/worker/config/worker.json | \
   sed -e "s/HOSTNAME_REPLACE_ME/$(hostname | cut -d '-' -f 2-)/g" | \
   sed -e 's/"START_TIME_REPLACE_ME"/'$(date +%s)'/g' | \
   sed -e "s/WORKER_VERSION_REPLACE_ME/${WORKER_VERSION}/g" | \
   /var/vcap/packages/resource_discovery/bin/resource_discovery /var/vcap/packages/*/resource_metadata.json > \
   $RUN_DIR/worker.json
 
-chpst -u vcap:vcap /var/vcap/packages/groundcrew/bin/groundcrew \
+chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker \
   drain \
   <% tsa_addrs.each do |tsa_addr| %> \
   --tsa-addr <%= tsa_addr %>:<%= tsa_port %> \

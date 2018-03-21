@@ -1,5 +1,5 @@
 ---
-name: groundcrew
+name: worker
 
 description: >
   The ground crew registers a Garden worker with the ATC on an interval,
@@ -18,7 +18,6 @@ templates:
 packages:
   - pid_utils
   - resource_discovery
-  - groundcrew
   - worker
   - worker_version
 

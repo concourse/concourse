@@ -2,8 +2,8 @@
 
 set -e
 
-RUN_DIR=/var/vcap/sys/run/groundcrew
-LOG_DIR=/var/vcap/sys/log/groundcrew
+RUN_DIR=/var/vcap/sys/run/worker
+LOG_DIR=/var/vcap/sys/log/worker
 PIDFILE=$RUN_DIR/beacon.pid
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
@@ -68,11 +68,11 @@ chown -R vcap:vcap $LOG_DIR
   name_prefix = spec.id.split("-")[0]
 %>
 
-WORKER_KEY=/var/vcap/jobs/groundcrew/config/worker_key
+WORKER_KEY=/var/vcap/jobs/worker/config/worker_key
 chown vcap:vcap $WORKER_KEY
 chmod 0400 $WORKER_KEY
 
-TSA_HOST_KEY=/var/vcap/jobs/groundcrew/config/tsa_host_key.pub
+TSA_HOST_KEY=/var/vcap/jobs/worker/config/tsa_host_key.pub
 chown vcap:vcap $TSA_HOST_KEY
 chmod 0400 $TSA_HOST_KEY
 
@@ -112,7 +112,7 @@ case $1 in
       additional_resource_metadata=$additional_resource_metadata"--resource=$filepath "
     <% end %>
 
-    chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker \
+    chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker start \
            --name=<%= name_prefix %>-$(hostname | cut -d '-' -f 2-) \
            --version=$WORKER_VERSION \
            --start_time=$(date +%s) \

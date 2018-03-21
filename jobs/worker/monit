@@ -1,0 +1,5 @@
+check process beacon
+  with pidfile /var/vcap/sys/run/worker/beacon.pid
+  start program "/var/vcap/jobs/worker/bin/beacon_ctl start"
+  stop program "/var/vcap/jobs/worker/bin/beacon_ctl stop"
+  group vcap
