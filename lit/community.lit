@@ -1,0 +1,89 @@
+\title{Community}{community}
+
+\section{
+  \title{GitHub}{github}
+
+  Concourse is completely open-source. All of the source code lives under the
+  \link{Concourse organization}{https://github.com/concourse} on GitHub. Pull
+  requests welcome! (Issues too, I guess.)
+
+  For a bird's eye view of the entire project, and to see what's in flight and
+  coming up on our backlog, check out our
+  \link{project.concourse-ci.org}{https://project.concourse-ci.org}.
+}
+
+\section{
+  \title{Discuss}{discuss}
+
+  The \link{Concourse forums}{https://discuss.concourse-ci.org} are a great
+  place for discussions that are a bit more open-ended than GitHub issues or
+  pull requests.
+
+  These forums are for supporting end users and operators, planning
+  contributions and volunteering ideas, and announcing new things like resource
+  types and whatever other cool things y'all want to show off.
+}
+
+\section{
+  \title{Discord}{discord}
+
+  We use \link{Discord}{https://discordapp.com} for real-time chat amongst
+  contributors. Click \link{here}{https://discord.gg/MeRxXKW} for an invite.
+
+  If you're looking to become a contributor, you should drop in to Discord and
+  introduce yourself! We're happy to help you on your way.
+
+  If you're looking for help, we'd really appreciate it if you used the forums
+  instead - threading and persistent messages make the support burden of an
+  open-source project much easier to bear.
+}
+
+\section{
+  \title{Security Contact}{security-contact}
+
+  To be notified of any security issues or vulnerabilities, join the
+  \link{Concourse Security mailing
+  list}{https://groups.google.com/group/concourse-security}. To report a
+  security issue, send an email to
+  \link{concourseteam+security@gmail.com}{mailto:concourseteam+security@gmail.com}.
+}
+
+\section{
+  \title{Thanks}{thanks}
+
+  \section{
+    \title{Pivotal}
+
+    Concourse wouldn't be what it is today without
+    \link{Pivotal}{https://pivotal.io}. This goes beyond the sponsorship, which
+    began in early 2015 - without the experiences we had and the practices we
+    learned while working on \link{Cloud Foundry}{https://cloudfoundry.org} and
+    \link{BOSH}{https://bosh.io}, we would have neither the technical experience
+    nor the strong opinions that led to Concourse being born.
+
+    Pivotal's sponsorship continues strong into 2018, where we have a team of
+    full-time engineers, PMs, and designers dedicated to pushing Concourse
+    forward.
+  }
+
+  \section{
+    \title{Stark & Wayne}
+
+    The \link{Concourse Tutorial}{https://concoursetutorial.com/} by \link{Stark
+    & Wayne}{https://www.starkandwayne.com/}  is probably the only reason a lot
+    of people were able to learn Concourse. It's a great asset and does its job
+    so well that we've decided to basically just kill our tutorials and delegate
+    to theirs. Thanks to Dr. Nic for writing and maintaining it, and everyone
+    else that has helped out!
+  }
+
+  \section{
+    \title{Individual Contributors}
+
+    An open-source project of Concourse's size cannot survive with our small team
+    of full-time engineers alone. We really appreciate any contribution, no
+    matter how small. Even without code, the discussions held on GitHub and in
+    Slack help us paint a clearer mental picture of the many use-cases that exist
+    for CI.
+  }
+}
