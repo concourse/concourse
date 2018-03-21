@@ -25,7 +25,7 @@ describe 'build', type: :feature do
     context 'when output has 10k lines' do
       it 'should load the page' do
         page.find('.build-step .header', text: 'print').click
-        expect(page).to have_content 'Line 10000'
+        expect(page).to have_content('Line 10000', wait: 60)
       end
     end
   end
