@@ -8,7 +8,7 @@ about the builds that it is running. Operators can tap into these metrics in
 order to observe the health of the system.
 
 In the spirit of openness, the \link{metrics from our
-deployment}{https://metrics.concourse.ci} are public. We consider it a bug to
+deployment}{https://metrics.concourse-ci.org} are public. We consider it a bug to
 emit anything sensitive or secret into our metrics pipeline.
 
 Concourse components and virtual machines emit metrics to

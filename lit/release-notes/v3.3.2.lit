@@ -11,9 +11,7 @@
     org), you don't have much to worry about. Otherwise, you'll want to upgrade
     to this as soon as possible.
 
-    We strongly recommend upgrading as soon as possible. If you're stuck on an
-    older version (i.e. v2.7.x), please let us know at
-    \link{security@concourse.ci}{mailto:security@concourse.ci}.
+    We strongly recommend upgrading as soon as possible.
   }
 
   \note{feature}{

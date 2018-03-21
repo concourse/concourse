@@ -6,7 +6,7 @@
     technically, it would render, but within a \code{<div>} element with 0px
     height. We have sighed, flailed at the CSS monster, triggered our
     \link{\code{web-development}
-    pipeline}{https://ci.concourse.ci/teams/main/pipelines/web-development},
+    pipeline}{https://ci.concourse-ci.org/teams/main/pipelines/web-development},
     and prevailed.
 
     Also the top bar used to shrivel up and die if the size of the content page

@@ -176,7 +176,7 @@ as).
       callback URL} should be the external URL of your Concourse server with
       \code{/auth/github/callback} appended. For example, Concourse's own CI
       server's callback URL is
-      \code{https://ci.concourse.ci/auth/github/callback}.
+      \code{https://ci.concourse-ci.org/auth/github/callback}.
     }
 
     \section{
@@ -248,7 +248,7 @@ as).
       callback URL will be the external URL of your Concourse server with
       \code{/auth/oauth/callback} appended. For example, Concourse's own CI
       server's callback URL would be
-      \code{https://ci.concourse.ci/auth/oauth/callback}.
+      \code{https://ci.concourse-ci.org/auth/oauth/callback}.
 
       The client should look something like this, under
       \link{\code{uaa.clients}}{http://bosh.io/jobs/uaa?source=github.com/cloudfoundry/uaa-release&version=13#p=uaa.clients}:
@@ -307,7 +307,7 @@ as).
       callback URL will be the external URL of your Concourse server with
       \code{/auth/oauth/callback} appended. For example, Concourse's own CI
       server's callback URL would be
-      \code{https://ci.concourse.ci/auth/oauth/callback}.
+      \code{https://ci.concourse-ci.org/auth/oauth/callback}.
     }
 
     \section{
