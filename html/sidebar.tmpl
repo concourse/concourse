@@ -11,14 +11,13 @@
   {{template "context" walkContext .Current .Section.Parent}}
   {{end}}
 
-  {{if .Section.Children}}
+  {{if and .Section.Children (not .Section.OmitChildrenFromTableOfContents)}}
   <div class="context">
     <nav>
       <div class="top">
         {{template "section-link" .}}
       </div>
 
-      {{if .Section.Children}}
       <input type="checkbox" class="toggle" {{if .Section.IsOrHasChild .Current}}checked{{end}} />
       <span class="arrow"></span>
       <div class="children">
@@ -31,13 +30,32 @@
         {{end}}
         </table>
       </div>
-      {{end}}
     </nav>
   </div>
   {{end}}
 {{end}}
 
 {{template "context" walkContext $ .}}
+
+{{define "anchors"}}
+  {{if not .SplitSections}}
+    {{range .Children}}
+      {{if .HasAnchors}}
+        <tr>
+          <td class="number-cell" align="left">{{.Number}}&nbsp;</td>
+          <td class="title-cell">{{template "section-link" walkContext $ .}}</td>
+        </tr>
+        {{range .AnchorTags}}
+          <tr>
+            <td class="number-cell"></td>
+            <td class="title-cell"><a href="{{. | url}}">{{.Display | render}}</a></td>
+          </tr>
+        {{end}}
+      {{end}}
+      {{template "anchors" .}}
+    {{end}}
+  {{end}}
+{{end}}
 
 {{if .HasAnchors}}
 <div class="context">
@@ -53,20 +71,8 @@
           <td colspan="2" class="title-cell"><a href="{{. | url}}">{{.Display | render}}</a></td>
         </tr>
         {{end}}
-        {{if not .SplitSections}}
-          {{range .Children}}
-            <tr>
-              <td class="number-cell" align="right">{{.Number}}&nbsp;</td>
-              <td class="title-cell">{{template "section-link" walkContext $ .}}</td>
-            </tr>
-            {{range .AnchorTags}}
-            <tr>
-              <td class="number-cell" align="right"></td>
-              <td class="title-cell"><a href="{{. | url}}">{{.Display | render}}</a></td>
-            </tr>
-            {{end}}
-          {{end}}
-        {{end}}
+
+        {{template "anchors" .}}
       </table>
     </div>
   </nav>

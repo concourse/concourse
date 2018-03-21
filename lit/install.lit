@@ -2,8 +2,6 @@
 
 \use-plugin{concourse-docs}
 
-\omit-children-from-table-of-contents
-
 Concourse is distributed as a single \code{concourse} binary, which contains
 the logic for running both a \reference{web-node} and a
 \reference{worker-node}. The binary is fairly self-contained, making it ideal
