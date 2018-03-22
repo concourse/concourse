@@ -760,6 +760,9 @@ viewTimestampedLine timestamps hl id lineNo line =
 
                 HighlightRange hlId hlLine1 hlLine2 ->
                     hlId == id && lineNo >= hlLine1 && lineNo <= hlLine2
+
+        ts =
+            Dict.get lineNo timestamps
     in
         Html.tr
             [ classList
@@ -767,12 +770,7 @@ viewTimestampedLine timestamps hl id lineNo line =
                 , ( "highlighted-line", highlighted )
                 ]
             ]
-            [ case Dict.get lineNo timestamps of
-                Just ts ->
-                    viewTimestamp hl id ( lineNo, ts )
-
-                _ ->
-                    Html.text ""
+            [ viewTimestamp hl id ( lineNo, ts )
             , viewLine line
             ]
 
@@ -784,13 +782,19 @@ viewLine line =
         ]
 
 
-viewTimestamp : Highlight -> String -> ( Int, Date ) -> Html Msg
+viewTimestamp : Highlight -> String -> ( Int, Maybe Date ) -> Html Msg
 viewTimestamp hl id ( line, date ) =
     Html.a
         [ href (showHighlight (HighlightLine id line))
         , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
         ]
-        [ Html.td [ class "timestamp", attribute "data-timestamp" (Date.Format.format "%H:%M:%S" date) ] [] ]
+        [ case date of
+            Just date ->
+                Html.td [ class "timestamp", attribute "data-timestamp" (Date.Format.format "%H:%M:%S" date) ] []
+
+            _ ->
+                Html.td [ class "timestamp placeholder" ] []
+        ]
 
 
 viewVersion : Maybe Version -> Html Msg
