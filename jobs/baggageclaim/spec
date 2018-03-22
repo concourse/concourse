@@ -20,7 +20,7 @@ properties:
   driver:
     description: |
       Driver to use for the volume store. One of detect, overlay, btrfs, or naive.
-    default: detect
+    default: btrfs
 
   bind_ip:
     description: |
