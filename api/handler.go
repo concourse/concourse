@@ -91,7 +91,7 @@ func NewHandler(
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory)
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
-	teamServer := teamserver.NewServer(logger, dbTeamFactory)
+	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion)
 	legacyServer := legacyserver.NewServer(logger)
 
@@ -175,10 +175,11 @@ func NewHandler(
 		atc.LegacyGetAuthToken:    http.HandlerFunc(legacyServer.GetAuthToken),
 		atc.LegacyGetUser:         http.HandlerFunc(legacyServer.GetUser),
 
-		atc.ListTeams:   http.HandlerFunc(teamServer.ListTeams),
-		atc.SetTeam:     http.HandlerFunc(teamServer.SetTeam),
-		atc.RenameTeam:  http.HandlerFunc(teamServer.RenameTeam),
-		atc.DestroyTeam: http.HandlerFunc(teamServer.DestroyTeam),
+		atc.ListTeams:      http.HandlerFunc(teamServer.ListTeams),
+		atc.SetTeam:        http.HandlerFunc(teamServer.SetTeam),
+		atc.RenameTeam:     http.HandlerFunc(teamServer.RenameTeam),
+		atc.DestroyTeam:    http.HandlerFunc(teamServer.DestroyTeam),
+		atc.ListTeamBuilds: http.HandlerFunc(teamServer.ListTeamBuilds),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))
