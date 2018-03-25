@@ -21,6 +21,8 @@
     <link rel="stylesheet" type="text/css" href="css/highlight.css" />
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
     <link href="https://fonts.googleapis.com/css?family=PT+Serif:400,400i,700" rel="stylesheet" />
+
+    <script src="js/search.js"></script>
   </head>
   <body{{if .Partial "Examples"}} class="with-examples"{{end}}>
     <div id="top">
@@ -33,6 +35,14 @@
           <a href="community.html">community</a>
           <a href="download.html">download</a>
         </nav>
+
+        <div class="search" id="search">
+        </div>
+
+        <script type="text/javascript">
+          var ele = document.getElementById("search");
+          var app = Elm.Main.embed(ele);
+        </script>
       </div>
     </div>
     <div id="content">

@@ -129,27 +129,30 @@ func (p Plugin) DefineAttribute(attribute string, content booklit.Content, tags 
 	for _, t := range tags {
 		targets = append(targets, booklit.Target{
 			TagName: t,
-			Display: display,
+			Title:   display,
+			Content: content,
 		})
 	}
 
-	return booklit.Styled{
-		Style:   "definition",
-		Content: content,
-		Partials: booklit.Partials{
-			"Targets": targets,
-			"Thumb": booklit.Styled{
-				Style: booklit.StyleVerbatim,
-				Content: booklit.Preformatted{
-					booklit.Sequence{
-						&booklit.Reference{
-							TagName: tags[0],
-							Content: booklit.Styled{
-								Style:   booklit.StyleBold,
-								Content: booklit.String(attrName),
+	return NoIndex{
+		booklit.Styled{
+			Style:   "definition",
+			Content: content,
+			Partials: booklit.Partials{
+				"Targets": targets,
+				"Thumb": booklit.Styled{
+					Style: booklit.StyleVerbatim,
+					Content: booklit.Preformatted{
+						booklit.Sequence{
+							&booklit.Reference{
+								TagName: tags[0],
+								Content: booklit.Styled{
+									Style:   booklit.StyleBold,
+									Content: booklit.String(attrName),
+								},
 							},
+							booklit.String(":" + attrSplit[1]),
 						},
-						booklit.String(":" + attrSplit[1]),
 					},
 				},
 			},
@@ -158,17 +161,20 @@ func (p Plugin) DefineAttribute(attribute string, content booklit.Content, tags 
 }
 
 func (p Plugin) DefineMetric(metric string, content booklit.Content) booklit.Content {
-	return booklit.Styled{
-		Style:   "definition",
-		Content: content,
-		Partials: booklit.Partials{
-			"Targets": booklit.Target{
-				TagName: metric,
-				Display: booklit.String(metric),
-			},
-			"Thumb": booklit.Styled{
-				Style:   booklit.StyleVerbatim,
-				Content: booklit.Preformatted{booklit.String(metric)},
+	return NoIndex{
+		booklit.Styled{
+			Style:   "definition",
+			Content: content,
+			Partials: booklit.Partials{
+				"Targets": booklit.Target{
+					TagName: metric,
+					Title:   booklit.String(metric),
+					Content: content,
+				},
+				"Thumb": booklit.Styled{
+					Style:   booklit.StyleVerbatim,
+					Content: booklit.Preformatted{booklit.String(metric)},
+				},
 			},
 		},
 	}
@@ -177,28 +183,31 @@ func (p Plugin) DefineMetric(metric string, content booklit.Content) booklit.Con
 func (p Plugin) DefineTable(table string, content booklit.Content) booklit.Content {
 	tagName := table + "-table"
 
-	return booklit.Styled{
-		Style:   "definition",
-		Content: content,
-		Partials: booklit.Partials{
-			"Targets": booklit.Target{
-				TagName: tagName,
-				Display: booklit.Styled{
-					Style: booklit.StyleVerbatim,
-					Content: booklit.Styled{
-						Style:   booklit.StyleBold,
-						Content: booklit.String(table),
-					},
-				},
-			},
-			"Thumb": booklit.Styled{
-				Style: booklit.StyleVerbatim,
-				Content: booklit.Preformatted{
-					&booklit.Reference{
-						TagName: tagName,
+	return NoIndex{
+		booklit.Styled{
+			Style:   "definition",
+			Content: content,
+			Partials: booklit.Partials{
+				"Targets": booklit.Target{
+					TagName: tagName,
+					Title: booklit.Styled{
+						Style: booklit.StyleVerbatim,
 						Content: booklit.Styled{
 							Style:   booklit.StyleBold,
 							Content: booklit.String(table),
+						},
+					},
+					Content: content,
+				},
+				"Thumb": booklit.Styled{
+					Style: booklit.StyleVerbatim,
+					Content: booklit.Preformatted{
+						&booklit.Reference{
+							TagName: tagName,
+							Content: booklit.Styled{
+								Style:   booklit.StyleBold,
+								Content: booklit.String(table),
+							},
 						},
 					},
 				},
@@ -457,4 +466,12 @@ func (p Plugin) release(
 	}
 
 	return content, nil
+}
+
+type NoIndex struct {
+	booklit.Content
+}
+
+func (NoIndex) String() string {
+	return ""
 }
