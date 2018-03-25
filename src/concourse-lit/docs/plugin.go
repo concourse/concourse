@@ -10,7 +10,9 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/vito/booklit"
+	"github.com/vito/booklit/ast"
 	"github.com/vito/booklit/chroma"
+	"github.com/vito/booklit/stages"
 )
 
 var flyBinariesVersion = semver.MustParse("2.2.0")
@@ -22,10 +24,12 @@ func init() {
 type Plugin struct {
 	section *booklit.Section
 	chroma  chroma.Plugin
+
+	definitionContext []string
 }
 
 func NewPlugin(section *booklit.Section) booklit.Plugin {
-	return Plugin{
+	return &Plugin{
 		section: section,
 		chroma:  chroma.NewPlugin(section).(chroma.Plugin),
 	}
@@ -109,7 +113,7 @@ func (p Plugin) Warn(content booklit.Content) booklit.Content {
 	}
 }
 
-func (p Plugin) DefineAttribute(attribute string, content booklit.Content, tags ...string) (booklit.Content, error) {
+func (p *Plugin) DefineAttribute(attribute string, contentNode ast.Node, tags ...string) (booklit.Content, error) {
 	attrSplit := strings.SplitN(attribute, ":", 2)
 
 	attrName := attrSplit[0]
@@ -117,13 +121,29 @@ func (p Plugin) DefineAttribute(attribute string, content booklit.Content, tags 
 		tags = []string{attrName}
 	}
 
+	oldCtx := p.definitionContext
+	p.definitionContext = append(p.definitionContext, attrName)
+
+	stage := &stages.Evaluate{
+		Section: p.section,
+	}
+
+	err := contentNode.Visit(stage)
+	if err != nil {
+		return nil, err
+	}
+
+	content := stage.Result
+
 	display := booklit.Styled{
 		Style: booklit.StyleVerbatim,
 		Content: booklit.Styled{
 			Style:   booklit.StyleBold,
-			Content: booklit.String(attrName),
+			Content: booklit.String(strings.Join(p.definitionContext, ".")),
 		},
 	}
+
+	p.definitionContext = oldCtx
 
 	targets := booklit.Sequence{}
 	for _, t := range tags {
