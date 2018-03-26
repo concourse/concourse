@@ -1,5 +1,3 @@
-<a href="/" class="logo"></a>
-
 {{define "section-link"}}
   <a href="{{.Section.PrimaryTag | url}}" {{if eq .Section.PrimaryTag.Name .Current.PrimaryTag.Name}} class="self"{{end}}>
     {{- .Section.Title | stripAux | render -}}

@@ -14,14 +14,14 @@ body {
 }
 
 #top {
-  background: #1E1D1D;
+  background: #fff;
   color: #fff;
+  color: #2A2929;
   font-family: 'Roboto Slab', serif;
-  line-height: 90px;
+  line-height: 80px;
 }
 
 .header {
-  margin-left: 70px;
   display: flex;
   flex-direction: row;
 }
@@ -36,16 +36,6 @@ body {
   padding-right: 30px;
 }
 
-.side {
-  background: #fff;
-  width: 190px;
-  padding-left: 70px;
-  padding-right: 10px;
-  font-family: 'Roboto Slab', serif;
-  font-size: 14px;
-  color: #7A7373;
-}
-
 #content {
   display: flex;
   flex-direction: row;
@@ -53,10 +43,41 @@ body {
 }
 
 .header h1 {
+  color: #fff;
+  background-color: #3398DC;
   margin: 0;
   border: 0;
-  font-size: 26px;
-  width: 200px;
+  font-size: 22px;
+  margin-right: 30px;
+  display: flex;
+  flex-direction: row;
+  width: 215px;
+}
+
+.header h1 a {
+  box-sizing: border-box;
+  height: 80px;
+  margin: 0px;
+  color: #fff !important;
+}
+
+.header h1 .logo {
+  width: 80px;
+  height: 80px;
+  background-color: #3398DC;
+  background-image: url('../images/logo-white.svg');
+  background-repeat: no-repeat;
+  background-size: 40px 40px;
+  background-position: 16.5px 18px;
+}
+
+.header a:hover {
+  text-decoration: none;
+}
+
+.header a:visited {
+  color: #fff;
+  color: #2A2929;
 }
 
 .header nav a {
@@ -64,6 +85,10 @@ body {
   font-size: 16px;
   position: relative;
   bottom: -4px;
+}
+
+.header nav a:hover {
+  border-bottom: 1px solid #868585;
 }
 
 .page h1 {
@@ -103,27 +128,6 @@ body {
 
 .toc .section-number {
   color: #1E1D1D;
-}
-
-.header a:visited {
-  color: #fff;
-}
-
-.header a:hover {
-  border-bottom: 1px solid #868585;
-  text-decoration: none;
-}
-
-.logo {
-  display: inline-block;
-  width: 64px;
-  height: 64px;
-  background-color: #3398DC;
-  background-image: url('../images/logo-white.svg');
-  background-repeat: no-repeat;
-  background-size: 40px 40px;
-  background-position: 9.5px 11px;
-  margin-bottom: 90px;
 }
 
 a {
@@ -210,6 +214,20 @@ h3 {
 
 h2, h3 {
   margin-top: 2rem;
+}
+
+.side {
+  background: #fff;
+  width: 190px;
+  padding-left: 35px;
+  padding-right: 20px;
+  font-family: 'Roboto Slab', serif;
+  font-size: 14px;
+  color: #7A7373;
+}
+
+.side .number-cell {
+  padding-right: 5px;
 }
 
 .side a {
@@ -328,9 +346,10 @@ h2, h3 {
 }
 
 .splash-intro {
-  border-bottom: 5px solid #1E1D1D;
+  border-bottom: 5px solid #cdcdcd;
   font-size: 18px;
   font-style: italic;
+  color: #616161;
   padding-bottom: 30px;
   margin-bottom: 40px;
 }
@@ -450,7 +469,6 @@ h2, h3 {
     flex-basis: 400px;
     padding-left: 30px;
     border-left: 1px solid #ddd;
-    border-top: 0;
   }
 
   .examples-page {
@@ -569,9 +587,14 @@ h2, h3 {
   font-family: 'Roboto Slab', serif;
   align-items: flex-start;
   padding-top: 10px;
-  margin-top: 70px;
+  margin-top: 50px;
   margin-bottom: 20px;
   color: #2A2929;
+}
+
+.release {
+  padding-bottom: 50px;
+  border-bottom: 2px solid #cdcdcd;
 }
 
 .version-header h2 {
@@ -713,22 +736,31 @@ h2, h3 {
 
 .search-input {
   z-index: 101;
-  border: 0;
-  background: rgba(255, 255, 255, 0.25) url('../images/search_icon.svg') no-repeat top 3.5px right 2.5px;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  background: #f5f5f5 url('../images/search_icon.svg') no-repeat top 3.5px right 2.5px;
   padding: 5px;
   transition: all 0.25s ease-out;
-  width: 290px;
-  height: 90px;
+  width: 245px;
+  height: 30px;
   position: absolute;
+  margin: 25px 0;
+}
+
+.search-input, .search-results {
   left: 800px;
-  border: 30px solid #1E1D1D;
+}
+
+.search-input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .search-input:focus, .search-input:valid {
-  background-color: #fff;
-  border-color: #3D3C3C;
-  width: 460px;
+  outline: none;
+  width: 400px;
   position: fixed;
+  background: #fff;
+  border-color: #ddd;
 }
 
 .search-results {
@@ -740,11 +772,10 @@ h2, h3 {
   border-left: 1px solid #ddd;
   border-right: 1px solid #ddd;
   color: #2A2929;
-  width: 460px;
+  width: 400px;
   box-sizing: border-box;
   position: fixed;
-  top: 90px;
-  left: 800px;
+  top: 55px;
   bottom: 0;
   margin: 0;
   overflow-y: auto;

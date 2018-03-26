@@ -27,7 +27,7 @@
   <body{{if .Partial "Examples"}} class="with-examples"{{end}}>
     <div id="top">
       <div class="header">
-        <h1><a href="/">Concourse</a></h1>
+        <h1><a href="/" class="logo"></a><a href="/">Concourse</a></h1>
 
         <nav>
           <a href="https://concoursetutorial.com">tutorial</a>
@@ -40,8 +40,7 @@
         </div>
 
         <script type="text/javascript">
-          var ele = document.getElementById("search");
-          var app = Elm.Main.embed(ele);
+          Elm.Main.embed(document.getElementById("search"));
         </script>
       </div>
     </div>
