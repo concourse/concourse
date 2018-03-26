@@ -3,17 +3,18 @@
 \use-plugin{concourse-docs}
 
 A build is an execution of a \italic{build plan}, which is either configured as
-a sequence of \reference{steps} in a \reference{jobs}{job}, or submitted
+a sequence of \reference{steps}{steps} in a \reference{jobs}{job}, or submitted
 directly to Concourse as a one-off build via \reference{fly-execute}.
 
-As a build executes its plan, containers and volumes are created in order to
-fetch resources, run \reference{tasks}, or push to resources. When a build completes successfully, these containers go away.
+Containers and volumes are created as \reference{get-step}s,
+\reference{put-step}s, and \reference{task-step}s run. When a build completes
+successfully, these containers go away.
 
 A failed build's containers and volumes are kept around so that you can debug
 the build via \reference{fly-intercept}. If the build belongs to a
 \reference{jobs}{job}, the containers will go away when the next build starts.
 If the build is a one-off, its containers will be removed immediately, so make
-sure you intercept while it's running if you want to debug it.
+sure you intercept while it's running if you want to debug.
 
 \section{
   \title{\code{fly builds}}{fly-builds}
