@@ -171,6 +171,32 @@ var _ = Describe("Migration", func() {
 				ExpectToBeAbleToInsertData(db)
 			})
 
+			It("fails if the migration version is in a dirty state", func() {
+				SetupSchemaMigrationsTableToExistAtVersionWithDirtyState(db, 190, true)
+
+				SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
+
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
+					"1510262030_initial_schema.up.sql",
+				})
+
+				err := migrator.Up()
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("truncates the table if the migration version is in a dirty state", func() {
+				SetupSchemaMigrationsTableToExistAtVersionWithDirtyState(db, 190, true)
+
+				SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
+
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
+					"1510262030_initial_schema.up.sql",
+				})
+
+				err := migrator.Up()
+				Expect(err).To(HaveOccurred())
+			})
+
 			It("Doesn't fail if there are no migrations to run", func() {
 				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
 					"1510262030_initial_schema.up.sql",
@@ -324,10 +350,14 @@ func SetupMigrationVersionTableToExistAtVersion(db *sql.DB, version int) {
 }
 
 func SetupSchemaMigrationsTableToExistAtVersion(db *sql.DB, version int) {
+	SetupSchemaMigrationsTableToExistAtVersionWithDirtyState(db, version, false)
+}
+
+func SetupSchemaMigrationsTableToExistAtVersionWithDirtyState(db *sql.DB, version int, dirty bool) {
 	_, err := db.Exec(`CREATE TABLE schema_migrations(version bigint, dirty boolean)`)
 	Expect(err).NotTo(HaveOccurred())
 
-	_, err = db.Exec(`INSERT INTO schema_migrations(version, dirty) VALUES($1, false)`, version)
+	_, err = db.Exec(`INSERT INTO schema_migrations(version, dirty) VALUES($1, $2)`, version, dirty)
 	Expect(err).NotTo(HaveOccurred())
 }
 
