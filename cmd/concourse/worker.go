@@ -10,22 +10,15 @@ import (
 	"github.com/concourse/bin/bindata"
 	"github.com/concourse/flag"
 	concourseWorker "github.com/concourse/worker"
-	"github.com/concourse/worker/beacon"
+	workerConfig "github.com/concourse/worker/start"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
 type WorkerCommand struct {
-	Name string   `long:"name" description:"The name to set for the worker during registration. If not specified, the hostname will be used."`
-	Tags []string `long:"tag" description:"A tag to set during registration. Can be specified multiple times."`
-
-	TeamName string `long:"team" description:"The name of the team that this worker will be assigned to."`
-
-	HTTPProxy  flag.URL `long:"http-proxy"  env:"http_proxy"                  description:"HTTP proxy endpoint to use for containers."`
-	HTTPSProxy flag.URL `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
-	NoProxy    []string `long:"no-proxy"    env:"no_proxy"    env-delim:","   description:"Blacklist of addresses to skip the proxy when reaching."`
-	Certs      Certs
+	Worker workerConfig.Config
+	Certs  Certs
 
 	WorkDir flag.Dir `long:"work-dir" required:"true" description:"Directory in which to place container data."`
 
@@ -41,8 +34,6 @@ type WorkerCommand struct {
 		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
 		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
 	} `group:"Metrics & Diagnostics"`
-
-	TSA beacon.Config `group:"TSA Configuration" namespace:"tsa"`
 }
 
 func (cmd *WorkerCommand) Execute(args []string) error {
@@ -86,7 +77,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		},
 	}
 
-	if cmd.TSA.WorkerPrivateKey.PrivateKey != nil {
+	if cmd.Worker.TSA.TSAConfig.WorkerPrivateKey.PrivateKey != nil {
 		if cmd.PeerIP.IP != nil {
 			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP, cmd.BindPort)
 			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, cmd.Baggageclaim.BindPort)
@@ -100,7 +91,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 			Runner: concourseWorker.BeaconRunner(
 				logger.Session("beacon"),
 				worker,
-				cmd.TSA,
+				cmd.Worker.TSA,
 			),
 		})
 	}
@@ -159,8 +150,8 @@ func (cmd *WorkerCommand) setup(logger lager.Logger) (bool, error) {
 }
 
 func (cmd *WorkerCommand) workerName() (string, error) {
-	if cmd.Name != "" {
-		return cmd.Name, nil
+	if cmd.Worker.Name != "" {
+		return cmd.Worker.Name, nil
 	}
 
 	return os.Hostname()

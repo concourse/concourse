@@ -1,6 +1,10 @@
 package main
 
-import "github.com/jessevdk/go-flags"
+import (
+	"github.com/concourse/worker/land"
+	"github.com/concourse/worker/retire"
+	flags "github.com/jessevdk/go-flags"
+)
 
 type ConcourseCommand struct {
 	Version func() `short:"v" long:"version" description:"Print the version of Concourse and exit"`
@@ -10,8 +14,8 @@ type ConcourseCommand struct {
 
 	Quickstart QuickstartCommand `command:"quickstart" hidden:"true" description:"Run both 'web' and 'worker' together, auto-wired. Not recommended for production."`
 
-	LandWorker   LandWorkerCommand   `command:"land-worker" description:"Safely drain a worker's assignments for temporary downtime."`
-	RetireWorker RetireWorkerCommand `command:"retire-worker" description:"Safely remove a worker from the cluster permanently."`
+	LandWorker   land.LandWorkerCommand     `command:"land-worker" description:"Safely drain a worker's assignments for temporary downtime."`
+	RetireWorker retire.RetireWorkerCommand `command:"retire-worker" description:"Safely remove a worker from the cluster permanently."`
 }
 
 func (cmd ConcourseCommand) lessenRequirements(parser *flags.Parser) {

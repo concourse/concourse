@@ -62,11 +62,11 @@ func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
 		}
 
 		cmd.WebCommand.TSACommand.HostKey = flag.PrivateKey{tsaHostKey}
-		cmd.WorkerCommand.TSA.PublicKey.Keys =
-			append(cmd.WorkerCommand.TSA.PublicKey.Keys, tsaHostPublicKey)
+		cmd.WorkerCommand.Worker.TSA.TSAConfig.PublicKey.Keys =
+			append(cmd.WorkerCommand.Worker.TSA.TSAConfig.PublicKey.Keys, tsaHostPublicKey)
 	}
 
-	if cmd.WorkerCommand.TSA.WorkerPrivateKey.PrivateKey == nil {
+	if cmd.WorkerCommand.Worker.TSA.TSAConfig.WorkerPrivateKey.PrivateKey == nil {
 		workerKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate worker key: %s", err)
@@ -77,7 +77,7 @@ func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
 			return nil, fmt.Errorf("failed to create worker authorized key: %s", err)
 		}
 
-		cmd.WorkerCommand.TSA.WorkerPrivateKey = flag.PrivateKey{workerKey}
+		cmd.WorkerCommand.Worker.TSA.TSAConfig.WorkerPrivateKey = flag.PrivateKey{workerKey}
 		cmd.WebCommand.TSACommand.AuthorizedKeys.Keys =
 			append(cmd.WebCommand.TSACommand.AuthorizedKeys.Keys, workerPublicKey)
 	}
