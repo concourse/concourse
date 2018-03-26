@@ -28,14 +28,14 @@ type sshClient struct {
 }
 
 func (c *sshClient) Dial() (Closeable, error) {
-	tsaAddr := c.config.Host[rand.Intn(len(c.config.Host))]
+	tsaAddr := c.config.TSAConfig.Host[rand.Intn(len(c.config.TSAConfig.Host))]
 
 	conn, err := keepaliveDialer("tcp", tsaAddr, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to TSA: %s", err)
 	}
 
-	pk, err := ssh.NewSignerFromKey(c.config.WorkerPrivateKey.PrivateKey)
+	pk, err := ssh.NewSignerFromKey(c.config.TSAConfig.WorkerPrivateKey.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct ssh public key from worker key: %s", err)
 	}

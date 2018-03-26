@@ -1,4 +1,4 @@
-package main
+package start
 
 import (
 	"encoding/json"
@@ -14,22 +14,26 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
+type Config struct {
+	HTTPProxy  string        `long:"http-proxy-url"`
+	HTTPSProxy string        `long:"https-proxy-url"`
+	NoProxy    string        `long:"no-proxy"`
+	Tags       []string      `long:"tag"`
+	TeamName   string        `long:"team-name"`
+	Name       string        `long:"name"`
+	TSA        beacon.Config `group:"TSA Beacon Configuration"`
+	StartTime  int64         `long:"start-time"`
+	Version    string        `long:"version"`
+}
+
 type StartCommand struct {
+	WorkerConfig    Config
 	GardenAddr      string            `long:"garden-addr"`
 	BaggageclaimURL string            `long:"baggageclaim-url"`
 	Resource        []beacon.FileFlag `long:"resource"`
 	Platform        string            `long:"platform"`
-	Tags            []string          `long:"tag"`
-	Team            string            `long:"team"`
-	Name            string            `long:"name"`
-	StartTime       int64             `long:"start_time"`
-	Version         string            `long:"version"`
-	CertsPath       *string           `long:"certs_path"`
-	HTTPProxyURL    string            `long:"http_proxy_url"`
-	HTTPSProxyURL   string            `long:"https_proxy_url"`
-	NoProxy         string            `long:"no_proxy"`
+	CertsPath       *string           `long:"certs-path"`
 	Logger          flag.Lager
-	BeaconConfig    beacon.Config `group:"TSA Beacon Configuration" namespace:"tsa"`
 }
 
 func (cmd *StartCommand) Execute(args []string) error {
@@ -57,19 +61,19 @@ func (cmd *StartCommand) Execute(args []string) error {
 		BaggageclaimURL: cmd.BaggageclaimURL,
 		ResourceTypes:   resourceTypes,
 		Platform:        cmd.Platform,
-		Tags:            cmd.Tags,
-		Team:            cmd.Team,
-		Name:            cmd.Name,
-		StartTime:       cmd.StartTime,
-		Version:         cmd.Version,
+		Tags:            cmd.WorkerConfig.Tags,
+		Team:            cmd.WorkerConfig.TeamName,
+		Name:            cmd.WorkerConfig.Name,
+		StartTime:       cmd.WorkerConfig.StartTime,
+		Version:         cmd.WorkerConfig.Version,
 		CertsPath:       cmd.CertsPath,
-		HTTPProxyURL:    cmd.HTTPProxyURL,
-		HTTPSProxyURL:   cmd.HTTPSProxyURL,
-		NoProxy:         cmd.NoProxy,
+		HTTPProxyURL:    cmd.WorkerConfig.HTTPProxy,
+		HTTPSProxyURL:   cmd.WorkerConfig.HTTPSProxy,
+		NoProxy:         cmd.WorkerConfig.NoProxy,
 	}
 
 	logger, _ := cmd.Logger.Logger("beacon")
-	runner := worker.BeaconRunner(logger, atcWorker, cmd.BeaconConfig)
+	runner := worker.BeaconRunner(logger, atcWorker, cmd.WorkerConfig.TSA)
 
 	err := <-ifrit.Invoke(runner).Wait()
 	if err != nil {
