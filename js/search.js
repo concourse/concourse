@@ -10056,17 +10056,21 @@ var _user$project$Main$view = function (model) {
 				_elm_lang$html$Html$input,
 				{
 					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$class('search-input'),
+					_0: _elm_lang$html$Html_Attributes$type_('search'),
 					_1: {
 						ctor: '::',
-						_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$SetQuery),
+						_0: _elm_lang$html$Html_Attributes$class('search-input'),
 						_1: {
 							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$placeholder('Search...'),
+							_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$SetQuery),
 							_1: {
 								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$required(true),
-								_1: {ctor: '[]'}
+								_0: _elm_lang$html$Html_Attributes$placeholder('Search...'),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$required(true),
+									_1: {ctor: '[]'}
+								}
 							}
 						}
 					}

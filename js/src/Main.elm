@@ -92,7 +92,14 @@ match query tag doc =
 view : Model -> Html Msg
 view model =
     Html.div []
-        [ Html.input [ HA.class "search-input", HE.onInput SetQuery, HA.placeholder "Search...", HA.required True ] []
+        [ Html.input
+            [ HA.type_ "search"
+            , HA.class "search-input"
+            , HE.onInput SetQuery
+            , HA.placeholder "Search..."
+            , HA.required True
+            ]
+            []
         , Html.ul [ HA.class "search-results" ] <|
             List.filterMap (viewResult model) <|
                 List.sortBy (Tuple.second >> .score) (Dict.toList model.result)
