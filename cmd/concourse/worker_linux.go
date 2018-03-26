@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/guardian/guardiancmd"
@@ -74,13 +73,13 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 
 	worker := atc.Worker{
 		Platform:  "linux",
-		Tags:      cmd.Tags,
-		Team:      cmd.TeamName,
+		Tags:      cmd.Worker.Tags,
+		Team:      cmd.Worker.TeamName,
 		CertsPath: &cmd.Certs.Dir,
 
-		HTTPProxyURL:  cmd.HTTPProxy.String(),
-		HTTPSProxyURL: cmd.HTTPSProxy.String(),
-		NoProxy:       strings.Join(cmd.NoProxy, ","),
+		HTTPProxyURL:  cmd.Worker.HTTPProxy,
+		HTTPSProxyURL: cmd.Worker.HTTPSProxy,
+		NoProxy:       cmd.Worker.NoProxy,
 		StartTime:     time.Now().Unix(),
 	}
 
