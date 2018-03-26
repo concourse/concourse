@@ -96,7 +96,7 @@ view model =
             [ HA.type_ "search"
             , HA.class "search-input"
             , HE.onInput SetQuery
-            , HA.placeholder "Search..."
+            , HA.placeholder "Search the docs…"
             , HA.required True
             ]
             []

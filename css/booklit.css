@@ -64,6 +64,8 @@ body {
   height: 80px;
   margin: 0px;
   color: #fff;
+  padding-top: 26px;
+  line-height: 1;
 }
 
 .header h1 .logo {
@@ -79,8 +81,6 @@ body {
 .header nav a {
   margin-right: 50px;
   font-size: 16px;
-  position: relative;
-  bottom: -4px;
 }
 
 .header nav a:hover {
@@ -221,12 +221,12 @@ h2, h3 {
   padding-right: 5px;
 }
 
-.side a {
+.side nav a {
   color: #9B9B9B;
   text-decoration: none;
 }
 
-.side a:hover {
+.side nav a:hover {
   text-decoration: underline;
 }
 
@@ -725,33 +725,40 @@ h2, h3 {
   display: none;
 }
 
+.header nav {
+  position: relative;
+}
+
 .search-input {
   z-index: 101;
   border: 1px solid transparent;
   box-sizing: border-box;
-  background: #f5f5f5 url('../images/search_icon.svg') no-repeat top 3.5px right 2.5px;
+  background: #cdcdcd url('../images/search_icon.svg') no-repeat top 3.5px right 1.5px;
   padding: 5px;
   transition: all 0.25s ease-out;
-  width: 245px;
-  height: 30px;
   position: absolute;
-  margin: 25px 0;
-}
-
-.search-input, .search-results {
-  left: 800px;
+  left: 470px;
+  top: 25px;
+  right: 0;
+  width: 30px;
+  height: 30px;
 }
 
 .search-input::placeholder {
+  color: transparent;
+}
+
+.search-input:focus::placeholder {
   color: rgba(0, 0, 0, 0.5);
 }
 
 .search-input:focus, .search-input:valid {
   outline: none;
-  width: 400px;
-  position: fixed;
+  position: absolute;
+  left: 0;
   background: #fff;
   border-color: #ddd;
+  width: 500px;
 }
 
 .search-results {
@@ -763,10 +770,10 @@ h2, h3 {
   border-left: 1px solid #ddd;
   border-right: 1px solid #ddd;
   color: #2A2929;
-  width: 400px;
+  width: 500px;
   box-sizing: border-box;
   position: fixed;
-  top: 55px;
+  top: 50px;
   bottom: 0;
   margin: 0;
   overflow-y: auto;
@@ -785,13 +792,16 @@ h2, h3 {
 
 .search-results li a {
   padding: 10px;
+  margin: 0;
   display: block;
   border-bottom: 1px solid #eee;
+  text-decoration: none;
 }
 
 .search-results li a:hover {
   background: #fffddc;
   border-color: #eee;
+  text-decoration: none;
 }
 
 .search-results li .result-header {

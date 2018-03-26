@@ -10065,7 +10065,7 @@ var _user$project$Main$view = function (model) {
 							_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$SetQuery),
 							_1: {
 								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$placeholder('Search...'),
+								_0: _elm_lang$html$Html_Attributes$placeholder('Search the docs…'),
 								_1: {
 									ctor: '::',
 									_0: _elm_lang$html$Html_Attributes$required(true),
