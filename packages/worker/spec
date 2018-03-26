@@ -16,7 +16,11 @@ files:
   - github.com/concourse/worker/beacon/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/cmd/worker/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/drainer/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/land/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/retire/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/ssh/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/start/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/tsa/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/felixge/tcpkeepalive/*.{go,s,c,h} # gosub
   - github.com/jessevdk/go-flags/*.{go,s,c,h} # gosub

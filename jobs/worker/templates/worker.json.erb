@@ -1,72 +1,12 @@
 <%=
-  garden_addr = ""
-
-  if_p("garden.address") do |addr|
-    garden_addr = addr
-  end
-
-  if garden_addr.empty?
-    if_link("garden") do |garden|
-      instance = garden.instances.find { |i| i.id == spec.id }
-      if instance
-        garden_addr = "#{instance.address}:#{garden.p("bind_port")}"
-      end
-    end
-  end
-
-  if garden_addr.empty?
-    # no property and no link; assume it's colocated
-    garden_addr = "#{spec.address}:7777"
-  end
-
-  baggageclaim_url = ""
-
-  if_p("baggageclaim.url") do |url|
-    baggageclaim_url = url
-  end
-
-  if baggageclaim_url.empty?
-    if_link("baggageclaim") do |baggageclaim|
-      instance = baggageclaim.instances.find { |i| i.id == spec.id }
-      if instance
-        baggageclaim_url = "http://#{instance.address}:#{baggageclaim.p("bind_port")}"
-      end
-    end
-  end
-
   name_prefix = spec.id.split("-")[0]
 
   payload = {
     "name" => "#{name_prefix}-HOSTNAME_REPLACE_ME",
-
-    "version" => "WORKER_VERSION_REPLACE_ME",
-
-    "start_time" => "START_TIME_REPLACE_ME",
-
-    "team" => p("team"),
-    "platform" => p("platform"),
-    "tags" => p("tags"),
-
-    "addr" => garden_addr,
-    "baggageclaim_url" => baggageclaim_url,
-
-    "resource_types" => p("additional_resource_types"),
   }
 
   if_p("certs_path") do |certs_path|
-    payload["certs_path"] = certs_path
-  end
-
-  if_p("http_proxy_url") do |http_proxy_url|
-    payload["http_proxy_url"] = http_proxy_url
-  end
-
-  if_p("https_proxy_url") do |https_proxy_url|
-    payload["https_proxy_url"] = https_proxy_url
-  end
-
-  if_p("no_proxy") do |no_proxy|
-    payload["no_proxy"] = no_proxy.join(",")
+    payload["certs-path"] = certs_path
   end
 
   payload.to_json

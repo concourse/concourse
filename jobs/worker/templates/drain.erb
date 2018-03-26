@@ -47,10 +47,7 @@ chown vcap:vcap $KNOWN_HOSTS
 WORKER_VERSION=$(cat /var/vcap/packages/worker_version/version)
 
 cat /var/vcap/jobs/worker/config/worker.json | \
-  sed -e "s/HOSTNAME_REPLACE_ME/$(hostname | cut -d '-' -f 2-)/g" | \
-  sed -e 's/"START_TIME_REPLACE_ME"/'$(date +%s)'/g' | \
-  sed -e "s/WORKER_VERSION_REPLACE_ME/${WORKER_VERSION}/g" | \
-  /var/vcap/packages/resource_discovery/bin/resource_discovery /var/vcap/packages/*/resource_metadata.json > \
+sed -e "s/HOSTNAME_REPLACE_ME/$(hostname | cut -d '-' -f 2-)/g" > \
   $RUN_DIR/worker.json
 
 chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker \
