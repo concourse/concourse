@@ -42,6 +42,11 @@ body {
   flex-wrap: wrap;
 }
 
+.header a, .header a:visited, .header a:hover {
+  color: #2A2929;
+  text-decoration: none;
+}
+
 .header h1 {
   color: #fff;
   background-color: #3398DC;
@@ -54,11 +59,11 @@ body {
   width: 215px;
 }
 
-.header h1 a {
+.header h1 a, .header h1 a:visited {
   box-sizing: border-box;
   height: 80px;
   margin: 0px;
-  color: #fff !important;
+  color: #fff;
 }
 
 .header h1 .logo {
@@ -69,15 +74,6 @@ body {
   background-repeat: no-repeat;
   background-size: 40px 40px;
   background-position: 16.5px 18px;
-}
-
-.header a:hover {
-  text-decoration: none;
-}
-
-.header a:visited {
-  color: #fff;
-  color: #2A2929;
 }
 
 .header nav a {
@@ -94,11 +90,6 @@ body {
 .page h1 {
   border-top: 5px solid #1E1D1D;
   padding-top: 10px;
-}
-
-.header a, .header h1 a {
-  text-decoration: none;
-  color: #fff;
 }
 
 .toc {
