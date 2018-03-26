@@ -7,8 +7,9 @@
 \splash-intro{
   Concourse is an open-source continuous thing-doer.
 }{
-  Built on the simple mechanics of resources, tasks and jobs,
-  Concourse presents a more general approach to automation that makes it useful for
+  Built on the simple mechanics of \reference{resources}{resources},
+  \reference{tasks}{tasks}, and \reference{jobs}{jobs}, Concourse presents a
+  general approach to automation that makes it great for
   \link{CI}{https://en.wikipedia.org/wiki/Continuous_integration}/\link{CD}{https://en.wikipedia.org/wiki/Continuous_delivery}.
 }
 
