@@ -411,7 +411,7 @@ h2, h3 {
 }
 
 .example h3 {
-  font-size: 24px;
+  font-size: 20px;
   margin-bottom: -4px;
 }
 
@@ -460,6 +460,9 @@ h2, h3 {
     flex-basis: 400px;
     padding-left: 30px;
     border-left: 1px solid #ddd;
+    border-top: 0;
+    margin-top: -80px;
+    padding-top: 142px;
   }
 
   .examples-page {
@@ -832,7 +835,7 @@ h2, h3 {
 .search-results li p {
   margin: 0;
   margin-top: 6px;
-  font-family: 'PT Serif', 'Palatino Linotype', 'Book Antiqua', Palatino, FreeSerif, Georgia, serif;
+  font-family: 'PT Sans', Helvetica, Arial, sans-serif;
   font-size: 14px;
   color: #7A7373;
 }
