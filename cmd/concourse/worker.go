@@ -10,7 +10,9 @@ import (
 	"github.com/concourse/bin/bindata"
 	"github.com/concourse/flag"
 	concourseWorker "github.com/concourse/worker"
+	"github.com/concourse/worker/beacon"
 	workerConfig "github.com/concourse/worker/start"
+	"github.com/concourse/worker/tsa"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
@@ -18,7 +20,10 @@ import (
 
 type WorkerCommand struct {
 	Worker workerConfig.Config
-	Certs  Certs
+
+	TSA tsa.Config `group:"TSA Configuration" namespace:"tsa"`
+
+	Certs Certs
 
 	WorkDir flag.Dir `long:"work-dir" required:"true" description:"Directory in which to place container data."`
 
@@ -77,13 +82,23 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		},
 	}
 
-	if cmd.Worker.TSA.TSAConfig.WorkerPrivateKey.PrivateKey != nil {
+	if cmd.TSA.WorkerPrivateKey.PrivateKey != nil {
+		beaconConfig := beacon.Config{
+			TSAConfig: cmd.TSA,
+		}
+
 		if cmd.PeerIP.IP != nil {
 			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP, cmd.BindPort)
 			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, cmd.Baggageclaim.BindPort)
+
+			beaconConfig.RegistrationMode = "direct"
 		} else {
-			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
-			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.Baggageclaim.BindIP.IP, cmd.Baggageclaim.BindPort)
+			beaconConfig.RegistrationMode = "forward"
+			beaconConfig.GardenForwardAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
+			beaconConfig.BaggageclaimForwardAddr = fmt.Sprintf("%s:%d", cmd.Baggageclaim.BindIP.IP, cmd.Baggageclaim.BindPort)
+
+			worker.GardenAddr = beaconConfig.GardenForwardAddr
+			worker.BaggageclaimURL = fmt.Sprintf("http://%s", beaconConfig.BaggageclaimForwardAddr)
 		}
 
 		members = append(members, grouper.Member{
@@ -91,7 +106,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 			Runner: concourseWorker.BeaconRunner(
 				logger.Session("beacon"),
 				worker,
-				cmd.Worker.TSA,
+				beaconConfig,
 			),
 		})
 	}
