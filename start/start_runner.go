@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/flag"
@@ -15,19 +16,22 @@ import (
 )
 
 type Config struct {
-	HTTPProxy  string        `long:"http-proxy-url"`
-	HTTPSProxy string        `long:"https-proxy-url"`
-	NoProxy    string        `long:"no-proxy"`
-	Tags       []string      `long:"tag"`
-	TeamName   string        `long:"team-name"`
-	Name       string        `long:"name"`
-	TSA        beacon.Config `group:"TSA Beacon Configuration"`
-	StartTime  int64         `long:"start-time"`
-	Version    string        `long:"version"`
+	Name     string   `long:"name"  description:"The name to set for the worker during registration. If not specified, the hostname will be used."`
+	Tags     []string `long:"tag"   description:"A tag to set during registration. Can be specified multiple times."`
+	TeamName string   `long:"team"  description:"The name of the team that this worker will be assigned to."`
+
+	HTTPProxy  string `long:"http-proxy"  env:"http_proxy"                  description:"HTTP proxy endpoint to use for containers."`
+	HTTPSProxy string `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
+	NoProxy    string `long:"no-proxy"    env:"no_proxy"    env-delim:","   description:"Blacklist of addresses to skip the proxy when reaching."`
+
+	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
 }
 
 type StartCommand struct {
-	WorkerConfig    Config
+	WorkerConfig Config
+
+	TSA beacon.Config `group:"TSA Beacon Configuration"`
+
 	GardenAddr      string            `long:"garden-addr"`
 	BaggageclaimURL string            `long:"baggageclaim-url"`
 	Resource        []beacon.FileFlag `long:"resource"`
@@ -64,7 +68,7 @@ func (cmd *StartCommand) Execute(args []string) error {
 		Tags:            cmd.WorkerConfig.Tags,
 		Team:            cmd.WorkerConfig.TeamName,
 		Name:            cmd.WorkerConfig.Name,
-		StartTime:       cmd.WorkerConfig.StartTime,
+		StartTime:       time.Now().Unix(),
 		Version:         cmd.WorkerConfig.Version,
 		CertsPath:       cmd.CertsPath,
 		HTTPProxyURL:    cmd.WorkerConfig.HTTPProxy,
@@ -73,12 +77,13 @@ func (cmd *StartCommand) Execute(args []string) error {
 	}
 
 	logger, _ := cmd.Logger.Logger("beacon")
-	runner := worker.BeaconRunner(logger, atcWorker, cmd.WorkerConfig.TSA)
+	runner := worker.BeaconRunner(logger, atcWorker, cmd.TSA)
 
 	err := <-ifrit.Invoke(runner).Wait()
 	if err != nil {
 		logger.Error("beacon-start-command-failed", err)
 		return errors.New("beacon-start-command-failed" + err.Error())
 	}
+
 	return nil
 }

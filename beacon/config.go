@@ -10,7 +10,8 @@ import (
 )
 
 type Config struct {
-	TSAConfig               tsa.Config       `group:"TSA Configuration" namespace:"tsa"`
+	TSAConfig tsa.Config `group:"TSA Configuration" namespace:"tsa"`
+
 	GardenForwardAddr       string           `long:"garden-forward-addr" description:"Garden address to forward through SSH to the TSA."`
 	BaggageclaimForwardAddr string           `long:"baggageclaim-forward-addr" description:"Baggageclaim address to forward through SSH to the TSA."`
 	RegistrationMode        RegistrationMode `long:"registration-mode" default:"forward" choice:"forward" choice:"direct"`
