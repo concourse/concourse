@@ -13,6 +13,31 @@
   \link{CI}{https://en.wikipedia.org/wiki/Continuous_integration}/\link{CD}{https://en.wikipedia.org/wiki/Continuous_delivery}.
 }
 
+\quick-start{
+  Concourse is distributed as a single \code{concourse} binary, making it easy
+  to run just about anywhere, especially with Docker.
+
+  \codeblock{bash}{{
+  $ wget https://concourse-ci.org/docker-compose.yml
+  $ docker-compose up
+  Creating docs_concourse-db_1 ... done
+  Creating docs_concourse_1    ... done
+  }}
+
+  Next, install \reference{fly-cli} and target your local Concourse:
+
+  \codeblock{bash}{{
+  $ fly -t tutorial login -c http://127.0.0.1:8080
+  logging in to team 'main'
+
+  target saved
+  }}
+
+  Then, head to \link{Hello
+  World}{https://concoursetutorial.com/basics/task-hello-world/} to kick the
+  tires!
+}
+
 \splash-example{Configuration As Code}{
   You can think of a \reference{pipelines}{pipeline} as a distributed,
   higher-level, continuously-running \code{Makefile}.
@@ -98,11 +123,9 @@
 }{
   \codeblock{sh}{{{
   ~/booklit $ fly -t ci execute -c ci/test.yml
-  executing build 42 at https://192.168.100.4:8080/builds/42
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                   Dload  Upload   Total   Spent    Left  Speed
-  100 93675    0 93675    0     0  93675      0 --:--:-- --:--:-- --:--:-- 2231k
+  executing build 1 at http://127.0.0.1:8080/builds/1
   initializing
+  booklit: 4.74 MiB/s 0s
   running gopath/src/github.com/vito/booklit/ci/test
   fetching dependencies...
   installing ginkgo...

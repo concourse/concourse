@@ -87,6 +87,17 @@ body {
   border-bottom: 1px solid #868585;
 }
 
+.header nav .tutorial-link {
+  background: #fb8c00;
+  padding: 4px 6px;
+  color: #fff;
+}
+
+.header nav .tutorial-link:hover {
+  border: 0;
+  opacity: 0.9;
+}
+
 .page h1 {
   border-top: 5px solid #1E1D1D;
   padding-top: 10px;
@@ -337,12 +348,10 @@ h2, h3 {
 }
 
 .splash-intro {
-  border-bottom: 5px solid #cdcdcd;
   font-size: 18px;
   font-style: italic;
   color: #616161;
   padding-bottom: 30px;
-  margin-bottom: 40px;
 }
 
 .splash-intro h2 {
@@ -736,15 +745,15 @@ h2, h3 {
   z-index: 101;
   border: 1px solid transparent;
   box-sizing: border-box;
-  background: #cdcdcd url('../images/search_icon.svg') no-repeat top 3.5px right 1.5px;
+  background: #cdcdcd url('../images/search_icon.svg') no-repeat top 3.5px right 2.5px;
   padding: 5px;
   transition: all 0.25s ease-out;
   position: absolute;
   left: 470px;
-  top: 25px;
+  top: 24px;
   right: 0;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
 }
 
 .search-input::placeholder {
@@ -842,4 +851,50 @@ h2, h3 {
 
 .search-results a, .search-results a:visited {
   color: #2A2929;
+}
+
+.quickstart {
+  background: #f5f5f5;
+  margin-bottom: 60px;
+}
+
+.quickstart-content {
+  display: none;
+  padding: 0 30px 10px;
+}
+
+.quickstart input {
+  display: none;
+}
+
+.quickstart-label {
+  cursor: pointer;
+  font-family: 'Roboto Slab', serif;
+  font-size: 18px;
+  padding: 10px;
+  display: block;
+  user-select: none;
+  position: relative;
+  padding-left: 30px;
+  color: #7A7373;
+}
+
+.quickstart-label:before {
+  content: "\25ba";
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  font-size: 12px;
+  color: #7A7373;
+  position: absolute;
+  top: 15px;
+  left: 12px;
+}
+
+.quickstart input:checked + .quickstart-label:before {
+  content: "\25bc";
+}
+
+.quickstart input:checked + .quickstart-label + .quickstart-content {
+  display: block;
 }

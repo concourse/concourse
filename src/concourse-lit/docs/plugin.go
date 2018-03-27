@@ -63,6 +63,14 @@ func (p Plugin) SplashIntro(intro, blurb booklit.Content) booklit.Content {
 	}
 }
 
+func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "quick-start",
+		Block:   true,
+		Content: content,
+	}
+}
+
 func (p Plugin) SplashExample(title booklit.Content, content booklit.Content, example booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style: "splash-example",
