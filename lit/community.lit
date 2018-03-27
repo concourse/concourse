@@ -39,6 +39,21 @@
 }
 
 \section{
+  \title{Blog}{blog}
+
+  We often write long-form articles and project updates on our Concourse
+  publication, hosted on \link{Medium}{https://medium.com/concourse-ci}.
+}
+
+\section{
+  \title{Stack Overflow}{stackoverflow}
+
+  Concourse questions can all be found on StackOverflow under the
+  \link{\code{concourse}
+  tag}{https://stackoverflow.com/questions/tagged/concourse}.
+}
+
+\section{
   \title{Security Contact}{security-contact}
 
   To be notified of any security issues or vulnerabilities, join the
