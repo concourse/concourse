@@ -88,7 +88,6 @@ func (command *LoginCommand) Execute(args []string) error {
 	var chosenMethod provider.AuthMethod
 
 	if command.Username != "" || command.Password != "" {
-
 		for _, method := range authMethods {
 			if method.Type == provider.AuthTypeBasic {
 				chosenMethod = method
@@ -101,7 +100,6 @@ func (command *LoginCommand) Execute(args []string) error {
 		}
 
 	} else {
-
 		choices := make([]interact.Choice, len(authMethods))
 
 		for i, method := range authMethods {
@@ -127,6 +125,8 @@ func (command *LoginCommand) Execute(args []string) error {
 			if err != nil {
 				return err
 			}
+
+			fmt.Println("")
 		}
 	}
 
@@ -135,8 +135,6 @@ func (command *LoginCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("")
 
 	return command.saveTarget(
 		client.URL(),
