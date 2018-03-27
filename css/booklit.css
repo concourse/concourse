@@ -252,6 +252,7 @@ h2, h3 {
 
 .side .improve-docs li {
   margin-bottom: 5px;
+  margin-left: -5px;
 }
 
 .side .improve-docs img {
@@ -259,6 +260,13 @@ h2, h3 {
   height: 16px;
   margin-bottom: -4px;
   margin-right: 4px;
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+.side .improve-docs li:hover img {
+  filter: none;
+  opacity: 1;
 }
 
 .side .context {
