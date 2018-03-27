@@ -241,18 +241,34 @@ h2, h3 {
   text-decoration: underline;
 }
 
+.side {
+  position: relative;
+}
+
+.page {
+  padding-bottom: 30px;
+}
+
 .side .improve-docs {
+  background: rgba(255, 255, 255, 0.75);
+  position: fixed;
+  bottom: 0;
   color: #9B9B9B;
   font-size: 13px;
   list-style-type: none;
   margin: 0;
   padding: 0;
-  margin-top: 70px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.side .improve-docs a, .side .improve-docs a:visited {
+  color: #616161;
 }
 
 .side .improve-docs li {
   margin-bottom: 5px;
-  margin-left: -5px;
+  margin-left: -4px;
 }
 
 .side .improve-docs img {
