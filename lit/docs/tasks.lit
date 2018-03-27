@@ -92,16 +92,17 @@ A task's configuration specifies the following:
     \italic{Optional.} The path where the input will be placed. If not
     specified, the input's \code{name} is used.
 
-    Paths are relative to the working directory of the task. Absolute paths are not respected.
+    Paths are relative to the working directory of the task. Absolute paths are
+    not respected.
   }{input-path}
 
   \define-attribute{optional: bool}{
     \italic{Optional.} If \code{true}, then the input is not required by the
     task. The task may run even if this input is missing.
 
-    An \code{optional} input that is missing will not appear in the current directory
-    of the running task.
-  }{optional}
+    An \code{optional} input that is missing will not appear in the current
+    directory of the running task.
+  }{input-optional}
 
   \italic{Optional.} The set of artifacts used by task, determining which
   artifacts will be available in the current directory when the task runs.
@@ -275,12 +276,14 @@ A task's configuration specifies the following:
       For example:
 
       \codeblock{bash}{{
-      $ fly -t example execute --input code=.
+      $ fly -t example execute \\
+          --config build-stemcell.yml \\
+          --input code=. \\
           --input stemcells=../stemcells
       }}
 
-      This would work together with a \code{task.yml} if its \code{inputs:}
-      section was as follows:
+      This would work together with a \code{build-stemcell.yml} if its
+      \code{inputs:} section was as follows:
 
       \codeblock{yaml}{{
       inputs:
@@ -309,8 +312,10 @@ A task's configuration specifies the following:
       For example:
 
       \codeblock{bash}{{
-      $ fly -t example execute --config task.yml
-          --inputs-from main/integration --input foo=./foo
+      $ fly -t example execute \\
+          --config task.yml \\
+          --inputs-from main/integration \\
+          --input foo=./foo
       }}
 
       This will trigger a one-off-build using the \code{task.yml} task
@@ -330,8 +335,9 @@ A task's configuration specifies the following:
       the build and back to your local system. For example:
 
       \codeblock{bash}{{
-      $ fly -t example execute --input code=.
-          --config build-stemcell.yml
+      $ fly -t example execute \\
+          --config build-stemcell.yml \\
+          --input code=. \\
           --output stemcell=/tmp/stemcell
       }}
 

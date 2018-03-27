@@ -57,7 +57,8 @@ of a task.
 }
 
 \define-attribute{config: object}{
-  \italic{Required.} The \reference{tasks}{task config} to execute.
+  \italic{Required.} The \reference{tasks}{task config} to execute. An
+  alternative to \reference{file}.
 }
 
 \define-attribute{file: string}{
