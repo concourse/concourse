@@ -22,7 +22,6 @@ packages:
   - worker_version
 
   # colocate base resources
-  - archive_resource
   - bosh_deployment_resource
   - bosh_io_release_resource
   - bosh_io_stemcell_resource
