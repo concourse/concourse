@@ -85,6 +85,7 @@ func (beacon *Beacon) RetireWorker(signals <-chan os.Signal, ready chan<- struct
 }
 
 func (beacon *Beacon) LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
+	beacon.Logger.Debug("land-worker")
 	return beacon.run("land-worker", signals, ready)
 }
 

@@ -11,7 +11,8 @@ import (
 )
 
 type Config struct {
-	WorkerConfigFile   string         `long:"worker-config-file" description:"Path to worker config file."`
+	WorkerName         string         `long:"name" required:"true" description:"The name of the worker you wish to drain."`
+	CertsPath          *string        `long:"certs-path"`
 	UserKnownHostsFile string         `long:"user-known-hosts-file" description:"Path to user known hosts file."`
 	TSASSHKeyFile      string         `long:"tsa-ssh-key" description:"Path to TSA SSH key."`
 	BeaconPidFile      string         `long:"beacon-pid-file" description:"Path to beacon pid file."`
@@ -30,13 +31,14 @@ func (cmd *Config) Execute(args []string) error {
 
 	sshRunner := ssh.NewRunner(
 		ssh.Options{
+			Name:                cmd.WorkerName,
+			CertsPath:           *cmd.CertsPath,
 			Addrs:               cmd.TSAAddrs,
 			PrivateKeyFile:      cmd.TSASSHKeyFile,
 			UserKnownHostsFile:  cmd.UserKnownHostsFile,
 			ConnectTimeout:      30,
 			ServerAliveInterval: 8,
 			ServerAliveCountMax: 3,
-			ConfigFile:          cmd.WorkerConfigFile,
 		},
 	)
 

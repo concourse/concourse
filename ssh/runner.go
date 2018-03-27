@@ -1,14 +1,15 @@
 package ssh
 
 import (
-	"bufio"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 )
 
 var ErrFailedToReachAnyTSA = errors.New("failed-to-reach-any-tsa-assuming-cluster-is-being-destroyed")
@@ -41,13 +42,14 @@ func NewRunner(options Options) Runner {
 }
 
 type Options struct {
+	Name                string
+	CertsPath           string
 	Addrs               []string
 	PrivateKeyFile      string
 	UserKnownHostsFile  string
 	ConnectTimeout      int
 	ServerAliveInterval int
 	ServerAliveCountMax int
-	ConfigFile          string
 }
 
 func (r *runner) RetireWorker(logger lager.Logger) error {
@@ -68,6 +70,14 @@ func (r *runner) run(logger lager.Logger, commandName string) error {
 		addr := addrParts[0]
 		port := addrParts[1]
 
+		workerJson, err := json.Marshal(atc.Worker{
+			Name:      r.options.Name,
+			CertsPath: &r.options.CertsPath,
+		})
+		if err != nil {
+			return err
+		}
+
 		cmd := exec.Command("ssh",
 			"-p", port,
 			addr,
@@ -78,12 +88,8 @@ func (r *runner) run(logger lager.Logger, commandName string) error {
 			"-o", fmt.Sprintf("ServerAliveCountMax=%d", r.options.ServerAliveCountMax),
 			commandName,
 		)
-		configFile, err := os.Open(r.options.ConfigFile)
-		if err != nil {
-			return err
-		}
 
-		cmd.Stdin = bufio.NewReader(configFile)
+		cmd.Stdin = bytes.NewBuffer(workerJson)
 		cmd.Stdout = &LogWriter{logger: logger}
 
 		err = cmd.Run()
