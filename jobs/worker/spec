@@ -13,7 +13,6 @@ templates:
   tsa_host_key.pub.erb: config/tsa_host_key.pub
   known_hosts.erb: config/known_hosts
   worker_key.erb: config/worker_key
-  worker.json.erb: config/worker.json
 
 packages:
   - pid_utils

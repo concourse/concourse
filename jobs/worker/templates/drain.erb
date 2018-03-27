@@ -35,6 +35,7 @@ fi
     tsa_addrs = tsa.instances.collect(&:address)
     tsa_port = tsa.p("bind_port")
   end
+  name_prefix = spec.id.split("-")[0]
 %>
 
 WORKER_KEY=/var/vcap/jobs/worker/config/worker_key
@@ -46,16 +47,15 @@ chown vcap:vcap $KNOWN_HOSTS
 
 WORKER_VERSION=$(cat /var/vcap/packages/worker_version/version)
 
-cat /var/vcap/jobs/worker/config/worker.json | \
-sed -e "s/HOSTNAME_REPLACE_ME/$(hostname | cut -d '-' -f 2-)/g" > \
-  $RUN_DIR/worker.json
-
 chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker \
-  drain \
+drain \
+  --name=<%= name_prefix %>-$(hostname | cut -d '-' -f 2-) \
+  <% if p("certs_path", nil) %> \
+  --certs-path=<%= p("certs_path") %> \
+  <% end %> \
   <% tsa_addrs.each do |tsa_addr| %> \
   --tsa-addr <%= tsa_addr %>:<%= tsa_port %> \
   <% end %> \
-  --worker-config-file $RUN_DIR/worker.json \
   --user-known-hosts-file ${KNOWN_HOSTS} \
   --tsa-ssh-key $WORKER_KEY \
   --beacon-pid-file=$RUN_DIR/beacon.pid \
