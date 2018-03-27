@@ -241,6 +241,26 @@ h2, h3 {
   text-decoration: underline;
 }
 
+.side .improve-docs {
+  color: #9B9B9B;
+  font-size: 13px;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  margin-top: 70px;
+}
+
+.side .improve-docs li {
+  margin-bottom: 5px;
+}
+
+.side .improve-docs img {
+  width: 16px;
+  height: 16px;
+  margin-bottom: -4px;
+  margin-right: 4px;
+}
+
 .side .context {
   position: relative;
   margin-bottom: 2rem;
