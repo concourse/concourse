@@ -115,8 +115,7 @@ case $1 in
     chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker start \
            --name=<%= name_prefix %>-$(hostname | cut -d '-' -f 2-) \
            --version=$WORKER_VERSION \
-           --start-time=$(date +%s) \
-           --team-name=<%= p("team") %> \
+           --team=<%= p("team") %> \
            --platform=<%= p("platform") %> \
            <% p("tags").each do |tag| %> \
              --tag=<%= tag %> \
