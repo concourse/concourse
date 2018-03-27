@@ -45,7 +45,7 @@
 
   \note{fix}{
     Fixed a crash that would occur when a \reference{task-step} configured
-    \reference{task-image} but no \reference{config} or \reference{file}.
+    \reference{task-step-image} but no \reference{config} or \reference{file}.
   }
 
   \note{fix}{

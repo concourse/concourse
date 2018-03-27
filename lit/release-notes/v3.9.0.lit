@@ -25,10 +25,9 @@
     \code{insecure_skip_verify}, etc., and things can "just work" securely by
     default.
 
-    This feature is enabled by default for our
-    \reference{clusters-with-bosh}{BOSH distribution}. The
-    \reference{binaries}{binary distribution} now has a \code{--certs-dir} flag
-    on the \code{worker} command, which should be given something like
+    This feature is enabled by default for our BOSH distribution. The
+    \code{concourse} binary now has a \code{--certs-dir} flag on the
+    \code{worker} command, which should be given something like
     \code{/etc/ssl/certs} or \code{/etc/pki/tls/certs} depending on your Linux
     distribution.
 

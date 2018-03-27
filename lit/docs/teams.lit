@@ -92,6 +92,18 @@ as).
   }
 
   \section{
+    \title{\code{rename-team}\aux{: Renaming Teams}}{fly-rename-team}
+
+    To rename a team, run:
+
+    \codeblock{bash}{{{
+    $ fly -t example rename-team --old-name my-team --new-name cool-team
+    }}}
+
+    This can only be run by the \reference{main-team}{\code{main} team}.
+  }
+
+  \section{
     \title{\code{fly destroy-team}}{fly-destroy-team}
 
     To remove a team, including all of its pipelines and one-off builds, first

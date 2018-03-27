@@ -269,10 +269,10 @@ UI, so you should make your output pretty.
   \title{Certificate Propagation}{resource-certs}
 
   Certificates can be automatically propagated into each resource container, if
-  the worker is configured to do so. The \reference{clusters-with-bosh}{BOSH
-  distribution} configures this automatically, while the
-  \reference{binaries}{binary distribution} must be given a \code{--certs-dir}
-  flag pointing to the path containing the CA certificate bundle.
+  the worker is configured to do so. The BOSH release configures this
+  automatically, while the \code{concourse} binary must be given a
+  \code{--certs-dir} flag pointing to the path containing the CA certificate
+  bundle.
 
   The worker's certificate directory will then be always mounted at
   \code{/etc/ssl/certs}, read-only, in each resource container created on the
