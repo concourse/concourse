@@ -16,8 +16,10 @@ type vaultFactory struct {
 
 	prefix string
 
-	token  string
-	tokenL *sync.RWMutex
+	token        string
+	tokenEndLife time.Time
+	lease        time.Duration
+	tokenL       *sync.RWMutex
 
 	loggedIn chan struct{}
 }
@@ -56,28 +58,44 @@ func (factory *vaultFactory) currentToken() string {
 	return token
 }
 
+func (factory *vaultFactory) isTokenRenewable(config AuthConfig) bool {
+	if factory.currentToken() != "" && (factory.tokenEndLife.Sub(time.Now()).Seconds()/factory.lease.Seconds()) > 1 {
+		return true
+	}
+	return false
+}
+
+func (factory *vaultFactory) registerToken(currentToken string, token string, lease time.Duration, config AuthConfig, updateEOL bool) {
+	if token == "" {
+		return
+	}
+	factory.tokenL.Lock()
+	factory.token = token
+	if updateEOL {
+		factory.tokenEndLife = time.Now().Add(config.BackendMaxTTL)
+	}
+	factory.lease = lease
+	if currentToken == "" {
+		close(factory.loggedIn)
+	}
+	factory.tokenL.Unlock()
+}
+
 func (factory *vaultFactory) authLoop(logger lager.Logger, config AuthConfig) {
 	for {
 		currentToken := factory.currentToken()
 
 		var token string
-		var delay time.Duration
-		if currentToken == "" {
-			token, delay = factory.login(logger.Session("login"), config)
+		var lease time.Duration
+		if factory.isTokenRenewable(config) {
+			token, lease = factory.renew(logger.Session("renew"), currentToken)
+			factory.registerToken(currentToken, token, lease, config, false)
 		} else {
-			token, delay = factory.renew(logger.Session("renew"), currentToken)
+			token, lease = factory.login(logger.Session("login"), config)
+			factory.registerToken(currentToken, token, lease, config, true)
 		}
 
-		if token != "" {
-			factory.tokenL.Lock()
-			factory.token = token
-			if currentToken == "" {
-				close(factory.loggedIn)
-			}
-			factory.tokenL.Unlock()
-		}
-
-		time.Sleep(delay)
+		time.Sleep(lease / 2)
 	}
 }
 
@@ -105,7 +123,7 @@ func (factory *vaultFactory) login(logger lager.Logger, config AuthConfig) (stri
 		"policies":       secret.Auth.Policies,
 	})
 
-	return secret.Auth.ClientToken, (time.Duration(secret.Auth.LeaseDuration) * time.Second) / 2
+	return secret.Auth.ClientToken, time.Duration(secret.Auth.LeaseDuration * int(time.Second))
 }
 
 func (factory *vaultFactory) renew(logger lager.Logger, token string) (string, time.Duration) {
@@ -121,7 +139,7 @@ func (factory *vaultFactory) renew(logger lager.Logger, token string) (string, t
 		"policies":       secret.Auth.Policies,
 	})
 
-	return secret.Auth.ClientToken, (time.Duration(secret.Auth.LeaseDuration) * time.Second) / 2
+	return secret.Auth.ClientToken, time.Duration(secret.Auth.LeaseDuration * int(time.Second))
 }
 
 func (factory *vaultFactory) clientWith(token string) *vaultapi.Client {

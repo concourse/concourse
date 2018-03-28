@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 
@@ -32,8 +33,9 @@ type VaultManager struct {
 type AuthConfig struct {
 	ClientToken string `long:"client-token" description:"Client token for accessing secrets within the Vault server."`
 
-	Backend string           `long:"auth-backend" description:"Auth backend to use for logging in to Vault."`
-	Params  []template.VarKV `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME=VALUE"`
+	Backend       string           `long:"auth-backend" description:"Auth backend to use for logging in to Vault."`
+	BackendMaxTTL time.Duration    `long:"auth-backend-max-ttl" description:"Auth backend max ttl configuration for token renewal"`
+	Params        []template.VarKV `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME=VALUE"`
 }
 
 func (manager VaultManager) IsConfigured() bool {
