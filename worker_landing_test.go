@@ -16,6 +16,8 @@ import (
 var _ = Describe("[#129726011] Worker landing", func() {
 	Context("with two workers available", func() {
 		BeforeEach(func() {
+			Skip("unreliable; if worker restarts too fast, test will fail. we should use 'bosh stop' but it turns out that retires, not lands.")
+
 			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-two.yml")
 		})
 

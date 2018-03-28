@@ -455,8 +455,8 @@ func waitForStalledWorker() string {
 
 func waitForWorkerInState(desiredStates ...string) string {
 	var workerName string
-	Eventually(func() string {
 
+	Eventually(func() string {
 		workers := flyTable("workers")
 
 		for _, worker := range workers {
