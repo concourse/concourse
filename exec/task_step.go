@@ -9,6 +9,7 @@ import (
 	"io"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/garden"
@@ -89,7 +90,7 @@ type TaskStep struct {
 
 	variables creds.Variables
 
-	exitStatus ExitStatus
+	succeeded bool
 }
 
 func NewTaskStep(
@@ -181,10 +182,12 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 	if err == nil {
 		logger.Info("already-exited", lager.Data{"status": exitStatusProp})
 
-		_, err = fmt.Sscanf(exitStatusProp, "%d", &action.exitStatus)
+		status, err := strconv.Atoi(exitStatusProp)
 		if err != nil {
 			return err
 		}
+
+		action.succeeded = status == 0
 
 		err = action.registerOutputs(logger, repository, config, container)
 		if err != nil {
@@ -269,21 +272,21 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 			return err
 		}
 
-		action.exitStatus = ExitStatus(processStatus)
-
-		action.delegate.Finished(logger, action.exitStatus)
+		action.delegate.Finished(logger, ExitStatus(processStatus))
 
 		err = container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
 		if err != nil {
 			return err
 		}
 
+		action.succeeded = processStatus == 0
+
 		return nil
 	}
 }
 
 func (action *TaskStep) Succeeded() bool {
-	return action.exitStatus == 0
+	return action.succeeded
 }
 
 func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ContainerSpec, error) {

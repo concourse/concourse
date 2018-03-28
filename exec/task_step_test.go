@@ -978,6 +978,10 @@ var _ = Describe("TaskStep", func() {
 							It("returns the error", func() {
 								Expect(stepErr).To(Equal(disaster))
 							})
+
+							It("is not successful", func() {
+								Expect(taskStep.Succeeded()).To(BeFalse())
+							})
 						})
 					})
 
@@ -1007,6 +1011,10 @@ var _ = Describe("TaskStep", func() {
 							Expect(stepErr).To(Equal(context.Canceled))
 						})
 
+						It("is not successful", func() {
+							Expect(taskStep.Succeeded()).To(BeFalse())
+						})
+
 						Context("when container.stop returns an error", func() {
 							var disaster error
 
@@ -1021,6 +1029,10 @@ var _ = Describe("TaskStep", func() {
 
 							It("doesn't return the error", func() {
 								Expect(stepErr).To(Equal(context.Canceled))
+							})
+
+							It("is not successful", func() {
+								Expect(taskStep.Succeeded()).To(BeFalse())
 							})
 						})
 
@@ -1257,6 +1269,10 @@ var _ = Describe("TaskStep", func() {
 						It("returns a MissingTaskImageSourceError", func() {
 							Expect(stepErr).To(Equal(exec.MissingTaskImageSourceError{"some-image-artifact"}))
 						})
+
+						It("is not successful", func() {
+							Expect(taskStep.Succeeded()).To(BeFalse())
+						})
 					})
 				})
 
@@ -1342,6 +1358,10 @@ var _ = Describe("TaskStep", func() {
 						It("returns the error", func() {
 							Expect(stepErr).To(Equal(disaster))
 						})
+
+						It("is not successful", func() {
+							Expect(taskStep.Succeeded()).To(BeFalse())
+						})
 					})
 				})
 
@@ -1400,6 +1420,10 @@ var _ = Describe("TaskStep", func() {
 						It("returns the error", func() {
 							Expect(stepErr).To(Equal(disaster))
 						})
+
+						It("is not successful", func() {
+							Expect(taskStep.Succeeded()).To(BeFalse())
+						})
 					})
 				})
 
@@ -1412,6 +1436,10 @@ var _ = Describe("TaskStep", func() {
 
 					It("returns the error", func() {
 						Expect(stepErr).To(Equal(disaster))
+					})
+
+					It("is not successful", func() {
+						Expect(taskStep.Succeeded()).To(BeFalse())
 					})
 				})
 
@@ -1441,6 +1469,10 @@ var _ = Describe("TaskStep", func() {
 						Expect(stepErr).To(Equal(context.Canceled))
 					})
 
+					It("is not successful", func() {
+						Expect(taskStep.Succeeded()).To(BeFalse())
+					})
+
 					Context("when container.stop returns an error", func() {
 						var disaster error
 
@@ -1455,6 +1487,10 @@ var _ = Describe("TaskStep", func() {
 
 						It("doesn't return the error", func() {
 							Expect(stepErr).To(Equal(context.Canceled))
+						})
+
+						It("is not successful", func() {
+							Expect(taskStep.Succeeded()).To(BeFalse())
 						})
 					})
 
@@ -1474,6 +1510,10 @@ var _ = Describe("TaskStep", func() {
 					It("returns the error", func() {
 						Expect(stepErr).To(Equal(disaster))
 					})
+
+					It("is not successful", func() {
+						Expect(taskStep.Succeeded()).To(BeFalse())
+					})
 				})
 			})
 		})
@@ -1488,6 +1528,10 @@ var _ = Describe("TaskStep", func() {
 			It("returns the error", func() {
 				Expect(stepErr).To(Equal(disaster))
 			})
+
+			It("is not successful", func() {
+				Expect(taskStep.Succeeded()).To(BeFalse())
+			})
 		})
 
 		Context("when getting the config fails", func() {
@@ -1499,6 +1543,10 @@ var _ = Describe("TaskStep", func() {
 
 			It("returns the error", func() {
 				Expect(stepErr).To(Equal(disaster))
+			})
+
+			It("is not successful", func() {
+				Expect(taskStep.Succeeded()).To(BeFalse())
 			})
 		})
 	})
