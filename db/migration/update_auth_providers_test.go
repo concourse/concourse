@@ -8,10 +8,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const preMigrationVersion = 1513895878
-const postMigrationVersion = 1516643303
-
 var _ = Describe("Update auth providers", func() {
+	const preMigrationVersion = 1513895878
+	const postMigrationVersion = 1516643303
+
 	var (
 		db *sql.DB
 	)
