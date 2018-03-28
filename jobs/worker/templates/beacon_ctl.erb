@@ -128,10 +128,10 @@ case $1 in
              --certs-path=<%= p("certs_path") %> \
            <% end %> \
            <% if p("http_proxy_url", nil) %> \
-             --http-proxy-url=<%= p("http_proxy_url") %> \
+             --http-proxy=<%= p("http_proxy_url") %> \
            <% end %> \
            <% if p("https_proxy_url", nil) %> \
-             --https-proxy-url=<%= p("https_proxy_url") %> \
+             --https-proxy=<%= p("https_proxy_url") %> \
            <% end %> \
            <% if p("no_proxy", nil) %> \
              --no-proxy=<%= p("no_proxy").join(",") %> \
