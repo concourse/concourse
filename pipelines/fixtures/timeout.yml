@@ -4,7 +4,7 @@ jobs:
   plan:
   - get: busybox
   - task: passing-task
-    timeout: 10s
+    timeout: 5m
     image: busybox
     config:
       platform: linux
