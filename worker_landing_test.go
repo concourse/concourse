@@ -21,17 +21,15 @@ var _ = Describe("[#129726011] Worker landing", func() {
 
 		Describe("restarting the worker", func() {
 			var restartingWorkerName string
-			var stopSession *gexec.Session
+			var restartSession *gexec.Session
 
 			JustBeforeEach(func() {
-				stopSession = spawnBosh("stop", "worker/0")
+				restartSession = spawnBosh("restart", "worker/0")
 				restartingWorkerName = waitForLandingOrLandedWorker()
 			})
 
 			AfterEach(func() {
-				<-stopSession.Exited
-
-				bosh("start", "worker/0")
+				<-restartSession.Exited
 			})
 
 			Context("while in landing or landed state", func() {
