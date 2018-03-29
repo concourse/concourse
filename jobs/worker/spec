@@ -9,9 +9,7 @@ description: >
 templates:
   drain.erb: bin/drain
   beacon_ctl.erb: bin/beacon_ctl
-
   tsa_host_key.pub.erb: config/tsa_host_key.pub
-  known_hosts.erb: config/known_hosts
   worker_key.erb: config/worker_key
 
 packages:

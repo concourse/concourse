@@ -18,7 +18,6 @@ files:
   - github.com/concourse/worker/drainer/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/land/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/retire/*.{go,s,c,h} # gosub
-  - github.com/concourse/worker/ssh/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/start/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/tsa/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub

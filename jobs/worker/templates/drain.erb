@@ -42,22 +42,20 @@ WORKER_KEY=/var/vcap/jobs/worker/config/worker_key
 chown vcap:vcap $WORKER_KEY
 chmod 0400 $WORKER_KEY
 
-KNOWN_HOSTS=/var/vcap/jobs/worker/config/known_hosts
-chown vcap:vcap $KNOWN_HOSTS
+TSA_HOST_KEY=/var/vcap/jobs/worker/config/tsa_host_key.pub
+chown vcap:vcap $TSA_HOST_KEY
+chmod 0400 $TSA_HOST_KEY
 
 WORKER_VERSION=$(cat /var/vcap/packages/worker_version/version)
 
 chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker \
 drain \
   --name=<%= name_prefix %>-$(hostname | cut -d '-' -f 2-) \
-  <% if p("certs_path", nil) %> \
-  --certs-path=<%= p("certs_path") %> \
-  <% end %> \
+  --tsa-public-key=${TSA_HOST_KEY} \
+  --tsa-worker-private-key=${WORKER_KEY} \
   <% tsa_addrs.each do |tsa_addr| %> \
-  --tsa-addr <%= tsa_addr %>:<%= tsa_port %> \
+  --tsa-host <%= tsa_addr %>:<%= tsa_port %> \
   <% end %> \
-  --user-known-hosts-file ${KNOWN_HOSTS} \
-  --tsa-ssh-key $WORKER_KEY \
   --beacon-pid-file=$RUN_DIR/beacon.pid \
   <% if_p("drain_timeout") do |drain_timeout| %> \
   --timeout=<%= drain_timeout %> \
