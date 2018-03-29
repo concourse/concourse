@@ -1,6 +1,7 @@
 package beacon
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"golang.org/x/crypto/ssh"
 )
+
+var ErrFailedToReachAnyTSA = errors.New("failed to connect to TSA")
 
 func NewSSHClient(logger lager.Logger, config Config) Client {
 	return &sshClient{
@@ -32,7 +35,8 @@ func (c *sshClient) Dial() (Closeable, error) {
 
 	conn, err := keepaliveDialer("tcp", tsaAddr, 10*time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to TSA: %s", err)
+		c.logger.Error("failed to connect to TSA", err)
+		return nil, ErrFailedToReachAnyTSA
 	}
 
 	pk, err := ssh.NewSignerFromKey(c.config.TSAConfig.WorkerPrivateKey.PrivateKey)

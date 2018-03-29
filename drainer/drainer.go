@@ -1,15 +1,16 @@
 package drainer
 
 import (
+	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/worker/ssh"
+	"github.com/concourse/worker/beacon"
 )
 
 type Drainer struct {
-	SSHRunner    ssh.Runner
+	BeaconClient beacon.BeaconClient
 	IsShutdown   bool
 	WatchProcess WatchProcess
 	WaitInterval time.Duration
@@ -39,9 +40,13 @@ func (d *Drainer) Drain(logger lager.Logger) error {
 			logger.Debug("drain-timeout-passed-exiting")
 
 			if d.IsShutdown {
-				err := d.SSHRunner.DeleteWorker(logger)
+
+				signals := make(chan os.Signal)
+				readyChan := make(chan struct{})
+
+				err := d.BeaconClient.DeleteWorker(signals, readyChan)
 				if err != nil {
-					if err == ssh.ErrFailedToReachAnyTSA {
+					if err == beacon.ErrFailedToReachAnyTSA {
 						logger.Debug(err.Error())
 						return nil
 					}
@@ -49,33 +54,39 @@ func (d *Drainer) Drain(logger lager.Logger) error {
 					logger.Error("failed-to-delete-worker", err)
 					return err
 				}
+				logger.Info("finished-deleting-worker")
 			}
 
 			return nil
 		}
 
 		if d.IsShutdown {
-			err := d.SSHRunner.RetireWorker(logger)
+			signals := make(chan os.Signal)
+			readyChan := make(chan struct{})
+			err := d.BeaconClient.RetireWorker(signals, readyChan)
 			if err != nil {
-				if err == ssh.ErrFailedToReachAnyTSA {
+				if err == beacon.ErrFailedToReachAnyTSA {
 					logger.Debug(err.Error())
 					return nil
 				}
 
 				logger.Error("failed-to-retire-worker", err)
 			}
+			logger.Info("finished-retiring-worker")
 		} else {
-			err = d.SSHRunner.LandWorker(logger)
+			signals := make(chan os.Signal)
+			readyChan := make(chan struct{})
+			err = d.BeaconClient.LandWorker(signals, readyChan)
 			if err != nil {
-				if err == ssh.ErrFailedToReachAnyTSA {
+				if err == beacon.ErrFailedToReachAnyTSA {
 					logger.Debug(err.Error())
 					return nil
 				}
 
 				logger.Error("failed-to-land-worker", err)
 			}
+			logger.Info("finished-landing-worker")
 		}
-
 		d.Clock.Sleep(d.WaitInterval)
 	}
 }

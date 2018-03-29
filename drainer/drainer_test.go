@@ -7,10 +7,10 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/worker/beacon"
+	"github.com/concourse/worker/beacon/beaconfakes"
 	. "github.com/concourse/worker/drainer"
 	"github.com/concourse/worker/drainer/drainerfakes"
-	"github.com/concourse/worker/ssh"
-	"github.com/concourse/worker/ssh/sshfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,24 +18,24 @@ import (
 
 var _ = Describe("Drainer", func() {
 	var drainer *Drainer
-	var fakeSSHRunner *sshfakes.FakeRunner
 	var logger *lagertest.TestLogger
 	var fakeWatchProcess *drainerfakes.FakeWatchProcess
 	var fakeClock *fakeclock.FakeClock
 	var waitInterval time.Duration
+	var fakeBeaconClient *beaconfakes.FakeBeaconClient
 
 	BeforeEach(func() {
 		waitInterval = 5 * time.Second
 		logger = lagertest.NewTestLogger("drainer")
-		fakeSSHRunner = new(sshfakes.FakeRunner)
 		fakeWatchProcess = new(drainerfakes.FakeWatchProcess)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
+		fakeBeaconClient = new(beaconfakes.FakeBeaconClient)
 	})
 
 	Context("when shutting down", func() {
 		BeforeEach(func() {
 			drainer = &Drainer{
-				SSHRunner:    fakeSSHRunner,
+				BeaconClient: fakeBeaconClient,
 				IsShutdown:   true,
 				WatchProcess: fakeWatchProcess,
 				Clock:        fakeClock,
@@ -51,7 +51,7 @@ var _ = Describe("Drainer", func() {
 				err := drainer.Drain(logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeSSHRunner.RetireWorkerCallCount()).To(Equal(0))
+				Expect(fakeBeaconClient.RetireWorkerCallCount()).To(Equal(0))
 			})
 		})
 
@@ -87,37 +87,37 @@ var _ = Describe("Drainer", func() {
 				err := drainer.Drain(logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeSSHRunner.RetireWorkerCallCount()).To(Equal(5))
-				Expect(fakeSSHRunner.LandWorkerCallCount()).To(Equal(0))
+				Expect(fakeBeaconClient.RetireWorkerCallCount()).To(Equal(5))
+				Expect(fakeBeaconClient.LandWorkerCallCount()).To(Equal(0))
 			})
 
 			Context("when retiring worker fails", func() {
 				var disaster = errors.New("disaster")
 
 				BeforeEach(func() {
-					fakeSSHRunner.RetireWorkerReturns(disaster)
+					fakeBeaconClient.RetireWorkerReturns(disaster)
 				})
 
 				It("does not return an error and keeps retrying", func() {
 					err := drainer.Drain(logger)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakeSSHRunner.RetireWorkerCallCount()).To(Equal(5))
-					Expect(fakeSSHRunner.LandWorkerCallCount()).To(Equal(0))
+					Expect(fakeBeaconClient.RetireWorkerCallCount()).To(Equal(5))
+					Expect(fakeBeaconClient.LandWorkerCallCount()).To(Equal(0))
 				})
 			})
 
 			Context("when retiring worker fails to reach any tsa", func() {
 				BeforeEach(func() {
-					fakeSSHRunner.RetireWorkerReturns(ssh.ErrFailedToReachAnyTSA)
+					fakeBeaconClient.RetireWorkerReturns(beacon.ErrFailedToReachAnyTSA)
 				})
 
 				It("does not return an error and stops retrying", func() {
 					err := drainer.Drain(logger)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakeSSHRunner.RetireWorkerCallCount()).To(Equal(1))
-					Expect(fakeSSHRunner.LandWorkerCallCount()).To(Equal(0))
+					Expect(fakeBeaconClient.RetireWorkerCallCount()).To(Equal(1))
+					Expect(fakeBeaconClient.LandWorkerCallCount()).To(Equal(0))
 				})
 			})
 
@@ -131,16 +131,16 @@ var _ = Describe("Drainer", func() {
 					err := drainer.Drain(logger)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakeSSHRunner.RetireWorkerCallCount()).To(Equal(3))
-					Expect(fakeSSHRunner.DeleteWorkerCallCount()).To(Equal(1))
-					Expect(fakeSSHRunner.LandWorkerCallCount()).To(Equal(0))
+					Expect(fakeBeaconClient.RetireWorkerCallCount()).To(Equal(3))
+					Expect(fakeBeaconClient.DeleteWorkerCallCount()).To(Equal(1))
+					Expect(fakeBeaconClient.LandWorkerCallCount()).To(Equal(0))
 				})
 
 				Context("when deleting worker fails", func() {
 					var disaster = errors.New("disaster")
 
 					BeforeEach(func() {
-						fakeSSHRunner.DeleteWorkerReturns(disaster)
+						fakeBeaconClient.DeleteWorkerReturns(disaster)
 					})
 
 					It("returns an error", func() {
@@ -152,7 +152,7 @@ var _ = Describe("Drainer", func() {
 
 				Context("when deleting worker fails to reach any tsa", func() {
 					BeforeEach(func() {
-						fakeSSHRunner.DeleteWorkerReturns(ssh.ErrFailedToReachAnyTSA)
+						fakeBeaconClient.DeleteWorkerReturns(beacon.ErrFailedToReachAnyTSA)
 					})
 
 					It("does not return an error", func() {
@@ -167,7 +167,7 @@ var _ = Describe("Drainer", func() {
 	Context("when not shutting down", func() {
 		BeforeEach(func() {
 			drainer = &Drainer{
-				SSHRunner:    fakeSSHRunner,
+				BeaconClient: fakeBeaconClient,
 				IsShutdown:   false,
 				WatchProcess: fakeWatchProcess,
 				Clock:        fakeClock,
@@ -183,7 +183,7 @@ var _ = Describe("Drainer", func() {
 				err := drainer.Drain(logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeSSHRunner.LandWorkerCallCount()).To(Equal(0))
+				Expect(fakeBeaconClient.LandWorkerCallCount()).To(Equal(0))
 			})
 		})
 
@@ -219,37 +219,37 @@ var _ = Describe("Drainer", func() {
 				err := drainer.Drain(logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeSSHRunner.LandWorkerCallCount()).To(Equal(5))
-				Expect(fakeSSHRunner.RetireWorkerCallCount()).To(Equal(0))
+				Expect(fakeBeaconClient.LandWorkerCallCount()).To(Equal(5))
+				Expect(fakeBeaconClient.RetireWorkerCallCount()).To(Equal(0))
 			})
 
 			Context("when landing worker fails", func() {
 				var disaster = errors.New("disaster")
 
 				BeforeEach(func() {
-					fakeSSHRunner.LandWorkerReturns(disaster)
+					fakeBeaconClient.LandWorkerReturns(disaster)
 				})
 
 				It("does not return an error and keeps retrying", func() {
 					err := drainer.Drain(logger)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakeSSHRunner.LandWorkerCallCount()).To(Equal(5))
-					Expect(fakeSSHRunner.RetireWorkerCallCount()).To(Equal(0))
+					Expect(fakeBeaconClient.LandWorkerCallCount()).To(Equal(5))
+					Expect(fakeBeaconClient.RetireWorkerCallCount()).To(Equal(0))
 				})
 			})
 
 			Context("when landing worker fails to reach any tsa", func() {
 				BeforeEach(func() {
-					fakeSSHRunner.LandWorkerReturns(ssh.ErrFailedToReachAnyTSA)
+					fakeBeaconClient.LandWorkerReturns(beacon.ErrFailedToReachAnyTSA)
 				})
 
 				It("does not return an error and stops retrying", func() {
 					err := drainer.Drain(logger)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakeSSHRunner.LandWorkerCallCount()).To(Equal(1))
-					Expect(fakeSSHRunner.RetireWorkerCallCount()).To(Equal(0))
+					Expect(fakeBeaconClient.LandWorkerCallCount()).To(Equal(1))
+					Expect(fakeBeaconClient.RetireWorkerCallCount()).To(Equal(0))
 				})
 			})
 
@@ -263,9 +263,9 @@ var _ = Describe("Drainer", func() {
 					err := drainer.Drain(logger)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakeSSHRunner.LandWorkerCallCount()).To(Equal(3))
-					Expect(fakeSSHRunner.DeleteWorkerCallCount()).To(Equal(0))
-					Expect(fakeSSHRunner.RetireWorkerCallCount()).To(Equal(0))
+					Expect(fakeBeaconClient.LandWorkerCallCount()).To(Equal(3))
+					Expect(fakeBeaconClient.DeleteWorkerCallCount()).To(Equal(0))
+					Expect(fakeBeaconClient.RetireWorkerCallCount()).To(Equal(0))
 				})
 			})
 		})

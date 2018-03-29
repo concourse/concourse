@@ -11,17 +11,18 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) beacon.Beacon {
+func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) beacon.BeaconClient {
 	logger.Debug("setting-up-beacon-runner")
 	client := beacon.NewSSHClient(logger.Session("beacon-client"), config)
 
-	return beacon.Beacon{
+	return &beacon.Beacon{
 		Logger:                  logger,
 		Worker:                  worker,
 		Client:                  client,
 		GardenForwardAddr:       config.GardenForwardAddr,
 		BaggageclaimForwardAddr: config.BaggageclaimForwardAddr,
 		RegistrationMode:        config.RegistrationMode,
+		KeepAlive:               true,
 	}
 }
 

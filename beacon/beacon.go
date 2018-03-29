@@ -16,13 +16,12 @@ import (
 const gardenForwardAddr = "0.0.0.0:7777"
 const baggageclaimForwardAddr = "0.0.0.0:7788"
 
-//go:generate counterfeiter . Closable
+//go:generate counterfeiter . Closeable
 type Closeable interface {
 	Close() error
 }
 
 //go:generate counterfeiter . Client
-
 type Client interface {
 	KeepAlive() (<-chan error, chan<- struct{})
 	NewSession(stdin io.Reader, stdout io.Writer, stderr io.Writer) (Session, error)
@@ -38,6 +37,15 @@ type Session interface {
 	Start(command string) error
 }
 
+//go:generate counterfeiter . BeaconClient
+type BeaconClient interface {
+	Register(signals <-chan os.Signal, ready chan<- struct{}) error
+	RetireWorker(signals <-chan os.Signal, ready chan<- struct{}) error
+	LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error
+	DeleteWorker(signals <-chan os.Signal, ready chan<- struct{}) error
+	DisableKeepAlive()
+}
+
 type Beacon struct {
 	Logger                  lager.Logger
 	Worker                  atc.Worker
@@ -45,6 +53,7 @@ type Beacon struct {
 	GardenForwardAddr       string
 	BaggageclaimForwardAddr string
 	RegistrationMode        RegistrationMode
+	KeepAlive               bool
 }
 
 type RegistrationMode string
@@ -89,6 +98,15 @@ func (beacon *Beacon) LandWorker(signals <-chan os.Signal, ready chan<- struct{}
 	return beacon.run("land-worker", signals, ready)
 }
 
+func (beacon *Beacon) DeleteWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
+	beacon.Logger.Debug("delete-worker.start")
+	return beacon.run("delete-worker", signals, ready)
+}
+
+func (beacon *Beacon) DisableKeepAlive() {
+	beacon.KeepAlive = false
+}
+
 func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<- struct{}) error {
 	conn, err := beacon.Client.Dial()
 	if err != nil {
@@ -96,7 +114,12 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 	}
 	defer conn.Close()
 
-	keepaliveFailed, cancelKeepalive := beacon.Client.KeepAlive()
+	var cancelKeepalive chan<- struct{}
+	var keepaliveFailed <-chan error
+
+	if beacon.KeepAlive {
+		keepaliveFailed, cancelKeepalive = beacon.Client.KeepAlive()
+	}
 
 	workerPayload, err := json.Marshal(beacon.Worker)
 	if err != nil {
@@ -108,6 +131,7 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 		os.Stdout,
 		os.Stderr,
 	)
+
 	if err != nil {
 		return fmt.Errorf("failed to create session: %s", err)
 	}
@@ -147,9 +171,10 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 
 	select {
 	case <-signals:
-		close(cancelKeepalive)
+		if beacon.KeepAlive {
+			close(cancelKeepalive)
+		}
 		sess.Close()
-
 		<-exited
 
 		// don't bother waiting for keepalive

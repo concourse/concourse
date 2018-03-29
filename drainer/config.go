@@ -4,21 +4,21 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/worker/ssh"
+	"github.com/concourse/atc"
+	"github.com/concourse/worker"
+	"github.com/concourse/worker/beacon"
+	"github.com/concourse/worker/tsa"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 )
 
 type Config struct {
-	WorkerName         string         `long:"name" required:"true" description:"The name of the worker you wish to drain."`
-	CertsPath          *string        `long:"certs-path"`
-	UserKnownHostsFile string         `long:"user-known-hosts-file" description:"Path to user known hosts file."`
-	TSASSHKeyFile      string         `long:"tsa-ssh-key" description:"Path to TSA SSH key."`
-	BeaconPidFile      string         `long:"beacon-pid-file" description:"Path to beacon pid file."`
-	TSAAddrs           []string       `long:"tsa-addr" description:"Address of a TSA host." value-name:"127.0.0.1:2222"`
-	IsShutdown         bool           `long:"shutdown" description:"Whether worker is about to shutdown."`
-	Timeout            *time.Duration `long:"timeout" description:"Maximum time to wait for draining to finish."`
+	WorkerName    string         `long:"name" required:"true" description:"The name of the worker you wish to drain."`
+	BeaconPidFile string         `long:"beacon-pid-file" description:"Path to beacon pid file."`
+	IsShutdown    bool           `long:"shutdown" description:"Whether worker is about to shutdown."`
+	Timeout       *time.Duration `long:"timeout" description:"Maximum time to wait for draining to finish."`
+	TSAConfig     tsa.Config     `group:"TSA Configuration" namespace:"tsa" required:"true"`
 }
 
 func (cmd *Config) Execute(args []string) error {
@@ -29,21 +29,21 @@ func (cmd *Config) Execute(args []string) error {
 
 	logger.Debug("running-drain", lager.Data{"shutdown": cmd.IsShutdown})
 
-	sshRunner := ssh.NewRunner(
-		ssh.Options{
-			Name:                cmd.WorkerName,
-			CertsPath:           *cmd.CertsPath,
-			Addrs:               cmd.TSAAddrs,
-			PrivateKeyFile:      cmd.TSASSHKeyFile,
-			UserKnownHostsFile:  cmd.UserKnownHostsFile,
-			ConnectTimeout:      30,
-			ServerAliveInterval: 8,
-			ServerAliveCountMax: 3,
+	beacon := worker.NewBeacon(
+		logger,
+		atc.Worker{
+			Name: cmd.WorkerName,
+		},
+		beacon.Config{
+			TSAConfig: cmd.TSAConfig,
 		},
 	)
 
+	// drain commands need not keep the connection alive since it is just one off commands to TSA API
+	beacon.DisableKeepAlive()
+
 	drainer := &Drainer{
-		SSHRunner:    sshRunner,
+		BeaconClient: beacon,
 		IsShutdown:   cmd.IsShutdown,
 		WatchProcess: NewBeaconWatchProcess(cmd.BeaconPidFile),
 		WaitInterval: 15 * time.Second,
