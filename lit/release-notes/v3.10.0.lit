@@ -2,10 +2,11 @@
 
 \release{2018-3-29}{3.10.0}{1.12.1}{
   \warn{
-    This release requires a re-create of your \reference{worker-node}s, and
-    includes a worker protocol version bump. We recommend spining up a new pool
-    of workers, upgrading your \reference{web-node}s, and then removing the old
-    workers.
+    This release involves a worker protocol version bump, from \code{1.3} to
+    \code{2.0}. It also switches out the volume driver, meaning old volumes may
+    no longer be visible after the upgrade. We recommend spining up a new pool
+    of \reference{worker-node}s, upgrading your \reference{web-node}s, and then
+    removing the old workers.
   }
 
   \note{feature,breaking}{
