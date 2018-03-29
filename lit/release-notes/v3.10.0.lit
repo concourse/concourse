@@ -53,4 +53,14 @@
     exit early on certain environments (more info
     \link{here}{https://github.com/concourse/docker-image-resource/issues/170}).
   }
+
+  \note{fix}{
+    Cleaned up a noisy PostgreSQL error that would occur on start when checking
+    for the legacy \code{migration_version} table.
+  }
+
+  \note{fix}{
+    Fixed a UI glitch that caused the last line to be misaligned with the
+    timestamps if it had no trailing linebreak.
+  }
 }
