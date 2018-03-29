@@ -24,7 +24,10 @@
   Creating docs_concourse_1    ... done
   }}
 
-  Next, install \reference{fly-cli} and target your local Concourse:
+  Concourse will be running at \link{127.0.0.1:8080}{http://127.0.0.1:8080}.
+
+  Next, install \reference{fly-cli} by downloading it from the web UI and
+  target your local Concourse:
 
   \codeblock{bash}{{
   $ fly -t tutorial login -c http://127.0.0.1:8080
