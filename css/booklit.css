@@ -559,10 +559,10 @@ h2, h3 {
   margin: 10px 0 30px;
 }
 
-.warning {
-  border-left: 2px solid #F5A623;
-  color: #D58808;
-  padding-left: 16px;
+.warning p {
+  background: #fffddc;
+  color: #555332;
+  padding: 5px 10px;
 }
 
 .tutorial-image {
