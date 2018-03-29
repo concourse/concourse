@@ -8,12 +8,12 @@
   }
 
   \note{feature,breaking}{
-    The \code{concourse} command can now be pointed at \italic{multiple} TSA
-    addresses, rather than one, so that it can retry against a random one each
-    time. As part of this, we've removed the \code{--tsa-port} flag and changed
-    \code{--tsa-host} to instead take a \code{host:port}. (Because
-    \link{TECHNICALLY}{images/technically.gif}, they could be on different
-    ports.)
+    The \code{concourse} worker commands can now be pointed at
+    \italic{multiple} TSA addresses, rather than one, so that it can retry
+    against a random one each time. As part of this, we've removed the
+    \code{--tsa-port} flag and changed \code{--tsa-host} to instead take a
+    \code{host:port}. (Because \link{TECHNICALLY}{images/technically.gif}, they
+    could be on different ports.)
   }
 
   \note{feature}{
