@@ -432,8 +432,9 @@ as).
   There are a few reasons it'd be a bad idea to do otherwise:
 
   \list{
-    Any team can run \reference{privileged} builds. A bad actor in the mix
-    could easily use this to harm your workers and your cluster.
+    Any team can run builds with \reference{task-step-privileged} tasks. A bad
+    actor in the mix could easily use this to harm your workers and your
+    cluster.
 
     In the future, we'll probably have this as a flag on a team, indicating
     whether they're permitted to run privileged builds.

@@ -93,7 +93,7 @@ of a task.
   This is a gaping security hole; use wisely and only if necessary. This is not
   part of the task configuration to prevent privilege escalation via pull
   requests.
-}
+}{task-step-privileged}
 
 \define-attribute{params: object}{
   \italic{Optional.} A map of task parameters to set, overriding those

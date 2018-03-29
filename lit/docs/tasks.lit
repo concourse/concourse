@@ -425,8 +425,8 @@ A task's configuration specifies the following:
   the user set by a \code{USER} rule in your \code{Dockerfile}, or \code{root}
   if not specified.
 
-  Another relevant bit of configuration is \reference{privileged}, which
-  determines whether the user the task runs as will have full privileges
+  Another relevant bit of configuration is \reference{task-step-privileged},
+  which determines whether the user the task runs as will have full privileges
   (primarily when running as \code{root}). This is intentionally \italic{not}
   configurable by the task itself, to prevent privilege escalation by way of
   pull requests to repositories containing task configs.

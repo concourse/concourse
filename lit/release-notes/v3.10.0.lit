@@ -7,11 +7,40 @@
     don't care. Read on for more info.
   }
 
+  \note{feature,breaking}{
+    The \code{concourse} command can now be pointed at \italic{multiple} TSA
+    addresses, rather than one, so that it can retry against a random one each
+    time. As part of this, we've removed the \code{--tsa-port} flag and changed
+    \code{--tsa-host} to instead take a \code{host:port}. (Because
+    \link{TECHNICALLY}{images/technically.gif}, they could be on different
+    ports.)
+  }
+
   \note{feature}{
     We've revamped how \reference{fly-execute} gets its inputs and outputs
     to/from the build, so that configuring the \reference{component-atc} with
     an external URL is no longer required. See \ghissue{2069} for the
     nitty-gritty.
+  }
+
+  \note{feature}{
+    We've switched back to \code{btrfs} as the default driver. We switched away
+    in \reference{v3.1.0} in the midst of a ton of stability issues, which we
+    have think we've fixed in \reference{v3.9.0}.
+
+    This resolves a long-standing performance issue when using privileged tasks
+    or resource types (like the \resource{docker-image}).
+
+    Keep your eyes peeled for any stability issues though; with container
+    filesystems it's truly a matter of "pick your poison" these days, and while
+    things should be much \italic{more} stable now, we really can't guarantee
+    it. Be sure to use the latest possible kernel version so that you have the
+    latest \code{btrfs}.
+  }
+
+  \note{fix}{
+    Previously, \reference{resource-type-tags} didn't get no respect. It now
+    works.
   }
 
   \note{fix}{
