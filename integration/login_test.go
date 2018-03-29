@@ -506,6 +506,61 @@ var _ = Describe("login Command", func() {
 					),
 				)
 			})
+			Context("when an OAuth method is chosen", func() {
+				It("logs into fly and manually enters invalid token", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("1. Basic"))
+					Eventually(sess.Out).Should(gbytes.Say("2. OAuth Type 1"))
+					Eventually(sess.Out).Should(gbytes.Say("3. OAuth Type 2"))
+					Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
+
+					_, err = fmt.Fprintf(stdin, "3\n")
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("navigate to the following URL in your browser:"))
+					Eventually(sess.Out).Should(gbytes.Say("    https://example.com/auth/oauth-2"))
+					Eventually(sess.Out).Should(gbytes.Say("or enter token manually:"))
+
+					_, err = fmt.Fprintf(stdin, "Bearer literalbearertoken\n")
+					Expect(err).NotTo(HaveOccurred())
+
+					err = stdin.Close()
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess.Out).Should(gbytes.Say("token must be of valid JWT format"))
+				})
+
+				It("logs into fly and manually enters correct token", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("1. Basic"))
+					Eventually(sess.Out).Should(gbytes.Say("2. OAuth Type 1"))
+					Eventually(sess.Out).Should(gbytes.Say("3. OAuth Type 2"))
+					Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
+
+					_, err = fmt.Fprintf(stdin, "3\n")
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("navigate to the following URL in your browser:"))
+					Eventually(sess.Out).Should(gbytes.Say("    https://example.com/auth/oauth-2"))
+					Eventually(sess.Out).Should(gbytes.Say("or enter token manually:"))
+
+					_, err = fmt.Fprintf(stdin, "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjc3JmIjoiNjgyMWY4ZjM1ZjdlNTIyM2I0NWY5OTIxODBhMzI4OTdjY2JkNDdhODQxNGJiNjZkNGYwMGFlZjFhNjhlMTk5ZCIsImV4cCI6MTUyMjQxNzgyNywiaXNBZG1pbiI6dHJ1ZSwidGVhbU5hbWUiOiJtYWluIn0.MyLaDKv6H02rkEF4b3QN-dPLLsMvXMgKtQNqt6tfJrffdeDZvfl5XSrtAoJynhH0-wTPLpcw5JwrFFeIcMeXMcY_ALqXPuGc-sU0ocAPZKe3GDS129exw0OYz8-sxTLU4RJ-6xKdexf4EyxrTAIai1LnUKwlCTrSHB_PCoZk8hlfrq40ELaF7DEc8vA1XLSddTJpsfmB9BN5A2QFi-tBqusmnsBhMiY-o4jeOXS9kZcq1rpHwJZ9XuNvQf9YaKT5yVQdr5kgV5Fa0Eok17CFGUDXDRdKk1Iy7GBGD73SST99FQMenY8d_WvoX51EdV-2tekeRe2t6tYCYyrlE7bdcA\n")
+					Expect(err).NotTo(HaveOccurred())
+
+					err = stdin.Close()
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess.Out).Should(gbytes.Say("target saved"))
+				})
+			})
 
 			Context("when an OAuth method is chosen", func() {
 				It("logs into fly and uses the correct token", func() {

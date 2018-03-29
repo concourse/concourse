@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/skymarshal/provider"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/vito/go-interact/interact"
 )
 
@@ -284,6 +285,16 @@ func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
 
 			errorChannel <- err
 			return
+		}
+		parse := jwt.Parser{
+			SkipClaimsValidation: true,
+		}
+		// Not verifying the signature or claims. Only verifying token has valid number of segments.
+		_, _, err = parse.ParseUnverified(tokenValue, jwt.MapClaims{})
+
+		if err != nil {
+			fmt.Println("token must be of valid JWT format")
+			errorChannel <- err
 		}
 
 		tokenChannel <- tokenType + " " + tokenValue
