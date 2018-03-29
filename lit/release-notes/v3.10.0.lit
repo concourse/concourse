@@ -2,9 +2,10 @@
 
 \release{2018-3-29}{3.10.0}{1.12.1}{
   \warn{
-    This release requires an update to your workers. You may want to upgrade
-    them first, actually. If you don't the builds will go orange. But maybe you
-    don't care. Read on for more info.
+    This release requires a re-create of your \reference{worker-node}s, and
+    includes a worker protocol version bump. We recommend spining up a new pool
+    of workers, upgrading your \reference{web-node}s, and then removing the old
+    workers.
   }
 
   \note{feature,breaking}{
