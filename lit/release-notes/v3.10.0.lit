@@ -1,0 +1,56 @@
+\use-plugin{concourse-docs}
+
+\release{2018-3-29}{3.10.0}{1.12.1}{
+  \warn{
+    This release requires an update to your workers. You may want to upgrade
+    them first, actually. If you don't the builds will go orange. But maybe you
+    don't care. Read on for more info.
+  }
+
+  \note{feature}{
+    We've revamped how \reference{fly-execute} gets its inputs and outputs
+    to/from the build, so that configuring the \reference{component-atc} with
+    an external URL is no longer required. See \ghissue{2069} for the
+    nitty-gritty.
+  }
+
+  \note{fix}{
+    Fixed a crash that would occur when a \reference{task-step} errored with
+    the next step using an \reference{attempts-step-modifier}.
+  }
+
+  \note{feature}{
+    The \code{concourse} binary (and Docker image) now supports a
+    \code{quickstart} command, which will spin up an itty bitty Concourse
+    cluster with a single worker.
+  }
+
+  \note{feature}{
+    The \resource{docker-image} now supports pushing multiple tags, thanks to a
+    combined effort of \ghuser{gcmalloc} and \ghuser{jerith}!
+  }
+
+  \note{feature}{
+    When the \reference{component-atc} is streaming data between workers, the
+    stream will now be \code{gzip}-compressed, which should speed things up
+    quite a bit.
+  }
+
+  \note{feature,security}{
+    The \reference{component-atc} now requires TLS v1.2+ and a \link{stricter
+    set of cipher
+    suites}{https://github.com/concourse/atc/blob/ed08aa96b357a19a6dca08608108cb6e07735aa7/atccmd/command.go#L703-L707}
+    (say that five times fast!)
+  }
+
+  \note{fix}{
+    Concourse now supports the newer \code{umask}-hardened BOSH stemcells
+    (v3541.x).
+  }
+
+  \note{fix}{
+    Fixed a botched \code{bash}ism that led to the \resource{docker-image} to
+    exit early on certain environments (more info
+    \link{here}{https://github.com/concourse/docker-image-resource/issues/170}).
+  }
+}
