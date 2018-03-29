@@ -30,7 +30,7 @@
     nitty-gritty.
   }
 
-  \note{feature}{
+  \note{feature,breaking}{
     We've switched back to \code{btrfs} as the default driver. We switched away
     in \reference{v3.1.0} in the midst of a ton of stability issues, which we
     have think we've fixed in \reference{v3.9.0}.
