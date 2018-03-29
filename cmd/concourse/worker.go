@@ -35,6 +35,7 @@ type WorkerCommand struct {
 
 	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
 
+	Logger  flag.Lager
 	Metrics struct {
 		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
 		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
@@ -51,8 +52,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 }
 
 func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
-	logger := lager.NewLogger("worker")
-	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.INFO))
+	logger, _ := cmd.Logger.Logger("worker")
 
 	hasAssets, err := cmd.setup(logger.Session("setup"))
 	if err != nil {
