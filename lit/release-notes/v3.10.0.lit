@@ -1,21 +1,26 @@
 \use-plugin{concourse-docs}
 
 \release{2018-3-29}{3.10.0}{1.12.1}{
-  \warn{
+  \note{breaking}{
     This release involves a worker protocol version bump, from \code{1.3} to
-    \code{2.0}. It also switches out the volume driver, meaning old volumes may
-    no longer be visible after the upgrade. We recommend spining up a new pool
-    of \reference{worker-node}s, upgrading your \reference{web-node}s, and then
-    removing the old workers.
+    \code{2.0}, and also switches the default
+    \reference{component-baggageclaim} driver back to \code{btrfs}. Read on for
+    more information!
+
+    We recommend spinning up a new pool of \reference{worker-node}s, upgrading
+    your \reference{web-node}s, and then removing the old workers. Otherwise
+    your workers may get swarmed with containers, if only one \code{2.0} worker
+    is added at a time with the web nodes already upgraded.
   }
 
   \note{feature,breaking}{
     The \code{concourse} worker commands can now be pointed at
-    \italic{multiple} TSA addresses, rather than one, so that it can retry
-    against a random one each time. As part of this, we've removed the
-    \code{--tsa-port} flag and changed \code{--tsa-host} to instead take a
-    \code{host:port}. (Because \link{TECHNICALLY}{images/technically.gif}, they
-    could be on different ports.)
+    \italic{multiple} \reference{component-tsa} addresses, rather than one, so
+    that it can retry against a random node each time. As part of this, we've
+    removed the \code{--tsa-port} flag and changed \code{--tsa-host} to instead
+    take a \code{host:port}. (Because
+    \link{TECHNICALLY}{images/technically.gif}, they could be on different
+    ports.)
   }
 
   \note{feature}{
@@ -31,23 +36,23 @@
     have think we've fixed in \reference{v3.9.0}.
 
     This resolves a long-standing performance issue when using privileged tasks
-    or resource types (like the \resource{docker-image}).
+    or resource types (like the \resource{docker-image}). For more information,
+    see \ghissue{1404} and \ghissue{1966}.
 
-    Keep your eyes peeled for any stability issues though; with container
-    filesystems it's truly a matter of "pick your poison" these days, and while
-    things should be much \italic{more} stable now, we really can't guarantee
-    it. Be sure to use the latest possible kernel version so that you have the
-    latest \code{btrfs}.
+    Be sure to use the latest possible kernel version so that you have a
+    \code{btrfs} with the latest fixes. We suspect that this will still be an
+    occasional issue, though far less frequent.
   }
 
   \note{fix}{
-    Previously, \reference{resource-type-tags} didn't get no respect. It now
-    works.
+    Previously, \reference{resource-type-tags} on a resource type didn't get no
+    respect. They are now respected.
   }
 
   \note{fix}{
-    Fixed a crash that would occur when a \reference{task-step} errored with
-    the next step using an \reference{attempts-step-modifier}.
+    Fixed an \reference{component-atc} crash that would occur when a
+    \reference{task-step} errored with the next step using an
+    \reference{attempts-step-modifier}.
   }
 
   \note{feature}{
@@ -64,14 +69,14 @@
   \note{feature}{
     When the \reference{component-atc} is streaming data between workers, the
     stream will now be \code{gzip}-compressed, which should speed things up
-    quite a bit.
+    quite a bit. (This is what caused the worker version bump to \code{2.0}.)
   }
 
   \note{feature,security}{
     The \reference{component-atc} now requires TLS v1.2+ and a \link{stricter
     set of cipher
-    suites}{https://github.com/concourse/atc/blob/ed08aa96b357a19a6dca08608108cb6e07735aa7/atccmd/command.go#L703-L707}
-    (say that five times fast!)
+    suites}{https://github.com/concourse/atc/blob/ed08aa96b357a19a6dca08608108cb6e07735aa7/atccmd/command.go#L703-L707}.
+    Say that five times fast!
   }
 
   \note{fix}{
