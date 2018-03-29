@@ -3,6 +3,7 @@ package migrations
 import (
 	"database/sql"
 	"encoding/json"
+	"strings"
 )
 
 type GroupConfig struct {
@@ -27,25 +28,7 @@ func (self *migrations) Up_1522178770() error {
 		_ = tx.Rollback()
 	}()
 
-	rows, err := tx.Query("SELECT id, name FROM jobs")
-	if err != nil {
-		return err
-	}
-
-	jobs := make(map[string]int)
-	for rows.Next() {
-		var id int
-		var name string
-
-		err = rows.Scan(&id, &name)
-		if err != nil {
-			return err
-		}
-
-		jobs[name] = id
-	}
-
-	rows, err = tx.Query("SELECT id, groups FROM pipelines")
+	rows, err := tx.Query("SELECT id, groups FROM pipelines")
 	if err != nil {
 		return err
 	}
@@ -75,15 +58,23 @@ func (self *migrations) Up_1522178770() error {
 	}
 
 	for _, pipeline := range pipelines {
+		jobGroups := make(map[string][]string)
+
 		for _, group := range pipeline.Groups {
 			for _, job := range group.Jobs {
-				_, err = tx.Exec(`
-					INSERT INTO job_tags(job_id, tag)
-					VALUES ($1, $2)
-				`, jobs[job], group.Name)
-				if err != nil {
-					return err
-				}
+				jobGroups[job] = append(jobGroups[job], group.Name)
+			}
+		}
+
+		for job, groups := range jobGroups {
+			_, err = tx.Exec(`
+					UPDATE jobs
+					SET tags = '{`+strings.Join(groups, ",")+`}'
+					WHERE pipeline_id = $1
+					AND name = $2
+				`, pipeline.ID, job)
+			if err != nil {
+				return err
 			}
 		}
 	}
