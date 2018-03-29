@@ -21,10 +21,10 @@ public/main.css: $(LESS_FILES)
 	lessc --clean-css="--advanced" assets/css/main.less $@
 
 public/elm.min.js: public/elm.js
-	closure-compiler --js $< --js_output_file $@
+	uglifyjs < $< > $@
 
 public/elm-beta.min.js: public/elm-beta.js
-	closure-compiler --js $< --js_output_file $@
+	uglifyjs < $< > $@
 
 test: all
 	cd elm && elm-test
