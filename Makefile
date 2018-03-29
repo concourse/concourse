@@ -15,7 +15,7 @@ public/elm.js: $(ELM_FILES) $(ELM_TESTS_FILES)
 	cd elm && elm make --warn --output ../public/elm.js --yes src/Main.elm
 
 public/elm-beta.js: $(ELM_BETA_FILES) $(ELM_TESTS_FILES)
-	cd elm && elm make --warn --output ../public/elm-beta.js --yes src/beta/BetaMain.elm
+	cd elm && elm make --warn --output ../public/elm-beta.js --yes src/Beta/BetaMain.elm
 
 public/main.css: $(LESS_FILES)
 	lessc --clean-css="--advanced" assets/css/main.less $@
