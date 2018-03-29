@@ -5,7 +5,7 @@ BEGIN;
       "worker_name" text,
       "certs_path" text,
       PRIMARY KEY ("id"),
-      CONSTRAINT "worker_resource_certs_worker_name_fkey" FOREIGN KEY ("worker_name") REFERENCES "public"."workers"("name") ON DELETE CASCADE ON UPDATE SET NULL
+      CONSTRAINT "worker_resource_certs_worker_name_fkey" FOREIGN KEY ("worker_name") REFERENCES "workers"("name") ON DELETE CASCADE ON UPDATE SET NULL
   );
   ALTER TABLE "volumes"
   ADD COLUMN "worker_resource_certs_id" integer,
