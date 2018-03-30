@@ -8,3 +8,5 @@ routes:
 - route: concourse-ci.cfapps.io
 path: .
 buildpack: "https://github.com/cloudfoundry/staticfile-buildpack#v1.3.2"
+env:
+  FORCE_HTTPS: "true"
