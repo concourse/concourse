@@ -21,7 +21,8 @@ RUN apt-get update && \
       apt-get -y install pkg-config
 
 # pre-build `iptables` and dependencies
-RUN apt-get update && \
+RUN set -x && \
+      apt-get update && \
       apt-get -y install bzip2 && \
       cd /tmp && \
       curl https://www.netfilter.org/projects/iptables/files/iptables-1.6.2.tar.bz2 | tar jxf - && \
@@ -29,12 +30,12 @@ RUN apt-get update && \
       curl https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.0.9.tar.bz2 | tar jxf - && \
       mkdir /opt/static-assets/iptables && \
       cd libmnl-* && \
-        ./configure --prefix=/opt/static-assets/iptables && \
+        ./configure && \
         make && \
         make install && \
       cd .. && \
       cd libnftnl-* && \
-        ./configure --prefix=/opt/static-assets/iptables && \
+        ./configure && \
         make && \
         make install && \
       cd .. && \
@@ -48,7 +49,8 @@ RUN apt-get update && \
       rm -rf libnftnl-*
 
 # pre-build btrfs-progs
-RUN apt-get update && \
+RUN set -x && \
+      apt-get update && \
       apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev libz-dev && \
       cd /tmp && \
       curl https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v4.15.tar.gz | tar zxf - && \
@@ -61,7 +63,8 @@ RUN apt-get update && \
       apt-get -y remove liblzo2-dev libblkid-dev e2fslibs-dev libz-dev
 
 # pre-build libseccomp
-RUN cd /tmp && \
+RUN set -x && \
+      cd /tmp && \
       curl -L https://github.com/seccomp/libseccomp/releases/download/v2.3.3/libseccomp-2.3.3.tar.gz | tar zxf - && \
       cd libseccomp-* && \
         ./configure --prefix=/opt/static-assets/libseccomp && \
