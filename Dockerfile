@@ -52,7 +52,7 @@ RUN set -x && \
 # pre-build btrfs-progs
 RUN set -x && \
       apt-get update && \
-      apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev libz-dev && \
+      apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev libz-dev libzstd-dev && \
       cd /tmp && \
       curl -L https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v4.15.tar.gz | tar zxf - && \
       cd btrfs-progs-* && \
@@ -65,8 +65,6 @@ RUN set -x && \
 
 # pre-build libseccomp
 RUN set -x && \
-      apt-get update && \
-      apt-get -y install libzstd-dev && \
       cd /tmp && \
       curl -L https://github.com/seccomp/libseccomp/releases/download/v2.3.3/libseccomp-2.3.3.tar.gz | tar zxf - && \
       cd libseccomp-* && \
