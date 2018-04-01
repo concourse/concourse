@@ -8,13 +8,13 @@ RUN chmod +x /usr/local/bin/bosh
 RUN mkdir /opt/static-assets
 
 # pre-build `tar` so we don't have to every time
-RUN cd /tmp && curl https://ftp.gnu.org/gnu/tar/tar-1.28.tar.gz | tar zxf - && \
-      cd tar-1.28 && \
+RUN cd /tmp && curl https://ftp.gnu.org/gnu/tar/tar-1.30.tar.gz | tar zxf - && \
+      cd tar-* && \
         FORCE_UNSAFE_CONFIGURE=1 ./configure && \
         make LDFLAGS=-static && \
         cp src/tar /opt/static-assets/tar && \
       cd .. && \
-      rm -rf tar-1.28
+      rm -rf tar-*
 
 # install pkg-config for building btrfs-progs and runc with seccomp
 RUN apt-get update && \
@@ -23,34 +23,34 @@ RUN apt-get update && \
 # pre-build `iptables`
 RUN apt-get update && \
       apt-get -y install bzip2 && \
-      cd /tmp && curl https://www.netfilter.org/projects/iptables/files/iptables-1.4.21.tar.bz2 | tar jxf - && \
-      cd iptables-1.4.21 && \
+      cd /tmp && curl https://www.netfilter.org/projects/iptables/files/iptables-1.6.2.tar.bz2 | tar jxf - && \
+      cd iptables-* && \
         mkdir /opt/static-assets/iptables && \
         ./configure --prefix=/opt/static-assets/iptables --enable-static --disable-shared && \
         make && \
         make install && \
       cd .. && \
-      rm -rf iptables-1.4.21
+      rm -rf iptables-*
 
 # pre-build btrfs-progs
 RUN apt-get update && \
       apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev libz-dev && \
       cd /tmp && \
-      curl https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v4.4.tar.gz | tar zxf - && \
-      cd btrfs-progs-v4.4 && \
+      curl https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v4.15.tar.gz | tar zxf - && \
+      cd btrfs-progs-* && \
       LDFLAGS=-static ./configure --disable-documentation && \
       make && \
       cp btrfs mkfs.btrfs /opt/static-assets && \
       cd /tmp && \
-      rm -rf btrfs-progs-v4.4 && \
+      rm -rf btrfs-progs-* && \
       apt-get -y remove liblzo2-dev libblkid-dev e2fslibs-dev libz-dev
 
 # pre-build libseccomp
 RUN cd /tmp && \
-      curl -L https://github.com/seccomp/libseccomp/releases/download/v2.3.1/libseccomp-2.3.1.tar.gz | tar zxf - && \
-      cd libseccomp-2.3.1 && \
+      curl -L https://github.com/seccomp/libseccomp/releases/download/v2.3.3/libseccomp-2.3.3.tar.gz | tar zxf - && \
+      cd libseccomp-* && \
         ./configure --prefix=/opt/static-assets/libseccomp && \
         make && \
         make install && \
       cd /tmp && \
-      rm -rf libseccomp-2.3.1
+      rm -rf libseccomp-*
