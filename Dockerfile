@@ -23,7 +23,7 @@ RUN apt-get update && \
 # pre-build `iptables` and dependencies
 RUN set -x && \
       apt-get update && \
-      apt-get -y install bzip2 file flex bison && \
+      apt-get -y install bzip2 file flex bison libzst-dev && \
       cd /tmp && \
       curl -L https://www.netfilter.org/projects/iptables/files/iptables-1.6.2.tar.bz2 | tar jxf - && \
       curl -L https://www.netfilter.org/projects/libmnl/files/libmnl-1.0.4.tar.bz2 | tar jxf - && \
