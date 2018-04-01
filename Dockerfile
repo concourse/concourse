@@ -20,17 +20,32 @@ RUN cd /tmp && curl https://ftp.gnu.org/gnu/tar/tar-1.30.tar.gz | tar zxf - && \
 RUN apt-get update && \
       apt-get -y install pkg-config
 
-# pre-build `iptables`
+# pre-build `iptables` and dependencies
 RUN apt-get update && \
       apt-get -y install bzip2 && \
-      cd /tmp && curl https://www.netfilter.org/projects/iptables/files/iptables-1.6.2.tar.bz2 | tar jxf - && \
+      cd /tmp && \
+      curl https://www.netfilter.org/projects/iptables/files/iptables-1.6.2.tar.bz2 | tar jxf - && \
+      curl https://www.netfilter.org/projects/libmnl/files/libmnl-1.0.4.tar.bz2 | tar jxf - && \
+      curl https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.0.9.tar.bz2 | tar jxf - && \
+      mkdir /opt/static-assets/iptables && \
+      cd libmnl-* && \
+        ./configure --prefix=/opt/static-assets/iptables && \
+        make && \
+        make install && \
+      cd .. && \
+      cd libnftl-* && \
+        ./configure --prefix=/opt/static-assets/iptables && \
+        make && \
+        make install && \
+      cd .. && \
       cd iptables-* && \
-        mkdir /opt/static-assets/iptables && \
         ./configure --prefix=/opt/static-assets/iptables --enable-static --disable-shared && \
         make && \
         make install && \
       cd .. && \
-      rm -rf iptables-*
+      rm -rf iptables-* \
+      rm -rf libmnl-* \
+      rm -rf libnftl-*
 
 # pre-build btrfs-progs
 RUN apt-get update && \
