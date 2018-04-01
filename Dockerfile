@@ -39,6 +39,7 @@ RUN set -x && \
         make && \
         make install && \
       cd .. && \
+      apt-get -y install file bison && \
       cd iptables-* && \
         ./configure --prefix=/opt/static-assets/iptables --enable-static --disable-shared && \
         make && \
