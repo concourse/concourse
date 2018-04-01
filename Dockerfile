@@ -23,7 +23,7 @@ RUN apt-get update && \
 # pre-build `iptables`
 RUN apt-get update && \
       apt-get -y install bzip2 && \
-      cd /tmp && curl http://www.netfilter.org/projects/iptables/files/iptables-1.4.21.tar.bz2 | tar jxf - && \
+      cd /tmp && curl https://www.netfilter.org/projects/iptables/files/iptables-1.4.21.tar.bz2 | tar jxf - && \
       cd iptables-1.4.21 && \
         mkdir /opt/static-assets/iptables && \
         ./configure --prefix=/opt/static-assets/iptables --enable-static --disable-shared && \
