@@ -33,7 +33,7 @@ RUN apt-get update && \
         make && \
         make install && \
       cd .. && \
-      cd libnftl-* && \
+      cd libnftnl-* && \
         ./configure --prefix=/opt/static-assets/iptables && \
         make && \
         make install && \
@@ -45,7 +45,7 @@ RUN apt-get update && \
       cd .. && \
       rm -rf iptables-* \
       rm -rf libmnl-* \
-      rm -rf libnftl-*
+      rm -rf libnftnl-*
 
 # pre-build btrfs-progs
 RUN apt-get update && \
