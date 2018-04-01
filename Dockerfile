@@ -8,7 +8,7 @@ RUN chmod +x /usr/local/bin/bosh
 RUN mkdir /opt/static-assets
 
 # pre-build `tar` so we don't have to every time
-RUN cd /tmp && curl https://ftp.gnu.org/gnu/tar/tar-1.30.tar.gz | tar zxf - && \
+RUN cd /tmp && curl -L https://ftp.gnu.org/gnu/tar/tar-1.30.tar.gz | tar zxf - && \
       cd tar-* && \
         FORCE_UNSAFE_CONFIGURE=1 ./configure && \
         make LDFLAGS=-static && \
@@ -25,9 +25,9 @@ RUN set -x && \
       apt-get update && \
       apt-get -y install bzip2 file flex bison && \
       cd /tmp && \
-      curl https://www.netfilter.org/projects/iptables/files/iptables-1.6.2.tar.bz2 | tar jxf - && \
-      curl https://www.netfilter.org/projects/libmnl/files/libmnl-1.0.4.tar.bz2 | tar jxf - && \
-      curl https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.0.9.tar.bz2 | tar jxf - && \
+      curl -L https://www.netfilter.org/projects/iptables/files/iptables-1.6.2.tar.bz2 | tar jxf - && \
+      curl -L https://www.netfilter.org/projects/libmnl/files/libmnl-1.0.4.tar.bz2 | tar jxf - && \
+      curl -L https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.0.9.tar.bz2 | tar jxf - && \
       mkdir /opt/static-assets/iptables && \
       cd libmnl-* && \
         ./configure && \
@@ -53,7 +53,7 @@ RUN set -x && \
       apt-get update && \
       apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev libz-dev && \
       cd /tmp && \
-      curl https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v4.15.tar.gz | tar zxf - && \
+      curl -L https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v4.15.tar.gz | tar zxf - && \
       cd btrfs-progs-* && \
       LDFLAGS=-static ./configure --disable-documentation && \
       make && \
