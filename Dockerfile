@@ -53,7 +53,7 @@ RUN set -x && \
 RUN set -x && \
       apt-get update && \
       apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev libz-dev libzstd-dev && \
-      cp /usr/lib/gcc/x86_64-linux-gnu/6/crtbegin{S,T}.o && \
+      cp /usr/lib/gcc/x86_64-linux-gnu/6/crtbeginS.o /usr/lib/gcc/x86_64-linux-gnu/6/crtbeginT.o && \
       cd /tmp && \
       curl -L https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v4.15.tar.gz | tar zxf - && \
       cd btrfs-progs-* && \
