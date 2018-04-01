@@ -29,7 +29,7 @@ RUN set -x && \
       curl -L https://www.netfilter.org/projects/libmnl/files/libmnl-1.0.4.tar.bz2 | tar jxf - && \
       curl -L https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.0.9.tar.bz2 | tar jxf - && \
       mkdir /opt/static-assets/iptables && \
-      export PKG_CONFIG_PATH=/opt/static-assets/iptables/lib/pkgconfig \
+      export PKG_CONFIG_PATH=/opt/static-assets/iptables/lib/pkgconfig && \
       cd libmnl-* && \
         ./configure --prefix=/opt/static-assets/iptables && \
         make && \
