@@ -62,7 +62,7 @@ RUN set -x && \
       cp btrfs mkfs.btrfs /opt/static-assets && \
       cd /tmp && \
       rm -rf btrfs-progs-* && \
-      apt-get -y remove liblzo2-dev libblkid-dev e2fslibs-dev libz-dev
+      apt-get -y remove liblzo2-dev libblkid-dev e2fslibs-dev libz-dev libzstd-dev
 
 # pre-build libseccomp
 RUN set -x && \
