@@ -23,7 +23,7 @@ RUN apt-get update && \
 # pre-build `iptables` and dependencies
 RUN set -x && \
       apt-get update && \
-      apt-get -y install bzip2 && \
+      apt-get -y install bzip2 file flex bison && \
       cd /tmp && \
       curl https://www.netfilter.org/projects/iptables/files/iptables-1.6.2.tar.bz2 | tar jxf - && \
       curl https://www.netfilter.org/projects/libmnl/files/libmnl-1.0.4.tar.bz2 | tar jxf - && \
@@ -39,7 +39,6 @@ RUN set -x && \
         make && \
         make install && \
       cd .. && \
-      apt-get -y install file bison && \
       cd iptables-* && \
         ./configure --prefix=/opt/static-assets/iptables --enable-static --disable-shared && \
         make && \
