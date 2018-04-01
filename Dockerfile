@@ -23,19 +23,20 @@ RUN apt-get update && \
 # pre-build `iptables` and dependencies
 RUN set -x && \
       apt-get update && \
-      apt-get -y install bzip2 file flex bison libzst-dev && \
+      apt-get -y install bzip2 file flex bison && \
       cd /tmp && \
       curl -L https://www.netfilter.org/projects/iptables/files/iptables-1.6.2.tar.bz2 | tar jxf - && \
       curl -L https://www.netfilter.org/projects/libmnl/files/libmnl-1.0.4.tar.bz2 | tar jxf - && \
       curl -L https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.0.9.tar.bz2 | tar jxf - && \
       mkdir /opt/static-assets/iptables && \
+      export PKG_CONFIG_PATH=/opt/static-assets/iptables/lib/pkgconfig \
       cd libmnl-* && \
-        ./configure && \
+        ./configure --prefix=/opt/static-assets/iptables && \
         make && \
         make install && \
       cd .. && \
       cd libnftnl-* && \
-        ./configure && \
+        ./configure --prefix=/opt/static-assets/iptables && \
         make && \
         make install && \
       cd .. && \
@@ -64,6 +65,8 @@ RUN set -x && \
 
 # pre-build libseccomp
 RUN set -x && \
+      apt-get update && \
+      apt-get -y install libzstd-dev && \
       cd /tmp && \
       curl -L https://github.com/seccomp/libseccomp/releases/download/v2.3.3/libseccomp-2.3.3.tar.gz | tar zxf - && \
       cd libseccomp-* && \
