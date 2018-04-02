@@ -170,6 +170,6 @@ before using it!
   Fork the
   \link{\code{concourse/docs}}{https://github.com/concourse/docs}
   repository, edit
-  \code{lit/using-concourse/resource-types.lit},
+  \code{lit/docs/resource-types/community-resources.lit},
   then make a pull request.
 }
