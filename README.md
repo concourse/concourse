@@ -35,7 +35,7 @@ Each component has its own repository:
   managing caches and artifacts on the workers
 
 To learn more about how they fit together, see [Concourse
-Architecture](https://concourse-ci.org/architecture.html).
+Components](https://concourse-ci.org/components.html) and [Concourse Internals](https://concourse-ci.org/internals.html).
 
 Please note that this project is released with a Contributor Code of Conduct.
 By participating in this project you agree to abide by its terms. You can review
