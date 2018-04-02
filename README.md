@@ -2,7 +2,7 @@
 
 A command line interface that runs a build in a container with [ATC](https://github.com/concourse/atc).
 
-[The documentation](http://concourse-ci.org/fly-cli.html) is hosted together with Concourse's docs.
+[The documentation](https://concourse-ci.org/fly.html) is hosted together with Concourse's docs.
 
 A good place to start learning about Concourse is [its documentation](http://concourse-ci.org/introduction.html)
 or its [BOSH release](https://github.com/concourse/concourse).
