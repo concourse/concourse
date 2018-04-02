@@ -1,9 +1,11 @@
 package concourse_test
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -441,6 +443,192 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				build, err := team.CreatePipelineBuild("mypipeline", plan)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(build).To(Equal(expectedBuild))
+			})
+		})
+	})
+
+	Describe("PipelineBuilds", func() {
+		var (
+			expectedBuilds []atc.Build
+			expectedURL    string
+			expectedQuery  string
+		)
+
+		BeforeEach(func() {
+			expectedBuilds = []atc.Build{
+				{
+					Name: "some-build",
+				},
+				{
+					Name: "some-other-build",
+				},
+			}
+
+			expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/builds")
+		})
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL, expectedQuery),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
+				),
+			)
+		})
+
+		Context("when since, until, and limit are 0", func() {
+			BeforeEach(func() {
+			})
+
+			It("calls to get all builds", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(builds).To(Equal(expectedBuilds))
+			})
+		})
+
+		Context("when since is specified", func() {
+			BeforeEach(func() {
+				expectedQuery = fmt.Sprint("since=24")
+			})
+
+			It("calls to get all builds since that id", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(builds).To(Equal(expectedBuilds))
+			})
+
+			Context("and limit is specified", func() {
+				BeforeEach(func() {
+					expectedQuery = fmt.Sprint("since=24&limit=5")
+				})
+
+				It("appends limit to the url", func() {
+					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24, Limit: 5})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(builds).To(Equal(expectedBuilds))
+				})
+			})
+		})
+
+		Context("when until is specified", func() {
+			BeforeEach(func() {
+				expectedQuery = fmt.Sprint("until=26")
+			})
+
+			It("calls to get all builds until that id", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Until: 26})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(builds).To(Equal(expectedBuilds))
+			})
+
+			Context("and limit is specified", func() {
+				BeforeEach(func() {
+					expectedQuery = fmt.Sprint("until=26&limit=15")
+				})
+
+				It("appends limit to the url", func() {
+					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Until: 26, Limit: 15})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(builds).To(Equal(expectedBuilds))
+				})
+			})
+		})
+
+		Context("when since and until are both specified", func() {
+			BeforeEach(func() {
+				expectedQuery = fmt.Sprint("until=26")
+			})
+
+			It("only sends the until", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24, Until: 26})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(builds).To(Equal(expectedBuilds))
+			})
+		})
+
+		Context("when the server returns an error", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusInternalServerError, ""),
+					),
+				)
+			})
+
+			It("returns false and an error", func() {
+				_, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{})
+				Expect(err).To(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when the server returns not found", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusNotFound, ""),
+					),
+				)
+			})
+
+			It("returns false and no error", func() {
+				_, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("pagination data", func() {
+			Context("with a link header", func() {
+				BeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", expectedURL),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
+								"Link": []string{
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?since=452&limit=123>; rel="previous"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?until=254&limit=456>; rel="next"`,
+								},
+							}),
+						),
+					)
+				})
+
+				It("returns the pagination data from the header", func() {
+					_, pagination, _, err := team.PipelineBuilds("mypipeline", concourse.Page{})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(pagination.Previous).To(Equal(&concourse.Page{Since: 452, Limit: 123}))
+					Expect(pagination.Next).To(Equal(&concourse.Page{Until: 254, Limit: 456}))
+				})
+			})
+		})
+
+		Context("without a link header", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{}),
+					),
+				)
+			})
+
+			It("returns pagination data with nil pages", func() {
+				_, pagination, _, err := team.PipelineBuilds("mypipeline", concourse.Page{})
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(pagination.Previous).To(BeNil())
+				Expect(pagination.Next).To(BeNil())
 			})
 		})
 	})
