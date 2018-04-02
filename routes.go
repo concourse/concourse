@@ -52,6 +52,7 @@ const (
 	ExposePipeline      = "ExposePipeline"
 	HidePipeline        = "HidePipeline"
 	RenamePipeline      = "RenamePipeline"
+	ListPipelineBuilds  = "ListPipelineBuilds"
 	CreatePipelineBuild = "CreatePipelineBuild"
 	PipelineBadge       = "PipelineBadge"
 
@@ -79,10 +80,11 @@ const (
 	LegacyGetAuthToken    = "LegacyGetAuthToken"
 	LegacyGetUser         = "LegacyGetUser"
 
-	ListTeams   = "ListTeams"
-	SetTeam     = "SetTeam"
-	RenameTeam  = "RenameTeam"
-	DestroyTeam = "DestroyTeam"
+	ListTeams      = "ListTeams"
+	SetTeam        = "SetTeam"
+	RenameTeam     = "RenameTeam"
+	DestroyTeam    = "DestroyTeam"
+	ListTeamBuilds = "ListTeamBuilds"
 
 	SendInputToBuildPlan    = "SendInputToBuildPlan"
 	ReadOutputFromBuildPlan = "ReadOutputFromBuildPlan"
@@ -126,6 +128,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/hide", Method: "PUT", Name: HidePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/versions-db", Method: "GET", Name: GetVersionsDB},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/rename", Method: "PUT", Name: RenamePipeline},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/builds", Method: "GET", Name: ListPipelineBuilds},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/builds", Method: "POST", Name: CreatePipelineBuild},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/badge", Method: "GET", Name: PipelineBadge},
 
@@ -172,4 +175,5 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name", Method: "PUT", Name: SetTeam},
 	{Path: "/api/v1/teams/:team_name/rename", Method: "PUT", Name: RenameTeam},
 	{Path: "/api/v1/teams/:team_name", Method: "DELETE", Name: DestroyTeam},
+	{Path: "/api/v1/teams/:team_name/builds", Method: "GET", Name: ListTeamBuilds},
 })

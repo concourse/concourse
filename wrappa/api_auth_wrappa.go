@@ -80,6 +80,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListJobs,
 			atc.GetJob,
 			atc.ListJobBuilds,
+			atc.ListPipelineBuilds,
 			atc.GetResource,
 			atc.ListBuildsWithVersionAsInput,
 			atc.ListBuildsWithVersionAsOutput,
@@ -99,6 +100,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.HeartbeatWorker,
 			atc.DeleteWorker,
 			atc.SetTeam,
+			atc.ListTeamBuilds,
 			atc.RenameTeam,
 			atc.DestroyTeam,
 			atc.ListVolumes:

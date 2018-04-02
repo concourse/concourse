@@ -172,6 +172,21 @@ type FakeTeam struct {
 		result2 db.Pagination
 		result3 error
 	}
+	BuildsStub        func(page db.Page) ([]db.Build, db.Pagination, error)
+	buildsMutex       sync.RWMutex
+	buildsArgsForCall []struct {
+		page db.Page
+	}
+	buildsReturns struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
+	buildsReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
 	SaveWorkerStub        func(atcWorker atc.Worker, ttl time.Duration) (db.Worker, error)
 	saveWorkerMutex       sync.RWMutex
 	saveWorkerArgsForCall []struct {
@@ -970,6 +985,60 @@ func (fake *FakeTeam) PrivateAndPublicBuildsReturnsOnCall(i int, result1 []db.Bu
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) Builds(page db.Page) ([]db.Build, db.Pagination, error) {
+	fake.buildsMutex.Lock()
+	ret, specificReturn := fake.buildsReturnsOnCall[len(fake.buildsArgsForCall)]
+	fake.buildsArgsForCall = append(fake.buildsArgsForCall, struct {
+		page db.Page
+	}{page})
+	fake.recordInvocation("Builds", []interface{}{page})
+	fake.buildsMutex.Unlock()
+	if fake.BuildsStub != nil {
+		return fake.BuildsStub(page)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.buildsReturns.result1, fake.buildsReturns.result2, fake.buildsReturns.result3
+}
+
+func (fake *FakeTeam) BuildsCallCount() int {
+	fake.buildsMutex.RLock()
+	defer fake.buildsMutex.RUnlock()
+	return len(fake.buildsArgsForCall)
+}
+
+func (fake *FakeTeam) BuildsArgsForCall(i int) db.Page {
+	fake.buildsMutex.RLock()
+	defer fake.buildsMutex.RUnlock()
+	return fake.buildsArgsForCall[i].page
+}
+
+func (fake *FakeTeam) BuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.BuildsStub = nil
+	fake.buildsReturns = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) BuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.BuildsStub = nil
+	if fake.buildsReturnsOnCall == nil {
+		fake.buildsReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 db.Pagination
+			result3 error
+		})
+	}
+	fake.buildsReturnsOnCall[i] = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (db.Worker, error) {
 	fake.saveWorkerMutex.Lock()
 	ret, specificReturn := fake.saveWorkerReturnsOnCall[len(fake.saveWorkerArgsForCall)]
@@ -1573,6 +1642,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.createOneOffBuildMutex.RUnlock()
 	fake.privateAndPublicBuildsMutex.RLock()
 	defer fake.privateAndPublicBuildsMutex.RUnlock()
+	fake.buildsMutex.RLock()
+	defer fake.buildsMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.workersMutex.RLock()

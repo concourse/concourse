@@ -2549,4 +2549,39 @@ var _ = Describe("Pipeline", func() {
 			Expect(builds).To(Equal([]db.Build{}))
 		})
 	})
+
+	Describe("Builds", func() {
+		var expectedBuilds []db.Build
+
+		BeforeEach(func() {
+			_, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			job, found, err := pipeline.Job("job-name")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, build)
+
+			secondBuild, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, secondBuild)
+
+			someOtherJob, found, err := pipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			thirdBuild, err := someOtherJob.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, thirdBuild)
+		})
+
+		It("returns builds for the current pipeline", func() {
+			builds, _, err := pipeline.Builds(db.Page{Limit: 10})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builds).To(ConsistOf(expectedBuilds))
+		})
+	})
 })

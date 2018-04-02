@@ -1102,6 +1102,128 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("Builds", func() {
+		var (
+			expectedBuilds []db.Build
+			pipeline       db.Pipeline
+		)
+
+		BeforeEach(func() {
+			oneOfAKind, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, oneOfAKind)
+
+			config := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+					{
+						Name: "some-other-job",
+					},
+				},
+			}
+			pipeline, _, err = team.SavePipeline("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, build)
+
+			secondBuild, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, secondBuild)
+
+			someOtherJob, found, err := pipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			thirdBuild, err := someOtherJob.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, thirdBuild)
+		})
+
+		It("returns builds for the current team", func() {
+			builds, _, err := team.Builds(db.Page{Limit: 10})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builds).To(ConsistOf(expectedBuilds))
+		})
+
+		Context("when there are builds that belong to different teams", func() {
+			var teamABuilds [3]db.Build
+			var teamBBuilds [3]db.Build
+
+			var caseInsensitiveTeamA db.Team
+			var caseInsensitiveTeamB db.Team
+
+			BeforeEach(func() {
+				_, err := teamFactory.CreateTeam(atc.Team{Name: "team-a"})
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = teamFactory.CreateTeam(atc.Team{Name: "team-b"})
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				caseInsensitiveTeamA, found, err = teamFactory.FindTeam("team-A")
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				caseInsensitiveTeamB, found, err = teamFactory.FindTeam("team-B")
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				for i := 0; i < 3; i++ {
+					teamABuilds[i], err = caseInsensitiveTeamA.CreateOneOffBuild()
+					Expect(err).ToNot(HaveOccurred())
+
+					teamBBuilds[i], err = caseInsensitiveTeamB.CreateOneOffBuild()
+					Expect(err).ToNot(HaveOccurred())
+				}
+			})
+
+			Context("when other team builds are private", func() {
+				It("returns only builds for requested team", func() {
+					builds, _, err := caseInsensitiveTeamA.Builds(db.Page{Limit: 10})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamABuilds))
+
+					builds, _, err = caseInsensitiveTeamB.Builds(db.Page{Limit: 10})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamBBuilds))
+				})
+			})
+
+			Context("when other team builds are public", func() {
+				BeforeEach(func() {
+					err := pipeline.Expose()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns only builds for requested team", func() {
+					builds, _, err := caseInsensitiveTeamA.Builds(db.Page{Limit: 10})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamABuilds))
+
+					builds, _, err = caseInsensitiveTeamB.Builds(db.Page{Limit: 10})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamBBuilds))
+				})
+			})
+		})
+	})
+
 	Describe("SavePipeline", func() {
 		type SerialGroup struct {
 			JobID int

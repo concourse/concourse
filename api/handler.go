@@ -84,14 +84,14 @@ func NewHandler(
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
-	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, engine)
+	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, engine)
 	configServer := configserver.NewServer(logger, dbTeamFactory)
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory)
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
-	teamServer := teamserver.NewServer(logger, dbTeamFactory)
+	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion)
 	legacyServer := legacyserver.NewServer(logger)
 
@@ -132,6 +132,7 @@ func NewHandler(
 		atc.HidePipeline:        pipelineHandlerFactory.HandlerFor(pipelineServer.HidePipeline),
 		atc.GetVersionsDB:       pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
 		atc.RenamePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
+		atc.ListPipelineBuilds:  pipelineHandlerFactory.HandlerFor(pipelineServer.ListPipelineBuilds),
 		atc.CreatePipelineBuild: pipelineHandlerFactory.HandlerFor(pipelineServer.CreateBuild),
 		atc.PipelineBadge:       pipelineHandlerFactory.HandlerFor(pipelineServer.PipelineBadge),
 
@@ -174,10 +175,11 @@ func NewHandler(
 		atc.LegacyGetAuthToken:    http.HandlerFunc(legacyServer.GetAuthToken),
 		atc.LegacyGetUser:         http.HandlerFunc(legacyServer.GetUser),
 
-		atc.ListTeams:   http.HandlerFunc(teamServer.ListTeams),
-		atc.SetTeam:     http.HandlerFunc(teamServer.SetTeam),
-		atc.RenameTeam:  http.HandlerFunc(teamServer.RenameTeam),
-		atc.DestroyTeam: http.HandlerFunc(teamServer.DestroyTeam),
+		atc.ListTeams:      http.HandlerFunc(teamServer.ListTeams),
+		atc.SetTeam:        http.HandlerFunc(teamServer.SetTeam),
+		atc.RenameTeam:     http.HandlerFunc(teamServer.RenameTeam),
+		atc.DestroyTeam:    http.HandlerFunc(teamServer.DestroyTeam),
+		atc.ListTeamBuilds: http.HandlerFunc(teamServer.ListTeamBuilds),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))
