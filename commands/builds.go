@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -18,8 +19,10 @@ import (
 const timeDateLayout = "2006-01-02@15:04:05-0700"
 
 type BuildsCommand struct {
-	Count int                 `short:"c" long:"count" default:"50" description:"number of builds you want to limit the return to"`
-	Job   flaghelpers.JobFlag `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
+	Count    int                      `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
+	Job      flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
+	Team     bool                     `short:"t"  long:"team" description:"Only show builds for the currently targeted team"`
 }
 
 func (command *BuildsCommand) Execute([]string) error {
@@ -39,7 +42,27 @@ func (command *BuildsCommand) Execute([]string) error {
 	client := target.Client()
 
 	var builds []atc.Build
-	if command.Job.PipelineName != "" && command.Job.JobName != "" {
+	if command.pipelineFlag() && command.jobFlag() {
+		return errors.New("Cannot specify both --pipeline and --job")
+	} else if command.pipelineFlag() {
+		err = command.Pipeline.Validate()
+		if err != nil {
+			return err
+		}
+
+		var found bool
+		builds, _, found, err = team.PipelineBuilds(
+			string(command.Pipeline),
+			page,
+		)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			displayhelpers.Failf("pipeline not found")
+		}
+	} else if command.jobFlag() {
 		var found bool
 		builds, _, found, err = team.JobBuilds(
 			command.Job.PipelineName,
@@ -52,6 +75,11 @@ func (command *BuildsCommand) Execute([]string) error {
 
 		if !found {
 			displayhelpers.Failf("pipeline/job not found")
+		}
+	} else if command.Team {
+		builds, _, err = team.Builds(page)
+		if err != nil {
+			return err
 		}
 	} else {
 		builds, _, err = client.Builds(page)
@@ -157,4 +185,12 @@ func populateTimeCells(startTime time.Time, endTime time.Time) (ui.TableCell, ui
 
 func roundSecondsOffDuration(d time.Duration) time.Duration {
 	return d - (d % time.Second)
+}
+
+func (command *BuildsCommand) jobFlag() bool {
+	return command.Job.PipelineName != "" && command.Job.JobName != ""
+}
+
+func (command *BuildsCommand) pipelineFlag() bool {
+	return command.Pipeline != ""
 }

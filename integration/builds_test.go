@@ -189,6 +189,20 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
+		Context("when validating parameters", func() {
+			BeforeEach(func() {
+				cmdArgs = append(cmdArgs, "-j")
+				cmdArgs = append(cmdArgs, "some-pipeline/some-job")
+				cmdArgs = append(cmdArgs, "-p")
+				cmdArgs = append(cmdArgs, "some-other-pipeline")
+			})
+
+			It("instructs the user to specify --job or --pipeline if both are present", func() {
+				Eventually(session.Err).Should(gbytes.Say("Cannot specify both --pipeline and --job"))
+				Eventually(session).Should(gexec.Exit(1))
+			})
+		})
+
 		Context("when passing the limit argument", func() {
 			BeforeEach(func() {
 				cmdArgs = append(cmdArgs, "-c")
@@ -313,7 +327,196 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "-c")
 					cmdArgs = append(cmdArgs, "98")
 
-					expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/builds"
+					queryParams = "limit=98"
+					returnedStatusCode = http.StatusOK
+					returnedBuilds = []atc.Build{
+						{
+							ID:           3,
+							PipelineName: "some-pipeline",
+							JobName:      "some-job",
+							Name:         "63",
+							Status:       "succeeded",
+							StartTime:    succeededBuildStartTime.Unix(),
+							EndTime:      succeededBuildEndTime.Unix(),
+						},
+					}
+				})
+
+				It("returns the builds correctly", func() {
+					Eventually(session.Out).Should(PrintTable(ui.Table{
+						Headers: expectedHeaders,
+						Data: []ui.TableRow{
+							{
+								{Contents: "3"},
+								{Contents: "some-pipeline/some-job"},
+								{Contents: "63"},
+								{Contents: "succeeded"},
+								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
+								{Contents: "1h15m0s"},
+							},
+						},
+					}))
+					Eventually(session).Should(gexec.Exit(0))
+				})
+			})
+		})
+
+		Context("when passing the team argument", func() {
+			BeforeEach(func() {
+				cmdArgs = append(cmdArgs, "-t")
+
+				expectedURL = "/api/v1/teams/main/builds"
+				queryParams = "limit=50"
+				returnedStatusCode = http.StatusOK
+				returnedBuilds = []atc.Build{
+					{
+						ID:           3,
+						PipelineName: "some-pipeline",
+						JobName:      "some-job",
+						Name:         "63",
+						Status:       "succeeded",
+						StartTime:    succeededBuildStartTime.Unix(),
+						EndTime:      succeededBuildEndTime.Unix(),
+					},
+				}
+			})
+
+			It("returns the builds correctly", func() {
+				Eventually(session.Out).Should(PrintTable(ui.Table{
+					Headers: expectedHeaders,
+					Data: []ui.TableRow{
+						{
+							{Contents: "3"},
+							{Contents: "some-pipeline/some-job"},
+							{Contents: "63"},
+							{Contents: "succeeded"},
+							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
+							{Contents: "1h15m0s"},
+						},
+					},
+				}))
+				Eventually(session).Should(gexec.Exit(0))
+			})
+
+			Context("when the api returns an error", func() {
+				BeforeEach(func() {
+					returnedStatusCode = http.StatusInternalServerError
+				})
+
+				It("writes an error message to stderr", func() {
+					Eventually(session.Err).Should(gbytes.Say("Unexpected Response"))
+					Eventually(session).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("and the count argument", func() {
+				BeforeEach(func() {
+					cmdArgs = append(cmdArgs, "-c")
+					cmdArgs = append(cmdArgs, "98")
+
+					queryParams = "limit=98"
+					returnedStatusCode = http.StatusOK
+					returnedBuilds = []atc.Build{
+						{
+							ID:           3,
+							PipelineName: "some-pipeline",
+							JobName:      "some-job",
+							Name:         "63",
+							Status:       "succeeded",
+							StartTime:    succeededBuildStartTime.Unix(),
+							EndTime:      succeededBuildEndTime.Unix(),
+						},
+					}
+				})
+
+				It("returns the builds correctly", func() {
+					Eventually(session.Out).Should(PrintTable(ui.Table{
+						Headers: expectedHeaders,
+						Data: []ui.TableRow{
+							{
+								{Contents: "3"},
+								{Contents: "some-pipeline/some-job"},
+								{Contents: "63"},
+								{Contents: "succeeded"},
+								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
+								{Contents: "1h15m0s"},
+							},
+						},
+					}))
+					Eventually(session).Should(gexec.Exit(0))
+				})
+			})
+		})
+
+		Context("when passing the pipeline argument", func() {
+			BeforeEach(func() {
+				cmdArgs = append(cmdArgs, "-p")
+				cmdArgs = append(cmdArgs, "some-pipeline")
+
+				expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/builds"
+				queryParams = "limit=50"
+				returnedStatusCode = http.StatusOK
+				returnedBuilds = []atc.Build{
+					{
+						ID:           3,
+						PipelineName: "some-pipeline",
+						JobName:      "some-job",
+						Name:         "63",
+						Status:       "succeeded",
+						StartTime:    succeededBuildStartTime.Unix(),
+						EndTime:      succeededBuildEndTime.Unix(),
+					},
+				}
+			})
+
+			It("returns the builds correctly", func() {
+				Eventually(session.Out).Should(PrintTable(ui.Table{
+					Headers: expectedHeaders,
+					Data: []ui.TableRow{
+						{
+							{Contents: "3"},
+							{Contents: "some-pipeline/some-job"},
+							{Contents: "63"},
+							{Contents: "succeeded"},
+							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
+							{Contents: "1h15m0s"},
+						},
+					},
+				}))
+				Eventually(session).Should(gexec.Exit(0))
+			})
+
+			Context("when the api returns an error", func() {
+				BeforeEach(func() {
+					returnedStatusCode = http.StatusInternalServerError
+				})
+
+				It("writes an error message to stderr", func() {
+					Eventually(session.Err).Should(gbytes.Say("Unexpected Response"))
+					Eventually(session).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("when the api returns a not found", func() {
+				BeforeEach(func() {
+					returnedStatusCode = http.StatusNotFound
+				})
+
+				It("writes an error message to stderr", func() {
+					Eventually(session.Err).Should(gbytes.Say("pipeline not found"))
+					Eventually(session).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("and the count argument", func() {
+				BeforeEach(func() {
+					cmdArgs = append(cmdArgs, "-c")
+					cmdArgs = append(cmdArgs, "98")
+
 					queryParams = "limit=98"
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{
