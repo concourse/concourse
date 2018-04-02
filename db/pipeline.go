@@ -61,6 +61,7 @@ type Pipeline interface {
 	EnableVersionedResource(versionedResourceID int) error
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
+	Builds(page Page) ([]Build, Pagination, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
@@ -765,7 +766,10 @@ func (p *pipeline) Resource(name string) (Resource, bool, error) {
 	}
 
 	return resource, true, nil
+}
 
+func (p *pipeline) Builds(page Page) ([]Build, Pagination, error) {
+	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), page, p.conn, p.lockFactory)
 }
 
 func (p *pipeline) Resources() (Resources, error) {

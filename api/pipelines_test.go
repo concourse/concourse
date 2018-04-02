@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -1474,6 +1475,177 @@ var _ = Describe("Pipelines API", func() {
 
 			It("returns 403 Forbidden", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			})
+		})
+	})
+
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/builds", func() {
+		var response *http.Response
+		var queryParams string
+
+		JustBeforeEach(func() {
+			var err error
+
+			fakePipeline.NameReturns("some-pipeline")
+			response, err = client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/builds" + queryParams)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authorized", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			Context("and the pipeline is private", func() {
+				BeforeEach(func() {
+					fakePipeline.PublicReturns(false)
+				})
+
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("and the pipeline is public", func() {
+				BeforeEach(func() {
+					fakePipeline.PublicReturns(true)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+		})
+
+		Context("when authorized", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
+			})
+
+			Context("when no params are passed", func() {
+				It("does not set defaults for since and until", func() {
+					Expect(fakePipeline.BuildsCallCount()).To(Equal(1))
+
+					page := fakePipeline.BuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 0,
+						Until: 0,
+						Limit: 100,
+					}))
+				})
+			})
+
+			Context("when all the params are passed", func() {
+				BeforeEach(func() {
+					queryParams = "?since=2&until=3&limit=8"
+				})
+
+				It("passes them through", func() {
+					Expect(fakePipeline.BuildsCallCount()).To(Equal(1))
+
+					page := fakePipeline.BuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 2,
+						Until: 3,
+						Limit: 8,
+					}))
+				})
+			})
+
+			Context("when getting the builds succeeds", func() {
+				var returnedBuilds []db.Build
+
+				BeforeEach(func() {
+					queryParams = "?since=5&limit=2"
+
+					build1 := new(dbfakes.FakeBuild)
+					build1.IDReturns(4)
+					build1.NameReturns("2")
+					build1.JobNameReturns("some-job")
+					build1.PipelineNameReturns("some-pipeline")
+					build1.TeamNameReturns("some-team")
+					build1.StatusReturns(db.BuildStatusStarted)
+					build1.StartTimeReturns(time.Unix(1, 0))
+					build1.EndTimeReturns(time.Unix(100, 0))
+
+					build2 := new(dbfakes.FakeBuild)
+					build2.IDReturns(2)
+					build2.NameReturns("1")
+					build2.JobNameReturns("some-job")
+					build2.PipelineNameReturns("some-pipeline")
+					build2.TeamNameReturns("some-team")
+					build2.StatusReturns(db.BuildStatusSucceeded)
+					build2.StartTimeReturns(time.Unix(101, 0))
+					build2.EndTimeReturns(time.Unix(200, 0))
+
+					returnedBuilds = []db.Build{build1, build2}
+					fakePipeline.BuildsReturns(returnedBuilds, db.Pagination{}, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns Content-Type 'application/json'", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
+				It("returns the builds", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+					{
+						"id": 4,
+						"name": "2",
+						"job_name": "some-job",
+						"status": "started",
+						"api_url": "/api/v1/builds/4",
+						"pipeline_name":"some-pipeline",
+						"team_name": "some-team",
+						"start_time": 1,
+						"end_time": 100
+					},
+					{
+						"id": 2,
+						"name": "1",
+						"job_name": "some-job",
+						"status": "succeeded",
+						"api_url": "/api/v1/builds/2",
+						"pipeline_name": "some-pipeline",
+						"team_name": "some-team",
+						"start_time": 101,
+						"end_time": 200
+					}
+				]`))
+				})
+
+				Context("when next/previous pages are available", func() {
+					BeforeEach(func() {
+						fakePipeline.BuildsReturns(returnedBuilds, db.Pagination{
+							Previous: &db.Page{Until: 4, Limit: 2},
+							Next:     &db.Page{Since: 2, Limit: 2},
+						}, nil)
+					})
+
+					It("returns Link headers per rfc5988", func() {
+						Expect(response.Header["Link"]).To(ConsistOf([]string{
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?until=4&limit=2>; rel="previous"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?since=2&limit=2>; rel="next"`, externalURL),
+						}))
+					})
+				})
+			})
+
+			Context("when getting the build fails", func() {
+				BeforeEach(func() {
+					fakePipeline.BuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
+				})
+
+				It("returns 404 Not Found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
 			})
 		})
 	})
