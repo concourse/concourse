@@ -1229,6 +1229,7 @@ var _ = Describe("Team", func() {
 			JobID int
 			Name  string
 		}
+
 		var (
 			config       atc.Config
 			otherConfig  atc.Config
@@ -1307,7 +1308,7 @@ var _ = Describe("Team", func() {
 				Groups: atc.GroupConfigs{
 					{
 						Name:      "some-group",
-						Jobs:      []string{"job-1", "job-2"},
+						Jobs:      []string{"some-other-job", "job-1", "job-2"},
 						Resources: []string{"resource-1", "resource-2"},
 					},
 				},
@@ -1603,6 +1604,48 @@ var _ = Describe("Team", func() {
 					Name:  "serial-group-2",
 				},
 			}))
+		})
+
+		It("saves tags in the jobs table", func() {
+			savedPipeline, _, err := team.SavePipeline(pipelineName, otherConfig, 0, db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err := savedPipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.Tags()).To(Equal([]string{"some-group"}))
+		})
+
+		It("updates tags in the jobs table", func() {
+			savedPipeline, _, err := team.SavePipeline(pipelineName, otherConfig, 0, db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err := savedPipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.Tags()).To(Equal([]string{"some-group"}))
+
+			otherConfig.Groups = atc.GroupConfigs{
+				{
+					Name: "some-other-group",
+					Jobs: []string{"job-1", "job-2", "some-other-job"},
+				},
+				{
+					Name: "some-another-group",
+					Jobs: []string{"some-other-job"},
+				},
+			}
+
+			savedPipeline, _, err = team.SavePipeline(pipelineName, otherConfig, savedPipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err = savedPipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.Tags()).To(ConsistOf([]string{"some-another-group", "some-other-group"}))
 		})
 
 		It("it returns created as false when updated", func() {

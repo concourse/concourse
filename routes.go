@@ -17,6 +17,7 @@ const (
 
 	GetJob         = "GetJob"
 	CreateJobBuild = "CreateJobBuild"
+	ListAllJobs    = "ListAllJobs"
 	ListJobs       = "ListJobs"
 	ListJobBuilds  = "ListJobBuilds"
 	ListJobInputs  = "ListJobInputs"
@@ -106,6 +107,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/builds/:build_id/abort", Method: "PUT", Name: AbortBuild},
 	{Path: "/api/v1/builds/:build_id/preparation", Method: "GET", Name: GetBuildPreparation},
 
+	{Path: "/api/v1/jobs", Method: "GET", Name: ListAllJobs},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", Method: "GET", Name: ListJobs},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name", Method: "GET", Name: GetJob},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds", Method: "GET", Name: ListJobBuilds},

@@ -77,6 +77,180 @@ var _ = Describe("Jobs API", func() {
 		fakeAccessor.CreateReturns(fakeaccess)
 	})
 
+	Describe("GET /api/v1/jobs", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/jobs", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			req.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			build1 := new(dbfakes.FakeBuild)
+			build1.IDReturns(1)
+			build1.NameReturns("1")
+			build1.JobNameReturns("some-job")
+			build1.PipelineNameReturns("some-pipeline")
+			build1.TeamNameReturns("some-team")
+			build1.StatusReturns(db.BuildStatusSucceeded)
+			build1.StartTimeReturns(time.Unix(1, 0))
+			build1.EndTimeReturns(time.Unix(100, 0))
+
+			build2 := new(dbfakes.FakeBuild)
+			build2.IDReturns(3)
+			build2.NameReturns("2")
+			build2.JobNameReturns("some-job")
+			build2.PipelineNameReturns("some-pipeline")
+			build2.TeamNameReturns("some-team")
+			build2.StatusReturns(db.BuildStatusStarted)
+
+			fakeJob.IDReturns(1)
+			fakeJob.PausedReturns(true)
+			fakeJob.FirstLoggedBuildIDReturns(99)
+			fakeJob.PipelineNameReturns("some-pipeline")
+			fakeJob.NameReturns("some-job")
+			fakeJob.ConfigReturns(atc.JobConfig{
+				Name: "some-job",
+				Plan: atc.PlanSequence{
+					{
+						Get: "some-input",
+					},
+					{
+						Get:      "some-name",
+						Resource: "some-other-input",
+						Params:   atc.Params{"secret": "params"},
+						Passed:   []string{"a", "b"},
+						Trigger:  true,
+					},
+					{
+						Put: "some-output",
+					},
+					{
+						Put:    "some-other-output",
+						Params: atc.Params{"secret": "params"},
+					},
+				},
+			})
+			fakeJob.TagsReturns([]string{"group-1", "group-2"})
+
+			fakeJob.TeamNameReturns("some-team")
+
+			fakePipeline.JobReturns(fakeJob, true, nil)
+
+			dbJobFactory.VisibleJobsReturns(db.Dashboard{
+				db.DashboardJob{
+					Job:           fakeJob,
+					NextBuild:     build2,
+					FinishedBuild: build1,
+				},
+			}, nil)
+		})
+
+		It("returns 200 OK", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("returns application/json", func() {
+			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+		})
+
+		It("returns all jobs from public pipelines and pipelines in authenticated teams", func() {
+			body, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(body).To(MatchJSON(`[
+			{
+				"id": 1,
+				"name": "some-job",
+				"pipeline_name": "some-pipeline",
+				"team_name": "some-team",
+				"paused": true,
+				"first_logged_build_id": 99,
+				"next_build": {
+					"id": 3,
+					"team_name": "some-team",
+					"name": "2",
+					"status": "started",
+					"job_name": "some-job",
+					"api_url": "/api/v1/builds/3",
+					"pipeline_name": "some-pipeline"
+				},
+				"finished_build": {
+					"id": 1,
+					"team_name": "some-team",
+					"name": "1",
+					"status": "succeeded",
+					"job_name": "some-job",
+					"api_url": "/api/v1/builds/1",
+					"pipeline_name": "some-pipeline",
+					"start_time": 1,
+					"end_time": 100
+				},
+				"inputs": [
+					{
+						"name": "some-input",
+						"resource": "some-input",
+						"trigger": false
+					},
+					{
+						"name": "some-name",
+						"resource": "some-other-input",
+						"passed": [
+							"a",
+							"b"
+						],
+						"trigger": true
+					}
+				],
+				"outputs": [
+					{
+						"name": "some-output",
+						"resource": "some-output"
+					},
+					{
+						"name": "some-other-output",
+						"resource": "some-other-output"
+					}
+				],
+				"groups": ["group-1", "group-2"]
+			}
+			]`))
+		})
+
+		Context("when getting the jobs fails", func() {
+			BeforeEach(func() {
+				dbJobFactory.VisibleJobsReturns(nil, errors.New("nope"))
+			})
+
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		Context("when not authenticated", func() {
+			It("populates job factory with no team names", func() {
+				Expect(dbJobFactory.VisibleJobsCallCount()).To(Equal(1))
+				Expect(dbJobFactory.VisibleJobsArgsForCall(0)).To(BeEmpty())
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.TeamNamesReturns([]string{"some-team"})
+			})
+
+			It("constructs job factory with provided team names", func() {
+				Expect(dbJobFactory.VisibleJobsCallCount()).To(Equal(1))
+				Expect(dbJobFactory.VisibleJobsArgsForCall(0)).To(ContainElement("some-team"))
+			})
+		})
+	})
+
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name", func() {
 		var response *http.Response
 
@@ -193,20 +367,10 @@ var _ = Describe("Jobs API", func() {
 								},
 							},
 						})
+						fakeJob.TagsReturns([]string{"group-1", "group-2"})
+						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 
 						fakePipeline.JobReturns(fakeJob, true, nil)
-						fakePipeline.GroupsReturns([]atc.GroupConfig{
-							{
-								Name: "group-1",
-								Jobs: []string{"some-job"},
-							},
-							{
-								Name: "group-2",
-								Jobs: []string{"some-job"},
-							},
-						})
-
-						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 					})
 
 					It("fetches by job", func() {
@@ -678,6 +842,7 @@ var _ = Describe("Jobs API", func() {
 					Name: "job-1",
 					Plan: atc.PlanSequence{{Get: "input-1"}, {Put: "output-1"}},
 				})
+				job1.TagsReturns([]string{"group-1", "group-2"})
 
 				job2 := new(dbfakes.FakeJob)
 				job2.IDReturns(2)
@@ -688,6 +853,7 @@ var _ = Describe("Jobs API", func() {
 					Name: "job-2",
 					Plan: atc.PlanSequence{{Get: "input-2"}, {Put: "output-2"}},
 				})
+				job2.TagsReturns([]string{"group-2"})
 
 				job3 := new(dbfakes.FakeJob)
 				job3.IDReturns(3)
@@ -698,6 +864,7 @@ var _ = Describe("Jobs API", func() {
 					Name: "job-3",
 					Plan: atc.PlanSequence{{Get: "input-3"}, {Put: "output-3"}},
 				})
+				job3.TagsReturns([]string{})
 
 				nextBuild1 := new(dbfakes.FakeBuild)
 				nextBuild1.IDReturns(3)
@@ -757,7 +924,7 @@ var _ = Describe("Jobs API", func() {
 						TransitionBuild: nil,
 					},
 				}
-				fakePipeline.DashboardReturns(dashboardResponse, groups, nil)
+				fakePipeline.DashboardReturns(dashboardResponse, nil)
 			})
 
 			Context("when not authorized", func() {
@@ -891,7 +1058,7 @@ var _ = Describe("Jobs API", func() {
 							Plan:                 atc.PlanSequence{{Get: "input-1"}, {Put: "output-1"}},
 							DisableManualTrigger: true,
 						})
-						fakePipeline.DashboardReturns(dashboardResponse, groups, nil)
+						fakePipeline.DashboardReturns(dashboardResponse, nil)
 					})
 
 					It("returns each job's name, manual trigger state and any running and finished builds", func() {
@@ -982,7 +1149,7 @@ var _ = Describe("Jobs API", func() {
 				Context("when getting the dashboard fails", func() {
 					Context("with an unknown error", func() {
 						BeforeEach(func() {
-							fakePipeline.DashboardReturns(nil, nil, errors.New("oh no!"))
+							fakePipeline.DashboardReturns(nil, errors.New("oh no!"))
 						})
 
 						It("returns 500", func() {

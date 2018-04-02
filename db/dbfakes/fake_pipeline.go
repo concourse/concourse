@@ -447,20 +447,18 @@ type FakePipeline struct {
 		result1 db.Jobs
 		result2 error
 	}
-	DashboardStub        func(include string) (db.Dashboard, atc.GroupConfigs, error)
+	DashboardStub        func(include string) (db.Dashboard, error)
 	dashboardMutex       sync.RWMutex
 	dashboardArgsForCall []struct {
 		include string
 	}
 	dashboardReturns struct {
 		result1 db.Dashboard
-		result2 atc.GroupConfigs
-		result3 error
+		result2 error
 	}
 	dashboardReturnsOnCall map[int]struct {
 		result1 db.Dashboard
-		result2 atc.GroupConfigs
-		result3 error
+		result2 error
 	}
 	ExposeStub        func() error
 	exposeMutex       sync.RWMutex
@@ -2215,7 +2213,7 @@ func (fake *FakePipeline) JobsReturnsOnCall(i int, result1 db.Jobs, result2 erro
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) Dashboard(include string) (db.Dashboard, atc.GroupConfigs, error) {
+func (fake *FakePipeline) Dashboard(include string) (db.Dashboard, error) {
 	fake.dashboardMutex.Lock()
 	ret, specificReturn := fake.dashboardReturnsOnCall[len(fake.dashboardArgsForCall)]
 	fake.dashboardArgsForCall = append(fake.dashboardArgsForCall, struct {
@@ -2227,9 +2225,9 @@ func (fake *FakePipeline) Dashboard(include string) (db.Dashboard, atc.GroupConf
 		return fake.DashboardStub(include)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2
 	}
-	return fake.dashboardReturns.result1, fake.dashboardReturns.result2, fake.dashboardReturns.result3
+	return fake.dashboardReturns.result1, fake.dashboardReturns.result2
 }
 
 func (fake *FakePipeline) DashboardCallCount() int {
@@ -2244,29 +2242,26 @@ func (fake *FakePipeline) DashboardArgsForCall(i int) string {
 	return fake.dashboardArgsForCall[i].include
 }
 
-func (fake *FakePipeline) DashboardReturns(result1 db.Dashboard, result2 atc.GroupConfigs, result3 error) {
+func (fake *FakePipeline) DashboardReturns(result1 db.Dashboard, result2 error) {
 	fake.DashboardStub = nil
 	fake.dashboardReturns = struct {
 		result1 db.Dashboard
-		result2 atc.GroupConfigs
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 db.Dashboard, result2 atc.GroupConfigs, result3 error) {
+func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 db.Dashboard, result2 error) {
 	fake.DashboardStub = nil
 	if fake.dashboardReturnsOnCall == nil {
 		fake.dashboardReturnsOnCall = make(map[int]struct {
 			result1 db.Dashboard
-			result2 atc.GroupConfigs
-			result3 error
+			result2 error
 		})
 	}
 	fake.dashboardReturnsOnCall[i] = struct {
 		result1 db.Dashboard
-		result2 atc.GroupConfigs
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePipeline) Expose() error {

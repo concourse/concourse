@@ -394,6 +394,7 @@ func (cmd *ATCCommand) constructMembers(
 	dbVolumeFactory := db.NewVolumeFactory(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
@@ -487,6 +488,7 @@ func (cmd *ATCCommand) constructMembers(
 		reconfigurableSink,
 		teamFactory,
 		dbPipelineFactory,
+		dbJobFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
 		dbContainerRepository,
@@ -1096,6 +1098,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	teamFactory db.TeamFactory,
 	dbPipelineFactory db.PipelineFactory,
+	dbJobFactory db.JobFactory,
 	dbWorkerFactory db.WorkerFactory,
 	dbVolumeFactory db.VolumeFactory,
 	dbContainerRepository db.ContainerRepository,
@@ -1135,6 +1138,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		teamFactory,
 		dbPipelineFactory,
+		dbJobFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
 		dbContainerRepository,

@@ -403,6 +403,13 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
+	jobGroups := make(map[string][]string)
+	for _, group := range config.Groups {
+		for _, job := range group.Jobs {
+			jobGroups[job] = append(jobGroups[job], group.Name)
+		}
+	}
+
 	var created bool
 	var existingConfig int
 
@@ -547,7 +554,7 @@ func (t *team) SavePipeline(
 	}
 
 	for _, job := range config.Jobs {
-		err = t.saveJob(tx, job, pipelineID)
+		err = t.saveJob(tx, job, pipelineID, jobGroups[job.Name])
 		if err != nil {
 			return nil, false, err
 		}
@@ -788,7 +795,7 @@ func (t *team) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
 	return t.queryTeam(query, params)
 }
 
-func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
+func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string) error {
 	configPayload, err := json.Marshal(job)
 	if err != nil {
 		return err
@@ -802,9 +809,9 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE jobs
-		SET config = $3, interruptible = $4, active = true, nonce = $5
+		SET config = $3, interruptible = $4, active = true, nonce = $5, tags = $6
 		WHERE name = $1 AND pipeline_id = $2
-	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce)
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, "{"+strings.Join(groups, ",")+"}")
 	if err != nil {
 		return err
 	}
@@ -814,9 +821,9 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO jobs (name, pipeline_id, config, interruptible, active, nonce)
-		VALUES ($1, $2, $3, $4, true, $5)
-	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce)
+		INSERT INTO jobs (name, pipeline_id, config, interruptible, active, nonce, tags)
+		VALUES ($1, $2, $3, $4, true, $5, $6)
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, "{"+strings.Join(groups, ",")+"}")
 
 	return swallowUniqueViolation(err)
 }

@@ -91,6 +91,15 @@ type FakeJob struct {
 	configReturnsOnCall map[int]struct {
 		result1 atc.JobConfig
 	}
+	TagsStub        func() []string
+	tagsMutex       sync.RWMutex
+	tagsArgsForCall []struct{}
+	tagsReturns     struct {
+		result1 []string
+	}
+	tagsReturnsOnCall map[int]struct {
+		result1 []string
+	}
 	ReloadStub        func() (bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct{}
@@ -660,6 +669,46 @@ func (fake *FakeJob) ConfigReturnsOnCall(i int, result1 atc.JobConfig) {
 	}
 	fake.configReturnsOnCall[i] = struct {
 		result1 atc.JobConfig
+	}{result1}
+}
+
+func (fake *FakeJob) Tags() []string {
+	fake.tagsMutex.Lock()
+	ret, specificReturn := fake.tagsReturnsOnCall[len(fake.tagsArgsForCall)]
+	fake.tagsArgsForCall = append(fake.tagsArgsForCall, struct{}{})
+	fake.recordInvocation("Tags", []interface{}{})
+	fake.tagsMutex.Unlock()
+	if fake.TagsStub != nil {
+		return fake.TagsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.tagsReturns.result1
+}
+
+func (fake *FakeJob) TagsCallCount() int {
+	fake.tagsMutex.RLock()
+	defer fake.tagsMutex.RUnlock()
+	return len(fake.tagsArgsForCall)
+}
+
+func (fake *FakeJob) TagsReturns(result1 []string) {
+	fake.TagsStub = nil
+	fake.tagsReturns = struct {
+		result1 []string
+	}{result1}
+}
+
+func (fake *FakeJob) TagsReturnsOnCall(i int, result1 []string) {
+	fake.TagsStub = nil
+	if fake.tagsReturnsOnCall == nil {
+		fake.tagsReturnsOnCall = make(map[int]struct {
+			result1 []string
+		})
+	}
+	fake.tagsReturnsOnCall[i] = struct {
+		result1 []string
 	}{result1}
 }
 
@@ -1523,6 +1572,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.teamNameMutex.RUnlock()
 	fake.configMutex.RLock()
 	defer fake.configMutex.RUnlock()
+	fake.tagsMutex.RLock()
+	defer fake.tagsMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
 	fake.pauseMutex.RLock()

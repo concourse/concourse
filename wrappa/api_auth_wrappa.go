@@ -43,6 +43,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListTeams,
 			atc.ListAllPipelines,
 			atc.ListPipelines,
+			atc.ListAllJobs,
 			atc.ListBuilds,
 			atc.LegacyListAuthMethods,
 			atc.LegacyGetAuthToken,

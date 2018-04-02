@@ -23,6 +23,7 @@ type Job interface {
 	TeamID() int
 	TeamName() string
 	Config() atc.JobConfig
+	Tags() []string
 
 	Reload() (bool, error)
 
@@ -48,7 +49,7 @@ type Job interface {
 	GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bool, error)
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "array_to_json(j.tags)").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -73,6 +74,7 @@ type job struct {
 	teamID             int
 	teamName           string
 	config             atc.JobConfig
+	tags               []string
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -99,6 +101,7 @@ func (j *job) PipelineName() string    { return j.pipelineName }
 func (j *job) TeamID() int             { return j.teamID }
 func (j *job) TeamName() string        { return j.teamName }
 func (j *job) Config() atc.JobConfig   { return j.config }
+func (j *job) Tags() []string          { return j.tags }
 
 func (j *job) Reload() (bool, error) {
 	row := jobsQuery.Where(sq.Eq{"j.id": j.id}).
@@ -837,9 +840,11 @@ func scanJob(j *job, row scannable) error {
 	var (
 		configBlob []byte
 		nonce      sql.NullString
+		tagsBlob   []byte
+		tags       []string
 	)
 
-	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce)
+	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, &tagsBlob)
 	if err != nil {
 		return err
 	}
@@ -863,6 +868,9 @@ func scanJob(j *job, row scannable) error {
 	}
 
 	j.config = config
+
+	json.Unmarshal(tagsBlob, &tags)
+	j.tags = tags
 
 	return nil
 }

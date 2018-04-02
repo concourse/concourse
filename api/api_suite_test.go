@@ -42,6 +42,7 @@ var (
 	fakeContainerRepository *dbfakes.FakeContainerRepository
 	dbTeamFactory           *dbfakes.FakeTeamFactory
 	dbPipelineFactory       *dbfakes.FakePipelineFactory
+	dbJobFactory            *dbfakes.FakeJobFactory
 	fakePipeline            *dbfakes.FakePipeline
 	fakeAccessor            *accessorfakes.FakeAccessFactory
 	dbWorkerFactory         *dbfakes.FakeWorkerFactory
@@ -90,6 +91,7 @@ func (f *fakeEventHandlerFactory) Construct(
 var _ = BeforeEach(func() {
 	dbTeamFactory = new(dbfakes.FakeTeamFactory)
 	dbPipelineFactory = new(dbfakes.FakePipelineFactory)
+	dbJobFactory = new(dbfakes.FakeJobFactory)
 	dbBuildFactory = new(dbfakes.FakeBuildFactory)
 
 	interceptTimeoutFactory = new(containerserverfakes.FakeInterceptTimeoutFactory)
@@ -165,6 +167,7 @@ var _ = BeforeEach(func() {
 
 		dbTeamFactory,
 		dbPipelineFactory,
+		dbJobFactory,
 		dbWorkerFactory,
 		fakeVolumeFactory,
 		fakeContainerRepository,

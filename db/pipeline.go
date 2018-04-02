@@ -93,7 +93,7 @@ type Pipeline interface {
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
-	Dashboard(include string) (Dashboard, atc.GroupConfigs, error)
+	Dashboard(include string) (Dashboard, error)
 
 	Expose() error
 	Hide() error
@@ -873,7 +873,7 @@ func (p *pipeline) Jobs() (Jobs, error) {
 	return jobs, err
 }
 
-func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error) {
+func (p *pipeline) Dashboard(include string) (Dashboard, error) {
 	dashboard := Dashboard{}
 
 	rows, err := jobsQuery.
@@ -885,22 +885,22 @@ func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error
 		RunWith(p.conn).
 		Query()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	jobs, err := scanJobs(p.conn, p.lockFactory, rows)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	nextBuilds, err := p.getBuildsFrom("next_builds_per_job")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	finishedBuilds, err := p.getBuildsFrom("latest_completed_builds_per_job")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var transitionBuilds map[string]Build
@@ -908,7 +908,7 @@ func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error
 	if include == "transitionBuilds" {
 		transitionBuilds, err = p.getBuildsFrom("transition_builds_per_job")
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
@@ -932,7 +932,7 @@ func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error
 		dashboard = append(dashboard, dashboardJob)
 	}
 
-	return dashboard, p.groups, nil
+	return dashboard, nil
 }
 
 func (p *pipeline) Pause() error {

@@ -8,7 +8,6 @@ import (
 func Job(
 	teamName string,
 	job db.Job,
-	groups atc.GroupConfigs,
 	finishedBuild db.Build,
 	nextBuild db.Build,
 	transitionBuild db.Build,
@@ -28,15 +27,6 @@ func Job(
 	if transitionBuild != nil {
 		presented := Build(transitionBuild)
 		presentedTransitionBuild = &presented
-	}
-
-	groupNames := []string{}
-	for _, group := range groups {
-		for _, name := range group.Jobs {
-			if name == job.Name() {
-				groupNames = append(groupNames, group.Name)
-			}
-		}
 	}
 
 	sanitizedInputs := []atc.JobInput{}
@@ -73,6 +63,6 @@ func Job(
 		Inputs:  sanitizedInputs,
 		Outputs: sanitizedOutputs,
 
-		Groups: groupNames,
+		Groups: job.Tags(),
 	}
 }

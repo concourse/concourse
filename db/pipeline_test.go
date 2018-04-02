@@ -2032,10 +2032,9 @@ var _ = Describe("Pipeline", func() {
 			Expect(found).To(BeTrue())
 
 			By("returning jobs with no builds")
-			actualDashboard, groups, err := pipeline.Dashboard("")
+			actualDashboard, err := pipeline.Dashboard("")
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(groups).To(Equal(pipelineConfig.Groups))
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
 			Expect(actualDashboard[1].Job.Name()).To(Equal(otherJob.Name()))
 			Expect(actualDashboard[2].Job.Name()).To(Equal(aJob.Name()))
@@ -2052,7 +2051,7 @@ var _ = Describe("Pipeline", func() {
 			firstJobBuild, err := job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			actualDashboard, _, err = pipeline.Dashboard("")
+			actualDashboard, err = pipeline.Dashboard("")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
@@ -2067,7 +2066,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			actualDashboard, _, err = pipeline.Dashboard("")
+			actualDashboard, err = pipeline.Dashboard("")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
@@ -2084,7 +2083,7 @@ var _ = Describe("Pipeline", func() {
 			secondJobBuild, err := job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			actualDashboard, _, err = pipeline.Dashboard("")
+			actualDashboard, err = pipeline.Dashboard("")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
@@ -2101,7 +2100,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			actualDashboard, _, err = pipeline.Dashboard("")
+			actualDashboard, err = pipeline.Dashboard("")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
@@ -2136,7 +2135,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			actualDashboard, _, err = pipeline.Dashboard("transitionBuilds")
+			actualDashboard, err = pipeline.Dashboard("transitionBuilds")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualDashboard[4].Job.Name()).To(Equal(randomJob.Name()))
@@ -2150,7 +2149,7 @@ var _ = Describe("Pipeline", func() {
 			_, err = job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			actualDashboard, _, err = pipeline.Dashboard("transitionBuilds")
+			actualDashboard, err = pipeline.Dashboard("transitionBuilds")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualDashboard[4].TransitionBuild).To(BeNil())
@@ -2172,7 +2171,7 @@ var _ = Describe("Pipeline", func() {
 			err = jobBuild.Finish(db.BuildStatusFailed)
 			Expect(err).ToNot(HaveOccurred())
 
-			actualDashboard, _, err = pipeline.Dashboard("transitionBuilds")
+			actualDashboard, err = pipeline.Dashboard("transitionBuilds")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualDashboard[4].Job.Name()).To(Equal(randomJob.Name()))
@@ -2222,12 +2221,12 @@ var _ = Describe("Pipeline", func() {
 			_, err = job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			actualDashboard, _, err = pipeline.Dashboard("")
+			actualDashboard, err = pipeline.Dashboard("")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualDashboard[0].TransitionBuild).To(BeNil())
 
-			actualDashboard, _, err = pipeline.Dashboard("transitionBuilds")
+			actualDashboard, err = pipeline.Dashboard("transitionBuilds")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualDashboard[0].TransitionBuild.ID()).To(Equal(transitionBuild.ID()))
