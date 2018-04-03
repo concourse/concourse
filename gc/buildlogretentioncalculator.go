@@ -1,6 +1,8 @@
 package gc
 
-import "github.com/concourse/atc/db"
+import (
+	"github.com/concourse/atc/db"
+)
 
 type BuildLogRetentionCalculator interface {
 	BuildLogsToRetain(db.Job) int
@@ -36,7 +38,7 @@ func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) int {
 	}
 
 	// If we have a value set, and we're less than the max, then return
-	if buildLogsToRetain > 0 || buildLogsToRetain < int(blrc.maxBuildLogsToRetain) {
+	if buildLogsToRetain > 0 && buildLogsToRetain < int(blrc.maxBuildLogsToRetain) {
 		return buildLogsToRetain
 	}
 
