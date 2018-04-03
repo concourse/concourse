@@ -175,7 +175,9 @@ var _ = Describe("VolumeCollector", func() {
 				Expect(createdVolumes).To(HaveLen(0))
 				Expect(destoryingVolumes).To(HaveLen(0))
 
-				Expect(fakeBCVolume.DestroyCallCount()).To(Equal(2))
+				Expect(fakeBaggageclaimClient.DestroyVolumesCallCount()).To(Equal(1))
+				_, destroyVolumes := fakeBaggageclaimClient.DestroyVolumesArgsForCall(0)
+				Expect(destroyVolumes).To(HaveLen(2))
 			})
 
 			Context("when destroying the volume in db fails because volume has children", func() {
@@ -204,22 +206,22 @@ var _ = Describe("VolumeCollector", func() {
 
 			Context("when destroying the volume in baggageclaim fails", func() {
 				BeforeEach(func() {
-					fakeBCVolume.DestroyReturns(errors.New("oh no!"))
+					fakeBaggageclaimClient.DestroyVolumesReturns(errors.New("oh no!"))
 				})
 
 				It("leaves the volume in the db", func() {
-					createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+					createdVolumes, destroyingVolumes, err := volumeFactory.GetOrphanedVolumes()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(createdVolumes).To(HaveLen(1))
-					Expect(destoryingVolumes).To(HaveLen(1))
+					Expect(destroyingVolumes).To(HaveLen(1))
 
 					err = volumeCollector.Run()
 					Expect(err).NotTo(HaveOccurred())
 
-					createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
+					createdVolumes, destroyingVolumes, err = volumeFactory.GetOrphanedVolumes()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(createdVolumes).To(HaveLen(0))
-					Expect(destoryingVolumes).To(HaveLen(2))
+					Expect(destroyingVolumes).To(HaveLen(2))
 				})
 			})
 		})
