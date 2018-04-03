@@ -125,8 +125,6 @@ to consult \code{fly -h} to learn the short forms.
   $ fly -t example sync
   }}
 
-  If you see anything odd, for example the output of builds not rendering or
-  certain commands throwing errors, be sure to run this command before
-  investigating any further; it's pretty likely that something has changed with
-  the API, especially while we're pre-1.0.
+  The \code{fly} command will also warn you if it notices that your CLI version
+  is out of sync with the server.
 }
