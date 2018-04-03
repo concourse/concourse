@@ -35,6 +35,16 @@ describe 'dashboard search', type: :feature do
     expect(page.find_field('search-input-field').value).to eq ''
   end
 
+  it 'keeps the search results with auto refresh' do
+    expect(page).to have_content 'some-pipeline', wait: 1
+
+    search 'invalid'
+    expect(page).to have_content('No results for "invalid" matched your search.', wait: 1)
+
+    sleep 5
+    expect(page).to have_content('No results for "invalid" matched your search.')
+  end
+
   context 'by pipeline name' do
     it 'filters the pipelines by the search term' do
       search 'some'
@@ -143,12 +153,14 @@ describe 'dashboard search', type: :feature do
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline', 'other-pipeline']
     end
 
-    it 'filters the pipelines by started status' do
+    it 'filters the pipelines by running status' do
       fly('trigger-job -j some-pipeline/running')
       visit dash_route("/teams/#{team_name}/pipelines/some-pipeline/jobs/running/builds/1")
       expect(page).to have_content 'hello'
 
       visit dash_route('/dashboard')
+      expect(page).to have_content 'some-pipeline'
+
       search 'status:running'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end

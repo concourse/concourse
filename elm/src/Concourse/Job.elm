@@ -26,6 +26,14 @@ fetchJobs pi =
             ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
 
 
+fetchAllJobs : Task Http.Error (List Concourse.Job)
+fetchAllJobs =
+    Http.toTask <|
+        flip Http.get
+            (Json.Decode.list (Concourse.decodeJob { teamName = "", pipelineName = "" }))
+            "/api/v1/jobs"
+
+
 fetchJobsWithTransitionBuilds : Concourse.PipelineIdentifier -> Task Http.Error (List Concourse.Job)
 fetchJobsWithTransitionBuilds pi =
     Http.toTask <|

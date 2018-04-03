@@ -1,6 +1,7 @@
-port module Dashboard exposing (Model, Msg, init, update, subscriptions, view, filterBy, searchTermList, pipelineStatus, lastPipelineStatus, StatusPipeline)
+port module Dashboard exposing (Model, Msg, init, update, subscriptions, view)
 
 import BuildDuration
+import Char
 import Concourse
 import Concourse.Cli
 import Concourse.Info
@@ -10,20 +11,19 @@ import Concourse.PipelineStatus
 import DashboardPreview
 import Date exposing (Date)
 import Dict exposing (Dict)
+import Dom
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src, attribute)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Keyboard
 import Mouse
-import Dom
-import Char
 import NewTopBar
 import RemoteData
+import Routes
+import Simple.Fuzzy exposing (match, root, filter)
 import Task exposing (Task)
 import Time exposing (Time)
-import Simple.Fuzzy exposing (match, root, filter)
-import Routes
 
 
 port pinTeamNames : () -> Cmd msg
@@ -31,22 +31,24 @@ port pinTeamNames : () -> Cmd msg
 
 type alias Model =
     { topBar : NewTopBar.Model
-    , pipelines : RemoteData.WebData (List Concourse.Pipeline)
-    , jobs : Dict Int (RemoteData.WebData (List Concourse.Job))
+    , mPipelines : RemoteData.WebData (List Concourse.Pipeline)
+    , pipelines : List Concourse.Pipeline
+    , filteredPipelines : List Concourse.Pipeline
+    , mJobs : RemoteData.WebData (List Concourse.Job)
+    , pipelineJobs : Dict Int (List Concourse.Job)
     , concourseVersion : String
     , turbulenceImgSrc : String
     , now : Maybe Time
     , showHelp : Bool
     , hideFooter : Bool
     , hideFooterCounter : Time
-    , fetchedPipelines : List Concourse.Pipeline
     }
 
 
 type Msg
     = Noop
     | PipelinesResponse (RemoteData.WebData (List Concourse.Pipeline))
-    | JobsResponse Int (RemoteData.WebData (List Concourse.Job))
+    | JobsResponse (RemoteData.WebData (List Concourse.Job))
     | ClockTick Time.Time
     | VersionFetched (Result Http.Error String)
     | AutoRefresh Time
@@ -56,23 +58,13 @@ type Msg
     | TopBarMsg NewTopBar.Msg
 
 
+type alias PipelineId =
+    Int
+
+
 type alias PipelineWithJobs =
     { pipeline : Concourse.Pipeline
-    , jobs : RemoteData.WebData (List Concourse.Job)
-    }
-
-
-type alias StatusPipeline =
-    { pipeline : Concourse.Pipeline
-    , status : String
-    }
-
-
-type alias JobBuilds j =
-    { j
-        | nextBuild : Maybe Concourse.Build
-        , finishedBuild : Maybe Concourse.Build
-        , paused : Bool
+    , jobs : List Concourse.Job
     }
 
 
@@ -83,15 +75,17 @@ init turbulencePath =
             NewTopBar.init True
     in
         ( { topBar = topBar
-          , pipelines = RemoteData.NotAsked
-          , jobs = Dict.empty
+          , mPipelines = RemoteData.NotAsked
+          , pipelines = []
+          , filteredPipelines = []
+          , mJobs = RemoteData.NotAsked
+          , pipelineJobs = Dict.empty
           , now = Nothing
           , turbulenceImgSrc = turbulencePath
           , concourseVersion = ""
           , showHelp = False
           , hideFooter = False
           , hideFooterCounter = 0
-          , fetchedPipelines = []
           }
         , Cmd.batch
             [ fetchPipelines
@@ -110,24 +104,26 @@ update msg model =
             ( model, Cmd.none )
 
         PipelinesResponse response ->
-            ( { model | pipelines = response }
-            , case response of
+            case response of
                 RemoteData.Success pipelines ->
-                    Cmd.batch (List.map fetchJobs pipelines)
+                    ( { model | mPipelines = response, pipelines = pipelines }, Cmd.batch [ fetchAllJobs ] )
 
                 _ ->
-                    Cmd.none
-            )
+                    ( model, Cmd.none )
 
-        JobsResponse pipelineId response ->
-            ( { model | jobs = Dict.insert pipelineId response model.jobs }, Cmd.none )
+        JobsResponse response ->
+            case ( response, model.mPipelines ) of
+                ( RemoteData.Success jobs, RemoteData.Success pipelines ) ->
+                    ( { model | mJobs = response, pipelineJobs = jobsByPipelineId pipelines jobs }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         VersionFetched (Ok version) ->
             ( { model | concourseVersion = version }, Cmd.none )
 
         VersionFetched (Err err) ->
-            flip always (Debug.log ("failed to fetch version") (err)) <|
-                ( { model | concourseVersion = "" }, Cmd.none )
+            ( { model | concourseVersion = "" }, Cmd.none )
 
         ClockTick now ->
             if model.hideFooterCounter + Time.second > 5 * Time.second then
@@ -157,14 +153,14 @@ update msg model =
                         NewTopBar.FilterMsg query ->
                             { model
                                 | topBar = newTopBar
-                                , fetchedPipelines = filterModelPipelines query model
+                                , filteredPipelines = filterModelPipelines query model
                             }
 
                         NewTopBar.KeyDown keycode ->
                             if keycode == 13 then
                                 { model
                                     | topBar = newTopBar
-                                    , fetchedPipelines = filterModelPipelines newTopBar.query model
+                                    , filteredPipelines = filterModelPipelines newTopBar.query model
                                 }
                             else
                                 { model | topBar = newTopBar }
@@ -173,6 +169,42 @@ update msg model =
                             { model | topBar = newTopBar }
             in
                 ( newModel, Cmd.map TopBarMsg newTopBarMsg )
+
+
+classifyJob : Concourse.Job -> Dict ( String, String ) Concourse.Pipeline -> Dict PipelineId (List Concourse.Job) -> Dict PipelineId (List Concourse.Job)
+classifyJob job pipelines pipelineJobs =
+    let
+        pipelineIdentifier =
+            ( job.teamName, job.pipelineName )
+
+        mPipeline =
+            Dict.get pipelineIdentifier pipelines
+    in
+        case mPipeline of
+            Nothing ->
+                pipelineJobs
+
+            Just pipeline ->
+                let
+                    jobs =
+                        Maybe.withDefault [] <| Dict.get pipeline.id pipelineJobs
+                in
+                    Dict.insert pipeline.id (job :: jobs) pipelineJobs
+
+
+jobsByPipelineId : List Concourse.Pipeline -> List Concourse.Job -> Dict PipelineId (List Concourse.Job)
+jobsByPipelineId pipelines jobs =
+    let
+        pipelinesByIdentifier =
+            List.foldl
+                (\pipeline byIdentifier -> Dict.insert ( pipeline.teamName, pipeline.name ) pipeline byIdentifier)
+                Dict.empty
+                pipelines
+    in
+        List.foldl
+            (\job byPipelineId -> classifyJob job pipelinesByIdentifier byPipelineId)
+            Dict.empty
+            jobs
 
 
 subscriptions : Model -> Sub Msg
@@ -191,37 +223,30 @@ view : Model -> Html Msg
 view model =
     Html.div [ class "page" ]
         [ Html.map TopBarMsg (NewTopBar.view model.topBar)
-        , viewDashboard model
+        , dashboardView model
         ]
 
 
-viewDashboard : Model -> Html Msg
-viewDashboard model =
-    let
-        listFetchedPipelinesLength =
-            List.length model.fetchedPipelines
+dashboardView : Model -> Html Msg
+dashboardView model =
+    case model.mPipelines of
+        RemoteData.Success _ ->
+            if List.length model.filteredPipelines > 0 then
+                pipelinesView model model.filteredPipelines
+            else if not (String.isEmpty model.topBar.query) then
+                noResultsView (toString model.topBar.query)
+            else
+                pipelinesView model model.pipelines
 
-        isQueryEmpty =
-            String.isEmpty model.topBar.query
-    in
-        case model.pipelines of
-            RemoteData.Success pipelines ->
-                if listFetchedPipelinesLength > 0 then
-                    showPipelinesView model model.fetchedPipelines
-                else if not isQueryEmpty then
-                    showNoResultsView (toString model.topBar.query)
-                else
-                    showPipelinesView model pipelines
+        RemoteData.Failure _ ->
+            turbulenceView model
 
-            RemoteData.Failure _ ->
-                showTurbulenceView model
-
-            _ ->
-                Html.text ""
+        _ ->
+            Html.text ""
 
 
-showNoResultsView : String -> Html Msg
-showNoResultsView query =
+noResultsView : String -> Html Msg
+noResultsView query =
     let
         boldedQuery =
             Html.span [ class "monospace-bold" ] [ Html.text query ]
@@ -243,32 +268,6 @@ showNoResultsView query =
             ]
 
 
-showPipelinesView : Model -> List Concourse.Pipeline -> Html Msg
-showPipelinesView model pipelines =
-    let
-        pipelineStates =
-            getPipelineStates model pipelines
-
-        pipelinesByTeam =
-            List.foldl
-                (\pipelineState byTeam ->
-                    addPipelineState byTeam ( pipelineState.pipeline.teamName, pipelineState )
-                )
-                []
-                pipelineStates
-
-        listPipelinesByTeam =
-            List.map (\( teamName, pipelineStates ) -> viewGroup model.now teamName (List.reverse pipelineStates)) pipelinesByTeam
-    in
-        Html.div
-            [ class "dashboard" ]
-        <|
-            [ Html.div [ class "dashboard-content" ] <| listPipelinesByTeam
-            , showFooterView model
-            , helpView model
-            ]
-
-
 helpView : Model -> Html Msg
 helpView model =
     Html.div
@@ -283,8 +282,8 @@ helpView model =
         ]
 
 
-showFooterView : Model -> Html Msg
-showFooterView model =
+footerView : Model -> Html Msg
+footerView model =
     Html.div
         [ if model.hideFooter || model.showHelp then
             class "dashboard-footer hidden"
@@ -328,8 +327,8 @@ showFooterView model =
         ]
 
 
-showTurbulenceView : Model -> Html Msg
-showTurbulenceView model =
+turbulenceView : Model -> Html Msg
+turbulenceView model =
     Html.div
         [ class "error-message" ]
         [ Html.div [ class "message" ]
@@ -338,6 +337,29 @@ showTurbulenceView model =
             , Html.p [ class "explanation" ] []
             ]
         ]
+
+
+pipelinesView : Model -> List Concourse.Pipeline -> Html Msg
+pipelinesView model pipelines =
+    let
+        pipelinesByTeam =
+            List.foldl
+                (\pipelineWithJobs byTeam ->
+                    groupPipelines byTeam ( pipelineWithJobs.pipeline.teamName, pipelineWithJobs )
+                )
+                []
+                (pipelinesWithJobs model.pipelineJobs pipelines)
+
+        pipelinesByTeamView =
+            List.map (\( teamName, pipelines ) -> groupView model.now teamName (List.reverse pipelines)) pipelinesByTeam
+    in
+        Html.div
+            [ class "dashboard" ]
+        <|
+            [ Html.div [ class "dashboard-content" ] <| pipelinesByTeamView
+            , footerView model
+            , helpView model
+            ]
 
 
 handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )
@@ -353,238 +375,127 @@ handleKeyPressed key model =
             update ShowFooter model
 
 
-addPipelineState : List ( String, List PipelineWithJobs ) -> ( String, PipelineWithJobs ) -> List ( String, List PipelineWithJobs )
-addPipelineState pipelineStates ( teamName, pipelineState ) =
-    case pipelineStates of
+groupPipelines : List ( String, List PipelineWithJobs ) -> ( String, PipelineWithJobs ) -> List ( String, List PipelineWithJobs )
+groupPipelines pipelines ( teamName, pipeline ) =
+    case pipelines of
         [] ->
-            [ ( teamName, [ pipelineState ] ) ]
+            [ ( teamName, [ pipeline ] ) ]
 
         s :: ss ->
             if Tuple.first s == teamName then
-                ( teamName, pipelineState :: (Tuple.second s) ) :: ss
+                ( teamName, pipeline :: (Tuple.second s) ) :: ss
             else
-                s :: (addPipelineState ss ( teamName, pipelineState ))
+                s :: (groupPipelines ss ( teamName, pipeline ))
 
 
-viewGroup : Maybe Time -> String -> List PipelineWithJobs -> Html msg
-viewGroup now teamName pipelines =
+groupView : Maybe Time -> String -> List PipelineWithJobs -> Html msg
+groupView now teamName pipelines =
     Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
         [ Html.div [ class "pin-wrapper" ]
             [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ] ]
         , Html.div [ class "dashboard-team-pipelines" ]
-            (List.map (viewPipeline now) pipelines)
+            (List.map (pipelineView now) pipelines)
         ]
 
 
-viewPipeline : Maybe Time -> PipelineWithJobs -> Html msg
-viewPipeline now state =
-    let
-        pStatus =
-            pipelineStatus state
-
-        lStatus =
-            lastPipelineStatus state
-
-        mJobs =
-            case state.jobs of
-                RemoteData.Success js ->
-                    Just js
-
-                _ ->
-                    Nothing
-
-        mpreview =
-            Maybe.map DashboardPreview.view mJobs
-    in
-        Html.div
-            [ classList
-                [ ( "dashboard-pipeline", True )
-                , ( "dashboard-paused", state.pipeline.paused )
-                , ( "dashboard-running", isPipelineRunning pStatus || hasJobsRunning state.jobs )
-                , ( setPipelineStatusClass lStatus, not state.pipeline.paused )
-                ]
-            , attribute "data-pipeline-name" state.pipeline.name
+pipelineView : Maybe Time -> PipelineWithJobs -> Html msg
+pipelineView now ({ pipeline, jobs } as pipelineWithJobs) =
+    Html.div
+        [ classList
+            [ ( "dashboard-pipeline", True )
+            , ( "dashboard-paused", pipeline.paused )
+            , ( "dashboard-running", List.any (\job -> job.nextBuild /= Nothing) jobs )
+            , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (pipelineStatusFromJobs jobs False), not pipeline.paused )
             ]
-            [ Html.div [ class "dashboard-pipeline-banner" ] []
-            , Html.div
-                [ class "dashboard-pipeline-content" ]
-                [ Html.a [ href <| Routes.pipelineRoute state.pipeline ]
-                    [ Html.div
-                        [ class "dashboard-pipeline-header" ]
-                        [ Html.div [ class "dashboard-pipeline-name" ]
-                            [ Html.text state.pipeline.name ]
-                        ]
-                    ]
-                , case mpreview of
-                    Just preview ->
-                        preview
-
-                    Nothing ->
-                        Html.text ""
-                , Html.div [ class "dashboard-pipeline-footer" ]
-                    [ Html.div [ class "dashboard-pipeline-icon" ]
-                        []
-                    , timeSincePipelineTransitioned now state
+        , attribute "data-pipeline-name" pipeline.name
+        ]
+        [ Html.div [ class "dashboard-pipeline-banner" ] []
+        , Html.div
+            [ class "dashboard-pipeline-content" ]
+            [ Html.a [ href <| Routes.pipelineRoute pipeline ]
+                [ Html.div
+                    [ class "dashboard-pipeline-header" ]
+                    [ Html.div [ class "dashboard-pipeline-name" ]
+                        [ Html.text pipeline.name ]
                     ]
                 ]
+            , DashboardPreview.view jobs
+            , Html.div [ class "dashboard-pipeline-footer" ]
+                [ Html.div [ class "dashboard-pipeline-icon" ]
+                    []
+                , timeSincePipelineTransitioned now pipelineWithJobs
+                ]
             ]
-
-
-setPipelineStatusClass : Concourse.PipelineStatus -> String
-setPipelineStatusClass status =
-    if isPipelineRunning status then
-        ""
-    else
-        "dashboard-status-" ++ Concourse.PipelineStatus.show status
+        ]
 
 
 timeSincePipelineTransitioned : Maybe Time -> PipelineWithJobs -> Html a
-timeSincePipelineTransitioned time state =
-    case state.jobs of
-        RemoteData.Success js ->
-            let
-                status =
-                    pipelineStatus state
+timeSincePipelineTransitioned time ({ jobs } as pipelineWithJobs) =
+    let
+        status =
+            pipelineStatus pipelineWithJobs
 
-                transitionedJobs =
-                    List.filter
-                        (\job ->
-                            not <| xor (status == Concourse.PipelineStatusSucceeded) (Just (Concourse.BuildStatusSucceeded) == (Maybe.map .status job.finishedBuild))
-                        )
-                        js
+        transitionedDurations =
+            List.filterMap
+                (\job ->
+                    Maybe.map .duration job.transitionBuild
+                )
+                jobs
 
-                transitionedDurations =
-                    List.filterMap
-                        (\job ->
-                            Maybe.map .duration job.transitionBuild
-                        )
-                        transitionedJobs
+        sortedTransitionedDurations =
+            List.sortBy
+                (\duration ->
+                    case duration.startedAt of
+                        Just date ->
+                            Time.inSeconds <| Date.toTime date
 
-                sortedTransitionedDurations =
-                    List.sortBy
-                        (\duration ->
-                            case duration.startedAt of
-                                Just date ->
-                                    Time.inSeconds <| Date.toTime date
+                        Nothing ->
+                            0
+                )
+                transitionedDurations
 
-                                Nothing ->
-                                    0
-                        )
-                        transitionedDurations
+        transitionedDuration =
+            if status == Concourse.PipelineStatusSucceeded then
+                List.head << List.reverse <| sortedTransitionedDurations
+            else
+                List.head <| sortedTransitionedDurations
+    in
+        case status of
+            Concourse.PipelineStatusPaused ->
+                Html.div [ class "build-duration" ] [ Html.text "paused" ]
 
-                transitionedDuration =
-                    if status == Concourse.PipelineStatusSucceeded then
-                        List.head << List.reverse <| sortedTransitionedDurations
-                    else
-                        List.head <| sortedTransitionedDurations
-            in
-                case status of
-                    Concourse.PipelineStatusPaused ->
-                        Html.div [ class "build-duration" ] [ Html.text "paused" ]
+            Concourse.PipelineStatusPending ->
+                Html.div [ class "build-duration" ] [ Html.text "pending" ]
 
-                    Concourse.PipelineStatusPending ->
-                        Html.div [ class "build-duration" ] [ Html.text "pending" ]
+            Concourse.PipelineStatusRunning ->
+                Html.div [ class "build-duration" ] [ Html.text "running" ]
 
-                    Concourse.PipelineStatusRunning ->
-                        Html.div [ class "build-duration" ] [ Html.text "running" ]
+            _ ->
+                case ( time, transitionedDuration ) of
+                    ( Just now, Just duration ) ->
+                        BuildDuration.show duration now
 
                     _ ->
-                        case ( time, transitionedDuration ) of
-                            ( Just now, Just duration ) ->
-                                BuildDuration.show duration now
-
-                            _ ->
-                                Html.text ""
-
-        _ ->
-            Html.text ""
+                        Html.text ""
 
 
-isPipelineRunning : Concourse.PipelineStatus -> Bool
-isPipelineRunning status =
-    case status of
-        Concourse.PipelineStatusRunning ->
-            True
-
-        _ ->
-            False
-
-
-isPipelineJobsRunning : PipelineWithJobs -> Bool
-isPipelineJobsRunning { jobs } =
-    case jobs of
-        RemoteData.Success js ->
-            List.any (\job -> job.nextBuild /= Nothing) js
-
-        _ ->
-            False
-
-
-hasJobsRunning : RemoteData.WebData (List Concourse.Job) -> Bool
-hasJobsRunning jobs =
-    case jobs of
-        RemoteData.Success js ->
-            List.any (\job -> job.nextBuild /= Nothing) js
-
-        _ ->
-            False
-
-
-pipelineStatus : { record | pipeline : { p | paused : Bool }, jobs : RemoteData.WebData (List (JobBuilds j)) } -> Concourse.PipelineStatus
+pipelineStatus : PipelineWithJobs -> Concourse.PipelineStatus
 pipelineStatus { pipeline, jobs } =
-    if pipeline.paused == True then
+    if pipeline.paused then
         Concourse.PipelineStatusPaused
     else
-        case jobs of
-            RemoteData.Success js ->
-                pipelineStatusFromJobs js
-
-            _ ->
-                Concourse.PipelineStatusPending
+        pipelineStatusFromJobs jobs True
 
 
-lastPipelineStatus : { record | pipeline : { p | paused : Bool }, jobs : RemoteData.WebData (List (JobBuilds j)) } -> Concourse.PipelineStatus
-lastPipelineStatus { pipeline, jobs } =
-    if pipeline.paused == True then
-        Concourse.PipelineStatusPaused
-    else
-        case jobs of
-            RemoteData.Success js ->
-                lastPipelineStatusFromJobs js
-
-            _ ->
-                Concourse.PipelineStatusPending
-
-
-lastPipelineStatusFromJobs : List (JobBuilds j) -> Concourse.PipelineStatus
-lastPipelineStatusFromJobs jobs =
+pipelineStatusFromJobs : List Concourse.Job -> Bool -> Concourse.PipelineStatus
+pipelineStatusFromJobs jobs includeNextBuilds =
     let
         statuses =
-            collectStatusesFromJobs jobs
+            jobStatuses jobs
     in
         if containsStatus Concourse.BuildStatusPending statuses then
             Concourse.PipelineStatusPending
-        else if containsStatus Concourse.BuildStatusFailed statuses then
-            Concourse.PipelineStatusFailed
-        else if containsStatus Concourse.BuildStatusErrored statuses then
-            Concourse.PipelineStatusErrored
-        else if containsStatus Concourse.BuildStatusAborted statuses then
-            Concourse.PipelineStatusAborted
-        else if containsStatus Concourse.BuildStatusSucceeded statuses then
-            Concourse.PipelineStatusSucceeded
-        else
-            Concourse.PipelineStatusPending
-
-
-pipelineStatusFromJobs : List (JobBuilds j) -> Concourse.PipelineStatus
-pipelineStatusFromJobs jobs =
-    let
-        statuses =
-            collectStatusesFromJobs jobs
-    in
-        if containsStatus Concourse.BuildStatusPending statuses then
-            Concourse.PipelineStatusPending
-        else if List.any (\job -> job.nextBuild /= Nothing) jobs then
+        else if includeNextBuilds && List.any (\job -> job.nextBuild /= Nothing) jobs then
             Concourse.PipelineStatusRunning
         else if containsStatus Concourse.BuildStatusFailed statuses then
             Concourse.PipelineStatusFailed
@@ -598,8 +509,8 @@ pipelineStatusFromJobs jobs =
             Concourse.PipelineStatusPending
 
 
-collectStatusesFromJobs : List (JobBuilds j) -> List (Maybe Concourse.BuildStatus)
-collectStatusesFromJobs jobs =
+jobStatuses : List Concourse.Job -> List (Maybe Concourse.BuildStatus)
+jobStatuses jobs =
     List.concatMap
         (\job ->
             [ Maybe.map .status job.finishedBuild
@@ -629,14 +540,11 @@ fetchPipelines =
         RemoteData.asCmd Concourse.Pipeline.fetchPipelines
 
 
-fetchJobs : Concourse.Pipeline -> Cmd Msg
-fetchJobs pipeline =
-    Cmd.map (JobsResponse pipeline.id) <|
+fetchAllJobs : Cmd Msg
+fetchAllJobs =
+    Cmd.map JobsResponse <|
         RemoteData.asCmd <|
-            Concourse.Job.fetchJobsWithTransitionBuilds
-                { teamName = pipeline.teamName
-                , pipelineName = pipeline.name
-                }
+            Concourse.Job.fetchAllJobs
 
 
 fetchVersion : Cmd Msg
@@ -657,12 +565,7 @@ filterModelPipelines query model =
         querySplit =
             String.split " " query
     in
-        case model.pipelines of
-            RemoteData.Success pipelines ->
-                searchTermList model querySplit pipelines
-
-            _ ->
-                []
+        searchTermList model querySplit model.pipelines
 
 
 searchTermList : Model -> List String -> List Concourse.Pipeline -> List Concourse.Pipeline
@@ -672,32 +575,10 @@ searchTermList model queryList pipelines =
             pipelines
 
         x :: xs ->
-            let
-                plist =
-                    extendedPipelineList model pipelines
-            in
-                searchTermList model xs (filterBy x plist)
+            searchTermList model xs (filterBy x (pipelinesWithJobs model.pipelineJobs pipelines))
 
 
-extendedPipelineList : Model -> List Concourse.Pipeline -> List StatusPipeline
-extendedPipelineList model pipelines =
-    let
-        pipelineStates =
-            getPipelineStates model pipelines
-
-        setPipelineStatus p =
-            pipelineStatus p |> Concourse.PipelineStatus.show
-    in
-        List.map
-            (\p ->
-                { pipeline = p.pipeline
-                , status = setPipelineStatus p
-                }
-            )
-            pipelineStates
-
-
-filterBy : String -> List StatusPipeline -> List Concourse.Pipeline
+filterBy : String -> List PipelineWithJobs -> List Concourse.Pipeline
 filterBy term pipelines =
     let
         searchTeams =
@@ -722,7 +603,7 @@ filterBy term pipelines =
             List.map (\p -> p.pipeline) pipelines
 
         filterByStatus =
-            Simple.Fuzzy.filter .status statusSearchTerm pipelines
+            Simple.Fuzzy.filter (\p -> pipelineStatus p |> Concourse.PipelineStatus.show) statusSearchTerm pipelines
     in
         if searchTeams == True then
             Simple.Fuzzy.filter .teamName teamSearchTerm plist
@@ -732,15 +613,13 @@ filterBy term pipelines =
             Simple.Fuzzy.filter .name term plist
 
 
-getPipelineStates : Model -> List Concourse.Pipeline -> List PipelineWithJobs
-getPipelineStates model pipelines =
-    List.filter ((/=) RemoteData.NotAsked << .jobs) <|
-        List.map
-            (\pipeline ->
-                { pipeline = pipeline
-                , jobs =
-                    Maybe.withDefault RemoteData.NotAsked <|
-                        Dict.get pipeline.id model.jobs
-                }
-            )
-            pipelines
+pipelinesWithJobs : Dict PipelineId (List Concourse.Job) -> List Concourse.Pipeline -> List PipelineWithJobs
+pipelinesWithJobs pipelineJobs pipelines =
+    List.map
+        (\pipeline ->
+            { pipeline = pipeline
+            , jobs =
+                Maybe.withDefault [] <| Dict.get pipeline.id pipelineJobs
+            }
+        )
+        pipelines
