@@ -68,11 +68,12 @@ type VolumeClient interface {
 var ErrVolumeExpiredImmediately = errors.New("volume expired immediately after saving")
 
 type ErrCreatedVolumeNotFound struct {
-	Handle string
+	Handle     string
+	WorkerName string
 }
 
 func (e ErrCreatedVolumeNotFound) Error() string {
-	return fmt.Sprintf("failed to find created volume in baggageclaim. Volume handle: %s", e.Handle)
+	return fmt.Sprintf("volume '%s' disappeared from worker '%s'", e.Handle, e.WorkerName)
 }
 
 var ErrBaseResourceTypeNotFound = errors.New("base resource type not found")
@@ -356,7 +357,7 @@ func (c *volumeClient) findOrCreateVolume(
 
 		if !bcVolumeFound {
 			logger.Info("created-volume-not-found")
-			return nil, ErrCreatedVolumeNotFound{Handle: createdVolume.Handle()}
+			return nil, ErrCreatedVolumeNotFound{Handle: createdVolume.Handle(), WorkerName: createdVolume.WorkerName()}
 		}
 
 		logger.Debug("found-created-volume")
