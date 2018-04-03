@@ -13,17 +13,22 @@ type buildReaper struct {
 	logger          lager.Logger
 	pipelineFactory db.PipelineFactory
 	batchSize       int
+
+	buildLogRetentionCalculator BuildLogRetentionCalculator
 }
 
 func NewBuildReaper(
 	logger lager.Logger,
 	pipelineFactory db.PipelineFactory,
 	batchSize int,
+	buildLogRetentionCalculator BuildLogRetentionCalculator,
 ) BuildReaper {
 	return &buildReaper{
 		logger:          logger,
 		pipelineFactory: pipelineFactory,
 		batchSize:       batchSize,
+
+		buildLogRetentionCalculator: buildLogRetentionCalculator,
 	}
 }
 
@@ -46,7 +51,8 @@ func (br *buildReaper) Run() error {
 		}
 
 		for _, job := range jobs {
-			if job.Config().BuildLogsToRetain == 0 {
+			buildLogsToRetain := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
+			if buildLogsToRetain == 0 {
 				continue
 			}
 
@@ -89,7 +95,7 @@ func (br *buildReaper) Run() error {
 			}
 
 			buildsToRetain, _, err := job.Builds(
-				db.Page{Limit: job.Config().BuildLogsToRetain},
+				db.Page{Limit: buildLogsToRetain},
 			)
 			if err != nil {
 				br.logger.Error("could-not-get-job-builds-to-retain", err)

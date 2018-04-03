@@ -32,6 +32,7 @@ var _ = Describe("BuildReaper", func() {
 			buildReaperLogger,
 			fakePipelineFactory,
 			batchSize,
+			NewBuildLogRetentionCalculator(0, 0),
 		)
 	})
 
