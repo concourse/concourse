@@ -59,9 +59,9 @@ All of the website content can be found under the [`lit/`](https://github.com/co
 
 The content layout for the site is qute simple, and for the most part self-explanatory. If you want to change a specific page on the website you can usually jump straight to it by looking for the `.lit` version of the page. For example you can make changes to https://concourse-ci.org/fly.html by editing `lit/fly.lit`. 
 
-* **`html/docs-header.tmpl`:** L1 navigation header for the Concourse website and docs.
-* **`lit/index.html`:** The Concourse Homepage
-* **`lit/docs/`:** This is where you'll find most of the documentation listed under https://concourse-ci.org/docs.html
-* **`lit/release-notes/`:** Release notes separated by Concourse version. These `.lit` snippets are ultimately loaded into `lit/download.lit`
-* **`lit/download.lit/`:** Concourse Downloads page
-* **`lit/docs/resource-types/community-resources.lit`:** A listing of Concourse community-supported resources
+* **`html/docs-header.tmpl`** L1 navigation header for the Concourse website and docs.
+* **`lit/index.html`** The Concourse Homepage
+* **`lit/docs/`** This is where you'll find most of the documentation listed under https://concourse-ci.org/docs.html
+* **`lit/release-notes/`** Release notes separated by Concourse version. These `.lit` snippets are ultimately loaded into `lit/download.lit`
+* **`lit/download.lit/`:* Concourse Downloads page
+* **`lit/docs/resource-types/community-resources.lit`** A listing of Concourse community-supported resources
