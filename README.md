@@ -23,7 +23,7 @@ engine](https://vito.github.io/booklit/).
 
 ## Compiling the Docs
 
-Run the following:
+You can compile the Concourse docs by running:
 
 ```bash
 ./scripts/build
