@@ -1,4 +1,4 @@
-# concourse [![slack.concourse-ci.org](http://slack.concourse-ci.org/badge.svg)](http://slack.concourse-ci.org)
+# concourse 
 
 [Concourse](https://concourse-ci.org) is a pipeline-based CI system written in Go.
 
@@ -7,9 +7,10 @@
   * [Introduction](https://concourse-ci.org/introduction.html)
   * [Setting Up](https://concourse-ci.org/setting-up.html)
   * [Using Concourse](https://concourse-ci.org/using-concourse.html)
-* Slack:
-  * [Invitation](http://slack.concourse-ci.org)
-  * [#general](https://concourseci.slack.com) for help and chit-chat
+* Forum 
+  * [Concourse Discourse](https://discuss.concourse-ci.org)
+* Chat
+  * [Discord](https://discord.gg/MeRxXKW)
 * Roadmap:
   * [GitHub Milestones](https://github.com/concourse/concourse/milestones)
   * [GitHub Issues](https://github.com/concourse/concourse/issues)
