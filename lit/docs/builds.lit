@@ -77,11 +77,6 @@ sure you intercept while it's running if you want to debug.
       }}
   }
 
-  \aside{
-    Be warned, if more than one person is using a Concourse server for running
-    one-off builds then you may end up in a build that you did not expect!
-  }
-
   Containers are around for a short time after a build finishes in order to
   allow people to intercept them.
 
@@ -93,6 +88,11 @@ sure you intercept while it's running if you want to debug.
   \codeblock{bash}{{
   $ fly -t example intercept -j some-pipeline/some-job -b some-build -s some-step
   }}
+
+  \aside{
+    Be warned, if more than one person is using a Concourse server for running
+    one-off builds then you may end up in a build that you did not expect!
+  }
 
   Note that \code{--build} can be omitted, and will default to the most recent
   build of the job. One-off builds can be reached by passing in their build ID
