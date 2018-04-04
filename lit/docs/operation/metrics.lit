@@ -8,54 +8,26 @@ about the builds that it is running. Operators can tap into these metrics in
 order to observe the health of the system.
 
 In the spirit of openness, the \link{metrics from our
-deployment}{https://metrics.concourse-ci.org} are public. We consider it a bug to
-emit anything sensitive or secret into our metrics pipeline.
-
-Concourse components and virtual machines emit metrics to
-\link{Riemann}{http://riemann.io/}. Riemann handles the processing of this
-event stream and the forwarding to various \link{Time Series Databases
-(TSDBs)}{https://en.wikipedia.org/wiki/Time_series_database}. To fully
-understand how to take advantage of Concourse metrics you should familiarise
-yourself with the \link{concepts in Riemann}{http://riemann.io/concepts.html}.
-I'll wait here while you read through that (don't worry, it's not very long!).
-
-Riemann events can contain both \italic{tags} and \italic{attributes}. We use
-them for different things in Concourse metrics. We use custom attributes for
-tagging all metrics with context specific information about the metric. Such as
-the deployment, pipeline, or build that it relates to. We don't use the
-standard build-in tags much as they are normally used for conditionals in
-Riemann's stream processing which we don't rely on and don't provide the
-key-value data storage that we need. This is our own convention and isn't
-shared by everything in the Riemann community but we find that it works well.
+deployment}{https://metrics.concourse-ci.org/dashboard/db/concourse} are
+public. We consider it a bug to emit anything sensitive or secret into our
+metrics pipeline.
 
 \section{
-  \title{Deploying the Metrics Infrastructure}
+  \title{Configuring Metrics}
 
-  We've made a few BOSH releases that you can collocate and deploy to get a
-  similar setup to ours. If you will be emitting to DataDog then you will only
-  need the Riemann release.
+  The \reference{component-atc} can be configured to emit metrics on start.
 
-  \list{
-    \link{Riemann Release}{https://github.com/xoebus/riemann-boshrelease}
-  }{
-    \link{InfluxDB Release}{https://github.com/concourse/influxdb-boshrelease}
-  }{
-    \link{Grafana Release}{https://github.com/vito/grafana-boshrelease}
-  }
+  Currently supported metrics emitters are InfluxDB, NewRelic, Prometheus, and
+  Riemann. There is also a dummy emitter that will just spit the metrics out in
+  to the logs at \code{DEBUG} level, which can be enabled with the
+  \code{--emit-to-logs} flag.
 
-  The documentation for each of these lives in the release themselves.
-
-  If you want to mirror our setup then you should set up Riemann to emit
-  metrics to InfluxDB and then point Grafana at the same InfluxDB.
-
-  If you set your Concourse to log everything at or above the \code{debug} level
-  then all metrics will be logged as well as emitted. This is useful if you
-  haven't yet set up a Riemann server.
-
+  There are various flags for different emitters; run \code{concourse web
+  --help} and look for "Metric Emitter" to see what's available.
 }
 
 \section{
-  \title{Concourse Metrics}
+  \title{What's emitted?}
 
   This reference section lists of all of the metrics that Concourse emits. We
   don't include the warning and critical levels as they will keep changing as
@@ -234,14 +206,4 @@ shared by everything in the Riemann community but we find that it works well.
       }
     }
   }
-}
-
-\section{
-  \title{Service and Infrastructure Metrics}
-
-  You may have seen on our dashboard that we have other metrics in addition to
-  those defined above. Riemann has existing tooling for gathering metrics from
-  machines and other common services. These can be found in the
-  \link{riemann-tools}{https://github.com/aphyr/riemann-tools} gem. We use
-  \code{riemann-health}, \code{riemann-aws-rds-status}, and \code{riemann-net}.
 }
