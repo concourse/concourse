@@ -63,4 +63,5 @@ The content layout for the site is qute simple, and for the most part self-expla
 * **`lit/index.html`:** The Concourse Homepage
 * **`lit/docs/`:** This is where you'll find most of the documentation listed under https://concourse-ci.org/docs.html
 * **`lit/release-notes/`:** Release notes separated by Concourse version. These `.lit` snippets are ultimately loaded into `lit/download.lit`
-* **`lit/download.lit/`:** Concourse Downloads page.
+* **`lit/download.lit/`:** Concourse Downloads page
+* **`lit/docs/resource-types/community-resources.lit`:** A listing of Concourse community-supported resources
