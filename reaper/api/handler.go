@@ -5,7 +5,6 @@ import (
 
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/reaper"
 	"github.com/tedsuo/rata"
 )
 
@@ -19,8 +18,8 @@ func NewHandler(
 	)
 
 	handlers := rata.Handlers{
-		reaper.DestroyContainers: http.HandlerFunc(containerServer.DestroyContainers),
+		DestroyContainers: http.HandlerFunc(containerServer.DestroyContainers),
 	}
 
-	return rata.NewRouter(reaper.Routes, handlers)
+	return rata.NewRouter(Routes, handlers)
 }

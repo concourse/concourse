@@ -12,6 +12,7 @@ import (
 )
 
 func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) beacon.BeaconClient {
+	logger = logger.Session("beacon")
 	logger.Debug("setting-up-beacon-runner")
 	client := beacon.NewSSHClient(logger.Session("beacon-client"), config)
 

@@ -12,7 +12,9 @@ import (
 	"github.com/concourse/flag"
 	"github.com/concourse/worker"
 	"github.com/concourse/worker/beacon"
+	"github.com/concourse/worker/reaper"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
 )
 
 type Config struct {
@@ -27,8 +29,13 @@ type Config struct {
 	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
 }
 
+type ReaperConfig struct {
+	Port string `long:"reaper-port" default:"8888" description:"Port of which reaper server starts"`
+}
+
 type StartCommand struct {
 	WorkerConfig Config
+	ReaperConfig ReaperConfig `group:"Reaper Configuration"`
 
 	TSA beacon.Config `group:"TSA Beacon Configuration"`
 
@@ -76,13 +83,21 @@ func (cmd *StartCommand) Execute(args []string) error {
 		NoProxy:         cmd.WorkerConfig.NoProxy,
 	}
 
-	logger, _ := cmd.Logger.Logger("beacon")
-	runner := worker.BeaconRunner(logger, atcWorker, cmd.TSA)
+	groupLogger, _ := cmd.Logger.Logger("worker")
+	beaconRunner := worker.BeaconRunner(groupLogger, atcWorker, cmd.TSA)
+	reapeRunner := reaper.NewReaperRunner(groupLogger, cmd.GardenAddr, cmd.ReaperConfig.Port)
 
-	err := <-ifrit.Invoke(runner).Wait()
+	groupMembers := grouper.Members{
+		grouper.Member{Name: "beacon", Runner: beaconRunner},
+		grouper.Member{Name: "reaper", Runner: reapeRunner},
+	}
+
+	parallelRunner := grouper.NewParallel(os.Interrupt, groupMembers)
+
+	err := <-ifrit.Invoke(parallelRunner).Wait()
 	if err != nil {
-		logger.Error("beacon-start-command-failed", err)
-		return errors.New("beacon-start-command-failed" + err.Error())
+		groupLogger.Error("beacon-and-reaper-start-command-failed", err)
+		return errors.New("beacon-and-reaper-start-command-failed" + err.Error())
 	}
 
 	return nil

@@ -1,4 +1,4 @@
-package reaper
+package api
 
 import "github.com/tedsuo/rata"
 

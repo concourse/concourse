@@ -56,6 +56,7 @@ func (c *ContainerServer) DestroyContainers(w http.ResponseWriter, req *http.Req
 			// continue to delete containers even if one fails
 			errExists = true
 		}
+		hLog.Debug("destroyed", lager.Data{"handle": containerHandle})
 	}
 
 	if errExists {
