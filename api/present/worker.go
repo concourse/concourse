@@ -32,6 +32,7 @@ func Worker(workerInfo db.Worker) atc.Worker {
 		Name:             workerInfo.Name(),
 		Team:             workerInfo.TeamName(),
 		State:            string(workerInfo.State()),
+		StartTime:        workerInfo.StartTime(),
 		Version:          version,
 	}
 }
