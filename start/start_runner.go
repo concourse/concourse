@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/concourse/atc"
@@ -30,7 +31,7 @@ type Config struct {
 }
 
 type ReaperConfig struct {
-	Port string `long:"reaper-port" default:"8888" description:"Port of which reaper server starts"`
+	Port string `long:"reaper-port" default:"7799" description:"Port of which reaper server starts"`
 }
 
 type StartCommand struct {
@@ -67,10 +68,15 @@ func (cmd *StartCommand) Execute(args []string) error {
 		resourceTypes = append(resourceTypes, workerResourceType)
 	}
 
+	reaperURL := strings.Split(cmd.GardenAddr, ":")
+	if len(reaperURL) != 2 {
+		return fmt.Errorf("failed to parse GardenAddr: %s", cmd.GardenAddr)
+	}
 	var atcWorker = atc.Worker{
 		GardenAddr:      cmd.GardenAddr,
 		BaggageclaimURL: cmd.BaggageclaimURL,
 		ResourceTypes:   resourceTypes,
+		ReaperAddr:      "http://" + reaperURL[0] + ":" + cmd.ReaperConfig.Port,
 		Platform:        cmd.Platform,
 		Tags:            cmd.WorkerConfig.Tags,
 		Team:            cmd.WorkerConfig.TeamName,
@@ -85,11 +91,11 @@ func (cmd *StartCommand) Execute(args []string) error {
 
 	groupLogger, _ := cmd.Logger.Logger("worker")
 	beaconRunner := worker.BeaconRunner(groupLogger, atcWorker, cmd.TSA)
-	reapeRunner := reaper.NewReaperRunner(groupLogger, cmd.GardenAddr, cmd.ReaperConfig.Port)
+	reaperRunner := reaper.NewReaperRunner(groupLogger, cmd.GardenAddr, cmd.ReaperConfig.Port)
 
 	groupMembers := grouper.Members{
 		grouper.Member{Name: "beacon", Runner: beaconRunner},
-		grouper.Member{Name: "reaper", Runner: reapeRunner},
+		grouper.Member{Name: "reaper", Runner: reaperRunner},
 	}
 
 	parallelRunner := grouper.NewParallel(os.Interrupt, groupMembers)

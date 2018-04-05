@@ -27,6 +27,21 @@ func NewContainerServer(
 }
 
 var ErrDestroyContainers = errors.New("failed-to-dstroy")
+var ErrPingFailure = errors.New("failed-to-ping-reaper")
+
+func (c *ContainerServer) Ping(w http.ResponseWriter, req *http.Request) {
+	hLog := c.logger.Session("ping")
+	hLog.Debug("start")
+	defer hLog.Debug("done")
+
+	err := c.gardenConn.Ping()
+	if err != nil {
+		hLog.Error("failed-to-ping-garden-server", err)
+		respondWithError(w, ErrPingFailure, http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
 
 func (c *ContainerServer) DestroyContainers(w http.ResponseWriter, req *http.Request) {
 	hLog := c.logger.Session("destroy-containers")

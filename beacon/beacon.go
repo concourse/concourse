@@ -15,6 +15,7 @@ import (
 
 const gardenForwardAddr = "0.0.0.0:7777"
 const baggageclaimForwardAddr = "0.0.0.0:7788"
+const reaperForwardAddr = "0.0.0.0:7799"
 
 //go:generate counterfeiter . Closeable
 type Closeable interface {
@@ -52,6 +53,7 @@ type Beacon struct {
 	Client                  Client
 	GardenForwardAddr       string
 	BaggageclaimForwardAddr string
+	ReaperForwardAddr       string
 	RegistrationMode        RegistrationMode
 	KeepAlive               bool
 }
@@ -77,7 +79,8 @@ func (beacon *Beacon) registerForwarded(signals <-chan os.Signal, ready chan<- s
 	return beacon.run(
 		"forward-worker "+
 			"--garden "+gardenForwardAddr+" "+
-			"--baggageclaim "+baggageclaimForwardAddr,
+			"--baggageclaim "+baggageclaimForwardAddr+" "+
+			"--reaper "+reaperForwardAddr,
 		signals,
 		ready,
 	)
@@ -108,6 +111,8 @@ func (beacon *Beacon) DisableKeepAlive() {
 }
 
 func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<- struct{}) error {
+	beacon.Logger.Debug("command-to-run", lager.Data{"cmd": command})
+
 	conn, err := beacon.Client.Dial()
 	if err != nil {
 		return err
@@ -146,8 +151,13 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 	if err != nil {
 		return fmt.Errorf("failed to parse baggageclaim url: %s", err)
 	}
+	reaperURL, err := url.Parse(beacon.Worker.ReaperAddr)
+	if err != nil {
+		return fmt.Errorf("failed to parse reaper url: %s", err)
+	}
 
 	var gardenForwardAddrRemote = beacon.Worker.GardenAddr
+	var reaperForwardAddrRemote = reaperURL.Host
 	var bcForwardAddrRemote = bcURL.Host
 
 	if beacon.GardenForwardAddr != "" {
@@ -156,10 +166,18 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 		if beacon.BaggageclaimForwardAddr != "" {
 			bcForwardAddrRemote = beacon.BaggageclaimForwardAddr
 		}
+
+		if beacon.ReaperForwardAddr != "" {
+			reaperForwardAddrRemote = beacon.ReaperForwardAddr
+		}
 	}
 
 	beacon.Client.Proxy(gardenForwardAddr, gardenForwardAddrRemote)
+	beacon.Logger.Info("forward-garden-config", lager.Data{"forward": gardenForwardAddr, "forward-remote": gardenForwardAddrRemote})
 	beacon.Client.Proxy(baggageclaimForwardAddr, bcForwardAddrRemote)
+	beacon.Logger.Info("forward-baggageclaim-config", lager.Data{"forward": baggageclaimForwardAddr, "forward-remote": bcForwardAddrRemote})
+	beacon.Client.Proxy(reaperForwardAddr, reaperForwardAddrRemote)
+	beacon.Logger.Info("forward-reaper-config", lager.Data{"forward": reaperForwardAddr, "forward-remote": reaperForwardAddrRemote})
 
 	close(ready)
 
@@ -181,8 +199,10 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 
 		return nil
 	case err := <-exited:
+		beacon.Logger.Error("failed-to-keep-session-alive", err)
 		return err
 	case err := <-keepaliveFailed:
+		beacon.Logger.Error("failed-to-keep-alive", err)
 		return err
 	}
 }

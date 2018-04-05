@@ -19,6 +19,7 @@ func NewHandler(
 
 	handlers := rata.Handlers{
 		DestroyContainers: http.HandlerFunc(containerServer.DestroyContainers),
+		Ping:              http.HandlerFunc(containerServer.Ping),
 	}
 
 	return rata.NewRouter(Routes, handlers)
