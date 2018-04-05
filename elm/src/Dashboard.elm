@@ -123,7 +123,15 @@ update msg model =
                 ( { model | now = Just now, hideFooterCounter = model.hideFooterCounter + Time.second }, Cmd.none )
 
         AutoRefresh _ ->
-            ( model, Cmd.batch [ fetchPipelines, fetchVersion, Cmd.map TopBarMsg NewTopBar.fetchUser ] )
+            ( model
+            , Cmd.batch <|
+                (if model.mPipelines == RemoteData.Loading then
+                    []
+                 else
+                    [ fetchPipelines ]
+                )
+                    ++ [ fetchVersion, Cmd.map TopBarMsg NewTopBar.fetchUser ]
+            )
 
         KeyPressed keycode ->
             handleKeyPressed (Char.fromCode keycode) model
