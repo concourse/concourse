@@ -17,6 +17,7 @@ type deleteWorkerRequest struct{}
 type forwardWorkerRequest struct {
 	gardenAddr       string
 	baggageclaimAddr string
+	reaperAddr       string
 }
 
 func (r forwardWorkerRequest) expectedForwards() int {
@@ -27,6 +28,9 @@ func (r forwardWorkerRequest) expectedForwards() int {
 	expected++
 
 	if r.baggageclaimAddr != "" {
+		expected++
+	}
+	if r.reaperAddr != "" {
 		expected++
 	}
 
@@ -46,7 +50,8 @@ func parseRequest(cli string) (request, error) {
 		var fs = flag.NewFlagSet(command, flag.ContinueOnError)
 
 		var garden = fs.String("garden", "", "garden address to forward")
-		var baggageclaim = fs.String("baggageclaim", "", "garden address to forward")
+		var baggageclaim = fs.String("baggageclaim", "", "baggageclaim address to forward")
+		var reaper = fs.String("reaper", "", "reaper address to forward")
 
 		err := fs.Parse(args)
 		if err != nil {
@@ -56,6 +61,7 @@ func parseRequest(cli string) (request, error) {
 		return forwardWorkerRequest{
 			gardenAddr:       *garden,
 			baggageclaimAddr: *baggageclaim,
+			reaperAddr:       *reaper,
 		}, nil
 	case "land-worker":
 		return landWorkerRequest{}, nil

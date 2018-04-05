@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	. "github.com/concourse/tsa"
 	"github.com/concourse/tsa/tsafakes"
+	"github.com/concourse/worker/reaper/reaperfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -46,8 +47,8 @@ var _ = Describe("Heartbeater", func() {
 		fakeATC1               *ghttp.Server
 		fakeATC2               *ghttp.Server
 		atcEndpointPicker      *tsafakes.FakeEndpointPicker
-
-		heartbeater ifrit.Process
+		fakereaperClient       *reaperfakes.FakeClient
+		heartbeater            ifrit.Process
 
 		verifyRegister  http.HandlerFunc
 		verifyHeartbeat http.HandlerFunc
@@ -131,7 +132,7 @@ var _ = Describe("Heartbeater", func() {
 
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
-
+		fakereaperClient = new(reaperfakes.FakeClient)
 		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
 
 		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
@@ -159,6 +160,7 @@ var _ = Describe("Heartbeater", func() {
 				interval,
 				cprInterval,
 				fakeGardenClient,
+				fakereaperClient,
 				fakeBaggageclaimClient,
 				atcEndpointPicker,
 				fakeTokenGenerator,
