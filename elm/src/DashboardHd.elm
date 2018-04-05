@@ -6,6 +6,7 @@ import Concourse.Info
 import Concourse.Job
 import Concourse.Pipeline
 import Concourse.PipelineStatus
+import DashboardHelpers exposing (..)
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src, attribute)
@@ -43,16 +44,6 @@ type Msg
     | AutoRefresh Time
     | ShowFooter
     | TopBarMsg NewTopBar.Msg
-
-
-type alias PipelineId =
-    Int
-
-
-type alias PipelineWithJobs =
-    { pipeline : Concourse.Pipeline
-    , jobs : List Concourse.Job
-    }
 
 
 init : String -> ( Model, Cmd Msg )
@@ -127,42 +118,6 @@ update msg model =
                     NewTopBar.update msg model.topBar
             in
                 ( { model | topBar = newTopBar }, Cmd.map TopBarMsg newTopBarMsg )
-
-
-classifyJob : Concourse.Job -> Dict ( String, String ) Concourse.Pipeline -> Dict PipelineId (List Concourse.Job) -> Dict PipelineId (List Concourse.Job)
-classifyJob job pipelines pipelineJobs =
-    let
-        pipelineIdentifier =
-            ( job.teamName, job.pipelineName )
-
-        mPipeline =
-            Dict.get pipelineIdentifier pipelines
-    in
-        case mPipeline of
-            Nothing ->
-                pipelineJobs
-
-            Just pipeline ->
-                let
-                    jobs =
-                        Maybe.withDefault [] <| Dict.get pipeline.id pipelineJobs
-                in
-                    Dict.insert pipeline.id (job :: jobs) pipelineJobs
-
-
-jobsByPipelineId : List Concourse.Pipeline -> List Concourse.Job -> Dict PipelineId (List Concourse.Job)
-jobsByPipelineId pipelines jobs =
-    let
-        pipelinesByIdentifier =
-            List.foldl
-                (\pipeline byIdentifier -> Dict.insert ( pipeline.teamName, pipeline.name ) pipeline byIdentifier)
-                Dict.empty
-                pipelines
-    in
-        List.foldl
-            (\job byPipelineId -> classifyJob job pipelinesByIdentifier byPipelineId)
-            Dict.empty
-            jobs
 
 
 subscriptions : Model -> Sub Msg
@@ -310,7 +265,7 @@ pipelineView now { pipeline, jobs } =
             [ ( "dashboard-pipeline", True )
             , ( "dashboard-paused", pipeline.paused )
             , ( "dashboard-running", List.any (\job -> job.nextBuild /= Nothing) jobs )
-            , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (pipelineStatusFromJobs jobs), not pipeline.paused )
+            , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (pipelineStatusFromJobs jobs False), not pipeline.paused )
             ]
         , attribute "data-pipeline-name" pipeline.name
         ]
@@ -321,51 +276,6 @@ pipelineView now { pipeline, jobs } =
                 [ Html.text pipeline.name ]
             ]
         ]
-
-
-pipelineStatusFromJobs : List Concourse.Job -> Concourse.PipelineStatus
-pipelineStatusFromJobs jobs =
-    let
-        statuses =
-            jobStatuses jobs
-    in
-        if containsStatus Concourse.BuildStatusPending statuses then
-            Concourse.PipelineStatusPending
-        else if containsStatus Concourse.BuildStatusFailed statuses then
-            Concourse.PipelineStatusFailed
-        else if containsStatus Concourse.BuildStatusErrored statuses then
-            Concourse.PipelineStatusErrored
-        else if containsStatus Concourse.BuildStatusAborted statuses then
-            Concourse.PipelineStatusAborted
-        else if containsStatus Concourse.BuildStatusSucceeded statuses then
-            Concourse.PipelineStatusSucceeded
-        else
-            Concourse.PipelineStatusPending
-
-
-jobStatuses : List Concourse.Job -> List (Maybe Concourse.BuildStatus)
-jobStatuses jobs =
-    List.concatMap
-        (\job ->
-            [ Maybe.map .status job.finishedBuild
-            , Maybe.map .status job.nextBuild
-            ]
-        )
-        jobs
-
-
-containsStatus : Concourse.BuildStatus -> List (Maybe Concourse.BuildStatus) -> Bool
-containsStatus status statuses =
-    List.any
-        (\s ->
-            case s of
-                Just s ->
-                    status == s
-
-                Nothing ->
-                    False
-        )
-        statuses
 
 
 fetchPipelines : Cmd Msg
@@ -386,28 +296,3 @@ fetchVersion =
     Concourse.Info.fetch
         |> Task.map (.version)
         |> Task.attempt VersionFetched
-
-
-pipelinesWithJobs : Dict PipelineId (List Concourse.Job) -> List Concourse.Pipeline -> List PipelineWithJobs
-pipelinesWithJobs pipelineJobs pipelines =
-    List.map
-        (\pipeline ->
-            { pipeline = pipeline
-            , jobs =
-                Maybe.withDefault [] <| Dict.get pipeline.id pipelineJobs
-            }
-        )
-        pipelines
-
-
-groupPipelines : List ( String, List PipelineWithJobs ) -> ( String, PipelineWithJobs ) -> List ( String, List PipelineWithJobs )
-groupPipelines pipelines ( teamName, pipeline ) =
-    case pipelines of
-        [] ->
-            [ ( teamName, [ pipeline ] ) ]
-
-        s :: ss ->
-            if Tuple.first s == teamName then
-                ( teamName, pipeline :: (Tuple.second s) ) :: ss
-            else
-                s :: (groupPipelines ss ( teamName, pipeline ))
