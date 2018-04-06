@@ -1,4 +1,4 @@
-\title{Concourse Components}{components}
+\title{Architecture}{architecture}
 
 \use-plugin{concourse-docs}
 
@@ -84,3 +84,5 @@ they are.
   on \code{127.0.0.1} and forward themselves through the
   \reference{component-tsa}{TSA}.
 }
+
+\include-section{./internals.lit}

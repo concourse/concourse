@@ -187,6 +187,7 @@
 \include-section{./download.lit}
 \include-section{./install.lit}
 \include-section{./docs.lit}
+\include-section{./architecture/architecture.lit}
 \include-section{./contribute.lit}
 \include-section{./community.lit}
 \include-section{./trademarks.lit}

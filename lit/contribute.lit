@@ -57,9 +57,3 @@ regardless of age, body size, disability, ethnicity, gender identity and express
  level of experience, nationality, personal appearance, race, religion,
  or sexual identity and orientation. You can read more about our commitment in
 the project's \link{Contributor Code of Conduct}{https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md}
-
-\split-sections
-\table-of-contents
-
-\include-section{./contribute/architecture.lit}
-\include-section{./contribute/internals.lit}
