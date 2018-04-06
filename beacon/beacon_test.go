@@ -39,6 +39,7 @@ var _ = Describe("Beacon", func() {
 			Worker: atc.Worker{
 				GardenAddr:      "1.2.3.4:7777",
 				BaggageclaimURL: "wat://5.6.7.8:7788",
+				ReaperAddr:      "wat://5.6.7.8:7799",
 			},
 		}
 	})
@@ -196,12 +197,15 @@ var _ = Describe("Beacon", func() {
 			// })
 
 			It("sets up a proxy for the Garden server using the correct host", func() {
-				Expect(fakeClient.ProxyCallCount()).To(Equal(2))
+				Expect(fakeClient.ProxyCallCount()).To(Equal(3))
 				_, proxyTo := fakeClient.ProxyArgsForCall(0)
 				Expect(proxyTo).To(Equal("1.2.3.4:7777"))
 
 				_, proxyTo = fakeClient.ProxyArgsForCall(1)
 				Expect(proxyTo).To(Equal("5.6.7.8:7788"))
+
+				_, proxyTo = fakeClient.ProxyArgsForCall(2)
+				Expect(proxyTo).To(Equal("5.6.7.8:7799"))
 			})
 		})
 	})
@@ -336,7 +340,7 @@ var _ = Describe("Beacon", func() {
 			})
 
 			It("sets up a proxy for the Garden server using the correct host", func() {
-				Expect(fakeClient.ProxyCallCount()).To(Equal(2))
+				Expect(fakeClient.ProxyCallCount()).To(Equal(3))
 				_, proxyTo := fakeClient.ProxyArgsForCall(0)
 				Expect(proxyTo).To(Equal("1.2.3.4:7777"))
 
@@ -464,7 +468,7 @@ var _ = Describe("Beacon", func() {
 			})
 
 			It("sets up a proxy for the Garden server using the correct host", func() {
-				Expect(fakeClient.ProxyCallCount()).To(Equal(2))
+				Expect(fakeClient.ProxyCallCount()).To(Equal(3))
 				_, proxyTo := fakeClient.ProxyArgsForCall(0)
 				Expect(proxyTo).To(Equal("1.2.3.4:7777"))
 
