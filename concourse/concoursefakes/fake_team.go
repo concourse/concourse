@@ -545,6 +545,17 @@ type FakeTeam struct {
 		result2 concourse.Pagination
 		result3 error
 	}
+	OrderingPipelinesStub        func(pipelineNames []string) error
+	orderingPipelinesMutex       sync.RWMutex
+	orderingPipelinesArgsForCall []struct {
+		pipelineNames []string
+	}
+	orderingPipelinesReturns struct {
+		result1 error
+	}
+	orderingPipelinesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -2484,6 +2495,59 @@ func (fake *FakeTeam) BuildsReturnsOnCall(i int, result1 []atc.Build, result2 co
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) OrderingPipelines(pipelineNames []string) error {
+	var pipelineNamesCopy []string
+	if pipelineNames != nil {
+		pipelineNamesCopy = make([]string, len(pipelineNames))
+		copy(pipelineNamesCopy, pipelineNames)
+	}
+	fake.orderingPipelinesMutex.Lock()
+	ret, specificReturn := fake.orderingPipelinesReturnsOnCall[len(fake.orderingPipelinesArgsForCall)]
+	fake.orderingPipelinesArgsForCall = append(fake.orderingPipelinesArgsForCall, struct {
+		pipelineNames []string
+	}{pipelineNamesCopy})
+	fake.recordInvocation("OrderingPipelines", []interface{}{pipelineNamesCopy})
+	fake.orderingPipelinesMutex.Unlock()
+	if fake.OrderingPipelinesStub != nil {
+		return fake.OrderingPipelinesStub(pipelineNames)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.orderingPipelinesReturns.result1
+}
+
+func (fake *FakeTeam) OrderingPipelinesCallCount() int {
+	fake.orderingPipelinesMutex.RLock()
+	defer fake.orderingPipelinesMutex.RUnlock()
+	return len(fake.orderingPipelinesArgsForCall)
+}
+
+func (fake *FakeTeam) OrderingPipelinesArgsForCall(i int) []string {
+	fake.orderingPipelinesMutex.RLock()
+	defer fake.orderingPipelinesMutex.RUnlock()
+	return fake.orderingPipelinesArgsForCall[i].pipelineNames
+}
+
+func (fake *FakeTeam) OrderingPipelinesReturns(result1 error) {
+	fake.OrderingPipelinesStub = nil
+	fake.orderingPipelinesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) OrderingPipelinesReturnsOnCall(i int, result1 error) {
+	fake.OrderingPipelinesStub = nil
+	if fake.orderingPipelinesReturnsOnCall == nil {
+		fake.orderingPipelinesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.orderingPipelinesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -2561,6 +2625,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.createBuildMutex.RUnlock()
 	fake.buildsMutex.RLock()
 	defer fake.buildsMutex.RUnlock()
+	fake.orderingPipelinesMutex.RLock()
+	defer fake.orderingPipelinesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
