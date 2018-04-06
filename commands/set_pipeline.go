@@ -5,10 +5,12 @@ import (
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/fly/rc"
+	"github.com/mgutz/ansi"
 )
 
 type SetPipelineCommand struct {
-	SkipInteractive bool `short:"n"  long:"non-interactive"               description:"Skips interactions, uses default values"`
+	SkipInteractive  bool `short:"n"  long:"non-interactive"               description:"Skips interactions, uses default values"`
+	DisableAnsiColor bool `long:"no-color"               description:"Disable color output"`
 
 	Pipeline flaghelpers.PipelineFlag `short:"p"  long:"pipeline"  required:"true"  description:"Pipeline to configure"`
 	Config   atc.PathFlag             `short:"c"  long:"config"    required:"true"  description:"Pipeline configuration file"`
@@ -41,6 +43,8 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+
+	ansi.DisableColors(command.DisableAnsiColor)
 
 	atcConfig := setpipelinehelpers.ATCConfig{
 		Team:            target.Team(),

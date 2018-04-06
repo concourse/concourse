@@ -158,9 +158,9 @@ func renderDiff(to io.Writer, a, b string) {
 
 		switch diff.Delta {
 		case difflib.RightOnly:
-			fmt.Fprintf(to, "%s\n", ansi.Color(text, "green"))
+			fmt.Fprintf(to, "+ %s\n", ansi.Color(text, "green"))
 		case difflib.LeftOnly:
-			fmt.Fprintf(to, "%s\n", ansi.Color(text, "red"))
+			fmt.Fprintf(to, "- %s\n", ansi.Color(text, "red"))
 		case difflib.Common:
 			fmt.Fprintf(to, "%s\n", text)
 		}
