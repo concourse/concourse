@@ -16,6 +16,7 @@ type FlyCommand struct {
 
 	Login  LoginCommand  `command:"login" alias:"l" description:"Authenticate with the target"`
 	Logout LogoutCommand `command:"logout" alias:"o" description:"Release authentication with the target"`
+	Status StatusCommand `command:"status" alias:"st" description:"Login status"`
 	Sync   SyncCommand   `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
 	Teams       TeamsCommand       `command:"teams" alias:"t" description:"List the configured teams"`
