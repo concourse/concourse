@@ -1,6 +1,12 @@
 \use-plugin{concourse-docs}
 
 \release{2018-3-29}{3.10.0}{1.12.1}{
+  \warn{
+    Users upgrading to v3.10.0 with BOSH have reported issues where baggageclaim
+    will not start after the upgrade. This issue has been reported and fixed for future versions
+    of Concourse. In the meantime, you can workaround the problem by using the
+    workaround described in \link{#2125}{https://github.com/concourse/concourse/pull/2125#issuecomment-378711617}
+  }
   \note{breaking}{
     This release involves a worker protocol version bump, from \code{1.3} to
     \code{2.0}, and also switches the default
