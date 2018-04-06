@@ -34,6 +34,6 @@ func (c *StatusCommand) Execute([]string) error {
 		}
 	}
 
-	fmt.Println("Loogged in successfully!")
+	fmt.Println("Logged in successfully!")
 	return nil
 }

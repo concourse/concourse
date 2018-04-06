@@ -70,7 +70,7 @@ var _ = Describe("status Command", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(sess.Out).To(gbytes.Say(`Loogged in successfully!`))
+				Expect(sess.Out).To(gbytes.Say(`Logged in successfully!`))
 			})
 		})
 
