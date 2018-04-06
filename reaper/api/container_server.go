@@ -6,35 +6,36 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/garden"
-	gconn "code.cloudfoundry.org/garden/client/connection"
+	"code.cloudfoundry.org/garden/client"
 
 	"code.cloudfoundry.org/lager"
 )
 
 type ContainerServer struct {
-	logger     lager.Logger
-	gardenConn gconn.Connection
+	logger       lager.Logger
+	gardenClient client.Client
 }
 
 func NewContainerServer(
 	logger lager.Logger,
-	gConn gconn.Connection,
+	gardenClnt client.Client,
 ) *ContainerServer {
 	return &ContainerServer{
-		gardenConn: gConn,
-		logger:     logger,
+		gardenClient: gardenClnt,
+		logger:       logger,
 	}
 }
 
 var ErrDestroyContainers = errors.New("failed-to-dstroy")
 var ErrPingFailure = errors.New("failed-to-ping-reaper")
 
-func (c *ContainerServer) Ping(w http.ResponseWriter, req *http.Request) {
-	hLog := c.logger.Session("ping")
+// Ping confirms the server is up and able to talk to the garden server
+func (containerServer *ContainerServer) Ping(w http.ResponseWriter, req *http.Request) {
+	hLog := containerServer.logger.Session("ping")
 	hLog.Debug("start")
 	defer hLog.Debug("done")
 
-	err := c.gardenConn.Ping()
+	err := containerServer.gardenClient.Ping()
 	if err != nil {
 		hLog.Error("failed-to-ping-garden-server", err)
 		respondWithError(w, ErrPingFailure, http.StatusInternalServerError)
@@ -43,8 +44,9 @@ func (c *ContainerServer) Ping(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (c *ContainerServer) DestroyContainers(w http.ResponseWriter, req *http.Request) {
-	hLog := c.logger.Session("destroy-containers")
+// DestroyContainers calls the garden server to request the removal of each container passed in the body
+func (containerServer *ContainerServer) DestroyContainers(w http.ResponseWriter, req *http.Request) {
+	hLog := containerServer.logger.Session("destroy-containers")
 
 	hLog.Debug("start")
 	defer hLog.Debug("done")
@@ -53,14 +55,13 @@ func (c *ContainerServer) DestroyContainers(w http.ResponseWriter, req *http.Req
 
 	var containerHandles []string
 	err := json.NewDecoder(req.Body).Decode(&containerHandles)
-
 	if err != nil {
 		respondWithError(w, ErrDestroyContainers, http.StatusBadRequest)
 		return
 	}
 	var errExists bool
 	for _, containerHandle := range containerHandles {
-		err := c.gardenConn.Destroy(containerHandle)
+		err := containerServer.gardenClient.Destroy(containerHandle)
 		if err != nil {
 			_, ok := err.(garden.ContainerNotFoundError)
 			if ok {
