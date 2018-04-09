@@ -133,6 +133,9 @@ case $1 in
            <% if p("https_proxy_url", nil) %> \
              --https-proxy=<%= p("https_proxy_url") %> \
            <% end %> \
+           <% if p("tsa.registration_mode", nil) %> \
+             --registration-mode=<%= p("tsa.registration_mode") %> \
+           <% end %> \
            <% if p("no_proxy", nil) %> \
              --no-proxy=<%= p("no_proxy").join(",") %> \
            <% end %> \
