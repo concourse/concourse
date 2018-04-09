@@ -8,10 +8,6 @@ files:
   - github.com/concourse/web/index.html
   - github.com/concourse/web/public/**/*
   - code.cloudfoundry.org/clock/*.{go,s,c,h} # gosub
-  - code.cloudfoundry.org/garden/*.{go,s,c,h} # gosub
-  - code.cloudfoundry.org/garden/client/connection/*.{go,s,c,h} # gosub
-  - code.cloudfoundry.org/garden/routes/*.{go,s,c,h} # gosub
-  - code.cloudfoundry.org/garden/transport/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/lager/*.{go,s,c,h} # gosub
   - github.com/bmizerany/pat/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/*.{go,s,c,h} # gosub
@@ -21,8 +17,6 @@ files:
   - github.com/concourse/worker/cmd/worker/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/drainer/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/land/*.{go,s,c,h} # gosub
-  - github.com/concourse/worker/reaper/*.{go,s,c,h} # gosub
-  - github.com/concourse/worker/reaper/api/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/retire/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/start/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/tsa/*.{go,s,c,h} # gosub
@@ -31,7 +25,6 @@ files:
   - github.com/jessevdk/go-flags/*.{go,s,c,h} # gosub
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/*.{go,s,c,h} # gosub
-  - github.com/tedsuo/ifrit/grouper/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/restart/*.{go,s,c,h} # gosub
   - github.com/tedsuo/rata/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/curve25519/*.{go,s,c,h} # gosub
