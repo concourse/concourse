@@ -9,7 +9,7 @@ test -n "$PIPELINE_NAME"
 
 install fly-rc/fly_linux_amd64 /usr/local/bin/fly
 
-fly -t local login -c "http://$WEB_IP:8080"
+until fly -t local login -c "http://$WEB_IP:8080"; do sleep 2; done
 
 fly -t local sync
 
