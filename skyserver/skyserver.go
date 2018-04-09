@@ -271,6 +271,7 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 
 	data, _ := json.Marshal(skyToken)
 
+	w.Header().Add("Content-Type", "application/json")
 	w.Write(data)
 }
 

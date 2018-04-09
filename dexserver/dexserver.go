@@ -83,6 +83,7 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 	}
 
 	return server.Config{
+		PasswordConnector:      "local",
 		SupportedResponseTypes: []string{"code", "token", "id_token"},
 		SkipApprovalScreen:     true,
 		Issuer:                 config.IssuerURL,

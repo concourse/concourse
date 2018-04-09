@@ -487,6 +487,10 @@ var _ = Describe("Sky Server API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
 				It("returns the concourse token", func() {
 					var token map[string]string
 					err := json.NewDecoder(response.Body).Decode(&token)

@@ -24,6 +24,20 @@ var _ = Describe("Dex Server", func() {
 			serverConfig = dexserver.NewDexServerConfig(config)
 		})
 
+		Context("static configuration", func() {
+			BeforeEach(func() {
+				config = &dexserver.DexConfig{
+					IssuerURL: "http://example.com/",
+				}
+			})
+			It("configures expected values", func() {
+				Expect(serverConfig.PasswordConnector).To(Equal("local"))
+				Expect(serverConfig.SupportedResponseTypes).To(ConsistOf("code", "token", "id_token"))
+				Expect(serverConfig.SkipApprovalScreen).To(BeTrue())
+				Expect(serverConfig.Issuer).To(Equal(config.IssuerURL))
+			})
+		})
+
 		Context("when github clientId and clientSecret are configured", func() {
 			BeforeEach(func() {
 				config = &dexserver.DexConfig{
