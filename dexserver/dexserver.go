@@ -61,13 +61,6 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 	}
 
 	clients = append(clients, storage.Client{
-		ID:           "concourse",
-		Secret:       "Y29uY291cnNl",
-		RedirectURIs: []string{"127.0.0.1:X"},
-		Public:       true,
-	})
-
-	clients = append(clients, storage.Client{
 		ID:           config.ClientID,
 		Secret:       config.ClientSecret,
 		RedirectURIs: []string{config.RedirectURL},

@@ -220,6 +220,11 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if clientId != "fly" || clientSecret != "Zmx5" {
+		http.Error(w, "invalid client", http.StatusBadRequest)
+		return
+	}
+
 	if grantType = r.FormValue("grant_type"); grantType != "password" {
 		http.Error(w, "invalid grant type", http.StatusBadRequest)
 		return
@@ -241,8 +246,8 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 	}
 
 	oauth2Config := &oauth2.Config{
-		ClientID:     clientId,
-		ClientSecret: clientSecret,
+		ClientID:     self.config.DexClientID,
+		ClientSecret: self.config.DexClientSecret,
 		Endpoint:     self.endpoint(),
 		Scopes:       strings.Split(scopes, "+"),
 	}

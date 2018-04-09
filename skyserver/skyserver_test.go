@@ -176,6 +176,9 @@ var _ = Describe("Sky Server API", func() {
 				dexServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/sky/dex/token"),
+						ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
+						ghttp.VerifyFormKV("grant_type", "authorization_code"),
+						ghttp.VerifyFormKV("code", "some-code"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]string{
 							"token_type":   "some-type",
 							"access_token": "some-token",
@@ -277,7 +280,7 @@ var _ = Describe("Sky Server API", func() {
 
 		BeforeEach(func() {
 			payload := "grant_type=password&username=some-username&password=some-password&scope=some-scope"
-			credentials := base64.StdEncoding.EncodeToString([]byte("client_id:client_secret"))
+			credentials := base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))
 
 			request, err = http.NewRequest("POST", skyServer.URL+"/sky/token", strings.NewReader(payload))
 			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -321,11 +324,33 @@ var _ = Describe("Sky Server API", func() {
 			})
 		})
 
+		Context("authorization header fails if not using the public fly client secret", func() {
+			BeforeEach(func() {
+				credentials := base64.StdEncoding.EncodeToString([]byte("fly:not-fly-secret"))
+				request.Header.Set("Authorization", "Basic "+string(credentials))
+			})
+
+			It("errors", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+			})
+		})
+
+		Context("authorization header fails if not using the public fly client id", func() {
+			BeforeEach(func() {
+				credentials := base64.StdEncoding.EncodeToString([]byte("not-fly:Zmx5"))
+				request.Header.Set("Authorization", "Basic "+string(credentials))
+			})
+
+			It("errors", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+			})
+		})
+
 		Context("payload is malformed", func() {
 			var payload string
 
 			BeforeEach(func() {
-				credentials := base64.StdEncoding.EncodeToString([]byte("client_id:client_secret"))
+				credentials := base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))
 
 				request, err = http.NewRequest("POST", skyServer.URL+"/sky/token", strings.NewReader(payload))
 				request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -397,7 +422,7 @@ var _ = Describe("Sky Server API", func() {
 				dexServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/sky/dex/token"),
-						ghttp.VerifyHeaderKV("Authorization", "Basic Y2xpZW50X2lkOmNsaWVudF9zZWNyZXQ="),
+						ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
 						ghttp.VerifyFormKV("grant_type", "password"),
 						ghttp.VerifyFormKV("username", "some-username"),
 						ghttp.VerifyFormKV("password", "some-password"),

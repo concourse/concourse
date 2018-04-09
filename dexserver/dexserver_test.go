@@ -101,24 +101,14 @@ var _ = Describe("Dex Server", func() {
 				}
 			})
 
-			It("should contain a public concourse client", func() {
-				clients, err := serverConfig.Storage.ListClients()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(clients[0].ID).To(Equal("concourse"))
-				Expect(clients[0].Secret).To(Equal("Y29uY291cnNl"))
-				Expect(clients[0].RedirectURIs).To(ContainElement("127.0.0.1:X"))
-				Expect(clients[0].Public).To(BeTrue())
-			})
-
 			It("should contain the configured clients", func() {
 				clients, err := serverConfig.Storage.ListClients()
 				Expect(err).NotTo(HaveOccurred())
-
-				Expect(clients[1].ID).To(Equal("some-client-id"))
-				Expect(clients[1].Secret).To(Equal("some-client-secret"))
-				Expect(clients[1].RedirectURIs).To(ContainElement("http://example.com"))
-				Expect(clients[1].Public).To(BeFalse())
+				Expect(clients).To(HaveLen(1))
+				Expect(clients[0].ID).To(Equal("some-client-id"))
+				Expect(clients[0].Secret).To(Equal("some-client-secret"))
+				Expect(clients[0].RedirectURIs).To(ContainElement("http://example.com"))
+				Expect(clients[0].Public).To(BeFalse())
 			})
 		})
 	})

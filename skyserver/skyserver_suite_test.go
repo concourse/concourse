@@ -53,10 +53,12 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	config := &skyserver.SkyConfig{
-		TokenVerifier: fakeTokenVerifier,
-		TokenIssuer:   fakeTokenIssuer,
-		DexIssuerURL:  dexIssuerUrl,
-		SigningKey:    signingKey,
+		TokenVerifier:   fakeTokenVerifier,
+		TokenIssuer:     fakeTokenIssuer,
+		DexClientID:     "dex-client-id",
+		DexClientSecret: "dex-client-secret",
+		DexIssuerURL:    dexIssuerUrl,
+		SigningKey:      signingKey,
 	}
 
 	server, err := skyserver.NewSkyServer(config)
