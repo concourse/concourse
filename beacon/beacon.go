@@ -173,11 +173,8 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 	}
 
 	beacon.Client.Proxy(gardenForwardAddr, gardenForwardAddrRemote)
-	beacon.Logger.Info("forward-garden-config", lager.Data{"forward": gardenForwardAddr, "forward-remote": gardenForwardAddrRemote})
 	beacon.Client.Proxy(baggageclaimForwardAddr, bcForwardAddrRemote)
-	beacon.Logger.Info("forward-baggageclaim-config", lager.Data{"forward": baggageclaimForwardAddr, "forward-remote": bcForwardAddrRemote})
 	beacon.Client.Proxy(reaperForwardAddr, reaperForwardAddrRemote)
-	beacon.Logger.Info("forward-reaper-config", lager.Data{"forward": reaperForwardAddr, "forward-remote": reaperForwardAddrRemote})
 
 	close(ready)
 

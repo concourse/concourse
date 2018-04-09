@@ -24,16 +24,16 @@ var _ = Describe("ContainerServer", func() {
 		err          error
 		recorder     *httptest.ResponseRecorder
 	)
+
 	BeforeEach(func() {
 		gardenClient = new(gardenfakes.FakeClient)
 		logger = lagertest.NewTestLogger("container-server")
 		handler, err = NewHandler(logger, gardenClient)
 		Expect(err).NotTo(HaveOccurred())
 	})
+
 	Context("Server is running", func() {
-
 		Describe("Ping the ContainerServer", func() {
-
 			Context("Garden server is available", func() {
 				JustBeforeEach(func() {
 					gardenClient.PingReturns(nil)
@@ -41,10 +41,12 @@ var _ = Describe("ContainerServer", func() {
 					request, _ := http.NewRequest("GET", "/ping", nil)
 					handler.ServeHTTP(recorder, request)
 				})
+
 				It("Responds with 200 OK", func() {
 					Expect(recorder.Result().StatusCode).To(Equal(http.StatusOK))
 				})
 			})
+
 			Context("Garden server is unavailable", func() {
 				JustBeforeEach(func() {
 					gardenClient.PingReturns(errors.New("some-error"))
@@ -52,14 +54,15 @@ var _ = Describe("ContainerServer", func() {
 					request, _ := http.NewRequest("GET", "/ping", nil)
 					handler.ServeHTTP(recorder, request)
 				})
+
 				It("Responds with 500 Internal Server Error", func() {
 					Expect(recorder.Result().StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
 		})
-		Describe("Request destruction of containers", func() {
 
+		Describe("Request destruction of containers", func() {
 			Context("All containers are found and destroyed", func() {
 				JustBeforeEach(func() {
 					containerHandles := []string{"container-one", "container-two"}
@@ -69,29 +72,35 @@ var _ = Describe("ContainerServer", func() {
 					request, _ := http.NewRequest("DELETE", "/containers/destroy", bytes.NewReader(bcList))
 					handler.ServeHTTP(recorder, request)
 				})
+
 				It("Responds with 204 No Content", func() {
 					Expect(recorder.Result().StatusCode).To(Equal(http.StatusNoContent))
 				})
+
 				It("Calls garden client.Destroy for each container handle passed in", func() {
 					Expect(gardenClient.DestroyCallCount()).To(Equal(2))
 				})
 			})
+
 			Context("Containers are not found and destroyed", func() {
 				JustBeforeEach(func() {
 					containerHandles := []string{"container-one", "container-two", "container-three"}
 					bcList, _ := json.Marshal(containerHandles)
-					gardenClient.DestroyReturns(garden.ContainerNotFoundError{Handle: "some-handle"})
+					gardenClient.DestroyReturns(garden.ContainerNotFoundError{Handle: "container-one"})
 					recorder = httptest.NewRecorder()
 					request, _ := http.NewRequest("DELETE", "/containers/destroy", bytes.NewReader(bcList))
 					handler.ServeHTTP(recorder, request)
 				})
-				It("Responds with 500 Internal Server Error", func() {
+
+				It("Responds with 204 No Content", func() {
 					Expect(recorder.Result().StatusCode).To(Equal(http.StatusNoContent))
 				})
+
 				It("Calls garden client.Destroy for each container handle passed in", func() {
 					Expect(gardenClient.DestroyCallCount()).To(Equal(3))
 				})
 			})
+
 			Context("Garden container lookups cause an error", func() {
 				JustBeforeEach(func() {
 					containerHandles := []string{"container-one", "container-two", "container-three"}
@@ -101,13 +110,16 @@ var _ = Describe("ContainerServer", func() {
 					request, _ := http.NewRequest("DELETE", "/containers/destroy", bytes.NewReader(bcList))
 					handler.ServeHTTP(recorder, request)
 				})
+
 				It("Responds with 500 Internal Server Error", func() {
 					Expect(recorder.Result().StatusCode).To(Equal(http.StatusInternalServerError))
 				})
+
 				It("Calls garden client.Destroy for each container handle passed in", func() {
 					Expect(gardenClient.DestroyCallCount()).To(Equal(3))
 				})
 			})
+
 			Context("Request body is not formed properly", func() {
 				JustBeforeEach(func() {
 					containerHandles := map[string]string{"container1": "handle1", "container2": "handle2"}
@@ -117,9 +129,11 @@ var _ = Describe("ContainerServer", func() {
 					request, _ := http.NewRequest("DELETE", "/containers/destroy", bytes.NewReader(bcList))
 					handler.ServeHTTP(recorder, request)
 				})
-				It("Responds with 500 Internal Server Error", func() {
+
+				It("Responds with 400 Bad Request Error", func() {
 					Expect(recorder.Result().StatusCode).To(Equal(http.StatusBadRequest))
 				})
+
 				It("Calls garden client.Destroy for each container handle passed in", func() {
 					Expect(gardenClient.DestroyCallCount()).To(Equal(0))
 				})
