@@ -29,6 +29,9 @@ files:
   - github.com/concourse/tsa/cmd/tsa/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/tsacmd/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/tsaflags/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/reaper/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/reaper/api/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/reaper/client/*.{go,s,c,h} # gosub
   - github.com/contraband/holler/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/felixge/tcpkeepalive/*.{go,s,c,h} # gosub
@@ -36,6 +39,7 @@ files:
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/*.{go,s,c,h} # gosub
+  - github.com/tedsuo/ifrit/restart/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/sigmon/*.{go,s,c,h} # gosub
   - github.com/tedsuo/rata/*.{go,s,c,h} # gosub
   - github.com/xoebus/zest/*.{go,s,c,h} # gosub
