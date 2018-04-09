@@ -64,6 +64,9 @@ func (self *verifier) Verify(ctx context.Context, token *oauth2.Token) (*Verifie
 	})
 
 	verifiedToken, err := providerVerifier.Verify(ctx, idToken)
+	if err != nil {
+		return nil, err
+	}
 
 	type Federated struct {
 		ConnectorID string `json:"connector_id"`
