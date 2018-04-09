@@ -246,17 +246,17 @@ describe 'dashboard', type: :feature do
 
         fly('trigger-job -w -j some-pipeline/passing')
         sleep 5
-        duration1 = page.text.match(/some-pipeline ([\d]{1,2})/)[1].to_i
+        duration1 = page.text.match(/some-pipeline\n([\d]{1,2})/)[1].to_i
 
         fly('trigger-job -w -j some-pipeline/passing')
         sleep 5
-        duration2 = page.text.match(/some-pipeline ([\d]{1,2})/)[1].to_i
+        duration2 = page.text.match(/some-pipeline\n([\d]{1,2})/)[1].to_i
 
         expect(duration2).to be > duration1
 
         fly_fail('trigger-job -w -j some-pipeline/failing')
         sleep 5
-        duration3 = page.text.match(/some-pipeline ([\d]{1,2})/)[1].to_i
+        duration3 = page.text.match(/some-pipeline\n([\d]{1,2})/)[1].to_i
 
         expect(duration3).to be < duration2
       end

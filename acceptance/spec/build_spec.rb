@@ -33,12 +33,12 @@ describe 'build', type: :feature do
   describe 'build logs' do
     let(:timestamp_regex) { /\d{2}:\d{2}:\d{2}/ }
 
-    def timestamp_for_line(i)
-      page.evaluate_script "window.getComputedStyle($('.timestamp')[#{i}], ':before').getPropertyValue('content')"
+    def timestamp_for_line(line)
+      page.evaluate_script "window.getComputedStyle($('.timestamp')[#{line}], ':before').getPropertyValue('content')"
     end
 
-    def timestamp_color_for_line(i)
-      color = page.evaluate_script "window.getComputedStyle($('.timestamp')[#{i}], ':before').getPropertyValue('color')"
+    def timestamp_color_for_line(line)
+      color = page.evaluate_script "window.getComputedStyle($('.timestamp')[#{line}], ':before').getPropertyValue('color')"
       by_rgb(color).closest_match(PALETTE)
     end
 
