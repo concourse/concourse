@@ -240,6 +240,26 @@ describe 'dashboard', type: :feature do
         sleep 5
         expect(banner_palette).to eq(GREEN)
       end
+
+      it 'shows the time since last state change' do
+        visit_dashboard
+
+        fly('trigger-job -w -j some-pipeline/passing')
+        sleep 5
+        duration1 = page.text.match(/some-pipeline ([\d]{1,2})/)[1].to_i
+
+        fly('trigger-job -w -j some-pipeline/passing')
+        sleep 5
+        duration2 = page.text.match(/some-pipeline ([\d]{1,2})/)[1].to_i
+
+        expect(duration2).to be > duration1
+
+        fly_fail('trigger-job -w -j some-pipeline/failing')
+        sleep 5
+        duration3 = page.text.match(/some-pipeline ([\d]{1,2})/)[1].to_i
+
+        expect(duration3).to be < duration2
+      end
     end
 
     context 'when a pipeline has multiple failed jobs' do
@@ -254,13 +274,6 @@ describe 'dashboard', type: :feature do
         fly_fail('trigger-job -w -j some-pipeline/passing_or_failing')
         fly_fail('trigger-job -w -j some-pipeline/passing_or_failing')
         fly_fail('trigger-job -w -j some-pipeline/failing')
-      end
-
-      it 'displays the time since the earliest failed build' do
-        visit_dashboard
-        within '.dashboard-pipeline', text: 'some-pipeline' do
-          expect(page.text).to match(/some-pipeline [\d]{1,2}s/)
-        end
       end
     end
 

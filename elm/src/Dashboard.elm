@@ -192,8 +192,8 @@ view model =
 
 dashboardView : Model -> Html Msg
 dashboardView model =
-    case model.mPipelines of
-        RemoteData.Success _ ->
+    case ( model.mPipelines, model.mJobs ) of
+        ( RemoteData.Success _, RemoteData.Success _ ) ->
             if List.length model.filteredPipelines > 0 then
                 pipelinesView model model.filteredPipelines
             else if not (String.isEmpty model.topBar.query) then
@@ -201,7 +201,10 @@ dashboardView model =
             else
                 pipelinesView model model.pipelines
 
-        RemoteData.Failure _ ->
+        ( RemoteData.Failure _, _ ) ->
+            turbulenceView model
+
+        ( _, RemoteData.Failure _ ) ->
             turbulenceView model
 
         _ ->
@@ -385,12 +388,19 @@ timeSincePipelineTransitioned time ({ jobs } as pipelineWithJobs) =
         status =
             pipelineStatus pipelineWithJobs
 
+        transitionedJobs =
+            List.filter
+                (\job ->
+                    not <| xor (status == Concourse.PipelineStatusSucceeded) (Just Concourse.BuildStatusSucceeded == (Maybe.map .status job.finishedBuild))
+                )
+                jobs
+
         transitionedDurations =
             List.filterMap
                 (\job ->
                     Maybe.map .duration job.transitionBuild
                 )
-                jobs
+                transitionedJobs
 
         sortedTransitionedDurations =
             List.sortBy
