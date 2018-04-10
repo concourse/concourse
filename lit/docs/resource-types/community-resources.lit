@@ -13,6 +13,8 @@ Be sure to read the \code{README} file for a resource to know what it does
 before using it!
 
 \list{
+  \link{Slack Reading and Posting}{https://github.com/jleben/slack-chat-resource}
+}{
   \link{Slack notifications}{https://github.com/cloudfoundry-community/slack-notification-resource}
 }{
   \link{Github Pull Requests}{https://github.com/jtarchie/github-pullrequest-resource}
