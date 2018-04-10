@@ -14,6 +14,13 @@ import (
 	"github.com/concourse/worker/reaper/api"
 )
 
+//go:generate counterfeiter . ReaperClient
+
+type ReaperClient interface {
+	DestroyContainers(handles []string) error
+	Ping() error
+}
+
 type ReaperCmd struct {
 	GardenAddr string
 	Port       string
