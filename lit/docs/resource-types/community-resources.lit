@@ -57,7 +57,7 @@ before using it!
 }{
   \link{Twitter}{https://github.com/ECSTeam/twitter-resource}
 }{
-  \link{HipChat Notifications}{https://github.com/hpcloud/hipchat-notification-resource}
+  \link{HipChat Notifications}{https://github.com/cloudfoundry-community/hipchat-notification-resource}
 }{
   \link{Matrix Notifications}{https://github.com/freelock/matrix-notification-resource}
 }{
