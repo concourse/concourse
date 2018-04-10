@@ -15,7 +15,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim"
-	rclient "github.com/concourse/worker/reaper/client"
+	rclient "github.com/concourse/worker/reaper"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
@@ -34,7 +34,7 @@ type heartbeater struct {
 
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
-	reaperClient       rclient.Client
+	reaperClient       rclient.ReaperClient
 
 	atcEndpointPicker EndpointPicker
 	tokenGenerator    TokenGenerator
@@ -49,7 +49,7 @@ func NewHeartbeater(
 	interval time.Duration,
 	cprInterval time.Duration,
 	gardenClient garden.Client,
-	rClient rclient.Client,
+	rClient rclient.ReaperClient,
 	baggageclaimClient baggageclaim.Client,
 	atcEndpointPicker EndpointPicker,
 	tokenGenerator TokenGenerator,

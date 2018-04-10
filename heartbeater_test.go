@@ -47,7 +47,7 @@ var _ = Describe("Heartbeater", func() {
 		fakeATC1               *ghttp.Server
 		fakeATC2               *ghttp.Server
 		atcEndpointPicker      *tsafakes.FakeEndpointPicker
-		fakereaperClient       *reaperfakes.FakeClient
+		fakereaperClient       *reaperfakes.FakeReaperClient
 		heartbeater            ifrit.Process
 
 		verifyRegister  http.HandlerFunc
@@ -132,7 +132,7 @@ var _ = Describe("Heartbeater", func() {
 
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
-		fakereaperClient = new(reaperfakes.FakeClient)
+		fakereaperClient = new(reaperfakes.FakeReaperClient)
 		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
 
 		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)

@@ -19,7 +19,7 @@ import (
 	"github.com/concourse/atc"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/tsa"
-	rclient "github.com/concourse/worker/reaper/client"
+	rclient "github.com/concourse/worker/reaper"
 	"github.com/tedsuo/ifrit"
 	"golang.org/x/crypto/ssh"
 )

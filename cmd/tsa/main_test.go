@@ -91,6 +91,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 			gardenServer       *gserver.GardenServer
 			baggageclaimServer *ghttp.Server
+			reaperServer       *ghttp.Server
 			atcServer          *ghttp.Server
 
 			hostKey    string
@@ -130,6 +131,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			baggageclaimServer = ghttp.NewServer()
+			reaperServer = ghttp.NewServer()
 
 			atcServer = ghttp.NewServer()
 
@@ -291,6 +293,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 								GardenAddr:      gardenAddr,
 								BaggageclaimURL: baggageclaimServer.URL(),
+								ReaperAddr:      reaperServer.URL(),
 
 								Platform: "linux",
 								Tags:     []string{"some", "tags"},
@@ -384,6 +387,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
 								return (<-gardenStubs)()
 							}
+
+							reaperServer.RouteToHandler("GET", "/ping", func(w http.ResponseWriter, r *http.Request) {
+								w.WriteHeader(http.StatusOK)
+							})
 
 							baggageclaimServer.AppendHandlers(
 								ghttp.CombineHandlers(
@@ -525,18 +532,20 @@ var _ = Describe("TSA SSH Registrar", func() {
 				})
 
 				Context("when running forward-worker with multiple forwarded addresses", func() {
-					var baggageclaimServer *ghttp.Server
 
 					BeforeEach(func() {
 						baggageclaimServer = ghttp.NewServer()
+						reaperServer = ghttp.NewServer()
 
 						sshArgv = append(
 							sshArgv,
 							"-R", fmt.Sprintf("0.0.0.0:7777:%s", gardenAddr),
 							"-R", fmt.Sprintf("0.0.0.0:7788:%s", baggageclaimServer.Addr()),
+							"-R", fmt.Sprintf("0.0.0.0:7799:%s", reaperServer.Addr()),
 							"forward-worker",
 							"--garden", "0.0.0.0:7777",
 							"--baggageclaim", "0.0.0.0:7788",
+							"--reaper", "0.0.0.0:7799",
 						)
 					})
 
@@ -628,6 +637,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 								return (<-gardenStubs)()
 							}
 
+							reaperServer.RouteToHandler("GET", "/ping", func(w http.ResponseWriter, r *http.Request) {
+								w.WriteHeader(http.StatusOK)
+							})
+
 							baggageclaimServer.AppendHandlers(
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/volumes"),
@@ -686,6 +699,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload := workerPayload
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
+							expectedWorkerPayload.ReaperAddr = registration.worker.ReaperAddr
 							expectedWorkerPayload.ActiveContainers = 3
 							expectedWorkerPayload.ActiveVolumes = 2
 							Expect(registration.worker).To(Equal(expectedWorkerPayload))
@@ -702,6 +716,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload = workerPayload
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
+							expectedWorkerPayload.ReaperAddr = registration.worker.ReaperAddr
 							expectedWorkerPayload.ActiveContainers = 2
 							expectedWorkerPayload.ActiveVolumes = 1
 							Expect(registration.worker).To(Equal(expectedWorkerPayload))
@@ -722,6 +737,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload = workerPayload
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
+							expectedWorkerPayload.ReaperAddr = registration.worker.ReaperAddr
 							expectedWorkerPayload.ActiveContainers = 1
 							expectedWorkerPayload.ActiveVolumes = 0
 							Expect(registration.worker).To(Equal(expectedWorkerPayload))
@@ -912,6 +928,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 								GardenAddr:      gardenAddr,
 								BaggageclaimURL: baggageclaimServer.URL(),
+								ReaperAddr:      reaperServer.URL(),
 
 								Platform: "linux",
 								Tags:     []string{"some", "tags"},
@@ -986,6 +1003,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
 								return (<-gardenStubs)()
 							}
+
+							reaperServer.RouteToHandler("GET", "/ping", func(w http.ResponseWriter, r *http.Request) {
+								w.WriteHeader(http.StatusOK)
+							})
 
 							baggageclaimServer.AppendHandlers(
 								ghttp.CombineHandlers(
@@ -1094,6 +1115,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 								GardenAddr:      gardenAddr,
 								BaggageclaimURL: baggageclaimServer.URL(),
+								ReaperAddr:      reaperServer.URL(),
 
 								Platform: "linux",
 								Tags:     []string{"some", "tags"},
@@ -1162,6 +1184,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}
 
 							close(gardenStubs)
+
+							reaperServer.RouteToHandler("GET", "/ping", func(w http.ResponseWriter, r *http.Request) {
+								w.WriteHeader(http.StatusOK)
+							})
 
 							baggageclaimServer.AppendHandlers(
 								ghttp.CombineHandlers(
