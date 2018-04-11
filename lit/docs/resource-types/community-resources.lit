@@ -111,6 +111,8 @@ before using it!
 }{
   \link{Kubernetes}{https://github.com/zlabjp/kubernetes-resource}
 }{
+  \link{K8s-Kubernetes}{https://github.com/srinivasa-vasu/concourse-k8s}
+}{
   \link{Kubernetes Helm}{https://github.com/linkyard/concourse-helm-resource}
 }{
   \link{Vault}{https://github.com/Docurated/concourse-vault-resource}
