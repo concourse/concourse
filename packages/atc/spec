@@ -43,6 +43,8 @@ files:
   - github.com/aws/aws-sdk-go/aws/request/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/aws/session/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/aws/signer/v4/*.{go,s,c,h} # gosub
+  - github.com/aws/aws-sdk-go/internal/sdkio/*.{go,s,c,h} # gosub
+  - github.com/aws/aws-sdk-go/internal/sdkrand/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/internal/shareddefaults/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/private/protocol/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/private/protocol/json/jsonutil/*.{go,s,c,h} # gosub
@@ -51,6 +53,8 @@ files:
   - github.com/aws/aws-sdk-go/private/protocol/query/queryutil/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/private/protocol/rest/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil/*.{go,s,c,h} # gosub
+  - github.com/aws/aws-sdk-go/service/secretsmanager/*.{go,s,c,h} # gosub
+  - github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/service/ssm/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/service/ssm/ssmiface/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/service/sts/*.{go,s,c,h} # gosub
@@ -103,6 +107,7 @@ files:
   - github.com/concourse/atc/creds/credhub/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/creds/kubernetes/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/creds/noop/*.{go,s,c,h} # gosub
+  - github.com/concourse/atc/creds/secretsmanager/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/creds/ssm/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/creds/vault/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/db/*.{go,s,c,h} # gosub
