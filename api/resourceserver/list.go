@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
 )
@@ -20,7 +20,8 @@ func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		showCheckErr := auth.IsAuthenticated(r)
+		acc := accessor.GetAccessor(r)
+		showCheckErr := acc.IsAuthenticated()
 		teamName := r.FormValue(":team_name")
 
 		var presentedResources []atc.Resource

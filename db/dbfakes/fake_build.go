@@ -148,6 +148,15 @@ type FakeBuild struct {
 	reapTimeReturnsOnCall map[int]struct {
 		result1 time.Time
 	}
+	TrackerStub        func() string
+	trackerMutex       sync.RWMutex
+	trackerArgsForCall []struct{}
+	trackerReturns     struct {
+		result1 string
+	}
+	trackerReturnsOnCall map[int]struct {
+		result1 string
+	}
 	IsManuallyTriggeredStub        func() bool
 	isManuallyTriggeredMutex       sync.RWMutex
 	isManuallyTriggeredArgsForCall []struct{}
@@ -186,17 +195,6 @@ type FakeBuild struct {
 		result1 bool
 		result2 error
 	}
-	InterceptibleStub        func() (bool, error)
-	interceptibleMutex       sync.RWMutex
-	interceptibleArgsForCall []struct{}
-	interceptibleReturns     struct {
-		result1 bool
-		result2 error
-	}
-	interceptibleReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
-	}
 	AcquireTrackingLockStub        func(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
 	acquireTrackingLockMutex       sync.RWMutex
 	acquireTrackingLockArgsForCall []struct {
@@ -212,6 +210,28 @@ type FakeBuild struct {
 		result1 lock.Lock
 		result2 bool
 		result3 error
+	}
+	TrackedByStub        func(peerURL string) error
+	trackedByMutex       sync.RWMutex
+	trackedByArgsForCall []struct {
+		peerURL string
+	}
+	trackedByReturns struct {
+		result1 error
+	}
+	trackedByReturnsOnCall map[int]struct {
+		result1 error
+	}
+	InterceptibleStub        func() (bool, error)
+	interceptibleMutex       sync.RWMutex
+	interceptibleArgsForCall []struct{}
+	interceptibleReturns     struct {
+		result1 bool
+		result2 error
+	}
+	interceptibleReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
 	}
 	PreparationStub        func() (db.BuildPreparation, bool, error)
 	preparationMutex       sync.RWMutex
@@ -309,11 +329,10 @@ type FakeBuild struct {
 	saveInputReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SaveOutputStub        func(vr db.VersionedResource, explicit bool) error
+	SaveOutputStub        func(vr db.VersionedResource) error
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
-		vr       db.VersionedResource
-		explicit bool
+		vr db.VersionedResource
 	}
 	saveOutputReturns struct {
 		result1 error
@@ -1026,6 +1045,46 @@ func (fake *FakeBuild) ReapTimeReturnsOnCall(i int, result1 time.Time) {
 	}{result1}
 }
 
+func (fake *FakeBuild) Tracker() string {
+	fake.trackerMutex.Lock()
+	ret, specificReturn := fake.trackerReturnsOnCall[len(fake.trackerArgsForCall)]
+	fake.trackerArgsForCall = append(fake.trackerArgsForCall, struct{}{})
+	fake.recordInvocation("Tracker", []interface{}{})
+	fake.trackerMutex.Unlock()
+	if fake.TrackerStub != nil {
+		return fake.TrackerStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.trackerReturns.result1
+}
+
+func (fake *FakeBuild) TrackerCallCount() int {
+	fake.trackerMutex.RLock()
+	defer fake.trackerMutex.RUnlock()
+	return len(fake.trackerArgsForCall)
+}
+
+func (fake *FakeBuild) TrackerReturns(result1 string) {
+	fake.TrackerStub = nil
+	fake.trackerReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) TrackerReturnsOnCall(i int, result1 string) {
+	fake.TrackerStub = nil
+	if fake.trackerReturnsOnCall == nil {
+		fake.trackerReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.trackerReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuild) IsManuallyTriggered() bool {
 	fake.isManuallyTriggeredMutex.Lock()
 	ret, specificReturn := fake.isManuallyTriggeredReturnsOnCall[len(fake.isManuallyTriggeredArgsForCall)]
@@ -1189,49 +1248,6 @@ func (fake *FakeBuild) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) Interceptible() (bool, error) {
-	fake.interceptibleMutex.Lock()
-	ret, specificReturn := fake.interceptibleReturnsOnCall[len(fake.interceptibleArgsForCall)]
-	fake.interceptibleArgsForCall = append(fake.interceptibleArgsForCall, struct{}{})
-	fake.recordInvocation("Interceptible", []interface{}{})
-	fake.interceptibleMutex.Unlock()
-	if fake.InterceptibleStub != nil {
-		return fake.InterceptibleStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.interceptibleReturns.result1, fake.interceptibleReturns.result2
-}
-
-func (fake *FakeBuild) InterceptibleCallCount() int {
-	fake.interceptibleMutex.RLock()
-	defer fake.interceptibleMutex.RUnlock()
-	return len(fake.interceptibleArgsForCall)
-}
-
-func (fake *FakeBuild) InterceptibleReturns(result1 bool, result2 error) {
-	fake.InterceptibleStub = nil
-	fake.interceptibleReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) InterceptibleReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.InterceptibleStub = nil
-	if fake.interceptibleReturnsOnCall == nil {
-		fake.interceptibleReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.interceptibleReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeBuild) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
 	fake.acquireTrackingLockMutex.Lock()
 	ret, specificReturn := fake.acquireTrackingLockReturnsOnCall[len(fake.acquireTrackingLockArgsForCall)]
@@ -1285,6 +1301,97 @@ func (fake *FakeBuild) AcquireTrackingLockReturnsOnCall(i int, result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) TrackedBy(peerURL string) error {
+	fake.trackedByMutex.Lock()
+	ret, specificReturn := fake.trackedByReturnsOnCall[len(fake.trackedByArgsForCall)]
+	fake.trackedByArgsForCall = append(fake.trackedByArgsForCall, struct {
+		peerURL string
+	}{peerURL})
+	fake.recordInvocation("TrackedBy", []interface{}{peerURL})
+	fake.trackedByMutex.Unlock()
+	if fake.TrackedByStub != nil {
+		return fake.TrackedByStub(peerURL)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.trackedByReturns.result1
+}
+
+func (fake *FakeBuild) TrackedByCallCount() int {
+	fake.trackedByMutex.RLock()
+	defer fake.trackedByMutex.RUnlock()
+	return len(fake.trackedByArgsForCall)
+}
+
+func (fake *FakeBuild) TrackedByArgsForCall(i int) string {
+	fake.trackedByMutex.RLock()
+	defer fake.trackedByMutex.RUnlock()
+	return fake.trackedByArgsForCall[i].peerURL
+}
+
+func (fake *FakeBuild) TrackedByReturns(result1 error) {
+	fake.TrackedByStub = nil
+	fake.trackedByReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) TrackedByReturnsOnCall(i int, result1 error) {
+	fake.TrackedByStub = nil
+	if fake.trackedByReturnsOnCall == nil {
+		fake.trackedByReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.trackedByReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) Interceptible() (bool, error) {
+	fake.interceptibleMutex.Lock()
+	ret, specificReturn := fake.interceptibleReturnsOnCall[len(fake.interceptibleArgsForCall)]
+	fake.interceptibleArgsForCall = append(fake.interceptibleArgsForCall, struct{}{})
+	fake.recordInvocation("Interceptible", []interface{}{})
+	fake.interceptibleMutex.Unlock()
+	if fake.InterceptibleStub != nil {
+		return fake.InterceptibleStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.interceptibleReturns.result1, fake.interceptibleReturns.result2
+}
+
+func (fake *FakeBuild) InterceptibleCallCount() int {
+	fake.interceptibleMutex.RLock()
+	defer fake.interceptibleMutex.RUnlock()
+	return len(fake.interceptibleArgsForCall)
+}
+
+func (fake *FakeBuild) InterceptibleReturns(result1 bool, result2 error) {
+	fake.InterceptibleStub = nil
+	fake.interceptibleReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuild) InterceptibleReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.InterceptibleStub = nil
+	if fake.interceptibleReturnsOnCall == nil {
+		fake.interceptibleReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.interceptibleReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuild) Preparation() (db.BuildPreparation, bool, error) {
@@ -1677,17 +1784,16 @@ func (fake *FakeBuild) SaveInputReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) SaveOutput(vr db.VersionedResource, explicit bool) error {
+func (fake *FakeBuild) SaveOutput(vr db.VersionedResource) error {
 	fake.saveOutputMutex.Lock()
 	ret, specificReturn := fake.saveOutputReturnsOnCall[len(fake.saveOutputArgsForCall)]
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
-		vr       db.VersionedResource
-		explicit bool
-	}{vr, explicit})
-	fake.recordInvocation("SaveOutput", []interface{}{vr, explicit})
+		vr db.VersionedResource
+	}{vr})
+	fake.recordInvocation("SaveOutput", []interface{}{vr})
 	fake.saveOutputMutex.Unlock()
 	if fake.SaveOutputStub != nil {
-		return fake.SaveOutputStub(vr, explicit)
+		return fake.SaveOutputStub(vr)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1701,10 +1807,10 @@ func (fake *FakeBuild) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakeBuild) SaveOutputArgsForCall(i int) (db.VersionedResource, bool) {
+func (fake *FakeBuild) SaveOutputArgsForCall(i int) db.VersionedResource {
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
-	return fake.saveOutputArgsForCall[i].vr, fake.saveOutputArgsForCall[i].explicit
+	return fake.saveOutputArgsForCall[i].vr
 }
 
 func (fake *FakeBuild) SaveOutputReturns(result1 error) {
@@ -2164,6 +2270,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.endTimeMutex.RUnlock()
 	fake.reapTimeMutex.RLock()
 	defer fake.reapTimeMutex.RUnlock()
+	fake.trackerMutex.RLock()
+	defer fake.trackerMutex.RUnlock()
 	fake.isManuallyTriggeredMutex.RLock()
 	defer fake.isManuallyTriggeredMutex.RUnlock()
 	fake.isScheduledMutex.RLock()
@@ -2172,10 +2280,12 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.isRunningMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
-	fake.interceptibleMutex.RLock()
-	defer fake.interceptibleMutex.RUnlock()
 	fake.acquireTrackingLockMutex.RLock()
 	defer fake.acquireTrackingLockMutex.RUnlock()
+	fake.trackedByMutex.RLock()
+	defer fake.trackedByMutex.RUnlock()
+	fake.interceptibleMutex.RLock()
+	defer fake.interceptibleMutex.RUnlock()
 	fake.preparationMutex.RLock()
 	defer fake.preparationMutex.RUnlock()
 	fake.startMutex.RLock()

@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/onsi/gomega/gbytes"
@@ -24,10 +25,13 @@ var _ = Describe("Config API", func() {
 	var (
 		pipelineConfig   atc.Config
 		requestGenerator *rata.RequestGenerator
+		fakeaccess       *accessorfakes.FakeAccess
 	)
 
 	BeforeEach(func() {
 		requestGenerator = rata.NewRequestGenerator(server.URL, atc.Routes)
+
+		fakeaccess = new(accessorfakes.FakeAccess)
 
 		pipelineConfig = atc.Config{
 			Groups: atc.GroupConfigs{
@@ -61,6 +65,7 @@ var _ = Describe("Config API", func() {
 					Name:   "custom-resource",
 					Type:   "custom-type",
 					Source: atc.Source{"custom": "source"},
+					Tags:   atc.Tags{"some-tag"},
 				},
 			},
 
@@ -117,6 +122,10 @@ var _ = Describe("Config API", func() {
 		}
 	})
 
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
+	})
+
 	Describe("GET /api/v1/teams/:team_name/pipelines/:name/config", func() {
 		var (
 			response *http.Response
@@ -135,8 +144,8 @@ var _ = Describe("Config API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when the team is found", func() {
@@ -247,6 +256,7 @@ var _ = Describe("Config API", func() {
 									fakeResourceType.NameReturns("custom-resource")
 									fakeResourceType.TypeReturns("custom-type")
 									fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
+									fakeResourceType.TagsReturns(atc.Tags{"some-tag"})
 
 									fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeResourceType}, nil)
 								})
@@ -349,13 +359,13 @@ var _ = Describe("Config API", func() {
 			})
 		})
 
-		Context("when not authorized", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			It("returns 403", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 		})
 	})
@@ -383,8 +393,8 @@ var _ = Describe("Config API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when a config version is specified", func() {
@@ -1078,11 +1088,11 @@ jobs:
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			It("returns 403", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 
 			It("does not save the config", func() {

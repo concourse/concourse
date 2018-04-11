@@ -2,9 +2,11 @@
 package enginefakes
 
 import (
+	"io"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/engine"
 )
 
@@ -33,6 +35,20 @@ type FakeBuild struct {
 	resumeMutex       sync.RWMutex
 	resumeArgsForCall []struct {
 		arg1 lager.Logger
+	}
+	ReceiveInputStub        func(lager.Logger, atc.PlanID, io.ReadCloser)
+	receiveInputMutex       sync.RWMutex
+	receiveInputArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 atc.PlanID
+		arg3 io.ReadCloser
+	}
+	SendOutputStub        func(lager.Logger, atc.PlanID, io.Writer)
+	sendOutputMutex       sync.RWMutex
+	sendOutputArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 atc.PlanID
+		arg3 io.Writer
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -150,6 +166,58 @@ func (fake *FakeBuild) ResumeArgsForCall(i int) lager.Logger {
 	return fake.resumeArgsForCall[i].arg1
 }
 
+func (fake *FakeBuild) ReceiveInput(arg1 lager.Logger, arg2 atc.PlanID, arg3 io.ReadCloser) {
+	fake.receiveInputMutex.Lock()
+	fake.receiveInputArgsForCall = append(fake.receiveInputArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 atc.PlanID
+		arg3 io.ReadCloser
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("ReceiveInput", []interface{}{arg1, arg2, arg3})
+	fake.receiveInputMutex.Unlock()
+	if fake.ReceiveInputStub != nil {
+		fake.ReceiveInputStub(arg1, arg2, arg3)
+	}
+}
+
+func (fake *FakeBuild) ReceiveInputCallCount() int {
+	fake.receiveInputMutex.RLock()
+	defer fake.receiveInputMutex.RUnlock()
+	return len(fake.receiveInputArgsForCall)
+}
+
+func (fake *FakeBuild) ReceiveInputArgsForCall(i int) (lager.Logger, atc.PlanID, io.ReadCloser) {
+	fake.receiveInputMutex.RLock()
+	defer fake.receiveInputMutex.RUnlock()
+	return fake.receiveInputArgsForCall[i].arg1, fake.receiveInputArgsForCall[i].arg2, fake.receiveInputArgsForCall[i].arg3
+}
+
+func (fake *FakeBuild) SendOutput(arg1 lager.Logger, arg2 atc.PlanID, arg3 io.Writer) {
+	fake.sendOutputMutex.Lock()
+	fake.sendOutputArgsForCall = append(fake.sendOutputArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 atc.PlanID
+		arg3 io.Writer
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SendOutput", []interface{}{arg1, arg2, arg3})
+	fake.sendOutputMutex.Unlock()
+	if fake.SendOutputStub != nil {
+		fake.SendOutputStub(arg1, arg2, arg3)
+	}
+}
+
+func (fake *FakeBuild) SendOutputCallCount() int {
+	fake.sendOutputMutex.RLock()
+	defer fake.sendOutputMutex.RUnlock()
+	return len(fake.sendOutputArgsForCall)
+}
+
+func (fake *FakeBuild) SendOutputArgsForCall(i int) (lager.Logger, atc.PlanID, io.Writer) {
+	fake.sendOutputMutex.RLock()
+	defer fake.sendOutputMutex.RUnlock()
+	return fake.sendOutputArgsForCall[i].arg1, fake.sendOutputArgsForCall[i].arg2, fake.sendOutputArgsForCall[i].arg3
+}
+
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -159,6 +227,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.abortMutex.RUnlock()
 	fake.resumeMutex.RLock()
 	defer fake.resumeMutex.RUnlock()
+	fake.receiveInputMutex.RLock()
+	defer fake.receiveInputMutex.RUnlock()
+	fake.sendOutputMutex.RLock()
+	defer fake.sendOutputMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

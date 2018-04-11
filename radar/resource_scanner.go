@@ -1,6 +1,7 @@
 package radar
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"time"
@@ -251,8 +252,8 @@ func (scanner *resourceScanner) check(
 	}
 
 	res, err := scanner.resourceFactory.NewResource(
+		context.Background(),
 		logger,
-		nil,
 		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, scanner.dbPipeline.TeamID()),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,

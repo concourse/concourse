@@ -27,7 +27,6 @@ type Team interface {
 	Name() string
 	Admin() bool
 
-	// BasicAuth() *atc.BasicAuth
 	Auth() map[string]*json.RawMessage
 
 	Delete() error
@@ -48,6 +47,7 @@ type Team interface {
 
 	CreateOneOffBuild() (Build, error)
 	PrivateAndPublicBuilds(Page) ([]Build, Pagination, error)
+	Builds(page Page) ([]Build, Pagination, error)
 
 	SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error)
 	Workers() ([]Worker, error)
@@ -64,11 +64,7 @@ type Team interface {
 	FindContainerOnWorker(workerName string, owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
 	CreateContainer(workerName string, owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
 
-	// UpdateBasicAuth(basicAuth *atc.BasicAuth) error
 	UpdateProviderAuth(auth map[string]*json.RawMessage) error
-
-	CreatePipe(string, string) error
-	GetPipe(string) (Pipe, error)
 }
 
 type team struct {
@@ -79,8 +75,6 @@ type team struct {
 	name  string
 	admin bool
 
-	// basicAuth *atc.BasicAuth
-
 	auth map[string]*json.RawMessage
 }
 
@@ -88,7 +82,6 @@ func (t *team) ID() int      { return t.id }
 func (t *team) Name() string { return t.name }
 func (t *team) Admin() bool  { return t.admin }
 
-// func (t *team) BasicAuth() *atc.BasicAuth         { return t.basicAuth }
 func (t *team) Auth() map[string]*json.RawMessage { return t.auth }
 
 func (t *team) Delete() error {
@@ -410,6 +403,13 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
+	jobGroups := make(map[string][]string)
+	for _, group := range config.Groups {
+		for _, job := range group.Jobs {
+			jobGroups[job] = append(jobGroups[job], group.Name)
+		}
+	}
+
 	var created bool
 	var existingConfig int
 
@@ -554,7 +554,7 @@ func (t *team) SavePipeline(
 	}
 
 	for _, job := range config.Jobs {
-		err = t.saveJob(tx, job, pipelineID)
+		err = t.saveJob(tx, job, pipelineID, jobGroups[job.Name])
 		if err != nil {
 			return nil, false, err
 		}
@@ -748,6 +748,10 @@ func (t *team) PrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {
 	return getBuildsWithPagination(newBuildsQuery, page, t.conn, t.lockFactory)
 }
 
+func (t *team) Builds(page Page) ([]Build, Pagination, error) {
+	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"t.id": t.id}), page, t.conn, t.lockFactory)
+}
+
 func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error) {
 	tx, err := t.conn.Begin()
 	if err != nil {
@@ -768,24 +772,6 @@ func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, erro
 
 	return savedWorker, nil
 }
-
-// func (t *team) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
-// 	encryptedBasicAuth, err := encryptedJSON(basicAuth)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	query := `
-// 		UPDATE teams
-// 		SET basic_auth = $1
-// 		WHERE id = $2
-// 		RETURNING id, name, admin, basic_auth, auth, nonce
-// 	`
-
-// 	params := []interface{}{encryptedBasicAuth, t.id}
-
-// 	return t.queryTeam(query, params)
-// }
 
 func (t *team) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
 	jsonEncodedProviderAuth, err := json.Marshal(auth)
@@ -809,59 +795,7 @@ func (t *team) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
 	return t.queryTeam(query, params)
 }
 
-func (t *team) CreatePipe(pipeGUID string, url string) error {
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	_, err = tx.Exec(`
-		INSERT INTO pipes(id, url, team_id)
-		VALUES (
-			$1,
-			$2,
-			$3
-		)
-	`, pipeGUID, url, t.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (t *team) GetPipe(pipeGUID string) (Pipe, error) {
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return Pipe{}, err
-	}
-
-	defer Rollback(tx)
-
-	var pipe Pipe
-
-	err = tx.QueryRow(`
-		SELECT p.id AS pipe_id, coalesce(url, '') AS url, t.name AS team_name
-		FROM pipes p
-			JOIN teams t
-			ON t.id = p.team_id
-		WHERE p.id = $1
-	`, pipeGUID).Scan(&pipe.ID, &pipe.URL, &pipe.TeamName)
-	if err != nil {
-		return Pipe{}, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return Pipe{}, err
-	}
-
-	return pipe, nil
-}
-
-func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
+func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string) error {
 	configPayload, err := json.Marshal(job)
 	if err != nil {
 		return err
@@ -875,9 +809,9 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE jobs
-		SET config = $3, interruptible = $4, active = true, nonce = $5
+		SET config = $3, interruptible = $4, active = true, nonce = $5, tags = $6
 		WHERE name = $1 AND pipeline_id = $2
-	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce)
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, "{"+strings.Join(groups, ",")+"}")
 	if err != nil {
 		return err
 	}
@@ -887,9 +821,9 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO jobs (name, pipeline_id, config, interruptible, active, nonce)
-		VALUES ($1, $2, $3, $4, true, $5)
-	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce)
+		INSERT INTO jobs (name, pipeline_id, config, interruptible, active, nonce, tags)
+		VALUES ($1, $2, $3, $4, true, $5, $6)
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, "{"+strings.Join(groups, ",")+"}")
 
 	return swallowUniqueViolation(err)
 }
@@ -1093,13 +1027,6 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 	if err != nil {
 		return err
 	}
-	// if basicAuth.Valid {
-	// 	err = json.Unmarshal([]byte(basicAuth.String), &t.basicAuth)
-
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
 
 	if providerAuth.Valid {
 		es := t.conn.EncryptionStrategy()
@@ -1122,20 +1049,3 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 
 	return nil
 }
-
-// func encryptedJSON(b *atc.BasicAuth) (string, error) {
-// 	var result *atc.BasicAuth
-// 	if b != nil && b.BasicAuthUsername != "" && b.BasicAuthPassword != "" {
-// 		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(b.BasicAuthPassword), 4)
-// 		if err != nil {
-// 			return "", err
-// 		}
-// 		result = &atc.BasicAuth{
-// 			BasicAuthPassword: string(encryptedPw),
-// 			BasicAuthUsername: b.BasicAuthUsername,
-// 		}
-// 	}
-
-// 	json, err := json.Marshal(result)
-// 	return string(json), err
-// }

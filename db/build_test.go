@@ -112,6 +112,26 @@ var _ = Describe("Build", func() {
 		})
 	})
 
+	Describe("TrackedBy", func() {
+		var build db.Build
+
+		BeforeEach(func() {
+			var err error
+			build, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("updates build status", func() {
+			Expect(build.TrackedBy("http://1.2.3.4:8080")).To(Succeed())
+
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(build.Tracker()).To(Equal("http://1.2.3.4:8080"))
+		})
+	})
+
 	Describe("Finish", func() {
 		var build db.Build
 		BeforeEach(func() {
@@ -326,73 +346,37 @@ var _ = Describe("Build", func() {
 			Expect(found).To(BeTrue())
 		})
 
-		Context("when a job build", func() {
-			It("saves the build's input", func() {
-				build, err := job.CreateBuild()
-				Expect(err).ToNot(HaveOccurred())
+		It("saves the build's input", func() {
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
 
-				versionedResource := db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
+			versionedResource := db.VersionedResource{
+				Resource: "some-resource",
+				Type:     "some-type",
+				Version: db.ResourceVersion{
+					"some": "version",
+				},
+				Metadata: []db.ResourceMetadataField{
+					{
+						Name:  "meta1",
+						Value: "data1",
 					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
+					{
+						Name:  "meta2",
+						Value: "data2",
 					},
-				}
-				err = build.SaveInput(db.BuildInput{
-					Name:              "some-input",
-					VersionedResource: versionedResource,
-				})
-				Expect(err).ToNot(HaveOccurred())
-
-				actualBuildInput, err := build.GetVersionedResources()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(actualBuildInput)).To(Equal(1))
-				Expect(actualBuildInput[0].VersionedResource).To(Equal(versionedResource))
+				},
+			}
+			err = build.SaveInput(db.BuildInput{
+				Name:              "some-input",
+				VersionedResource: versionedResource,
 			})
-		})
+			Expect(err).ToNot(HaveOccurred())
 
-		Context("when a one off build", func() {
-			It("does not save the build's input", func() {
-				build, err := team.CreateOneOffBuild()
-				Expect(err).ToNot(HaveOccurred())
-
-				versionedResource := db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
-					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
-					},
-				}
-				err = build.SaveInput(db.BuildInput{
-					Name:              "some-input",
-					VersionedResource: versionedResource,
-				})
-				Expect(err).ToNot(HaveOccurred())
-
-				actualBuildInput, err := build.GetVersionedResources()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(actualBuildInput)).To(Equal(0))
-			})
+			actualBuildInput, err := build.GetVersionedResources()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actualBuildInput)).To(Equal(1))
+			Expect(actualBuildInput[0].VersionedResource).To(Equal(versionedResource))
 		})
 	})
 
@@ -429,107 +413,35 @@ var _ = Describe("Build", func() {
 			Expect(found).To(BeTrue())
 		})
 
-		Context("when a job build", func() {
-			It("can get a build's output", func() {
-				build, err := job.CreateBuild()
-				Expect(err).ToNot(HaveOccurred())
+		It("can save a build's output", func() {
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
 
-				versionedResource := db.VersionedResource{
-					Resource: "some-explicit-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
+			versionedResource := db.VersionedResource{
+				Resource: "some-explicit-resource",
+				Type:     "some-type",
+				Version: db.ResourceVersion{
+					"some": "version",
+				},
+				Metadata: []db.ResourceMetadataField{
+					{
+						Name:  "meta1",
+						Value: "data1",
 					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
+					{
+						Name:  "meta2",
+						Value: "data2",
 					},
-				}
+				},
+			}
 
-				err = build.SaveOutput(versionedResource, true)
-				Expect(err).ToNot(HaveOccurred())
+			err = build.SaveOutput(versionedResource)
+			Expect(err).ToNot(HaveOccurred())
 
-				err = build.SaveOutput(db.VersionedResource{
-					Resource: "some-implicit-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
-					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
-					},
-				}, false)
-				Expect(err).ToNot(HaveOccurred())
-
-				actualBuildOutput, err := build.GetVersionedResources()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(actualBuildOutput)).To(Equal(1))
-				Expect(actualBuildOutput[0].VersionedResource).To(Equal(versionedResource))
-			})
-		})
-
-		Context("when a one off build", func() {
-			It("can not get a build's output", func() {
-				build, err := team.CreateOneOffBuild()
-				Expect(err).ToNot(HaveOccurred())
-
-				versionedResource := db.VersionedResource{
-					Resource: "some-explicit-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
-					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
-					},
-				}
-
-				err = build.SaveOutput(versionedResource, true)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = build.SaveOutput(db.VersionedResource{
-					Resource: "some-implicit-resource",
-					Type:     "some-type",
-					Version: db.ResourceVersion{
-						"some": "version",
-					},
-					Metadata: []db.ResourceMetadataField{
-						{
-							Name:  "meta1",
-							Value: "data1",
-						},
-						{
-							Name:  "meta2",
-							Value: "data2",
-						},
-					},
-				}, false)
-				Expect(err).ToNot(HaveOccurred())
-
-				actualBuildOutput, err := build.GetVersionedResources()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(actualBuildOutput)).To(Equal(0))
-			})
+			actualBuildOutput, err := build.GetVersionedResources()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actualBuildOutput)).To(Equal(1))
+			Expect(actualBuildOutput[0].VersionedResource).To(Equal(versionedResource))
 		})
 	})
 
@@ -582,7 +494,7 @@ var _ = Describe("Build", func() {
 			Expect(found).To(BeTrue())
 		})
 
-		It("correctly distinguishes them", func() {
+		It("returns build inputs and outputs", func() {
 			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -593,27 +505,13 @@ var _ = Describe("Build", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			// save implicit output from 'get'
-			err = build.SaveOutput(vr1, false)
-			Expect(err).NotTo(HaveOccurred())
-
 			// save explicit output from 'put'
-			err = build.SaveOutput(vr2, true)
-			Expect(err).NotTo(HaveOccurred())
-
-			// save the dependent get
-			err = build.SaveInput(db.BuildInput{
-				Name:              "some-dependent-input",
-				VersionedResource: vr2,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			// save the dependent 'get's implicit output
-			err = build.SaveOutput(vr2, false)
+			err = build.SaveOutput(vr2)
 			Expect(err).NotTo(HaveOccurred())
 
 			inputs, outputs, err := build.Resources()
 			Expect(err).NotTo(HaveOccurred())
+
 			Expect(inputs).To(ConsistOf([]db.BuildInput{
 				{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
 			}))
@@ -621,7 +519,6 @@ var _ = Describe("Build", func() {
 			Expect(outputs).To(ConsistOf([]db.BuildOutput{
 				{VersionedResource: vr2},
 			}))
-
 		})
 
 		It("fails to save build output if resource does not exist", func() {
@@ -634,7 +531,7 @@ var _ = Describe("Build", func() {
 				Version:  db.ResourceVersion{"ver": "2"},
 			}
 
-			err = build.SaveOutput(vr, false)
+			err = build.SaveOutput(vr)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("resource 'unknown-resource' not found"))
 		})
@@ -1091,7 +988,7 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("UseInput", func() {
+	Describe("UseInputs", func() {
 		var build db.Build
 		BeforeEach(func() {
 			pipelineConfig := atc.Config{

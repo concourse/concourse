@@ -63,6 +63,15 @@ type FakeResourceType struct {
 	paramsReturnsOnCall map[int]struct {
 		result1 atc.Params
 	}
+	TagsStub        func() atc.Tags
+	tagsMutex       sync.RWMutex
+	tagsArgsForCall []struct{}
+	tagsReturns     struct {
+		result1 atc.Tags
+	}
+	tagsReturnsOnCall map[int]struct {
+		result1 atc.Tags
+	}
 	SetResourceConfigStub        func(int) error
 	setResourceConfigMutex       sync.RWMutex
 	setResourceConfigArgsForCall []struct {
@@ -349,6 +358,46 @@ func (fake *FakeResourceType) ParamsReturnsOnCall(i int, result1 atc.Params) {
 	}{result1}
 }
 
+func (fake *FakeResourceType) Tags() atc.Tags {
+	fake.tagsMutex.Lock()
+	ret, specificReturn := fake.tagsReturnsOnCall[len(fake.tagsArgsForCall)]
+	fake.tagsArgsForCall = append(fake.tagsArgsForCall, struct{}{})
+	fake.recordInvocation("Tags", []interface{}{})
+	fake.tagsMutex.Unlock()
+	if fake.TagsStub != nil {
+		return fake.TagsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.tagsReturns.result1
+}
+
+func (fake *FakeResourceType) TagsCallCount() int {
+	fake.tagsMutex.RLock()
+	defer fake.tagsMutex.RUnlock()
+	return len(fake.tagsArgsForCall)
+}
+
+func (fake *FakeResourceType) TagsReturns(result1 atc.Tags) {
+	fake.TagsStub = nil
+	fake.tagsReturns = struct {
+		result1 atc.Tags
+	}{result1}
+}
+
+func (fake *FakeResourceType) TagsReturnsOnCall(i int, result1 atc.Tags) {
+	fake.TagsStub = nil
+	if fake.tagsReturnsOnCall == nil {
+		fake.tagsReturnsOnCall = make(map[int]struct {
+			result1 atc.Tags
+		})
+	}
+	fake.tagsReturnsOnCall[i] = struct {
+		result1 atc.Tags
+	}{result1}
+}
+
 func (fake *FakeResourceType) SetResourceConfig(arg1 int) error {
 	fake.setResourceConfigMutex.Lock()
 	ret, specificReturn := fake.setResourceConfigReturnsOnCall[len(fake.setResourceConfigArgsForCall)]
@@ -543,6 +592,8 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.sourceMutex.RUnlock()
 	fake.paramsMutex.RLock()
 	defer fake.paramsMutex.RUnlock()
+	fake.tagsMutex.RLock()
+	defer fake.tagsMutex.RUnlock()
 	fake.setResourceConfigMutex.RLock()
 	defer fake.setResourceConfigMutex.RUnlock()
 	fake.versionMutex.RLock()

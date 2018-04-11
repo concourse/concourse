@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -15,25 +17,28 @@ import (
 var _ = Describe("Volumes API", func() {
 
 	var fakeWorker *dbfakes.FakeWorker
+	var fakeaccess *accessorfakes.FakeAccess
 
 	BeforeEach(func() {
+		fakeaccess = new(accessorfakes.FakeAccess)
 		fakeWorker = new(dbfakes.FakeWorker)
 		fakeWorker.NameReturns("some-worker")
 	})
 
-	Describe("GET /api/v1/volumes", func() {
+	Describe("GET /api/v1//teams/a-team/volumes", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
-			var err error
+			fakeAccessor.CreateReturns(fakeaccess)
 
-			response, err = client.Get(server.URL + "/api/v1/volumes")
+			var err error
+			response, err = client.Get(server.URL + "/api/v1/teams/a-team/volumes")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -43,13 +48,17 @@ var _ = Describe("Volumes API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when identifying the team succeeds", func() {
 				BeforeEach(func() {
 					dbTeam.IDReturns(1)
+				})
+
+				It("receives correct team name as function argument", func() {
+					Expect(fakeaccess.IsAuthorizedArgsForCall(0)).To(Equal("a-team"))
 				})
 
 				It("asks the factory for the volumes", func() {
@@ -125,86 +134,86 @@ var _ = Describe("Volumes API", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
-							{
-								"id": "some-resource-cache-handle",
-								"worker_name": "some-worker",
-								"type": "resource",
-								"container_handle": "",
-								"path": "",
-								"parent_handle": "",
-								"resource_type": {
-									"resource_type": {
-									  "resource_type": null,
-										"base_resource_type": {
-											"name": "some-base-resource-type",
-											"version": "some-base-version"
-										},
-										"version": {"custom": "version"}
-									},
-									"base_resource_type": null,
-									"version": {"some": "version"}
-								},
-								"base_resource_type": null,
-								"pipeline_name": "",
-								"job_name": "",
-								"step_name": ""
-							},
-							{
-								"id": "some-import-handle",
-								"worker_name": "some-worker",
-								"type": "resource-type",
-								"container_handle": "",
-								"path": "",
-								"parent_handle": "",
-								"resource_type": null,
-								"base_resource_type": {
-									"name": "some-base-resource-type",
-									"version": "some-base-version"
-								},
-								"pipeline_name": "",
-								"job_name": "",
-								"step_name": ""
-							},
-							{
-								"id": "some-output-handle",
-								"worker_name": "some-other-worker",
-								"type": "container",
-								"container_handle": "some-container-handle",
-								"path": "some-path",
-								"parent_handle": "some-parent-handle",
-								"resource_type": null,
-								"base_resource_type": null,
-								"pipeline_name": "",
-								"job_name": "",
-								"step_name": ""
-							},
-							{
-								"id": "some-cow-handle",
-								"worker_name": "some-worker",
-								"type": "container",
-								"container_handle": "some-container-handle",
-								"parent_handle": "",
-								"path": "some-path",
-								"resource_type": null,
-								"base_resource_type": null,
-								"pipeline_name": "",
-								"job_name": "",
-								"step_name": ""
-							},
-							{
-								"id": "some-task-cache-handle",
-								"worker_name": "some-worker",
-								"type": "task-cache",
-								"container_handle": "",
-								"parent_handle": "",
-								"path": "",
-								"resource_type": null,
-								"base_resource_type": null,
-								"pipeline_name": "some-pipeline",
-								"job_name": "some-job",
-								"step_name": "some-task"
-							}
-						]`,
+		 					{
+		 						"id": "some-resource-cache-handle",
+		 						"worker_name": "some-worker",
+		 						"type": "resource",
+		 						"container_handle": "",
+		 						"path": "",
+		 						"parent_handle": "",
+		 						"resource_type": {
+		 							"resource_type": {
+		 							  "resource_type": null,
+		 								"base_resource_type": {
+		 									"name": "some-base-resource-type",
+		 									"version": "some-base-version"
+		 								},
+		 								"version": {"custom": "version"}
+		 							},
+		 							"base_resource_type": null,
+		 							"version": {"some": "version"}
+		 						},
+		 						"base_resource_type": null,
+		 						"pipeline_name": "",
+		 						"job_name": "",
+		 						"step_name": ""
+		 					},
+		 					{
+		 						"id": "some-import-handle",
+		 						"worker_name": "some-worker",
+		 						"type": "resource-type",
+		 						"container_handle": "",
+		 						"path": "",
+		 						"parent_handle": "",
+		 						"resource_type": null,
+		 						"base_resource_type": {
+		 							"name": "some-base-resource-type",
+		 							"version": "some-base-version"
+		 						},
+		 						"pipeline_name": "",
+		 						"job_name": "",
+		 						"step_name": ""
+		 					},
+		 					{
+		 						"id": "some-output-handle",
+		 						"worker_name": "some-other-worker",
+		 						"type": "container",
+		 						"container_handle": "some-container-handle",
+		 						"path": "some-path",
+		 						"parent_handle": "some-parent-handle",
+		 						"resource_type": null,
+		 						"base_resource_type": null,
+		 						"pipeline_name": "",
+		 						"job_name": "",
+		 						"step_name": ""
+		 					},
+		 					{
+		 						"id": "some-cow-handle",
+		 						"worker_name": "some-worker",
+		 						"type": "container",
+		 						"container_handle": "some-container-handle",
+		 						"parent_handle": "",
+		 						"path": "some-path",
+		 						"resource_type": null,
+		 						"base_resource_type": null,
+		 						"pipeline_name": "",
+		 						"job_name": "",
+		 						"step_name": ""
+		 					},
+		 					{
+		 						"id": "some-task-cache-handle",
+		 						"worker_name": "some-worker",
+		 						"type": "task-cache",
+		 						"container_handle": "",
+		 						"parent_handle": "",
+		 						"path": "",
+		 						"resource_type": null,
+		 						"base_resource_type": null,
+		 						"pipeline_name": "some-pipeline",
+		 						"job_name": "some-job",
+		 						"step_name": "some-task"
+		 					}
+		 				]`,
 						))
 					})
 				})
@@ -248,22 +257,22 @@ var _ = Describe("Volumes API", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
-							{
-								"id": "some-import-handle",
-								"worker_name": "some-worker",
-								"type": "resource-type",
-								"container_handle": "",
-								"path": "",
-								"parent_handle": "",
-								"resource_type": null,
-								"base_resource_type": {
-									"name": "some-base-resource-type",
-									"version": "some-base-version"
-								},
-								"pipeline_name": "",
-								"job_name": "",
-								"step_name": ""
-							}]`))
+		 					{
+		 						"id": "some-import-handle",
+		 						"worker_name": "some-worker",
+		 						"type": "resource-type",
+		 						"container_handle": "",
+		 						"path": "",
+		 						"parent_handle": "",
+		 						"resource_type": null,
+		 						"base_resource_type": {
+		 							"name": "some-base-resource-type",
+		 							"version": "some-base-version"
+		 						},
+		 						"pipeline_name": "",
+		 						"job_name": "",
+		 						"step_name": ""
+		 					}]`))
 					})
 					It("returns 200 OK", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))

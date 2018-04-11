@@ -7,8 +7,6 @@ import (
 )
 
 type APIAuthWrappa struct {
-	authValidator                       auth.Validator
-	userContextReader                   auth.UserContextReader
 	checkPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
 	checkBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
 	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
@@ -16,16 +14,12 @@ type APIAuthWrappa struct {
 }
 
 func NewAPIAuthWrappa(
-	authValidator auth.Validator,
-	userContextReader auth.UserContextReader,
 	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory,
 	checkBuildReadAccessHandlerFactory auth.CheckBuildReadAccessHandlerFactory,
 	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory,
 	checkWorkerTeamAccessHandlerFactory auth.CheckWorkerTeamAccessHandlerFactory,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
-		authValidator:                       authValidator,
-		userContextReader:                   userContextReader,
 		checkPipelineAccessHandlerFactory:   checkPipelineAccessHandlerFactory,
 		checkBuildReadAccessHandlerFactory:  checkBuildReadAccessHandlerFactory,
 		checkBuildWriteAccessHandlerFactory: checkBuildWriteAccessHandlerFactory,
@@ -49,6 +43,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListTeams,
 			atc.ListAllPipelines,
 			atc.ListPipelines,
+			atc.ListAllJobs,
 			atc.ListBuilds,
 			atc.LegacyListAuthMethods,
 			atc.LegacyGetAuthToken,
@@ -67,7 +62,9 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			newHandler = wrappa.checkBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(handler, rejector)
 
 		// resource belongs to authorized team
-		case atc.AbortBuild:
+		case atc.AbortBuild,
+			atc.SendInputToBuildPlan,
+			atc.ReadOutputFromBuildPlan:
 			newHandler = wrappa.checkBuildWriteAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		// requester is system, admin team, or worker owning team
@@ -84,6 +81,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListJobs,
 			atc.GetJob,
 			atc.ListJobBuilds,
+			atc.ListPipelineBuilds,
 			atc.GetResource,
 			atc.ListBuildsWithVersionAsInput,
 			atc.ListBuildsWithVersionAsOutput,
@@ -95,19 +93,17 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 
 		// authenticated
 		case atc.CreateBuild,
-			atc.CreatePipe,
 			atc.GetContainer,
 			atc.HijackContainer,
 			atc.ListContainers,
 			atc.ListWorkers,
-			atc.ReadPipe,
 			atc.RegisterWorker,
 			atc.HeartbeatWorker,
 			atc.DeleteWorker,
 			atc.SetTeam,
+			atc.ListTeamBuilds,
 			atc.RenameTeam,
 			atc.DestroyTeam,
-			atc.WritePipe,
 			atc.ListVolumes:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 
@@ -143,8 +139,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			panic("you missed a spot")
 		}
 
-		newHandler = auth.WrapHandler(newHandler, wrappa.authValidator, wrappa.userContextReader)
-		wrapped[name] = auth.CSRFValidationHandler(newHandler, rejector, wrappa.userContextReader)
+		wrapped[name] = auth.CSRFValidationHandler(newHandler, rejector)
 	}
 
 	return wrapped

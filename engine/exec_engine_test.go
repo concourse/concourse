@@ -41,8 +41,7 @@ var _ = Describe("ExecEngine", func() {
 
 	Describe("Resume", func() {
 		var (
-			fakeDelegate            *enginefakes.FakeBuildDelegate
-			fakeBuildEventsDelegate *execfakes.FakeActionsBuildEventsDelegate
+			fakeDelegate *enginefakes.FakeBuildDelegate
 
 			dbBuild          *dbfakes.FakeBuild
 			expectedMetadata engine.StepMetadata
@@ -51,14 +50,9 @@ var _ = Describe("ExecEngine", func() {
 
 			build engine.Build
 
-			inputStepFactory *execfakes.FakeStepFactory
-			inputStep        *execfakes.FakeStep
-
-			taskStepFactory *execfakes.FakeStepFactory
-			taskStep        *execfakes.FakeStep
-
-			outputStepFactory *execfakes.FakeStepFactory
-			outputStep        *execfakes.FakeStep
+			inputStep  *execfakes.FakeStep
+			taskStep   *execfakes.FakeStep
+			outputStep *execfakes.FakeStep
 
 			planFactory atc.PlanFactory
 		)
@@ -88,26 +82,17 @@ var _ = Describe("ExecEngine", func() {
 			fakeDelegate = new(enginefakes.FakeBuildDelegate)
 			fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-			fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
-			fakeDelegate.DBActionsBuildEventsDelegateReturns(fakeBuildEventsDelegate)
-
-			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
 			inputStep.SucceededReturns(true)
-			inputStepFactory.UsingReturns(inputStep)
-			fakeFactory.GetReturns(inputStepFactory)
+			fakeFactory.GetReturns(inputStep)
 
-			taskStepFactory = new(execfakes.FakeStepFactory)
 			taskStep = new(execfakes.FakeStep)
 			taskStep.SucceededReturns(true)
-			taskStepFactory.UsingReturns(taskStep)
-			fakeFactory.TaskReturns(taskStepFactory)
+			fakeFactory.TaskReturns(taskStep)
 
-			outputStepFactory = new(execfakes.FakeStepFactory)
 			outputStep = new(execfakes.FakeStep)
 			outputStep.SucceededReturns(true)
-			outputStepFactory.UsingReturns(outputStep)
-			fakeFactory.PutReturns(outputStepFactory)
+			fakeFactory.PutReturns(outputStep)
 		})
 
 		Describe("with a putget in an aggregate", func() {
@@ -156,7 +141,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
-					logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.PutArgsForCall(0)
+					logger, plan, build, stepMetadata, containerMetadata, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(putPlan))
@@ -172,7 +157,7 @@ var _ = Describe("ExecEngine", func() {
 						BuildName:    "42",
 					}))
 
-					logger, plan, build, stepMetadata, containerMetadata, _, _ = fakeFactory.PutArgsForCall(1)
+					logger, plan, build, stepMetadata, containerMetadata, _ = fakeFactory.PutArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(otherPutPlan))
@@ -249,7 +234,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs the first get correctly", func() {
-				logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, plan, build, stepMetadata, containerMetadata, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(build).To(Equal(dbBuild))
 				expectedPlan := getPlan
@@ -270,7 +255,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs the second get correctly", func() {
-				logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(1)
+				logger, plan, build, stepMetadata, containerMetadata, _ := fakeFactory.GetArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
 				Expect(build).To(Equal(dbBuild))
 				expectedPlan := getPlan
@@ -295,7 +280,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				logger, plan, build, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				logger, plan, build, containerMetadata, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(build).To(Equal(dbBuild))
 				expectedPlan := taskPlan
@@ -313,7 +298,7 @@ var _ = Describe("ExecEngine", func() {
 					Attempt:      "2.1",
 				}))
 
-				logger, plan, build, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				logger, plan, build, containerMetadata, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
 				Expect(build).To(Equal(dbBuild))
 				expectedPlan = taskPlan
@@ -382,15 +367,15 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				_, _, _, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				_, _, _, containerMetadata, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				_, _, _, containerMetadata, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(2)
+				_, _, _, containerMetadata, _ = fakeFactory.TaskArgsForCall(2)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(3)
+				_, _, _, containerMetadata, _ = fakeFactory.TaskArgsForCall(3)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
-				_, _, _, containerMetadata, _, _, _ = fakeFactory.TaskArgsForCall(4)
+				_, _, _, containerMetadata, _ = fakeFactory.TaskArgsForCall(4)
 				Expect(containerMetadata.Attempt).To(Equal("1"))
 			})
 		})
@@ -419,7 +404,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-					logger, plan, dBuild, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, plan, dBuild, stepMetadata, containerMetadata, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(dBuild).To(Equal(dbBuild))
 					Expect(plan).To(Equal(expectedPlan))
@@ -434,11 +419,6 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      expectedBuildID,
 						BuildName:    "42",
 					}))
-					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(0)
-					Expect(originID).To(Equal(plan.ID))
-
-					planID := fakeDelegate.BuildStepDelegateArgsForCall(0)
-					Expect(planID).To(Equal(plan.ID))
 				})
 			})
 
@@ -473,7 +453,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-					logger, plan, build, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, plan, build, containerMetadata, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(expectedPlan))
@@ -530,7 +510,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(1))
 
-					logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.PutArgsForCall(0)
+					logger, plan, build, stepMetadata, containerMetadata, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(putPlan))
@@ -545,10 +525,6 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      expectedBuildID,
 						BuildName:    "42",
 					}))
-					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(0)
-					Expect(originID).To(Equal(putPlan.ID))
-					planID := fakeDelegate.BuildStepDelegateArgsForCall(0)
-					Expect(planID).To(Equal(putPlan.ID))
 				})
 
 				It("constructs the dependent get correctly", func() {
@@ -559,7 +535,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-					logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, plan, build, stepMetadata, containerMetadata, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(dependentGetPlan))
@@ -574,10 +550,6 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      expectedBuildID,
 						BuildName:    "42",
 					}))
-					originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(1)
-					Expect(originID).To(Equal(dependentGetPlan.ID))
-					planID := fakeDelegate.BuildStepDelegateArgsForCall(1)
-					Expect(planID).To(Equal(dependentGetPlan.ID))
 				})
 			})
 		})
@@ -619,11 +591,9 @@ var _ = Describe("ExecEngine", func() {
 				fakeDelegate := new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-				inputStepFactory := new(execfakes.FakeStepFactory)
 				inputStep := new(execfakes.FakeStep)
 				inputStep.SucceededReturns(true)
-				inputStepFactory.UsingReturns(inputStep)
-				fakeFactory.GetReturns(inputStepFactory)
+				fakeFactory.GetReturns(inputStep)
 			})
 
 			It("constructs the get correctly", func() {
@@ -632,7 +602,7 @@ var _ = Describe("ExecEngine", func() {
 
 				foundBuild.Resume(logger)
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, plan, build, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, plan, build, stepMetadata, containerMetadata, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(build).To(Equal(dbBuild))
 				Expect(plan.ID).To(Equal(atc.PlanID("47")))
@@ -665,11 +635,9 @@ var _ = Describe("ExecEngine", func() {
 				fakeDelegate := new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-				inputStepFactory := new(execfakes.FakeStepFactory)
 				inputStep := new(execfakes.FakeStep)
 				inputStep.SucceededReturns(true)
-				inputStepFactory.UsingReturns(inputStep)
-				fakeFactory.GetReturns(inputStepFactory)
+				fakeFactory.GetReturns(inputStep)
 			})
 
 			It("does not error", func() {

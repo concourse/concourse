@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 )
@@ -38,6 +39,12 @@ type FakeBuildStepDelegate struct {
 	}
 	stderrReturnsOnCall map[int]struct {
 		result1 io.Writer
+	}
+	ErroredStub        func(lager.Logger, string)
+	erroredMutex       sync.RWMutex
+	erroredArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -171,6 +178,31 @@ func (fake *FakeBuildStepDelegate) StderrReturnsOnCall(i int, result1 io.Writer)
 	}{result1}
 }
 
+func (fake *FakeBuildStepDelegate) Errored(arg1 lager.Logger, arg2 string) {
+	fake.erroredMutex.Lock()
+	fake.erroredArgsForCall = append(fake.erroredArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("Errored", []interface{}{arg1, arg2})
+	fake.erroredMutex.Unlock()
+	if fake.ErroredStub != nil {
+		fake.ErroredStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeBuildStepDelegate) ErroredCallCount() int {
+	fake.erroredMutex.RLock()
+	defer fake.erroredMutex.RUnlock()
+	return len(fake.erroredArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
+	fake.erroredMutex.RLock()
+	defer fake.erroredMutex.RUnlock()
+	return fake.erroredArgsForCall[i].arg1, fake.erroredArgsForCall[i].arg2
+}
+
 func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -180,6 +212,8 @@ func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stdoutMutex.RUnlock()
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
+	fake.erroredMutex.RLock()
+	defer fake.erroredMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

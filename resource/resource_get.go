@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"os"
+	"context"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -14,17 +14,17 @@ type getRequest struct {
 }
 
 func (resource *resource) Get(
+	ctx context.Context,
 	volume worker.Volume,
 	ioConfig IOConfig,
 	source atc.Source,
 	params atc.Params,
 	version atc.Version,
-	signals <-chan os.Signal,
-	ready chan<- struct{},
 ) (VersionedSource, error) {
 	var vr versionResult
 
-	runner := resource.runScript(
+	err := resource.runScript(
+		ctx,
 		"/opt/resource/in",
 		[]string{ResourcesDir("get")},
 		getRequest{source, params, version},
@@ -32,8 +32,6 @@ func (resource *resource) Get(
 		ioConfig.Stderr,
 		true,
 	)
-
-	err := runner.Run(signals, ready)
 	if err != nil {
 		return nil, err
 	}

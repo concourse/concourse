@@ -17,11 +17,23 @@ type Plan struct {
 	Timeout   *TimeoutPlan   `json:"timeout,omitempty"`
 	Retry     *RetryPlan     `json:"retry,omitempty"`
 
+	// used for 'fly execute'
+	UserArtifact   *UserArtifactPlan   `json:"user_artifact,omitempty"`
+	ArtifactOutput *ArtifactOutputPlan `json:"artifact_output,omitempty"`
+
 	// deprecated, kept for backwards compatibility to be able to show old builds
 	DependentGet *DependentGetPlan `json:"dependent_get,omitempty"`
 }
 
 type PlanID string
+
+type UserArtifactPlan struct {
+	Name string `json:"name"`
+}
+
+type ArtifactOutputPlan struct {
+	Name string `json:"name"`
+}
 
 type OnAbortPlan struct {
 	Step Plan `json:"step"`

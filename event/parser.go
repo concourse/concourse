@@ -76,6 +76,8 @@ func init() {
 	registerEvent(FinishPutV30{})
 	registerEvent(InitializeGetV10{})
 	registerEvent(InitializePutV10{})
+	registerEvent(FinishGetV40{})
+	registerEvent(FinishPutV40{})
 }
 
 type Message struct {

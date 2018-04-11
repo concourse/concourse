@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -55,6 +56,18 @@ func (delegate *BuildStepDelegate) Stderr() io.Writer {
 		},
 		delegate.clock,
 	)
+}
+
+func (delegate *BuildStepDelegate) Errored(logger lager.Logger, message string) {
+	err := delegate.build.SaveEvent(event.Error{
+		Message: message,
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+	})
+	if err != nil {
+		logger.Error("failed-to-save-error-event", err)
+	}
 }
 
 func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock) io.Writer {

@@ -39,7 +39,6 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 		err = json.NewEncoder(w).Encode(present.Job(
 			teamName,
 			job,
-			pipeline.Groups(),
 			finished,
 			next,
 			nil,

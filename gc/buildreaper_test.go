@@ -480,12 +480,13 @@ var _ = Describe("BuildReaper", func() {
 				fakeJob.ConfigReturns(atc.JobConfig{
 					BuildLogsToRetain: 0,
 				})
+				fakeJob.TagsReturns([]string{})
 
 				fakePipeline.DashboardReturns(db.Dashboard{
 					{
 						Job: fakeJob,
 					},
-				}, atc.GroupConfigs{}, nil)
+				}, nil)
 			})
 
 			It("skips the reaping step for that job", func() {

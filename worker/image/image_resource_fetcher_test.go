@@ -2,12 +2,13 @@ package image_test
 
 import (
 	"archive/tar"
+	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -45,7 +46,7 @@ var _ = Describe("Image", func() {
 	var logger lager.Logger
 	var imageResource worker.ImageResource
 	var version atc.Version
-	var signals <-chan os.Signal
+	var ctx context.Context
 	var fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 	var fakeWorker *workerfakes.FakeWorker
 	var fakeClock *fakeclock.FakeClock
@@ -83,7 +84,7 @@ var _ = Describe("Image", func() {
 			Params: &atc.Params{"some": "params"},
 		}
 		version = nil
-		signals = make(chan os.Signal)
+		ctx = context.Background()
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
 		fakeWorker = new(workerfakes.FakeWorker)
@@ -129,8 +130,8 @@ var _ = Describe("Image", func() {
 		)
 
 		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = imageResourceFetcher.Fetch(
+			ctx,
 			logger,
-			signals,
 			fakeCreatingContainer,
 			privileged,
 		)
@@ -248,7 +249,7 @@ var _ = Describe("Image", func() {
 							fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 							fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
-							fakeVersionedSource.StreamOutReturns(tarStreamWith("some-tar-contents"), nil)
+							fakeVersionedSource.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
 							fakeVolume := new(workerfakes.FakeVolume)
 							fakeVersionedSource.VolumeReturns(fakeVolume)
 
@@ -279,8 +280,8 @@ var _ = Describe("Image", func() {
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 									Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-									_, csig, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
-									Expect(csig).To(Equal(signals))
+									cctx, _, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+									Expect(cctx).To(Equal(ctx))
 									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
@@ -320,8 +321,8 @@ var _ = Describe("Image", func() {
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 								Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-								_, csig, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
-								Expect(csig).To(Equal(signals))
+								cctx, _, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+								Expect(cctx).To(Equal(ctx))
 								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer)))
 								Expect(metadata).To(Equal(db.ContainerMetadata{
 									Type: db.ContainerTypeCheck,
@@ -351,7 +352,7 @@ var _ = Describe("Image", func() {
 
 							It("fetches resource with correct session", func() {
 								Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-								_, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+								_, _, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate := fakeResourceFetcher.FetchArgsForCall(0)
 								Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 								Expect(session).To(Equal(resource.Session{
 									Metadata: db.ContainerMetadata{
@@ -509,7 +510,7 @@ var _ = Describe("Image", func() {
 					fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 					fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
-					fakeVersionedSource.StreamOutReturns(tarStreamWith("some-tar-contents"), nil)
+					fakeVersionedSource.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
 					fakeVolume := new(workerfakes.FakeVolume)
 					fakeVersionedSource.VolumeReturns(fakeVolume)
 
@@ -565,7 +566,7 @@ var _ = Describe("Image", func() {
 
 					It("fetches resource with correct session", func() {
 						Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-						_, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+						_, _, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate := fakeResourceFetcher.FetchArgsForCall(0)
 						Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 						Expect(session).To(Equal(resource.Session{
 							Metadata: db.ContainerMetadata{
@@ -634,10 +635,12 @@ var _ = Describe("Image", func() {
 	})
 })
 
-func tarStreamWith(metadata string) io.ReadCloser {
+func tgzStreamWith(metadata string) io.ReadCloser {
 	buffer := gbytes.NewBuffer()
 
-	tarWriter := tar.NewWriter(buffer)
+	gzWriter := gzip.NewWriter(buffer)
+	tarWriter := tar.NewWriter(gzWriter)
+
 	err := tarWriter.WriteHeader(&tar.Header{
 		Name: "metadata.json",
 		Mode: 0600,
@@ -649,6 +652,9 @@ func tarStreamWith(metadata string) io.ReadCloser {
 	Expect(err).NotTo(HaveOccurred())
 
 	err = tarWriter.Close()
+	Expect(err).NotTo(HaveOccurred())
+
+	err = gzWriter.Close()
 	Expect(err).NotTo(HaveOccurred())
 
 	return buffer

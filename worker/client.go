@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"os"
+	"context"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -16,8 +16,8 @@ import (
 
 type Client interface {
 	FindOrCreateContainer(
+		context.Context,
 		lager.Logger,
-		<-chan os.Signal,
 		ImageFetchingDelegate,
 		db.ContainerOwner,
 		db.ContainerMetadata,

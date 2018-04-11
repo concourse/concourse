@@ -1,8 +1,8 @@
 package worker
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -56,8 +56,8 @@ type ContainerProvider interface {
 	) (Container, bool, error)
 
 	FindOrCreateContainer(
+		ctx context.Context,
 		logger lager.Logger,
-		cancel <-chan os.Signal,
 		owner db.ContainerOwner,
 		delegate ImageFetchingDelegate,
 		metadata db.ContainerMetadata,
@@ -85,8 +85,8 @@ type containerProvider struct {
 }
 
 func (p *containerProvider) FindOrCreateContainer(
+	ctx context.Context,
 	logger lager.Logger,
-	cancel <-chan os.Signal,
 	owner db.ContainerOwner,
 	delegate ImageFetchingDelegate,
 	metadata db.ContainerMetadata,
@@ -196,7 +196,7 @@ func (p *containerProvider) FindOrCreateContainer(
 
 			logger.Debug("fetching-image")
 
-			fetchedImage, err := image.FetchForContainer(logger, cancel, creatingContainer)
+			fetchedImage, err := image.FetchForContainer(ctx, logger, creatingContainer)
 			if err != nil {
 				creatingContainer.Failed()
 				logger.Error("failed-to-fetch-image-for-container", err)

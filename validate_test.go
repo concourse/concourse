@@ -638,7 +638,8 @@ var _ = Describe("ValidateConfig", func() {
 			Context("when a task plan has neither a config or a path set", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
-						Task: "lol",
+						Task:              "lol",
+						ImageArtifactName: "some-image",
 					})
 
 					config.Jobs = append(config.Jobs, job)

@@ -1,10 +1,10 @@
 package exec_test
 
 import (
-	"os"
+	"context"
 
 	. "github.com/concourse/atc/exec"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/exec/execfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -12,35 +12,30 @@ import (
 
 var _ = Describe("Identity", func() {
 	var (
-		repo *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
-		identity Identity
+		step IdentityStep
 
-		step Step
+		stepErr error
 	)
 
 	BeforeEach(func() {
-		identity = Identity{}
-
-		repo = worker.NewArtifactRepository()
+		step = IdentityStep{}
+		state = new(execfakes.FakeRunState)
 	})
 
 	JustBeforeEach(func() {
-		step = identity.Using(repo)
+		stepErr = step.Run(context.Background(), state)
 	})
 
 	Describe("Run", func() {
 		It("is a no-op", func() {
-			ready := make(chan struct{})
-			signals := make(chan os.Signal)
-
-			err := step.Run(signals, ready)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(stepErr).ToNot(HaveOccurred())
 		})
 	})
 
 	Describe("Succeeded", func() {
-		It("calls through to the input source", func() {
+		It("returns true", func() {
 			Expect(step.Succeeded()).To(BeTrue())
 		})
 	})

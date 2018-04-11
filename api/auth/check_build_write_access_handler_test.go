@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/api/auth"
-	"github.com/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -21,20 +22,17 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		buildFactory   *dbfakes.FakeBuildFactory
 		handlerFactory auth.CheckBuildWriteAccessHandlerFactory
 		handler        http.Handler
-
-		authValidator     *authfakes.FakeValidator
-		userContextReader *authfakes.FakeUserContextReader
-
-		build    *dbfakes.FakeBuild
-		pipeline *dbfakes.FakePipeline
+		fakeAccessor   *accessorfakes.FakeAccessFactory
+		fakeaccess     *accessorfakes.FakeAccess
+		build          *dbfakes.FakeBuild
+		pipeline       *dbfakes.FakePipeline
 	)
 
 	BeforeEach(func() {
 		buildFactory = new(dbfakes.FakeBuildFactory)
 		handlerFactory = auth.NewCheckBuildWriteAccessHandlerFactory(buildFactory)
-
-		authValidator = new(authfakes.FakeValidator)
-		userContextReader = new(authfakes.FakeUserContextReader)
+		fakeAccessor = new(accessorfakes.FakeAccessFactory)
+		fakeaccess = new(accessorfakes.FakeAccess)
 
 		delegate = &buildDelegateHandler{}
 
@@ -45,10 +43,11 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		build.JobNameReturns("some-job")
 
 		checkBuildWriteAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = auth.WrapHandler(checkBuildWriteAccessHandler, authValidator, userContextReader)
+		handler = accessor.NewHandler(checkBuildWriteAccessHandler, fakeAccessor)
 	})
 
 	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
 		server = httptest.NewServer(handler)
 
 		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:build_id=55", nil)
@@ -64,8 +63,8 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 	Context("when authenticated and accessing same team's build", func() {
 		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(true)
-			userContextReader.GetTeamReturns("some-team", true, true)
+			fakeaccess.IsAuthenticatedReturns(true)
+			fakeaccess.IsAuthorizedReturns(true)
 		})
 
 		Context("when build exists", func() {
@@ -106,8 +105,8 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 	Context("when authenticated but accessing different team's build", func() {
 		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(true)
-			userContextReader.GetTeamReturns("other-team-name", false, true)
+			fakeaccess.IsAuthenticatedReturns(true)
+			fakeaccess.IsAuthorizedReturns(false)
 			buildFactory.BuildReturns(build, true, nil)
 		})
 
@@ -118,8 +117,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 	Context("when not authenticated", func() {
 		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(false)
-			userContextReader.GetTeamReturns("", false, false)
+			fakeaccess.IsAuthenticatedReturns(false)
 		})
 
 		It("returns 401", func() {

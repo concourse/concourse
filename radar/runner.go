@@ -3,12 +3,12 @@ package radar
 import (
 	"context"
 	"os"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"golang.org/x/sync/syncmap"
 )
 
 //go:generate counterfeiter . ScanRunnerFactory
@@ -21,7 +21,9 @@ type Runner struct {
 	scanRunnerFactory ScanRunnerFactory
 	pipeline          db.Pipeline
 	syncInterval      time.Duration
-	scanning          syncmap.Map
+
+	scanning   *sync.Map
+	scanningWg *sync.WaitGroup
 }
 
 func NewRunner(
@@ -37,7 +39,8 @@ func NewRunner(
 		scanRunnerFactory: scanRunnerFactory,
 		pipeline:          pipeline,
 		syncInterval:      syncInterval,
-		scanning:          syncmap.Map{},
+		scanning:          &sync.Map{},
+		scanningWg:        &sync.WaitGroup{},
 	}
 }
 
@@ -70,6 +73,7 @@ func (r *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 		case <-signals:
 			ticker.Stop()
 			cancel()
+			r.scanningWg.Wait()
 			return nil
 		}
 	}
@@ -88,12 +92,13 @@ func (r *Runner) tick(ctx context.Context) error {
 		return err
 	}
 
-	r.scanResourceTypes(resourceTypes.Configs(), ctx)
-	r.scanResources(resources.Configs(), ctx)
+	r.scanResourceTypes(ctx, resourceTypes.Configs())
+	r.scanResources(ctx, resources.Configs())
+
 	return nil
 }
 
-func (r *Runner) scanResources(resources atc.ResourceConfigs, ctx context.Context) {
+func (r *Runner) scanResources(ctx context.Context, resources atc.ResourceConfigs) {
 	for _, resource := range resources {
 		scopedName := r.pipeline.ScopedName("resource:" + resource.Name)
 		if _, found := r.scanning.Load(scopedName); found {
@@ -104,7 +109,10 @@ func (r *Runner) scanResources(resources atc.ResourceConfigs, ctx context.Contex
 			"pipeline-scoped-name": scopedName,
 		})
 
+		r.scanningWg.Add(1)
 		go func(name string, scopedName string) {
+			defer r.scanningWg.Done()
+
 			r.scanning.Store(scopedName, true)
 			runner := r.scanRunnerFactory.ScanResourceRunner(logger, name)
 			err := runner.Run(ctx)
@@ -118,7 +126,7 @@ func (r *Runner) scanResources(resources atc.ResourceConfigs, ctx context.Contex
 	}
 }
 
-func (r *Runner) scanResourceTypes(resourceTypes atc.ResourceTypes, ctx context.Context) {
+func (r *Runner) scanResourceTypes(ctx context.Context, resourceTypes atc.ResourceTypes) {
 	for _, resourceType := range resourceTypes {
 		scopedName := r.pipeline.ScopedName("resource-type:" + resourceType.Name)
 		if _, found := r.scanning.Load(scopedName); found {
@@ -129,7 +137,10 @@ func (r *Runner) scanResourceTypes(resourceTypes atc.ResourceTypes, ctx context.
 			"pipeline-scoped-name": scopedName,
 		})
 
+		r.scanningWg.Add(1)
 		go func(name string, scopedName string) {
+			defer r.scanningWg.Done()
+
 			r.scanning.Store(scopedName, true)
 			runner := r.scanRunnerFactory.ScanResourceTypeRunner(logger, name)
 			err := runner.Run(ctx)

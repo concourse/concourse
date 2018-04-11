@@ -1,9 +1,9 @@
 package resource
 
 import (
+	"context"
 	"errors"
 	"io"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -23,6 +23,7 @@ var ErrInterrupted = errors.New("interrupted")
 
 type Fetcher interface {
 	Fetch(
+		ctx context.Context,
 		logger lager.Logger,
 		session Session,
 		tags atc.Tags,
@@ -31,8 +32,6 @@ type Fetcher interface {
 		resourceInstance ResourceInstance,
 		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
-		signals <-chan os.Signal,
-		ready chan<- struct{},
 	) (VersionedSource, error)
 }
 
@@ -55,6 +54,7 @@ type fetcher struct {
 }
 
 func (f *fetcher) Fetch(
+	ctx context.Context,
 	logger lager.Logger,
 	session Session,
 	tags atc.Tags,
@@ -63,8 +63,6 @@ func (f *fetcher) Fetch(
 	resourceInstance ResourceInstance,
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
-	signals <-chan os.Signal,
-	ready chan<- struct{},
 ) (VersionedSource, error) {
 	sourceProvider := f.fetchSourceProviderFactory.NewFetchSourceProvider(
 		logger,
@@ -85,7 +83,7 @@ func (f *fetcher) Fetch(
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
-	versionedSource, err := f.fetchWithLock(logger, source, imageFetchingDelegate.Stdout(), signals, ready)
+	versionedSource, err := f.fetchWithLock(ctx, logger, source, imageFetchingDelegate.Stdout())
 	if err != ErrFailedToGetLock {
 		return versionedSource, err
 	}
@@ -93,7 +91,7 @@ func (f *fetcher) Fetch(
 	for {
 		select {
 		case <-ticker.C():
-			versionedSource, err := f.fetchWithLock(logger, source, imageFetchingDelegate.Stdout(), signals, ready)
+			versionedSource, err := f.fetchWithLock(ctx, logger, source, imageFetchingDelegate.Stdout())
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break
@@ -103,18 +101,17 @@ func (f *fetcher) Fetch(
 
 			return versionedSource, nil
 
-		case <-signals:
-			return nil, ErrInterrupted
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
 	}
 }
 
 func (f *fetcher) fetchWithLock(
+	ctx context.Context,
 	logger lager.Logger,
 	source FetchSource,
 	stdout io.Writer,
-	signals <-chan os.Signal,
-	ready chan<- struct{},
 ) (VersionedSource, error) {
 	versionedSource, found, err := source.Find()
 	if err != nil {
@@ -122,7 +119,6 @@ func (f *fetcher) fetchWithLock(
 	}
 
 	if found {
-		close(ready)
 		return versionedSource, nil
 	}
 
@@ -146,5 +142,5 @@ func (f *fetcher) fetchWithLock(
 
 	defer lock.Release()
 
-	return source.Create(signals, ready)
+	return source.Create(ctx)
 }

@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"os"
+	"context"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -36,7 +36,7 @@ type FetchSourceProvider interface {
 type FetchSource interface {
 	LockName() (string, error)
 	Find() (VersionedSource, bool, error)
-	Create(signals <-chan os.Signal, ready chan<- struct{}) (VersionedSource, error)
+	Create(context.Context) (VersionedSource, error)
 }
 
 type fetchSourceProviderFactory struct {

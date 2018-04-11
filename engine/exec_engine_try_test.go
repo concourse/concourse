@@ -69,46 +69,31 @@ var _ = Describe("Exec Engine with Try", func() {
 
 	Context("running try steps", func() {
 		var (
-			taskStepFactory *execfakes.FakeStepFactory
-			taskStep        *execfakes.FakeStep
-
-			inputStepFactory *execfakes.FakeStepFactory
-			inputStep        *execfakes.FakeStep
+			taskStep  *execfakes.FakeStep
+			inputStep *execfakes.FakeStep
 		)
 
 		BeforeEach(func() {
-			taskStepFactory = new(execfakes.FakeStepFactory)
 			taskStep = new(execfakes.FakeStep)
 			taskStep.SucceededReturns(true)
-			taskStepFactory.UsingReturns(taskStep)
-			fakeFactory.TaskReturns(taskStepFactory)
+			fakeFactory.TaskReturns(taskStep)
 
-			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
 			inputStep.SucceededReturns(true)
-			inputStepFactory.UsingReturns(inputStep)
-			fakeFactory.GetReturns(inputStepFactory)
+			fakeFactory.GetReturns(inputStep)
 		})
 
 		Context("constructing steps", func() {
 			var (
-				fakeDelegate     *enginefakes.FakeBuildDelegate
-				fakeGetDelegate  *execfakes.FakeActionsBuildEventsDelegate
-				fakeTaskDelegate *execfakes.FakeActionsBuildEventsDelegate
-				inputPlan        atc.Plan
-				planFactory      atc.PlanFactory
+				fakeDelegate *enginefakes.FakeBuildDelegate
+				inputPlan    atc.Plan
+				planFactory  atc.PlanFactory
 			)
 
 			BeforeEach(func() {
 				planFactory = atc.NewPlanFactory(123)
 				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
-
-				fakeGetDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
-				fakeTaskDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
-
-				fakeDelegate.DBActionsBuildEventsDelegateReturnsOnCall(0, fakeGetDelegate)
-				fakeDelegate.DBActionsBuildEventsDelegateReturnsOnCall(1, fakeTaskDelegate)
 
 				inputPlan = planFactory.NewPlan(atc.GetPlan{
 					Name: "some-input",
@@ -125,7 +110,7 @@ var _ = Describe("Exec Engine with Try", func() {
 
 			It("constructs the step correctly", func() {
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, plan, dbBuild, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, plan, dbBuild, stepMetadata, containerMetadata, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(dbBuild).To(Equal(build))
 				Expect(plan).To(Equal(inputPlan))
@@ -140,8 +125,6 @@ var _ = Describe("Exec Engine with Try", func() {
 					BuildID:      expectedBuildID,
 					BuildName:    "42",
 				}))
-				originID := fakeDelegate.DBActionsBuildEventsDelegateArgsForCall(0)
-				Expect(originID).To(Equal(inputPlan.ID))
 			})
 		})
 

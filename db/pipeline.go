@@ -61,6 +61,7 @@ type Pipeline interface {
 	EnableVersionedResource(versionedResourceID int) error
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
+	Builds(page Page) ([]Build, Pagination, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
@@ -92,7 +93,7 @@ type Pipeline interface {
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
-	Dashboard(include string) (Dashboard, atc.GroupConfigs, error)
+	Dashboard(include string) (Dashboard, error)
 
 	Expose() error
 	Hide() error
@@ -195,7 +196,6 @@ func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 				INNER JOIN build_outputs bo ON bo.build_id = t.build_id
 				INNER JOIN build_inputs bi ON bi.versioned_resource_id = bo.versioned_resource_id
 				INNER JOIN builds b ON b.id = bi.build_id
-				WHERE bo.explicit
 				AND NOT EXISTS (
 					SELECT 1
 					FROM build_outputs obo
@@ -766,7 +766,10 @@ func (p *pipeline) Resource(name string) (Resource, bool, error) {
 	}
 
 	return resource, true, nil
+}
 
+func (p *pipeline) Builds(page Page) ([]Build, Pagination, error) {
+	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), page, p.conn, p.lockFactory)
 }
 
 func (p *pipeline) Resources() (Resources, error) {
@@ -870,7 +873,7 @@ func (p *pipeline) Jobs() (Jobs, error) {
 	return jobs, err
 }
 
-func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error) {
+func (p *pipeline) Dashboard(include string) (Dashboard, error) {
 	dashboard := Dashboard{}
 
 	rows, err := jobsQuery.
@@ -882,22 +885,22 @@ func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error
 		RunWith(p.conn).
 		Query()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	jobs, err := scanJobs(p.conn, p.lockFactory, rows)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	nextBuilds, err := p.getBuildsFrom("next_builds_per_job")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	finishedBuilds, err := p.getBuildsFrom("latest_completed_builds_per_job")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var transitionBuilds map[string]Build
@@ -905,7 +908,7 @@ func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error
 	if include == "transitionBuilds" {
 		transitionBuilds, err = p.getBuildsFrom("transition_builds_per_job")
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
@@ -929,7 +932,7 @@ func (p *pipeline) Dashboard(include string) (Dashboard, atc.GroupConfigs, error
 		dashboard = append(dashboard, dashboardJob)
 	}
 
-	return dashboard, p.groups, nil
+	return dashboard, nil
 }
 
 func (p *pipeline) Pause() error {
@@ -1065,7 +1068,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		db.BuildOutputs = append(db.BuildOutputs, output)
 	}
 
-	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id").
+	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
 		From("build_inputs i, builds b, versioned_resources v, resources r").
 		Where(sq.Expr("v.id = i.versioned_resource_id")).
 		Where(sq.Expr("b.id = i.build_id")).
@@ -1083,8 +1086,10 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	defer Close(rows)
 
 	for rows.Next() {
+		var succeeded bool
+
 		var input algorithm.BuildInput
-		err = rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.BuildID, &input.InputName, &input.JobID)
+		err = rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.BuildID, &input.InputName, &input.JobID, &succeeded)
 		if err != nil {
 			return nil, err
 		}
@@ -1092,6 +1097,15 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		input.ResourceVersion.CheckOrder = input.CheckOrder
 
 		db.BuildInputs = append(db.BuildInputs, input)
+
+		if succeeded {
+			// implicit output
+			db.BuildOutputs = append(db.BuildOutputs, algorithm.BuildOutput{
+				ResourceVersion: input.ResourceVersion,
+				JobID:           input.JobID,
+				BuildID:         input.BuildID,
+			})
+		}
 	}
 
 	rows, err = psql.Select("v.id, v.check_order, r.id").
@@ -1261,7 +1275,7 @@ func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Dura
 	return lock, true, nil
 }
 
-func (p *pipeline) saveOutput(buildID int, vr VersionedResource, explicit bool) error {
+func (p *pipeline) saveOutput(buildID int, vr VersionedResource) error {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return err
@@ -1302,8 +1316,8 @@ func (p *pipeline) saveOutput(buildID int, vr VersionedResource, explicit bool) 
 	}
 
 	_, err = psql.Insert("build_outputs").
-		Columns("build_id", "versioned_resource_id", "explicit").
-		Values(buildID, svr.ID, explicit).
+		Columns("build_id", "versioned_resource_id").
+		Values(buildID, svr.ID).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -1509,17 +1523,15 @@ func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
 	err := p.conn.QueryRow(`
 	SELECT
 		CASE
-			WHEN bo_max > vr_max AND bo_max > bi_max THEN bo_max
+			WHEN b_max > vr_max AND b_max > bi_max THEN b_max
 			WHEN bi_max > vr_max THEN bi_max
 			ELSE vr_max
 		END
 	FROM
 		(
-			SELECT COALESCE(MAX(bo.modified_time), 'epoch') as bo_max
-			FROM build_outputs bo
-			LEFT OUTER JOIN versioned_resources v ON v.id = bo.versioned_resource_id
-			LEFT OUTER JOIN resources r ON r.id = v.resource_id
-			WHERE r.pipeline_id = $1
+			SELECT COALESCE(MAX(b.end_time), 'epoch') as b_max
+			FROM builds b
+			WHERE b.pipeline_id = $1
 		) bo,
 		(
 			SELECT COALESCE(MAX(bi.modified_time), 'epoch') as bi_max

@@ -16,7 +16,7 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 		var jobs []atc.Job
 
 		include := r.FormValue("include")
-		dashboard, groups, err := pipeline.Dashboard(include)
+		dashboard, err := pipeline.Dashboard(include)
 
 		if err != nil {
 			logger.Error("failed-to-get-dashboard", err)
@@ -32,7 +32,6 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 				present.Job(
 					teamName,
 					job.Job,
-					groups,
 					job.FinishedBuild,
 					job.NextBuild,
 					job.TransitionBuild,

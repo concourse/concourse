@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 )
 
 var volumeCollectorFailedErr = errors.New("volume collector failed")
@@ -116,19 +115,28 @@ func (vc *volumeCollector) cleanupOrphanedVolumes(logger lager.Logger) error {
 		destroyingVolumes = append(destroyingVolumes, destroyingVolume)
 	}
 
+	workerVolume := make(map[string][]db.DestroyingVolume)
 	for _, destroyingVolume := range destroyingVolumes {
-		// chuck volume into worker pool
+		volumes, ok := workerVolume[destroyingVolume.WorkerName()]
+		if ok {
+			// update existing array
+			volumes = append(volumes, destroyingVolume)
+			workerVolume[destroyingVolume.WorkerName()] = volumes
+		} else {
+			// create new array
+			workerVolume[destroyingVolume.WorkerName()] = []db.DestroyingVolume{destroyingVolume}
+		}
+	}
 
+	for workerName, volumes := range workerVolume {
 		vLog := logger.Session("destroy", lager.Data{
-			"handle": destroyingVolume.Handle(),
-			"worker": destroyingVolume.WorkerName(),
+			"worker": workerName,
 		})
-
 		vc.jobRunner.Try(logger,
-			destroyingVolume.WorkerName(),
+			workerName,
 			&job{
-				JobName: destroyingVolume.Handle(),
-				RunFunc: destroyDestroyingVolume(vLog, destroyingVolume),
+				JobName: workerName,
+				RunFunc: destroyDestroyingVolumes(vLog, volumes),
 			},
 		)
 	}
@@ -136,7 +144,7 @@ func (vc *volumeCollector) cleanupOrphanedVolumes(logger lager.Logger) error {
 	return nil
 }
 
-func destroyDestroyingVolume(logger lager.Logger, destroyingVolume db.DestroyingVolume) func(worker.Worker) {
+func destroyDestroyingVolumes(logger lager.Logger, destroyingVolumes []db.DestroyingVolume) func(worker.Worker) {
 	return func(workerClient worker.Worker) {
 		baggageClaimClient := workerClient.BaggageclaimClient()
 		if baggageClaimClient == nil {
@@ -144,36 +152,22 @@ func destroyDestroyingVolume(logger lager.Logger, destroyingVolume db.Destroying
 			return
 		}
 
-		volume, found, err := baggageClaimClient.LookupVolume(logger, destroyingVolume.Handle())
+		var handles []string
+		for _, volume := range destroyingVolumes {
+			handles = append(handles, volume.Handle())
+		}
+
+		err := baggageClaimClient.DestroyVolumes(logger, handles)
 		if err != nil {
-			logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
+			logger.Error("failed-to-destroy-volumes-in-baggageclaim", err)
 			return
-		}
-
-		if destroyRealVolume(logger.Session("in-worker"), volume, workerClient.Name(), found) {
-			destroyDBVolume(logger.Session("in-db"), destroyingVolume)
+		} else {
+			for _, dbVolume := range destroyingVolumes {
+				metric.VolumesDeleted.Inc()
+				destroyDBVolume(logger.Session("in-db", lager.Data{"volume-handle": dbVolume.Handle()}), dbVolume)
+			}
 		}
 	}
-}
-
-func destroyRealVolume(logger lager.Logger, volume baggageclaim.Volume, workerName string, found bool) bool {
-	if found {
-		logger.Debug("destroying")
-
-		err := volume.Destroy()
-		if err != nil {
-			logger.Error("failed-to-destroy", err)
-			return false
-		}
-
-		logger.Debug("destroyed")
-
-		metric.VolumesDeleted.Inc()
-	} else {
-		logger.Debug("already-removed")
-	}
-
-	return true
 }
 
 func destroyDBVolume(logger lager.Logger, dbVolume db.DestroyingVolume) {

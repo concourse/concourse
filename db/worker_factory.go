@@ -18,6 +18,7 @@ type WorkerFactory interface {
 	SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error)
 	HeartbeatWorker(worker atc.Worker, ttl time.Duration) (Worker, error)
 	Workers() ([]Worker, error)
+	VisibleWorkers([]string) ([]Worker, error)
 }
 
 type workerFactory struct {
@@ -54,6 +55,21 @@ var workersQuery = psql.Select(`
 
 func (f *workerFactory) GetWorker(name string) (Worker, bool, error) {
 	return getWorker(f.conn, workersQuery.Where(sq.Eq{"w.name": name}))
+}
+
+func (f *workerFactory) VisibleWorkers(teamNames []string) ([]Worker, error) {
+	workersQuery := workersQuery.
+		Where(sq.Or{
+			sq.Eq{"t.name": teamNames},
+			sq.Eq{"w.team_id": nil},
+		})
+
+	workers, err := getWorkers(f.conn, workersQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	return workers, nil
 }
 
 func (f *workerFactory) Workers() ([]Worker, error) {

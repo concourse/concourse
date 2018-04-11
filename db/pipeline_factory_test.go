@@ -14,16 +14,16 @@ var _ = Describe("Pipeline Factory", func() {
 		pipelineFactory = db.NewPipelineFactory(dbConn, lockFactory)
 	})
 
-	Describe("PublicPipelines", func() {
+	Describe("VisiblePipelines", func() {
 		var (
-			publicPipelines []db.Pipeline
-			pipeline1       db.Pipeline
-			pipeline2       db.Pipeline
-			pipeline3       db.Pipeline
+			pipeline1 db.Pipeline
+			pipeline2 db.Pipeline
+			pipeline3 db.Pipeline
 		)
 
 		BeforeEach(func() {
-			publicPipelines = nil
+			err := defaultPipeline.Destroy()
+			Expect(err).ToNot(HaveOccurred())
 
 			team, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 			Expect(err).ToNot(HaveOccurred())
@@ -34,7 +34,6 @@ var _ = Describe("Pipeline Factory", func() {
 				},
 			}, db.ConfigVersion(1), db.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(pipeline1.Expose()).To(Succeed())
 			Expect(pipeline1.Reload()).To(BeTrue())
 
 			pipeline2, _, err = defaultTeam.SavePipeline("fake-pipeline-two", atc.Config{
@@ -55,27 +54,33 @@ var _ = Describe("Pipeline Factory", func() {
 			Expect(pipeline3.Reload()).To(BeTrue())
 		})
 
-		JustBeforeEach(func() {
-			var err error
-			publicPipelines, err = pipelineFactory.PublicPipelines()
+		It("returns all pipelines visible for the given teams", func() {
+			pipelines, err := pipelineFactory.VisiblePipelines([]string{"some-team"})
 			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pipelines)).To(Equal(2))
+			Expect(pipelines[0].Name()).To(Equal(pipeline1.Name()))
+			Expect(pipelines[1].Name()).To(Equal(pipeline3.Name()))
 		})
 
-		It("returns all public pipelines", func() {
-			Expect(len(publicPipelines)).To(Equal(2))
-			Expect(publicPipelines[0].Name()).To(Equal(pipeline3.Name()))
-			Expect(publicPipelines[1].Name()).To(Equal(pipeline1.Name()))
+		It("returns all pipelines visible when empty team name provided", func() {
+			pipelines, err := pipelineFactory.VisiblePipelines([]string{""})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pipelines)).To(Equal(1))
+			Expect(pipelines[0].Name()).To(Equal(pipeline3.Name()))
 		})
 
-		Context("when a pipeline is hidden", func() {
-			BeforeEach(func() {
-				Expect(pipeline1.Hide()).To(Succeed())
-			})
+		It("returns all pipelines visible when empty teams provided", func() {
+			pipelines, err := pipelineFactory.VisiblePipelines([]string{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pipelines)).To(Equal(1))
+			Expect(pipelines[0].Name()).To(Equal(pipeline3.Name()))
+		})
 
-			It("returns only the remaining exposed pipeline", func() {
-				Expect(len(publicPipelines)).To(Equal(1))
-				Expect(publicPipelines[0].Name()).To(Equal(pipeline3.Name()))
-			})
+		It("returns all pipelines visible when nil teams provided", func() {
+			pipelines, err := pipelineFactory.VisiblePipelines(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pipelines)).To(Equal(1))
+			Expect(pipelines[0].Name()).To(Equal(pipeline3.Name()))
 		})
 	})
 

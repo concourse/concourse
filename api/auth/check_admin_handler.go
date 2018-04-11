@@ -1,6 +1,10 @@
 package auth
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/concourse/atc/api/accessor"
+)
 
 type checkAdminHandler struct {
 	handler  http.Handler
@@ -18,8 +22,9 @@ func CheckAdminHandler(
 }
 
 func (h checkAdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if IsAuthenticated(r) {
-		if IsAdmin(r) {
+	acc := accessor.GetAccessor(r)
+	if acc.IsAuthenticated() {
+		if acc.IsAdmin() {
 			h.handler.ServeHTTP(w, r)
 		} else {
 			h.rejector.Forbidden(w, r)

@@ -1,9 +1,9 @@
 package image
 
 import (
+	"context"
 	"io"
 	"net/url"
-	"os"
 	"path"
 
 	"code.cloudfoundry.org/lager"
@@ -23,8 +23,8 @@ type imageProvidedByPreviousStepOnSameWorker struct {
 }
 
 func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
+	ctx context.Context,
 	logger lager.Logger,
-	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	imageVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
@@ -73,8 +73,8 @@ type imageProvidedByPreviousStepOnDifferentWorker struct {
 }
 
 func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
+	ctx context.Context,
 	logger lager.Logger,
-	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	imageVolume, err := i.volumeClient.FindOrCreateVolumeForContainer(
@@ -134,13 +134,13 @@ type imageFromResource struct {
 }
 
 func (i *imageFromResource) FetchForContainer(
+	ctx context.Context,
 	logger lager.Logger,
-	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	imageParentVolume, imageMetadataReader, version, err := i.imageResourceFetcher.Fetch(
+		ctx,
 		logger.Session("image"),
-		cancel,
 		container,
 		i.privileged,
 	)
@@ -191,8 +191,8 @@ type imageFromBaseResourceType struct {
 }
 
 func (i *imageFromBaseResourceType) FetchForContainer(
+	ctx context.Context,
 	logger lager.Logger,
-	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	for _, t := range i.worker.ResourceTypes() {
@@ -247,8 +247,8 @@ type imageFromRootfsURI struct {
 }
 
 func (i *imageFromRootfsURI) FetchForContainer(
+	ctx context.Context,
 	logger lager.Logger,
-	cancel <-chan os.Signal,
 	container db.CreatingContainer,
 ) (worker.FetchedImage, error) {
 	return worker.FetchedImage{

@@ -1,28 +1,12 @@
 package exec
 
 import (
-	"errors"
+	"context"
+	"io"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
-	"github.com/tedsuo/ifrit"
 )
-
-// ErrInterrupted is returned by steps when they exited as a result of
-// receiving a signal.
-var ErrInterrupted = errors.New("interrupted")
-
-//go:generate counterfeiter . StepFactory
-
-// StepFactory constructs a step. The previous step and source repository are
-// provided.
-//
-// Some steps, i.e. DependentGetStep, use information from the previous step to
-// determine how to run.
-// TODO: Remove Step in prev
-type StepFactory interface {
-	Using(*worker.ArtifactRepository) Step
-}
 
 //go:generate counterfeiter . Step
 
@@ -30,31 +14,38 @@ type StepFactory interface {
 // collected, and whose dependent resources (e.g. Containers, Volumes) can be
 // released, allowing them to expire.
 type Step interface {
-	// Run is called when it's time to execute the step. It should indicate when
-	// it's ready, and listen for signals at points where the potential time is
-	// unbounded (i.e. running a task or a resource action).
+	// Run is called when it's time to execute the step. It should watch for the
+	// given context to be canceled in the event that the build is aborted or the
+	// step times out, and be sure to propagate the (context.Context).Err().
 	//
-	// Steps wrapping other steps should be careful to propagate signals and
-	// indicate that they're ready as soon as their wrapped steps are ready.
-	//
-	// Steps should return ErrInterrupted if they received a signal that caused
-	// them to stop.
+	// Steps wrapping other steps should be careful to propagate the context.
 	//
 	// Steps must be idempotent. Each step is responsible for handling its own
-	// idempotency; usually this is done by saving off "checkpoints" in some way
-	// that can be checked again if the step starts running again from the start.
-	// For example, by having the ID for a container be deterministic and unique
-	// for each step, and checking for properties on the container to determine
-	// how far the step got.
-	ifrit.Runner
+	// idempotency.
+	Run(context.Context, RunState) error
 
 	// Succeeded is true when the Step succeeded, and false otherwise.
 	// Succeeded is not guaranteed to be truthful until after you run Run()
 	Succeeded() bool
 }
 
-// Success indicates whether a step completed successfully.
-type Success bool
+//go:generate counterfeiter . RunState
+
+type InputHandler func(io.ReadCloser) error
+type OutputHandler func(io.Writer) error
+
+type RunState interface {
+	Artifacts() *worker.ArtifactRepository
+
+	Result(atc.PlanID, interface{}) bool
+	StoreResult(atc.PlanID, interface{})
+
+	SendUserInput(atc.PlanID, io.ReadCloser)
+	ReadUserInput(atc.PlanID, InputHandler) error
+
+	ReadPlanOutput(atc.PlanID, io.Writer)
+	SendPlanOutput(atc.PlanID, OutputHandler) error
+}
 
 // ExitStatus is the resulting exit code from the process that the step ran.
 // Typically if the ExitStatus result is 0, the Success result is true.

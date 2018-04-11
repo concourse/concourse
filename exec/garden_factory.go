@@ -20,8 +20,6 @@ type gardenFactory struct {
 	resourceFactory        resource.ResourceFactory
 	dbResourceCacheFactory db.ResourceCacheFactory
 	variablesFactory       creds.VariablesFactory
-
-	putActions map[atc.PlanID]*PutAction
 }
 
 func NewGardenFactory(
@@ -37,37 +35,7 @@ func NewGardenFactory(
 		resourceFactory:        resourceFactory,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 		variablesFactory:       variablesFactory,
-		putActions:             map[atc.PlanID]*PutAction{},
 	}
-}
-
-type GetStepFactory struct {
-	ActionsStep
-}
-type GetStep Step
-
-func (s GetStepFactory) Using(repository *worker.ArtifactRepository) Step {
-	return GetStep(s.ActionsStep.Using(repository))
-}
-
-type PutStepFactory struct {
-	ActionsStep
-}
-
-type PutStep Step
-
-func (s PutStepFactory) Using(repository *worker.ArtifactRepository) Step {
-	return PutStep(s.ActionsStep.Using(repository))
-}
-
-type TaskStepFactory struct {
-	ActionsStep
-}
-
-type TaskStep Step
-
-func (s TaskStepFactory) Using(repository *worker.ArtifactRepository) Step {
-	return TaskStep(s.ActionsStep.Using(repository))
 }
 
 func (factory *gardenFactory) Get(
@@ -76,39 +44,36 @@ func (factory *gardenFactory) Get(
 	build db.Build,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	buildEventsDelegate ActionsBuildEventsDelegate,
-	buildStepDelegate BuildStepDelegate,
-) StepFactory {
+	delegate GetDelegate,
+) Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
-	getAction := &GetAction{
-		Type:          plan.Get.Type,
-		Name:          plan.Get.Name,
-		Resource:      plan.Get.Resource,
-		Source:        creds.NewSource(variables, plan.Get.Source),
-		Params:        creds.NewParams(variables, plan.Get.Params),
-		VersionSource: NewVersionSourceFromPlan(plan.Get, factory.putActions),
-		Tags:          plan.Get.Tags,
-		Outputs:       []string{plan.Get.Name},
+	getStep := NewGetStep(
+		build,
 
-		buildStepDelegate:      buildStepDelegate,
-		resourceFetcher:        factory.resourceFetcher,
-		teamID:                 build.TeamID(),
-		buildID:                build.ID(),
-		planID:                 plan.ID,
-		containerMetadata:      workerMetadata,
-		dbResourceCacheFactory: factory.dbResourceCacheFactory,
-		stepMetadata:           stepMetadata,
+		plan.Get.Name,
+		plan.Get.Type,
+		plan.Get.Resource,
+		creds.NewSource(variables, plan.Get.Source),
+		creds.NewParams(variables, plan.Get.Params),
+		NewVersionSourceFromPlan(plan.Get),
+		plan.Get.Tags,
 
-		// TODO: remove after all actions are introduced
-		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
-	}
+		delegate,
+		factory.resourceFetcher,
+		build.TeamID(),
+		build.ID(),
+		plan.ID,
+		workerMetadata,
+		factory.dbResourceCacheFactory,
+		stepMetadata,
 
-	actions := []Action{getAction}
+		creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
+	)
 
-	return GetStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
+	return LogError(getStep, delegate)
 }
 
 func (factory *gardenFactory) Put(
@@ -117,36 +82,32 @@ func (factory *gardenFactory) Put(
 	build db.Build,
 	stepMetadata StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	buildEventsDelegate ActionsBuildEventsDelegate,
-	buildStepDelegate BuildStepDelegate,
-) StepFactory {
+	delegate PutDelegate,
+) Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
-	putAction := &PutAction{
-		Type:     plan.Put.Type,
-		Name:     plan.Put.Name,
-		Resource: plan.Put.Resource,
-		Source:   creds.NewSource(variables, plan.Put.Source),
-		Params:   creds.NewParams(variables, plan.Put.Params),
-		Tags:     plan.Put.Tags,
+	putStep := NewPutStep(
+		build,
 
-		buildStepDelegate: buildStepDelegate,
-		resourceFactory:   factory.resourceFactory,
-		teamID:            build.TeamID(),
-		buildID:           build.ID(),
-		planID:            plan.ID,
-		containerMetadata: workerMetadata,
-		stepMetadata:      stepMetadata,
+		plan.Put.Name,
+		plan.Put.Type,
+		plan.Put.Resource,
+		creds.NewSource(variables, plan.Put.Source),
+		creds.NewParams(variables, plan.Put.Params),
+		plan.Put.Tags,
 
-		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
-	}
-	factory.putActions[plan.ID] = putAction
+		delegate,
+		factory.resourceFactory,
+		plan.ID,
+		workerMetadata,
+		stepMetadata,
 
-	actions := []Action{putAction}
+		creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
+	)
 
-	return PutStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
+	return LogError(putStep, delegate)
 }
 
 func (factory *gardenFactory) Task(
@@ -154,70 +115,57 @@ func (factory *gardenFactory) Task(
 	plan atc.Plan,
 	build db.Build,
 	containerMetadata db.ContainerMetadata,
-	taskBuildEventsDelegate TaskBuildEventsDelegate,
-	buildEventsDelegate ActionsBuildEventsDelegate,
-	buildStepDelegate BuildStepDelegate,
-) StepFactory {
+	delegate TaskDelegate,
+) Step {
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
-	var taskConfigFetcher TaskConfigFetcher
+	var taskConfigSource TaskConfigSource
 	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
-		taskConfigFetcher = MergedConfigFetcher{
-			A: FileConfigFetcher{plan.Task.ConfigPath},
-			B: StaticConfigFetcher{Plan: *plan.Task},
+		taskConfigSource = MergedConfigSource{
+			A: FileConfigSource{plan.Task.ConfigPath},
+			B: StaticConfigSource{Plan: *plan.Task},
 		}
 	} else if plan.Task.Config != nil {
-		taskConfigFetcher = StaticConfigFetcher{Plan: *plan.Task}
+		taskConfigSource = StaticConfigSource{Plan: *plan.Task}
 	} else if plan.Task.ConfigPath != "" {
-		taskConfigFetcher = FileConfigFetcher{plan.Task.ConfigPath}
+		taskConfigSource = FileConfigSource{plan.Task.ConfigPath}
 	}
 
-	taskConfigFetcher = ValidatingConfigFetcher{ConfigFetcher: taskConfigFetcher}
+	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
 
-	taskConfigFetcher = DeprecationConfigFetcher{
-		Delegate: taskConfigFetcher,
-		Stderr:   buildStepDelegate.Stderr(),
-	}
-
-	fetchConfigAction := &FetchConfigAction{
-		configFetcher: taskConfigFetcher,
-	}
-
-	configSource := &FetchConfigActionTaskConfigSource{
-		Action: fetchConfigAction,
+	taskConfigSource = DeprecationConfigSource{
+		Delegate: taskConfigSource,
+		Stderr:   delegate.Stderr(),
 	}
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
-	taskAction := &TaskAction{
-		privileged:    Privileged(plan.Task.Privileged),
-		configSource:  configSource,
-		tags:          plan.Task.Tags,
-		inputMapping:  plan.Task.InputMapping,
-		outputMapping: plan.Task.OutputMapping,
+	taskStep := NewTaskStep(
+		Privileged(plan.Task.Privileged),
+		taskConfigSource,
+		plan.Task.Tags,
+		plan.Task.InputMapping,
+		plan.Task.OutputMapping,
 
-		artifactsRoot:     workingDirectory,
-		imageArtifactName: plan.Task.ImageArtifactName,
+		workingDirectory,
+		plan.Task.ImageArtifactName,
 
-		buildEventsDelegate: taskBuildEventsDelegate,
-		buildStepDelegate:   buildStepDelegate,
-		workerPool:          factory.workerClient,
-		teamID:              build.TeamID(),
-		buildID:             build.ID(),
-		jobID:               build.JobID(),
-		stepName:            plan.Task.Name,
-		planID:              plan.ID,
-		containerMetadata:   containerMetadata,
+		delegate,
 
-		resourceTypes: creds.NewVersionedResourceTypes(variables, plan.Task.VersionedResourceTypes),
+		factory.workerClient,
+		build.TeamID(),
+		build.ID(),
+		build.JobID(),
+		plan.Task.Name,
+		plan.ID,
+		containerMetadata,
 
-		variables: variables,
-	}
+		creds.NewVersionedResourceTypes(variables, plan.Task.VersionedResourceTypes),
+		variables,
+	)
 
-	actions := []Action{fetchConfigAction, taskAction}
-
-	return TaskStepFactory{NewActionsStep(logger, actions, buildEventsDelegate)}
+	return LogError(taskStep, delegate)
 }
 
 func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {

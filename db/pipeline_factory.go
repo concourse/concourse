@@ -8,7 +8,7 @@ import (
 //go:generate counterfeiter . PipelineFactory
 
 type PipelineFactory interface {
-	PublicPipelines() ([]Pipeline, error)
+	VisiblePipelines([]string) ([]Pipeline, error)
 	AllPipelines() ([]Pipeline, error)
 }
 
@@ -24,22 +24,37 @@ func NewPipelineFactory(conn Conn, lockFactory lock.LockFactory) PipelineFactory
 	}
 }
 
-func (f *pipelineFactory) PublicPipelines() ([]Pipeline, error) {
+func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, error) {
 	rows, err := pipelinesQuery.
-		Where(sq.Eq{"p.public": true}).
-		OrderBy("t.name, ordering").
+		Where(sq.Eq{"t.name": teamNames}).
+		OrderBy("team_id ASC", "ordering ASC").
 		RunWith(f.conn).
 		Query()
 	if err != nil {
 		return nil, err
 	}
 
-	pipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
+	currentTeamPipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
 	if err != nil {
 		return nil, err
 	}
 
-	return pipelines, nil
+	rows, err = pipelinesQuery.
+		Where(sq.NotEq{"t.name": teamNames}).
+		Where(sq.Eq{"public": true}).
+		OrderBy("team_id ASC", "ordering ASC").
+		RunWith(f.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	otherTeamPublicPipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(currentTeamPipelines, otherTeamPublicPipelines...), nil
 }
 
 func (f *pipelineFactory) AllPipelines() ([]Pipeline, error) {

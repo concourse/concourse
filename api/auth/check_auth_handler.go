@@ -1,6 +1,10 @@
 package auth
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/concourse/atc/api/accessor"
+)
 
 type checkAuthHandler struct {
 	handler  http.Handler
@@ -18,7 +22,9 @@ func CheckAuthenticationHandler(
 }
 
 func (h checkAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if IsAuthenticated(r) {
+	acc := accessor.GetAccessor(r)
+
+	if acc.IsAuthenticated() {
 		h.handler.ServeHTTP(w, r)
 	} else {
 		h.rejector.Unauthorized(w, r)
