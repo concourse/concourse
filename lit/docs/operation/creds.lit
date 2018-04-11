@@ -117,6 +117,12 @@ values are not present, the action will error.
       Environment variable \code{CONCOURSE_VAULT_AUTH_BACKEND}.
     }
 
+    \define-attribute{vault-auth-backend-max-ttl: string}{
+      Auth backend max TTL. Concourse will renew its token and then re-login when the auth backend max TTL is reached.
+
+      Environment variable \code{CONCOURSE_VAULT_AUTH_BACKEND_MAX_TTL}.
+    }
+
     \define-attribute{vault-auth-param=NAME=VALUE: string}{
       Paramter to pass when logging in via the backend. Can be specified multiple times.
 
