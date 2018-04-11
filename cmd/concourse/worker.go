@@ -90,6 +90,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		if cmd.PeerIP.IP != nil {
 			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP, cmd.BindPort)
 			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, cmd.Baggageclaim.BindPort)
+			worker.ReaperAddr = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, "7799")
 
 			beaconConfig.RegistrationMode = "direct"
 		} else {
@@ -99,6 +100,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 
 			worker.GardenAddr = beaconConfig.GardenForwardAddr
 			worker.BaggageclaimURL = fmt.Sprintf("http://%s", beaconConfig.BaggageclaimForwardAddr)
+			worker.ReaperAddr = fmt.Sprintf("http://%s:%d", cmd.BindIP.IP, "7799")
 		}
 
 		members = append(members, grouper.Member{
