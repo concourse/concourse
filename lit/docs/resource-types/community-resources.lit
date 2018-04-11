@@ -167,6 +167,8 @@ before using it!
 }{
   \link{New Relic Deploy Resource}{https://github.com/crstamps2/newrelic-deploy-resource}
 }{
+  \link{Artifactory Resource}{https://github.com/spring-io/artifactory-resource}
+}{
   \link{IRC notifications}{https://github.com/flavorjones/irc-notification-resource}
 }
 
