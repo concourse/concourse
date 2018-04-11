@@ -72,6 +72,7 @@ import (
 	// dynamically registered credential managers
 	_ "github.com/concourse/atc/creds/credhub"
 	_ "github.com/concourse/atc/creds/kubernetes"
+	_ "github.com/concourse/atc/creds/secretsmanager"
 	_ "github.com/concourse/atc/creds/ssm"
 	_ "github.com/concourse/atc/creds/vault"
 )
