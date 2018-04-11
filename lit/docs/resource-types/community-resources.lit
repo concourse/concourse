@@ -169,6 +169,12 @@ before using it!
 }{
   \link{Artifactory Resource}{https://github.com/spring-io/artifactory-resource}
 }{
+  \link{Artifactory Resource}{https://github.com/emerald-squad/artifactory-resource}
+}{
+  \link{CF blue green Resource}{https://github.com/emerald-squad/cf-blue-green-resource}
+}{
+  \link{FiaaS Resource}{https://github.com/leboncoin/concourse-fiaas-resource}
+}{
   \link{IRC notifications}{https://github.com/flavorjones/irc-notification-resource}
 }
 
