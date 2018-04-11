@@ -9,6 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/concourse/skymarshal/dexserver"
+	"github.com/concourse/skymarshal/skycmd"
 )
 
 var _ = Describe("Dex Server", func() {
@@ -41,9 +42,13 @@ var _ = Describe("Dex Server", func() {
 		Context("when github clientId and clientSecret are configured", func() {
 			BeforeEach(func() {
 				config = &dexserver.DexConfig{
-					IssuerURL:          "http://example.com/",
-					GithubClientID:     "client-id",
-					GithubClientSecret: "client-secret",
+					IssuerURL: "http://example.com/",
+					Flags: skycmd.AuthFlags{
+						Github: skycmd.GithubFlags{
+							ClientID:     "client-id",
+							ClientSecret: "client-secret",
+						},
+					},
 				}
 			})
 
@@ -66,12 +71,48 @@ var _ = Describe("Dex Server", func() {
 			})
 		})
 
+		Context("when cf clientId, clientSecret, apiUrl, rootsCAs and skip ssl validation are configured", func() {
+			BeforeEach(func() {
+				config = &dexserver.DexConfig{
+					IssuerURL: "http://example.com/",
+					Flags: skycmd.AuthFlags{
+						CF: skycmd.CFFlags{
+							ClientID:           "client-id",
+							ClientSecret:       "client-secret",
+							APIURL:             "http://example.com/api",
+							RootCAs:            []string{"some-ca-cert"},
+							InsecureSkipVerify: false,
+						},
+					},
+				}
+			})
+
+			It("should configure cf connector", func() {
+				connectors, err := serverConfig.Storage.ListConnectors()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(connectors[0].ID).To(Equal("cf"))
+				Expect(connectors[0].Type).To(Equal("cf"))
+				Expect(connectors[0].Name).To(Equal("CF"))
+				Expect(connectors[0].Config).To(MatchJSON(`{
+					"clientID":           "client-id",
+					"clientSecret":       "client-secret",
+					"redirectURI":        "http://example.com/callback",
+					"apiURL":             "http://example.com/api",
+					"rootCAs":            ["some-ca-cert"],
+					"insecureSkipVerify": false
+				}`))
+			})
+		})
+
 		Context("when local users are configured", func() {
 			BeforeEach(func() {
 				config = &dexserver.DexConfig{
-					LocalUsers: map[string]string{
-						"some-user-0": "some-password-0",
-						"some-user-1": "some-password-1",
+					Flags: skycmd.AuthFlags{
+						LocalUsers: map[string]string{
+							"some-user-0": "some-password-0",
+							"some-user-1": "some-password-1",
+						},
 					},
 				}
 			})

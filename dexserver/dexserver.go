@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/concourse/skymarshal/bindata"
+	"github.com/concourse/skymarshal/skycmd"
+	"github.com/coreos/dex/connector/cf"
 	"github.com/coreos/dex/connector/github"
 	"github.com/coreos/dex/server"
 	"github.com/coreos/dex/storage"
@@ -16,13 +18,11 @@ import (
 )
 
 type DexConfig struct {
-	IssuerURL          string
-	ClientID           string
-	ClientSecret       string
-	RedirectURL        string
-	GithubClientID     string
-	GithubClientSecret string
-	LocalUsers         map[string]string
+	IssuerURL    string
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	Flags        skycmd.AuthFlags
 }
 
 func NewDexServer(config *DexConfig) (*server.Server, error) {
@@ -60,6 +60,15 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 		})
 	}
 
+	if conf, err := newCFConfig(config); err == nil {
+		connectors = append(connectors, storage.Connector{
+			ID:     "cf",
+			Type:   "cf",
+			Name:   "CF",
+			Config: conf,
+		})
+	}
+
 	clients = append(clients, storage.Client{
 		ID:           config.ClientID,
 		Secret:       config.ClientSecret,
@@ -93,11 +102,26 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 }
 
 func newGithubConfig(config *DexConfig) ([]byte, error) {
-	if config.GithubClientID != "" && config.GithubClientSecret != "" {
+	if config.Flags.Github.ClientID != "" && config.Flags.Github.ClientSecret != "" {
 		return json.Marshal(github.Config{
-			ClientID:     config.GithubClientID,
-			ClientSecret: config.GithubClientSecret,
+			ClientID:     config.Flags.Github.ClientID,
+			ClientSecret: config.Flags.Github.ClientSecret,
 			RedirectURI:  strings.TrimRight(config.IssuerURL, "/") + "/callback",
+		})
+	} else {
+		return nil, errors.New("Not configured")
+	}
+}
+
+func newCFConfig(config *DexConfig) ([]byte, error) {
+	if config.Flags.CF.ClientID != "" && config.Flags.CF.ClientSecret != "" && config.Flags.CF.APIURL != "" {
+		return json.Marshal(cf.Config{
+			ClientID:           config.Flags.CF.ClientID,
+			ClientSecret:       config.Flags.CF.ClientSecret,
+			APIURL:             config.Flags.CF.APIURL,
+			RootCAs:            config.Flags.CF.RootCAs,
+			InsecureSkipVerify: config.Flags.CF.InsecureSkipVerify,
+			RedirectURI:        strings.TrimRight(config.IssuerURL, "/") + "/callback",
 		})
 	} else {
 		return nil, errors.New("Not configured")
@@ -107,7 +131,7 @@ func newGithubConfig(config *DexConfig) ([]byte, error) {
 func newLocalUsers(config *DexConfig) map[string][]byte {
 	users := map[string][]byte{}
 
-	for username, password := range config.LocalUsers {
+	for username, password := range config.Flags.LocalUsers {
 		if username != "" && password != "" {
 			if encrypted, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err == nil {
 				users[username] = encrypted

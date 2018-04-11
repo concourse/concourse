@@ -46,33 +46,33 @@ var _ = BeforeEach(func() {
 	fakeTokenVerifier = new(tokenfakes.FakeVerifier)
 	fakeTokenIssuer = new(tokenfakes.FakeIssuer)
 
-	dexServer = ghttp.NewServer()
+	dexServer = ghttp.NewTLSServer()
 	dexIssuerUrl := dexServer.URL() + "/sky/dex"
 
 	signingKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	Expect(err).NotTo(HaveOccurred())
 
+	cookieJar, err = cookiejar.New(nil)
+	Expect(err).ToNot(HaveOccurred())
+
 	config := &skyserver.SkyConfig{
+		SecureCookies:   true,
 		TokenVerifier:   fakeTokenVerifier,
 		TokenIssuer:     fakeTokenIssuer,
 		DexClientID:     "dex-client-id",
 		DexClientSecret: "dex-client-secret",
 		DexIssuerURL:    dexIssuerUrl,
+		DexHttpClient:   dexServer.HTTPTestServer.Client(),
 		SigningKey:      signingKey,
 	}
 
 	server, err := skyserver.NewSkyServer(config)
 	Expect(err).NotTo(HaveOccurred())
 
-	skyServer = httptest.NewServer(skyserver.NewSkyHandler(server))
+	skyServer = httptest.NewTLSServer(skyserver.NewSkyHandler(server))
 
-	cookieJar, err = cookiejar.New(nil)
-	Expect(err).ToNot(HaveOccurred())
-
-	client = &http.Client{
-		Transport: &http.Transport{},
-		Jar:       cookieJar,
-	}
+	client = skyServer.Client()
+	client.Jar = cookieJar
 })
 
 var _ = AfterEach(func() {

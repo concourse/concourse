@@ -2,7 +2,6 @@ package skyserver
 
 import (
 	"crypto/rsa"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -24,11 +23,12 @@ type SkyConfig struct {
 	TokenVerifier   token.Verifier
 	TokenIssuer     token.Issuer
 	SigningKey      *rsa.PrivateKey
-	TLSConfig       *tls.Config
+	SecureCookies   bool
 	DexClientID     string
 	DexClientSecret string
 	DexRedirectURL  string
 	DexIssuerURL    string
+	DexHttpClient   *http.Client
 }
 
 const stateCookieName = "skymarshal_state"
@@ -45,21 +45,10 @@ func NewSkyHandler(server *skyServer) http.Handler {
 }
 
 func NewSkyServer(config *SkyConfig) (*skyServer, error) {
-
-	httpClient := http.DefaultClient
-
-	if config.TLSConfig != nil {
-		httpClient.Transport = &http.Transport{TLSClientConfig: config.TLSConfig}
-	}
-
-	return &skyServer{
-		client: httpClient,
-		config: config,
-	}, nil
+	return &skyServer{config}, nil
 }
 
 type skyServer struct {
-	client *http.Client
 	config *SkyConfig
 }
 
@@ -71,6 +60,7 @@ func (self *skyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(token.Claims)
 }
 
@@ -102,7 +92,7 @@ func (self *skyServer) Login(w http.ResponseWriter, r *http.Request) {
 		Value:    stateToken,
 		Path:     "/",
 		Expires:  time.Now().Add(time.Minute),
-		Secure:   self.secure(),
+		Secure:   self.config.SecureCookies,
 		HttpOnly: true,
 	})
 
@@ -147,7 +137,7 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := oidc.ClientContext(r.Context(), self.client)
+	ctx := oidc.ClientContext(r.Context(), self.config.DexHttpClient)
 
 	if dexToken, err = oauth2Config.Exchange(ctx, authCode); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to fetch dex token: %v", err), http.StatusInternalServerError)
@@ -164,7 +154,7 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenStr := string(skyToken.TokenType) + " " + skyToken.AccessToken
+	tokenStr := skyToken.TokenType + " " + skyToken.AccessToken
 
 	csrfToken, ok := skyToken.Extra("csrf").(string)
 	if !ok {
@@ -178,7 +168,7 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  skyToken.Expiry,
 		HttpOnly: true,
-		Secure:   self.secure(),
+		Secure:   self.config.SecureCookies,
 	})
 
 	http.SetCookie(w, &http.Cookie{
@@ -252,7 +242,7 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 		Scopes:       strings.Split(scopes, "+"),
 	}
 
-	ctx := oidc.ClientContext(r.Context(), self.client)
+	ctx := oidc.ClientContext(r.Context(), self.config.DexHttpClient)
 
 	if dexToken, err = oauth2Config.PasswordCredentialsToken(ctx, username, password); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to fetch dex token: %v", err), http.StatusInternalServerError)
@@ -269,21 +259,15 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, _ := json.Marshal(skyToken)
-
 	w.Header().Add("Content-Type", "application/json")
-	w.Write(data)
+	json.NewEncoder(w).Encode(skyToken)
 }
 
 func (self *skyServer) endpoint() oauth2.Endpoint {
 	return oauth2.Endpoint{
-		AuthURL:  self.config.DexIssuerURL + "/auth",
-		TokenURL: self.config.DexIssuerURL + "/token",
+		AuthURL:  strings.TrimRight(self.config.DexIssuerURL, "/") + "/auth",
+		TokenURL: strings.TrimRight(self.config.DexIssuerURL, "/") + "/token",
 	}
-}
-
-func (self *skyServer) secure() bool {
-	return self.config.TLSConfig != nil
 }
 
 func encode(token *token.StateToken) string {

@@ -112,7 +112,7 @@ var _ = Describe("Sky Server API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("the state cookie doens't exist", func() {
+		Context("the state cookie doesn't exist", func() {
 			BeforeEach(func() {
 				stateCookie = &http.Cookie{}
 			})

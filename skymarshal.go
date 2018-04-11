@@ -1,34 +1,35 @@
 package skymarshal
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
-	"crypto/tls"
 	"net/http"
-	"strings"
-	"time"
+	"net/url"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/flag"
 	"github.com/concourse/skymarshal/dexserver"
+	"github.com/concourse/skymarshal/skycmd"
 	"github.com/concourse/skymarshal/skyserver"
 	"github.com/concourse/skymarshal/token"
 )
 
 type Config struct {
-	Logger             lager.Logger
-	TeamFactory        db.TeamFactory
-	TLSConfig          *tls.Config
-	SigningKey         *rsa.PrivateKey
-	Expiration         time.Duration
-	DexServerURL       string
-	SkyServerURL       string
-	GithubClientID     string
-	GithubClientSecret string
-	LocalUsers         map[string]string
+	Logger      lager.Logger
+	TeamFactory db.TeamFactory
+	Flags       skycmd.AuthFlags
+	ServerURL   string
+	HttpClient  *http.Client
 }
 
 type Server struct {
 	http.Handler
+	*rsa.PrivateKey
+}
+
+func (self *Server) PublicKey() *rsa.PublicKey {
+	return &self.PrivateKey.PublicKey
 }
 
 func NewServer(config *Config) (*Server, error) {
@@ -36,36 +37,44 @@ func NewServer(config *Config) (*Server, error) {
 	clientId := "skymarshal"
 	clientSecret := token.RandomString()
 
-	issuerUrl := strings.TrimRight(config.DexServerURL, "/") + "/sky/dex"
-	redirectUrl := strings.TrimRight(config.SkyServerURL, "/") + "/sky/callback"
+	signingKey, err := loadOrGenerateSigningKey(config.Flags.SigningKey)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(config.ServerURL)
+	if err != nil {
+		return nil, err
+	}
+
+	issuerUrl := serverURL.String() + "/sky/dex"
+	redirectUrl := serverURL.String() + "/sky/callback"
 
 	tokenVerifier := token.NewVerifier(clientId, issuerUrl)
-	tokenGenerator := token.NewGenerator(config.SigningKey)
-	tokenIssuer := token.NewIssuer(config.TeamFactory, tokenGenerator, config.Expiration)
+	tokenIssuer := token.NewIssuer(config.TeamFactory, token.NewGenerator(signingKey), config.Flags.Expiration)
 
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
 		Logger:          config.Logger,
 		TokenVerifier:   tokenVerifier,
 		TokenIssuer:     tokenIssuer,
-		SigningKey:      config.SigningKey,
-		TLSConfig:       config.TLSConfig,
+		SigningKey:      signingKey,
 		DexIssuerURL:    issuerUrl,
 		DexClientID:     clientId,
 		DexClientSecret: clientSecret,
 		DexRedirectURL:  redirectUrl,
+		DexHttpClient:   config.HttpClient,
+		SecureCookies:   config.Flags.SecureCookies,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	dexServer, err := dexserver.NewDexServer(&dexserver.DexConfig{
-		GithubClientID:     config.GithubClientID,
-		GithubClientSecret: config.GithubClientSecret,
-		LocalUsers:         config.LocalUsers,
-		IssuerURL:          issuerUrl,
-		ClientID:           clientId,
-		ClientSecret:       clientSecret,
-		RedirectURL:        redirectUrl,
+		Flags:        config.Flags,
+		IssuerURL:    issuerUrl,
+		ClientID:     clientId,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectUrl,
 	})
 	if err != nil {
 		return nil, err
@@ -74,5 +83,14 @@ func NewServer(config *Config) (*Server, error) {
 	handler := http.NewServeMux()
 	handler.Handle("/sky/dex/", dexServer)
 	handler.Handle("/sky/", skyserver.NewSkyHandler(skyServer))
-	return &Server{handler}, nil
+
+	return &Server{handler, signingKey}, nil
+}
+
+func loadOrGenerateSigningKey(keyFlag flag.PrivateKey) (*rsa.PrivateKey, error) {
+	if keyFlag.PrivateKey != nil {
+		return keyFlag.PrivateKey, nil
+	}
+
+	return rsa.GenerateKey(rand.Reader, 2048)
 }
