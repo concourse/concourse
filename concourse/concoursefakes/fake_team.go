@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/concourse/skymarshal/provider"
 )
 
 type FakeTeam struct {
@@ -18,28 +17,6 @@ type FakeTeam struct {
 	}
 	nameReturnsOnCall map[int]struct {
 		result1 string
-	}
-	ListAuthMethodsStub        func() ([]provider.AuthMethod, error)
-	listAuthMethodsMutex       sync.RWMutex
-	listAuthMethodsArgsForCall []struct{}
-	listAuthMethodsReturns     struct {
-		result1 []provider.AuthMethod
-		result2 error
-	}
-	listAuthMethodsReturnsOnCall map[int]struct {
-		result1 []provider.AuthMethod
-		result2 error
-	}
-	AuthTokenStub        func() (provider.AuthToken, error)
-	authTokenMutex       sync.RWMutex
-	authTokenArgsForCall []struct{}
-	authTokenReturns     struct {
-		result1 provider.AuthToken
-		result2 error
-	}
-	authTokenReturnsOnCall map[int]struct {
-		result1 provider.AuthToken
-		result2 error
 	}
 	CreateOrUpdateStub        func(team atc.Team) (atc.Team, bool, bool, error)
 	createOrUpdateMutex       sync.RWMutex
@@ -613,92 +590,6 @@ func (fake *FakeTeam) NameReturnsOnCall(i int, result1 string) {
 	fake.nameReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
-}
-
-func (fake *FakeTeam) ListAuthMethods() ([]provider.AuthMethod, error) {
-	fake.listAuthMethodsMutex.Lock()
-	ret, specificReturn := fake.listAuthMethodsReturnsOnCall[len(fake.listAuthMethodsArgsForCall)]
-	fake.listAuthMethodsArgsForCall = append(fake.listAuthMethodsArgsForCall, struct{}{})
-	fake.recordInvocation("ListAuthMethods", []interface{}{})
-	fake.listAuthMethodsMutex.Unlock()
-	if fake.ListAuthMethodsStub != nil {
-		return fake.ListAuthMethodsStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.listAuthMethodsReturns.result1, fake.listAuthMethodsReturns.result2
-}
-
-func (fake *FakeTeam) ListAuthMethodsCallCount() int {
-	fake.listAuthMethodsMutex.RLock()
-	defer fake.listAuthMethodsMutex.RUnlock()
-	return len(fake.listAuthMethodsArgsForCall)
-}
-
-func (fake *FakeTeam) ListAuthMethodsReturns(result1 []provider.AuthMethod, result2 error) {
-	fake.ListAuthMethodsStub = nil
-	fake.listAuthMethodsReturns = struct {
-		result1 []provider.AuthMethod
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeTeam) ListAuthMethodsReturnsOnCall(i int, result1 []provider.AuthMethod, result2 error) {
-	fake.ListAuthMethodsStub = nil
-	if fake.listAuthMethodsReturnsOnCall == nil {
-		fake.listAuthMethodsReturnsOnCall = make(map[int]struct {
-			result1 []provider.AuthMethod
-			result2 error
-		})
-	}
-	fake.listAuthMethodsReturnsOnCall[i] = struct {
-		result1 []provider.AuthMethod
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeTeam) AuthToken() (provider.AuthToken, error) {
-	fake.authTokenMutex.Lock()
-	ret, specificReturn := fake.authTokenReturnsOnCall[len(fake.authTokenArgsForCall)]
-	fake.authTokenArgsForCall = append(fake.authTokenArgsForCall, struct{}{})
-	fake.recordInvocation("AuthToken", []interface{}{})
-	fake.authTokenMutex.Unlock()
-	if fake.AuthTokenStub != nil {
-		return fake.AuthTokenStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.authTokenReturns.result1, fake.authTokenReturns.result2
-}
-
-func (fake *FakeTeam) AuthTokenCallCount() int {
-	fake.authTokenMutex.RLock()
-	defer fake.authTokenMutex.RUnlock()
-	return len(fake.authTokenArgsForCall)
-}
-
-func (fake *FakeTeam) AuthTokenReturns(result1 provider.AuthToken, result2 error) {
-	fake.AuthTokenStub = nil
-	fake.authTokenReturns = struct {
-		result1 provider.AuthToken
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeTeam) AuthTokenReturnsOnCall(i int, result1 provider.AuthToken, result2 error) {
-	fake.AuthTokenStub = nil
-	if fake.authTokenReturnsOnCall == nil {
-		fake.authTokenReturnsOnCall = make(map[int]struct {
-			result1 provider.AuthToken
-			result2 error
-		})
-	}
-	fake.authTokenReturnsOnCall[i] = struct {
-		result1 provider.AuthToken
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeTeam) CreateOrUpdate(team atc.Team) (atc.Team, bool, bool, error) {
@@ -2622,10 +2513,6 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
-	fake.listAuthMethodsMutex.RLock()
-	defer fake.listAuthMethodsMutex.RUnlock()
-	fake.authTokenMutex.RLock()
-	defer fake.authTokenMutex.RUnlock()
 	fake.createOrUpdateMutex.RLock()
 	defer fake.createOrUpdateMutex.RUnlock()
 	fake.renameTeamMutex.RLock()
