@@ -20,6 +20,7 @@ func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
 func (FinishTask) Version() atc.EventVersion { return "4.0" }
 
 type InitializeTask struct {
+	Time       int64      `json:"time"`
 	Origin     Origin     `json:"origin"`
 	TaskConfig TaskConfig `json:"config"`
 }

@@ -33,6 +33,7 @@ func NewTaskDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.
 func (d *taskDelegate) Initializing(logger lager.Logger, taskConfig atc.TaskConfig) {
 	err := d.build.SaveEvent(event.InitializeTask{
 		Origin:     d.eventOrigin,
+		Time:       time.Now().Unix(),
 		TaskConfig: event.ShadowTaskConfig(taskConfig),
 	})
 	if err != nil {
@@ -46,6 +47,7 @@ func (d *taskDelegate) Initializing(logger lager.Logger, taskConfig atc.TaskConf
 func (d *taskDelegate) Starting(logger lager.Logger, taskConfig atc.TaskConfig) {
 	err := d.build.SaveEvent(event.StartTask{
 		Origin:     d.eventOrigin,
+		Time:       time.Now().Unix(),
 		TaskConfig: event.ShadowTaskConfig(taskConfig),
 	})
 	if err != nil {
