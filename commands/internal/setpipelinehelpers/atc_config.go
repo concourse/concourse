@@ -47,11 +47,22 @@ func (atcConfig ATCConfig) Validate(
 	templateVariablesFiles []atc.PathFlag,
 	strict bool,
 ) error {
-	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, true)
+	newConfig, err := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, true, strict)
+	if err != nil {
+		return err
+	}
 
 	var new atc.Config
-	if err := yaml.Unmarshal([]byte(newConfig), &new); err != nil {
-		return err
+	if strict {
+		// UnmarshalStrict will pick up fields in structs that have the wrong names, as well as any duplicate keys in maps
+		// we should consider always using this everywhere in a later release...
+		if err := yaml.UnmarshalStrict([]byte(newConfig), &new); err != nil {
+			return err
+		}
+	} else {
+		if err := yaml.Unmarshal([]byte(newConfig), &new); err != nil {
+			return err
+		}
 	}
 
 	warnings, errorMessages := new.Validate()
@@ -78,7 +89,10 @@ func (atcConfig ATCConfig) Validate(
 }
 
 func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables []flaghelpers.VariablePairFlag, yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag, templateVariablesFiles []atc.PathFlag) error {
-	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, false)
+	newConfig, err := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, false, false)
+	if err != nil {
+		return err
+	}
 	existingConfig, _, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
 	errorMessages := []string{}
 	if err != nil {
@@ -129,17 +143,30 @@ func (atcConfig ATCConfig) newConfig(
 	templateVariables []flaghelpers.VariablePairFlag,
 	yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag,
 	allowEmpty bool,
-) []byte {
+	strict bool,
+) ([]byte, error) {
 	evaluatedConfig, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
-		displayhelpers.FailWithErrorf("could not read config file", err)
+		return nil, fmt.Errorf("could not read config file: %s", err.Error())
+	}
+
+	if strict {
+		// We use a generic map here, since templates are not evaluated yet.
+		// (else a template string may cause an error when a struct is expected)
+		// If we don't check Strict now, then the subsequent steps will mask any
+		// duplicate key errors.
+		// We should consider being strict throughout the entire stack by default.
+		err = yaml.UnmarshalStrict(evaluatedConfig, make(map[string]interface{}))
+		if err != nil {
+			return nil, fmt.Errorf("error parsing yaml before applying templates: %s", err.Error())
+		}
 	}
 
 	var paramPayloads [][]byte
 	for _, path := range templateVariablesFiles {
 		templateVars, err := ioutil.ReadFile(string(path))
 		if err != nil {
-			displayhelpers.FailWithErrorf("could not read template variables file (%s)", err, string(path))
+			return nil, fmt.Errorf("could not read template variables file (%s): %s", string(path), err.Error())
 		}
 
 		paramPayloads = append(paramPayloads, templateVars)
@@ -148,16 +175,16 @@ func (atcConfig ATCConfig) newConfig(
 	if temp.Present(evaluatedConfig) {
 		evaluatedConfig, err = atcConfig.resolveDeprecatedTemplateStyle(evaluatedConfig, paramPayloads, templateVariables, yamlTemplateVariables, allowEmpty)
 		if err != nil {
-			displayhelpers.FailWithErrorf("could not resolve old-style template vars", err)
+			return nil, fmt.Errorf("could not resolve old-style template vars: %s", err.Error())
 		}
 	}
 
 	evaluatedConfig, err = atcConfig.resolveTemplates(evaluatedConfig, paramPayloads, templateVariables, yamlTemplateVariables)
 	if err != nil {
-		displayhelpers.FailWithErrorf("could not resolve template vars", err)
+		return nil, fmt.Errorf("could not resolve template vars: %s", err.Error())
 	}
 
-	return evaluatedConfig
+	return evaluatedConfig, nil
 }
 
 func (atcConfig ATCConfig) resolveTemplates(configPayload []byte, paramPayloads [][]byte, variables []flaghelpers.VariablePairFlag, yamlVariables []flaghelpers.YAMLVariablePairFlag) ([]byte, error) {
