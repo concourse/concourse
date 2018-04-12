@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	"github.com/cenkalti/backoff"
 	"github.com/concourse/atc/creds"
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -16,10 +17,8 @@ type vaultFactory struct {
 
 	prefix string
 
-	token        string
-	tokenEndLife time.Time
-	lease        time.Duration
-	tokenL       *sync.RWMutex
+	token  string
+	tokenL *sync.RWMutex
 
 	loggedIn chan struct{}
 }
@@ -58,50 +57,75 @@ func (factory *vaultFactory) currentToken() string {
 	return token
 }
 
-func (factory *vaultFactory) isTokenRenewable(config AuthConfig) bool {
-	if factory.currentToken() != "" && (factory.tokenEndLife.Sub(time.Now()).Seconds()/factory.lease.Seconds()) > 1 {
-		return true
-	}
-	return false
-}
-
-func (factory *vaultFactory) registerToken(currentToken string, token string, lease time.Duration, config AuthConfig, updateEOL bool) {
-	if token == "" {
-		return
-	}
+func (factory *vaultFactory) setToken(token string, lease time.Duration) {
 	factory.tokenL.Lock()
 	factory.token = token
-	if updateEOL {
-		factory.tokenEndLife = time.Now().Add(config.BackendMaxTTL)
-	}
-	factory.lease = lease
-	if currentToken == "" {
-		close(factory.loggedIn)
-	}
 	factory.tokenL.Unlock()
 }
 
+func (factory *vaultFactory) needsLogin(currentToken string, eol time.Time, lease time.Duration) bool {
+	// never logged in
+	if currentToken == "" {
+		return true
+	}
+
+	// no EOL; no max TTL set
+	if eol.IsZero() {
+		return false
+	}
+
+	// we'll reach EOL before next renewal; force login
+	if time.Now().Add(lease).After(eol) {
+		return true
+	}
+
+	return false
+}
+
 func (factory *vaultFactory) authLoop(logger lager.Logger, config AuthConfig) {
+	exp := backoff.NewExponentialBackOff()
+	exp.MaxElapsedTime = 0
+
+	var tokenEOL time.Time
+	var lease time.Duration
+
 	for {
 		currentToken := factory.currentToken()
 
+		logIn := factory.needsLogin(currentToken, tokenEOL, lease)
+
 		var token string
-		var lease time.Duration
-		if factory.isTokenRenewable(config) {
-			token, lease = factory.renew(logger.Session("renew"), currentToken)
-			factory.registerToken(currentToken, token, lease, config, false)
+		var authErr error
+		if logIn {
+			token, lease, authErr = factory.login(logger.Session("login"), config)
 		} else {
-			token, lease = factory.login(logger.Session("login"), config)
-			factory.registerToken(currentToken, token, lease, config, true)
+			token, lease, authErr = factory.renew(logger.Session("renew"), currentToken)
+		}
+
+		if authErr != nil {
+			time.Sleep(exp.NextBackOff())
+			continue
+		}
+
+		if token != "" {
+			if logIn && config.BackendMaxTTL > 0 {
+				tokenEOL = time.Now().Add(config.BackendMaxTTL)
+			}
+
+			factory.setToken(token, lease)
+
+			if currentToken == "" {
+				close(factory.loggedIn)
+			}
 		}
 
 		time.Sleep(lease / 2)
 	}
 }
 
-func (factory *vaultFactory) login(logger lager.Logger, config AuthConfig) (string, time.Duration) {
+func (factory *vaultFactory) login(logger lager.Logger, config AuthConfig) (string, time.Duration, error) {
 	if config.ClientToken != "" {
-		return config.ClientToken, 0
+		return config.ClientToken, time.Second, nil
 	}
 
 	backend := config.Backend
@@ -114,7 +138,7 @@ func (factory *vaultFactory) login(logger lager.Logger, config AuthConfig) (stri
 	secret, err := factory.vaultClient.Logical().Write(path.Join("auth", backend, "login"), params)
 	if err != nil {
 		logger.Error("failed", err)
-		return "", time.Second
+		return "", 0, err
 	}
 
 	logger.Info("succeeded", lager.Data{
@@ -123,14 +147,14 @@ func (factory *vaultFactory) login(logger lager.Logger, config AuthConfig) (stri
 		"policies":       secret.Auth.Policies,
 	})
 
-	return secret.Auth.ClientToken, time.Duration(secret.Auth.LeaseDuration * int(time.Second))
+	return secret.Auth.ClientToken, time.Duration(secret.Auth.LeaseDuration * int(time.Second)), nil
 }
 
-func (factory *vaultFactory) renew(logger lager.Logger, token string) (string, time.Duration) {
+func (factory *vaultFactory) renew(logger lager.Logger, token string) (string, time.Duration, error) {
 	secret, err := factory.clientWith(token).Auth().Token().RenewSelf(0)
 	if err != nil {
 		logger.Error("failed", err)
-		return "", time.Second
+		return "", 0, err
 	}
 
 	logger.Info("succeeded", lager.Data{
@@ -139,7 +163,7 @@ func (factory *vaultFactory) renew(logger lager.Logger, token string) (string, t
 		"policies":       secret.Auth.Policies,
 	})
 
-	return secret.Auth.ClientToken, time.Duration(secret.Auth.LeaseDuration * int(time.Second))
+	return secret.Auth.ClientToken, time.Duration(secret.Auth.LeaseDuration * int(time.Second)), nil
 }
 
 func (factory *vaultFactory) clientWith(token string) *vaultapi.Client {

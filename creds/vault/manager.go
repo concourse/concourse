@@ -34,7 +34,7 @@ type AuthConfig struct {
 	ClientToken string `long:"client-token" description:"Client token for accessing secrets within the Vault server."`
 
 	Backend       string           `long:"auth-backend" description:"Auth backend to use for logging in to Vault."`
-	BackendMaxTTL time.Duration    `long:"auth-backend-max-ttl" description:"Auth backend max ttl configuration for token renewal"`
+	BackendMaxTTL time.Duration    `long:"auth-backend-max-ttl" description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
 	Params        []template.VarKV `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME=VALUE"`
 }
 
