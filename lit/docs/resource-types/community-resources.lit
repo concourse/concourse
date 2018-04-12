@@ -133,7 +133,7 @@ before using it!
 }{
   \link{Apache Directory Index}{https://github.com/mastertinner/apache-directory-index-resource}
 }{
-  \link{Cloud Foundry CLI Resource}{https://github.com/Pivotal-Field-Engineering/cf-cli-resource}
+  \link{Cloud Foundry CLI Resource}{https://github.com/nulldriver/cf-cli-resource}
 }{
   \link{Counter}{https://github.com/jinlee/counter-resource}
 }{
