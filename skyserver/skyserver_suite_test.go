@@ -26,6 +26,7 @@ var (
 	client            *http.Client
 	cookieJar         *cookiejar.Jar
 	signingKey        *rsa.PrivateKey
+	config            *skyserver.SkyConfig
 )
 
 func TestSkyServer(t *testing.T) {
@@ -55,8 +56,7 @@ var _ = BeforeEach(func() {
 	cookieJar, err = cookiejar.New(nil)
 	Expect(err).ToNot(HaveOccurred())
 
-	config := &skyserver.SkyConfig{
-		SecureCookies:   true,
+	config = &skyserver.SkyConfig{
 		TokenVerifier:   fakeTokenVerifier,
 		TokenIssuer:     fakeTokenIssuer,
 		DexClientID:     "dex-client-id",
@@ -69,8 +69,10 @@ var _ = BeforeEach(func() {
 	server, err := skyserver.NewSkyServer(config)
 	Expect(err).NotTo(HaveOccurred())
 
-	skyServer = httptest.NewTLSServer(skyserver.NewSkyHandler(server))
+	skyServer = httptest.NewUnstartedServer(skyserver.NewSkyHandler(server))
+})
 
+var _ = JustBeforeEach(func() {
 	client = skyServer.Client()
 	client.Jar = cookieJar
 })

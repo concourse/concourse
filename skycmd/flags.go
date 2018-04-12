@@ -8,7 +8,7 @@ import (
 )
 
 type AuthFlags struct {
-	SecureCookies bool              `long:"secure-cookies" default:false description:"Set secure flag on http cookies"`
+	SecureCookies bool              `long:"secure-cookies" description:"Set secure flag on http cookies"`
 	Expiration    time.Duration     `long:"expiration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 	SigningKey    flag.PrivateKey   `long:"signing-key" description:"File containing an RSA private key, used to sign session tokens."`
 	Github        GithubFlags       `group:"Github Auth" namespace:"github"`
