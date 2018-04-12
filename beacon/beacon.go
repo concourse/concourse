@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -15,7 +16,8 @@ import (
 
 const gardenForwardAddr = "0.0.0.0:7777"
 const baggageclaimForwardAddr = "0.0.0.0:7788"
-const reaperForwardAddr = "0.0.0.0:7799"
+const reaperPort = "7799"
+const reaperForwardAddr = "0.0.0.0:" + reaperPort
 
 //go:generate counterfeiter . Closeable
 type Closeable interface {
@@ -169,9 +171,20 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 
 		if beacon.ReaperForwardAddr != "" {
 			reaperForwardAddrRemote = beacon.ReaperForwardAddr
+		} else {
+			reaperURL := strings.Split(beacon.GardenForwardAddr, ":")
+			if len(reaperURL) != 2 {
+				return fmt.Errorf("failed to parse GardenForwardAddr: %s", beacon.GardenForwardAddr)
+			}
+			reaperForwardAddrRemote = reaperURL[0] + ":" + reaperPort
 		}
 	}
 
+	beacon.Logger.Debug("ssh-forward-config", lager.Data{
+		"gardenForwardAddrRemote": gardenForwardAddrRemote,
+		"bcForwardAddrRemote":     bcForwardAddrRemote,
+		"reaperForwardAddrRemote": reaperForwardAddrRemote,
+	})
 	beacon.Client.Proxy(gardenForwardAddr, gardenForwardAddrRemote)
 	beacon.Client.Proxy(baggageclaimForwardAddr, bcForwardAddrRemote)
 	beacon.Client.Proxy(reaperForwardAddr, reaperForwardAddrRemote)

@@ -91,7 +91,15 @@ func (cmd *StartCommand) Execute(args []string) error {
 
 	groupLogger, _ := cmd.Logger.Logger("worker")
 	beaconRunner := worker.BeaconRunner(groupLogger, atcWorker, cmd.TSA)
-	reaperRunner := reaper.NewReaperRunner(groupLogger, cmd.GardenAddr, cmd.ReaperConfig.Port)
+
+	var gardenAddr string
+	if cmd.TSA.GardenForwardAddr != "" {
+		gardenAddr = cmd.TSA.GardenForwardAddr
+	} else {
+		gardenAddr = cmd.GardenAddr
+	}
+
+	reaperRunner := reaper.NewReaperRunner(groupLogger, gardenAddr, cmd.ReaperConfig.Port)
 
 	groupMembers := grouper.Members{
 		grouper.Member{Name: "beacon", Runner: beaconRunner},
