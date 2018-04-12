@@ -4,11 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/concourse/atc/db"
-
-	"strconv"
 
 	"code.cloudfoundry.org/lager"
 )
