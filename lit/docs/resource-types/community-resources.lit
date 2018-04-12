@@ -12,170 +12,172 @@ there yet though, so a list will have to do.
 Be sure to read the \code{README} file for a resource to know what it does
 before using it!
 
-\list{
-  \link{Slack Reading and Posting}{https://github.com/jleben/slack-chat-resource}
+\table{
+  \table-row{\bold{Resource Name}}{\bold{Maintained By}}
 }{
-  \link{Slack notifications}{https://github.com/cloudfoundry-community/slack-notification-resource}
+  \table-row{\link{Slack Reading and Posting}{https://github.com/jleben/slack-chat-resource}}{by \ghuser{jleben}}
 }{
-  \link{Github Pull Requests}{https://github.com/jtarchie/github-pullrequest-resource}
+  \table-row{\link{Slack notifications}{https://github.com/cloudfoundry-community/slack-notification-resource}}{by \ghuser{cloudfoundry-community}}
 }{
-  \link{GitLab Merge Requests}{https://github.com/swisscom/gitlab-merge-request-resource}
+  \table-row{\link{Github Pull Requests}{https://github.com/jtarchie/github-pullrequest-resource}}{by \ghuser{jtarchie}}
 }{
-  \link{OpenStack Swift}{https://github.com/sapcc/concourse-swift-resource}
+  \table-row{\link{GitLab Merge Requests}{https://github.com/swisscom/gitlab-merge-request-resource}}{by \ghuser{swisscom}}
 }{
-  \link{Key Value resource}{https://github.com/swce/keyval-resource}
+  \table-row{\link{OpenStack Swift}{https://github.com/sapcc/concourse-swift-resource}}{by \ghuser{sapcc}}
 }{
-  \link{Flowdock notifications}{https://github.com/starkandwayne/flowdock-concourse-notification-resource}
+  \table-row{\link{Key Value resource}{https://github.com/swce/keyval-resource}}{by \ghuser{swce}}
 }{
-  \link{Email}{https://github.com/pivotal-cf/email-resource}
+  \table-row{\link{Flowdock notifications}{https://github.com/starkandwayne/flowdock-concourse-notification-resource}}{by \ghuser{starkandwayne}}
 }{
-  \link{Formatted Email}{https://github.com/santoshjpawar/concourse-email-notification}
+  \table-row{\link{Email}{https://github.com/pivotal-cf/email-resource}}{by \ghuser{pivotal-cf}}
 }{
-  \link{Email with integrated MTA}{https://github.com/mdomke/concourse-email-resource}
+  \table-row{\link{Formatted Email}{https://github.com/santoshjpawar/concourse-email-notification}}{by \ghuser{santoshjpawar}}
 }{
-  \link{Bintray}{https://github.com/jamiemonserrate/bintray-resource}
+  \table-row{\link{Email with integrated MTA}{https://github.com/mdomke/concourse-email-resource}}{by \ghuser{mdomke}}
 }{
-  \link{Perforce}{https://github.com/olhtbr/p4-resource}
+  \table-row{\link{Bintray}{https://github.com/jamiemonserrate/bintray-resource}}{by \ghuser{jamiemonserrate}}
 }{
-  \link{BOSH Errands}{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}
+  \table-row{\link{Perforce}{https://github.com/olhtbr/p4-resource}}{by \ghuser{olhtbr}}
 }{
-  \link{BOSH Config: cloud-config and runtime-config}{https://github.com/EMC-Dojo/bosh-config-resource}
+  \table-row{\link{BOSH Errands}{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}}{by \ghuser{starkandwayne}}
 }{
-  \link{Pool Trigger}{https://github.com/cfmobile/pool-trigger-resource}
+  \table-row{\link{BOSH Config: cloud-config and runtime-config}{https://github.com/EMC-Dojo/bosh-config-resource}}{by \ghuser{EMC-Dojo}}
 }{
-  \link{Pivotal Network}{https://github.com/pivotal-cf-experimental/pivnet-resource}
+  \table-row{\link{Pool Trigger}{https://github.com/cfmobile/pool-trigger-resource}}{by \ghuser{sfmobile}}
 }{
-  \link{FTP}{https://github.com/aequitas/concourse-ftp-resource}
+  \table-row{\link{Pivotal Network}{https://github.com/pivotal-cf-experimental/pivnet-resource}}{by \ghuser{pivotal-cf-experimental}}
 }{
-  \link{lftp, access resources via ftp, http, sftp and fish}{https://github.com/openSUSE/lftp-concourse-resource}
+  \table-row{\link{FTP}{https://github.com/aequitas/concourse-ftp-resource}}{by \ghuser{aequitas}}
 }{
-  \link{Cloudformation}{https://github.com/pivotal-cf-experimental/cloudformation-resource}
+  \table-row{\link{lftp, access resources via ftp, http, sftp and fish}{https://github.com/openSUSE/lftp-concourse-resource}}{by \ghuser{openSUSE}}
 }{
-  \link{Generic HTTP API}{https://github.com/aequitas/concourse-http-api-resource}
+  \table-row{\link{Cloudformation}{https://github.com/pivotal-cf-experimental/cloudformation-resource}}{by \ghuser{pivotal-cf-experimental}}
 }{
-  \link{Hockey App}{https://github.com/seadowg/hockey-resource}
+  \table-row{\link{Generic HTTP API}{https://github.com/aequitas/concourse-http-api-resource}}{by \ghuser{aequitas}}
 }{
-  \link{Concourse Pipelines}{https://github.com/robdimsdale/concourse-pipeline-resource}
+  \table-row{\link{Hockey App}{https://github.com/seadowg/hockey-resource}}{by \ghuser{seadowg}}
 }{
-  \link{Twitter}{https://github.com/ECSTeam/twitter-resource}
+  \table-row{\link{Concourse Pipelines}{https://github.com/robdimsdale/concourse-pipeline-resource}}{by \ghuser{robdimsdale}}
 }{
-  \link{HipChat Notifications}{https://github.com/cloudfoundry-community/hipchat-notification-resource}
+  \table-row{\link{Twitter}{https://github.com/ECSTeam/twitter-resource}}{by \ghuser{ECSTeam}}
 }{
-  \link{Matrix Notifications}{https://github.com/freelock/matrix-notification-resource}
+  \table-row{\link{HipChat Notifications}{https://github.com/cloudfoundry-community/hipchat-notification-resource}}{by \ghuser{cloudfoundry-community}}
 }{
-  \link{Smuggler: generic resource framework}{https://github.com/redfactorlabs/concourse-smuggler-resource}
+  \table-row{\link{Matrix Notifications}{https://github.com/freelock/matrix-notification-resource}}{by \ghuser{freelock}}
 }{
-  \link{GitHub Commit Status}{https://github.com/dpb587/github-status-resource}
+  \table-row{\link{Smuggler: generic resource framework}{https://github.com/redfactorlabs/concourse-smuggler-resource}}{by \ghuser{redfactorlabs}}
 }{
-  \link{GitHub Deployment}{https://github.com/ahume/github-deployment-resource}
+  \table-row{\link{GitHub Commit Status}{https://github.com/dpb587/github-status-resource}}{by \ghuser{dpb587}}
 }{
-  \link{AMI Updates}{https://github.com/jdub/ami-resource}
+  \table-row{\link{GitHub Deployment}{https://github.com/ahume/github-deployment-resource}}{by \ghuser{ahume}}
 }{
-  \link{Debian/Ubuntu Sources Updates}{https://github.com/jdub/debian-sources-resource}
+  \table-row{\link{AMI Updates}{https://github.com/jdub/ami-resource}}{by \ghuser{jdub}}
 }{
-  \link{Open Build Service}{https://github.com/SUSE/open-build-service-resource}
+  \table-row{\link{Debian/Ubuntu Sources Updates}{https://github.com/jdub/debian-sources-resource}}{by \ghuser{jdub}}
 }{
-  \link{Travis-ci}{https://github.com/Orange-OpenSource/travis-resource}
+  \table-row{\link{Open Build Service}{https://github.com/SUSE/open-build-service-resource}}{by \ghuser{SUSE}}
 }{
-  \link{Bitbucket Notifications}{https://github.com/karunamon/concourse-resource-bitbucket}
+  \table-row{\link{Travis-ci}{https://github.com/Orange-OpenSource/travis-resource}}{by \ghuser{Orange-OpenSource}}
 }{
-  \link{Terraform}{https://github.com/ljfranklin/terraform-resource}
+  \table-row{\link{Bitbucket Notifications}{https://github.com/karunamon/concourse-resource-bitbucket}}{by \ghuser{karunamon}}
 }{
-  \link{Azure Blobstore}{https://github.com/pivotal-cloudops/azure-blobstore-concourse-resource}
+  \table-row{\link{Terraform}{https://github.com/ljfranklin/terraform-resource}}{by \ghuser{ljfranklin}}
 }{
-  \link{Rsync}{https://github.com/mrsixw/concourse-rsync-resource}
+  \table-row{\link{Azure Blobstore}{https://github.com/pivotal-cloudops/azure-blobstore-concourse-resource}}{by \ghuser{pivotal-cloudops}}
 }{
-  \link{Rsync: rsyncd, for local net}{https://github.com/chemist/rsync-resource}
+  \table-row{\link{Rsync}{https://github.com/mrsixw/concourse-rsync-resource}}{by \ghuser{mrsixw}}
 }{
-  \link{PyPI Packages}{https://github.com/cf-platform-eng/concourse-pypi-resource}
+  \table-row{\link{Rsync: rsyncd, for local net}{https://github.com/chemist/rsync-resource}}{by \ghuser{chemist}}
 }{
-  \link{Devpi Server: PyPI mirror and package server}{https://github.com/mdomke/concourse-devpi-resource}
+  \table-row{\link{PyPI Packages}{https://github.com/cf-platform-eng/concourse-pypi-resource}}{by \ghuser{cf-platform-eng}}
 }{
-  \link{Jira Integration}{https://github.com/danrspencer/jira-resource}
+  \table-row{\link{Devpi Server: PyPI mirror and package server}{https://github.com/mdomke/concourse-devpi-resource}}{by \ghuser{mdomke}}
 }{
-  \link{Google Drive}{https://github.com/jpatel-pivotal/google-drive-concourse-resource}
+  \table-row{\link{Jira Integration}{https://github.com/danrspencer/jira-resource}}{by \ghuser{danrspencer}}
 }{
-  \link{Google Calendar}{https://github.com/henrytk/calendar-resource}
+  \table-row{\link{Google Drive}{https://github.com/jpatel-pivotal/google-drive-concourse-resource}}{by \ghuser{jpatel-pivotal}}
 }{
-  \link{pagerduty Notifications}{https://github.com/FidelityInternational/concourse-pagerduty-notification-resource}
+  \table-row{\link{Google Calendar}{https://github.com/henrytk/calendar-resource}}{by \ghuser{henrytk}}
 }{
-  \link{Telegram}{https://github.com/w32blaster/telegram-notification-resource}
+  \table-row{\link{pagerduty Notifications}{https://github.com/FidelityInternational/concourse-pagerduty-notification-resource}}{by \ghuser{FidelityInternational}}
 }{
-  \link{Telegram}{https://github.com/carlo-colombo/telegram-resource}
+  \table-row{\link{Telegram}{https://github.com/w32blaster/telegram-notification-resource}}{by \ghuser{w32w32blaster}}
 }{
-  \link{Google Cloud Storage}{https://github.com/frodenas/gcs-resource}
+  \table-row{\link{Telegram}{https://github.com/carlo-colombo/telegram-resource}}{by \ghuser{carlo-colombo}}
 }{
-  \link{Fly}{https://github.com/troykinsella/concourse-fly-resource}
+  \table-row{\link{Google Cloud Storage}{https://github.com/frodenas/gcs-resource}}{by \ghuser{frodenas}}
 }{
-  \link{Kubernetes}{https://github.com/jcderr/concourse-kubernetes-resource}
+  \table-row{\link{Fly}{https://github.com/troykinsella/concourse-fly-resource}}{by \ghuser{troykinsella}}
 }{
-  \link{Kubernetes}{https://github.com/zlabjp/kubernetes-resource}
+  \table-row{\link{Kubernetes}{https://github.com/jcderr/concourse-kubernetes-resource}}{by \ghuser{jcderr}}
 }{
-  \link{K8s-Kubernetes}{https://github.com/srinivasa-vasu/concourse-k8s}
+  \table-row{\link{Kubernetes}{https://github.com/zlabjp/kubernetes-resource}}{by \ghuser{zlabjp}}
 }{
-  \link{Kubernetes Helm}{https://github.com/linkyard/concourse-helm-resource}
+  \table-row{\link{K8s-Kubernetes}{https://github.com/srinivasa-vasu/concourse-k8s}}{by \ghuser{srinivasa-vasu}}
 }{
-  \link{Vault}{https://github.com/Docurated/concourse-vault-resource}
+  \table-row{\link{Kubernetes Helm}{https://github.com/linkyard/concourse-helm-resource}}{by \ghuser{linkyard}}
 }{
-  \link{AWS Key Management Service}{https://github.com/everpeace/aws-kms-resource}
+  \table-row{\link{Vault}{https://github.com/Docurated/concourse-vault-resource}}{by \ghuser{Docurated}}
 }{
-  \link{Marathon}{https://github.com/ckaznocha/marathon-resource}
+  \table-row{\link{AWS Key Management Service}{https://github.com/everpeace/aws-kms-resource}}{by \ghuser{everpeace}}
 }{
-  \link{RSS}{https://github.com/suhlig/concourse-rss-resource}
+  \table-row{\link{Marathon}{https://github.com/ckaznocha/marathon-resource}}{by \ghuser{ckaznocha}}
 }{
-  \link{Maven Resource}{https://github.com/Pivotal-Field-Engineering/maven-resource}
+  \table-row{\link{RSS}{https://github.com/suhlig/concourse-rss-resource}}{by \ghuser{suhlig}}
 }{
-  \link{cURL File Resource}{https://github.com/pivotalservices/concourse-curl-resource}
+  \table-row{\link{Maven Resource}{https://github.com/Pivotal-Field-Engineering/maven-resource}}{by \ghuser{Pivotal-Field-Engineering}}
 }{
-  \link{Pivnet Resource (rsamban)}{https://github.com/rsamban/pivnet-resource}
+  \table-row{\link{cURL File Resource}{https://github.com/pivotalservices/concourse-curl-resource}}{by \ghuser{pivotalservices}}
 }{
-  \link{Cloud Foundry Events}{https://github.com/mevansam/cf-event-resource-type}
+  \table-row{\link{Pivnet Resource (rsamban)}{https://github.com/rsamban/pivnet-resource}}{by \ghuser{rsamban}}
 }{
-  \link{Apache Directory Index}{https://github.com/mastertinner/apache-directory-index-resource}
+  \table-row{\link{Cloud Foundry Events}{https://github.com/mevansam/cf-event-resource-type}}{by \ghuser{mevansam}}
 }{
-  \link{Cloud Foundry CLI Resource}{https://github.com/nulldriver/cf-cli-resource}
+  \table-row{\link{Apache Directory Index}{https://github.com/mastertinner/apache-directory-index-resource}}{by \ghuser{mastertinner}}
 }{
-  \link{Counter}{https://github.com/jinlee/counter-resource}
+  \table-row{\link{Cloud Foundry CLI Resource}{https://github.com/nulldriver/cf-cli-resource}}{by \ghuser{nulldriver}}
 }{
-  \link{Capistrano}{https://github.com/SHyx0rmZ/capistrano-resource}
+  \table-row{\link{Counter}{https://github.com/jinlee/counter-resource}}{by \ghuser{jinlee}}
 }{
-  \link{aptly CLI}{https://github.com/SHyx0rmZ/aptly-cli-resource}
+  \table-row{\link{Capistrano}{https://github.com/SHyx0rmZ/capistrano-resource}}{by \ghuser{SHyx0rmZ}}
 }{
-  \link{Prometheus Alertmanager}{https://github.com/frodenas/alertmanager-resource}
+  \table-row{\link{aptly CLI}{https://github.com/SHyx0rmZ/aptly-cli-resource}}{by \ghuser{SHyx0rmZ}}
 }{
-  \link{Git Bitbucket Pull Request Resource}{https://github.com/zarplata/concourse-git-bitbucket-pr-resource}
+  \table-row{\link{Prometheus Alertmanager}{https://github.com/frodenas/alertmanager-resource}}{by \ghuser{frodenas}}
 }{
-  \link{NPM Cache Resource}{https://github.com/ymedlop/npm-cache-resource}
+  \table-row{\link{Git Bitbucket Pull Request Resource}{https://github.com/zarplata/concourse-git-bitbucket-pr-resource}}{by \ghuser{zarplata}}
 }{
-  \link{Gerrit Resource}{https://github.com/google/concourse-resources/tree/master/gerrit}
+  \table-row{\link{NPM Cache Resource}{https://github.com/ymedlop/npm-cache-resource}}{by \ghuser{ymedlop}}
 }{
-  \link{Repo Resource}{https://github.com/google/concourse-resources/tree/master/repo}
+  \table-row{\link{Gerrit Resource}{https://github.com/google/concourse-resources/tree/master/gerrit}}{by \ghuser{google}}
 }{
-  \link{Trigger jobs using Slack}{https://github.com/ahelal/bender}
+  \table-row{\link{Repo Resource}{https://github.com/google/concourse-resources/tree/master/repo}}{by \ghuser{google}}
 }{
-  \link{Hashicorp Releases}{https://github.com/starkandwayne/hashicorp-release-resource}
+  \table-row{\link{Trigger jobs using Slack}{https://github.com/ahelal/bender}}{by \ghuser{ahelal}}
 }{
-  \link{Pushover notifications}{https://github.com/redfactorlabs/concourse-pushover-resource}
+  \table-row{\link{Hashicorp Releases}{https://github.com/starkandwayne/hashicorp-release-resource}}{by \ghuser{starkandwayne}}
 }{
-  \link{SonarQube static code analysis}{https://github.com/cathive/concourse-sonarqube-resource}
+  \table-row{\link{Pushover notifications}{https://github.com/redfactorlabs/concourse-pushover-resource}}{by \ghuser{redfactorlabs}}
 }{
-  \link{SonarQube Notifier}{https://github.com/elgohr/concourse-sonarqube-notifier}
+  \table-row{\link{SonarQube static code analysis}{https://github.com/cathive/concourse-sonarqube-resource}}{by \ghuser{cathive}}
 }{
-  \link{Metadata resource}{https://github.com/swce/metadata-resource}
+  \table-row{\link{SonarQube Notifier}{https://github.com/elgohr/concourse-sonarqube-notifier}}{by \ghuser{elgohr}}
 }{
-  \link{Spinnaker Resource}{https://github.com/burdzwastaken/concourse-spinnaker-resource}
+  \table-row{\link{Metadata resource}{https://github.com/swce/metadata-resource}}{by \ghuser{swce}}
 }{
-  \link{New Relic Deploy Resource}{https://github.com/crstamps2/newrelic-deploy-resource}
+  \table-row{\link{Spinnaker Resource}{https://github.com/burdzwastaken/concourse-spinnaker-resource}}{by \ghuser{burdzwastaken}}
 }{
-  \link{Artifactory Resource}{https://github.com/spring-io/artifactory-resource}
+  \table-row{\link{New Relic Deploy Resource}{https://github.com/crstamps2/newrelic-deploy-resource}}{by \ghuser{crstamps2}}
 }{
-  \link{Artifactory Resource}{https://github.com/emerald-squad/artifactory-resource}
+  \table-row{\link{Artifactory Resource}{https://github.com/spring-io/artifactory-resource}}{by \ghuser{spring-io}}
 }{
-  \link{CF blue green Resource}{https://github.com/emerald-squad/cf-blue-green-resource}
+  \table-row{\link{Artifactory Resource}{https://github.com/emerald-squad/artifactory-resource}}{by \ghuser{emerald-squad}}
 }{
-  \link{FiaaS Resource}{https://github.com/leboncoin/concourse-fiaas-resource}
+  \table-row{\link{CF blue green Resource}{https://github.com/emerald-squad/cf-blue-green-resource}}{by \ghuser{emerald-squad}}
 }{
-  \link{IRC notifications}{https://github.com/flavorjones/irc-notification-resource}
+  \table-row{\link{FiaaS Resource}{https://github.com/leboncoin/concourse-fiaas-resource}}{by \ghuser{leboncoin}}
+}{
+  \table-row{\link{IRC notifications}{https://github.com/flavorjones/irc-notification-resource}}{by \ghuser{flavorjones}}
 }
 
 \section{
