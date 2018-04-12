@@ -88,6 +88,8 @@ type ATCCommand struct {
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
+	CookieSecure bool     `long:"cookie-secure" description:"Set secure flag on auth cookies"`
+ 
 	TLSBindPort uint16    `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
 	TLSCert     flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
@@ -475,6 +477,7 @@ func (cmd *ATCCommand) constructMembers(
 		cmd.oauthBaseURL(),
 		signingKey,
 		cmd.AuthDuration,
+		cmd.CookieSecure,
 		cmd.isTLSEnabled(),
 		teamFactory,
 		logger,
