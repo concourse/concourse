@@ -13,6 +13,7 @@ type Server struct {
 	externalURL        string
 	oAuthBaseURL       string
 	expire             time.Duration
+	cookieSecure       bool
 	isTLSEnabled       bool
 	teamFactory        db.TeamFactory
 	providerFactory    auth.ProviderFactory
@@ -28,6 +29,7 @@ func NewServer(
 	externalURL string,
 	oAuthBaseURL string,
 	expire time.Duration,
+	cookieSecure bool,
 	isTLSEnabled bool,
 	teamFactory db.TeamFactory,
 	providerFactory auth.ProviderFactory,
@@ -43,6 +45,7 @@ func NewServer(
 		externalURL:        externalURL,
 		oAuthBaseURL:       oAuthBaseURL,
 		expire:             expire,
+		cookieSecure:       cookieSecure,
 		isTLSEnabled:       isTLSEnabled,
 		teamFactory:        teamFactory,
 		providerFactory:    providerFactory,

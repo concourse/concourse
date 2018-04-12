@@ -4,11 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/concourse/atc/db"
-
-	"strconv"
 
 	"code.cloudfoundry.org/lager"
 )
@@ -26,6 +25,7 @@ type OAuthBeginHandler struct {
 	providerFactory ProviderFactory
 	teamFactory     db.TeamFactory
 	expire          time.Duration
+	cookieSecure    bool
 	isTLSEnabled    bool
 }
 
@@ -34,6 +34,7 @@ func NewOAuthBeginHandler(
 	providerFactory ProviderFactory,
 	teamFactory db.TeamFactory,
 	expire time.Duration,
+	cookieSecure bool,
 	isTLSEnabled bool,
 ) http.Handler {
 	return &OAuthBeginHandler{
@@ -41,6 +42,7 @@ func NewOAuthBeginHandler(
 		providerFactory: providerFactory,
 		teamFactory:     teamFactory,
 		expire:          expire,
+		cookieSecure:    cookieSecure,
 		isTLSEnabled:    isTLSEnabled,
 	}
 }
@@ -126,7 +128,7 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		Expires:  time.Now().Add(handler.expire),
 		HttpOnly: true,
 	}
-	if handler.isTLSEnabled {
+	if handler.cookieSecure || handler.isTLSEnabled {
 		authCookie.Secure = true
 	}
 	// TODO: Add SameSite once Golang supports it

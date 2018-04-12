@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -14,7 +13,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
+	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/skymarshal/auth"
@@ -39,6 +38,9 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		server *httptest.Server
 		client *http.Client
+
+		cookieSecure bool
+		isTLSEnabled bool
 	)
 
 	BeforeEach(func() {
@@ -53,6 +55,22 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		expire = 24 * time.Hour
 
+		var err error
+		cookieJar, err = cookiejar.New(nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		client = &http.Client{
+			Transport: &http.Transport{},
+			Jar:       cookieJar,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+
+		fakeProviderFactory.GetProviderReturns(fakeProvider, true, nil)
+	})
+
+	JustBeforeEach(func() {
 		handler, err := auth.NewOAuthHandler(
 			lagertest.NewTestLogger("test"),
 			fakeProviderFactory,
@@ -60,45 +78,32 @@ var _ = Describe("OAuthBeginHandler", func() {
 			fakeCSRFTokenGenerator,
 			fakeAuthTokenGenerator,
 			expire,
-			false,
+			cookieSecure,
+			isTLSEnabled,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
 		server = httptest.NewServer(handler)
-
-		cookieJar, err = cookiejar.New(nil)
-		Expect(err).ToNot(HaveOccurred())
-
-		client = &http.Client{
-			Transport: &http.Transport{},
-			Jar:       cookieJar,
-		}
-
-		fakeProviderFactory.GetProviderReturns(fakeProvider, true, nil)
 	})
 
 	Describe("GET /auth/:provider/teams/:team_name", func() {
-		var redirectTarget *ghttp.Server
-		var request *http.Request
-		var response *http.Response
+		var (
+			request  *http.Request
+			response *http.Response
+			path     string
+		)
 
-		BeforeEach(func() {
-			redirectTarget = ghttp.NewServer()
-			redirectTarget.RouteToHandler("GET", "/", ghttp.RespondWith(http.StatusOK, "sup"))
-
+		JustBeforeEach(func() {
 			var err error
 
 			request, err = http.NewRequest("GET", server.URL, nil)
 			Expect(err).NotTo(HaveOccurred())
 
+			request.URL.Path = path
 			request.URL.RawQuery = url.Values{
 				"redirect":  {"/some-path"},
 				"team_name": {"some-team"},
 			}.Encode()
-		})
-
-		JustBeforeEach(func() {
-			var err error
 
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
@@ -112,13 +117,13 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 			Context("to a known provider", func() {
 				BeforeEach(func() {
-					request.URL.Path = "/auth/provider-name"
-					fakeProvider.AuthCodeURLReturns(redirectTarget.URL(), nil)
+					path = "/auth/provider-name"
+					fakeProvider.AuthCodeURLReturns("http://provider.com/redirect", nil)
 				})
 
 				It("redirects to the auth code URL", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("sup")))
+					Expect(response.StatusCode).To(Equal(http.StatusTemporaryRedirect))
+					Expect(response.Header.Get("Location")).To(Equal("http://provider.com/redirect"))
 				})
 
 				It("generates the auth code with a base64-encoded redirect URI and team name as the state", func() {
@@ -149,22 +154,51 @@ var _ = Describe("OAuthBeginHandler", func() {
 						Value: state,
 					}))
 				})
+
+				Context("with secure cookies", func() {
+					BeforeEach(func() {
+						cookieSecure = true
+						isTLSEnabled = false
+					})
+
+					It("sets the cookie secure flag", func() {
+						Expect(response.Cookies()).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+							"Name":   Equal(auth.OAuthStateCookie),
+							"Secure": BeTrue(),
+						}))))
+					})
+				})
+
+				Context("with tls enabled", func() {
+					BeforeEach(func() {
+						cookieSecure = false
+						isTLSEnabled = true
+					})
+
+					It("sets the cookie secure flag", func() {
+						Expect(response.Cookies()).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+							"Name":   Equal(auth.OAuthStateCookie),
+							"Secure": BeTrue(),
+						}))))
+					})
+				})
 			})
 
 			Context("to an unknown provider", func() {
 				BeforeEach(func() {
-					request.URL.Path = "/auth/bogus"
+					path = "/auth/bogus"
 				})
 
-				It("returns 404 not found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				It("redirects to /auth/", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusTemporaryRedirect))
+					Expect(response.Header.Get("Location")).To(Equal("/auth/"))
 				})
 			})
 		})
 
 		Context("when the team doesn't exist", func() {
 			BeforeEach(func() {
-				request.URL.Path = "/auth/b"
+				path = "/auth/b"
 
 				fakeTeamFactory.FindTeamReturns(fakeTeam, false, nil)
 			})
@@ -177,7 +211,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 		Context("when looking up the team fails", func() {
 			var disaster error
 			BeforeEach(func() {
-				request.URL.Path = "/auth/b"
+				path = "/auth/b"
 
 				disaster = errors.New("out of service")
 				fakeTeamFactory.FindTeamReturns(fakeTeam, false, disaster)

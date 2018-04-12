@@ -28,6 +28,7 @@ type OAuthCallbackHandler struct {
 	csrfTokenGenerator CSRFTokenGenerator
 	authTokenGenerator AuthTokenGenerator
 	expire             time.Duration
+	cookieSecure       bool
 	isTLSEnabled       bool
 	stateValidator     oauthStateValidator
 }
@@ -39,6 +40,7 @@ func NewOAuthCallbackHandler(
 	csrfTokenGenerator CSRFTokenGenerator,
 	authTokenGenerator AuthTokenGenerator,
 	expire time.Duration,
+	cookieSecure bool,
 	isTLSEnabled bool,
 	stateValidator oauthStateValidator,
 ) http.Handler {
@@ -49,6 +51,7 @@ func NewOAuthCallbackHandler(
 		csrfTokenGenerator: csrfTokenGenerator,
 		authTokenGenerator: authTokenGenerator,
 		expire:             expire,
+		cookieSecure:       cookieSecure,
 		isTLSEnabled:       isTLSEnabled,
 		stateValidator:     stateValidator,
 	}
@@ -198,7 +201,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		Expires:  exp,
 		HttpOnly: true,
 	}
-	if handler.isTLSEnabled {
+	if handler.cookieSecure || handler.isTLSEnabled {
 		authCookie.Secure = true
 	}
 	// TODO: Add SameSite once Golang supports it

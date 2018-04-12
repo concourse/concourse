@@ -44,6 +44,7 @@ var _ = Describe("LogOutHandler", func() {
 				fakeAuthTokenGenerator,
 				expire,
 				false,
+				false,
 			)
 			Expect(err).ToNot(HaveOccurred())
 

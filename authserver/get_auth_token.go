@@ -66,7 +66,7 @@ func (s *Server) generateToken(logger lager.Logger, w http.ResponseWriter, r *ht
 		Expires:  expiry,
 		HttpOnly: true,
 	}
-	if s.isTLSEnabled {
+	if s.cookieSecure || s.isTLSEnabled {
 		authCookie.Secure = true
 	}
 	// TODO: Add SameSite once Golang supports it
