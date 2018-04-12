@@ -99,6 +99,9 @@ case $1 in
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
       --bind-ip <%= p("bind_ip") %> \
       --bind-port <%= p("bind_port") %> \
+      <% if p("cookie_secure") %> \
+      --cookie-secure \
+      <% end %> \
       <% if_p("tls_bind_port", "tls_cert", "tls_key") do |port, _, _| %> \
       --tls-bind-port <%= port %> \
       --tls-cert /var/vcap/jobs/atc/config/tls_cert \
