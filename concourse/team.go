@@ -46,7 +46,6 @@ type Team interface {
 	UnpauseJob(pipelineName string, jobName string) (bool, error)
 
 	Resource(pipelineName string, resourceName string) (atc.Resource, bool, error)
-	VersionedResourceTypes(pipelineName string) (atc.VersionedResourceTypes, bool, error)
 	ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.VersionedResource, Pagination, bool, error)
 	CheckResource(pipelineName string, resourceName string, version atc.Version) (bool, error)
 
