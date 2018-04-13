@@ -4,7 +4,6 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,8 +13,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/skymarshal/token"
 	"github.com/coreos/go-oidc"
-	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/oauth2"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 type SkyConfig struct {
@@ -50,26 +49,6 @@ func NewSkyServer(config *SkyConfig) (*skyServer, error) {
 
 type skyServer struct {
 	config *SkyConfig
-}
-
-func (self *skyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
-
-	token, err := getJWT(r, &self.config.SigningKey.PublicKey)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(token.Claims)
-}
-
-func (self *skyServer) Logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:   authCookieName,
-		Path:   "/",
-		MaxAge: -1,
-	})
 }
 
 func (self *skyServer) Login(w http.ResponseWriter, r *http.Request) {
@@ -260,7 +239,42 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "application/json")
+
 	json.NewEncoder(w).Encode(skyToken)
+}
+
+func (self *skyServer) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:   authCookieName,
+		Path:   "/",
+		MaxAge: -1,
+	})
+}
+
+func (self *skyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
+
+	parts := strings.Split(r.Header.Get("Authorization"), " ")
+
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	parsed, err := jwt.ParseSigned(parts[1])
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var result map[string]interface{}
+	if err = parsed.Claims(&self.config.SigningKey.PublicKey, &result); err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(result)
 }
 
 func (self *skyServer) endpoint() oauth2.Endpoint {
@@ -282,22 +296,4 @@ func decode(raw string) *token.StateToken {
 	var token *token.StateToken
 	json.Unmarshal(data, &token)
 	return token
-}
-
-func getJWT(r *http.Request, publicKey *rsa.PublicKey) (token *jwt.Token, err error) {
-	fun := func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-
-		return publicKey, nil
-	}
-
-	if ah := r.Header.Get("Authorization"); ah != "" {
-		if len(ah) > 6 && strings.ToUpper(ah[0:6]) == "BEARER" {
-			return jwt.Parse(ah[7:], fun)
-		}
-	}
-
-	return nil, errors.New("unable to parse authorization header")
 }
