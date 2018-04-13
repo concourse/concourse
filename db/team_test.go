@@ -917,6 +917,13 @@ var _ = Describe("Team", func() {
 			Expect(otherTeamOrderedPipelines[0].ID()).To(Equal(otherPipeline1.ID()))
 			Expect(otherTeamOrderedPipelines[1].ID()).To(Equal(otherPipeline2.ID()))
 		})
+
+		Context("when pipeline does not exist", func() {
+			It("returns error ", func() {
+				err := otherTeam.OrderPipelines([]string{"pipeline-name-a", "pipeline-does-not-exist"})
+				Expect(err).To(HaveOccurred())
+			})
+		})
 	})
 
 	Describe("CreateOneOffBuild", func() {

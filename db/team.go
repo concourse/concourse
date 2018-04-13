@@ -699,7 +699,7 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 	defer Rollback(tx)
 
 	for i, name := range pipelineNames {
-		_, err := psql.Update("pipelines").
+		pipelineUpdate, err := psql.Update("pipelines").
 			Set("ordering", i).
 			Where(sq.Eq{
 				"name":    name,
@@ -709,6 +709,13 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 			Exec()
 		if err != nil {
 			return err
+		}
+		updatedPipelines, err := pipelineUpdate.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if updatedPipelines == 0 {
+			return errors.New(fmt.Sprintf("pipeline %s does not exist", name))
 		}
 	}
 
