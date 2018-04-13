@@ -29,6 +29,7 @@ const (
 	MainJobBadge   = "MainJobBadge"
 
 	ListResources        = "ListResources"
+	ListResourceTypes    = "ListResourceTypes"
 	GetResource          = "GetResource"
 	PauseResource        = "PauseResource"
 	UnpauseResource      = "UnpauseResource"
@@ -135,6 +136,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/badge", Method: "GET", Name: PipelineBadge},
 
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types", Method: "GET", Name: ListResourceTypes},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name", Method: "GET", Name: GetResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pause", Method: "PUT", Name: PauseResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/unpause", Method: "PUT", Name: UnpauseResource},

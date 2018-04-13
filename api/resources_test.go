@@ -220,6 +220,172 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Get(server.URL + "/api/v1/teams/a-team/pipelines/a-pipeline/resource-types")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when getting the resource types succeeds", func() {
+			BeforeEach(func() {
+				resourceType1 := new(dbfakes.FakeResourceType)
+				resourceType1.IDReturns(1)
+				resourceType1.NameReturns("resource-type-1")
+				resourceType1.TypeReturns("type-1")
+				resourceType1.SourceReturns(map[string]interface{}{"source-key-1": "source-value-1"})
+				resourceType1.PrivilegedReturns(false)
+				resourceType1.TagsReturns([]string{"tag1"})
+				resourceType1.ParamsReturns(map[string]interface{}{"param-key-1": "param-value-1"})
+				resourceType1.VersionReturns(map[string]string{
+					"version-key-1": "version-value-1",
+					"version-key-2": "version-value-2",
+				})
+
+				resourceType2 := new(dbfakes.FakeResourceType)
+				resourceType2.IDReturns(2)
+				resourceType2.NameReturns("resource-type-2")
+				resourceType2.TypeReturns("type-2")
+				resourceType2.SourceReturns(map[string]interface{}{"source-key-2": "source-value-2"})
+				resourceType2.PrivilegedReturns(true)
+				resourceType2.TagsReturns([]string{"tag1", "tag2"})
+				resourceType2.ParamsReturns(map[string]interface{}{"param-key-2": "param-value-2"})
+				resourceType2.VersionReturns(map[string]string{
+					"version-key-2": "version-value-2",
+				})
+
+				fakePipeline.ResourceTypesReturns(db.ResourceTypes{
+					resourceType1, resourceType2,
+				}, nil)
+			})
+
+			Context("when not authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthenticatedReturns(false)
+					fakeaccess.IsAuthorizedReturns(false)
+				})
+
+				Context("and the pipeline is private", func() {
+					BeforeEach(func() {
+						fakePipeline.PublicReturns(false)
+					})
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
+
+				Context("and the pipeline is public", func() {
+					BeforeEach(func() {
+						fakePipeline.PublicReturns(true)
+					})
+
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns each resource type", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`[
+				{
+					"name": "resource-type-1",
+					"type": "type-1",
+					"tags": ["tag1"],
+					"privileged": false,
+					"params": {"param-key-1": "param-value-1"},
+					"source": {"source-key-1": "source-value-1"},
+					"version": {
+						"version-key-1": "version-value-1",
+						"version-key-2": "version-value-2"
+					}
+				},
+				{
+					"name": "resource-type-2",
+					"type": "type-2",
+					"tags": ["tag1", "tag2"],
+					"privileged": true,
+					"params": {"param-key-2": "param-value-2"},
+					"source": {"source-key-2": "source-value-2"},
+					"version": {
+						"version-key-2": "version-value-2"
+					}
+				}
+			]`))
+					})
+				})
+			})
+
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(true)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns each resource type", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+			{
+				"name": "resource-type-1",
+				"type": "type-1",
+				"tags": ["tag1"],
+				"privileged": false,
+				"params": {"param-key-1": "param-value-1"},
+				"source": {"source-key-1": "source-value-1"},
+				"version": {
+					"version-key-1": "version-value-1",
+					"version-key-2": "version-value-2"
+				}
+			},
+			{
+				"name": "resource-type-2",
+				"type": "type-2",
+				"tags": ["tag1", "tag2"],
+				"privileged": true,
+				"params": {"param-key-2": "param-value-2"},
+				"source": {"source-key-2": "source-value-2"},
+				"version": {
+					"version-key-2": "version-value-2"
+				}
+			}
+		]`))
+				})
+
+				Context("when getting the resource type fails", func() {
+					Context("when the resource type are not found", func() {
+						BeforeEach(func() {
+							fakePipeline.ResourceTypesReturns(nil, nil)
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+					})
+
+					Context("with an unknown error", func() {
+						BeforeEach(func() {
+							fakePipeline.ResourceTypesReturns(nil, errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+				})
+			})
+		})
+	})
+
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name", func() {
 		var response *http.Response
 		var resourceName string
