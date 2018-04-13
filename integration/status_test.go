@@ -70,7 +70,7 @@ var _ = Describe("status Command", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(sess.Out).To(gbytes.Say(`Logged in successfully!`))
+				Expect(sess.Out).To(gbytes.Say(`logged in successfully`))
 			})
 		})
 
@@ -83,8 +83,8 @@ var _ = Describe("status Command", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say(`Please login again`))
-				Expect(sess.Err).To(gbytes.Say(`Token Validation failed with error : token contains an invalid number of segments`))
+				Expect(sess.Err).To(gbytes.Say(`please login again`))
+				Expect(sess.Err).To(gbytes.Say(`token validation failed with error : token contains an invalid number of segments`))
 			})
 		})
 
@@ -97,8 +97,32 @@ var _ = Describe("status Command", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say(`Please login again`))
-				Expect(sess.Err).To(gbytes.Say(`Token Validation failed with error : Token is expired`))
+				Expect(sess.Err).To(gbytes.Say(`please login again`))
+				Expect(sess.Err).To(gbytes.Say(`token validation failed with error : Token is expired`))
+			})
+		})
+
+		Context("when target is logged out", func() {
+			It("command exist with 1 and log out msg", func() {
+				flyCmd = exec.Command(flyPath, "-t", "loggedout-test", "status")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+				Expect(sess.Err).To(gbytes.Say(`logged out`))
+			})
+		})
+
+		Context("when invalid token is in target", func() {
+			It("command exist with 1", func() {
+				flyCmd = exec.Command(flyPath, "-t", "invalid-test", "status")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+				Expect(sess.Err).To(gbytes.Say(`logged out`))
 			})
 		})
 
@@ -111,7 +135,6 @@ var _ = Describe("status Command", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say(`Please login again`))
 				Expect(sess.Err).To(gbytes.Say(`unknown target: unknown-test`))
 			})
 		})

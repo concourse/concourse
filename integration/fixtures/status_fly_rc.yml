@@ -11,6 +11,16 @@ targets:
     token:
       type: Bearer
       value: bad-token
+  loggedout-test:
+    api: https://example.com/loggedout-test
+    team: test
+    token:
+      type: ""
+      value: ""
+  invalid-test:
+    api: https://example.com/invalid-test
+    team: test
+    token:
   expired-test:
     api: https://example.com/another-test
     team: test
