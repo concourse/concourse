@@ -177,7 +177,7 @@ var _ = Describe("Helper Functions", func() {
 						ID:      i,
 						Name:    strconv.Itoa(i),
 						JobName: "some-job",
-						APIURL:  fmt.Sprintf("api/v1/builds/%s", i),
+						APIURL:  fmt.Sprintf("api/v1/builds/%d", i),
 					}
 				}
 

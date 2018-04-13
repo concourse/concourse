@@ -47,10 +47,10 @@ type FlyCommand struct {
 	RenamePipeline   RenamePipelineCommand   `command:"rename-pipeline"   alias:"rp" description:"Rename a pipeline"`
 	ValidatePipeline ValidatePipelineCommand `command:"validate-pipeline" alias:"vp" description:"Validate a pipeline config"`
 	FormatPipeline   FormatPipelineCommand   `command:"format-pipeline"   alias:"fp" description:"Format a pipeline config"`
-
-	CheckResource   CheckResourceCommand   `command:"check-resource"    alias:"cr" description:"Check a resource"`
-	PauseResource   PauseResourceCommand   `command:"pause-resource"    alias:"pr" description:"Pause a resource"`
-	UnpauseResource UnpauseResourceCommand `command:"unpause-resource"  alias:"ur" description:"Unpause a resource"`
+	OrderPipelines   OrderPipelinesCommand   `command:"order-pipelines" alias:"op" description:"Orders pipelines"`
+	CheckResource    CheckResourceCommand    `command:"check-resource"    alias:"cr" description:"Check a resource"`
+	PauseResource    PauseResourceCommand    `command:"pause-resource"    alias:"pr" description:"Pause a resource"`
+	UnpauseResource  UnpauseResourceCommand  `command:"unpause-resource"  alias:"ur" description:"Unpause a resource"`
 
 	Builds     BuildsCommand     `command:"builds"      alias:"bs" description:"List builds data"`
 	AbortBuild AbortBuildCommand `command:"abort-build" alias:"ab" description:"Abort a build"`
