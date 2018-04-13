@@ -145,15 +145,6 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 		return nil, errors.New("build inputs not found")
 	}
 
-	versionedResourceTypes, found, err := team.VersionedResourceTypes(inputsFrom.PipelineName)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, errors.New("versioned resource types not found")
-	}
-
 	for _, buildInput := range buildInputs {
 		version := buildInput.Version
 
@@ -167,7 +158,6 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 				Version: &version,
 				Params:  buildInput.Params,
 				Tags:    buildInput.Tags,
-				VersionedResourceTypes: versionedResourceTypes,
 			}),
 		}
 	}
