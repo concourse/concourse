@@ -35,6 +35,27 @@ func (team *team) Pipeline(pipelineName string) (atc.Pipeline, bool, error) {
 	}
 }
 
+func (team *team) OrderingPipelines(pipelines []string) error {
+	params := rata.Params{
+		"team_name": team.name,
+	}
+
+	buffer := &bytes.Buffer{}
+	err := json.NewEncoder(buffer).Encode(pipelines)
+	if err != nil {
+		return fmt.Errorf("Unable to marshal pipeline names: %s", err)
+	}
+
+	return team.connection.Send(internal.Request{
+		RequestName: atc.OrderPipelines,
+		Params:      params,
+		Body:        buffer,
+		Header: http.Header{
+			"Content-Type": {"application/json"},
+		},
+	}, &internal.Response{})
+}
+
 func (team *team) ListPipelines() ([]atc.Pipeline, error) {
 	params := rata.Params{
 		"team_name": team.name,

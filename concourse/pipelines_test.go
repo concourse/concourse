@@ -160,6 +160,57 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		})
 	})
 
+	Describe("OrderingPipelines", func() {
+		Context("when the pipelines exists", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/ordering"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
+					),
+				)
+			})
+
+			It("return no error", func() {
+				err := team.OrderingPipelines([]string{"mypipeline", "mypipeline2"})
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the pipeline doesn't exist", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/ordering"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, ""),
+					),
+				)
+			})
+			It("returns error", func() {
+				err := team.OrderingPipelines([]string{"mypipeline"})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when the team doesn't exist", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/ordering"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
+					),
+				)
+			})
+			It("returns error", func() {
+				err := team.OrderingPipelines([]string{"mypipeline"})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
 	Describe("Pipeline", func() {
 		var expectedPipeline atc.Pipeline
 		pipelineName := "mypipeline"

@@ -57,6 +57,7 @@ type Team interface {
 	ListVolumes() ([]atc.Volume, error)
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	Builds(page Page) ([]atc.Build, Pagination, error)
+	OrderingPipelines(pipelineNames []string) error
 }
 
 type team struct {
