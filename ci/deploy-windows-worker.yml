@@ -8,12 +8,15 @@ image_resource:
 
 inputs:
 - name: concourse
+- name: windows-worker
 
 params:
   BOSH_ENVIRONMENT:
   BOSH_DEPLOYMENT:
   BOSH_CLIENT:
   BOSH_CLIENT_SECRET:
+  BOSH_CA_CERT:
+  BOSH_KEY:
 
 run:
-  path: concourse/ci/scripts/delete-deployment
+  path: concourse/ci/scripts/deploy-windows-worker
