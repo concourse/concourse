@@ -52,8 +52,10 @@ set -e
   postgres_sslmode = p("postgresql.sslmode", "disable")
 %>
 
+set -x
 downgrade_to=$(ls -al /var/vcap/packages/atc | awk -F/ '{print $NF}' | head -1)
 downgrade_from=$(ls -t /var/vcap/data/packages/atc/ | grep -v $downgrade_to | head -1)
+set +x
 
 test -n "$downgrade_from" && {
   version=$(/var/vcap/data/packages/atc/${downgrade_to}/bin/atc --supported-db-version)
