@@ -538,3 +538,24 @@ properties:
       to start it with a /. Maximum 5 slashes are permitted by AWS in parameter names.
       names.
     default: /concourse/{{.Team}}/{{.Secret}}
+
+  aws_secretsmanager.region:
+    description: |
+      AWS region to use for fetching entries from SecretsManager.
+  aws_secretsmanager.access_key:
+    description: |
+      AWS Access key ID used as credentials for accessing SecretsManager.
+  aws_secretsmanager.secret_key:
+    description: |
+      AWS Secret Access Key used as credentials for accessing SecretsManager.
+  aws_secretsmanager.session_token:
+    description: |
+      AWS Session Token used as credentials for accessing SecretsManager.
+  aws_secretsmanager.pipeline_secret_template:
+    description: |
+      AWS SecretsManager secret name template used to resolve pipeline specific secrets.
+    default: /concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}
+  aws_secretsmanager.team_secret_template:
+    description: |
+      AWS SecretsManager secret name template used to resolve team specific secrets.
+    default: /concourse/{{.Team}}/{{.Secret}}

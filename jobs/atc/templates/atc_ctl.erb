@@ -289,6 +289,24 @@ case $1 in
       <% if_p("aws_ssm.team_secret_template") do |team_secret_template| %> \
       --aws-ssm-team-secret-template <%= esc(team_secret_template) %> \
       <% end %> \
+      <% if_p("aws_secretsmanager.region") do |aws_region| %> \
+      --aws-secretsmanager-region <%= esc(aws_region) %> \
+      <% end %> \
+      <% if_p("aws_secretsmanager.access_key") do |aws_access_key| %> \
+      --aws-secretsmanager-access-key <%= esc(aws_access_key) %> \
+      <% end %> \
+      <% if_p("aws_secretsmanager.secret_key") do |aws_secret_key| %> \
+      --aws-secretsmanager-secret-key <%= esc(aws_secret_key) %> \
+      <% end %> \
+      <% if_p("aws_secretsmanager.session_token") do |aws_session_token| %> \
+      --aws-secretsmanager-session-token <%= esc(aws_session_token) %> \
+      <% end %> \
+      <% if_p("aws_secretsmanager.pipeline_secret_template") do |pipeline_secret_template| %> \
+      --aws-secretsmanager-pipeline-secret-template <%= esc(pipeline_secret_template) %> \
+      <% end %> \
+      <% if_p("aws_secretsmanager.team_secret_template") do |team_secret_template| %> \
+      --aws-secretsmanager-team-secret-template <%= esc(team_secret_template) %> \
+      <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 
