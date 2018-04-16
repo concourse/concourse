@@ -105,6 +105,8 @@ before using it!
 }{
   \table-row{\link{Telegram}{https://github.com/carlo-colombo/telegram-resource}}{by \ghuser{carlo-colombo}}
 }{
+  \table-row{\link{Telegram}{https://github.com/Cuttlerat/concourse-telegram-resource}}{by \ghuser{Cuttlerat}}
+}{
   \table-row{\link{Google Cloud Storage}{https://github.com/frodenas/gcs-resource}}{by \ghuser{frodenas}}
 }{
   \table-row{\link{Fly}{https://github.com/troykinsella/concourse-fly-resource}}{by \ghuser{troykinsella}}
