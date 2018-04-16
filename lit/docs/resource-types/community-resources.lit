@@ -178,6 +178,8 @@ before using it!
   \table-row{\link{FiaaS Resource}{https://github.com/leboncoin/concourse-fiaas-resource}}{by \ghuser{leboncoin}}
 }{
   \table-row{\link{IRC notifications}{https://github.com/flavorjones/irc-notification-resource}}{by \ghuser{flavorjones}}
+}{
+  \table-row{\link{PhraseApp Trigger}{https://github.com/tenjaa/concourse-phraseapp-resource}}{by \ghuser{tenjaa}}
 }
 
 \section{
