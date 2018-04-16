@@ -4,9 +4,9 @@
 
 * Website: [concourse-ci.org](https://concourse-ci.org)
 * Documentation:
-  * [Introduction](https://concourse-ci.org/introduction.html)
+  * [About](https://concourse-ci.org/about.html)
   * [Setting Up](https://concourse-ci.org/install.html)
-  * [Using Concourse](https://concourse-ci.org/using-concourse.html)
+  * [Using Concourse / Docs](https://concourse-ci.org/docs.html)
 * Forum 
   * [Concourse Discourse](https://discuss.concourse-ci.org)
 * Chat
