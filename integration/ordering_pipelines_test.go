@@ -112,7 +112,7 @@ var _ = Describe("Fly CLI", func() {
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(sess.Err).Should(gbytes.Say(`error: the required flag` + " `" + `-p, --pipeline' was not specified`))
+					Expect(sess.Err).Should(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(0))
