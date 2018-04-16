@@ -810,6 +810,7 @@ this is super secure
 					atcServer.RouteToHandler("PUT", path,
 						ghttp.RespondWith(http.StatusInternalServerError, "nope"),
 					)
+					config.Resources[0].Name = "updated-name"
 				})
 
 				It("prints the error to stderr and exits 1", func() {
@@ -846,6 +847,7 @@ this is super secure
 							},
 							ghttp.RespondWith(http.StatusCreated, "{}"),
 						))
+						config.Resources[0].Name = "updated-name"
 					})
 
 					It("succeeds and prints an error message to help the user", func() {
@@ -895,6 +897,7 @@ this is super secure
 							{"type":"deprecation","message":"warning-2"}
 						]}`),
 					))
+					config.Resources[0].Name = "updated-name"
 				})
 
 				It("succeeds and prints warnings", func() {
@@ -923,6 +926,23 @@ this is super secure
 				})
 			})
 
+			Context("when there are no pipeline changes", func() {
+				It("does not ask for user interaction to apply changes", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
+
+					Eventually(sess).Should(gbytes.Say("no changes to apply"))
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+
+				})
+			})
+
 			Context("when the existing config is invalid", func() {
 				BeforeEach(func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
@@ -941,6 +961,7 @@ this is super secure
 						},
 						ghttp.RespondWith(http.StatusCreated, `{}`),
 					))
+					config.Resources[0].Name = "updated-name"
 				})
 
 				It("succeeds and prints a warning", func() {
@@ -978,6 +999,7 @@ this is super secure
 					atcServer.RouteToHandler("PUT", path, func(w http.ResponseWriter, r *http.Request) {
 						atcServer.CloseClientConnections()
 					})
+					config.Resources[0].Name = "updated-name"
 				})
 
 				It("prints the error to stderr and exits 1", func() {

@@ -109,10 +109,15 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables []flag
 		return err
 	}
 
-	diff(existingConfig, new)
+	diffExists := diff(existingConfig, new)
 
 	if len(errorMessages) > 0 {
 		atcConfig.showPipelineConfigErrors(errorMessages)
+	}
+
+	if !diffExists {
+		fmt.Println("no changes to apply")
+		return nil
 	}
 
 	if !atcConfig.ApplyConfigInteraction() {
@@ -297,11 +302,14 @@ func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {
 	}
 }
 
-func diff(existingConfig atc.Config, newConfig atc.Config) {
+func diff(existingConfig atc.Config, newConfig atc.Config) bool {
+	var diffExists bool
+
 	indent := gexec.NewPrefixedWriter("  ", os.Stdout)
 
 	groupDiffs := diffIndices(GroupIndex(existingConfig.Groups), GroupIndex(newConfig.Groups))
 	if len(groupDiffs) > 0 {
+		diffExists = true
 		fmt.Println("groups:")
 
 		for _, diff := range groupDiffs {
@@ -311,6 +319,7 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 
 	resourceDiffs := diffIndices(ResourceIndex(existingConfig.Resources), ResourceIndex(newConfig.Resources))
 	if len(resourceDiffs) > 0 {
+		diffExists = true
 		fmt.Println("resources:")
 
 		for _, diff := range resourceDiffs {
@@ -320,6 +329,7 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 
 	resourceTypeDiffs := diffIndices(ResourceTypeIndex(existingConfig.ResourceTypes), ResourceTypeIndex(newConfig.ResourceTypes))
 	if len(resourceTypeDiffs) > 0 {
+		diffExists = true
 		fmt.Println("resource types:")
 
 		for _, diff := range resourceTypeDiffs {
@@ -329,10 +339,12 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 
 	jobDiffs := diffIndices(JobIndex(existingConfig.Jobs), JobIndex(newConfig.Jobs))
 	if len(jobDiffs) > 0 {
+		diffExists = true
 		fmt.Println("jobs:")
 
 		for _, diff := range jobDiffs {
 			diff.Render(indent, "job")
 		}
 	}
+	return diffExists
 }
