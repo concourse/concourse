@@ -1,7 +1,7 @@
 # Improving Concourse
 
 So, you've come here hoping to make Concourse better? Rad. There are lots of
-ways to do this, from just hanging around [Slack](http://slack.concourse-ci.org)
+ways to do this, from just hanging around [Discord](https://discord.gg/MeRxXKW) or [the forums](https://discuss.concourse-ci.org/),
 to contributing to discussions in GitHub issues and, maybe at some point,
 contributing code.
 
