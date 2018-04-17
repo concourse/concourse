@@ -37,6 +37,7 @@ var workersQuery = psql.Select(`
 		w.addr,
 		w.state,
 		w.baggageclaim_url,
+		w.reaper_addr,
 		w.certs_path,
 		w.http_proxy_url,
 		w.https_proxy_url,
@@ -121,6 +122,7 @@ func scanWorker(worker *worker, row scannable) error {
 		addStr        sql.NullString
 		state         string
 		bcURLStr      sql.NullString
+		reaperAddr    sql.NullString
 		certsPathStr  sql.NullString
 		httpProxyURL  sql.NullString
 		httpsProxyURL sql.NullString
@@ -140,6 +142,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&addStr,
 		&state,
 		&bcURLStr,
+		&reaperAddr,
 		&certsPathStr,
 		&httpProxyURL,
 		&httpsProxyURL,
@@ -167,6 +170,10 @@ func scanWorker(worker *worker, row scannable) error {
 
 	if bcURLStr.Valid {
 		worker.baggageclaimURL = &bcURLStr.String
+	}
+
+	if reaperAddr.Valid {
+		worker.reaperAddr = &reaperAddr.String
 	}
 
 	if certsPathStr.Valid {
@@ -260,10 +267,19 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 		return nil, err
 	}
 
+	reapSQL, _, err := sq.Case("state").
+		When("'landed'::worker_state", "NULL").
+		Else("'" + atcWorker.ReaperAddr + "'").
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
 	_, err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
 		Set("addr", sq.Expr("("+addrSQL+")")).
 		Set("baggageclaim_url", sq.Expr("("+bcSQL+")")).
+		Set("reaper_addr", sq.Expr("("+reapSQL+")")).
 		Set("active_containers", atcWorker.ActiveContainers).
 		Set("state", sq.Expr("("+cSQL+")")).
 		Where(sq.Eq{"name": atcWorker.Name}).
@@ -363,6 +379,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 					"tags",
 					"platform",
 					"baggageclaim_url",
+					"reaper_addr",
 					"certs_path",
 					"http_proxy_url",
 					"https_proxy_url",
@@ -381,6 +398,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 					tags,
 					atcWorker.Platform,
 					atcWorker.BaggageclaimURL,
+					atcWorker.ReaperAddr,
 					atcWorker.CertsPath,
 					atcWorker.HTTPProxyURL,
 					atcWorker.HTTPSProxyURL,
@@ -413,6 +431,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			Set("tags", tags).
 			Set("platform", atcWorker.Platform).
 			Set("baggageclaim_url", atcWorker.BaggageclaimURL).
+			Set("reaper_addr", atcWorker.ReaperAddr).
 			Set("certs_path", atcWorker.CertsPath).
 			Set("http_proxy_url", atcWorker.HTTPProxyURL).
 			Set("https_proxy_url", atcWorker.HTTPSProxyURL).
@@ -442,6 +461,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		state:            workerState,
 		gardenAddr:       &atcWorker.GardenAddr,
 		baggageclaimURL:  &atcWorker.BaggageclaimURL,
+		reaperAddr:       &atcWorker.ReaperAddr,
 		certsPath:        atcWorker.CertsPath,
 		httpProxyURL:     atcWorker.HTTPProxyURL,
 		httpsProxyURL:    atcWorker.HTTPSProxyURL,

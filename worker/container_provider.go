@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/worker/reaper"
 )
 
 const creatingContainerRetryDelay = 1 * time.Second
@@ -20,6 +21,7 @@ const creatingContainerRetryDelay = 1 * time.Second
 func NewContainerProvider(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
+	reaperClient reaper.ReaperClient,
 	volumeClient VolumeClient,
 	dbWorker db.Worker,
 	clock clock.Clock,
@@ -33,6 +35,7 @@ func NewContainerProvider(
 	return &containerProvider{
 		gardenClient:       gardenClient,
 		baggageclaimClient: baggageclaimClient,
+		reaperClient:       reaperClient,
 		volumeClient:       volumeClient,
 		imageFactory:       imageFactory,
 		dbVolumeFactory:    dbVolumeFactory,
@@ -69,6 +72,7 @@ type ContainerProvider interface {
 type containerProvider struct {
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
+	reaperClient       reaper.ReaperClient
 	volumeClient       VolumeClient
 	imageFactory       ImageFactory
 	dbVolumeFactory    db.VolumeFactory
@@ -144,6 +148,7 @@ func (p *containerProvider) FindOrCreateContainer(
 			worker := NewGardenWorker(
 				p.gardenClient,
 				p.baggageclaimClient,
+				p.reaperClient,
 				p,
 				p.volumeClient,
 				p.worker,
@@ -368,6 +373,7 @@ func (p *containerProvider) createGardenContainer(
 	worker := NewGardenWorker(
 		p.gardenClient,
 		p.baggageclaimClient,
+		p.reaperClient,
 		p,
 		p.volumeClient,
 		p.worker,

@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/worker/reaper"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
@@ -64,11 +65,13 @@ type Worker interface {
 
 	GardenClient() garden.Client
 	BaggageclaimClient() baggageclaim.Client
+	ReaperClient() reaper.ReaperClient
 }
 
 type gardenWorker struct {
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
+	reaperClient       reaper.ReaperClient
 
 	volumeClient      VolumeClient
 	containerProvider ContainerProvider
@@ -88,6 +91,7 @@ type gardenWorker struct {
 func NewGardenWorker(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
+	reaperClient reaper.ReaperClient,
 	containerProvider ContainerProvider,
 	volumeClient VolumeClient,
 	dbWorker db.Worker,
@@ -109,7 +113,12 @@ func NewGardenWorker(
 		name:             dbWorker.Name(),
 		startTime:        dbWorker.StartTime(),
 		version:          dbWorker.Version(),
+		reaperClient:     reaperClient,
 	}
+}
+
+func (worker *gardenWorker) ReaperClient() reaper.ReaperClient {
+	return worker.reaperClient
 }
 
 func (worker *gardenWorker) GardenClient() garden.Client {

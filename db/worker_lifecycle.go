@@ -30,6 +30,7 @@ func (lifecycle *workerLifecycle) StallUnresponsiveWorkers() ([]string, error) {
 			"state":            string(WorkerStateStalled),
 			"addr":             nil,
 			"baggageclaim_url": nil,
+			"reaper_addr":      nil,
 			"expires":          nil,
 		}).
 		Where(sq.Eq{"state": string(WorkerStateRunning)}).
@@ -142,6 +143,7 @@ func (lifecycle *workerLifecycle) LandFinishedLandingWorkers() ([]string, error)
 		Set("state", string(WorkerStateLanded)).
 		Set("addr", nil).
 		Set("baggageclaim_url", nil).
+		Set("reaper_addr", nil).
 		Where(sq.Eq{
 			"state": string(WorkerStateLanding),
 		}).

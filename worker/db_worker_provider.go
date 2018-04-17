@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/atc/worker/transport"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/retryhttp"
+	"github.com/concourse/worker/reaper"
 	"github.com/cppforlife/go-semi-semantic/version"
 
 	"github.com/concourse/atc/db"
@@ -149,6 +150,18 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 	)
 
 	gClient := gclient.New(NewRetryableConnection(gcf.BuildConnection()))
+	retryer := &transport.UnreachableWorkerRetryer{
+		DelegateRetryer: &retryhttp.DefaultRetryer{},
+	}
+
+	rClient := reaper.NewWithHttpClient(*savedWorker.ReaperAddr(), logger.Session("reaper-client"), &http.Client{
+		Transport: &retryhttp.RetryRoundTripper{
+			Logger:         logger.Session("retryable-http-client-reaper"),
+			BackOffFactory: provider.retryBackOffFactory,
+			RoundTripper:   http.DefaultTransport,
+			Retryer:        retryer,
+		},
+	})
 
 	bClient := bclient.New("", transport.NewBaggageclaimRoundTripper(
 		savedWorker.Name(),
@@ -173,6 +186,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 	containerProvider := NewContainerProvider(
 		gClient,
 		bClient,
+		rClient,
 		volumeClient,
 		savedWorker,
 		tikTok,
@@ -185,6 +199,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 	return NewGardenWorker(
 		gClient,
 		bClient,
+		rClient,
 		containerProvider,
 		volumeClient,
 		savedWorker,
