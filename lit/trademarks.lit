@@ -1,19 +1,18 @@
-\title{Trademark Guidelines}{trademarks}
-
-\styled{trademarks}
+\title{Trademarks}{trademarks}
 
 \use-plugin{concourse-docs}
 
-\list{
-  \bold{PURPOSE.} Alex Suraci, Chris Brown and Pivotal Software, Inc.
-  (collectively, “\bold{Concourse}”) owns a number of international trademarks and
-  logos that identify the Concourse community and individual Concourse projects
-  (“\bold{Concourse Marks}”). These trademarks include, but are not limited to:
+\trademark-guidelines{
+  \bold{PURPOSE.} Alex Suraci, Christopher Brown and Pivotal Software, Inc.
+  (collectively, “\bold{Concourse}”) owns a number of international trademarks
+  and logos that identify the Concourse community and individual Concourse
+  projects (“\bold{Concourse Marks}”). These trademarks include, but are not
+  limited to:
 
   \list{
     \bold{Words: CONCOURSE}
   }{
-    \bold{Logos:} \image{images/logos/concourse-black.png}
+    \bold{Logos:} \image{images/trademarks/concourse-black.png}
   }
 
   This policy outlines Concourse’s policy and guidelines about the use of the
@@ -206,5 +205,5 @@
 }{
   \bold{MORE QUESTIONS?} If you have questions about this policy, please
   contact us at
-  \link{trademarks@concourse.ci}{mailto:trademarks@concourse.ci}.
+  \link{concourseteam+trademarks@gmail.com}{mailto:concourseteam+trademarks@gmail.com}.
 }

@@ -2,6 +2,7 @@ package docs
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -9,7 +10,9 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/vito/booklit"
+	"github.com/vito/booklit/ast"
 	"github.com/vito/booklit/chroma"
+	"github.com/vito/booklit/stages"
 )
 
 var flyBinariesVersion = semver.MustParse("2.2.0")
@@ -21,13 +24,19 @@ func init() {
 type Plugin struct {
 	section *booklit.Section
 	chroma  chroma.Plugin
+
+	definitionContext []string
 }
 
 func NewPlugin(section *booklit.Section) booklit.Plugin {
-	return Plugin{
+	return &Plugin{
 		section: section,
 		chroma:  chroma.NewPlugin(section).(chroma.Plugin),
 	}
+}
+
+func (p Plugin) Wide() {
+	p.section.SetPartial("Wide", booklit.Empty)
 }
 
 func (p Plugin) FontAwesome(class string) booklit.Content {
@@ -41,6 +50,49 @@ func (p Plugin) Codeblock(language string, code booklit.Content) (booklit.Conten
 	return p.chroma.Syntax(language, code, "concourseci")
 }
 
+func (p Plugin) SplashIntro(intro, blurb booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style: "splash-intro",
+		Block: true,
+
+		Content: blurb,
+
+		Partials: booklit.Partials{
+			"Intro": intro,
+		},
+	}
+}
+
+func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "quick-start",
+		Block:   true,
+		Content: content,
+	}
+}
+
+func (p Plugin) SplashExample(title booklit.Content, content booklit.Content, example booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style: "splash-example",
+		Block: true,
+
+		Content: content,
+
+		Partials: booklit.Partials{
+			"Title":   title,
+			"Example": example,
+		},
+	}
+}
+
+func (p Plugin) ExamplePipeline() booklit.Content {
+	return booklit.Styled{
+		Style:   "example-pipeline",
+		Block:   true,
+		Content: booklit.Empty,
+	}
+}
+
 func (p Plugin) TitledCodeblock(title booklit.Content, language string, code booklit.Content) (booklit.Content, error) {
 	codeblock, err := p.Codeblock(language, code)
 	if err != nil {
@@ -49,6 +101,7 @@ func (p Plugin) TitledCodeblock(title booklit.Content, language string, code boo
 
 	return booklit.Styled{
 		Style: "titled-codeblock",
+		Block: true,
 
 		Content: codeblock,
 
@@ -68,7 +121,7 @@ func (p Plugin) Warn(content booklit.Content) booklit.Content {
 	}
 }
 
-func (p Plugin) DefineAttribute(attribute string, content booklit.Content, tags ...string) (booklit.Content, error) {
+func (p *Plugin) DefineAttribute(attribute string, contentNode ast.Node, tags ...string) (booklit.Content, error) {
 	attrSplit := strings.SplitN(attribute, ":", 2)
 
 	attrName := attrSplit[0]
@@ -76,39 +129,58 @@ func (p Plugin) DefineAttribute(attribute string, content booklit.Content, tags 
 		tags = []string{attrName}
 	}
 
+	oldCtx := p.definitionContext
+	p.definitionContext = append(p.definitionContext, attrName)
+
+	stage := &stages.Evaluate{
+		Section: p.section,
+	}
+
+	err := contentNode.Visit(stage)
+	if err != nil {
+		return nil, err
+	}
+
+	content := stage.Result
+
 	display := booklit.Styled{
 		Style: booklit.StyleVerbatim,
 		Content: booklit.Styled{
 			Style:   booklit.StyleBold,
-			Content: booklit.String(attrName),
+			Content: booklit.String(strings.Join(p.definitionContext, ".")),
 		},
 	}
+
+	p.definitionContext = oldCtx
 
 	targets := booklit.Sequence{}
 	for _, t := range tags {
 		targets = append(targets, booklit.Target{
 			TagName: t,
-			Display: display,
+			Title:   display,
+			Content: content,
 		})
 	}
 
-	return booklit.Styled{
-		Style:   "definition",
-		Content: content,
-		Partials: booklit.Partials{
-			"Targets": targets,
-			"Thumb": booklit.Styled{
-				Style: booklit.StyleVerbatim,
-				Content: booklit.Preformatted{
-					booklit.Sequence{
-						&booklit.Reference{
-							TagName: tags[0],
-							Content: booklit.Styled{
-								Style:   booklit.StyleBold,
-								Content: booklit.String(attrName),
+	return NoIndex{
+		booklit.Styled{
+			Style:   "definition",
+			Content: content,
+			Partials: booklit.Partials{
+				"Targets": targets,
+				"Thumb": booklit.Styled{
+					Style: booklit.StyleVerbatim,
+					Content: booklit.Preformatted{
+						booklit.Sequence{
+							&booklit.Reference{
+								TagName: tags[0],
+								Content: booklit.Styled{
+									Style:   booklit.StyleBold,
+									Content: booklit.String(attrName),
+								},
 							},
+							booklit.String(":" + attrSplit[1]),
 						},
-						booklit.String(":" + attrSplit[1]),
 					},
 				},
 			},
@@ -117,17 +189,20 @@ func (p Plugin) DefineAttribute(attribute string, content booklit.Content, tags 
 }
 
 func (p Plugin) DefineMetric(metric string, content booklit.Content) booklit.Content {
-	return booklit.Styled{
-		Style:   "definition",
-		Content: content,
-		Partials: booklit.Partials{
-			"Targets": booklit.Target{
-				TagName: metric,
-				Display: booklit.String(metric),
-			},
-			"Thumb": booklit.Styled{
-				Style:   booklit.StyleVerbatim,
-				Content: booklit.Preformatted{booklit.String(metric)},
+	return NoIndex{
+		booklit.Styled{
+			Style:   "definition",
+			Content: content,
+			Partials: booklit.Partials{
+				"Targets": booklit.Target{
+					TagName: metric,
+					Title:   booklit.String(metric),
+					Content: content,
+				},
+				"Thumb": booklit.Styled{
+					Style:   booklit.StyleVerbatim,
+					Content: booklit.Preformatted{booklit.String(metric)},
+				},
 			},
 		},
 	}
@@ -136,28 +211,31 @@ func (p Plugin) DefineMetric(metric string, content booklit.Content) booklit.Con
 func (p Plugin) DefineTable(table string, content booklit.Content) booklit.Content {
 	tagName := table + "-table"
 
-	return booklit.Styled{
-		Style:   "definition",
-		Content: content,
-		Partials: booklit.Partials{
-			"Targets": booklit.Target{
-				TagName: tagName,
-				Display: booklit.Styled{
-					Style: booklit.StyleVerbatim,
-					Content: booklit.Styled{
-						Style:   booklit.StyleBold,
-						Content: booklit.String(table),
-					},
-				},
-			},
-			"Thumb": booklit.Styled{
-				Style: booklit.StyleVerbatim,
-				Content: booklit.Preformatted{
-					&booklit.Reference{
-						TagName: tagName,
+	return NoIndex{
+		booklit.Styled{
+			Style:   "definition",
+			Content: content,
+			Partials: booklit.Partials{
+				"Targets": booklit.Target{
+					TagName: tagName,
+					Title: booklit.Styled{
+						Style: booklit.StyleVerbatim,
 						Content: booklit.Styled{
 							Style:   booklit.StyleBold,
 							Content: booklit.String(table),
+						},
+					},
+					Content: content,
+				},
+				"Thumb": booklit.Styled{
+					Style: booklit.StyleVerbatim,
+					Content: booklit.Preformatted{
+						&booklit.Reference{
+							TagName: tagName,
+							Content: booklit.Styled{
+								Style:   booklit.StyleBold,
+								Content: booklit.String(table),
+							},
 						},
 					},
 				},
@@ -292,18 +370,102 @@ func (p Plugin) Release(date string, concourseVersion string, gardenRunCVersion 
 	return p.release(date, concourseVersion, gardenRunCVersion, content)
 }
 
+func (p Plugin) CurrentVersion() booklit.Content {
+	currentVersion := os.Getenv("CONCOURSE_VERSION")
+	if currentVersion == "" {
+		currentVersion = "0.0.0"
+	}
+
+	return booklit.String(currentVersion)
+}
+
+func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit.Content {
+	tags := strings.Split(commaSeparatedTags, ",")
+
+	tagNotes := []booklit.Content{}
+	for _, t := range tags {
+		tagNotes = append(tagNotes, booklit.Styled{
+			Style:   "release-note-tag",
+			Content: booklit.String(t),
+		})
+	}
+
+	return booklit.Styled{
+		Style:   "release-note",
+		Content: content,
+		Partials: booklit.Partials{
+			"Tags": booklit.Sequence(tagNotes),
+		},
+	}
+}
+
+func (p Plugin) Examples(content booklit.Content) {
+	p.section.SetPartial("Examples", content)
+}
+
+func (p Plugin) Example(title, content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "example",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Title": title,
+		},
+	}
+}
+
+func (p Plugin) TrademarkGuidelines(content ...booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style: "trademark-guidelines",
+		Block: true,
+		Content: booklit.List{
+			Items: content,
+		},
+	}
+}
+
+func (p Plugin) ReleaseLink(file string, contentOptional ...booklit.Content) booklit.Content {
+	version := os.Getenv("CONCOURSE_VERSION")
+	if version == "" {
+		version = "0.0.0"
+	}
+
+	url := "https://github.com/concourse/concourse/releases/download/v" + version + "/" + file
+
+	var content booklit.Content
+	if len(contentOptional) == 0 {
+		content = booklit.String(url)
+	} else {
+		content = contentOptional[0]
+	}
+
+	return booklit.Link{
+		Target:  url,
+		Content: content,
+	}
+}
+
 func (p Plugin) release(
 	date string,
 	concourseVersion string,
 	gardenVersion string,
 	content booklit.Content,
 ) (booklit.Content, error) {
+	currentVersion := os.Getenv("CONCOURSE_VERSION")
+	if currentVersion == "" {
+		currentVersion = "0.0.0"
+	}
+
 	t, err := time.Parse("2006-1-2", date)
 	if err != nil {
 		return nil, err
 	}
 
+	p.section.Style = "release"
+
 	p.section.SetTitle(booklit.String("v" + concourseVersion))
+
+	p.section.SetPartial("CurrentVersion", p.CurrentVersion())
 
 	p.section.SetPartial("Version", booklit.String(concourseVersion))
 	p.section.SetPartial("VersionLabel", booklit.Styled{
@@ -334,22 +496,10 @@ func (p Plugin) release(
 	return content, nil
 }
 
-func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit.Content {
-	tags := strings.Split(commaSeparatedTags, ",")
+type NoIndex struct {
+	booklit.Content
+}
 
-	tagNotes := []booklit.Content{}
-	for _, t := range tags {
-		tagNotes = append(tagNotes, booklit.Styled{
-			Style:   "release-note-tag",
-			Content: booklit.String(t),
-		})
-	}
-
-	return booklit.Styled{
-		Style:   "release-note",
-		Content: content,
-		Partials: booklit.Partials{
-			"Tags": booklit.List{Items: tagNotes},
-		},
-	}
+func (NoIndex) String() string {
+	return ""
 }

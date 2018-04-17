@@ -1,0 +1,149 @@
+\title{Pipelines}{pipelines}
+
+\use-plugin{concourse-docs}
+
+A pipeline is the result of configuring \reference{jobs} and
+\reference{resources} together. When you configure a pipeline, it takes on a
+life of its own, to continuously detect resource versions and automatically
+queue new builds for jobs as they have new available inputs.
+
+Pipelines are configured as declarative YAML files, fitting the following
+schema:
+
+\define-attribute{jobs: [job]}{
+  A set of \reference{jobs}{job}s for the pipeline to continuously check.
+}{pipeline-jobs}
+
+\define-attribute{resources: [resource]}{
+  A set of \reference{resources}{resource}s for the pipeline to continuously
+  check.
+}{pipeline-resources}
+
+\define-attribute{resource_types: [resource_type]}{
+  A set of \reference{resource-types}{resource type}s for resources within the
+  pipeline to use.
+}{pipeline-resource-types}
+
+\define-attribute{groups: [group]}{
+  A list of \reference{pipeline-groups}{groups} to use for cleaning
+  up/organizing jobs in the web UI.
+}
+
+\split-sections
+\table-of-contents
+
+\include-section{pipelines/configuring.lit}
+\include-section{pipelines/managing.lit}
+\include-section{pipelines/groups.lit}
+
+\examples{
+  \example{Hello, world!}{
+    The following example makes use of an embedded \reference{tasks}{task
+    config} to define the smallest possible pipeline.
+
+    \codeblock{yaml}{{{
+      jobs:
+      - name: hello-world
+        plan:
+        - task: say-hello
+          config:
+            platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: alpine}
+            run:
+              path: echo
+              args: ["Hello, world!"]
+    }}}
+  }
+
+  \example{Small Go Project}{
+    When it comes to real-world projects, task configs are usually stored
+    alongside the code that it's testing. This makes the pipeline a bit
+    smaller and makes the config able to change without needing to
+    reconfigure the pipeline.
+
+    \codeblock{yaml}{{
+      ---
+      resources:
+      - name: booklit
+        type: git
+        source:
+          uri: https://github.com/vito/booklit
+          branch: master
+
+      jobs:
+      - name: unit
+        plan:
+        - get: booklit
+          trigger: true
+        - task: unit
+          file: booklit/ci/test.yml
+    }}
+  }
+
+  \example{Chaining Jobs}{
+    Promoting resources to downstream jobs is done by setting
+    \reference{get-step-passed} on a \reference{get-step}{\code{get} step}.
+
+    Note that nothing in \code{unit} says anything about triggering
+    \code{build}. Job definitions are self-contained; they describe their
+    dependencies and where they come from, which results in a dependency flow
+    that Concourse pushes forward.
+
+    \codeblock{yaml}{{{
+      ---
+      resources:
+      - name: booklit
+        type: git
+        source:
+          uri: https://github.com/vito/booklit
+          branch: master
+
+      jobs:
+      - name: unit
+        plan:
+        - get: booklit
+          trigger: true
+        - task: unit
+          file: booklit/ci/test.yml
+
+      - name: build
+        plan:
+        - get: booklit
+          passed: [unit]
+          trigger: true
+        - task: unit
+          file: booklit/ci/build.yml
+    }}}
+  }
+
+  \example{Using Resource Types}{
+    \reference{resource-types}{Resource Types} can be used to extend the
+    functionality of your pipeline and provide deeper integrations. This
+    example uses one to trigger a job whenever a new \link{Dinosaur
+    Comic}{http://www.qwantz.com} is out.
+
+    \codeblock{yaml}{{{
+      ---
+      resource_types:
+      - name: rss
+        type: docker-image
+        source:
+          repository: suhlig/concourse-rss-resource
+          tag: latest
+
+      resources:
+      - name: booklit-releases
+        type: rss
+        source:
+          url: http://www.qwantz.com/rssfeed.php
+
+      jobs:
+      - name: announce
+        plan:
+        - get: booklit-releases
+          trigger: true
+    }}}
+  }
+}

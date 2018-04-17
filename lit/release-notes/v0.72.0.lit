@@ -40,7 +40,7 @@
 
   \note{breaking}{
     In order for a task to make something for a later step in the plan it now
-    must use \reference{outputs}. Previously the task's entire working
+    must use \reference{task-outputs}. Previously the task's entire working
     directory was made available if outputs were not configured, which led to
     more network traffic than necessary if you didn't intend for the task to
     actually propagate anything to later steps.

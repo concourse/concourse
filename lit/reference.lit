@@ -1,6 +1,0 @@
-\title{Reference}{reference}
-
-\split-sections
-\table-of-contents
-
-\include-section{./reference/internals.lit}

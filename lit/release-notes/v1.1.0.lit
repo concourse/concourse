@@ -69,9 +69,9 @@
   }
 
   \note{fix}{
-    Previously if you had an entry in \reference{configuring-resource-types}
-    and \reference{configuring-resources} with the same name the ATC catch on
-    fire. It now doesn't.
+    Previously if you had an entry in \reference{resource-types} and
+    \reference{resources} with the same name the ATC catch on fire. It now
+    doesn't.
   }
 
   \note{fix}{

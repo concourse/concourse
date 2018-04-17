@@ -1,0 +1,245 @@
+\title{Install}{install}{installing}{binaries}
+
+\use-plugin{concourse-docs}
+
+Concourse is distributed as a single \code{concourse} binary, which contains
+the logic for running both a \reference{web-node} and a
+\reference{worker-node}. The binary is fairly self-contained, making it ideal
+for tossing onto a VM by hand or orchestrating it with Docker, Kubernetes, or
+other ops tooling.
+
+For the sake of brevity and clarity, this document will focus solely on the
+\code{concourse} binary. Documentation for other platforms is available
+localized to their GitHub repository, as linked to by the \reference{download}
+page.
+
+\italic{
+  Note: this document is not an exhaustive reference for the \code{concourse}
+  CLI! Consult the \code{--help} output if you're looking for a knob to turn.
+}
+
+\section{
+  \title{Prerequisites}
+
+  \list{
+    Grab the appropriate binary for your platform from the
+    \reference{downloads}{downloads} section.
+  }{
+    On Linux you'll need kernel v3.19 or later, with user namespace support
+    enabled. Windows and Darwin don't really need anything special.
+  }{
+    A PostgresSQL 9.5+ server running somewhere with an empty database created.
+    If you're going to run a server yourself, refer to your platform or Linux
+    distribution's installation instructions; we can't feasibly maintain the
+    docs for this subject ourselves.
+  }
+}
+
+\section{
+  \title{Quick Start}{quickstart}
+
+  Before you spend time getting a \reference{cluster}{cluster} up and running,
+  you might want to just kick the tires a bit and run everything at once. This
+  can be achieved with the \code{quickstart} command:
+
+  \codeblock{bash}{{
+  concourse quickstart \\
+    --basic-auth-username myuser \\
+    --basic-auth-password mypass \\
+    --external-url http://my-ci.example.com \\
+    --worker-work-dir /opt/concourse/worker
+  }}
+
+  This command is shorthand for running a single \reference{web-node} and
+  \reference{worker-node} on the same machine, auto-wired to trust each other.
+  We've also configured some silly basic auth for the \reference{main-team} -
+  you may want to change that (see \reference{authentication}).
+
+  So far we've assumed that you have a local PostgreSQL server running on the
+  default port (\code{5432}) with an \code{atc} database, accessible by the
+  current UNIX user. If your database lives elsewhere, just specify the
+  \code{--postgres-*} flags (consult \code{concourse quickstart --help} for
+  more information).
+
+  The addition of the \code{--external-url} flag is not technically necessary,
+  so if you're just testing things it's safe to omit it. Concourse uses it as a
+  base when generating URLs to itself, so you won't want those to be the
+  default \code{http://127.0.0.1:8080} URL when you're developing on a
+  different machine than the server.
+}
+
+\section{
+  \title{Multi-node Cluster}{cluster}
+
+  Beyond \code{quickstart}, the Concourse binary includes separate commands for
+  running a multi-node cluster. This is necessary for either high-availability
+  or just being able to run things across more than one worker.
+
+  \section{
+    \title{Generating Keys}{generating-keys}
+
+    First, you'll need to generate 3 private keys (well, 2, plus 1 for each
+    worker):
+
+    \definitions{
+      \definition{\code{session_signing_key} (currently must be RSA)}{
+        Used for signing user session tokens, and by the TSA to sign its own
+        tokens in the requests it makes to the ATC.
+      }
+    }{
+      \definition{\code{tsa_host_key}}{
+        Used for the TSA's SSH server. This is the key whose fingerprint you
+        see when the \code{ssh} command warns you when connecting to a host it
+        hasn't seen before.
+      }
+    }{
+      \definition{\code{worker_key} (one per worker)}{
+        Used for authorizing worker registration. There can actually be an
+        arbitrary number of these keys; they are just listed to authorize
+        worker SSH access.
+      }
+    }
+
+    To generate these keys, run:
+
+    \codeblock{bash}{{
+    ssh-keygen -t rsa -f tsa_host_key -N ''
+    ssh-keygen -t rsa -f worker_key -N ''
+    ssh-keygen -t rsa -f session_signing_key -N ''
+    }}
+
+    ...and we'll also start on an \code{authorized_keys} file, currently
+    listing this initial worker key:
+
+    \codeblock{bash}{{
+    cp worker_key.pub authorized_worker_keys
+    }}
+  }
+
+  \section{
+    \title{Running \code{web} Nodes}
+
+    The \code{concourse} binary can run a \reference{web-node} via the
+    \code{web} subcommand, like so:
+
+    \codeblock{bash}{{
+    concourse web \\
+      --basic-auth-username myuser \\
+      --basic-auth-password mypass \\
+      --session-signing-key session_signing_key \\
+      --tsa-host-key tsa_host_key \\
+      --tsa-authorized-keys authorized_worker_keys \\
+      --external-url http://my-ci.example.com
+    }}
+
+    Just as with \reference{quickstart}, this example is configuring basic auth
+    for the \reference{main-team}, and assumes a local PostgreSQL server.
+    You'll want to consult \code{concourse web --help} for more configuration
+    options.
+
+    The \reference{web-node} can be scaled up for high availability, and
+    they'll also roughly share their scheduling workloads, using the database
+    to synchronize. This is done by just running more \code{web} commands on
+    different machines, and optionally putting them behind a load balancer.
+
+    To run a cluster of \reference{web-node}s, you'll just need to pass the
+    following flags:
+
+    \list{
+      The \code{--postgres-*} flags must all be set to the same database.
+    }{
+      The \code{--peer-url} flag must be specified as a URL used to reach the
+      individual \reference{web-node}, from other \code{web} nodes. So this
+      just has to be a URL reachable within their private network, e.g. a
+      \code{10.x.x.x} address.
+    }{
+      The \code{--external-url} should be the URL used to reach \italic{any}
+      ATC, i.e. the URL pointing to your load balancer.
+    }
+
+    For example:
+
+    Node 0:
+
+    \codeblock{bash}{{
+    concourse web \\
+      --basic-auth-username myuser \\
+      --basic-auth-password mypass \\
+      --session-signing-key session_signing_key \\
+      --tsa-host-key tsa_host_key \\
+      --tsa-authorized-keys authorized_worker_keys \\
+      --postgres-host 10.0.32.0 \\
+      --postgres-user user \\
+      --postgres-password pass \\
+      --postgres-database concourse \\
+      --external-url https://ci.example.com \\
+      --peer-url http://10.0.16.10:8080
+    }}
+
+    Node 1 (only difference is \code{--peer-url}):
+
+    \codeblock{bash}{{
+    concourse web \\
+      --basic-auth-username myuser \\
+      --basic-auth-password mypass \\
+      --session-signing-key session_signing_key \\
+      --tsa-host-key tsa_host_key \\
+      --tsa-authorized-keys authorized_worker_keys \\
+      --postgres-host 10.0.32.0 \\
+      --postgres-user user \\
+      --postgres-password pass \\
+      --postgres-database concourse \\
+      --external-url https://ci.example.com \\
+      --peer-url http://10.0.16.11:8080
+    }}
+  }
+
+  \section{
+    \title{Running \code{worker} Nodes}{standalone-workers}
+
+    The \code{concourse} binary can run a \reference{worker-node} via the
+    \code{worker} subcommand, like so:
+
+    \codeblock{bash}{{
+    sudo concourse worker \\
+      --work-dir /opt/concourse/worker \\
+      --tsa-host 127.0.0.1:2222 \\
+      --tsa-public-key tsa_host_key.pub \\
+      --tsa-worker-private-key worker_key
+    }}
+
+    Note that the worker must be run as \code{root}, as it orchestrates
+    containers.
+
+    You may want a few workers, depending on the resource usage of your
+    pipeline. There should be one per machine; running multiple on one box
+    doesn't really make sense, as each worker runs as many containers as
+    Concourse requests of it.
+
+    The \code{--work-dir} flag specifies where container data should be placed.
+    Make sure it has plenty of disk space available, as it's where all the disk
+    usage across your builds and resources will end up.
+
+    The \code{--tsa-host} refers to wherever the TSA on your
+    \reference{web-node} is listening. This may be an address to a load
+    balancer if you're running multiple \code{web} nodes, or just a local
+    address like \code{127.0.0.1:2222} if you're running everything on one box.
+
+    The \code{--tsa-public-key} flag is used to ensure we're connecting to the
+    TSA we should be connecting to, and is used like \code{known_hosts} with
+    the \code{ssh} command. Refer to \reference{generating-keys} if you're not
+    sure what this means.
+
+    The \code{--tsa-worker-private-key} flag specifies the key to use when
+    authenticating to the TSA. Refer to \reference{generating-keys} if you're
+    not sure what this means.
+
+    Workers have a statically configured \code{platform} and a set of
+    \code{tags}, both of which determine where steps in a
+    \reference{build-plans}{Build Plan} are scheduled.
+
+    The Linux \code{concourse} binary comes with
+    \reference{included-resources}{a set of core resource types} baked in. If
+    you are planning to use them you need to have at least one Linux worker.
+  }
+}

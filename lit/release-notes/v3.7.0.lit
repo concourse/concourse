@@ -59,8 +59,7 @@
     \link{\code{concourse-deployment}}{https://github.com/concourse/concourse-deployment}
     and using it as a central location for Concourse BOSHy deployment goodness.
     We now use it for our production deployment, as well as a few testing
-    environments. We've updated the \reference{clusters-with-bosh}
-    documentation accordingly.
+    environments.
   }
 
   \note{feature}{

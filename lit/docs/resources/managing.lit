@@ -1,0 +1,54 @@
+\title{Managing Resources}{managing-resources}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{\code{fly check-resource}}{fly-check-resource}
+
+  To force immediate checking for new versions of a resource, rather than
+  waiting for the periodic checking, run:
+
+  \codeblock{bash}{{
+  $ fly -t example check-resource --resource my-pipeline/my-resource
+  }}
+
+  To check from a particular version, including the given version, append the
+  \code{--from} flag like so:
+
+  \codeblock{bash}{{{
+  $ fly -t example check-resource --resource my-pipeline/my-resource \
+      --from ref:abcdef
+  }}}
+
+  This can be useful for collecting versions that are older than the current
+  ones, given that a newly configured resource will only start from the latest
+  version.
+
+  Note the \code{ref:} prefix is resource-dependent. For example, the
+  \italic{bosh-io-release} resource might use \code{version:11.2} in place of
+  \code{ref:abcdef}.
+}
+
+\section{
+  \title{\code{fly pause-resource}}{fly-pause-resource}
+
+  To pause the periodic checking of a resource, run:
+
+  \codeblock{bash}{{
+  $ fly -t example pause-resource --resource my-pipeline/my-resource
+  }}
+
+  This will stop the resource from detecting new versions.
+}
+
+\section{
+  \title{\code{fly unpause-resource}}{fly-unpause-resource}
+
+  To unpause a resource, run:
+
+  \codeblock{bash}{{
+  $ fly -t example unpause-resource --resource my-pipeline/my-resource
+  }}
+
+  This will resume resource version detection.
+}

@@ -1,0 +1,28 @@
+\use-plugin{concourse-docs}
+
+\title{\code{on_failure} step hook}{on-failure-step-hook}
+
+Any step can have \code{on_failure} tacked onto it, whose value is a second
+step to execute only if the parent step fails.
+
+\define-attribute{on_failure: step}{
+  The step to execute when the parent step fails. If the attached step
+  succeeds, the entire step is still \code{failed}.
+}
+
+\examples{
+  \example{Alerting on Failure}{
+    The following will perform the \code{alert} task only if the \code{unit}
+    task fails:
+
+    \codeblock{yaml}{{
+    plan:
+    - get: foo
+    - task: unit
+      file: foo/unit.yml
+      on_failure:
+        task: alert
+        file: foo/alert.yml
+    }}
+  }
+}

@@ -68,8 +68,8 @@
     \code{image}, like, the one you should never use".
 
     We renamed it to something more descriptive and harder to confuse with "the
-    good \reference{task-image}, like, the one you should use":
-    \reference{rootfs_uri}.
+    good \reference{task-step-image}, like, the one you should use":
+    \reference{task-rootfs-uri}.
   }
 
   \note{feature}{
@@ -158,11 +158,11 @@
   }
 
   \note{feature}{
-    The ATC will now emit a \reference{worker volumes} metric.
+    The ATC will now emit a \code{worker volumes} metric.
   }
 
   \note{feature}{
-    The \reference{http response time} metric now includes the request method,
+    The \code{http response time} metric now includes the request method,
     thanks to a PR by \ghuser{aditya87}!
   }
 }

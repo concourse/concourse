@@ -1,0 +1,28 @@
+\use-plugin{concourse-docs}
+
+\title{\code{on_abort} step hook}{on-abort-step-hook}
+
+Any step can have \code{on_abort} tacked onto it, whose value is a second
+step to execute only if the parent step aborts.
+
+\define-attribute{on_abort: step}{
+  The step to execute when the parent step aborts. If the attached step
+  succeeds, the entire step is still \code{aborted}.
+}
+
+\examples{
+  \example{Cleanup on Abort}{
+    The following will perform the \code{cleanup} task only if the build is
+    aborted while the \code{unit} task was running:
+
+    \codeblock{yaml}{{
+    plan:
+    - get: foo
+    - task: unit
+      file: foo/unit.yml
+      on_abort:
+        task: cleanup
+        file: foo/cleanup.yml
+    }}
+  }
+}

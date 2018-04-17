@@ -1,0 +1,108 @@
+\title{Setting Pipelines}{setting-pipelines}
+
+\use-plugin{concourse-docs}
+
+Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
+
+\section{
+  \title{\code{fly set-pipeline}}{fly-set-pipeline}
+
+  \omit-children-from-table-of-contents
+
+  To submit a pipeline configuration to Concourse from a file on your local disk
+  you can use the \code{-c} or \code{--config} flag, like so:
+
+  \codeblock{bash}{{
+  $ fly -t example set-pipeline \\
+      --pipeline my-pipeline \\
+      --config pipeline.yml
+  }}
+
+  This will present a diff of the changes and ask you to confirm the changes.
+  If you accept then Concourse's pipeline configuration will switch to the
+  pipeline definition in the YAML file specified.
+
+  \section{
+    \title{\aux{Pipeline }\code{((params))}}{pipeline-params}
+
+    The pipeline configuration can contain template variables in the form of
+    \code{((foo-bar))}. They will be replaced with YAML values populated by
+    repeated \code{--var} or \code{--load-vars-from} flags.
+
+    This allows for credentials to be extracted from a pipeline config, making it
+    safe to check in to a public repository or pass around.
+
+    For example, if you have a \code{pipeline.yml} as follows:
+
+    \codeblock{yaml}{{
+    resources:
+    - name: private-repo
+      type: git
+      source:
+        uri: git@...
+        branch: master
+        private_key: ((private-repo-key))
+    }}
+
+    ...you could then configure this pipeline like so:
+
+    \codeblock{bash}{{
+    $ fly -t example set-pipeline \\
+        --pipeline my-pipeline \\
+        --config pipeline.yml \\
+        --var "private-repo-key=$(cat id_rsa)"
+    }}
+
+    Or, if you had a \code{credentials.yml} as follows:
+
+    \codeblock{yaml}{{
+    private-repo-key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      ...
+      -----END RSA PRIVATE KEY-----
+    }}
+
+    ...you could configure it like so:
+
+    \codeblock{bash}{{
+    $ fly -t example set-pipeline \\
+        --pipeline my-pipeline \\
+        --config pipeline.yml \\
+        --load-vars-from credentials.yml
+    }}
+
+    If both \code{--var} and \code{--load-vars-from} are specified, the \code{--var}
+    flags take precedence.
+
+    Values other than strings (e.g. bools, arrays) may also be specified via
+    params. Concatenation is also supported in the form of \code{foo-((bar))}.
+  }
+}
+
+\section{
+  \title{\code{fly validate-pipeline}}{fly-validate-pipeline}
+
+  To validate a local pipeline configuration without submitting it to Concourse,
+  run \code{validate-pipeline}:
+
+  \codeblock{bash}{{
+  $ fly validate-pipeline --config pipeline.yml
+  }}
+
+  By default, pipeline errors will cause \code{validate-pipeline} to fail, but
+  warnings won't. To fail on both errors and warnings, pass the `--strict` flag.
+}
+
+\section{
+  \title{\code{fly format-pipeline}}{fly-format-pipeline}
+
+  To format a pipeline config in a "canonical" form (i.e. keys are in normal
+  order, with \code{name} first for example), run:
+
+  \codeblock{bash}{{
+  $ fly format-pipeline --config pipeline.yml
+  }}
+
+  This will print the formatted pipeline config to \code{stdout}. To update the
+  file in-place, pass \code{--write/-w}.
+}

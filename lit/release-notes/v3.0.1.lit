@@ -2,8 +2,8 @@
 
 \release{2017-5-16}{3.0.1}{1.6.0}{
   \note{fix}{
-    Fixed a regression in the handling of \reference{put-step} steps that have
-    no inputs. Prior to \reference{v3.0.0} we would ensure that the directory
+    Fixed a regression in the handling of \reference{put-step}s that have no
+    inputs. Prior to \reference{v3.0.0} we would ensure that the directory
     given to \code{/opt/resource/out} would exist even if there are no inputs,
     so that resources don't have to do a \code{mkdir -p}.
 

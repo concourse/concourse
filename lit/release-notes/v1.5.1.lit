@@ -3,8 +3,8 @@
 \release{2016-07-20}{1.5.1}{0.4.0}{
   \note{fix}{
     A bug introduced by \reference{v1.5.0} as part of the resource fetching
-    synchronizing led to hanging \reference{get-step} steps. It affected
-    resources with large values in \reference{resource-source} or
+    synchronizing led to hanging \reference{get-step}s. It affected resources
+    with large values in \reference{resource-source} or
     \reference{get-step-params}. It is now fixed.
   }
 

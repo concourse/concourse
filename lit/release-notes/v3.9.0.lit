@@ -6,13 +6,11 @@
       There is a known issue with the BOSH release of v3.9.0 where the ATC will
       fail because function \code{esc} is not defined \ghissue{2029}
     }{
-      CredHub integration has a bug in this release, please see \ghissue{2034} 
+      CredHub integration has a bug in this release, please see \ghissue{2034}
       for more details
-    }{
-      Latest stemcells do not seem to work (3541.2 as of this update).
-      Use Stemcell v3468.22 instead. Please see \link{\bold{#46}}{https://github.com/concourse/concourse-deployment/issues/46} for more details.
     }
   }
+
   \note{feature}{
     Certificates can now be automatically propagated from the worker machine
     into resource containers. This feature took a lot of
@@ -27,10 +25,9 @@
     \code{insecure_skip_verify}, etc., and things can "just work" securely by
     default.
 
-    This feature is enabled by default for our
-    \reference{clusters-with-bosh}{BOSH distribution}. The
-    \reference{binaries}{binary distribution} now has a \code{--certs-dir} flag
-    on the \code{worker} command, which should be given something like
+    This feature is enabled by default for our BOSH distribution. The
+    \code{concourse} binary now has a \code{--certs-dir} flag on the
+    \code{worker} command, which should be given something like
     \code{/etc/ssl/certs} or \code{/etc/pki/tls/certs} depending on your Linux
     distribution.
 
@@ -46,7 +43,7 @@
     If you're feeling the pain of \code{overlay}, we recommend switching the
     driver to \code{btrfs} now and letting us know if you see any issues.
     Initial feedback is positive. If things are looking good we may switch the
-    default back to \code{btrfs}. 
+    default back to \code{btrfs}.
   }
 
   \note{feature}{

@@ -1,35 +1,65 @@
 <!DOCTYPE html>
 <html>
   <head>
-    {{template "header.tmpl" .}}
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-60508041-1"></script>
 
-    <link type="text/css" rel="stylesheet" href="css/docs.css">
-    <link type="text/css" rel="stylesheet" href="css/resources-table.css">
-    <link type="text/css" rel="stylesheet" href="css/literate.css">
-    <link type="text/css" rel="stylesheet" href="css/flex-pipeline-image.css">
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-60508041-1');
+    </script>
+
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=775" />
+    <title>{{.Title.String}}</title>
+    <link rel="stylesheet" type="text/css" href="css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="css/pipeline.css" />
+    <link rel="stylesheet" type="text/css" href="css/iosevka.css" />
+    <link rel="stylesheet" type="text/css" href="css/booklit.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+    <link href="https://fonts.googleapis.com/css?family=PT+Sans:400,400i,700|Roboto+Slab:300,400,700" rel="stylesheet" />
+
+    <script src="js/search.js"></script>
   </head>
-  <body class="split_sections toc">
-    <div id="everything">
-      {{template "docs-header.tmpl" .}}
-      <div id="middle">
-        <div id="page">
-          <div id="sidebar">
-            <div class="sidebar-spacing">
-              <div class="single-page-link">
-                <a href="single-page.html">view all docs on one page</a>
-              </div>
+  <body{{if .Partial "Examples"}} class="with-examples"{{end}}>
+    <div id="top">
+      <div class="header">
+        <h1><a href="/" class="logo"></a><a href="/">Concourse</a></h1>
 
-              {{template "sidebar-toc.tmpl" walkContext . .Top}}
-            </div>
+        <nav>
+          <a href="https://concoursetutorial.com" class="tutorial-link">tutorial</a>
+          <a href="docs.html">docs</a>
+          <a href="https://discuss.concourse-ci.org">discuss</a>
+          <a href="download.html">download</a>
+
+          <div class="search" id="search">
+            <input type="search" class="search-input" placeholder="Search the docs&hellip;" required="required" />
           </div>
-          <div id="content">
-            <div class="content-spacing">
-              {{template "section.tmpl" .}}
-            </div>
-          </div>
+        </nav>
+
+        <script type="text/javascript">
+          Elm.Main.embed(document.getElementById("search"));
+        </script>
+      </div>
+    </div>
+    <div id="content">
+      <div class="side">
+        {{template "sidebar.tmpl" .}}
+      </div>
+      <div class="page{{if .Partial "Wide"}} wide{{end}}">
+        {{. | render}}
+      </div>
+      {{if .Partial "Examples"}}
+      <div class="examples">
+        <div class="examples-page">
+          <h2>Examples</h2>
+
+          {{.Partial "Examples" | render}}
         </div>
       </div>
-      {{template "footer.tmpl" .}}
+      {{end}}
     </div>
   </body>
 </html>

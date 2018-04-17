@@ -5,13 +5,11 @@
     Workers will now, by default, wait for builds to finish before exiting.
     This will make it safer to perform a rolling update of a Concourse cluster.
 
-    If you're running a \reference{clusters-with-bosh}{BOSH deployment}, this
-    feature will just start happening automatically. If you're running the
-    \reference{binaries}{binary distribution} or
-    \reference{docker-repository}{Docker repository}, you'll need to invoke
-    \code{land-worker} (for a temporary in-place update, i.e. preserving
-    containers and volumes) or \code{retire-worker} (for a permanent exit) to
-    initiate draining, and then wait for the worker process to exit.
+    If you're running a BOSH deployment, this feature will just start happening
+    automatically. If you're running the binary distribution or Docker, you'll
+    need to invoke \code{land-worker} (for a temporary in-place update, i.e.
+    preserving containers and volumes) or \code{retire-worker} (for a permanent
+    exit) to initiate draining, and then wait for the worker process to exit.
 
     More docs on this are forthcoming; this release was expedited by the
     \resource{time} bug, so docs are sparse at the moment.
@@ -50,9 +48,9 @@
   }
 
   \note{feature}{
-    Previously if you configured a job with multiple \reference{get-step} steps
-    with the same name, the job would never be able to schedule.
-    \ghuser{cnelson} did a PR to add a validation for this borked configuration
+    Previously if you configured a job with multiple \reference{get-step}s with
+    the same name, the job would never be able to schedule. \ghuser{cnelson}
+    did a PR to add a validation for this borked configuration
     - thanks!
   }
 

@@ -33,8 +33,8 @@
 
   \note{feature}{
     Caching and more efficient artifact propagation: resources fetched by
-    \reference{get-step} steps are cached on the workers and efficiently
-    propagated throughout steps in the build plan.
+    \reference{get-step}s are cached on the workers and efficiently propagated
+    throughout steps in the build plan.
   }
 
   \note{feature}{
@@ -46,9 +46,8 @@
   }
 
   \note{feature}{
-    Custom resource types can now be added via
-    \reference{configuring-resource-types} in the pipeline, rather than
-    reconfiguring your workers.
+    Custom resource types can now be added via \reference{resource-types} in
+    the pipeline, rather than reconfiguring your workers.
   }
 
   \note{fix}{
@@ -67,8 +66,8 @@
   }
 
   \note{feature}{
-    Tasks have explicit \reference{inputs} and \reference{outputs}, making
-    artifact consumption and production a lot easier to follow.
+    Tasks have explicit \reference{task-inputs} and \reference{task-outputs},
+    making artifact consumption and production a lot easier to follow.
   }
 
   \note{feature}{
@@ -85,17 +84,14 @@
 
   \note{feature,breaking}{
     The Concourse BOSH release is now built for BOSH 2.0. You will
-    need a recent director to upgrade. Consult
-    \reference{clusters-with-bosh} for information on the new BOSH
-    2.0 deployment scheme.
+    need a recent director to upgrade.
   }
 
   \note{fix}{
-    Resources backed by a resource type defined in
-    \reference{configuring-resource-types} will now periodically check for new
-    versions of the resource type and use the latest one for checking.
-    Previously the same container would be reused forever even if a new version
-    of the resource type was released.
+    Resources backed by a resource type defined in \reference{resource-types}
+    will now periodically check for new versions of the resource type and use
+    the latest one for checking. Previously the same container would be reused
+    forever even if a new version of the resource type was released.
   }
 
   \note{feature}{
@@ -115,8 +111,7 @@
   }
 
   \note{fix}{
-    Connections from \reference{architecture-atc} to Baggage Claim
-    will now retry on connection errors.
+    Connections from ATC to Baggage Claim will now retry on connection errors.
   }
 
   \note{fix}{

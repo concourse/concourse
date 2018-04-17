@@ -1,0 +1,60 @@
+\title{Managing Jobs}{managing-jobs}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{\code{fly jobs}}{fly-jobs}
+
+  To list the jobs configured in a pipeline, run:
+
+  \codeblock{bash}{{
+  $ fly -t example jobs -p my-pipeline
+  }}
+}
+
+\section{
+  \title{\code{fly trigger-job}}{fly-trigger-job}
+
+  To immediately queue a new build of a job, run:
+
+  \codeblock{bash}{{
+  $ fly -t example trigger-job --job my-pipeline/my-job
+  }}
+
+  This will enqueue a new build of the \code{my-job} job in the
+  \code{my-pipeline} pipeline.
+
+  To start watching the newly created build, append the \code{--watch} flag
+  like so:
+
+  \codeblock{bash}{{
+  $ fly -t example trigger-job --job my-pipeline/my-job --watch
+  }}
+}
+
+\section{
+  \title{\code{fly pause-job}}{fly-pause-job}
+
+  To prevent scheduling and running builds of a job, run:
+
+  \codeblock{bash}{{
+  $ fly -t example pause-job --job my-pipeline/my-job
+  }}
+
+  This will prevent pending builds of the job from being scheduled, though
+  builds that are in-flight will still run, and pending builds will still be
+  created as normal.
+}
+
+\section{
+  \title{\code{fly unpause-job}}{fly-unpause-job}
+
+  To resume scheduling of a job, run:
+
+  \codeblock{bash}{{
+  $ fly -t example unpause-job --job my-pipeline/my-job
+  }}
+
+  This will resume scheduling of builds queued for the job.
+}
+
