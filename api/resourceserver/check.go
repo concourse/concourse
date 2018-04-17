@@ -31,6 +31,7 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 			if err != nil {
 				logger.Info("failed-to-get-latest-versioned-resource", lager.Data{"error": err.Error()})
 				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
 				return
 			}
 
@@ -55,11 +56,13 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 			if err != nil {
 				logger.Error("failed-to-encode-check-response-body", err)
 				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
 			}
 		case db.ResourceNotFoundError:
 			w.WriteHeader(http.StatusNotFound)
 		case error:
 			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
 		default:
 			w.WriteHeader(http.StatusOK)
 		}

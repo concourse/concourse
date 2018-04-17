@@ -634,6 +634,11 @@ var _ = Describe("Resources API", func() {
 
 				It("returns 500", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+
+					buf := new(bytes.Buffer)
+					buf.ReadFrom(response.Body)
+					body := buf.String()
+					Expect(body).To(Equal("disaster"))
 				})
 
 				It("does not scan from version", func() {
@@ -658,6 +663,10 @@ var _ = Describe("Resources API", func() {
 
 				It("returns 500", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					buf := new(bytes.Buffer)
+					buf.ReadFrom(response.Body)
+					body := buf.String()
+					Expect(body).To(Equal("welp"))
 				})
 			})
 
