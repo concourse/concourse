@@ -122,4 +122,27 @@ var _ = Describe("CheckResource", func() {
 			Expect(sess.Err).To(gbytes.Say("pipeline 'mypipeline' or resource 'myresource' not found"))
 		})
 	})
+
+	Context("When resource check returns internal server error", func() {
+		BeforeEach(func() {
+			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.RespondWith(http.StatusInternalServerError, "unknown server error"),
+				),
+			)
+		})
+
+		It("outputs error in response body", func() {
+			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource")
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess).Should(gexec.Exit(1))
+
+			Expect(sess.Err).To(gbytes.Say("unknown server error"))
+
+		})
+	})
 })
