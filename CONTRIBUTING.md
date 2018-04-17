@@ -36,7 +36,7 @@ There are a few ways you can help out here:
   The same rules apply for GitHub reactions and comments; they help us decide
   which things are affecting more people.
 
-* Helping other folks out in [Slack](http://slack.concourse-ci.org) and [Stack
+* Helping other folks out in [Discord](https://discord.gg/MeRxXKW) and [Stack
   Overflow](http://stackoverflow.com/questions/tagged/concourse) really helps
   grow the community. We try to help out through the day but relying on one
   timezone doesn't scale.
