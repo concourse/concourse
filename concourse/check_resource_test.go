@@ -80,4 +80,27 @@ var _ = Describe("CheckResource", func() {
 			Expect(cre.Error()).To(Equal("check failed with exit status '1':\nbad version\n"))
 		})
 	})
+
+	Context("when ATC responds with an internal server error", func() {
+		BeforeEach(func() {
+			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
+					ghttp.RespondWith(http.StatusInternalServerError, "unknown server error"),
+				),
+			)
+		})
+
+		It("returns an error with body", func() {
+			_, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			Expect(err).To(HaveOccurred())
+
+			cre, ok := err.(concourse.CheckResourceError)
+			Expect(ok).To(BeTrue())
+			Expect(cre.Error()).To(Equal("check failed with exit status '70':\nunknown server error\n"))
+		})
+	})
 })

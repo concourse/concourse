@@ -47,12 +47,22 @@ func (team *team) CheckResource(pipelineName string, resourceName string, versio
 		return false, nil
 	default:
 		if unexpectedResponseError, ok := err.(internal.UnexpectedResponseError); ok {
-			if unexpectedResponseError.StatusCode == http.StatusBadRequest {
+			switch unexpectedResponseError.StatusCode {
+			case http.StatusBadRequest:
 				var checkResourceErr CheckResourceError
 
 				err = json.Unmarshal([]byte(unexpectedResponseError.Body), &checkResourceErr)
 				if err != nil {
 					return false, err
+				}
+
+				return false, checkResourceErr
+			case http.StatusInternalServerError:
+				checkResourceErr := CheckResourceError{
+					atc.CheckResponseBody{
+						Stderr:     unexpectedResponseError.Body,
+						ExitStatus: 70,
+					},
 				}
 
 				return false, checkResourceErr
