@@ -1,7 +1,7 @@
 # Improving Concourse
 
 So, you've come here hoping to make Concourse better? Rad. There are lots of
-ways to do this, from just hanging around [Slack](http://slack.concourse-ci.org)
+ways to do this, from just hanging around [Discord](https://discord.gg/MeRxXKW) or [the forums](https://discuss.concourse-ci.org/),
 to contributing to discussions in GitHub issues and, maybe at some point,
 contributing code.
 
@@ -36,7 +36,7 @@ There are a few ways you can help out here:
   The same rules apply for GitHub reactions and comments; they help us decide
   which things are affecting more people.
 
-* Helping other folks out in [Slack](http://slack.concourse-ci.org) and [Stack
+* Helping other folks out in [Discord](https://discord.gg/MeRxXKW) and [Stack
   Overflow](http://stackoverflow.com/questions/tagged/concourse) really helps
   grow the community. We try to help out through the day but relying on one
   timezone doesn't scale.
