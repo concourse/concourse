@@ -83,6 +83,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 			forwardHost string
 
 			tsaPort           int
+			tsaDebugPort      int
 			heartbeatInterval = 1 * time.Second
 			tsaProcess        ifrit.Process
 
@@ -111,6 +112,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 		BeforeEach(func() {
 			tsaPort = 9800 + GinkgoParallelNode()
+			tsaDebugPort = 9900 + GinkgoParallelNode()
 
 			gardenPort := 9001 + GinkgoParallelNode()
 			gardenAddr = fmt.Sprintf("127.0.0.1:%d", gardenPort)
@@ -206,6 +208,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 			tsaCommand := exec.Command(
 				tsaPath,
 				"--bind-port", strconv.Itoa(tsaPort),
+				"--bind-debug-port", strconv.Itoa(tsaDebugPort),
 				"--peer-ip", forwardHost,
 				"--host-key", hostKey,
 				"--authorized-keys", authorizedKeysFile,

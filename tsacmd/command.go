@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/concourse/tsa"
 	"github.com/concourse/tsa/tsaflags"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/xoebus/zest"
 )
@@ -23,10 +26,10 @@ import (
 type TSACommand struct {
 	Logger flag.Lager
 
-	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
-	BindPort uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
-
-	PeerIP string `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
+	BindIP        flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
+	BindPort      uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
+	DebugBindPort uint16  `long:"bind-debug-port" default:"8089"    description:"Port on which to listen for TSA pprof server."`
+	PeerIP        string  `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
 
 	HostKey            flag.PrivateKey          `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
 	AuthorizedKeys     flag.AuthorizedKeys      `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
@@ -44,6 +47,10 @@ type TSACommand struct {
 	} `group:"Metrics & Diagnostics"`
 }
 
+func (cmd *TSACommand) debugBindAddr() string {
+	return fmt.Sprintf("127.0.0.1:%d", cmd.DebugBindPort)
+}
+
 type TeamAuthKeys struct {
 	Team     string
 	AuthKeys []ssh.PublicKey
@@ -55,7 +62,25 @@ func (cmd *TSACommand) Execute(args []string) error {
 		return err
 	}
 
-	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
+	tsaServerMember := grouper.Member{
+		Name:   "tsa-server",
+		Runner: sigmon.New(runner),
+	}
+
+	tsaDebugMember := grouper.Member{
+		Name: "debug-server",
+		Runner: http_server.New(
+			cmd.debugBindAddr(),
+			http.DefaultServeMux,
+		)}
+
+	members := []grouper.Member{
+		tsaDebugMember,
+		tsaServerMember,
+	}
+
+	group := grouper.NewParallel(os.Interrupt, members)
+	return <-ifrit.Invoke(group).Wait()
 }
 
 func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
