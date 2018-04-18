@@ -38,6 +38,8 @@ files:
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/*.{go,s,c,h} # gosub
+  - github.com/tedsuo/ifrit/grouper/*.{go,s,c,h} # gosub
+  - github.com/tedsuo/ifrit/http_server/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/restart/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/sigmon/*.{go,s,c,h} # gosub
   - github.com/tedsuo/rata/*.{go,s,c,h} # gosub
