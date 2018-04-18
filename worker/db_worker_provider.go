@@ -150,18 +150,17 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 	)
 
 	gClient := gclient.New(NewRetryableConnection(gcf.BuildConnection()))
-	retryer := &transport.UnreachableWorkerRetryer{
-		DelegateRetryer: &retryhttp.DefaultRetryer{},
-	}
 
-	rClient := reaper.NewWithHttpClient(*savedWorker.ReaperAddr(), logger.Session("reaper-client"), &http.Client{
-		Transport: &retryhttp.RetryRoundTripper{
-			Logger:         logger.Session("retryable-http-client-reaper"),
-			BackOffFactory: provider.retryBackOffFactory,
-			RoundTripper:   http.DefaultTransport,
-			Retryer:        retryer,
-		},
-	})
+	rClient := reaper.New("", transport.NewreaperRoundTripper(
+		savedWorker.Name(),
+		savedWorker.BaggageclaimURL(),
+		provider.dbWorkerFactory,
+		&http.Transport{
+			DisableKeepAlives:     true,
+			ResponseHeaderTimeout: provider.baggageclaimResponseHeaderTimeout,
+		}),
+		logger,
+	)
 
 	bClient := bclient.New("", transport.NewBaggageclaimRoundTripper(
 		savedWorker.Name(),
