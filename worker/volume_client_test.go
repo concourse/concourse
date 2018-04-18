@@ -195,6 +195,7 @@ var _ = Describe("VolumeClient", func() {
 			BeforeEach(func() {
 				fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
 				fakeCreatedVolume.HandleReturns("fake-handle")
+				fakeCreatedVolume.WorkerNameReturns("fake-worker")
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
 			})
 
@@ -216,7 +217,7 @@ var _ = Describe("VolumeClient", func() {
 
 				It("returns an error", func() {
 					Expect(foundOrCreatedErr).To(HaveOccurred())
-					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("failed to find created volume in baggageclaim. Volume handle: fake-handle"))
+					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("volume 'fake-handle' disappeared from worker 'fake-worker'"))
 				})
 			})
 		})
@@ -385,6 +386,7 @@ var _ = Describe("VolumeClient", func() {
 			BeforeEach(func() {
 				fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
 				fakeCreatedVolume.HandleReturns("fake-handle")
+				fakeCreatedVolume.WorkerNameReturns("fake-worker")
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
 			})
 
@@ -406,7 +408,7 @@ var _ = Describe("VolumeClient", func() {
 
 				It("returns an error", func() {
 					Expect(foundOrCreatedErr).To(HaveOccurred())
-					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("failed to find created volume in baggageclaim. Volume handle: fake-handle"))
+					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("volume 'fake-handle' disappeared from worker 'fake-worker'"))
 				})
 			})
 		})
