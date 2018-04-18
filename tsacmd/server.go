@@ -712,7 +712,8 @@ func forwardLocalConn(logger lager.Logger, cancel <-chan struct{}, localConn net
 		}
 	}()
 
-	wait := make(chan struct{}, maxForwards)
+	numPipes := 2
+	wait := make(chan struct{}, numPipes)
 
 	pipe := func(to io.WriteCloser, from io.ReadCloser) {
 		// if either end breaks, close both ends to ensure they're both unblocked,
@@ -738,7 +739,7 @@ dance:
 		select {
 		case <-wait:
 			done++
-			if done == maxForwards {
+			if done == numPipes {
 				break dance
 			}
 
