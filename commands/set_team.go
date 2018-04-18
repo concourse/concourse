@@ -47,6 +47,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 	fmt.Println("GitLab Auth:", authMethodStatusDescription(command.Auth.Configs["gitlab"].IsConfigured()))
 	fmt.Println("UAA Auth:", authMethodStatusDescription(command.Auth.Configs["uaa"].IsConfigured()))
 	fmt.Println("Generic OAuth:", authMethodStatusDescription(command.Auth.Configs["oauth"].IsConfigured()))
+	fmt.Println("Generic OAuth OIDC:", authMethodStatusDescription(command.Auth.Configs["oauth_oidc"].IsConfigured()))
 
 	confirm := true
 	if !command.SkipInteractive {
