@@ -11,7 +11,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-var ErrUnreachableReaperServer = errors.New("Unable to reach garden")
+var ErrUnreachableGardenServer = errors.New("Unable to reach garden")
 
 type client struct {
 	requestGenerator *rata.RequestGenerator
@@ -41,10 +41,12 @@ func (c *client) Ping() error {
 	request, _ := c.requestGenerator.CreateRequest(api.Ping, nil, nil)
 	res, err := c.httpClient.Do(request)
 	if err != nil {
+		c.logger.Error("failed-to-connect-to-reaper-server", err)
 		return err
 	}
 	if res.StatusCode != http.StatusOK {
-		return ErrUnreachableReaperServer
+		c.logger.Info("received-error-while-connecting-to-garden-server", lager.Data{"status": res.StatusCode})
+		return ErrUnreachableGardenServer
 	}
 	return nil
 }
@@ -58,11 +60,13 @@ func (c *client) DestroyContainers(handles []string) error {
 	request, _ := c.requestGenerator.CreateRequest(api.DestroyContainers, nil, bytes.NewReader(requestBody))
 	response, err := c.httpClient.Do(request)
 	if err != nil {
+		c.logger.Error("failed-to-connect-to-reaper-server", err)
 		return err
 	}
 
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusNoContent {
+		c.logger.Info("received-error-when-destroy-containers", lager.Data{"status": response.StatusCode})
 		return errors.New("failed-to-destroy-containers")
 	}
 

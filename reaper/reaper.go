@@ -37,8 +37,10 @@ func (reaperCmd *ReaperCmd) Run(signals <-chan os.Signal, ready chan<- struct{})
 		reaperCmd.Logger.Error("failed-to-parse-URL", gardenURLErr)
 		return gardenURLErr
 	}
-	reaperCmd.Logger.Info("started-reaper-process",
-		lager.Data{"garden-addr": reaperCmd.GardenAddr, "server-port": reaperCmd.Port})
+	reaperCmd.Logger.Info("started-reaper-process", lager.Data{
+		"garden-addr": reaperCmd.GardenAddr,
+		"server-port": reaperCmd.Port,
+	})
 
 	gardenClnt := gardenClient.New(gardenConnection.New("tcp", reaperCmd.GardenAddr))
 	err := gardenClnt.Ping()
