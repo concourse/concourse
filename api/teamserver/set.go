@@ -91,6 +91,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 	} else if acc.IsAdmin() {
 		hLog.Debug("creating team")
@@ -101,6 +102,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 	} else {
 		w.WriteHeader(http.StatusForbidden)

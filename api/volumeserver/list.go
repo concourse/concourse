@@ -35,6 +35,7 @@ func (s *Server) ListVolumes(team db.Team) http.Handler {
 			}
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(presentedVolumes)
 		if err != nil {
 			hLog.Error("failed-to-encode-volumes", err)

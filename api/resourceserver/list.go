@@ -37,6 +37,7 @@ func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
 			)
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err = json.NewEncoder(w).Encode(presentedResources)
 		if err != nil {

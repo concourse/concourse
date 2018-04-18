@@ -78,6 +78,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", pipeline.ConfigVersion()))
+	w.Header().Set("Content-Type", "application/json")
 
 	err = json.NewEncoder(w).Encode(atc.ConfigResponse{
 		Config:    &config,

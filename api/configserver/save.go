@@ -134,6 +134,8 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	session.Info("saved")
 
+	w.Header().Set("Content-Type", "application/json")
+
 	if created {
 		w.WriteHeader(http.StatusCreated)
 	} else {

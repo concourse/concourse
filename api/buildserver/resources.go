@@ -36,6 +36,7 @@ func (s *Server) BuildResources(build db.Build) http.Handler {
 			Outputs: atcOutputs,
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err = json.NewEncoder(w).Encode(output)
 		if err != nil {
