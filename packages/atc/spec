@@ -166,6 +166,8 @@ files:
   - github.com/concourse/web/manifesthandler/*.{go,s,c,h} # gosub
   - github.com/concourse/web/publichandler/*.{go,s,c,h} # gosub
   - github.com/concourse/web/robotshandler/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/reaper/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/reaper/api/*.{go,s,c,h} # gosub
   - github.com/contraband/holler/*.{go,s,c,h} # gosub
   - github.com/cppforlife/go-semi-semantic/version/*.{go,s,c,h} # gosub
   - github.com/dghubble/oauth1/*.{go,s,c,h} # gosub
@@ -251,6 +253,7 @@ files:
   - github.com/tedsuo/ifrit/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/grouper/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/http_server/*.{go,s,c,h} # gosub
+  - github.com/tedsuo/ifrit/restart/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/sigmon/*.{go,s,c,h} # gosub
   - github.com/tedsuo/rata/*.{go,s,c,h} # gosub
   - github.com/vito/go-sse/sse/*.{go,s,c,h} # gosub
