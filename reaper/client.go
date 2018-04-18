@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/retryhttp"
 	"github.com/concourse/worker/reaper/api"
 	"github.com/tedsuo/rata"
 )
@@ -25,6 +27,20 @@ func NewClient(apiURL string, logger lager.Logger) ReaperClient {
 		requestGenerator: rata.NewRequestGenerator(apiURL, api.Routes),
 		httpClient:       http.DefaultClient,
 		logger:           logger,
+	}
+}
+
+func New(apiURL string, nestedRoundTripper http.RoundTripper, logger lager.Logger) ReaperClient {
+	return &client{
+		requestGenerator: rata.NewRequestGenerator(apiURL, api.Routes),
+		httpClient: &http.Client{
+			Transport: &retryhttp.RetryRoundTripper{
+				Logger:         logger.Session("retry-round-tripper"),
+				BackOffFactory: retryhttp.NewExponentialBackOffFactory(60 * time.Minute),
+				RoundTripper:   nestedRoundTripper,
+				Retryer:        &retryhttp.DefaultRetryer{},
+			},
+		},
 	}
 }
 
