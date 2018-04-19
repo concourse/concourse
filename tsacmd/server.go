@@ -377,8 +377,8 @@ func (server *registrarSSHServer) continuouslyRegisterWorkerDirectly(
 	channel ssh.Channel,
 	sessionID string,
 ) (ifrit.Process, error) {
-	logger.Session("start")
-	defer logger.Session("done")
+	logger.Info("start")
+	defer logger.Info("done")
 
 	var worker atc.Worker
 	err := json.NewDecoder(channel).Decode(&worker)
@@ -484,8 +484,8 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 	reaperPort uint32,
 	sessionID string,
 ) (ifrit.Process, error) {
-	logger.Session("start")
-	defer logger.Session("done")
+	logger.Info("start")
+	defer logger.Info("done")
 
 	var worker atc.Worker
 	err := json.NewDecoder(channel).Decode(&worker)
