@@ -583,7 +583,7 @@ values are not present, the action will error.
     }
 
     The leading \code{/concourse} can be changed by specifying
-    \code{--aws-ssm-pipeline-secret-template} or
-    \code{--aws-ssm-team-secret-template} variables.
+    \code{--aws-secretsmanager-pipeline-secret-template} or
+    \code{--aws-secretsmanager-team-secret-template} variables.
   }
 }
