@@ -61,7 +61,6 @@ func (c *client) Ping() error {
 		return err
 	}
 	if res.StatusCode != http.StatusOK {
-		c.logger.Info("received-error-while-connecting-to-garden-server", lager.Data{"status": res.StatusCode})
 		return ErrUnreachableGardenServer
 	}
 	return nil
@@ -82,7 +81,6 @@ func (c *client) DestroyContainers(handles []string) error {
 
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusNoContent {
-		c.logger.Info("received-error-when-destroy-containers", lager.Data{"status": response.StatusCode})
 		return errors.New("failed-to-destroy-containers")
 	}
 
