@@ -26,7 +26,7 @@ func NewContainerServer(
 	}
 }
 
-var ErrDestroyContainers = errors.New("failed-to-dstroy")
+var ErrDestroyContainers = errors.New("failed-to-destroy")
 var ErrPingFailure = errors.New("failed-to-ping-reaper")
 
 // Ping confirms the server is up and able to talk to the garden server
@@ -56,6 +56,7 @@ func (containerServer *ContainerServer) DestroyContainers(w http.ResponseWriter,
 	var containerHandles []string
 	err := json.NewDecoder(req.Body).Decode(&containerHandles)
 	if err != nil {
+		hLog.Error("failed-to-decode-container-handles", err)
 		respondWithError(w, ErrDestroyContainers, http.StatusBadRequest)
 		return
 	}
@@ -72,7 +73,7 @@ func (containerServer *ContainerServer) DestroyContainers(w http.ResponseWriter,
 			// continue to delete containers even if one fails
 			errExists = true
 		}
-		hLog.Debug("destroyed", lager.Data{"handle": containerHandle})
+		hLog.Debug("destroyed-container", lager.Data{"handle": containerHandle})
 	}
 
 	if errExists {
@@ -80,8 +81,8 @@ func (containerServer *ContainerServer) DestroyContainers(w http.ResponseWriter,
 		return
 	}
 
+	hLog.Info("successfully-destroyed-containers", lager.Data{"num-handles": len(containerHandles)})
 	w.WriteHeader(http.StatusNoContent)
-	hLog.Info("destroyed")
 }
 
 type ErrorResponse struct {

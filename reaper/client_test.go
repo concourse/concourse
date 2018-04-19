@@ -1,6 +1,7 @@
 package reaper_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 
@@ -56,13 +57,18 @@ var _ = Describe("Client", func() {
 		})
 
 		Describe("destroy containers request", func() {
-			It("generate correct requests for all container handles", func() {
-				expectedBody, _ := json.Marshal([]string{"handle-1", "handle-2"})
+			var buf bytes.Buffer
 
+			BeforeEach(func() {
+				handles := []string{"handle-1", "handle-2"}
+				json.NewEncoder(&buf).Encode(handles)
+			})
+
+			It("generate correct requests for all container handles", func() {
 				fakeServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("DELETE", "/containers/destroy"),
-						ghttp.VerifyBody(expectedBody),
+						ghttp.VerifyBody(buf.Bytes()),
 						ghttp.RespondWithJSONEncoded(http.StatusNoContent, nil),
 					),
 				)
@@ -71,19 +77,17 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns proper error response", func() {
-				expectedBody, _ := json.Marshal([]string{"handle-1", "handle-2"})
-
 				fakeServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("DELETE", "/containers/destroy"),
-						ghttp.VerifyBody(expectedBody),
+						ghttp.VerifyBody(buf.Bytes()),
 						ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, nil),
 					),
 				)
 
 				err := client.DestroyContainers([]string{"handle-1", "handle-2"})
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("failed-to-destroy-containers"))
+				Expect(err.Error()).To(Equal("received-500-response"))
 			})
 		})
 

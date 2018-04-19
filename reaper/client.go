@@ -4,76 +4,95 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/retryhttp"
 	"github.com/concourse/worker/reaper/api"
 	"github.com/tedsuo/rata"
 )
 
 var ErrUnreachableGardenServer = errors.New("Unable to reach garden")
 
+type Client interface {
+	ReaperClient
+}
+
 type client struct {
-	requestGenerator *rata.RequestGenerator
-	httpClient       *http.Client
-	logger           lager.Logger
+	requestGenerator   *rata.RequestGenerator
+	givenHTTPClient    *http.Client
+	logger             lager.Logger
+	nestedRoundTripper http.RoundTripper
 }
 
 // NewClient provides a new ReaperClient based on provided URL
-func NewClient(apiURL string, logger lager.Logger) ReaperClient {
+func NewClient(apiURL string, logger lager.Logger) Client {
 	return &client{
 		requestGenerator: rata.NewRequestGenerator(apiURL, api.Routes),
-		httpClient:       http.DefaultClient,
-		logger:           logger,
-	}
-}
-
-func New(apiURL string, nestedRoundTripper http.RoundTripper, logger lager.Logger) ReaperClient {
-	return &client{
-		requestGenerator: rata.NewRequestGenerator(apiURL, api.Routes),
-		httpClient: &http.Client{
-			Transport: &retryhttp.RetryRoundTripper{
-				Logger:         logger.Session("retry-round-tripper"),
-				BackOffFactory: retryhttp.NewExponentialBackOffFactory(60 * time.Minute),
-				RoundTripper:   nestedRoundTripper,
-				Retryer:        &retryhttp.DefaultRetryer{},
+		givenHTTPClient: &http.Client{
+			Transport: &http.Transport{
+				DisableKeepAlives:     true,
+				ResponseHeaderTimeout: 1 * time.Minute,
 			},
 		},
+		logger: logger,
 	}
 }
 
-// NewWithHttpClient provides a ReaperClient based on provided URL and http.Client
-func NewWithHttpClient(apiURL string, logger lager.Logger, httpClient *http.Client) ReaperClient {
+func New(apiURL string, nestedRoundTripper http.RoundTripper, logger lager.Logger) Client {
 	return &client{
-		requestGenerator: rata.NewRequestGenerator(apiURL, api.Routes),
-		httpClient:       httpClient,
-		logger:           logger,
+		requestGenerator:   rata.NewRequestGenerator(apiURL, api.Routes),
+		nestedRoundTripper: nestedRoundTripper,
+		logger:             logger.Session("reaper-client"),
+	}
+}
+
+func (c *client) httpClient(logger lager.Logger) *http.Client {
+	if c.givenHTTPClient != nil {
+		return c.givenHTTPClient
+	}
+	return &http.Client{
+		Transport: c.nestedRoundTripper,
 	}
 }
 
 func (c *client) Ping() error {
+	c.logger.Debug("started-pinging-reaper-server")
+	defer c.logger.Debug("done-pinging-reaper-server")
+
 	request, _ := c.requestGenerator.CreateRequest(api.Ping, nil, nil)
-	res, err := c.httpClient.Do(request)
+	res, err := c.httpClient(c.logger).Do(request)
 	if err != nil {
 		c.logger.Error("failed-to-connect-to-reaper-server", err)
 		return err
 	}
 	if res.StatusCode != http.StatusOK {
+		c.logger.Error("received-non-200-response", ErrUnreachableGardenServer, lager.Data{"status-code": res.StatusCode})
 		return ErrUnreachableGardenServer
 	}
+	c.logger.Debug("success-pinging-server")
 	return nil
 }
 
 func (c *client) DestroyContainers(handles []string) error {
-	requestBody, err := json.Marshal(handles)
+	c.logger.Debug("started-destroying-containers")
+	defer c.logger.Debug("done-destroying-containers")
+
+	buffer := &bytes.Buffer{}
+	err := json.NewEncoder(buffer).Encode(handles)
 	if err != nil {
+		c.logger.Error("failed-to-encode-container-handles", err)
 		return err
 	}
 
-	request, _ := c.requestGenerator.CreateRequest(api.DestroyContainers, nil, bytes.NewReader(requestBody))
-	response, err := c.httpClient.Do(request)
+	request, err := c.requestGenerator.CreateRequest(api.DestroyContainers, nil, buffer)
+	if err != nil {
+		c.logger.Error("failed-to-create-request-to-reaper-server", err)
+		return err
+	}
+
+	response, err := c.httpClient(c.logger).Do(request)
 	if err != nil {
 		c.logger.Error("failed-to-connect-to-reaper-server", err)
 		return err
@@ -81,8 +100,11 @@ func (c *client) DestroyContainers(handles []string) error {
 
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusNoContent {
-		return errors.New("failed-to-destroy-containers")
+		serverErr := fmt.Errorf("received-%d-response", response.StatusCode)
+		c.logger.Error("failed-to-destroy-containers", serverErr, lager.Data{"status-code": response.StatusCode})
+		return serverErr
 	}
 
+	c.logger.Debug("success-destroying-containers")
 	return nil
 }
