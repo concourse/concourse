@@ -67,7 +67,10 @@ func (p *pipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(
 
 	intervalUpdated, err := p.checkIfResourceTypeIntervalUpdated(resourceTypeName, interval, immediate)
 	if err != nil {
-
+		lockErr := lock.Release()
+		if lockErr != nil {
+			logger.Fatal("failed-to-release-lock", lockErr)
+		}
 		return nil, false, err
 	}
 
