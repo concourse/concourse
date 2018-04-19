@@ -309,11 +309,6 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
-
-	if cmd.Migration.CommandProvided() {
-		return cmd.RunMigrationCommand()
-	}
-
 	runner, err := cmd.Runner(args)
 	if err != nil {
 		return err
@@ -742,6 +737,27 @@ func (cmd *ATCCommand) constructMembers(
 }
 
 func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
+	if cmd.Migration.CommandProvided() {
+		return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			close(ready)
+
+			errCh := make(chan error)
+
+			go func() {
+				errCh <- cmd.RunMigrationCommand()
+			}()
+
+			for {
+				select {
+				case <-signals:
+					return nil
+				case err := <-errCh:
+					return err
+				}
+			}
+		}), nil
+	}
+
 	var members []grouper.Member
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
