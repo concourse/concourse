@@ -518,12 +518,7 @@ func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker at
 		server.heartbeatInterval,
 		server.cprInterval,
 		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.GardenAddr), logger.Session("garden-connection"))),
-		rclient.NewWithHttpClient(worker.ReaperAddr, logger.Session("reaper-connection"), &http.Client{
-			Transport: &http.Transport{
-				DisableKeepAlives:     true,
-				ResponseHeaderTimeout: 1 * time.Minute,
-			},
-		}),
+		rclient.NewClient(worker.ReaperAddr, logger.Session("reaper-connection")),
 		bclient.NewWithHTTPClient(worker.BaggageclaimURL, &http.Client{
 			Transport: &http.Transport{
 				DisableKeepAlives:     true,
