@@ -156,6 +156,9 @@ type ATCCommand struct {
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
 
 	TelemetryOptIn bool `long:"telemetry-opt-in" hidden:"true" description:"Enable anonymous concourse version reporting."`
+
+	DefaultBuildLogsToRetain uint64 `long:"default-build-logs-to-retain" description:"Default build logs to retain, 0 means all"`
+	MaxBuildLogsToRetain     uint64 `long:"max-build-logs-to-retain" description:"Maximum build logs to retain, 0 means not specified. Will override values configured in jobs"`
 }
 
 type Migration struct {
@@ -668,6 +671,10 @@ func (cmd *ATCCommand) constructMembers(
 				logger.Session("build-reaper"),
 				dbPipelineFactory,
 				500,
+				gc.NewBuildLogRetentionCalculator(
+					cmd.DefaultBuildLogsToRetain,
+					cmd.MaxBuildLogsToRetain,
+				),
 			),
 			"build-reaper",
 			lockFactory,

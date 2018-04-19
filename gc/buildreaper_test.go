@@ -19,11 +19,13 @@ var _ = Describe("BuildReaper", func() {
 		buildReaper         BuildReaper
 		fakePipelineFactory *dbfakes.FakePipelineFactory
 		batchSize           int
+		buildLogRetainCalc  BuildLogRetentionCalculator
 	)
 
 	BeforeEach(func() {
 		fakePipelineFactory = new(dbfakes.FakePipelineFactory)
 		batchSize = 5
+		buildLogRetainCalc = NewBuildLogRetentionCalculator(0, 0)
 	})
 
 	JustBeforeEach(func() {
@@ -32,6 +34,7 @@ var _ = Describe("BuildReaper", func() {
 			buildReaperLogger,
 			fakePipelineFactory,
 			batchSize,
+			buildLogRetainCalc,
 		)
 	})
 
@@ -308,6 +311,34 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
+			})
+
+			Context("when we install a custom build log retention calculator", func() {
+				BeforeEach(func() {
+					buildLogRetainCalc = NewBuildLogRetentionCalculator(3, 3)
+
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Since: 2, Limit: 1}) {
+							return []db.Build{sb(1)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 1, Limit: 4}) {
+							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
+						} else if page == (db.Page{Limit: 3}) {
+							return []db.Build{sb(5), sb(4), sb(3)}, db.Pagination{}, nil
+						} else {
+							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						}
+						return nil, db.Pagination{}, nil
+					}
+
+					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
+					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
+				})
+
+				It("uses build log calculator", func() {
+					Expect(buildReaper.Run()).NotTo(HaveOccurred())
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(1, 2))
+				})
 			})
 
 			Context("when a build of this job has build id 1", func() {
