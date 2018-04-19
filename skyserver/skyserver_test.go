@@ -22,6 +22,7 @@ var _ = Describe("Sky Server API", func() {
 	ExpectServerBehaviour := func() {
 		Describe("GET /sky/login", func() {
 			var err error
+			var params url.Values
 			var response *http.Response
 			var cookies []*http.Cookie
 
@@ -35,6 +36,7 @@ var _ = Describe("Sky Server API", func() {
 						}),
 					),
 				)
+				params = url.Values{}
 			})
 
 			JustBeforeEach(func() {
@@ -42,40 +44,63 @@ var _ = Describe("Sky Server API", func() {
 					return http.ErrUseLastResponse
 				}
 
-				response, err = client.Get(skyServer.URL + "/sky/login?redirect_uri=http://example.com")
+				response, err = client.Get(skyServer.URL + "/sky/login?" + params.Encode())
 				Expect(err).NotTo(HaveOccurred())
 
 				cookies = response.Cookies()
 				Expect(cookies).To(HaveLen(1))
 			})
 
-			It("stores state token with redirect_uri in cookie", func() {
-				Expect(cookies[0].Name).To(Equal("skymarshal_state"))
-				Expect(cookies[0].Secure).To(Equal(config.SecureCookies))
-				Expect(cookies[0].HttpOnly).To(BeTrue())
-				Expect(cookies[0].Value).NotTo(BeEmpty())
+			Context("when redirect_uri is provided", func() {
+				BeforeEach(func() {
+					params.Add("redirect_uri", "http://example.com")
+				})
 
-				data, err := base64.StdEncoding.DecodeString(cookies[0].Value)
-				Expect(err).NotTo(HaveOccurred())
+				It("stores redirect_uri in the state token cookie", func() {
+					Expect(cookies[0].Name).To(Equal("skymarshal_state"))
+					Expect(cookies[0].Secure).To(Equal(config.SecureCookies))
+					Expect(cookies[0].HttpOnly).To(BeTrue())
+					Expect(cookies[0].Value).NotTo(BeEmpty())
 
-				var state struct {
-					RedirectUri string `json:"redirect_uri"`
-				}
+					data, err := base64.StdEncoding.DecodeString(cookies[0].Value)
+					Expect(err).NotTo(HaveOccurred())
 
-				json.Unmarshal(data, &state)
-				Expect(state.RedirectUri).To(Equal("http://example.com"))
+					var state map[string]string
+					json.Unmarshal(data, &state)
+					Expect(state["redirect_uri"]).To(Equal("http://example.com"))
+				})
+
+				It("redirects to the initial request to /sky/dex/auth", func() {
+					redirectUrl, err := response.Location()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(redirectUrl.Path).To(Equal("/sky/dex/auth"))
+
+					redirectValues := redirectUrl.Query()
+					Expect(redirectValues.Get("access_type")).To(Equal("offline"))
+					Expect(redirectValues.Get("response_type")).To(Equal("code"))
+					Expect(redirectValues.Get("state")).To(Equal(cookies[0].Value))
+					Expect(redirectValues.Get("scope")).To(Equal("openid profile email federated:id groups"))
+				})
 			})
 
-			It("redirects to /sky/dex/auth", func() {
-				redirectUrl, err := response.Location()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(redirectUrl.Path).To(Equal("/sky/dex/auth"))
+			Context("when redirect_uri is NOT provided", func() {
+				BeforeEach(func() {
+					params.Del("redirect_uri")
+				})
 
-				redirectValues := redirectUrl.Query()
-				Expect(redirectValues.Get("access_type")).To(Equal("offline"))
-				Expect(redirectValues.Get("response_type")).To(Equal("code"))
-				Expect(redirectValues.Get("state")).To(Equal(cookies[0].Value))
-				Expect(redirectValues.Get("scope")).To(Equal("openid profile email federated:id groups"))
+				It("stores / as the default redirect_uri in the state token cookie", func() {
+					Expect(cookies[0].Name).To(Equal("skymarshal_state"))
+					Expect(cookies[0].Secure).To(Equal(config.SecureCookies))
+					Expect(cookies[0].HttpOnly).To(BeTrue())
+					Expect(cookies[0].Value).NotTo(BeEmpty())
+
+					data, err := base64.StdEncoding.DecodeString(cookies[0].Value)
+					Expect(err).NotTo(HaveOccurred())
+
+					var state map[string]string
+					json.Unmarshal(data, &state)
+					Expect(state["redirect_uri"]).To(Equal("/"))
+				})
 			})
 		})
 

@@ -61,8 +61,13 @@ func (self *skyServer) Login(w http.ResponseWriter, r *http.Request) {
 		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
 	}
 
+	redirectUri := r.FormValue("redirect_uri")
+	if redirectUri == "" {
+		redirectUri = "/"
+	}
+
 	stateToken := encode(&token.StateToken{
-		RedirectUri: r.FormValue("redirect_uri"),
+		RedirectUri: redirectUri,
 		Entropy:     token.RandomString(),
 	})
 
