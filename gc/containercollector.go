@@ -2,6 +2,7 @@ package gc
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -167,7 +168,7 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 		c.jobRunner.Try(logger,
 			worker,
 			&job{
-				JobName: worker,
+				JobName: fmt.Sprintf("created-containers-%d", len(createdContainers)),
 				RunFunc: destroyCreatedContainers(logger, createdContainers),
 			},
 		)
@@ -191,7 +192,7 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 		c.jobRunner.Try(logger,
 			worker,
 			&job{
-				JobName: worker,
+				JobName: fmt.Sprintf("destroying-containers-%d", len(destroyingContainers)),
 				RunFunc: destroyDestroyingContainers(logger, destroyingContainers),
 			},
 		)
@@ -206,13 +207,14 @@ func destroyCreatedContainers(logger lager.Logger, containers []db.CreatedContai
 		for _, container := range containers {
 
 			var destroyingContainer db.DestroyingContainer
+			var err error
+
 			if container.IsHijacked() {
 				cLog := logger.Session("mark-hijacked-container", lager.Data{
 					"container": container.Handle(),
 					"worker":    workerClient.Name(),
 				})
 
-				var err error
 				destroyingContainer, err = markHijackedContainerAsDestroying(cLog, container, workerClient.GardenClient())
 				if err != nil {
 					cLog.Error("failed-to-transition", err)
@@ -223,7 +225,7 @@ func destroyCreatedContainers(logger lager.Logger, containers []db.CreatedContai
 					"container": container.Handle(),
 					"worker":    workerClient.Name(),
 				})
-				var err error
+
 				destroyingContainer, err = container.Destroying()
 				if err != nil {
 					cLog.Error("failed-to-transition", err)
@@ -326,9 +328,9 @@ func tryToDestroyContainers(
 	if len(gardenDeleteHandles) > 0 {
 		err := reaperClient.DestroyContainers(gardenDeleteHandles)
 		if err != nil {
-			logger.Error("failed-to-destroy-garden-containers", err, lager.Data{"handlers": gardenDeleteHandles})
+			logger.Error("failed-to-destroy-garden-containers", err, lager.Data{"handles": gardenDeleteHandles})
 		} else {
-			logger.Debug("completed-destroyed-in-garden", lager.Data{"handlers": gardenDeleteHandles})
+			logger.Debug("completed-destroyed-in-garden", lager.Data{"handles": gardenDeleteHandles})
 			dbDeleteContainers = append(dbDeleteContainers, gardenDeleteContainers...)
 		}
 	}

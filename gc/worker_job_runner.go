@@ -74,6 +74,7 @@ func NewWorkerJobRunner(
 func (runner *workerJobRunner) Try(logger lager.Logger, workerName string, job Job) {
 	logger = logger.Session("queue", lager.Data{
 		"worker-name": workerName,
+		"job-name":    job.Name(),
 	})
 
 	runner.workersL.Lock()

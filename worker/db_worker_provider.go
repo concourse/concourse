@@ -153,7 +153,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 
 	rClient := reaper.New("", transport.NewreaperRoundTripper(
 		savedWorker.Name(),
-		savedWorker.BaggageclaimURL(),
+		savedWorker.ReaperAddr(),
 		provider.dbWorkerFactory,
 		&http.Transport{
 			DisableKeepAlives:     true,
