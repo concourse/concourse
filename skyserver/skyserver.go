@@ -271,8 +271,15 @@ func (self *skyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var claims jwt.Claims
 	var result map[string]interface{}
-	if err = parsed.Claims(&self.config.SigningKey.PublicKey, &result); err != nil {
+
+	if err = parsed.Claims(&self.config.SigningKey.PublicKey, &claims, &result); err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err = claims.Validate(jwt.Expected{Time: time.Now()}); err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

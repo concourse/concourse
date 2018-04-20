@@ -1,6 +1,8 @@
 package skyserver_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -51,6 +53,18 @@ var _ = Describe("Sky Server API", func() {
 				Expect(cookies).To(HaveLen(1))
 			})
 
+			It("redirects the initial request to /sky/dex/auth", func() {
+				redirectUrl, err := response.Location()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(redirectUrl.Path).To(Equal("/sky/dex/auth"))
+
+				redirectValues := redirectUrl.Query()
+				Expect(redirectValues.Get("access_type")).To(Equal("offline"))
+				Expect(redirectValues.Get("response_type")).To(Equal("code"))
+				Expect(redirectValues.Get("state")).To(Equal(cookies[0].Value))
+				Expect(redirectValues.Get("scope")).To(Equal("openid profile email federated:id groups"))
+			})
+
 			Context("when redirect_uri is provided", func() {
 				BeforeEach(func() {
 					params.Add("redirect_uri", "http://example.com")
@@ -68,18 +82,6 @@ var _ = Describe("Sky Server API", func() {
 					var state map[string]string
 					json.Unmarshal(data, &state)
 					Expect(state["redirect_uri"]).To(Equal("http://example.com"))
-				})
-
-				It("redirects to the initial request to /sky/dex/auth", func() {
-					redirectUrl, err := response.Location()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(redirectUrl.Path).To(Equal("/sky/dex/auth"))
-
-					redirectValues := redirectUrl.Query()
-					Expect(redirectValues.Get("access_type")).To(Equal("offline"))
-					Expect(redirectValues.Get("response_type")).To(Equal("code"))
-					Expect(redirectValues.Get("state")).To(Equal(cookies[0].Value))
-					Expect(redirectValues.Get("scope")).To(Equal("openid profile email federated:id groups"))
 				})
 			})
 
@@ -332,7 +334,7 @@ var _ = Describe("Sky Server API", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("missing authorization header", func() {
+			Context("when missing authorization header", func() {
 				BeforeEach(func() {
 					reqHeader.Del("Authorization")
 				})
@@ -342,7 +344,7 @@ var _ = Describe("Sky Server API", func() {
 				})
 			})
 
-			Context("authorization header is not basic auth", func() {
+			Context("when authorization header is not basic auth", func() {
 				BeforeEach(func() {
 					reqHeader.Set("Authorization", "Bearer token")
 				})
@@ -352,7 +354,7 @@ var _ = Describe("Sky Server API", func() {
 				})
 			})
 
-			Context("authorization header is not of the form 'client_id:client_secret'", func() {
+			Context("when authorization header is not of the form 'client_id:client_secret'", func() {
 				BeforeEach(func() {
 					credentials := base64.StdEncoding.EncodeToString([]byte("some-string"))
 					reqHeader.Set("Authorization", "Basic "+string(credentials))
@@ -363,9 +365,9 @@ var _ = Describe("Sky Server API", func() {
 				})
 			})
 
-			Context("authorization header fails if not using the public fly client secret", func() {
+			Context("when not using the public fly client id", func() {
 				BeforeEach(func() {
-					credentials := base64.StdEncoding.EncodeToString([]byte("fly:not-fly-secret"))
+					credentials := base64.StdEncoding.EncodeToString([]byte("not-fly:Zmx5"))
 					reqHeader.Set("Authorization", "Basic "+string(credentials))
 				})
 
@@ -374,9 +376,9 @@ var _ = Describe("Sky Server API", func() {
 				})
 			})
 
-			Context("authorization header fails if not using the public fly client id", func() {
+			Context("when not using the public fly client secret", func() {
 				BeforeEach(func() {
-					credentials := base64.StdEncoding.EncodeToString([]byte("not-fly:Zmx5"))
+					credentials := base64.StdEncoding.EncodeToString([]byte("fly:not-fly-secret"))
 					reqHeader.Set("Authorization", "Basic "+string(credentials))
 				})
 
@@ -541,20 +543,7 @@ var _ = Describe("Sky Server API", func() {
 			)
 
 			BeforeEach(func() {
-				tokenGenerator := token.NewGenerator(signingKey)
-				token, err := tokenGenerator.Generate(map[string]interface{}{
-					"sub":       "some-sub",
-					"user_id":   "some-user-id",
-					"user_name": "some-user-name",
-					"teams":     []string{"some-team"},
-					"csrf":      "some-csrf",
-					"exp":       "32503680000",
-					"is_admin":  true,
-				})
-				Expect(err).NotTo(HaveOccurred())
-
 				reqHeader = http.Header{}
-				reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
 			})
 
 			JustBeforeEach(func() {
@@ -586,19 +575,86 @@ var _ = Describe("Sky Server API", func() {
 				})
 			})
 
-			Context("the request succeeds", func() {
+			Context("bearer token is not valid", func() {
+				BeforeEach(func() {
+					reqHeader.Set("Authorization", "Bearer some-invalid-token")
+				})
+
+				It("errors", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+
+			Context("bearer token is signed with the wrong key", func() {
+				BeforeEach(func() {
+					wrongSigningKey, err := rsa.GenerateKey(rand.Reader, 2048)
+					Expect(err).NotTo(HaveOccurred())
+
+					tokenGenerator := token.NewGenerator(wrongSigningKey)
+					token, err := tokenGenerator.Generate(map[string]interface{}{"sub": "some-sub"})
+					Expect(err).NotTo(HaveOccurred())
+
+					reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
+				})
+
+				It("errors", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+
+			Context("bearer token is expired", func() {
+				BeforeEach(func() {
+					tokenGenerator := token.NewGenerator(signingKey)
+					token, err := tokenGenerator.Generate(map[string]interface{}{
+						"exp": time.Now().Add(-1 * time.Hour).Unix(),
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
+				})
+
+				It("errors", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+
+			Context("bearer token is valid", func() {
+				var expiration int64
+
+				BeforeEach(func() {
+					expiration = time.Now().Add(1 * time.Hour).Unix()
+
+					tokenGenerator := token.NewGenerator(signingKey)
+					token, err := tokenGenerator.Generate(map[string]interface{}{
+						"exp":       expiration,
+						"sub":       "some-sub",
+						"user_id":   "some-user-id",
+						"user_name": "some-user-name",
+						"teams":     []string{"some-team"},
+						"csrf":      "some-csrf",
+						"is_admin":  true,
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
+				})
+
+				It("succeeds", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
 				It("outputs the claims from the token", func() {
 					var token map[string]interface{}
 					err := json.NewDecoder(response.Body).Decode(&token)
 					Expect(err).NotTo(HaveOccurred())
 
+					Expect(token["exp"]).To(Equal(float64(expiration)))
 					Expect(token["sub"]).To(Equal("some-sub"))
 					Expect(token["user_id"]).To(Equal("some-user-id"))
 					Expect(token["user_name"]).To(Equal("some-user-name"))
 					Expect(token["teams"]).To(ContainElement("some-team"))
-					Expect(token["is_admin"]).To(Equal(true))
-					Expect(token["exp"]).To(Equal("32503680000"))
 					Expect(token["csrf"]).To(Equal("some-csrf"))
+					Expect(token["is_admin"]).To(Equal(true))
 				})
 			})
 		})
