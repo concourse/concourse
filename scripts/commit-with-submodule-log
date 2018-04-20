@@ -1,3 +1,12 @@
 #!/bin/bash
 
-$(dirname $0)/submodule-log "$@" | git ci --file -
+# check for submodule dependencies
+$(dirname $0)/sync-package-specs
+
+if [[ `git status --porcelain packages` ]]; then
+   echo "!!! Bosh specs need to be checked in"
+   exit 1
+else
+   echo "Looks good!"
+   $(dirname $0)/submodule-log "$@" | git ci --file -
+fi
