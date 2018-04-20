@@ -287,6 +287,10 @@ var _ = Describe("Resources API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
+					It("returns application/json", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
 					It("returns each resource type", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
@@ -330,6 +334,10 @@ var _ = Describe("Resources API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
 				It("returns each resource type", func() {
 					body, err := ioutil.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
@@ -369,6 +377,10 @@ var _ = Describe("Resources API", func() {
 
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns application/json", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 						})
 					})
 
