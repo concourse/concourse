@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/concourse/worker/reaper"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/http_server"
 )
 
 type Config struct {
@@ -26,6 +28,8 @@ type Config struct {
 	HTTPProxy  string `long:"http-proxy"  env:"http_proxy"                  description:"HTTP proxy endpoint to use for containers."`
 	HTTPSProxy string `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
 	NoProxy    string `long:"no-proxy"    env:"no_proxy"    env-delim:","   description:"Blacklist of addresses to skip the proxy when reaching."`
+
+	DebugBindPort uint16 `long:"bind-debug-port" default:"9099"    description:"Port on which to listen for beacon pprof server."`
 
 	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
 }
@@ -46,6 +50,10 @@ type StartCommand struct {
 	Platform        string            `long:"platform"`
 	CertsPath       *string           `long:"certs-path"`
 	Logger          flag.Lager
+}
+
+func (cmd *StartCommand) debugBindAddr() string {
+	return fmt.Sprintf("127.0.0.1:%d", cmd.WorkerConfig.DebugBindPort)
 }
 
 func (cmd *StartCommand) Execute(args []string) error {
@@ -90,7 +98,6 @@ func (cmd *StartCommand) Execute(args []string) error {
 	}
 
 	groupLogger, _ := cmd.Logger.Logger("worker")
-	beaconRunner := worker.BeaconRunner(groupLogger, atcWorker, cmd.TSA)
 
 	var gardenAddr string
 	if cmd.TSA.GardenForwardAddr != "" {
@@ -99,11 +106,19 @@ func (cmd *StartCommand) Execute(args []string) error {
 		gardenAddr = cmd.GardenAddr
 	}
 
-	reaperRunner := reaper.NewReaperRunner(groupLogger, gardenAddr, cmd.ReaperConfig.Port)
-
 	groupMembers := grouper.Members{
-		grouper.Member{Name: "beacon", Runner: beaconRunner},
-		grouper.Member{Name: "reaper", Runner: reaperRunner},
+		{Name: "beacon", Runner: worker.BeaconRunner(
+			groupLogger,
+			atcWorker, cmd.TSA,
+		)},
+		{Name: "reaper", Runner: reaper.NewReaperRunner(
+			groupLogger, gardenAddr,
+			cmd.ReaperConfig.Port,
+		)},
+		{Name: "debug-server", Runner: http_server.New(
+			cmd.debugBindAddr(),
+			http.DefaultServeMux,
+		)},
 	}
 
 	parallelRunner := grouper.NewParallel(os.Interrupt, groupMembers)
