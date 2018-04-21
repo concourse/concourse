@@ -62,11 +62,12 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 		case db.ResourceNotFoundError:
 			w.WriteHeader(http.StatusNotFound)
 		case db.ResourceTypeNotFoundError:
-			w.WriteHeader(http.StatusNotFound)
+			w.Header().Set("Content-Type", jsonapi.MediaType)
+			w.WriteHeader(http.StatusBadRequest)
 			jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
 				Title:  "Resource Type Not Found Error",
 				Detail: err.Error(),
-				Status: "404",
+				Status: "400",
 			}})
 		case error:
 			w.WriteHeader(http.StatusInternalServerError)

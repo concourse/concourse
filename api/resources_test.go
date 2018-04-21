@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/jsonapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -653,6 +654,17 @@ var _ = Describe("Resources API", func() {
 
 				It("returns 404", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when checking the resource fails with ResourceTypeNotFoundError", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanFromVersionReturns(db.ResourceTypeNotFoundError{Name: "missing-type"})
+				})
+
+				It("returns jsonapi 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					Expect(response.Header.Get("Content-Type")).To(Equal(jsonapi.MediaType))
 				})
 			})
 
