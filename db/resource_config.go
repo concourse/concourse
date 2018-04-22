@@ -14,7 +14,6 @@ import (
 var ErrResourceConfigAlreadyExists = errors.New("resource config already exists")
 var ErrResourceConfigDisappeared = errors.New("resource config disappeared")
 var ErrResourceConfigParentDisappeared = errors.New("resource config parent disappeared")
-var ErrBaseResourceTypeNotFound = errors.New("base resource type not found")
 
 // ResourceConfig represents a resource type and config source.
 //
@@ -88,7 +87,7 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx) (*
 		}
 
 		if !found {
-			return nil, ErrBaseResourceTypeNotFound
+			return nil, ResourceTypeNotFoundError{Name: resourceConfig.CreatedByBaseResourceType.Name}
 		}
 
 		parentID = urc.CreatedByBaseResourceType.ID

@@ -247,7 +247,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				),
 			)
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(db.ErrBaseResourceTypeNotFound))
+			Expect(err).To(Equal(db.ResourceTypeNotFoundError{Name: "some-bogus-base-type"}))
 		})
 
 		It("allows a base resource type to be overridden using itself", func() {
