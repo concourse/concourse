@@ -8,19 +8,17 @@ import (
 )
 
 type credhubFactory struct {
-	credhub *credhub.CredHub
+	credhub lazyCredhub
 	logger  lager.Logger
 	prefix  string
 }
 
-func NewCredHubFactory(logger lager.Logger, credhub *credhub.CredHub, prefix string) *credhubFactory {
-	factory := &credhubFactory{
-		credhub: credhub,
+func NewCredHubFactory(logger lager.Logger, credhub lazyCredhub, prefix string) *credhubFactory {
+	return &credhubFactory{
+		credhub: lazyCredhub,
 		logger:  logger,
 		prefix:  prefix,
 	}
-
-	return factory
 }
 
 func (factory *credhubFactory) NewVariables(teamName string, pipelineName string) creds.Variables {

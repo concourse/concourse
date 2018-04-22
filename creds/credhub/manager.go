@@ -86,10 +86,31 @@ func (manager CredHubManager) NewVariablesFactory(logger lager.Logger) (creds.Va
 		options = append(options, credhub.ClientCert(manager.TLS.ClientCert, manager.TLS.ClientKey))
 	}
 
-	ch, err := credhub.New(manager.URL, options...)
+	return NewCredHubFactory(logger, newLazyCredhub(manager.URL, options), manager.PathPrefix), nil
+}
+
+type lazyCredhub struct {
+	url     string
+	options []credhub.Option
+	credhub *credhub.CredHub
+}
+
+func newLazyCredhub(url string, options []credhub.Option) lazyCredhub {
+	return lazyCredhub{
+		url:     url,
+		options: options,
+	}
+}
+
+func (lc *lazyClient) CredHub() (*credhub.CredHub, error) {
+	if lc.credhub != nil {
+		return lc.credhub
+	}
+
+	ch, err := credhub.New(lc.url, lc.options...)
 	if err != nil {
 		return nil, err
 	}
-
-	return NewCredHubFactory(logger, ch, manager.PathPrefix), nil
+	lc.credhub = ch
+	return lc.credhub, nil
 }
