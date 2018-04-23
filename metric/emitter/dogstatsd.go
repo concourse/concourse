@@ -16,9 +16,9 @@ type DogstatsdEmitter struct {
 }
 
 type DogstatsDBConfig struct {
-	Host   string `long:"datadog-agent-host" description:"Datadog agent host"`
-	Port   string `long:"datadog-agent-port" description:"Datadog agent port"`
-	Prefix string `long:"datadog-prefix" description:"Datadog agent address to ship metrics to."`
+	Host   string `long:"datadog-agent-host" description:"Datadog agent host to expose dogstatsd metrics"`
+	Port   string `long:"datadog-agent-port" description:"Datadog agent port to expose dogstatsd metrics"`
+	Prefix string `long:"datadog-prefix" description:"Prefix for all metrics to easily find them in Datadog"`
 }
 
 func init() {
@@ -50,11 +50,11 @@ func (config *DogstatsDBConfig) NewEmitter() (metric.Emitter, error) {
 	}, nil
 }
 
+var specialChars = regexp.MustCompile("[^a-zA-Z0-9_]+")
+
 func (emitter *DogstatsdEmitter) Emit(logger lager.Logger, event metric.Event) {
 
-	reg, _ := regexp.Compile("[^a-zA-Z0-9_]+")
-
-	name := reg.ReplaceAllString(strings.Replace(strings.ToLower(event.Name), " ", "_", -1), "")
+	name := specialChars.ReplaceAllString(strings.Replace(strings.ToLower(event.Name), " ", "_", -1), "")
 
 	tags := []string{
 		fmt.Sprintf("host:%s", event.Host),
@@ -72,7 +72,9 @@ func (emitter *DogstatsdEmitter) Emit(logger lager.Logger, event metric.Event) {
 	} else if f, ok := event.Value.(float64); ok {
 		value = f
 	} else {
-		logger.Error(fmt.Sprintf("failed-to-convert-metric-for-dogstatsd: %s", name), nil)
+		logger.Error("failed-to-convert-metric-for-dogstatsd", nil, lager.Data{
+			"metric-name": name,
+		})
 		return
 	}
 
