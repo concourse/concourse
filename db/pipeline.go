@@ -93,7 +93,7 @@ type Pipeline interface {
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
-	Dashboard(include string) (Dashboard, error)
+	Dashboard() (Dashboard, error)
 
 	Expose() error
 	Hide() error
@@ -873,7 +873,7 @@ func (p *pipeline) Jobs() (Jobs, error) {
 	return jobs, err
 }
 
-func (p *pipeline) Dashboard(include string) (Dashboard, error) {
+func (p *pipeline) Dashboard() (Dashboard, error) {
 	dashboard := Dashboard{}
 
 	rows, err := jobsQuery.
@@ -903,15 +903,6 @@ func (p *pipeline) Dashboard(include string) (Dashboard, error) {
 		return nil, err
 	}
 
-	var transitionBuilds map[string]Build
-
-	if include == "transitionBuilds" {
-		transitionBuilds, err = p.getBuildsFrom("transition_builds_per_job")
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	for _, job := range jobs {
 		dashboardJob := DashboardJob{
 			Job: job,
@@ -923,10 +914,6 @@ func (p *pipeline) Dashboard(include string) (Dashboard, error) {
 
 		if finishedBuild, found := finishedBuilds[job.Name()]; found {
 			dashboardJob.FinishedBuild = finishedBuild
-		}
-
-		if transitionBuild, found := transitionBuilds[job.Name()]; found {
-			dashboardJob.TransitionBuild = transitionBuild
 		}
 
 		dashboard = append(dashboard, dashboardJob)

@@ -447,12 +447,10 @@ type FakePipeline struct {
 		result1 db.Jobs
 		result2 error
 	}
-	DashboardStub        func(include string) (db.Dashboard, error)
+	DashboardStub        func() (db.Dashboard, error)
 	dashboardMutex       sync.RWMutex
-	dashboardArgsForCall []struct {
-		include string
-	}
-	dashboardReturns struct {
+	dashboardArgsForCall []struct{}
+	dashboardReturns     struct {
 		result1 db.Dashboard
 		result2 error
 	}
@@ -2213,16 +2211,14 @@ func (fake *FakePipeline) JobsReturnsOnCall(i int, result1 db.Jobs, result2 erro
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) Dashboard(include string) (db.Dashboard, error) {
+func (fake *FakePipeline) Dashboard() (db.Dashboard, error) {
 	fake.dashboardMutex.Lock()
 	ret, specificReturn := fake.dashboardReturnsOnCall[len(fake.dashboardArgsForCall)]
-	fake.dashboardArgsForCall = append(fake.dashboardArgsForCall, struct {
-		include string
-	}{include})
-	fake.recordInvocation("Dashboard", []interface{}{include})
+	fake.dashboardArgsForCall = append(fake.dashboardArgsForCall, struct{}{})
+	fake.recordInvocation("Dashboard", []interface{}{})
 	fake.dashboardMutex.Unlock()
 	if fake.DashboardStub != nil {
-		return fake.DashboardStub(include)
+		return fake.DashboardStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -2234,12 +2230,6 @@ func (fake *FakePipeline) DashboardCallCount() int {
 	fake.dashboardMutex.RLock()
 	defer fake.dashboardMutex.RUnlock()
 	return len(fake.dashboardArgsForCall)
-}
-
-func (fake *FakePipeline) DashboardArgsForCall(i int) string {
-	fake.dashboardMutex.RLock()
-	defer fake.dashboardMutex.RUnlock()
-	return fake.dashboardArgsForCall[i].include
 }
 
 func (fake *FakePipeline) DashboardReturns(result1 db.Dashboard, result2 error) {
