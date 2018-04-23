@@ -90,7 +90,7 @@ func NewHandler(
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory)
+	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory, containerRepository)
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion)
@@ -167,9 +167,10 @@ func NewHandler(
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:     http.HandlerFunc(infoServer.Info),
 
-		atc.ListContainers:  teamHandlerFactory.HandlerFor(containerServer.ListContainers),
-		atc.GetContainer:    teamHandlerFactory.HandlerFor(containerServer.GetContainer),
-		atc.HijackContainer: teamHandlerFactory.HandlerFor(containerServer.HijackContainer),
+		atc.ListContainers:           teamHandlerFactory.HandlerFor(containerServer.ListContainers),
+		atc.GetContainer:             teamHandlerFactory.HandlerFor(containerServer.GetContainer),
+		atc.HijackContainer:          teamHandlerFactory.HandlerFor(containerServer.HijackContainer),
+		atc.ListDestroyingContainers: http.HandlerFunc(containerServer.ListDestroyingContainers),
 
 		atc.ListVolumes: teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
 

@@ -523,4 +523,90 @@ var _ = Describe("ContainerRepository", func() {
 			})
 		})
 	})
+
+	Describe("FindDestroyingContainers", func() {
+		var failedErr error
+		var destroyingContainers []string
+
+		JustBeforeEach(func() {
+			destroyingContainers, failedErr = containerRepository.FindDestroyingContainers(defaultWorker.Name())
+		})
+		ItClosesConnection := func() {
+			It("closes the connection", func() {
+				closed := make(chan bool)
+
+				go func() {
+					_, _ = containerRepository.FindDestroyingContainers(defaultWorker.Name())
+					closed <- true
+				}()
+
+				Eventually(closed).Should(Receive())
+			})
+		}
+
+		Context("when there are destroying containers", func() {
+			BeforeEach(func() {
+				result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+					"state":        "destroying",
+					"handle":       "123-456-abc-def",
+					"worker_name":  defaultWorker.Name(),
+					"hijacked":     false,
+					"discontinued": false,
+				}).RunWith(dbConn).Exec()
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+			})
+
+			It("returns all destroying containers", func() {
+				Expect(destroyingContainers).To(HaveLen(1))
+				Expect(destroyingContainers[0]).To(Equal("123-456-abc-def"))
+			})
+
+			It("does not return an error", func() {
+				Expect(failedErr).ToNot(HaveOccurred())
+			})
+
+			ItClosesConnection()
+		})
+
+		Describe("errors", func() {
+			Context("when the query cannot be executed", func() {
+				BeforeEach(func() {
+					err := dbConn.Close()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				AfterEach(func() {
+					dbConn = postgresRunner.OpenConn()
+				})
+
+				It("returns an error", func() {
+					Expect(failedErr).To(HaveOccurred())
+				})
+
+				ItClosesConnection()
+			})
+
+			Context("when there is an error iterating through the rows", func() {
+				BeforeEach(func() {
+					By("adding a row without expected values")
+					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+						"state":  "destroying",
+						"handle": "123-456-abc-def",
+					}).RunWith(dbConn).Exec()
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+				})
+
+				It("returns empty list", func() {
+					Expect(destroyingContainers).To(HaveLen(0))
+				})
+
+				ItClosesConnection()
+			})
+		})
+	})
 })

@@ -34,6 +34,19 @@ type FakeContainerRepository struct {
 		result1 []db.FailedContainer
 		result2 error
 	}
+	FindDestroyingContainersStub        func(workerName string) ([]string, error)
+	findDestroyingContainersMutex       sync.RWMutex
+	findDestroyingContainersArgsForCall []struct {
+		workerName string
+	}
+	findDestroyingContainersReturns struct {
+		result1 []string
+		result2 error
+	}
+	findDestroyingContainersReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -130,6 +143,57 @@ func (fake *FakeContainerRepository) FindFailedContainersReturnsOnCall(i int, re
 	}{result1, result2}
 }
 
+func (fake *FakeContainerRepository) FindDestroyingContainers(workerName string) ([]string, error) {
+	fake.findDestroyingContainersMutex.Lock()
+	ret, specificReturn := fake.findDestroyingContainersReturnsOnCall[len(fake.findDestroyingContainersArgsForCall)]
+	fake.findDestroyingContainersArgsForCall = append(fake.findDestroyingContainersArgsForCall, struct {
+		workerName string
+	}{workerName})
+	fake.recordInvocation("FindDestroyingContainers", []interface{}{workerName})
+	fake.findDestroyingContainersMutex.Unlock()
+	if fake.FindDestroyingContainersStub != nil {
+		return fake.FindDestroyingContainersStub(workerName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.findDestroyingContainersReturns.result1, fake.findDestroyingContainersReturns.result2
+}
+
+func (fake *FakeContainerRepository) FindDestroyingContainersCallCount() int {
+	fake.findDestroyingContainersMutex.RLock()
+	defer fake.findDestroyingContainersMutex.RUnlock()
+	return len(fake.findDestroyingContainersArgsForCall)
+}
+
+func (fake *FakeContainerRepository) FindDestroyingContainersArgsForCall(i int) string {
+	fake.findDestroyingContainersMutex.RLock()
+	defer fake.findDestroyingContainersMutex.RUnlock()
+	return fake.findDestroyingContainersArgsForCall[i].workerName
+}
+
+func (fake *FakeContainerRepository) FindDestroyingContainersReturns(result1 []string, result2 error) {
+	fake.FindDestroyingContainersStub = nil
+	fake.findDestroyingContainersReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerRepository) FindDestroyingContainersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.FindDestroyingContainersStub = nil
+	if fake.findDestroyingContainersReturnsOnCall == nil {
+		fake.findDestroyingContainersReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.findDestroyingContainersReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -137,6 +201,8 @@ func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	defer fake.findOrphanedContainersMutex.RUnlock()
 	fake.findFailedContainersMutex.RLock()
 	defer fake.findFailedContainersMutex.RUnlock()
+	fake.findDestroyingContainersMutex.RLock()
+	defer fake.findDestroyingContainersMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

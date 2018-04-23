@@ -841,4 +841,127 @@ var _ = Describe("Containers API", func() {
 			})
 		})
 	})
+
+	Describe("GET /api/v1/teams/a-team/containers/destroying", func() {
+		BeforeEach(func() {
+			var err error
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/containers/destroying", nil)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				response, err := client.Do(req)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
+			})
+
+			Context("with no params", func() {
+				It("returns 404", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakeContainerRepository.FindDestroyingContainersCallCount()).To(Equal(0))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+
+				It("returns Content-Type application/json", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+			})
+
+			Context("querying with worker name", func() {
+				BeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"worker_name": []string{"some-worker-name"},
+					}.Encode()
+				})
+
+				Context("when there is an error", func() {
+					BeforeEach(func() {
+						fakeContainerRepository.FindDestroyingContainersReturns(nil, errors.New("some error"))
+					})
+
+					It("returns 500", func() {
+						response, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when no containers are found", func() {
+					BeforeEach(func() {
+						fakeContainerRepository.FindDestroyingContainersReturns([]string{}, nil)
+					})
+
+					It("returns 200", func() {
+						response, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns an empty array", func() {
+						response, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`
+							[]
+						`))
+					})
+
+					Context("when containers are found", func() {
+						BeforeEach(func() {
+							fakeContainerRepository.FindDestroyingContainersReturns([]string{
+								"handle1",
+								"handle2",
+							}, nil)
+						})
+						It("returns container handles array", func() {
+							response, err := client.Do(req)
+							Expect(err).NotTo(HaveOccurred())
+
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`
+								["handle1", "handle2"]
+							`))
+						})
+					})
+				})
+
+				It("queries with it in the worker name", func() {
+					_, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakeContainerRepository.FindDestroyingContainersCallCount()).To(Equal(1))
+
+					workerName := fakeContainerRepository.FindDestroyingContainersArgsForCall(0)
+					Expect(workerName).To(Equal("some-worker-name"))
+				})
+			})
+		})
+	})
 })
