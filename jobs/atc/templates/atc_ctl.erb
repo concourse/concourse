@@ -307,8 +307,12 @@ case $1 in
       <% if_p("aws_secretsmanager.team_secret_template") do |team_secret_template| %> \
       --aws-secretsmanager-team-secret-template <%= esc(team_secret_template) %> \
       <% end %> \
-      --default-build-logs-to-retain <%= esc(p("build_log_retention.default")) %> \
-      --max-build-logs-to-retain <%= esc(p("build_log_retention.maximum")) %> \
+      <% if_p("build_log_retention.default") do |build_log_retention_default| %> \
+      --default-build-logs-to-retain <%= esc(build_log_retention_default) %> \
+      <% end %> \
+      <% if_p("build_log_retention.maximum") do |build_log_retention_maximum| %> \
+      --max-build-logs-to-retain <%= esc(build_log_retention_maximum) %> \
+      <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 

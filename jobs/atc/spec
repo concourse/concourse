@@ -563,11 +563,11 @@ properties:
   build_log_retention.default:
     description: |
       Default (can be overriden by job) number of build logs to retain,
-      0 means retain all (database will grow indefinitely).
-    default: 0
+      0 (or not set) means retain all (database will grow indefinitely).
+    example: 100
   build_log_retention.maximum:
     description: |
       If set, this will cap the maximum number of build logs to retain for any job,
       capping any value set in a job itself or the build_log_retention.default.
-      0 means no maximum is specified.
-    default: 0
+      0 (or not set) means no maximum is specified.
+    example: 1000
