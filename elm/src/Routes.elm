@@ -146,7 +146,7 @@ toString route =
             reverse job [ teamName, pipelineName, jobName ]
 
         Resource teamName pipelineName resourceName ->
-            reverse job [ teamName, pipelineName, resourceName ]
+            reverse resource [ teamName, pipelineName, resourceName ]
 
         OneOffBuild buildId ->
             reverse oneOffBuild [ buildId ]

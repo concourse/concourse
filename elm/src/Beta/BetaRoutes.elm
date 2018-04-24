@@ -152,7 +152,7 @@ toString route =
             reverse betaOneOffBuild [ buildId ]
 
         BetaResource teamName pipelineName resourceName ->
-            reverse betaJob [ teamName, pipelineName, resourceName ]
+            reverse betaResource [ teamName, pipelineName, resourceName ]
 
         BetaJob teamName pipelineName jobName ->
             reverse betaJob [ teamName, pipelineName, jobName ]
