@@ -92,7 +92,7 @@ var _ = Describe("Resources API", func() {
 				})
 			})
 
-			Context("when not authorized", func() {
+			Context("when not authenticated and not authorized", func() {
 				BeforeEach(func() {
 					fakeaccess.IsAuthenticatedReturns(false)
 					fakeaccess.IsAuthorizedReturns(false)
@@ -104,7 +104,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("returns 401", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 
@@ -238,7 +238,7 @@ var _ = Describe("Resources API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when not authorized", func() {
+		Context("when not authenticated and not authorized", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 				fakeaccess.IsAuthorizedReturns(false)
@@ -250,7 +250,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 				})
 			})
 
@@ -447,8 +447,8 @@ var _ = Describe("Resources API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -528,8 +528,8 @@ var _ = Describe("Resources API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Status Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns Status Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -717,8 +717,8 @@ var _ = Describe("Resources API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

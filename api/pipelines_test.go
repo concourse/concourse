@@ -394,8 +394,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 
@@ -455,8 +455,8 @@ var _ = Describe("Pipelines API", func() {
 					fakePipeline.PublicReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 
@@ -483,8 +483,8 @@ var _ = Describe("Pipelines API", func() {
 					fakePipeline.PublicReturns(false)
 				})
 
-				It("returns 403", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 				})
 			})
 
@@ -553,8 +553,8 @@ var _ = Describe("Pipelines API", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(true)
 					})
-					It("returns 401", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
 
@@ -563,8 +563,8 @@ var _ = Describe("Pipelines API", func() {
 						fakeaccess.IsAuthenticatedReturns(false)
 					})
 
-					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 			})
@@ -827,8 +827,8 @@ var _ = Describe("Pipelines API", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -838,8 +838,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403 Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -906,8 +906,8 @@ var _ = Describe("Pipelines API", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -917,8 +917,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -986,8 +986,8 @@ var _ = Describe("Pipelines API", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -997,8 +997,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403 Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -1066,8 +1066,8 @@ var _ = Describe("Pipelines API", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -1077,8 +1077,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403 Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -1144,8 +1144,8 @@ var _ = Describe("Pipelines API", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns 401 Unauthorized", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -1155,8 +1155,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403 Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -1255,8 +1255,8 @@ var _ = Describe("Pipelines API", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -1266,8 +1266,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403 Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -1395,8 +1395,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403 Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -1462,8 +1462,8 @@ var _ = Describe("Pipelines API", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns 401 Unauthorized", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -1473,8 +1473,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403 Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -1491,7 +1491,7 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when not authorized", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
@@ -1502,7 +1502,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 				})
 			})
 
@@ -1800,8 +1800,8 @@ var _ = Describe("Pipelines API", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -1811,8 +1811,8 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
 			It("does not trigger a build", func() {

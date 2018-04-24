@@ -132,8 +132,8 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 						fakeaccess.IsAuthenticatedReturns(true)
 					})
 
-					It("returns 401 Unauthorized", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					It("returns 403 Forbidden", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
 
@@ -142,8 +142,8 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 						fakeaccess.IsAuthenticatedReturns(false)
 					})
 
-					It("returns 403 Forbidden", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					It("returns 401 Unauthorized", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 			})

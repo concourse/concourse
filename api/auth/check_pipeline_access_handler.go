@@ -75,9 +75,9 @@ func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	}
 
 	if !acc.IsAuthenticated() {
-		h.rejector.Forbidden(w, r)
+		h.rejector.Unauthorized(w, r)
 		return
 	}
 
-	h.rejector.Unauthorized(w, r)
+	h.rejector.Forbidden(w, r)
 }

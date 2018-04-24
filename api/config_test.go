@@ -364,8 +364,8 @@ var _ = Describe("Config API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -1091,8 +1091,8 @@ jobs:
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 403", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
 			It("does not save the config", func() {

@@ -25,14 +25,14 @@ func (h checkAuthorizationHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	acc := accessor.GetAccessor(r)
 
 	if !acc.IsAuthenticated() {
-		h.rejector.Forbidden(w, r)
+		h.rejector.Unauthorized(w, r)
 		return
 	}
 
 	teamName := r.URL.Query().Get(":team_name")
 
 	if !acc.IsAuthorized(teamName) {
-		h.rejector.Unauthorized(w, r)
+		h.rejector.Forbidden(w, r)
 		return
 	}
 

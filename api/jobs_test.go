@@ -261,18 +261,38 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when not authorized", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			Context("when authenticated", func() {
+			Context("and the pipeline is private", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
+					fakePipeline.PublicReturns(false)
 				})
+
 				It("returns 401", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 				})
+			})
+
+			Context("and the pipeline is public", func() {
+				BeforeEach(func() {
+					fakePipeline.JobReturns(fakeJob, true, nil)
+					fakePipeline.PublicReturns(true)
+					fakeJob.FinishedAndNextBuildReturns(nil, nil, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+		})
+
+		Context("when authenticated and not authorized", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(false)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -298,7 +318,7 @@ var _ = Describe("Jobs API", func() {
 			})
 		})
 
-		Context("when authorized", func() {
+		Context("when authenticated and authorized", func() {
 			var build1 *dbfakes.FakeBuild
 			var build2 *dbfakes.FakeBuild
 
@@ -489,7 +509,7 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when not authorized", func() {
+		Context("when authenticated and not authorized", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(true)
 				fakeaccess.IsAuthorizedReturns(false)
@@ -500,8 +520,8 @@ var _ = Describe("Jobs API", func() {
 					fakePipeline.PublicReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 
@@ -943,7 +963,7 @@ var _ = Describe("Jobs API", func() {
 						})
 
 						It("returns 401", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 						})
 					})
 
@@ -1173,7 +1193,7 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when not authorized", func() {
+		Context("when authenticated and not authorized", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthorizedReturns(false)
 				fakeaccess.IsAuthenticatedReturns(true)
@@ -1184,8 +1204,8 @@ var _ = Describe("Jobs API", func() {
 					fakePipeline.PublicReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 
@@ -1728,8 +1748,8 @@ var _ = Describe("Jobs API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -1859,16 +1879,18 @@ var _ = Describe("Jobs API", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(false)
 					})
-					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
+
 				Context("when authenticated", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(true)
 					})
-					It("returns 401", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
 			})
@@ -1960,8 +1982,8 @@ var _ = Describe("Jobs API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Status Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns Status Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -2038,8 +2060,8 @@ var _ = Describe("Jobs API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Status Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns Status Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

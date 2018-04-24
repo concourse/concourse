@@ -107,8 +107,8 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					responseBody, err := ioutil.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(responseBody)).To(Equal("nope\n"))
@@ -122,21 +122,10 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 			})
 
 			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 				responseBody, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(responseBody)).To(Equal("nope\n"))
-			})
-
-			Context("when the bearer token is for the requested team", func() {
-				It("returns 403", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-					responseBody, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(string(responseBody)).To(Equal("nope\n"))
-
-					Expect(fakeaccess.IsAuthorizedCallCount()).To(Equal(0))
-				})
 			})
 		})
 	})

@@ -57,24 +57,26 @@ var _ = Describe("Versions API", func() {
 				BeforeEach(func() {
 					fakePipeline.PublicReturns(false)
 				})
+
 				Context("user is not authenticated", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(false)
 					})
-					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
+
 				Context("user is authenticated", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(true)
 					})
 
 					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
-
 			})
 
 			Context("and the pipeline is public", func() {
@@ -310,8 +312,8 @@ var _ = Describe("Versions API", func() {
 				BeforeEach(func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
-				It("returns Unauthorized", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -321,8 +323,8 @@ var _ = Describe("Versions API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -378,8 +380,8 @@ var _ = Describe("Versions API", func() {
 					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				It("returns Unauthorized", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -388,8 +390,8 @@ var _ = Describe("Versions API", func() {
 				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -421,20 +423,24 @@ var _ = Describe("Versions API", func() {
 				BeforeEach(func() {
 					fakePipeline.PublicReturns(false)
 				})
+
 				Context("when authenticated", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(true)
 					})
-					It("returns 401", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
+
 				Context("when not authenticated", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(false)
 					})
-					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 			})
@@ -577,20 +583,24 @@ var _ = Describe("Versions API", func() {
 				BeforeEach(func() {
 					fakePipeline.PublicReturns(false)
 				})
+
 				Context("when authenticated", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(true)
 					})
-					It("returns 401", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
+
 				Context("when not authenticated", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(false)
 					})
-					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 			})
