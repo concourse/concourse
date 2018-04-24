@@ -14,6 +14,6 @@ type GithubTeamFlags struct {
 	Groups []string `json:"groups" long:"group" description:"List of github groups (e.g. my-org or my-org:my-team)" value-name:"GITHUB_ORG:GITHUB_TEAM"`
 }
 
-func (config GithubTeamFlags) IsValid() bool {
-	return len(config.Users) > 0 || len(config.Groups) > 0
+func (self GithubTeamFlags) IsValid() bool {
+	return len(self.Users) > 0 || len(self.Groups) > 0
 }

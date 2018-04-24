@@ -9,7 +9,7 @@ type CFFlags struct {
 }
 
 func (self CFFlags) IsValid() bool {
-	return self.ClientID != "" && self.ClientSecret != ""
+	return self.ClientID != "" && self.ClientSecret != "" && self.APIURL != ""
 }
 
 type CFTeamFlags struct {

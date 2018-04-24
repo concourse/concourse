@@ -58,7 +58,7 @@ var _ = Describe("Dex Server", func() {
 
 				Expect(connectors[0].ID).To(Equal("github"))
 				Expect(connectors[0].Type).To(Equal("github"))
-				Expect(connectors[0].Name).To(Equal("Github"))
+				Expect(connectors[0].Name).To(Equal("GitHub"))
 				Expect(connectors[0].Config).To(MatchJSON(`{
 					"clientID":     "client-id",
 					"clientSecret": "client-secret",
@@ -93,7 +93,7 @@ var _ = Describe("Dex Server", func() {
 
 				Expect(connectors[0].ID).To(Equal("cf"))
 				Expect(connectors[0].Type).To(Equal("cf"))
-				Expect(connectors[0].Name).To(Equal("CF"))
+				Expect(connectors[0].Name).To(Equal("Cloud Foundry"))
 				Expect(connectors[0].Config).To(MatchJSON(`{
 					"clientID":           "client-id",
 					"clientSecret":       "client-secret",
@@ -101,6 +101,77 @@ var _ = Describe("Dex Server", func() {
 					"apiURL":             "http://example.com/api",
 					"rootCAs":            ["some-ca-cert"],
 					"insecureSkipVerify": false
+				}`))
+			})
+		})
+
+		Context("when ldap host, user search basedn and username are configured", func() {
+			BeforeEach(func() {
+				ldapflags := skycmd.LDAPFlags{
+					Host:               "some.host.name",
+					BindDN:             "some-bind-dn",
+					BindPW:             "some-bind-pw",
+					InsecureNoSSL:      true,
+					InsecureSkipVerify: true,
+					StartTLS:           true,
+					RootCA:             "/tmp/some-ca",
+				}
+				ldapflags.UserSearch.BaseDN = "some-user-base-dn"
+				ldapflags.UserSearch.Filter = "(some-user-filter)"
+				ldapflags.UserSearch.Username = "some-username"
+				ldapflags.UserSearch.Scope = "some-user-scope"
+				ldapflags.UserSearch.IDAttr = "some-id-attr"
+				ldapflags.UserSearch.EmailAttr = "some-email-attr"
+				ldapflags.UserSearch.NameAttr = "some-name-attr"
+				ldapflags.GroupSearch.BaseDN = "some-group-base-dn"
+				ldapflags.GroupSearch.Filter = "(some-group-filter)"
+				ldapflags.GroupSearch.Scope = "some-group-scope"
+				ldapflags.GroupSearch.UserAttr = "some-group-user-attr"
+				ldapflags.GroupSearch.GroupAttr = "some-group-group-attr"
+				ldapflags.GroupSearch.NameAttr = "some-group-name-attr"
+
+				config = &dexserver.DexConfig{
+					IssuerURL: "http://example.com/",
+					Flags: skycmd.AuthFlags{
+						LDAP: ldapflags,
+					},
+				}
+			})
+
+			It("should configure ldap connector", func() {
+				connectors, err := serverConfig.Storage.ListConnectors()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(connectors[0].ID).To(Equal("ldap"))
+				Expect(connectors[0].Type).To(Equal("ldap"))
+				Expect(connectors[0].Name).To(Equal("LDAP"))
+				Expect(connectors[0].Config).To(MatchJSON(`{
+					"host":               "some.host.name",
+					"insecureNoSSL":      true,
+					"insecureSkipVerify": true,
+					"startTLS":           true,
+					"rootCA":             "/tmp/some-ca",
+					"rootCAData":         null,
+					"bindDN":             "some-bind-dn",
+					"bindPW":             "some-bind-pw",
+					"usernamePrompt":     "",
+					"userSearch": {
+						"baseDN":    "some-user-base-dn",
+						"username":  "some-username",
+						"filter":    "(some-user-filter)",
+						"scope":     "some-user-scope",
+						"idAttr":    "some-id-attr",
+						"emailAttr": "some-email-attr",
+						"nameAttr":  "some-name-attr"
+					},
+					"groupSearch": {
+						"baseDN":    "some-group-base-dn",
+						"filter":    "(some-group-filter)",
+						"scope":     "some-group-scope",
+						"userAttr":  "some-group-user-attr",
+						"groupAttr": "some-group-group-attr",
+						"nameAttr":  "some-group-name-attr"
+					}
 				}`))
 			})
 		})
@@ -123,7 +194,7 @@ var _ = Describe("Dex Server", func() {
 
 				Expect(connectors[0].ID).To(Equal("local"))
 				Expect(connectors[0].Type).To(Equal("local"))
-				Expect(connectors[0].Name).To(Equal("Username"))
+				Expect(connectors[0].Name).To(Equal("Username/Password"))
 			})
 
 			It("should configure local users", func() {
