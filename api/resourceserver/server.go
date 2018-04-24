@@ -2,6 +2,7 @@ package resourceserver
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/radar"
 )
@@ -13,13 +14,19 @@ type ScannerFactory interface {
 }
 
 type Server struct {
-	logger         lager.Logger
-	scannerFactory ScannerFactory
+	logger           lager.Logger
+	scannerFactory   ScannerFactory
+	variablesFactory creds.VariablesFactory
 }
 
-func NewServer(logger lager.Logger, scannerFactory ScannerFactory) *Server {
+func NewServer(
+	logger lager.Logger,
+	scannerFactory ScannerFactory,
+	variablesFactory creds.VariablesFactory,
+) *Server {
 	return &Server{
-		logger:         logger,
-		scannerFactory: scannerFactory,
+		logger:           logger,
+		scannerFactory:   scannerFactory,
+		variablesFactory: variablesFactory,
 	}
 }
