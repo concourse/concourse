@@ -4,8 +4,8 @@ set -e -u
 
 source $(dirname $0)/common.bash
 
-if ! bosh --version | grep 2.0 >/dev/null; then
-  abort "requires BOSH CLI 2.0: https://bosh.io/docs/cli-v2.html"
+if bosh --version | grep 1.0 >/dev/null; then
+  abort "requires BOSH CLI 2.0+: https://bosh.io/docs/cli-v2.html"
 fi
 
 if VBoxManage list hostonlyifs | grep vboxnet0 >/dev/null; then
