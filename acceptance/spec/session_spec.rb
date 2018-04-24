@@ -18,6 +18,27 @@ describe 'session', type: :feature do
     end
   end
 
+  context 'when not logged in' do
+    before(:each) do
+      fly_login team_name
+      fly('set-pipeline -n -p test-pipeline -c fixtures/resource-checking.yml')
+      fly('unpause-pipeline -p test-pipeline')
+      fly('expose-pipeline -p test-pipeline')
+    end
+
+    it 'redirects to login when triggering a new build' do
+      visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/checker")
+      click_on 'Trigger Build'
+      expect(page).to have_current_path dash_route("/teams/#{team_name}/login?redirect=%2Fteams%2F#{team_name}%2Fpipelines%2Ftest-pipeline%2Fjobs%2Fchecker")
+    end
+
+    it 'redirects to login when pausing a resource' do
+      visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/resources/few-versions")
+      click_on 'Pause Resource Checking'
+      expect(page).to have_current_path dash_route("/teams/#{team_name}/login?redirect=%2Fteams%2F#{team_name}%2Fpipelines%2Ftest-pipeline%2Fresources%2Ffew-versions")
+    end
+  end
+
   xcontext 'when session expires' do
     it 'displays the correct state in the top bar' do
       dash_login team_name
