@@ -21,17 +21,6 @@ type FakePipelineFactory struct {
 		result1 []db.Pipeline
 		result2 error
 	}
-	PublicPipelinesStub        func() ([]db.Pipeline, error)
-	publicPipelinesMutex       sync.RWMutex
-	publicPipelinesArgsForCall []struct{}
-	publicPipelinesReturns     struct {
-		result1 []db.Pipeline
-		result2 error
-	}
-	publicPipelinesReturnsOnCall map[int]struct {
-		result1 []db.Pipeline
-		result2 error
-	}
 	AllPipelinesStub        func() ([]db.Pipeline, error)
 	allPipelinesMutex       sync.RWMutex
 	allPipelinesArgsForCall []struct{}
@@ -103,49 +92,6 @@ func (fake *FakePipelineFactory) VisiblePipelinesReturnsOnCall(i int, result1 []
 	}{result1, result2}
 }
 
-func (fake *FakePipelineFactory) PublicPipelines() ([]db.Pipeline, error) {
-	fake.publicPipelinesMutex.Lock()
-	ret, specificReturn := fake.publicPipelinesReturnsOnCall[len(fake.publicPipelinesArgsForCall)]
-	fake.publicPipelinesArgsForCall = append(fake.publicPipelinesArgsForCall, struct{}{})
-	fake.recordInvocation("PublicPipelines", []interface{}{})
-	fake.publicPipelinesMutex.Unlock()
-	if fake.PublicPipelinesStub != nil {
-		return fake.PublicPipelinesStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.publicPipelinesReturns.result1, fake.publicPipelinesReturns.result2
-}
-
-func (fake *FakePipelineFactory) PublicPipelinesCallCount() int {
-	fake.publicPipelinesMutex.RLock()
-	defer fake.publicPipelinesMutex.RUnlock()
-	return len(fake.publicPipelinesArgsForCall)
-}
-
-func (fake *FakePipelineFactory) PublicPipelinesReturns(result1 []db.Pipeline, result2 error) {
-	fake.PublicPipelinesStub = nil
-	fake.publicPipelinesReturns = struct {
-		result1 []db.Pipeline
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipelineFactory) PublicPipelinesReturnsOnCall(i int, result1 []db.Pipeline, result2 error) {
-	fake.PublicPipelinesStub = nil
-	if fake.publicPipelinesReturnsOnCall == nil {
-		fake.publicPipelinesReturnsOnCall = make(map[int]struct {
-			result1 []db.Pipeline
-			result2 error
-		})
-	}
-	fake.publicPipelinesReturnsOnCall[i] = struct {
-		result1 []db.Pipeline
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakePipelineFactory) AllPipelines() ([]db.Pipeline, error) {
 	fake.allPipelinesMutex.Lock()
 	ret, specificReturn := fake.allPipelinesReturnsOnCall[len(fake.allPipelinesArgsForCall)]
@@ -194,8 +140,6 @@ func (fake *FakePipelineFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.visiblePipelinesMutex.RLock()
 	defer fake.visiblePipelinesMutex.RUnlock()
-	fake.publicPipelinesMutex.RLock()
-	defer fake.publicPipelinesMutex.RUnlock()
 	fake.allPipelinesMutex.RLock()
 	defer fake.allPipelinesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

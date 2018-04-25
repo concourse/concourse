@@ -1,7 +1,8 @@
 package gc_test
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
+	"context"
+
 	"github.com/concourse/atc/gc"
 
 	"errors"
@@ -18,13 +19,9 @@ var _ = Describe("WorkerCollector", func() {
 	)
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("volume-collector")
 		fakeWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
 
-		workerCollector = gc.NewWorkerCollector(
-			logger,
-			fakeWorkerLifecycle,
-		)
+		workerCollector = gc.NewWorkerCollector(fakeWorkerLifecycle)
 
 		fakeWorkerLifecycle.StallUnresponsiveWorkersReturns(nil, nil)
 		fakeWorkerLifecycle.DeleteFinishedRetiringWorkersReturns(nil, nil)
@@ -33,21 +30,21 @@ var _ = Describe("WorkerCollector", func() {
 
 	Describe("Run", func() {
 		It("tells the worker factory to expired stalled workers", func() {
-			err := workerCollector.Run()
+			err := workerCollector.Run(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeWorkerLifecycle.StallUnresponsiveWorkersCallCount()).To(Equal(1))
 		})
 
 		It("tells the worker factory to delete finished retiring workers", func() {
-			err := workerCollector.Run()
+			err := workerCollector.Run(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeWorkerLifecycle.DeleteFinishedRetiringWorkersCallCount()).To(Equal(1))
 		})
 
 		It("tells the worker factory to land finished landing workers", func() {
-			err := workerCollector.Run()
+			err := workerCollector.Run(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeWorkerLifecycle.LandFinishedLandingWorkersCallCount()).To(Equal(1))
@@ -57,7 +54,7 @@ var _ = Describe("WorkerCollector", func() {
 			returnedErr := errors.New("some-error")
 			fakeWorkerLifecycle.StallUnresponsiveWorkersReturns(nil, returnedErr)
 
-			err := workerCollector.Run()
+			err := workerCollector.Run(context.TODO())
 			Expect(err).To(MatchError(returnedErr))
 		})
 
@@ -65,7 +62,7 @@ var _ = Describe("WorkerCollector", func() {
 			returnedErr := errors.New("some-error")
 			fakeWorkerLifecycle.DeleteFinishedRetiringWorkersReturns(nil, returnedErr)
 
-			err := workerCollector.Run()
+			err := workerCollector.Run(context.TODO())
 			Expect(err).To(MatchError(returnedErr))
 		})
 
@@ -73,7 +70,7 @@ var _ = Describe("WorkerCollector", func() {
 			returnedErr := errors.New("some-error")
 			fakeWorkerLifecycle.LandFinishedLandingWorkersReturns(nil, returnedErr)
 
-			err := workerCollector.Run()
+			err := workerCollector.Run(context.TODO())
 			Expect(err).To(MatchError(returnedErr))
 		})
 	})

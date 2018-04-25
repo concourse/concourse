@@ -1,11 +1,11 @@
 package gc_test
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
@@ -54,9 +54,7 @@ var _ = Describe("VolumeCollector", func() {
 			job.Run(fakeWorker)
 		}
 
-		logger := lagertest.NewTestLogger("volume-collector")
 		volumeCollector = gc.NewVolumeCollector(
-			logger,
 			volumeFactory,
 			fakeJobRunner,
 		)
@@ -100,7 +98,7 @@ var _ = Describe("VolumeCollector", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(failedVolumes).To(HaveLen(1))
 
-				err = volumeCollector.Run()
+				err = volumeCollector.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				failedVolumes, err = volumeFactory.GetFailedVolumes()
@@ -167,7 +165,7 @@ var _ = Describe("VolumeCollector", func() {
 				Expect(createdVolumes).To(HaveLen(1))
 				Expect(destoryingVolumes).To(HaveLen(1))
 
-				err = volumeCollector.Run()
+				err = volumeCollector.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
@@ -193,7 +191,7 @@ var _ = Describe("VolumeCollector", func() {
 					createdVolumeHandle := createdVolumes[0].Handle()
 					Expect(destoryingVolumes).To(HaveLen(1))
 
-					err = volumeCollector.Run()
+					err = volumeCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
@@ -215,7 +213,7 @@ var _ = Describe("VolumeCollector", func() {
 					Expect(createdVolumes).To(HaveLen(1))
 					Expect(destroyingVolumes).To(HaveLen(1))
 
-					err = volumeCollector.Run()
+					err = volumeCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					createdVolumes, destroyingVolumes, err = volumeFactory.GetOrphanedVolumes()

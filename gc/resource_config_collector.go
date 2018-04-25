@@ -1,25 +1,27 @@
 package gc
 
 import (
-	"code.cloudfoundry.org/lager"
+	"context"
+
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc/db"
 )
 
 type resourceConfigCollector struct {
-	logger        lager.Logger
 	configFactory db.ResourceConfigFactory
 }
 
-func NewResourceConfigCollector(
-	logger lager.Logger,
-	configFactory db.ResourceConfigFactory,
-) Collector {
+func NewResourceConfigCollector(configFactory db.ResourceConfigFactory) Collector {
 	return &resourceConfigCollector{
-		logger:        logger.Session("resource-config-collector"),
 		configFactory: configFactory,
 	}
 }
 
-func (rcuc *resourceConfigCollector) Run() error {
+func (rcuc *resourceConfigCollector) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx).Session("resource-config-collector")
+
+	logger.Debug("start")
+	defer logger.Debug("done")
+
 	return rcuc.configFactory.CleanUnreferencedConfigs()
 }

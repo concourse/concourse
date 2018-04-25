@@ -1,12 +1,14 @@
 package gc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/worker"
@@ -17,18 +19,15 @@ const HijackedContainerTimeout = 5 * time.Minute
 var containerCollectorFailedErr = errors.New("container collector failed")
 
 type containerCollector struct {
-	rootLogger          lager.Logger
 	containerRepository db.ContainerRepository
 	jobRunner           WorkerJobRunner
 }
 
 func NewContainerCollector(
-	logger lager.Logger,
 	containerRepository db.ContainerRepository,
 	jobRunner WorkerJobRunner,
 ) Collector {
 	return &containerCollector{
-		rootLogger:          logger,
 		containerRepository: containerRepository,
 		jobRunner:           jobRunner,
 	}
@@ -47,8 +46,8 @@ func (j *job) Run(w worker.Worker) {
 	j.RunFunc(w)
 }
 
-func (c *containerCollector) Run() error {
-	logger := c.rootLogger.Session("run")
+func (c *containerCollector) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx).Session("container-collector")
 
 	logger.Debug("start")
 	defer logger.Debug("done")
@@ -57,13 +56,13 @@ func (c *containerCollector) Run() error {
 
 	orphanedErr := c.cleanupOrphanedContainers(logger.Session("orphaned-containers"))
 	if orphanedErr != nil {
-		c.rootLogger.Error("container-collector", orphanedErr)
+		logger.Error("failed-to-clean-up-orphaned-containers", orphanedErr)
 		err = containerCollectorFailedErr
 	}
 
 	failedErr := c.cleanupFailedContainers(logger.Session("failed-containers"))
 	if failedErr != nil {
-		c.rootLogger.Error("container-collector", failedErr)
+		logger.Error("failed-to-clean-up-failed-containers", failedErr)
 		err = containerCollectorFailedErr
 	}
 
@@ -71,7 +70,6 @@ func (c *containerCollector) Run() error {
 }
 
 func (c *containerCollector) cleanupFailedContainers(logger lager.Logger) error {
-
 	failedContainers, err := c.containerRepository.FindFailedContainers()
 	if err != nil {
 		logger.Error("failed-to-find-failed-containers-for-deletion", err)

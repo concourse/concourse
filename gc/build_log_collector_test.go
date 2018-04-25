@@ -1,10 +1,10 @@
 package gc_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
@@ -14,9 +14,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("BuildReaper", func() {
+var _ = Describe("BuildLogCollector", func() {
 	var (
-		buildReaper         BuildReaper
+		buildLogCollector   Collector
 		fakePipelineFactory *dbfakes.FakePipelineFactory
 		batchSize           int
 		buildLogRetainCalc  BuildLogRetentionCalculator
@@ -29,9 +29,7 @@ var _ = Describe("BuildReaper", func() {
 	})
 
 	JustBeforeEach(func() {
-		buildReaperLogger := lagertest.NewTestLogger("test")
-		buildReaper = NewBuildReaper(
-			buildReaperLogger,
+		buildLogCollector = NewBuildLogCollector(
 			fakePipelineFactory,
 			batchSize,
 			buildLogRetainCalc,
@@ -57,7 +55,7 @@ var _ = Describe("BuildReaper", func() {
 			})
 
 			It("returns the error", func() {
-				err := buildReaper.Run()
+				err := buildLogCollector.Run(context.TODO())
 				Expect(err).To(Equal(disaster))
 			})
 		})
@@ -97,7 +95,7 @@ var _ = Describe("BuildReaper", func() {
 					})
 
 					It("reaps n builds starting with FirstLoggedBuildID, n = batchSize", func() {
-						err := buildReaper.Run()
+						err := buildLogCollector.Run(context.TODO())
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -106,7 +104,7 @@ var _ = Describe("BuildReaper", func() {
 					})
 
 					It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-						err := buildReaper.Run()
+						err := buildLogCollector.Run(context.TODO())
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
@@ -125,12 +123,12 @@ var _ = Describe("BuildReaper", func() {
 					})
 
 					It("returns the error", func() {
-						err := buildReaper.Run()
+						err := buildLogCollector.Run(context.TODO())
 						Expect(err).To(Equal(disaster))
 					})
 
 					It("does not update first logged build id", func() {
-						buildReaper.Run()
+						buildLogCollector.Run(context.TODO())
 
 						Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(BeZero())
 					})
@@ -146,7 +144,7 @@ var _ = Describe("BuildReaper", func() {
 					})
 
 					It("returns the error", func() {
-						err := buildReaper.Run()
+						err := buildLogCollector.Run(context.TODO())
 						Expect(err).To(Equal(disaster))
 					})
 				})
@@ -171,7 +169,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("reaps n builds starting with FirstLoggedBuildID, n = batchSize", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -180,7 +178,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
@@ -214,7 +212,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("reaps all builds before the first running build", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -223,7 +221,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
@@ -251,14 +249,14 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("doesn't reap any builds", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(BeZero())
 				})
 
 				It("doesn't update FirstLoggedBuildID", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(BeZero())
@@ -275,7 +273,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("doesn't reap any builds", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(BeZero())
@@ -293,7 +291,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("returns the error", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).To(Equal(disaster))
 				})
 			})
@@ -335,7 +333,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("uses build log calculator", func() {
-					Expect(buildReaper.Run()).NotTo(HaveOccurred())
+					Expect(buildLogCollector.Run(context.TODO())).NotTo(HaveOccurred())
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(1, 2))
 				})
@@ -361,7 +359,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("reaps n builds starting with build 1, n = batchSize", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -370,7 +368,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
@@ -384,7 +382,7 @@ var _ = Describe("BuildReaper", func() {
 					})
 
 					It("reaps n builds starting with build 1, n = batchSize", func() {
-						err := buildReaper.Run()
+						err := buildLogCollector.Run(context.TODO())
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -393,7 +391,7 @@ var _ = Describe("BuildReaper", func() {
 					})
 
 					It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-						err := buildReaper.Run()
+						err := buildLogCollector.Run(context.TODO())
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
@@ -423,7 +421,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("reaps n builds starting with FirstLoggedBuildID, n = batchSize", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -442,7 +440,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("returns the error", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).To(Equal(disaster))
 				})
 			})
@@ -482,7 +480,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("reaps n builds starting with build 1, n = batchSize", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -491,7 +489,7 @@ var _ = Describe("BuildReaper", func() {
 				})
 
 				It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-					err := buildReaper.Run()
+					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
@@ -521,7 +519,7 @@ var _ = Describe("BuildReaper", func() {
 			})
 
 			It("skips the reaping step for that job", func() {
-				err := buildReaper.Run()
+				err := buildLogCollector.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeJob.BuildsCallCount()).To(BeZero())
@@ -543,7 +541,7 @@ var _ = Describe("BuildReaper", func() {
 		})
 
 		It("skips the reaping step for that pipeline", func() {
-			err := buildReaper.Run()
+			err := buildLogCollector.Run(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(BeZero())
@@ -560,7 +558,7 @@ var _ = Describe("BuildReaper", func() {
 		})
 
 		It("returns the error", func() {
-			err := buildReaper.Run()
+			err := buildLogCollector.Run(context.TODO())
 			Expect(err).To(Equal(disaster))
 		})
 	})

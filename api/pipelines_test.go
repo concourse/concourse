@@ -85,7 +85,6 @@ var _ = Describe("Pipelines API", func() {
 		}, nil)
 		fakeTeam.PublicPipelinesReturns([]db.Pipeline{publicPipeline}, nil)
 
-		dbPipelineFactory.PublicPipelinesReturns([]db.Pipeline{publicPipeline, anotherPublicPipeline}, nil)
 		dbPipelineFactory.VisiblePipelinesReturns([]db.Pipeline{publicPipeline, anotherPublicPipeline}, nil)
 	})
 

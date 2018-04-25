@@ -88,8 +88,8 @@ type ATCCommand struct {
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
-	CookieSecure bool     `long:"cookie-secure" description:"Set secure flag on auth cookies"`
- 
+	CookieSecure bool `long:"cookie-secure" description:"Set secure flag on auth cookies"`
+
 	TLSBindPort uint16    `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
 	TLSCert     flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
@@ -601,31 +601,14 @@ func (cmd *ATCCommand) constructMembers(
 		}},
 
 		{"collector", lockrunner.NewRunner(
-			logger.Session("collector-runner"),
+			logger.Session("collector"),
 			gc.NewCollector(
-				logger.Session("ng-collector"),
-				gc.NewBuildCollector(
-					logger.Session("build-collector"),
-					dbBuildFactory,
-				),
-				gc.NewWorkerCollector(
-					logger.Session("worker-collector"),
-					dbWorkerLifecycle,
-				),
-				gc.NewResourceCacheUseCollector(
-					logger.Session("resource-cache-use-collector"),
-					dbResourceCacheLifecycle,
-				),
-				gc.NewResourceConfigCollector(
-					logger.Session("resource-config-collector"),
-					dbResourceConfigFactory,
-				),
-				gc.NewResourceCacheCollector(
-					logger.Session("resource-cache-collector"),
-					dbResourceCacheLifecycle,
-				),
+				gc.NewBuildCollector(dbBuildFactory),
+				gc.NewWorkerCollector(dbWorkerLifecycle),
+				gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
+				gc.NewResourceConfigCollector(dbResourceConfigFactory),
+				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 				gc.NewVolumeCollector(
-					logger.Session("volume-collector"),
 					dbVolumeFactory,
 					gc.NewWorkerJobRunner(
 						logger.Session("volume-collector-worker-job-runner"),
@@ -640,7 +623,6 @@ func (cmd *ATCCommand) constructMembers(
 					),
 				),
 				gc.NewContainerCollector(
-					logger.Session("container-collector"),
 					dbContainerRepository,
 					gc.NewWorkerJobRunner(
 						logger.Session("container-collector-worker-job-runner"),
@@ -655,7 +637,6 @@ func (cmd *ATCCommand) constructMembers(
 					),
 				),
 				gc.NewResourceConfigCheckSessionCollector(
-					logger.Session("resource-config-check-session-collector"),
 					resourceConfigCheckSessionLifecycle,
 				),
 			),
@@ -665,10 +646,10 @@ func (cmd *ATCCommand) constructMembers(
 			cmd.GC.Interval,
 		)},
 
-		{"build-reaper", lockrunner.NewRunner(
-			logger.Session("build-reaper-runner"),
-			gc.NewBuildReaper(
-				logger.Session("build-reaper"),
+		// run separately so as to not preempt critical GC
+		{"build-log-collector", lockrunner.NewRunner(
+			logger.Session("build-log-collector"),
+			gc.NewBuildLogCollector(
 				dbPipelineFactory,
 				500,
 				gc.NewBuildLogRetentionCalculator(

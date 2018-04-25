@@ -1,6 +1,7 @@
 package gc_test
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,8 +23,6 @@ var _ = Describe("ContainerCollector", func() {
 	var (
 		fakeContainerRepository *dbfakes.FakeContainerRepository
 		fakeJobRunner           *gcfakes.FakeWorkerJobRunner
-
-		logger *lagertest.TestLogger
 
 		fakeWorker       *workerfakes.FakeWorker
 		fakeGardenClient *gardenfakes.FakeClient
@@ -48,10 +46,7 @@ var _ = Describe("ContainerCollector", func() {
 			job.Run(fakeWorker)
 		}
 
-		logger = lagertest.NewTestLogger("test")
-
 		collector = gc.NewContainerCollector(
-			logger,
 			fakeContainerRepository,
 			fakeJobRunner,
 		)
@@ -63,7 +58,7 @@ var _ = Describe("ContainerCollector", func() {
 		)
 
 		JustBeforeEach(func() {
-			err = collector.Run()
+			err = collector.Run(context.TODO())
 		})
 
 		It("succeeds", func() {

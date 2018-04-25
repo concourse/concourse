@@ -1,27 +1,25 @@
 package gc
 
 import (
+	"context"
+
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc/db"
 )
 
 type workerCollector struct {
-	logger          lager.Logger
 	workerLifecycle db.WorkerLifecycle
 }
 
-func NewWorkerCollector(
-	logger lager.Logger,
-	workerLifecycle db.WorkerLifecycle,
-) Collector {
+func NewWorkerCollector(workerLifecycle db.WorkerLifecycle) Collector {
 	return &workerCollector{
-		logger:          logger,
 		workerLifecycle: workerLifecycle,
 	}
 }
 
-func (wc *workerCollector) Run() error {
-	logger := wc.logger.Session("run")
+func (wc *workerCollector) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx).Session("worker-collector")
 
 	logger.Debug("start")
 	defer logger.Debug("done")

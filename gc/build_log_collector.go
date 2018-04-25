@@ -1,30 +1,25 @@
 package gc
 
 import (
-	"code.cloudfoundry.org/lager"
+	"context"
+
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc/db"
 )
 
-type BuildReaper interface {
-	Run() error
-}
-
-type buildReaper struct {
-	logger          lager.Logger
+type buildLogCollector struct {
 	pipelineFactory db.PipelineFactory
 	batchSize       int
 
 	buildLogRetentionCalculator BuildLogRetentionCalculator
 }
 
-func NewBuildReaper(
-	logger lager.Logger,
+func NewBuildLogCollector(
 	pipelineFactory db.PipelineFactory,
 	batchSize int,
 	buildLogRetentionCalculator BuildLogRetentionCalculator,
-) BuildReaper {
-	return &buildReaper{
-		logger:          logger,
+) Collector {
+	return &buildLogCollector{
 		pipelineFactory: pipelineFactory,
 		batchSize:       batchSize,
 
@@ -32,10 +27,15 @@ func NewBuildReaper(
 	}
 }
 
-func (br *buildReaper) Run() error {
+func (br *buildLogCollector) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx).Session("build-reaper")
+
+	logger.Debug("start")
+	defer logger.Debug("done")
+
 	pipelines, err := br.pipelineFactory.AllPipelines()
 	if err != nil {
-		br.logger.Error("could-not-get-pipelines", err)
+		logger.Error("failed-to-get-pipelines", err)
 		return err
 	}
 
@@ -46,7 +46,7 @@ func (br *buildReaper) Run() error {
 
 		jobs, err := pipeline.Jobs()
 		if err != nil {
-			br.logger.Error("could-not-get-dashboard", err)
+			logger.Error("failed-to-get-dashboard", err)
 			return err
 		}
 
@@ -67,7 +67,7 @@ func (br *buildReaper) Run() error {
 					db.Page{Since: 2, Limit: 1},
 				)
 				if err != nil {
-					br.logger.Error("could-not-get-job-build-1-to-delete", err)
+					logger.Error("failed-to-get-job-build-1-to-delete", err)
 					return err
 				}
 
@@ -79,7 +79,7 @@ func (br *buildReaper) Run() error {
 					db.Page{Until: until, Limit: limit},
 				)
 				if err != nil {
-					br.logger.Error("could-not-get-job-builds-to-delete", err)
+					logger.Error("failed-to-get-job-builds-to-delete", err)
 					return err
 				}
 
@@ -98,7 +98,7 @@ func (br *buildReaper) Run() error {
 				db.Page{Limit: buildLogsToRetain},
 			)
 			if err != nil {
-				br.logger.Error("could-not-get-job-builds-to-retain", err)
+				logger.Error("failed-to-get-job-builds-to-retain", err)
 				return err
 			}
 
@@ -130,13 +130,13 @@ func (br *buildReaper) Run() error {
 
 			err = pipeline.DeleteBuildEventsByBuildIDs(buildIDsToDelete)
 			if err != nil {
-				br.logger.Error("could-not-delete-build-events", err)
+				logger.Error("failed-to-delete-build-events", err)
 				return err
 			}
 
 			err = job.UpdateFirstLoggedBuildID(buildIDsToDelete[len(buildIDsToDelete)-1] + 1)
 			if err != nil {
-				br.logger.Error("could-not-update-first-logged-build-id", err)
+				logger.Error("failed-to-update-first-logged-build-id", err)
 				return err
 			}
 		}
