@@ -17,9 +17,13 @@ go get github.com/jteeuwen/go-bindata/go-bindata
 
 go-bindata -nomemcopy -pkg bindata -o concourse/src/github.com/concourse/bin/bindata/bindata.go cli-artifacts/... assets/...
 
+cd binary
+
 # must be build with 'daemon' flag because of docker packages :|
 go build \
   -tags daemon \
   -ldflags "-X main.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.WorkerVersion=${WORKER_VERSION} -X main.WorkerVersion=${WORKER_VERSION}" \
-  -o binary/concourse_linux_amd64 \
+  -o concourse_linux_amd64 \
   github.com/concourse/bin/cmd/concourse
+
+sha1sum concourse_linux_amd64 > concourse_linux_amd64.sha1

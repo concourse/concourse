@@ -20,7 +20,11 @@ go build -o go-bindata github.com/jteeuwen/go-bindata/go-bindata
 
 ./go-bindata -pkg bindata -o gopath/src/github.com/concourse/bin/bindata/bindata.go cli-artifacts/...
 
+cd binary
+
 go build \
   -ldflags "-X main.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.WorkerVersion=${WORKER_VERSION} -X main.WorkerVersion=${WORKER_VERSION}" \
-  -o binary/concourse_darwin_amd64 \
+  -o concourse_darwin_amd64 \
   github.com/concourse/bin/cmd/concourse
+
+shasum concourse_darwin_amd64 > concourse_darwin_amd64.sha1
