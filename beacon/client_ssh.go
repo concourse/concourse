@@ -35,7 +35,7 @@ func (c *sshClient) Dial() (Closeable, error) {
 
 	conn, err := keepaliveDialer("tcp", tsaAddr, 10*time.Second)
 	if err != nil {
-		c.logger.Error("failed to connect to TSA", err)
+		c.logger.Error("failed-to-connect-to-tsa", err)
 		return nil, ErrFailedToReachAnyTSA
 	}
 
