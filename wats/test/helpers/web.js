@@ -31,18 +31,14 @@ class Web {
     await page.goto(`${this.url}/sky/login`);
     await page.type('#login', this.username);
     await page.type('#password', this.password);
-    await this.clickAndWait(page, '#submit-login')
+    await this.clickAndWait(page, '#submit-login', '.user-info .user-id');
     t.notRegex(await this.text(page), /login/);
   }
 
-  async clickAndWait(page, selector) {
-    await page.waitFor(selector);
-    await page.click(selector);
-    await page.waitForNavigation({
-      waitUntil: 'networkidle',
-      networkIdleInflight: 0,
-      timeout: 60000
-    });
+  async clickAndWait(page, clickSelector, waitSelector) {
+    await page.waitFor(clickSelector);
+    await page.click(clickSelector);
+    await page.waitForSelector(waitSelector);
   }
 
   computedStyle(page, element, style) {
