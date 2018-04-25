@@ -16,6 +16,7 @@ import (
 	_ "github.com/concourse/skymarshal/bitbucket/cloud"
 	_ "github.com/concourse/skymarshal/bitbucket/server"
 	_ "github.com/concourse/skymarshal/genericoauth"
+	_ "github.com/concourse/skymarshal/genericoauth_oidc"
 	_ "github.com/concourse/skymarshal/github"
 	_ "github.com/concourse/skymarshal/gitlab"
 	_ "github.com/concourse/skymarshal/noauth"
