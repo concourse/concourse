@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc/db"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 type resourceConfigCheckSessionCollector struct {
@@ -25,18 +26,19 @@ func (rccsc *resourceConfigCheckSessionCollector) Run(ctx context.Context) error
 	logger.Debug("start")
 	defer logger.Debug("done")
 
+	var errs error
+
 	err := rccsc.configCheckSessionLifecycle.CleanExpiredResourceConfigCheckSessions()
 	if err != nil {
-		logger.Error("unable-to-clean-up-expired-resource-config-check-sessions", err)
-		panic("XXX: dont skip")
-		return err
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-up-expired-resource-config-check-sessions", err)
 	}
 
 	err = rccsc.configCheckSessionLifecycle.CleanInactiveResourceConfigCheckSessions()
 	if err != nil {
-		logger.Error("unable-to-clean-up-resource-config-check-sessions-for-paused-and-inactive-resources", err)
-		return err
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-up-inactive-resource-config-check-sessions", err)
 	}
 
-	return nil
+	return errs
 }

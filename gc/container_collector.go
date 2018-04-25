@@ -2,7 +2,6 @@ package gc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -12,11 +11,10 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/worker"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 const HijackedContainerTimeout = 5 * time.Minute
-
-var containerCollectorFailedErr = errors.New("container collector failed")
 
 type containerCollector struct {
 	containerRepository db.ContainerRepository
@@ -52,21 +50,21 @@ func (c *containerCollector) Run(ctx context.Context) error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	var err error
+	var errs error
 
-	orphanedErr := c.cleanupOrphanedContainers(logger.Session("orphaned-containers"))
-	if orphanedErr != nil {
-		logger.Error("failed-to-clean-up-orphaned-containers", orphanedErr)
-		err = containerCollectorFailedErr
+	err := c.cleanupOrphanedContainers(logger.Session("orphaned-containers"))
+	if err != nil {
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-up-orphaned-containers", err)
 	}
 
-	failedErr := c.cleanupFailedContainers(logger.Session("failed-containers"))
-	if failedErr != nil {
-		logger.Error("failed-to-clean-up-failed-containers", failedErr)
-		err = containerCollectorFailedErr
+	err = c.cleanupFailedContainers(logger.Session("failed-containers"))
+	if err != nil {
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-up-failed-containers", err)
 	}
 
-	return err
+	return errs
 }
 
 func (c *containerCollector) cleanupFailedContainers(logger lager.Logger) error {
@@ -86,9 +84,11 @@ func (c *containerCollector) cleanupFailedContainers(logger lager.Logger) error 
 		}
 	}
 
-	logger.Debug("found-failed-containers-for-deletion", lager.Data{
-		"failed-containers": failedContainerHandles,
-	})
+	if len(failedContainerHandles) > 0 {
+		logger.Debug("found-failed-containers-for-deletion", lager.Data{
+			"failed-containers": failedContainerHandles,
+		})
+	}
 
 	metric.FailedContainersToBeGarbageCollected{
 		Containers: len(failedContainerHandles),
@@ -129,11 +129,13 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 		}
 	}
 
-	logger.Debug("found-orphaned-containers-for-deletion", lager.Data{
-		"creating-containers":   creatingContainerHandles,
-		"created-containers":    createdContainerHandles,
-		"destroying-containers": destroyingContainerHandles,
-	})
+	if len(createdContainerHandles) > 0 || len(createdContainerHandles) > 0 || len(destroyingContainerHandles) > 0 {
+		logger.Debug("found-orphaned-containers-for-deletion", lager.Data{
+			"creating-containers":   creatingContainerHandles,
+			"created-containers":    createdContainerHandles,
+			"destroying-containers": destroyingContainerHandles,
+		})
+	}
 
 	metric.CreatingContainersToBeGarbageCollected{
 		Containers: len(creatingContainerHandles),
@@ -333,32 +335,41 @@ func tryToDestroyContainers(
 		}
 	}
 
-	destroyDBContainers(logger, dbDeleteContainers)
-	logger.Debug("destroyed-in-db")
+	destroyDBContainers(logger.Session("destroy-in-db"), dbDeleteContainers)
 }
 
 type destroyableContainer interface {
+	Handle() string
 	Destroy() (bool, error)
 }
 
 func destroyDBContainers(logger lager.Logger, dbContainers []destroyableContainer) {
-	logger.Debug("destroying-start-in-db", lager.Data{"length": len(dbContainers)})
-	defer logger.Debug("destroying-done-in-db")
+	if len(dbContainers) == 0 {
+		return
+	}
+
+	logger.Debug("start", lager.Data{"length": len(dbContainers)})
+	defer logger.Debug("done")
 
 	for _, dbContainer := range dbContainers {
+		dLog := logger.Session("destroy-container", lager.Data{
+			"container": dbContainer.Handle(),
+		})
+
 		destroyed, err := dbContainer.Destroy()
 		if err != nil {
-			logger.Error("failed-to-destroy-database-container", err)
+			dLog.Error("failed-to-destroy", err)
 			continue
 		}
 
 		if !destroyed {
-			logger.Info("could-not-destroy-database-container")
+			dLog.Info("container-not-destroyed")
 			continue
 		}
 
 		metric.ContainersDeleted.Inc()
-		logger.Debug("destroyed-container-in-db")
+
+		logger.Debug("destroyed")
 	}
 }
 

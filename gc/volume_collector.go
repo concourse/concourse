@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/worker"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 var volumeCollectorFailedErr = errors.New("volume collector failed")
@@ -31,21 +32,21 @@ func (vc *volumeCollector) Run(ctx context.Context) error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	var err error
+	var errs error
 
-	orphanedErr := vc.cleanupOrphanedVolumes(logger.Session("orphaned-volumes"))
-	if orphanedErr != nil {
-		logger.Error("failed-to-clean-up-orphaned-volumes", orphanedErr)
-		err = volumeCollectorFailedErr
+	err := vc.cleanupOrphanedVolumes(logger.Session("orphaned-volumes"))
+	if err != nil {
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-up-orphaned-volumes", err)
 	}
 
-	failedErr := vc.cleanupFailedVolumes(logger.Session("failed-volumes"))
-	if failedErr != nil {
-		logger.Error("failed-to-clean-up-failed-volumes", failedErr)
-		err = volumeCollectorFailedErr
+	err = vc.cleanupFailedVolumes(logger.Session("failed-volumes"))
+	if err != nil {
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-up-failed-volumes", err)
 	}
 
-	return err
+	return errs
 }
 
 func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {

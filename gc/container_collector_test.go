@@ -258,11 +258,11 @@ var _ = Describe("ContainerCollector", func() {
 
 			Context("when finding containers for deletion fails", func() {
 				BeforeEach(func() {
-					fakeContainerRepository.FindOrphanedContainersReturns(nil, nil, nil, errors.New("some-error"))
+					fakeContainerRepository.FindOrphanedContainersReturns(nil, nil, nil, errors.New("some error"))
 				})
 
 				It("returns and logs the error", func() {
-					Expect(err).To(MatchError("container collector failed"))
+					Expect(err.Error()).To(ContainSubstring("some error"))
 					Expect(fakeContainerRepository.FindOrphanedContainersCallCount()).To(Equal(1))
 					Expect(fakeJobRunner.TryCallCount()).To(Equal(0))
 				})
