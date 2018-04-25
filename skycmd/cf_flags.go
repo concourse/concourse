@@ -13,9 +13,10 @@ func (self CFFlags) IsValid() bool {
 }
 
 type CFTeamFlags struct {
+	Users  []string `json:"users" long:"user" description:"List of cf users" value-name:"CF_USERNAME"`
 	Groups []string `json:"groups" long:"group" description:"List of cf groups (e.g. my-org or my-org:my-space)" value-name:"CF_ORG:CF_SPACE"`
 }
 
 func (config CFTeamFlags) IsValid() bool {
-	return len(config.Groups) > 0
+	return len(config.Users) > 0 || len(config.Groups) > 0
 }

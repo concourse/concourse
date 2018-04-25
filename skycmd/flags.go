@@ -49,6 +49,10 @@ func (config AuthTeamFlags) Format() map[string][]string {
 		groups = append(groups, "github:"+strings.ToLower(group))
 	}
 
+	for _, user := range config.CFTeamFlags.Users {
+		users = append(users, "cf:"+strings.ToLower(user))
+	}
+
 	for _, group := range config.CFTeamFlags.Groups {
 		groups = append(groups, "cf:"+strings.ToLower(group))
 	}
