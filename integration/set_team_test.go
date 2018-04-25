@@ -152,18 +152,37 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("Setting cf auth", func() {
 			BeforeEach(func() {
-				cmdParams = []string{"--cf-group", "myorg:myspace"}
+				cmdParams = []string{"--cf-group", "myorg:myspace", "--cf-user", "my-username"}
 			})
 
-			It("shows the groups configured for cf auth", func() {
+			It("shows the users and groups configured for cf auth", func() {
 				sess, err := gexec.Start(flyCmd, nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
-				Eventually(sess.Out).Should(gbytes.Say("- none"))
+				Eventually(sess.Out).Should(gbytes.Say("- cf:my-username"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
 				Eventually(sess.Out).Should(gbytes.Say("- cf:myorg:myspace"))
+
+				Eventually(sess).Should(gexec.Exit(1))
+			})
+		})
+
+		Context("Setting ldap auth", func() {
+			BeforeEach(func() {
+				cmdParams = []string{"--ldap-group", "my-group", "--ldap-user", "my-username"}
+			})
+
+			It("shows the users and groups configured for ldap auth", func() {
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
+				Eventually(sess.Out).Should(gbytes.Say("Users:"))
+				Eventually(sess.Out).Should(gbytes.Say("- ldap:my-username"))
+				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
+				Eventually(sess.Out).Should(gbytes.Say("- ldap:my-group"))
 
 				Eventually(sess).Should(gexec.Exit(1))
 			})
