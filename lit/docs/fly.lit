@@ -88,8 +88,6 @@ to consult \code{fly -h} to learn the short forms.
   This will show each target's name, URL, and when its token expires.
 }
 
-{- This technically is implemented but needs a bit more polish.
-
 \section{
   \title{\code{fly status}}{fly-status}
 
@@ -101,7 +99,6 @@ to consult \code{fly -h} to learn the short forms.
 
   This will let you know if the token has expired.
 }
--}
 
 \section{
   \title{\code{fly logout}}{fly-logout}

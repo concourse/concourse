@@ -49,8 +49,9 @@ talk to which other nodes. If you've changed these defaults, keep that in mind.
     \code{db} on its configured port for locking and coordinating in a
     multi-\code{web} node deployment
   }{
-    directly-registered \code{worker} nodes on port \code{7777} and \code{7788}
-    for checking \reference{pipeline-resources} and executing builds
+    directly-registered \code{worker} nodes on ports \code{7777}, \code{7788},
+    and \code{7799} for checking \reference{pipeline-resources}, executing
+    builds, and performing garbage-collection
   }{
     other \code{web} nodes (possibly itself) on an ephemeral port when a worker
     is forwarded through the web node's TSA
@@ -116,7 +117,7 @@ talk to which other nodes. If you've changed these defaults, keep that in mind.
 
   \list{
     various connections from the \reference{web-node} on port \code{7777}
-    (Garden) and \code{7788} (BaggageClaim)
+    (Garden), \code{7788} (BaggageClaim), and \code{7799} (garbage collection)
   }{
     repeated connections to \code{7788} and \code{7788} from the
     \reference{web-node}'s TSA component as it heartbeats to ensure the worker
