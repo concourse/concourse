@@ -13,7 +13,13 @@ final_version="$(cat final-version/version)"
 platform="$(go env GOOS)"
 arch="$(go env GOARCH)"
 
+filename="fly_${platform}_${arch}"
+
+cd "${platform}-binary"
+
 go build \
   -ldflags "-X github.com/concourse/fly/version.Version=${final_version}" \
-  -o "${platform}-binary/fly_${platform}_${arch}" \
+  -o "$filename" \
   github.com/concourse/fly
+
+shasum "$filename" > "${filename}.sha1"
