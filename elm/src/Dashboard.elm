@@ -512,11 +512,23 @@ filterByTerm term pipelines =
             List.map (\p -> p.pipeline) pipelines
 
         filterByStatus =
-            Simple.Fuzzy.filter (\p -> pipelineStatus p |> Concourse.PipelineStatus.show) statusSearchTerm pipelines
+            fuzzySearch (\p -> pipelineStatus p |> Concourse.PipelineStatus.show) statusSearchTerm pipelines
     in
         if searchTeams then
-            Simple.Fuzzy.filter .teamName teamSearchTerm plist
+            fuzzySearch .teamName teamSearchTerm plist
         else if searchStatus then
             List.map (\p -> p.pipeline) filterByStatus
         else
-            Simple.Fuzzy.filter .name term plist
+            fuzzySearch .name term plist
+
+
+fuzzySearch : (a -> String) -> String -> List a -> List a
+fuzzySearch map needle records =
+    let
+        negateSearch =
+            String.startsWith "-" needle
+    in
+        if negateSearch then
+            List.filter (not << (Simple.Fuzzy.match needle) << map) records
+        else
+            List.filter ((Simple.Fuzzy.match needle) << map) records

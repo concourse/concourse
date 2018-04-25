@@ -56,6 +56,17 @@ describe 'dashboard search', type: :feature do
     end
   end
 
+  context 'by pipeline name with -' do
+    it 'filters the pipelines by nagate the search term' do
+      search '-some'
+      expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['other-pipeline']
+
+      fill_in 'search-input-field', with: ''
+      search '-pipeline'
+      expect(page).to have_content('No results for "-pipeline" matched your search.')
+    end
+  end
+
   describe 'by team name' do
     let!(:other_team_name) { generate_team_name }
 
@@ -73,7 +84,8 @@ describe 'dashboard search', type: :feature do
       fly('unpause-pipeline -p other-pipeline')
       fly('expose-pipeline -p other-pipeline')
 
-      fly_login team_name
+      dash_login team_name
+      visit dash_route('/dashboard')
     end
 
     after do
@@ -90,6 +102,25 @@ describe 'dashboard search', type: :feature do
       search "team:#{team_name} some"
       expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [team_name]
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
+    end
+
+    it 'filters the pipelines by negate team' do
+      search "team:-#{team_name}"
+      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
+
+      fill_in 'search-input-field', with: ''
+      search "team:-#{team_name} -some"
+      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
+      expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['other-pipeline']
+    end
+
+    it 'filters the pipelines by negate team, negate pipeline and negate status' do
+      search "team:-#{team_name}"
+      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
+
+      fill_in 'search-input-field', with: ''
+      search "team:-#{team_name} status:-pending -some"
+      expect(page).to have_content("No results for \"team:-#{team_name} status:-pending -some\" matched your search.")
     end
   end
 
@@ -146,6 +177,16 @@ describe 'dashboard search', type: :feature do
 
       search 'status:failed'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
+    end
+
+    it 'filters the pipelines by negate failed status' do
+      fly_fail('trigger-job -w -j some-pipeline/failing')
+
+      visit dash_route('/dashboard')
+      expect(border_palette).to eq(RED)
+
+      search 'status:-failed'
+      expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['other-pipeline']
     end
 
     it 'filters the pipelines by pending status' do
