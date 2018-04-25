@@ -1,4 +1,4 @@
-module BetaRoutes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString, customToString, baseRoute, loginRoute, pipelineRoute, jobRoute, jobIdentifierRoute, buildRoute, teamNameLoginRoute, loginWithRedirectRoute)
+module BetaRoutes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString, customToString, baseRoute, loginRoute, pipelineRoute, jobRoute, jobIdentifierRoute, buildRoute, loginWithRedirectRoute)
 
 import Navigation exposing (Location)
 import Route exposing (..)
@@ -14,8 +14,6 @@ type Route
     | BetaOneOffBuild String
     | BetaResource String String String
     | BetaJob String String String
-    | BetaSelectTeam
-    | BetaTeamLogin String
 
 
 type alias ConcourseRoute =
@@ -40,11 +38,6 @@ betaJob =
     BetaJob := static "beta" </> static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string
 
 
-betaLogin : Route.Route Route
-betaLogin =
-    BetaSelectTeam := static "beta" </> static "login"
-
-
 betaPipeline : Route.Route Route
 betaPipeline =
     BetaPipeline := static "beta" </> static "teams" </> string </> static "pipelines" </> string
@@ -58,11 +51,6 @@ betaOneOffBuild =
 betaResource : Route.Route Route
 betaResource =
     BetaResource := static "beta" </> static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
-
-
-betaTeamLogin : Route.Route Route
-betaTeamLogin =
-    BetaTeamLogin := static "beta" </> static "teams" </> string </> static "login"
 
 
 betaHome : Route.Route Route
@@ -87,11 +75,6 @@ loginRoute =
 loginWithRedirectRoute : String -> String
 loginWithRedirectRoute r =
     baseRoute ++ "/login?redirect=" ++ r
-
-
-teamNameLoginRoute : String -> String
-teamNameLoginRoute teamName =
-    (BetaTeamLogin teamName) |> toString
 
 
 buildRoute : Concourse.Build -> String
@@ -127,8 +110,6 @@ sitemap =
         , betaOneOffBuild
         , betaResource
         , betaJob
-        , betaLogin
-        , betaTeamLogin
         , betaHome
         ]
 
@@ -156,12 +137,6 @@ toString route =
 
         BetaJob teamName pipelineName jobName ->
             reverse betaJob [ teamName, pipelineName, jobName ]
-
-        BetaSelectTeam ->
-            reverse betaLogin []
-
-        BetaTeamLogin teamName ->
-            reverse betaTeamLogin [ teamName ]
 
         BetaHome ->
             "/beta"

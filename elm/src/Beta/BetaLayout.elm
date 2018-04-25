@@ -6,7 +6,6 @@ import BetaTopBar
 import Favicon
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
-import BetaLogin exposing (Msg(..))
 import Navigation
 import BetaSideBar
 import Task exposing (Task)
@@ -170,31 +169,6 @@ update msg model =
                 , Cmd.batch
                     [ Cmd.map (BetaSubMsg anyNavIndex) subCmd
                     , Cmd.map (BetaSideMsg anyNavIndex) sideCmd
-                    ]
-                )
-
-        BetaSubMsg navIndex (BetaSubPage.BetaLoginMsg (BetaLogin.AuthSessionReceived (Ok val))) ->
-            let
-                ( layoutModel, layoutCmd ) =
-                    update (SaveToken val.csrfToken) model
-
-                ( subModel, subCmd ) =
-                    BetaSubPage.update model.turbulenceImgSrc model.notFoundImgSrc val.csrfToken (BetaSubPage.BetaLoginMsg (BetaLogin.AuthSessionReceived (Ok val))) model.subModel
-
-                ( sideModel, sideCmd ) =
-                    BetaSideBar.update (BetaSideBar.NewCSRFToken val.csrfToken) model.sideModel
-            in
-                ( { model
-                    | subModel = subModel
-                    , sideModel = sideModel
-                    , csrfToken = val.csrfToken
-                  }
-                , Cmd.batch
-                    [ layoutCmd
-                    , Cmd.map (BetaSideMsg anyNavIndex) sideCmd
-                    , Cmd.map (BetaTopMsg anyNavIndex) BetaTopBar.fetchUser
-                    , Cmd.map (BetaSideMsg anyNavIndex) BetaSideBar.fetchPipelines
-                    , Cmd.map (BetaSubMsg navIndex) subCmd
                     ]
                 )
 
@@ -366,12 +340,6 @@ subscriptions model =
 routeMatchesModel : BetaRoutes.ConcourseRoute -> Model -> Bool
 routeMatchesModel route model =
     case ( route.logical, model.subModel ) of
-        ( BetaRoutes.BetaSelectTeam, BetaSubPage.BetaSelectTeamModel _ ) ->
-            True
-
-        ( BetaRoutes.BetaTeamLogin _, BetaSubPage.BetaLoginModel _ ) ->
-            True
-
         ( BetaRoutes.BetaPipeline _ _, BetaSubPage.BetaPipelineModel _ ) ->
             True
 

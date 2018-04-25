@@ -1,8 +1,6 @@
 module Concourse
     exposing
-        ( AuthMethod(..)
-        , decodeAuthMethod
-        , AuthToken
+        ( AuthToken
         , decodeAuthToken
         , CSRFToken
         , retrieveCSRFToken
@@ -66,52 +64,6 @@ import Date exposing (Date)
 import Dict exposing (Dict)
 import Json.Decode
 import Json.Decode.Extra exposing ((|:))
-
-
--- AuthMethod
-
-
-type AuthMethod
-    = AuthMethodBasic
-    | AuthMethodNone
-    | AuthMethodOAuth OAuthAuthMethod
-
-
-type alias OAuthAuthMethod =
-    { displayName : String
-    , authUrl : String
-    }
-
-
-decodeAuthMethod : Json.Decode.Decoder AuthMethod
-decodeAuthMethod =
-    customDecoder
-        (Json.Decode.succeed (,,)
-            |: (Json.Decode.field "type" Json.Decode.string)
-            |: (Json.Decode.maybe <| Json.Decode.field "display_name" Json.Decode.string)
-            |: (Json.Decode.maybe <| Json.Decode.field "auth_url" Json.Decode.string)
-        )
-        authMethodFromTuple
-
-
-authMethodFromTuple : ( String, Maybe String, Maybe String ) -> Result String AuthMethod
-authMethodFromTuple tuple =
-    case tuple of
-        ( "none", _, _ ) ->
-            Ok AuthMethodNone
-
-        ( "basic", _, _ ) ->
-            Ok AuthMethodBasic
-
-        ( "oauth", Just displayName, Just authUrl ) ->
-            Ok (AuthMethodOAuth { displayName = displayName, authUrl = authUrl })
-
-        ( "oauth", _, _ ) ->
-            Err "missing fields in oauth auth method"
-
-        _ ->
-            Err "unknown value for auth method type"
-
 
 
 -- AuthToken

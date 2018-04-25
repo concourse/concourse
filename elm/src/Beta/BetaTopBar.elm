@@ -104,15 +104,7 @@ update msg model =
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        case model.route.logical of
-                            BetaRoutes.BetaSelectTeam ->
-                                ( model, Cmd.none )
-
-                            BetaRoutes.BetaTeamLogin _ ->
-                                ( model, Cmd.none )
-
-                            _ ->
-                                ( model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, LoginRedirect.requestLoginRedirect "" )
                     else
                         ( model, Cmd.none )
 
@@ -202,12 +194,6 @@ extractPidFromRoute route =
 
         BetaRoutes.BetaPipeline teamName pipelineName ->
             Just { teamName = teamName, pipelineName = pipelineName }
-
-        BetaRoutes.BetaSelectTeam ->
-            Nothing
-
-        BetaRoutes.BetaTeamLogin teamName ->
-            Nothing
 
         BetaRoutes.BetaHome ->
             Nothing

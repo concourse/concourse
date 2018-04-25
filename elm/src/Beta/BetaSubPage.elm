@@ -14,10 +14,8 @@ import BetaRoutes
 import QueryString
 import BetaBuild
 import BetaJob
-import BetaLogin
 import BetaPipeline
 import BetaResource
-import BetaTeamSelection
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -36,10 +34,8 @@ type Model
     | NotFoundModel NotFound.Model
     | BetaBuildModel (Autoscroll.Model BetaBuild.Model)
     | BetaJobModel BetaJob.Model
-    | BetaLoginModel BetaLogin.Model
     | BetaPipelineModel BetaPipeline.Model
     | BetaResourceModel BetaResource.Model
-    | BetaSelectTeamModel BetaTeamSelection.Model
 
 
 type Msg
@@ -48,10 +44,8 @@ type Msg
     | NoPipelineMsg NoPipeline.Msg
     | BetaBuildMsg (Autoscroll.Msg BetaBuild.Msg)
     | BetaJobMsg BetaJob.Msg
-    | BetaLoginMsg BetaLogin.Msg
     | BetaPipelineMsg BetaPipeline.Msg
     | BetaResourceMsg BetaResource.Msg
-    | BetaSelectTeamMsg BetaTeamSelection.Msg
     | NewCSRFToken String
 
 
@@ -126,18 +120,6 @@ init turbulencePath route =
                     , paging = route.page
                     , csrfToken = ""
                     }
-
-        BetaRoutes.BetaSelectTeam ->
-            let
-                redirect =
-                    Maybe.withDefault "" <| QueryString.one QueryString.string "redirect" route.queries
-            in
-                superDupleWrap ( BetaSelectTeamModel, BetaSelectTeamMsg ) <|
-                    BetaTeamSelection.init { title = setTitle } redirect
-
-        BetaRoutes.BetaTeamLogin teamName ->
-            superDupleWrap ( BetaLoginModel, BetaLoginMsg ) <|
-                BetaLogin.init { title = setTitle } teamName (QueryString.one QueryString.string "redirect" route.queries)
 
         BetaRoutes.BetaHome ->
             ( WaitingModel route
@@ -222,18 +204,8 @@ update turbulence notFound csrfToken msg mdl =
         ( BetaJobMsg message, BetaJobModel model ) ->
             handleNotFound notFound ( BetaJobModel, BetaJobMsg ) (BetaJob.updateWithMessage message { model | csrfToken = csrfToken })
 
-        ( BetaLoginMsg message, BetaLoginModel model ) ->
-            let
-                ( mdl, msg ) =
-                    BetaLogin.update message model
-            in
-                ( BetaLoginModel mdl, Cmd.map BetaLoginMsg msg )
-
         ( BetaPipelineMsg message, BetaPipelineModel model ) ->
             superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <| BetaPipeline.update message model
-
-        ( BetaSelectTeamMsg message, BetaSelectTeamModel model ) ->
-            superDupleWrap ( BetaSelectTeamModel, BetaSelectTeamMsg ) <| BetaTeamSelection.update message model
 
         unknown ->
             flip always (Debug.log ("impossible combination") unknown) <|
@@ -303,17 +275,11 @@ view mdl =
         BetaJobModel model ->
             Html.map BetaJobMsg <| BetaJob.view model
 
-        BetaLoginModel model ->
-            Html.map BetaLoginMsg <| BetaLogin.view model
-
         BetaPipelineModel model ->
             Html.map BetaPipelineMsg <| BetaPipeline.view model
 
         BetaResourceModel model ->
             Html.map BetaResourceMsg <| BetaResource.view model
-
-        BetaSelectTeamModel model ->
-            Html.map BetaSelectTeamMsg <| BetaTeamSelection.view model
 
 
 subscriptions : Model -> Sub Msg
@@ -334,17 +300,11 @@ subscriptions mdl =
         BetaJobModel model ->
             Sub.map BetaJobMsg <| BetaJob.subscriptions model
 
-        BetaLoginModel model ->
-            Sub.map BetaLoginMsg <| BetaLogin.subscriptions model
-
         BetaPipelineModel model ->
             Sub.map BetaPipelineMsg <| BetaPipeline.subscriptions model
 
         BetaResourceModel model ->
             Sub.map BetaResourceMsg <| BetaResource.subscriptions model
-
-        BetaSelectTeamModel model ->
-            Sub.map BetaSelectTeamMsg <| BetaTeamSelection.subscriptions model
 
 
 fetchPipelines : Cmd Msg
