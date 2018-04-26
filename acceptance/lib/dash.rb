@@ -5,10 +5,10 @@ module Dash
 
   def dash_login
     visit dash_route('/sky/login?redirect_uri=/')
-    click_button 'Log in with Username'
+    click_button 'Username/Password'
     fill_in 'password', with: ATC_USERNAME
     fill_in 'login', with: ATC_PASSWORD
-    click_button 'Login'
+    click_button 'login'
     expect(page).to_not have_content 'login'
   end
 end
