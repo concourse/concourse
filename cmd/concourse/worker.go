@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/worker/beacon"
 	"github.com/concourse/worker/reaper"
 	workerConfig "github.com/concourse/worker/start"
+	"github.com/concourse/worker/sweeper"
 	"github.com/concourse/worker/tsa"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -118,6 +119,15 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				logger.Session("reaper"),
 				worker.GardenAddr,
 				"7799",
+			),
+		})
+
+		members = append(members, grouper.Member{
+			Name: "sweep-container",
+			Runner: sweeper.NewSweeperRunner(
+				logger,
+				worker,
+				beaconConfig,
 			),
 		})
 	}
