@@ -427,3 +427,7 @@
 	path = src/github.com/mattn/go-runewidth
 	url = https://github.com/mattn/go-runewidth
 	branch = master
+[submodule "src/github.com/DataDog/datadog-go"]
+	path = src/github.com/DataDog/datadog-go
+	url = https://github.com/DataDog/datadog-go
+	branch = master

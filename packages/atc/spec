@@ -18,6 +18,7 @@ files:
   - code.cloudfoundry.org/lager/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/lager/lagerctx/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/urljoiner/*.{go,s,c,h} # gosub
+  - github.com/DataDog/datadog-go/statsd/*.{go,s,c,h} # gosub
   - github.com/Masterminds/squirrel/*.{go,s,c,h} # gosub
   - github.com/NYTimes/gziphandler/*.{go,s,c,h} # gosub
   - github.com/PuerkitoBio/purell/*.{go,s,c,h} # gosub
