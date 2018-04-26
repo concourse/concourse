@@ -238,6 +238,25 @@ func (server *registrarSSHServer) handleChannel(
 				channel.Close()
 			}
 
+		case sweepContainerRequest:
+			logger := logger.Session("sweep-containers-worker")
+
+			req.Reply(true, nil)
+
+			handles, err := server.sweepContainers(logger, channel, sessionID)
+
+			if err != nil {
+				logger.Error("failed-to-get-sweep-containers", err)
+				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
+			} else {
+				logger.Info("finished-getting-sweep-containers", lager.Data{"handles": string(handles)})
+				bytesNum, err := channel.Write(handles)
+				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
+				logger.Info("finished-writing-sweeper-containers", lager.Data{"bytes-written": bytesNum, "err": err})
+			}
+			logger.Info("closing-channel")
+			channel.Close()
+
 		case registerWorkerRequest:
 			logger := logger.Session("register-worker")
 
@@ -458,6 +477,28 @@ func (server *registrarSSHServer) deleteWorker(
 		ATCEndpoint:    server.atcEndpointPicker.Pick(),
 		TokenGenerator: server.tokenGenerator,
 	}).Delete(logger, worker)
+}
+
+func (server *registrarSSHServer) sweepContainers(
+	logger lager.Logger,
+	channel ssh.Channel,
+	sessionID string,
+) ([]byte, error) {
+	var worker atc.Worker
+	err := json.NewDecoder(channel).Decode(&worker)
+	if err != nil {
+		return nil, err
+	}
+
+	err = server.validateWorkerTeam(logger, sessionID, worker)
+	if err != nil {
+		return nil, err
+	}
+
+	return (&tsa.Sweeper{
+		ATCEndpoint:    server.atcEndpointPicker.Pick(),
+		TokenGenerator: server.tokenGenerator,
+	}).Sweep(logger, worker)
 }
 
 func (server *registrarSSHServer) validateWorkerTeam(
