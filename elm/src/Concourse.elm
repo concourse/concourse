@@ -750,14 +750,20 @@ decodeTeam =
 
 
 type alias User =
-    { name : String
+    { id : String
+    , userName : String
+    , name : String
+    , email : String
     }
 
 
 decodeUser : Json.Decode.Decoder User
 decodeUser =
     Json.Decode.succeed User
+        |: (Json.Decode.field "user_id" Json.Decode.string)
         |: (Json.Decode.field "user_name" Json.Decode.string)
+        |: (Json.Decode.field "name" Json.Decode.string)
+        |: (Json.Decode.field "email" Json.Decode.string)
 
 
 

@@ -1,4 +1,4 @@
-port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, update, urlUpdate, view)
+port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, update, urlUpdate, view, userDisplayName)
 
 import Concourse
 import Concourse.Pipeline
@@ -347,7 +347,7 @@ viewUserState userState userMenuVisible =
                 [ Html.div [ class "user-id", onClick ToggleUserMenu ]
                     [ Html.i [ class "fa fa-user" ] []
                     , Html.text " "
-                    , Html.text user.name
+                    , Html.text <| userDisplayName user
                     , Html.text " "
                     , Html.i [ class "fa fa-caret-down" ] []
                     ]
@@ -360,6 +360,13 @@ viewUserState userState userMenuVisible =
                         ]
                     ]
                 ]
+
+
+userDisplayName : Concourse.User -> String
+userDisplayName user =
+    Maybe.withDefault user.id <|
+        List.head <|
+            List.filter (not << String.isEmpty) [ user.userName, user.name, user.email ]
 
 
 fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
