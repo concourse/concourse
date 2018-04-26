@@ -91,6 +91,35 @@ var _ = Describe("Client", func() {
 			})
 		})
 
+		Describe("list containers request", func() {
+			var handles []string
+			It("generate correct requests for all container handles", func() {
+				handles = []string{"handle-1", "handle-2"}
+				fakeServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/containers/list"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, &handles),
+					),
+				)
+				respHandles, err := client.ListHandles()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respHandles).To(Equal(handles))
+				Expect(len(fakeServer.ReceivedRequests())).To(Equal(1))
+			})
+
+			It("returns proper error response", func() {
+				fakeServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/containers/list"),
+						ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, nil),
+					),
+				)
+				_, err := client.ListHandles()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("received-500-response"))
+			})
+		})
+
 		AfterEach(func() {
 			fakeServer.Close()
 		})

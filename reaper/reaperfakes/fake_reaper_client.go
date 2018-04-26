@@ -28,6 +28,17 @@ type FakeReaperClient struct {
 	pingReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ListHandlesStub        func() ([]string, error)
+	listHandlesMutex       sync.RWMutex
+	listHandlesArgsForCall []struct{}
+	listHandlesReturns     struct {
+		result1 []string
+		result2 error
+	}
+	listHandlesReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -125,6 +136,49 @@ func (fake *FakeReaperClient) PingReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeReaperClient) ListHandles() ([]string, error) {
+	fake.listHandlesMutex.Lock()
+	ret, specificReturn := fake.listHandlesReturnsOnCall[len(fake.listHandlesArgsForCall)]
+	fake.listHandlesArgsForCall = append(fake.listHandlesArgsForCall, struct{}{})
+	fake.recordInvocation("ListHandles", []interface{}{})
+	fake.listHandlesMutex.Unlock()
+	if fake.ListHandlesStub != nil {
+		return fake.ListHandlesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.listHandlesReturns.result1, fake.listHandlesReturns.result2
+}
+
+func (fake *FakeReaperClient) ListHandlesCallCount() int {
+	fake.listHandlesMutex.RLock()
+	defer fake.listHandlesMutex.RUnlock()
+	return len(fake.listHandlesArgsForCall)
+}
+
+func (fake *FakeReaperClient) ListHandlesReturns(result1 []string, result2 error) {
+	fake.ListHandlesStub = nil
+	fake.listHandlesReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeReaperClient) ListHandlesReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.ListHandlesStub = nil
+	if fake.listHandlesReturnsOnCall == nil {
+		fake.listHandlesReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.listHandlesReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeReaperClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -132,6 +186,8 @@ func (fake *FakeReaperClient) Invocations() map[string][][]interface{} {
 	defer fake.destroyContainersMutex.RUnlock()
 	fake.pingMutex.RLock()
 	defer fake.pingMutex.RUnlock()
+	fake.listHandlesMutex.RLock()
+	defer fake.listHandlesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

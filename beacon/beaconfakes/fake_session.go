@@ -37,6 +37,19 @@ type FakeSession struct {
 	startReturnsOnCall map[int]struct {
 		result1 error
 	}
+	OutputStub        func(command string) ([]byte, error)
+	outputMutex       sync.RWMutex
+	outputArgsForCall []struct {
+		command string
+	}
+	outputReturns struct {
+		result1 []byte
+		result2 error
+	}
+	outputReturnsOnCall map[int]struct {
+		result1 []byte
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -169,6 +182,57 @@ func (fake *FakeSession) StartReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeSession) Output(command string) ([]byte, error) {
+	fake.outputMutex.Lock()
+	ret, specificReturn := fake.outputReturnsOnCall[len(fake.outputArgsForCall)]
+	fake.outputArgsForCall = append(fake.outputArgsForCall, struct {
+		command string
+	}{command})
+	fake.recordInvocation("Output", []interface{}{command})
+	fake.outputMutex.Unlock()
+	if fake.OutputStub != nil {
+		return fake.OutputStub(command)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.outputReturns.result1, fake.outputReturns.result2
+}
+
+func (fake *FakeSession) OutputCallCount() int {
+	fake.outputMutex.RLock()
+	defer fake.outputMutex.RUnlock()
+	return len(fake.outputArgsForCall)
+}
+
+func (fake *FakeSession) OutputArgsForCall(i int) string {
+	fake.outputMutex.RLock()
+	defer fake.outputMutex.RUnlock()
+	return fake.outputArgsForCall[i].command
+}
+
+func (fake *FakeSession) OutputReturns(result1 []byte, result2 error) {
+	fake.OutputStub = nil
+	fake.outputReturns = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeSession) OutputReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.OutputStub = nil
+	if fake.outputReturnsOnCall == nil {
+		fake.outputReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 error
+		})
+	}
+	fake.outputReturnsOnCall[i] = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeSession) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -178,6 +242,8 @@ func (fake *FakeSession) Invocations() map[string][][]interface{} {
 	defer fake.closeMutex.RUnlock()
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
+	fake.outputMutex.RLock()
+	defer fake.outputMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

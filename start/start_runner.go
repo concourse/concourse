@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/worker"
 	"github.com/concourse/worker/beacon"
 	"github.com/concourse/worker/reaper"
+	"github.com/concourse/worker/sweeper"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -109,15 +110,22 @@ func (cmd *StartCommand) Execute(args []string) error {
 	groupMembers := grouper.Members{
 		{Name: "beacon", Runner: worker.BeaconRunner(
 			groupLogger,
-			atcWorker, cmd.TSA,
+			atcWorker,
+			cmd.TSA,
 		)},
 		{Name: "reaper", Runner: reaper.NewReaperRunner(
-			groupLogger, gardenAddr,
+			groupLogger,
+			gardenAddr,
 			cmd.ReaperConfig.Port,
 		)},
 		{Name: "debug-server", Runner: http_server.New(
 			cmd.debugBindAddr(),
 			http.DefaultServeMux,
+		)},
+		{Name: "sweeper-containers", Runner: sweeper.NewSweeperRunner(
+			groupLogger,
+			atcWorker,
+			cmd.TSA,
 		)},
 	}
 

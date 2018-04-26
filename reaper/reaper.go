@@ -19,6 +19,7 @@ import (
 type ReaperClient interface {
 	DestroyContainers(handles []string) error
 	Ping() error
+	ListHandles() ([]string, error)
 }
 
 type ReaperCmd struct {

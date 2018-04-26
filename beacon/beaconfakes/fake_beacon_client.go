@@ -33,6 +33,15 @@ type FakeBeaconClient struct {
 	retireWorkerReturnsOnCall map[int]struct {
 		result1 error
 	}
+	MarkandSweepContainersStub        func() error
+	markandSweepContainersMutex       sync.RWMutex
+	markandSweepContainersArgsForCall []struct{}
+	markandSweepContainersReturns     struct {
+		result1 error
+	}
+	markandSweepContainersReturnsOnCall map[int]struct {
+		result1 error
+	}
 	LandWorkerStub        func(signals <-chan os.Signal, ready chan<- struct{}) error
 	landWorkerMutex       sync.RWMutex
 	landWorkerArgsForCall []struct {
@@ -162,6 +171,46 @@ func (fake *FakeBeaconClient) RetireWorkerReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeBeaconClient) MarkandSweepContainers() error {
+	fake.markandSweepContainersMutex.Lock()
+	ret, specificReturn := fake.markandSweepContainersReturnsOnCall[len(fake.markandSweepContainersArgsForCall)]
+	fake.markandSweepContainersArgsForCall = append(fake.markandSweepContainersArgsForCall, struct{}{})
+	fake.recordInvocation("MarkandSweepContainers", []interface{}{})
+	fake.markandSweepContainersMutex.Unlock()
+	if fake.MarkandSweepContainersStub != nil {
+		return fake.MarkandSweepContainersStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.markandSweepContainersReturns.result1
+}
+
+func (fake *FakeBeaconClient) MarkandSweepContainersCallCount() int {
+	fake.markandSweepContainersMutex.RLock()
+	defer fake.markandSweepContainersMutex.RUnlock()
+	return len(fake.markandSweepContainersArgsForCall)
+}
+
+func (fake *FakeBeaconClient) MarkandSweepContainersReturns(result1 error) {
+	fake.MarkandSweepContainersStub = nil
+	fake.markandSweepContainersReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) MarkandSweepContainersReturnsOnCall(i int, result1 error) {
+	fake.MarkandSweepContainersStub = nil
+	if fake.markandSweepContainersReturnsOnCall == nil {
+		fake.markandSweepContainersReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.markandSweepContainersReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBeaconClient) LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
 	fake.landWorkerMutex.Lock()
 	ret, specificReturn := fake.landWorkerReturnsOnCall[len(fake.landWorkerArgsForCall)]
@@ -283,6 +332,8 @@ func (fake *FakeBeaconClient) Invocations() map[string][][]interface{} {
 	defer fake.registerMutex.RUnlock()
 	fake.retireWorkerMutex.RLock()
 	defer fake.retireWorkerMutex.RUnlock()
+	fake.markandSweepContainersMutex.RLock()
+	defer fake.markandSweepContainersMutex.RUnlock()
 	fake.landWorkerMutex.RLock()
 	defer fake.landWorkerMutex.RUnlock()
 	fake.deleteWorkerMutex.RLock()

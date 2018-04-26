@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 
@@ -136,6 +137,57 @@ var _ = Describe("ContainerServer", func() {
 
 				It("Calls garden client.Destroy for each container handle passed in", func() {
 					Expect(gardenClient.DestroyCallCount()).To(Equal(0))
+				})
+			})
+		})
+
+		Describe("Request list of containers", func() {
+			Context("returns list of containers", func() {
+				JustBeforeEach(func() {
+					container1 := &gardenfakes.FakeContainer{}
+					container1.HandleReturns("handle1")
+					container2 := &gardenfakes.FakeContainer{}
+					container2.HandleReturns("handle2")
+
+					containerList := []garden.Container{container1, container2}
+					gardenClient.ContainersReturns(containerList, nil)
+					recorder = httptest.NewRecorder()
+					request, _ := http.NewRequest("GET", "/containers/list", nil)
+					handler.ServeHTTP(recorder, request)
+				})
+
+				It("Responds with 200", func() {
+					Expect(recorder.Result().StatusCode).To(Equal(http.StatusOK))
+					respBody, err := ioutil.ReadAll(recorder.Result().Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					var handles []string
+					err = json.Unmarshal(respBody, &handles)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(handles).To(ContainElement("handle2"))
+					Expect(handles).To(ContainElement("handle1"))
+				})
+
+				It("Calls garden client.Destroy for each container handle passed in", func() {
+					Expect(gardenClient.ContainersCallCount()).To(Equal(1))
+				})
+			})
+
+			Context("Garden client has an error", func() {
+				JustBeforeEach(func() {
+					containerList := []garden.Container{}
+					gardenClient.ContainersReturns(containerList, errors.New("bad-happ"))
+					recorder = httptest.NewRecorder()
+					request, _ := http.NewRequest("GET", "/containers/list", nil)
+					handler.ServeHTTP(recorder, request)
+				})
+
+				It("Responds with 500 Internal Server Error", func() {
+					Expect(recorder.Result().StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+
+				It("Calls garden client.Destroy for each container handle passed in", func() {
+					Expect(gardenClient.ContainersCallCount()).To(Equal(1))
 				})
 			})
 		})

@@ -1,9 +1,12 @@
 package beacon_test
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
 	"os"
 	"syscall"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -12,6 +15,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Beacon", func() {
@@ -44,10 +48,6 @@ var _ = Describe("Beacon", func() {
 		}
 	})
 
-	AfterEach(func() {
-		Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
-	})
-
 	var _ = Describe("Register", func() {
 		var (
 			signals     chan os.Signal
@@ -59,6 +59,10 @@ var _ = Describe("Beacon", func() {
 		JustBeforeEach(func() {
 			signals = make(chan os.Signal, 1)
 			ready = make(chan struct{}, 1)
+		})
+
+		AfterEach(func() {
+			Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
 		})
 
 		Context("when the exit channel takes time to exit", func() {
@@ -75,12 +79,12 @@ var _ = Describe("Beacon", func() {
 
 				fakeSession.WaitStub = func() error {
 					<-wait
-					return nil
+					signals <- syscall.SIGKILL
+					return errors.New("bad-err")
 				}
 
 				fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
 				go func() {
-					signals <- syscall.SIGKILL
 					exited <- beacon.Register(signals, make(chan struct{}, 1))
 				}()
 
@@ -235,6 +239,10 @@ var _ = Describe("Beacon", func() {
 			ready = make(chan struct{}, 1)
 		})
 
+		AfterEach(func() {
+			Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
+		})
+
 		Context("when the exit channel takes time to exit", func() {
 			var (
 				keepAliveErr    chan error
@@ -363,6 +371,10 @@ var _ = Describe("Beacon", func() {
 			ready = make(chan struct{}, 1)
 		})
 
+		AfterEach(func() {
+			Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
+		})
+
 		Context("when the exit channel takes time to exit", func() {
 			var (
 				keepAliveErr    chan error
@@ -377,12 +389,12 @@ var _ = Describe("Beacon", func() {
 
 				fakeSession.WaitStub = func() error {
 					<-wait
+					signals <- syscall.SIGKILL
 					return nil
 				}
 
 				fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
 				go func() {
-					signals <- syscall.SIGKILL
 					exited <- beacon.RetireWorker(signals, make(chan struct{}, 1))
 				}()
 
@@ -474,6 +486,155 @@ var _ = Describe("Beacon", func() {
 
 				_, proxyTo = fakeClient.ProxyArgsForCall(1)
 				Expect(proxyTo).To(Equal("5.6.7.8:7788"))
+			})
+		})
+	})
+
+	var _ = Describe("Sweep", func() {
+		var (
+			err     error
+			rServer *ghttp.Server
+		)
+
+		BeforeEach(func() {
+			rServer = ghttp.NewServer()
+			beacon.ReaperForwardAddr = rServer.URL()
+			rServer.Reset()
+		})
+
+		AfterEach(func() {
+			rServer.Close()
+		})
+
+		JustBeforeEach(func() {
+			err = beacon.MarkandSweepContainers()
+		})
+
+		Context("when session returns error", func() {
+			BeforeEach(func() {
+				rServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/containers/list"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+					),
+				)
+				fakeSession.OutputReturns(nil, errors.New("fail"))
+			})
+			It("returns the error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("fail"))
+				Expect(fakeCloseable.CloseCallCount()).To(Equal(2))
+			})
+		})
+
+		Context("when bad json is returned from reaper", func() {
+			BeforeEach(func() {
+				rServer.Reset()
+
+				rServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/containers/list"),
+						ghttp.RespondWith(http.StatusOK, nil),
+					),
+				)
+
+				fakeSession.OutputStub = func(cmd string) ([]byte, error) {
+					if cmd == "report-containers" {
+						return nil, errors.New("bad-err")
+					}
+					if cmd == "sweep-containers" {
+						return []byte("bad-json"), nil
+					}
+					time.Sleep(1 * time.Second)
+					return nil, nil
+				}
+			})
+			It("returns the error", func() {
+				Expect(len(rServer.ReceivedRequests())).To(Equal(1))
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("invalid character"))
+				Expect(fakeCloseable.CloseCallCount()).To(Equal(2))
+			})
+		})
+
+		Context("when reaper server is configured", func() {
+			var rServer *ghttp.Server
+			BeforeEach(func() {
+				rServer = ghttp.NewServer()
+				beacon.ReaperForwardAddr = rServer.URL()
+				rServer.Reset()
+			})
+
+			Context("when handles are returned", func() {
+				BeforeEach(func() {
+					handles := []string{"handle1", "handle2"}
+					handleBytes, err := json.Marshal(handles)
+					Expect(err).NotTo(HaveOccurred())
+					fakeSession.OutputReturns(handleBytes, nil)
+
+					rServer.Reset()
+					rServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/containers/destroy"),
+							ghttp.VerifyJSON("[\"handle1\",\"handle2\"]"),
+							ghttp.RespondWith(http.StatusNoContent, nil),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/containers/list"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, handles),
+						),
+					)
+				})
+				It("garbage collects the containers", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeSession.OutputCallCount()).To(Equal(2))
+					sweepCmd := fakeSession.OutputArgsForCall(0)
+					Expect(sweepCmd).To(Equal("sweep-containers"))
+					reportCmd := fakeSession.OutputArgsForCall(1)
+					Expect(reportCmd).To(Equal("report-containers handle1 handle2"))
+				})
+			})
+
+			Context("when reaper server returns error", func() {
+				BeforeEach(func() {
+					handles := []string{"handle1", "handle2"}
+					handleBytes, err := json.Marshal(handles)
+					Expect(err).NotTo(HaveOccurred())
+					fakeSession.OutputReturns(handleBytes, nil)
+
+					rServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/containers/destroy"),
+							ghttp.RespondWith(http.StatusInternalServerError, nil),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/containers/list"),
+							ghttp.RespondWith(http.StatusInternalServerError, nil),
+						),
+					)
+				})
+
+				It("returns the error", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("received-500-response"))
+					Expect(fakeCloseable.CloseCallCount()).To(Equal(2))
+				})
+			})
+
+			Context("when reaper server is not running", func() {
+				BeforeEach(func() {
+					handles := []string{"handle1", "handle2"}
+					handleBytes, err := json.Marshal(handles)
+					Expect(err).NotTo(HaveOccurred())
+					fakeSession.OutputReturns(handleBytes, nil)
+					rServer.Close()
+				})
+
+				It("returns the error", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("connection refused"))
+					Expect(fakeCloseable.CloseCallCount()).To(Equal(2))
+				})
 			})
 		})
 	})

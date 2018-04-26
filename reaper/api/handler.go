@@ -13,13 +13,14 @@ func NewHandler(
 	gardenClient client.Client,
 ) (http.Handler, error) {
 	containerServer := NewContainerServer(
-		logger.Session("reaper-server"),
+		logger,
 		gardenClient,
 	)
 
 	handlers := rata.Handlers{
 		DestroyContainers: http.HandlerFunc(containerServer.DestroyContainers),
 		Ping:              http.HandlerFunc(containerServer.Ping),
+		List:              http.HandlerFunc(containerServer.ListContainers),
 	}
 
 	return rata.NewRouter(Routes, handlers)

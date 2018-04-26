@@ -57,6 +57,40 @@ func (c *client) httpClient(logger lager.Logger) *http.Client {
 	}
 }
 
+func (c *client) ListHandles() ([]string, error) {
+	c.logger.Debug("started-listing-containers")
+	defer c.logger.Debug("done-listing-containers")
+
+	request, err := c.requestGenerator.CreateRequest(api.List, nil, nil)
+	if err != nil {
+		c.logger.Error("failed-to-create-request-to-reaper-server", err)
+		return nil, err
+	}
+
+	response, err := c.httpClient(c.logger).Do(request)
+	if err != nil {
+		c.logger.Error("failed-to-connect-to-reaper-server", err)
+		return nil, err
+	}
+
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		serverErr := fmt.Errorf("received-%d-response", response.StatusCode)
+		c.logger.Error("failed-to-list-containers", serverErr, lager.Data{"status-code": response.StatusCode})
+		return nil, serverErr
+	}
+
+	handles := []string{}
+	err = json.NewDecoder(response.Body).Decode(&handles)
+	if err != nil {
+		c.logger.Error("failed-to-decode-container-handles", err)
+		return nil, err
+	}
+
+	c.logger.Debug("success-listing-containers")
+	return handles, nil
+}
+
 func (c *client) Ping() error {
 	c.logger.Debug("started-pinging-reaper-server")
 	defer c.logger.Debug("done-pinging-reaper-server")
@@ -92,6 +126,7 @@ func (c *client) DestroyContainers(handles []string) error {
 		return err
 	}
 
+	request.Header.Add("Content-Type", "application/json")
 	response, err := c.httpClient(c.logger).Do(request)
 	if err != nil {
 		c.logger.Error("failed-to-connect-to-reaper-server", err)

@@ -27,6 +27,8 @@ func NewContainerServer(
 }
 
 var ErrDestroyContainers = errors.New("failed-to-destroy")
+var ErrListContainers = errors.New("failed-to-list")
+
 var ErrPingFailure = errors.New("failed-to-ping-reaper")
 
 // Ping confirms the server is up and able to talk to the garden server
@@ -41,6 +43,40 @@ func (containerServer *ContainerServer) Ping(w http.ResponseWriter, req *http.Re
 		respondWithError(w, ErrPingFailure, http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// ListContainer calls the garden server to request list containers present
+func (containerServer *ContainerServer) ListContainers(w http.ResponseWriter, req *http.Request) {
+	hLog := containerServer.logger.Session("list-containers")
+
+	hLog.Debug("start")
+	defer hLog.Debug("done")
+
+	w.Header().Set("Content-Type", "application/json")
+
+	properties := garden.Properties{}
+	containers, err := containerServer.gardenClient.Containers(properties)
+	if err != nil {
+		hLog.Error("failed-to-list-containers", err)
+		respondWithError(w, ErrListContainers, http.StatusInternalServerError)
+		return
+	}
+
+	containerHandles := []string{}
+
+	for _, container := range containers {
+		containerHandles = append(containerHandles, container.Handle())
+	}
+
+	err = json.NewEncoder(w).Encode(&containerHandles)
+	if err != nil {
+		hLog.Error("failed-to-encode-container-handles", err)
+		respondWithError(w, ErrListContainers, http.StatusInternalServerError)
+		return
+	}
+
+	hLog.Info("successfully-listed-containers", lager.Data{"num-handles": len(containerHandles)})
 	w.WriteHeader(http.StatusOK)
 }
 
