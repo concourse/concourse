@@ -152,6 +152,7 @@ files:
   - github.com/concourse/skymarshal/bitbucket/cloud/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/bitbucket/server/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/genericoauth/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/genericoauth_oidc/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/github/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/gitlab/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/gitlab/vendor/github.com/google/go-querystring/query/*.{go,s,c,h} # gosub
