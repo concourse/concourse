@@ -127,7 +127,7 @@ before using it!
 }{
   \table-row{\link{RSS}{https://github.com/suhlig/concourse-rss-resource}}{by \ghuser{suhlig}}
 }{
-  \table-row{\link{Maven Resource}{https://github.com/Pivotal-Field-Engineering/maven-resource}}{by \ghuser{Pivotal-Field-Engineering}}
+  \table-row{\link{Maven Resource}{https://github.com/nulldriver/maven-resource}}{by \ghuser{nulldriver}}
 }{
   \table-row{\link{cURL File Resource}{https://github.com/pivotalservices/concourse-curl-resource}}{by \ghuser{pivotalservices}}
 }{
