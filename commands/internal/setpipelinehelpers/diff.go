@@ -31,7 +31,6 @@ func name(v interface{}) string {
 }
 
 func (diff Diff) Render(to io.Writer, label string) {
-	indent := gexec.NewPrefixedWriter("  ", to)
 
 	if diff.Before != nil && diff.After != nil {
 		fmt.Fprintf(to, ansi.Color("%s %s has changed:", "yellow")+"\n", label, name(diff.Before))
@@ -39,19 +38,19 @@ func (diff Diff) Render(to io.Writer, label string) {
 		payloadA, _ := yaml.Marshal(diff.Before)
 		payloadB, _ := yaml.Marshal(diff.After)
 
-		renderDiff(indent, string(payloadA), string(payloadB))
+		renderDiff(to, string(payloadA), string(payloadB))
 	} else if diff.Before != nil {
 		fmt.Fprintf(to, ansi.Color("%s %s has been removed:", "yellow")+"\n", label, name(diff.Before))
 
 		payloadA, _ := yaml.Marshal(diff.Before)
 
-		renderDiff(indent, string(payloadA), "")
+		renderDiff(to, string(payloadA), "")
 	} else {
 		fmt.Fprintf(to, ansi.Color("%s %s has been added:", "yellow")+"\n", label, name(diff.After))
 
 		payloadB, _ := yaml.Marshal(diff.After)
 
-		renderDiff(indent, "", string(payloadB))
+		renderDiff(to, "", string(payloadB))
 	}
 }
 
@@ -152,15 +151,16 @@ func diffIndices(oldIndex Index, newIndex Index) Diffs {
 
 func renderDiff(to io.Writer, a, b string) {
 	diffs := difflib.Diff(strings.Split(a, "\n"), strings.Split(b, "\n"))
+	indent := gexec.NewPrefixedWriter("\b\b", to)
 
 	for _, diff := range diffs {
 		text := diff.Payload
 
 		switch diff.Delta {
 		case difflib.RightOnly:
-			fmt.Fprintf(to, "+ %s\n", ansi.Color(text, "green"))
+			fmt.Fprintf(indent, "%s %s\n", ansi.Color("+", "green"), ansi.Color(text, "green"))
 		case difflib.LeftOnly:
-			fmt.Fprintf(to, "- %s\n", ansi.Color(text, "red"))
+			fmt.Fprintf(indent, "%s %s\n", ansi.Color("-", "red"), ansi.Color(text, "red"))
 		case difflib.Common:
 			fmt.Fprintf(to, "%s\n", text)
 		}
