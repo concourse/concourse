@@ -782,7 +782,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		"pipelines",
 		"builds",
 		"collector",
-		"build-reaper",
+		"build-log-collector",
 		"static-worker",
 	},
 		32,
