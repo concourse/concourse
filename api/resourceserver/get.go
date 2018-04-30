@@ -36,6 +36,7 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 			teamName,
 		)
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
 		err = json.NewEncoder(w).Encode(resource)

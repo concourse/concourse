@@ -29,6 +29,7 @@ func (s *Server) ListWorkers(w http.ResponseWriter, r *http.Request) {
 		atcWorkers[i] = present.Worker(savedWorker)
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(atcWorkers)
 	if err != nil {
 		logger.Error("failed-to-encode-workers", err)

@@ -38,6 +38,7 @@ func (s *Server) CreateBuild(pipelineDB db.Pipeline) http.Handler {
 
 		go engineBuild.Resume(logger)
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 
 		err = json.NewEncoder(w).Encode(present.Build(build))

@@ -118,6 +118,10 @@ var _ = Describe("Builds API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusCreated))
 					})
 
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
 					It("creates build for specified team", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
@@ -385,6 +389,10 @@ var _ = Describe("Builds API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
+				It("returns Content-Type 'application/json'", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
 				It("returns all builds", func() {
 					body, err := ioutil.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
@@ -575,6 +583,10 @@ var _ = Describe("Builds API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						})
+
 						It("returns the build with the given build_id", func() {
 							Expect(dbBuildFactory.BuildCallCount()).To(Equal(1))
 							buildID := dbBuildFactory.BuildArgsForCall(0)
@@ -670,7 +682,7 @@ var _ = Describe("Builds API", func() {
 				})
 			})
 
-			Context("when authenticaed and authorized", func() {
+			Context("when authenticated and authorized", func() {
 				BeforeEach(func() {
 					fakeaccess.IsAuthenticatedReturns(true)
 					fakeaccess.IsAuthorizedReturns(true)
@@ -680,7 +692,7 @@ var _ = Describe("Builds API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				Context("when the build inputs/ouputs are not empty", func() {
+				Context("when the build inputs/outputs are not empty", func() {
 					BeforeEach(func() {
 						build.ResourcesReturns([]db.BuildInput{
 							{
@@ -727,6 +739,10 @@ var _ = Describe("Builds API", func() {
 									},
 								},
 							}, nil)
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 					})
 
 					It("returns the build with it's input and output versioned resources", func() {
@@ -1281,6 +1297,10 @@ var _ = Describe("Builds API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
+				It("returns Content-Type 'application/json'", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
 				It("returns the build preparation", func() {
 					body, err := ioutil.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
@@ -1439,6 +1459,10 @@ var _ = Describe("Builds API", func() {
 
 					It("returns OK", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 					})
 
 					It("returns the plan", func() {

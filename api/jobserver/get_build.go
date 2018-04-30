@@ -38,6 +38,7 @@ func (s *Server) GetJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
 		err = json.NewEncoder(w).Encode(present.Build(build))

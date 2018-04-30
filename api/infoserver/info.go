@@ -10,6 +10,7 @@ import (
 func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("info")
 
+	w.Header().Set("Content-Type", "application/json")
 	err := json.NewEncoder(w).Encode(atc.Info{Version: s.version, WorkerVersion: s.workerVersion})
 	if err != nil {
 		logger.Error("failed-to-encode-info", err)

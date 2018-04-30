@@ -19,6 +19,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("returns Content-Type 'application/json'", func() {
+			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+		})
+
 		It("contains the version", func() {
 			body, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())

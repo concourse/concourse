@@ -71,6 +71,7 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 			presentedBuildInputs[i] = present.BuildInput(input, config, resource.Source())
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(presentedBuildInputs)
 		if err != nil {
 			logger.Error("failed-to-encode-build-inputs", err)

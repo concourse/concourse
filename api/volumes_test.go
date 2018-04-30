@@ -129,6 +129,10 @@ var _ = Describe("Volumes API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
 					It("returns all volumes", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
@@ -274,8 +278,13 @@ var _ = Describe("Volumes API", func() {
 		 						"step_name": ""
 		 					}]`))
 					})
+
 					It("returns 200 OK", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 					})
 				})
 			})

@@ -106,6 +106,10 @@ var _ = Describe("Teams API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
+			It("returns Content-Type 'application/json'", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
+
 			It("returns the teams", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
