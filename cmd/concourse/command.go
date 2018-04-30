@@ -12,7 +12,7 @@ type ConcourseCommand struct {
 	Web    WebCommand    `command:"web"    description:"Run the web UI and build scheduler."`
 	Worker WorkerCommand `command:"worker" description:"Run and register a worker."`
 
-	Quickstart QuickstartCommand `command:"quickstart" hidden:"true" description:"Run both 'web' and 'worker' together, auto-wired. Not recommended for production."`
+	Quickstart QuickstartCommand `command:"quickstart" description:"Run both 'web' and 'worker' together, auto-wired. Not recommended for production."`
 
 	LandWorker   land.LandWorkerCommand     `command:"land-worker" description:"Safely drain a worker's assignments for temporary downtime."`
 	RetireWorker retire.RetireWorkerCommand `command:"retire-worker" description:"Safely remove a worker from the cluster permanently."`
