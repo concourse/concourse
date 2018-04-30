@@ -265,6 +265,10 @@ var _ = Describe("Config API", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusOK))
 								})
 
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								})
+
 								It("returns the config version as X-Concourse-Config-Version", func() {
 									Expect(response.Header.Get(atc.ConfigVersionHeader)).To(Equal("1"))
 								})
@@ -413,6 +417,10 @@ var _ = Describe("Config API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 						})
 
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						})
+
 						It("returns error JSON", func() {
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
@@ -435,6 +443,10 @@ var _ = Describe("Config API", func() {
 
 						It("returns 400", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 						})
 
 						It("returns error JSON", func() {
@@ -465,6 +477,10 @@ var _ = Describe("Config API", func() {
 
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 						})
 
 						It("saves it", func() {
@@ -514,6 +530,10 @@ var _ = Describe("Config API", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
 							It("returns error JSON", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
@@ -541,6 +561,10 @@ var _ = Describe("Config API", func() {
 
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 						})
 
 						It("saves it", func() {
@@ -590,6 +614,10 @@ jobs:
 
 							It("returns 200", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
+
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 							})
 
 							It("saves it", func() {
@@ -676,6 +704,10 @@ jobs:
 								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
 							It("returns error JSON", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
@@ -731,6 +763,10 @@ jobs:
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
 							It("saves it", func() {
 								Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
@@ -774,6 +810,10 @@ jobs:
 
 								It("returns 400", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 								})
 
 								It("returns error JSON", func() {
@@ -866,6 +906,10 @@ jobs:
 								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
 							It("returns error JSON", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
 										"errors": [
@@ -900,6 +944,10 @@ jobs:
 
 								It("returns 400", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 								})
 
 								It("returns error JSON", func() {
@@ -939,6 +987,10 @@ jobs:
 
 								It("returns 400", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 								})
 
 								It("returns error JSON", func() {
@@ -1005,6 +1057,10 @@ jobs:
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
 					It("saves it", func() {
 						Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
@@ -1047,6 +1103,10 @@ jobs:
 						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 					})
 
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
 					It("returns an error in the response body", func() {
 						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
@@ -1069,6 +1129,10 @@ jobs:
 
 				It("returns 400", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("returns Content-Type 'application/json'", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 				})
 
 				It("returns an error in the response body", func() {

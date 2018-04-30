@@ -381,6 +381,10 @@ var _ = Describe("Jobs API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
 					It("returns the job's name, if it's paused, and any running and finished builds", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
@@ -966,6 +970,10 @@ var _ = Describe("Jobs API", func() {
 
 				It("returns 200 OK", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns Content-Type 'application/json'", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 				})
 
 				It("returns each job's name and any running and finished builds", func() {
@@ -1630,6 +1638,10 @@ var _ = Describe("Jobs API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						})
+
 						It("created the scheduler with the correct fakePipeline and external URL", func() {
 							actualPipeline, actualExternalURL, actualVariables := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
 							Expect(actualPipeline.Name()).To(Equal(fakePipeline.Name()))
@@ -1775,6 +1787,10 @@ var _ = Describe("Jobs API", func() {
 
 					It("returns 200 OK", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 					})
 
 					It("fetches by job and build name", func() {

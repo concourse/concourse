@@ -84,6 +84,10 @@ var _ = Describe("Workers API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
+				It("returns Content-Type 'application/json'", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
 				It("returns the workers", func() {
 					var returnedWorkers []atc.Worker
 					err := json.NewDecoder(response.Body).Decode(&returnedWorkers)
@@ -789,6 +793,10 @@ var _ = Describe("Workers API", func() {
 
 		It("returns 200", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("returns Content-Type 'application/json'", func() {
+			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 		})
 
 		It("returns saved worker", func() {
