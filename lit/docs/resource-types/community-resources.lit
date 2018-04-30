@@ -182,6 +182,12 @@ before using it!
   \table-row{\link{IRC notifications}{https://github.com/flavorjones/irc-notification-resource}}{by \ghuser{flavorjones}}
 }{
   \table-row{\link{PhraseApp Trigger}{https://github.com/tenjaa/concourse-phraseapp-resource}}{by \ghuser{tenjaa}}
+}{
+  \table-row{\link{Debian/Ubuntu archive uploads}{https://github.com/seveas/concourse-dput-resource}}{by \ghuser{seveas}}
+}{
+  \table-row{\link{Launchpad PPA packages}{https://github.com/seveas/concourse-ppa-resource}}{by \ghuser{seveas}}
+}{
+  \table-row{\link{Fedora COPR packages}{https://github.com/seveas/concourse-copr-resource}}{by \ghuser{seveas}}
 }
 
 \section{
