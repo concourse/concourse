@@ -682,7 +682,7 @@ var _ = Describe("Builds API", func() {
 				})
 			})
 
-			Context("when authenticaed and authorized", func() {
+			Context("when authenticated and authorized", func() {
 				BeforeEach(func() {
 					fakeaccess.IsAuthenticatedReturns(true)
 					fakeaccess.IsAuthorizedReturns(true)
@@ -692,7 +692,7 @@ var _ = Describe("Builds API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				Context("when the build inputs/ouputs are not empty", func() {
+				Context("when the build inputs/outputs are not empty", func() {
 					BeforeEach(func() {
 						build.ResourcesReturns([]db.BuildInput{
 							{
