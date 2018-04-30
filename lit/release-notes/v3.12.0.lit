@@ -5,16 +5,18 @@
     A bug was introduced in \code{build-reaper} under ATC/web that
     causes old build logs to accumulate in Concourse (\ghissue{2187}).
   }
-  \note{feature}{
+  \note{feature,breaking}{
     The \reference{component-atc} will now batch-delete containers and volumes,
     rather than making individual calls out to the worker. This is an
     incremental step towards \ghissue{1959} that should reduce the network/IO
     overhead on the ATC during garbage collection.
 
-    This requires a new port to be reachable on the \reference{worker-node}
-    from the \reference{web-node}: \code{7799}. This communication will go away
-    once we fully complete parallel GC, as the workers will ask the web nodes
-    what to delete instead.
+    \warn{
+      This requires a new port to be reachable on the \reference{worker-node}
+      from the \reference{web-node}: \code{7799}. This communication will go away
+      once we fully complete parallel GC, as the workers will ask the web nodes
+      what to delete instead.
+    }
   }
 
   \note{feature,breaking}{
