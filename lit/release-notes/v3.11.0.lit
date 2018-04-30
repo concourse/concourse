@@ -1,6 +1,11 @@
 \use-plugin{concourse-docs}
 
 \release{2018-4-13}{3.11.0}{1.12.1}{
+  \warn{
+    v3.11.0 has a memory leak issue in the ATC/web server
+    \ghissue{2165}. The severity of the memory leak will be different based on the
+    size of your deployment and the types of workloads you run on it.
+  }
   \note{fix,breaking}{
     The \resource{git} will no longer have tags present in the fetched repo,
     thanks to a PR by \ghuser{benmoss}.

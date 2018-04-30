@@ -1,6 +1,10 @@
 \use-plugin{concourse-docs}
 
 \release{2018-4-25}{3.12.0}{1.13.1}{
+  \warn{
+    A bug was introduced in \code{build-reaper} under ATC/web that
+    causes old build logs to accumulate in Concourse (\ghissue{2187}).
+  }
   \note{feature}{
     The \reference{component-atc} will now batch-delete containers and volumes,
     rather than making individual calls out to the worker. This is an
