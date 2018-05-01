@@ -83,7 +83,7 @@ func NewHandler(
 
 	buildServer := buildserver.NewServer(logger, externalURL, peerURL, engine, workerClient, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory, dbJobFactory)
-	resourceServer := resourceserver.NewServer(logger, scannerFactory)
+	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, engine)
 	configServer := configserver.NewServer(logger, dbTeamFactory)

@@ -13,8 +13,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/radar/radarfakes"
@@ -26,6 +28,7 @@ var _ = Describe("Resources API", func() {
 		fakePipeline *dbfakes.FakePipeline
 		resource1    *dbfakes.FakeResource
 		fakeaccess   = new(accessorfakes.FakeAccess)
+		variables    creds.Variables
 	)
 
 	BeforeEach(func() {
@@ -771,7 +774,12 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeResource.WebhookTokenReturns("fake-token")
+				variables = template.StaticVariables{
+					"webhook-token": "fake-token",
+				}
+				token, err := creds.NewString(variables, "((webhook-token))").Evaluate()
+				Expect(err).NotTo(HaveOccurred())
+				fakeResource.WebhookTokenReturns(token)
 				fakePipeline.ResourceReturns(fakeResource, true, nil)
 			})
 
