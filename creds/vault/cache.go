@@ -22,17 +22,19 @@ type Cache struct {
 	newItems chan time.Time
 	sr       SecretReader
 	context  context.Context
+	maxLease time.Duration
 }
 
 // TODO: Should a cache have a max size to
 // prevent unbounded growth?
 
 // NewCache using the underlying vault client.
-func NewCache(sr SecretReader) *Cache {
+func NewCache(sr SecretReader, maxLease time.Duration) *Cache {
 	c := &Cache{
 		cache:    make(map[string]*cachedSecret),
 		newItems: make(chan time.Time, 100),
 		sr:       sr,
+		maxLease: maxLease,
 	}
 	go c.reaperThread()
 	return c
@@ -101,6 +103,9 @@ func (c *Cache) Read(path string) (*vaultapi.Secret, error) {
 	// This is a problem in any implementation, as lease duration could be 1s and the
 	// build will _probably_ take longer  than that.
 	dur := time.Duration(secret.LeaseDuration) * time.Second / 2
+	if c.maxLease != 0 && dur > c.maxLease {
+		dur = c.maxLease
+	}
 
 	// Store the secret in cache
 	cs = &cachedSecret{

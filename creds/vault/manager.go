@@ -18,7 +18,8 @@ type VaultManager struct {
 
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 
-	Cache bool `bool:"cache" default:"false" description:"Cache returned secrets for their lease duration in memory"`
+	Cache    bool          `bool:"cache" default:"false" description:"Cache returned secrets for their lease duration in memory"`
+	MaxLease time.Duration `long:"max-lease" description:"If the cache is enabled, and this is set, override secrets lease duration with a maximum value"`
 
 	TLS struct {
 		CACert     string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
@@ -96,7 +97,7 @@ func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.Vari
 	ra := NewReAuther(c, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
 	var sr SecretReader = c
 	if manager.Cache {
-		sr = NewCache(c)
+		sr = NewCache(c, manager.MaxLease)
 	}
 
 	return NewVaultFactory(sr, ra.LoggedIn(), manager.PathPrefix), nil
