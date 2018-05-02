@@ -898,8 +898,11 @@ h2, h3 {
 }
 
 .quickstart {
-  background: #f5f5f5;
+  background: #F9F7F6;
   margin-bottom: 60px;
+     border-style: solid;
+  border-width: 0px 0px 0px 4px;
+  border-color: #fb8c00;
 }
 
 .quickstart-content {
@@ -915,12 +918,15 @@ h2, h3 {
   cursor: pointer;
   font-family: 'Roboto Slab', serif;
   font-size: 18px;
+  letter-spacing: .5px;
   padding: 10px;
   display: block;
   user-select: none;
   position: relative;
   padding-left: 30px;
-  color: #7A7373;
+    color: #7A7373;
+  background: ;
+
 }
 
 .quickstart-label:before {
@@ -933,6 +939,7 @@ h2, h3 {
   position: absolute;
   top: 15px;
   left: 12px;
+
 }
 
 .quickstart input:checked + .quickstart-label:before {
@@ -941,4 +948,8 @@ h2, h3 {
 
 .quickstart input:checked + .quickstart-label + .quickstart-content {
   display: block;
+}
+
+label.quickstart-label::before {
+  color: #fb8c00;
 }
