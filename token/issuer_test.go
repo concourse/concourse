@@ -131,59 +131,11 @@ var _ = Describe("Token Issuer", func() {
 					Expect(claims["sub"]).To(Equal("some-sub"))
 					Expect(claims["email"]).To(Equal("mail@example.com"))
 					Expect(claims["name"]).To(Equal("Firstname Lastname"))
+					Expect(claims["user_id"]).To(Equal("user-id"))
+					Expect(claims["user_name"]).To(Equal("user-name"))
 					Expect(claims["exp"]).To(BeNumerically(">", time.Now().Unix()))
 					Expect(claims["exp"]).To(BeNumerically("<=", time.Now().Add(duration).Unix()))
 					Expect(claims["csrf"]).NotTo(BeEmpty())
-				})
-
-				Context("when verified claims has username", func() {
-					BeforeEach(func() {
-						verifiedClaims.UserName = "my-username"
-					})
-
-					It("uses username", func() {
-						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["user_name"]).To(Equal("my-username"))
-					})
-				})
-
-				Context("when verified claims has no username, but has name", func() {
-					BeforeEach(func() {
-						verifiedClaims.UserName = ""
-						verifiedClaims.Name = "my-name"
-					})
-
-					It("uses name", func() {
-						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["user_name"]).To(Equal("my-name"))
-					})
-				})
-
-				Context("when verified claims has no username, or name, but has email", func() {
-					BeforeEach(func() {
-						verifiedClaims.UserName = ""
-						verifiedClaims.Name = ""
-						verifiedClaims.Email = "my@email.com"
-					})
-
-					It("uses email", func() {
-						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["user_name"]).To(Equal("my@email.com"))
-					})
-				})
-
-				Context("when verified claims has no username, name, or email, but has userid", func() {
-					BeforeEach(func() {
-						verifiedClaims.UserName = ""
-						verifiedClaims.Name = ""
-						verifiedClaims.Email = ""
-						verifiedClaims.UserID = "my-id"
-					})
-
-					It("uses userid", func() {
-						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["user_name"]).To(Equal("my-id"))
-					})
 				})
 			}
 

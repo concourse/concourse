@@ -109,26 +109,12 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 		teams = append(teams, team)
 	}
 
-	displayName := userName
-
-	if displayName == "" {
-		displayName = name
-	}
-
-	if displayName == "" {
-		displayName = email
-	}
-
-	if displayName == "" {
-		displayName = userId
-	}
-
 	return self.Generator.Generate(map[string]interface{}{
 		"sub":       sub,
 		"email":     email,
 		"name":      name,
 		"user_id":   userId,
-		"user_name": displayName,
+		"user_name": userName,
 		"teams":     teams,
 		"is_admin":  isAdmin,
 		"exp":       time.Now().Add(self.Duration).Unix(),
