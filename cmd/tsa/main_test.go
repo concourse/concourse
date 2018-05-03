@@ -964,6 +964,87 @@ var _ = Describe("TSA SSH Registrar", func() {
 						})
 					})
 				})
+
+				Context("when running command to report containers", func() {
+					var workerPayload atc.Worker
+
+					BeforeEach(func() {
+						sshArgv = append(sshArgv, "report-containers")
+					})
+
+					JustBeforeEach(func() {
+						err := json.NewEncoder(sshStdin).Encode(workerPayload)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					Context("when the ATC is working", func() {
+						BeforeEach(func() {
+							resp := []string{"handle1", "handle2"}
+
+							workerPayload = atc.Worker{
+								Name: "some-worker",
+							}
+
+							atcServer.AppendHandlers(ghttp.CombineHandlers(
+								ghttp.VerifyRequest("PUT", "/api/v1/containers/report"),
+								http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+									Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
+								}),
+								ghttp.RespondWithJSONEncoded(204, resp),
+							))
+						})
+
+						It("sends a request to the ATC to report the worker containers", func() {
+							Eventually(sshSess, 3).Should(gexec.Exit(0))
+							Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("when the ATC responds with a missing worker (404)", func() {
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								Name: "some-worker",
+							}
+
+							atcServer.AppendHandlers(ghttp.CombineHandlers(
+								ghttp.VerifyRequest("PUT", "/api/v1/containers/report"),
+								http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+									Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
+								}),
+								ghttp.RespondWith(404, nil, nil),
+							))
+						})
+
+						It("exits with failure", func() {
+							Eventually(tsaRunner.Buffer()).Should(gbytes.Say("404"))
+							Eventually(sshSess, 3).Should(gexec.Exit(1))
+							Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("when the ATC responds with an error", func() {
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								Name: "some-worker",
+							}
+
+							atcServer.AppendHandlers(ghttp.CombineHandlers(
+								ghttp.VerifyRequest("PUT", "/api/v1/containers/report"),
+								http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+									Expect(accessFactory.Create(r).IsAuthenticated()).To(BeTrue())
+								}),
+								ghttp.RespondWith(500, nil, nil),
+							))
+						})
+
+						It("exits with failure", func() {
+							Eventually(tsaRunner.Buffer()).Should(gbytes.Say("500"))
+							Eventually(sshSess, 3).Should(gexec.Exit(1))
+							Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+				})
+
 				Context("when running a bogus command", func() {
 					BeforeEach(func() {
 						sshArgv = append(sshArgv, "bogus-command")

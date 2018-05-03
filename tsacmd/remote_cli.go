@@ -14,6 +14,13 @@ type landWorkerRequest struct{}
 type retireWorkerRequest struct{}
 type deleteWorkerRequest struct{}
 type sweepContainerRequest struct{}
+type reportContainerRequest struct {
+	containerHandles []string
+}
+
+func (r reportContainerRequest) handles() []string {
+	return r.containerHandles
+}
 
 type forwardWorkerRequest struct {
 	gardenAddr       string
@@ -72,6 +79,10 @@ func parseRequest(cli string) (request, error) {
 		return deleteWorkerRequest{}, nil
 	case "sweep-containers":
 		return sweepContainerRequest{}, nil
+	case "report-containers":
+		return reportContainerRequest{
+			containerHandles: args,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown command: %s", command)
 	}

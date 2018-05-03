@@ -1,0 +1,164 @@
+package tsa_test
+
+import (
+	"encoding/json"
+	"errors"
+
+	"github.com/concourse/tsa"
+
+	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/atc"
+	"github.com/concourse/tsa/tsafakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
+	"github.com/tedsuo/rata"
+)
+
+var _ = Describe("Worker Status Test", func() {
+	var (
+		workerStatus *tsa.WorkerStatus
+
+		logger             *lagertest.TestLogger
+		worker             atc.Worker
+		fakeTokenGenerator *tsafakes.FakeTokenGenerator
+		fakeATC            *ghttp.Server
+		data               []byte
+	)
+
+	BeforeEach(func() {
+		var err error
+		logger = lagertest.NewTestLogger("test")
+		worker = atc.Worker{
+			Name: "some-worker",
+			Team: "some-team",
+		}
+
+		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
+		fakeTokenGenerator.GenerateSystemTokenReturns("yo-team", nil)
+
+		fakeATC = ghttp.NewServer()
+
+		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
+
+		workerStatus = &tsa.WorkerStatus{
+			ATCEndpoint:      atcEndpoint,
+			TokenGenerator:   fakeTokenGenerator,
+			ContainerHandles: []string{"handle1", "handle2"},
+		}
+
+		expectedBody := []string{"handle1", "handle2"}
+		data, err = json.Marshal(expectedBody)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		fakeATC.AppendHandlers(ghttp.CombineHandlers(
+			ghttp.VerifyRequest("PUT", "/api/v1/containers/report"),
+			ghttp.VerifyHeaderKV("Authorization", "Bearer yo-team"),
+			ghttp.VerifyJSON(`["handle1","handle2"]`),
+			ghttp.RespondWith(204, data, nil),
+		))
+	})
+
+	AfterEach(func() {
+		fakeATC.Close()
+	})
+
+	It("tells the ATC to get destroying containers", func() {
+		err := workerStatus.WorkerStatus(logger, worker)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Context("when the ATC responds with a 403", func() {
+		BeforeEach(func() {
+			fakeATC.Reset()
+			fakeATC.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("PUT", "/api/v1/containers/report"),
+				ghttp.RespondWith(403, nil, nil),
+			))
+		})
+
+		It("errors", func() {
+			err := workerStatus.WorkerStatus(logger, worker)
+			Expect(err).To(HaveOccurred())
+
+			Expect(err).To(MatchError(ContainSubstring("403")))
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
+	})
+
+	Context("when the worker name is empty", func() {
+		BeforeEach(func() {
+			worker.Name = ""
+		})
+
+		It("errors", func() {
+			err := workerStatus.WorkerStatus(logger, worker)
+			Expect(err).To(HaveOccurred())
+
+			Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
+		})
+	})
+
+	Context("when the system token generator returns an error", func() {
+		BeforeEach(func() {
+			fakeTokenGenerator.GenerateSystemTokenReturns("", errors.New("bblah"))
+		})
+
+		It("errors", func() {
+			err := workerStatus.WorkerStatus(logger, worker)
+			Expect(err).To(HaveOccurred())
+
+			Expect(err).To(MatchError(ContainSubstring("bblah")))
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
+		})
+	})
+
+	Context("when the call to ATC fails", func() {
+		BeforeEach(func() {
+			fakeATC.Close()
+		})
+
+		It("errors", func() {
+			err := workerStatus.WorkerStatus(logger, worker)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("when the ATC responds with non 200", func() {
+		BeforeEach(func() {
+			fakeATC.Reset()
+			fakeATC.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("PUT", "/api/v1/containers/report"),
+				ghttp.RespondWith(500, nil, nil),
+			))
+		})
+
+		It("errors", func() {
+			err := workerStatus.WorkerStatus(logger, worker)
+			Expect(err).To(HaveOccurred())
+
+			Expect(err).To(MatchError(ContainSubstring("bad-response (500)")))
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
+	})
+
+	Context("when handle is empty list", func() {
+		BeforeEach(func() {
+			workerStatus.ContainerHandles = []string{}
+			fakeATC.Reset()
+			fakeATC.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("PUT", "/api/v1/containers/report"),
+				ghttp.VerifyJSON(`[]`),
+				ghttp.RespondWith(204, nil, nil),
+			))
+		})
+
+		It("does not error", func() {
+			err := workerStatus.WorkerStatus(logger, worker)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
+	})
+})
