@@ -35,6 +35,7 @@ instance_groups:
   - release: concourse
     name: tsa
     properties:
+      log_level: debug
       host_key: ((tsa_host_key))
       token_signing_key: ((token_signing_key))
       authorized_keys: [((worker_key.public_key))]
@@ -67,6 +68,7 @@ instance_groups:
   - release: concourse
     name: worker
     properties:
+      log_level: debug
       tsa:
         worker_key: ((worker_key))
         registration_mode: forward

@@ -33,6 +33,7 @@ instance_groups:
   - release: concourse
     name: tsa
     properties:
+      log_level: debug
       host_key: ((tsa_host_key))
       token_signing_key: ((token_signing_key))
       authorized_keys: [((worker_key.public_key))]
@@ -51,7 +52,7 @@ instance_groups:
     name: worker
     properties:
       tsa: {worker_key: ((worker_key))}
-
+      log_level: debug
       # prevent tests from hanging forever
       drain_timeout: 10m
 
