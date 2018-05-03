@@ -13,7 +13,7 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 	workerName := r.URL.Query().Get("worker_name")
 	w.Header().Set("Content-Type", "application/json")
 
-	logger := s.logger.Session("marked-containers-for-worker", lager.Data{"worker_name": workerName})
+	logger := s.logger.Session("report-containers-for-worker", lager.Data{"name": workerName})
 
 	if workerName != "" {
 		data, err := ioutil.ReadAll(r.Body)
@@ -31,6 +31,10 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
+		logger.Debug("handles-info", lager.Data{
+			"handles": handles,
+		})
+
 		err = s.containerDestroyer.Destroy(workerName, handles)
 		if err != nil {
 			logger.Error("failed-to-destroy-containers", err)
@@ -40,7 +44,7 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 
 		w.WriteHeader(http.StatusNoContent)
 	} else {
-		logger.Info("failed-to-find-worker")
+		logger.Info("missing-worker-name")
 		w.WriteHeader(http.StatusNotFound)
 	}
 }

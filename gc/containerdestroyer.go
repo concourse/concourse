@@ -31,11 +31,11 @@ func NewContainerDestroyer(
 	}
 }
 
-func (d *containerDestroyer) Destroy(workerName string, handles []string) error {
+func (d *containerDestroyer) Destroy(workerName string, currentHandles []string) error {
 
 	if workerName != "" {
-		if handles != nil && len(handles) > 0 {
-			deleted, err := d.containerRepository.DestroyContainers(workerName, handles)
+		if currentHandles != nil {
+			deleted, err := d.containerRepository.RemoveDestroyingContainers(workerName, currentHandles)
 			if err != nil {
 				d.logger.Error("failed-to-destroy-containers", err)
 				return err

@@ -44,11 +44,11 @@ var _ = Describe("ContainerDestroyer", func() {
 			})
 
 			It("succeed", func() {
-				fakeContainerRepository.DestroyContainersReturns(2, nil)
+				fakeContainerRepository.RemoveDestroyingContainersReturns(2, nil)
 				err = destroyer.Destroy(workerName, handles)
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(fakeContainerRepository.DestroyContainersCallCount()).To(Equal(1))
+				Expect(fakeContainerRepository.RemoveDestroyingContainersCallCount()).To(Equal(1))
 			})
 
 			Context("when worker name is not provided", func() {
@@ -58,7 +58,7 @@ var _ = Describe("ContainerDestroyer", func() {
 
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("worker-name-must-be-provided"))
-					Expect(fakeContainerRepository.DestroyContainersCallCount()).To(Equal(0))
+					Expect(fakeContainerRepository.RemoveDestroyingContainersCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -68,16 +68,16 @@ var _ = Describe("ContainerDestroyer", func() {
 				handles = []string{}
 				workerName = "some-worker"
 			})
-			It("returned no error and did not call container repository", func() {
+			It("returned no error and called container repository", func() {
 				err = destroyer.Destroy(workerName, handles)
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(fakeContainerRepository.DestroyContainersCallCount()).To(Equal(0))
+				Expect(fakeContainerRepository.RemoveDestroyingContainersCallCount()).To(Equal(1))
 
 				err = destroyer.Destroy(workerName, nil)
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(fakeContainerRepository.DestroyContainersCallCount()).To(Equal(0))
+				Expect(fakeContainerRepository.RemoveDestroyingContainersCallCount()).To(Equal(1))
 			})
 		})
 
@@ -88,14 +88,14 @@ var _ = Describe("ContainerDestroyer", func() {
 				workerName = "some-worker"
 				repoErrorString = "I am le tired"
 
-				fakeContainerRepository.DestroyContainersReturns(0, errors.New(repoErrorString))
+				fakeContainerRepository.RemoveDestroyingContainersReturns(0, errors.New(repoErrorString))
 			})
 			It("returns an error", func() {
 				err = destroyer.Destroy(workerName, handles)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal(repoErrorString))
-				Expect(fakeContainerRepository.DestroyContainersCallCount()).To(Equal(1))
+				Expect(fakeContainerRepository.RemoveDestroyingContainersCallCount()).To(Equal(1))
 			})
 		})
 	})

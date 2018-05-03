@@ -13,19 +13,19 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("ContainerCollector", func() {
+var _ = Describe("ContainerCollector", func() {
 	var (
 		fakeContainerRepository *dbfakes.FakeContainerRepository
 		fakeJobRunner           *gcfakes.FakeWorkerJobRunner
 
 		fakeWorker       *workerfakes.FakeWorker
 		fakeGardenClient *gardenfakes.FakeClient
-		// fakeReaperClient *reaperfakes.FakeReaperClient
 
 		creatingContainer *dbfakes.FakeCreatingContainer
 
@@ -37,14 +37,13 @@ var _ = FDescribe("ContainerCollector", func() {
 
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeGardenClient = new(gardenfakes.FakeClient)
-		// fakeReaperClient = new(reaperfakes.FakeReaperClient)
 		fakeWorker.GardenClientReturns(fakeGardenClient)
-		// fakeWorker.ReaperClientReturns(fakeReaperClient)
 		fakeJobRunner = new(gcfakes.FakeWorkerJobRunner)
 		fakeJobRunner.TryStub = func(logger lager.Logger, workerName string, job gc.Job) {
 			job.Run(fakeWorker)
 		}
 
+		logger = lagertest.NewTestLogger("test")
 		collector = gc.NewContainerCollector(
 			fakeContainerRepository,
 			fakeJobRunner,
@@ -158,9 +157,6 @@ var _ = FDescribe("ContainerCollector", func() {
 					},
 					nil,
 				)
-
-				// destroyingContainerFromCreated.DestroyReturns(true, nil)
-				// destroyingContainer.DestroyReturns(true, nil)
 			})
 
 			Context("when there are created containers in hijacked state", func() {
@@ -215,12 +211,6 @@ var _ = FDescribe("ContainerCollector", func() {
 				Expect(fakeJobRunner.TryCallCount()).To(Equal(1))
 				_, try1Worker, _ := fakeJobRunner.TryArgsForCall(0)
 				Expect(try1Worker).To(Equal("foo"))
-				// _, try3Worker, _ := fakeJobRunner.TryArgsForCall(0)
-				// Expect(try3Worker).To(Equal("bar"))
-
-				// Expect(fakeReaperClient.DestroyContainersCallCount()).To(Equal(2))
-				// Expect(fakeReaperClient.DestroyContainersArgsForCall(0)).To(Equal([]string{"some-handle-2"}))
-				// Expect(fakeReaperClient.DestroyContainersArgsForCall(1)).To(Equal([]string{"some-handle-3"}))
 			})
 
 			Context("when there are destroying containers that are discontinued", func() {
@@ -234,25 +224,9 @@ var _ = FDescribe("ContainerCollector", func() {
 					})
 
 					It("does not delete container and lets it expire in garden first", func() {
-						// Expect(fakeReaperClient.DestroyContainersCallCount()).To(Equal(1))
-						// Expect(fakeReaperClient.DestroyContainersArgsForCall(0)).To(Equal([]string{"some-handle-2"}))
-
 						Expect(destroyingContainer.DestroyCallCount()).To(Equal(0))
 					})
 				})
-
-				// Context("when container does not exist in garden", func() {
-				// 	BeforeEach(func() {
-				// 		fakeGardenClient.LookupReturns(nil, garden.ContainerNotFoundError{})
-				// 	})
-				//
-				// 	It("deletes container in database", func() {
-				// 		// Expect(fakeReaperClient.DestroyContainersCallCount()).To(Equal(1))
-				// 		// Expect(fakeReaperClient.DestroyContainersArgsForCall(0)).To(Equal([]string{"some-handle-2"}))
-				//
-				// 		Expect(destroyingContainer.DestroyCallCount()).To(Equal(0))
-				// 	})
-				// })
 			})
 
 			Context("when finding containers for deletion fails", func() {
@@ -266,87 +240,6 @@ var _ = FDescribe("ContainerCollector", func() {
 					Expect(fakeJobRunner.TryCallCount()).To(Equal(0))
 				})
 			})
-
-			// Context("when destroying a garden container errors", func() {
-			// 	BeforeEach(func() {
-			// 		fakeGardenClient.DestroyStub = func(handle string) error {
-			// 			switch handle {
-			// 			case "some-handle-1":
-			// 				return errors.New("some-error")
-			// 			case "some-handle-2":
-			// 				return nil
-			// 			case "some-handle-3":
-			// 				return nil
-			// 			default:
-			// 				return nil
-			// 			}
-			// 		}
-			// 	})
-			//
-			// 	It("continues mark container to destroying", func() {
-			// 		Expect(err).NotTo(HaveOccurred())
-			//
-			// 		Expect(fakeJobRunner.TryCallCount()).To(Equal(1))
-			// 		// Expect(fakeReaperClient.DestroyContainersCallCount()).To(Equal(2))
-			//
-			// 		// Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(0))
-			// 		// Expect(destroyingContainer.DestroyCallCount()).To(Equal(0))
-			// 	})
-			// })
-			//
-			// Context("when destroying a garden container errors because container is not found", func() {
-			// 	// BeforeEach(func() {
-			// 	// 	fakeGardenClient.DestroyStub = func(handle string) error {
-			// 	// 		switch handle {
-			// 	// 		case "some-handle-1":
-			// 	// 			return garden.ContainerNotFoundError{Handle: "some-handle"}
-			// 	// 		case "some-handle-2":
-			// 	// 			return nil
-			// 	// 		case "some-handle-3":
-			// 	// 			return nil
-			// 	// 		default:
-			// 	// 			return nil
-			// 	// 		}
-			// 	// 	}
-			// 	// })
-			//
-			// 	FIt("continues mark container to destroying", func() {
-			// 		Expect(err).NotTo(HaveOccurred())
-			//
-			// 		Expect(fakeJobRunner.TryCallCount()).To(Equal(1))
-			// 		// Expect(fakeReaperClient.DestroyContainersCallCount()).To(Equal(2))
-			//
-			// 		// Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(1))
-			// 		// Expect(destroyingContainer.DestroyCallCount()).To(Equal(1))
-			// 	})
-			// })
-			//
-			// Context("when destroying a container in the DB errors", func() {
-			// 	BeforeEach(func() {
-			// 		destroyingContainerFromCreated.DestroyReturns(false, errors.New("some-error"))
-			// 	})
-			//
-			// 	It("continues destroying the rest of the containers", func() {
-			// 		Expect(err).NotTo(HaveOccurred())
-			//
-			// 		Expect(fakeJobRunner.TryCallCount()).To(Equal(1))
-			// 		// Expect(fakeReaperClient.DestroyContainersCallCount()).To(Equal(2))
-			// 		// Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(1))
-			// 		// Expect(destroyingContainer.DestroyCallCount()).To(Equal(1))
-			// 	})
-			// })
-			//
-			// Context("when it can't find a container to destroy", func() {
-			//
-			// 	It("continues destroying the rest of the containers", func() {
-			// 		Expect(err).NotTo(HaveOccurred())
-			//
-			// 		Expect(fakeJobRunner.TryCallCount()).To(Equal(1))
-			// 		// Expect(fakeReaperClient.DestroyContainersCallCount()).To(Equal(2))
-			// 		// Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(1))
-			// 		// Expect(destroyingContainer.DestroyCallCount()).To(Equal(1))
-			// 	})
-			// })
 		})
 	})
 })

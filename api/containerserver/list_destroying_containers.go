@@ -12,7 +12,7 @@ func (s *Server) ListDestroyingContainers(w http.ResponseWriter, r *http.Request
 	workerName := r.URL.Query().Get("worker_name")
 	w.Header().Set("Content-Type", "application/json")
 
-	logger := s.logger.Session("marked-containers-for-worker", lager.Data{"worker_name": workerName})
+	logger := s.logger.Session("list-destroying-containers-worker", lager.Data{"name": workerName})
 
 	if workerName != "" {
 		containerHandles, err := s.containerRepository.FindDestroyingContainers(workerName)

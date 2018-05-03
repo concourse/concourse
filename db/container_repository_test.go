@@ -610,20 +610,20 @@ var _ = Describe("ContainerRepository", func() {
 		})
 	})
 
-	FDescribe("DestroyContainers", func() {
+	Describe("RemoveDestroyingContainers", func() {
 		var failedErr error
 		var numDeleted int
 		var handles []string
 
 		JustBeforeEach(func() {
-			numDeleted, failedErr = containerRepository.DestroyContainers(defaultWorker.Name(), handles)
+			numDeleted, failedErr = containerRepository.RemoveDestroyingContainers(defaultWorker.Name(), handles)
 		})
 		ItClosesConnection := func() {
 			It("closes the connection", func() {
 				closed := make(chan bool)
 
 				go func() {
-					_, _ = containerRepository.DestroyContainers(defaultWorker.Name(), handles)
+					_, _ = containerRepository.RemoveDestroyingContainers(defaultWorker.Name(), handles)
 					closed <- true
 				}()
 
@@ -632,34 +632,92 @@ var _ = Describe("ContainerRepository", func() {
 		}
 
 		Context("when there are containers to destroy", func() {
-			BeforeEach(func() {
-				handles = []string{"some-handle1", "some-handle2"}
 
-				result, err := psql.Insert("containers").SetMap(map[string]interface{}{
-					"state":        "destroying",
-					"handle":       "123-456-abc-def",
-					"worker_name":  defaultWorker.Name(),
-					"hijacked":     false,
-					"discontinued": false,
-				}).RunWith(dbConn).Exec()
+			Context("when container is in destroying state", func() {
+				BeforeEach(func() {
+					handles = []string{"some-handle1", "some-handle2"}
+					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+						"state":        "destroying",
+						"handle":       "123-456-abc-def",
+						"worker_name":  defaultWorker.Name(),
+						"hijacked":     false,
+						"discontinued": false,
+					}).RunWith(dbConn).Exec()
 
-				Expect(err).ToNot(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(1)))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+				})
+				It("should destroy", func() {
+					result, err := psql.Select("*").From("containers").
+						Where(sq.Eq{"handle": "123-456-abc-def"}).RunWith(dbConn).Exec()
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(0)))
+				})
+				It("returns the correct number of rows removed", func() {
+					Expect(numDeleted).To(Equal(1))
+				})
+				It("does not return an error", func() {
+					Expect(failedErr).ToNot(HaveOccurred())
+				})
 			})
 
-			It("destroy all containers that are not in handles", func() {
-				result, err := psql.Select("*").From("containers").
-					Where(sq.Eq{"handle": "123-456-abc-def"}).RunWith(dbConn).Exec()
+			Context("when handles are empty list", func() {
+				BeforeEach(func() {
+					handles = []string{}
+					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+						"state":        "destroying",
+						"handle":       "123-456-abc-def",
+						"worker_name":  defaultWorker.Name(),
+						"hijacked":     false,
+						"discontinued": false,
+					}).RunWith(dbConn).Exec()
 
-				Expect(err).ToNot(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(0)))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+				})
+				It("should destroy", func() {
+					result, err := psql.Select("*").From("containers").
+						Where(sq.Eq{"handle": "123-456-abc-def"}).RunWith(dbConn).Exec()
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(0)))
+				})
+				It("returns the correct number of rows removed", func() {
+					Expect(numDeleted).To(Equal(1))
+				})
+				It("does not return an error", func() {
+					Expect(failedErr).ToNot(HaveOccurred())
+				})
 			})
 
-			It("does not return an error", func() {
-				Expect(failedErr).ToNot(HaveOccurred())
-			})
-			It("returns the correct number of rows removed", func() {
-				Expect(numDeleted).To(Equal(1))
+			Context("when container is in create/creating state", func() {
+				BeforeEach(func() {
+					handles = []string{"some-handle1", "some-handle2"}
+					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+						"state":        "creating",
+						"handle":       "123-456-abc-def",
+						"worker_name":  defaultWorker.Name(),
+						"hijacked":     false,
+						"discontinued": false,
+					}).RunWith(dbConn).Exec()
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+				})
+				It("should not destroy", func() {
+					result, err := psql.Select("*").From("containers").
+						Where(sq.Eq{"handle": "123-456-abc-def"}).RunWith(dbConn).Exec()
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+				})
+				It("returns the correct number of rows removed", func() {
+					Expect(numDeleted).To(Equal(0))
+				})
+				It("does not return an error", func() {
+					Expect(failedErr).ToNot(HaveOccurred())
+				})
 			})
 
 			ItClosesConnection()

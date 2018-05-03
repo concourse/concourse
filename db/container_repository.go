@@ -10,7 +10,7 @@ type ContainerRepository interface {
 	FindOrphanedContainers() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error)
 	FindFailedContainers() ([]FailedContainer, error)
 	FindDestroyingContainers(workerName string) ([]string, error)
-	DestroyContainers(workerName string, handles []string) (int, error)
+	RemoveDestroyingContainers(workerName string, currentHandles []string) (int, error)
 }
 
 type containerRepository struct {
@@ -27,10 +27,17 @@ func (repository *containerRepository) FindDestroyingContainers(workerName strin
 	handles := []string{}
 
 	query, args, err := psql.Select("handle").From("containers").
-		Where(sq.Eq{
-			"state":       ContainerStateDestroying,
-			"worker_name": workerName,
-		}).ToSql()
+		Where(
+			sq.And{
+				sq.Eq{
+					"state":       ContainerStateDestroying,
+					"worker_name": workerName,
+				},
+				sq.NotEq{
+					"discontinued": true,
+				},
+			},
+		).ToSql()
 
 	rows, err := repository.conn.Query(query, args...)
 	if err != nil {
@@ -52,7 +59,7 @@ func (repository *containerRepository) FindDestroyingContainers(workerName strin
 	return handles, nil
 }
 
-func (repository *containerRepository) DestroyContainers(workerName string, handles []string) (int, error) {
+func (repository *containerRepository) RemoveDestroyingContainers(workerName string, handles []string) (int, error) {
 	rows, err := psql.Delete("containers").
 		Where(
 			sq.And{
@@ -61,6 +68,9 @@ func (repository *containerRepository) DestroyContainers(workerName string, hand
 				},
 				sq.NotEq{
 					"handle": handles,
+				},
+				sq.Eq{
+					"state": ContainerStateDestroying,
 				},
 			},
 		).RunWith(repository.conn).
