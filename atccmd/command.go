@@ -395,6 +395,7 @@ func (cmd *ATCCommand) constructMembers(
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory)
 	dbVolumeFactory := db.NewVolumeFactory(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
+	gcContainerDestroyer := gc.NewContainerDestroyer(logger, dbContainerRepository)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
@@ -495,6 +496,7 @@ func (cmd *ATCCommand) constructMembers(
 		dbWorkerFactory,
 		dbVolumeFactory,
 		dbContainerRepository,
+		gcContainerDestroyer,
 		dbBuildFactory,
 		signingKey,
 		engine,
@@ -1111,6 +1113,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	dbWorkerFactory db.WorkerFactory,
 	dbVolumeFactory db.VolumeFactory,
 	dbContainerRepository db.ContainerRepository,
+	gcContainerDestroyer gc.ContainerDestroyer,
 	dbBuildFactory db.BuildFactory,
 	signingKey *rsa.PrivateKey,
 	engine engine.Engine,
@@ -1151,6 +1154,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		dbWorkerFactory,
 		dbVolumeFactory,
 		dbContainerRepository,
+		gcContainerDestroyer,
 		dbBuildFactory,
 
 		cmd.PeerURL.String(),

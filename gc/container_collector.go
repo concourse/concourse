@@ -174,39 +174,39 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 		)
 	}
 
-	var workerContainers = make(map[string][]db.DestroyingContainer)
+	// var workerContainers = make(map[string][]db.DestroyingContainer)
+	//
+	// for _, destroyingContainer := range destroyingContainers {
+	// 	containers, ok := workerContainers[destroyingContainer.WorkerName()]
+	// 	if ok {
+	// 		// update existing array
+	// 		containers = append(containers, destroyingContainer)
+	// 		workerContainers[destroyingContainer.WorkerName()] = containers
+	// 	} else {
+	// 		// create new array
+	// 		workerContainers[destroyingContainer.WorkerName()] = []db.DestroyingContainer{destroyingContainer}
+	// 	}
+	// }
 
-	for _, destroyingContainer := range destroyingContainers {
-		containers, ok := workerContainers[destroyingContainer.WorkerName()]
-		if ok {
-			// update existing array
-			containers = append(containers, destroyingContainer)
-			workerContainers[destroyingContainer.WorkerName()] = containers
-		} else {
-			// create new array
-			workerContainers[destroyingContainer.WorkerName()] = []db.DestroyingContainer{destroyingContainer}
-		}
-	}
-
-	for worker, destroyingContainers := range workerContainers {
-		c.jobRunner.Try(logger,
-			worker,
-			&job{
-				JobName: fmt.Sprintf("destroying-containers-%d", len(destroyingContainers)),
-				RunFunc: destroyDestroyingContainers(logger, destroyingContainers),
-			},
-		)
-	}
+	// for worker, destroyingContainers := range workerContainers {
+	// 	c.jobRunner.Try(logger,
+	// 		worker,
+	// 		&job{
+	// 			JobName: fmt.Sprintf("destroying-containers-%d", len(destroyingContainers)),
+	// 			RunFunc: destroyDestroyingContainers(logger, destroyingContainers),
+	// 		},
+	// 	)
+	// }
 	return nil
 }
 
 func destroyCreatedContainers(logger lager.Logger, containers []db.CreatedContainer) func(worker.Worker) {
 	return func(workerClient worker.Worker) {
-		destroyingContainers := []db.DestroyingContainer{}
+		// destroyingContainers := []db.DestroyingContainer{}
 
 		for _, container := range containers {
 
-			var destroyingContainer db.DestroyingContainer
+			// var destroyingContainer db.DestroyingContainer
 			var err error
 
 			if container.IsHijacked() {
@@ -215,7 +215,7 @@ func destroyCreatedContainers(logger lager.Logger, containers []db.CreatedContai
 					"worker":    workerClient.Name(),
 				})
 
-				destroyingContainer, err = markHijackedContainerAsDestroying(cLog, container, workerClient.GardenClient())
+				_, err = markHijackedContainerAsDestroying(cLog, container, workerClient.GardenClient())
 				if err != nil {
 					cLog.Error("failed-to-transition", err)
 					return
@@ -226,29 +226,29 @@ func destroyCreatedContainers(logger lager.Logger, containers []db.CreatedContai
 					"worker":    workerClient.Name(),
 				})
 
-				destroyingContainer, err = container.Destroying()
+				_, err = container.Destroying()
 				if err != nil {
 					cLog.Error("failed-to-transition", err)
 					return
 				}
 			}
-			if destroyingContainer != nil {
-				destroyingContainers = append(destroyingContainers, destroyingContainer)
-			}
+			// if destroyingContainer != nil {
+			// 	destroyingContainers = append(destroyingContainers, destroyingContainer)
+			// }
 
 		}
-		tryToDestroyContainers(logger.Session("destroy-containers"), destroyingContainers, workerClient)
+		// tryToDestroyContainers(logger.Session("destroy-containers"), destroyingContainers, workerClient)
 	}
 }
 
-func destroyDestroyingContainers(logger lager.Logger, containers []db.DestroyingContainer) func(worker.Worker) {
-	return func(workerClient worker.Worker) {
-		cLog := logger.Session("destroy-containers-on-worker", lager.Data{
-			"worker": workerClient.Name(),
-		})
-		tryToDestroyContainers(cLog, containers, workerClient)
-	}
-}
+// func destroyDestroyingContainers(logger lager.Logger, containers []db.DestroyingContainer) func(worker.Worker) {
+// 	return func(workerClient worker.Worker) {
+// 		cLog := logger.Session("destroy-containers-on-worker", lager.Data{
+// 			"worker": workerClient.Name(),
+// 		})
+// 		tryToDestroyContainers(cLog, containers, workerClient)
+// 	}
+// }
 
 func markHijackedContainerAsDestroying(
 	logger lager.Logger,
@@ -288,55 +288,56 @@ func markHijackedContainerAsDestroying(
 	return nil, nil
 }
 
-func tryToDestroyContainers(
-	logger lager.Logger,
-	containers []db.DestroyingContainer,
-	workerClient worker.Worker,
-) {
-	logger.Debug("start")
-	defer logger.Debug("done")
-
-	gardenDeleteHandles := []string{}
-	gardenDeleteContainers := []destroyableContainer{}
-
-	dbDeleteContainers := []destroyableContainer{}
-
-	gardenClient := workerClient.GardenClient()
-	reaperClient := workerClient.ReaperClient()
-
-	for _, container := range containers {
-		if container.IsDiscontinued() {
-			cLog := logger.Session("discontinued", lager.Data{"handle": container.Handle()})
-
-			_, found, err := findContainer(gardenClient, container.Handle())
-			if err != nil {
-				cLog.Error("failed-to-lookup-container-in-garden", err)
-			}
-
-			if found {
-				cLog.Debug("still-present-in-garden")
-			} else {
-				cLog.Debug("container-no-longer-present-in-garden")
-				dbDeleteContainers = append(dbDeleteContainers, container)
-			}
-		} else {
-			gardenDeleteHandles = append(gardenDeleteHandles, container.Handle())
-			gardenDeleteContainers = append(gardenDeleteContainers, container)
-		}
-	}
-
-	if len(gardenDeleteHandles) > 0 {
-		err := reaperClient.DestroyContainers(gardenDeleteHandles)
-		if err != nil {
-			logger.Error("failed-to-destroy-garden-containers", err, lager.Data{"handles": gardenDeleteHandles})
-		} else {
-			logger.Debug("completed-destroyed-in-garden", lager.Data{"handles": gardenDeleteHandles})
-			dbDeleteContainers = append(dbDeleteContainers, gardenDeleteContainers...)
-		}
-	}
-
-	destroyDBContainers(logger.Session("destroy-in-db"), dbDeleteContainers)
-}
+// func tryToDestroyContainers(
+// 	logger lager.Logger,
+// 	containers []db.DestroyingContainer,
+// 	workerClient worker.Worker,
+// ) {
+// 	logger.Debug("start")
+// 	defer logger.Debug("done")
+//
+// 	gardenDeleteHandles := []string{}
+// 	gardenDeleteContainers := []destroyableContainer{}
+//
+// 	dbDeleteContainers := []destroyableContainer{}
+//
+// 	gardenClient := workerClient.GardenClient()
+// 	reaperClient := workerClient.ReaperClient()
+//
+// 	for _, container := range containers {
+// 		if container.IsDiscontinued() {
+// 			cLog := logger.Session("discontinued", lager.Data{"handle": container.Handle()})
+//
+// 			_, found, err := findContainer(gardenClient, container.Handle())
+// 			if err != nil {
+// 				cLog.Error("failed-to-lookup-container-in-garden", err)
+// 			}
+//
+// 			if found {
+// 				cLog.Debug("still-present-in-garden")
+// 			} else {
+// 				cLog.Debug("container-no-longer-present-in-garden")
+// 				dbDeleteContainers = append(dbDeleteContainers, container)
+// 			}
+// 		} else {
+// 			gardenDeleteHandles = append(gardenDeleteHandles, container.Handle())
+// 			gardenDeleteContainers = append(gardenDeleteContainers, container)
+// 		}
+// 	}
+//
+// 	if len(gardenDeleteHandles) > 0 {
+// 		err := reaperClient.DestroyContainers(gardenDeleteHandles)
+// 		if err != nil {
+// 			logger.Error("failed-to-destroy-garden-containers", err, lager.Data{"handles": gardenDeleteHandles})
+// 		} else {
+// 			logger.Debug("completed-destroyed-in-garden", lager.Data{"handles": gardenDeleteHandles})
+// 			dbDeleteContainers = append(dbDeleteContainers, gardenDeleteContainers...)
+// 		}
+// 	}
+//
+// 	destroyDBContainers(logger, dbDeleteContainers)
+// 	logger.Debug("destroyed-in-db")
+// }
 
 type destroyableContainer interface {
 	Handle() string

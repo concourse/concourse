@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -842,12 +843,14 @@ var _ = Describe("Containers API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/teams/a-team/containers/destroying", func() {
+	Describe("GET /api/v1/containers/destroying", func() {
 		BeforeEach(func() {
 			var err error
-			req, err = http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/containers/destroying", nil)
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/destroying", nil)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
+
+			fakeaccess.IsAuthenticatedReturns(true)
 		})
 
 		Context("when not authenticated", func() {
@@ -861,12 +864,15 @@ var _ = Describe("Containers API", func() {
 
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
+
+			It("does not attempt to find the worker", func() {
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(BeZero())
+			})
 		})
 
-		Context("when authenticated", func() {
+		Context("when authenticated as system", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeaccess.IsSystemReturns(true)
 			})
 
 			Context("with no params", func() {
@@ -960,6 +966,116 @@ var _ = Describe("Containers API", func() {
 
 					workerName := fakeContainerRepository.FindDestroyingContainersArgsForCall(0)
 					Expect(workerName).To(Equal("some-worker-name"))
+				})
+			})
+		})
+	})
+
+	Describe("GET /api/v1/containers/report", func() {
+		var response *http.Response
+		var body io.Reader
+		var err error
+
+		BeforeEach(func() {
+			body = bytes.NewBufferString(`
+				[
+					"handle1",
+					"handle2"
+				]
+			`)
+		})
+		JustBeforeEach(func() {
+
+			req, err = http.NewRequest("PUT", server.URL+"/api/v1/containers/report", body)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				response, err = client.Do(req)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated as system", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsSystemReturns(true)
+			})
+
+			Context("with no params", func() {
+				It("returns 404", func() {
+					response, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeContainerDestroyer.DestroyCallCount()).To(Equal(0))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+
+				It("returns Content-Type application/json", func() {
+					response, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+			})
+
+			Context("querying with worker name", func() {
+				JustBeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"worker_name": []string{"some-worker-name"},
+					}.Encode()
+				})
+
+				Context("with invalid json", func() {
+					BeforeEach(func() {
+						body = bytes.NewBufferString(`{}`)
+					})
+
+					It("returns 400", func() {
+						response, err = client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				Context("when there is an error", func() {
+					BeforeEach(func() {
+						fakeContainerDestroyer.DestroyReturns(errors.New("some error"))
+					})
+
+					It("returns 500", func() {
+						response, err = client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when containers are destroyed", func() {
+					BeforeEach(func() {
+						fakeContainerDestroyer.DestroyReturns(nil)
+					})
+
+					It("returns 204", func() {
+						response, err = client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+					})
+				})
+
+				It("queries with it in the worker name", func() {
+					_, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeContainerDestroyer.DestroyCallCount()).To(Equal(1))
+
+					workerName, handles := fakeContainerDestroyer.DestroyArgsForCall(0)
+					Expect(workerName).To(Equal("some-worker-name"))
+					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
 				})
 			})
 		})

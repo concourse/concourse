@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/gc"
 	"github.com/concourse/atc/mainredirect"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/wrappa"
@@ -46,6 +47,7 @@ func NewHandler(
 	dbWorkerFactory db.WorkerFactory,
 	volumeFactory db.VolumeFactory,
 	containerRepository db.ContainerRepository,
+	containerDestroyer gc.ContainerDestroyer,
 	dbBuildFactory db.BuildFactory,
 
 	peerURL string,
@@ -90,7 +92,7 @@ func NewHandler(
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory, containerRepository)
+	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory, containerRepository, containerDestroyer)
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion)
@@ -171,6 +173,7 @@ func NewHandler(
 		atc.GetContainer:             teamHandlerFactory.HandlerFor(containerServer.GetContainer),
 		atc.HijackContainer:          teamHandlerFactory.HandlerFor(containerServer.HijackContainer),
 		atc.ListDestroyingContainers: http.HandlerFunc(containerServer.ListDestroyingContainers),
+		atc.ReportWorkerContainers:   http.HandlerFunc(containerServer.ReportWorkerContainers),
 
 		atc.ListVolumes:           teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
 		atc.ListDestroyingVolumes: http.HandlerFunc(volumesServer.ListDestroyingVolumes),

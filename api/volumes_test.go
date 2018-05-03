@@ -289,13 +289,13 @@ var _ = Describe("Volumes API", func() {
 		})
 	})
 
-	Describe("GET /api/v1//teams/a-team/volumes/destroying", func() {
+	Describe("GET /api/v1/volumes/destroying", func() {
 		var response *http.Response
 		var req *http.Request
 
 		BeforeEach(func() {
 			var err error
-			req, err = http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/volumes/destroying", nil)
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/volumes/destroying", nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -320,7 +320,7 @@ var _ = Describe("Volumes API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeaccess.IsSystemReturns(true)
 			})
 
 			Context("when worker name is in params", func() {

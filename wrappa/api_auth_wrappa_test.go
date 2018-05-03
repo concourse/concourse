@@ -169,9 +169,12 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ReadOutputFromBuildPlan: checkWritePermissionForBuild(inputHandlers[atc.ReadOutputFromBuildPlan]),
 
 				// resource belongs to authorized team
-				atc.PruneWorker:  checkTeamAccessForWorker(inputHandlers[atc.PruneWorker]),
-				atc.LandWorker:   checkTeamAccessForWorker(inputHandlers[atc.LandWorker]),
-				atc.RetireWorker: checkTeamAccessForWorker(inputHandlers[atc.RetireWorker]),
+				atc.PruneWorker:              checkTeamAccessForWorker(inputHandlers[atc.PruneWorker]),
+				atc.LandWorker:               checkTeamAccessForWorker(inputHandlers[atc.LandWorker]),
+				atc.ReportWorkerContainers:   checkTeamAccessForWorker(inputHandlers[atc.ReportWorkerContainers]),
+				atc.RetireWorker:             checkTeamAccessForWorker(inputHandlers[atc.RetireWorker]),
+				atc.ListDestroyingContainers: checkTeamAccessForWorker(inputHandlers[atc.ListDestroyingContainers]),
+				atc.ListDestroyingVolumes:    checkTeamAccessForWorker(inputHandlers[atc.ListDestroyingVolumes]),
 
 				// belongs to public pipeline or authorized
 				atc.GetPipeline:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetPipeline]),
@@ -191,21 +194,19 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.GetResourceVersion:            openForPublicPipelineOrAuthorized(inputHandlers[atc.GetResourceVersion]),
 
 				// authenticated
-				atc.CreateBuild:              authenticated(inputHandlers[atc.CreateBuild]),
-				atc.GetContainer:             authenticated(inputHandlers[atc.GetContainer]),
-				atc.HijackContainer:          authenticated(inputHandlers[atc.HijackContainer]),
-				atc.ListContainers:           authenticated(inputHandlers[atc.ListContainers]),
-				atc.ListVolumes:              authenticated(inputHandlers[atc.ListVolumes]),
-				atc.ListDestroyingVolumes:    authenticated(inputHandlers[atc.ListDestroyingVolumes]),
-				atc.ListTeamBuilds:           authenticated(inputHandlers[atc.ListTeamBuilds]),
-				atc.ListWorkers:              authenticated(inputHandlers[atc.ListWorkers]),
-				atc.RegisterWorker:           authenticated(inputHandlers[atc.RegisterWorker]),
-				atc.HeartbeatWorker:          authenticated(inputHandlers[atc.HeartbeatWorker]),
-				atc.DeleteWorker:             authenticated(inputHandlers[atc.DeleteWorker]),
-				atc.ListDestroyingContainers: authenticated(inputHandlers[atc.ListDestroyingContainers]),
-				atc.SetTeam:                  authenticated(inputHandlers[atc.SetTeam]),
-				atc.RenameTeam:               authenticated(inputHandlers[atc.RenameTeam]),
-				atc.DestroyTeam:              authenticated(inputHandlers[atc.DestroyTeam]),
+				atc.CreateBuild:     authenticated(inputHandlers[atc.CreateBuild]),
+				atc.GetContainer:    authenticated(inputHandlers[atc.GetContainer]),
+				atc.HijackContainer: authenticated(inputHandlers[atc.HijackContainer]),
+				atc.ListContainers:  authenticated(inputHandlers[atc.ListContainers]),
+				atc.ListVolumes:     authenticated(inputHandlers[atc.ListVolumes]),
+				atc.ListTeamBuilds:  authenticated(inputHandlers[atc.ListTeamBuilds]),
+				atc.ListWorkers:     authenticated(inputHandlers[atc.ListWorkers]),
+				atc.RegisterWorker:  authenticated(inputHandlers[atc.RegisterWorker]),
+				atc.HeartbeatWorker: authenticated(inputHandlers[atc.HeartbeatWorker]),
+				atc.DeleteWorker:    authenticated(inputHandlers[atc.DeleteWorker]),
+				atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
+				atc.RenameTeam:      authenticated(inputHandlers[atc.RenameTeam]),
+				atc.DestroyTeam:     authenticated(inputHandlers[atc.DestroyTeam]),
 
 				// authenticated and is admin
 				atc.GetLogLevel: authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),

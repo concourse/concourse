@@ -1,6 +1,8 @@
 package db
 
-import sq "github.com/Masterminds/squirrel"
+import (
+	sq "github.com/Masterminds/squirrel"
+)
 
 //go:generate counterfeiter . ContainerRepository
 
@@ -8,6 +10,7 @@ type ContainerRepository interface {
 	FindOrphanedContainers() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error)
 	FindFailedContainers() ([]FailedContainer, error)
 	FindDestroyingContainers(workerName string) ([]string, error)
+	DestroyContainers(workerName string, handles []string) (int, error)
 }
 
 type containerRepository struct {
@@ -47,6 +50,32 @@ func (repository *containerRepository) FindDestroyingContainers(workerName strin
 	}
 
 	return handles, nil
+}
+
+func (repository *containerRepository) DestroyContainers(workerName string, handles []string) (int, error) {
+	rows, err := psql.Delete("containers").
+		Where(
+			sq.And{
+				sq.Eq{
+					"worker_name": workerName,
+				},
+				sq.NotEq{
+					"handle": handles,
+				},
+			},
+		).RunWith(repository.conn).
+		Exec()
+
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(affected), nil
 }
 
 func (repository *containerRepository) FindOrphanedContainers() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error) {

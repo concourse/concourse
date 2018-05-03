@@ -75,6 +75,7 @@ const (
 	GetContainer             = "GetContainer"
 	HijackContainer          = "HijackContainer"
 	ListDestroyingContainers = "ListDestroyingContainers"
+	ReportWorkerContainers   = "ReportWorkerContainers"
 
 	ListVolumes           = "ListVolumes"
 	ListDestroyingVolumes = "ListDestroyingVolumes"
@@ -165,13 +166,14 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/cli", Method: "GET", Name: DownloadCLI},
 	{Path: "/api/v1/info", Method: "GET", Name: GetInfo},
 
-	{Path: "/api/v1/teams/:team_name/containers/destroying", Method: "GET", Name: ListDestroyingContainers},
+	{Path: "/api/v1/containers/destroying", Method: "GET", Name: ListDestroyingContainers},
+	{Path: "/api/v1/containers/report", Method: "PUT", Name: ReportWorkerContainers},
 	{Path: "/api/v1/teams/:team_name/containers", Method: "GET", Name: ListContainers},
 	{Path: "/api/v1/teams/:team_name/containers/:id", Method: "GET", Name: GetContainer},
 	{Path: "/api/v1/teams/:team_name/containers/:id/hijack", Method: "GET", Name: HijackContainer},
 
 	{Path: "/api/v1/teams/:team_name/volumes", Method: "GET", Name: ListVolumes},
-	{Path: "/api/v1/teams/:team_name/volumes/destroying", Method: "GET", Name: ListDestroyingVolumes},
+	{Path: "/api/v1/volumes/destroying", Method: "GET", Name: ListDestroyingVolumes},
 
 	{Path: "/api/v1/teams/:team_name/auth/methods", Method: "GET", Name: LegacyListAuthMethods},
 	{Path: "/api/v1/teams/:team_name/auth/token", Method: "GET", Name: LegacyGetAuthToken},

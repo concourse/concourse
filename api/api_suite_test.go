@@ -19,6 +19,7 @@ import (
 	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/gc/gcfakes"
 
 	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/api/containerserver/containerserverfakes"
@@ -40,6 +41,7 @@ var (
 	fakeWorkerProvider      *workerfakes.FakeWorkerProvider
 	fakeVolumeFactory       *dbfakes.FakeVolumeFactory
 	fakeContainerRepository *dbfakes.FakeContainerRepository
+	fakeContainerDestroyer  *gcfakes.FakeContainerDestroyer
 	dbTeamFactory           *dbfakes.FakeTeamFactory
 	dbPipelineFactory       *dbfakes.FakePipelineFactory
 	dbJobFactory            *dbfakes.FakeJobFactory
@@ -123,6 +125,7 @@ var _ = BeforeEach(func() {
 
 	fakeVolumeFactory = new(dbfakes.FakeVolumeFactory)
 	fakeContainerRepository = new(dbfakes.FakeContainerRepository)
+	fakeContainerDestroyer = new(gcfakes.FakeContainerDestroyer)
 
 	fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
 
@@ -171,6 +174,7 @@ var _ = BeforeEach(func() {
 		dbWorkerFactory,
 		fakeVolumeFactory,
 		fakeContainerRepository,
+		fakeContainerDestroyer,
 		dbBuildFactory,
 
 		peerURL,
