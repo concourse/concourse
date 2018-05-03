@@ -142,6 +142,7 @@ case $1 in
            <% tsa_addrs.each do |tsa_addr| %> \
              --tsa-host=<%= tsa_addr %> \
            <% end %> \
+           --log-level=<%= p("log_level") %> \
            --tsa-public-key=${TSA_HOST_KEY} \
            --tsa-worker-private-key=${WORKER_KEY} \
            <% if p("garden.forward_address", nil) %> \

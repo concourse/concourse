@@ -88,6 +88,12 @@ properties:
       forwarding over SSH.
     default: direct
 
+  log_level:
+    description: |
+      The log level for the worker. When set to debug, you'll see a lot more
+      information.
+    default: info
+
   garden.address:
     description: |
       Garden server connection address to advertise directly to the TSA.
