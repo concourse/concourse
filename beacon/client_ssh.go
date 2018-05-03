@@ -39,9 +39,15 @@ func (c *sshClient) Dial() (Closeable, error) {
 		return nil, ErrFailedToReachAnyTSA
 	}
 
-	pk, err := ssh.NewSignerFromKey(c.config.TSAConfig.WorkerPrivateKey.PrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct ssh public key from worker key: %s", err)
+	var pk ssh.Signer
+
+	if c.config.TSAConfig.WorkerPrivateKey != nil {
+		pk, err = ssh.NewSignerFromKey(c.config.TSAConfig.WorkerPrivateKey.PrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct ssh public key from worker key: %s", err)
+		}
+	} else {
+		return nil, fmt.Errorf("public worker key is not provided")
 	}
 
 	clientConfig := &ssh.ClientConfig{
