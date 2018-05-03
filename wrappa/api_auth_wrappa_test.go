@@ -196,6 +196,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.HijackContainer:          authenticated(inputHandlers[atc.HijackContainer]),
 				atc.ListContainers:           authenticated(inputHandlers[atc.ListContainers]),
 				atc.ListVolumes:              authenticated(inputHandlers[atc.ListVolumes]),
+				atc.ListDestroyingVolumes:    authenticated(inputHandlers[atc.ListDestroyingVolumes]),
 				atc.ListTeamBuilds:           authenticated(inputHandlers[atc.ListTeamBuilds]),
 				atc.ListWorkers:              authenticated(inputHandlers[atc.ListWorkers]),
 				atc.RegisterWorker:           authenticated(inputHandlers[atc.RegisterWorker]),

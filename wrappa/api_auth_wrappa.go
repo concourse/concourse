@@ -105,6 +105,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListTeamBuilds,
 			atc.RenameTeam,
 			atc.DestroyTeam,
+			atc.ListDestroyingVolumes,
 			atc.ListVolumes:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 

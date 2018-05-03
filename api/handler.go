@@ -172,7 +172,8 @@ func NewHandler(
 		atc.HijackContainer:          teamHandlerFactory.HandlerFor(containerServer.HijackContainer),
 		atc.ListDestroyingContainers: http.HandlerFunc(containerServer.ListDestroyingContainers),
 
-		atc.ListVolumes: teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
+		atc.ListVolumes:           teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
+		atc.ListDestroyingVolumes: http.HandlerFunc(volumesServer.ListDestroyingVolumes),
 
 		atc.LegacyListAuthMethods: http.HandlerFunc(legacyServer.ListAuthMethods),
 		atc.LegacyGetAuthToken:    http.HandlerFunc(legacyServer.GetAuthToken),

@@ -31,6 +31,7 @@ type VolumeFactory interface {
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
 
 	GetFailedVolumes() ([]FailedVolume, error)
+	GetDestroyingVolumes(workerName string) ([]string, error)
 
 	FindCreatedVolume(handle string) (CreatedVolume, bool, error)
 }
@@ -352,6 +353,42 @@ func (factory *volumeFactory) GetFailedVolumes() ([]FailedVolume, error) {
 	}
 
 	return failedVolumes, nil
+}
+
+func (factory *volumeFactory) GetDestroyingVolumes(workerName string) ([]string, error) {
+	destroyingHandles := []string{}
+
+	query, args, err := psql.Select("handle").
+		From("volumes").
+		Where(sq.Eq{
+			"state":       string(VolumeStateDestroying),
+			"worker_name": workerName,
+		}).
+		ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := factory.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer Close(rows)
+
+	for rows.Next() {
+		var handle = "handle"
+		columns := []interface{}{&handle}
+
+		err = rows.Scan(columns...)
+		if err != nil {
+			return nil, err
+		}
+
+		destroyingHandles = append(destroyingHandles, handle)
+	}
+
+	return destroyingHandles, nil
 }
 
 var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer exists (stale?)")

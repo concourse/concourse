@@ -76,7 +76,8 @@ const (
 	HijackContainer          = "HijackContainer"
 	ListDestroyingContainers = "ListDestroyingContainers"
 
-	ListVolumes = "ListVolumes"
+	ListVolumes           = "ListVolumes"
+	ListDestroyingVolumes = "ListDestroyingVolumes"
 
 	LegacyListAuthMethods = "LegacyListAuthMethods"
 	LegacyGetAuthToken    = "LegacyGetAuthToken"
@@ -170,6 +171,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/containers/:id/hijack", Method: "GET", Name: HijackContainer},
 
 	{Path: "/api/v1/teams/:team_name/volumes", Method: "GET", Name: ListVolumes},
+	{Path: "/api/v1/teams/:team_name/volumes/destroying", Method: "GET", Name: ListDestroyingVolumes},
 
 	{Path: "/api/v1/teams/:team_name/auth/methods", Method: "GET", Name: LegacyListAuthMethods},
 	{Path: "/api/v1/teams/:team_name/auth/token", Method: "GET", Name: LegacyGetAuthToken},

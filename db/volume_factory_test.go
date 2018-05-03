@@ -298,7 +298,6 @@ var _ = Describe("VolumeFactory", func() {
 	})
 
 	Describe("GetFailedVolumes", func() {
-
 		var expectedFailedHandles []string
 
 		BeforeEach(func() {
@@ -329,7 +328,53 @@ var _ = Describe("VolumeFactory", func() {
 			}
 			Expect(failedHandles).To(Equal(expectedFailedHandles))
 		})
+	})
 
+	Describe("GetDestroyingVolumes", func() {
+		var expectedDestroyingHandles []string
+		var destroyingVol db.DestroyingVolume
+
+		Context("when worker has detroying volumes", func() {
+			BeforeEach(func() {
+				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+					Type:     "task",
+					StepName: "some-task",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				expectedDestroyingHandles = []string{}
+
+				creatingVol, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
+				Expect(err).NotTo(HaveOccurred())
+
+				createdVol, err := creatingVol.Created()
+				Expect(err).NotTo(HaveOccurred())
+
+				destroyingVol, err = createdVol.Destroying()
+				Expect(err).NotTo(HaveOccurred())
+
+				expectedDestroyingHandles = append(expectedDestroyingHandles, destroyingVol.Handle())
+			})
+
+			It("returns destroying volumes", func() {
+				destroyingVolumes, err := volumeFactory.GetDestroyingVolumes(defaultWorker.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(destroyingVolumes).To(Equal(expectedDestroyingHandles))
+			})
+			Context("when worker doesn't have detroying volume", func() {
+				BeforeEach(func() {
+					deleted, err := destroyingVol.Destroy()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(deleted).To(BeTrue())
+				})
+
+				It("returns empty volumes", func() {
+					destroyingVolumes, err := volumeFactory.GetDestroyingVolumes(defaultWorker.Name())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(destroyingVolumes).To(Equal([]string{}))
+				})
+			})
+		})
 	})
 
 	Describe("FindBaseResourceTypeVolume", func() {

@@ -198,6 +198,19 @@ type FakeVolumeFactory struct {
 		result1 []db.FailedVolume
 		result2 error
 	}
+	GetDestroyingVolumesStub        func(workerName string) ([]string, error)
+	getDestroyingVolumesMutex       sync.RWMutex
+	getDestroyingVolumesArgsForCall []struct {
+		workerName string
+	}
+	getDestroyingVolumesReturns struct {
+		result1 []string
+		result2 error
+	}
+	getDestroyingVolumesReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
 	FindCreatedVolumeStub        func(handle string) (db.CreatedVolume, bool, error)
 	findCreatedVolumeMutex       sync.RWMutex
 	findCreatedVolumeArgsForCall []struct {
@@ -895,6 +908,57 @@ func (fake *FakeVolumeFactory) GetFailedVolumesReturnsOnCall(i int, result1 []db
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeFactory) GetDestroyingVolumes(workerName string) ([]string, error) {
+	fake.getDestroyingVolumesMutex.Lock()
+	ret, specificReturn := fake.getDestroyingVolumesReturnsOnCall[len(fake.getDestroyingVolumesArgsForCall)]
+	fake.getDestroyingVolumesArgsForCall = append(fake.getDestroyingVolumesArgsForCall, struct {
+		workerName string
+	}{workerName})
+	fake.recordInvocation("GetDestroyingVolumes", []interface{}{workerName})
+	fake.getDestroyingVolumesMutex.Unlock()
+	if fake.GetDestroyingVolumesStub != nil {
+		return fake.GetDestroyingVolumesStub(workerName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getDestroyingVolumesReturns.result1, fake.getDestroyingVolumesReturns.result2
+}
+
+func (fake *FakeVolumeFactory) GetDestroyingVolumesCallCount() int {
+	fake.getDestroyingVolumesMutex.RLock()
+	defer fake.getDestroyingVolumesMutex.RUnlock()
+	return len(fake.getDestroyingVolumesArgsForCall)
+}
+
+func (fake *FakeVolumeFactory) GetDestroyingVolumesArgsForCall(i int) string {
+	fake.getDestroyingVolumesMutex.RLock()
+	defer fake.getDestroyingVolumesMutex.RUnlock()
+	return fake.getDestroyingVolumesArgsForCall[i].workerName
+}
+
+func (fake *FakeVolumeFactory) GetDestroyingVolumesReturns(result1 []string, result2 error) {
+	fake.GetDestroyingVolumesStub = nil
+	fake.getDestroyingVolumesReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolumeFactory) GetDestroyingVolumesReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.GetDestroyingVolumesStub = nil
+	if fake.getDestroyingVolumesReturnsOnCall == nil {
+		fake.getDestroyingVolumesReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.getDestroyingVolumesReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeFactory) FindCreatedVolume(handle string) (db.CreatedVolume, bool, error) {
 	fake.findCreatedVolumeMutex.Lock()
 	ret, specificReturn := fake.findCreatedVolumeReturnsOnCall[len(fake.findCreatedVolumeArgsForCall)]
@@ -978,6 +1042,8 @@ func (fake *FakeVolumeFactory) Invocations() map[string][][]interface{} {
 	defer fake.getOrphanedVolumesMutex.RUnlock()
 	fake.getFailedVolumesMutex.RLock()
 	defer fake.getFailedVolumesMutex.RUnlock()
+	fake.getDestroyingVolumesMutex.RLock()
+	defer fake.getDestroyingVolumesMutex.RUnlock()
 	fake.findCreatedVolumeMutex.RLock()
 	defer fake.findCreatedVolumeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
