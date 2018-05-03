@@ -26,6 +26,7 @@ files:
   - github.com/concourse/worker/reaper/api/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/retire/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/start/*.{go,s,c,h} # gosub
+  - github.com/concourse/worker/sweeper/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/tsa/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/felixge/tcpkeepalive/*.{go,s,c,h} # gosub
