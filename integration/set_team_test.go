@@ -267,9 +267,9 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.VerifyJSON(`{
 							"auth": {
 								"users": [
-									"local:brock-obama",
 									"github:lisa",
-									"github:frank"
+									"github:frank",
+									"local:brock-obama"
 								],
 								"groups": [
 									"github:obama-org",

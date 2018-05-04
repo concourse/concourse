@@ -9,14 +9,17 @@ import (
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/skymarshal/skycmd"
+	"github.com/jessevdk/go-flags"
 	"github.com/vito/go-interact/interact"
 )
 
-type ProviderConfig interface {
-	Name() string
-	DisplayName() string
-	IsConfigured() bool
-	Validate() error
+func WireTeamConnectors(command *flags.Command) {
+	for _, group := range command.Groups() {
+		if group.ShortDescription == "Authentication" {
+			skycmd.WireTeamConnectors(group)
+			return
+		}
+	}
 }
 
 type SetTeamCommand struct {
@@ -36,12 +39,10 @@ func (command *SetTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	err = command.ValidateFlags()
+	auth, err := command.AuthFlags.Format()
 	if err != nil {
-		return err
+		command.ErrorNoAuth()
 	}
-
-	auth := command.AuthFlags.Format()
 
 	fmt.Println("Team Name:", command.TeamName)
 
@@ -96,16 +97,13 @@ func (command *SetTeamCommand) Execute([]string) error {
 	return nil
 }
 
-func (command *SetTeamCommand) ValidateFlags() error {
-	if !command.AuthFlags.IsValid() {
-		fmt.Fprintln(ui.Stderr, "no auth methods configured! to continue, run:")
-		fmt.Fprintln(ui.Stderr, "")
-		fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
-		fmt.Fprintln(ui.Stderr, "")
-		fmt.Fprintln(ui.Stderr, "this will leave the team open to anyone to mess with!")
-		os.Exit(1)
-	}
-	return nil
+func (command *SetTeamCommand) ErrorNoAuth() {
+	fmt.Fprintln(ui.Stderr, "no auth methods configured! to continue, run:")
+	fmt.Fprintln(ui.Stderr, "")
+	fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
+	fmt.Fprintln(ui.Stderr, "")
+	fmt.Fprintln(ui.Stderr, "this will leave the team open to anyone to mess with!")
+	os.Exit(1)
 }
 
 func (command *SetTeamCommand) WarnNoAuth() {

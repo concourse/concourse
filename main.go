@@ -19,6 +19,8 @@ func main() {
 	helpParser := flags.NewParser(&commands.Fly, flags.HelpFlag)
 	helpParser.NamespaceDelimiter = "-"
 
+	commands.WireTeamConnectors(parser.Find("set-team"))
+
 	_, err := parser.Parse()
 	err = loginAndRetry(parser, err)
 	handleError(helpParser, err)
@@ -57,7 +59,6 @@ func handleError(helpParser *flags.Parser, err error) {
 			fmt.Fprintln(ui.Stderr, ui.WarningColor("cowardly refusing to run due to significant version discrepancy"))
 		} else if netErr, ok := err.(net.Error); ok {
 			fmt.Fprintf(ui.Stderr, "could not reach the Concourse server called %s:\n", ui.Embolden("%s", commands.Fly.Target))
-
 			fmt.Fprintln(ui.Stderr, "")
 			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("%s", netErr))
 			fmt.Fprintln(ui.Stderr, "")
