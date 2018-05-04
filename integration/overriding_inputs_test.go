@@ -150,6 +150,12 @@ run:
 				}),
 			),
 		)
+		atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types",
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types"),
+				ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+			),
+		)
 		atcServer.RouteToHandler("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds"),
