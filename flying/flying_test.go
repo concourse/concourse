@@ -373,4 +373,94 @@ echo hello > output-1/file-1
 			Expect(ioutil.ReadFile(file1)).To(Equal([]byte("hello\n")))
 		})
 	})
+
+	Context("when the input is custom resource", func() {
+		var gitServer *gitserver.Server
+		BeforeEach(func() {
+			gitServer = gitserver.Start(concourseClient)
+			flyHelper.ConfigurePipeline(
+				"some-pipeline",
+				"-c", "fixtures/custom-resource-type.yml",
+				"-v", "git-server="+gitServer.URI(),
+			)
+
+			taskFileContents := `---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: busybox}
+
+inputs:
+- name: git-repo
+
+outputs:
+- name: output-1
+
+run:
+  path: git-repo/run
+`
+			runFileContents := `#!/bin/sh
+echo hello > output-1/file-1
+`
+
+			err := ioutil.WriteFile(
+				filepath.Join(tmpdir, "task.yml"),
+				[]byte(taskFileContents),
+				0644,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			gitServer.WriteFile("some-repo/task.yml", taskFileContents)
+			gitServer.WriteFile("some-repo/run", runFileContents)
+			gitServer.CommitResourceWithFile("task.yml", "run")
+
+			watch := flyHelper.CheckResource("-r", "some-pipeline/git-repo")
+			<-watch.Exited
+		})
+
+		Context("when -j is specified", func() {
+			It("runs the task without error by infer the pipeline name from -j", func() {
+				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/input-test", "-o", "output-1=./output-1")
+				fly.Dir = tmpdir
+
+				session := helpers.StartFly(fly)
+				<-session.Exited
+
+				Eventually(session).Should(gexec.Exit(0))
+
+				file1 := filepath.Join(tmpdir, "output-1", "file-1")
+
+				Expect(ioutil.ReadFile(file1)).To(Equal([]byte("hello\n")))
+			})
+		})
+
+		Context("when -j is not specified and local input in custom resource type is provided", func() {
+			BeforeEach(func() {
+				err := ioutil.WriteFile(
+					filepath.Join(fixture, "run"),
+					[]byte(`#!/bin/sh
+echo helloo > output-1/file-1
+`),
+					0755,
+				)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("runs the task without error", func() {
+				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "git-repo=./fixture", "-o", "output-1=./output-1")
+				fly.Dir = tmpdir
+
+				session := helpers.StartFly(fly)
+				<-session.Exited
+
+				session.Buffer()
+				Eventually(session).Should(gexec.Exit(0))
+
+				file1 := filepath.Join(tmpdir, "output-1", "file-1")
+
+				Expect(ioutil.ReadFile(file1)).To(Equal([]byte("helloo\n")))
+			})
+		})
+	})
 })
