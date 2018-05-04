@@ -2,6 +2,7 @@
 
 \include-section{./setup-and-operations/download.lit}
 \include-section{./setup-and-operations/install.lit}
+\include-section{./setup-and-operations/getting-started.lit}
 \include-section{./setup-and-operations/operation.lit}
 \include-section{./setup-and-operations/teams.lit}
 \include-section{./setup-and-operations/administration.lit}
