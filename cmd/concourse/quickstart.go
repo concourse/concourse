@@ -46,8 +46,8 @@ func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
 			return nil, fmt.Errorf("failed to generate session signing key: %s", err)
 		}
 
-		cmd.WebCommand.ATCCommand.SessionSigningKey = flag.PrivateKey{signingKey}
-		cmd.WebCommand.TSACommand.SessionSigningKey = flag.PrivateKey{signingKey}
+		cmd.WebCommand.ATCCommand.SessionSigningKey = flag.PrivateKey{PrivateKey: signingKey}
+		cmd.WebCommand.TSACommand.SessionSigningKey = flag.PrivateKey{PrivateKey: signingKey}
 	}
 
 	if cmd.WebCommand.TSACommand.HostKey.PrivateKey == nil {
@@ -61,7 +61,7 @@ func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
 			return nil, fmt.Errorf("failed to create worker authorized key: %s", err)
 		}
 
-		cmd.WebCommand.TSACommand.HostKey = flag.PrivateKey{tsaHostKey}
+		cmd.WebCommand.TSACommand.HostKey = flag.PrivateKey{PrivateKey: tsaHostKey}
 		cmd.WorkerCommand.TSA.PublicKey.Keys =
 			append(cmd.WorkerCommand.TSA.PublicKey.Keys, tsaHostPublicKey)
 	}
@@ -77,7 +77,7 @@ func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
 			return nil, fmt.Errorf("failed to create worker authorized key: %s", err)
 		}
 
-		cmd.WorkerCommand.TSA.WorkerPrivateKey = flag.PrivateKey{workerKey}
+		cmd.WorkerCommand.TSA.WorkerPrivateKey = &flag.PrivateKey{PrivateKey: workerKey}
 		cmd.WebCommand.TSACommand.AuthorizedKeys.Keys =
 			append(cmd.WebCommand.TSACommand.AuthorizedKeys.Keys, workerPublicKey)
 	}
