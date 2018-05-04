@@ -1,0 +1,8 @@
+\title{Tutorials}{tutorials}
+
+\use-plugin{concourse-docs}
+
+The \link{Cloud Foundry}{https://www.cloudfoundry.org/} consulting firm \link{Stark & Wayne}{https://starkandwayne.com/} has created an excellent set of \link{tutorials for Concourse}{https://concoursetutorial.com/} which are freely available. The topics covered range from the basics of using Concourse primitives to setting up credentials and beyond. 
+
+A big thank you to them for maintaining the \link{tutorials}{https://concoursetutorial.com/} and keeping them up to date!
+
