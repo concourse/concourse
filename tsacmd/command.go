@@ -31,13 +31,13 @@ type TSACommand struct {
 	DebugBindPort uint16  `long:"bind-debug-port" default:"8089"    description:"Port on which to listen for TSA pprof server."`
 	PeerIP        string  `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
 
-	HostKey            flag.PrivateKey          `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
+	HostKey            *flag.PrivateKey         `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
 	AuthorizedKeys     flag.AuthorizedKeys      `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 	TeamAuthorizedKeys []tsaflags.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 
 	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
 
-	SessionSigningKey flag.PrivateKey `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
+	SessionSigningKey *flag.PrivateKey `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
 
 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
 
@@ -105,21 +105,23 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 
-	tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
+	if cmd.SessionSigningKey != nil {
+		tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
 
-	server := &registrarSSHServer{
-		logger:            logger,
-		heartbeatInterval: cmd.HeartbeatInterval,
-		cprInterval:       1 * time.Second,
-		atcEndpointPicker: atcEndpointPicker,
-		tokenGenerator:    tokenGenerator,
-		forwardHost:       cmd.PeerIP,
-		config:            config,
-		httpClient:        http.DefaultClient,
-		sessionTeam:       sessionAuthTeam,
+		server := &registrarSSHServer{
+			logger:            logger,
+			heartbeatInterval: cmd.HeartbeatInterval,
+			cprInterval:       1 * time.Second,
+			atcEndpointPicker: atcEndpointPicker,
+			tokenGenerator:    tokenGenerator,
+			forwardHost:       cmd.PeerIP,
+			config:            config,
+			httpClient:        http.DefaultClient,
+			sessionTeam:       sessionAuthTeam,
+		}
+		return serverRunner{logger, server, listenAddr}, nil
 	}
-
-	return serverRunner{logger, server, listenAddr}, nil
+	return nil, fmt.Errorf("missing session signing key")
 }
 
 func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
