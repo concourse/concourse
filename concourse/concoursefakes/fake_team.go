@@ -425,6 +425,21 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	VersionedResourceTypesStub        func(pipelineName string) (atc.VersionedResourceTypes, bool, error)
+	versionedResourceTypesMutex       sync.RWMutex
+	versionedResourceTypesArgsForCall []struct {
+		pipelineName string
+	}
+	versionedResourceTypesReturns struct {
+		result1 atc.VersionedResourceTypes
+		result2 bool
+		result3 error
+	}
+	versionedResourceTypesReturnsOnCall map[int]struct {
+		result1 atc.VersionedResourceTypes
+		result2 bool
+		result3 error
+	}
 	ResourceVersionsStub        func(pipelineName string, resourceName string, page concourse.Page) ([]atc.VersionedResource, concourse.Pagination, bool, error)
 	resourceVersionsMutex       sync.RWMutex
 	resourceVersionsArgsForCall []struct {
@@ -2072,6 +2087,60 @@ func (fake *FakeTeam) ResourceReturnsOnCall(i int, result1 atc.Resource, result2
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) VersionedResourceTypes(pipelineName string) (atc.VersionedResourceTypes, bool, error) {
+	fake.versionedResourceTypesMutex.Lock()
+	ret, specificReturn := fake.versionedResourceTypesReturnsOnCall[len(fake.versionedResourceTypesArgsForCall)]
+	fake.versionedResourceTypesArgsForCall = append(fake.versionedResourceTypesArgsForCall, struct {
+		pipelineName string
+	}{pipelineName})
+	fake.recordInvocation("VersionedResourceTypes", []interface{}{pipelineName})
+	fake.versionedResourceTypesMutex.Unlock()
+	if fake.VersionedResourceTypesStub != nil {
+		return fake.VersionedResourceTypesStub(pipelineName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.versionedResourceTypesReturns.result1, fake.versionedResourceTypesReturns.result2, fake.versionedResourceTypesReturns.result3
+}
+
+func (fake *FakeTeam) VersionedResourceTypesCallCount() int {
+	fake.versionedResourceTypesMutex.RLock()
+	defer fake.versionedResourceTypesMutex.RUnlock()
+	return len(fake.versionedResourceTypesArgsForCall)
+}
+
+func (fake *FakeTeam) VersionedResourceTypesArgsForCall(i int) string {
+	fake.versionedResourceTypesMutex.RLock()
+	defer fake.versionedResourceTypesMutex.RUnlock()
+	return fake.versionedResourceTypesArgsForCall[i].pipelineName
+}
+
+func (fake *FakeTeam) VersionedResourceTypesReturns(result1 atc.VersionedResourceTypes, result2 bool, result3 error) {
+	fake.VersionedResourceTypesStub = nil
+	fake.versionedResourceTypesReturns = struct {
+		result1 atc.VersionedResourceTypes
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) VersionedResourceTypesReturnsOnCall(i int, result1 atc.VersionedResourceTypes, result2 bool, result3 error) {
+	fake.VersionedResourceTypesStub = nil
+	if fake.versionedResourceTypesReturnsOnCall == nil {
+		fake.versionedResourceTypesReturnsOnCall = make(map[int]struct {
+			result1 atc.VersionedResourceTypes
+			result2 bool
+			result3 error
+		})
+	}
+	fake.versionedResourceTypesReturnsOnCall[i] = struct {
+		result1 atc.VersionedResourceTypes
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) ResourceVersions(pipelineName string, resourceName string, page concourse.Page) ([]atc.VersionedResource, concourse.Pagination, bool, error) {
 	fake.resourceVersionsMutex.Lock()
 	ret, specificReturn := fake.resourceVersionsReturnsOnCall[len(fake.resourceVersionsArgsForCall)]
@@ -2609,6 +2678,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.unpauseJobMutex.RUnlock()
 	fake.resourceMutex.RLock()
 	defer fake.resourceMutex.RUnlock()
+	fake.versionedResourceTypesMutex.RLock()
+	defer fake.versionedResourceTypesMutex.RUnlock()
 	fake.resourceVersionsMutex.RLock()
 	defer fake.resourceVersionsMutex.RUnlock()
 	fake.checkResourceMutex.RLock()
