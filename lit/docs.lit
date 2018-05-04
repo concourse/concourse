@@ -1,4 +1,4 @@
-\title{Docs}{docs}
+\title{Reference}{reference}
 
 \include-section{./docs/fly.lit}
 \include-section{./docs/tasks.lit}

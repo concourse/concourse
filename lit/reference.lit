@@ -1,0 +1,15 @@
+\title{Reference}{reference}
+
+\include-section{./reference/fly.lit}
+\include-section{./reference/tasks.lit}
+\include-section{./reference/builds.lit}
+\include-section{./reference/pipelines.lit}
+\include-section{./reference/jobs.lit}
+\include-section{./reference/resources.lit}
+\include-section{./reference/resource-types.lit}
+\include-section{./reference/teams.lit}
+\include-section{./reference/administration.lit}
+\include-section{./reference/operation.lit}
+
+\split-sections
+\table-of-contents
