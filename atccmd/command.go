@@ -116,7 +116,7 @@ type ATCCommand struct {
 	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16  `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
 
-	SessionSigningKey flag.PrivateKey `long:"session-signing-key" description:"File containing an RSA private key, used to sign session tokens."`
+	SessionSigningKey *flag.PrivateKey `long:"session-signing-key" description:"File containing an RSA private key, used to sign session tokens."`
 
 	InterceptIdleTimeout              time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 	ResourceCheckingInterval          time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
