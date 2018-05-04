@@ -202,7 +202,7 @@ extractTitle model =
             job.name ++ ((" #" ++ build.build.name) ++ " - ")
 
         ( Just build, Nothing ) ->
-            "#" ++ (build.build.name ++ " - ")
+            "#" ++ (toString (build.build.id) ++ " - ")
 
         _ ->
             ""
