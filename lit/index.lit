@@ -184,10 +184,12 @@
 \split-sections
 
 \include-section{./about.lit}
-\include-section{./download.lit}
-\include-section{./install.lit}
-\include-section{./reference.lit}
+\include-section{./setup-and-operations.lit}
 \include-section{./concepts/concepts.lit}
+\include-section{./tutorials.lit}
+\include-section{./reference.lit}
 \include-section{./contribute.lit}
 \include-section{./community.lit}
 \include-section{./trademarks.lit}
+
+
