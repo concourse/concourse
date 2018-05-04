@@ -286,7 +286,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("returns 401", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 
