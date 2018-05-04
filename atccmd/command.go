@@ -137,8 +137,8 @@ type ATCCommand struct {
 	MaxBuildLogsToRetain     uint64 `long:"max-build-logs-to-retain" description:"Maximum build logs to retain, 0 means not specified. Will override values configured in jobs"`
 
 	Auth struct {
-		AuthFlags skycmd.AuthFlags
-		TeamFlags skycmd.AuthTeamFlags `group:"Default Team" namespace:"default-team"`
+		AuthFlags     skycmd.AuthFlags
+		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
 }
 
@@ -239,6 +239,7 @@ func (cmd *ATCCommand) migrateDBToVersion() error {
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	var metricsGroup *flags.Group
 	var credsGroup *flags.Group
+	var authGroup *flags.Group
 
 	groups := commandFlags.Groups()
 	for i := 0; i < len(groups); i++ {
@@ -252,7 +253,11 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 			metricsGroup = group
 		}
 
-		if metricsGroup != nil && credsGroup != nil {
+		if authGroup == nil && group.ShortDescription == "Authentication" {
+			authGroup = group
+		}
+
+		if metricsGroup != nil && credsGroup != nil && authGroup != nil {
 			break
 		}
 
@@ -267,6 +272,10 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 		panic("could not find Credential Management group for registering managers")
 	}
 
+	if authGroup == nil {
+		panic("could not find Authentication group for registering connectors")
+	}
+
 	managerConfigs := make(creds.Managers)
 	for name, p := range creds.ManagerFactories() {
 		managerConfigs[name] = p.AddConfig(credsGroup)
@@ -275,6 +284,8 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 
 	metric.WireEmitters(metricsGroup)
 
+	skycmd.WireConnectors(authGroup)
+	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -937,11 +948,12 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return errors.New("default team not found")
 	}
 
-	if !cmd.Auth.TeamFlags.IsValid() {
-		return errors.New("default team auth not configured")
+	auth, err := cmd.Auth.MainTeamFlags.Format()
+	if err != nil {
+		return fmt.Errorf("default team auth not configured: %v", err)
 	}
 
-	err = team.UpdateProviderAuth(cmd.Auth.TeamFlags.Format())
+	err = team.UpdateProviderAuth(auth)
 	if err != nil {
 		return err
 	}
