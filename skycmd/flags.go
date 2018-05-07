@@ -10,47 +10,6 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-type Config interface {
-	Serialize(redirectURI string) ([]byte, error)
-}
-
-type TeamConfig interface {
-	IsValid() bool
-	GetUsers() []string
-	GetGroups() []string
-}
-
-type Connector struct {
-	id          string
-	displayName string
-	config      Config
-	teamConfig  TeamConfig
-}
-
-func (self *Connector) ID() string {
-	return self.id
-}
-
-func (self *Connector) Name() string {
-	return self.displayName
-}
-
-func (self *Connector) Config(issuer string) ([]byte, error) {
-	return self.config.Serialize(issuer)
-}
-
-func (self *Connector) HasTeamConfig() bool {
-	return self.teamConfig.IsValid()
-}
-
-func (self *Connector) GetTeamUsers() []string {
-	return self.teamConfig.GetUsers()
-}
-
-func (self *Connector) GetTeamGroups() []string {
-	return self.teamConfig.GetGroups()
-}
-
 var connectors []*Connector
 
 func RegisterConnector(connector *Connector) {
@@ -120,4 +79,45 @@ func (self *AuthTeamFlags) Format() (map[string][]string, error) {
 		"users":  users,
 		"groups": groups,
 	}, nil
+}
+
+type Config interface {
+	Name() string
+	Serialize(redirectURI string) ([]byte, error)
+}
+
+type TeamConfig interface {
+	IsValid() bool
+	GetUsers() []string
+	GetGroups() []string
+}
+
+type Connector struct {
+	id         string
+	config     Config
+	teamConfig TeamConfig
+}
+
+func (self *Connector) ID() string {
+	return self.id
+}
+
+func (self *Connector) Name() string {
+	return self.config.Name()
+}
+
+func (self *Connector) Serialize(redirectURI string) ([]byte, error) {
+	return self.config.Serialize(redirectURI)
+}
+
+func (self *Connector) HasTeamConfig() bool {
+	return self.teamConfig.IsValid()
+}
+
+func (self *Connector) GetTeamUsers() []string {
+	return self.teamConfig.GetUsers()
+}
+
+func (self *Connector) GetTeamGroups() []string {
+	return self.teamConfig.GetGroups()
 }

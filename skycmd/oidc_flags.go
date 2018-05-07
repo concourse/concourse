@@ -6,18 +6,19 @@ import (
 
 	"github.com/concourse/flag"
 	"github.com/coreos/dex/connector/oidc"
+	"github.com/hashicorp/go-multierror"
 )
 
 func init() {
 	RegisterConnector(&Connector{
-		id:          "oidc",
-		displayName: "OIDC",
-		config:      &OIDCFlags{},
-		teamConfig:  &OIDCTeamFlags{},
+		id:         "oidc",
+		config:     &OIDCFlags{},
+		teamConfig: &OIDCTeamFlags{},
 	})
 }
 
 type OIDCFlags struct {
+	DisplayName        string      `long:"display-name" description:"Display Name"`
 	Issuer             string      `long:"issuer" description:"Issuer URL"`
 	ClientID           string      `long:"client-id" description:"Client id"`
 	ClientSecret       string      `long:"client-secret" description:"Client secret"`
@@ -27,13 +28,35 @@ type OIDCFlags struct {
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
-func (self *OIDCFlags) IsValid() bool {
-	return self.Issuer != "" && self.ClientID != "" && self.ClientSecret != ""
+func (self *OIDCFlags) Name() string {
+	if self.DisplayName != "" {
+		return self.DisplayName
+	} else {
+		return "OIDC"
+	}
+}
+
+func (self *OIDCFlags) Validate() error {
+	var errs *multierror.Error
+
+	if self.Issuer == "" {
+		errs = multierror.Append(errs, errors.New("Missing issuer"))
+	}
+
+	if self.ClientID == "" {
+		errs = multierror.Append(errs, errors.New("Missing client-id"))
+	}
+
+	if self.ClientSecret == "" {
+		errs = multierror.Append(errs, errors.New("Missing client-secret"))
+	}
+
+	return errs.ErrorOrNil()
 }
 
 func (self *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
-	if !self.IsValid() {
-		return nil, errors.New("Not configured")
+	if err := self.Validate(); err != nil {
+		return nil, err
 	}
 
 	rootCAs := []string{}
@@ -54,8 +77,8 @@ func (self *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OIDCTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of OIDC users" value-name:"OIDC_USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of OIDC groups" value-name:"OIDC_GROUP"`
+	Users  []string `json:"users" long:"user" description:"List of OIDC users" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"List of OIDC groups" value-name:"GROUP_NAME"`
 }
 
 func (self *OIDCTeamFlags) IsValid() bool {

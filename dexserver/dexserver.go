@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/skymarshal/bindata"
 	"github.com/concourse/skymarshal/skycmd"
 	"github.com/coreos/dex/server"
@@ -14,6 +15,7 @@ import (
 )
 
 type DexConfig struct {
+	Logger       lager.Logger
 	IssuerURL    string
 	ClientID     string
 	ClientSecret string
@@ -50,12 +52,16 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 	redirectURI := strings.TrimRight(config.IssuerURL, "/") + "/callback"
 
 	for _, connector := range skycmd.GetConnectors() {
-		if config, err := connector.Config(redirectURI); err == nil {
+		if c, err := connector.Serialize(redirectURI); err == nil {
 			connectors = append(connectors, storage.Connector{
 				ID:     connector.ID(),
 				Type:   connector.ID(),
 				Name:   connector.Name(),
-				Config: config,
+				Config: c,
+			})
+		} else {
+			config.Logger.Error("connector-config-error", err, lager.Data{
+				"connector": connector.Name(),
 			})
 		}
 	}

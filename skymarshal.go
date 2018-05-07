@@ -70,6 +70,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	dexServer, err := dexserver.NewDexServer(&dexserver.DexConfig{
+		Logger:       config.Logger,
 		Flags:        config.Flags,
 		IssuerURL:    issuerUrl,
 		ClientID:     clientId,

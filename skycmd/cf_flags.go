@@ -6,14 +6,14 @@ import (
 
 	"github.com/concourse/flag"
 	"github.com/coreos/dex/connector/cf"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 func init() {
 	RegisterConnector(&Connector{
-		id:          "cf",
-		displayName: "CF",
-		config:      &CFFlags{},
-		teamConfig:  &CFTeamFlags{},
+		id:         "cf",
+		config:     &CFFlags{},
+		teamConfig: &CFTeamFlags{},
 	})
 }
 
@@ -25,13 +25,31 @@ type CFFlags struct {
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
-func (self *CFFlags) IsValid() bool {
-	return self.ClientID != "" && self.ClientSecret != "" && self.APIURL != ""
+func (self *CFFlags) Name() string {
+	return "CloudFoundry"
+}
+
+func (self *CFFlags) Validate() error {
+	var errs *multierror.Error
+
+	if self.APIURL == "" {
+		errs = multierror.Append(errs, errors.New("Missing api-url"))
+	}
+
+	if self.ClientID == "" {
+		errs = multierror.Append(errs, errors.New("Missing client-id"))
+	}
+
+	if self.ClientSecret == "" {
+		errs = multierror.Append(errs, errors.New("Missing client-secret"))
+	}
+
+	return errs.ErrorOrNil()
 }
 
 func (self *CFFlags) Serialize(redirectURI string) ([]byte, error) {
-	if !self.IsValid() {
-		return nil, errors.New("Invalid config")
+	if err := self.Validate(); err != nil {
+		return nil, err
 	}
 
 	rootCAs := []string{}

@@ -6,18 +6,19 @@ import (
 
 	"github.com/concourse/flag"
 	"github.com/coreos/dex/connector/ldap"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 func init() {
 	RegisterConnector(&Connector{
-		id:          "ldap",
-		displayName: "LDAP",
-		config:      &LDAPFlags{},
-		teamConfig:  &LDAPTeamFlags{},
+		id:         "ldap",
+		config:     &LDAPFlags{},
+		teamConfig: &LDAPTeamFlags{},
 	})
 }
 
 type LDAPFlags struct {
+	DisplayName        string    `long:"display-name" description:"Display Name"`
 	Host               string    `long:"host" description:"Host"`
 	BindDN             string    `long:"bind-dn" description:"Bind DN"`
 	BindPW             string    `long:"bind-pw" description:"Bind PW"`
@@ -27,32 +28,54 @@ type LDAPFlags struct {
 	RootCA             flag.File `long:"root-ca" description:"Root CA certificate"`
 
 	UserSearch struct {
-		BaseDN    string `long:"base-dn" description:"Base DN"`
-		Filter    string `long:"filter" description:"Filter"`
-		Username  string `long:"username" description:"Username"`
-		Scope     string `long:"scope" description:"Scope"`
-		IDAttr    string `long:"id-attr" description:"ID Attr"`
-		EmailAttr string `long:"email-attr" description:"Email Attr"`
-		NameAttr  string `long:"name-attr" description:"Name Attr"`
-	} `group:"User Search" namespace:"user-search"`
+		BaseDN    string `long:"user-search-base-dn" description:"Base DN"`
+		Filter    string `long:"user-search-filter" description:"Filter"`
+		Username  string `long:"user-search-username" description:"Username"`
+		Scope     string `long:"user-search-scope" description:"Scope"`
+		IDAttr    string `long:"user-search-id-attr" description:"ID Attr"`
+		EmailAttr string `long:"user-search-email-attr" description:"Email Attr"`
+		NameAttr  string `long:"user-search-name-attr" description:"Name Attr"`
+	}
 
 	GroupSearch struct {
-		BaseDN    string `long:"base-dn" description:"Base DN"`
-		Filter    string `long:"filter" description:"Filter"`
-		Scope     string `long:"scope" description:"Scope"`
-		UserAttr  string `long:"user-attr" description:"User Attr"`
-		GroupAttr string `long:"group-attr" description:"Group Attr"`
-		NameAttr  string `long:"name-attr" description:"Name Attr"`
-	} `group:"Group Search" namespace:"group-search"`
+		BaseDN    string `long:"group-search-base-dn" description:"Base DN"`
+		Filter    string `long:"group-search-filter" description:"Filter"`
+		Scope     string `long:"group-search-scope" description:"Scope"`
+		UserAttr  string `long:"group-search-user-attr" description:"User Attr"`
+		GroupAttr string `long:"group-search-group-attr" description:"Group Attr"`
+		NameAttr  string `long:"group-search-name-attr" description:"Name Attr"`
+	}
 }
 
-func (self *LDAPFlags) IsValid() bool {
-	return self.Host != "" && self.BindDN != "" && self.BindPW != ""
+func (self *LDAPFlags) Name() string {
+	if self.DisplayName != "" {
+		return self.DisplayName
+	} else {
+		return "LDAP"
+	}
+}
+
+func (self *LDAPFlags) Validate() error {
+	var errs *multierror.Error
+
+	if self.Host == "" {
+		errs = multierror.Append(errs, errors.New("Missing host"))
+	}
+
+	if self.BindDN == "" {
+		errs = multierror.Append(errs, errors.New("Missing bind-dn"))
+	}
+
+	if self.BindPW == "" {
+		errs = multierror.Append(errs, errors.New("Missing bind-pw"))
+	}
+
+	return errs.ErrorOrNil()
 }
 
 func (self *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
-	if !self.IsValid() {
-		return nil, errors.New("Not configured")
+	if err := self.Validate(); err != nil {
+		return nil, err
 	}
 
 	ldapConfig := ldap.Config{
@@ -85,7 +108,7 @@ func (self *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
 
 type LDAPTeamFlags struct {
 	Users  []string `json:"users" long:"user" description:"List of ldap users" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of ldap groups" value-name:"GROUP NAME"`
+	Groups []string `json:"groups" long:"group" description:"List of ldap groups" value-name:"GROUP_NAME"`
 }
 
 func (self *LDAPTeamFlags) IsValid() bool {

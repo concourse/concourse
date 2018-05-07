@@ -6,18 +6,19 @@ import (
 
 	"github.com/concourse/flag"
 	"github.com/coreos/dex/connector/oauth"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 func init() {
 	RegisterConnector(&Connector{
-		id:          "oauth",
-		displayName: "OAuth",
-		config:      &OAuthFlags{},
-		teamConfig:  &OAuthTeamFlags{},
+		id:         "oauth",
+		config:     &OAuthFlags{},
+		teamConfig: &OAuthTeamFlags{},
 	})
 }
 
 type OAuthFlags struct {
+	DisplayName        string      `long:"display-name" description:"Display Name"`
 	ClientID           string      `long:"client-id" description:"Client id"`
 	ClientSecret       string      `long:"client-secret" description:"Client secret"`
 	AuthURL            string      `long:"auth-url" description:"Authorization URL"`
@@ -29,17 +30,39 @@ type OAuthFlags struct {
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
-func (self *OAuthFlags) IsValid() bool {
-	return self.AuthURL != "" &&
-		self.TokenURL != "" &&
-		self.UserInfoURL != "" &&
-		self.ClientID != "" &&
-		self.ClientSecret != ""
+func (self *OAuthFlags) Name() string {
+	if self.DisplayName != "" {
+		return self.DisplayName
+	} else {
+		return "OAuth2"
+	}
+}
+
+func (self *OAuthFlags) Validate() error {
+	var errs *multierror.Error
+
+	if self.AuthURL == "" {
+		errs = multierror.Append(errs, errors.New("Missing auth-url"))
+	}
+
+	if self.TokenURL == "" {
+		errs = multierror.Append(errs, errors.New("Missing token-url"))
+	}
+
+	if self.ClientID == "" {
+		errs = multierror.Append(errs, errors.New("Missing client-id"))
+	}
+
+	if self.ClientSecret == "" {
+		errs = multierror.Append(errs, errors.New("Missing client-secret"))
+	}
+
+	return errs.ErrorOrNil()
 }
 
 func (self *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
-	if !self.IsValid() {
-		return nil, errors.New("Not configured")
+	if err := self.Validate(); err != nil {
+		return nil, err
 	}
 
 	rootCAs := []string{}
@@ -62,8 +85,8 @@ func (self *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OAuthTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of OAuth users" value-name:"OAUTH_USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of OAuth groups" value-name:"OAUTH_GROUP"`
+	Users  []string `json:"users" long:"user" description:"List of OAuth users" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"List of OAuth groups" value-name:"GROUP_NAME"`
 }
 
 func (self *OAuthTeamFlags) IsValid() bool {

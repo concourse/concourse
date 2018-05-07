@@ -5,14 +5,14 @@ import (
 	"errors"
 
 	"github.com/coreos/dex/connector/github"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 func init() {
 	RegisterConnector(&Connector{
-		id:          "github",
-		displayName: "GitHub",
-		config:      &GithubFlags{},
-		teamConfig:  &GithubTeamFlags{},
+		id:         "github",
+		config:     &GithubFlags{},
+		teamConfig: &GithubTeamFlags{},
 	})
 }
 
@@ -21,13 +21,27 @@ type GithubFlags struct {
 	ClientSecret string `long:"client-secret" description:"Client secret"`
 }
 
-func (self *GithubFlags) IsValid() bool {
-	return self.ClientID != "" && self.ClientSecret != ""
+func (self *GithubFlags) Name() string {
+	return "GitHub"
+}
+
+func (self *GithubFlags) Validate() error {
+	var errs *multierror.Error
+
+	if self.ClientID == "" {
+		errs = multierror.Append(errs, errors.New("Missing client-id"))
+	}
+
+	if self.ClientSecret == "" {
+		errs = multierror.Append(errs, errors.New("Missing client-secret"))
+	}
+
+	return errs.ErrorOrNil()
 }
 
 func (self *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
-	if !self.IsValid() {
-		return nil, errors.New("Invalid config")
+	if err := self.Validate(); err != nil {
+		return nil, err
 	}
 
 	return json.Marshal(github.Config{
@@ -38,7 +52,7 @@ func (self *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GithubTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of github users" value-name:"LOGIN"`
+	Users  []string `json:"users" long:"user" description:"List of github users" value-name:"USERNAME"`
 	Groups []string `json:"groups" long:"group" description:"List of github groups (e.g. my-org or my-org:my-team)" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
