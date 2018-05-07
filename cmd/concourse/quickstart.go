@@ -38,8 +38,18 @@ func (cmd *QuickstartCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
+func checkNilKeys(key *flag.PrivateKey) bool {
+	if key == nil {
+		return true
+	}
+	if key.PrivateKey == nil {
+		return true
+	}
+	return false
+}
+
 func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
-	if cmd.WebCommand.ATCCommand.SessionSigningKey == nil || cmd.WebCommand.TSACommand.SessionSigningKey.PrivateKey == nil {
+	if checkNilKeys(cmd.WebCommand.ATCCommand.SessionSigningKey) {
 		signingKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate session signing key: %s", err)
@@ -49,7 +59,7 @@ func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.WebCommand.TSACommand.SessionSigningKey = &flag.PrivateKey{PrivateKey: signingKey}
 	}
 
-	if cmd.WebCommand.TSACommand.HostKey == nil || cmd.WebCommand.TSACommand.HostKey.PrivateKey == nil {
+	if checkNilKeys(cmd.WebCommand.TSACommand.HostKey) {
 		tsaHostKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate tsa host key: %s", err)
@@ -65,7 +75,7 @@ func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
 			append(cmd.WorkerCommand.TSA.PublicKey.Keys, tsaHostPublicKey)
 	}
 
-	if cmd.WorkerCommand.TSA.WorkerPrivateKey == nil || cmd.WorkerCommand.TSA.WorkerPrivateKey.PrivateKey == nil {
+	if checkNilKeys(cmd.WorkerCommand.TSA.WorkerPrivateKey) {
 		workerKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate worker key: %s", err)
