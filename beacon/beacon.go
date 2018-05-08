@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -18,8 +17,8 @@ import (
 
 const gardenForwardAddr = "0.0.0.0:7777"
 const baggageclaimForwardAddr = "0.0.0.0:7788"
-const reaperPort = "7799"
-const reaperForwardAddr = "0.0.0.0:" + reaperPort
+const ReaperPort = "7799"
+const reaperAddr = "0.0.0.0:" + ReaperPort
 
 //go:generate counterfeiter . Closeable
 type Closeable interface {
@@ -60,7 +59,7 @@ type Beacon struct {
 	Client                  Client
 	GardenForwardAddr       string
 	BaggageclaimForwardAddr string
-	ReaperForwardAddr       string
+	ReaperAddr              string
 	RegistrationMode        RegistrationMode
 	KeepAlive               bool
 }
@@ -86,8 +85,7 @@ func (beacon *Beacon) registerForwarded(signals <-chan os.Signal, ready chan<- s
 	return beacon.run(
 		"forward-worker "+
 			"--garden "+gardenForwardAddr+" "+
-			"--baggageclaim "+baggageclaimForwardAddr+" "+
-			"--reaper "+reaperForwardAddr,
+			"--baggageclaim "+baggageclaimForwardAddr+" ",
 		signals,
 		ready,
 	)
@@ -180,13 +178,8 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 	if err != nil {
 		return fmt.Errorf("failed to parse baggageclaim url: %s", err)
 	}
-	reaperURL, err := url.Parse(beacon.Worker.ReaperAddr)
-	if err != nil {
-		return fmt.Errorf("failed to parse reaper url: %s", err)
-	}
 
 	var gardenForwardAddrRemote = beacon.Worker.GardenAddr
-	var reaperForwardAddrRemote = reaperURL.Host
 	var bcForwardAddrRemote = bcURL.Host
 
 	if beacon.GardenForwardAddr != "" {
@@ -195,26 +188,14 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 		if beacon.BaggageclaimForwardAddr != "" {
 			bcForwardAddrRemote = beacon.BaggageclaimForwardAddr
 		}
-
-		if beacon.ReaperForwardAddr != "" {
-			reaperForwardAddrRemote = beacon.ReaperForwardAddr
-		} else {
-			reaperURL := strings.Split(beacon.GardenForwardAddr, ":")
-			if len(reaperURL) != 2 {
-				return fmt.Errorf("failed to parse GardenForwardAddr: %s", beacon.GardenForwardAddr)
-			}
-			reaperForwardAddrRemote = reaperURL[0] + ":" + reaperPort
-		}
 	}
 
 	beacon.Logger.Debug("ssh-forward-config", lager.Data{
 		"gardenForwardAddrRemote": gardenForwardAddrRemote,
 		"bcForwardAddrRemote":     bcForwardAddrRemote,
-		"reaperForwardAddrRemote": reaperForwardAddrRemote,
 	})
 	beacon.Client.Proxy(gardenForwardAddr, gardenForwardAddrRemote)
 	beacon.Client.Proxy(baggageclaimForwardAddr, bcForwardAddrRemote)
-	beacon.Client.Proxy(reaperForwardAddr, reaperForwardAddrRemote)
 
 	close(ready)
 
@@ -275,10 +256,10 @@ func (beacon *Beacon) runReport(command string) error {
 	go func() {
 		var err error
 
-		var reaperAddr = beacon.ReaperForwardAddr
+		var reaperAddr = beacon.ReaperAddr
 
 		if reaperAddr == "" {
-			reaperAddr = fmt.Sprintf("http://" + reaperForwardAddr)
+			reaperAddr = fmt.Sprintf("http://" + reaperAddr)
 		}
 
 		rClient := reaper.NewClient(reaperAddr, beacon.Logger.Session("reaper-client"))
@@ -367,10 +348,10 @@ func (beacon *Beacon) runSweep(command string) error {
 
 		beacon.Logger.Debug("received-handles-to-destroy", lager.Data{"num-handles": len(handles)})
 
-		var reaperAddr = beacon.ReaperForwardAddr
+		var reaperAddr = beacon.ReaperAddr
 
 		if reaperAddr == "" {
-			reaperAddr = fmt.Sprintf("http://" + reaperForwardAddr)
+			reaperAddr = fmt.Sprintf("http://" + reaperAddr)
 		}
 
 		rClient := reaper.NewClient(reaperAddr, beacon.Logger.Session("reaper-client"))

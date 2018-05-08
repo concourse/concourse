@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/concourse/atc"
@@ -35,13 +34,13 @@ type Config struct {
 	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
 }
 
-type ReaperConfig struct {
-	Port string `long:"reaper-port" default:"7799" description:"Port of which reaper server starts"`
-}
+// type ReaperConfig struct {
+// 	Port string
+// }
 
 type StartCommand struct {
 	WorkerConfig Config
-	ReaperConfig ReaperConfig `group:"Reaper Configuration"`
+	//	ReaperConfig ReaperConfig //{Port:"7799"} //`group:"Reaper Configuration"`
 
 	TSA beacon.Config `group:"TSA Beacon Configuration"`
 
@@ -77,25 +76,25 @@ func (cmd *StartCommand) Execute(args []string) error {
 		resourceTypes = append(resourceTypes, workerResourceType)
 	}
 
-	reaperURL := strings.Split(cmd.GardenAddr, ":")
-	if len(reaperURL) != 2 {
-		return fmt.Errorf("failed to parse GardenAddr: %s", cmd.GardenAddr)
-	}
+	// reaperURL := strings.Split(cmd.GardenAddr, ":")
+	// if len(reaperURL) != 2 {
+	// 	return fmt.Errorf("failed to parse GardenAddr: %s", cmd.GardenAddr)
+	// }
 	var atcWorker = atc.Worker{
 		GardenAddr:      cmd.GardenAddr,
 		BaggageclaimURL: cmd.BaggageclaimURL,
 		ResourceTypes:   resourceTypes,
-		ReaperAddr:      "http://" + reaperURL[0] + ":" + cmd.ReaperConfig.Port,
-		Platform:        cmd.Platform,
-		Tags:            cmd.WorkerConfig.Tags,
-		Team:            cmd.WorkerConfig.TeamName,
-		Name:            cmd.WorkerConfig.Name,
-		StartTime:       time.Now().Unix(),
-		Version:         cmd.WorkerConfig.Version,
-		CertsPath:       cmd.CertsPath,
-		HTTPProxyURL:    cmd.WorkerConfig.HTTPProxy,
-		HTTPSProxyURL:   cmd.WorkerConfig.HTTPSProxy,
-		NoProxy:         cmd.WorkerConfig.NoProxy,
+		//		ReaperAddr:      "http://" + reaperURL[0] + ":" + cmd.ReaperConfig.Port,
+		Platform:      cmd.Platform,
+		Tags:          cmd.WorkerConfig.Tags,
+		Team:          cmd.WorkerConfig.TeamName,
+		Name:          cmd.WorkerConfig.Name,
+		StartTime:     time.Now().Unix(),
+		Version:       cmd.WorkerConfig.Version,
+		CertsPath:     cmd.CertsPath,
+		HTTPProxyURL:  cmd.WorkerConfig.HTTPProxy,
+		HTTPSProxyURL: cmd.WorkerConfig.HTTPSProxy,
+		NoProxy:       cmd.WorkerConfig.NoProxy,
 	}
 
 	groupLogger, _ := cmd.Logger.Logger("worker")
@@ -116,7 +115,8 @@ func (cmd *StartCommand) Execute(args []string) error {
 		{Name: "reaper", Runner: reaper.NewReaperRunner(
 			groupLogger,
 			gardenAddr,
-			cmd.ReaperConfig.Port,
+			beacon.ReaperPort,
+			//cmd.ReaperConfig.Port,
 		)},
 		{Name: "debug-server", Runner: http_server.New(
 			cmd.debugBindAddr(),
