@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/atc/worker/transport"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/retryhttp"
-	"github.com/concourse/worker/reaper"
 	"github.com/cppforlife/go-semi-semantic/version"
 
 	"github.com/concourse/atc/db"
@@ -151,16 +150,16 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 
 	gClient := gclient.New(NewRetryableConnection(gcf.BuildConnection()))
 
-	rClient := reaper.New("", transport.NewreaperRoundTripper(
-		savedWorker.Name(),
-		savedWorker.ReaperAddr(),
-		provider.dbWorkerFactory,
-		&http.Transport{
-			DisableKeepAlives:     true,
-			ResponseHeaderTimeout: provider.baggageclaimResponseHeaderTimeout,
-		}),
-		logger,
-	)
+	// rClient := reaper.New("", transport.NewreaperRoundTripper(
+	// 	savedWorker.Name(),
+	// 	savedWorker.ReaperAddr(),
+	// 	provider.dbWorkerFactory,
+	// 	&http.Transport{
+	// 		DisableKeepAlives:     true,
+	// 		ResponseHeaderTimeout: provider.baggageclaimResponseHeaderTimeout,
+	// 	}),
+	// 	logger,
+	// )
 
 	bClient := bclient.New("", transport.NewBaggageclaimRoundTripper(
 		savedWorker.Name(),
@@ -185,7 +184,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 	containerProvider := NewContainerProvider(
 		gClient,
 		bClient,
-		rClient,
+		// rClient,
 		volumeClient,
 		savedWorker,
 		tikTok,
@@ -198,7 +197,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 	return NewGardenWorker(
 		gClient,
 		bClient,
-		rClient,
+		// rClient,
 		containerProvider,
 		volumeClient,
 		savedWorker,

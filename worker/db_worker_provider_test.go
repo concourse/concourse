@@ -38,11 +38,9 @@ var _ = Describe("DBProvider", func() {
 		fakeGardenBackend                 *gfakes.FakeBackend
 		gardenAddr                        string
 		baggageclaimURL                   string
-		reaperAddr                        string
 		wantWorkerVersion                 version.Version
 		baggageclaimServer                *ghttp.Server
 		gardenServer                      *server.GardenServer
-		reaperServer                      *ghttp.Server
 		provider                          WorkerProvider
 		baggageclaimResponseHeaderTimeout time.Duration
 
@@ -69,16 +67,6 @@ var _ = Describe("DBProvider", func() {
 
 	BeforeEach(func() {
 		var err error
-		reaperServer = ghttp.NewServer()
-
-		reaperServer.RouteToHandler("GET", "/ping", ghttp.RespondWith(
-			http.StatusOK,
-			nil,
-		))
-		reaperServer.RouteToHandler("DELETE", "/containers/destroy", ghttp.RespondWith(
-			http.StatusOK,
-			nil,
-		))
 
 		baggageclaimServer = ghttp.NewServer()
 
@@ -124,7 +112,6 @@ var _ = Describe("DBProvider", func() {
 		fakeWorker1.NameReturns("some-worker")
 		fakeWorker1.GardenAddrReturns(&gardenAddr)
 		fakeWorker1.BaggageclaimURLReturns(&baggageclaimURL)
-		fakeWorker1.ReaperAddrReturns(&reaperAddr)
 		fakeWorker1.StateReturns(db.WorkerStateRunning)
 		fakeWorker1.ActiveContainersReturns(2)
 		fakeWorker1.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -138,7 +125,6 @@ var _ = Describe("DBProvider", func() {
 		fakeWorker2.NameReturns("some-other-worker")
 		fakeWorker2.GardenAddrReturns(&gardenAddr)
 		fakeWorker2.BaggageclaimURLReturns(&baggageclaimURL)
-		fakeWorker2.ReaperAddrReturns(&reaperAddr)
 		fakeWorker2.StateReturns(db.WorkerStateRunning)
 		fakeWorker2.ActiveContainersReturns(2)
 		fakeWorker2.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -188,7 +174,6 @@ var _ = Describe("DBProvider", func() {
 			baggageclaimResponseHeaderTimeout,
 		)
 		baggageclaimURL = baggageclaimServer.URL()
-		reaperAddr = reaperServer.URL()
 	})
 
 	AfterEach(func() {
@@ -204,7 +189,6 @@ var _ = Describe("DBProvider", func() {
 		}).Should(HaveOccurred())
 
 		baggageclaimServer.Close()
-		reaperServer.Close()
 	})
 
 	Describe("RunningWorkers", func() {
@@ -231,7 +215,6 @@ var _ = Describe("DBProvider", func() {
 					landingWorker.NameReturns("landing-worker")
 					landingWorker.GardenAddrReturns(&gardenAddr)
 					landingWorker.BaggageclaimURLReturns(&baggageclaimURL)
-					landingWorker.ReaperAddrReturns(&reaperAddr)
 					landingWorker.StateReturns(db.WorkerStateLanding)
 					landingWorker.ActiveContainersReturns(5)
 					landingWorker.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -241,7 +224,6 @@ var _ = Describe("DBProvider", func() {
 					stalledWorker.NameReturns("stalled-worker")
 					stalledWorker.GardenAddrReturns(&gardenAddr)
 					stalledWorker.BaggageclaimURLReturns(&baggageclaimURL)
-					stalledWorker.ReaperAddrReturns(&reaperAddr)
 					stalledWorker.StateReturns(db.WorkerStateStalled)
 					stalledWorker.ActiveContainersReturns(0)
 					stalledWorker.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -267,7 +249,6 @@ var _ = Describe("DBProvider", func() {
 					worker1.NameReturns("worker-1")
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
-					worker1.ReaperAddrReturns(&reaperAddr)
 					worker1.StateReturns(db.WorkerStateRunning)
 					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -279,7 +260,6 @@ var _ = Describe("DBProvider", func() {
 					worker2.NameReturns("worker-2")
 					worker2.GardenAddrReturns(&gardenAddr)
 					worker2.BaggageclaimURLReturns(&baggageclaimURL)
-					worker2.ReaperAddrReturns(&reaperAddr)
 					worker2.StateReturns(db.WorkerStateRunning)
 					worker2.ActiveContainersReturns(0)
 					worker2.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -291,7 +271,6 @@ var _ = Describe("DBProvider", func() {
 					worker3.NameReturns("worker-2")
 					worker3.GardenAddrReturns(&gardenAddr)
 					worker3.BaggageclaimURLReturns(&baggageclaimURL)
-					worker3.ReaperAddrReturns(&reaperAddr)
 					worker3.StateReturns(db.WorkerStateRunning)
 					worker3.ActiveContainersReturns(0)
 					worker3.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -320,7 +299,6 @@ var _ = Describe("DBProvider", func() {
 					worker1.NameReturns("worker-1")
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
-					worker1.ReaperAddrReturns(&reaperAddr)
 					worker1.StateReturns(db.WorkerStateRunning)
 					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -332,7 +310,6 @@ var _ = Describe("DBProvider", func() {
 					worker2.NameReturns("worker-2")
 					worker2.GardenAddrReturns(&gardenAddr)
 					worker2.BaggageclaimURLReturns(&baggageclaimURL)
-					worker2.ReaperAddrReturns(&reaperAddr)
 					worker2.StateReturns(db.WorkerStateRunning)
 					worker2.ActiveContainersReturns(0)
 					worker2.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -344,7 +321,6 @@ var _ = Describe("DBProvider", func() {
 					worker3.NameReturns("worker-2")
 					worker3.GardenAddrReturns(&gardenAddr)
 					worker3.BaggageclaimURLReturns(&baggageclaimURL)
-					worker3.ReaperAddrReturns(&reaperAddr)
 					worker3.StateReturns(db.WorkerStateRunning)
 					worker3.ActiveContainersReturns(0)
 					worker3.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -374,7 +350,6 @@ var _ = Describe("DBProvider", func() {
 					worker1.NameReturns("worker-1")
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
-					worker1.ReaperAddrReturns(&reaperAddr)
 					worker1.StateReturns(db.WorkerStateRunning)
 					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -398,7 +373,6 @@ var _ = Describe("DBProvider", func() {
 					worker1.NameReturns("worker-1")
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
-					worker1.ReaperAddrReturns(&reaperAddr)
 					worker1.StateReturns(db.WorkerStateRunning)
 					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
@@ -546,7 +520,6 @@ var _ = Describe("DBProvider", func() {
 				fakeExistingWorker = new(dbfakes.FakeWorker)
 				fakeExistingWorker.NameReturns("some-worker")
 				fakeExistingWorker.GardenAddrReturns(&addr)
-				fakeExistingWorker.ReaperAddrReturns(&reaperAddr)
 				workerVersion := "1.1.0"
 				fakeExistingWorker.VersionReturns(&workerVersion)
 
@@ -643,7 +616,6 @@ var _ = Describe("DBProvider", func() {
 				fakeExistingWorker = new(dbfakes.FakeWorker)
 				fakeExistingWorker.NameReturns("some-worker")
 				fakeExistingWorker.GardenAddrReturns(&addr)
-				fakeExistingWorker.ReaperAddrReturns(&reaperAddr)
 				workerVersion := "1.1.0"
 				fakeExistingWorker.VersionReturns(&workerVersion)
 

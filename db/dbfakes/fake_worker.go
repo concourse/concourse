@@ -55,15 +55,6 @@ type FakeWorker struct {
 	baggageclaimURLReturnsOnCall map[int]struct {
 		result1 *string
 	}
-	ReaperAddrStub        func() *string
-	reaperAddrMutex       sync.RWMutex
-	reaperAddrArgsForCall []struct{}
-	reaperAddrReturns     struct {
-		result1 *string
-	}
-	reaperAddrReturnsOnCall map[int]struct {
-		result1 *string
-	}
 	CertsPathStub        func() *string
 	certsPathMutex       sync.RWMutex
 	certsPathArgsForCall []struct{}
@@ -432,46 +423,6 @@ func (fake *FakeWorker) BaggageclaimURLReturnsOnCall(i int, result1 *string) {
 		})
 	}
 	fake.baggageclaimURLReturnsOnCall[i] = struct {
-		result1 *string
-	}{result1}
-}
-
-func (fake *FakeWorker) ReaperAddr() *string {
-	fake.reaperAddrMutex.Lock()
-	ret, specificReturn := fake.reaperAddrReturnsOnCall[len(fake.reaperAddrArgsForCall)]
-	fake.reaperAddrArgsForCall = append(fake.reaperAddrArgsForCall, struct{}{})
-	fake.recordInvocation("ReaperAddr", []interface{}{})
-	fake.reaperAddrMutex.Unlock()
-	if fake.ReaperAddrStub != nil {
-		return fake.ReaperAddrStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.reaperAddrReturns.result1
-}
-
-func (fake *FakeWorker) ReaperAddrCallCount() int {
-	fake.reaperAddrMutex.RLock()
-	defer fake.reaperAddrMutex.RUnlock()
-	return len(fake.reaperAddrArgsForCall)
-}
-
-func (fake *FakeWorker) ReaperAddrReturns(result1 *string) {
-	fake.ReaperAddrStub = nil
-	fake.reaperAddrReturns = struct {
-		result1 *string
-	}{result1}
-}
-
-func (fake *FakeWorker) ReaperAddrReturnsOnCall(i int, result1 *string) {
-	fake.ReaperAddrStub = nil
-	if fake.reaperAddrReturnsOnCall == nil {
-		fake.reaperAddrReturnsOnCall = make(map[int]struct {
-			result1 *string
-		})
-	}
-	fake.reaperAddrReturnsOnCall[i] = struct {
 		result1 *string
 	}{result1}
 }
@@ -1218,8 +1169,6 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.gardenAddrMutex.RUnlock()
 	fake.baggageclaimURLMutex.RLock()
 	defer fake.baggageclaimURLMutex.RUnlock()
-	fake.reaperAddrMutex.RLock()
-	defer fake.reaperAddrMutex.RUnlock()
 	fake.certsPathMutex.RLock()
 	defer fake.certsPathMutex.RUnlock()
 	fake.resourceCertsMutex.RLock()

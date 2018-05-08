@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/worker/reaper"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
@@ -268,15 +267,6 @@ type FakeWorker struct {
 	}
 	baggageclaimClientReturnsOnCall map[int]struct {
 		result1 baggageclaim.Client
-	}
-	ReaperClientStub        func() reaper.ReaperClient
-	reaperClientMutex       sync.RWMutex
-	reaperClientArgsForCall []struct{}
-	reaperClientReturns     struct {
-		result1 reaper.ReaperClient
-	}
-	reaperClientReturnsOnCall map[int]struct {
-		result1 reaper.ReaperClient
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -1234,46 +1224,6 @@ func (fake *FakeWorker) BaggageclaimClientReturnsOnCall(i int, result1 baggagecl
 	}{result1}
 }
 
-func (fake *FakeWorker) ReaperClient() reaper.ReaperClient {
-	fake.reaperClientMutex.Lock()
-	ret, specificReturn := fake.reaperClientReturnsOnCall[len(fake.reaperClientArgsForCall)]
-	fake.reaperClientArgsForCall = append(fake.reaperClientArgsForCall, struct{}{})
-	fake.recordInvocation("ReaperClient", []interface{}{})
-	fake.reaperClientMutex.Unlock()
-	if fake.ReaperClientStub != nil {
-		return fake.ReaperClientStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.reaperClientReturns.result1
-}
-
-func (fake *FakeWorker) ReaperClientCallCount() int {
-	fake.reaperClientMutex.RLock()
-	defer fake.reaperClientMutex.RUnlock()
-	return len(fake.reaperClientArgsForCall)
-}
-
-func (fake *FakeWorker) ReaperClientReturns(result1 reaper.ReaperClient) {
-	fake.ReaperClientStub = nil
-	fake.reaperClientReturns = struct {
-		result1 reaper.ReaperClient
-	}{result1}
-}
-
-func (fake *FakeWorker) ReaperClientReturnsOnCall(i int, result1 reaper.ReaperClient) {
-	fake.ReaperClientStub = nil
-	if fake.reaperClientReturnsOnCall == nil {
-		fake.reaperClientReturnsOnCall = make(map[int]struct {
-			result1 reaper.ReaperClient
-		})
-	}
-	fake.reaperClientReturnsOnCall[i] = struct {
-		result1 reaper.ReaperClient
-	}{result1}
-}
-
 func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1317,8 +1267,6 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.gardenClientMutex.RUnlock()
 	fake.baggageclaimClientMutex.RLock()
 	defer fake.baggageclaimClientMutex.RUnlock()
-	fake.reaperClientMutex.RLock()
-	defer fake.reaperClientMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

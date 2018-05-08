@@ -21,7 +21,6 @@ var _ = Describe("Worker Lifecycle", func() {
 		atcWorker = atc.Worker{
 			GardenAddr:       "some-garden-addr",
 			BaggageclaimURL:  "some-bc-url",
-			ReaperAddr:       "some-reaper-addr",
 			HTTPProxyURL:     "some-http-proxy-url",
 			HTTPSProxyURL:    "some-https-proxy-url",
 			NoProxy:          "some-no-proxy",
@@ -335,12 +334,10 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(foundWorker.State()).To(Equal(db.WorkerStateLanded))
 				})
 
-				It("clears out the garden/baggageclaim/reaper addresses", func() {
+				It("clears out the garden/baggageclaim addresses", func() {
 					var (
 						beforegardenAddr      sql.NullString
 						beforeBaggagaClaimUrl sql.NullString
-						beforereaperAddr      sql.NullString
-						afterreaperAddr       sql.NullString
 						aftergardenAddr       sql.NullString
 						afterBaggagaClaimUrl  sql.NullString
 						found                 bool
@@ -351,15 +348,13 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					err = dbConn.QueryRow("SELECT addr, baggageclaim_url, reaper_addr FROM workers WHERE name = '"+atcWorker.Name+"'").Scan(&beforegardenAddr,
+					err = dbConn.QueryRow("SELECT addr, baggageclaim_url FROM workers WHERE name = '"+atcWorker.Name+"'").Scan(&beforegardenAddr,
 						&beforeBaggagaClaimUrl,
-						&beforereaperAddr,
 					)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(beforegardenAddr.Valid).To(BeTrue())
 					Expect(beforeBaggagaClaimUrl.Valid).To(BeTrue())
-					Expect(beforereaperAddr.Valid).To(BeTrue())
 
 					err = worker.Land()
 					Expect(err).ToNot(HaveOccurred())
@@ -368,15 +363,14 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(len(landedWorkers)).To(Equal(1))
 					Expect(landedWorkers[0]).To(Equal(atcWorker.Name))
 
-					err = dbConn.QueryRow("SELECT addr, baggageclaim_url, reaper_addr FROM workers WHERE name = '"+atcWorker.Name+"'").Scan(&aftergardenAddr,
+					err = dbConn.QueryRow("SELECT addr, baggageclaim_url FROM workers WHERE name = '"+atcWorker.Name+"'").Scan(&aftergardenAddr,
 						&afterBaggagaClaimUrl,
-						&afterreaperAddr,
 					)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(aftergardenAddr.String).To(Equal(""))
 					Expect(afterBaggagaClaimUrl.String).To(Equal(""))
-					Expect(afterreaperAddr.String).To(Equal(""))
+
 				})
 			})
 

@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/worker/reaper"
+	// "github.com/concourse/worker/reaper"
 )
 
 const creatingContainerRetryDelay = 1 * time.Second
@@ -21,7 +21,7 @@ const creatingContainerRetryDelay = 1 * time.Second
 func NewContainerProvider(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
-	reaperClient reaper.ReaperClient,
+	// reaperClient reaper.ReaperClient,
 	volumeClient VolumeClient,
 	dbWorker db.Worker,
 	clock clock.Clock,
@@ -35,17 +35,17 @@ func NewContainerProvider(
 	return &containerProvider{
 		gardenClient:       gardenClient,
 		baggageclaimClient: baggageclaimClient,
-		reaperClient:       reaperClient,
-		volumeClient:       volumeClient,
-		imageFactory:       imageFactory,
-		dbVolumeFactory:    dbVolumeFactory,
-		dbTeamFactory:      dbTeamFactory,
-		lockFactory:        lockFactory,
-		httpProxyURL:       dbWorker.HTTPProxyURL(),
-		httpsProxyURL:      dbWorker.HTTPSProxyURL(),
-		noProxy:            dbWorker.NoProxy(),
-		clock:              clock,
-		worker:             dbWorker,
+		// reaperClient:       reaperClient,
+		volumeClient:    volumeClient,
+		imageFactory:    imageFactory,
+		dbVolumeFactory: dbVolumeFactory,
+		dbTeamFactory:   dbTeamFactory,
+		lockFactory:     lockFactory,
+		httpProxyURL:    dbWorker.HTTPProxyURL(),
+		httpsProxyURL:   dbWorker.HTTPSProxyURL(),
+		noProxy:         dbWorker.NoProxy(),
+		clock:           clock,
+		worker:          dbWorker,
 	}
 }
 
@@ -72,11 +72,11 @@ type ContainerProvider interface {
 type containerProvider struct {
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
-	reaperClient       reaper.ReaperClient
-	volumeClient       VolumeClient
-	imageFactory       ImageFactory
-	dbVolumeFactory    db.VolumeFactory
-	dbTeamFactory      db.TeamFactory
+	// reaperClient       reaper.ReaperClient
+	volumeClient    VolumeClient
+	imageFactory    ImageFactory
+	dbVolumeFactory db.VolumeFactory
+	dbTeamFactory   db.TeamFactory
 
 	lockFactory lock.LockFactory
 
@@ -148,7 +148,7 @@ func (p *containerProvider) FindOrCreateContainer(
 			worker := NewGardenWorker(
 				p.gardenClient,
 				p.baggageclaimClient,
-				p.reaperClient,
+				// p.reaperClient,
 				p,
 				p.volumeClient,
 				p.worker,
@@ -373,7 +373,7 @@ func (p *containerProvider) createGardenContainer(
 	worker := NewGardenWorker(
 		p.gardenClient,
 		p.baggageclaimClient,
-		p.reaperClient,
+		// p.reaperClient,
 		p,
 		p.volumeClient,
 		p.worker,

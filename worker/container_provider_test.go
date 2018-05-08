@@ -23,7 +23,6 @@ import (
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
-	"github.com/concourse/worker/reaper/reaperfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -36,8 +35,8 @@ var _ = Describe("ContainerProvider", func() {
 		fakeCreatingContainer *dbfakes.FakeCreatingContainer
 		fakeCreatedContainer  *dbfakes.FakeCreatedContainer
 
-		fakeGardenClient            *gardenfakes.FakeClient
-		fakeReaperClient            *reaperfakes.FakeReaperClient
+		fakeGardenClient *gardenfakes.FakeClient
+		//fakeReaperClient            *reaperfakes.FakeReaperClient
 		fakeGardenContainer         *gardenfakes.FakeContainer
 		fakeBaggageclaimClient      *baggageclaimfakes.FakeClient
 		fakeVolumeClient            *workerfakes.FakeVolumeClient
@@ -88,7 +87,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
-		fakeReaperClient = new(reaperfakes.FakeReaperClient)
+		//fakeReaperClient = new(reaperfakes.FakeReaperClient)
 		fakeVolumeClient = new(workerfakes.FakeVolumeClient)
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage = new(workerfakes.FakeImage)
@@ -119,7 +118,6 @@ var _ = Describe("ContainerProvider", func() {
 		containerProvider = NewContainerProvider(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
-			fakeReaperClient,
 			fakeVolumeClient,
 			fakeDBWorker,
 			fakeClock,

@@ -9,7 +9,7 @@ type Worker struct {
 	// not garden_addr, for backwards-compatibility
 	GardenAddr      string `json:"addr"`
 	BaggageclaimURL string `json:"baggageclaim_url"`
-	ReaperAddr      string `json:"reaper_url"`
+	//	ReaperAddr      string `json:"reaper_url"`
 
 	CertsPath *string `json:"certs_path,omitempty"`
 

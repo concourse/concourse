@@ -14,7 +14,6 @@ import (
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
-	"github.com/concourse/worker/reaper/reaperfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
 
 	. "github.com/onsi/ginkgo"
@@ -42,7 +41,6 @@ var _ = Describe("Worker", func() {
 		workerVersion              string
 		fakeGardenClient           *gardenfakes.FakeClient
 		fakeBaggageClaimClient     *baggageclaimfakes.FakeClient
-		fakeReaperClient           *reaperfakes.FakeReaperClient
 	)
 
 	BeforeEach(func() {
@@ -71,7 +69,6 @@ var _ = Describe("Worker", func() {
 		fakeContainerProvider = new(wfakes.FakeContainerProvider)
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		fakeBaggageClaimClient = new(baggageclaimfakes.FakeClient)
-		fakeReaperClient = new(reaperfakes.FakeReaperClient)
 	})
 
 	JustBeforeEach(func() {
@@ -88,7 +85,6 @@ var _ = Describe("Worker", func() {
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
 			fakeBaggageClaimClient,
-			fakeReaperClient,
 			fakeContainerProvider,
 			fakeVolumeClient,
 			dbWorker,
