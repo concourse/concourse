@@ -160,7 +160,6 @@ var _ = Describe("Heartbeater", func() {
 				interval,
 				cprInterval,
 				fakeGardenClient,
-				fakereaperClient,
 				fakeBaggageclaimClient,
 				atcEndpointPicker,
 				fakeTokenGenerator,

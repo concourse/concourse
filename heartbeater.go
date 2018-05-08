@@ -15,7 +15,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim"
-	rclient "github.com/concourse/worker/reaper"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
@@ -34,7 +33,6 @@ type heartbeater struct {
 
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
-	reaperClient       rclient.ReaperClient
 
 	atcEndpointPicker EndpointPicker
 	tokenGenerator    TokenGenerator
@@ -49,7 +47,6 @@ func NewHeartbeater(
 	interval time.Duration,
 	cprInterval time.Duration,
 	gardenClient garden.Client,
-	rClient rclient.ReaperClient,
 	baggageclaimClient baggageclaim.Client,
 	atcEndpointPicker EndpointPicker,
 	tokenGenerator TokenGenerator,
@@ -65,7 +62,6 @@ func NewHeartbeater(
 
 		gardenClient:       gardenClient,
 		baggageclaimClient: baggageclaimClient,
-		reaperClient:       rClient,
 
 		atcEndpointPicker: atcEndpointPicker,
 		tokenGenerator:    tokenGenerator,
@@ -273,15 +269,6 @@ func (heartbeater *heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 
 	afterGarden := time.Now()
 
-	beforeReaper := time.Now()
-
-	err = heartbeater.reaperClient.Ping()
-	if err != nil {
-		logger.Error("failed-to-ping-reaper", err)
-		healthy = false
-	}
-	afterReaper := time.Now()
-
 	beforeBaggageclaim := time.Now()
 
 	volumes, err := heartbeater.baggageclaimClient.ListVolumes(logger.Session("list-volumes"), nil)
@@ -295,7 +282,6 @@ func (heartbeater *heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 	durationData := lager.Data{
 		"garden-took":       afterGarden.Sub(beforeGarden).String(),
 		"baggageclaim-took": afterBaggageclaim.Sub(beforeBaggageclaim).String(),
-		"reaper-took":       afterReaper.Sub(beforeReaper).String(),
 	}
 
 	if healthy {

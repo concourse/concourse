@@ -19,12 +19,11 @@ import (
 	"github.com/concourse/atc"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/tsa"
-	rclient "github.com/concourse/worker/reaper"
 	"github.com/tedsuo/ifrit"
 	"golang.org/x/crypto/ssh"
 )
 
-const maxForwards = 3
+const maxForwards = 2
 
 type registrarSSHServer struct {
 	logger            lager.Logger
@@ -325,7 +324,6 @@ func (server *registrarSSHServer) handleChannel(
 						channel,
 						gardenForward.boundPort,
 						0,
-						0,
 						sessionID,
 					)
 					if err != nil {
@@ -356,40 +354,6 @@ func (server *registrarSSHServer) handleChannel(
 					channel,
 					gardenForward.boundPort,
 					baggageclaimForward.boundPort,
-					0,
-					sessionID,
-				)
-				if err != nil {
-					logger.Error("failed-to-register", err)
-					return
-				}
-				watchForProcessToExit(logger, process, channel)
-				processes = append(processes, process)
-			case 3:
-				gardenForward, found := forwards[r.gardenAddr]
-				if !found {
-					fmt.Fprintf(channel, "garden address %s not found in forwards\n", r.gardenAddr)
-					return
-				}
-
-				baggageclaimForward, found := forwards[r.baggageclaimAddr]
-				if !found {
-					fmt.Fprintf(channel, "baggageclaim address %s not found in forwards\n", r.gardenAddr)
-					return
-				}
-
-				reaperForward, found := forwards[r.reaperAddr]
-				if !found {
-					fmt.Fprintf(channel, "reaper address %s not found in forwards\n", r.reaperAddr)
-					return
-				}
-
-				process, err := server.continuouslyRegisterForwardedWorker(
-					logger,
-					channel,
-					gardenForward.boundPort,
-					baggageclaimForward.boundPort,
-					reaperForward.boundPort,
 					sessionID,
 				)
 				if err != nil {
@@ -564,7 +528,6 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 	channel ssh.Channel,
 	gardenPort uint32,
 	baggageclaimPort uint32,
-	reaperPort uint32,
 	sessionID string,
 ) (ifrit.Process, error) {
 	logger.Info("start")
@@ -587,10 +550,6 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", server.forwardHost, baggageclaimPort)
 	}
 
-	if reaperPort != 0 {
-		worker.ReaperAddr = fmt.Sprintf("http://%s:%d", server.forwardHost, reaperPort)
-	}
-
 	return server.heartbeatWorker(logger, worker, channel), nil
 }
 
@@ -601,7 +560,6 @@ func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker at
 		server.heartbeatInterval,
 		server.cprInterval,
 		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.GardenAddr), logger.Session("garden-connection"))),
-		rclient.NewClient(worker.ReaperAddr, logger.Session("reaper-connection")),
 		bclient.NewWithHTTPClient(worker.BaggageclaimURL, &http.Client{
 			Transport: &http.Transport{
 				DisableKeepAlives:     true,
