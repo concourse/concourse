@@ -1,5 +1,5 @@
 BEGIN;
 
-  ALTER TABLE workers ADD COLUMN reaper_addr DEFAULT ''::text;
+  ALTER TABLE workers ADD reaper_addr text DEFAULT '';
 
 COMMIT;
