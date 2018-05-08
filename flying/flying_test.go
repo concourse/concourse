@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"syscall"
+	"time"
 
 	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/helpers"
@@ -352,6 +353,8 @@ echo hello > output-1/file-1
 			gitServer.CommitResourceWithFile("task.yml", "run")
 
 			watch := flyHelper.CheckResource("-r", "some-pipeline/git-repo")
+			// TODO: have wait until gitserver garden container sets up git repo. Is there a better way to make sure the input gets version before test runs?
+			time.Sleep(60 * time.Second)
 			<-watch.Exited
 		})
 
@@ -416,6 +419,7 @@ echo hello > output-1/file-1
 			gitServer.CommitResourceWithFile("task.yml", "run")
 
 			watch := flyHelper.CheckResource("-r", "some-pipeline/git-repo")
+			time.Sleep(60 * time.Second)
 			<-watch.Exited
 		})
 
