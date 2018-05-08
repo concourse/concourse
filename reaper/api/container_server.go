@@ -119,6 +119,7 @@ func (containerServer *ContainerServer) DestroyContainers(w http.ResponseWriter,
 
 	hLog.Info("successfully-destroyed-containers", lager.Data{"num-handles": len(containerHandles)})
 	w.WriteHeader(http.StatusNoContent)
+	return
 }
 
 type ErrorResponse struct {

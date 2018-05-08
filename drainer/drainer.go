@@ -82,9 +82,9 @@ func (d *Drainer) Drain(logger lager.Logger) error {
 					logger.Debug(err.Error())
 					return nil
 				}
-
 				logger.Error("failed-to-land-worker", err)
 			}
+
 			logger.Info("finished-landing-worker")
 		}
 		d.Clock.Sleep(d.WaitInterval)

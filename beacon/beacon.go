@@ -256,13 +256,13 @@ func (beacon *Beacon) runReport(command string) error {
 	go func() {
 		var err error
 
-		var reaperAddr = beacon.ReaperAddr
+		var beaconReaperAddr = beacon.ReaperAddr
 
-		if reaperAddr == "" {
-			reaperAddr = fmt.Sprintf("http://" + reaperAddr)
+		if beaconReaperAddr == "" {
+			beaconReaperAddr = fmt.Sprintf("http://" + reaperAddr)
 		}
 
-		rClient := reaper.NewClient(reaperAddr, beacon.Logger.Session("reaper-client"))
+		rClient := reaper.NewClient(beaconReaperAddr, beacon.Logger.Session("reaper-client"))
 
 		cHandles, err := rClient.ListHandles()
 		if err != nil {
@@ -348,13 +348,13 @@ func (beacon *Beacon) runSweep(command string) error {
 
 		beacon.Logger.Debug("received-handles-to-destroy", lager.Data{"num-handles": len(handles)})
 
-		var reaperAddr = beacon.ReaperAddr
+		var beaconReaperAddr = beacon.ReaperAddr
 
-		if reaperAddr == "" {
-			reaperAddr = fmt.Sprintf("http://" + reaperAddr)
+		if beaconReaperAddr == "" {
+			beaconReaperAddr = fmt.Sprintf("http://" + reaperAddr)
 		}
 
-		rClient := reaper.NewClient(reaperAddr, beacon.Logger.Session("reaper-client"))
+		rClient := reaper.NewClient(beaconReaperAddr, beacon.Logger.Session("reaper-client"))
 
 		err = rClient.DestroyContainers(handles)
 		if err != nil {

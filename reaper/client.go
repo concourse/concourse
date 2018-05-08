@@ -20,10 +20,9 @@ type Client interface {
 }
 
 type client struct {
-	requestGenerator   *rata.RequestGenerator
-	givenHTTPClient    *http.Client
-	logger             lager.Logger
-	nestedRoundTripper http.RoundTripper
+	requestGenerator *rata.RequestGenerator
+	givenHTTPClient  *http.Client
+	logger           lager.Logger
 }
 
 // NewClient provides a new ReaperClient based on provided URL
@@ -32,19 +31,12 @@ func NewClient(apiURL string, logger lager.Logger) Client {
 		requestGenerator: rata.NewRequestGenerator(apiURL, api.Routes),
 		givenHTTPClient: &http.Client{
 			Transport: &http.Transport{
-				DisableKeepAlives:     true,
-				ResponseHeaderTimeout: 1 * time.Minute,
+				DisableKeepAlives:     false,
+				ResponseHeaderTimeout: 20 * time.Second,
+				MaxIdleConns:          200,
 			},
 		},
 		logger: logger,
-	}
-}
-
-func New(apiURL string, nestedRoundTripper http.RoundTripper, logger lager.Logger) Client {
-	return &client{
-		requestGenerator:   rata.NewRequestGenerator(apiURL, api.Routes),
-		nestedRoundTripper: nestedRoundTripper,
-		logger:             logger.Session("reaper-client"),
 	}
 }
 
@@ -52,9 +44,7 @@ func (c *client) httpClient(logger lager.Logger) *http.Client {
 	if c.givenHTTPClient != nil {
 		return c.givenHTTPClient
 	}
-	return &http.Client{
-		Transport: c.nestedRoundTripper,
-	}
+	return http.DefaultClient
 }
 
 func (c *client) ListHandles() ([]string, error) {
