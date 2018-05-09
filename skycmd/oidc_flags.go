@@ -77,8 +77,8 @@ func (self *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OIDCTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of OIDC users" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of OIDC groups" value-name:"GROUP_NAME"`
+	Users  []string `json:"users" long:"user" description:"List of whitelisted OIDC users" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"List of whitelisted OIDC groups" value-name:"GROUP_NAME"`
 }
 
 func (self *OIDCTeamFlags) IsValid() bool {

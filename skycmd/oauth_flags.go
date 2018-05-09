@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/flag"
 	"github.com/coreos/dex/connector/oauth"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 func init() {
@@ -85,8 +85,8 @@ func (self *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OAuthTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of OAuth users" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of OAuth groups" value-name:"GROUP_NAME"`
+	Users  []string `json:"users" long:"user" description:"List of whitelisted OAuth2 users" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"List of whitelisted OAuth2 groups" value-name:"GROUP_NAME"`
 }
 
 func (self *OAuthTeamFlags) IsValid() bool {

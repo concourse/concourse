@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/coreos/dex/connector/github"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 func init() {
@@ -52,8 +52,8 @@ func (self *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GithubTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of github users" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of github groups (e.g. my-org or my-org:my-team)" value-name:"ORG_NAME:TEAM_NAME"`
+	Users  []string `json:"users" long:"user" description:"List of whitelisted GitHub users" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"List of whitelisted GitHub groups (e.g. my-org or my-org:my-team)" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
 func (self *GithubTeamFlags) IsValid() bool {

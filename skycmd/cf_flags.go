@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/flag"
 	"github.com/coreos/dex/connector/cf"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 func init() {
@@ -68,8 +68,8 @@ func (self *CFFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type CFTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of cf users" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of cf groups (e.g. my-org or my-org:my-space)" value-name:"ORG_NAME:SPACE_NAME"`
+	Users  []string `json:"users" long:"user" description:"List of whitelisted CloudFoundry users." value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"List of whitelisted CloudFoundry groups (e.g. my-org or my-org:my-space)" value-name:"ORG_NAME:SPACE_NAME"`
 }
 
 func (self *CFTeamFlags) IsValid() bool {

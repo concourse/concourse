@@ -37,15 +37,15 @@ func WireTeamConnectors(group *flags.Group) {
 }
 
 type AuthFlags struct {
-	SecureCookies bool              `long:"secure-cookies" description:"Set secure flag on http cookies"`
+	SecureCookies bool              `long:"secure-cookies" description:"Force sending secure flag on http cookies"`
 	Expiration    time.Duration     `long:"expiration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 	SigningKey    flag.PrivateKey   `long:"signing-key" description:"File containing an RSA private key, used to sign auth tokens."`
-	LocalUsers    map[string]string `group:"Authentication (Local Users)" long:"add-local-user" value-name:"USERNAME:PASSWORD"`
+	LocalUsers    map[string]string `long:"add-local-user" description:"List of username:password combinations for all your local concourse users." value-name:"USERNAME:PASSWORD"`
 }
 
 type AuthTeamFlags struct {
-	LocalUsers []string `json:"users" long:"local-user" description:"List of local concourse users" value-name:"USERNAME"`
-	NoAuth     bool     `long:"no-really-i-dont-want-any-auth" description:"Flag to disable any authorization"`
+	LocalUsers    []string `long:"local-user" description:"List of whitelisted local concourse users. These are the users you've added at atc startup with the --add-local-user flag." value-name:"USERNAME"`
+	AllowAllUsers bool     `long:"allow-all-users" description:"Setting this flag will whitelist all logged in users in the system. ALL OF THEM. If, for example, you've configured GitHub, any user with a GitHub account will have access to your team."`
 }
 
 func (self *AuthTeamFlags) Format() (map[string][]string, error) {
@@ -71,8 +71,8 @@ func (self *AuthTeamFlags) Format() (map[string][]string, error) {
 		users = append(users, "local:"+strings.ToLower(user))
 	}
 
-	if len(users) == 0 && len(groups) == 0 && !self.NoAuth {
-		return nil, errors.New("Must configure auth")
+	if len(users) == 0 && len(groups) == 0 && !self.AllowAllUsers {
+		return nil, errors.New("No auth methods have been configured.")
 	}
 
 	return map[string][]string{

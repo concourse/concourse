@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/flag"
 	"github.com/coreos/dex/connector/ldap"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 func init() {
@@ -107,8 +107,8 @@ func (self *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type LDAPTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of ldap users" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of ldap groups" value-name:"GROUP_NAME"`
+	Users  []string `json:"users" long:"user" description:"List of whitelisted LDAP users" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"List of whitelisted LDAP groups" value-name:"GROUP_NAME"`
 }
 
 func (self *LDAPTeamFlags) IsValid() bool {
