@@ -41,7 +41,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	auth, err := command.AuthFlags.Format()
 	if err != nil {
-		command.ErrorNoAuth()
+		command.ErrorAuthNotConfigured()
 	}
 
 	fmt.Println("Team Name:", command.TeamName)
@@ -65,7 +65,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 
 	if len(auth["users"]) == 0 && len(auth["groups"]) == 0 {
-		command.WarnNoAuth()
+		command.WarnAllowAllUsers()
 	}
 
 	confirm := true
@@ -97,19 +97,19 @@ func (command *SetTeamCommand) Execute([]string) error {
 	return nil
 }
 
-func (command *SetTeamCommand) ErrorNoAuth() {
-	fmt.Fprintln(ui.Stderr, "no auth methods configured! to continue, run:")
+func (command *SetTeamCommand) ErrorAuthNotConfigured() {
+	fmt.Fprintln(ui.Stderr, "You have not provided a whitelist of users or groups. To continue run:")
 	fmt.Fprintln(ui.Stderr, "")
-	fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
+	fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --allow-all-users", Fly.Target, command.TeamName))
 	fmt.Fprintln(ui.Stderr, "")
-	fmt.Fprintln(ui.Stderr, "this will leave the team open to anyone to mess with!")
+	fmt.Fprintln(ui.Stderr, "This will allow team access to all logged in users in the system.")
 	os.Exit(1)
 }
 
-func (command *SetTeamCommand) WarnNoAuth() {
-	if command.AuthFlags.NoAuth {
+func (command *SetTeamCommand) WarnAllowAllUsers() {
+	if command.AuthFlags.AllowAllUsers {
 		fmt.Fprintln(ui.Stderr, "")
 		displayhelpers.PrintWarningHeader()
-		fmt.Fprintln(ui.Stderr, ui.WarningColor("no auth methods configured. you asked for it!"))
+		fmt.Fprintln(ui.Stderr, ui.WarningColor("Allowing all logged in users. You asked for it!"))
 	}
 }
