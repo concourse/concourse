@@ -43,7 +43,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeImageFactory            *workerfakes.FakeImageFactory
 		fakeImage                   *workerfakes.FakeImage
 		fakeDBTeam                  *dbfakes.FakeTeam
-		fakeDBVolumeFactory         *dbfakes.FakeVolumeFactory
+		fakeDBVolumeRepository      *dbfakes.FakeVolumeRepository
 		fakeDBResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
 		fakeDBResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeLockFactory             *lockfakes.FakeLockFactory
@@ -103,7 +103,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBTeamFactory := new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
-		fakeDBVolumeFactory = new(dbfakes.FakeVolumeFactory)
+		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
 		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeDBResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
@@ -122,7 +122,7 @@ var _ = Describe("ContainerProvider", func() {
 			fakeDBWorker,
 			fakeClock,
 			fakeImageFactory,
-			fakeDBVolumeFactory,
+			fakeDBVolumeRepository,
 			fakeDBTeamFactory,
 			fakeLockFactory,
 		)
@@ -662,7 +662,7 @@ var _ = Describe("ContainerProvider", func() {
 				fakeContainer = new(gardenfakes.FakeContainer)
 				fakeContainer.HandleReturns("provider-handle")
 
-				fakeDBVolumeFactory.FindVolumesForContainerReturns([]db.CreatedVolume{}, nil)
+				fakeDBVolumeRepository.FindVolumesForContainerReturns([]db.CreatedVolume{}, nil)
 
 				fakeDBTeam.FindCreatedContainerByHandleReturns(fakeCreatedContainer, true, nil)
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
@@ -713,7 +713,7 @@ var _ = Describe("ContainerProvider", func() {
 
 					dbVolume1 := new(dbfakes.FakeCreatedVolume)
 					dbVolume2 := new(dbfakes.FakeCreatedVolume)
-					fakeDBVolumeFactory.FindVolumesForContainerReturns([]db.CreatedVolume{dbVolume1, dbVolume2}, nil)
+					fakeDBVolumeRepository.FindVolumesForContainerReturns([]db.CreatedVolume{dbVolume1, dbVolume2}, nil)
 					dbVolume1.HandleReturns("handle-1")
 					dbVolume2.HandleReturns("handle-2")
 					dbVolume1.PathReturns("/handle-1/path")

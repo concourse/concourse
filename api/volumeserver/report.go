@@ -1,4 +1,4 @@
-package containerserver
+package volumeserver
 
 import (
 	"encoding/json"
@@ -8,12 +8,13 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) {
+// ReportWorkerVolumes provides an API endpoint for workers to report their current volumes
+func (s *Server) ReportWorkerVolumes(w http.ResponseWriter, r *http.Request) {
 
 	workerName := r.URL.Query().Get("worker_name")
 	w.Header().Set("Content-Type", "application/json")
 
-	logger := s.logger.Session("report-containers-for-worker", lager.Data{"name": workerName})
+	logger := s.logger.Session("report-volumes-for-worker", lager.Data{"name": workerName})
 
 	if workerName != "" {
 		data, err := ioutil.ReadAll(r.Body)
@@ -35,7 +36,7 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 			"handles": handles,
 		})
 
-		err = s.destroyer.DestroyContainers(workerName, handles)
+		err = s.destroyer.DestroyVolumes(workerName, handles)
 		if err != nil {
 			logger.Error("failed-to-destroy-containers", err)
 			w.WriteHeader(http.StatusInternalServerError)

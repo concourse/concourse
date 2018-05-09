@@ -1,7 +1,9 @@
 package api_test
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -63,7 +65,7 @@ var _ = Describe("Volumes API", func() {
 				})
 
 				It("asks the factory for the volumes", func() {
-					Expect(fakeVolumeFactory.GetTeamVolumesCallCount()).To(Equal(1))
+					Expect(fakeVolumeRepository.GetTeamVolumesCallCount()).To(Equal(1))
 				})
 
 				Context("when getting all volumes succeeds", func() {
@@ -71,7 +73,7 @@ var _ = Describe("Volumes API", func() {
 						someOtherFakeWorker := new(dbfakes.FakeWorker)
 						someOtherFakeWorker.NameReturns("some-other-worker")
 
-						fakeVolumeFactory.GetTeamVolumesStub = func(teamID int) ([]db.CreatedVolume, error) {
+						fakeVolumeRepository.GetTeamVolumesStub = func(teamID int) ([]db.CreatedVolume, error) {
 							if teamID != 1 {
 								return []db.CreatedVolume{}, nil
 							}
@@ -225,7 +227,7 @@ var _ = Describe("Volumes API", func() {
 
 				Context("when getting all volumes fails", func() {
 					BeforeEach(func() {
-						fakeVolumeFactory.GetTeamVolumesReturns([]db.CreatedVolume{}, errors.New("oh no!"))
+						fakeVolumeRepository.GetTeamVolumesReturns([]db.CreatedVolume{}, errors.New("oh no!"))
 					})
 
 					It("returns 500 Internal Server Error", func() {
@@ -235,7 +237,7 @@ var _ = Describe("Volumes API", func() {
 
 				Context("when a volume is deleted during the request", func() {
 					BeforeEach(func() {
-						fakeVolumeFactory.GetTeamVolumesStub = func(teamID int) ([]db.CreatedVolume, error) {
+						fakeVolumeRepository.GetTeamVolumesStub = func(teamID int) ([]db.CreatedVolume, error) {
 							volume1 := new(dbfakes.FakeCreatedVolume)
 							volume1.ResourceTypeReturns(nil, errors.New("Something"))
 
@@ -332,13 +334,13 @@ var _ = Describe("Volumes API", func() {
 				})
 
 				It("asks the factory for the detroying volumes", func() {
-					Expect(fakeVolumeFactory.GetDestroyingVolumesCallCount()).To(Equal(1))
-					Expect(fakeVolumeFactory.GetDestroyingVolumesArgsForCall(0)).To(Equal("some-worker-name"))
+					Expect(fakeVolumeRepository.GetDestroyingVolumesCallCount()).To(Equal(1))
+					Expect(fakeVolumeRepository.GetDestroyingVolumesArgsForCall(0)).To(Equal("some-worker-name"))
 				})
 
 				Context("when getting all destroying volumes succeeds", func() {
 					BeforeEach(func() {
-						fakeVolumeFactory.GetDestroyingVolumesReturns([]string{
+						fakeVolumeRepository.GetDestroyingVolumesReturns([]string{
 							"volume1",
 							"volume2",
 						}, nil)
@@ -361,7 +363,7 @@ var _ = Describe("Volumes API", func() {
 
 					Context("when getting all volumes fails", func() {
 						BeforeEach(func() {
-							fakeVolumeFactory.GetDestroyingVolumesReturns([]string{}, errors.New("oh no!"))
+							fakeVolumeRepository.GetDestroyingVolumesReturns([]string{}, errors.New("oh no!"))
 						})
 
 						It("returns 500 Internal Server Error", func() {
@@ -371,7 +373,7 @@ var _ = Describe("Volumes API", func() {
 
 					Context("when list of volume is empty", func() {
 						BeforeEach(func() {
-							fakeVolumeFactory.GetDestroyingVolumesReturns([]string{}, nil)
+							fakeVolumeRepository.GetDestroyingVolumesReturns([]string{}, nil)
 						})
 
 						It("returns empty list of volumes", func() {
@@ -390,6 +392,117 @@ var _ = Describe("Volumes API", func() {
 			Context("when worker name is not in params", func() {
 				It("returns 404 Not found", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+		})
+	})
+
+	Describe("GET /api/v1/volumes/report", func() {
+		var response *http.Response
+		var req *http.Request
+		var body io.Reader
+		var err error
+
+		BeforeEach(func() {
+			body = bytes.NewBufferString(`
+				[
+					"handle1",
+					"handle2"
+				]
+			`)
+		})
+		JustBeforeEach(func() {
+			fakeAccessor.CreateReturns(fakeaccess)
+			req, err = http.NewRequest("PUT", server.URL+"/api/v1/volumes/report", body)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				response, err = client.Do(req)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated as system", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsSystemReturns(true)
+			})
+
+			Context("with no params", func() {
+				It("returns 404", func() {
+					response, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeDestroyer.DestroyVolumesCallCount()).To(Equal(0))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+
+				It("returns Content-Type application/json", func() {
+					response, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+			})
+
+			Context("querying with worker name", func() {
+				JustBeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"worker_name": []string{"some-worker-name"},
+					}.Encode()
+				})
+
+				Context("with invalid json", func() {
+					BeforeEach(func() {
+						body = bytes.NewBufferString(`{}`)
+					})
+
+					It("returns 400", func() {
+						response, err = client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				Context("when there is an error", func() {
+					BeforeEach(func() {
+						fakeDestroyer.DestroyVolumesReturns(errors.New("some error"))
+					})
+
+					It("returns 500", func() {
+						response, err = client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when volumes are destroyed", func() {
+					BeforeEach(func() {
+						fakeDestroyer.DestroyVolumesReturns(nil)
+					})
+
+					It("returns 204", func() {
+						response, err = client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+					})
+				})
+
+				It("queries with it in the worker name", func() {
+					_, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeDestroyer.DestroyVolumesCallCount()).To(Equal(1))
+
+					workerName, handles := fakeDestroyer.DestroyVolumesArgsForCall(0)
+					Expect(workerName).To(Equal("some-worker-name"))
+					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
 				})
 			})
 		})

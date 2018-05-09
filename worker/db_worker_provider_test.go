@@ -46,7 +46,7 @@ var _ = Describe("DBProvider", func() {
 
 		fakeImageFactory                    *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
-		fakeDBVolumeFactory                 *dbfakes.FakeVolumeFactory
+		fakeDBVolumeRepository              *dbfakes.FakeVolumeRepository
 		fakeDBWorkerFactory                 *dbfakes.FakeWorkerFactory
 		fakeDBTeamFactory                   *dbfakes.FakeTeamFactory
 		fakeDBWorkerBaseResourceTypeFactory *dbfakes.FakeWorkerBaseResourceTypeFactory
@@ -140,7 +140,7 @@ var _ = Describe("DBProvider", func() {
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
-		fakeDBVolumeFactory = new(dbfakes.FakeVolumeFactory)
+		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
 
 		fakeBackOffFactory := new(retryhttpfakes.FakeBackOffFactory)
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
@@ -167,7 +167,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDBResourceConfigFactory,
 			fakeDBWorkerBaseResourceTypeFactory,
 			fakeDBWorkerTaskCacheFactory,
-			fakeDBVolumeFactory,
+			fakeDBVolumeRepository,
 			fakeDBTeamFactory,
 			fakeDBWorkerFactory,
 			&wantWorkerVersion,
@@ -441,8 +441,8 @@ var _ = Describe("DBProvider", func() {
 					createdVolume := new(dbfakes.FakeCreatedVolume)
 					createdVolume.HandleReturns("vol-handle")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
-					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
+					fakeDBVolumeRepository.FindContainerVolumeReturns(nil, createdVolume, nil)
+					fakeDBVolumeRepository.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 
 					fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 					fakeCreatingContainer.HandleReturns("some-handle")

@@ -393,9 +393,9 @@ func (cmd *ATCCommand) constructMembers(
 	bus := dbConn.Bus()
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory)
-	dbVolumeFactory := db.NewVolumeFactory(dbConn)
+	dbVolumeRepository := db.NewVolumeRepository(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
-	gcContainerDestroyer := gc.NewContainerDestroyer(logger, dbContainerRepository)
+	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
@@ -424,7 +424,7 @@ func (cmd *ATCCommand) constructMembers(
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
 		dbWorkerTaskCacheFactory,
-		dbVolumeFactory,
+		dbVolumeRepository,
 		teamFactory,
 		dbWorkerFactory,
 		workerVersion,
@@ -494,7 +494,7 @@ func (cmd *ATCCommand) constructMembers(
 		dbPipelineFactory,
 		dbJobFactory,
 		dbWorkerFactory,
-		dbVolumeFactory,
+		dbVolumeRepository,
 		dbContainerRepository,
 		gcContainerDestroyer,
 		dbBuildFactory,
@@ -612,7 +612,7 @@ func (cmd *ATCCommand) constructMembers(
 				gc.NewResourceConfigCollector(dbResourceConfigFactory),
 				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 				gc.NewVolumeCollector(
-					dbVolumeFactory,
+					dbVolumeRepository,
 					gc.NewWorkerJobRunner(
 						logger.Session("volume-collector-worker-job-runner"),
 						workerClient,
@@ -1111,9 +1111,9 @@ func (cmd *ATCCommand) constructAPIHandler(
 	dbPipelineFactory db.PipelineFactory,
 	dbJobFactory db.JobFactory,
 	dbWorkerFactory db.WorkerFactory,
-	dbVolumeFactory db.VolumeFactory,
+	dbVolumeRepository db.VolumeRepository,
 	dbContainerRepository db.ContainerRepository,
-	gcContainerDestroyer gc.ContainerDestroyer,
+	gcContainerDestroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
 	signingKey *rsa.PrivateKey,
 	engine engine.Engine,
@@ -1152,7 +1152,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		dbPipelineFactory,
 		dbJobFactory,
 		dbWorkerFactory,
-		dbVolumeFactory,
+		dbVolumeRepository,
 		dbContainerRepository,
 		gcContainerDestroyer,
 		dbBuildFactory,

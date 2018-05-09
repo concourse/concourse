@@ -1013,7 +1013,7 @@ var _ = Describe("Containers API", func() {
 				It("returns 404", func() {
 					response, err = client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(fakeContainerDestroyer.DestroyCallCount()).To(Equal(0))
+					Expect(fakeDestroyer.DestroyContainersCallCount()).To(Equal(0))
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 
@@ -1046,7 +1046,7 @@ var _ = Describe("Containers API", func() {
 
 				Context("when there is an error", func() {
 					BeforeEach(func() {
-						fakeContainerDestroyer.DestroyReturns(errors.New("some error"))
+						fakeDestroyer.DestroyContainersReturns(errors.New("some error"))
 					})
 
 					It("returns 500", func() {
@@ -1058,7 +1058,7 @@ var _ = Describe("Containers API", func() {
 
 				Context("when containers are destroyed", func() {
 					BeforeEach(func() {
-						fakeContainerDestroyer.DestroyReturns(nil)
+						fakeDestroyer.DestroyContainersReturns(nil)
 					})
 
 					It("returns 204", func() {
@@ -1071,9 +1071,9 @@ var _ = Describe("Containers API", func() {
 				It("queries with it in the worker name", func() {
 					_, err = client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(fakeContainerDestroyer.DestroyCallCount()).To(Equal(1))
+					Expect(fakeDestroyer.DestroyContainersCallCount()).To(Equal(1))
 
-					workerName, handles := fakeContainerDestroyer.DestroyArgsForCall(0)
+					workerName, handles := fakeDestroyer.DestroyContainersArgsForCall(0)
 					Expect(workerName).To(Equal("some-worker-name"))
 					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
 				})

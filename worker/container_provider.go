@@ -27,7 +27,7 @@ func NewContainerProvider(
 	clock clock.Clock,
 	//TODO: less of all this junk..
 	imageFactory ImageFactory,
-	dbVolumeFactory db.VolumeFactory,
+	dbVolumeRepository db.VolumeRepository,
 	dbTeamFactory db.TeamFactory,
 	lockFactory lock.LockFactory,
 ) ContainerProvider {
@@ -36,16 +36,16 @@ func NewContainerProvider(
 		gardenClient:       gardenClient,
 		baggageclaimClient: baggageclaimClient,
 		// reaperClient:       reaperClient,
-		volumeClient:    volumeClient,
-		imageFactory:    imageFactory,
-		dbVolumeFactory: dbVolumeFactory,
-		dbTeamFactory:   dbTeamFactory,
-		lockFactory:     lockFactory,
-		httpProxyURL:    dbWorker.HTTPProxyURL(),
-		httpsProxyURL:   dbWorker.HTTPSProxyURL(),
-		noProxy:         dbWorker.NoProxy(),
-		clock:           clock,
-		worker:          dbWorker,
+		volumeClient:       volumeClient,
+		imageFactory:       imageFactory,
+		dbVolumeRepository: dbVolumeRepository,
+		dbTeamFactory:      dbTeamFactory,
+		lockFactory:        lockFactory,
+		httpProxyURL:       dbWorker.HTTPProxyURL(),
+		httpsProxyURL:      dbWorker.HTTPSProxyURL(),
+		noProxy:            dbWorker.NoProxy(),
+		clock:              clock,
+		worker:             dbWorker,
 	}
 }
 
@@ -73,10 +73,10 @@ type containerProvider struct {
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
 	// reaperClient       reaper.ReaperClient
-	volumeClient    VolumeClient
-	imageFactory    ImageFactory
-	dbVolumeFactory db.VolumeFactory
-	dbTeamFactory   db.TeamFactory
+	volumeClient       VolumeClient
+	imageFactory       ImageFactory
+	dbVolumeRepository db.VolumeRepository
+	dbTeamFactory      db.TeamFactory
 
 	lockFactory lock.LockFactory
 
@@ -277,7 +277,7 @@ func (p *containerProvider) FindCreatedContainerByHandle(
 		return nil, false, nil
 	}
 
-	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
+	createdVolumes, err := p.dbVolumeRepository.FindVolumesForContainer(createdContainer)
 	if err != nil {
 		return nil, false, err
 	}
@@ -305,7 +305,7 @@ func (p *containerProvider) constructGardenWorkerContainer(
 	createdContainer db.CreatedContainer,
 	gardenContainer garden.Container,
 ) (Container, error) {
-	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
+	createdVolumes, err := p.dbVolumeRepository.FindVolumesForContainer(createdContainer)
 	if err != nil {
 		logger.Error("failed-to-find-container-volumes", err)
 		return nil, err

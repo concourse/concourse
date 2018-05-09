@@ -15,7 +15,7 @@ type Server struct {
 	variablesFactory        creds.VariablesFactory
 	interceptTimeoutFactory InterceptTimeoutFactory
 	containerRepository     db.ContainerRepository
-	containerDestroyer      gc.ContainerDestroyer
+	destroyer               gc.Destroyer
 }
 
 func NewServer(
@@ -24,7 +24,7 @@ func NewServer(
 	variablesFactory creds.VariablesFactory,
 	interceptTimeoutFactory InterceptTimeoutFactory,
 	containerRepository db.ContainerRepository,
-	containerDestroyer gc.ContainerDestroyer,
+	destroyer gc.Destroyer,
 ) *Server {
 	return &Server{
 		logger:                  logger,
@@ -32,6 +32,6 @@ func NewServer(
 		variablesFactory:        variablesFactory,
 		interceptTimeoutFactory: interceptTimeoutFactory,
 		containerRepository:     containerRepository,
-		containerDestroyer:      containerDestroyer,
+		destroyer:               destroyer,
 	}
 }

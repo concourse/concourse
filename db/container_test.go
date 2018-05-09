@@ -58,13 +58,13 @@ var _ = Describe("Container", func() {
 
 			Describe("Volumes", func() {
 				BeforeEach(func() {
-					creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
+					creatingVolume1, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
 					Expect(err).NotTo(HaveOccurred())
 					_, err = creatingVolume1.Created()
 					Expect(err).NotTo(HaveOccurred())
 					expectedHandles = append(expectedHandles, creatingVolume1.Handle())
 
-					creatingVolume2, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-2")
+					creatingVolume2, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-2")
 					Expect(err).NotTo(HaveOccurred())
 					_, err = creatingVolume2.Created()
 					Expect(err).NotTo(HaveOccurred())
@@ -75,7 +75,7 @@ var _ = Describe("Container", func() {
 				})
 
 				It("returns created container volumes", func() {
-					volumes, err := volumeFactory.FindVolumesForContainer(createdContainer)
+					volumes, err := volumeRepository.FindVolumesForContainer(createdContainer)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(volumes).To(HaveLen(2))
 					Expect([]string{volumes[0].Handle(), volumes[1].Handle()}).To(ConsistOf(expectedHandles))

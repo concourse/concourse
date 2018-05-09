@@ -172,6 +172,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.PruneWorker:              checkTeamAccessForWorker(inputHandlers[atc.PruneWorker]),
 				atc.LandWorker:               checkTeamAccessForWorker(inputHandlers[atc.LandWorker]),
 				atc.ReportWorkerContainers:   checkTeamAccessForWorker(inputHandlers[atc.ReportWorkerContainers]),
+				atc.ReportWorkerVolumes:      checkTeamAccessForWorker(inputHandlers[atc.ReportWorkerVolumes]),
 				atc.RetireWorker:             checkTeamAccessForWorker(inputHandlers[atc.RetireWorker]),
 				atc.ListDestroyingContainers: checkTeamAccessForWorker(inputHandlers[atc.ListDestroyingContainers]),
 				atc.ListDestroyingVolumes:    checkTeamAccessForWorker(inputHandlers[atc.ListDestroyingVolumes]),

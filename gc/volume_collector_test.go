@@ -2,7 +2,6 @@ package gc_test
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -22,7 +21,7 @@ var _ = Describe("VolumeCollector", func() {
 		volumeCollector gc.Collector
 		fakeJobRunner   *gcfakes.FakeWorkerJobRunner
 
-		volumeFactory      db.VolumeFactory
+		volumeRepository   db.VolumeRepository
 		workerFactory      db.WorkerFactory
 		fakeBCVolume       *baggageclaimfakes.FakeVolume
 		createdVolume      db.CreatedVolume
@@ -31,23 +30,18 @@ var _ = Describe("VolumeCollector", func() {
 		team               db.Team
 		worker             db.Worker
 
-		fakeWorker             *workerfakes.FakeWorker
-		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
+		fakeWorker *workerfakes.FakeWorker
 	)
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		volumeFactory = db.NewVolumeFactory(dbConn)
+		volumeRepository = db.NewVolumeRepository(dbConn)
 		workerFactory = db.NewWorkerFactory(dbConn)
-
-		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
 
 		fakeBCVolume = new(baggageclaimfakes.FakeVolume)
 
 		fakeWorker = new(workerfakes.FakeWorker)
-		fakeBaggageclaimClient.LookupVolumeReturns(fakeBCVolume, true, nil)
-		fakeWorker.BaggageclaimClientReturns(fakeBaggageclaimClient)
 
 		fakeJobRunner = new(gcfakes.FakeWorkerJobRunner)
 		fakeJobRunner.TryStub = func(logger lager.Logger, workerName string, job gc.Job) {
@@ -55,7 +49,7 @@ var _ = Describe("VolumeCollector", func() {
 		}
 
 		volumeCollector = gc.NewVolumeCollector(
-			volumeFactory,
+			volumeRepository,
 			fakeJobRunner,
 		)
 	})
@@ -86,7 +80,7 @@ var _ = Describe("VolumeCollector", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				creatingVolume1, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-1")
+				creatingVolume1, err := volumeRepository.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-1")
 				Expect(err).NotTo(HaveOccurred())
 
 				failedVolume1, err = creatingVolume1.Failed()
@@ -94,14 +88,14 @@ var _ = Describe("VolumeCollector", func() {
 			})
 
 			It("deletes all the failed volumes from the database", func() {
-				failedVolumes, err := volumeFactory.GetFailedVolumes()
+				failedVolumes, err := volumeRepository.GetFailedVolumes()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(failedVolumes).To(HaveLen(1))
 
 				err = volumeCollector.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
-				failedVolumes, err = volumeFactory.GetFailedVolumes()
+				failedVolumes, err = volumeRepository.GetFailedVolumes()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(failedVolumes).To(HaveLen(0))
 			})
@@ -135,15 +129,15 @@ var _ = Describe("VolumeCollector", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				creatingVolume1, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-1")
+				creatingVolume1, err := volumeRepository.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-1")
 				Expect(err).NotTo(HaveOccurred())
 				createdVolume, err = creatingVolume1.Created()
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer2, "some-path-2")
+				_, err = volumeRepository.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer2, "some-path-2")
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingVolume3, err := volumeFactory.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-3")
+				creatingVolume3, err := volumeRepository.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-3")
 				Expect(err).NotTo(HaveOccurred())
 				createdVolume3, err := creatingVolume3.Created()
 				Expect(err).NotTo(HaveOccurred())
@@ -159,8 +153,8 @@ var _ = Describe("VolumeCollector", func() {
 				Expect(destroyed).To(BeTrue())
 			})
 
-			It("deletes created and destroying orphaned volumes", func() {
-				createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+			It("marks created and destroying orphaned volumes", func() {
+				createdVolumes, destoryingVolumes, err := volumeRepository.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdVolumes).To(HaveLen(1))
 				Expect(destoryingVolumes).To(HaveLen(1))
@@ -168,14 +162,10 @@ var _ = Describe("VolumeCollector", func() {
 				err = volumeCollector.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
-				createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
+				createdVolumes, destoryingVolumes, err = volumeRepository.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdVolumes).To(HaveLen(0))
-				Expect(destoryingVolumes).To(HaveLen(0))
-
-				Expect(fakeBaggageclaimClient.DestroyVolumesCallCount()).To(Equal(1))
-				_, destroyVolumes := fakeBaggageclaimClient.DestroyVolumesArgsForCall(0)
-				Expect(destroyVolumes).To(HaveLen(2))
+				Expect(destoryingVolumes).To(HaveLen(2))
 			})
 
 			Context("when destroying the volume in db fails because volume has children", func() {
@@ -185,7 +175,7 @@ var _ = Describe("VolumeCollector", func() {
 				})
 
 				It("leaves the volume in the db", func() {
-					createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+					createdVolumes, destoryingVolumes, err := volumeRepository.GetOrphanedVolumes()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(createdVolumes).To(HaveLen(1))
 					createdVolumeHandle := createdVolumes[0].Handle()
@@ -194,32 +184,11 @@ var _ = Describe("VolumeCollector", func() {
 					err = volumeCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
-					createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
+					createdVolumes, destoryingVolumes, err = volumeRepository.GetOrphanedVolumes()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(createdVolumes).To(HaveLen(1))
-					Expect(destoryingVolumes).To(HaveLen(0))
+					Expect(destoryingVolumes).To(HaveLen(1))
 					Expect(createdVolumes[0].Handle()).To(Equal(createdVolumeHandle))
-				})
-			})
-
-			Context("when destroying the volume in baggageclaim fails", func() {
-				BeforeEach(func() {
-					fakeBaggageclaimClient.DestroyVolumesReturns(errors.New("oh no!"))
-				})
-
-				It("leaves the volume in the db", func() {
-					createdVolumes, destroyingVolumes, err := volumeFactory.GetOrphanedVolumes()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(createdVolumes).To(HaveLen(1))
-					Expect(destroyingVolumes).To(HaveLen(1))
-
-					err = volumeCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
-
-					createdVolumes, destroyingVolumes, err = volumeFactory.GetOrphanedVolumes()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(createdVolumes).To(HaveLen(0))
-					Expect(destroyingVolumes).To(HaveLen(2))
 				})
 			})
 		})

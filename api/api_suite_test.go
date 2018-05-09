@@ -39,9 +39,9 @@ var (
 	fakeEngine              *enginefakes.FakeEngine
 	fakeWorkerClient        *workerfakes.FakeClient
 	fakeWorkerProvider      *workerfakes.FakeWorkerProvider
-	fakeVolumeFactory       *dbfakes.FakeVolumeFactory
+	fakeVolumeRepository    *dbfakes.FakeVolumeRepository
 	fakeContainerRepository *dbfakes.FakeContainerRepository
-	fakeContainerDestroyer  *gcfakes.FakeContainerDestroyer
+	fakeDestroyer           *gcfakes.FakeDestroyer
 	dbTeamFactory           *dbfakes.FakeTeamFactory
 	dbPipelineFactory       *dbfakes.FakePipelineFactory
 	dbJobFactory            *dbfakes.FakeJobFactory
@@ -123,9 +123,9 @@ var _ = BeforeEach(func() {
 	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
 	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
 
-	fakeVolumeFactory = new(dbfakes.FakeVolumeFactory)
+	fakeVolumeRepository = new(dbfakes.FakeVolumeRepository)
 	fakeContainerRepository = new(dbfakes.FakeContainerRepository)
-	fakeContainerDestroyer = new(gcfakes.FakeContainerDestroyer)
+	fakeDestroyer = new(gcfakes.FakeDestroyer)
 
 	fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
 
@@ -172,9 +172,9 @@ var _ = BeforeEach(func() {
 		dbPipelineFactory,
 		dbJobFactory,
 		dbWorkerFactory,
-		fakeVolumeFactory,
+		fakeVolumeRepository,
 		fakeContainerRepository,
-		fakeContainerDestroyer,
+		fakeDestroyer,
 		dbBuildFactory,
 
 		peerURL,

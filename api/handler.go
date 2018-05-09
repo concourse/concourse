@@ -45,9 +45,9 @@ func NewHandler(
 	dbPipelineFactory db.PipelineFactory,
 	dbJobFactory db.JobFactory,
 	dbWorkerFactory db.WorkerFactory,
-	volumeFactory db.VolumeFactory,
+	volumeRepository db.VolumeRepository,
 	containerRepository db.ContainerRepository,
-	containerDestroyer gc.ContainerDestroyer,
+	destroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
 
 	peerURL string,
@@ -92,8 +92,8 @@ func NewHandler(
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory, containerRepository, containerDestroyer)
-	volumesServer := volumeserver.NewServer(logger, volumeFactory)
+	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory, containerRepository, destroyer)
+	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion)
 	legacyServer := legacyserver.NewServer(logger)
@@ -178,6 +178,7 @@ func NewHandler(
 
 		atc.ListVolumes:           teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
 		atc.ListDestroyingVolumes: http.HandlerFunc(volumesServer.ListDestroyingVolumes),
+		atc.ReportWorkerVolumes:   http.HandlerFunc(volumesServer.ReportWorkerVolumes),
 
 		atc.LegacyListAuthMethods: http.HandlerFunc(legacyServer.ListAuthMethods),
 		atc.LegacyGetAuthToken:    http.HandlerFunc(legacyServer.GetAuthToken),
