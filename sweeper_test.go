@@ -48,99 +48,208 @@ var _ = Describe("Sweeper", func() {
 
 		expectedBody := []string{"handle1", "handle2"}
 		data, err = json.Marshal(expectedBody)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred())
 
-		fakeATC.AppendHandlers(ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/api/v1/containers/destroying"),
-			ghttp.VerifyHeaderKV("Authorization", "Bearer yo-team"),
-			ghttp.RespondWith(200, data, nil),
-		))
 	})
 
 	AfterEach(func() {
 		fakeATC.Close()
 	})
 
-	It("tells the ATC to get destroying containers", func() {
-		handles, err := sweeper.Sweep(logger, worker)
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(handles).To(Equal(data))
-		Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+	Context("ResourceAction missing", func() {
+		It("Returns an error", func() {
+			handles, err := sweeper.Sweep(logger, worker, "")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal(tsa.ResourceActionMissing))
+			Expect(handles).To(BeNil())
+		})
 	})
 
-	Context("when the ATC responds with a 403", func() {
+	Context("Containers", func() {
+
 		BeforeEach(func() {
-			fakeATC.Reset()
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/api/v1/containers/destroying"),
-				ghttp.RespondWith(403, nil, nil),
+				ghttp.VerifyHeaderKV("Authorization", "Bearer yo-team"),
+				ghttp.RespondWith(200, data, nil),
 			))
 		})
 
-		It("errors", func() {
-			_, err := sweeper.Sweep(logger, worker)
-			Expect(err).To(HaveOccurred())
+		It("tells the ATC to get destroying containers", func() {
+			handles, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+			Expect(err).NotTo(HaveOccurred())
 
-			Expect(err).To(MatchError(ContainSubstring("403")))
+			Expect(handles).To(Equal(data))
 			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
 		})
+
+		Context("when the ATC responds with a 403", func() {
+			BeforeEach(func() {
+				fakeATC.Reset()
+				fakeATC.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers/destroying"),
+					ghttp.RespondWith(403, nil, nil),
+				))
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				Expect(err).To(HaveOccurred())
+
+				Expect(err).To(MatchError(ContainSubstring("403")))
+				Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
+
+		Context("when the worker name is empty", func() {
+			BeforeEach(func() {
+				worker.Name = ""
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				Expect(err).To(HaveOccurred())
+
+				Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
+				Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
+			})
+		})
+
+		Context("when the system token generator returns an error", func() {
+			BeforeEach(func() {
+				fakeTokenGenerator.GenerateSystemTokenReturns("", errors.New("bblah"))
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				Expect(err).To(HaveOccurred())
+
+				Expect(err).To(MatchError(ContainSubstring("bblah")))
+				Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
+			})
+		})
+
+		Context("when the call to ATC fails", func() {
+			BeforeEach(func() {
+				fakeATC.Close()
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when the ATC responds with non 200", func() {
+			BeforeEach(func() {
+				fakeATC.Reset()
+				fakeATC.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers/destroying"),
+					ghttp.RespondWith(500, nil, nil),
+				))
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				Expect(err).To(HaveOccurred())
+
+				Expect(err).To(MatchError(ContainSubstring("bad-response (500)")))
+				Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
 	})
 
-	Context("when the worker name is empty", func() {
+	Context("Volumes", func() {
+
 		BeforeEach(func() {
-			worker.Name = ""
-		})
-
-		It("errors", func() {
-			_, err := sweeper.Sweep(logger, worker)
-			Expect(err).To(HaveOccurred())
-
-			Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
-			Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
-		})
-	})
-
-	Context("when the system token generator returns an error", func() {
-		BeforeEach(func() {
-			fakeTokenGenerator.GenerateSystemTokenReturns("", errors.New("bblah"))
-		})
-
-		It("errors", func() {
-			_, err := sweeper.Sweep(logger, worker)
-			Expect(err).To(HaveOccurred())
-
-			Expect(err).To(MatchError(ContainSubstring("bblah")))
-			Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
-		})
-	})
-
-	Context("when the call to ATC fails", func() {
-		BeforeEach(func() {
-			fakeATC.Close()
-		})
-
-		It("errors", func() {
-			_, err := sweeper.Sweep(logger, worker)
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("when the ATC responds with non 200", func() {
-		BeforeEach(func() {
-			fakeATC.Reset()
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/api/v1/containers/destroying"),
-				ghttp.RespondWith(500, nil, nil),
+				ghttp.VerifyRequest("GET", "/api/v1/volumes/destroying"),
+				ghttp.VerifyHeaderKV("Authorization", "Bearer yo-team"),
+				ghttp.RespondWith(200, data, nil),
 			))
 		})
 
-		It("errors", func() {
-			_, err := sweeper.Sweep(logger, worker)
-			Expect(err).To(HaveOccurred())
+		It("tells the ATC to get destroying volumes", func() {
+			handles, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+			Expect(err).NotTo(HaveOccurred())
 
-			Expect(err).To(MatchError(ContainSubstring("bad-response (500)")))
+			Expect(handles).To(Equal(data))
 			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
+
+		Context("when the ATC responds with a 403", func() {
+			BeforeEach(func() {
+				fakeATC.Reset()
+				fakeATC.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/volumes/destroying"),
+					ghttp.RespondWith(403, nil, nil),
+				))
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				Expect(err).To(HaveOccurred())
+
+				Expect(err).To(MatchError(ContainSubstring("403")))
+				Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
+
+		Context("when the worker name is empty", func() {
+			BeforeEach(func() {
+				worker.Name = ""
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				Expect(err).To(HaveOccurred())
+
+				Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
+				Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
+			})
+		})
+
+		Context("when the system token generator returns an error", func() {
+			BeforeEach(func() {
+				fakeTokenGenerator.GenerateSystemTokenReturns("", errors.New("bblah"))
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				Expect(err).To(HaveOccurred())
+
+				Expect(err).To(MatchError(ContainSubstring("bblah")))
+				Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
+			})
+		})
+
+		Context("when the call to ATC fails", func() {
+			BeforeEach(func() {
+				fakeATC.Close()
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when the ATC responds with non 200", func() {
+			BeforeEach(func() {
+				fakeATC.Reset()
+				fakeATC.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/volumes/destroying"),
+					ghttp.RespondWith(500, nil, nil),
+				))
+			})
+
+			It("errors", func() {
+				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				Expect(err).To(HaveOccurred())
+
+				Expect(err).To(MatchError(ContainSubstring("bad-response (500)")))
+				Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+			})
 		})
 	})
 })

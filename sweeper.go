@@ -1,6 +1,7 @@
 package tsa
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -14,18 +15,33 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+const (
+	SweepContainers = "sweep-containers"
+	SweepVolumes    = "sweep-volumes"
+)
+
 type Sweeper struct {
 	ATCEndpoint    *rata.RequestGenerator
 	TokenGenerator TokenGenerator
 }
 
-func (l *Sweeper) Sweep(logger lager.Logger, worker atc.Worker) ([]byte, error) {
-	var containerBytes []byte
+func (l *Sweeper) Sweep(logger lager.Logger, worker atc.Worker, resourceAction string) ([]byte, error) {
 	logger.Debug("start")
 	defer logger.Debug("end")
 
-	request, err := l.ATCEndpoint.CreateRequest(atc.ListDestroyingContainers, nil, nil)
-	// TODO: atc request to fetch volumes handles
+	var (
+		containerBytes []byte
+		request        *http.Request
+		err            error
+	)
+	switch resourceAction {
+	case SweepContainers:
+		request, err = l.ATCEndpoint.CreateRequest(atc.ListDestroyingContainers, nil, nil)
+	case SweepVolumes:
+		request, err = l.ATCEndpoint.CreateRequest(atc.ListDestroyingVolumes, nil, nil)
+	default:
+		return nil, errors.New(ResourceActionMissing)
+	}
 
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
@@ -53,7 +69,7 @@ func (l *Sweeper) Sweep(logger lager.Logger, worker atc.Worker) ([]byte, error) 
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		logger.Error("failed-to-collect-containers", err)
+		logger.Error(fmt.Sprintf("failed-to-%s", resourceAction), err)
 		return containerBytes, err
 	}
 
@@ -76,6 +92,6 @@ func (l *Sweeper) Sweep(logger lager.Logger, worker atc.Worker) ([]byte, error) 
 		return containerBytes, fmt.Errorf("bad-repsonse-body (%d): %s", response.StatusCode, err.Error())
 	}
 
-	logger.Info("successfully-sweeped-containers")
+	logger.Info(fmt.Sprintf("successfully-%s", resourceAction))
 	return containerBytes, nil
 }

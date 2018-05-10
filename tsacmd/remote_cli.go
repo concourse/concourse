@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+
+	"github.com/concourse/tsa"
 )
 
 type request interface{}
@@ -17,9 +19,17 @@ type sweepContainerRequest struct{}
 type reportContainerRequest struct {
 	containerHandles []string
 }
+type sweepVolumeRequest struct{}
+type reportVolumeRequest struct {
+	volumeHandles []string
+}
 
 func (r reportContainerRequest) handles() []string {
 	return r.containerHandles
+}
+
+func (v reportVolumeRequest) handles() []string {
+	return v.volumeHandles
 }
 
 type forwardWorkerRequest struct {
@@ -71,11 +81,17 @@ func parseRequest(cli string) (request, error) {
 		return retireWorkerRequest{}, nil
 	case "delete-worker":
 		return deleteWorkerRequest{}, nil
-	case "sweep-containers":
+	case tsa.SweepContainers:
 		return sweepContainerRequest{}, nil
-	case "report-containers":
+	case tsa.ReportContainers:
 		return reportContainerRequest{
 			containerHandles: args,
+		}, nil
+	case tsa.SweepVolumes:
+		return sweepVolumeRequest{}, nil
+	case tsa.ReportVolumes:
+		return reportVolumeRequest{
+			volumeHandles: args,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown command: %s", command)

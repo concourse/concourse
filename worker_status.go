@@ -3,6 +3,7 @@ package tsa
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -15,27 +16,59 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+const (
+	ReportContainers      = "report-containers"
+	ReportVolumes         = "report-volumes"
+	ResourceActionMissing = "resource-type-missing"
+)
+
 type WorkerStatus struct {
 	ATCEndpoint      *rata.RequestGenerator
 	TokenGenerator   TokenGenerator
 	ContainerHandles []string
+	VolumeHandles    []string
 }
 
-func (l *WorkerStatus) WorkerStatus(logger lager.Logger, worker atc.Worker) error {
+func (l *WorkerStatus) WorkerStatus(logger lager.Logger, worker atc.Worker, resourceAction string) error {
+
 	logger.Debug("start")
 	defer logger.Debug("end")
 
-	handlesBytes, err := json.Marshal(l.ContainerHandles)
-	if err != nil {
-		logger.Error("failed-to-encode-request-body", err)
-		return err
-	}
+	var (
+		handlesBytes []byte
+		err          error
+		request      *http.Request
+	)
 
-	request, err := l.ATCEndpoint.CreateRequest(atc.ReportWorkerContainers, nil, bytes.NewBuffer(handlesBytes))
+	switch resourceAction {
+	case ReportContainers:
+		handlesBytes, err = json.Marshal(l.ContainerHandles)
+		if err != nil {
+			logger.Error("failed-to-encode-request-body", err)
+			return err
+		}
 
-	if err != nil {
-		logger.Error("failed-to-construct-request", err)
-		return err
+		request, err = l.ATCEndpoint.CreateRequest(atc.ReportWorkerContainers, nil, bytes.NewBuffer(handlesBytes))
+
+		if err != nil {
+			logger.Error("failed-to-construct-request", err)
+			return err
+		}
+	case ReportVolumes:
+		handlesBytes, err = json.Marshal(l.VolumeHandles)
+		if err != nil {
+			logger.Error("failed-to-encode-request-body", err)
+			return err
+		}
+
+		request, err = l.ATCEndpoint.CreateRequest(atc.ReportWorkerVolumes, nil, bytes.NewBuffer(handlesBytes))
+
+		if err != nil {
+			logger.Error("failed-to-construct-request", err)
+			return err
+		}
+	default:
+		return errors.New(ResourceActionMissing)
 	}
 
 	if worker.Name == "" {
@@ -60,7 +93,7 @@ func (l *WorkerStatus) WorkerStatus(logger lager.Logger, worker atc.Worker) erro
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		logger.Error("failed-to-collect-containers", err)
+		logger.Error(fmt.Sprintf("failed-to-%s", resourceAction), err)
 		return err
 	}
 
@@ -77,6 +110,6 @@ func (l *WorkerStatus) WorkerStatus(logger lager.Logger, worker atc.Worker) erro
 		return fmt.Errorf("bad-response (%d): %s", response.StatusCode, string(b))
 	}
 
-	logger.Info("successfully-sweeped-containers")
+	logger.Info(fmt.Sprintf("successfully-%s", resourceAction))
 	return nil
 }
