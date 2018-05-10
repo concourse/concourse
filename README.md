@@ -38,7 +38,7 @@ Each component has its own repository:
 You can get Concourse up and running on your local machine by following the Contributors guide in [`CONTRIBUTING.md`](https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md)
 
 To learn more about how they fit together, see [Concourse
-Architecture](https://concourse-ci.org/architecture.html).
+Architecture](https://concourse-ci.org/concepts.html).
 
 Please note that Concourse is released with a Contributor Code of Conduct.
 By participating in this project you agree to abide by its terms. You can review
