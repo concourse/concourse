@@ -2,6 +2,7 @@ package dexserver
 
 import (
 	"context"
+	"io/ioutil"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
@@ -11,6 +12,7 @@ import (
 	"github.com/coreos/dex/storage"
 	"github.com/coreos/dex/storage/memory"
 	"github.com/elazarl/go-bindata-assetfs"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -90,6 +92,15 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 		Dir:     assets,
 	}
 
+	var log = &logrus.Logger{
+		Out:       ioutil.Discard,
+		Hooks:     make(logrus.LevelHooks),
+		Formatter: new(logrus.JSONFormatter),
+		Level:     logrus.DebugLevel,
+	}
+
+	log.Hooks.Add(NewLagerHook(config.Logger))
+
 	return server.Config{
 		PasswordConnector:      "local",
 		SupportedResponseTypes: []string{"code", "token", "id_token"},
@@ -97,7 +108,44 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 		Issuer:                 config.IssuerURL,
 		Storage:                store,
 		Web:                    webConfig,
+		Logger:                 log,
 	}
+}
+
+func NewLagerHook(logger lager.Logger) *lagerHook {
+	return &lagerHook{logger}
+}
+
+type lagerHook struct {
+	lager.Logger
+}
+
+func (self *lagerHook) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
+func (self *lagerHook) Fire(entry *logrus.Entry) error {
+	switch entry.Level {
+	case logrus.DebugLevel:
+		self.Logger.Debug("", lager.Data{"message": entry.Message, "fields": entry.Data})
+		break
+	case logrus.InfoLevel:
+		self.Logger.Info("", lager.Data{"message": entry.Message, "fields": entry.Data})
+		break
+	case logrus.WarnLevel:
+		self.Logger.Info("", lager.Data{"message": entry.Message, "fields": entry.Data})
+		break
+	case logrus.ErrorLevel:
+		self.Logger.Error("", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
+		break
+	case logrus.FatalLevel:
+		self.Logger.Fatal("", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
+		break
+	case logrus.PanicLevel:
+		self.Logger.Fatal("", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
+		break
+	}
+	return nil
 }
 
 func newLocalUsers(config *DexConfig) map[string][]byte {

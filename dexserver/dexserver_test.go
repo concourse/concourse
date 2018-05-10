@@ -3,13 +3,14 @@ package dexserver_test
 import (
 	"sort"
 
-	"github.com/coreos/dex/server"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/crypto/bcrypt"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/skymarshal/dexserver"
 	"github.com/concourse/skymarshal/skycmd"
+	"github.com/coreos/dex/server"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var _ = Describe("Dex Server", func() {
@@ -28,6 +29,7 @@ var _ = Describe("Dex Server", func() {
 		Context("static configuration", func() {
 			BeforeEach(func() {
 				config = &dexserver.DexConfig{
+					Logger:    lagertest.NewTestLogger("dex"),
 					IssuerURL: "http://example.com/",
 				}
 			})
@@ -36,12 +38,14 @@ var _ = Describe("Dex Server", func() {
 				Expect(serverConfig.SupportedResponseTypes).To(ConsistOf("code", "token", "id_token"))
 				Expect(serverConfig.SkipApprovalScreen).To(BeTrue())
 				Expect(serverConfig.Issuer).To(Equal(config.IssuerURL))
+				Expect(serverConfig.Logger).NotTo(BeNil())
 			})
 		})
 
 		Context("when local users are configured", func() {
 			BeforeEach(func() {
 				config = &dexserver.DexConfig{
+					Logger: lagertest.NewTestLogger("dex"),
 					Flags: skycmd.AuthFlags{
 						LocalUsers: map[string]string{
 							"some-user-0": "some-password-0",
@@ -84,6 +88,7 @@ var _ = Describe("Dex Server", func() {
 		Context("when clientId and clientSecret are configured", func() {
 			BeforeEach(func() {
 				config = &dexserver.DexConfig{
+					Logger:       lagertest.NewTestLogger("dex"),
 					ClientID:     "some-client-id",
 					ClientSecret: "some-client-secret",
 					RedirectURL:  "http://example.com",

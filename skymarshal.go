@@ -54,7 +54,7 @@ func NewServer(config *Config) (*Server, error) {
 	tokenIssuer := token.NewIssuer(config.TeamFactory, token.NewGenerator(signingKey), config.Flags.Expiration)
 
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
-		Logger:          config.Logger,
+		Logger:          config.Logger.Session("sky"),
 		TokenVerifier:   tokenVerifier,
 		TokenIssuer:     tokenIssuer,
 		SigningKey:      signingKey,
@@ -70,7 +70,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	dexServer, err := dexserver.NewDexServer(&dexserver.DexConfig{
-		Logger:       config.Logger,
+		Logger:       config.Logger.Session("dex"),
 		Flags:        config.Flags,
 		IssuerURL:    issuerUrl,
 		ClientID:     clientId,

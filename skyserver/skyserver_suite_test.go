@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/skymarshal/skyserver"
 	"github.com/concourse/skymarshal/token/tokenfakes"
@@ -57,6 +58,7 @@ var _ = BeforeEach(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	config = &skyserver.SkyConfig{
+		Logger:          lagertest.NewTestLogger("sky"),
 		TokenVerifier:   fakeTokenVerifier,
 		TokenIssuer:     fakeTokenIssuer,
 		DexClientID:     "dex-client-id",
