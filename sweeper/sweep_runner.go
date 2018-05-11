@@ -10,12 +10,14 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-type SweeperCommand struct {
+// Command is the struct that holds the properties for the mark and sweep command
+type Command struct {
 	Logger       lager.Logger
 	BeaconClient beacon.BeaconClient
 	GCInterval   time.Duration
 }
 
+// NewSweeperRunner provides the ifrit runner that marks and sweeps the containers
 func NewSweeperRunner(logger lager.Logger, atcWorker atc.Worker, config beacon.Config) ifrit.Runner {
 	logger.Info("sweep-starting")
 
@@ -28,7 +30,7 @@ func NewSweeperRunner(logger lager.Logger, atcWorker atc.Worker, config beacon.C
 		KeepAlive: false, // disable keepalive for mark and sweep calls
 	}
 
-	scmd := &SweeperCommand{
+	scmd := &Command{
 		BeaconClient: beaconC,
 		Logger:       logger.Session("sweeper"),
 		GCInterval:   30 * time.Second,
@@ -36,17 +38,18 @@ func NewSweeperRunner(logger lager.Logger, atcWorker atc.Worker, config beacon.C
 	return scmd
 }
 
+// Run invokes the process of marking and sweeping containers
 // First worker will call atc to collect list of containers to be removed
 // and then worker will report its state of current containers for
 // atc to remove containers in DB. This cycle is triggered every GCInterval sec
-func (cmd *SweeperCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (cmd *Command) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	timer := time.NewTicker(cmd.GCInterval)
 	close(ready)
 
 	for {
 		select {
 		case <-timer.C:
-			err := cmd.BeaconClient.MarkandSweepContainers()
+			err := cmd.BeaconClient.MarkandSweepContainersandVolumes()
 			if err != nil {
 				cmd.Logger.Error("failed-to-mark-and-swep-containers", err)
 			}

@@ -1,15 +1,21 @@
 package beacon_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
+	"github.com/concourse/baggageclaim/volume"
+	"github.com/concourse/tsa"
 	. "github.com/concourse/worker/beacon"
 	"github.com/concourse/worker/beacon/beaconfakes"
 
@@ -25,12 +31,16 @@ var _ = Describe("Beacon", func() {
 		fakeClient    *beaconfakes.FakeClient
 		fakeSession   *beaconfakes.FakeSession
 		fakeCloseable *beaconfakes.FakeCloseable
+		fakeVolumeOne *baggageclaimfakes.FakeVolume
+		fakeVolumeTwo *baggageclaimfakes.FakeVolume
 	)
 
 	BeforeEach(func() {
 		fakeClient = new(beaconfakes.FakeClient)
 		fakeSession = new(beaconfakes.FakeSession)
 		fakeCloseable = new(beaconfakes.FakeCloseable)
+		fakeVolumeOne = new(baggageclaimfakes.FakeVolume)
+		fakeVolumeTwo = new(baggageclaimfakes.FakeVolume)
 		fakeClient.NewSessionReturns(fakeSession, nil)
 		fakeClient.DialReturns(fakeCloseable, nil)
 		logger := lager.NewLogger("test")
@@ -43,7 +53,6 @@ var _ = Describe("Beacon", func() {
 			Worker: atc.Worker{
 				GardenAddr:      "1.2.3.4:7777",
 				BaggageclaimURL: "wat://5.6.7.8:7788",
-				//	ReaperAddr:      "wat://5.6.7.8:7799",
 			},
 		}
 	})
@@ -490,29 +499,40 @@ var _ = Describe("Beacon", func() {
 
 	var _ = Describe("Sweep", func() {
 		var (
-			err     error
-			rServer *ghttp.Server
+			err                error
+			reaperServer       *ghttp.Server
+			baggageclaimServer *ghttp.Server
 		)
 
 		BeforeEach(func() {
-			rServer = ghttp.NewServer()
-			beacon.ReaperAddr = rServer.URL()
-			rServer.Reset()
+			baggageclaimServer = ghttp.NewServer()
+			reaperServer = ghttp.NewServer()
+			beacon.ReaperAddr = reaperServer.URL()
+			beacon.BaggageclaimForwardAddr = baggageclaimServer.URL()
+			reaperServer.Reset()
+			baggageclaimServer.Reset()
 		})
 
 		AfterEach(func() {
-			rServer.Close()
+			reaperServer.Close()
+			baggageclaimServer.Close()
 		})
 
 		JustBeforeEach(func() {
-			err = beacon.MarkandSweepContainers()
+			err = beacon.MarkandSweepContainersandVolumes()
 		})
 
 		Context("when session returns error", func() {
 			BeforeEach(func() {
-				rServer.AppendHandlers(
+				reaperServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/containers/list"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+					),
+				)
+				baggageclaimServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/volumes"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
 					),
 				)
@@ -521,26 +541,40 @@ var _ = Describe("Beacon", func() {
 			It("returns the error", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("fail"))
-				Expect(fakeCloseable.CloseCallCount()).To(Equal(2))
+				Expect(fakeCloseable.CloseCallCount()).To(Equal(4))
 			})
 		})
 
-		Context("when bad json is returned from reaper", func() {
+		Context("when bad json is returned from reaper and baggageclaim", func() {
 			BeforeEach(func() {
-				rServer.Reset()
+				reaperServer.Reset()
+				baggageclaimServer.Reset()
 
-				rServer.AppendHandlers(
+				reaperServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/containers/list"),
 						ghttp.RespondWith(http.StatusOK, nil),
 					),
 				)
 
+				baggageclaimServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/volumes"),
+						ghttp.RespondWith(http.StatusOK, nil),
+					),
+				)
+
 				fakeSession.OutputStub = func(cmd string) ([]byte, error) {
-					if cmd == "report-containers" {
+					if cmd == tsa.ReportContainers {
 						return nil, errors.New("bad-err")
 					}
-					if cmd == "sweep-containers" {
+					if cmd == tsa.SweepContainers {
+						return []byte("bad-json"), nil
+					}
+					if cmd == tsa.ReportVolumes {
+						return nil, errors.New("bad-err")
+					}
+					if cmd == tsa.SweepVolumes {
 						return []byte("bad-json"), nil
 					}
 					time.Sleep(1 * time.Second)
@@ -548,30 +582,32 @@ var _ = Describe("Beacon", func() {
 				}
 			})
 			It("returns the error", func() {
-				Expect(len(rServer.ReceivedRequests())).To(Equal(1))
+				Expect(len(reaperServer.ReceivedRequests())).To(Equal(1))
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("invalid character"))
-				Expect(fakeCloseable.CloseCallCount()).To(Equal(2))
+				Expect(fakeCloseable.CloseCallCount()).To(Equal(4))
 			})
 		})
 
-		Context("when reaper server is configured", func() {
-			var rServer *ghttp.Server
-			BeforeEach(func() {
-				rServer = ghttp.NewServer()
-				beacon.ReaperAddr = rServer.URL()
-				rServer.Reset()
-			})
-
+		// Happy path
+		Context("when reaper server and baggageclaim server are configured", func() {
 			Context("when handles are returned", func() {
+				var (
+					buf      bytes.Buffer
+					handleB2 []byte
+				)
 				BeforeEach(func() {
 					handles := []string{"handle1", "handle2"}
 					handleBytes, err := json.Marshal(handles)
 					Expect(err).NotTo(HaveOccurred())
+					err = json.NewEncoder(&buf).Encode(handles)
+					Expect(err).NotTo(HaveOccurred())
+					handleB2, err = ioutil.ReadAll(&buf)
+					Expect(err).NotTo(HaveOccurred())
 					fakeSession.OutputReturns(handleBytes, nil)
 
-					rServer.Reset()
-					rServer.AppendHandlers(
+					reaperServer.Reset()
+					reaperServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("DELETE", "/containers/destroy"),
 							ghttp.VerifyJSON("[\"handle1\",\"handle2\"]"),
@@ -582,25 +618,54 @@ var _ = Describe("Beacon", func() {
 							ghttp.RespondWithJSONEncoded(http.StatusOK, handles),
 						),
 					)
+
+					baggageclaimServer.Reset()
+					baggageclaimServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/volumes/destroy"),
+							ghttp.VerifyBody(handleB2),
+							ghttp.RespondWith(http.StatusNoContent, nil),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/volumes"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, []volume.Volume{
+								{
+									Handle: "handle1",
+								},
+								{
+									Handle: "handle2",
+								},
+							}),
+						),
+					)
 				})
 				It("garbage collects the containers", func() {
 					Expect(err).NotTo(HaveOccurred())
-					Expect(fakeSession.OutputCallCount()).To(Equal(2))
-					sweepCmd := fakeSession.OutputArgsForCall(0)
-					Expect(sweepCmd).To(Equal("sweep-containers"))
-					reportCmd := fakeSession.OutputArgsForCall(1)
-					Expect(reportCmd).To(Equal("report-containers handle1 handle2"))
+					Expect(fakeSession.OutputCallCount()).To(Equal(4))
+					sweepConCmd := fakeSession.OutputArgsForCall(0)
+					Expect(sweepConCmd).To(Equal("sweep-containers"))
+					reportConCmd := fakeSession.OutputArgsForCall(1)
+					Expect(reportConCmd).To(Equal("report-containers handle1 handle2"))
+					sweepVolCmd := fakeSession.OutputArgsForCall(2)
+					Expect(sweepVolCmd).To(Equal("sweep-volumes"))
+					reportVolCmd := fakeSession.OutputArgsForCall(3)
+					Expect(reportVolCmd).To(Equal("report-volumes handle1 handle2"))
 				})
 			})
 
-			Context("when reaper server returns error", func() {
+			Context("when reaper server and baggageclaim servers return error", func() {
 				BeforeEach(func() {
-					handles := []string{"handle1", "handle2"}
-					handleBytes, err := json.Marshal(handles)
-					Expect(err).NotTo(HaveOccurred())
-					fakeSession.OutputReturns(handleBytes, nil)
+					fakeSession.OutputStub = func(cmd string) ([]byte, error) {
+						if strings.Contains(cmd, "sweep") {
+							handles := []string{"handle1", "handle2"}
+							handleBytes, err := json.Marshal(handles)
+							Expect(err).NotTo(HaveOccurred())
+							return handleBytes, nil
+						}
+						return nil, nil
+					}
 
-					rServer.AppendHandlers(
+					reaperServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("DELETE", "/containers/destroy"),
 							ghttp.RespondWith(http.StatusInternalServerError, nil),
@@ -610,12 +675,74 @@ var _ = Describe("Beacon", func() {
 							ghttp.RespondWith(http.StatusInternalServerError, nil),
 						),
 					)
+
+					baggageclaimServer.Reset()
+					baggageclaimServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/volumes/destroy"),
+							ghttp.RespondWith(http.StatusInternalServerError, nil),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/volumes"),
+							ghttp.RespondWith(http.StatusInternalServerError, nil),
+						),
+					)
 				})
 
 				It("returns the error", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("received-500-response"))
-					Expect(fakeCloseable.CloseCallCount()).To(Equal(2))
+					Expect(fakeCloseable.CloseCallCount()).To(Equal(4))
+				})
+			})
+
+			Context("when only reaper server return error", func() {
+				BeforeEach(func() {
+					handles := []string{"handle1", "handle2"}
+					handleBytes, err := json.Marshal(handles)
+					Expect(err).NotTo(HaveOccurred())
+					fakeSession.OutputReturns(handleBytes, nil)
+
+					reaperServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/containers/destroy"),
+							ghttp.RespondWith(http.StatusInternalServerError, nil),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/containers/list"),
+							ghttp.RespondWith(http.StatusInternalServerError, nil),
+						),
+					)
+
+					baggageclaimServer.Reset()
+					vol1 := volume.Volume{
+						Handle: "handle1",
+					}
+					volBytes, err := json.Marshal(volume.Volumes{vol1})
+
+					jsonHeader := map[string][]string{"Content-Type": []string{"application/json"}}
+					baggageclaimServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/volumes/destroy"),
+							ghttp.RespondWith(http.StatusNoContent, nil),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/volumes"),
+							ghttp.RespondWith(http.StatusOK, volBytes, jsonHeader),
+						),
+					)
+				})
+
+				It("calls baggageclaim server for further calls on sweep and report", func() {
+					Expect(err).To(HaveOccurred())
+
+					Expect(err.Error()).To(ContainSubstring("sweep-cnt-err"))
+					Expect(err.Error()).To(ContainSubstring("report-cnt-err"))
+
+					Expect(err.Error()).ToNot(ContainSubstring("sweep-vol-err"))
+					Expect(err.Error()).ToNot(ContainSubstring("report-vol-err"))
+
+					Expect(len(baggageclaimServer.ReceivedRequests())).To(Equal(2))
 				})
 			})
 
@@ -625,13 +752,14 @@ var _ = Describe("Beacon", func() {
 					handleBytes, err := json.Marshal(handles)
 					Expect(err).NotTo(HaveOccurred())
 					fakeSession.OutputReturns(handleBytes, nil)
-					rServer.Close()
+					reaperServer.Close()
+					baggageclaimServer.Close()
 				})
 
 				It("returns the error", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("connection refused"))
-					Expect(fakeCloseable.CloseCallCount()).To(Equal(2))
+					Expect(fakeCloseable.CloseCallCount()).To(Equal(4))
 				})
 			})
 		})
