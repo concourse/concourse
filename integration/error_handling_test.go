@@ -3,8 +3,6 @@ package integration_test
 import (
 	"os/exec"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/skymarshal/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -32,28 +30,15 @@ var _ = Describe("Fly CLI", func() {
 				)
 			})
 
-			Context("with non-terminal stdin", func() {
-				It("prints the error", func() {
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).ToNot(HaveOccurred())
+			It("instructs the user to log in", func() {
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).ToNot(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(sess.Err).To(gbytes.Say("not authorized\\. run the following to log in:\n\n    "))
-					Expect(sess.Err).To(gbytes.Say(`fly -t ` + targetName + ` login`))
-				})
-			})
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
 
-			Context("with non-terminal stdout", func() {
-				It("prints the error", func() {
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).ToNot(HaveOccurred())
-
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(sess.Err).To(gbytes.Say("not authorized\\. run the following to log in:\n\n    "))
-					Expect(sess.Err).To(gbytes.Say(`fly -t ` + targetName + ` login`))
-				})
+				Expect(sess.Err).To(gbytes.Say("not authorized\\. run the following to log in:\n\n    "))
+				Expect(sess.Err).To(gbytes.Say(`fly -t ` + targetName + ` login`))
 			})
 		})
 	})
