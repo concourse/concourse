@@ -36,10 +36,10 @@ type VaultManager struct {
 type AuthConfig struct {
 	ClientToken string `long:"client-token" description:"Client token for accessing secrets within the Vault server."`
 
-	Backend       string        `long:"auth-backend" description:"Auth backend to use for logging in to Vault."`
-	BackendMaxTTL time.Duration `long:"auth-backend-max-ttl" description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
-	RetryMax      time.Duration `long:"retry-max" description:"The maximum time between retries when logging in or re-authing a secret."`
-	RetryInitial  time.Duration `long:"retry-initial" description:"The initial time between retries when logging in or re-authing a secret."`
+	Backend       string        `long:"auth-backend"               description:"Auth backend to use for logging in to Vault."`
+	BackendMaxTTL time.Duration `long:"auth-backend-max-ttl"       description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
+	RetryMax      time.Duration `long:"retry-max"     default:"5m" description:"The maximum time between retries when logging in or re-authing a secret."`
+	RetryInitial  time.Duration `long:"retry-initial" default:"1s" description:"The initial time between retries when logging in or re-authing a secret."`
 
 	Params []template.VarKV `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME=VALUE"`
 }
