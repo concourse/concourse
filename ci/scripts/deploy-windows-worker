@@ -5,7 +5,7 @@ set -e
 eval $(ssh-agent)
 ssh-add <(echo "$BOSH_KEY")
 
-VERSION="$(echo windows-worker/version)"
+VERSION="$(cat windows-worker/version)"
 
 bosh manifest > prod.yml
 
