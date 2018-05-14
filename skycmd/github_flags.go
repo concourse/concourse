@@ -52,12 +52,13 @@ func (self *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GithubTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of whitelisted GitHub users" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of whitelisted GitHub groups (e.g. my-org or my-org:my-team)" value-name:"ORG_NAME:TEAM_NAME"`
+	Users []string `long:"user" description:"List of whitelisted GitHub users" value-name:"USERNAME"`
+	Orgs  []string `long:"org" description:"List of whitelisted GitHub orgs" value-name:"ORG_NAME"`
+	Teams []string `long:"team" description:"List of whitelisted GitHub teams" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
 func (self *GithubTeamFlags) IsValid() bool {
-	return len(self.Users) > 0 || len(self.Groups) > 0
+	return len(self.Users) > 0 || len(self.Orgs) > 0 || len(self.Teams) > 0
 }
 
 func (self *GithubTeamFlags) GetUsers() []string {
@@ -65,5 +66,5 @@ func (self *GithubTeamFlags) GetUsers() []string {
 }
 
 func (self *GithubTeamFlags) GetGroups() []string {
-	return self.Groups
+	return append(self.Orgs, self.Teams...)
 }
