@@ -9,6 +9,6 @@ VERSION="$(cat windows-worker/version)"
 
 bosh manifest > prod.yml
 
-sed -i -e 's/${VERSION}/latest/g' prod.yml
+sed -i -e "s/${VERSION}/latest/g" prod.yml
 
 bosh deploy -n prod.yml
