@@ -127,22 +127,22 @@ func (self *lagerHook) Levels() []logrus.Level {
 func (self *lagerHook) Fire(entry *logrus.Entry) error {
 	switch entry.Level {
 	case logrus.DebugLevel:
-		self.Logger.Debug("", lager.Data{"message": entry.Message, "fields": entry.Data})
+		self.Logger.Debug("event", lager.Data{"message": entry.Message, "fields": entry.Data})
 		break
 	case logrus.InfoLevel:
-		self.Logger.Info("", lager.Data{"message": entry.Message, "fields": entry.Data})
+		self.Logger.Info("event", lager.Data{"message": entry.Message, "fields": entry.Data})
 		break
 	case logrus.WarnLevel:
-		self.Logger.Info("", lager.Data{"message": entry.Message, "fields": entry.Data})
+		self.Logger.Info("event", lager.Data{"message": entry.Message, "fields": entry.Data})
 		break
 	case logrus.ErrorLevel:
-		self.Logger.Error("", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
+		self.Logger.Error("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
 		break
 	case logrus.FatalLevel:
-		self.Logger.Fatal("", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
+		self.Logger.Fatal("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
 		break
 	case logrus.PanicLevel:
-		self.Logger.Fatal("", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
+		self.Logger.Fatal("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
 		break
 	}
 	return nil
