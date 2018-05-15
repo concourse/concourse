@@ -4,7 +4,7 @@ describe 'resource', type: :feature do
 
   before(:each) do
     fly_login 'main'
-    fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
+    fly_with_input("set-team -n #{team_name} --allow-all-users", 'y')
 
     fly_login team_name
     dash_login

@@ -4,7 +4,7 @@ describe 'dashboard autocomplete', type: :feature do
 
   before do
     fly_login 'main'
-    fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
+    fly_with_input("set-team -n #{team_name} --allow-all-users", 'y')
 
     fly_login team_name
     dash_login
@@ -85,7 +85,7 @@ describe 'dashboard autocomplete', type: :feature do
         teams = []
         15.times do |_i|
           team = generate_team_name
-          fly_with_input("set-team -n #{team} --no-really-i-dont-want-any-auth", 'y')
+          fly_with_input("set-team -n #{team} --allow-all-users", 'y')
           teams << team
         end
 

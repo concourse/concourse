@@ -4,7 +4,7 @@ describe 'session', type: :feature do
 
   before do
     fly_login 'main'
-    fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
+    fly_with_input("set-team -n #{team_name} --allow-all-users", 'y')
   end
 
   context 'when not logged in' do
@@ -18,13 +18,29 @@ describe 'session', type: :feature do
     it 'redirects to login when triggering a new build' do
       visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/checker")
       click_on 'Trigger Build'
-      expect(page).to have_current_path dash_route("/teams/#{team_name}/login?redirect=%2Fteams%2F#{team_name}%2Fpipelines%2Ftest-pipeline%2Fjobs%2Fchecker")
+
+      expect(page).to have_content 'Username/Password'
+
+      click_button 'Username/Password'
+      fill_in 'password', with: ATC_USERNAME
+      fill_in 'login', with: ATC_PASSWORD
+      click_button 'login'
+
+      expect(page.current_path).to include "/teams/#{team_name}/pipelines/test-pipeline/jobs/checker"
     end
 
     it 'redirects to login when pausing a resource' do
       visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/resources/few-versions")
       click_on 'Pause Resource Checking'
-      expect(page).to have_current_path dash_route("/teams/#{team_name}/login?redirect=%2Fteams%2F#{team_name}%2Fpipelines%2Ftest-pipeline%2Fresources%2Ffew-versions")
+
+      expect(page).to have_content 'Username/Password'
+
+      click_button 'Username/Password'
+      fill_in 'password', with: ATC_USERNAME
+      fill_in 'login', with: ATC_PASSWORD
+      click_button 'login'
+
+      expect(page.current_path).to include "/teams/#{team_name}/pipelines/test-pipeline/resources/few-versions"
     end
   end
 

@@ -8,7 +8,7 @@ describe 'dashboard search', type: :feature do
 
   before do
     fly_login 'main'
-    fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
+    fly_with_input("set-team -n #{team_name} --allow-all-users", 'y')
 
     fly_login team_name
     dash_login
@@ -87,7 +87,7 @@ describe 'dashboard search', type: :feature do
       fly_with_input("set-team -n #{other_team_name} --local-user=bad-username", 'y')
       fly_login team_name
 
-      dash_login team_name
+      dash_login
       visit dash_route('/dashboard')
     end
 
