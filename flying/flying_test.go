@@ -1,6 +1,7 @@
 package flying_test
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -9,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
@@ -351,11 +354,25 @@ echo hello > output-1/file-1
 			gitServer.WriteFile("some-repo/task.yml", taskFileContents)
 			gitServer.WriteFile("some-repo/run", runFileContents)
 			gitServer.CommitResourceWithFile("task.yml", "run")
+			cTeam := concourseClient.Team("main")
 
-			watch := flyHelper.CheckResource("-r", "some-pipeline/git-repo")
-			// TODO: have wait until gitserver garden container sets up git repo. Is there a better way to make sure the input gets version before test runs?
-			time.Sleep(60 * time.Second)
-			<-watch.Exited
+			Eventually(func() error {
+
+				versionedResource, _, _, err := cTeam.ResourceVersions("some-pipeline", "git-repo", concourse.Page{})
+
+				Expect(err).ToNot(HaveOccurred())
+
+				if len(versionedResource) == 0 {
+					cTeam.CheckResource("some-pipeline", "git-repo", atc.Version{})
+					return errors.New("did not find any version for custom resource")
+				}
+
+				Expect(versionedResource).To(HaveLen(1))
+				Expect(versionedResource[0].Type).To(Equal("git"))
+				Expect(versionedResource[0].Version).ToNot(BeNil())
+
+				return nil
+			}, 60*time.Second).ShouldNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -382,7 +399,7 @@ echo hello > output-1/file-1
 		BeforeEach(func() {
 			gitServer = gitserver.Start(concourseClient)
 			flyHelper.ConfigurePipeline(
-				"some-pipeline",
+				"some-pipeline-custom-resource",
 				"-c", "fixtures/custom-resource-type.yml",
 				"-v", "git-server="+gitServer.URI(),
 			)
@@ -417,15 +434,29 @@ echo hello > output-1/file-1
 			gitServer.WriteFile("some-repo/task.yml", taskFileContents)
 			gitServer.WriteFile("some-repo/run", runFileContents)
 			gitServer.CommitResourceWithFile("task.yml", "run")
+			cTeam := concourseClient.Team("main")
 
-			watch := flyHelper.CheckResource("-r", "some-pipeline/git-repo")
-			time.Sleep(60 * time.Second)
-			<-watch.Exited
+			Eventually(func() error {
+				versionedResource, _, _, err := cTeam.ResourceVersions("some-pipeline-custom-resource", "git-repo", concourse.Page{})
+				Expect(err).ToNot(HaveOccurred())
+
+				if len(versionedResource) == 0 {
+					// force resource check
+					cTeam.CheckResource("some-pipeline-custom-resource", "git-repo", atc.Version{})
+					return errors.New("did not find any version for custom resource")
+				}
+
+				Expect(versionedResource).To(HaveLen(1))
+				Expect(versionedResource[0].Type).To(Equal("custom-type"))
+				Expect(versionedResource[0].Version).ToNot(BeNil())
+
+				return nil
+			}, 60*time.Second).ShouldNot(HaveOccurred())
 		})
 
 		Context("when -j is specified", func() {
 			It("runs the task without error by infer the pipeline name from -j", func() {
-				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/input-test", "-o", "output-1=./output-1")
+				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline-custom-resource/input-test", "-o", "output-1=./output-1")
 				fly.Dir = tmpdir
 
 				session := helpers.StartFly(fly)
