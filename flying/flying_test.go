@@ -318,11 +318,6 @@ ls`),
 		var gitServer *gitserver.Server
 		BeforeEach(func() {
 			gitServer = gitserver.Start(concourseClient)
-			flyHelper.ConfigurePipeline(
-				"some-pipeline",
-				"-c", "fixtures/config-test.yml",
-				"-v", "git-server="+gitServer.URI(),
-			)
 
 			taskFileContents := `---
 platform: linux
@@ -354,12 +349,18 @@ echo hello > output-1/file-1
 			gitServer.WriteFile("some-repo/task.yml", taskFileContents)
 			gitServer.WriteFile("some-repo/run", runFileContents)
 			gitServer.CommitResourceWithFile("task.yml", "run")
+
+			Eventually(gitServer.Alive).Should(BeTrue())
+
+			flyHelper.ConfigurePipeline(
+				"some-pipeline",
+				"-c", "fixtures/config-test.yml",
+				"-v", "git-server="+gitServer.URI(),
+			)
+
 			cTeam := concourseClient.Team("main")
-
 			Eventually(func() error {
-
 				versionedResource, _, _, err := cTeam.ResourceVersions("some-pipeline", "git-repo", concourse.Page{})
-
 				Expect(err).ToNot(HaveOccurred())
 
 				if len(versionedResource) == 0 {
@@ -398,11 +399,6 @@ echo hello > output-1/file-1
 		var gitServer *gitserver.Server
 		BeforeEach(func() {
 			gitServer = gitserver.Start(concourseClient)
-			flyHelper.ConfigurePipeline(
-				"some-pipeline-custom-resource",
-				"-c", "fixtures/custom-resource-type.yml",
-				"-v", "git-server="+gitServer.URI(),
-			)
 
 			taskFileContents := `---
 platform: linux
@@ -434,8 +430,16 @@ echo hello > output-1/file-1
 			gitServer.WriteFile("some-repo/task.yml", taskFileContents)
 			gitServer.WriteFile("some-repo/run", runFileContents)
 			gitServer.CommitResourceWithFile("task.yml", "run")
-			cTeam := concourseClient.Team("main")
 
+			Eventually(gitServer.Alive).Should(BeTrue())
+
+			flyHelper.ConfigurePipeline(
+				"some-pipeline-custom-resource",
+				"-c", "fixtures/custom-resource-type.yml",
+				"-v", "git-server="+gitServer.URI(),
+			)
+
+			cTeam := concourseClient.Team("main")
 			Eventually(func() error {
 				versionedResource, _, _, err := cTeam.ResourceVersions("some-pipeline-custom-resource", "git-repo", concourse.Page{})
 				Expect(err).ToNot(HaveOccurred())

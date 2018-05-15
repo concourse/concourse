@@ -84,6 +84,9 @@ func (h *FlyHelper) ReconfigurePipeline(pipelineName string, argv ...string) {
 	<-configure.Exited
 	Expect(configure.ExitCode()).To(Equal(0))
 
+	// verify pipeline exists before unpause
+	h.GetPipeline(pipelineName, 30*time.Second)
+
 	h.UnpausePipeline(pipelineName)
 }
 
@@ -97,6 +100,21 @@ func (h *FlyHelper) PausePipeline(pipelineName string) {
 	Expect(configure.ExitCode()).To(Equal(0))
 
 	Expect(configure).To(gbytes.Say("paused '%s'", pipelineName))
+}
+
+func (h *FlyHelper) GetPipeline(pipelineName string, timeout time.Duration) {
+	Eventually(func() bool {
+		listCmd := exec.Command(h.Path, "-t", TargetedConcourse, "pipelines")
+
+		configure, err := gexec.Start(listCmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred())
+		<-configure.Exited
+		Expect(configure.ExitCode()).To(Equal(0))
+
+		cfgrStr := string(configure.Buffer().Contents()[:])
+		return strings.Contains(cfgrStr, pipelineName)
+	}, timeout, 5*time.Second).Should(BeTrue())
+
 }
 
 func (h *FlyHelper) UnpausePipeline(pipelineName string) {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -127,6 +128,14 @@ func (server *Server) Stop() {
 
 	err = server.rootfsVol.Destroy()
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func (server *Server) Alive() bool {
+	_, err := server.gardenClient.Lookup(server.container.Handle())
+	if err != nil {
+		return !strings.Contains(err.Error(), "ContainerNotFoundError")
+	}
+	return true
 }
 
 func (server *Server) URI() string {
