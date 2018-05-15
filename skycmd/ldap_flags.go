@@ -25,7 +25,7 @@ type LDAPFlags struct {
 	InsecureNoSSL      bool      `long:"insecure-no-ssl" description:"Don't use ssl"`
 	InsecureSkipVerify bool      `long:"insecure-skip-verify" description:"Skip certificate verification"`
 	StartTLS           bool      `long:"start-tls" description:"Start on insecure port, then negotiate TLS"`
-	RootCA             flag.File `long:"root-ca" description:"Root CA certificate"`
+	CACert             flag.File `long:"ca-cert" description:"CA certificate"`
 
 	UserSearch struct {
 		BaseDN    string `long:"user-search-base-dn" description:"Base DN"`
@@ -85,7 +85,7 @@ func (self *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
 		InsecureNoSSL:      self.InsecureNoSSL,
 		InsecureSkipVerify: self.InsecureSkipVerify,
 		StartTLS:           self.StartTLS,
-		RootCA:             self.RootCA.Path(),
+		RootCA:             self.CACert.Path(),
 	}
 
 	ldapConfig.UserSearch.BaseDN = self.UserSearch.BaseDN

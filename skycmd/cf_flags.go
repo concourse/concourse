@@ -21,7 +21,7 @@ type CFFlags struct {
 	ClientID           string      `long:"client-id" description:"Client id"`
 	ClientSecret       string      `long:"client-secret" description:"Client secret"`
 	APIURL             string      `long:"api-url" description:"API URL"`
-	RootCAs            []flag.File `long:"root-ca" description:"Root CA"`
+	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
@@ -52,16 +52,16 @@ func (self *CFFlags) Serialize(redirectURI string) ([]byte, error) {
 		return nil, err
 	}
 
-	rootCAs := []string{}
-	for _, file := range self.RootCAs {
-		rootCAs = append(rootCAs, file.Path())
+	caCerts := []string{}
+	for _, file := range self.CACerts {
+		caCerts = append(caCerts, file.Path())
 	}
 
 	return json.Marshal(cf.Config{
 		ClientID:           self.ClientID,
 		ClientSecret:       self.ClientSecret,
 		APIURL:             self.APIURL,
-		RootCAs:            rootCAs,
+		RootCAs:            caCerts,
 		InsecureSkipVerify: self.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
 	})

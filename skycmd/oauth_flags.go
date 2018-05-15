@@ -26,7 +26,7 @@ type OAuthFlags struct {
 	UserInfoURL        string      `long:"userinfo-url" description:"UserInfo URL"`
 	Scopes             []string    `long:"scope" description:"Requested scope"`
 	GroupsKey          string      `long:"groups-key" description:"Groups Key"`
-	RootCAs            []flag.File `long:"root-ca" description:"Root CA"`
+	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
@@ -65,9 +65,9 @@ func (self *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 		return nil, err
 	}
 
-	rootCAs := []string{}
-	for _, file := range self.RootCAs {
-		rootCAs = append(rootCAs, file.Path())
+	caCerts := []string{}
+	for _, file := range self.CACerts {
+		caCerts = append(caCerts, file.Path())
 	}
 
 	return json.Marshal(oauth.Config{
@@ -78,7 +78,7 @@ func (self *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 		UserInfoURL:        self.UserInfoURL,
 		Scopes:             self.Scopes,
 		GroupsKey:          self.GroupsKey,
-		RootCAs:            rootCAs,
+		RootCAs:            caCerts,
 		InsecureSkipVerify: self.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
 	})

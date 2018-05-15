@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/concourse/flag"
 	"github.com/coreos/dex/connector/github"
 	"github.com/hashicorp/go-multierror"
 )
@@ -17,8 +18,10 @@ func init() {
 }
 
 type GithubFlags struct {
-	ClientID     string `long:"client-id" description:"Client id"`
-	ClientSecret string `long:"client-secret" description:"Client secret"`
+	ClientID     string    `long:"client-id" description:"Client id"`
+	ClientSecret string    `long:"client-secret" description:"Client secret"`
+	Host         string    `long:"host" description:"Hostname of GitHub Enterprise deployment (No scheme, No trailing slash)"`
+	CACert       flag.File `long:"ca-cert" description:"CA certificate of GitHub Enterprise deployment"`
 }
 
 func (self *GithubFlags) Name() string {
@@ -48,6 +51,8 @@ func (self *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 		ClientID:     self.ClientID,
 		ClientSecret: self.ClientSecret,
 		RedirectURI:  redirectURI,
+		HostName:     self.Host,
+		RootCA:       self.CACert.Path(),
 	})
 }
 
