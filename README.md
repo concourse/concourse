@@ -25,7 +25,7 @@ Fly is built using [Go](http://golang.org/). Building and testing fly is most ea
 2. Install [direnv](https://github.com/zimbatm/direnv). Once installed you can `cd` in and out of the concourse
 directory to setup your environment.
 
-3. You can now build the the fly binary with go build:
+3. You can now build the fly binary with go build:
 
   ```bash
   cd src/github.com/concourse/fly
