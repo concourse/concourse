@@ -76,21 +76,6 @@ TSA_HOST_KEY=/var/vcap/jobs/worker/config/tsa_host_key.pub
 chown vcap:vcap $TSA_HOST_KEY
 chmod 0400 $TSA_HOST_KEY
 
-kill_session_siblings_of() {
-  pidfile=$1
-
-  if [ -f "$pidfile" ]; then
-    pid=$(head -1 "$pidfile")
-
-    session=$(ps -p $pid -o sid=)
-    ps -s $session -o pid:1= | xargs kill
-
-    rm -f $pidfile
-  else
-    echo "Pidfile $pidfile doesn't exist!"
-  fi
-}
-
 case $1 in
 
   start)
@@ -112,52 +97,52 @@ case $1 in
       additional_resource_metadata=$additional_resource_metadata"--resource=$filepath "
     <% end %>
 
-    chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker start \
-           --name=<%= name_prefix %>-$(hostname | cut -d '-' -f 2-) \
-           --version=$WORKER_VERSION \
-           --team=<%= p("team") %> \
-           --platform=<%= p("platform") %> \
-           <% p("tags").each do |tag| %> \
-             --tag=<%= tag %> \
-           <% end %> \
-           --garden-addr=<%= garden_addr %> \
-           --baggageclaim-url=<%= baggageclaim_url %> \
-           $resource_metadata \
-           $additional_resource_metadata \
-           <% if p("certs_path", nil) %> \
-             --certs-path=<%= p("certs_path") %> \
-           <% end %> \
-           <% if p("http_proxy_url", nil) %> \
-             --http-proxy=<%= p("http_proxy_url") %> \
-           <% end %> \
-           <% if p("https_proxy_url", nil) %> \
-             --https-proxy=<%= p("https_proxy_url") %> \
-           <% end %> \
-           <% if p("tsa.registration_mode", nil) %> \
-             --registration-mode=<%= p("tsa.registration_mode") %> \
-           <% end %> \
-           <% if p("no_proxy", nil) %> \
-             --no-proxy=<%= p("no_proxy").join(",") %> \
-           <% end %> \
-           <% tsa_addrs.each do |tsa_addr| %> \
-             --tsa-host=<%= tsa_addr %> \
-           <% end %> \
-           --log-level=<%= p("log_level") %> \
-           --tsa-public-key=${TSA_HOST_KEY} \
-           --tsa-worker-private-key=${WORKER_KEY} \
-           <% if p("garden.forward_address", nil) %> \
-             --garden-forward-addr=<%= p("garden.forward_address") %> \
-             <% if p("baggageclaim.forward_address", nil) %> \
-               --baggageclaim-forward-addr=<%= p("baggageclaim.forward_address") %> \
-             <% end %> \
-           <% end %> \
-            1>>$LOG_DIR/beacon.stdout.log \
-            2>>$LOG_DIR/beacon.stderr.log || exitstatus=$?
+    exec chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker start \
+       --name=<%= name_prefix %>-$(hostname | cut -d '-' -f 2-) \
+       --version=$WORKER_VERSION \
+       --team=<%= p("team") %> \
+       --platform=<%= p("platform") %> \
+       <% p("tags").each do |tag| %> \
+         --tag=<%= tag %> \
+       <% end %> \
+       --garden-addr=<%= garden_addr %> \
+       --baggageclaim-url=<%= baggageclaim_url %> \
+       $resource_metadata \
+       $additional_resource_metadata \
+       <% if p("certs_path", nil) %> \
+         --certs-path=<%= p("certs_path") %> \
+       <% end %> \
+       <% if p("http_proxy_url", nil) %> \
+         --http-proxy=<%= p("http_proxy_url") %> \
+       <% end %> \
+       <% if p("https_proxy_url", nil) %> \
+         --https-proxy=<%= p("https_proxy_url") %> \
+       <% end %> \
+       <% if p("no_proxy", nil) %> \
+         --no-proxy=<%= p("no_proxy").join(",") %> \
+       <% end %> \
+       <% if p("tsa.registration_mode", nil) %> \
+         --registration-mode=<%= p("tsa.registration_mode") %> \
+       <% end %> \
+       <% tsa_addrs.each do |tsa_addr| %> \
+         --tsa-host=<%= tsa_addr %> \
+       <% end %> \
+       --log-level=<%= p("log_level") %> \
+       --tsa-public-key=${TSA_HOST_KEY} \
+       --tsa-worker-private-key=${WORKER_KEY} \
+       <% if p("garden.forward_address", nil) %> \
+         --garden-forward-addr=<%= p("garden.forward_address") %> \
+         <% if p("baggageclaim.forward_address", nil) %> \
+           --baggageclaim-forward-addr=<%= p("baggageclaim.forward_address") %> \
+         <% end %> \
+       <% end %> \
+        1>>$LOG_DIR/beacon.stdout.log \
+        2>>$LOG_DIR/beacon.stderr.log
 
     ;;
 
   stop)
-    kill_session_siblings_of $PIDFILE
+    kill_and_wait $PIDFILE
 
     ;;
 

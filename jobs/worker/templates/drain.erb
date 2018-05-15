@@ -49,7 +49,7 @@ chmod 0400 $TSA_HOST_KEY
 WORKER_VERSION=$(cat /var/vcap/packages/worker_version/version)
 
 chpst -u vcap:vcap /var/vcap/packages/worker/bin/worker \
-drain \
+  drain \
   --name=<%= name_prefix %>-$(hostname | cut -d '-' -f 2-) \
   --tsa-public-key=${TSA_HOST_KEY} \
   --tsa-worker-private-key=${WORKER_KEY} \
