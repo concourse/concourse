@@ -121,7 +121,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		})
 
 		members = append(members, grouper.Member{
-			Name: "sweep-container",
+			Name: "sweeper",
 			Runner: sweeper.NewSweeperRunner(
 				logger,
 				worker,
