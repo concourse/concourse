@@ -29,3 +29,25 @@ for pkg in atc blackbox baggageclaim tsa worker; do
     mv spec.new spec
   popd
 done
+
+for pkg in baggageclaim worker; do
+  pushd packages/${pkg}-windows
+    {
+      cat spec | grep -v '# gosub'
+      gosub list -a github.com/concourse/$pkg/cmd/... | \
+        sed -e 's/\(.*\)/  - \1\/*.{go,s,c,h} # gosub/g'
+    } > spec.new
+
+    mv spec.new spec
+  popd
+done
+
+pushd packages/houdini-windows
+  {
+    cat spec | grep -v '# gosub'
+    gosub list -a github.com/vito/houdini/cmd/... | \
+      sed -e 's/\(.*\)/  - \1\/*.{go,s,c,h} # gosub/g'
+  } > spec.new
+
+  mv spec.new spec
+popd

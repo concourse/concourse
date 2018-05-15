@@ -1,0 +1,10 @@
+{
+  "processes": [
+    {
+      "name": "worker-windows",
+      "executable": "powershell",
+      "args": [ "/var/vcap/jobs/worker-windows/bin/start.ps1" ],
+      "env": {}
+    }
+  ]
+}

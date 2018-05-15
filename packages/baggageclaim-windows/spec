@@ -1,8 +1,8 @@
 ---
-name: baggageclaim
+name: baggageclaim-windows
 
 dependencies:
-  - golang
+- golang-1-windows
 
 files:
   - code.cloudfoundry.org/clock/*.{go,s,c,h} # gosub
