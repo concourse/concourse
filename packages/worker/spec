@@ -15,8 +15,17 @@ files:
   - code.cloudfoundry.org/garden/transport/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/lager/*.{go,s,c,h} # gosub
   - github.com/bmizerany/pat/*.{go,s,c,h} # gosub
+  - github.com/cenkalti/backoff/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/*.{go,s,c,h} # gosub
+  - github.com/concourse/baggageclaim/*.{go,s,c,h} # gosub
+  - github.com/concourse/baggageclaim/api/*.{go,s,c,h} # gosub
+  - github.com/concourse/baggageclaim/client/*.{go,s,c,h} # gosub
+  - github.com/concourse/baggageclaim/uidgid/*.{go,s,c,h} # gosub
+  - github.com/concourse/baggageclaim/volume/*.{go,s,c,h} # gosub
   - github.com/concourse/flag/*.{go,s,c,h} # gosub
+  - github.com/concourse/go-archive/tgzfs/*.{go,s,c,h} # gosub
+  - github.com/concourse/retryhttp/*.{go,s,c,h} # gosub
+  - github.com/concourse/tsa/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/beacon/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/cmd/worker/*.{go,s,c,h} # gosub
@@ -32,6 +41,7 @@ files:
   - github.com/felixge/tcpkeepalive/*.{go,s,c,h} # gosub
   - github.com/jessevdk/go-flags/*.{go,s,c,h} # gosub
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
+  - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/grouper/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/http_server/*.{go,s,c,h} # gosub
@@ -43,4 +53,5 @@ files:
   - golang.org/x/crypto/internal/chacha20/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/poly1305/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/ssh/*.{go,s,c,h} # gosub
+  - golang.org/x/net/context/*.{go,s,c,h} # gosub
   - gopkg.in/yaml.v2/*.{go,s,c,h} # gosub
