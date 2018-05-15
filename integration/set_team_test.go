@@ -44,9 +44,9 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("no auth methods configured! to continue, run:"))
-					Eventually(sess.Err).Should(gbytes.Say("fly -t testserver set-team -n venture --no-really-i-dont-want-any-auth"))
-					Eventually(sess.Err).Should(gbytes.Say("this will leave the team open to anyone to mess with!"))
+					Eventually(sess.Err).Should(gbytes.Say("You have not provided a whitelist of users or groups. To continue, run:"))
+					Eventually(sess.Err).Should(gbytes.Say("fly -t testserver set-team -n venture --allow-all-users"))
+					Eventually(sess.Err).Should(gbytes.Say("This will allow team access to all logged in users in the system."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -55,9 +55,9 @@ var _ = Describe("Fly CLI", func() {
 
 	Describe("Display", func() {
 		Context("Setting no auth", func() {
-			Context("no-really-i-dont-want-any-auth flag provided", func() {
+			Context("allow-all-users flag provided", func() {
 				BeforeEach(func() {
-					cmdParams = []string{"--no-really-i-dont-want-any-auth"}
+					cmdParams = []string{"--allow-all-users"}
 					confirmHandlers()
 				})
 
@@ -74,7 +74,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("Groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- none"))
 
-					Eventually(sess.Err).Should(gbytes.Say("WARNING:\nno auth methods configured. you asked for it!"))
+					Eventually(sess.Err).Should(gbytes.Say("WARNING:\nAllowing all logged in users. You asked for it!"))
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 					yes(stdin)
@@ -83,9 +83,9 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
-			Context("no-really-i-dont-want-any-auth flag provided with other configuration", func() {
+			Context("allow-all-users flag provided with other configuration", func() {
 				BeforeEach(func() {
-					cmdParams = []string{"--local-user", "brock-samson", "--no-really-i-dont-want-any-auth"}
+					cmdParams = []string{"--local-user", "brock-samson", "--allow-all-users"}
 					confirmHandlers()
 				})
 
@@ -102,7 +102,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("Groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- none"))
 
-					Consistently(sess.Err).ShouldNot(gbytes.Say("WARNING:\nno auth methods configured. you asked for it!"))
+					Consistently(sess.Err).ShouldNot(gbytes.Say("WARNING:\nAllowing all logged in users. You asked for it!"))
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 					yes(stdin)
@@ -133,7 +133,7 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("Setting github auth", func() {
 			BeforeEach(func() {
-				cmdParams = []string{"--github-group", "samson-org:samson-team", "--github-user", "samsonite"}
+				cmdParams = []string{"--github-org", "my-org", "--github-team", "samson-org:samson-team", "--github-user", "samsonite"}
 			})
 
 			It("shows the users and groups configured for github", func() {
@@ -144,6 +144,7 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- github:samsonite"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
+				Eventually(sess.Out).Should(gbytes.Say("- github:my-org"))
 				Eventually(sess.Out).Should(gbytes.Say("- github:samson-org:samson-team"))
 
 				Eventually(sess).Should(gexec.Exit(1))
@@ -152,7 +153,7 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("Setting cf auth", func() {
 			BeforeEach(func() {
-				cmdParams = []string{"--cf-group", "myorg:myspace", "--cf-user", "my-username"}
+				cmdParams = []string{"--cf-org", "myorg-1", "--cf-space", "myorg-2:myspace", "--cf-user", "my-username"}
 			})
 
 			It("shows the users and groups configured for cf auth", func() {
@@ -163,7 +164,8 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- cf:my-username"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
-				Eventually(sess.Out).Should(gbytes.Say("- cf:myorg:myspace"))
+				Eventually(sess.Out).Should(gbytes.Say("- cf:myorg-1"))
+				Eventually(sess.Out).Should(gbytes.Say("- cf:myorg-2:myspace"))
 
 				Eventually(sess).Should(gexec.Exit(1))
 			})
@@ -255,8 +257,8 @@ var _ = Describe("Fly CLI", func() {
 		BeforeEach(func() {
 			cmdParams = []string{
 				"--local-user", "brock-obama",
-				"--github-group", "obama-org",
-				"--github-group", "samson-org:venture-team",
+				"--github-org", "obama-org",
+				"--github-team", "samson-org:venture-team",
 				"--github-user", "lisa",
 				"--github-user", "frank",
 			}

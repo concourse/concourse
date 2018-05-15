@@ -98,7 +98,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 }
 
 func (command *SetTeamCommand) ErrorAuthNotConfigured() {
-	fmt.Fprintln(ui.Stderr, "You have not provided a whitelist of users or groups. To continue run:")
+	fmt.Fprintln(ui.Stderr, "You have not provided a whitelist of users or groups. To continue, run:")
 	fmt.Fprintln(ui.Stderr, "")
 	fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --allow-all-users", Fly.Target, command.TeamName))
 	fmt.Fprintln(ui.Stderr, "")
