@@ -62,6 +62,7 @@ instance_groups:
     properties:
       drain_timeout: 10m
       tsa: {worker_key: ((worker_key))}
+      log_level: debug
 
   - release: concourse
     name: baggageclaim
