@@ -148,7 +148,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 					serverURL, err := url.Parse(server.URL)
 					Expect(err).ToNot(HaveOccurred())
-
+					Expect(len(cookieJar.Cookies(serverURL))).To(BeNumerically(">=", 1))
 					Expect(cookieJar.Cookies(serverURL)).To(ContainElement(&http.Cookie{
 						Name:  auth.OAuthStateCookie,
 						Value: state,
