@@ -586,11 +586,16 @@ var _ = Describe("login Command", func() {
 							return http.ErrUseLastResponse
 						},
 					}
+					Eventually(func() error {
+						response, err := client.Get(fmt.Sprintf("http://localhost:%s/oauth/callback?token=Bearer%%20the-token", port))
+						Expect(err).ToNot(HaveOccurred())
 
-					response, err := client.Get(fmt.Sprintf("http://localhost:%s/oauth/callback?token=Bearer%%20the-token", port))
-					Expect(err).ToNot(HaveOccurred())
-					Expect(response.StatusCode).To(Equal(http.StatusTemporaryRedirect))
-					Expect(response.Header.Get("Location")).To(Equal(fmt.Sprintf("%s/public/fly_success", loginATCServer.URL())))
+						if response.StatusCode == http.StatusTemporaryRedirect {
+							Expect(response.Header.Get("Location")).To(Equal(fmt.Sprintf("%s/public/fly_success", loginATCServer.URL())))
+							return nil
+						}
+						return fmt.Errorf("receieved-%d-status", response.StatusCode)
+					}).ShouldNot(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
