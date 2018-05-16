@@ -73,7 +73,7 @@ Finally you can run the ATC:
 
 ```
 cd ..
-go run cmd/atc/*.go --no-really-i-dont-want-any-auth
+go run cmd/atc/*.go --add-local-user test:test --main-team-allow-all-users
 ```
 
 Concourse should be live at http://localhost:8080
