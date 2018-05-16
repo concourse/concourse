@@ -202,6 +202,29 @@ var _ = Describe("VolumeFactory", func() {
 			resourceCacheVolumeCreated, err := resourceCacheVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
 
+			usedWorkerBaseResourceType := db.UsedWorkerBaseResourceType{
+				ID:      1,
+				Name:    "test",
+				Version: "test-version",
+
+				WorkerName: defaultWorker.Name(),
+			}
+			baseResourceTypeVolume, err := volumeRepository.CreateBaseResourceTypeVolume(defaultTeam.ID(), &usedWorkerBaseResourceType)
+			Expect(err).NotTo(HaveOccurred())
+			createdBaseResourceTypeVolume, err := baseResourceTypeVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+			expectedCreatedHandles = append(expectedCreatedHandles, createdBaseResourceTypeVolume.Handle())
+
+			result, err := psql.Update("volumes").
+				Set("team_id", nil).
+				Where(
+					sq.Eq{"handle": createdBaseResourceTypeVolume.Handle()},
+				).
+				RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+
 			err = resourceCacheVolumeCreated.InitializeResourceCache(usedResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
