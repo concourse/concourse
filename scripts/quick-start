@@ -23,7 +23,8 @@ fi
 
 $concourse web \
   --log-level debug \
-  --no-really-i-dont-want-any-auth \
+  --add-local-user test:test \
+  --main-team-allow-all-users \
   --session-signing-key $session_key \
   --tsa-bind-port 2223 \
   --tsa-host-key $tsa_key \

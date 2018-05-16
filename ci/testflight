@@ -85,7 +85,8 @@ if [ "$QUICKSTART" = "true" ]; then
   $CONCOURSE quickstart \
     --postgres-socket /var/run/postgresql \
     --log-level debug \
-    --no-really-i-dont-want-any-auth \
+    --add-local-user test:test \
+    --main-team-allow-all-users \
     --worker-work-dir /scratch/concourse \
     --worker-garden-network-pool 10.255.0.0/22 \
     &
@@ -109,7 +110,8 @@ else
     --tsa-authorized-keys /etc/concourse/worker.pub \
     --session-signing-key /etc/concourse/session-signing-key \
     --log-level debug \
-    --no-really-i-dont-want-any-auth \
+    --add-local-user test:test \
+    --main-test-allow-all-users \
     &
 
   webpid=$!
