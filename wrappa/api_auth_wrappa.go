@@ -111,7 +111,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 
 		case atc.GetLogLevel,
-			atc.SetLogLevel:
+			atc.SetLogLevel,
+			atc.CredsHealth:
 			newHandler = auth.CheckAdminHandler(handler, rejector)
 
 		// authorized (requested team matches resource team)
