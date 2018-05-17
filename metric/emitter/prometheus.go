@@ -190,7 +190,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "job_duration_seconds",
 			Help:      "Last time taken to calculate the set of valid input versions for a pipeline.",
 		},
-		[]string{"pipeline"},
+		[]string{"pipeline", "job"},
 	)
 	prometheus.MustRegister(schedulingJobDuration)
 
@@ -388,8 +388,12 @@ func (emitter *PrometheusEmitter) schedulingMetrics(logger lager.Logger, event m
 		// concourse_scheduling_loading_duration_seconds
 		emitter.schedulingLoadingDuration.WithLabelValues(pipeline).Set(duration / 1000)
 	case "scheduling: job duration (ms)":
+		job, exists := event.Attributes["job"]
+		if !exists {
+			logger.Error("failed-to-find-job-in-event", fmt.Errorf("expected job to exist in event.Attributes"))
+		}
 		// concourse_scheduling_job_duration_seconds
-		emitter.schedulingJobDuration.WithLabelValues(pipeline).Set(duration / 1000)
+		emitter.schedulingJobDuration.WithLabelValues(pipeline, job).Set(duration / 1000)
 	default:
 	}
 }
