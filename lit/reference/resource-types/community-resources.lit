@@ -188,6 +188,8 @@ before using it!
   \table-row{\link{Launchpad PPA packages}{https://github.com/seveas/concourse-ppa-resource}}{by \ghuser{seveas}}
 }{
   \table-row{\link{Fedora COPR packages}{https://github.com/seveas/concourse-copr-resource}}{by \ghuser{seveas}}
+}{
+  \table-row{\link{Google Hangouts Notification Resource}{https://github.com/CloudInn/concourse-hangouts-resource}}{by \ghuser{CloudInn}}
 }
 
 \section{
