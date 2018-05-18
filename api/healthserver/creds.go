@@ -3,6 +3,9 @@ package healthserver
 import (
 	"encoding/json"
 	"net/http"
+
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/creds"
 )
 
 // Creds returns information on the credential manager attached to this instance of concourse.
@@ -10,11 +13,20 @@ import (
 // No actual credentials are shown in the response.
 func (s *Server) Creds(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("creds")
-	randomStuff := []string{"this", "is", "your", "creds"}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	err := json.NewEncoder(w).Encode(randomStuff)
+	logger.Info("creds managers", lager.Data{"creds-managers": s.credsManagers})
+
+	configuredManagers := make(creds.Managers)
+
+	for name, manager := range s.credsManagers {
+		if manager.IsConfigured() {
+			configuredManagers[name] = manager
+		}
+	}
+
+	err := json.NewEncoder(w).Encode(configuredManagers)
 	if err != nil {
 		logger.Error("failed-to-encode-info", err)
 		w.WriteHeader(http.StatusInternalServerError)

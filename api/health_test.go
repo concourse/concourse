@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/atc/creds/vault"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,6 +13,7 @@ import (
 var _ = FDescribe("Pipelines API", func() {
 	var (
 		fakeaccess *accessorfakes.FakeAccess
+		// fakeManagerFactory *credsfakes.FakeManagerFactory
 	)
 	BeforeEach(func() {
 		fakeaccess = new(accessorfakes.FakeAccess)
@@ -25,6 +27,11 @@ var _ = FDescribe("Pipelines API", func() {
 
 		JustBeforeEach(func() {
 			var err error
+
+			vaultManager := &vault.VaultManager{}
+			vaultManager.URL = "http://1.2.3.4:8080"
+			vaultManager.PathPrefix = "testpath"
+			credsManagers["vault"] = vaultManager
 
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/health/creds", nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -44,11 +51,30 @@ var _ = FDescribe("Pipelines API", func() {
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 		})
 
-		It("contains the version", func() {
+		It("returns configured creds manager", func() {
 			body, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(body).To(MatchJSON(`["this", "is", "your", "creds"]`))
+			Expect(body).To(MatchJSON(`{
+          "vault": {
+            "URL": "http://1.2.3.4:8080",
+            "PathPrefix": "testpath",
+            "TLS": {
+              "CACert": "",
+              "CAPath": "",
+              "ClientCert": "",
+              "ClientKey": "",
+              "ServerName": "",
+              "Insecure": false
+            },
+            "Auth": {
+              "ClientToken": "",
+              "Backend": "",
+              "BackendMaxTTL": 0,
+              "Params": null
+            }
+          }
+        }`))
 		})
 	})
 })
