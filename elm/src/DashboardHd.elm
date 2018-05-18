@@ -20,6 +20,11 @@ import Task exposing (Task)
 import Time exposing (Time)
 
 
+type alias Ports =
+    { title : String -> Cmd Msg
+    }
+
+
 type alias Model =
     { topBar : NewTopBar.Model
     , mPipelines : RemoteData.WebData (List Concourse.Pipeline)
@@ -46,8 +51,8 @@ type Msg
     | TopBarMsg NewTopBar.Msg
 
 
-init : String -> ( Model, Cmd Msg )
-init turbulencePath =
+init : Ports -> String -> ( Model, Cmd Msg )
+init ports turbulencePath =
     let
         ( topBar, topBarMsg ) =
             NewTopBar.init False
@@ -68,6 +73,7 @@ init turbulencePath =
             [ fetchPipelines
             , fetchVersion
             , Cmd.map TopBarMsg topBarMsg
+            , ports.title <| "Dashboard HD" ++ " - "
             ]
         )
 

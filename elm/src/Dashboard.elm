@@ -27,6 +27,11 @@ import Task exposing (Task)
 import Time exposing (Time)
 
 
+type alias Ports =
+    { title : String -> Cmd Msg
+    }
+
+
 port pinTeamNames : () -> Cmd msg
 
 
@@ -59,8 +64,8 @@ type Msg
     | TopBarMsg NewTopBar.Msg
 
 
-init : String -> ( Model, Cmd Msg )
-init turbulencePath =
+init : Ports -> String -> ( Model, Cmd Msg )
+init ports turbulencePath =
     let
         ( topBar, topBarMsg ) =
             NewTopBar.init True
@@ -84,6 +89,7 @@ init turbulencePath =
             , getCurrentTime
             , Cmd.map TopBarMsg topBarMsg
             , pinTeamNames ()
+            , ports.title <| "Dashboard" ++ " - "
             ]
         )
 

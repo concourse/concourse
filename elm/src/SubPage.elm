@@ -151,11 +151,11 @@ init turbulencePath route =
 
         Routes.Dashboard ->
             superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init turbulencePath
+                Dashboard.init { title = setTitle } turbulencePath
 
         Routes.DashboardHd ->
             superDupleWrap ( DashboardHdModel, DashboardHdMsg ) <|
-                DashboardHd.init turbulencePath
+                DashboardHd.init { title = setTitle } turbulencePath
 
         Routes.Home ->
             ( WaitingModel route
