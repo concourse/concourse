@@ -22,7 +22,11 @@ instance_groups:
     name: atc
     properties:
       token_signing_key: ((token_signing_key))
-      no_really_i_dont_want_any_auth: true
+      add_local_users:
+      - some-user:password
+      - some-other-user:password
+      main_team:
+        allow_all_users: true
       log_level: debug
       postgresql:
         database: &db-name atc

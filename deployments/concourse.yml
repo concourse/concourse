@@ -21,7 +21,11 @@ instance_groups:
   - release: concourse
     name: atc
     properties:
-      no_really_i_dont_want_any_auth: true
+      add_local_users:
+      - some-user:password
+      - some-other-user:password
+      main_team:
+        allow_all_users: true
       token_signing_key: ((token_signing_key))
       log_level: debug
       postgresql:

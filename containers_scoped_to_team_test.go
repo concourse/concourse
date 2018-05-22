@@ -45,14 +45,14 @@ var _ = Describe(":life [#136140165] Container scope", func() {
 				bytes.NewBufferString("y\n"),
 				"set-team",
 				"--team-name", "no-access",
-				"--no-really-i-dont-want-any-auth",
+				"--local-user", "some-other-user",
 			)
 
 			<-setTeamSession.Exited
 			Expect(setTeamSession.ExitCode()).To(Equal(0))
 
 			By("logging into other team")
-			fly("login", "-n", "no-access")
+			fly("login", "-n", "no-access", "-u", "some-other-user", "-p", "password")
 
 			By("not allowing hijacking into any containers")
 			failedFly := spawnFly("hijack", "-b", "1")
@@ -61,7 +61,7 @@ var _ = Describe(":life [#136140165] Container scope", func() {
 			Expect(failedFly.Err).To(gbytes.Say("no containers matched your search parameters!"))
 
 			By("logging back into the other team")
-			fly("login", "-n", "main")
+			fly("login", "-n", "main", "-u", atcUsername, "-p", atcPassword)
 
 			By("stopping the build")
 			hijackSession := spawnFly(

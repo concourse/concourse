@@ -1,9 +1,9 @@
 package topgun_test
 
 import (
+	"context"
 	"crypto/tls"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,26 +12,23 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"testing"
 	"time"
 
-	"golang.org/x/oauth2"
-
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/concourse/skymarshal/provider"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-
-	"strconv"
-	"testing"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -44,6 +41,8 @@ var (
 
 	atcInstance    *boshInstance
 	atcExternalURL string
+	atcUsername    string
+	atcPassword    string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion, postgresReleaseVersion string
 	gitServerReleaseVersion, vaultReleaseVersion, credhubReleaseVersion       string
@@ -150,6 +149,8 @@ var _ = BeforeEach(func() {
 	dbConn = nil
 	atcInstance = nil
 	atcExternalURL = ""
+	atcUsername = "some-user"
+	atcPassword = "password"
 })
 
 var _ = AfterEach(func() {
@@ -209,14 +210,9 @@ func Deploy(manifest string, args ...string) {
 
 	atcInstance = JobInstance("atc")
 	if atcInstance != nil {
-		atcExternalURL = fmt.Sprintf("http://%s:8080", atcInstance.IP)
-
 		// give some time for atc to bootstrap (Run migrations, etc)
-		Eventually(func() int {
-			flySession := spawnFly("login", "-c", atcExternalURL)
-			<-flySession.Exited
-			return flySession.ExitCode()
-		}, 2*time.Minute).Should(Equal(0))
+		atcExternalURL = fmt.Sprintf("http://%s:8080", atcInstance.IP)
+		Eventually(flyLogin("-c", atcExternalURL), 2*time.Minute).Should(gexec.Exit(0))
 	}
 
 	dbInstance = JobInstance("postgres")
@@ -315,10 +311,31 @@ func fly(argv ...string) {
 }
 
 func concourseClient() concourse.Client {
-	token, err := getATCToken(atcExternalURL)
+	token, err := fetchToken(atcExternalURL, atcUsername, atcPassword)
 	Expect(err).NotTo(HaveOccurred())
-	httpClient := oauthClient(token)
+
+	httpClient := &http.Client{
+		Transport: &oauth2.Transport{
+			Source: oauth2.StaticTokenSource(token),
+			Base: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		},
+	}
+
 	return concourse.NewClient(atcExternalURL, httpClient, false)
+}
+
+func fetchToken(atcURL string, username, password string) (*oauth2.Token, error) {
+
+	oauth2Config := oauth2.Config{
+		ClientID:     "fly",
+		ClientSecret: "Zmx5",
+		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/token"},
+		Scopes:       []string{"openid", "federated:id"},
+	}
+
+	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
 }
 
 func deleteAllContainers() {
@@ -373,8 +390,12 @@ func flyHijackTask(argv ...string) *gexec.Session {
 	return hijackS
 }
 
+func flyLogin(args ...string) *gexec.Session {
+	return spawnFly(append([]string{"login", "-u", atcUsername, "-p", atcPassword}, args...)...)
+}
+
 func spawnFly(argv ...string) *gexec.Session {
-	return spawn(flyBin, append([]string{"-t", flyTarget}, argv...)...)
+	return spawn(flyBin, append([]string{"--verbose", "-t", flyTarget}, argv...)...)
 }
 
 func spawnFlyInteractive(stdin io.Reader, argv ...string) *gexec.Session {
@@ -405,40 +426,6 @@ func spawnInteractive(stdin io.Reader, argc string, argv ...string) *gexec.Sessi
 func wait(session *gexec.Session) {
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
-}
-
-func getATCToken(atcURL string) (*provider.AuthToken, error) {
-	response, err := http.Get(atcURL + "/auth/basic/token?team_name=main")
-	if err != nil {
-		return nil, err
-	}
-
-	var token *provider.AuthToken
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(body, &token)
-	if err != nil {
-		return nil, err
-	}
-
-	return token, nil
-}
-
-func oauthClient(atcToken *provider.AuthToken) *http.Client {
-	return &http.Client{
-		Transport: &oauth2.Transport{
-			Source: oauth2.StaticTokenSource(&oauth2.Token{
-				TokenType:   atcToken.Type,
-				AccessToken: atcToken.Value,
-			}),
-			Base: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		},
-	}
 }
 
 func waitForLandingOrLandedWorker() string {

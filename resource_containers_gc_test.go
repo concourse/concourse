@@ -284,12 +284,12 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 					bytes.NewBufferString("y\n"),
 					"set-team",
 					"--team-name", teamName,
-					"--no-really-i-dont-want-any-auth",
+					"--allow-all-users",
 				)
 				<-setTeamSession.Exited
 				Expect(setTeamSession.ExitCode()).To(Equal(0))
 
-				fly("login", "-c", atcExternalURL, "-n", teamName)
+				fly("login", "-c", atcExternalURL, "-n", teamName, "-u", atcUsername, "-p", atcPassword)
 
 				By("setting pipeline that creates an identical resource config")
 				fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
@@ -306,7 +306,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 				Expect(otherTeamCheckCount).To(Equal(1))
 
 				By("checking resource excessively")
-				fly("login", "-c", atcExternalURL, "-n", "main")
+				fly("login", "-c", atcExternalURL, "-n", "main", "-u", atcUsername, "-p", atcPassword)
 				for i := 0; i < 20; i++ {
 					fly("check-resource", "-r", "resource-gc-test/tick-tock")
 				}

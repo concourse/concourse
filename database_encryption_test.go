@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 )
@@ -22,9 +23,8 @@ var _ = Describe("Database secrets encryption", func() {
 			bytes.NewBufferString("y\n"),
 			"set-team",
 			"--team-name", "victoria",
-			"--github-auth-user", "victoria",
-			"--github-auth-client-id", "victorias_id",
-			"--github-auth-client-secret", "victorias_secret",
+			"--github-user", "victorias_id",
+			"--github-org", "victorias_secret_org",
 		)
 		<-setTeamSession.Exited
 
@@ -61,7 +61,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 			By("taking a dump")
 			session := pgDump()
-			Expect(session).ToNot(gbytes.Say("victorias_secret"))
+			Expect(session).ToNot(gbytes.Say("victorias_secret_org"))
 			Expect(session).ToNot(gbytes.Say("resource_secret"))
 			Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 			Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -79,7 +79,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 				By("taking a dump")
 				session := pgDump()
-				Expect(string(session.Out.Contents())).To(ContainSubstring("victorias_secret"))
+				Expect(string(session.Out.Contents())).To(ContainSubstring("victorias_secret_org"))
 				Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
 				Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 				Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
@@ -93,7 +93,7 @@ var _ = Describe("Database secrets encryption", func() {
 				It("encrypts pipeline credentials and team auth config", func() {
 					By("taking a dump")
 					session := pgDump()
-					Expect(session).ToNot(gbytes.Say("victorias_secret"))
+					Expect(session).ToNot(gbytes.Say("victorias_secret_org"))
 					Expect(session).ToNot(gbytes.Say("resource_secret"))
 					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 					Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -114,7 +114,7 @@ var _ = Describe("Database secrets encryption", func() {
 					It("can still get and set pipelines", func() {
 						By("taking a dump")
 						session := pgDump()
-						Expect(session).ToNot(gbytes.Say("victorias_secret"))
+						Expect(session).ToNot(gbytes.Say("victorias_secret_org"))
 						Expect(session).ToNot(gbytes.Say("resource_secret"))
 						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 						Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -146,7 +146,7 @@ var _ = Describe("Database secrets encryption", func() {
 					It("can still get and set pipelines", func() {
 						By("taking a dump")
 						session := pgDump()
-						Expect(session).ToNot(gbytes.Say("victorias_secret"))
+						Expect(session).ToNot(gbytes.Say("victorias_secret_org"))
 						Expect(session).ToNot(gbytes.Say("resource_secret"))
 						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 						Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -197,7 +197,7 @@ var _ = Describe("Database secrets encryption", func() {
 					It("decrypts pipeline credentials and team auth config", func() {
 						By("taking a dump")
 						session := pgDump()
-						Expect(string(session.Out.Contents())).To(ContainSubstring("victorias_secret"))
+						Expect(string(session.Out.Contents())).To(ContainSubstring("victorias_secret_org"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
