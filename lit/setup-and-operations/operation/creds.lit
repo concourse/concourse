@@ -443,7 +443,7 @@ values are not present, the action will error.
 }
 
 \section{
-  \title{Using Amazon Secrets Manager}{ssm}
+  \title{Using Amazon Secrets Manager}{asm}
 
   \section{
     \title{Configuration}
