@@ -346,52 +346,73 @@ getGroupsForJob jobName pipeline =
             List.filter (.jobs >> List.member jobName) pl.groups |> List.map .name
 
 
-view : Model -> Html Msg
-view model =
-    Html.nav
-        [ classList
-            [ ( "top-bar", True )
-            , ( "test", True )
-            , ( "paused", isPaused model.pipeline )
+view : Model -> Bool -> Html Msg
+view model sidebarVisible =
+    Html.div []
+        [ Html.nav
+            [ classList
+                [ ( "top-bar", True )
+                , ( "test", True )
+                , ( "paused", isPaused model.pipeline )
+                ]
             ]
-        ]
-        [ let
-            ( groupList, pipelineUrl ) =
-                case model.pipeline of
-                    Nothing ->
-                        ( [], "/" )
+            [ let
+                pipelineUrl =
+                    case model.pipeline of
+                        Nothing ->
+                            "/"
 
-                    Just pipeline ->
-                        ( List.map
-                            (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
-                            pipeline.groups
-                        , (Routes.pipelineRoute pipeline)
-                        )
-          in
-            Html.ul [ class "groups" ] <|
-                [ Html.li [ class "main" ]
-                    [ Html.span
-                        [ class "sidebar-toggle test btn-hamburger"
-                        , onClick ToggleSidebar
-                        , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
+                        Just pipeline ->
+                            (Routes.pipelineRoute pipeline)
+              in
+                Html.ul [ class "groups" ] <|
+                    [ Html.li [ class "main" ]
+                        [ Html.span
+                            [ class "sidebar-toggle test btn-hamburger"
+                            , onClick ToggleSidebar
+                            , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
+                            ]
+                            [ Html.i [ class "fa fa-bars" ] []
+                            ]
                         ]
-                        [ Html.i [ class "fa fa-bars" ] []
-                        ]
-                    ]
-                , Html.li [ class "main" ]
-                    [ Html.a
-                        [ StrictEvents.onLeftClick <| NavTo pipelineUrl
-                        , Html.Attributes.href pipelineUrl
-                        ]
-                        [ Html.i [ class "fa fa-home" ] []
+                    , Html.li [ class "main" ]
+                        [ Html.a
+                            [ StrictEvents.onLeftClick <| NavTo pipelineUrl
+                            , Html.Attributes.href pipelineUrl
+                            ]
+                            [ Html.i [ class "fa fa-home" ] []
+                            ]
                         ]
                     ]
+            , Html.ul [ class "nav-right" ]
+                [ Html.li [ class "nav-item" ]
+                    [ viewUserState model.userState model.userMenuVisible
+                    ]
                 ]
-                    ++ groupList
-        , Html.ul [ class "nav-right" ]
-            [ Html.li [ class "nav-item" ]
-                [ viewUserState model.userState model.userMenuVisible
+            ]
+        , Html.nav
+            [ classList
+                [ ( "groups-bar", True )
+                , ( "groups-bar-pull-right", sidebarVisible )
                 ]
+            ]
+            [ let
+                groupList =
+                    case model.pipeline of
+                        Nothing ->
+                            []
+
+                        Just pipeline ->
+                            List.map
+                                (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
+                                pipeline.groups
+              in
+                case model.route.logical of
+                    Routes.Pipeline _ _ ->
+                        Html.ul [ class "groups" ] groupList
+
+                    _ ->
+                        Html.text ""
             ]
         ]
 

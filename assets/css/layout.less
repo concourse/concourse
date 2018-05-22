@@ -14,20 +14,59 @@ html, body, #elm-app-embed, #subpage, .content-frame {
 @fixed-header-z-index: @user-menu-z-index - 1;
 
 .content-frame {
+  display: flex;
+  flex-direction: column;
+
   .top-bar {
-    z-index: @user-menu-z-index;
     position: fixed;
     top: 0;
+    height: @top-bar-height;
+
+    .groups {
+      height: 40px;
+      font-size: 14px;
+    }
+  }
+
+  .groups-bar {
+    margin-top: @top-bar-height;
+    background: #0C1217;
+    color: white;
+
+    &.groups-bar-pull-right {
+      margin-left: @sidebar-width;
+    }
+
+    .groups {
+      padding: 5px;
+    }
+
+    .groups li a {
+      font-size: 12px;
+      opacity: 0.6;
+      background: rgba(151, 151, 151, 0.1);
+      margin: 5px;
+      border: 1px solid #0C1217;
+    }
+
+    .groups li.active a {
+      opacity: 1;
+      background: inherit;
+      border-color: #979797;
+    }
+  }
+
+  .top-bar, .groups-bar {
+    z-index: @user-menu-z-index;
     left: 0;
     right: 0;
     display: flex;
     flex-direction: row;
-    height: @top-bar-height;
 
     .groups {
       flex-grow: 1;
       display: flex;
-      flex-direction: row;
+      flex-flow: row wrap;
     }
 
     .nav-right {
@@ -59,8 +98,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
   }
 
   .bottom {
-    padding-top: @top-bar-height;
-    height: 100%;
+    flex-grow: 1;
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
@@ -118,11 +156,9 @@ html, body, #elm-app-embed, #subpage, .content-frame {
 }
 
 nav .groups {
-  height: 40px;
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: 14px;
 }
 
 .nav-right {
@@ -134,10 +170,9 @@ nav .groups {
 
 nav .groups li a {
   display: inline-block;
-  padding: 0 10px;
+  padding: 10px;
   text-decoration: none;
   font-size: 18px;
-  line-height: 40px;
 }
 
 .nav-item {
