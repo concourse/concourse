@@ -13,16 +13,18 @@ import (
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/skymarshal/provider"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/skratchdot/open-golang/open"
 	"github.com/vito/go-interact/interact"
 )
 
 type LoginCommand struct {
-	ATCURL   string       `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
-	Insecure bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
-	Username string       `short:"u" long:"username" description:"Username for basic auth"`
-	Password string       `short:"p" long:"password" description:"Password for basic auth"`
-	TeamName string       `short:"n" long:"team-name" description:"Team to authenticate with"`
-	CACert   atc.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
+	ATCURL      string       `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
+	Insecure    bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
+	Username    string       `short:"u" long:"username" description:"Username for basic auth"`
+	Password    string       `short:"p" long:"password" description:"Password for basic auth"`
+	TeamName    string       `short:"n" long:"team-name" description:"Team to authenticate with"`
+	CACert      atc.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
+	OpenBrowser bool         `short:"b" long:"open-browser" description:"Open browser to the auth endpoint"`
 }
 
 func (command *LoginCommand) Execute(args []string) error {
@@ -184,10 +186,18 @@ func (command *LoginCommand) loginWith(
 
 		port := <-portChannel
 
+		theURL := fmt.Sprintf("%s&fly_local_port=%s\n", method.AuthURL, port)
+
 		fmt.Println("navigate to the following URL in your browser:")
 		fmt.Println("")
-		fmt.Printf("    %s&fly_local_port=%s\n", method.AuthURL, port)
+		fmt.Printf("    %s", theURL)
 		fmt.Println("")
+
+		if command.OpenBrowser {
+			// try to open the browser window, but don't get all hung up if it
+			// fails, since we already printed about it.
+			_ = open.Start(theURL)
+		}
 
 		go waitForTokenInput(stdinChannel, errorChannel)
 
