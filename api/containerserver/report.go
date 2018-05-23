@@ -32,7 +32,7 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 		}
 
 		logger.Debug("handles-info", lager.Data{
-			"handles": handles,
+			"num-handles": len(handles),
 		})
 
 		err = s.destroyer.DestroyContainers(workerName, handles)
