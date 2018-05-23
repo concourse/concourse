@@ -190,6 +190,8 @@ before using it!
   \table-row{\link{Fedora COPR packages}{https://github.com/seveas/concourse-copr-resource}}{by \ghuser{seveas}}
 }{
   \table-row{\link{Google Hangouts Notification Resource}{https://github.com/CloudInn/concourse-hangouts-resource}}{by \ghuser{CloudInn}}
+}{
+  \table-row{\link{Yahoo! Weather Resource}{https://github.com/kehrlann/weather-resource}}{by \ghuser{Kehrlann}}
 }
 
 \section{
