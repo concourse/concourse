@@ -117,6 +117,7 @@ files:
   - github.com/peterhellberg/link/*.{go,s,c,h} # gosub
   - github.com/pkg/term/*.{go,s,c,h} # gosub
   - github.com/pkg/term/termios/*.{go,s,c,h} # gosub
+  - github.com/skratchdot/open-golang/open/*.{go,s,c,h} # gosub
   - github.com/tedsuo/rata/*.{go,s,c,h} # gosub
   - github.com/vito/go-interact/interact/*.{go,s,c,h} # gosub
   - github.com/vito/go-interact/interact/terminal/*.{go,s,c,h} # gosub

@@ -431,3 +431,7 @@
 	path = src/github.com/DataDog/datadog-go
 	url = https://github.com/DataDog/datadog-go
 	branch = master
+[submodule "src/github.com/skratchdot/open-golang"]
+	path = src/github.com/skratchdot/open-golang
+	url = https://github.com/skratchdot/open-golang
+	branch = master
