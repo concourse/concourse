@@ -31,6 +31,9 @@ type PrometheusEmitter struct {
 	schedulingFullDuration    *prometheus.GaugeVec
 	schedulingLoadingDuration *prometheus.GaugeVec
 	schedulingJobDuration     *prometheus.GaugeVec
+
+	dbQueriesTotal prometheus.Counter
+	dbConnections  *prometheus.GaugeVec
 }
 
 type PrometheusConfig struct {
@@ -191,8 +194,24 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(schedulingJobDuration)
 
-	// dbPromMetricsCollector defines database metrics
-	prometheus.MustRegister(newDBPromCollector())
+	dbQueriesTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "db",
+		Name:      "queries_total",
+		Help:      "Total number of database Concourse database queries",
+	})
+	prometheus.MustRegister(dbQueriesTotal)
+
+	dbConnections := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "db",
+			Name:      "connections",
+			Help:      "Current number of concourse database connections",
+		},
+		[]string{"dbname"},
+	)
+	prometheus.MustRegister(dbConnections)
 
 	listener, err := net.Listen("tcp", config.bind())
 	if err != nil {
@@ -219,6 +238,9 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		schedulingFullDuration:    schedulingFullDuration,
 		schedulingLoadingDuration: schedulingLoadingDuration,
 		schedulingJobDuration:     schedulingJobDuration,
+
+		dbQueriesTotal: dbQueriesTotal,
+		dbConnections:  dbConnections,
 	}, nil
 }
 
@@ -244,55 +266,13 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.schedulingMetrics(logger, event)
 	case "scheduling: job duration (ms)":
 		emitter.schedulingMetrics(logger, event)
+	case "database queries":
+		emitter.databaseMetrics(logger, event)
+	case "database connections":
+		emitter.databaseMetrics(logger, event)
 	default:
 		// unless we have a specific metric, we do nothing
 	}
-}
-
-type dbPromMetricsCollector struct {
-	dbConns   *prometheus.Desc
-	dbQueries *prometheus.Desc
-}
-
-func newDBPromCollector() prometheus.Collector {
-	return &dbPromMetricsCollector{
-		dbConns: prometheus.NewDesc(
-			"concourse_db_connections",
-			"Current number of concourse database connections",
-			[]string{"dbname"},
-			nil,
-		),
-		// this needs to be a recent number, because it is reset every 10 seconds
-		// by the periodic metrics emitter
-		dbQueries: prometheus.NewDesc(
-			"concourse_db_queries",
-			"Recent number of Concourse database queries",
-			nil,
-			nil,
-		),
-	}
-}
-
-func (c *dbPromMetricsCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- c.dbConns
-	ch <- c.dbQueries
-}
-
-func (c *dbPromMetricsCollector) Collect(ch chan<- prometheus.Metric) {
-	for _, database := range metric.Databases {
-		ch <- prometheus.MustNewConstMetric(
-			c.dbConns,
-			prometheus.GaugeValue,
-			float64(database.Stats().OpenConnections),
-			database.Name(),
-		)
-	}
-
-	ch <- prometheus.MustNewConstMetric(
-		c.dbQueries,
-		prometheus.GaugeValue,
-		float64(metric.DatabaseQueries),
-	)
 }
 
 func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, event metric.Event) {
@@ -412,4 +392,23 @@ func (emitter *PrometheusEmitter) schedulingMetrics(logger lager.Logger, event m
 		emitter.schedulingJobDuration.WithLabelValues(pipeline).Set(duration / 1000)
 	default:
 	}
+}
+
+func (emitter *PrometheusEmitter) databaseMetrics(logger lager.Logger, event metric.Event) {
+	value, ok := event.Value.(int)
+	if !ok {
+		logger.Error("db-value-type-mismatch", fmt.Errorf("expected event.Value to be a int"))
+	}
+	switch event.Name {
+	case "database queries":
+		emitter.dbQueriesTotal.Add(float64(value))
+	case "database connections":
+		connectionName, exists := event.Attributes["ConnectionName"]
+		if !exists {
+			logger.Error("failed-to-connection-name-in-event", fmt.Errorf("expected ConnectionName to exist in event.Attributes"))
+		}
+		emitter.dbConnections.WithLabelValues(connectionName).Set(float64(value))
+	default:
+	}
+
 }
