@@ -111,3 +111,17 @@ jobs:
   plan:
   - get: impossible-time
     passed: [pending]
+
+groups:
+- name: some-group
+  jobs:
+  - failing
+  - passing_or_failing
+  - passing
+  - erroring
+  - running
+  - pending
+  - broken-resource
+  - resource-metadata
+  - unavailable-pinned-input
+  - unavailable-constrained-input

@@ -356,64 +356,132 @@ view model sidebarVisible =
                 , ( "paused", isPaused model.pipeline )
                 ]
             ]
-            [ let
-                pipelineUrl =
-                    case model.pipeline of
-                        Nothing ->
-                            "/"
-
-                        Just pipeline ->
-                            (Routes.pipelineRoute pipeline)
-              in
-                Html.ul [ class "groups" ] <|
-                    [ Html.li [ class "main" ]
-                        [ Html.span
-                            [ class "sidebar-toggle test btn-hamburger"
-                            , onClick ToggleSidebar
-                            , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
-                            ]
-                            [ Html.i [ class "fa fa-bars" ] []
-                            ]
+            [ Html.ul [ class "groups" ] <|
+                [ Html.li [ class "main" ]
+                    [ Html.span
+                        [ class "sidebar-toggle test btn-hamburger"
+                        , onClick ToggleSidebar
+                        , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
                         ]
-                    , Html.li [ class "main" ]
-                        [ Html.a
-                            [ StrictEvents.onLeftClick <| NavTo pipelineUrl
-                            , Html.Attributes.href pipelineUrl
-                            ]
-                            [ Html.i [ class "fa fa-home" ] []
-                            ]
+                        [ Html.i [ class "fa fa-bars" ] []
                         ]
                     ]
+                ]
+                    ++ viewBreadcrumbs model
             , Html.ul [ class "nav-right" ]
                 [ Html.li [ class "nav-item" ]
                     [ viewUserState model.userState model.userMenuVisible
                     ]
                 ]
             ]
-        , Html.nav
-            [ classList
-                [ ( "groups-bar", True )
-                , ( "groups-bar-pull-right", sidebarVisible )
+        , case model.pipeline of
+            Just pipeline ->
+                let
+                    groupsBar =
+                        Html.nav
+                            [ classList
+                                [ ( "groups-bar", True )
+                                , ( "groups-bar-pull-right", sidebarVisible )
+                                ]
+                            ]
+                            [ Html.ul [ class "groups" ] <|
+                                List.map
+                                    (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
+                                    pipeline.groups
+                            ]
+                in
+                    case model.route.logical of
+                        Routes.Home ->
+                            groupsBar
+
+                        Routes.Pipeline _ _ ->
+                            groupsBar
+
+                        _ ->
+                            Html.text ""
+
+            Nothing ->
+                Html.text ""
+        ]
+
+
+viewBreadcrumbs : Model -> List (Html Msg)
+viewBreadcrumbs model =
+    List.intersperse viewBreadcrumbSeparator <|
+        case model.route.logical of
+            Routes.Home ->
+                case model.pipeline of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        [ viewBreadcrumbPipeline pipeline.name ]
+
+            Routes.Pipeline teamName pipelineName ->
+                [ viewBreadcrumbPipeline pipelineName ]
+
+            Routes.Job teamName pipelineName jobName ->
+                [ viewBreadcrumbPipelineLink teamName pipelineName
+                , viewBreadcrumbJob jobName
+                ]
+
+            Routes.Build teamName pipelineName jobName buildName ->
+                [ viewBreadcrumbPipelineLink teamName pipelineName
+                , viewBreadcrumbJob jobName
+                ]
+
+            Routes.Resource teamName pipelineName resourceName ->
+                [ viewBreadcrumbPipelineLink teamName pipelineName
+                , viewBreadcrumbResource resourceName
+                ]
+
+            _ ->
+                []
+
+
+viewBreadcrumbSeparator : Html Msg
+viewBreadcrumbSeparator =
+    Html.li [ class "nav-item" ] [ Html.text "/" ]
+
+
+viewBreadcrumbPipeline : String -> Html Msg
+viewBreadcrumbPipeline pipelineName =
+    Html.li [ class "nav-item" ]
+        [ Html.div [ class "breadcrumb-icon breadcrumb-pipeline-icon" ] []
+        , Html.text pipelineName
+        ]
+
+
+viewBreadcrumbPipelineLink : String -> String -> Html Msg
+viewBreadcrumbPipelineLink teamName pipelineName =
+    let
+        pipelineUrl =
+            Routes.Pipeline teamName pipelineName |> Routes.toString
+    in
+        Html.li [ class "nav-item" ]
+            [ Html.a
+                [ StrictEvents.onLeftClick <| NavTo pipelineUrl
+                , href pipelineUrl
+                ]
+                [ Html.div [ class "breadcrumb-icon breadcrumb-pipeline-icon" ] []
+                , Html.text pipelineName
                 ]
             ]
-            [ let
-                groupList =
-                    case model.pipeline of
-                        Nothing ->
-                            []
 
-                        Just pipeline ->
-                            List.map
-                                (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
-                                pipeline.groups
-              in
-                case model.route.logical of
-                    Routes.Pipeline _ _ ->
-                        Html.ul [ class "groups" ] groupList
 
-                    _ ->
-                        Html.text ""
-            ]
+viewBreadcrumbJob : String -> Html Msg
+viewBreadcrumbJob name =
+    Html.li [ class "nav-item" ]
+        [ Html.div [ class "breadcrumb-icon breadcrumb-job-icon" ] []
+        , Html.text name
+        ]
+
+
+viewBreadcrumbResource : String -> Html Msg
+viewBreadcrumbResource name =
+    Html.li [ class "nav-item" ]
+        [ Html.div [ class "breadcrumb-icon breadcrumb-resource-icon" ] []
+        , Html.text name
         ]
 
 

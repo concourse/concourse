@@ -26,6 +26,32 @@ html, body, #elm-app-embed, #subpage, .content-frame {
       height: 40px;
       font-size: 14px;
     }
+
+    .groups li {
+      padding: 0 10px;
+    }
+
+    .breadcrumb-icon {
+      display: inline-block;
+      vertical-align: middle;
+      background-size: 20px 20px;
+      min-width: 20px;
+      height: 20px;
+      background-repeat: no-repeat;
+      padding-right: 5px;
+    }
+
+    .breadcrumb-pipeline-icon {
+      background-image: url('images/ic_breadcrumb_pipeline.svg');
+    }
+
+    .breadcrumb-job-icon {
+      background-image: url('images/ic_breadcrumb_job.svg');
+    }
+
+    .breadcrumb-resource-icon {
+      background-image: url('images/ic_breadcrumb_resource.svg');
+    }
   }
 
   .groups-bar {
@@ -46,6 +72,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
       opacity: 0.6;
       background: rgba(151, 151, 151, 0.1);
       margin: 5px;
+      padding: 10px;
       border: 1px solid #0C1217;
     }
 
@@ -170,7 +197,6 @@ nav .groups {
 
 nav .groups li a {
   display: inline-block;
-  padding: 10px;
   text-decoration: none;
   font-size: 18px;
 }
