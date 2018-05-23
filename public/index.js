@@ -274,9 +274,7 @@ function createPipelineSvg(svg) {
         shouldResetPipelineFocus = false;
         resetPipelineFocus();
       } else {
-        if (ev.sourceEvent.altKey) {
-          g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
-        }
+        g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
       }
     }));
   }
