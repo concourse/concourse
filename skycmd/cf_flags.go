@@ -68,13 +68,14 @@ func (self *CFFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type CFTeamFlags struct {
-	Users  []string `long:"user" description:"List of whitelisted CloudFoundry users." value-name:"USERNAME"`
-	Orgs   []string `long:"org" description:"List of whitelisted CloudFoundry orgs" value-name:"ORG_NAME"`
-	Spaces []string `long:"space" description:"List of whitelisted CloudFoundry spaces" value-name:"ORG_NAME:SPACE_NAME"`
+	Users      []string `long:"user" description:"List of whitelisted CloudFoundry users." value-name:"USERNAME"`
+	Orgs       []string `long:"org" description:"List of whitelisted CloudFoundry orgs" value-name:"ORG_NAME"`
+	Spaces     []string `long:"space" description:"List of whitelisted CloudFoundry spaces" value-name:"ORG_NAME:SPACE_NAME"`
+	SpaceGuids []string `long:"space-guid" description:"(Deprecated) List of whitelisted CloudFoundry space guids" value-name:"SPACE_GUID"`
 }
 
 func (self *CFTeamFlags) IsValid() bool {
-	return len(self.Users) > 0 || len(self.Orgs) > 0 || len(self.Spaces) > 0
+	return len(self.Users) > 0 || len(self.Orgs) > 0 || len(self.Spaces) > 0 || len(self.SpaceGuids) > 0
 }
 
 func (self *CFTeamFlags) GetUsers() []string {
@@ -82,5 +83,9 @@ func (self *CFTeamFlags) GetUsers() []string {
 }
 
 func (self *CFTeamFlags) GetGroups() []string {
-	return append(self.Orgs, self.Spaces...)
+	var groups []string
+	groups = append(groups, self.Orgs...)
+	groups = append(groups, self.Spaces...)
+	groups = append(groups, self.SpaceGuids...)
+	return groups
 }
