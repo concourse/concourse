@@ -133,7 +133,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "containers",
 			Help:      "Number of containers per worker",
 		},
-		[]string{"worker"},
+		[]string{"worker", "platform"},
 	)
 	prometheus.MustRegister(workerContainers)
 
@@ -144,7 +144,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "volumes",
 			Help:      "Number of volumes per worker",
 		},
-		[]string{"worker"},
+		[]string{"worker", "platform"},
 	)
 	prometheus.MustRegister(workerVolumes)
 
@@ -327,13 +327,17 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 	if !exists {
 		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
 	}
+	platform, exists := event.Attributes["platform"]
+	if !exists {
+		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
+	}
 
 	containers, ok := event.Value.(int)
 	if !ok {
 		logger.Error("worker-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
 	}
 
-	emitter.workerContainers.WithLabelValues(worker).Set(float64(containers))
+	emitter.workerContainers.WithLabelValues(worker, platform).Set(float64(containers))
 }
 
 func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event metric.Event) {
@@ -341,13 +345,17 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 	if !exists {
 		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
 	}
+	platform, exists := event.Attributes["platform"]
+	if !exists {
+		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
+	}
 
 	volumes, ok := event.Value.(int)
 	if !ok {
 		logger.Error("worker-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
 	}
 
-	emitter.workerVolumes.WithLabelValues(worker).Set(float64(volumes))
+	emitter.workerVolumes.WithLabelValues(worker, platform).Set(float64(volumes))
 }
 
 func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, event metric.Event) {
