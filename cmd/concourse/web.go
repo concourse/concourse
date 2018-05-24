@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -70,6 +73,17 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 
 func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	cmd.TSACommand.SessionSigningKey = cmd.ATCCommand.SessionSigningKey
+
+	if cmd.ATCCommand.SessionSigningKey.PrivateKey == nil &&
+		cmd.TSACommand.SessionSigningKey.PrivateKey == nil {
+		signingKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return fmt.Errorf("failed to generate session signing key: %s", err)
+		}
+
+		cmd.ATCCommand.SessionSigningKey = flag.PrivateKey{PrivateKey: signingKey}
+		cmd.TSACommand.SessionSigningKey = flag.PrivateKey{PrivateKey: signingKey}
+	}
 
 	if len(cmd.TSACommand.ATCURLs) == 0 {
 		cmd.TSACommand.ATCURLs = []flag.URL{cmd.ATCCommand.PeerURL}
