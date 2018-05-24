@@ -6,7 +6,7 @@
 * Documentation:
   * [About](https://concourse-ci.org/about.html)
   * [Setting Up](https://concourse-ci.org/install.html)
-  * [Using Concourse / Docs](https://concourse-ci.org/docs.html)
+  * [Using Concourse / Docs](https://concourse-ci.org/)
 * Forum 
   * [Concourse Discourse](https://discuss.concourse-ci.org)
 * Chat
