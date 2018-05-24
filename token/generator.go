@@ -4,8 +4,9 @@ import (
 	"crypto/rsa"
 	"errors"
 
-	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/oauth2"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 //go:generate counterfeiter . Generator
@@ -33,10 +34,20 @@ func (self *generator) Generate(claims map[string]interface{}) (*oauth2.Token, e
 		return nil, errors.New("Invalid claims")
 	}
 
-	jwtClaims := jwt.MapClaims(claims)
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwtClaims)
+	signerKey := jose.SigningKey{
+		Algorithm: jose.RS256,
+		Key:       self.SigningKey,
+	}
 
-	signedToken, err := jwtToken.SignedString(self.SigningKey)
+	options := &jose.SignerOptions{}
+	options = options.WithType("JWT")
+
+	signer, err := jose.NewSigner(signerKey, options)
+	if err != nil {
+		return nil, err
+	}
+
+	signedToken, err := jwt.Signed(signer).Claims(claims).CompactSerialize()
 	if err != nil {
 		return nil, err
 	}

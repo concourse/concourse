@@ -11,8 +11,9 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/skymarshal/token"
-	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/oauth2"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 var _ = Describe("Token Verifier", func() {
@@ -100,7 +101,7 @@ var _ = Describe("Token Verifier", func() {
 					),
 				)
 
-				jwtClaims := jwt.MapClaims(map[string]interface{}{
+				claims := map[string]interface{}{
 					"iss":   dexIssuerUrl,
 					"aud":   "client-id",
 					"sub":   "dex-sub",
@@ -115,10 +116,16 @@ var _ = Describe("Token Verifier", func() {
 					"groups": []string{
 						"group-0", "group-1", "group-2",
 					},
-				})
+				}
 
-				jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwtClaims)
-				signedToken, _ := jwtToken.SignedString(signingKey)
+				options := &jose.SignerOptions{}
+				options = options.WithType("JWT")
+
+				signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: signingKey}, options)
+				Expect(err).NotTo(HaveOccurred())
+
+				signedToken, err := jwt.Signed(signer).Claims(claims).CompactSerialize()
+				Expect(err).NotTo(HaveOccurred())
 
 				oauthToken := (&oauth2.Token{}).WithExtra(map[string]interface{}{
 					"id_token": signedToken,

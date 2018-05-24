@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/skymarshal/token"
-	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/oauth2"
 )
 
@@ -52,7 +51,7 @@ var _ = Describe("Token Generator", func() {
 				JustBeforeEach(func() {
 					claims := map[string]interface{}{
 						"sub":   "1234567890",
-						"exp":   "2524608000",
+						"exp":   2524608000,
 						"teams": []string{"some-team"},
 					}
 
@@ -66,22 +65,28 @@ var _ = Describe("Token Generator", func() {
 				})
 
 				It("returns a signed jwt token", func() {
-					jwtToken, err := parse(oauthToken.AccessToken, signingKey)
+					var claims map[string]interface{}
+					err := parse(oauthToken.AccessToken, signingKey, &claims)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(jwtToken.Valid).To(BeTrue())
+					Expect(claims).NotTo(BeNil())
 				})
 
 				It("returns a jwt token with claims", func() {
-					jwtToken, _ := parse(oauthToken.AccessToken, signingKey)
-					claims := jwtToken.Claims.(jwt.MapClaims)
-					Expect(claims["sub"]).To(Equal("1234567890"))
-					Expect(claims["exp"]).To(Equal("2524608000"))
-					Expect(claims["teams"]).To(ContainElement("some-team"))
+					var claims struct {
+						Sub   string   `json:"sub"`
+						Exp   int      `json:"exp"`
+						Teams []string `json:"teams"`
+					}
+					err := parse(oauthToken.AccessToken, signingKey, &claims)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(claims.Sub).To(Equal("1234567890"))
+					Expect(claims.Exp).To(Equal(2524608000))
+					Expect(claims.Teams).To(ContainElement("some-team"))
 				})
 
 				It("includes the claims in the token extras", func() {
 					Expect(oauthToken.Extra("sub")).To(Equal("1234567890"))
-					Expect(oauthToken.Extra("exp")).To(Equal("2524608000"))
+					Expect(oauthToken.Extra("exp")).To(Equal(2524608000))
 					Expect(oauthToken.Extra("teams")).To(ContainElement("some-team"))
 				})
 			})

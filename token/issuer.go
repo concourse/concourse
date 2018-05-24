@@ -88,13 +88,13 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 				parts := strings.Split(claimGroup, ":")
 
 				if len(parts) > 0 {
-					// match the provider plus the org e.g. github:concourse
+					// match the provider plus the org e.g. github:org-name
 					if strings.EqualFold(group, connectorId+":"+parts[0]) {
 						teamSet[team.Name()] = true
 						isAdmin = isAdmin || team.Admin()
 					}
 
-					// match the provider plus the entire claim group e.g. github:concourse:pivotal
+					// match the provider plus the entire claim group e.g. github:org-name:team-name
 					if strings.EqualFold(group, connectorId+":"+claimGroup) {
 						teamSet[team.Name()] = true
 						isAdmin = isAdmin || team.Admin()
