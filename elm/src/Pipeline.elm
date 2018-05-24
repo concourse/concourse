@@ -1,29 +1,31 @@
 port module Pipeline exposing (Model, Msg(..), Flags, init, update, updateWithMessage, view, subscriptions, changeToPipelineAndGroups)
 
-import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, style, src, width, height)
-import Html.Attributes.Aria exposing (ariaLabel)
-import Http
-import Json.Encode
-import Json.Decode
-import Svg exposing (..)
-import Svg.Attributes as SvgAttributes
-import Task
-import Time exposing (Time)
+import Char
 import Concourse
 import Concourse.Cli
 import Concourse.Info
 import Concourse.Job
-import Concourse.Resource
 import Concourse.Pipeline
-import QueryString
-import Routes
-import LoginRedirect
-import RemoteData exposing (..)
-import UpdateMsg exposing (UpdateMsg)
+import Concourse.Resource
+import Html exposing (Html)
+import Html.Attributes exposing (class, href, id, style, src, width, height)
+import Html.Attributes.Aria exposing (ariaLabel)
+import Http
+import Json.Decode
+import Json.Encode
 import Keyboard
+import LoginRedirect
 import Mouse
-import Char
+import Navigation exposing (Location)
+import QueryString
+import RemoteData exposing (..)
+import Routes
+import StrictEvents exposing (onLeftClickOrShiftLeftClick)
+import Svg exposing (..)
+import Svg.Attributes as SvgAttributes
+import Task
+import Time exposing (Time)
+import UpdateMsg exposing (UpdateMsg)
 
 
 port resetPipelineFocus : () -> Cmd msg
@@ -46,6 +48,7 @@ type alias Model =
     , concourseVersion : String
     , turbulenceImgSrc : String
     , experiencingTurbulence : Bool
+    , route : Routes.ConcourseRoute
     , selectedGroups : List String
     , hideLegend : Bool
     , hideLegendCounter : Time
@@ -72,6 +75,8 @@ type Msg
     | ResourcesFetched (Result Http.Error Json.Encode.Value)
     | VersionFetched (Result Http.Error String)
     | PipelineFetched (Result Http.Error Concourse.Pipeline)
+    | ToggleGroup Concourse.PipelineGroup
+    | SetGroups (List String)
 
 
 queryGroupsForRoute : Routes.ConcourseRoute -> List String
@@ -98,6 +103,7 @@ init ports flags =
             , renderedJobs = Nothing
             , renderedResources = Nothing
             , experiencingTurbulence = False
+            , route = flags.route
             , selectedGroups = queryGroupsForRoute flags.route
             , hideLegend = False
             , hideLegendCounter = 0
@@ -256,6 +262,14 @@ update msg model =
             flip always (Debug.log ("failed to fetch version") (err)) <|
                 ( { model | experiencingTurbulence = True }, Cmd.none )
 
+        ToggleGroup group ->
+            flip always (Debug.log "ToggleGroups" group) <|
+                setGroups (toggleGroup group model.selectedGroups model.pipeline) model
+
+        SetGroups groups ->
+            flip always (Debug.log "SetGroups" groups) <|
+                setGroups groups model
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -272,83 +286,114 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    Html.div []
-        [ Svg.svg
-            [ SvgAttributes.class "pipeline-graph test"
-            , SvgAttributes.width "100%"
-            , SvgAttributes.height "100%"
+    Html.div [ class "pipeline-view" ]
+        [ Html.nav
+            [ class "groups-bar" ]
+            [ let
+                groupList =
+                    case model.pipeline of
+                        RemoteData.Success pipeline ->
+                            List.map
+                                (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
+                                pipeline.groups
+
+                        _ ->
+                            []
+              in
+                Html.ul [ class "groups" ] groupList
             ]
-            []
-        , Html.div
-            [ if model.experiencingTurbulence then
-                class "error-message"
-              else
-                class "error-message hidden"
-            ]
-            [ Html.div [ class "message" ]
-                [ Html.img [ src model.turbulenceImgSrc, class "seatbelt" ] []
-                , Html.p [] [ Html.text "experiencing turbulence" ]
-                , Html.p [ class "explanation" ] []
+        , Html.div [ class "pipeline-content" ]
+            [ Svg.svg
+                [ SvgAttributes.class "pipeline-graph test"
                 ]
-            ]
-        , Html.dl
-            [ if model.hideLegend then
-                class "legend hidden"
-              else
-                class "legend"
-            ]
-            [ Html.dt [ class "succeeded" ] []
-            , Html.dd [] [ Html.text "succeeded" ]
-            , Html.dt [ class "errored" ] []
-            , Html.dd [] [ Html.text "errored" ]
-            , Html.dt [ class "aborted" ] []
-            , Html.dd [] [ Html.text "aborted" ]
-            , Html.dt [ class "paused" ] []
-            , Html.dd [] [ Html.text "paused" ]
-            , Html.dt [ class "failed" ] []
-            , Html.dd [] [ Html.text "failed" ]
-            , Html.dt [ class "pending" ] []
-            , Html.dd [] [ Html.text "pending" ]
-            , Html.dt [ class "started" ] []
-            , Html.dd [] [ Html.text "started" ]
-            , Html.dt [ class "dotted" ] [ Html.text "." ]
-            , Html.dd [] [ Html.text "dependency" ]
-            , Html.dt [ class "solid" ] [ Html.text "-" ]
-            , Html.dd [] [ Html.text "dependency (trigger)" ]
-            ]
-        , Html.table [ class "lower-right-info" ]
-            [ Html.tr []
-                [ Html.td [ class "label" ] [ Html.text "cli:" ]
-                , Html.td []
-                    [ Html.ul [ class "cli-downloads" ]
-                        [ Html.li []
-                            [ Html.a
-                                [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI" ]
-                                [ Html.i [ class "fa fa-apple" ] [] ]
+                []
+            , Html.div
+                [ if model.experiencingTurbulence then
+                    class "error-message"
+                  else
+                    class "error-message hidden"
+                ]
+                [ Html.div [ class "message" ]
+                    [ Html.img [ src model.turbulenceImgSrc, class "seatbelt" ] []
+                    , Html.p [] [ Html.text "experiencing turbulence" ]
+                    , Html.p [ class "explanation" ] []
+                    ]
+                ]
+            , Html.dl
+                [ if model.hideLegend then
+                    class "legend hidden"
+                  else
+                    class "legend"
+                ]
+                [ Html.dt [ class "succeeded" ] []
+                , Html.dd [] [ Html.text "succeeded" ]
+                , Html.dt [ class "errored" ] []
+                , Html.dd [] [ Html.text "errored" ]
+                , Html.dt [ class "aborted" ] []
+                , Html.dd [] [ Html.text "aborted" ]
+                , Html.dt [ class "paused" ] []
+                , Html.dd [] [ Html.text "paused" ]
+                , Html.dt [ class "failed" ] []
+                , Html.dd [] [ Html.text "failed" ]
+                , Html.dt [ class "pending" ] []
+                , Html.dd [] [ Html.text "pending" ]
+                , Html.dt [ class "started" ] []
+                , Html.dd [] [ Html.text "started" ]
+                , Html.dt [ class "dotted" ] [ Html.text "." ]
+                , Html.dd [] [ Html.text "dependency" ]
+                , Html.dt [ class "solid" ] [ Html.text "-" ]
+                , Html.dd [] [ Html.text "dependency (trigger)" ]
+                ]
+            , Html.table [ class "lower-right-info" ]
+                [ Html.tr []
+                    [ Html.td [ class "label" ] [ Html.text "cli:" ]
+                    , Html.td []
+                        [ Html.ul [ class "cli-downloads" ]
+                            [ Html.li []
+                                [ Html.a
+                                    [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI" ]
+                                    [ Html.i [ class "fa fa-apple" ] [] ]
+                                ]
+                            , Html.li []
+                                [ Html.a
+                                    [ href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI" ]
+                                    [ Html.i [ class "fa fa-windows" ] [] ]
+                                ]
+                            , Html.li []
+                                [ Html.a
+                                    [ href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI" ]
+                                    [ Html.i [ class "fa fa-linux" ] [] ]
+                                ]
                             ]
-                        , Html.li []
-                            [ Html.a
-                                [ href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI" ]
-                                [ Html.i [ class "fa fa-windows" ] [] ]
-                            ]
-                        , Html.li []
-                            [ Html.a
-                                [ href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI" ]
-                                [ Html.i [ class "fa fa-linux" ] [] ]
+                        ]
+                    ]
+                , Html.tr []
+                    [ Html.td [ class "label" ] [ Html.text "version:" ]
+                    , Html.td []
+                        [ Html.div [ id "concourse-version" ]
+                            [ Html.text "v"
+                            , Html.span [ class "number" ] [ Html.text model.concourseVersion ]
                             ]
                         ]
                     ]
                 ]
-            , Html.tr []
-                [ Html.td [ class "label" ] [ Html.text "version:" ]
-                , Html.td []
-                    [ Html.div [ id "concourse-version" ]
-                        [ Html.text "v"
-                        , Html.span [ class "number" ] [ Html.text model.concourseVersion ]
-                        ]
-                    ]
-                ]
             ]
+        ]
+
+
+viewGroup : List String -> String -> Concourse.PipelineGroup -> Html Msg
+viewGroup selectedGroups url grp =
+    Html.li
+        [ if List.member grp.name selectedGroups then
+            class "main active"
+          else
+            class "main"
+        ]
+        [ Html.a
+            [ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
+            , onLeftClickOrShiftLeftClick (SetGroups [ grp.name ]) (ToggleGroup grp)
+            ]
+            [ Html.text grp.name ]
         ]
 
 
@@ -476,3 +521,91 @@ anyIntersect list1 list2 =
                 True
             else
                 anyIntersect rest list2
+
+
+toggleGroup : Concourse.PipelineGroup -> List String -> WebData Concourse.Pipeline -> List String
+toggleGroup grp names mpipeline =
+    if List.member grp.name names then
+        List.filter ((/=) grp.name) names
+    else if List.isEmpty names then
+        grp.name :: getDefaultSelectedGroups mpipeline
+    else
+        grp.name :: names
+
+
+getSelectedGroupsForRoute : Model -> List String
+getSelectedGroupsForRoute model =
+    if List.isEmpty model.selectedGroups then
+        getDefaultSelectedGroups model.pipeline
+    else
+        model.selectedGroups
+
+
+getDefaultSelectedGroups : WebData Concourse.Pipeline -> List String
+getDefaultSelectedGroups pipeline =
+    case pipeline of
+        RemoteData.Success pipeline ->
+            case List.head pipeline.groups of
+                Nothing ->
+                    []
+
+                Just first ->
+                    [ first.name ]
+
+        _ ->
+            []
+
+
+setGroups : List String -> Model -> ( Model, Cmd Msg )
+setGroups newGroups model =
+    let
+        newUrl =
+            pidToUrl (pipelineIdentifierFromModel model) <|
+                setGroupsInLocation model.route newGroups
+    in
+        ( model, Navigation.newUrl newUrl )
+
+
+setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
+setGroupsInLocation loc groups =
+    let
+        updatedUrl =
+            if List.isEmpty groups then
+                QueryString.remove "groups" loc.queries
+            else
+                List.foldr
+                    (QueryString.add "groups")
+                    QueryString.empty
+                    groups
+    in
+        { loc
+            | queries = updatedUrl
+        }
+
+
+pidToUrl : Maybe Concourse.PipelineIdentifier -> Routes.ConcourseRoute -> String
+pidToUrl pid { queries } =
+    case pid of
+        Just { teamName, pipelineName } ->
+            String.join ""
+                [ String.join "/"
+                    [ "/teams"
+                    , teamName
+                    , "pipelines"
+                    , pipelineName
+                    ]
+                , QueryString.render queries
+                ]
+
+        Nothing ->
+            ""
+
+
+pipelineIdentifierFromModel : Model -> Maybe Concourse.PipelineIdentifier
+pipelineIdentifierFromModel model =
+    case model.pipeline of
+        RemoteData.Success pipeline ->
+            Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
+
+        _ ->
+            Nothing

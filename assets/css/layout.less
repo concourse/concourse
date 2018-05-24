@@ -38,7 +38,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
       min-width: 20px;
       height: 20px;
       background-repeat: no-repeat;
-      padding-right: 5px;
+      padding-right: 10px;
     }
 
     .breadcrumb-pipeline-icon {
@@ -55,7 +55,6 @@ html, body, #elm-app-embed, #subpage, .content-frame {
   }
 
   .groups-bar {
-    margin-top: @top-bar-height;
     background: #0C1217;
     color: white;
 
@@ -64,6 +63,9 @@ html, body, #elm-app-embed, #subpage, .content-frame {
     }
 
     .groups {
+      flex-grow: 1;
+      display: flex;
+      flex-flow: row wrap;
       padding: 5px;
     }
 
@@ -83,7 +85,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
     }
   }
 
-  .top-bar, .groups-bar {
+  .top-bar {
     z-index: @user-menu-z-index;
     left: 0;
     right: 0;
@@ -130,6 +132,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
     display: flex;
     flex-direction: row;
     align-items: stretch;
+    padding-top: @top-bar-height;
   }
 }
 

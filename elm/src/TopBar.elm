@@ -7,20 +7,16 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
 import Html.Events exposing (onClick)
 import Http
-import List
 import LoginRedirect
 import Navigation exposing (Location)
-import QueryString
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import String
 import Task
 import Time
 
 
 type alias Model =
     { route : Routes.ConcourseRoute
-    , selectedGroups : List String
     , pipeline : Maybe Concourse.Pipeline
     , userState : UserState
     , userMenuVisible : Bool
@@ -40,18 +36,11 @@ type Msg
     | FetchUser Time.Time
     | FetchPipeline Concourse.PipelineIdentifier
     | ToggleSidebar
-    | ToggleGroup Concourse.PipelineGroup
-    | SetGroups (List String)
     | LogOut
     | LogIn
     | NavTo String
     | LoggedOut (Result Http.Error ())
     | ToggleUserMenu
-
-
-queryGroupsForRoute : Routes.ConcourseRoute -> List String
-queryGroupsForRoute route =
-    QueryString.all "groups" route.queries
 
 
 init : Routes.ConcourseRoute -> ( Model, Cmd Msg )
@@ -60,8 +49,7 @@ init route =
         pid =
             extractPidFromRoute route.logical
     in
-        ( { selectedGroups = queryGroupsForRoute route
-          , route = route
+        ( { route = route
           , pipeline = Nothing
           , userState = UserStateUnknown
           , userMenuVisible = False
@@ -127,16 +115,9 @@ update msg model =
             flip always (Debug.log "sidebar-toggle-incorrectly-handled" ()) <|
                 ( model, Cmd.none )
 
-        ToggleGroup group ->
-            setGroups (toggleGroup group model.selectedGroups model.pipeline) model
-
-        SetGroups groups ->
-            setGroups groups model
-
         LogIn ->
             ( { model
-                | selectedGroups = []
-                , pipeline = Nothing
+                | pipeline = Nothing
               }
             , Navigation.newUrl "/login"
             )
@@ -148,7 +129,6 @@ update msg model =
             ( { model
                 | userState = UserStateLoggedOut
                 , pipeline = Nothing
-                , selectedGroups = []
               }
             , Navigation.newUrl "/"
             )
@@ -226,16 +206,6 @@ extractPidFromRoute route =
             Nothing
 
 
-setGroups : List String -> Model -> ( Model, Cmd Msg )
-setGroups newGroups model =
-    let
-        newUrl =
-            pidToUrl (pipelineIdentifierFromRouteOrModel model.route model) <|
-                setGroupsInLocation model.route newGroups
-    in
-        ( model, Navigation.newUrl newUrl )
-
-
 urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
 urlUpdate route model =
     let
@@ -244,7 +214,6 @@ urlUpdate route model =
     in
         ( { model
             | route = route
-            , selectedGroups = queryGroupsForRoute route
           }
         , case pipelineIdentifier of
             Nothing ->
@@ -255,99 +224,8 @@ urlUpdate route model =
         )
 
 
-getDefaultSelectedGroups : Maybe Concourse.Pipeline -> List String
-getDefaultSelectedGroups pipeline =
-    case pipeline of
-        Nothing ->
-            []
-
-        Just pipeline ->
-            case List.head pipeline.groups of
-                Nothing ->
-                    []
-
-                Just first ->
-                    [ first.name ]
-
-
-setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
-setGroupsInLocation loc groups =
-    let
-        updatedUrl =
-            if List.isEmpty groups then
-                QueryString.remove "groups" loc.queries
-            else
-                List.foldr
-                    (QueryString.add "groups")
-                    QueryString.empty
-                    groups
-    in
-        { loc
-            | queries = updatedUrl
-        }
-
-
-pidToUrl : Maybe Concourse.PipelineIdentifier -> Routes.ConcourseRoute -> String
-pidToUrl pid { queries } =
-    case pid of
-        Just { teamName, pipelineName } ->
-            String.join ""
-                [ String.join "/"
-                    [ "/teams"
-                    , teamName
-                    , "pipelines"
-                    , pipelineName
-                    ]
-                , QueryString.render queries
-                ]
-
-        Nothing ->
-            ""
-
-
-toggleGroup : Concourse.PipelineGroup -> List String -> Maybe Concourse.Pipeline -> List String
-toggleGroup grp names mpipeline =
-    if List.member grp.name names then
-        List.filter ((/=) grp.name) names
-    else if List.isEmpty names then
-        grp.name :: getDefaultSelectedGroups mpipeline
-    else
-        grp.name :: names
-
-
-getSelectedOrDefaultGroups : Model -> List String
-getSelectedOrDefaultGroups model =
-    if List.isEmpty model.selectedGroups then
-        getDefaultSelectedGroups model.pipeline
-    else
-        model.selectedGroups
-
-
-getSelectedGroupsForRoute : Model -> List String
-getSelectedGroupsForRoute model =
-    case model.route.logical of
-        Routes.Build _ _ jobName _ ->
-            getGroupsForJob jobName model.pipeline
-
-        Routes.Job _ _ jobName ->
-            getGroupsForJob jobName model.pipeline
-
-        _ ->
-            getSelectedOrDefaultGroups model
-
-
-getGroupsForJob : String -> Maybe Concourse.Pipeline -> List String
-getGroupsForJob jobName pipeline =
-    case pipeline of
-        Nothing ->
-            []
-
-        Just pl ->
-            List.filter (.jobs >> List.member jobName) pl.groups |> List.map .name
-
-
-view : Model -> Bool -> Html Msg
-view model sidebarVisible =
+view : Model -> Html Msg
+view model =
     Html.div []
         [ Html.nav
             [ classList
@@ -374,34 +252,6 @@ view model sidebarVisible =
                     ]
                 ]
             ]
-        , case model.pipeline of
-            Just pipeline ->
-                let
-                    groupsBar =
-                        Html.nav
-                            [ classList
-                                [ ( "groups-bar", True )
-                                , ( "groups-bar-pull-right", sidebarVisible )
-                                ]
-                            ]
-                            [ Html.ul [ class "groups" ] <|
-                                List.map
-                                    (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
-                                    pipeline.groups
-                            ]
-                in
-                    case model.route.logical of
-                        Routes.Home ->
-                            groupsBar
-
-                        Routes.Pipeline _ _ ->
-                            groupsBar
-
-                        _ ->
-                            Html.text ""
-
-            Nothing ->
-                Html.text ""
         ]
 
 
@@ -526,22 +376,6 @@ viewUserState userState userMenuVisible =
                         ]
                     ]
                 ]
-
-
-viewGroup : List String -> String -> Concourse.PipelineGroup -> Html Msg
-viewGroup selectedGroups url grp =
-    Html.li
-        [ if List.member grp.name selectedGroups then
-            class "main active"
-          else
-            class "main"
-        ]
-        [ Html.a
-            [ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
-            , onLeftClickOrShiftLeftClick (SetGroups [ grp.name ]) (ToggleGroup grp)
-            ]
-            [ Html.text grp.name ]
-        ]
 
 
 fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
