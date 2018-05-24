@@ -1,12 +1,14 @@
 module PipelineTests exposing (..)
 
-import Pipeline exposing (update, Msg(..))
-import Test exposing (..)
-import Expect exposing (..)
-import Time exposing (Time)
-import RemoteData exposing (WebData)
-import Keyboard
 import Char
+import Expect exposing (..)
+import Keyboard
+import Pipeline exposing (update, Msg(..))
+import QueryString
+import RemoteData exposing (WebData)
+import Routes
+import Test exposing (..)
+import Time exposing (Time)
 
 
 all : Test
@@ -29,6 +31,7 @@ all =
                     , concourseVersion = "some-version"
                     , turbulenceImgSrc = "some-turbulence-img-src"
                     , experiencingTurbulence = False
+                    , route = { logical = Routes.Pipeline "" "", queries = QueryString.empty, page = Nothing, hash = "" }
                     , selectedGroups = []
                     , hideLegend = False
                     , hideLegendCounter = 0
