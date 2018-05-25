@@ -300,7 +300,15 @@ view model =
                         _ ->
                             []
               in
-                Html.ul [ class "groups" ] groupList
+                Html.ul
+                    [ class
+                        (if List.isEmpty groupList then
+                            "hidden"
+                         else
+                            "groups"
+                        )
+                    ]
+                    groupList
             ]
         , Html.div [ class "pipeline-content" ]
             [ Svg.svg
