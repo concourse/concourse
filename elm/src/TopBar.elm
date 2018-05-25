@@ -226,30 +226,28 @@ urlUpdate route model =
 
 view : Model -> Html Msg
 view model =
-    Html.div []
-        [ Html.nav
-            [ classList
-                [ ( "top-bar", True )
-                , ( "test", True )
-                , ( "paused", isPaused model.pipeline )
+    Html.nav
+        [ classList
+            [ ( "top-bar", True )
+            , ( "test", True )
+            , ( "paused", isPaused model.pipeline )
+            ]
+        ]
+        [ Html.ul [ class "groups" ] <|
+            [ Html.li [ class "main" ]
+                [ Html.span
+                    [ class "sidebar-toggle test btn-hamburger"
+                    , onClick ToggleSidebar
+                    , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
+                    ]
+                    [ Html.i [ class "fa fa-bars" ] []
+                    ]
                 ]
             ]
-            [ Html.ul [ class "groups" ] <|
-                [ Html.li [ class "main" ]
-                    [ Html.span
-                        [ class "sidebar-toggle test btn-hamburger"
-                        , onClick ToggleSidebar
-                        , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
-                        ]
-                        [ Html.i [ class "fa fa-bars" ] []
-                        ]
-                    ]
-                ]
-                    ++ viewBreadcrumbs model
-            , Html.ul [ class "nav-right" ]
-                [ Html.li [ class "nav-item" ]
-                    [ viewUserState model.userState model.userMenuVisible
-                    ]
+                ++ viewBreadcrumbs model
+        , Html.ul [ class "nav-right" ]
+            [ Html.li [ class "nav-item" ]
+                [ viewUserState model.userState model.userMenuVisible
                 ]
             ]
         ]
