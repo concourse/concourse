@@ -433,12 +433,12 @@ var _ = Describe("ContainerRepository", func() {
 		})
 	})
 
-	Describe("FindFailedContainers", func() {
+	Describe("DestroyFailedContainers", func() {
 		var failedErr error
-		var failedContainers []db.FailedContainer
+		var failedContainersLen int
 
 		JustBeforeEach(func() {
-			failedContainers, failedErr = containerRepository.FindFailedContainers()
+			failedContainersLen, failedErr = containerRepository.DestroyFailedContainers()
 		})
 
 		ItClosesConnection := func() {
@@ -446,7 +446,7 @@ var _ = Describe("ContainerRepository", func() {
 				closed := make(chan bool)
 
 				go func() {
-					_, _ = containerRepository.FindFailedContainers()
+					_, _ = containerRepository.DestroyFailedContainers()
 					closed <- true
 				}()
 
@@ -470,7 +470,7 @@ var _ = Describe("ContainerRepository", func() {
 			})
 
 			It("returns all failed containers", func() {
-				Expect(failedContainers).To(HaveLen(1))
+				Expect(failedContainersLen).To(Equal(1))
 			})
 			It("does not return an error", func() {
 				Expect(failedErr).ToNot(HaveOccurred())
@@ -480,7 +480,7 @@ var _ = Describe("ContainerRepository", func() {
 
 		Context("when there are no failed containers", func() {
 			It("returns an empty array", func() {
-				Expect(failedContainers).To(HaveLen(0))
+				Expect(failedContainersLen).To(Equal(0))
 			})
 			It("does not return an error", func() {
 				Expect(failedErr).ToNot(HaveOccurred())
@@ -503,7 +503,7 @@ var _ = Describe("ContainerRepository", func() {
 				ItClosesConnection()
 			})
 
-			Context("when there is an error iterating through the rows", func() {
+			Context("when there is an invalid row", func() {
 				BeforeEach(func() {
 					By("adding a row without expected values")
 					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
@@ -513,12 +513,13 @@ var _ = Describe("ContainerRepository", func() {
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result.RowsAffected()).To(Equal(int64(1)))
-
 				})
-				It("returns an error", func() {
-					Expect(failedErr).To(HaveOccurred())
 
+				It("destroy the invalid row", func() {
+					Expect(failedErr).ToNot(HaveOccurred())
+					Expect(failedContainersLen).To(Equal(1))
 				})
+
 				ItClosesConnection()
 			})
 		})

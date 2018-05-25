@@ -64,49 +64,15 @@ var _ = Describe("ContainerCollector", func() {
 		})
 
 		Describe("Failed Containers", func() {
-			var (
-				failedContainer1 *dbfakes.FakeFailedContainer
-				failedContainer2 *dbfakes.FakeFailedContainer
-			)
-
-			BeforeEach(func() {
-				failedContainer1 = new(dbfakes.FakeFailedContainer)
-				failedContainer1.HandleReturns("some-handle-1")
-				failedContainer1.WorkerNameReturns("bar")
-
-				failedContainer2 = new(dbfakes.FakeFailedContainer)
-				failedContainer2.HandleReturns("some-handle-2")
-				failedContainer2.WorkerNameReturns("bar")
-
-				fakeContainerRepository.FindFailedContainersReturns(
-					[]db.FailedContainer{
-						failedContainer1,
-						failedContainer2,
-					},
-					nil,
-				)
-			})
-
 			Context("when there are failed containers", func() {
-				It("deletes them from the database", func() {
-					Expect(failedContainer1.DestroyCallCount()).To(Equal(1))
-					Expect(failedContainer2.DestroyCallCount()).To(Equal(1))
+				It("tries to delete them from the database", func() {
+					Expect(fakeContainerRepository.DestroyFailedContainersCallCount()).To(Equal(1))
 				})
 
-				Context("when deleting one of the containers fails", func() {
+				Context("when destroying failed containers fails", func() {
 					BeforeEach(func() {
-						failedContainer1.DestroyReturns(false, errors.New("There is no failure except in no longer trying"))
-					})
-
-					It("still deletes the other failed containers", func() {
-						Expect(failedContainer2.DestroyCallCount()).To(Equal(1))
-					})
-				})
-
-				Context("when finding failed containers fails", func() {
-					BeforeEach(func() {
-						fakeContainerRepository.FindFailedContainersReturns(
-							[]db.FailedContainer{},
+						fakeContainerRepository.DestroyFailedContainersReturns(
+							0,
 							errors.New("You have to be able to accept failure to get better"),
 						)
 					})
@@ -114,7 +80,6 @@ var _ = Describe("ContainerCollector", func() {
 					It("still tries to remove the orphaned containers", func() {
 						Expect(fakeContainerRepository.FindOrphanedContainersCallCount()).To(Equal(1))
 					})
-
 				})
 			})
 		})

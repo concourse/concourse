@@ -68,33 +68,21 @@ func (c *containerCollector) Run(ctx context.Context) error {
 }
 
 func (c *containerCollector) cleanupFailedContainers(logger lager.Logger) error {
-	failedContainers, err := c.containerRepository.FindFailedContainers()
+	failedContainersLen, err := c.containerRepository.DestroyFailedContainers()
 	if err != nil {
 		logger.Error("failed-to-find-failed-containers-for-deletion", err)
 		return err
 	}
 
-	failedContainerHandles := []string{}
-	var failedContainerstoDestroy = []destroyableContainer{}
-
-	if len(failedContainers) > 0 {
-		for _, container := range failedContainers {
-			failedContainerHandles = append(failedContainerHandles, container.Handle())
-			failedContainerstoDestroy = append(failedContainerstoDestroy, container)
-		}
-	}
-
-	if len(failedContainerHandles) > 0 {
+	if failedContainersLen > 0 {
 		logger.Debug("found-failed-containers-for-deletion", lager.Data{
-			"failed-containers": failedContainerHandles,
+			"number": failedContainersLen,
 		})
 	}
 
 	metric.FailedContainersToBeGarbageCollected{
-		Containers: len(failedContainerHandles),
+		Containers: failedContainersLen,
 	}.Emit(logger)
-
-	destroyDBContainers(logger, failedContainerstoDestroy)
 
 	return nil
 }
@@ -107,46 +95,24 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 		return err
 	}
 
-	creatingContainerHandles := []string{}
-	createdContainerHandles := []string{}
-	destroyingContainerHandles := []string{}
-
-	if len(creatingContainers) > 0 {
-		for _, container := range creatingContainers {
-			creatingContainerHandles = append(creatingContainerHandles, container.Handle())
-		}
-	}
-
-	if len(createdContainers) > 0 {
-		for _, container := range createdContainers {
-			createdContainerHandles = append(createdContainerHandles, container.Handle())
-		}
-	}
-
-	if len(destroyingContainers) > 0 {
-		for _, container := range destroyingContainers {
-			destroyingContainerHandles = append(destroyingContainerHandles, container.Handle())
-		}
-	}
-
-	if len(createdContainerHandles) > 0 || len(createdContainerHandles) > 0 || len(destroyingContainerHandles) > 0 {
+	if len(creatingContainers) > 0 || len(createdContainers) > 0 || len(destroyingContainers) > 0 {
 		logger.Debug("found-orphaned-containers-for-deletion", lager.Data{
-			"creating-containers":   creatingContainerHandles,
-			"created-containers":    createdContainerHandles,
-			"destroying-containers": destroyingContainerHandles,
+			"creating-containers-num":   len(creatingContainers),
+			"created-containers-num":    len(createdContainers),
+			"destroying-containers-num": len(destroyingContainers),
 		})
 	}
 
 	metric.CreatingContainersToBeGarbageCollected{
-		Containers: len(creatingContainerHandles),
+		Containers: len(creatingContainers),
 	}.Emit(logger)
 
 	metric.CreatedContainersToBeGarbageCollected{
-		Containers: len(createdContainerHandles),
+		Containers: len(createdContainers),
 	}.Emit(logger)
 
 	metric.DestroyingContainersToBeGarbageCollected{
-		Containers: len(destroyingContainerHandles),
+		Containers: len(destroyingContainers),
 	}.Emit(logger)
 
 	var workerCreatedContainers = make(map[string][]db.CreatedContainer)
@@ -161,6 +127,10 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 			// create new array
 			workerCreatedContainers[createdContainer.WorkerName()] = []db.CreatedContainer{createdContainer}
 		}
+		logger.Debug("found-created-containers-for-deletion", lager.Data{
+			"handle": createdContainer.Handle(),
+			"worker": createdContainer.WorkerName(),
+		})
 	}
 
 	for worker, createdContainers := range workerCreatedContainers {
@@ -246,41 +216,6 @@ func markHijackedContainerAsDestroying(
 	}
 
 	return nil, nil
-}
-
-type destroyableContainer interface {
-	Handle() string
-	Destroy() (bool, error)
-}
-
-func destroyDBContainers(logger lager.Logger, dbContainers []destroyableContainer) {
-	if len(dbContainers) == 0 {
-		return
-	}
-
-	logger.Debug("start", lager.Data{"length": len(dbContainers)})
-	defer logger.Debug("done")
-
-	for _, dbContainer := range dbContainers {
-		dLog := logger.Session("destroy-container", lager.Data{
-			"container": dbContainer.Handle(),
-		})
-
-		destroyed, err := dbContainer.Destroy()
-		if err != nil {
-			dLog.Error("failed-to-destroy", err)
-			continue
-		}
-
-		if !destroyed {
-			dLog.Info("container-not-destroyed")
-			continue
-		}
-
-		metric.ContainersDeleted.Inc()
-
-		logger.Debug("destroyed")
-	}
 }
 
 func findContainer(gardenClient garden.Client, handle string) (garden.Container, bool, error) {

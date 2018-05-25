@@ -8,7 +8,7 @@ import (
 
 type ContainerRepository interface {
 	FindOrphanedContainers() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error)
-	FindFailedContainers() ([]FailedContainer, error)
+	DestroyFailedContainers() (int, error)
 	FindDestroyingContainers(workerName string) ([]string, error)
 	RemoveDestroyingContainers(workerName string, currentHandles []string) (int, error)
 }
@@ -240,32 +240,30 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 	return nil, nil, nil, nil, nil
 }
 
-func (repository *containerRepository) FindFailedContainers() ([]FailedContainer, error) {
-	var failedContainers []FailedContainer
-
-	query, args, _ := selectContainers("c").
+func (repository *containerRepository) DestroyFailedContainers() (int, error) {
+	query, args, err := psql.Select("c.id").
+		From("containers c").
 		LeftJoin("builds b ON b.id = c.build_id").
 		LeftJoin("containers icc ON icc.id = c.image_check_container_id").
 		LeftJoin("containers igc ON igc.id = c.image_get_container_id").
 		Where(sq.Eq{"c.state": ContainerStateFailed}).
 		ToSql()
-
-	rows, err := repository.conn.Query(query, args...)
 	if err != nil {
-		return nil, err
-	}
-	defer Close(rows)
-
-	for rows.Next() {
-		_, _, _, failedContainer, err := scanContainer(rows, repository.conn)
-		if err != nil {
-			return nil, err
-		}
-
-		if failedContainer != nil {
-			failedContainers = append(failedContainers, failedContainer)
-		}
+		return 0, err
 	}
 
-	return failedContainers, nil
+	result, err := sq.Delete("containers").
+		Where("id IN ("+query+")", args...).
+		RunWith(repository.conn).
+		Exec()
+	if err != nil {
+		return 0, err
+	}
+
+	failedContainersLen, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(failedContainersLen), nil
 }

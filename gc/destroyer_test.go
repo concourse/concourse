@@ -3,6 +3,7 @@ package gc_test
 import (
 	"errors"
 
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -169,6 +170,74 @@ var _ = Describe("Destroyer", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal(repoErrorString))
 				Expect(fakeVolumeRepository.RemoveDestroyingVolumesCallCount()).To(Equal(1))
+			})
+		})
+	})
+
+	Describe("Find Orphan Volumes as Destroying", func() {
+		var (
+			FindErr    error
+			workerName string
+			handles    []string
+		)
+		JustBeforeEach(func() {
+			handles, FindErr = destroyer.FindOrphanedVolumesasDestroying(workerName)
+		})
+
+		Context("when orphaned volumes are returned", func() {
+			BeforeEach(func() {
+				workerName = "some-worker"
+				fakeVolumeRepository.GetOrphanedVolumesReturns(nil, []string{}, nil)
+			})
+
+			It("succeed", func() {
+				Expect(FindErr).NotTo(HaveOccurred())
+				Expect(len(handles)).To(Equal(0))
+				Expect(fakeVolumeRepository.GetOrphanedVolumesCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("there are volumes returned", func() {
+			BeforeEach(func() {
+				workerName = "some-worker"
+				dbVolume1 := new(dbfakes.FakeCreatedVolume)
+				dbDestroyingVolume1 := new(dbfakes.FakeDestroyingVolume)
+				dbVolume1.DestroyingReturns(dbDestroyingVolume1, nil)
+				handles = []string{"volume-1", "volume-2"}
+
+				fakeVolumeRepository.GetOrphanedVolumesReturns([]db.CreatedVolume{dbVolume1}, handles, nil)
+			})
+
+			It("returned list of both destroyed handles", func() {
+				Expect(FindErr).NotTo(HaveOccurred())
+				Expect(len(handles)).To(Equal(3))
+				Expect(fakeVolumeRepository.GetOrphanedVolumesCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when volumes fails to transition", func() {
+			BeforeEach(func() {
+				workerName = "some-worker"
+				dbVolume1 := new(dbfakes.FakeCreatedVolume)
+				dbVolume1.DestroyingReturns(nil, errors.New("some-transition-error"))
+				handles = []string{"volume-1", "volume-2"}
+
+				fakeVolumeRepository.GetOrphanedVolumesReturns([]db.CreatedVolume{dbVolume1}, handles, nil)
+			})
+
+			It("returns the destroying volumes only", func() {
+				Expect(FindErr).NotTo(HaveOccurred())
+				Expect(len(handles)).To(Equal(2))
+				Expect(fakeVolumeRepository.GetOrphanedVolumesCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("there is error in the volumes repository call", func() {
+			BeforeEach(func() {
+				fakeVolumeRepository.GetOrphanedVolumesReturns(nil, []string{}, errors.New("some-bad-err"))
+			})
+			It("returns an error", func() {
+				Expect(FindErr).To(HaveOccurred())
 			})
 		})
 	})

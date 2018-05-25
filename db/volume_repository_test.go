@@ -264,7 +264,7 @@ var _ = Describe("VolumeFactory", func() {
 		})
 
 		It("returns orphaned volumes", func() {
-			createdVolumes, destoryingVolumes, err := volumeRepository.GetOrphanedVolumes()
+			createdVolumes, destoryingVolumesHandles, err := volumeRepository.GetOrphanedVolumes(defaultWorker.Name())
 			Expect(err).NotTo(HaveOccurred())
 			createdHandles := []string{}
 
@@ -275,14 +275,8 @@ var _ = Describe("VolumeFactory", func() {
 			Expect(createdHandles).To(Equal(expectedCreatedHandles))
 			Expect(createdHandles).ToNot(ContainElement(certsVolumeHandle))
 
-			destroyingHandles := []string{}
-			for _, vol := range destoryingVolumes {
-				destroyingHandles = append(destroyingHandles, vol.Handle())
-				Expect(vol.WorkerName()).To(Equal("default-worker"))
-			}
-
-			Expect(destroyingHandles).To(Equal(expectedDestroyingHandles))
-			Expect(destroyingHandles).ToNot(ContainElement(certsVolumeHandle))
+			Expect(destoryingVolumesHandles).To(Equal(expectedDestroyingHandles))
+			Expect(destoryingVolumesHandles).ToNot(ContainElement(certsVolumeHandle))
 		})
 
 		Context("when worker is stalled", func() {
@@ -296,7 +290,7 @@ var _ = Describe("VolumeFactory", func() {
 			})
 
 			It("does not return volumes", func() {
-				createdVolumes, destoryingVolumes, err := volumeRepository.GetOrphanedVolumes()
+				createdVolumes, destoryingVolumes, err := volumeRepository.GetOrphanedVolumes(defaultWorker.Name())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdVolumes).To(HaveLen(0))
 				Expect(destoryingVolumes).To(HaveLen(0))
@@ -313,7 +307,7 @@ var _ = Describe("VolumeFactory", func() {
 			})
 
 			It("does not return volumes", func() {
-				createdVolumes, destoryingVolumes, err := volumeRepository.GetOrphanedVolumes()
+				createdVolumes, destoryingVolumes, err := volumeRepository.GetOrphanedVolumes(defaultWorker.Name())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdVolumes).To(HaveLen(0))
 				Expect(destoryingVolumes).To(HaveLen(0))
@@ -321,8 +315,7 @@ var _ = Describe("VolumeFactory", func() {
 		})
 	})
 
-	Describe("GetFailedVolumes", func() {
-		var expectedFailedHandles []string
+	Describe("DestroyFailedVolumes", func() {
 
 		BeforeEach(func() {
 			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
@@ -331,26 +324,16 @@ var _ = Describe("VolumeFactory", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedFailedHandles = []string{}
-
 			creatingVolume1, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
 			Expect(err).NotTo(HaveOccurred())
-			failedVolume1, err := creatingVolume1.Failed()
+			_, err = creatingVolume1.Failed()
 			Expect(err).NotTo(HaveOccurred())
-
-			expectedFailedHandles = append(expectedFailedHandles, failedVolume1.Handle())
 		})
 
-		It("returns failed volumes", func() {
-			failedVolumes, err := volumeRepository.GetFailedVolumes()
+		It("returns length of failed volumes", func() {
+			failedVolumes, err := volumeRepository.DestroyFailedVolumes()
 			Expect(err).NotTo(HaveOccurred())
-			failedHandles := []string{}
-
-			for _, vol := range failedVolumes {
-				failedHandles = append(failedHandles, vol.Handle())
-				Expect(vol.WorkerName()).To(Equal("default-worker"))
-			}
-			Expect(failedHandles).To(Equal(expectedFailedHandles))
+			Expect(failedVolumes).To(Equal(1))
 		})
 	})
 

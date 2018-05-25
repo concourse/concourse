@@ -330,17 +330,16 @@ var _ = Describe("Volumes API", func() {
 					req.URL.RawQuery = url.Values{
 						"worker_name": []string{"some-worker-name"},
 					}.Encode()
-
 				})
 
 				It("asks the factory for the detroying volumes", func() {
-					Expect(fakeVolumeRepository.GetDestroyingVolumesCallCount()).To(Equal(1))
-					Expect(fakeVolumeRepository.GetDestroyingVolumesArgsForCall(0)).To(Equal("some-worker-name"))
+					Expect(fakeDestroyer.FindOrphanedVolumesasDestroyingCallCount()).To(Equal(1))
+					Expect(fakeDestroyer.FindOrphanedVolumesasDestroyingArgsForCall(0)).To(Equal("some-worker-name"))
 				})
 
 				Context("when getting all destroying volumes succeeds", func() {
 					BeforeEach(func() {
-						fakeVolumeRepository.GetDestroyingVolumesReturns([]string{
+						fakeDestroyer.FindOrphanedVolumesasDestroyingReturns([]string{
 							"volume1",
 							"volume2",
 						}, nil)
@@ -363,7 +362,7 @@ var _ = Describe("Volumes API", func() {
 
 					Context("when getting all volumes fails", func() {
 						BeforeEach(func() {
-							fakeVolumeRepository.GetDestroyingVolumesReturns([]string{}, errors.New("oh no!"))
+							fakeDestroyer.FindOrphanedVolumesasDestroyingReturns([]string{}, errors.New("oh no!"))
 						})
 
 						It("returns 500 Internal Server Error", func() {
@@ -373,7 +372,7 @@ var _ = Describe("Volumes API", func() {
 
 					Context("when list of volume is empty", func() {
 						BeforeEach(func() {
-							fakeVolumeRepository.GetDestroyingVolumesReturns([]string{}, nil)
+							fakeDestroyer.FindOrphanedVolumesasDestroyingReturns([]string{}, nil)
 						})
 
 						It("returns empty list of volumes", func() {

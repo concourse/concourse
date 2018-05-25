@@ -83,16 +83,6 @@ var _ = Describe("Volume", func() {
 		})
 
 		Describe("the database query succeeds", func() {
-			It("updates the record to be `failed`", func() {
-				Expect(failErr).ToNot(HaveOccurred())
-
-				failedVolumes, err := volumeRepository.GetFailedVolumes()
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(failedVolumes).To(HaveLen(1))
-				Expect(failedVolumes).To(ContainElement(failedVolume))
-			})
-
 			Context("when the volume is already in the failed state", func() {
 				BeforeEach(func() {
 					_, err := creatingVolume.Failed()

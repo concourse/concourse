@@ -22,6 +22,8 @@ func (s *Server) ListDestroyingContainers(w http.ResponseWriter, r *http.Request
 			return
 		}
 
+		logger.Debug("list", lager.Data{"destroying-container-count": len(containerHandles)})
+
 		err = json.NewEncoder(w).Encode(containerHandles)
 		if err != nil {
 			logger.Error("failed-to-marshall-container-handles-for-worker", err)

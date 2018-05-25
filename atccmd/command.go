@@ -613,17 +613,6 @@ func (cmd *ATCCommand) constructMembers(
 				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 				gc.NewVolumeCollector(
 					dbVolumeRepository,
-					gc.NewWorkerJobRunner(
-						logger.Session("volume-collector-worker-job-runner"),
-						workerClient,
-						time.Minute,
-						cmd.GC.WorkerConcurrency,
-						func(logger lager.Logger, workerName string) {
-							metric.GarbageCollectionVolumeCollectorJobDropped{
-								WorkerName: workerName,
-							}.Emit(logger)
-						},
-					),
 				),
 				gc.NewContainerCollector(
 					dbContainerRepository,
