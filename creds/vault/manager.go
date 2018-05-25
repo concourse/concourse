@@ -66,9 +66,7 @@ func (manager VaultManager) Validate() error {
 }
 
 func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
-	config := vaultapi.DefaultConfig()
-
-	err := config.ConfigureTLS(&vaultapi.TLSConfig{
+	tlsConfig := &vaultapi.TLSConfig{
 		CACert:        manager.TLS.CACert,
 		CAPath:        manager.TLS.CAPath,
 		TLSServerName: manager.TLS.ServerName,
@@ -76,24 +74,13 @@ func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.Vari
 
 		ClientCert: manager.TLS.ClientCert,
 		ClientKey:  manager.TLS.ClientKey,
-	})
+	}
+
+	c, err := NewAPIClient(logger, manager.URL, tlsConfig, manager.Auth)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := vaultapi.NewClient(config)
-	if err != nil {
-		return nil, err
-	}
-
-	err = client.SetAddress(manager.URL)
-	if err != nil {
-		return nil, err
-	}
-
-	c := NewAPIClient(logger, client, manager.Auth)
-
-	// TODO: Configurable?
 	ra := NewReAuther(c, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
 	var sr SecretReader = c
 	if manager.Cache {

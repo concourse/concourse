@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -22,19 +23,24 @@ type ReAuther struct {
 	max    time.Duration
 	maxTTL time.Duration
 
-	loggedIn chan struct{}
+	loggedIn     chan struct{}
+	loggedInOnce *sync.Once
 }
 
 // NewReAuther with a retry time and a max retry time.
 func NewReAuther(auther Auther, maxTTL, retry, max time.Duration) *ReAuther {
 	ra := &ReAuther{
-		auther:   auther,
-		base:     retry,
-		max:      max,
-		maxTTL:   maxTTL,
-		loggedIn: make(chan struct{}, 1),
+		auther: auther,
+		base:   retry,
+		max:    max,
+		maxTTL: maxTTL,
+
+		loggedIn:     make(chan struct{}, 1),
+		loggedInOnce: &sync.Once{},
 	}
+
 	go ra.authLoop()
+
 	return ra
 }
 
@@ -48,17 +54,26 @@ func (ra *ReAuther) LoggedIn() <-chan struct{} {
 func (ra *ReAuther) renewable(leaseEnd, tokenEOL time.Time) bool {
 	now := time.Now()
 
-	return !now.After(leaseEnd) && (ra.maxTTL != 0 && !now.After(tokenEOL))
+	if ra.maxTTL != 0 && now.After(tokenEOL) {
+		// token has exceeded the configured max TTL
+		return false
+	}
+
+	if now.After(leaseEnd) {
+		// token has exceeded its lease
+		return false
+	}
+
+	return true
 }
 
-// sleep until the  tokenEOl or half the lease duration
+// sleep until the tokenEOl or half the lease duration
 func (ra *ReAuther) sleep(leaseEnd, tokenEOL time.Time) {
 	if ra.maxTTL != 0 && leaseEnd.After(tokenEOL) {
 		time.Sleep(tokenEOL.Sub(time.Now()))
 	} else {
 		time.Sleep(leaseEnd.Sub(time.Now()) / 2)
 	}
-
 }
 
 func (ra *ReAuther) authLoop() {
@@ -68,6 +83,7 @@ func (ra *ReAuther) authLoop() {
 		exp := backoff.NewExponentialBackOff()
 		exp.MaxElapsedTime = ra.max
 		exp.InitialInterval = ra.base
+
 		for {
 			lease, err := ra.auther.Login()
 			if err != nil {
@@ -76,15 +92,16 @@ func (ra *ReAuther) authLoop() {
 			}
 
 			exp.Reset()
-			select {
-			case ra.loggedIn <- struct{}{}:
-			default:
-			}
+
+			ra.loggedInOnce.Do(func() {
+				close(ra.loggedIn)
+			})
 
 			now := time.Now()
 			tokenEOL = now.Add(ra.maxTTL)
 			leaseEnd = now.Add(lease)
 			ra.sleep(leaseEnd, tokenEOL)
+
 			break
 		}
 
@@ -92,12 +109,15 @@ func (ra *ReAuther) authLoop() {
 			if !ra.renewable(leaseEnd, tokenEOL) {
 				break
 			}
+
 			lease, err := ra.auther.Renew()
 			if err != nil {
 				time.Sleep(exp.NextBackOff())
 				continue
 			}
+
 			exp.Reset()
+
 			leaseEnd = time.Now().Add(lease)
 			ra.sleep(leaseEnd, tokenEOL)
 		}
