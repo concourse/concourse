@@ -102,15 +102,17 @@ func newLazyCredhub(url string, options []credhub.Option) lazyCredhub {
 	}
 }
 
-func (lc *lazyClient) CredHub() (*credhub.CredHub, error) {
+func (lc lazyCredhub) CredHub() (*credhub.CredHub, error) {
 	if lc.credhub != nil {
-		return lc.credhub
+		return lc.credhub, nil
 	}
 
 	ch, err := credhub.New(lc.url, lc.options...)
 	if err != nil {
 		return nil, err
 	}
+
 	lc.credhub = ch
+
 	return lc.credhub, nil
 }

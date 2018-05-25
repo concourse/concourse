@@ -67,7 +67,7 @@ func (c CredHubAtc) findCred(path string) (credentials.Credential, bool, error) 
 	var cred credentials.Credential
 	var err error
 
-	ch, err := c.lazyCredhub.credhub()
+	ch, err := c.CredHub.CredHub()
 	if err != nil {
 		return cred, false, err
 	}
@@ -81,6 +81,7 @@ func (c CredHubAtc) findCred(path string) (credentials.Credential, bool, error) 
 	if _, ok := err.(*credhub.Error); ok {
 		return cred, false, nil
 	}
+
 	if err != nil {
 		return cred, false, err
 	}

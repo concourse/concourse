@@ -3,7 +3,6 @@ package credhub
 import (
 	"code.cloudfoundry.org/lager"
 
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/concourse/atc/creds"
 )
 
@@ -15,7 +14,7 @@ type credhubFactory struct {
 
 func NewCredHubFactory(logger lager.Logger, credhub lazyCredhub, prefix string) *credhubFactory {
 	return &credhubFactory{
-		credhub: lazyCredhub,
+		credhub: credhub,
 		logger:  logger,
 		prefix:  prefix,
 	}
