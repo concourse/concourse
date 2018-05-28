@@ -83,6 +83,8 @@ before using it!
 }{
   \table-row{\link{Terraform}{https://github.com/ljfranklin/terraform-resource}}{by \ghuser{ljfranklin}}
 }{
+  \table-row{\link{bbl (BOSH Bootloader) state}{https://github.com/cloudfoundry/bbl-state-resource}}{by \ghuser{cloudfoundry}}
+}{
   \table-row{\link{Azure Blobstore}{https://github.com/pivotal-cloudops/azure-blobstore-concourse-resource}}{by \ghuser{pivotal-cloudops}}
 }{
   \table-row{\link{Rsync}{https://github.com/mrsixw/concourse-rsync-resource}}{by \ghuser{mrsixw}}
