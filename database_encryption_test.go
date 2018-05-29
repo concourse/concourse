@@ -56,12 +56,11 @@ var _ = Describe("Database secrets encryption", func() {
 			Deploy("deployments/concourse.yml", "-o", "operations/encryption.yml")
 		})
 
-		It("encrypts pipeline credentials and team auth config", func() {
+		It("encrypts pipeline credentials", func() {
 			configurePipelineAndTeamAndTriggerJob()
 
 			By("taking a dump")
 			session := pgDump()
-			Expect(session).ToNot(gbytes.Say("victorias_secret_org"))
 			Expect(session).ToNot(gbytes.Say("resource_secret"))
 			Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 			Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -73,13 +72,12 @@ var _ = Describe("Database secrets encryption", func() {
 			Deploy("deployments/concourse.yml")
 		})
 
-		Context("with credentials and team auth in plaintext", func() {
+		Context("with credentials in plaintext", func() {
 			BeforeEach(func() {
 				configurePipelineAndTeamAndTriggerJob()
 
 				By("taking a dump")
 				session := pgDump()
-				Expect(string(session.Out.Contents())).To(ContainSubstring("victorias_secret_org"))
 				Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
 				Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 				Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
@@ -90,10 +88,9 @@ var _ = Describe("Database secrets encryption", func() {
 					Deploy("deployments/concourse.yml", "-o", "operations/encryption.yml")
 				})
 
-				It("encrypts pipeline credentials and team auth config", func() {
+				It("encrypts pipeline credentials", func() {
 					By("taking a dump")
 					session := pgDump()
-					Expect(session).ToNot(gbytes.Say("victorias_secret_org"))
 					Expect(session).ToNot(gbytes.Say("resource_secret"))
 					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 					Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -114,7 +111,6 @@ var _ = Describe("Database secrets encryption", func() {
 					It("can still get and set pipelines", func() {
 						By("taking a dump")
 						session := pgDump()
-						Expect(session).ToNot(gbytes.Say("victorias_secret_org"))
 						Expect(session).ToNot(gbytes.Say("resource_secret"))
 						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 						Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -146,7 +142,6 @@ var _ = Describe("Database secrets encryption", func() {
 					It("can still get and set pipelines", func() {
 						By("taking a dump")
 						session := pgDump()
-						Expect(session).ToNot(gbytes.Say("victorias_secret_org"))
 						Expect(session).ToNot(gbytes.Say("resource_secret"))
 						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 						Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -194,10 +189,9 @@ var _ = Describe("Database secrets encryption", func() {
 						Deploy("deployments/concourse.yml", "-o", "operations/encryption-removed.yml")
 					})
 
-					It("decrypts pipeline credentials and team auth config", func() {
+					It("decrypts pipeline credentials", func() {
 						By("taking a dump")
 						session := pgDump()
-						Expect(string(session.Out.Contents())).To(ContainSubstring("victorias_secret_org"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("concourse/time-resource"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
