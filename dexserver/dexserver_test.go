@@ -48,8 +48,8 @@ var _ = Describe("Dex Server", func() {
 					Logger: lagertest.NewTestLogger("dex"),
 					Flags: skycmd.AuthFlags{
 						LocalUsers: map[string]string{
-							"some-user-0": "some-password-0",
-							"some-user-1": "some-password-1",
+							"some-user-0": "$2a$10$3veRX245rLrpOKrgu7jIyOEKF5Km5tY86bZql6/oTMssgPO/6XJju",
+							"some-user-1": "$2a$10$31qaZYMqx7mplkLoMrpPHeF3xf5eN37Zyv3e/QdPUs6S6IqrDA9Du",
 						},
 					},
 				}

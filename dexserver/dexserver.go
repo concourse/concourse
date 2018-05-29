@@ -13,7 +13,6 @@ import (
 	"github.com/coreos/dex/storage/memory"
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type DexConfig struct {
@@ -153,9 +152,7 @@ func newLocalUsers(config *DexConfig) map[string][]byte {
 
 	for username, password := range config.Flags.LocalUsers {
 		if username != "" && password != "" {
-			if encrypted, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err == nil {
-				users[username] = encrypted
-			}
+			users[username] = []byte(password)
 		}
 	}
 
