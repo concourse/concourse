@@ -786,19 +786,13 @@ func (t *team) UpdateProviderAuth(auth map[string][]string) error {
 		return err
 	}
 
-	es := t.conn.EncryptionStrategy()
-	encryptedAuth, nonce, err := es.Encrypt(jsonEncodedProviderAuth)
-	if err != nil {
-		return err
-	}
-
 	query := `
 		UPDATE teams
-		SET auth = $1, nonce = $3
+		SET auth = $1, legacy_auth = NULL, nonce = NULL
 		WHERE id = $2
 		RETURNING id, name, admin, auth, nonce
 	`
-	params := []interface{}{string(encryptedAuth), t.id, nonce}
+	params := []interface{}{jsonEncodedProviderAuth, t.id}
 	return t.queryTeam(query, params)
 }
 
@@ -1036,19 +1030,7 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 	}
 
 	if providerAuth.Valid {
-		es := t.conn.EncryptionStrategy()
-
-		var noncense *string
-		if nonce.Valid {
-			noncense = &nonce.String
-		}
-
-		pAuth, err := es.Decrypt(providerAuth.String, noncense)
-		if err != nil {
-			return err
-		}
-
-		err = json.Unmarshal(pAuth, &t.auth)
+		err = json.Unmarshal([]byte(providerAuth.String), &t.auth)
 		if err != nil {
 			return err
 		}

@@ -116,7 +116,7 @@ func shouldRetry(err error) bool {
 }
 
 var encryptedColumns = map[string]string{
-	"teams":          "auth",
+	"teams":          "legacy_auth",
 	"resources":      "config",
 	"jobs":           "config",
 	"resource_types": "config",

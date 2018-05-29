@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"database/sql"
 	"strconv"
 	"time"
 
@@ -720,6 +721,18 @@ var _ = Describe("Team", func() {
 			It("saves github auth team info without over writing the basic auth", func() {
 				err := team.UpdateProviderAuth(authProvider)
 				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("resets legacy_auth to NULL", func() {
+				oldLegacyAuth := `{"basicauth": {"username": "u", "password": "p"}}`
+				_, err := dbConn.Exec("UPDATE teams SET legacy_auth = $1 WHERE id = $2", oldLegacyAuth, team.ID())
+				team.UpdateProviderAuth(authProvider)
+				var newLegacyAuth sql.NullString
+				err = dbConn.QueryRow("SELECT legacy_auth FROM teams WHERE id = $1", team.ID()).Scan(&newLegacyAuth)
+				Expect(err).ToNot(HaveOccurred())
+				value, err := newLegacyAuth.Value()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(value).To(BeNil())
 			})
 		})
 	})
