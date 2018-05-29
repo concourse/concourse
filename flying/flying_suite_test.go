@@ -21,15 +21,17 @@ var (
 )
 
 var atcURL = helpers.AtcURL()
+var username = helpers.AtcUsername()
+var password = helpers.AtcPassword()
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 
-	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse)
+	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse, username, password)
 	Expect(err).NotTo(HaveOccurred())
 
-	concourseClient := helpers.ConcourseClient(atcURL)
+	concourseClient := helpers.ConcourseClient(atcURL, username, password)
 	gitserver.Cleanup(concourseClient)
 
 	return data

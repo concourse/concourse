@@ -1,56 +1,40 @@
 package helpers
 
 import (
+	"context"
 	"crypto/tls"
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
-	"golang.org/x/oauth2"
+	. "github.com/onsi/gomega"
 
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/concourse/skymarshal/auth"
-	"github.com/concourse/skymarshal/provider"
+	"golang.org/x/oauth2"
 )
 
-func ConcourseClient(atcURL string) concourse.Client {
-	authToken, _, _ := GetATCToken(atcURL)
-	httpClient := oauthClient(authToken)
-	return concourse.NewClient(atcURL, httpClient, false)
-}
+func ConcourseClient(atcURL string, username, password string) concourse.Client {
+	token, err := fetchToken(atcURL, username, password)
+	Expect(err).NotTo(HaveOccurred())
 
-func GetATCToken(atcURL string) (*provider.AuthToken, string, error) {
-	response, err := httpClient().Get(atcURL + "/auth/basic/token?team_name=main")
-	if err != nil {
-		return nil, "", err
-	}
-
-	var authToken *provider.AuthToken
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, "", err
-	}
-
-	err = json.Unmarshal(body, &authToken)
-	if err != nil {
-		return nil, "", err
-	}
-
-	csrfToken := response.Header.Get(auth.CSRFHeaderName)
-
-	return authToken, csrfToken, nil
-}
-
-func oauthClient(atcToken *provider.AuthToken) *http.Client {
-	return &http.Client{
+	httpClient := &http.Client{
 		Transport: &oauth2.Transport{
-			Source: oauth2.StaticTokenSource(&oauth2.Token{
-				TokenType:   atcToken.Type,
-				AccessToken: atcToken.Value,
-			}),
+			Source: oauth2.StaticTokenSource(token),
 			Base: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			},
 		},
 	}
+
+	return concourse.NewClient(atcURL, httpClient, false)
+}
+
+func fetchToken(atcURL string, username, password string) (*oauth2.Token, error) {
+
+	oauth2Config := oauth2.Config{
+		ClientID:     "fly",
+		ClientSecret: "Zmx5",
+		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/token"},
+		Scopes:       []string{"openid", "federated:id"},
+	}
+
+	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
 }

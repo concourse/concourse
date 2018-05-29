@@ -14,10 +14,7 @@ func httpClient() *http.Client {
 	if certProvided {
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM([]byte(caCertContents))
-		tlsConfig := &tls.Config{
-			RootCAs: caCertPool,
-		}
-
+		tlsConfig := &tls.Config{RootCAs: caCertPool}
 		transport := &http.Transport{TLSClientConfig: tlsConfig}
 		client = &http.Client{Transport: transport}
 	} else {

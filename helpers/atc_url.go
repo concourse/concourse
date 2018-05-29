@@ -28,3 +28,23 @@ func AtcURL() string {
 
 	return atcURL
 }
+
+func AtcUsername() string {
+	username := os.Getenv("ATC_USERNAME")
+
+	if username == "" {
+		panic("must set $ATC_USERNAME")
+	}
+
+	return username
+}
+
+func AtcPassword() string {
+	password := os.Getenv("ATC_PASSWORD")
+
+	if password == "" {
+		panic("must set $ATC_PASSWORD")
+	}
+
+	return password
+}

@@ -11,15 +11,18 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-func FlyLogin(atcURL, concourseAlias, flyBinaryPath string) error {
+func FlyLogin(atcURL, concourseAlias, flyBinaryPath string, username, password string) error {
 	return flyLogin(flyBinaryPath, []string{
 		"-c", atcURL,
 		"-t", concourseAlias,
+		"-u", username,
+		"-p", password,
 	})
 }
 
 func flyLogin(flyBinaryPath string, loginArgs []string) error {
 	args := []string{"login"}
+
 	caCertContents, certProvided := os.LookupEnv("FLY_CA_CERT")
 	if certProvided {
 		pathToCaCert, err := ioutil.TempFile("", "testflight-ca-cert")
@@ -36,8 +39,8 @@ func flyLogin(flyBinaryPath string, loginArgs []string) error {
 
 		args = append(args, "--ca-cert", pathToCaCert.Name())
 	}
-	loginCmd := exec.Command(flyBinaryPath, append(args, loginArgs...)...)
 
+	loginCmd := exec.Command(flyBinaryPath, append(args, loginArgs...)...)
 	loginProcess, err := gexec.Start(loginCmd, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		return err
