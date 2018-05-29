@@ -242,4 +242,26 @@ page.
     \reference{included-resources}{a set of core resource types} baked in. If
     you are planning to use them you need to have at least one Linux worker.
   }
+
+  \section{
+    \title{Community Installation Tools}{community-installation}
+
+    \warn{
+      These are installation tools built by the community. Use at your own risk!
+    }
+
+    \link{Concourse Up}{https://github.com/EngineerBetter/concourse-up} by \ghuser{EngineerBetter}.
+    A tool for easily deploying Concourse in a single command.
+
+    \link{Concourse Helm Chart}{https://github.com/kubernetes/charts/tree/master/stable/concourse}.
+    The latest stable Helm chart for deploying Concourse into k8s. \bold{Official support coming soon.}
+
+    \link{Concourse Formula}{https://github.com/marco-m/concourse-ci-formula} by \ghuser{marco-m}.
+    All-in-one Concourse installation using Vagrant and Virutalbox with S3-compatible storage and Vault secret manager.
+
+    \link{BUCC}{https://github.com/starkandwayne/bucc} by \ghuser{starkandwayne}.
+    The \code{bucc} command line utility allows for easy bootstrapping of the BUCC stack (BOSH UA Credhub and Concourse). Which is the starting point for many deployments.
+
+  }
+
 }
