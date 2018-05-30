@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -52,6 +53,38 @@ func (self *migrations) Up_1527083318() error {
 		teams = append(teams, team)
 	}
 
+	mustBeUniqueAmongstAllTeams := map[string]map[string]map[string]bool{
+		"basicauth": map[string]map[string]bool{
+			"username": map[string]bool{},
+		},
+	}
+
+	mustBeSameAmongstAllTeams := map[string]map[string]map[string]bool{
+		"github": map[string]map[string]bool{
+			"auth_url":  map[string]bool{},
+			"token_url": map[string]bool{},
+			"api_url":   map[string]bool{},
+		},
+		"uaa": map[string]map[string]bool{
+			"auth_url":  map[string]bool{},
+			"token_url": map[string]bool{},
+			"cf_url":    map[string]bool{},
+		},
+		"gitlab": map[string]map[string]bool{
+			"auth_url":  map[string]bool{},
+			"token_url": map[string]bool{},
+			"api_url":   map[string]bool{},
+		},
+		"oauth": map[string]map[string]bool{
+			"auth_url":  map[string]bool{},
+			"token_url": map[string]bool{},
+		},
+		"oauth_oidc": map[string]map[string]bool{
+			"auth_url":  map[string]bool{},
+			"token_url": map[string]bool{},
+		},
+	}
+
 	for _, team := range teams {
 
 		var noncense *string
@@ -79,6 +112,29 @@ func (self *migrations) Up_1527083318() error {
 		newUsers := []string{}
 
 		for provider, rawConfig := range authConfig {
+
+			for key, set := range mustBeSameAmongstAllTeams[provider] {
+				if parsedConfig, ok := rawConfig.(map[string]interface{}); ok {
+					if value, ok := parsedConfig[key].(string); ok {
+						if set[value] = true; len(set) > 1 {
+							tx.Rollback()
+							return fmt.Errorf("Multiple values of '%s' for auth provider '%s' found. No migration for you", key, provider)
+						}
+					}
+				}
+			}
+
+			for key, set := range mustBeUniqueAmongstAllTeams[provider] {
+				if parsedConfig, ok := rawConfig.(map[string]interface{}); ok {
+					if value, ok := parsedConfig[key].(string); ok && set[value] {
+						tx.Rollback()
+						return fmt.Errorf("Values of '%s' for auth provider '%s' must be unique across teams. No migration for you", key, provider)
+					} else {
+						set[value] = true
+					}
+				}
+			}
+
 			switch provider {
 			case "github":
 				var config struct {

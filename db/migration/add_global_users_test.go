@@ -230,6 +230,68 @@ var _ = Describe("Add global users", func() {
 			_, err := postgresRunner.TryOpenDBAtVersion(postMigrationVersion)
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("fails to migrate uaa if teams are using different providers of the same type", func() {
+			legacyConfigMain := `
+			{
+				"uaa": {
+					"client_id": "some-client-id",
+					"client_secret": "some-client-secret",
+					"auth_url": "https://main.com/auth",
+					"token_url": "https://main.com/token",
+					"cf_spaces": ["some-space-guid"],
+					"cf_url": "https://main.com/api"
+				}
+			}
+			`
+			legacyConfigOther := `
+			{
+				"uaa": {
+					"client_id": "some-client-id",
+					"client_secret": "some-client-secret",
+					"auth_url": "https://other.com/auth",
+					"token_url": "https://other.com/token",
+					"cf_spaces": ["some-space-guid"],
+					"cf_url": "https://other.com/api"
+				}
+			}
+			`
+
+			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)
+			SetupTeam(db, "main", legacyConfigMain)
+			SetupTeam(db, "other", legacyConfigOther)
+			db.Close()
+
+			_, err := postgresRunner.TryOpenDBAtVersion(postMigrationVersion)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("fails to migrate if two teams have the same basic auth username", func() {
+			legacyConfigMain := `
+			{
+				"basicauth": {
+					"username": "username",
+					"password": "some-password"
+				}
+			}
+			`
+			legacyConfigOther := `
+			{
+				"basicauth": {
+					"username": "username",
+					"password": "another-password"
+				}
+			}
+			`
+
+			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)
+			SetupTeam(db, "main", legacyConfigMain)
+			SetupTeam(db, "other", legacyConfigOther)
+			db.Close()
+
+			_, err := postgresRunner.TryOpenDBAtVersion(postMigrationVersion)
+			Expect(err).To(HaveOccurred())
+		})
 	})
 
 	Context("Down", func() {
