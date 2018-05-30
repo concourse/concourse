@@ -262,18 +262,14 @@ describe 'dashboard', type: :feature do
       end
     end
 
-    context 'when a pipeline has multiple failed jobs' do
-      let(:current_time) { Time.parse('2017-07-05 05:05:05 EDT') }
+    context 'when a pipeline has one or more resources errored' do
+      it 'shows resource error indicator' do
+        fly_fail('check-resource -r some-pipeline/broken-time')
 
-      before do
-        fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml -v path="false"')
-        fly_fail('trigger-job -w -j some-pipeline/passing_or_failing')
-        fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml -v path="true"')
-        fly('trigger-job -w -j some-pipeline/passing_or_failing')
-        fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml -v path="false"')
-        fly_fail('trigger-job -w -j some-pipeline/passing_or_failing')
-        fly_fail('trigger-job -w -j some-pipeline/passing_or_failing')
-        fly_fail('trigger-job -w -j some-pipeline/failing')
+        visit_dashboard
+        within('.dashboard-pipeline-header', text: 'some-pipeline') do
+          expect(page).to have_css('.dashboard-resource-error')
+        end
       end
     end
 

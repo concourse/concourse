@@ -1,6 +1,7 @@
 module Concourse.Resource
     exposing
-        ( fetchResource
+        ( fetchAllResources
+        , fetchResource
         , fetchResourcesRaw
         , pause
         , unpause
@@ -18,6 +19,14 @@ import Concourse.Pagination exposing (Pagination, Paginated, Page)
 import Http
 import Json.Decode
 import Task exposing (Task)
+
+
+fetchAllResources : Task Http.Error (List Concourse.Resource)
+fetchAllResources =
+    Http.toTask <|
+        flip Http.get
+            (Json.Decode.list (Concourse.decodeResource))
+            "/api/v1/resources"
 
 
 fetchResource : Concourse.ResourceIdentifier -> Task Http.Error Concourse.Resource

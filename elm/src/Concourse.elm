@@ -675,7 +675,9 @@ decodePipelineGroup =
 
 
 type alias Resource =
-    { name : String
+    { teamName : String
+    , pipelineName : String
+    , name : String
     , paused : Bool
     , failingToCheck : Bool
     , checkError : String
@@ -711,6 +713,8 @@ type alias VersionedResourceIdentifier =
 decodeResource : Json.Decode.Decoder Resource
 decodeResource =
     Json.Decode.succeed Resource
+        |: (Json.Decode.field "team_name" Json.Decode.string)
+        |: (Json.Decode.field "pipeline_name" Json.Decode.string)
         |: (Json.Decode.field "name" Json.Decode.string)
         |: (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
         |: (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)

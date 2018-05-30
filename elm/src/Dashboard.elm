@@ -8,6 +8,7 @@ import Concourse.Info
 import Concourse.Job
 import Concourse.Pipeline
 import Concourse.PipelineStatus
+import Concourse.Resource
 import DashboardHelpers exposing (..)
 import DashboardPreview
 import Date exposing (Date)
@@ -42,6 +43,7 @@ type alias Model =
     , filteredPipelines : List Concourse.Pipeline
     , mJobs : RemoteData.WebData (List Concourse.Job)
     , pipelineJobs : Dict Int (List Concourse.Job)
+    , pipelineResourceErrors : Dict ( String, String ) Bool
     , concourseVersion : String
     , turbulenceImgSrc : String
     , now : Maybe Time
@@ -55,8 +57,9 @@ type Msg
     = Noop
     | PipelinesResponse (RemoteData.WebData (List Concourse.Pipeline))
     | JobsResponse (RemoteData.WebData (List Concourse.Job))
-    | ClockTick Time.Time
+    | ResourcesResponse (RemoteData.WebData (List Concourse.Resource))
     | VersionFetched (Result Http.Error String)
+    | ClockTick Time.Time
     | AutoRefresh Time
     | ShowFooter
     | KeyPressed Keyboard.KeyCode
@@ -76,6 +79,7 @@ init ports turbulencePath =
           , filteredPipelines = []
           , mJobs = RemoteData.NotAsked
           , pipelineJobs = Dict.empty
+          , pipelineResourceErrors = Dict.empty
           , now = Nothing
           , turbulenceImgSrc = turbulencePath
           , concourseVersion = ""
@@ -103,7 +107,7 @@ update msg model =
         PipelinesResponse response ->
             case response of
                 RemoteData.Success pipelines ->
-                    ( { model | mPipelines = response, pipelines = pipelines }, Cmd.batch [ fetchAllJobs ] )
+                    ( { model | mPipelines = response, pipelines = pipelines }, Cmd.batch [ fetchAllJobs, fetchAllResources ] )
 
                 _ ->
                     ( model, Cmd.none )
@@ -112,6 +116,14 @@ update msg model =
             case ( response, model.mPipelines ) of
                 ( RemoteData.Success jobs, RemoteData.Success pipelines ) ->
                     ( { model | mJobs = response, pipelineJobs = jobsByPipelineId pipelines jobs }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ResourcesResponse response ->
+            case ( response, model.mPipelines ) of
+                ( RemoteData.Success resources, RemoteData.Success pipelines ) ->
+                    ( { model | pipelineResourceErrors = resourceErrorsByPipelineIdentifier resources }, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
@@ -320,7 +332,7 @@ pipelinesView model pipelines =
                     groupPipelines byTeam ( pipelineWithJobs.pipeline.teamName, pipelineWithJobs )
                 )
                 []
-                (pipelinesWithJobs model.pipelineJobs pipelines)
+                (pipelinesWithJobs model.pipelineJobs model.pipelineResourceErrors pipelines)
 
         pipelinesByTeamView =
             List.map (\( teamName, pipelines ) -> groupView model.now teamName (List.reverse pipelines)) pipelinesByTeam
@@ -358,7 +370,7 @@ groupView now teamName pipelines =
 
 
 pipelineView : Maybe Time -> PipelineWithJobs -> Html msg
-pipelineView now ({ pipeline, jobs } as pipelineWithJobs) =
+pipelineView now ({ pipeline, jobs, resourceError } as pipelineWithJobs) =
     Html.div
         [ classList
             [ ( "dashboard-pipeline", True )
@@ -376,6 +388,7 @@ pipelineView now ({ pipeline, jobs } as pipelineWithJobs) =
                     [ class "dashboard-pipeline-header" ]
                     [ Html.div [ class "dashboard-pipeline-name" ]
                         [ Html.text pipeline.name ]
+                    , Html.div [ classList [ ( "dashboard-resource-error", resourceError ) ] ] []
                     ]
                 ]
             , DashboardPreview.view jobs
@@ -462,8 +475,13 @@ fetchPipelines =
 fetchAllJobs : Cmd Msg
 fetchAllJobs =
     Cmd.map JobsResponse <|
-        RemoteData.asCmd <|
-            Concourse.Job.fetchAllJobs
+        RemoteData.asCmd Concourse.Job.fetchAllJobs
+
+
+fetchAllResources : Cmd Msg
+fetchAllResources =
+    Cmd.map ResourcesResponse <|
+        RemoteData.asCmd Concourse.Resource.fetchAllResources
 
 
 fetchVersion : Cmd Msg
@@ -490,7 +508,7 @@ filterByTerms model terms pipelines =
             pipelines
 
         x :: xs ->
-            filterByTerms model xs (filterByTerm x (pipelinesWithJobs model.pipelineJobs pipelines))
+            filterByTerms model xs (filterByTerm x (pipelinesWithJobs model.pipelineJobs model.pipelineResourceErrors pipelines))
 
 
 filterByTerm : String -> List PipelineWithJobs -> List Concourse.Pipeline

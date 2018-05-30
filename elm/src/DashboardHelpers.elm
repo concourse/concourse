@@ -9,6 +9,7 @@ module DashboardHelpers
         , jobsByPipelineId
         , pipelineStatusFromJobs
         , pipelinesWithJobs
+        , resourceErrorsByPipelineIdentifier
         )
 
 import Concourse
@@ -22,16 +23,18 @@ type alias PipelineId =
 type alias PipelineWithJobs =
     { pipeline : Concourse.Pipeline
     , jobs : List Concourse.Job
+    , resourceError : Bool
     }
 
 
-pipelinesWithJobs : Dict PipelineId (List Concourse.Job) -> List Concourse.Pipeline -> List PipelineWithJobs
-pipelinesWithJobs pipelineJobs pipelines =
+pipelinesWithJobs : Dict PipelineId (List Concourse.Job) -> Dict ( String, String ) Bool -> List Concourse.Pipeline -> List PipelineWithJobs
+pipelinesWithJobs pipelineJobs pipelineResourceErrors pipelines =
     List.map
         (\pipeline ->
             { pipeline = pipeline
             , jobs =
                 Maybe.withDefault [] <| Dict.get pipeline.id pipelineJobs
+            , resourceError = Maybe.withDefault False <| Dict.get ( pipeline.teamName, pipeline.name ) pipelineResourceErrors
             }
         )
         pipelines
@@ -109,6 +112,31 @@ classifyJob job pipelines pipelineJobs =
                         Maybe.withDefault [] <| Dict.get pipeline.id pipelineJobs
                 in
                     Dict.insert pipeline.id (job :: jobs) pipelineJobs
+
+
+resourceErrorsByPipelineIdentifier : List Concourse.Resource -> Dict ( String, String ) Bool
+resourceErrorsByPipelineIdentifier resources =
+    List.foldl
+        (\resource byPipelineId ->
+            let
+                pipelineIdentifier =
+                    ( resource.teamName, resource.pipelineName )
+
+                resourceCheckError =
+                    not (String.isEmpty resource.checkError)
+
+                resourceError =
+                    case Dict.get pipelineIdentifier byPipelineId of
+                        Nothing ->
+                            resourceCheckError
+
+                        Just checkError ->
+                            checkError || resourceCheckError
+            in
+                Dict.insert pipelineIdentifier resourceError byPipelineId
+        )
+        Dict.empty
+        resources
 
 
 pipelineStatusFromJobs : List Concourse.Job -> Bool -> Concourse.PipelineStatus
