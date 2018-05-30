@@ -37,7 +37,7 @@ func WireTeamConnectors(group *flags.Group) {
 }
 
 type AuthFlags struct {
-	SecureCookies bool              `long:"secure-cookies" description:"Force sending secure flag on http cookies"`
+	SecureCookies bool              `long:"cookie-secure" description:"Force sending secure flag on http cookies"`
 	Expiration    time.Duration     `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 	SigningKey    flag.PrivateKey   `long:"session-signing-key" description:"File containing an RSA private key, used to sign auth tokens."`
 	LocalUsers    map[string]string `long:"add-local-user" description:"List of username:bcrypted_password combinations for all your local concourse users." value-name:"USERNAME:BCRYPTED_PASSWORD"`
