@@ -28,10 +28,8 @@ type PrometheusEmitter struct {
 
 	httpRequestsDuration *prometheus.HistogramVec
 
-	schedulingFullDuration        *prometheus.GaugeVec
-	schedulingLoadingDuration     *prometheus.GaugeVec
-	schedulingJobDurationTotalVec *prometheus.CounterVec
-	schedulingJobTotalVec         *prometheus.CounterVec
+	schedulingFullDuration    *prometheus.GaugeVec
+	schedulingLoadingDuration *prometheus.GaugeVec
 
 	dbQueriesTotal prometheus.Counter
 	dbConnections  *prometheus.GaugeVec
@@ -184,28 +182,6 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(schedulingLoadingDuration)
 
-	schedulingJobDurationTotalVec := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "scheduling",
-			Name:      "job_duration_seconds_total",
-			Help:      "Total amount of time spend calculating the set of valid input versions for a job.",
-		},
-		[]string{"pipeline", "job"},
-	)
-	schedulingJobTotalVec := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "scheduling",
-			Name:      "job_total",
-			Help:      "Number of times the job was scheduled",
-		},
-		[]string{"pipeline", "job"},
-	)
-
-	prometheus.MustRegister(schedulingJobDurationTotalVec)
-	prometheus.MustRegister(schedulingJobTotalVec)
-
 	dbQueriesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
 		Subsystem: "db",
@@ -247,10 +223,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 		httpRequestsDuration: httpRequestsDuration,
 
-		schedulingFullDuration:        schedulingFullDuration,
-		schedulingLoadingDuration:     schedulingLoadingDuration,
-		schedulingJobDurationTotalVec: schedulingJobDurationTotalVec,
-		schedulingJobTotalVec:         schedulingJobTotalVec,
+		schedulingFullDuration:    schedulingFullDuration,
+		schedulingLoadingDuration: schedulingLoadingDuration,
 
 		dbQueriesTotal: dbQueriesTotal,
 		dbConnections:  dbConnections,
@@ -400,15 +374,6 @@ func (emitter *PrometheusEmitter) schedulingMetrics(logger lager.Logger, event m
 	case "scheduling: loading versions duration (ms)":
 		// concourse_scheduling_loading_duration_seconds
 		emitter.schedulingLoadingDuration.WithLabelValues(pipeline).Set(duration / 1000)
-	case "scheduling: job duration (ms)":
-		job, exists := event.Attributes["job"]
-		if !exists {
-			logger.Error("failed-to-find-job-in-event", fmt.Errorf("expected job to exist in event.Attributes"))
-		}
-		// concourse_scheduling_job_duration_seconds_total
-		emitter.schedulingJobDurationTotalVec.WithLabelValues(pipeline, job).Add(duration / 1000)
-		// concourse_scheduling_job_total
-		emitter.schedulingJobTotalVec.WithLabelValues(pipeline, job).Inc()
 	default:
 	}
 }
