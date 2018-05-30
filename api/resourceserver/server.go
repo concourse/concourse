@@ -17,16 +17,19 @@ type Server struct {
 	logger           lager.Logger
 	scannerFactory   ScannerFactory
 	variablesFactory creds.VariablesFactory
+	resourceFactory  db.ResourceFactory
 }
 
 func NewServer(
 	logger lager.Logger,
 	scannerFactory ScannerFactory,
 	variablesFactory creds.VariablesFactory,
+	resourceFactory db.ResourceFactory,
 ) *Server {
 	return &Server{
 		logger:           logger,
 		scannerFactory:   scannerFactory,
 		variablesFactory: variablesFactory,
+		resourceFactory:  resourceFactory,
 	}
 }

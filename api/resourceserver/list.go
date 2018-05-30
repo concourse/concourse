@@ -30,7 +30,6 @@ func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
 				presentedResources,
 				present.Resource(
 					resource,
-					pipeline.Groups(),
 					showCheckErr,
 					teamName,
 				),

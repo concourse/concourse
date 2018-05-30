@@ -398,6 +398,7 @@ func (cmd *ATCCommand) constructMembers(
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
+	dbResourceFactory := db.NewResourceFactory(dbConn, lockFactory)
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
@@ -493,6 +494,7 @@ func (cmd *ATCCommand) constructMembers(
 		teamFactory,
 		dbPipelineFactory,
 		dbJobFactory,
+		dbResourceFactory,
 		dbWorkerFactory,
 		dbVolumeRepository,
 		dbContainerRepository,
@@ -1099,6 +1101,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	teamFactory db.TeamFactory,
 	dbPipelineFactory db.PipelineFactory,
 	dbJobFactory db.JobFactory,
+	dbResourceFactory db.ResourceFactory,
 	dbWorkerFactory db.WorkerFactory,
 	dbVolumeRepository db.VolumeRepository,
 	dbContainerRepository db.ContainerRepository,
@@ -1140,6 +1143,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		teamFactory,
 		dbPipelineFactory,
 		dbJobFactory,
+		dbResourceFactory,
 		dbWorkerFactory,
 		dbVolumeRepository,
 		dbContainerRepository,

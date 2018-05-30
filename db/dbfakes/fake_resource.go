@@ -37,6 +37,15 @@ type FakeResource struct {
 	pipelineNameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	TeamNameStub        func() string
+	teamNameMutex       sync.RWMutex
+	teamNameArgsForCall []struct{}
+	teamNameReturns     struct {
+		result1 string
+	}
+	teamNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	TypeStub        func() string
 	typeMutex       sync.RWMutex
 	typeArgsForCall []struct{}
@@ -278,6 +287,46 @@ func (fake *FakeResource) PipelineNameReturnsOnCall(i int, result1 string) {
 		})
 	}
 	fake.pipelineNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) TeamName() string {
+	fake.teamNameMutex.Lock()
+	ret, specificReturn := fake.teamNameReturnsOnCall[len(fake.teamNameArgsForCall)]
+	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct{}{})
+	fake.recordInvocation("TeamName", []interface{}{})
+	fake.teamNameMutex.Unlock()
+	if fake.TeamNameStub != nil {
+		return fake.TeamNameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.teamNameReturns.result1
+}
+
+func (fake *FakeResource) TeamNameCallCount() int {
+	fake.teamNameMutex.RLock()
+	defer fake.teamNameMutex.RUnlock()
+	return len(fake.teamNameArgsForCall)
+}
+
+func (fake *FakeResource) TeamNameReturns(result1 string) {
+	fake.TeamNameStub = nil
+	fake.teamNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) TeamNameReturnsOnCall(i int, result1 string) {
+	fake.TeamNameStub = nil
+	if fake.teamNameReturnsOnCall == nil {
+		fake.teamNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.teamNameReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
 }
@@ -822,6 +871,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.nameMutex.RUnlock()
 	fake.pipelineNameMutex.RLock()
 	defer fake.pipelineNameMutex.RUnlock()
+	fake.teamNameMutex.RLock()
+	defer fake.teamNameMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
 	fake.sourceMutex.RLock()

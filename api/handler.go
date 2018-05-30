@@ -44,6 +44,7 @@ func NewHandler(
 	dbTeamFactory db.TeamFactory,
 	dbPipelineFactory db.PipelineFactory,
 	dbJobFactory db.JobFactory,
+	dbResourceFactory db.ResourceFactory,
 	dbWorkerFactory db.WorkerFactory,
 	volumeRepository db.VolumeRepository,
 	containerRepository db.ContainerRepository,
@@ -85,7 +86,7 @@ func NewHandler(
 
 	buildServer := buildserver.NewServer(logger, externalURL, peerURL, engine, workerClient, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory, dbJobFactory)
-	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory)
+	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, engine)
 	configServer := configserver.NewServer(logger, dbTeamFactory)
@@ -140,6 +141,7 @@ func NewHandler(
 		atc.CreatePipelineBuild: pipelineHandlerFactory.HandlerFor(pipelineServer.CreateBuild),
 		atc.PipelineBadge:       pipelineHandlerFactory.HandlerFor(pipelineServer.PipelineBadge),
 
+		atc.ListAllResources:     http.HandlerFunc(resourceServer.ListAllResources),
 		atc.ListResources:        pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
 		atc.ListResourceTypes:    pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes),
 		atc.GetResource:          pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),

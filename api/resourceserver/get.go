@@ -31,7 +31,6 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 		acc := accessor.GetAccessor(r)
 		resource := present.Resource(
 			dbResource,
-			pipeline.Groups(),
 			acc.IsAuthenticated(),
 			teamName,
 		)

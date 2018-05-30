@@ -148,6 +148,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListBuilds:            unauthenticated(inputHandlers[atc.ListBuilds]),
 				atc.ListPipelines:         unauthenticated(inputHandlers[atc.ListPipelines]),
 				atc.ListAllJobs:           unauthenticated(inputHandlers[atc.ListAllJobs]),
+				atc.ListAllResources:      unauthenticated(inputHandlers[atc.ListAllResources]),
 				atc.ListTeams:             unauthenticated(inputHandlers[atc.ListTeams]),
 				atc.MainJobBadge:          unauthenticated(inputHandlers[atc.MainJobBadge]),
 				atc.LegacyListAuthMethods: unauthenticated(inputHandlers[atc.LegacyListAuthMethods]),

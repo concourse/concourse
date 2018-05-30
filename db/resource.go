@@ -18,6 +18,7 @@ type Resource interface {
 	ID() int
 	Name() string
 	PipelineName() string
+	TeamName() string
 	Type() string
 	Source() atc.Source
 	CheckEvery() string
@@ -36,9 +37,10 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.last_checked, r.pipeline_id, p.name, r.nonce").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.last_checked, r.pipeline_id, r.nonce, p.name, t.name").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
+	Join("teams t ON t.id = p.team_id").
 	Where(sq.Eq{"r.active": true})
 
 type resource struct {
@@ -46,6 +48,7 @@ type resource struct {
 	name         string
 	pipelineID   int
 	pipelineName string
+	teamName     string
 	type_        string
 	source       atc.Source
 	checkEvery   string
@@ -99,6 +102,7 @@ func (r *resource) ID() int                { return r.id }
 func (r *resource) Name() string           { return r.name }
 func (r *resource) PipelineID() int        { return r.pipelineID }
 func (r *resource) PipelineName() string   { return r.pipelineName }
+func (r *resource) TeamName() string       { return r.teamName }
 func (r *resource) Type() string           { return r.type_ }
 func (r *resource) Source() atc.Source     { return r.source }
 func (r *resource) CheckEvery() string     { return r.checkEvery }
@@ -172,7 +176,7 @@ func scanResource(r *resource, row scannable) error {
 		lastChecked     pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &lastChecked, &r.pipelineID, &r.pipelineName, &nonce)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &lastChecked, &r.pipelineID, &nonce, &r.pipelineName, &r.teamName)
 	if err != nil {
 		return err
 	}
