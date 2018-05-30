@@ -30,7 +30,6 @@ type PrometheusEmitter struct {
 
 	schedulingFullDuration    *prometheus.GaugeVec
 	schedulingLoadingDuration *prometheus.GaugeVec
-	schedulingJobDuration     *prometheus.GaugeVec
 
 	dbQueriesTotal prometheus.Counter
 	dbConnections  *prometheus.GaugeVec
@@ -183,17 +182,6 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(schedulingLoadingDuration)
 
-	schedulingJobDuration := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "scheduling",
-			Name:      "job_duration_seconds",
-			Help:      "Last time taken to calculate the set of valid input versions for a pipeline.",
-		},
-		[]string{"pipeline"},
-	)
-	prometheus.MustRegister(schedulingJobDuration)
-
 	dbQueriesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
 		Subsystem: "db",
@@ -237,7 +225,6 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 		schedulingFullDuration:    schedulingFullDuration,
 		schedulingLoadingDuration: schedulingLoadingDuration,
-		schedulingJobDuration:     schedulingJobDuration,
 
 		dbQueriesTotal: dbQueriesTotal,
 		dbConnections:  dbConnections,
@@ -395,9 +382,6 @@ func (emitter *PrometheusEmitter) schedulingMetrics(logger lager.Logger, event m
 	case "scheduling: loading versions duration (ms)":
 		// concourse_scheduling_loading_duration_seconds
 		emitter.schedulingLoadingDuration.WithLabelValues(pipeline).Set(duration / 1000)
-	case "scheduling: job duration (ms)":
-		// concourse_scheduling_job_duration_seconds
-		emitter.schedulingJobDuration.WithLabelValues(pipeline).Set(duration / 1000)
 	default:
 	}
 }
