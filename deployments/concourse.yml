@@ -22,8 +22,8 @@ instance_groups:
     name: atc
     properties:
       add_local_users:
-      - some-user:password
-      - some-other-user:password
+      - some-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
+      - some-other-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
       main_team:
         allow_all_users: true
       token_signing_key: ((token_signing_key))
