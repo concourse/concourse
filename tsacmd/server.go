@@ -238,7 +238,7 @@ func (server *registrarSSHServer) handleChannel(
 			}
 
 		case reportVolumeRequest:
-			logger = logger.Session("report-volumes-worker", lager.Data{"handles": r.handles()})
+			logger = logger.Session("report-volumes-worker", lager.Data{"num-handles": len(r.handles())})
 
 			req.Reply(true, nil)
 
