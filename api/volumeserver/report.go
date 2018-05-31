@@ -33,7 +33,7 @@ func (s *Server) ReportWorkerVolumes(w http.ResponseWriter, r *http.Request) {
 		}
 
 		logger.Debug("handles-info", lager.Data{
-			"handles": handles,
+			"handles-count": len(handles),
 		})
 
 		err = s.destroyer.DestroyVolumes(workerName, handles)
