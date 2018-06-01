@@ -5,6 +5,13 @@
     A bug was introduced in \code{build-reaper} under ATC/web that
     causes old build logs to accumulate in Concourse (\ghissue{2187}).
   }
+  \warn{
+    \bold{Jun 1, 2018}
+    A bug in Chrome 67 causes it to crash when loading the Concourse UI.
+    At the time of this notice, the dev/canary versions of Google Chrome should
+    work, as well as other browsers like Firefox and Safari.
+    You can follow along the issue in \ghissue{2236}
+  }
   \note{feature,breaking}{
     The \reference{component-atc} will now batch-delete containers and volumes,
     rather than making individual calls out to the worker. This is an
