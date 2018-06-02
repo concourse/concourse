@@ -270,16 +270,19 @@ func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, even
 	team, exists := event.Attributes["team_name"]
 	if !exists {
 		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
+		return
 	}
 
 	pipeline, exists := event.Attributes["pipeline"]
 	if !exists {
 		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
+		return
 	}
 
 	buildStatus, exists := event.Attributes["build_status"]
 	if !exists {
 		logger.Error("failed-to-find-build_status-in-event", fmt.Errorf("expected build_status to exist in event.Attributes"))
+		return
 	}
 	emitter.buildsFinishedVec.WithLabelValues(team, pipeline, buildStatus).Inc()
 
@@ -303,6 +306,7 @@ func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, even
 	duration, ok := event.Value.(float64)
 	if !ok {
 		logger.Error("build-finished-event-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
+		return
 	}
 	// seconds are the standard prometheus base unit for time
 	duration = duration / 1000
@@ -313,15 +317,18 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 	worker, exists := event.Attributes["worker"]
 	if !exists {
 		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		return
 	}
 	platform, exists := event.Attributes["platform"]
-	if !exists {
+	if !exists || platform == "" {
 		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
+		return
 	}
 
 	containers, ok := event.Value.(int)
 	if !ok {
 		logger.Error("worker-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+		return
 	}
 
 	emitter.workerContainers.WithLabelValues(worker, platform).Set(float64(containers))
@@ -331,15 +338,18 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 	worker, exists := event.Attributes["worker"]
 	if !exists {
 		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		return
 	}
 	platform, exists := event.Attributes["platform"]
-	if !exists {
+	if !exists || platform == "" {
 		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
+		return
 	}
 
 	volumes, ok := event.Value.(int)
 	if !ok {
 		logger.Error("worker-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+		return
 	}
 
 	emitter.workerVolumes.WithLabelValues(worker, platform).Set(float64(volumes))
@@ -349,16 +359,19 @@ func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, e
 	route, exists := event.Attributes["route"]
 	if !exists {
 		logger.Error("failed-to-find-route-in-event", fmt.Errorf("expected method to exist in event.Attributes"))
+		return
 	}
 
 	method, exists := event.Attributes["method"]
 	if !exists {
 		logger.Error("failed-to-find-method-in-event", fmt.Errorf("expected method to exist in event.Attributes"))
+		return
 	}
 
 	responseTime, ok := event.Value.(float64)
 	if !ok {
 		logger.Error("http-response-time-event-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
+		return
 	}
 
 	emitter.httpRequestsDuration.WithLabelValues(method, route).Observe(responseTime / 1000)
@@ -368,11 +381,13 @@ func (emitter *PrometheusEmitter) schedulingMetrics(logger lager.Logger, event m
 	pipeline, exists := event.Attributes["pipeline"]
 	if !exists {
 		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
+		return
 	}
 
 	duration, ok := event.Value.(float64)
 	if !ok {
 		logger.Error("scheduling-full-duration-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
+		return
 	}
 
 	switch event.Name {
@@ -390,6 +405,7 @@ func (emitter *PrometheusEmitter) databaseMetrics(logger lager.Logger, event met
 	value, ok := event.Value.(int)
 	if !ok {
 		logger.Error("db-value-type-mismatch", fmt.Errorf("expected event.Value to be a int"))
+		return
 	}
 	switch event.Name {
 	case "database queries":
@@ -398,6 +414,7 @@ func (emitter *PrometheusEmitter) databaseMetrics(logger lager.Logger, event met
 		connectionName, exists := event.Attributes["ConnectionName"]
 		if !exists {
 			logger.Error("failed-to-connection-name-in-event", fmt.Errorf("expected ConnectionName to exist in event.Attributes"))
+			return
 		}
 		emitter.dbConnections.WithLabelValues(connectionName).Set(float64(value))
 	default:
