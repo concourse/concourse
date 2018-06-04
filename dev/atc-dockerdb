@@ -32,7 +32,8 @@ fi
 cd $ROOT/src/github.com/concourse/atc
 
 atc \
-  --no-really-i-dont-want-any-auth \
+  --add-local-user 'test:$2a$10$sDB6AsH2HheOWHILrnHVJOCZq/GYtUYE02ypJJTQBmWJNivYNhP3y' \
+  --main-team-allow-all-users \
   --log-level debug \
   --external-url "http://${external_ip}:8080" \
   --session-signing-key $KEYSDIR/web/session_signing_key \

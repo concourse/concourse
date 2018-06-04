@@ -17,15 +17,11 @@ files:
   - code.cloudfoundry.org/garden/transport/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/lager/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/lager/lagerctx/*.{go,s,c,h} # gosub
-  - code.cloudfoundry.org/urljoiner/*.{go,s,c,h} # gosub
   - github.com/DataDog/datadog-go/statsd/*.{go,s,c,h} # gosub
   - github.com/Masterminds/squirrel/*.{go,s,c,h} # gosub
   - github.com/NYTimes/gziphandler/*.{go,s,c,h} # gosub
   - github.com/PuerkitoBio/purell/*.{go,s,c,h} # gosub
   - github.com/PuerkitoBio/urlesc/*.{go,s,c,h} # gosub
-  - github.com/SHyx0rmZ/go-bitbucket/bitbucket/*.{go,s,c,h} # gosub
-  - github.com/SHyx0rmZ/go-bitbucket/cloud/*.{go,s,c,h} # gosub
-  - github.com/SHyx0rmZ/go-bitbucket/server/*.{go,s,c,h} # gosub
   - github.com/The-Cloud-Source/goryman/*.{go,s,c,h} # gosub
   - github.com/The-Cloud-Source/goryman/proto/*.{go,s,c,h} # gosub
   - github.com/aws/aws-sdk-go/aws/*.{go,s,c,h} # gosub
@@ -146,22 +142,11 @@ files:
   - github.com/concourse/go-archive/tgzfs/*.{go,s,c,h} # gosub
   - github.com/concourse/retryhttp/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/auth/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/authserver/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/basicauth/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/bitbucket/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/bitbucket/cloud/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/bitbucket/server/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/genericoauth/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/genericoauth_oidc/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/github/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/gitlab/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/gitlab/vendor/github.com/google/go-querystring/query/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/gitlab/vendor/github.com/xanzy/go-gitlab/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/noauth/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/provider/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/uaa/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/verifier/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/bindata/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/dexserver/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/skycmd/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/skyserver/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/token/*.{go,s,c,h} # gosub
   - github.com/concourse/web/*.{go,s,c,h} # gosub
   - github.com/concourse/web/bindata/*.{go,s,c,h} # gosub
   - github.com/concourse/web/indexhandler/*.{go,s,c,h} # gosub
@@ -169,8 +154,83 @@ files:
   - github.com/concourse/web/publichandler/*.{go,s,c,h} # gosub
   - github.com/concourse/web/robotshandler/*.{go,s,c,h} # gosub
   - github.com/contraband/holler/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/api/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/authproxy/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/cf/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/github/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/gitlab/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/ldap/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/linkedin/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/microsoft/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/mock/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/oauth/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/oidc/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/connector/saml/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/server/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/server/internal/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/storage/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/storage/memory/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/beevik/etree/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/beorn7/perks/quantile/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/coreos/go-oidc/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/felixge/httpsnoop/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/golang/protobuf/proto/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/golang/protobuf/ptypes/any/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/gorilla/handlers/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/gorilla/mux/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/jonboulle/clockwork/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/matttproud/golang_protobuf_extensions/pbutil/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/pquerna/cachecontrol/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/pquerna/cachecontrol/cacheobject/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/prometheus/client_golang/prometheus/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/prometheus/client_model/go/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/prometheus/common/expfmt/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/prometheus/common/model/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/prometheus/procfs/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/prometheus/procfs/xfs/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/russellhaering/goxmldsig/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/russellhaering/goxmldsig/etreeutils/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/github.com/russellhaering/goxmldsig/types/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/crypto/bcrypt/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/crypto/blowfish/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/net/context/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/net/http2/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/net/http2/hpack/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/net/idna/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/net/internal/timeseries/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/net/lex/httplex/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/net/trace/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/oauth2/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/oauth2/github/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/oauth2/internal/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/text/secure/bidirule/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/text/transform/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/text/unicode/bidi/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/golang.org/x/text/unicode/norm/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/genproto/googleapis/rpc/status/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/codes/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/credentials/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/grpclog/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/internal/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/keepalive/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/metadata/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/naming/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/peer/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/stats/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/status/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/tap/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/google.golang.org/grpc/transport/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/gopkg.in/asn1-ber.v1/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/gopkg.in/ldap.v2/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/gopkg.in/square/go-jose.v2/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/gopkg.in/square/go-jose.v2/cipher/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/vendor/gopkg.in/square/go-jose.v2/json/*.{go,s,c,h} # gosub
+  - github.com/coreos/dex/version/*.{go,s,c,h} # gosub
+  - github.com/coreos/go-oidc/*.{go,s,c,h} # gosub
   - github.com/cppforlife/go-semi-semantic/version/*.{go,s,c,h} # gosub
-  - github.com/dghubble/oauth1/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/elazarl/go-bindata-assetfs/*.{go,s,c,h} # gosub
   - github.com/emicklei/go-restful/*.{go,s,c,h} # gosub
@@ -182,8 +242,6 @@ files:
   - github.com/go-openapi/swag/*.{go,s,c,h} # gosub
   - github.com/golang/glog/*.{go,s,c,h} # gosub
   - github.com/golang/protobuf/proto/*.{go,s,c,h} # gosub
-  - github.com/google/go-github/github/*.{go,s,c,h} # gosub
-  - github.com/google/go-querystring/query/*.{go,s,c,h} # gosub
   - github.com/google/gofuzz/*.{go,s,c,h} # gosub
   - github.com/google/jsonapi/*.{go,s,c,h} # gosub
   - github.com/gorilla/websocket/*.{go,s,c,h} # gosub
@@ -242,6 +300,8 @@ files:
   - github.com/matttproud/golang_protobuf_extensions/pbutil/*.{go,s,c,h} # gosub
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub
+  - github.com/pquerna/cachecontrol/*.{go,s,c,h} # gosub
+  - github.com/pquerna/cachecontrol/cacheobject/*.{go,s,c,h} # gosub
   - github.com/prometheus/client_golang/prometheus/*.{go,s,c,h} # gosub
   - github.com/prometheus/client_golang/prometheus/promhttp/*.{go,s,c,h} # gosub
   - github.com/prometheus/client_model/go/*.{go,s,c,h} # gosub
@@ -250,6 +310,7 @@ files:
   - github.com/prometheus/common/model/*.{go,s,c,h} # gosub
   - github.com/prometheus/procfs/*.{go,s,c,h} # gosub
   - github.com/prometheus/procfs/xfs/*.{go,s,c,h} # gosub
+  - github.com/sirupsen/logrus/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/grouper/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/http_server/*.{go,s,c,h} # gosub
@@ -257,28 +318,30 @@ files:
   - github.com/tedsuo/rata/*.{go,s,c,h} # gosub
   - github.com/vito/go-sse/sse/*.{go,s,c,h} # gosub
   - github.com/xoebus/zest/*.{go,s,c,h} # gosub
-  - golang.org/x/crypto/bcrypt/*.{go,s,c,h} # gosub
-  - golang.org/x/crypto/blowfish/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/curve25519/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/ed25519/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/ed25519/internal/edwards25519/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/internal/chacha20/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/poly1305/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/ssh/*.{go,s,c,h} # gosub
+  - golang.org/x/crypto/ssh/terminal/*.{go,s,c,h} # gosub
   - golang.org/x/net/context/*.{go,s,c,h} # gosub
   - golang.org/x/net/context/ctxhttp/*.{go,s,c,h} # gosub
   - golang.org/x/net/idna/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/*.{go,s,c,h} # gosub
-  - golang.org/x/oauth2/bitbucket/*.{go,s,c,h} # gosub
-  - golang.org/x/oauth2/github/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/internal/*.{go,s,c,h} # gosub
   - golang.org/x/sys/unix/*.{go,s,c,h} # gosub
+  - golang.org/x/sys/windows/*.{go,s,c,h} # gosub
   - golang.org/x/text/secure/bidirule/*.{go,s,c,h} # gosub
   - golang.org/x/text/transform/*.{go,s,c,h} # gosub
   - golang.org/x/text/unicode/bidi/*.{go,s,c,h} # gosub
   - golang.org/x/text/unicode/norm/*.{go,s,c,h} # gosub
   - golang.org/x/text/width/*.{go,s,c,h} # gosub
   - gopkg.in/cheggaaa/pb.v1/*.{go,s,c,h} # gosub
+  - gopkg.in/square/go-jose.v2/*.{go,s,c,h} # gosub
+  - gopkg.in/square/go-jose.v2/cipher/*.{go,s,c,h} # gosub
+  - gopkg.in/square/go-jose.v2/json/*.{go,s,c,h} # gosub
+  - gopkg.in/square/go-jose.v2/jwt/*.{go,s,c,h} # gosub
   - gopkg.in/yaml.v2/*.{go,s,c,h} # gosub
   - k8s.io/api/admissionregistration/v1alpha1/*.{go,s,c,h} # gosub
   - k8s.io/api/apps/v1/*.{go,s,c,h} # gosub

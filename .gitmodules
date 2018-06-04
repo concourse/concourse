@@ -435,3 +435,18 @@
 	path = src/github.com/skratchdot/open-golang
 	url = https://github.com/skratchdot/open-golang
 	branch = master
+[submodule "src/github.com/coreos/dex"]
+	path = src/github.com/coreos/dex
+	url = https://github.com/coreos/dex
+[submodule "src/github.com/coreos/go-oidc"]
+	path = src/github.com/coreos/go-oidc
+	url = https://github.com/coreos/go-oidc
+[submodule "src/github.com/pquerna/cachecontrol"]
+	path = src/github.com/pquerna/cachecontrol
+	url = https://github.com/pquerna/cachecontrol
+[submodule "src/gopkg.in/square/go-jose.v2"]
+	path = src/gopkg.in/square/go-jose.v2
+	url = https://gopkg.in/square/go-jose.v2
+[submodule "src/github.com/sirupsen/logrus"]
+	path = src/github.com/sirupsen/logrus
+	url = https://github.com/sirupsen/logrus

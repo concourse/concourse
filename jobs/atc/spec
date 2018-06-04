@@ -10,6 +10,9 @@ templates:
   tls_cert.erb: config/tls_cert
   tls_key.erb: config/tls_key
   cf_ca_cert.erb: config/cf_ca_cert
+  github_ca_cert.erb: config/github_ca_cert
+  oauth_ca_cert.erb: config/oauth_ca_cert
+  oidc_ca_cert.erb: config/oidc_ca_cert
   postgres_ca_cert.erb: config/postgres_ca_cert
   postgres_client_cert.erb: config/postgres_client_cert
   postgres_client_key.erb: config/postgres_client_key
@@ -19,7 +22,6 @@ templates:
   credhub_ca_cert.erb: config/credhub_ca_cert
   credhub_client_cert.erb: config/credhub_client_cert
   credhub_client_key.erb: config/credhub_client_key
-  generic_oauth_ca_cert.erb: config/generic_oauth_ca_cert
   token_signing_key.erb: config/token_signing_key
   downgrade_db.erb: bin/experimental_downgrade_db
 
@@ -53,10 +55,6 @@ properties:
     description: |
       Port on which the ATC should listen for HTTP traffic.
     default: 8080
-
-  cookie_secure:
-    description: Set secure flag on auth cookies
-    default: false
 
   tls_bind_port:
     description: |
@@ -137,22 +135,9 @@ properties:
       encryption_key. This will result in the ATC decrypting all data on start,
       restoring it to plaintext.
 
-  no_really_i_dont_want_any_auth:
-    description: |
-      A safeguard to prevent accidentally forgetting to configure auth. Set
-      this to true if you really don't want auth configured. This will leave
-      your Concourse wide open and writable.
+  cookie_secure:
+    description: Set secure flag on auth cookies
     default: false
-
-  basic_auth_username:
-    description: |
-      Username for HTTP basic auth.
-    default: ""
-
-  basic_auth_password:
-    description: |
-      Password for HTTP basic auth, in plaintext.
-    default: ""
 
   auth_duration:
     description: |
@@ -160,12 +145,34 @@ properties:
       Use Go duration format (48h = 48 hours).
     default: 24h
 
+  token_signing_key:
+    type: rsa
+    description: |
+      PEM RSA private key used for minting ATC tokens.
+    example:
+      private_key: |
+         -----BEGIN RSA PRIVATE KEY-----
+         ...
+         -----END RSA PRIVATE KEY-----
+      public_key: |
+         -----BEGIN PUBLIC KEY-----
+         ...
+         -----END PUBLIC KEY-----
+
+  add_local_users:
+    description: |
+      List of local concourse users to add with their bcrypted passwords
+    default: []
+    example:
+    - some-user:$2a$10$sKZelZprWWcBAWbp28rB1uFef0Ybxsiqh05uo.H8EIm0sWc6IZGJu
+    - some-other-user:$2a$10$.YIYH.5EWQcCvfE49xH/.OhIhGFiNtn.tQq.4pznpcrqZvoLxuKeC
+
   github_auth.client_id:
     description: |
       GitHub client ID to use for OAuth.
 
       The application must be configured with its callback URL as
-      `{external_url}/auth/github/callback` (replacing `{external_url}`
+      `{external_url}/sky/dex/callback/github` (replacing `{external_url}`
       with the actual value).
     default: ""
 
@@ -174,66 +181,33 @@ properties:
       GitHub client secret to use for OAuth.
 
       The application must be configured with its callback URL as
-      `{external_url}/auth/github/callback` (replacing `{external_url}`
+      `{external_url}/sky/dex/callback/github` (replacing `{external_url}`
       with the actual value).
     default: ""
 
-  github_auth.auth_url:
+  github_auth.host:
     description: |
-      Override default OAuth endpoint for Github Enterprise.
-    example: "https://github.example.com/login/oauth/authorize"
+      Override default hostname for Github Enterprise. (No scheme, No trailing slash)
+    example: "github.example.com"
+    default: ""
 
-  github_auth.token_url:
-    description: |
-      Override default access token endpoint for Github Enterprise.
-    example: "https://github.example.com/login/oauth/access_token"
+  github_auth.ca_cert:
+    description: GitHub Enterprise CA Certificate.
+    default: ""
 
-  github_auth.api_url:
-    description: |
-      Override default API endpoint URL for Github Enterprise. Must end in a
-      trailing slash.
-    example: "https://github.example.com/api/v3/"
-
-  github_auth.authorize:
-    default: []
-    description: |
-      An array of different criteria to check for when authorizing a GitHub
-      user. If empty, GitHub authorization is effectively disabled.
-    example:
-    - organization: org1
-      teams: all
-    - organization: org2
-      teams: [Team 1, Team 2]
-    - user: user1
-    - user: user2
-
-  uaa_auth.client_id:
+  cf_auth.client_id:
     description: UAA client ID to use for OAuth.
     default: ""
 
-  uaa_auth.client_secret:
+  cf_auth.client_secret:
     description: UAA client secret to use for OAuth.
     default: ""
 
-  uaa_auth.auth_url:
-    description: UAA authorization endpoint url to use for OAuth.
-    default: ""
-
-  uaa_auth.token_url:
-    description: UAA token endpoint url to use for OAuth.
-    default: ""
-
-  uaa_auth.cf_spaces:
-    description: |
-      List of space GUIDs for Cloud Foundry spaces whose developers
-      will have access.
-    default: []
-
-  uaa_auth.cf_api_url:
+  cf_auth.api_url:
     description: Cloud Foundry api endpoint url.
     default: ""
 
-  uaa_auth.cf_ca_cert:
+  cf_auth.ca_cert:
     description: Cloud Foundry CA Certificate.
     default: ""
 
@@ -249,20 +223,20 @@ properties:
     description: Generic OAuth provider authorization endpoint url.
     default: ""
 
-  generic_oauth.auth_url_params:
-    description: |
-      List Parameter to pass to the authentication server authorization url.
-    example:
-      param1: value1
-      param2: value2
-    default: {}
-
-  generic_oauth.scope:
-    description: OAuth scope required for users who will have access.
-    default: ""
-
   generic_oauth.token_url:
     description: Generic OAuth provider token endpoint URL.
+    default: ""
+
+  generic_oauth.userinfo_url:
+    description: Generic OAuth provider token endpoint URL.
+    default: ""
+
+  generic_oauth.scopes:
+    description: OAuth scopes to request during authorization.
+    default: []
+
+  generic_oauth.groups_key:
+    description: Groups claim key used to map groups from the OAuth userinfo/token
     default: ""
 
   generic_oauth.display_name:
@@ -271,6 +245,115 @@ properties:
 
   generic_oauth.ca_cert:
     description: The CA certificate for the Generic OAuth provider's endpoints.
+    default: ""
+
+  generic_oidc.client_id:
+    description: Application client ID for enabling generic OIDC.
+    default: ""
+
+  generic_oidc.client_secret:
+    description: Application client secret for enabling generic OIDC.
+    default: ""
+
+  generic_oidc.issuer:
+    description: Generic OIDC provider issuer url.
+    default: ""
+
+  generic_oidc.scopes:
+    description: OIDC scopes to request during authorization.
+    default: []
+
+  generic_oidc.groups_key:
+    description: Groups claim key used to map groups from the OIDC userinfo/token
+    default: ""
+
+  generic_oidc.display_name:
+    description: Name of the authentication method to be displayed on the Web UI
+    default: ""
+
+  generic_oidc.ca_cert:
+    description: The CA certificate for the Generic OIDC provider's endpoints.
+    default: ""
+
+  main_team.allow_all_users:
+    description: |
+      Whitelist all authenticated users for the main team.
+    default: false
+
+  main_team.local.users:
+    description: |
+      An array of local users that are authorized for the main team.
+    default: []
+
+  main_team.github.users:
+    default: []
+    description: |
+      An array of GitHub userids/logins that are authorized for the main team
+    example:
+    - my-github-login
+
+  main_team.github.orgs:
+    default: []
+    description: |
+      An array of GitHub orgs that are authorized for the main team
+    example:
+    - my-github-org
+
+  main_team.github.teams:
+    default: []
+    description: |
+      An array of GitHub teams that are authorized for the main team
+    example:
+    - my-github-org:my-github-team
+
+  main_team.cf.users:
+    description: |
+      List of CloudFoundry userids/usernames that are authorized for the main team
+    default: []
+    example:
+    - my-username
+
+  main_team.cf.orgs:
+    description: |
+      List of CloudFoundry Orgs that are authorized for the main team
+    default: []
+    example:
+    - myorg
+
+  main_team.cf.spaces:
+    description: |
+      List of CloudFoundry Spaces that are authorized for the main team
+    default: []
+    example:
+    - myorg:myspace
+
+  main_team.oauth.users:
+    description: |
+      List of Generic OAuth users that are authorized for the main team
+    default: []
+    example:
+    - my-username
+
+  main_team.oauth.groups:
+    description: |
+      List of Generic OAuth groups that are authorized for the main team
+    default: []
+    example:
+    - my-group
+
+  main_team.oidc.users:
+    description: |
+      List of Generic OIDC users that are authorized for the main team
+    default: []
+    example:
+    - my-username
+
+  main_team.oidc.groups:
+    description: |
+      List of Generic OIDC groups that are authorized for the main team
+    default: []
+    example:
+    - my-group
 
   intercept_idle_timeout:
     description: Length of time for a intercepted session to be idle before terminating, in Go duration format.
@@ -372,20 +455,6 @@ properties:
     description: |
       Dialing timeout, in Go duration format (1m = 1 minute). 0 means wait indefinitely.
     default: 5m
-
-  token_signing_key:
-    type: rsa
-    description: |
-      PEM RSA private key used for minting ATC tokens.
-    example:
-      private_key: |
-         -----BEGIN RSA PRIVATE KEY-----
-         ...
-         -----END RSA PRIVATE KEY-----
-      public_key: |
-         -----BEGIN PUBLIC KEY-----
-         ...
-         -----END PUBLIC KEY-----
 
   yeller.api_key:
     description: |
