@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -276,6 +277,12 @@ func (scanner *resourceScanner) check(
 	newVersions, err := res.Check(source, fromVersion)
 
 	scanner.setResourceCheckError(logger, savedResource, err)
+	metric.ResourceCheck{
+		PipelineName: scanner.dbPipeline.Name(),
+		ResourceName: savedResource.Name(),
+		TeamName:     scanner.dbPipeline.TeamName(),
+		Success:      err == nil,
+	}.Emit(logger)
 
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {

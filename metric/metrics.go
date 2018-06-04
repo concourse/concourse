@@ -388,3 +388,30 @@ func (event HTTPResponseTime) Emit(logger lager.Logger) {
 		},
 	)
 }
+
+type ResourceCheck struct {
+	PipelineName string
+	ResourceName string
+	TeamName     string
+	Success      bool
+}
+
+func (event ResourceCheck) Emit(logger lager.Logger) {
+	state := EventStateOK
+	if !event.Success {
+		state = EventStateWarning
+	}
+	emit(
+		logger.Session("resource-check"),
+		Event{
+			Name:  "resource checked",
+			Value: 1,
+			State: state,
+			Attributes: map[string]string{
+				"pipeline": event.PipelineName,
+				"resource": event.ResourceName,
+				"team":     event.TeamName,
+			},
+		},
+	)
+}
