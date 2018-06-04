@@ -542,7 +542,7 @@
       }
 
       Note that if any point of the above process \italic{fails}, the container
-      is left in its current state in the databsae. A container is only ever
+      is left in its current state in the database. A container is only ever
       removed from the database when it's guaranteed that everything has been
       cleaned up.
     }
