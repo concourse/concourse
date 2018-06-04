@@ -437,7 +437,7 @@
 	branch = master
 [submodule "src/github.com/coreos/dex"]
 	path = src/github.com/coreos/dex
-	url = https://github.com/coreos/dex
+	url = https://github.com/concourse/dex
 [submodule "src/github.com/coreos/go-oidc"]
 	path = src/github.com/coreos/go-oidc
 	url = https://github.com/coreos/go-oidc
