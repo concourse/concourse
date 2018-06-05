@@ -85,7 +85,7 @@ if [ "$QUICKSTART" = "true" ]; then
   $CONCOURSE quickstart \
     --postgres-socket /var/run/postgresql \
     --log-level debug \
-    --add-local-user test:$2a$10$GXdnc1kAKG2u1Ba5DOO1G.uPADrfqr/ifudwHG/pTSUnKj/QQfi8i \
+    --add-local-user 'test:$2a$10$GXdnc1kAKG2u1Ba5DOO1G.uPADrfqr/ifudwHG/pTSUnKj/QQfi8i' \
     --main-team-allow-all-users \
     --worker-work-dir /scratch/concourse \
     --worker-garden-network-pool 10.255.0.0/22 \
@@ -110,7 +110,7 @@ else
     --tsa-authorized-keys /etc/concourse/worker.pub \
     --session-signing-key /etc/concourse/session-signing-key \
     --log-level debug \
-    --add-local-user test:$2a$10$GXdnc1kAKG2u1Ba5DOO1G.uPADrfqr/ifudwHG/pTSUnKj/QQfi8i \
+    --add-local-user 'test:$2a$10$GXdnc1kAKG2u1Ba5DOO1G.uPADrfqr/ifudwHG/pTSUnKj/QQfi8i' \
     --main-team-allow-all-users \
     &
 
