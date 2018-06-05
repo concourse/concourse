@@ -13,7 +13,6 @@ export PATH=$ROOT/bin:$PATH
 go install github.com/concourse/atc/cmd/atc
 
 pg_port=${POSTGRES_PORT:-6543}
-external_ip="$($ROOT/dev/util/external-ip)"
 
 until createdb -U postgres -p ${pg_port} atc 2>&1 | grep 'already exists' >/dev/null; do
   echo creating database...
@@ -25,7 +24,7 @@ cd $ROOT/src/github.com/concourse/atc
 
 atc \
   --log-level debug \
-  --external-url "http://${external_ip}:8080" \
+  --external-url "http://localhost:8080" \
   --session-signing-key $KEYSDIR/web/session_signing_key \
   --postgres-data-source "user=postgres dbname=atc port=${pg_port} sslmode=disable" \
   --add-local-user 'test:$2a$10$sKZelZprWWcBAWbp28rB1uFef0Ybxsiqh05uo.H8EIm0sWc6IZGJu' \
