@@ -66,6 +66,11 @@
   }
 
   \note{feature}{
+    The \reference{resource-webhook-token} property can now be interpolated
+    using a credential manager, thanks to a PR by \ghuser{timrchavez}!
+  }
+
+  \note{feature}{
     The \resource{pool} now supports an atomic metadata update operation,
     thanks to a PR by \ghuser{EleanorRigby}!
   }
