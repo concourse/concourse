@@ -21,6 +21,17 @@
   }
 
   \note{feature}{
+    Container and volume \reference{garbage-collection} will now be performed
+    in parallel across the worker cluster.
+
+    The ATC is still the source of truth for knowing \italic{when} containers
+    and volumes are to be removed, but will no longer be responsible for
+    performing the actual "destroy" API calls. This should make large-scale
+    Concourse deployments much more efficient, removing a ton of network and
+    CPU overhead from the ATC.
+  }
+
+  \note{feature}{
     The Vault credential manager backend will now cache credentials based on
     their lease duration. This was a big chunk of work and should make Vault
     operators' lives a bit easier. Thanks \ghuser{rfliam} for the PR!
