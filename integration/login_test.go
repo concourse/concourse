@@ -329,7 +329,7 @@ var _ = Describe("login Command", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("navigate to the following URL in your browser:"))
-				Eventually(sess.Out).Should(gbytes.Say("    http://127.0.0.1:(\\d+)/sky/login\\?redirect_uri=http://127.0.0.1:(\\d+)/auth/callback"))
+				Eventually(sess.Out).Should(gbytes.Say("http://127.0.0.1:(\\d+)/sky/login\\?redirect_uri=http://127.0.0.1:(\\d+)/auth/callback"))
 
 				_, err = fmt.Fprintf(stdin, "Bearer some-token\n")
 				Expect(err).NotTo(HaveOccurred())
