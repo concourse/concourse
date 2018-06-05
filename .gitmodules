@@ -66,14 +66,6 @@
 	path = src/github.com/xoebus/zest
 	url = https://github.com/xoebus/zest
 	branch = master
-[submodule "src/github.com/google/go-querystring"]
-	path = src/github.com/google/go-querystring
-	url = https://github.com/google/go-querystring
-	branch = master
-[submodule "src/github.com/google/go-github"]
-	path = src/github.com/google/go-github
-	url = https://github.com/google/go-github
-	branch = master
 [submodule "src/golang.org/x/net"]
 	path = src/golang.org/x/net
 	url = https://go.googlesource.com/net
@@ -222,10 +214,6 @@
 	path = src/github.com/mattn/go-colorable
 	url = https://github.com/mattn/go-colorable
 	branch = master
-[submodule "src/code.cloudfoundry.org/urljoiner"]
-	path = src/code.cloudfoundry.org/urljoiner
-	url = https://github.com/cloudfoundry/urljoiner
-	branch = master
 [submodule "src/github.com/daviddengcn/go-colortext"]
 	path = src/github.com/daviddengcn/go-colortext
 	url = https://github.com/daviddengcn/go-colortext
@@ -323,14 +311,6 @@
 [submodule "src/github.com/prometheus/client_golang"]
 	path = src/github.com/prometheus/client_golang
 	url = https://github.com/prometheus/client_golang
-	branch = master
-[submodule "src/github.com/dghubble/oauth1"]
-	path = src/github.com/dghubble/oauth1
-	url = https://github.com/dghubble/oauth1
-	branch = master
-[submodule "src/github.com/SHyx0rmZ/go-bitbucket"]
-	path = src/github.com/SHyx0rmZ/go-bitbucket
-	url = https://github.com/SHyx0rmZ/go-bitbucket
 	branch = master
 [submodule "src/github.com/mattes/migrate"]
 	path = src/github.com/mattes/migrate
@@ -438,15 +418,20 @@
 [submodule "src/github.com/coreos/dex"]
 	path = src/github.com/coreos/dex
 	url = https://github.com/concourse/dex
+	branch = feature/dex
 [submodule "src/github.com/coreos/go-oidc"]
 	path = src/github.com/coreos/go-oidc
 	url = https://github.com/coreos/go-oidc
+	branch = v2
 [submodule "src/github.com/pquerna/cachecontrol"]
 	path = src/github.com/pquerna/cachecontrol
 	url = https://github.com/pquerna/cachecontrol
+	branch = master
 [submodule "src/gopkg.in/square/go-jose.v2"]
 	path = src/gopkg.in/square/go-jose.v2
 	url = https://gopkg.in/square/go-jose.v2
+	branch = master
 [submodule "src/github.com/sirupsen/logrus"]
 	path = src/github.com/sirupsen/logrus
 	url = https://github.com/sirupsen/logrus
+	branch = master
