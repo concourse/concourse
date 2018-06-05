@@ -199,9 +199,7 @@ files:
   - github.com/coreos/dex/vendor/golang.org/x/net/http2/*.{go,s,c,h} # gosub
   - github.com/coreos/dex/vendor/golang.org/x/net/http2/hpack/*.{go,s,c,h} # gosub
   - github.com/coreos/dex/vendor/golang.org/x/net/idna/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/golang.org/x/net/internal/timeseries/*.{go,s,c,h} # gosub
   - github.com/coreos/dex/vendor/golang.org/x/net/lex/httplex/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/golang.org/x/net/trace/*.{go,s,c,h} # gosub
   - github.com/coreos/dex/vendor/golang.org/x/oauth2/*.{go,s,c,h} # gosub
   - github.com/coreos/dex/vendor/golang.org/x/oauth2/github/*.{go,s,c,h} # gosub
   - github.com/coreos/dex/vendor/golang.org/x/oauth2/internal/*.{go,s,c,h} # gosub
@@ -328,6 +326,8 @@ files:
   - golang.org/x/net/context/*.{go,s,c,h} # gosub
   - golang.org/x/net/context/ctxhttp/*.{go,s,c,h} # gosub
   - golang.org/x/net/idna/*.{go,s,c,h} # gosub
+  - golang.org/x/net/internal/timeseries/*.{go,s,c,h} # gosub
+  - golang.org/x/net/trace/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/internal/*.{go,s,c,h} # gosub
   - golang.org/x/sys/unix/*.{go,s,c,h} # gosub
