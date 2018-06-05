@@ -280,6 +280,16 @@ func (p Plugin) Ghuser(user string) booklit.Content {
 	}
 }
 
+func (p Plugin) Ghpr(repo string, number string) booklit.Content {
+	return booklit.Link{
+		Target: fmt.Sprintf("http://github.com/concourse/%s/pull/%s", repo, number),
+		Content: booklit.Styled{
+			Style:   booklit.StyleBold,
+			Content: booklit.String(repo + " #" + number),
+		},
+	}
+}
+
 func (p Plugin) Ghissue(number string, optionalRepo ...string) booklit.Content {
 	repo := "concourse"
 	if len(optionalRepo) > 0 {

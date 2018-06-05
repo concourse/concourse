@@ -11,6 +11,7 @@
   must first upgrade to \reference{v3.6.0} before upgrading past it!}
 }
 
+\include-section{./release-notes/v3.14.0.lit}
 \include-section{./release-notes/v3.13.0.lit}
 \include-section{./release-notes/v3.12.0.lit}
 \include-section{./release-notes/v3.11.0.lit}
