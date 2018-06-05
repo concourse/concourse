@@ -88,8 +88,8 @@ func NewServer(config *Config) (*Server, error) {
 	return &Server{handler, signingKey}, nil
 }
 
-func loadOrGenerateSigningKey(keyFlag flag.PrivateKey) (*rsa.PrivateKey, error) {
-	if keyFlag.PrivateKey != nil {
+func loadOrGenerateSigningKey(keyFlag *flag.PrivateKey) (*rsa.PrivateKey, error) {
+	if keyFlag != nil && keyFlag.PrivateKey != nil {
 		return keyFlag.PrivateKey, nil
 	}
 
