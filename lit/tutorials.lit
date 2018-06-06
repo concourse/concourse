@@ -25,6 +25,9 @@ members of the Concourse community.
 
   \link{Concourse Samples}{https://github.com/pivotalservices/concourse-pipeline-samples} by \link{Pivotal Services}{https://github.com/pivotalservices}.
   This repository contains code samples and recipes for common Concourse pipelines and deployment patterns
+
+  \link{Creating a continuous integration pipeline in Concourse for a test-infused ASP.NET Core app}{https://seroter.wordpress.com/2018/06/06/creating-a-continuous-integration-pipeline-in-concourse-for-a-test-infused-asp-net-core-app/}
+  by \ghuser{rseroter}
 }
 
 \section{
