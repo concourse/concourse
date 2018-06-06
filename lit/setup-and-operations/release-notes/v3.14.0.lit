@@ -1,6 +1,20 @@
 \use-plugin{concourse-docs}
 
 \release{2018-6-5}{3.14.0}{1.14.0}{
+  \warn{
+    A migration made it in to this release that slows down scheduling for
+    pipelines with a bunch of version history. We will be issuing a patch
+    release for this soon. In the meantime, you can resolve the
+    performance issues by dropping an index like so:
+
+    \codeblock{sql}{{
+      DROP INDEX versioned_resources_check_order;
+    }}
+
+    The forthcoming patch release will run this with \code{IF EXISTS} so that
+    manually fixed instances upgrade cleanly.
+  }
+
   \note{feature}{
     You know that "home" icon that you click all the time and never fully know
     where it'll take you? Do you remember that empty feeling of not really

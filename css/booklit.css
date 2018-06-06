@@ -559,10 +559,26 @@ h2, h3 {
   margin: 10px 0 30px;
 }
 
-.warning p {
+.warning {
   background: #fffddc;
-  color: #555332;
   padding: 5px 10px;
+  margin: 1em 0;
+}
+
+.warning p {
+  color: #555332;
+}
+
+.warning code {
+  background: #eeeccb;
+}
+
+.warning p:first-child {
+  margin-top: 0;
+}
+
+.warning p:last-child {
+  margin-bottom: 0;
 }
 
 .tutorial-image {
