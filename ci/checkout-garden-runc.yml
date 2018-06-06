@@ -25,4 +25,4 @@ run:
 
     # prune golang.org/x/net/trace
     # https://stackoverflow.com/questions/47938005/panic-http-multiple-registrations-for-debug-requests
-    find . -path '*/vendor/x/net/trace' | xargs -n1 rm -r
+    find . -path '*/vendor/golang.org/x/net/trace' | xargs --no-run-if-empty -n1 rm -r
