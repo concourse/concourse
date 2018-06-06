@@ -171,11 +171,6 @@
     PR by \ghuser{jmcarp}!
   }
 
-  \note{feature}{
-    The \resource{s3} now supports EC2 role based authentication, thanks to a
-    PR by \ghuser{ghostsquad}!
-  }
-
   \note{fix}{
     The \code{concourse land-worker} command will no longer panic if invoked
     with no session signing key.
