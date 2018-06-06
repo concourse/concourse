@@ -4,8 +4,8 @@
   \warn{
     A migration made it in to this release that slows down scheduling for
     pipelines with a bunch of version history. We will be issuing a patch
-    release for this soon. In the meantime, you can resolve the
-    performance issues by dropping an index like so:
+    release for this soon. In the meantime, you can safely resolve the
+    performance issues by running the following SQL against your database:
 
     \codeblock{sql}{{
       DROP INDEX versioned_resources_check_order;
