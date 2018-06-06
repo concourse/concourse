@@ -1,3 +1,3 @@
 BEGIN;
-  DROP INDEX versioned_resources_check_order;
+  DROP INDEX IF EXISTS versioned_resources_check_order;
 COMMIT;
