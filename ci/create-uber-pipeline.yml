@@ -12,8 +12,6 @@ inputs:
 
 params:
   WEB_IP:
-  WEB_USERNAME:
-  WEB_PASSWORD:
   PIPELINE_NAME:
 
 run:

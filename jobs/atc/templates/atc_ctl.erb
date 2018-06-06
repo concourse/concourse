@@ -16,9 +16,7 @@ LOG_DIR=/var/vcap/sys/log/atc
 SIGNING_KEY=/var/vcap/jobs/atc/config/token_signing_key
 PIDFILE=$RUN_DIR/atc.pid
 CF_CA_CERT=/var/vcap/jobs/atc/config/cf_ca_cert
-GITHUB_CA_CERT=/var/vcap/jobs/atc/config/github_ca_cert
-OAUTH_CA_CERT=/var/vcap/jobs/atc/config/oauth_ca_cert
-OIDC_CA_CERT=/var/vcap/jobs/atc/config/oidc_ca_cert
+GENERIC_OAUTH_CA_CERT=/var/vcap/jobs/atc/config/generic_oauth_ca_cert
 POSTGRESQL_CA_CERT=/var/vcap/jobs/atc/config/postgres_ca_cert
 POSTGRESQL_CLIENT_CERT=/var/vcap/jobs/atc/config/postgres_client_cert
 POSTGRESQL_CLIENT_KEY=/var/vcap/jobs/atc/config/postgres_client_key
@@ -87,15 +85,6 @@ case $1 in
     chown vcap:vcap $CF_CA_CERT
     chmod 0400 $CF_CA_CERT
 
-    chown vcap:vcap $GITHUB_CA_CERT
-    chmod 0400 $GITHUB_CA_CERT
-
-    chown vcap:vcap $OAUTH_CA_CERT
-    chmod 0400 $OAUTH_CA_CERT
-
-    chown vcap:vcap $OIDC_CA_CERT
-    chmod 0400 $OIDC_CA_CERT
-
     chown vcap:vcap $POSTGRESQL_CA_CERT
     chmod 0400 $POSTGRESQL_CA_CERT
 
@@ -140,87 +129,72 @@ case $1 in
       <% if_p("old_encryption_key") do |key| %> \
       --old-encryption-key <%= esc(key) %> \
       <% end %> \
+      <% if p("no_really_i_dont_want_any_auth") %> \
+      --no-really-i-dont-want-any-auth \
+      <% end %> \
       --log-level <%= p("log_level") %> \
       <% if p("log_db_queries") %> \
       --log-db-queries \
       <% end %> \
-      <% p("add_local_users").each do |v| %> \
-      --add-local-user <%= esc(v) %> \
-      <% end %> \
+      --basic-auth-username <%= esc(p("basic_auth_username")) %> \
+      --basic-auth-password <%= esc(p("basic_auth_password")) %> \
       --auth-duration <%= p("auth_duration") %> \
-      --github-client-id <%= esc(p("github_auth.client_id")) %> \
-      --github-client-secret <%= esc(p("github_auth.client_secret")) %> \
-      --github-host <%= esc(p("github_auth.host")) %> \
-      <% if_p("github_auth.ca_cert") do %> \
-      --github-ca-cert $GITHUB_CA_CERT \
+      <% p("github_auth.authorize").each do |a| %> \
+        <% if org = a["organization"] %> \
+          <% if a["teams"] == "all" %> \
+      --github-auth-organization <%= esc(org) %> \
+          <% elsif a["teams"].respond_to?(:each) %> \
+            <% a["teams"].each do |team| %> \
+      --github-auth-team <%= esc("#{org}/#{team}") %> \
+            <% end %> \
+          <% elsif a["teams"].nil? %> \
+            <% raise "teams for organization '#{org}' must be specified; use 'all' for all teams" %> \
+          <% else %> \
+            <% raise "invalid teams for organization '#{org}': '#{a["teams"].inspect}" %> \
+          <% end %> \
+        <% elsif user = a["user"] %> \
+      --github-auth-user <%= esc(user) %> \
+        <% else %> \
+          <% raise "organization or user not specified" %> \
+        <% end %> \
       <% end %> \
-      --cf-client-id <%= esc(p("cf_auth.client_id")) %> \
-      --cf-client-secret <%= esc(p("cf_auth.client_secret")) %> \
-      --cf-api-url <%= esc(p("cf_auth.api_url")) %> \
-      <% if_p("cf_auth.ca_cert") do %> \
-      --cf-ca-cert $CF_CA_CERT \
+      --github-auth-client-id <%= esc(p("github_auth.client_id")) %> \
+      --github-auth-client-secret <%= esc(p("github_auth.client_secret")) %> \
+      <% if_p("github_auth.auth_url") do |url| %> \
+      --github-auth-auth-url <%= esc(url) %> \
       <% end %> \
-      --oauth-client-id <%= esc(p("generic_oauth.client_id")) %> \
-      --oauth-client-secret <%= esc(p("generic_oauth.client_secret")) %> \
-      --oauth-auth-url <%= esc(p("generic_oauth.auth_url")) %> \
-      --oauth-token-url <%= esc(p("generic_oauth.token_url")) %> \
-      --oauth-userinfo-url <%= esc(p("generic_oauth.userinfo_url")) %> \
-      <% p("generic_oauth.scopes").each do |v| %> \
-      --oauth-scope <%= esc(v) %> \
+      <% if_p("github_auth.token_url") do |url| %> \
+      --github-auth-token-url <%= esc(url) %> \
       <% end %> \
-      --oauth-groups-key <%= esc(p("generic_oauth.groups_key")) %> \
+      <% if_p("github_auth.api_url") do |url| %> \
+      --github-auth-api-url <%= esc(url) %> \
+      <% end %> \
+      --uaa-auth-client-id <%= esc(p("uaa_auth.client_id")) %> \
+      --uaa-auth-client-secret <%= esc(p("uaa_auth.client_secret")) %> \
+      --uaa-auth-auth-url <%= esc(p("uaa_auth.auth_url")) %> \
+      --uaa-auth-token-url <%= esc(p("uaa_auth.token_url")) %> \
+      <% p("uaa_auth.cf_spaces").each do |s| %> \
+      --uaa-auth-cf-space <%= esc(s) %> \
+      <% end %> \
+      --uaa-auth-cf-url <%= esc(p("uaa_auth.cf_api_url")) %> \
+      --uaa-auth-cf-ca-cert $CF_CA_CERT \
+      --generic-oauth-client-id <%= esc(p("generic_oauth.client_id")) %> \
+      --generic-oauth-client-secret <%= esc(p("generic_oauth.client_secret")) %> \
+      --generic-oauth-auth-url <%= esc(p("generic_oauth.auth_url")) %> \
+      <% p("generic_oauth.auth_url_params").each do |k, v| %> \
+      --generic-oauth-auth-url-param <%= esc(k) %>:<%= esc(v) %> \
+      <% end %> \
+      <% if_p("generic_oauth.scope") do |s| %> \
+      --generic-oauth-scope <%= esc(s) %> \
+      <% end %> \
+      --generic-oauth-token-url <%= esc(p("generic_oauth.token_url")) %> \
+      --generic-oauth-display-name <%= esc(p("generic_oauth.display_name")) %> \
       <% if_p("generic_oauth.ca_cert") do %> \
-      --oauth-ca-cert $OAUTH_CA_CERT \
-      <% end %> \
-      --oidc-client-id <%= esc(p("generic_oidc.client_id")) %> \
-      --oidc-client-secret <%= esc(p("generic_oidc.client_secret")) %> \
-      --oidc-issuer <%= esc(p("generic_oidc.issuer")) %> \
-      <% p("generic_oidc.scopes").each do |v| %> \
-      --oidc-scope <%= esc(v) %> \
-      <% end %> \
-      --oidc-groups-key <%= esc(p("generic_oidc.groups_key")) %> \
-      <% if_p("generic_oidc.ca_cert") do %> \
-      --oidc-ca-cert $OIDC_CA_CERT \
-      <% end %> \
-      <% if p("main_team.allow_all_users") %> \
-      --main-team-allow-all-users \
-      <% end %> \
-      <% p("main_team.local.users").each do |v| %> \
-        --main-team-local-user <%= esc(v) %>\
-      <% end %> \
-      <% p("main_team.github.users").each do |v| %> \
-        --main-team-github-user <%= esc(v) %>\
-      <% end %> \
-      <% p("main_team.github.orgs").each do |v| %> \
-        --main-team-github-org <%= esc(v) %> \
-      <% end %> \
-      <% p("main_team.github.teams").each do |v| %> \
-        --main-team-github-team <%= esc(v) %> \
-      <% end %> \
-      <% p("main_team.cf.users").each do |v| %> \
-      --main-team-cf-user <%= esc(v) %> \
-      <% end %> \
-      <% p("main_team.cf.orgs").each do |v| %> \
-      --main-team-cf-org <%= esc(v) %> \
-      <% end %> \
-      <% p("main_team.cf.spaces").each do |v| %> \
-      --main-team-cf-space <%= esc(v) %> \
-      <% end %> \
-      <% p("main_team.oauth.users").each do |v| %> \
-      --main-team-oauth-user <%= esc(v) %> \
-      <% end %> \
-      <% p("main_team.oauth.groups").each do |v| %> \
-      --main-team-oauth-group <%= esc(v) %> \
-      <% end %> \
-      <% p("main_team.oidc.users").each do |v| %> \
-      --main-team-oidc-user <%= esc(v) %> \
-      <% end %> \
-      <% p("main_team.oidc.groups").each do |v| %> \
-      --main-team-oidc-group <%= esc(v) %> \
+      --generic-oauth-ca-cert $GENERIC_OAUTH_CA_CERT \
       <% end %> \
       --session-signing-key $SIGNING_KEY \
       <% if_p("intercept_idle_timeout") do |timeout| %> \
-      --intercept-idle-timeout <%= esc(timeout) %> \
+	      --intercept-idle-timeout <%= esc(timeout) %> \
       <% end %> \
       --resource-checking-interval <%= p("default_check_interval") %> \
       --container-placement-strategy <%= p("container_placement_strategy") %> \

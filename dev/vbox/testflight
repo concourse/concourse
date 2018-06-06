@@ -11,6 +11,4 @@ cd $(dirname $0)/../..
 by "running testflight..."
 cd ./src/github.com/concourse/testflight
 ATC_URL="http://10.244.15.2:8080" \
-ATC_USERNAME="test" \
-ATC_PASSWORD="test" \
   ginkgo -r -p -nodes=3 "$@"
