@@ -5,7 +5,7 @@ describe 'Nav', type: :feature do
 
   before do
     fly_login 'main'
-    fly_with_input("set-team -n #{team_name} --no-really-i-dont-want-any-auth", 'y')
+    fly_with_input("set-team -n #{team_name} --allow-all-users", 'y')
 
     fly_login team_name
     fly('set-pipeline -n -p test-pipeline -c fixtures/states-pipeline.yml')

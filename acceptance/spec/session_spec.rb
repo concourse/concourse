@@ -19,11 +19,10 @@ describe 'session', type: :feature do
       visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/checker")
       click_on 'Trigger Build'
 
-      expect(page).to have_content 'Username/Password'
+      expect(page).to have_content 'login'
 
-      click_button 'Username/Password'
-      fill_in 'password', with: ATC_USERNAME
       fill_in 'login', with: ATC_PASSWORD
+      fill_in 'password', with: ATC_USERNAME
       click_button 'login'
 
       expect(page.current_path).to include "/teams/#{team_name}/pipelines/test-pipeline/jobs/checker"
@@ -33,11 +32,10 @@ describe 'session', type: :feature do
       visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/resources/few-versions")
       click_on 'Pause Resource Checking'
 
-      expect(page).to have_content 'Username/Password'
+      expect(page).to have_content 'login'
 
-      click_button 'Username/Password'
-      fill_in 'password', with: ATC_USERNAME
       fill_in 'login', with: ATC_PASSWORD
+      fill_in 'password', with: ATC_USERNAME
       click_button 'login'
 
       expect(page.current_path).to include "/teams/#{team_name}/pipelines/test-pipeline/resources/few-versions"
