@@ -12,7 +12,7 @@ pushd ${GOPATH}/src/github.com/concourse/${REPO}
   ./scripts/generate-bindata
 
   set +ex
-  git diff '*/bindata.go' | grep '+var.*\[\]byte'
+  git diff '*/bindata.go' | grep '[-+]var.*\[\]byte'
 
   if [ $? -ne 0 ]
   then
