@@ -2,10 +2,10 @@ btrfs/btrfs-tools-4.4.tar.gz:
   size: 3062268
   object_id: 9c8e0f55-d9e0-4a6a-51f3-1b175f3b2551
   sha: 94279d010ebd4829396af9212f9c1e73e75d914e
-golang/golang-linux-amd64-1.10.2.tar.gz:
-  size: 132481801
-  object_id: 6ea22c8c-333b-42cb-4d93-238f2106fc23
-  sha: 77f0ac48994946c0d3349baf2d973ed6decb15ca
+golang/golang-linux-amd64-1.10.3.tar.gz:
+  size: 132489256
+  object_id: 27a9ea9a-d409-4f45-5457-25afda15c641
+  sha: dfa39cac093a7a9c94d25130671ec474d51a2995
 resources/bosh-deployment-resource-2ec4621.tar.gz:
   size: 17139888
   object_id: 0f591fce-1ccf-4655-425d-e2cbf82c3105
