@@ -5,6 +5,7 @@ dependencies:
 - golang-1-windows
 
 files:
+  - exiter.ps1
   - code.cloudfoundry.org/garden/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/routes/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/server/*.{go,s,c,h} # gosub
