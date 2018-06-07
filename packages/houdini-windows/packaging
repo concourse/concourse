@@ -1,3 +1,5 @@
+. ./exiter.ps1
+
 # vim: set ft=ps1
 
 Write-Host "sleeping"
