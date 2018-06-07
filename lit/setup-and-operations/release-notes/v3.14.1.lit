@@ -1,0 +1,9 @@
+\use-plugin{concourse-docs}
+
+\release{2018-6-7}{3.14.1}{1.14.0}{
+  \note{fix}{
+    Fixed a scheduling performance regression caused by a wonky database index.
+    See the warning on \reference{v3.14.0} for more information. The upgrade to
+    v3.14.1 will apply cleanly for those who have manually removed the index.
+  }
+}
