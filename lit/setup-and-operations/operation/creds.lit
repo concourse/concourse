@@ -128,6 +128,18 @@ values are not present, the action will error.
       Environment variable \code{CONCOURSE_VAULT_AUTH_BACKEND_MAX_TTL}.
     }
 
+    \define-attribute{vault-cache: bool}{
+      Cache returned secrets for their lease duration in memory
+
+      Environment variable \code{CONCOURSE_VAULT_CACHE}.
+    }
+
+    \define-attribute{vault-max-lease: string}{
+      If the cache is enabled, and this is set, override secrets lease duration with a maximum value.
+
+      Environment variable \code{CONCOURSE_VAULT_MAX_LEASE}.
+    }
+
     \define-attribute{vault-auth-param=NAME=VALUE: string}{
       Paramter to pass when logging in via the backend. Can be specified multiple times.
 
