@@ -23,7 +23,7 @@ fi
 
 $concourse web \
   --log-level debug \
-  --add-local-user test:test \
+  --add-local-user 'test:$2a$10$GXdnc1kAKG2u1Ba5DOO1G.uPADrfqr/ifudwHG/pTSUnKj/QQfi8i' \
   --main-team-allow-all-users \
   --session-signing-key $session_key \
   --tsa-bind-port 2223 \
