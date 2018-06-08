@@ -53,7 +53,13 @@ type Session interface {
 type BeaconClient interface {
 	Register(signals <-chan os.Signal, ready chan<- struct{}) error
 	RetireWorker(signals <-chan os.Signal, ready chan<- struct{}) error
-	MarkandSweepContainersandVolumes() error
+
+	SweepContainers() error
+	SweepVolumes() error
+
+	ReportContainers() error
+	ReportVolumes() error
+
 	LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error
 	DeleteWorker(signals <-chan os.Signal, ready chan<- struct{}) error
 	DisableKeepAlive()
@@ -102,44 +108,26 @@ func (beacon *Beacon) registerDirect(signals <-chan os.Signal, ready chan<- stru
 	return beacon.run("register-worker", signals, ready)
 }
 
-// RetireWorker implements the retiring of the worker
+// RetireWorker sends a message via the TSA to retire the worker
 func (beacon *Beacon) RetireWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
 	beacon.Logger.Debug("retire-worker")
 	return beacon.run("retire-worker", signals, ready)
 }
 
-// MarkandSweepContainersandVolumes implements the marking and sweeping of containers and volumes
-func (beacon *Beacon) MarkandSweepContainersandVolumes() error {
-	beacon.Logger.Debug("mark-and-sweep-containers")
+func (beacon *Beacon) SweepContainers() error {
+	return beacon.runSweep(tsa.SweepContainers)
+}
 
-	sweepCntErr := beacon.runSweep(tsa.SweepContainers)
-	reportCntErr := beacon.runReport(tsa.ReportContainers)
+func (beacon *Beacon) SweepVolumes() error {
+	return beacon.runSweep(tsa.SweepVolumes)
+}
 
-	sweepVolErr := beacon.runSweep(tsa.SweepVolumes)
-	reportVolErr := beacon.runReport(tsa.ReportVolumes)
+func (beacon *Beacon) ReportContainers() error {
+	return beacon.runReport(tsa.ReportContainers)
+}
 
-	var errString string
-
-	if sweepCntErr != nil {
-		errString = errString + fmt.Sprintf("sweep-cnt-err:%s \t", sweepCntErr.Error())
-	}
-
-	if reportCntErr != nil {
-		errString = errString + fmt.Sprintf("report-cnt-err:%s \t", reportCntErr.Error())
-	}
-
-	if sweepVolErr != nil {
-		errString = errString + fmt.Sprintf(" sweep-vol-err:%s \t", sweepVolErr.Error())
-	}
-
-	if reportVolErr != nil {
-		errString = errString + fmt.Sprintf(" report-vol-err:%s \t", reportVolErr.Error())
-	}
-
-	if errString == "" {
-		return nil
-	}
-	return errors.New(errString)
+func (beacon *Beacon) ReportVolumes() error {
+	return beacon.runReport(tsa.ReportVolumes)
 }
 
 func (beacon *Beacon) LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -236,7 +224,9 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 
 		return nil
 	case err := <-exited:
-		beacon.Logger.Error("failed-to-keep-session-alive", err)
+		if err != nil {
+			beacon.Logger.Error("failed-waiting-on-remote-command", err)
+		}
 		return err
 	case err := <-keepaliveFailed:
 		beacon.Logger.Error("failed-to-keep-alive", err)
@@ -357,7 +347,7 @@ func (beacon *Beacon) runReport(command string) error {
 }
 
 func (beacon *Beacon) runSweep(command string) error {
-	beacon.Logger.Info("command-to-run", lager.Data{"cmd": command})
+	beacon.Logger.Info("sweep", lager.Data{"cmd": command})
 
 	conn, err := beacon.Client.Dial()
 	if err != nil {
@@ -392,6 +382,7 @@ func (beacon *Beacon) runSweep(command string) error {
 		handleBytes, err = sess.Output(command)
 		if err != nil {
 			exited <- err
+			return
 		}
 
 		err = json.Unmarshal(handleBytes, &handles)

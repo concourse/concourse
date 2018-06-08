@@ -33,13 +33,40 @@ type FakeBeaconClient struct {
 	retireWorkerReturnsOnCall map[int]struct {
 		result1 error
 	}
-	MarkandSweepContainersandVolumesStub        func() error
-	markandSweepContainersandVolumesMutex       sync.RWMutex
-	markandSweepContainersandVolumesArgsForCall []struct{}
-	markandSweepContainersandVolumesReturns     struct {
+	ReportVolumesStub        func() error
+	reportVolumesMutex       sync.RWMutex
+	reportVolumesArgsForCall []struct{}
+	reportVolumesReturns     struct {
 		result1 error
 	}
-	markandSweepContainersandVolumesReturnsOnCall map[int]struct {
+	reportVolumesReturnsOnCall map[int]struct {
+		result1 error
+	}
+	SweepVolumesStub        func() error
+	sweepVolumesMutex       sync.RWMutex
+	sweepVolumesArgsForCall []struct{}
+	sweepVolumesReturns     struct {
+		result1 error
+	}
+	sweepVolumesReturnsOnCall map[int]struct {
+		result1 error
+	}
+	ReportContainersStub        func() error
+	reportContainersMutex       sync.RWMutex
+	reportContainersArgsForCall []struct{}
+	reportContainersReturns     struct {
+		result1 error
+	}
+	reportContainersReturnsOnCall map[int]struct {
+		result1 error
+	}
+	SweepContainersStub        func() error
+	sweepContainersMutex       sync.RWMutex
+	sweepContainersArgsForCall []struct{}
+	sweepContainersReturns     struct {
+		result1 error
+	}
+	sweepContainersReturnsOnCall map[int]struct {
 		result1 error
 	}
 	LandWorkerStub        func(signals <-chan os.Signal, ready chan<- struct{}) error
@@ -171,42 +198,162 @@ func (fake *FakeBeaconClient) RetireWorkerReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBeaconClient) MarkandSweepContainersandVolumes() error {
-	fake.markandSweepContainersandVolumesMutex.Lock()
-	ret, specificReturn := fake.markandSweepContainersandVolumesReturnsOnCall[len(fake.markandSweepContainersandVolumesArgsForCall)]
-	fake.markandSweepContainersandVolumesArgsForCall = append(fake.markandSweepContainersandVolumesArgsForCall, struct{}{})
-	fake.recordInvocation("MarkandSweepContainersandVolumes", []interface{}{})
-	fake.markandSweepContainersandVolumesMutex.Unlock()
-	if fake.MarkandSweepContainersandVolumesStub != nil {
-		return fake.MarkandSweepContainersandVolumesStub()
+func (fake *FakeBeaconClient) ReportVolumes() error {
+	fake.reportVolumesMutex.Lock()
+	ret, specificReturn := fake.reportVolumesReturnsOnCall[len(fake.reportVolumesArgsForCall)]
+	fake.reportVolumesArgsForCall = append(fake.reportVolumesArgsForCall, struct{}{})
+	fake.recordInvocation("ReportVolumes", []interface{}{})
+	fake.reportVolumesMutex.Unlock()
+	if fake.ReportVolumesStub != nil {
+		return fake.ReportVolumesStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.markandSweepContainersandVolumesReturns.result1
+	return fake.reportVolumesReturns.result1
 }
 
-func (fake *FakeBeaconClient) MarkandSweepContainersandVolumesCallCount() int {
-	fake.markandSweepContainersandVolumesMutex.RLock()
-	defer fake.markandSweepContainersandVolumesMutex.RUnlock()
-	return len(fake.markandSweepContainersandVolumesArgsForCall)
+func (fake *FakeBeaconClient) ReportVolumesCallCount() int {
+	fake.reportVolumesMutex.RLock()
+	defer fake.reportVolumesMutex.RUnlock()
+	return len(fake.reportVolumesArgsForCall)
 }
 
-func (fake *FakeBeaconClient) MarkandSweepContainersandVolumesReturns(result1 error) {
-	fake.MarkandSweepContainersandVolumesStub = nil
-	fake.markandSweepContainersandVolumesReturns = struct {
+func (fake *FakeBeaconClient) ReportVolumesReturns(result1 error) {
+	fake.ReportVolumesStub = nil
+	fake.reportVolumesReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeBeaconClient) MarkandSweepContainersandVolumesReturnsOnCall(i int, result1 error) {
-	fake.MarkandSweepContainersandVolumesStub = nil
-	if fake.markandSweepContainersandVolumesReturnsOnCall == nil {
-		fake.markandSweepContainersandVolumesReturnsOnCall = make(map[int]struct {
+func (fake *FakeBeaconClient) ReportVolumesReturnsOnCall(i int, result1 error) {
+	fake.ReportVolumesStub = nil
+	if fake.reportVolumesReturnsOnCall == nil {
+		fake.reportVolumesReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.markandSweepContainersandVolumesReturnsOnCall[i] = struct {
+	fake.reportVolumesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) SweepVolumes() error {
+	fake.sweepVolumesMutex.Lock()
+	ret, specificReturn := fake.sweepVolumesReturnsOnCall[len(fake.sweepVolumesArgsForCall)]
+	fake.sweepVolumesArgsForCall = append(fake.sweepVolumesArgsForCall, struct{}{})
+	fake.recordInvocation("SweepVolumes", []interface{}{})
+	fake.sweepVolumesMutex.Unlock()
+	if fake.SweepVolumesStub != nil {
+		return fake.SweepVolumesStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.sweepVolumesReturns.result1
+}
+
+func (fake *FakeBeaconClient) SweepVolumesCallCount() int {
+	fake.sweepVolumesMutex.RLock()
+	defer fake.sweepVolumesMutex.RUnlock()
+	return len(fake.sweepVolumesArgsForCall)
+}
+
+func (fake *FakeBeaconClient) SweepVolumesReturns(result1 error) {
+	fake.SweepVolumesStub = nil
+	fake.sweepVolumesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) SweepVolumesReturnsOnCall(i int, result1 error) {
+	fake.SweepVolumesStub = nil
+	if fake.sweepVolumesReturnsOnCall == nil {
+		fake.sweepVolumesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.sweepVolumesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) ReportContainers() error {
+	fake.reportContainersMutex.Lock()
+	ret, specificReturn := fake.reportContainersReturnsOnCall[len(fake.reportContainersArgsForCall)]
+	fake.reportContainersArgsForCall = append(fake.reportContainersArgsForCall, struct{}{})
+	fake.recordInvocation("ReportContainers", []interface{}{})
+	fake.reportContainersMutex.Unlock()
+	if fake.ReportContainersStub != nil {
+		return fake.ReportContainersStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.reportContainersReturns.result1
+}
+
+func (fake *FakeBeaconClient) ReportContainersCallCount() int {
+	fake.reportContainersMutex.RLock()
+	defer fake.reportContainersMutex.RUnlock()
+	return len(fake.reportContainersArgsForCall)
+}
+
+func (fake *FakeBeaconClient) ReportContainersReturns(result1 error) {
+	fake.ReportContainersStub = nil
+	fake.reportContainersReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) ReportContainersReturnsOnCall(i int, result1 error) {
+	fake.ReportContainersStub = nil
+	if fake.reportContainersReturnsOnCall == nil {
+		fake.reportContainersReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reportContainersReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) SweepContainers() error {
+	fake.sweepContainersMutex.Lock()
+	ret, specificReturn := fake.sweepContainersReturnsOnCall[len(fake.sweepContainersArgsForCall)]
+	fake.sweepContainersArgsForCall = append(fake.sweepContainersArgsForCall, struct{}{})
+	fake.recordInvocation("SweepContainers", []interface{}{})
+	fake.sweepContainersMutex.Unlock()
+	if fake.SweepContainersStub != nil {
+		return fake.SweepContainersStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.sweepContainersReturns.result1
+}
+
+func (fake *FakeBeaconClient) SweepContainersCallCount() int {
+	fake.sweepContainersMutex.RLock()
+	defer fake.sweepContainersMutex.RUnlock()
+	return len(fake.sweepContainersArgsForCall)
+}
+
+func (fake *FakeBeaconClient) SweepContainersReturns(result1 error) {
+	fake.SweepContainersStub = nil
+	fake.sweepContainersReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) SweepContainersReturnsOnCall(i int, result1 error) {
+	fake.SweepContainersStub = nil
+	if fake.sweepContainersReturnsOnCall == nil {
+		fake.sweepContainersReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.sweepContainersReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -332,8 +479,14 @@ func (fake *FakeBeaconClient) Invocations() map[string][][]interface{} {
 	defer fake.registerMutex.RUnlock()
 	fake.retireWorkerMutex.RLock()
 	defer fake.retireWorkerMutex.RUnlock()
-	fake.markandSweepContainersandVolumesMutex.RLock()
-	defer fake.markandSweepContainersandVolumesMutex.RUnlock()
+	fake.reportVolumesMutex.RLock()
+	defer fake.reportVolumesMutex.RUnlock()
+	fake.sweepVolumesMutex.RLock()
+	defer fake.sweepVolumesMutex.RUnlock()
+	fake.reportContainersMutex.RLock()
+	defer fake.reportContainersMutex.RUnlock()
+	fake.sweepContainersMutex.RLock()
+	defer fake.sweepContainersMutex.RUnlock()
 	fake.landWorkerMutex.RLock()
 	defer fake.landWorkerMutex.RUnlock()
 	fake.deleteWorkerMutex.RLock()

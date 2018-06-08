@@ -49,10 +49,27 @@ func (cmd *Command) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	for {
 		select {
 		case <-timer.C:
-			err := cmd.BeaconClient.MarkandSweepContainersandVolumes()
+
+			err := cmd.BeaconClient.ReportContainers()
 			if err != nil {
-				cmd.Logger.Error("failed-to-mark-and-swep-containers", err)
+				cmd.Logger.Error("failed-to-report-containers", err)
 			}
+
+			err = cmd.BeaconClient.ReportVolumes()
+			if err != nil {
+				cmd.Logger.Error("failed-to-report-volumes", err)
+			}
+
+			err = cmd.BeaconClient.SweepContainers()
+			if err != nil {
+				cmd.Logger.Error("failed-to-sweep-containers", err)
+			}
+
+			err = cmd.BeaconClient.SweepVolumes()
+			if err != nil {
+				cmd.Logger.Error("failed-to-sweep-volumes", err)
+			}
+
 		case <-signals:
 			cmd.Logger.Info("exiting-from-mark-and-sweep")
 			return nil
