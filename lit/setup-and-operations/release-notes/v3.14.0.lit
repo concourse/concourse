@@ -3,16 +3,8 @@
 \release{2018-6-5}{3.14.0}{1.14.0}{
   \warn{
     A migration made it in to this release that slows down scheduling for
-    pipelines with a bunch of version history. We will be issuing a patch
-    release for this soon. In the meantime, you can safely resolve the
-    performance issues by running the following SQL against your database:
-
-    \codeblock{sql}{{
-      DROP INDEX versioned_resources_check_order;
-    }}
-
-    The forthcoming patch release will run this with \code{IF EXISTS} so that
-    manually fixed instances upgrade cleanly.
+    pipelines with a bunch of version history. \reference{v3.14.1} has been
+    released with the fix.
   }
 
   \note{feature}{
@@ -46,9 +38,11 @@
   }
 
   \note{feature}{
-    The Vault credential manager backend will now cache credentials based on
+    The Vault credential manager backend can now cache credentials based on
     their lease duration. This was a big chunk of work and should make Vault
-    operators' lives a bit easier. Thanks \ghuser{rfliam} for the PR!
+    operators' lives a bit easier. To enable this feature, pass
+    \code{--vault-cache} to \code{concourse web}. Thanks \ghuser{rfliam} for
+    the PR!
 
     As a side note, we're in need of someone to champion the next phase of
     credential manager support. We've collected feedback from our first (very
