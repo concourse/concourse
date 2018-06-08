@@ -18,7 +18,7 @@ type VaultManager struct {
 
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 
-	Cache    bool          `long:"cache" default:"false" description:"Cache returned secrets for their lease duration in memory"`
+	Cache    bool          `long:"cache" description:"Cache returned secrets for their lease duration in memory"`
 	MaxLease time.Duration `long:"max-lease" description:"If the cache is enabled, and this is set, override secrets lease duration with a maximum value"`
 
 	TLS struct {
