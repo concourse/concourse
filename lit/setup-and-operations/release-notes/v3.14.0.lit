@@ -38,20 +38,6 @@
   }
 
   \note{feature}{
-    The Vault credential manager backend can now cache credentials based on
-    their lease duration. This was a big chunk of work and should make Vault
-    operators' lives a bit easier. To enable this feature, pass
-    \code{--vault-cache} to \code{concourse web}. Thanks \ghuser{rfliam} for
-    the PR!
-
-    As a side note, we're in need of someone to champion the next phase of
-    credential manager support. We've collected feedback from our first (very
-    much MVP) implementation but really need individuals who have experience
-    with each backend to take the next step. See \ghissue{5}{rfcs} for more
-    information!
-  }
-
-  \note{feature}{
     The Concourse BOSH release now includes Windows jobs:
     \code{baggageclaim-windows}, \code{houdini-windows}, and
     \code{worker-windows}. This means you can natively run a Windows worker via
