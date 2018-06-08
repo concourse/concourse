@@ -44,7 +44,7 @@ to consult \code{fly -h} to learn the short forms.
   for the specified team and prompt you to choose one. For basic auth, it will
   ask your username and password and use them to acquire a token. For OAuth, it
   will give you a link to click, and after you've gone through the OAuth flow
-  it will print an OAuth token on the page that you can then then copy and
+  it will print an OAuth token on the page that you can then copy and
   paste into the prompt.
 
   Note that if no authentication methods are configured, \code{fly} will
