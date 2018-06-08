@@ -34,7 +34,11 @@ instance_groups:
           name: atc
           password: ((postgres_password))
 
-      no_really_i_dont_want_any_auth: true
+      main_team:
+        allow_all_users: true
+
+      add_local_users:
+      - test:$2a$10$sDB6AsH2HheOWHILrnHVJOCZq/GYtUYE02ypJJTQBmWJNivYNhP3y
 
       token_signing_key: ((token_signing_key))
 

@@ -5,11 +5,13 @@ set -e -x
 
 
 test -n "$WEB_IP"
+test -n "$WEB_USERNAME"
+test -n "$WEB_PASSWORD"
 test -n "$PIPELINE_NAME"
 
 install fly-rc/fly_linux_amd64 /usr/local/bin/fly
 
-until fly -t local login -c "http://$WEB_IP:8080"; do sleep 2; done
+until fly -t local login -c "http://$WEB_IP:8080" -u $WEB_USERNAME -p $WEB_PASSWORD; do sleep 2; done
 
 fly -t local sync
 

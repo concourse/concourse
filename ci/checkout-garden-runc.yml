@@ -19,6 +19,7 @@ run:
   - -exc
   - |
     tag=v$(cat garden-runc/version)
+
     git -C ./garden-runc-src fetch --tags
     git clone --branch $tag --recursive ./garden-runc-src ./garden-runc-release
 
