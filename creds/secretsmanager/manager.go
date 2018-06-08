@@ -21,8 +21,8 @@ type Manager struct {
 	AwsSecretAccessKey     string `long:"secret-key" description:"AWS Secret Access Key"`
 	AwsSessionToken        string `long:"session-token" description:"AWS Session Token"`
 	AwsRegion              string `long:"region" description:"AWS region to send requests to" env:"AWS_REGION"`
-	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS SSM Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
+	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
 }
 
 type Secret struct {
