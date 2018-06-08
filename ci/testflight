@@ -134,5 +134,7 @@ fi
 
 
 export ATC_URL=http://127.0.0.1:8080
+export ATC_USERNAME=test
+export ATC_PASSWORD=test
 
 ./concourse/ci/scripts/testflight "$@"
