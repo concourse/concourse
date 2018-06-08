@@ -9,7 +9,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-func (self *migrations) Up_1527083318() error {
+func (self *migrations) Up_1528470872() error {
 
 	type team struct {
 		id    int64

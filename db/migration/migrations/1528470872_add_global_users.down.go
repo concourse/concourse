@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-func (self *migrations) Down_1527083318() error {
+func (self *migrations) Down_1528470872() error {
 	var count int
 	err := self.DB.QueryRow("SELECT count(*) FROM teams WHERE legacy_auth IS NULL AND name != 'main'").Scan(&count)
 	if err != nil {
