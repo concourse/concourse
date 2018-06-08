@@ -8,8 +8,8 @@ import (
 )
 
 var _ = Describe("Add global users", func() {
-	const preMigrationVersion = 1525724789
-	const postMigrationVersion = 1527083318
+	const preMigrationVersion = 1528314953
+	const postMigrationVersion = 1528470872
 
 	var (
 		db *sql.DB
