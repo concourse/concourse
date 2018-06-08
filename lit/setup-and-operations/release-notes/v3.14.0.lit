@@ -47,9 +47,8 @@
     As a side note, we're in need of someone to champion the next phase of
     credential manager support. We've collected feedback from our first (very
     much MVP) implementation but really need individuals who have experience
-    with each backend to take the next step. See \link{this GitHub
-    comment}{https://github.com/concourse/concourse/issues/1814#issuecomment-392798692}
-    for more information. Lend us your RFCs!
+    with each backend to take the next step. See \ghissue{5}{rfcs} for more
+    information!
   }
 
   \note{feature}{

@@ -300,7 +300,7 @@ func (p Plugin) Ghissue(number string, optionalRepo ...string) booklit.Content {
 		Target: fmt.Sprintf("http://github.com/concourse/%s/issues/%s", repo, number),
 		Content: booklit.Styled{
 			Style:   booklit.StyleBold,
-			Content: booklit.String("#" + number),
+			Content: booklit.String(repo + " #" + number),
 		},
 	}
 }
