@@ -5,24 +5,33 @@ effect module EventSource
         , Msg(..)
         )
 
+import Array exposing (Array)
 import Dict exposing (Dict)
 import Process
 import Task exposing (Task)
 import EventSource.LowLevel as ES
 
 
+type alias URL =
+    String
+
+
+type alias EventType =
+    String
+
+
 type alias SubscriberKey =
-    ( String, List String )
+    ( URL, List EventType )
 
 
 type SelfMsg
-    = ESEvent SubscriberKey ES.Event
+    = ESEvents SubscriberKey (Array.Array ES.Event)
     | ESOpened SubscriberKey ES.EventSource
     | ESErrored SubscriberKey
 
 
 type Msg
-    = Event ES.Event
+    = Events (Array.Array ES.Event)
     | Opened
     | Errored
 
@@ -120,7 +129,7 @@ open : Platform.Router msg SelfMsg -> SubscriberKey -> Task Never ES.EventSource
 open router ( url, events ) =
     ES.open url
         { events = events
-        , onEvent = Platform.sendToSelf router << ESEvent ( url, events )
+        , onEvent = Platform.sendToSelf router << ESEvents ( url, events )
         , onOpen = Platform.sendToSelf router << ESOpened ( url, events )
         , onError = Platform.sendToSelf router << always (ESErrored ( url, events ))
         }
@@ -129,13 +138,13 @@ open router ( url, events ) =
 onSelfMsg : Platform.Router msg SelfMsg -> SelfMsg -> State msg -> Task Never (State msg)
 onSelfMsg router msg state =
     case msg of
-        ESEvent key ev ->
+        ESEvents key evs ->
             case Dict.get key state of
                 Nothing ->
                     Task.succeed state
 
                 Just source ->
-                    broadcast router (Event ev) source.subs
+                    broadcast router (Events evs) source.subs
                         |> Task.andThen
                             (\_ ->
                                 Task.succeed state

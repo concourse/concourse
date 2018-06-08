@@ -142,15 +142,40 @@ handleEventsMsg action model =
                 -- really tell
                 ( { model | state = LoginRequired }, Cmd.none, OutNoop )
 
-        Concourse.BuildEvents.Event (Ok event) ->
-            handleEvent event model
+        Concourse.BuildEvents.Events (Ok events) ->
+            Array.foldl handleEvent_ ( model, Cmd.none, OutNoop ) events
 
-        Concourse.BuildEvents.Event (Err err) ->
+        Concourse.BuildEvents.Events (Err err) ->
             flip always (Debug.log ("failed to get event") (err)) <|
                 ( model, Cmd.none, OutNoop )
 
-        Concourse.BuildEvents.End ->
-            ( { model | state = StepsComplete, events = Sub.none }, Cmd.none, OutNoop )
+
+handleEvent_ : Concourse.BuildEvents.BuildEvent -> ( Model, Cmd Msg, OutMsg ) -> ( Model, Cmd Msg, OutMsg )
+handleEvent_ ev ( m, msgpassedin, outmsgpassedin ) =
+    let
+        ( m1, msgfromhandleevent, outmsgfromhandleevent ) =
+            handleEvent ev m
+    in
+        ( m1
+        , case ( msgpassedin == Cmd.none, msgfromhandleevent == Cmd.none ) of
+            ( True, True ) ->
+                Cmd.none
+
+            ( False, True ) ->
+                msgpassedin
+
+            otherwise ->
+                msgfromhandleevent
+        , case ( outmsgpassedin == OutNoop, outmsgfromhandleevent == OutNoop ) of
+            ( True, True ) ->
+                OutNoop
+
+            ( False, True ) ->
+                outmsgpassedin
+
+            otherwise ->
+                outmsgfromhandleevent
+        )
 
 
 handleEvent : Concourse.BuildEvents.BuildEvent -> Model -> ( Model, Cmd Msg, OutMsg )
@@ -223,6 +248,9 @@ handleEvent event model =
             , Cmd.none
             , OutNoop
             )
+
+        Concourse.BuildEvents.End ->
+            ( { model | state = StepsComplete, events = Sub.none }, Cmd.none, OutNoop )
 
 
 updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model

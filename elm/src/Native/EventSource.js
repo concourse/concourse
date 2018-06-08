@@ -2,6 +2,7 @@ var _concourse$atc$Native_EventSource = function() {
   function open(url, settings) {
     return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
       var source = new EventSource(url);
+      var buffer = [];
 
       function dispatchEvent(event) {
         var ev = {
@@ -20,7 +21,7 @@ var _concourse$atc$Native_EventSource = function() {
           ev.lastEventId = _elm_lang$core$Maybe$Nothing;
         }
 
-        _elm_lang$core$Native_Scheduler.rawSpawn(settings.onEvent(ev));
+        buffer.push(ev);
       };
 
       source.onmessage = function(event) {
@@ -40,6 +41,14 @@ var _concourse$atc$Native_EventSource = function() {
       source.onerror = function(event) {
         _elm_lang$core$Native_Scheduler.rawSpawn(settings.onError(_elm_lang$core$Native_Utils.Tuple0));
       };
+
+      setInterval(function() {
+        if (buffer.length > 0) {
+          var elmBuffer = _elm_lang$core$Native_Array.fromJSArray(buffer);
+          _elm_lang$core$Native_Scheduler.rawSpawn(settings.onEvent(elmBuffer));
+          buffer = [];
+        }
+      }, 200);
     });
   }
 

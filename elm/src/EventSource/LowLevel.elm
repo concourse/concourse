@@ -22,6 +22,7 @@ endpoints and subscribing to events.
 
 import Task exposing (Task)
 import Native.EventSource
+import Array exposing (Array)
 
 
 {-| An opaque type representing the EventSource.
@@ -47,7 +48,7 @@ type alias Event =
 -}
 type alias Settings =
     { events : List String
-    , onEvent : Event -> Task Never ()
+    , onEvent : Array.Array Event -> Task Never ()
     , onOpen : EventSource -> Task Never ()
     , onError : () -> Task Never ()
     }
