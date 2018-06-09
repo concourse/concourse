@@ -239,6 +239,13 @@ case $1 in
       <% if p("influxdb.insecure_skip_verify") %> \
       --influxdb-insecure-skip-verify \
       <% end %> \
+      <% if_p("datadog.agent_host", "datadog.agent_port") do |host, port| %> \
+      --datadog-agent-host <%= esc(host) %> \
+      --datadog-agent-port <%= port.to_i %> \
+      <% end %> \
+      <% if_p("datadog.prefix") do |prefix| %> \
+      --datadog-prefix <%= esc(prefix) %> \
+      <% end %> \
       <% if_p("riemann.host", "riemann.port") do |host, port| %> \
       --riemann-host <%= esc(host) %> \
       --riemann-port <%= port.to_i %> \

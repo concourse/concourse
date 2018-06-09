@@ -467,6 +467,22 @@ properties:
       Environment name to specify for errors emitted to Yeller.
     default: ""
 
+  datadog.agent_host:
+    description: |
+      If configured, detailed metrics will be emitted to the specified Datadog Agent's
+      dogstatsd server.
+    default: ""
+
+  datadog.agent_port:
+    description: |
+      Port of the Datadog Agent's dogstatsd server to emit events to.
+    default: 8125
+
+  datadog.prefix:
+    description: |
+      An optional prefix for emitted Datadog events.
+    default: ""
+
   riemann.host:
     description: |
       If configured, detailed metrics will be emitted to the specified Riemann
