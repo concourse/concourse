@@ -289,7 +289,7 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
-	runner, err := cmd.Runner(args)
+	runner, _, err := cmd.Runner(args)
 	if err != nil {
 		return err
 	}
@@ -706,7 +706,7 @@ func (cmd *ATCCommand) constructMembers(
 	return filteredMembers, nil
 }
 
-func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
+func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, bool, error) {
 	if cmd.Migration.CommandProvided() {
 		return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
@@ -725,7 +725,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 					return err
 				}
 			}
-		}), nil
+		}), true, nil
 	}
 
 	var members []grouper.Member
@@ -741,7 +741,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	})
 
 	if err := cmd.configureMetrics(logger); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
 
@@ -756,7 +756,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		reconfigurableSink,
 	)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	serviceMembers, err := cmd.constructMembers(positionalArguments, []string{
@@ -773,7 +773,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		reconfigurableSink,
 	)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	members = append(members, apiMembers...)
@@ -790,7 +790,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		}
 
 		logger.Info("listening", logData)
-	}), nil
+	}), false, nil
 }
 
 func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
