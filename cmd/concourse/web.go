@@ -55,9 +55,13 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	cmd.populateTSAFlagsFromATCFlags()
 
-	atcRunner, err := cmd.ATCCommand.Runner(args)
+	atcRunner, shouldSkipTSA, err := cmd.ATCCommand.Runner(args)
 	if err != nil {
 		return nil, err
+	}
+
+	if shouldSkipTSA {
+		return atcRunner, nil
 	}
 
 	tsaRunner, err := cmd.TSACommand.Runner(args)
