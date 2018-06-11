@@ -152,6 +152,12 @@ func newLocalUsers(config *DexConfig) map[string][]byte {
 
 	for username, password := range config.Flags.LocalUsers {
 		if username != "" && password != "" {
+
+			config.Logger.Info("add-local-user", lager.Data{
+				"username":      username,
+				"password_hash": password,
+			})
+
 			users[username] = []byte(password)
 		}
 	}
