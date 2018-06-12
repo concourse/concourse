@@ -18,7 +18,7 @@ fly -t local login -c "http://$WEB_IP:8080" -u $WEB_USERNAME -p $WEB_PASSWORD ||
 
   install /tmp/fly /usr/local/bin/fly
 
-  fly -t local login -c "http://$WEB_IP:8080" -u $WEB_USERNAME -p $WEB_PASSWORD
+  fly -t local login -c "http://$WEB_IP:8080" # -u $WEB_USERNAME -p $WEB_PASSWORD
 }
 
 # test that the pipeline exists
