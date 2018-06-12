@@ -33,6 +33,8 @@ type PrometheusEmitter struct {
 
 	dbQueriesTotal prometheus.Counter
 	dbConnections  *prometheus.GaugeVec
+
+	resourceChecksVec *prometheus.CounterVec
 }
 
 type PrometheusConfig struct {
@@ -201,6 +203,17 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(dbConnections)
 
+	resourceChecksVec := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "concourse",
+			Subsystem: "resource",
+			Name:      "checks_total",
+			Help:      "Counts the number of resource checks performed",
+		},
+		[]string{"team", "pipeline"},
+	)
+	prometheus.MustRegister(resourceChecksVec)
+
 	listener, err := net.Listen("tcp", config.bind())
 	if err != nil {
 		return nil, err
@@ -228,6 +241,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 		dbQueriesTotal: dbQueriesTotal,
 		dbConnections:  dbConnections,
+
+		resourceChecksVec: resourceChecksVec,
 	}, nil
 }
 
@@ -257,6 +272,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.databaseMetrics(logger, event)
 	case "database connections":
 		emitter.databaseMetrics(logger, event)
+	case "resource checked":
+		emitter.resourceMetric(logger, event)
 	default:
 		// unless we have a specific metric, we do nothing
 	}
@@ -419,5 +436,21 @@ func (emitter *PrometheusEmitter) databaseMetrics(logger lager.Logger, event met
 		emitter.dbConnections.WithLabelValues(connectionName).Set(float64(value))
 	default:
 	}
+
+}
+
+func (emitter *PrometheusEmitter) resourceMetric(logger lager.Logger, event metric.Event) {
+	pipeline, exists := event.Attributes["pipeline"]
+	if !exists {
+		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
+		return
+	}
+	team, exists := event.Attributes["team"]
+	if !exists {
+		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
+		return
+	}
+
+	emitter.resourceChecksVec.WithLabelValues(pipeline, team).Inc()
 
 }
