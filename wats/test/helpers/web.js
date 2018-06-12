@@ -33,7 +33,6 @@ class Web {
 
   async login(t, page) {
     await page.goto(`${this.url}/sky/login`);
-    await this.clickAndWait(page, '.dex-btn-icon--local')
     await page.type('#login', this.username);
     await page.type('#password', this.password);
     await this.clickAndWait(page, '#submit-login')
