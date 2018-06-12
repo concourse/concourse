@@ -4,41 +4,41 @@ describe 'session', type: :feature do
 
   before do
     fly_login 'main'
-    fly_with_input("set-team -n #{team_name} --allow-all-users", 'y')
+    fly_with_input("set-team -n #{team_name} --local-user=#{ATC_USERNAME}", 'y')
   end
 
   context 'when not logged in' do
     before(:each) do
       fly_login team_name
-      fly('set-pipeline -n -p test-pipeline -c fixtures/resource-checking.yml')
-      fly('unpause-pipeline -p test-pipeline')
-      fly('expose-pipeline -p test-pipeline')
+      fly('set-pipeline -n -p exposed-pipeline -c fixtures/resource-checking.yml')
+      fly('unpause-pipeline -p exposed-pipeline')
+      fly('expose-pipeline -p exposed-pipeline')
     end
 
     it 'redirects to login when triggering a new build' do
-      visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/checker")
+      visit dash_route("/teams/#{team_name}/pipelines/exposed-pipeline/jobs/checker")
       click_on 'Trigger Build'
 
       expect(page).to have_content 'login'
 
-      fill_in 'login', with: ATC_PASSWORD
-      fill_in 'password', with: ATC_USERNAME
+      fill_in 'login', with: ATC_USERNAME
+      fill_in 'password', with: ATC_PASSWORD
       click_button 'login'
 
-      expect(page.current_path).to include "/teams/#{team_name}/pipelines/test-pipeline/jobs/checker"
+      expect(page.current_path).to include "/teams/#{team_name}/pipelines/exposed-pipeline/jobs/checker"
     end
 
     it 'redirects to login when pausing a resource' do
-      visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/resources/few-versions")
+      visit dash_route("/teams/#{team_name}/pipelines/exposed-pipeline/resources/few-versions")
       click_on 'Pause Resource Checking'
 
       expect(page).to have_content 'login'
 
-      fill_in 'login', with: ATC_PASSWORD
-      fill_in 'password', with: ATC_USERNAME
+      fill_in 'login', with: ATC_USERNAME
+      fill_in 'password', with: ATC_PASSWORD
       click_button 'login'
 
-      expect(page.current_path).to include "/teams/#{team_name}/pipelines/test-pipeline/resources/few-versions"
+      expect(page.current_path).to include "/teams/#{team_name}/pipelines/exposed-pipeline/resources/few-versions"
     end
   end
 

@@ -9,6 +9,7 @@ import Html.Events exposing (onClick)
 import Http
 import LoginRedirect
 import Navigation exposing (Location)
+import Pipeline
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Task
@@ -38,7 +39,7 @@ type Msg
     | ToggleSidebar
     | LogOut
     | LogIn
-    | NavTo String
+    | ResetToPipeline String
     | LoggedOut (Result Http.Error ())
     | ToggleUserMenu
 
@@ -125,8 +126,8 @@ update msg model =
             , Navigation.newUrl "/"
             )
 
-        NavTo url ->
-            ( model, Navigation.newUrl url )
+        ResetToPipeline url ->
+            ( model, Cmd.batch [ Navigation.newUrl url, Pipeline.resetPipelineFocus () ] )
 
         LoggedOut (Err err) ->
             flip always (Debug.log "failed to log out" err) <|
@@ -249,23 +250,23 @@ viewBreadcrumbs model =
                         []
 
                     Just pipeline ->
-                        [ viewBreadcrumbPipeline pipeline.name ]
+                        [ viewBreadcrumbPipeline pipeline.name model.route.logical ]
 
             Routes.Pipeline teamName pipelineName ->
-                [ viewBreadcrumbPipeline pipelineName ]
+                [ viewBreadcrumbPipeline pipelineName model.route.logical ]
 
             Routes.Job teamName pipelineName jobName ->
-                [ viewBreadcrumbPipelineLink teamName pipelineName
+                [ viewBreadcrumbPipeline pipelineName <| Routes.Pipeline teamName pipelineName
                 , viewBreadcrumbJob jobName
                 ]
 
             Routes.Build teamName pipelineName jobName buildName ->
-                [ viewBreadcrumbPipelineLink teamName pipelineName
+                [ viewBreadcrumbPipeline pipelineName <| Routes.Pipeline teamName pipelineName
                 , viewBreadcrumbJob jobName
                 ]
 
             Routes.Resource teamName pipelineName resourceName ->
-                [ viewBreadcrumbPipelineLink teamName pipelineName
+                [ viewBreadcrumbPipeline pipelineName <| Routes.Pipeline teamName pipelineName
                 , viewBreadcrumbResource resourceName
                 ]
 
@@ -278,24 +279,16 @@ viewBreadcrumbSeparator =
     Html.li [ class "nav-item" ] [ Html.text "/" ]
 
 
-viewBreadcrumbPipeline : String -> Html Msg
-viewBreadcrumbPipeline pipelineName =
-    Html.li [ class "nav-item" ]
-        [ Html.div [ class "breadcrumb-icon breadcrumb-pipeline-icon" ] []
-        , Html.text pipelineName
-        ]
-
-
-viewBreadcrumbPipelineLink : String -> String -> Html Msg
-viewBreadcrumbPipelineLink teamName pipelineName =
+viewBreadcrumbPipeline : String -> Routes.Route -> Html Msg
+viewBreadcrumbPipeline pipelineName route =
     let
-        pipelineUrl =
-            Routes.Pipeline teamName pipelineName |> Routes.toString
+        url =
+            Routes.toString route
     in
         Html.li [ class "nav-item" ]
             [ Html.a
-                [ StrictEvents.onLeftClick <| NavTo pipelineUrl
-                , href pipelineUrl
+                [ StrictEvents.onLeftClick <| ResetToPipeline url
+                , href url
                 ]
                 [ Html.div [ class "breadcrumb-icon breadcrumb-pipeline-icon" ] []
                 , Html.text pipelineName

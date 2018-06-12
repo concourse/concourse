@@ -8,7 +8,7 @@ describe 'dashboard search', type: :feature do
 
   before do
     fly_login 'main'
-    fly_with_input("set-team -n #{team_name} --allow-all-users", 'y')
+    fly_with_input("set-team -n #{team_name} --local-user=#{ATC_USERNAME}", 'y')
 
     fly_login team_name
     dash_login

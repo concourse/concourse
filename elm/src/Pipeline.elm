@@ -1,4 +1,4 @@
-port module Pipeline exposing (Model, Msg(..), Flags, init, update, updateWithMessage, view, subscriptions, changeToPipelineAndGroups)
+port module Pipeline exposing (Model, Msg(..), Flags, init, update, updateWithMessage, view, subscriptions, changeToPipelineAndGroups, resetPipelineFocus)
 
 import Char
 import Concourse
@@ -263,12 +263,10 @@ update msg model =
                 ( { model | experiencingTurbulence = True }, Cmd.none )
 
         ToggleGroup group ->
-            flip always (Debug.log "ToggleGroups" group) <|
-                setGroups (toggleGroup group model.selectedGroups model.pipeline) model
+            setGroups (toggleGroup group model.selectedGroups model.pipeline) model
 
         SetGroups groups ->
-            flip always (Debug.log "SetGroups" groups) <|
-                setGroups groups model
+            setGroups groups model
 
 
 subscriptions : Model -> Sub Msg

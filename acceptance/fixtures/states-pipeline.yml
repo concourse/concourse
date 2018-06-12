@@ -125,3 +125,5 @@ groups:
   - resource-metadata
   - unavailable-pinned-input
   - unavailable-constrained-input
+
+- name: some-other-group

@@ -9,7 +9,7 @@ describe 'dashboard', type: :feature do
 
   before(:each) do
     fly_login 'main'
-    fly_with_input("set-team -n #{team_name} --allow-all-users", 'y')
+    fly_with_input("set-team -n #{team_name} --local-user=#{ATC_USERNAME}", 'y')
     fly_login team_name
     fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml')
     fly('unpause-pipeline -p some-pipeline')

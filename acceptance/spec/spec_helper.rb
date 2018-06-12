@@ -7,8 +7,8 @@ require 'tmpdir'
 
 ATC_URL = ENV.fetch('ATC_URL', 'http://localhost:8080').freeze
 
-ATC_USERNAME = ENV.fetch('ATC_USERNAME', 'test').freeze
-ATC_PASSWORD = ENV.fetch('ATC_PASSWORD', 'test').freeze
+ATC_USERNAME = ENV.fetch('ATC_USERNAME', "test#{ENV['TEST_ENV_NUMBER']}").freeze
+ATC_PASSWORD = ENV.fetch('ATC_PASSWORD', "test#{ENV['TEST_ENV_NUMBER']}").freeze
 
 RSpec.configure do |config|
   include Fly

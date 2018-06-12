@@ -4,7 +4,7 @@ describe 'pipeline', type: :feature do
 
   before(:each) do
     fly_login 'main'
-    fly_with_input("set-team -n #{team_name} --allow-all-users", 'y')
+    fly_with_input("set-team -n #{team_name} --local-user=#{ATC_USERNAME}", 'y')
 
     fly_login team_name
     fly('set-pipeline -n -p test-pipeline -c fixtures/pipeline-with-slashes.yml')
