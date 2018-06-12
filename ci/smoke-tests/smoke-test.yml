@@ -61,7 +61,7 @@ run:
     wget -q -O fly "http://127.0.0.1:8080/api/v1/cli?arch=amd64&platform=linux"
 
     chmod +x fly
-    ./fly -t local login -c http://127.0.0.1:8080
+    ./fly -t local login -c http://127.0.0.1:8080 -u test -p test
 
     echo "starting worker"
     sudo ./concourse worker \
