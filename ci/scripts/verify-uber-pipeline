@@ -14,7 +14,7 @@ until curl --fail "http://$WEB_IP:8080/api/v1/info"; do sleep 2; done
 
 fly -t local login -c "http://$WEB_IP:8080" -u $WEB_USERNAME -p $WEB_PASSWORD || {
 
-  curl 'http://$WEB_IP:8080/api/v1/cli?arch=amd64&platform=linux' --output /tmp/fly
+  curl "http://$WEB_IP:8080/api/v1/cli?arch=amd64&platform=linux" --output /tmp/fly
 
   install /tmp/fly /user/local/bin/fly
 
