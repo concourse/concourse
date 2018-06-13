@@ -22,7 +22,6 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("when pipelines are returned from the API", func() {
 			Context("when no --all flag is given", func() {
-
 				BeforeEach(func() {
 					flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines")
 					atcServer.AppendHandlers(
@@ -35,6 +34,42 @@ var _ = Describe("Fly CLI", func() {
 							}),
 						),
 					)
+				})
+
+				Context("when --json is given", func() {
+					BeforeEach(func() {
+						flyCmd.Args = append(flyCmd.Args, "--json")
+					})
+
+					It("prints response in json as stdout", func() {
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess).Should(gexec.Exit(0))
+						Expect(sess.Out.Contents()).To(MatchJSON(`[
+                {
+                  "id": 0,
+                  "name": "pipeline-1-longer",
+                  "paused": false,
+                  "public": false,
+                  "team_name": ""
+                },
+                {
+                  "id": 0,
+                  "name": "pipeline-2",
+                  "paused": true,
+                  "public": false,
+                  "team_name": ""
+                },
+                {
+                  "id": 0,
+                  "name": "pipeline-3",
+                  "paused": false,
+                  "public": true,
+                  "team_name": ""
+                }
+              ]`))
+					})
 				})
 
 				It("only shows the team's pipelines", func() {
@@ -74,6 +109,56 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
+				Context("when --json is given", func() {
+					BeforeEach(func() {
+						flyCmd.Args = append(flyCmd.Args, "--json")
+					})
+
+					It("prints response in json as stdout", func() {
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess).Should(gexec.Exit(0))
+						Expect(sess.Out.Contents()).To(MatchJSON(`[
+                {
+                  "id": 0,
+                  "name": "pipeline-1-longer",
+                  "paused": false,
+                  "public": false,
+                  "team_name": "main"
+                },
+                {
+                  "id": 0,
+                  "name": "pipeline-2",
+                  "paused": true,
+                  "public": false,
+                  "team_name": "main"
+                },
+                {
+                  "id": 0,
+                  "name": "pipeline-3",
+                  "paused": false,
+                  "public": true,
+                  "team_name": "main"
+                },
+                {
+                  "id": 0,
+                  "name": "foreign-pipeline-1",
+                  "paused": false,
+                  "public": true,
+                  "team_name": "other"
+                },
+                {
+                  "id": 0,
+                  "name": "foreign-pipeline-2",
+                  "paused": false,
+                  "public": true,
+                  "team_name": "other"
+                }
+              ]`))
+					})
+				})
+
 				It("includes team and shared pipelines, with a team name column", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -99,6 +184,8 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("completion", func() {
 				BeforeEach(func() {
+					flyCmd = exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "some-")
+					flyCmd.Env = append(os.Environ(), "GO_FLAGS_COMPLETION=1")
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
@@ -112,8 +199,6 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("returns all matching pipelines", func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "some-")
-					flyCmd.Env = append(os.Environ(), "GO_FLAGS_COMPLETION=1")
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess).Should(gexec.Exit(0))

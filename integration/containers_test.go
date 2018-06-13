@@ -69,6 +69,56 @@ var _ = Describe("Fly CLI", func() {
 				)
 			})
 
+			Context("when --json is given", func() {
+				BeforeEach(func() {
+					flyCmd.Args = append(flyCmd.Args, "--json")
+				})
+
+				It("prints response in json as stdout", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out.Contents()).To(MatchJSON(`[
+              {
+                "id": "handle-1",
+                "worker_name": "worker-name-1",
+                "type": "check",
+                "pipeline_name": "pipeline-name",
+                "resource_name": "git-repo"
+              },
+              {
+                "id": "early-handle",
+                "worker_name": "worker-name-1",
+                "type": "get",
+                "step_name": "git-repo",
+                "attempt": "1.5",
+                "build_id": 123,
+                "pipeline_name": "pipeline-name",
+                "job_name": "job-name-1",
+                "build_name": "3"
+              },
+              {
+                "id": "other-handle",
+                "worker_name": "worker-name-2",
+                "type": "task",
+                "step_name": "unit-tests",
+                "build_id": 122,
+                "pipeline_name": "pipeline-name",
+                "job_name": "job-name-2",
+                "build_name": "2"
+              },
+              {
+                "id": "post-handle",
+                "worker_name": "worker-name-3",
+                "type": "task",
+                "step_name": "one-off",
+                "build_id": 142
+              }
+            ]`))
+				})
+			})
+
 			It("lists them to the user, ordered by name", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())

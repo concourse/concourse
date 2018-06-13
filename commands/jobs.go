@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -11,6 +12,7 @@ import (
 
 type JobsCommand struct {
 	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get jobs in this pipeline"`
+	Json     bool   `long:"json" description:"Print command result as JSON"`
 }
 
 func (command *JobsCommand) Execute([]string) error {
@@ -30,11 +32,19 @@ func (command *JobsCommand) Execute([]string) error {
 	var jobs []atc.Job
 
 	jobs, err = target.Team().ListJobs(pipelineName)
-	headers = []string{"name", "paused", "status", "next"}
 	if err != nil {
 		return err
 	}
 
+	if command.Json {
+		err = displayhelpers.JsonPrint(jobs)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	headers = []string{"name", "paused", "status", "next"}
 	table := ui.Table{Headers: ui.TableRow{}}
 	for _, h := range headers {
 		table.Headers = append(table.Headers, ui.TableCell{Contents: h, Color: color.New(color.Bold)})

@@ -142,6 +142,118 @@ var _ = Describe("Fly CLI", func() {
 				}))
 			})
 
+			Context("when --json is given", func() {
+				BeforeEach(func() {
+					flyCmd.Args = append(flyCmd.Args, "--json")
+				})
+
+				It("prints response in json as stdout", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out.Contents()).To(MatchJSON(`[
+              {
+                "id": "bbbbbb",
+                "worker_name": "cccccc",
+                "type": "container",
+                "container_handle": "container-handle-b",
+                "path": "container-path-b",
+                "parent_handle": "",
+                "resource_type": null,
+                "base_resource_type": null,
+                "pipeline_name": "",
+                "job_name": "",
+                "step_name": ""
+              },
+              {
+                "id": "aaaaaa",
+                "worker_name": "dddddd",
+                "type": "resource",
+                "container_handle": "",
+                "path": "",
+                "parent_handle": "",
+                "resource_type": {
+                  "resource_type": {
+                    "resource_type": null,
+                    "base_resource_type": {
+                      "name": "base-resource-type",
+                      "version": "base-resource-version"
+                    },
+                    "version": {
+                      "custom": "version"
+                    }
+                  },
+                  "base_resource_type": null,
+                  "version": {
+                    "a": "b",
+                    "c": "d"
+                  }
+                },
+                "base_resource_type": null,
+                "pipeline_name": "",
+                "job_name": "",
+                "step_name": ""
+              },
+              {
+                "id": "aaabbb",
+                "worker_name": "cccccc",
+                "type": "resource-type",
+                "container_handle": "",
+                "path": "",
+                "parent_handle": "",
+                "resource_type": null,
+                "base_resource_type": {
+                  "name": "base-resource-type",
+                  "version": "base-resource-version"
+                },
+                "pipeline_name": "",
+                "job_name": "",
+                "step_name": ""
+              },
+              {
+                "id": "eeeeee",
+                "worker_name": "ffffff",
+                "type": "container",
+                "container_handle": "container-handle-e",
+                "path": "container-path-e",
+                "parent_handle": "",
+                "resource_type": null,
+                "base_resource_type": null,
+                "pipeline_name": "",
+                "job_name": "",
+                "step_name": ""
+              },
+              {
+                "id": "ihavenosize",
+                "worker_name": "ffffff",
+                "type": "container",
+                "container_handle": "container-handle-i",
+                "path": "container-path-i",
+                "parent_handle": "parent-handle-i",
+                "resource_type": null,
+                "base_resource_type": null,
+                "pipeline_name": "",
+                "job_name": "",
+                "step_name": ""
+              },
+              {
+                "id": "task-cache-id",
+                "worker_name": "gggggg",
+                "type": "task-cache",
+                "container_handle": "",
+                "path": "",
+                "parent_handle": "",
+                "resource_type": null,
+                "base_resource_type": null,
+                "pipeline_name": "some-pipeline",
+                "job_name": "some-job",
+                "step_name": "some-step"
+              }
+            ]`))
+				})
+			})
+
 			Context("when --details flag is set", func() {
 				BeforeEach(func() {
 					flyCmd = exec.Command(flyPath, "-t", targetName, "volumes", "--details")

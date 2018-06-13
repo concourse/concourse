@@ -4,13 +4,15 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
 )
 
 type PipelinesCommand struct {
-	All bool `short:"a"  long:"all" description:"Show all pipelines"`
+	All  bool `short:"a"  long:"all" description:"Show all pipelines"`
+	Json bool `long:"json" description:"Print command result as JSON"`
 }
 
 func (command *PipelinesCommand) Execute([]string) error {
@@ -36,6 +38,14 @@ func (command *PipelinesCommand) Execute([]string) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	if command.Json {
+		err = displayhelpers.JsonPrint(pipelines)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	table := ui.Table{Headers: ui.TableRow{}}

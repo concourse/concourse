@@ -69,6 +69,73 @@ var _ = Describe("Fly CLI", func() {
 				)
 			})
 
+			Context("when --json is given", func() {
+				BeforeEach(func() {
+					flyCmd.Args = append(flyCmd.Args, "--json")
+				})
+
+				It("prints response in json as stdout", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out.Contents()).To(MatchJSON(`[
+              {
+                "id": 0,
+                "name": "job-1",
+                "pipeline_name": "",
+                "team_name": "",
+                "next_build": {
+                  "id": 0,
+                  "team_name": "",
+                  "name": "",
+                  "status": "started",
+                  "api_url": ""
+                },
+                "finished_build": {
+                  "id": 0,
+                  "team_name": "",
+                  "name": "",
+                  "status": "succeeded",
+                  "api_url": ""
+                },
+                "inputs": null,
+                "outputs": null,
+                "groups": null
+              },
+              {
+                "id": 0,
+                "name": "job-2",
+                "pipeline_name": "",
+                "team_name": "",
+                "paused": true,
+                "next_build": null,
+                "finished_build": {
+                  "id": 0,
+                  "team_name": "",
+                  "name": "",
+                  "status": "failed",
+                  "api_url": ""
+                },
+                "inputs": null,
+                "outputs": null,
+                "groups": null
+              },
+              {
+                "id": 0,
+                "name": "job-3",
+                "pipeline_name": "",
+                "team_name": "",
+                "next_build": null,
+                "finished_build": null,
+                "inputs": null,
+                "outputs": null,
+                "groups": null
+              }
+            ]`))
+				})
+			})
+
 			It("shows the pipeline's jobs", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())

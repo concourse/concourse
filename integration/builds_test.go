@@ -123,6 +123,55 @@ var _ = Describe("Fly CLI", func() {
 				}
 			})
 
+			Context("when --json is given", func() {
+				BeforeEach(func() {
+					cmdArgs = append(cmdArgs, "--json")
+				})
+
+				It("prints response in json as stdout", func() {
+					Eventually(session).Should(gexec.Exit(0))
+					Expect(session.Out.Contents()).To(MatchJSON(`[
+              {
+                "id": 2,
+                "team_name": "",
+                "name": "62",
+                "status": "started",
+                "job_name": "some-job",
+                "api_url": "",
+                "pipeline_name": "some-pipeline",
+                "start_time": 1448101815
+              },
+              {
+                "id": 3,
+                "team_name": "",
+                "name": "63",
+                "status": "pending",
+                "job_name": "some-other-job",
+                "api_url": "",
+                "pipeline_name": "some-other-pipeline",
+                "start_time": 1448932815,
+                "end_time": 1448937315
+              },
+              {
+                "id": 1000001,
+                "team_name": "",
+                "name": "",
+                "status": "errored",
+                "api_url": "",
+                "start_time": 1436011215,
+                "end_time": 1436021115
+              },
+              {
+                "id": 39,
+                "team_name": "",
+                "name": "",
+                "status": "pending",
+                "api_url": ""
+              }
+            ]`))
+				})
+			})
+
 			It("returns all the builds", func() {
 				runningBuildDuration := time.Duration(time.Now().Unix()-runningBuildStartTime.Unix()) * time.Second
 

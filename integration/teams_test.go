@@ -62,6 +62,33 @@ var _ = Describe("Fly CLI", func() {
 					},
 				}))
 			})
+
+			Context("when --json is given", func() {
+				BeforeEach(func() {
+					flyCmd.Args = append(flyCmd.Args, "--json")
+				})
+
+				It("prints response in json as stdout", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out.Contents()).To(MatchJSON(`[
+              {
+                "id": 1,
+                "name": "main"
+              },
+              {
+                "id": 2,
+                "name": "a-team"
+              },
+              {
+                "id": 3,
+                "name": "b-team"
+              }
+            ]`))
+				})
+			})
 		})
 
 		Context("and the api returns an internal server error", func() {

@@ -10,6 +10,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -17,6 +18,7 @@ import (
 
 type VolumesCommand struct {
 	Details bool `short:"d" long:"details" description:"Print additional information for each volume"`
+	Json    bool `long:"json" description:"Print command result as JSON"`
 }
 
 func (command *VolumesCommand) Execute([]string) error {
@@ -33,6 +35,14 @@ func (command *VolumesCommand) Execute([]string) error {
 	volumes, err := target.Team().ListVolumes()
 	if err != nil {
 		return err
+	}
+
+	if command.Json {
+		err = displayhelpers.JsonPrint(volumes)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	table := ui.Table{

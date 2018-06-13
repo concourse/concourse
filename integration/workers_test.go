@@ -137,6 +137,150 @@ var _ = Describe("Fly CLI", func() {
 				}))
 			})
 
+			Context("when --json is given", func() {
+				BeforeEach(func() {
+					flyCmd.Args = append(flyCmd.Args, "--json")
+				})
+
+				It("prints response in json as stdout", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out.Contents()).To(MatchJSON(`[
+              {
+                "addr": "1.2.3.4:7777",
+                "baggageclaim_url": "",
+                "active_containers": 0,
+                "active_volumes": 0,
+                "resource_types": [
+                  {
+                    "type": "resource-1",
+                    "image": "/images/resource-1",
+                    "version": "",
+                    "privileged": false
+                  }
+                ],
+                "platform": "platform2",
+                "tags": [
+                  "tag2",
+                  "tag3"
+                ],
+                "team": "team-1",
+                "name": "worker-2",
+                "version": "4.5.6",
+                "start_time": 0,
+                "state": "running"
+              },
+              {
+                "addr": "5.5.5.5:7777",
+                "baggageclaim_url": "",
+                "active_containers": 0,
+                "active_volumes": 0,
+                "resource_types": null,
+                "platform": "platform2",
+                "tags": [
+                  "tag1"
+                ],
+                "team": "team-1",
+                "name": "worker-6",
+                "version": "1.2.3",
+                "start_time": 0,
+                "state": "running"
+              },
+              {
+                "addr": "7.7.7.7:7777",
+                "baggageclaim_url": "",
+                "active_containers": 0,
+                "active_volumes": 0,
+                "resource_types": null,
+                "platform": "platform2",
+                "tags": [
+                  "tag1"
+                ],
+                "team": "team-1",
+                "name": "worker-7",
+                "version": "",
+                "start_time": 0,
+                "state": "running"
+              },
+              {
+                "addr": "2.2.3.4:7777",
+                "baggageclaim_url": "http://2.2.3.4:7788",
+                "active_containers": 1,
+                "active_volumes": 0,
+                "resource_types": [
+                  {
+                    "type": "resource-1",
+                    "image": "/images/resource-1",
+                    "version": "",
+                    "privileged": false
+                  },
+                  {
+                    "type": "resource-2",
+                    "image": "/images/resource-2",
+                    "version": "",
+                    "privileged": false
+                  }
+                ],
+                "platform": "platform1",
+                "tags": [
+                  "tag1"
+                ],
+                "team": "team-1",
+                "name": "worker-1",
+                "version": "4.5.6",
+                "start_time": 0,
+                "state": "landing"
+              },
+              {
+                "addr": "3.2.3.4:7777",
+                "baggageclaim_url": "",
+                "active_containers": 10,
+                "active_volumes": 0,
+                "resource_types": null,
+                "platform": "platform3",
+                "tags": [],
+                "team": "",
+                "name": "worker-3",
+                "version": "4.5.6",
+                "start_time": 0,
+                "state": "landed"
+              },
+              {
+                "addr": "",
+                "baggageclaim_url": "",
+                "active_containers": 7,
+                "active_volumes": 0,
+                "resource_types": null,
+                "platform": "platform4",
+                "tags": [
+                  "tag1"
+                ],
+                "team": "team-1",
+                "name": "worker-4",
+                "version": "4.5.6",
+                "start_time": 0,
+                "state": "stalled"
+              },
+              {
+                "addr": "3.2.3.4:7777",
+                "baggageclaim_url": "",
+                "active_containers": 5,
+                "active_volumes": 0,
+                "resource_types": null,
+                "platform": "platform5",
+                "tags": [],
+                "team": "",
+                "name": "worker-5",
+                "version": "4.5.6",
+                "start_time": 0,
+                "state": "retiring"
+              }
+            ]`))
+				})
+			})
+
 			Context("when --details is given", func() {
 				BeforeEach(func() {
 					flyCmd.Args = append(flyCmd.Args, "--details")

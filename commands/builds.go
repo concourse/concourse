@@ -23,6 +23,7 @@ type BuildsCommand struct {
 	Job      flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
 	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
 	Team     bool                     `short:"t"  long:"team" description:"Only show builds for the currently targeted team"`
+	Json     bool                     `long:"json" description:"Print command result as JSON"`
 }
 
 func (command *BuildsCommand) Execute([]string) error {
@@ -86,6 +87,14 @@ func (command *BuildsCommand) Execute([]string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if command.Json {
+		err = displayhelpers.JsonPrint(builds)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	table := ui.Table{

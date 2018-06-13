@@ -5,12 +5,15 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
 )
 
-type ContainersCommand struct{}
+type ContainersCommand struct {
+	Json bool `long:"json" description:"Print command result as JSON"`
+}
 
 func (command *ContainersCommand) Execute([]string) error {
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
@@ -26,6 +29,14 @@ func (command *ContainersCommand) Execute([]string) error {
 	containers, err := target.Team().ListContainers(map[string]string{})
 	if err != nil {
 		return err
+	}
+
+	if command.Json {
+		err = displayhelpers.JsonPrint(containers)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	table := ui.Table{

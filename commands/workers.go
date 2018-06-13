@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -15,6 +16,7 @@ import (
 
 type WorkersCommand struct {
 	Details bool `short:"d" long:"details" description:"Print additional information for each worker"`
+	Json    bool `long:"json" description:"Print command result as JSON"`
 }
 
 func (command *WorkersCommand) Execute([]string) error {
@@ -31,6 +33,14 @@ func (command *WorkersCommand) Execute([]string) error {
 	workers, err := target.Client().ListWorkers()
 	if err != nil {
 		return err
+	}
+
+	if command.Json {
+		err = displayhelpers.JsonPrint(workers)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	sort.Sort(byWorkerName(workers))
