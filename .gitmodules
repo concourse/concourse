@@ -107,6 +107,7 @@
 [submodule "src/github.com/inconshreveable/go-update"]
 	path = src/github.com/inconshreveable/go-update
 	url = https://github.com/inconshreveable/go-update
+	branch = master
 [submodule "src/github.com/concourse/tsa"]
 	path = src/github.com/concourse/tsa
 	url = https://github.com/concourse/tsa
@@ -131,6 +132,7 @@
 [submodule "src/github.com/nu7hatch/gouuid"]
 	path = src/github.com/nu7hatch/gouuid
 	url = https://github.com/nu7hatch/gouuid
+	branch = master
 [submodule "src/github.com/felixge/tcpkeepalive"]
 	path = src/github.com/felixge/tcpkeepalive
 	url = https://github.com/felixge/tcpkeepalive
@@ -214,10 +216,6 @@
 	path = src/github.com/mattn/go-colorable
 	url = https://github.com/mattn/go-colorable
 	branch = master
-[submodule "src/code.cloudfoundry.org/urljoiner"]
-        path = src/code.cloudfoundry.org/urljoiner
-        url = https://github.com/cloudfoundry/urljoiner
-        branch = master
 [submodule "src/github.com/daviddengcn/go-colortext"]
 	path = src/github.com/daviddengcn/go-colortext
 	url = https://github.com/daviddengcn/go-colortext
