@@ -358,14 +358,14 @@ echo hello > output-1/file-1
 				"-v", "git-server="+gitServer.URI(),
 			)
 
-			cTeam := concourseClient.Team("main")
+			cTeam := concourseClient.Team(teamName)
 			Eventually(func() error {
 				versionedResource, _, _, err := cTeam.ResourceVersions("some-pipeline", "git-repo", concourse.Page{})
 				Expect(err).ToNot(HaveOccurred())
 
 				if len(versionedResource) == 0 {
 					cTeam.CheckResource("some-pipeline", "git-repo", atc.Version{})
-					return errors.New("did not find any version for custom resource")
+					return errors.New("did not find any version for resource")
 				}
 
 				Expect(versionedResource).To(HaveLen(1))
@@ -439,7 +439,7 @@ echo hello > output-1/file-1
 				"-v", "git-server="+gitServer.URI(),
 			)
 
-			cTeam := concourseClient.Team("main")
+			cTeam := concourseClient.Team(teamName)
 			Eventually(func() error {
 				versionedResource, _, _, err := cTeam.ResourceVersions("some-pipeline-custom-resource", "git-repo", concourse.Page{})
 				Expect(err).ToNot(HaveOccurred())

@@ -24,11 +24,12 @@ var atcURL = helpers.AtcURL()
 var username = helpers.AtcUsername()
 var password = helpers.AtcPassword()
 var targetedConcourse = "testflight"
+var teamName = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 
-	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse, username, password)
+	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse, teamName, username, password)
 	Expect(err).NotTo(HaveOccurred())
 
 	concourseClient := helpers.ConcourseClient(atcURL, username, password)

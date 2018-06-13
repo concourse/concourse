@@ -11,9 +11,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-func FlyLogin(atcURL, concourseAlias, flyBinaryPath string, username, password string) error {
-	teamName := "testflight"
-
+func FlyLogin(atcURL, concourseAlias, flyBinaryPath string, teamName, username, password string) error {
 	err := flyLogin(flyBinaryPath, []string{
 		"-c", atcURL,
 		"-t", concourseAlias,
