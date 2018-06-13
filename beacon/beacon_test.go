@@ -54,13 +54,11 @@ var _ = Describe("Beacon", func() {
 
 	var _ = Describe("Register", func() {
 		var (
-			signals     chan os.Signal
-			ready       chan<- struct{}
-			registerErr error
-			exited      chan error
+			signals chan os.Signal
+			ready   chan<- struct{}
 		)
 
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			signals = make(chan os.Signal, 1)
 			ready = make(chan struct{}, 1)
 		})
@@ -74,12 +72,21 @@ var _ = Describe("Beacon", func() {
 				keepAliveErr    chan error
 				cancelKeepAlive chan struct{}
 				wait            chan bool
+				registerErr     chan error
 			)
+
+			JustBeforeEach(func() {
+				go func() {
+					registerErr <- beacon.Register(signals, make(chan struct{}, 1))
+					close(registerErr)
+				}()
+			})
+
 			BeforeEach(func() {
+				registerErr = make(chan error, 1)
 				keepAliveErr = make(chan error, 1)
 				cancelKeepAlive = make(chan struct{}, 1)
 				wait = make(chan bool, 1)
-				exited = make(chan error, 1)
 
 				fakeSession.WaitStub = func() error {
 					<-wait
@@ -88,61 +95,31 @@ var _ = Describe("Beacon", func() {
 				}
 
 				fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
-				go func() {
-					exited <- beacon.Register(signals, make(chan struct{}, 1))
-				}()
-
 			})
 
 			It("closes the session and waits for it to shut down", func() {
-				Consistently(exited).ShouldNot(Receive()) // should be blocking on exit channel
+				Consistently(registerErr).ShouldNot(BeClosed()) // should be blocking on exit channel
 				go func() {
 					wait <- false
 				}()
-				Eventually(exited).Should(Receive()) // should stop blocking
+				Eventually(registerErr).Should(BeClosed()) // should stop blocking
 				Expect(fakeSession.CloseCallCount()).To(Equal(2))
-			})
-		})
-
-		Context("when exiting immediately", func() {
-
-			JustBeforeEach(func() {
-				registerErr = beacon.Register(signals, ready)
-			})
-
-			Context("when waiting on the session errors", func() {
-				BeforeEach(func() {
-					fakeSession.WaitReturns(errors.New("fail"))
-				})
-				It("returns the error", func() {
-					Expect(registerErr).To(Equal(errors.New("fail")))
-				})
 			})
 
 			Context("when the runner recieves a signal", func() {
-				var (
-					keepAliveErr    chan error
-					cancelKeepAlive chan struct{}
-				)
 				BeforeEach(func() {
-					keepAliveErr = make(chan error, 1)
-					cancelKeepAlive = make(chan struct{}, 1)
-
-					wait := make(chan bool, 1)
 					fakeSession.WaitStub = func() error {
 						<-wait
 						return nil
 					}
+				})
 
-					fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
+				It("stops the keepalive", func() {
 					go func() {
 						signals <- syscall.SIGKILL
 						wait <- false
 					}()
-
-				})
-
-				It("stops the keepalive", func() {
+					Eventually(registerErr).Should(BeClosed())
 					Eventually(cancelKeepAlive).Should(BeClosed())
 				})
 			})
@@ -150,6 +127,7 @@ var _ = Describe("Beacon", func() {
 			Context("when keeping the connection alive errors", func() {
 				var (
 					keepAliveErr    chan error
+					err             = errors.New("keepalive fail")
 					cancelKeepAlive chan<- struct{}
 				)
 
@@ -165,12 +143,31 @@ var _ = Describe("Beacon", func() {
 
 					fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
 					go func() {
-						keepAliveErr <- errors.New("keepalive fail")
+						keepAliveErr <- err
 					}()
 				})
 
 				It("returns the error", func() {
-					Expect(registerErr).To(Equal(errors.New("keepalive fail")))
+					Eventually(registerErr).Should(Receive(&err))
+				})
+			})
+
+		})
+
+		Context("when exiting immediately", func() {
+
+			var registerErr error
+
+			JustBeforeEach(func() {
+				registerErr = beacon.Register(signals, ready)
+			})
+
+			Context("when waiting on the session errors", func() {
+				BeforeEach(func() {
+					fakeSession.WaitReturns(errors.New("fail"))
+				})
+				It("returns the error", func() {
+					Expect(registerErr).To(Equal(errors.New("fail")))
 				})
 			})
 
@@ -216,32 +213,28 @@ var _ = Describe("Beacon", func() {
 		})
 	})
 
-	var _ = Describe("Forward", func() {
-
-	})
-
-	var _ = Describe("Register", func() {
-
-	})
-
-	var _ = Describe("Delete Worker", func() {
-
-	})
-
 	var _ = Describe("Retire", func() {
 		var (
 			signals   chan os.Signal
 			ready     chan<- struct{}
-			retireErr error
-			exited    chan error
+			retireErr chan error
+
+			wait chan bool
 		)
 
 		JustBeforeEach(func() {
-			signals = make(chan os.Signal, 1)
-			ready = make(chan struct{}, 1)
+			signals = make(chan os.Signal)
+			ready = make(chan struct{})
+			retireErr = make(chan error)
+			wait = make(chan bool, 1)
+			go func() {
+				retireErr <- beacon.RetireWorker(signals, make(chan struct{}, 1))
+				close(retireErr)
+			}()
 		})
 
 		AfterEach(func() {
+			Eventually(retireErr).Should(BeClosed())
 			Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
 		})
 
@@ -249,13 +242,11 @@ var _ = Describe("Beacon", func() {
 			var (
 				keepAliveErr    chan error
 				cancelKeepAlive chan struct{}
-				wait            chan bool
 			)
+
 			BeforeEach(func() {
 				keepAliveErr = make(chan error, 1)
 				cancelKeepAlive = make(chan struct{}, 1)
-				wait = make(chan bool, 1)
-				exited = make(chan error, 1)
 
 				fakeSession.WaitStub = func() error {
 					<-wait
@@ -263,34 +254,29 @@ var _ = Describe("Beacon", func() {
 				}
 
 				fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
-				go func() {
-					signals <- syscall.SIGKILL
-					exited <- beacon.RetireWorker(signals, make(chan struct{}, 1))
-				}()
-
 			})
 
 			It("closes the session and waits for it to shut down", func() {
-				Consistently(exited).ShouldNot(Receive()) // should be blocking on exit channel
+				go func() {
+					signals <- syscall.SIGKILL
+				}()
+				Consistently(retireErr).ShouldNot(Receive()) // should be blocking on exit channel
 				go func() {
 					wait <- false
 				}()
-				Eventually(exited).Should(Receive()) // should stop blocking
+				Eventually(retireErr).Should(Receive()) // should stop blocking
 				Expect(fakeSession.CloseCallCount()).To(Equal(2))
 			})
 		})
 		Context("when exiting immediately", func() {
 
-			JustBeforeEach(func() {
-				retireErr = beacon.RetireWorker(signals, ready)
-			})
-
 			Context("when waiting on the session errors", func() {
+				err := errors.New("fail")
 				BeforeEach(func() {
-					fakeSession.WaitReturns(errors.New("fail"))
+					fakeSession.WaitReturns(err)
 				})
 				It("returns the error", func() {
-					Expect(retireErr).To(Equal(errors.New("fail")))
+					Eventually(retireErr).Should(Receive(&err))
 				})
 			})
 
@@ -303,21 +289,20 @@ var _ = Describe("Beacon", func() {
 					keepAliveErr = make(chan error, 1)
 					cancelKeepAlive = make(chan struct{}, 1)
 
-					wait := make(chan bool, 1)
 					fakeSession.WaitStub = func() error {
 						<-wait
 						return nil
 					}
 
 					fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
-					go func() {
-						signals <- syscall.SIGKILL
-						wait <- false
-					}()
 
 				})
 
 				It("stops the keepalive", func() {
+					go func() {
+						signals <- syscall.SIGKILL
+						wait <- false
+					}()
 					Eventually(cancelKeepAlive).Should(BeClosed())
 				})
 			})
@@ -325,6 +310,7 @@ var _ = Describe("Beacon", func() {
 			Context("when keeping the connection alive errors", func() {
 				var (
 					keepAliveErr    chan error
+					err             = errors.New("keepalive fail")
 					cancelKeepAlive chan<- struct{}
 				)
 
@@ -340,16 +326,17 @@ var _ = Describe("Beacon", func() {
 
 					fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
 					go func() {
-						keepAliveErr <- errors.New("keepalive fail")
+						keepAliveErr <- err
 					}()
 				})
 
 				It("returns the error", func() {
-					Expect(retireErr).To(Equal(errors.New("keepalive fail")))
+					Eventually(retireErr).Should(Receive(&err))
 				})
 			})
 
 			It("sets up a proxy for the Garden server using the correct host", func() {
+				Eventually(retireErr).Should(BeClosed())
 				Expect(fakeClient.ProxyCallCount()).To(Equal(2))
 				_, proxyTo := fakeClient.ProxyArgsForCall(0)
 				Expect(proxyTo).To(Equal("1.2.3.4:7777"))
@@ -364,120 +351,106 @@ var _ = Describe("Beacon", func() {
 		var (
 			signals chan os.Signal
 			ready   chan<- struct{}
-			landErr error
-			exited  chan error
 		)
 
-		JustBeforeEach(func() {
-			signals = make(chan os.Signal, 1)
-			ready = make(chan struct{}, 1)
+		BeforeEach(func() {
+			signals = make(chan os.Signal)
+			ready = make(chan struct{})
 		})
 
 		AfterEach(func() {
 			Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
 		})
 
-		Context("when the exit channel takes time to exit", func() {
+		Context("when waiting on the remote command takes some time", func() {
 			var (
 				keepAliveErr    chan error
 				cancelKeepAlive chan struct{}
 				wait            chan bool
+				landErr         chan error
 			)
+
+			JustBeforeEach(func() {
+				go func() {
+					landErr <- beacon.LandWorker(signals, make(chan struct{}, 1))
+					close(landErr)
+				}()
+			})
+
 			BeforeEach(func() {
 				keepAliveErr = make(chan error, 1)
 				cancelKeepAlive = make(chan struct{}, 1)
 				wait = make(chan bool, 1)
-				exited = make(chan error, 1)
+				landErr = make(chan error)
 
 				fakeSession.WaitStub = func() error {
 					<-wait
-					signals <- syscall.SIGKILL
 					return nil
 				}
 
 				fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
-				go func() {
-					exited <- beacon.RetireWorker(signals, make(chan struct{}, 1))
-				}()
-
 			})
 
 			It("closes the session and waits for it to shut down", func() {
-				Consistently(exited).ShouldNot(Receive()) // should be blocking on exit channel
+				Consistently(landErr).ShouldNot(BeClosed()) // should be blocking on exit channel
+
 				go func() {
 					wait <- false
 				}()
-				Eventually(exited).Should(Receive()) // should stop blocking
-				Expect(fakeSession.CloseCallCount()).To(Equal(2))
-			})
-		})
-		Context("when exiting immediately", func() {
 
-			JustBeforeEach(func() {
-				landErr = beacon.LandWorker(signals, ready)
-			})
-
-			Context("when waiting on the session errors", func() {
-				BeforeEach(func() {
-					fakeSession.WaitReturns(errors.New("fail"))
-				})
-				It("returns the error", func() {
-					Expect(landErr).To(Equal(errors.New("fail")))
-				})
+				Eventually(landErr).Should(Receive()) // should stop blocking
+				Expect(fakeSession.CloseCallCount()).To(Equal(1))
 			})
 
 			Context("when the runner recieves a signal", func() {
-				var (
-					keepAliveErr    chan error
-					cancelKeepAlive chan struct{}
-				)
 				BeforeEach(func() {
-					keepAliveErr = make(chan error, 1)
-					cancelKeepAlive = make(chan struct{}, 1)
-
-					wait := make(chan bool, 1)
-					fakeSession.WaitStub = func() error {
-						<-wait
-						return nil
-					}
-
-					fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
 					go func() {
 						signals <- syscall.SIGKILL
-						wait <- false
 					}()
-
 				})
 
 				It("stops the keepalive", func() {
 					Eventually(cancelKeepAlive).Should(BeClosed())
+					go func() {
+						wait <- false
+					}()
+
+					Eventually(landErr).Should(BeClosed())
 				})
 			})
 
 			Context("when keeping the connection alive errors", func() {
 				var (
-					keepAliveErr    chan error
-					cancelKeepAlive chan<- struct{}
+					err = errors.New("keepalive fail")
 				)
 
 				BeforeEach(func() {
-					wait := make(chan bool, 1)
-					fakeSession.WaitStub = func() error {
-						<-wait
-						return nil
-					}
-
-					keepAliveErr = make(chan error, 1)
-					cancelKeepAlive = make(chan struct{}, 1)
-
 					fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
 					go func() {
-						keepAliveErr <- errors.New("keepalive fail")
+						keepAliveErr <- err
 					}()
 				})
 
 				It("returns the error", func() {
-					Expect(landErr).To(Equal(errors.New("keepalive fail")))
+					Eventually(landErr).Should(Receive(&err))
+				})
+			})
+
+		})
+
+		Context("when exiting immediately", func() {
+			var landErr error
+			JustBeforeEach(func() {
+				landErr = beacon.LandWorker(signals, make(chan struct{}, 1))
+			})
+
+			Context("when waiting on the session errors", func() {
+				err := errors.New("fail")
+				BeforeEach(func() {
+					fakeSession.WaitReturns(err)
+				})
+				It("returns the error", func() {
+					Expect(landErr).To(Equal(err))
 				})
 			})
 
