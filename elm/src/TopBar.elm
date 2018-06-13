@@ -291,7 +291,7 @@ viewBreadcrumbPipeline pipelineName route =
                 , href url
                 ]
                 [ Html.div [ class "breadcrumb-icon breadcrumb-pipeline-icon" ] []
-                , Html.text pipelineName
+                , Html.text <| decodeName pipelineName
                 ]
             ]
 
@@ -300,7 +300,7 @@ viewBreadcrumbJob : String -> Html Msg
 viewBreadcrumbJob name =
     Html.li [ class "nav-item" ]
         [ Html.div [ class "breadcrumb-icon breadcrumb-job-icon" ] []
-        , Html.text name
+        , Html.text <| decodeName name
         ]
 
 
@@ -308,8 +308,13 @@ viewBreadcrumbResource : String -> Html Msg
 viewBreadcrumbResource name =
     Html.li [ class "nav-item" ]
         [ Html.div [ class "breadcrumb-icon breadcrumb-resource-icon" ] []
-        , Html.text name
+        , Html.text <| decodeName name
         ]
+
+
+decodeName : String -> String
+decodeName name =
+    Maybe.withDefault name (Http.decodeUri name)
 
 
 isPaused : Maybe Concourse.Pipeline -> Bool
