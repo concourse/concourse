@@ -46,7 +46,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	gitserver.Cleanup(client)
 
-	team = client.Team("main")
+	team = client.Team(teamName)
 
 	pipelines, err := team.ListPipelines()
 	Expect(err).ToNot(HaveOccurred())
@@ -70,7 +70,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	client, err = helpers.AllNodeClientSetup(data)
 	Expect(err).NotTo(HaveOccurred())
 
-	team = client.Team("main")
+	team = client.Team(teamName)
 	logger = lagertest.NewTestLogger("pipelines-test")
 })
 
