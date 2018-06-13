@@ -12,12 +12,36 @@ import (
 )
 
 func FlyLogin(atcURL, concourseAlias, flyBinaryPath string, username, password string) error {
-	return flyLogin(flyBinaryPath, []string{
+	teamName := "testflight"
+
+	err := flyLogin(flyBinaryPath, []string{
 		"-c", atcURL,
 		"-t", concourseAlias,
 		"-u", username,
 		"-p", password,
 	})
+	if err != nil {
+		return err
+	}
+
+	err = flyCreateTeam(flyBinaryPath, []string{
+		"-t", concourseAlias,
+		"-n", teamName,
+		"--local-user", username,
+		"--non-interactive",
+	})
+	if err != nil {
+		return err
+	}
+
+	return flyLogin(flyBinaryPath, []string{
+		"-c", atcURL,
+		"-t", concourseAlias,
+		"-u", username,
+		"-p", password,
+		"-n", teamName,
+	})
+
 }
 
 func flyLogin(flyBinaryPath string, loginArgs []string) error {
@@ -47,6 +71,20 @@ func flyLogin(flyBinaryPath string, loginArgs []string) error {
 	}
 
 	Eventually(loginProcess, time.Minute).Should(gexec.Exit(0))
+
+	return nil
+}
+
+func flyCreateTeam(flyBinaryPath string, createTeamArgs []string) error {
+	args := []string{"set-team"}
+
+	createTeamCmd := exec.Command(flyBinaryPath, append(args, createTeamArgs...)...)
+	createTeamProcess, err := gexec.Start(createTeamCmd, GinkgoWriter, GinkgoWriter)
+	if err != nil {
+		return err
+	}
+
+	Eventually(createTeamProcess, time.Minute).Should(gexec.Exit(0))
 
 	return nil
 }
