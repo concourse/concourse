@@ -23,12 +23,20 @@ html, body, #elm-app-embed, #subpage, .content-frame {
     height: @top-bar-height;
 
     .groups {
+      overflow: hidden;
       height: 40px;
       font-size: 14px;
     }
 
     .groups li {
       padding: 0 10px;
+    }
+
+    .groups .nav-item a {
+      max-width: 40vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .breadcrumb-icon {
@@ -101,6 +109,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
 
     .nav-right {
       flex-shrink: 1;
+      max-width: 25%;
 
       .user-info {
         text-align: right;
@@ -113,7 +122,21 @@ html, body, #elm-app-embed, #subpage, .content-frame {
           padding: 0 10px;
         }
 
+        .user-id {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          margin-right: 21px;
+
+          .fa-caret-down {
+            position: absolute;
+            top: 11px;
+            right: 10px;
+          }
+        }
+
         .user-menu {
+          max-width: 100%;
           width: 200px;
           font-size: 12px;
           background: @base00;
