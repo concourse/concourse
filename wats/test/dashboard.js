@@ -130,38 +130,6 @@ test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
   t.deepEqual(color(newBackground), palette.red);
 });
 
-test('shows time since last state change', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
-  await t.context.fly.run('unpause-pipeline -p some-pipeline');
-
-  await t.context.page.goto(t.context.web.route('/dashboard'));
-
-  await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
-  await t.context.page.waitFor(5000);
-
-  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  const footer = await t.context.page.$(`${group} .dashboard-pipeline-footer`);
-
-  let time1 = await t.context.web.text(t.context.page, footer);
-  let duration1 = parseInt(time1.match(/(\d+)s/)[1], 10);
-
-  await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
-  await t.context.page.waitFor(5000);
-
-  let time2 = await t.context.web.text(t.context.page, footer);
-  let duration2 = parseInt(time2.match(/(\d+)s/)[1], 10);
-
-  t.true(duration2 > duration1);
-
-  await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/failing"));
-  await t.context.page.waitFor(5000);
-
-  let time3 = await t.context.web.text(t.context.page, footer);
-  let duration3 = parseInt(time3.match(/(\d+)s/)[1], 10);
-
-  t.true(duration3 < duration2);
-});
-
 test('links to specific builds', async t => {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
