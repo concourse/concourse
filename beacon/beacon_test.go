@@ -504,8 +504,8 @@ var _ = Describe("Beacon", func() {
 				Expect(err).To(HaveOccurred())
 			})
 
-			It("closes the connection to the TSA", func() {
-				Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
+			It("does not connect to the TSA", func() {
+				Expect(fakeClient.DialCallCount()).To(Equal(0))
 			})
 		})
 
@@ -574,8 +574,8 @@ var _ = Describe("Beacon", func() {
 				Expect(err).To(HaveOccurred())
 			})
 
-			It("closes the connection to the TSA", func() {
-				Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
+			It("does not connect to the TSA", func() {
+				Expect(fakeClient.DialCallCount()).To(Equal(0))
 			})
 		})
 

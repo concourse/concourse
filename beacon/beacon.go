@@ -123,11 +123,81 @@ func (beacon *Beacon) SweepVolumes() error {
 }
 
 func (beacon *Beacon) ReportContainers() error {
-	return beacon.runReport(tsa.ReportContainers)
+	command := tsa.ReportContainers
+	beacon.Logger.Info("reporting-containers")
+	var err error
+
+	var beaconReaperAddr = beacon.ReaperAddr
+
+	if beaconReaperAddr == "" {
+		beaconReaperAddr = fmt.Sprint("http://", reaperAddr)
+	}
+
+	reaperClient := reaper.NewClient(beaconReaperAddr, beacon.Logger.Session("reaper-client"))
+
+	cHandles, err := reaperClient.ListHandles()
+	if err != nil {
+		beacon.Logger.Error("failed-to-list-handles", err)
+		return beacon.logFailure(command, err)
+	}
+
+	cmdString := command
+	for _, handleStr := range cHandles {
+		cmdString = cmdString + " " + handleStr
+	}
+
+	err = beacon.executeCommand(func(sess Session) error {
+		_, err = sess.Output(cmdString)
+		return err
+	})
+	if err != nil {
+		beacon.Logger.Error("failed-to-execute-cmd", err)
+		return beacon.logFailure(command, err)
+	}
+
+	beacon.Logger.Debug("sucessfully-reported-container-handles", lager.Data{"num-handles": len(cHandles)})
+	return nil
 }
 
 func (beacon *Beacon) ReportVolumes() error {
-	return beacon.runReport(tsa.ReportVolumes)
+	command := tsa.ReportVolumes
+
+	var beaconBaggageclaimAddress = beacon.BaggageclaimForwardAddr
+
+	if beaconBaggageclaimAddress == "" {
+		beaconBaggageclaimAddress = fmt.Sprint("http://", baggageclaimForwardAddr)
+	}
+
+	baggageclaimClient := client.NewWithHTTPClient(
+		beaconBaggageclaimAddress, &http.Client{
+			Transport: &http.Transport{
+				DisableKeepAlives:     true,
+				ResponseHeaderTimeout: 1 * time.Minute,
+			},
+		})
+
+	volumes, err := baggageclaimClient.ListVolumes(beacon.Logger, nil)
+	if err != nil {
+		return beacon.logFailure(command, err)
+	}
+
+	cmdString := command
+	for _, volume := range volumes {
+		cmdString = cmdString + " " + volume.Handle()
+	}
+
+	err = beacon.executeCommand(func(sess Session) error {
+		_, err = sess.Output(cmdString)
+		return err
+	})
+
+	if err != nil {
+		beacon.Logger.Error("failed-to-execute-cmd", err)
+		return beacon.logFailure(command, err)
+	}
+
+	beacon.Logger.Debug("sucessfully-reported-volume-handles", lager.Data{"num-handles": len(volumes)})
+	return nil
 }
 
 func (beacon *Beacon) LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -234,9 +304,7 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 	}
 }
 
-func (beacon *Beacon) runReport(command string) error {
-	beacon.Logger.Info("command-to-run", lager.Data{"cmd": command})
-
+func (beacon *Beacon) executeCommand(command func(Session) error) error {
 	conn, err := beacon.Client.Dial()
 	if err != nil {
 		return err
@@ -259,194 +327,79 @@ func (beacon *Beacon) runReport(command string) error {
 
 	defer sess.Close()
 
-	exited := make(chan error)
-	done := make(chan bool)
-
-	cmdString := command
-	go func() {
-		switch command {
-		case tsa.ReportContainers:
-			var err error
-
-			var beaconReaperAddr = beacon.ReaperAddr
-
-			if beaconReaperAddr == "" {
-				beaconReaperAddr = fmt.Sprint("http://", reaperAddr)
-			}
-
-			reaperClient := reaper.NewClient(beaconReaperAddr, beacon.Logger.Session("reaper-client"))
-
-			cHandles, err := reaperClient.ListHandles()
-			if err != nil {
-				beacon.Logger.Error("failed-to-list-handles", err)
-				exited <- err
-				return
-			}
-
-			for _, handleStr := range cHandles {
-				cmdString = cmdString + " " + handleStr
-			}
-
-			_, err = sess.Output(cmdString)
-			if err != nil {
-				beacon.Logger.Error("failed-to-execute-cmd", err)
-				exited <- err
-				return
-			}
-			beacon.Logger.Debug("sucessfully-reported-container-handles", lager.Data{"num-handles": len(cHandles)})
-
-		case tsa.ReportVolumes:
-			var beaconBaggageclaimAddress = beacon.BaggageclaimForwardAddr
-
-			if beaconBaggageclaimAddress == "" {
-				beaconBaggageclaimAddress = fmt.Sprint("http://", baggageclaimForwardAddr)
-			}
-
-			baggageclaimClient := client.NewWithHTTPClient(
-				beaconBaggageclaimAddress, &http.Client{
-					Transport: &http.Transport{
-						DisableKeepAlives:     true,
-						ResponseHeaderTimeout: 1 * time.Minute,
-					},
-				})
-
-			volumes, err := baggageclaimClient.ListVolumes(beacon.Logger, nil)
-			if err != nil {
-				beacon.Logger.Error("failed-to-list-handles", err)
-				exited <- err
-				return
-			}
-
-			for _, volume := range volumes {
-				cmdString = cmdString + " " + volume.Handle()
-			}
-
-			_, err = sess.Output(cmdString)
-			if err != nil {
-				beacon.Logger.Error("failed-to-execute-cmd", err)
-				exited <- err
-				return
-			}
-
-			beacon.Logger.Debug("sucessfully-reported-volume-handles", lager.Data{"num-handles": len(volumes)})
-		}
-
-		done <- true
-	}()
-
-	select {
-	case <-done:
-		return nil
-	case err := <-exited:
-		if err != nil {
-			beacon.Logger.Error(fmt.Sprintf("failed-to-%s", command), err)
-			return err
-		}
-		return nil
-	}
+	return command(sess)
 }
 
 func (beacon *Beacon) runSweep(command string) error {
 	beacon.Logger.Info("sweep", lager.Data{"cmd": command})
 
-	conn, err := beacon.Client.Dial()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	workerPayload, err := json.Marshal(beacon.Worker)
-	if err != nil {
-		return err
-	}
-
-	sess, err := beacon.Client.NewSession(
-		bytes.NewBuffer(workerPayload),
-		nil,
-		os.Stderr,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create session: %s", err)
-	}
-
-	defer sess.Close()
-
-	exited := make(chan error, 1)
-	done := make(chan bool)
-
-	go func() {
-		var err error
-		var handleBytes []byte
-		var handles []string
-
+	var handleBytes []byte
+	var handles []string
+	var err error
+	err = beacon.executeCommand(func(sess Session) error {
 		handleBytes, err = sess.Output(command)
 		if err != nil {
-			exited <- err
-			return
+			return beacon.logFailure(command, err)
 		}
 
 		err = json.Unmarshal(handleBytes, &handles)
 		if err != nil {
 			beacon.Logger.Error("unmarshall output failed", err)
-			exited <- err
-			return
-		}
-
-		switch command {
-		case tsa.SweepContainers:
-			beacon.Logger.Debug("received-handles-to-destroy", lager.Data{"num-handles": len(handles)})
-
-			var beaconReaperAddr = beacon.ReaperAddr
-
-			if beaconReaperAddr == "" {
-				beaconReaperAddr = fmt.Sprint("http://", reaperAddr)
-			}
-
-			reaperClient := reaper.NewClient(beaconReaperAddr, beacon.Logger.Session("reaper-client"))
-
-			err = reaperClient.DestroyContainers(handles)
-			if err != nil {
-				beacon.Logger.Error("failed-to-destroy-handles", err)
-				exited <- err
-				return
-			}
-
-		case tsa.SweepVolumes:
-			beacon.Logger.Debug("received-handles-to-destroy", lager.Data{"num-handles": len(handles)})
-			var beaconBaggageclaimAddress = beacon.BaggageclaimForwardAddr
-
-			if beaconBaggageclaimAddress == "" {
-				beaconBaggageclaimAddress = fmt.Sprint("http://", baggageclaimForwardAddr)
-			}
-			baggageclaimClient := client.NewWithHTTPClient(
-				beaconBaggageclaimAddress, &http.Client{
-					Transport: &http.Transport{
-						DisableKeepAlives:     true,
-						ResponseHeaderTimeout: 1 * time.Minute,
-					},
-				})
-
-			err = baggageclaimClient.DestroyVolumes(beacon.Logger, handles)
-			if err != nil {
-				beacon.Logger.Error("failed-to-destroy-handles", err)
-				exited <- err
-				return
-			}
-		default:
-			err = errors.New(tsa.ResourceActionMissing)
-		}
-
-		done <- true
-	}()
-
-	select {
-	case <-done:
-		return nil
-	case err := <-exited:
-		if err != nil {
-			beacon.Logger.Error(fmt.Sprintf("failed-to-%s", command), err)
-			return err
+			return beacon.logFailure(command, err)
 		}
 		return nil
+	})
+
+	if nil != err {
+		return err
 	}
+	switch command {
+	case tsa.SweepContainers:
+
+		beacon.Logger.Debug("received-handles-to-destroy", lager.Data{"num-handles": len(handles)})
+
+		var beaconReaperAddr = beacon.ReaperAddr
+
+		if beaconReaperAddr == "" {
+			beaconReaperAddr = fmt.Sprint("http://", reaperAddr)
+		}
+
+		reaperClient := reaper.NewClient(beaconReaperAddr, beacon.Logger.Session("reaper-client"))
+
+		err = reaperClient.DestroyContainers(handles)
+		if err != nil {
+			beacon.Logger.Error("failed-to-destroy-handles", err)
+			return beacon.logFailure(command, err)
+		}
+
+	case tsa.SweepVolumes:
+		beacon.Logger.Debug("received-handles-to-destroy", lager.Data{"num-handles": len(handles)})
+		var beaconBaggageclaimAddress = beacon.BaggageclaimForwardAddr
+
+		if beaconBaggageclaimAddress == "" {
+			beaconBaggageclaimAddress = fmt.Sprint("http://", baggageclaimForwardAddr)
+		}
+		baggageclaimClient := client.NewWithHTTPClient(
+			beaconBaggageclaimAddress, &http.Client{
+				Transport: &http.Transport{
+					DisableKeepAlives:     true,
+					ResponseHeaderTimeout: 1 * time.Minute,
+				},
+			})
+
+		err = baggageclaimClient.DestroyVolumes(beacon.Logger, handles)
+		if err != nil {
+			beacon.Logger.Error("failed-to-destroy-handles", err)
+			return beacon.logFailure(command, err)
+		}
+	default:
+		return beacon.logFailure(command, errors.New(tsa.ResourceActionMissing))
+	}
+
+	return err
+}
+
+func (beacon *Beacon) logFailure(command string, err error) error {
+	beacon.Logger.Error(fmt.Sprintf("failed-to-%s", command), err)
+	return err
 }
