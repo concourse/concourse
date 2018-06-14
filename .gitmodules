@@ -437,3 +437,6 @@
 	path = src/github.com/sirupsen/logrus
 	url = https://github.com/sirupsen/logrus
 	branch = master
+[submodule "src/code.cloudfoundry.org/urljoiner"]
+	path = src/code.cloudfoundry.org/urljoiner
+	url = https://github.com/cloudfoundry/urljoiner
