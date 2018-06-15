@@ -57,10 +57,12 @@ var _ = Describe("Client", func() {
 		})
 
 		Describe("destroy containers request", func() {
-			var buf bytes.Buffer
+			var (
+				buf     bytes.Buffer
+				handles = []string{"handle-1", "handle-2"}
+			)
 
 			BeforeEach(func() {
-				handles := []string{"handle-1", "handle-2"}
 				json.NewEncoder(&buf).Encode(handles)
 			})
 
@@ -68,11 +70,11 @@ var _ = Describe("Client", func() {
 				fakeServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("DELETE", "/containers/destroy"),
-						ghttp.VerifyBody(buf.Bytes()),
+						ghttp.VerifyJSON(buf.String()),
 						ghttp.RespondWithJSONEncoded(http.StatusNoContent, nil),
 					),
 				)
-				err := client.DestroyContainers([]string{"handle-1", "handle-2"})
+				err := client.DestroyContainers(handles)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -80,12 +82,12 @@ var _ = Describe("Client", func() {
 				fakeServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("DELETE", "/containers/destroy"),
-						ghttp.VerifyBody(buf.Bytes()),
+						ghttp.VerifyJSON(buf.String()),
 						ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, nil),
 					),
 				)
 
-				err := client.DestroyContainers([]string{"handle-1", "handle-2"})
+				err := client.DestroyContainers(handles)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("received-500-response"))
 			})
