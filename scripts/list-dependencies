@@ -5,6 +5,7 @@ go install github.com/vito/gosub
 
 gosub list \
   -a github.com/concourse/fly/... \
+  -t github.com/concourse/fly/integration/... \
   -a github.com/concourse/go-concourse/... \
   -a github.com/concourse/worker/... \
   -a github.com/concourse/atc/cmd/... \
