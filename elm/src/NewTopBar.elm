@@ -11,6 +11,7 @@ import Html.Events exposing (..)
 import Keyboard
 import RemoteData exposing (RemoteData)
 import Task
+import TopBar exposing (userDisplayName)
 
 
 type alias Model =
@@ -126,7 +127,7 @@ showUserInfo model =
             Html.text "loading"
 
         RemoteData.Success user ->
-            Html.text (userDisplayName user)
+            Html.text <| userDisplayName user
 
         RemoteData.Failure _ ->
             Html.a
@@ -137,17 +138,14 @@ showUserInfo model =
                 ]
 
 
-userDisplayName : Concourse.User -> String
-userDisplayName user =
-    Maybe.withDefault user.id <|
-        List.head <|
-            List.filter (not << String.isEmpty) [ user.userName, user.name, user.email ]
-
-
 view : Model -> Html Msg
 view model =
     Html.div [ class "module-topbar" ]
         [ Html.div [ class "topbar-logo" ] [ Html.a [ class "logo-image-link", href "#" ] [] ]
+        , Html.div [ class "topbar-login" ]
+            [ Html.div [ class "topbar-user-info" ]
+                [ showUserInfo model ]
+            ]
         , Html.div [ classList [ ( "topbar-search", True ), ( "hidden", not model.showSearch ) ] ]
             [ Html.div
                 [ class "topbar-search-form" ]
@@ -187,10 +185,6 @@ view model =
                                 [ Html.text option ]
                         )
                         options
-            ]
-        , Html.div [ class "topbar-login" ]
-            [ Html.div [ class "topbar-user-info" ]
-                [ showUserInfo model ]
             ]
         ]
 

@@ -7,13 +7,14 @@
   z-index: 999;
   background: @base00;
   color: @white;
-  display: flex;
   height: 64px;
   line-height: 64px;
+  text-align: center;
 
   .topbar-logo {
-    flex-shrink: 1;
-    flex-basis: 50%;
+    float: left;
+    width: 10%;
+    text-align: left;
 
     .logo-image-link {
       background-image: url('images/concourse_logo_white.svg');
@@ -27,7 +28,8 @@
   }
 
   .topbar-search {
-    text-align: center;
+    display: inline-block;
+    margin: 0 auto;
 
     .topbar-search-form {
       display: flex;
@@ -93,16 +95,20 @@
   }
 
   .topbar-login {
-    flex-shrink: 1;
-    flex-basis: 50%;
-    line-height: 64px;
+    float: right;
+    width: 10%;
     text-align: right;
     white-space: nowrap;
 
     .topbar-user-info {
       border-left: 1px solid @base02;
       display: inline-block;
+      line-height: 64px;
+      max-width: 80%;
       padding: 0 10%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
   }
 }
