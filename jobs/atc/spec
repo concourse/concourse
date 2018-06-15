@@ -471,7 +471,6 @@ properties:
     description: |
       If configured, detailed metrics will be emitted to the specified Datadog Agent's
       dogstatsd server.
-    default: ""
 
   datadog.agent_port:
     description: |
@@ -481,7 +480,6 @@ properties:
   datadog.prefix:
     description: |
       An optional prefix for emitted Datadog events.
-    default: ""
 
   riemann.host:
     description: |
