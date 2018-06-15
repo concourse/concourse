@@ -192,8 +192,9 @@ properties:
     default: ""
 
   github_auth.ca_cert:
-    description: GitHub Enterprise CA Certificate.
-    default: ""
+    type: certificate
+    description: |
+      GitHub Enterprise CA Certificate.
 
   cf_auth.client_id:
     description: UAA client ID to use for OAuth.
@@ -208,8 +209,9 @@ properties:
     default: ""
 
   cf_auth.ca_cert:
-    description: Cloud Foundry CA Certificate.
-    default: ""
+    type: certificate
+    description: |
+      Cloud Foundry CA Certificate.
 
   generic_oauth.client_id:
     description: Application client ID for enabling generic OAuth.
@@ -244,8 +246,9 @@ properties:
     default: ""
 
   generic_oauth.ca_cert:
-    description: The CA certificate for the Generic OAuth provider's endpoints.
-    default: ""
+    type: certificate
+    description: |
+      The CA certificate for the Generic OAuth provider's endpoints.
 
   generic_oidc.client_id:
     description: Application client ID for enabling generic OIDC.
@@ -272,8 +275,9 @@ properties:
     default: ""
 
   generic_oidc.ca_cert:
-    description: The CA certificate for the Generic OIDC provider's endpoints.
-    default: ""
+    type: certificate
+    description: |
+      The CA certificate for the Generic OIDC provider's endpoints.
 
   main_team.allow_all_users:
     description: |

@@ -151,13 +151,13 @@ case $1 in
       --github-client-id <%= esc(p("github_auth.client_id")) %> \
       --github-client-secret <%= esc(p("github_auth.client_secret")) %> \
       --github-host <%= esc(p("github_auth.host")) %> \
-      <% if_p("github_auth.ca_cert") do %> \
+      <% if_p("github_auth.ca_cert") do |_| %> \
       --github-ca-cert $GITHUB_CA_CERT \
       <% end %> \
       --cf-client-id <%= esc(p("cf_auth.client_id")) %> \
       --cf-client-secret <%= esc(p("cf_auth.client_secret")) %> \
       --cf-api-url <%= esc(p("cf_auth.api_url")) %> \
-      <% if_p("cf_auth.ca_cert") do %> \
+      <% if_p("cf_auth.ca_cert") do |_| %> \
       --cf-ca-cert $CF_CA_CERT \
       <% end %> \
       --oauth-client-id <%= esc(p("generic_oauth.client_id")) %> \
@@ -169,7 +169,7 @@ case $1 in
       --oauth-scope <%= esc(v) %> \
       <% end %> \
       --oauth-groups-key <%= esc(p("generic_oauth.groups_key")) %> \
-      <% if_p("generic_oauth.ca_cert") do %> \
+      <% if_p("generic_oauth.ca_cert") do |_| %> \
       --oauth-ca-cert $OAUTH_CA_CERT \
       <% end %> \
       --oidc-client-id <%= esc(p("generic_oidc.client_id")) %> \
@@ -179,7 +179,7 @@ case $1 in
       --oidc-scope <%= esc(v) %> \
       <% end %> \
       --oidc-groups-key <%= esc(p("generic_oidc.groups_key")) %> \
-      <% if_p("generic_oidc.ca_cert") do %> \
+      <% if_p("generic_oidc.ca_cert") do |_| %> \
       --oidc-ca-cert $OIDC_CA_CERT \
       <% end %> \
       <% if p("main_team.allow_all_users") %> \
