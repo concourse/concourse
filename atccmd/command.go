@@ -459,7 +459,11 @@ func (cmd *ATCCommand) constructMembers(
 			return nil, err
 		}
 
-		certpool := x509.NewCertPool()
+		certpool, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
+
 		certpool.AddCert(x509Cert)
 
 		httpClient.Transport = &http.Transport{
