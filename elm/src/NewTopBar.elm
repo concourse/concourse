@@ -126,7 +126,7 @@ showUserInfo model =
             Html.text "loading"
 
         RemoteData.Success user ->
-            Html.text user.name
+            Html.text (userDisplayName user)
 
         RemoteData.Failure _ ->
             Html.a
@@ -135,6 +135,13 @@ showUserInfo model =
                 ]
                 [ Html.text "login"
                 ]
+
+
+userDisplayName : Concourse.User -> String
+userDisplayName user =
+    Maybe.withDefault user.id <|
+        List.head <|
+            List.filter (not << String.isEmpty) [ user.userName, user.name, user.email ]
 
 
 view : Model -> Html Msg
