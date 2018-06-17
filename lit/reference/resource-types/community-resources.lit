@@ -194,6 +194,8 @@ before using it!
   \table-row{\link{Google Hangouts Notification Resource}{https://github.com/CloudInn/concourse-hangouts-resource}}{by \ghuser{CloudInn}}
 }{
   \table-row{\link{Yahoo! Weather Resource}{https://github.com/kehrlann/weather-resource}}{by \ghuser{Kehrlann}}
+}{
+  \table-row{\link{Slack build alerts}{https://github.com/arbourd/concourse-slack-alert-resource}}{by \ghuser{arbourd}}
 }
 
 \section{
