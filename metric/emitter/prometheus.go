@@ -30,8 +30,9 @@ type PrometheusEmitter struct {
 
 	httpRequestsDuration *prometheus.HistogramVec
 
-	schedulingFullDuration    *prometheus.GaugeVec
-	schedulingLoadingDuration *prometheus.GaugeVec
+	schedulingFullDuration    *prometheus.CounterVec
+	schedulingLoadingDuration *prometheus.CounterVec
+	pipelineScheduled         *prometheus.CounterVec
 
 	dbQueriesTotal prometheus.Counter
 	dbConnections  *prometheus.GaugeVec
@@ -167,27 +168,38 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	prometheus.MustRegister(httpRequestsDuration)
 
 	// scheduling metrics
-	schedulingFullDuration := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
+	schedulingFullDuration := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
 			Namespace: "concourse",
 			Subsystem: "scheduling",
-			Name:      "full_duration_seconds",
-			Help:      "Last time taken to schedule an entire pipeline.",
+			Name:      "full_duration_seconds_total",
+			Help:      "Total time taken to schedule an entire pipeline",
 		},
 		[]string{"pipeline"},
 	)
 	prometheus.MustRegister(schedulingFullDuration)
 
-	schedulingLoadingDuration := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
+	schedulingLoadingDuration := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
 			Namespace: "concourse",
 			Subsystem: "scheduling",
-			Name:      "loading_duration_seconds",
-			Help:      "Last time taken to load version information from the database for a pipeline.",
+			Name:      "loading_duration_seconds_total",
+			Help:      "Total time taken to load version information from the database for a pipeline",
 		},
 		[]string{"pipeline"},
 	)
 	prometheus.MustRegister(schedulingLoadingDuration)
+
+	pipelineScheduled := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "concourse",
+			Subsystem: "scheduling",
+			Name:      "total",
+			Help:      "Total number of times a pipeline has been scheduled",
+		},
+		[]string{"pipeline"},
+	)
+	prometheus.MustRegister(pipelineScheduled)
 
 	dbQueriesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -243,6 +255,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 		schedulingFullDuration:    schedulingFullDuration,
 		schedulingLoadingDuration: schedulingLoadingDuration,
+		pipelineScheduled:         pipelineScheduled,
 
 		dbQueriesTotal: dbQueriesTotal,
 		dbConnections:  dbConnections,
@@ -423,11 +436,13 @@ func (emitter *PrometheusEmitter) schedulingMetrics(logger lager.Logger, event m
 
 	switch event.Name {
 	case "scheduling: full duration (ms)":
-		// concourse_scheduling_full_duration_seconds
-		emitter.schedulingFullDuration.WithLabelValues(pipeline).Set(duration / 1000)
+		// concourse_scheduling_full_duration_seconds_total
+		emitter.schedulingFullDuration.WithLabelValues(pipeline).Add(duration / 1000)
+		// concourse_scheduling_total
+		emitter.pipelineScheduled.WithLabelValues(pipeline).Inc()
 	case "scheduling: loading versions duration (ms)":
-		// concourse_scheduling_loading_duration_seconds
-		emitter.schedulingLoadingDuration.WithLabelValues(pipeline).Set(duration / 1000)
+		// concourse_scheduling_loading_duration_seconds_total
+		emitter.schedulingLoadingDuration.WithLabelValues(pipeline).Add(duration / 1000)
 	default:
 	}
 }
