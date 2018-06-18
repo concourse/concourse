@@ -80,6 +80,7 @@ var _ = Describe("A build using an image_resource", func() {
 			hijackSession := spawnFly(
 				"hijack",
 				"-j", "test/some-job",
+				"-b", "1",
 				"-s", "wait",
 				"touch", "/tmp/stop-waiting",
 			)
