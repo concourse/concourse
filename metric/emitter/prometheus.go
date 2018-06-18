@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
@@ -35,6 +37,9 @@ type PrometheusEmitter struct {
 	dbConnections  *prometheus.GaugeVec
 
 	resourceChecksVec *prometheus.CounterVec
+
+	workerLastSeen map[string]time.Time
+	mu             sync.Mutex
 }
 
 type PrometheusConfig struct {
@@ -221,7 +226,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	go http.Serve(listener, promhttp.Handler())
 
-	return &PrometheusEmitter{
+	emitter := &PrometheusEmitter{
 		buildsStarted:     buildsStarted,
 		buildsFinished:    buildsFinished,
 		buildsFinishedVec: buildsFinishedVec,
@@ -243,7 +248,12 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		dbConnections:  dbConnections,
 
 		resourceChecksVec: resourceChecksVec,
-	}, nil
+
+		workerLastSeen: map[string]time.Time{},
+	}
+	go emitter.periodicMetricGC()
+
+	return emitter, nil
 }
 
 // Emit processes incoming metrics.
@@ -251,6 +261,10 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 // Event types (differentiated by the less-than-ideal string Name field) into different
 // Prometheus metrics.
 func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) {
+
+	//update last seen counters, used to gc stale timeseries
+	emitter.updateLastSeen(event)
+
 	switch event.Name {
 	case "build started":
 		emitter.buildsStarted.Inc()
@@ -452,5 +466,35 @@ func (emitter *PrometheusEmitter) resourceMetric(logger lager.Logger, event metr
 	}
 
 	emitter.resourceChecksVec.WithLabelValues(pipeline, team).Inc()
+}
 
+// updateLastSeen tracks for each worker when it last received a metric event.
+func (emitter *PrometheusEmitter) updateLastSeen(event metric.Event) {
+	emitter.mu.Lock()
+	defer emitter.mu.Unlock()
+	if worker, exists := event.Attributes["worker"]; exists {
+		emitter.workerLastSeen[worker] = time.Now()
+	}
+}
+
+//periodically remove stale metrics for workers
+func (emitter *PrometheusEmitter) periodicMetricGC() {
+	for {
+		emitter.mu.Lock()
+		now := time.Now()
+		for worker, lastSeen := range emitter.workerLastSeen {
+			if now.Sub(lastSeen) > 5*time.Minute {
+				// This is a little stupid but we don't know the platform here,
+				// but DeleteLabelValues requires an exact match on the label set.
+				// As a workaround we try all known values for  the "platform" label
+				for _, platform := range []string{"linux", "windows", "darwin"} {
+					emitter.workerContainers.DeleteLabelValues(worker, platform)
+					emitter.workerVolumes.DeleteLabelValues(worker, platform)
+				}
+				delete(emitter.workerLastSeen, worker)
+			}
+		}
+		emitter.mu.Unlock()
+		time.Sleep(60 * time.Second)
+	}
 }
