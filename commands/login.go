@@ -145,11 +145,11 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 		panic(err)
 	}
 
-	openURL := fmt.Sprintf("%s/sky/login?redirect_uri=%s\n", targetUrl, redirectUri.String())
+	openURL := fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, redirectUri.String())
 
 	fmt.Println("navigate to the following URL in your browser:")
 	fmt.Println("")
-	fmt.Printf("  %s", openURL)
+	fmt.Printf("  %s\n", openURL)
 	fmt.Println("")
 
 	if command.OpenBrowser {
