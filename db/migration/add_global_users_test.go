@@ -270,7 +270,7 @@ var _ = Describe("Add global users", func() {
 			legacyConfigMain := `
 			{
 				"basicauth": {
-					"username": "username",
+					"username": "some-user",
 					"password": "some-password"
 				}
 			}
@@ -278,7 +278,7 @@ var _ = Describe("Add global users", func() {
 			legacyConfigOther := `
 			{
 				"basicauth": {
-					"username": "username",
+					"username": "some-user",
 					"password": "another-password"
 				}
 			}

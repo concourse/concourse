@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -13,6 +14,7 @@ func (self *migrations) Up_1528470872() error {
 
 	type team struct {
 		id    int64
+		name  string
 		auth  []byte
 		nonce sql.NullString
 	}
@@ -34,7 +36,7 @@ func (self *migrations) Up_1528470872() error {
 		return err
 	}
 
-	rows, err := tx.Query("SELECT id, legacy_auth, nonce FROM teams")
+	rows, err := tx.Query("SELECT id, name, legacy_auth, nonce FROM teams")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -45,7 +47,7 @@ func (self *migrations) Up_1528470872() error {
 	for rows.Next() {
 		team := team{}
 
-		if err = rows.Scan(&team.id, &team.auth, &team.nonce); err != nil {
+		if err = rows.Scan(&team.id, &team.name, &team.auth, &team.nonce); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -53,35 +55,35 @@ func (self *migrations) Up_1528470872() error {
 		teams = append(teams, team)
 	}
 
-	mustBeUniqueAmongstAllTeams := map[string]map[string]map[string]bool{
-		"basicauth": map[string]map[string]bool{
-			"username": map[string]bool{},
+	mustBeUniqueAmongstAllTeams := map[string]map[string]map[string][]string{
+		"basicauth": map[string]map[string][]string{
+			"username": map[string][]string{},
 		},
 	}
 
-	mustBeSameAmongstAllTeams := map[string]map[string]map[string]bool{
-		"github": map[string]map[string]bool{
-			"auth_url":  map[string]bool{},
-			"token_url": map[string]bool{},
-			"api_url":   map[string]bool{},
+	mustBeSameAmongstAllTeams := map[string]map[string]map[string][]string{
+		"github": map[string]map[string][]string{
+			"auth_url":  map[string][]string{},
+			"token_url": map[string][]string{},
+			"api_url":   map[string][]string{},
 		},
-		"uaa": map[string]map[string]bool{
-			"auth_url":  map[string]bool{},
-			"token_url": map[string]bool{},
-			"cf_url":    map[string]bool{},
+		"uaa": map[string]map[string][]string{
+			"auth_url":  map[string][]string{},
+			"token_url": map[string][]string{},
+			"cf_url":    map[string][]string{},
 		},
-		"gitlab": map[string]map[string]bool{
-			"auth_url":  map[string]bool{},
-			"token_url": map[string]bool{},
-			"api_url":   map[string]bool{},
+		"gitlab": map[string]map[string][]string{
+			"auth_url":  map[string][]string{},
+			"token_url": map[string][]string{},
+			"api_url":   map[string][]string{},
 		},
-		"oauth": map[string]map[string]bool{
-			"auth_url":  map[string]bool{},
-			"token_url": map[string]bool{},
+		"oauth": map[string]map[string][]string{
+			"auth_url":  map[string][]string{},
+			"token_url": map[string][]string{},
 		},
-		"oauth_oidc": map[string]map[string]bool{
-			"auth_url":  map[string]bool{},
-			"token_url": map[string]bool{},
+		"oauth_oidc": map[string]map[string][]string{
+			"auth_url":  map[string][]string{},
+			"token_url": map[string][]string{},
 		},
 	}
 
@@ -116,9 +118,11 @@ func (self *migrations) Up_1528470872() error {
 			for key, set := range mustBeSameAmongstAllTeams[provider] {
 				if parsedConfig, ok := rawConfig.(map[string]interface{}); ok {
 					if value, ok := parsedConfig[key].(string); ok {
-						if set[value] = true; len(set) > 1 {
-							tx.Rollback()
-							return fmt.Errorf("Multiple values of '%s' for auth provider '%s' found. No migration for you", key, provider)
+						_, valuePresent := set[value]
+						if valuePresent {
+							set[value] = append(set[value], team.name)
+						} else {
+							set[value] = []string{team.name}
 						}
 					}
 				}
@@ -126,11 +130,13 @@ func (self *migrations) Up_1528470872() error {
 
 			for key, set := range mustBeUniqueAmongstAllTeams[provider] {
 				if parsedConfig, ok := rawConfig.(map[string]interface{}); ok {
-					if value, ok := parsedConfig[key].(string); ok && set[value] {
-						tx.Rollback()
-						return fmt.Errorf("Values of '%s' for auth provider '%s' must be unique across teams. No migration for you", key, provider)
-					} else {
-						set[value] = true
+					if value, parseOk := parsedConfig[key].(string); parseOk {
+						_, valuePresent := set[value]
+						if valuePresent {
+							set[value] = append(set[value], team.name)
+						} else {
+							set[value] = []string{team.name}
+						}
 					}
 				}
 			}
@@ -245,6 +251,34 @@ func (self *migrations) Up_1528470872() error {
 			tx.Rollback()
 			return err
 		}
+	}
+
+	errorMessage := ""
+	for provider, keys := range mustBeSameAmongstAllTeams {
+		for key, values := range keys {
+			if len(values) > 1 {
+				errorMessage += fmt.Sprintf("Non-unique value of '%s' for auth provider '%s' breaks migration: ", key, provider)
+				offendingTeams := []string{}
+				for value, teams := range values {
+					offendingTeams = append(offendingTeams, fmt.Sprintf("teams %v have value '%s'", teams, value))
+				}
+				errorMessage += strings.Join(offendingTeams, ", ")
+				errorMessage += "\n"
+			}
+		}
+	}
+	for provider, keys := range mustBeUniqueAmongstAllTeams {
+		for key, values := range keys {
+			for value, teams := range values {
+				if len(teams) > 1 {
+					errorMessage += fmt.Sprintf("Multiple teams having the same value, '%s', of '%s' for auth provider '%s' breaks migration. Offending teams: %v\n", value, key, provider, teams)
+				}
+			}
+		}
+	}
+	if errorMessage != "" {
+		tx.Rollback()
+		return fmt.Errorf("Problems in your database caused the migration to fail:\n\n%s", errorMessage)
 	}
 
 	err = tx.Commit()
