@@ -18,9 +18,9 @@ func init() {
 }
 
 type CFFlags struct {
-	ClientID           string      `long:"client-id" description:"Client id"`
-	ClientSecret       string      `long:"client-secret" description:"Client secret"`
-	APIURL             string      `long:"api-url" description:"API URL"`
+	ClientID           string      `long:"client-id" description:"(Required) Client id"`
+	ClientSecret       string      `long:"client-secret" description:"(Required) Client secret"`
+	APIURL             string      `long:"api-url" description:"(Required) The base API URL of your CF deployment. It will use this information to discover information about the authentication provider."`
 	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }

@@ -18,10 +18,10 @@ func init() {
 }
 
 type LDAPFlags struct {
-	DisplayName        string    `long:"display-name" description:"Name to display on login screen"`
-	Host               string    `long:"host" description:"The host and optional port of the LDAP server. If port isn't supplied, it will be guessed based on the TLS configuration. 389 or 636."`
-	BindDN             string    `long:"bind-dn" description:"Bind DN for searching LDAP users and groups. Typically this is a read-only user."`
-	BindPW             string    `long:"bind-pw" description:"Bind Password for the user specified by 'bind-dn'"`
+	DisplayName        string    `long:"display-name" description:"The auth provider name displayed to users on the login page"`
+	Host               string    `long:"host" description:"(Required) The host and optional port of the LDAP server. If port isn't supplied, it will be guessed based on the TLS configuration. 389 or 636."`
+	BindDN             string    `long:"bind-dn" description:"(Required) Bind DN for searching LDAP users and groups. Typically this is a read-only user."`
+	BindPW             string    `long:"bind-pw" description:"(Required) Bind Password for the user specified by 'bind-dn'"`
 	InsecureNoSSL      bool      `long:"insecure-no-ssl" description:"Required if LDAP host does not use TLS."`
 	InsecureSkipVerify bool      `long:"insecure-skip-verify" description:"Skip certificate verification"`
 	StartTLS           bool      `long:"start-tls" description:"Start on insecure port, then negotiate TLS"`

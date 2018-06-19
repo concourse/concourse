@@ -18,12 +18,12 @@ func init() {
 }
 
 type OIDCFlags struct {
-	DisplayName        string      `long:"display-name" description:"Display Name"`
-	Issuer             string      `long:"issuer" description:"Issuer URL"`
-	ClientID           string      `long:"client-id" description:"Client id"`
-	ClientSecret       string      `long:"client-secret" description:"Client secret"`
-	Scopes             []string    `long:"scope" description:"Requested scope"`
-	GroupsKey          string      `long:"groups-key" description:"Groups Key"`
+	DisplayName        string      `long:"display-name" description:"The auth provider name displayed to users on the login page"`
+	Issuer             string      `long:"issuer" description:"(Required) An OIDC issuer URL that will be used to discover provider configuration using the .well-known/openid-configuration"`
+	ClientID           string      `long:"client-id" description:"(Required) Client id"`
+	ClientSecret       string      `long:"client-secret" description:"(Required) Client secret"`
+	Scopes             []string    `long:"scope" description:"Any additional scopes that need to be requested during authorization"`
+	GroupsKey          string      `long:"groups-key" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
 	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }

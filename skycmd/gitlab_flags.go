@@ -17,8 +17,8 @@ func init() {
 }
 
 type GitlabFlags struct {
-	ClientID     string `long:"client-id" description:"Client id"`
-	ClientSecret string `long:"client-secret" description:"Client secret"`
+	ClientID     string `long:"client-id" description:"(Required) Client id"`
+	ClientSecret string `long:"client-secret" description:"(Required) Client secret"`
 	Host         string `long:"host" description:"Hostname of Gitlab Enterprise deployment (Include scheme, No trailing slash)"`
 }
 
