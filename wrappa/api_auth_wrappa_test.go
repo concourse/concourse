@@ -141,19 +141,16 @@ var _ = Describe("APIAuthWrappa", func() {
 
 			expectedHandlers = rata.Handlers{
 				//unauthenticated / delegating to handler
-				atc.GetInfo:               unauthenticated(inputHandlers[atc.GetInfo]),
-				atc.DownloadCLI:           unauthenticated(inputHandlers[atc.DownloadCLI]),
-				atc.CheckResourceWebHook:  unauthenticated(inputHandlers[atc.CheckResourceWebHook]),
-				atc.ListAllPipelines:      unauthenticated(inputHandlers[atc.ListAllPipelines]),
-				atc.ListBuilds:            unauthenticated(inputHandlers[atc.ListBuilds]),
-				atc.ListPipelines:         unauthenticated(inputHandlers[atc.ListPipelines]),
-				atc.ListAllJobs:           unauthenticated(inputHandlers[atc.ListAllJobs]),
-				atc.ListAllResources:      unauthenticated(inputHandlers[atc.ListAllResources]),
-				atc.ListTeams:             unauthenticated(inputHandlers[atc.ListTeams]),
-				atc.MainJobBadge:          unauthenticated(inputHandlers[atc.MainJobBadge]),
-				atc.LegacyListAuthMethods: unauthenticated(inputHandlers[atc.LegacyListAuthMethods]),
-				atc.LegacyGetAuthToken:    unauthenticated(inputHandlers[atc.LegacyGetAuthToken]),
-				atc.LegacyGetUser:         unauthenticated(inputHandlers[atc.LegacyGetUser]),
+				atc.GetInfo:              unauthenticated(inputHandlers[atc.GetInfo]),
+				atc.DownloadCLI:          unauthenticated(inputHandlers[atc.DownloadCLI]),
+				atc.CheckResourceWebHook: unauthenticated(inputHandlers[atc.CheckResourceWebHook]),
+				atc.ListAllPipelines:     unauthenticated(inputHandlers[atc.ListAllPipelines]),
+				atc.ListBuilds:           unauthenticated(inputHandlers[atc.ListBuilds]),
+				atc.ListPipelines:        unauthenticated(inputHandlers[atc.ListPipelines]),
+				atc.ListAllJobs:          unauthenticated(inputHandlers[atc.ListAllJobs]),
+				atc.ListAllResources:     unauthenticated(inputHandlers[atc.ListAllResources]),
+				atc.ListTeams:            unauthenticated(inputHandlers[atc.ListTeams]),
+				atc.MainJobBadge:         unauthenticated(inputHandlers[atc.MainJobBadge]),
 
 				// authorized or public pipeline
 				atc.GetBuild:       doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuild]),

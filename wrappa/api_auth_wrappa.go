@@ -46,9 +46,6 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListAllJobs,
 			atc.ListAllResources,
 			atc.ListBuilds,
-			atc.LegacyListAuthMethods,
-			atc.LegacyGetAuthToken,
-			atc.LegacyGetUser,
 			atc.MainJobBadge:
 
 		// pipeline is public or authorized
