@@ -109,11 +109,6 @@
   }
 
   \note{fix}{
-    Fixed handling of \code{no_proxy} in \code{concourse worker}, thanks to a
-    PR by \ghuser{databus23}!
-  }
-
-  \note{fix}{
     \ghuser{SHyx0rmZ} fixed up a few API endpoints so that they correctly
     return \code{Content-Type: application/json}. Thanks!
   }
