@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -13,7 +14,9 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
+	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/vito/go-interact/interact"
 	"golang.org/x/oauth2"
 )
 
@@ -87,11 +90,37 @@ func (command *LoginCommand) Execute(args []string) error {
 	var tokenType string
 	var tokenValue string
 
-	if command.Username != "" && command.Password != "" {
-		tokenType, tokenValue, err = command.passwordGrant(client, command.Username, command.Password)
-	} else {
-		tokenType, tokenValue, err = command.authCodeGrant(client.URL())
+	version, err := target.Version()
+	if err != nil {
+		return err
 	}
+
+	semver, err := semisemanticversion.NewVersionFromString(version)
+	if err != nil {
+		return err
+	}
+
+	legacySemver, err := semisemanticversion.NewVersionFromString("3.14.1")
+	if err != nil {
+		return err
+	}
+
+	devSemver, err := semisemanticversion.NewVersionFromString("0.0.0")
+	if err != nil {
+		return err
+	}
+
+	if semver.Compare(legacySemver) <= 0 && semver.Compare(devSemver) != 0 {
+		// Legacy Auth Support
+		tokenType, tokenValue, err = command.legacyAuth(target)
+	} else {
+		if command.Username != "" && command.Password != "" {
+			tokenType, tokenValue, err = command.passwordGrant(client, command.Username, command.Password)
+		} else {
+			tokenType, tokenValue, err = command.authCodeGrant(client.URL())
+		}
+	}
+
 	if err != nil {
 		return err
 	}
@@ -252,4 +281,181 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 	fmt.Println("target saved")
 
 	return nil
+}
+
+func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error) {
+
+	httpClient := target.Client().HTTPClient()
+
+	authResponse, err := httpClient.Get(target.URL() + "/api/v1/teams/" + target.Team().Name() + "/auth/methods")
+	if err != nil {
+		return "", "", err
+	}
+
+	type authMethod struct {
+		Type        string `json:"type"`
+		DisplayName string `json:"display_name"`
+		AuthURL     string `json:"auth_url"`
+	}
+
+	defer authResponse.Body.Close()
+
+	var authMethods []authMethod
+	json.NewDecoder(authResponse.Body).Decode(&authMethods)
+
+	var chosenMethod authMethod
+
+	if command.Username != "" || command.Password != "" {
+		for _, method := range authMethods {
+			if method.Type == "basic" {
+				chosenMethod = method
+				break
+			}
+		}
+
+		if chosenMethod.Type == "" {
+			return "", "", errors.New("basic auth is not available")
+		}
+	}
+
+	choices := make([]interact.Choice, len(authMethods))
+
+	for i, method := range authMethods {
+		choices[i] = interact.Choice{
+			Display: method.DisplayName,
+			Value:   method,
+		}
+	}
+
+	if len(choices) == 0 {
+		chosenMethod = authMethod{
+			Type: "none",
+		}
+	}
+
+	if len(choices) == 1 {
+		chosenMethod = authMethods[0]
+	}
+
+	if len(choices) > 1 {
+		err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
+		if err != nil {
+			return "", "", err
+		}
+
+		fmt.Println("")
+	}
+
+	switch chosenMethod.Type {
+	case "oauth":
+		var tokenStr string
+
+		stdinChannel := make(chan string)
+		tokenChannel := make(chan string)
+		errorChannel := make(chan error)
+		portChannel := make(chan string)
+
+		go listenForTokenCallback(tokenChannel, errorChannel, portChannel, target.Client().URL())
+
+		port := <-portChannel
+
+		theURL := fmt.Sprintf("%s&fly_local_port=%s\n", chosenMethod.AuthURL, port)
+
+		fmt.Println("navigate to the following URL in your browser:")
+		fmt.Println("")
+		fmt.Printf("    %s", theURL)
+		fmt.Println("")
+
+		if command.OpenBrowser {
+			// try to open the browser window, but don't get all hung up if it
+			// fails, since we already printed about it.
+			_ = open.Start(theURL)
+		}
+
+		go waitForTokenInput(stdinChannel, errorChannel)
+
+		select {
+		case tokenStrMsg := <-tokenChannel:
+			tokenStr = tokenStrMsg
+		case tokenStrMsg := <-stdinChannel:
+			tokenStr = tokenStrMsg
+		case errorMsg := <-errorChannel:
+			return "", "", errorMsg
+		}
+
+		segments := strings.SplitN(tokenStr, " ", 2)
+
+		return segments[0], segments[1], nil
+
+	case "basic":
+		var username string
+		if command.Username != "" {
+			username = command.Username
+		} else {
+			err := interact.NewInteraction("username").Resolve(interact.Required(&username))
+			if err != nil {
+				return "", "", err
+			}
+		}
+
+		var password string
+		if command.Password != "" {
+			password = command.Password
+		} else {
+			var interactivePassword interact.Password
+			err := interact.NewInteraction("password").Resolve(interact.Required(&interactivePassword))
+			if err != nil {
+				return "", "", err
+			}
+			password = string(interactivePassword)
+		}
+
+		request, err := http.NewRequest("GET", target.URL()+"/api/v1/teams/"+target.Team().Name()+"/auth/token", nil)
+		if err != nil {
+			return "", "", err
+		}
+		request.SetBasicAuth(username, password)
+
+		tokenResponse, err := httpClient.Do(request)
+		if err != nil {
+			return "", "", err
+		}
+
+		type authToken struct {
+			Type  string `json:"token_type"`
+			Value string `json:"token_value"`
+		}
+
+		defer tokenResponse.Body.Close()
+
+		var token authToken
+		json.NewDecoder(tokenResponse.Body).Decode(&token)
+
+		return token.Type, token.Value, nil
+
+	case "none":
+		request, err := http.NewRequest("GET", target.URL()+"/api/v1/teams/"+target.Team().Name()+"/auth/token", nil)
+		if err != nil {
+			return "", "", err
+		}
+
+		tokenResponse, err := httpClient.Do(request)
+		if err != nil {
+			return "", "", err
+		}
+
+		type authToken struct {
+			Type  string `json:"token_type"`
+			Value string `json:"token_value"`
+		}
+
+		defer tokenResponse.Body.Close()
+
+		var token authToken
+		json.NewDecoder(tokenResponse.Body).Decode(&token)
+
+		return token.Type, token.Value, nil
+	}
+
+	return "", "", nil
 }

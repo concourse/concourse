@@ -48,6 +48,7 @@ type Target interface {
 	IsWorkerVersionCompatible(string) (bool, error)
 	Token() *TargetToken
 	TokenAuthorization() (string, bool)
+	Version() (string, error)
 }
 
 type target struct {
@@ -250,6 +251,15 @@ func (t *target) URL() string {
 
 func (t *target) Token() *TargetToken {
 	return t.token
+}
+
+func (t *target) Version() (string, error) {
+	info, err := t.getInfo()
+	if err != nil {
+		return "", err
+	}
+
+	return info.Version, nil
 }
 
 func (t *target) WorkerVersion() (string, error) {

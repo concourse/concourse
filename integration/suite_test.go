@@ -25,7 +25,7 @@ var atcServer *ghttp.Server
 
 const targetName = "testserver"
 const teamName = "main"
-const atcVersion = "1.2.3"
+const atcVersion = "0.0.0"
 const workerVersion = "4.5.6"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
