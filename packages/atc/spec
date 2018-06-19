@@ -88,7 +88,6 @@ files:
   - github.com/concourse/atc/api/containerserver/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/infoserver/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/jobserver/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/api/legacyserver/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/loglevelserver/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/pipelineserver/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/present/*.{go,s,c,h} # gosub
