@@ -56,6 +56,7 @@ $CONCOURSE quickstart \
     --main-team-allow-all-users \
     --worker-work-dir /scratch/concourse \
     --worker-garden-network-pool 10.255.0.0/22 \
+    > /dev/null 2>&1 \
     &
 
 quickstartpid=$!
