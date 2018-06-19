@@ -212,7 +212,9 @@ func Deploy(manifest string, args ...string) {
 	if atcInstance != nil {
 		// give some time for atc to bootstrap (Run migrations, etc)
 		atcExternalURL = fmt.Sprintf("http://%s:8080", atcInstance.IP)
-		Eventually(flyLogin("-c", atcExternalURL), 2*time.Minute).Should(gexec.Exit(0))
+		Eventually(func() *gexec.Session {
+			return flyLogin("-c", atcExternalURL).Wait()
+		}, 2*time.Minute).Should(gexec.Exit(0))
 	}
 
 	dbInstance = JobInstance("postgres")
