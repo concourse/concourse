@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"sync"
 
 	"code.cloudfoundry.org/lager"
 
@@ -95,11 +96,17 @@ type lazyCredhub struct {
 	credhub *credhub.CredHub
 }
 
+var lazyCredhubInstance lazyCredhub
+var once sync.Once
+
 func newLazyCredhub(url string, options []credhub.Option) lazyCredhub {
-	return lazyCredhub{
-		url:     url,
-		options: options,
-	}
+	once.Do(func() {
+		lazyCredhubInstance = lazyCredhub{
+			url:     url,
+			options: options,
+		}
+	})
+	return lazyCredhubInstance
 }
 
 func (lc lazyCredhub) CredHub() (*credhub.CredHub, error) {
