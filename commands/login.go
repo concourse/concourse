@@ -105,7 +105,7 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	devSemver, err := semisemanticversion.NewVersionFromString("0.0.0")
+	devSemver, err := semisemanticversion.NewVersionFromString("0.0.0-dev")
 	if err != nil {
 		return err
 	}
