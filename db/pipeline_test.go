@@ -1887,6 +1887,36 @@ var _ = Describe("Pipeline", func() {
 				Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
 			})
 
+			It("will not cache VersionsDB if a resource version is disabled or enabled", func() {
+				err := pipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Expect(err).ToNot(HaveOccurred())
+
+				versionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+
+				vr, found, err := pipeline.GetLatestVersionedResource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = pipeline.DisableVersionedResource(vr.ID)
+				Expect(err).ToNot(HaveOccurred())
+
+				cachedVersionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
+
+				err = pipeline.EnableVersionedResource(vr.ID)
+				Expect(err).ToNot(HaveOccurred())
+
+				cachedVersionsDB2, err := pipeline.LoadVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(versionsDB != cachedVersionsDB2).To(BeTrue(), "Expected VersionsDB to be different objects")
+			})
+
 			Context("when the build outputs are added for a different pipeline", func() {
 				It("does not invalidate the cache for the original pipeline", func() {
 					job, found, err := otherPipeline.Job("some-job")
