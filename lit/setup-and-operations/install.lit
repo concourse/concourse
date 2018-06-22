@@ -42,17 +42,17 @@ page.
   you might want to just kick the tires a bit and run everything at once. This
   can be achieved with the \code{quickstart} command:
 
-  \codeblock{bash}{{
-  concourse quickstart \\
-    --basic-auth-username myuser \\
-    --basic-auth-password mypass \\
-    --external-url http://my-ci.example.com \\
+  \codeblock{bash}{{{
+  concourse quickstart \
+    --add-local-user myuser:mypass \
+    --main-team-local-user myuser \
+    --external-url http://my-ci.example.com \
     --worker-work-dir /opt/concourse/worker
-  }}
+  }}}
 
   This command is shorthand for running a single \reference{web-node} and
   \reference{worker-node} on the same machine, auto-wired to trust each other.
-  We've also configured some silly basic auth for the \reference{main-team} -
+  We've also configured some local auth for the \reference{main-team} -
   you may want to change that (see \reference{authentication}).
 
   So far we've assumed that you have a local PostgreSQL server running on the
@@ -66,6 +66,228 @@ page.
   base when generating URLs to itself, so you won't want those to be the
   default \code{http://127.0.0.1:8080} URL when you're developing on a
   different machine than the server.
+}
+
+
+\section{
+  \title{Configuring Auth Providers}{auth-config}
+
+  At startup, you will need to configure any local users or third-party auth
+  providers that you wish to use with Concourse.
+
+  In contrast to previous releases of Concourse, \code{users} are now central
+  to the authentication flow. Instead of logging in as a team, you now log in
+  as a user and can belong to one or more teams. Once users have been
+  configured at startup, they can be added to a team by configuring the team's
+  whitelist as described in \reference{authentication}.
+
+  \section{
+    \title{Local Auth}{local-auth-config}
+
+    In order to add new users to the system, you can supply the
+    \code{--add-local-user} flag to the \code{concourse web} subcommand like
+    so:
+
+    \codeblock{bash}{{{
+    concourse web \
+      --add-local-user myuser:mypass
+    }}}
+  }
+
+  \section{
+    \title{GitHub Auth}{github-auth-config}
+
+    A Concourse server can authenticate against GitHub to take advantage of
+    their permission model and other security improvements in their
+    infrastructure.
+
+    \section{
+      \title{Creating a GitHub application}
+
+      First you need to \link{create an OAuth application on
+      GitHub}{https://github.com/settings/applications/new}.
+
+      The callback URL will be the external URL of your Concourse server with
+      \code{/sky/dex/callback} appended. For example, Concourse's own CI
+      server's callback URL would be
+      \code{https://ci.concourse-ci.org/sky/dex/callback}.
+    }
+
+    \section{
+      \title{Configuring the client}
+
+      You will be given a Client ID and a Client Secret for your new
+      application. These will then be passed to the following flags:
+
+      \list{
+        \code{--github-client-id=CLIENT_ID}
+      }{
+        \code{--github-client-secret=CLIENT_SECRET}
+      }
+
+      If you're configuring GitHub Enterprise, you'll also need to set the
+      following flags:
+
+      \list{
+        \code{--github-host=github.example.com}
+      }{
+        \code{--github-ca-cert=/tmp/some-cert}
+      }
+
+      The GitHub Enterprise host should not contain a scheme, or a trailing
+      slash.
+
+      \codeblock{bash}{{{
+      concourse web \
+        --github-client-id CLIENT_ID \
+        --github-client-secret CLIENT_SECRET
+      }}}
+    }
+  }
+
+  \section{
+    \title{CF Auth}{cf-auth-config}
+
+    \section{
+      \title{Creating the client}
+
+      You'll first need to create a client for Concourse in UAA.
+
+      The callback URL will be the external URL of your Concourse server with
+      \code{/sky/dex/callback} appended. For example, Concourse's own CI
+      server's callback URL would be
+      \code{https://ci.concourse-ci.org/sky/dex/callback}.
+
+      The client should look something like this, under
+      \link{\code{uaa.clients}}{http://bosh.io/jobs/uaa?source=github.com/cloudfoundry/uaa-release&version=13#p=uaa.clients}:
+
+      \codeblock{yaml}{{
+        concourse:
+          id: my-client-id
+          secret: my-client-secret
+          scope: openid,email,profile,roles
+          authorized-grant-types: "authorization_code,refresh_token"
+          access-token-validity: 3600
+          refresh-token-validity: 3600
+          redirect-uri: https://concourse.example.com/sky/dex/callback
+      }}
+    }
+
+    \section{
+      \title{Configuring the client}
+
+      You will be given a Client ID and a Client Secret for your new
+      application. These will then be passed to the following flags:
+
+      \list{
+        \code{--cf-client-id=CLIENT_ID}
+      }{
+        \code{--cf-client-secret=CLIENT_SECRET}
+      }
+
+      You will also need to configure your base API URL for CF. We will use
+      this url to discover information used for authentication.
+
+      \list{
+        \code{--cf-api-url=CF_API_URL}
+      }
+
+      \codeblock{bash}{{{
+      concourse web \
+        --cf-client-id CLIENT_ID \
+        --cf-client-secret CLIENT_SECRET \
+        --cf-api-url CF_API_URL
+      }}}
+    }
+  }
+
+  \section{
+    \title{Generic OIDC}{generic-oidc-config}
+
+    If your auth provider adheres to the OIDC specification then you should use
+    this provider. Unlike the oAuth provider you don't need to provide the
+    \code{auth-url}, \code{token-url} and \code{userinfo-url}. Instead you
+    can simply provide an \code{issuer-url} and the system will query the
+    \code{.well-known/openid-configuration} endpoint to discover all the
+    information it needs.
+
+    \section{
+      \title{Creating the client}
+
+      You'll first need to create a client with your OIDC provider.
+
+      The callback URL will be the external URL of your Concourse server with
+      \code{/sky/dex/callback} appended. For example, Concourse's own CI
+      server's callback URL would be
+      \code{https://ci.concourse-ci.org/sky/dex/callback}.
+    }
+
+    \section{
+      \title{Configuring the client}
+
+      Configuring generic OIDC for X company's internal OIDC service may look
+      something like:
+
+      \codeblock{bash}{{{
+      $ concourse web \
+          --oidc-display-name='X' \
+          --oidc-client-id=CLIENT_ID \
+          --oidc-client-secret=CLIENT_SECRET \
+          --oidc-issuer=https://oidc.example.com
+      }}}
+    }
+  }
+
+  \section{
+    \title{Generic oAuth}{generic-oauth-config}
+
+    If your auth provider supports oAuth2 but doesn't adhere to the OIDC
+    specification then you should be using this provider. It's mostly the same
+    as the OIDC provider except it gives you more control over specifying the
+    full set of authorization endpoints (\code{auth-url}, \code{token-url}).
+
+    \section{
+      \title{Creating the client}
+
+      First you'll need to create a client with your oAuth provider.
+
+      The callback URL will be the external URL of your Concourse server with
+      \code{/sky/dex/callback} appended. For example, Concourse's own CI
+      server's callback URL would be
+      \code{https://ci.concourse-ci.org/sky/dex/callback}.
+    }
+
+    \section{
+      \title{Configuring the client}
+
+      Configuring generic oAuth for X company's internal oAuth service may look
+      something like:
+
+      \codeblock{bash}{{{
+      $ concourse web \
+          --oauth-display-name='X' \
+          --oauth-client-id=CLIENT_ID \
+          --oauth-client-secret=CLIENT_SECRET \
+          --oauth-auth-url=https://oauth.example.com/oauth2/auth \
+          --oauth-token-url=https://oauth.example.com/oauth2/token \
+          --oauth-userinfo-url=https://oauth.example.com/oauth2/userinfo
+      }}}
+    }
+  }
+
+  \section{
+    \title{Future providers}
+
+    Concourse uses a fork of \link{coreos/dex}{https://github.com/coreos/dex}
+    for its authentication. Adding a new OAuth provider is as simple as
+    submiting a pull request to our fork at
+    \link{concourse/dex}{https://github.com/concourse/dex} and then adding a
+    bit of configuration to
+    \link{concourse/skymarshal}{https://github.com/concourse/skymarshal}.
+  }
+
+  For more auth provider configuration options, take a look at \code{concourse
+  web} subcommand's help section.
 }
 
 \section{
@@ -122,17 +344,17 @@ page.
     The \code{concourse} binary can run a \reference{web-node} via the
     \code{web} subcommand, like so:
 
-    \codeblock{bash}{{
-    concourse web \\
-      --basic-auth-username myuser \\
-      --basic-auth-password mypass \\
-      --session-signing-key session_signing_key \\
-      --tsa-host-key tsa_host_key \\
-      --tsa-authorized-keys authorized_worker_keys \\
+    \codeblock{bash}{{{
+    concourse web \
+      --add-local-user myuser:mypass \
+      --main-team-local-user myuser \
+      --session-signing-key session_signing_key \
+      --tsa-host-key tsa_host_key \
+      --tsa-authorized-keys authorized_worker_keys \
       --external-url http://my-ci.example.com
-    }}
+    }}}
 
-    Just as with \reference{quickstart}, this example is configuring basic auth
+    Just as with \reference{quickstart}, this example is configuring local auth
     for the \reference{main-team}, and assumes a local PostgreSQL server.
     You'll want to consult \code{concourse web --help} for more configuration
     options.
@@ -161,37 +383,37 @@ page.
 
     Node 0:
 
-    \codeblock{bash}{{
-    concourse web \\
-      --basic-auth-username myuser \\
-      --basic-auth-password mypass \\
-      --session-signing-key session_signing_key \\
-      --tsa-host-key tsa_host_key \\
-      --tsa-authorized-keys authorized_worker_keys \\
-      --postgres-host 10.0.32.0 \\
-      --postgres-user user \\
-      --postgres-password pass \\
-      --postgres-database concourse \\
-      --external-url https://ci.example.com \\
+    \codeblock{bash}{{{
+    concourse web \
+      --add-local-user myuser:mypass \
+      --main-team-local-user myuser \
+      --session-signing-key session_signing_key \
+      --tsa-host-key tsa_host_key \
+      --tsa-authorized-keys authorized_worker_keys \
+      --postgres-host 10.0.32.0 \
+      --postgres-user user \
+      --postgres-password pass \
+      --postgres-database concourse \
+      --external-url https://ci.example.com \
       --peer-url http://10.0.16.10:8080
-    }}
+    }}}
 
     Node 1 (only difference is \code{--peer-url}):
 
-    \codeblock{bash}{{
-    concourse web \\
-      --basic-auth-username myuser \\
-      --basic-auth-password mypass \\
-      --session-signing-key session_signing_key \\
-      --tsa-host-key tsa_host_key \\
-      --tsa-authorized-keys authorized_worker_keys \\
-      --postgres-host 10.0.32.0 \\
-      --postgres-user user \\
-      --postgres-password pass \\
-      --postgres-database concourse \\
-      --external-url https://ci.example.com \\
+    \codeblock{bash}{{{
+    concourse web \
+      --add-local-user myuser:mypass \
+      --main-team-local-user myuser \
+      --session-signing-key session_signing_key \
+      --tsa-host-key tsa_host_key \
+      --tsa-authorized-keys authorized_worker_keys \
+      --postgres-host 10.0.32.0 \
+      --postgres-user user \
+      --postgres-password pass \
+      --postgres-database concourse \
+      --external-url https://ci.example.com \
       --peer-url http://10.0.16.11:8080
-    }}
+    }}}
   }
 
   \section{
@@ -200,13 +422,13 @@ page.
     The \code{concourse} binary can run a \reference{worker-node} via the
     \code{worker} subcommand, like so:
 
-    \codeblock{bash}{{
-    sudo concourse worker \\
-      --work-dir /opt/concourse/worker \\
-      --tsa-host 127.0.0.1:2222 \\
-      --tsa-public-key tsa_host_key.pub \\
+    \codeblock{bash}{{{
+    sudo concourse worker \
+      --work-dir /opt/concourse/worker \
+      --tsa-host 127.0.0.1:2222 \
+      --tsa-public-key tsa_host_key.pub \
       --tsa-worker-private-key worker_key
-    }}
+    }}}
 
     Note that the worker must be run as \code{root}, as it orchestrates
     containers.

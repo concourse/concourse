@@ -6,13 +6,12 @@ Every pipeline and one-off build belongs to a \italic{team}.
 
 A team is simply a conceptual owner and a separate namespace for data in
 Concourse (pipelines, builds, etc.) with its own auth configuration. A team may
-map to GitHub oAuth, basic auth, UAA auth, or whatever other auth methods we
-add in the future.
+whitelist users or groups either from local auth or from an external provider
+such as GitHub, UAA, etc.
 
-Importantly, a team does not have "users" added to and removed from it; it's
-only a configuration of auth methods, which themselves may provide user info
-that we add semantics to in the future (i.e. which GitHub user you authorized
-as).
+As described in \reference{auth-config}, teams are no longer used to log in to
+Concourse. Instead, you can add preconfigured users to various teams as shown
+in \reference{authentication} below.
 
 \split-sections
 \table-of-contents
@@ -45,12 +44,11 @@ as).
     with \code{fly}}, you can run \reference{fly-set-team} to create or
     update other teams.
 
-    To create a new team or update an existing team's auth run:
+    To create a new team or update an existing team's authorized users and groups run:
 
     \codeblock{bash}{{{
     $ fly -t example set-team --team-name my-team \
-        --basic-auth-username foo \
-        --basic-auth-password bar
+        --local-user some_username 
     }}}
 
     Teams can also update their own configuration with the same command.
@@ -119,7 +117,7 @@ as).
 }
 
 \section{
-  \title{Configuring Auth}{authentication}
+  \title{Configuring Team Auth}{authentication}
 
   Continuous Integration servers often contain a considerable number of secrets
   to let them access source code and deploy applications. It is important that
@@ -140,271 +138,146 @@ as).
   will be given a choice when logging in as to which one they would like to
   use.
 
+  \warn{
+    In order to use any of the auth providers listed below, you must first
+    enable the provider by configuring any required information at deployment
+    time as per the \reference{install} guide.
+  }
+
   \section{
-    \title{Basic Authentication}{basic-auth}
+    \title{Local Auth}{local-auth}
 
-    HTTP Basic authentication is the simplest of the authentication mechanisms.
-    It has good support in both browsers and command line tools. It provides a
-    single set of credentials for all users of the system.
+    You can configure local users for a team via the \code{--local-user} flag.
 
-    You can configure basic auth for a team via the
-    \code{--basic-auth-username} and \code{--basic-auth-password} flags:
+    For example:
 
     \codeblock{bash}{{{
     $ fly set-team -n my-team \
-        --basic-auth-username foo \
-        --basic-auth-password bar
+        --local-user some_username 
     }}}
   }
 
   \section{
-    \title{GitHub oAuth}{github-auth}
+    \title{GitHub Auth}{github-auth}
 
-    \omit-children-from-table-of-contents
+    You can con configure which organizations, teams, and individual users
+    should have access to your team.
 
-    A Concourse server can authenticate against GitHub to take advantage of
-    their permission model and other security improvements in their
-    infrastructure. There are a number of steps you need to take to enable
-    this.
+    This is done by passing the following flags:
 
-    Configuring the GitHub oAuth for our own team of engineers at Pivotal may
-    look something like:
+    \definitions{
+      \definition{\code{--github-user=LOGIN}}{
+        Authorize an individual user.
+      }
+    }{
+      \definition{\code{--github-org=ORG_NAME}}{
+        Authorize an entire organization's members.
+      }
+    }{
+      \definition{\code{--github-team=ORG_NAME:TEAM_NAME}}{
+        Authorize an team's members within an organization.
+      }
+    }
+
+    For example:
 
     \codeblock{bash}{{{
-    $ fly set-team -n concourse \
-        --github-auth-client-id $CLIENT_ID \
-        --github-auth-client-secret $CLIENT_SECRET \
-        --github-auth-team concourse/Pivotal
+    $ fly set-team -n my-team \
+        --github-user my-github-login \
+        --github-org my-org \
+        --github-team my-other-org:my-team
     }}}
-
-    \section{
-      \title{Configuring the callback URL}
-
-      First you need to \link{create an OAuth application on
-      GitHub}{https://github.com/settings/applications/new}.
-
-      The name, home page, and description don't matter but should be set to
-      something that lets users trust their origin. The \italic{Authorization
-      callback URL} should be the external URL of your Concourse server with
-      \code{/auth/github/callback} appended. For example, Concourse's own CI
-      server's callback URL is
-      \code{https://ci.concourse-ci.org/auth/github/callback}.
-    }
-
-    \section{
-      \title{Configuring the Client}
-
-      You will be given a Client ID and a Client Secret for your new
-      application. These will then be passed to the following flags:
-
-      \list{
-        \code{--github-auth-client-id=CLIENT_ID}
-      }{
-        \code{--github-auth-client-secret=CLIENT_SECRET}
-      }
-
-      If you're configuring GitHub Enterprise, you'll also need to set the
-      following flags:
-
-      \list{
-        \code{--github-auth-auth-url=https://github.example.com/login/oauth/authorize}
-      }{
-        \code{--github-auth-token-url=https://github.example.com/login/oauth/access_token}
-      }{
-        \code{--github-auth-api-url=https://github.example.com/api/v3/}
-      }
-
-      Make sure the API URL ends with a slash!
-    }
-
-    \section{
-      \title{Authorizing GitHub users, teams, and organizations}
-
-      You're now able to set the organizations, teams, and individual users who
-      should have access to your server.
-
-      This is done by passing the following flags:
-
-      \definitions{
-        \definition{\code{--github-auth-user=LOGIN}}{
-          Authorize an individual user.
-        }
-      }{
-        \definition{\code{--github-auth-team=ORG/TEAM NAME}}{
-          Authorize an team's members within an organization.
-        }
-      }{
-        \definition{\code{--github-auth-organization=ORG}}{
-          Authorize an entire organization's members.
-        }
-      }
-
-      These flags can be specified multiple times to permit multiple levels of
-      access.
-    }
   }
 
   \section{
-    \title{UAA/CF oAuth}{uaa-cf-auth}
+    \title{CF Auth}{uaa-cf-auth}
 
-    \omit-children-from-table-of-contents
+    You can configure which org/space members from a CF deployment should have
+    access to your team.
 
-    The \code{--uaa-auth-*} flags allow you to authorize members of a
-    particular space in a CF deployment. In the future we'll make this generic
-    to UAA and request scopes.
-
-    \section{
-      \title{Configuring the UAA client}
-
-      You'll first need to configure a client for Concourse with your UAA. The
-      callback URL will be the external URL of your Concourse server with
-      \code{/auth/oauth/callback} appended. For example, Concourse's own CI
-      server's callback URL would be
-      \code{https://ci.concourse-ci.org/auth/oauth/callback}.
-
-      The client should look something like this, under
-      \link{\code{uaa.clients}}{http://bosh.io/jobs/uaa?source=github.com/cloudfoundry/uaa-release&version=13#p=uaa.clients}:
-
-      \codeblock{yaml}{{
-        concourse:
-          id: my-client-id
-          secret: my-client-secret
-          scope: cloud_controller.read
-          authorized-grant-types: "authorization_code,refresh_token"
-          access-token-validity: 3600
-          refresh-token-validity: 3600
-          redirect-uri: https://concourse.example.com/auth/uaa/callback
-      }}
+    \definitions{
+      \definition{\code{--cf-user=USERNAME}}{
+        Authorize an individual user.
+      }
+    }{
+      \definition{\code{--cf-org=ORG_NAME}}{
+        Authorize an entire organization's members.
+      }
+    }{
+      \definition{\code{--cf-space=ORG_NAME:SPACE_NAME}}{
+        Authorize the members of a space within an organization.
+      }
     }
 
-    \section{
-      \title{Configuring the team}
+    For example:
 
-      Configuring auth for my team's space in a CF installation may look
-      something like:
-
-      \codeblock{bash}{{{
-      $ fly set-team -n my-cf-team \
-          --uaa-auth-client-id $CLIENT_ID \
-          --uaa-auth-client-secret $CLIENT_SECRET \
-          --uaa-auth-auth-url https://login.my-cf.com/oauth/authorize \
-          --uaa-auth-token-url https://login.my-cf.com/oauth/token \
-          --uaa-auth-cf-url https://api.my-cf.com \
-          --uaa-auth-cf-ca-cert ./path/to/cf-ca-cert.crt \
-          --uaa-auth-cf-space 31d89184-35b8-4660-a8ab-a7f72cc24435
-      }}}
-
-      The \code{31d89184-35b8-4660-a8ab-a7f72cc24435} value above is the GUID
-      of the space whose members will be authorized.
-    }
+    \codeblock{bash}{{{
+    $ fly set-team -n my-team \
+        --cf-user my-username \
+        --cf-org my-org \
+        --cf-space my-other-org:my-space
+    }}}
   }
 
   \section{
     \title{Generic oAuth}{generic-oauth}
 
-    \omit-children-from-table-of-contents
+    You can configure users and groups from a generic oAuth provider.
 
-    The \code{--generic-oauth-*} flags configure a generic oAuth provider which
-    performs no additional verification about the individual user signing in
-    by default. It should only be used with internal auth systems in this way.
-    If it were used to configure Google or Twitter oAuth, for example, it would
-    permit just about every person on the internet to create pipelines. It'd be
-    mighty generous. If you need verification, make sure you are using the
-    \code{--generic-oauth-scope} flag.
+    You may only configure groups if the auth provider exposes this information
+    in either the token itself, or in the contents of the userinfo endpoint.
+    You can configure which claim points to the groups information by specifying
+    the \code{groups-key} at startup.
 
-    \section{
-      \title{Configuring the oAuth client}
-
-      You'll first need to configure the client with your oAuth provider. The
-      callback URL will be the external URL of your Concourse server with
-      \code{/auth/oauth/callback} appended. For example, Concourse's own CI
-      server's callback URL would be
-      \code{https://ci.concourse-ci.org/auth/oauth/callback}.
+    \definitions{
+      \definition{\code{--oauth-user=USERNAME}}{
+        Authorize an individual user.
+      }
+    }{
+      \definition{\code{--oauth-group=GROUP_NAME}}{
+        Authorize anyone from the group.
+      }
     }
 
-    \section{
-      \title{Configuring the team}
+    For example:
 
-      Configuring generic oAuth for X company's internal oAuth service may look
-      something like:
-
-      \codeblock{bash}{{{
-      $ fly set-team -n my-team-in-x \
-          --generic-oauth-display-name 'X' \
-          --generic-oauth-client-id $CLIENT_ID \
-          --generic-oauth-client-secret $CLIENT_SECRET \
-          --generic-oauth-auth-url https://oauth.example.com/o/oauth2/auth \
-          --generic-oauth-token-url https://oauth.example.com/o/oauth2/token
-      }}}
-
-      You can also pass arbitrary params, for example a \code{scope} to
-      request, like so:
-
-      \codeblock{bash}{{{
-      $ fly set-team -n my-team-in-x \
-          --generic-oauth-display-name 'X' \
-          --generic-oauth-client-id $CLIENT_ID \
-          --generic-oauth-client-secret $CLIENT_SECRET \
-          --generic-oauth-auth-url https://oauth.example.com/o/oauth2/auth \
-          --generic-oauth-token-url https://oauth.example.com/o/oauth2/token \
-          --generic-oauth-auth-url-param scope:read
-      }}}
-
-      The \code{--generic-oauth-auth-url-param} flag can be specified multiple
-      times to configure multiple params, in the form of \code{KEY:VALUE}.
-
-      If you need verification of users, you can choose to require users have a
-      particular scope with \code{--generic-oauth-scope}:
-
-      \codeblock{bash}{{{
-      $ fly set-team -n my-team-in-x \
-          --generic-oauth-display-name 'X' \
-          --generic-oauth-client-id $CLIENT_ID \
-          --generic-oauth-client-secret $CLIENT_SECRET \
-          --generic-oauth-auth-url https://oauth.example.com/o/oauth2/auth \
-          --generic-oauth-token-url https://oauth.example.com/o/oauth2/token \
-          --generic-oauth-scope concourse.main
-      }}}
-    }
-
-    \section{
-      \title{Caveats}
-
-      Given that this is a catch-all provider, there may be things that go
-      wrong that we can't really document in great detail. If things aren't
-      working, try flailing until it works.
-
-      For example, some providers seem to expect values like \code{client_id}
-      and \code{client_secret} to be specified as query params on the token
-      URL. Our oAuth2 library sends these values as the request payload POSTed
-      to the endpoint instead. In this case you could try tacking the query
-      params on to the end of the token URL like so:
-
-      \codeblock{bash}{{{
-      $ fly set-team -n my-team-in-x \
-          --generic-oauth-display-name 'X' \
-          --generic-oauth-client-id $CLIENT_ID \
-          --generic-oauth-client-secret $CLIENT_SECRET \
-          --generic-oauth-auth-url https://oauth.example.com/o/oauth2/auth \
-          --generic-oauth-token-url \
-            "https://oauth.example.com/o/oauth2/token?client_secret=$CLIENT_SECRET" \
-          --generic-oauth-auth-url-param scope:some-scope
-      }}}
-
-      Pretty janky but it works.
-    }
+    \codeblock{bash}{{{
+    $ fly set-team -n my-team \
+        --oauth-user my-username \
+        --oauth-group my-group
+    }}}
   }
 
   \section{
-    \title{Future providers}
+    \title{Generic OIDC}{generic-oidc}
 
-    We've written the authentication layer of Concourse to be easily
-    extendable. Adding a new OAuth provider is as simple as adding a few
-    interface implementations and feeding them any information they need from
-    the command line.
+    You can configure users and groups from a generic OIDC provider. This is
+    very similar to the oAuth connector. The main difference being that OIDC
+    providers must adhere to the OIDC specification, whereas generic oAuth
+    providers can be a little more flexible.
 
-    We'd be interested in hearing about any providers with which you'd like to
-    integrate.
+    You may only configure groups if the auth provider exposes this information
+    in the contents of the userinfo endpoint. You can configure which claim
+    points to the groups information by specifying the \code{groups-key} at
+    startup.
+
+    \definitions{
+      \definition{\code{--oidc-user=USERNAME}}{
+        Authorize an individual user.
+      }
+    }{
+      \definition{\code{--oidc-group=GROUP_NAME}}{
+        Authorize anyone from the group.
+      }
+    }
+
+    For example:
+
+    \codeblock{bash}{{{
+    $ fly set-team -n my-team \
+        --oidc-user my-username \
+        --oidc-group my-group
+    }}}
   }
 }
 
