@@ -100,92 +100,104 @@ init ports turbulencePath =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        Noop ->
-            ( model, Cmd.none )
-
-        PipelinesResponse response ->
-            case response of
-                RemoteData.Success pipelines ->
-                    ( { model | mPipelines = response, pipelines = pipelines }, Cmd.batch [ fetchAllJobs, fetchAllResources ] )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        JobsResponse response ->
-            case ( response, model.mPipelines ) of
-                ( RemoteData.Success jobs, RemoteData.Success pipelines ) ->
-                    ( { model | mJobs = response, pipelineJobs = jobsByPipelineId pipelines jobs }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        ResourcesResponse response ->
-            case ( response, model.mPipelines ) of
-                ( RemoteData.Success resources, RemoteData.Success pipelines ) ->
-                    ( { model | pipelineResourceErrors = resourceErrorsByPipelineIdentifier resources }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        VersionFetched (Ok version) ->
-            ( { model | concourseVersion = version }, Cmd.none )
-
-        VersionFetched (Err err) ->
-            ( { model | concourseVersion = "" }, Cmd.none )
-
-        ClockTick now ->
-            if model.hideFooterCounter + Time.second > 5 * Time.second then
-                ( { model | now = Just now, hideFooter = True }, Cmd.none )
-            else
-                ( { model | now = Just now, hideFooterCounter = model.hideFooterCounter + Time.second }, Cmd.none )
-
-        AutoRefresh _ ->
-            ( model
-            , Cmd.batch <|
+    let
+        reload =
+            Cmd.batch <|
                 (if model.mPipelines == RemoteData.Loading then
                     []
                  else
                     [ fetchPipelines ]
                 )
                     ++ [ fetchVersion, Cmd.map TopBarMsg NewTopBar.fetchUser ]
-            )
+    in
+        case msg of
+            Noop ->
+                ( model, Cmd.none )
 
-        KeyPressed keycode ->
-            handleKeyPressed (Char.fromCode keycode) model
+            PipelinesResponse response ->
+                case response of
+                    RemoteData.Success pipelines ->
+                        ( { model | mPipelines = response, pipelines = pipelines }, Cmd.batch [ fetchAllJobs, fetchAllResources ] )
 
-        KeyDowns keycode ->
-            update (TopBarMsg (NewTopBar.KeyDown keycode)) model
+                    _ ->
+                        ( model, Cmd.none )
 
-        ShowFooter ->
-            ( { model | hideFooter = False, hideFooterCounter = 0 }, Cmd.none )
+            JobsResponse response ->
+                case ( response, model.mPipelines ) of
+                    ( RemoteData.Success jobs, RemoteData.Success pipelines ) ->
+                        ( { model | mJobs = response, pipelineJobs = jobsByPipelineId pipelines jobs }, Cmd.none )
 
-        TopBarMsg msg ->
-            let
-                ( newTopBar, newTopBarMsg ) =
-                    NewTopBar.update msg model.topBar
+                    _ ->
+                        ( model, Cmd.none )
 
-                newModel =
-                    case msg of
-                        NewTopBar.FilterMsg query ->
-                            { model
-                                | topBar = newTopBar
-                                , filteredPipelines = filter query model
-                            }
+            ResourcesResponse response ->
+                case ( response, model.mPipelines ) of
+                    ( RemoteData.Success resources, RemoteData.Success pipelines ) ->
+                        ( { model | pipelineResourceErrors = resourceErrorsByPipelineIdentifier resources }, Cmd.none )
 
-                        NewTopBar.KeyDown keycode ->
-                            if keycode == 13 then
+                    _ ->
+                        ( model, Cmd.none )
+
+            VersionFetched (Ok version) ->
+                ( { model | concourseVersion = version }, Cmd.none )
+
+            VersionFetched (Err err) ->
+                ( { model | concourseVersion = "" }, Cmd.none )
+
+            ClockTick now ->
+                if model.hideFooterCounter + Time.second > 5 * Time.second then
+                    ( { model | now = Just now, hideFooter = True }, Cmd.none )
+                else
+                    ( { model | now = Just now, hideFooterCounter = model.hideFooterCounter + Time.second }, Cmd.none )
+
+            AutoRefresh _ ->
+                ( model
+                , reload
+                )
+
+            KeyPressed keycode ->
+                handleKeyPressed (Char.fromCode keycode) model
+
+            KeyDowns keycode ->
+                update (TopBarMsg (NewTopBar.KeyDown keycode)) model
+
+            ShowFooter ->
+                ( { model | hideFooter = False, hideFooterCounter = 0 }, Cmd.none )
+
+            TopBarMsg msg ->
+                let
+                    ( newTopBar, newTopBarMsg ) =
+                        NewTopBar.update msg model.topBar
+
+                    newModel =
+                        case msg of
+                            NewTopBar.FilterMsg query ->
                                 { model
                                     | topBar = newTopBar
-                                    , filteredPipelines = filter newTopBar.query model
+                                    , filteredPipelines = filter query model
                                 }
-                            else
+
+                            NewTopBar.KeyDown keycode ->
+                                if keycode == 13 then
+                                    { model
+                                        | topBar = newTopBar
+                                        , filteredPipelines = filter newTopBar.query model
+                                    }
+                                else
+                                    { model | topBar = newTopBar }
+
+                            _ ->
                                 { model | topBar = newTopBar }
 
-                        _ ->
-                            { model | topBar = newTopBar }
-            in
-                ( newModel, Cmd.map TopBarMsg newTopBarMsg )
+                    newMsg =
+                        case msg of
+                            NewTopBar.LoggedOut (Ok _) ->
+                                reload
+
+                            _ ->
+                                Cmd.map TopBarMsg newTopBarMsg
+                in
+                    ( newModel, newMsg )
 
 
 subscriptions : Model -> Sub Msg

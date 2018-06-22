@@ -6,6 +6,7 @@ describe 'dashboard', type: :feature do
 
   let(:team_name) { generate_team_name }
   let(:fly_home) { Dir.mktmpdir }
+  let(:username) { ATC_USERNAME }
 
   before(:each) do
     fly_login 'main'
@@ -284,6 +285,34 @@ describe 'dashboard', type: :feature do
       visit_dashboard
       expect(page).to have_css("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]")
       expect(page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
+    end
+  end
+
+  describe 'logout' do
+    context 'with user logged in' do
+      before(:each) do
+        fly('set-pipeline -n -p some-other-pipeline -c fixtures/states-pipeline.yml')
+        fly('expose-pipeline -p some-other-pipeline')
+      end
+
+      it 'logout current user' do
+        visit_dashboard
+
+        expect(page).to have_content "#{ATC_USERNAME}"
+        expect(page).to have_content 'some-pipeline'
+        expect(page).to have_content 'some-other-pipeline'
+
+        page.find('.user-id', :text => username).click
+        expect(page).to have_content 'logout'
+
+        page.find('.user-menu', :text => 'logout').click
+
+        expect(page).to_not have_content 'logout'
+        expect(page).to have_content 'login'
+
+        expect(page).to have_content 'some-other-pipeline'
+        expect(page).to_not have_content 'some-pipeline'
+      end
     end
   end
 

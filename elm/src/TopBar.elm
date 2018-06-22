@@ -126,12 +126,12 @@ update msg model =
             , Navigation.newUrl "/"
             )
 
-        ResetToPipeline url ->
-            ( model, Cmd.batch [ Navigation.newUrl url, Pipeline.resetPipelineFocus () ] )
-
         LoggedOut (Err err) ->
             flip always (Debug.log "failed to log out" err) <|
                 ( model, Cmd.none )
+
+        ResetToPipeline url ->
+            ( model, Cmd.batch [ Navigation.newUrl url, Pipeline.resetPipelineFocus () ] )
 
         ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )

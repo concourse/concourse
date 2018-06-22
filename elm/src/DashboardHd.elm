@@ -84,66 +84,78 @@ init ports turbulencePath =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        Noop ->
-            ( model, Cmd.none )
-
-        PipelinesResponse response ->
-            case response of
-                RemoteData.Success pipelines ->
-                    ( { model | mPipelines = response, pipelines = pipelines }, Cmd.batch [ fetchAllJobs, fetchAllResources ] )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        JobsResponse response ->
-            case ( response, model.mPipelines ) of
-                ( RemoteData.Success jobs, RemoteData.Success pipelines ) ->
-                    ( { model | mJobs = response, pipelineJobs = jobsByPipelineId pipelines jobs }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        ResourcesResponse response ->
-            case ( response, model.mPipelines ) of
-                ( RemoteData.Success resources, RemoteData.Success pipelines ) ->
-                    ( { model | pipelineResourceErrors = resourceErrorsByPipelineIdentifier resources }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        VersionFetched (Ok version) ->
-            ( { model | concourseVersion = version }, Cmd.none )
-
-        VersionFetched (Err err) ->
-            ( { model | concourseVersion = "" }, Cmd.none )
-
-        ClockTick now ->
-            if model.hideFooterCounter + Time.second > 5 * Time.second then
-                ( { model | now = Just now, hideFooter = True }, Cmd.none )
-            else
-                ( { model | now = Just now, hideFooterCounter = model.hideFooterCounter + Time.second }, Cmd.none )
-
-        AutoRefresh _ ->
-            ( model
-            , Cmd.batch <|
+    let
+        reload =
+            Cmd.batch <|
                 (if model.mPipelines == RemoteData.Loading then
                     []
                  else
                     [ fetchPipelines ]
                 )
                     ++ [ fetchVersion, Cmd.map TopBarMsg NewTopBar.fetchUser ]
-            )
+    in
+        case msg of
+            Noop ->
+                ( model, Cmd.none )
 
-        ShowFooter ->
-            ( { model | hideFooter = False, hideFooterCounter = 0 }, Cmd.none )
+            PipelinesResponse response ->
+                case response of
+                    RemoteData.Success pipelines ->
+                        ( { model | mPipelines = response, pipelines = pipelines }, Cmd.batch [ fetchAllJobs, fetchAllResources ] )
 
-        TopBarMsg msg ->
-            let
-                ( newTopBar, newTopBarMsg ) =
-                    NewTopBar.update msg model.topBar
-            in
-                ( { model | topBar = newTopBar }, Cmd.map TopBarMsg newTopBarMsg )
+                    _ ->
+                        ( model, Cmd.none )
+
+            JobsResponse response ->
+                case ( response, model.mPipelines ) of
+                    ( RemoteData.Success jobs, RemoteData.Success pipelines ) ->
+                        ( { model | mJobs = response, pipelineJobs = jobsByPipelineId pipelines jobs }, Cmd.none )
+
+                    _ ->
+                        ( model, Cmd.none )
+
+            ResourcesResponse response ->
+                case ( response, model.mPipelines ) of
+                    ( RemoteData.Success resources, RemoteData.Success pipelines ) ->
+                        ( { model | pipelineResourceErrors = resourceErrorsByPipelineIdentifier resources }, Cmd.none )
+
+                    _ ->
+                        ( model, Cmd.none )
+
+            VersionFetched (Ok version) ->
+                ( { model | concourseVersion = version }, Cmd.none )
+
+            VersionFetched (Err err) ->
+                ( { model | concourseVersion = "" }, Cmd.none )
+
+            ClockTick now ->
+                if model.hideFooterCounter + Time.second > 5 * Time.second then
+                    ( { model | now = Just now, hideFooter = True }, Cmd.none )
+                else
+                    ( { model | now = Just now, hideFooterCounter = model.hideFooterCounter + Time.second }, Cmd.none )
+
+            AutoRefresh _ ->
+                ( model
+                , reload
+                )
+
+            ShowFooter ->
+                ( { model | hideFooter = False, hideFooterCounter = 0 }, Cmd.none )
+
+            TopBarMsg msg ->
+                let
+                    ( newTopBar, newTopBarMsg ) =
+                        NewTopBar.update msg model.topBar
+
+                    newMsg =
+                        case msg of
+                            NewTopBar.LoggedOut (Ok _) ->
+                                reload
+
+                            _ ->
+                                Cmd.map TopBarMsg newTopBarMsg
+                in
+                    ( { model | topBar = newTopBar }, newMsg )
 
 
 subscriptions : Model -> Sub Msg
@@ -189,8 +201,8 @@ pipelinesView model pipelines =
                 (pipelinesWithJobs model.pipelineJobs model.pipelineResourceErrors pipelines)
 
         sortedPipelinesByTeam =
-            case model.topBar.user of
-                RemoteData.Success user ->
+            case model.topBar.userState of
+                NewTopBar.UserStateLoggedIn _ ->
                     case pipelinesByTeam of
                         [] ->
                             []
