@@ -1,8 +1,6 @@
 package db
 
 import (
-	"time"
-
 	"github.com/concourse/atc"
 )
 
@@ -14,9 +12,8 @@ type VersionedResource struct {
 }
 
 type SavedVersionedResource struct {
-	ID           int
-	Enabled      bool
-	ModifiedTime time.Time
+	ID      int
+	Enabled bool
 	VersionedResource
 	CheckOrder int
 }

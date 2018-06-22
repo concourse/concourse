@@ -117,7 +117,7 @@ type pipeline struct {
 	paused        bool
 	public        bool
 
-	cachedAt   time.Time
+	cacheIndex int
 	versionsDB *algorithm.VersionsDB
 
 	conn        Conn
@@ -405,6 +405,11 @@ func (p *pipeline) SaveResourceVersions(config atc.ResourceConfig, versions []at
 		}
 	}
 
+	err = bumpCacheIndex(tx, p.id)
+	if err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }
 
@@ -574,7 +579,7 @@ func (p *pipeline) GetLatestVersionedResource(resourceName string) (SavedVersion
 		},
 	}
 
-	err := psql.Select("v.id, v.enabled, v.type, v.version, v.metadata, v.modified_time, v.check_order").
+	err := psql.Select("v.id, v.enabled, v.type, v.version, v.metadata, v.check_order").
 		From("versioned_resources v, resources r").
 		Where(sq.Eq{
 			"r.name":        resourceName,
@@ -585,7 +590,7 @@ func (p *pipeline) GetLatestVersionedResource(resourceName string) (SavedVersion
 		Limit(1).
 		RunWith(p.conn).
 		QueryRow().
-		Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.ModifiedTime, &svr.CheckOrder)
+		Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.CheckOrder)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return SavedVersionedResource{}, false, nil
@@ -1008,12 +1013,18 @@ func (p *pipeline) Destroy() error {
 }
 
 func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
-	latestModifiedTime, err := p.getLatestModifiedTime()
+	var cacheIndex int
+	err := psql.Select("cache_index").
+		From("pipelines").
+		Where(sq.Eq{"id": p.id}).
+		RunWith(p.conn).
+		QueryRow().
+		Scan(&cacheIndex)
 	if err != nil {
 		return nil, err
 	}
 
-	if p.versionsDB != nil && p.cachedAt.Equal(latestModifiedTime) {
+	if p.versionsDB != nil && p.cacheIndex == cacheIndex {
 		return p.versionsDB, nil
 	}
 
@@ -1165,7 +1176,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	}
 
 	p.versionsDB = db
-	p.cachedAt = latestModifiedTime
+	p.cacheIndex = cacheIndex
 
 	return db, nil
 }
@@ -1311,6 +1322,11 @@ func (p *pipeline) saveOutput(buildID int, vr VersionedResource) error {
 		return err
 	}
 
+	err = bumpCacheIndex(tx, p.id)
+	if err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }
 
@@ -1386,12 +1402,11 @@ func (p *pipeline) saveVersionedResource(tx Tx, resourceID int, vr VersionedReso
 
 	var id int
 	var enabled bool
-	var modifiedTime time.Time
 	var checkOrder int
 
 	result, err := tx.Exec(`
-		INSERT INTO versioned_resources (resource_id, type, version, metadata, modified_time)
-		SELECT $1, $2, $3, $4, now()
+		INSERT INTO versioned_resources (resource_id, type, version, metadata)
+		SELECT $1, $2, $3, $4
 		WHERE NOT EXISTS (
 			SELECT 1
 			FROM versioned_resources
@@ -1420,18 +1435,17 @@ func (p *pipeline) saveVersionedResource(tx Tx, resourceID int, vr VersionedReso
 	if len(vr.Metadata) > 0 {
 		err = psql.Update("versioned_resources").
 			Set("metadata", string(metadataJSON)).
-			Set("modified_time", sq.Expr("now()")).
 			Where(sq.Eq{
 				"resource_id": resourceID,
 				"type":        vr.Type,
 				"version":     string(versionJSON),
 			}).
-			Suffix("RETURNING id, enabled, metadata, modified_time, check_order").
+			Suffix("RETURNING id, enabled, metadata, check_order").
 			RunWith(tx).
 			QueryRow().
-			Scan(&id, &enabled, &savedMetadata, &modifiedTime, &checkOrder)
+			Scan(&id, &enabled, &savedMetadata, &checkOrder)
 	} else {
-		err = psql.Select("id, enabled, metadata, modified_time, check_order").
+		err = psql.Select("id, enabled, metadata, check_order").
 			From("versioned_resources").
 			Where(sq.Eq{
 				"resource_id": resourceID,
@@ -1440,7 +1454,7 @@ func (p *pipeline) saveVersionedResource(tx Tx, resourceID int, vr VersionedReso
 			}).
 			RunWith(tx).
 			QueryRow().
-			Scan(&id, &enabled, &savedMetadata, &modifiedTime, &checkOrder)
+			Scan(&id, &enabled, &savedMetadata, &checkOrder)
 	}
 	if err != nil {
 		return SavedVersionedResource{}, false, err
@@ -1453,9 +1467,8 @@ func (p *pipeline) saveVersionedResource(tx Tx, resourceID int, vr VersionedReso
 
 	created := rowsAffected != 0
 	return SavedVersionedResource{
-		ID:           id,
-		Enabled:      enabled,
-		ModifiedTime: modifiedTime,
+		ID:      id,
+		Enabled: enabled,
 
 		VersionedResource: vr,
 		CheckOrder:        checkOrder,
@@ -1482,11 +1495,17 @@ func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, re
 }
 
 func (p *pipeline) toggleVersionedResource(versionedResourceID int, enable bool) error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
 	rows, err := psql.Update("versioned_resources").
 		Set("enabled", enable).
-		Set("modified_time", sq.Expr("now()")).
 		Where(sq.Eq{"id": versionedResourceID}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 	if err != nil {
 		return err
@@ -1501,41 +1520,12 @@ func (p *pipeline) toggleVersionedResource(versionedResourceID int, enable bool)
 		return nonOneRowAffectedError{rowsAffected}
 	}
 
-	return nil
-}
+	err = bumpCacheIndex(tx, p.id)
+	if err != nil {
+		return err
+	}
 
-func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
-	var maxModifiedTime time.Time
-
-	err := p.conn.QueryRow(`
-	SELECT
-		CASE
-			WHEN b_max > vr_max AND b_max > bi_max THEN b_max
-			WHEN bi_max > vr_max THEN bi_max
-			ELSE vr_max
-		END
-	FROM
-		(
-			SELECT COALESCE(MAX(b.end_time), 'epoch') as b_max
-			FROM builds b
-			WHERE b.pipeline_id = $1
-		) bo,
-		(
-			SELECT COALESCE(MAX(bi.modified_time), 'epoch') as bi_max
-			FROM build_inputs bi
-			LEFT OUTER JOIN versioned_resources v ON v.id = bi.versioned_resource_id
-			LEFT OUTER JOIN resources r ON r.id = v.resource_id
-			WHERE r.pipeline_id = $1
-		) bi,
-		(
-			SELECT COALESCE(MAX(vr.modified_time), 'epoch') as vr_max
-			FROM versioned_resources vr
-			LEFT OUTER JOIN resources r ON r.id = vr.resource_id
-			WHERE r.pipeline_id = $1
-		) vr
-	`, p.id).Scan(&maxModifiedTime)
-
-	return maxModifiedTime, err
+	return tx.Commit()
 }
 
 func (p *pipeline) getBuildsFrom(view string) (map[string]Build, error) {
@@ -1561,6 +1551,28 @@ func (p *pipeline) getBuildsFrom(view string) (map[string]Build, error) {
 	}
 
 	return nextBuilds, nil
+}
+
+func bumpCacheIndex(tx Tx, pipelineID int) error {
+	res, err := psql.Update("pipelines").
+		Set("cache_index", sq.Expr("cache_index + 1")).
+		Where(sq.Eq{"id": pipelineID}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows != 1 {
+		return nonOneRowAffectedError{rows}
+	}
+
+	return nil
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {

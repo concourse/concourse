@@ -3,7 +3,6 @@ package db_test
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -1000,8 +999,6 @@ var _ = Describe("Pipeline", func() {
 			savedVR1, found, err := dbPipeline.GetLatestVersionedResource(resource.Name())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(savedVR1.ModifiedTime).ToNot(BeNil())
-			Expect(savedVR1.ModifiedTime).To(BeTemporally(">", time.Time{}))
 
 			err = dbPipeline.SaveResourceVersions(atc.ResourceConfig{
 				Name:   resource.Name(),
@@ -1352,7 +1349,6 @@ var _ = Describe("Pipeline", func() {
 				Expect(savedVR.Resource).To(Equal("some-resource"))
 				Expect(savedVR.Type).To(Equal("some-type"))
 				Expect(savedVR.Version).To(Equal(db.ResourceVersion{"version": "1"}))
-				initialTime := savedVR.ModifiedTime
 
 				err = dbPipeline.DisableVersionedResource(savedVR.ID)
 				Expect(err).ToNot(HaveOccurred())
@@ -1367,9 +1363,6 @@ var _ = Describe("Pipeline", func() {
 				Expect(latestVR.Type).To(Equal(disabledVR.Type))
 				Expect(latestVR.Version).To(Equal(disabledVR.Version))
 				Expect(latestVR.Enabled).To(BeFalse())
-				Expect(latestVR.ModifiedTime).To(BeTemporally(">", initialTime))
-
-				tmp_modified_time := latestVR.ModifiedTime
 
 				err = dbPipeline.EnableVersionedResource(savedVR.ID)
 				Expect(err).ToNot(HaveOccurred())
@@ -1384,7 +1377,6 @@ var _ = Describe("Pipeline", func() {
 				Expect(latestVR.Type).To(Equal(enabledVR.Type))
 				Expect(latestVR.Version).To(Equal(enabledVR.Version))
 				Expect(latestVR.Enabled).To(BeTrue())
-				Expect(latestVR.ModifiedTime).To(BeTemporally(">", tmp_modified_time))
 			})
 
 			It("doesn't change the check_order when saving a new build input", func() {
@@ -1893,6 +1885,36 @@ var _ = Describe("Pipeline", func() {
 				cachedVersionsDB, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
+			})
+
+			It("will not cache VersionsDB if a resource version is disabled or enabled", func() {
+				err := pipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Expect(err).ToNot(HaveOccurred())
+
+				versionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+
+				vr, found, err := pipeline.GetLatestVersionedResource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = pipeline.DisableVersionedResource(vr.ID)
+				Expect(err).ToNot(HaveOccurred())
+
+				cachedVersionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
+
+				err = pipeline.EnableVersionedResource(vr.ID)
+				Expect(err).ToNot(HaveOccurred())
+
+				cachedVersionsDB2, err := pipeline.LoadVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cachedVersionsDB != cachedVersionsDB2).To(BeTrue(), "Expected VersionsDB to be different objects")
 			})
 
 			Context("when the build outputs are added for a different pipeline", func() {
