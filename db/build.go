@@ -334,6 +334,13 @@ func (b *build) Finish(status BuildStatus) error {
 		}
 	}
 
+	if b.jobID != 0 {
+		err = bumpCacheIndex(tx, b.pipelineID)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return err
@@ -742,6 +749,11 @@ func (b *build) SaveInput(input BuildInput) error {
 		return err
 	}
 
+	err = bumpCacheIndex(tx, b.pipelineID)
+	if err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }
 
@@ -791,6 +803,11 @@ func (b *build) UseInputs(inputs []BuildInput) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	err = bumpCacheIndex(tx, b.pipelineID)
+	if err != nil {
+		return err
 	}
 
 	return tx.Commit()
@@ -904,8 +921,7 @@ func (b *build) GetVersionedResources() (SavedVersionedResources, error) {
 			vr.version,
 			vr.metadata,
 			vr.type,
-			r.name,
-			vr.modified_time
+			r.name
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN build_inputs bi ON bi.build_id = b.id
@@ -920,8 +936,7 @@ func (b *build) GetVersionedResources() (SavedVersionedResources, error) {
 			vr.version,
 			vr.metadata,
 			vr.type,
-			r.name,
-			vr.modified_time
+			r.name
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN build_outputs bo ON bo.build_id = b.id
@@ -945,7 +960,7 @@ func (b *build) getVersionedResources(resourceRequest string) (SavedVersionedRes
 		var versionedResource SavedVersionedResource
 		var versionJSON []byte
 		var metadataJSON []byte
-		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource, &versionedResource.ModifiedTime)
+		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource)
 		if err != nil {
 			return nil, err
 		}
