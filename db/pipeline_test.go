@@ -1914,7 +1914,7 @@ var _ = Describe("Pipeline", func() {
 
 				cachedVersionsDB2, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(versionsDB != cachedVersionsDB2).To(BeTrue(), "Expected VersionsDB to be different objects")
+				Expect(cachedVersionsDB != cachedVersionsDB2).To(BeTrue(), "Expected VersionsDB to be different objects")
 			})
 
 			Context("when the build outputs are added for a different pipeline", func() {
