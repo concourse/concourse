@@ -7,6 +7,11 @@
     released with the fix.
   }
 
+  \warn{
+    There is a known issue where you may see high CPU usage as a result of
+    constant CredHub client connection \ghissue{2300}
+  }
+
   \note{feature}{
     You know that "home" icon that you click all the time and never fully know
     where it'll take you? Do you remember that empty feeling of not really
