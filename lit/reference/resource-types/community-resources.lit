@@ -198,6 +198,8 @@ before using it!
   \table-row{\link{Yahoo! Weather Resource}{https://github.com/kehrlann/weather-resource}}{by \ghuser{Kehrlann}}
 }{
   \table-row{\link{Slack build alerts}{https://github.com/arbourd/concourse-slack-alert-resource}}{by \ghuser{arbourd}}
+}{
+  \table-row{\link{Spring Initializr Resource}{https://github.com/jghiloni/spring-initializr-resource}}{by \ghuser{jghiloni}}
 }
 
 \section{
