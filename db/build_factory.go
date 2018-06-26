@@ -67,24 +67,14 @@ func (f *buildFactory) PublicBuilds(page Page) ([]Build, Pagination, error) {
 }
 
 func (f *buildFactory) MarkNonInterceptibleBuilds() error {
-	latestBuildsPrefix := `WITH
-		latest_builds AS (
-			SELECT COALESCE(MAX(b.id)) AS build_id
-			FROM builds b, jobs j
-			WHERE b.job_id = j.id
-			AND b.completed
-			GROUP BY j.id
-		)`
-
-	_, err := psql.Update("builds").
-		Prefix(latestBuildsPrefix).
+	_, err := psql.Update("builds b").
 		Set("interceptible", false).
 		Where(sq.Eq{
 			"completed":     true,
 			"interceptible": true,
 		}).
 		Where(sq.Or{
-			sq.Expr("id NOT IN (select build_id FROM latest_builds)"),
+			sq.Expr("NOT EXISTS (SELECT 1 FROM latest_completed_builds_per_job l WHERE l.id = b.id)"),
 			sq.Eq{"status": string(BuildStatusSucceeded)},
 		}).
 		RunWith(f.conn).
