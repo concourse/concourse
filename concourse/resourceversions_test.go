@@ -3,6 +3,7 @@ package concourse_test
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
@@ -225,6 +226,140 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 				Expect(pagination.Previous).To(BeNil())
 				Expect(pagination.Next).To(BeNil())
+			})
+		})
+	})
+
+	Describe("DisableResourceVersion", func() {
+		var (
+			expectedStatus    int
+			pipelineName      = "banana"
+			resourceName      = "myresource"
+			resourceVersionID = 42
+			expectedURL       = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/versions/%s/disable", pipelineName, resourceName, strconv.Itoa(resourceVersionID))
+		)
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.RespondWith(expectedStatus, nil),
+				),
+			)
+		})
+
+		Context("when the resource exists and there are no issues", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusOK
+			})
+
+			It("calls the disable resource and returns no error", func() {
+				Expect(func() {
+					disabled, err := team.DisableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(disabled).To(BeTrue())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the disable resource call fails", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusInternalServerError
+			})
+
+			It("calls the disable resource and returns an error", func() {
+				Expect(func() {
+					disabled, err := team.DisableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					Expect(err).To(HaveOccurred())
+					Expect(disabled).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the resource does not exist", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusNotFound
+			})
+
+			It("calls the disable resource and returns an error", func() {
+				Expect(func() {
+					disabled, err := team.DisableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(disabled).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+	})
+
+	Describe("EnableResourceVersion", func() {
+		var (
+			expectedStatus    int
+			pipelineName      = "banana"
+			resourceName      = "myresource"
+			resourceVersionID = 42
+			expectedURL       = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/versions/%s/enable", pipelineName, resourceName, strconv.Itoa(resourceVersionID))
+		)
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.RespondWith(expectedStatus, nil),
+				),
+			)
+		})
+
+		Context("when the resource exists and there are no issues", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusOK
+			})
+
+			It("calls the enable resource and returns no error", func() {
+				Expect(func() {
+					enabled, err := team.EnableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(enabled).To(BeTrue())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the enable resource call fails", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusInternalServerError
+			})
+
+			It("calls the enable resource and returns an error", func() {
+				Expect(func() {
+					enabled, err := team.EnableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					Expect(err).To(HaveOccurred())
+					Expect(enabled).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the resource does not exist", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusNotFound
+			})
+
+			It("calls the enable resource and returns an error", func() {
+				Expect(func() {
+					enabled, err := team.EnableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(enabled).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
 			})
 		})
 	})
