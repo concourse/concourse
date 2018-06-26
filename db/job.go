@@ -568,12 +568,12 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	err = tx.Commit()
+	err = updateNextBuildForJob(tx, j.id)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = j.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY next_builds_per_job`)
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}

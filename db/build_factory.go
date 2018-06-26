@@ -74,7 +74,7 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 			"interceptible": true,
 		}).
 		Where(sq.Or{
-			sq.Expr("NOT EXISTS (SELECT 1 FROM latest_completed_builds_per_job l WHERE l.id = b.id)"),
+			sq.Expr("NOT EXISTS (SELECT 1 FROM jobs j WHERE j.latest_completed_build_id = b.id)"),
 			sq.Eq{"status": string(BuildStatusSucceeded)},
 		}).
 		RunWith(f.conn).

@@ -68,17 +68,17 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 		jobIDs = append(jobIDs, job.ID())
 	}
 
-	nextBuilds, err := j.getBuildsFrom("next_builds_per_job", jobIDs)
+	nextBuilds, err := j.getBuildsFrom("next_build_id", jobIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	finishedBuilds, err := j.getBuildsFrom("latest_completed_builds_per_job", jobIDs)
+	finishedBuilds, err := j.getBuildsFrom("latest_completed_build_id", jobIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	transitionBuilds, err := j.getBuildsFrom("transition_builds_per_job", jobIDs)
+	transitionBuilds, err := j.getBuildsFrom("transition_build_id", jobIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -105,10 +105,10 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 	return dashboard, nil
 }
 
-func (j *jobFactory) getBuildsFrom(view string, jobIDs []int) (map[int]Build, error) {
+func (j *jobFactory) getBuildsFrom(col string, jobIDs []int) (map[int]Build, error) {
 	rows, err := buildsQuery.
-		From(view + " b").
 		Where(sq.Eq{"j.id": jobIDs}).
+		Where(sq.Expr("j." + col + " = b.id")).
 		RunWith(j.conn).Query()
 	if err != nil {
 		return nil, err
