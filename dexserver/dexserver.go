@@ -62,8 +62,9 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 				Config: c,
 			})
 		} else {
-			config.Logger.Error("connector-config-error", err, lager.Data{
+			config.Logger.Info("connector-not-configured", lager.Data{
 				"connector": connector.Name(),
+				"reason":    err.Error(),
 			})
 		}
 	}
