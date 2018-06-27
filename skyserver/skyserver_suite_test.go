@@ -49,7 +49,7 @@ var _ = BeforeEach(func() {
 	fakeTokenIssuer = new(tokenfakes.FakeIssuer)
 
 	dexServer = ghttp.NewTLSServer()
-	dexIssuerUrl := dexServer.URL() + "/sky/dex"
+	dexIssuerUrl := dexServer.URL() + "/sky/issuer"
 
 	signingKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	Expect(err).NotTo(HaveOccurred())

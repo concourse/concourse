@@ -47,7 +47,7 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	issuerUrl := serverURL.String() + "/sky/dex"
+	issuerUrl := serverURL.String() + "/sky/issuer"
 	redirectUrl := serverURL.String() + "/sky/callback"
 
 	tokenVerifier := token.NewVerifier(clientId, issuerUrl)
@@ -82,7 +82,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	handler := http.NewServeMux()
-	handler.Handle("/sky/dex/", dexServer)
+	handler.Handle("/sky/issuer/", dexServer)
 	handler.Handle("/sky/", skyserver.NewSkyHandler(skyServer))
 
 	return &Server{handler, signingKey}, nil

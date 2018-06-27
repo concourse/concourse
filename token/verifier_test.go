@@ -74,7 +74,7 @@ var _ = Describe("Token Verifier", func() {
 
 			BeforeEach(func() {
 				dexServer = ghttp.NewServer()
-				dexIssuerUrl = dexServer.URL() + "/sky/dex"
+				dexIssuerUrl = dexServer.URL() + "/sky/issuer"
 
 				var err error
 				signingKey, err = rsa.GenerateKey(rand.Reader, 2048)
@@ -82,7 +82,7 @@ var _ = Describe("Token Verifier", func() {
 
 				dexServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/sky/dex/.well-known/openid-configuration"),
+						ghttp.VerifyRequest("GET", "/sky/issuer/.well-known/openid-configuration"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]interface{}{
 							"issuer":         dexIssuerUrl,
 							"jwks_uri":       dexIssuerUrl + "/keys",
@@ -90,7 +90,7 @@ var _ = Describe("Token Verifier", func() {
 						}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/sky/dex/keys"),
+						ghttp.VerifyRequest("GET", "/sky/issuer/keys"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]interface{}{
 							"keys": []map[string]string{{
 								"kty": "RSA",

@@ -31,7 +31,7 @@ var _ = Describe("Sky Server API", func() {
 			BeforeEach(func() {
 				dexServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/sky/dex/auth"),
+						ghttp.VerifyRequest("GET", "/sky/issuer/auth"),
 						ghttp.VerifyFormKV("scope", "openid profile email federated:id groups"),
 						ghttp.RespondWith(http.StatusTemporaryRedirect, nil, http.Header{
 							"Location": {"http://example.com"},
@@ -53,10 +53,10 @@ var _ = Describe("Sky Server API", func() {
 				Expect(cookies).To(HaveLen(1))
 			})
 
-			It("redirects the initial request to /sky/dex/auth", func() {
+			It("redirects the initial request to /sky/issuer/auth", func() {
 				redirectUrl, err := response.Location()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(redirectUrl.Path).To(Equal("/sky/dex/auth"))
+				Expect(redirectUrl.Path).To(Equal("/sky/issuer/auth"))
 
 				redirectValues := redirectUrl.Query()
 				Expect(redirectValues.Get("access_type")).To(Equal("offline"))
@@ -194,7 +194,7 @@ var _ = Describe("Sky Server API", func() {
 				BeforeEach(func() {
 					dexServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("POST", "/sky/dex/token"),
+							ghttp.VerifyRequest("POST", "/sky/issuer/token"),
 							ghttp.RespondWith(http.StatusInternalServerError, nil),
 						),
 					)
@@ -212,7 +212,7 @@ var _ = Describe("Sky Server API", func() {
 				BeforeEach(func() {
 					dexServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("POST", "/sky/dex/token"),
+							ghttp.VerifyRequest("POST", "/sky/issuer/token"),
 							ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
 							ghttp.VerifyFormKV("grant_type", "authorization_code"),
 							ghttp.VerifyFormKV("code", "some-code"),
@@ -434,7 +434,7 @@ var _ = Describe("Sky Server API", func() {
 				BeforeEach(func() {
 					dexServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("POST", "/sky/dex/token"),
+							ghttp.VerifyRequest("POST", "/sky/issuer/token"),
 							ghttp.RespondWith(http.StatusInternalServerError, nil),
 						),
 					)
@@ -452,7 +452,7 @@ var _ = Describe("Sky Server API", func() {
 				BeforeEach(func() {
 					dexServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("POST", "/sky/dex/token"),
+							ghttp.VerifyRequest("POST", "/sky/issuer/token"),
 							ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
 							ghttp.VerifyFormKV("grant_type", "password"),
 							ghttp.VerifyFormKV("username", "some-username"),
