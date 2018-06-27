@@ -9,9 +9,9 @@ Concourse (pipelines, builds, etc.) with its own auth configuration. A team may
 whitelist users or groups either from local auth or from an external provider
 such as GitHub, UAA, etc.
 
-As described in \reference{auth-config}, teams are no longer used to log in to
-Concourse. Instead, you can add preconfigured users to various teams as shown
-in \reference{authentication} below.
+As described in \reference{auth-config}, onced logged into Concourse, a user
+will belong to one or more teams. They may perform any actions that are
+permitted by that team.
 
 \split-sections
 \table-of-contents

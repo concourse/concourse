@@ -77,9 +77,9 @@ page.
 
   In contrast to previous releases of Concourse, \code{users} are now central
   to the authentication flow. Instead of logging in as a team, you now log in
-  as a user and can belong to one or more teams. Once users have been
-  configured at startup, they can be added to a team by configuring the team's
-  whitelist as described in \reference{authentication}.
+  as a user and can belong to one or more teams. Users can be added to a team
+  by configuring the team's whitelist as described in
+  \reference{authentication}.
 
   \section{
     \title{Local Auth}{local-auth-config}
@@ -147,6 +147,10 @@ page.
 
   \section{
     \title{CF Auth}{cf-auth-config}
+
+    Cloud Foundry (CF) Auth can be used for operators who wish to authenticate
+    their users configured against their Cloud Foundry instance via the UAA
+    product.
 
     \section{
       \title{Creating the client}
