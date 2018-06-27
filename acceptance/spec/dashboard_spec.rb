@@ -208,11 +208,10 @@ describe 'dashboard', type: :feature do
         fly('trigger-job -j some-pipeline/running')
         fly('abort-build -j some-pipeline/running -b 1')
         visit_dashboard
-        sleep 5
       end
 
       it 'is shown in brown' do
-        expect(page).to have_css('.dashboard-pipeline.dashboard-status-aborted')
+        expect(page).to have_css('.dashboard-pipeline.dashboard-status-aborted', wait: 30)
         expect(banner_palette).to eq(BROWN)
       end
     end
@@ -390,11 +389,10 @@ describe 'dashboard', type: :feature do
         fly('trigger-job -j some-pipeline/running')
         fly('abort-build -j some-pipeline/running -b 1')
         visit_hd_dashboard
-        sleep 5
       end
 
       it 'has a brown banner' do
-        expect(page).to have_css('.dashboard-pipeline.dashboard-status-aborted')
+        expect(page).to have_css('.dashboard-pipeline.dashboard-status-aborted', wait: 30)
         expect(banner_palette).to eq(BROWN)
       end
 

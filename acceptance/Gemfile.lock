@@ -57,6 +57,8 @@ GEM
     rspec-mocks (3.7.0)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.7.0)
+    rspec-retry (0.6.1)
+      rspec-core (> 3.3)
     rspec-support (3.7.1)
     rubocop (0.54.0)
       parallel (~> 1.10)
@@ -81,6 +83,7 @@ DEPENDENCIES
   launchy
   parallel_tests
   rspec
+  rspec-retry
   rubocop
   selenium-webdriver!
 
