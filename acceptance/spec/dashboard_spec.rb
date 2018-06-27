@@ -12,7 +12,7 @@ describe 'dashboard', type: :feature do
     fly_login 'main'
     fly_with_input("set-team -n #{team_name} --local-user=#{ATC_USERNAME}", 'y')
     fly_login team_name
-    fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml')
+    fly('set-pipeline -n -p some-pipeline -c fixtures/dashboard-pipeline.yml')
     fly('unpause-pipeline -p some-pipeline')
   end
 
@@ -56,9 +56,9 @@ describe 'dashboard', type: :feature do
         fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
 
         fly_login other_team_name
-        fly('set-pipeline -n -p other-pipeline-private -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p other-pipeline-private -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p other-pipeline-private')
-        fly('set-pipeline -n -p other-pipeline-public -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p other-pipeline-public -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p other-pipeline-public')
         fly('expose-pipeline -p other-pipeline-public')
 
@@ -99,31 +99,31 @@ describe 'dashboard', type: :feature do
       before do
         fly('destroy-pipeline -n -p some-pipeline')
 
-        fly('set-pipeline -n -p failing-pipeline -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p failing-pipeline -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p failing-pipeline')
         fly_fail('trigger-job -w -j failing-pipeline/failing')
 
-        fly('set-pipeline -n -p other-failing-pipeline -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p other-failing-pipeline -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p other-failing-pipeline')
         fly_fail('trigger-job -w -j other-failing-pipeline/failing')
         fly('trigger-job -j other-failing-pipeline/running')
 
-        fly('set-pipeline -n -p errored-pipeline -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p errored-pipeline -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p errored-pipeline')
         fly_fail('trigger-job -w -j errored-pipeline/erroring')
 
-        fly('set-pipeline -n -p aborted-pipeline -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p aborted-pipeline -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p aborted-pipeline')
         fly('trigger-job -j aborted-pipeline/running')
         fly('abort-build -j aborted-pipeline/running -b 1')
 
-        fly('set-pipeline -n -p paused-pipeline -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p paused-pipeline -c fixtures/dashboard-pipeline.yml')
 
-        fly('set-pipeline -n -p succeeded-pipeline -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p succeeded-pipeline -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p succeeded-pipeline')
         fly('trigger-job -w -j succeeded-pipeline/passing')
 
-        fly('set-pipeline -n -p pending-pipeline -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p pending-pipeline -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p pending-pipeline')
 
         fly('expose-pipeline -p failing-pipeline')
@@ -181,7 +181,7 @@ describe 'dashboard', type: :feature do
 
     context 'when a pipeline has a failed build' do
       before(:each) do
-        fly('set-pipeline -n -p some-other-pipeline -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p some-other-pipeline -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p some-other-pipeline')
         fly_fail('trigger-job -w -j some-other-pipeline/failing')
       end
@@ -207,10 +207,11 @@ describe 'dashboard', type: :feature do
       before do
         fly('trigger-job -j some-pipeline/running')
         fly('abort-build -j some-pipeline/running -b 1')
+        visit_dashboard
+        sleep 5
       end
 
       it 'is shown in brown' do
-        visit_dashboard
         expect(page).to have_css('.dashboard-pipeline.dashboard-status-aborted')
         expect(banner_palette).to eq(BROWN)
       end
@@ -291,7 +292,7 @@ describe 'dashboard', type: :feature do
   describe 'logout' do
     context 'with user logged in' do
       before(:each) do
-        fly('set-pipeline -n -p some-other-pipeline -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p some-other-pipeline -c fixtures/dashboard-pipeline.yml')
         fly('expose-pipeline -p some-other-pipeline')
       end
 
@@ -389,6 +390,7 @@ describe 'dashboard', type: :feature do
         fly('trigger-job -j some-pipeline/running')
         fly('abort-build -j some-pipeline/running -b 1')
         visit_hd_dashboard
+        sleep 5
       end
 
       it 'has a brown banner' do
@@ -396,7 +398,7 @@ describe 'dashboard', type: :feature do
         expect(banner_palette).to eq(BROWN)
       end
 
-      it 'displays its name in a brown background' do
+      it 'displays its name in a black background' do
         expect(title_palette).to eq(BLACK)
       end
     end
@@ -448,9 +450,9 @@ describe 'dashboard', type: :feature do
         fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
 
         fly_login other_team_name
-        fly('set-pipeline -n -p other-pipeline-private -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p other-pipeline-private -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p other-pipeline-private')
-        fly('set-pipeline -n -p other-pipeline-public -c fixtures/states-pipeline.yml')
+        fly('set-pipeline -n -p other-pipeline-public -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p other-pipeline-public')
         fly('expose-pipeline -p other-pipeline-public')
 

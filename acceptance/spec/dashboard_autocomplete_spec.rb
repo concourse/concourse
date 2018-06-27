@@ -9,10 +9,10 @@ describe 'dashboard autocomplete', type: :feature do
     fly_login team_name
     dash_login
 
-    fly('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml')
+    fly('set-pipeline -n -p some-pipeline -c fixtures/dashboard-pipeline.yml')
     fly('unpause-pipeline -p some-pipeline')
 
-    fly('set-pipeline -n -p other-pipeline -c fixtures/states-pipeline.yml')
+    fly('set-pipeline -n -p other-pipeline -c fixtures/dashboard-pipeline.yml')
     fly('unpause-pipeline -p other-pipeline')
 
     visit dash_route('/dashboard')
