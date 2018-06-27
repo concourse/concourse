@@ -96,17 +96,14 @@ type lazyCredhub struct {
 	credhub *credhub.CredHub
 }
 
-var lazyCredhubInstance lazyCredhub
+var credhubInstance *credhub.CredHub
 var once sync.Once
 
-func newLazyCredhub(url string, options []credhub.Option) lazyCredhub {
-	once.Do(func() {
-		lazyCredhubInstance = lazyCredhub{
-			url:     url,
-			options: options,
-		}
-	})
-	return lazyCredhubInstance
+func newLazyCredhub(url string, options []credhub.Option) *lazyCredhub {
+	return &lazyCredhub{
+		url:     url,
+		options: options,
+	}
 }
 
 func (lc lazyCredhub) CredHub() (*credhub.CredHub, error) {
@@ -114,12 +111,15 @@ func (lc lazyCredhub) CredHub() (*credhub.CredHub, error) {
 		return lc.credhub, nil
 	}
 
-	ch, err := credhub.New(lc.url, lc.options...)
+	var err error
+	once.Do(func() {
+		credhubInstance, err = credhub.New(lc.url, lc.options...)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	lc.credhub = ch
+	lc.credhub = credhubInstance
 
 	return lc.credhub, nil
 }
