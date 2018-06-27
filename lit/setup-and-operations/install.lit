@@ -108,9 +108,9 @@ page.
       GitHub}{https://github.com/settings/applications/new}.
 
       The callback URL will be the external URL of your Concourse server with
-      \code{/sky/dex/callback} appended. For example, Concourse's own CI
+      \code{/sky/issuer/callback} appended. For example, Concourse's own CI
       server's callback URL would be
-      \code{https://ci.concourse-ci.org/sky/dex/callback}.
+      \code{https://ci.concourse-ci.org/sky/issuer/callback}.
     }
 
     \section{
@@ -158,9 +158,9 @@ page.
       You'll first need to create a client for Concourse in UAA.
 
       The callback URL will be the external URL of your Concourse server with
-      \code{/sky/dex/callback} appended. For example, Concourse's own CI
+      \code{/sky/issuer/callback} appended. For example, Concourse's own CI
       server's callback URL would be
-      \code{https://ci.concourse-ci.org/sky/dex/callback}.
+      \code{https://ci.concourse-ci.org/sky/issuer/callback}.
 
       The client should look something like this, under
       \link{\code{uaa.clients}}{http://bosh.io/jobs/uaa?source=github.com/cloudfoundry/uaa-release&version=13#p=uaa.clients}:
@@ -173,7 +173,7 @@ page.
           authorized-grant-types: "authorization_code,refresh_token"
           access-token-validity: 3600
           refresh-token-validity: 3600
-          redirect-uri: https://concourse.example.com/sky/dex/callback
+          redirect-uri: https://concourse.example.com/sky/issuer/callback
       }}
     }
 
@@ -221,9 +221,9 @@ page.
       You'll first need to create a client with your OIDC provider.
 
       The callback URL will be the external URL of your Concourse server with
-      \code{/sky/dex/callback} appended. For example, Concourse's own CI
+      \code{/sky/issuer/callback} appended. For example, Concourse's own CI
       server's callback URL would be
-      \code{https://ci.concourse-ci.org/sky/dex/callback}.
+      \code{https://ci.concourse-ci.org/sky/issuer/callback}.
     }
 
     \section{
@@ -256,9 +256,9 @@ page.
       First you'll need to create a client with your oAuth provider.
 
       The callback URL will be the external URL of your Concourse server with
-      \code{/sky/dex/callback} appended. For example, Concourse's own CI
+      \code{/sky/issuer/callback} appended. For example, Concourse's own CI
       server's callback URL would be
-      \code{https://ci.concourse-ci.org/sky/dex/callback}.
+      \code{https://ci.concourse-ci.org/sky/issuer/callback}.
     }
 
     \section{
