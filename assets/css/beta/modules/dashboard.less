@@ -48,7 +48,19 @@
   }
 
   .pipeline-grid >* {
-    align-items: initial !important;
+    align-items: initial;
+  }
+
+  .parallel-grid {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+
+  .serial-grid {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
   }
 
   .node {

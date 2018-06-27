@@ -4,8 +4,7 @@
     "repository": "https://github.com/concourse/atc.git",
     "license": "Apache-2.0",
     "source-directories": [
-        "src",
-        "src/Beta"
+        "src"
     ],
     "exposed-modules": [],
     "native-modules": true,
