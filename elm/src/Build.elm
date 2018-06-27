@@ -96,7 +96,7 @@ type StepRenderingState
     = StepsLoading
     | StepsLiveUpdating
     | StepsComplete
-    | LoginRequired
+    | NotAuthorized
 
 
 type Msg

@@ -15,7 +15,7 @@ import Concourse.BuildStatus
 import Concourse.BuildResources exposing (empty, fetch)
 import LoadingIndicator
 import StepTree exposing (StepTree)
-import Routes
+import NotAuthorized
 
 
 type alias Model =
@@ -33,7 +33,7 @@ type OutputState
     = StepsLoading
     | StepsLiveUpdating
     | StepsComplete
-    | LoginRequired
+    | NotAuthorized
 
 
 type Msg
@@ -140,7 +140,7 @@ handleEventsMsg action model =
             else
                 -- assume request was rejected because auth is required; no way to
                 -- really tell
-                ( { model | state = LoginRequired }, Cmd.none, OutNoop )
+                ( { model | state = NotAuthorized }, Cmd.none, OutNoop )
 
         Concourse.BuildEvents.Events (Ok events) ->
             Array.foldl handleEvent_ ( model, Cmd.none, OutNoop ) events
@@ -354,8 +354,8 @@ viewStepTree build steps state =
         ( StepsLoading, _ ) ->
             LoadingIndicator.view
 
-        ( LoginRequired, _ ) ->
-            viewLoginButton build
+        ( NotAuthorized, _ ) ->
+            NotAuthorized.view
 
         ( StepsLiveUpdating, Just root ) ->
             Html.map StepTreeMsg (StepTree.view root)
@@ -381,24 +381,3 @@ viewErrors errors =
                     ]
                 , Html.div [ class "step-body build-errors-body" ] [ Ansi.Log.view log ]
                 ]
-
-
-viewLoginButton : Concourse.Build -> Html msg
-viewLoginButton build =
-    Html.form
-        [ class "build-login"
-        , Html.Attributes.method "get"
-        , Html.Attributes.action "/sky/login"
-        ]
-        [ Html.input
-            [ Html.Attributes.type_ "submit"
-            , Html.Attributes.value "log in to view"
-            ]
-            []
-        , Html.input
-            [ Html.Attributes.type_ "hidden"
-            , Html.Attributes.name "redirect_uri"
-            , Html.Attributes.value (Routes.buildRoute build)
-            ]
-            []
-        ]
