@@ -7,6 +7,8 @@ import (
 	"os"
 	"syscall"
 
+	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
@@ -468,21 +470,16 @@ var _ = Describe("Beacon", func() {
 	var _ = Describe("ReportVolumes", func() {
 		var (
 			err                error
-			reaperServer       *ghttp.Server
 			baggageclaimServer *ghttp.Server
 		)
 
 		BeforeEach(func() {
 			baggageclaimServer = ghttp.NewServer()
-			reaperServer = ghttp.NewServer()
-			beacon.ReaperAddr = reaperServer.URL()
-			beacon.BaggageclaimForwardAddr = baggageclaimServer.URL()
-			reaperServer.Reset()
+			beacon.BaggageclaimAddr = baggageclaimServer.URL()
 			baggageclaimServer.Reset()
 		})
 
 		AfterEach(func() {
-			reaperServer.Close()
 			baggageclaimServer.Close()
 		})
 
@@ -537,41 +534,32 @@ var _ = Describe("Beacon", func() {
 
 	var _ = Describe("ReportContainers", func() {
 		var (
-			err                error
-			reaperServer       *ghttp.Server
-			baggageclaimServer *ghttp.Server
+			err          error
+			reaperServer *ghttp.Server
+			gardenClient *gardenfakes.FakeClient
 		)
 
 		BeforeEach(func() {
-			baggageclaimServer = ghttp.NewServer()
+			gardenClient = new(gardenfakes.FakeClient)
 			reaperServer = ghttp.NewServer()
-			beacon.ReaperAddr = reaperServer.URL()
-			beacon.BaggageclaimForwardAddr = baggageclaimServer.URL()
 			reaperServer.Reset()
-			baggageclaimServer.Reset()
 		})
 
 		AfterEach(func() {
 			reaperServer.Close()
-			baggageclaimServer.Close()
 		})
 
 		JustBeforeEach(func() {
-			err = beacon.ReportContainers()
+			err = beacon.ReportContainers(gardenClient)
 		})
 
-		Context("when listing the containers returns error", func() {
+		Context("when listing the containers fails", func() {
 			BeforeEach(func() {
-				reaperServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/containers/list"),
-						ghttp.RespondWith(http.StatusFailedDependency, nil),
-					),
-				)
+				gardenClient.ContainersReturns(nil, errors.New("failure"))
 			})
 
 			It("returns the error", func() {
-				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(errors.New("failure")))
 			})
 
 			It("does not connect to the TSA", func() {
@@ -581,14 +569,13 @@ var _ = Describe("Beacon", func() {
 
 		Context("when a list of containers to report is returned", func() {
 			BeforeEach(func() {
-				handles := []string{"handle1", "handle2"}
+				container1 := &gardenfakes.FakeContainer{}
+				container1.HandleReturns("handle1")
+				container2 := &gardenfakes.FakeContainer{}
+				container2.HandleReturns("handle2")
+				containers := []garden.Container{container1, container2}
 
-				reaperServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/containers/list"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, handles),
-					),
-				)
+				gardenClient.ContainersReturns(containers, nil)
 			})
 
 			It("reports the containers via the TSA", func() {
@@ -602,27 +589,16 @@ var _ = Describe("Beacon", func() {
 
 	var _ = Describe("SweepContainers", func() {
 		var (
-			err                error
-			reaperServer       *ghttp.Server
-			baggageclaimServer *ghttp.Server
+			err          error
+			gardenClient *gardenfakes.FakeClient
 		)
 
 		BeforeEach(func() {
-			baggageclaimServer = ghttp.NewServer()
-			reaperServer = ghttp.NewServer()
-			beacon.ReaperAddr = reaperServer.URL()
-			beacon.BaggageclaimForwardAddr = baggageclaimServer.URL()
-			reaperServer.Reset()
-			baggageclaimServer.Reset()
-		})
-
-		AfterEach(func() {
-			reaperServer.Close()
-			baggageclaimServer.Close()
+			gardenClient = new(gardenfakes.FakeClient)
 		})
 
 		JustBeforeEach(func() {
-			err = beacon.SweepContainers()
+			err = beacon.SweepContainers(gardenClient)
 		})
 
 		It("closes the connection to the TSA", func() {
@@ -651,46 +627,16 @@ var _ = Describe("Beacon", func() {
 			})
 		})
 
-		Context("when reaper server is not running", func() {
-			BeforeEach(func() {
-				handles := []string{"handle1", "handle2"}
-				handleBytes, err := json.Marshal(handles)
-				Expect(err).NotTo(HaveOccurred())
-				fakeSession.OutputReturns(handleBytes, nil)
-				reaperServer.Close()
-				baggageclaimServer.Close()
-			})
-
-			It("returns the error", func() {
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("connection refused"))
-				Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
-			})
-		})
-
 		Context("when a list of containers to destroy is returned", func() {
 			BeforeEach(func() {
 				handles := []string{"handle1", "handle2"}
 				handleBytes, err := json.Marshal(handles)
 				Expect(err).NotTo(HaveOccurred())
-
 				fakeSession.OutputReturns(handleBytes, nil)
-
-				reaperServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("DELETE", "/containers/destroy"),
-						ghttp.VerifyJSON("[\"handle1\",\"handle2\"]"),
-						ghttp.RespondWith(http.StatusNoContent, nil),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/containers/list"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, handles),
-					),
-				)
 			})
 
 			It("garbage collects the containers", func() {
-				Expect(err).NotTo(HaveOccurred())
+				Expect(gardenClient.DestroyCallCount()).To(Equal(2))
 				Expect(fakeSession.OutputCallCount()).To(Equal(1))
 			})
 		})
@@ -699,21 +645,16 @@ var _ = Describe("Beacon", func() {
 	var _ = Describe("SweepVolumes", func() {
 		var (
 			err                error
-			reaperServer       *ghttp.Server
 			baggageclaimServer *ghttp.Server
 		)
 
 		BeforeEach(func() {
 			baggageclaimServer = ghttp.NewServer()
-			reaperServer = ghttp.NewServer()
-			beacon.ReaperAddr = reaperServer.URL()
-			beacon.BaggageclaimForwardAddr = baggageclaimServer.URL()
-			reaperServer.Reset()
+			beacon.BaggageclaimAddr = baggageclaimServer.URL()
 			baggageclaimServer.Reset()
 		})
 
 		AfterEach(func() {
-			reaperServer.Close()
 			baggageclaimServer.Close()
 		})
 

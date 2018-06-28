@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/flag"
 	"github.com/concourse/worker"
 	"github.com/concourse/worker/beacon"
-	"github.com/concourse/worker/reaper"
 	"github.com/concourse/worker/sweeper"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -112,20 +111,15 @@ func (cmd *StartCommand) Execute(args []string) error {
 			atcWorker,
 			cmd.TSA,
 		)},
-		{Name: "reaper", Runner: reaper.NewReaperRunner(
-			groupLogger,
-			gardenAddr,
-			beacon.ReaperPort,
-			//cmd.ReaperConfig.Port,
-		)},
 		{Name: "debug-server", Runner: http_server.New(
 			cmd.debugBindAddr(),
 			http.DefaultServeMux,
 		)},
-		{Name: "sweeper-containers", Runner: sweeper.NewSweeperRunner(
+		{Name: "sweeper", Runner: sweeper.NewSweeperRunner(
 			groupLogger,
 			atcWorker,
 			cmd.TSA,
+			gardenAddr,
 		)},
 	}
 
