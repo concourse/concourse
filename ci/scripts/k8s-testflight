@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+mkdir -p ~/.kube
+echo "$KUBE_CONFIG" > ~/.kube/config
+
+helm init --client-only
+helm upgrade --set image=concourse/concourse-rc --set imageTag=$(cat version/version) "$RELEASE_NAME" concourse/stable
+
+external_ip=$(kubectl get svc "$RELEASE_NAME"-web -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+pod_name=$(kubectl get po -l app="$RELEASE_NAME"-web -o jsonpath='{.items[0].metadata.name}')
+internal_ip=$(kubectl get po "$pod_name" -o jsonpath='{.status.podIP}')
+bearer_token=$(curl "http://$external_ip:8080/auth/basic/token?team_name=main" | jq -r '.value')
+ports=$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .addr,.baggageclaim_url' | awk -F: '{print $NF}')
+
+pids=""
+for port in $ports; do
+  iptables -t nat -A OUTPUT -m tcp -p tcp -d "$internal_ip" --dport "$port" -j DNAT --to-destination 127.0.0.1:"$port"
+  kubectl port-forward "$pod_name" "$port":"$port" >/dev/null &
+  pids+="$! "
+done
+trap "kill $pids" EXIT
+
+ATC_URL="http://$external_ip:8080" concourse/ci/scripts/testflight

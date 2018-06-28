@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: concourse/k8s-testflight}
+
+inputs:
+- name: concourse
+- name: version
+
+params:
+  RELEASE_NAME:
+  KUBE_CONFIG:
+run:
+  path: concourse/ci/scripts/k8s-testflight
