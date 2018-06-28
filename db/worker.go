@@ -57,12 +57,11 @@ type Worker interface {
 type worker struct {
 	conn Conn
 
-	name            string
-	version         *string
-	state           WorkerState
-	gardenAddr      *string
-	baggageclaimURL *string
-	//	reaperAddr       *string
+	name             string
+	version          *string
+	state            WorkerState
+	gardenAddr       *string
+	baggageclaimURL  *string
 	httpProxyURL     string
 	httpsProxyURL    string
 	noProxy          string

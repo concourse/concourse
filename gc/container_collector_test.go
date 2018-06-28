@@ -96,7 +96,6 @@ var _ = Describe("ContainerCollector", func() {
 			BeforeEach(func() {
 				creatingContainer = new(dbfakes.FakeCreatingContainer)
 				creatingContainer.HandleReturns("some-handle-1")
-				// fakeReaperClient.DestroyContainersReturns(nil)
 				createdContainer = new(dbfakes.FakeCreatedContainer)
 				createdContainer.HandleReturns("some-handle-2")
 				createdContainer.WorkerNameReturns("foo")

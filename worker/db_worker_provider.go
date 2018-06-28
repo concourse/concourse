@@ -150,17 +150,6 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 
 	gClient := gclient.New(NewRetryableConnection(gcf.BuildConnection()))
 
-	// rClient := reaper.New("", transport.NewreaperRoundTripper(
-	// 	savedWorker.Name(),
-	// 	savedWorker.ReaperAddr(),
-	// 	provider.dbWorkerFactory,
-	// 	&http.Transport{
-	// 		DisableKeepAlives:     true,
-	// 		ResponseHeaderTimeout: provider.baggageclaimResponseHeaderTimeout,
-	// 	}),
-	// 	logger,
-	// )
-
 	bClient := bclient.New("", transport.NewBaggageclaimRoundTripper(
 		savedWorker.Name(),
 		savedWorker.BaggageclaimURL(),
