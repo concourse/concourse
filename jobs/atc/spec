@@ -117,9 +117,9 @@ properties:
 
   encryption_key:
     description: |
-      The 16 or 32 byte AES key to use for encrypting sensitive information
-      in the database.
-
+      A 16 or 32 byte passphrase. This is used to generate an AES key to encrypt
+      sensitive iinformation in the database.
+      
       If specified, all existing data will be encrypted on start and any new
       data will be encrypted.
 
