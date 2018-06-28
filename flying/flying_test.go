@@ -458,7 +458,7 @@ echo hello > output-1/file-1
 				Expect(versionedResource[0].Version).ToNot(BeNil())
 
 				return nil
-			}, 60*time.Second).ShouldNot(HaveOccurred())
+			}, 2*time.Minute).ShouldNot(HaveOccurred())
 		})
 
 		Context("when -j is specified", func() {
