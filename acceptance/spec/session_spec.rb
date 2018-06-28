@@ -7,6 +7,23 @@ describe 'session', type: :feature do
     fly_with_input("set-team -n #{team_name} --local-user=#{ATC_USERNAME}", 'y')
   end
 
+  context 'when logging in' do
+    it 'hides the tokens after redirect' do
+      visit dash_route
+      expect(page).to have_content 'login'
+
+      click_on 'login'
+      expect(page).to have_content 'username'
+
+      fill_in 'login', with: ATC_USERNAME
+      fill_in 'password', with: ATC_PASSWORD
+      click_button 'login'
+
+      expect(page).to have_content 'no pipelines configured'
+      expect(page.current_url).to match /\A#{ATC_URL}(\/?)\z/
+    end
+  end
+
   context 'when not logged in' do
     before(:each) do
       fly_login team_name
