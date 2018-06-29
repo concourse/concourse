@@ -709,6 +709,21 @@ run:
 		})
 	})
 
+	Context("when running with invalid -j flag", func() {
+		It("exits 1", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-j", "some-pipeline/invalid/some-job")
+			flyCmd.Dir = buildDir
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err).Should(gbytes.Say("argument format should be <pipeline>/<job>"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+		})
+	})
+
 	Context("when parameters are specified in the environment", func() {
 		BeforeEach(func() {
 			(*expectedPlan.Do)[1].Task.Config.Params = map[string]string{
