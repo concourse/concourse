@@ -43,8 +43,31 @@ var _ = Describe("BuildFactory", func() {
 
 	Describe("MarkNonInterceptibleBuilds", func() {
 		Context("one-off builds", func() {
-			DescribeTable("completed builds",
+			DescribeTable("completed and within grace period",
 				func(status db.BuildStatus, matcher types.GomegaMatcher) {
+					b, err := defaultTeam.CreateOneOffBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					var i bool
+					err = b.Finish(status)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = buildFactory.MarkNonInterceptibleBuilds()
+					Expect(err).NotTo(HaveOccurred())
+
+					i, err = b.Interceptible()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(i).To(matcher)
+				},
+				Entry("succeeded is interceptible", db.BuildStatusSucceeded, BeTrue()),
+				Entry("aborted is interceptible", db.BuildStatusAborted, BeTrue()),
+				Entry("errored is interceptible", db.BuildStatusErrored, BeTrue()),
+				Entry("failed is interceptible", db.BuildStatusFailed, BeTrue()),
+			)
+			DescribeTable("completed and past the grace period",
+				func(status db.BuildStatus, matcher types.GomegaMatcher) {
+					//set grace period to 0 for this test
+					buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0)
 					b, err := defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 
