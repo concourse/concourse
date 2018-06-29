@@ -6,7 +6,7 @@ type ExistingBuildResolver struct {
 	ResourceID  int
 }
 
-func (r *ExistingBuildResolver) Exists() bool {
+func (r *ExistingBuildResolver) ExistsForResource() bool {
 	for _, buildInput := range r.BuildInputs {
 		if buildInput.JobID == r.JobID && buildInput.ResourceID == r.ResourceID {
 			return true
