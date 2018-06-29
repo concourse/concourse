@@ -5,7 +5,7 @@ mkdir -p ~/.kube
 echo "$KUBE_CONFIG" > ~/.kube/config
 
 helm init --client-only
-helm upgrade --set image=concourse/concourse-rc --set imageTag=$(cat version/version) "$RELEASE_NAME" concourse/stable
+helm upgrade --set image=concourse/concourse-rc --set imageTag=$(cat version/version) "$RELEASE_NAME" stable/concourse
 
 external_ip=$(kubectl get svc "$RELEASE_NAME"-web -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 pod_name=$(kubectl get po -l app="$RELEASE_NAME"-web -o jsonpath='{.items[0].metadata.name}')
