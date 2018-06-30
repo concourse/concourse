@@ -7,38 +7,9 @@ describe 'pipeline', type: :feature do
     fly_with_input("set-team -n #{team_name} --local-user=#{ATC_USERNAME}", 'y')
 
     fly_login team_name
-    fly('set-pipeline -n -p test-pipeline -c fixtures/pipeline-with-slashes.yml')
+    fly('set-pipeline -n -p test-pipeline -c fixtures/pipeline.yml')
 
     dash_login
-  end
-
-  context 'with jobs and resources that have unescaped names' do
-    it 'displays the unescaped names in the pipeline view' do
-      expect(page.find('.job')).to have_content 'some/job'
-      expect(page.find('.input')).to have_content 'some/resource'
-    end
-
-    it 'can navigate to the escaped links' do
-      page.find('a > text', text: 'some/job').click
-      expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/some%2Fjob"
-
-      page.go_back
-
-      expect(page).to have_content 'some/resource'
-      page.find('a > text', text: 'some/resource').click
-      expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/resources/some%2Fresource"
-    end
-
-    context 'with builds triggered' do
-      it 'can navigate to the build of escaped links of job name' do
-        fly('unpause-pipeline -p test-pipeline')
-        fly('trigger-job -j test-pipeline/some/job')
-        dash_login
-
-        page.find('a > text', text: 'some/job').click
-        expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/some%2Fjob/builds/1"
-      end
-    end
   end
 
   it 'is linked in the sidebar' do
