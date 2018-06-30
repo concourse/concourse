@@ -156,7 +156,7 @@ describe 'Nav', type: :feature do
 
   context 'pipeline name has special characters' do
     before do
-      fly('set-pipeline -n -p "pipeline with special characters :)" -c fixtures/pipeline-with-slashes.yml')
+      fly('set-pipeline -n -p "pipeline with special characters :)" -c fixtures/pipeline.yml')
       fly('unpause-pipeline -p "pipeline with special characters :)"')
     end
 
@@ -165,13 +165,13 @@ describe 'Nav', type: :feature do
       expect(page).to have_content 'pipeline with special characters :)'
       expect(page).not_to have_content '%20'
 
-      visit dash_route("/teams/#{team_name}/pipelines/pipeline%20with%20special%20characters%20%3A%29/jobs/some%2Fjob")
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline%20with%20special%20characters%20%3A%29/jobs/some-job")
       expect(page).to have_content 'pipeline with special characters :)'
-      expect(page).to have_content 'some/job'
+      expect(page).to have_content 'some-job'
 
-      visit dash_route("/teams/#{team_name}/pipelines/pipeline%20with%20special%20characters%20%3A%29/resources/some%2Fresource")
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline%20with%20special%20characters%20%3A%29/resources/some-resource")
       expect(page).to have_content 'pipeline with special characters :)'
-      expect(page).to have_content 'some/resource'
+      expect(page).to have_content 'some-resource'
     end
   end
 end
