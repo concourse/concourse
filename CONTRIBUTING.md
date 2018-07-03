@@ -77,3 +77,9 @@ go run cmd/atc/*.go --add-local-user test:test --main-team-allow-all-users
 ```
 
 Concourse should be live at http://localhost:8080
+
+## go-bindata
+
+If you are making changes to the database migrations, it is important that you
+ensure the file `bindata/bindata.go` is up-to-date. This is most easily done by
+running `scripts/generate-bindata`.
