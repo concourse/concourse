@@ -27,8 +27,10 @@ describe 'job', type: :feature do
     end
 
     it 'links to the latest build' do
+      expect(page).to have_content('passing')
       page.find('a > text', text: 'passing').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/passing/builds/1"
+
       click_on 'passing #1'
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/passing"
     end
@@ -55,6 +57,7 @@ describe 'job', type: :feature do
     page.find_by_id('job-state').click
     pause_button = page.find_by_id('job-state')
 
+    expect(pause_button['class']).to_not include 'loading'
     expect(pause_button['class']).to_not include 'enabled'
     expect(pause_button['class']).to include 'disabled'
   end

@@ -41,7 +41,7 @@ describe 'dashboard search', type: :feature do
     search 'invalid'
     expect(page).to have_content('No results for "invalid" matched your search.', wait: 1)
 
-    sleep 5
+    sleep 5 # auto refresh interval
     expect(page).to have_content('No results for "invalid" matched your search.')
   end
 
@@ -78,14 +78,9 @@ describe 'dashboard search', type: :feature do
 
       fly('set-pipeline -n -p some-pipeline -c fixtures/dashboard-pipeline.yml')
       fly('unpause-pipeline -p some-pipeline')
-      fly('expose-pipeline -p some-pipeline')
 
       fly('set-pipeline -n -p other-pipeline -c fixtures/dashboard-pipeline.yml')
       fly('unpause-pipeline -p other-pipeline')
-      fly('expose-pipeline -p other-pipeline')
-
-      fly_with_input("set-team -n #{other_team_name} --local-user=bad-username", 'y')
-      fly_login team_name
 
       dash_login
       visit dash_route('/dashboard')

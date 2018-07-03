@@ -125,14 +125,6 @@ describe 'dashboard', type: :feature do
 
         fly('set-pipeline -n -p pending-pipeline -c fixtures/dashboard-pipeline.yml')
         fly('unpause-pipeline -p pending-pipeline')
-
-        fly('expose-pipeline -p failing-pipeline')
-        fly('expose-pipeline -p other-failing-pipeline')
-        fly('expose-pipeline -p errored-pipeline')
-        fly('expose-pipeline -p aborted-pipeline')
-        fly('expose-pipeline -p paused-pipeline')
-        fly('expose-pipeline -p succeeded-pipeline')
-        fly('expose-pipeline -p pending-pipeline')
       end
 
       it 'displays the pipelines in correct sort order' do
