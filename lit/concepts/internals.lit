@@ -101,7 +101,7 @@
       resource type defined in a pipleine, and all of the information
       neccessary to pull the image bits for a custom resource type.  This
       includes the \italic{resource type} used to fetch the resource type's
-      image (eiher a \reference{base_resource_types-table}{base_resource_type}
+      image (either a \reference{base_resource_types-table}{base_resource_type}
       or another custom resource) , the version of the image to fetch using
       that resource, and the configuration of the custom resource type.
 
