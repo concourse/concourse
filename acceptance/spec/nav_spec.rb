@@ -173,5 +173,14 @@ describe 'Nav', type: :feature do
       expect(page).to have_content 'pipeline with special characters :)'
       expect(page).to have_content 'some-resource'
     end
+
+    it 'updates the title' do
+      fly('destroy-pipeline -n -p test-pipeline')
+      visit dash_route
+      expect(page).to have_title 'pipeline with special characters :) - Concourse'
+
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline%20with%20special%20characters%20%3A%29")
+      expect(page).to have_title 'pipeline with special characters :) - Concourse'
+    end
   end
 end

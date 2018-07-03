@@ -134,7 +134,6 @@ loadPipeline pipelineLocator model =
     , Cmd.batch
         [ fetchPipeline pipelineLocator
         , fetchVersion
-        , model.ports.title <| model.pipelineLocator.pipelineName ++ " - "
         , resetPipelineFocus ()
         ]
     )
@@ -211,6 +210,7 @@ update msg model =
             , Cmd.batch
                 [ fetchJobs model.pipelineLocator
                 , fetchResources model.pipelineLocator
+                , model.ports.title <| pipeline.name ++ " - "
                 ]
             )
 
