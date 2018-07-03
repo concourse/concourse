@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/flag"
 	"github.com/concourse/skymarshal/dexserver"
+	"github.com/concourse/skymarshal/legacyserver"
 	"github.com/concourse/skymarshal/skycmd"
 	"github.com/concourse/skymarshal/skyserver"
 	"github.com/concourse/skymarshal/token"
@@ -81,9 +82,19 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	legacyServer, err := legacyserver.NewLegacyServer(&legacyserver.LegacyConfig{
+		Logger: config.Logger.Session("legacy"),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	handler := http.NewServeMux()
 	handler.Handle("/sky/issuer/", dexServer)
 	handler.Handle("/sky/", skyserver.NewSkyHandler(skyServer))
+	handler.Handle("/auth/", legacyServer)
+	handler.Handle("/login", legacyServer)
+	handler.Handle("/logout", legacyServer)
 
 	return &Server{handler, signingKey}, nil
 }
