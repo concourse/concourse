@@ -143,6 +143,7 @@ files:
   - github.com/concourse/skymarshal/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/bindata/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/dexserver/*.{go,s,c,h} # gosub
+  - github.com/concourse/skymarshal/legacyserver/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/skycmd/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/skyserver/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/token/*.{go,s,c,h} # gosub
