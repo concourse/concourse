@@ -17,4 +17,4 @@ trap "kill $!" EXIT
 
 cd concourse/src/github.com/concourse/web/acceptance/
 bundle
-bundle exec parallel_rspec spec -o "--tag perf"
+bundle exec rspec --tag perf
