@@ -7,5 +7,4 @@ gem 'launchy'
 gem 'parallel_tests'
 gem 'rspec'
 gem 'rubocop'
-gem 'rspec-retry', group: :test
 gem 'selenium-webdriver', git: 'https://github.com/topherbullock/selenium-gemspec.git', branch: 'gemspec'

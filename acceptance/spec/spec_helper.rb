@@ -4,7 +4,6 @@ require 'stringio'
 require 'fly'
 require 'dash'
 require 'tmpdir'
-require 'rspec/retry'
 
 ATC_URL = ENV.fetch('ATC_URL', 'http://localhost:8080').freeze
 
@@ -14,13 +13,6 @@ ATC_PASSWORD = ENV.fetch('ATC_PASSWORD', "test#{ENV['TEST_ENV_NUMBER']}").freeze
 RSpec.configure do |config|
   include Fly
   config.include Dash
-
-  config.verbose_retry = true
-  config.display_try_failure_messages = true
-
-  config.around(:each) do |ex|
-    ex.run_with_retry retry: 3
-  end
 
   config.after(:each) do
     fly_login 'main'

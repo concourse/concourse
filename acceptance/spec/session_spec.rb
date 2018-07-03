@@ -20,7 +20,7 @@ describe 'session', type: :feature do
       click_button 'login'
 
       expect(page).to have_content 'no pipelines configured'
-      expect(page.current_url).to match /\A#{ATC_URL}(\/?)\z/
+      expect(page.current_url).to match %r{\A#{ATC_URL}(\/?)\z}
     end
   end
 

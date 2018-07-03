@@ -292,14 +292,14 @@ describe 'dashboard', type: :feature do
       it 'logout current user' do
         visit_dashboard
 
-        expect(page).to have_content "#{ATC_USERNAME}"
+        expect(page).to have_content ATC_USERNAME.to_s
         expect(page).to have_content 'some-pipeline'
         expect(page).to have_content 'some-other-pipeline'
 
-        page.find('.user-id', :text => username).click
+        page.find('.user-id', text: username).click
         expect(page).to have_content 'logout'
 
-        page.find('.user-menu', :text => 'logout').click
+        page.find('.user-menu', text: 'logout').click
 
         expect(page).to_not have_content 'logout'
         expect(page).to have_content 'login'
