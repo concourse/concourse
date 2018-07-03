@@ -1000,6 +1000,9 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webMux := http.NewServeMux()
 	webMux.Handle("/api/v1/", apiHandler)
 	webMux.Handle("/sky/", authHandler)
+	webMux.Handle("/auth/", authHandler)
+	webMux.Handle("/login", authHandler)
+	webMux.Handle("/logout", authHandler)
 	webMux.Handle("/", webHandler)
 
 	httpHandler := wrappa.LoggerHandler{
