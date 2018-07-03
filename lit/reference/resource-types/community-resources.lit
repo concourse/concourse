@@ -200,8 +200,7 @@ before using it!
   \table-row{\link{Slack build alerts}{https://github.com/arbourd/concourse-slack-alert-resource}}{by \ghuser{arbourd}}
 }{
   \table-row{\link{Spring Initializr Resource}{https://github.com/jghiloni/spring-initializr-resource}}{by \ghuser{jghiloni}}
-}
-{
+}{
   \table-row{\link{HTTP Resource}{https://github.com/aequitas/concourse-http-resource}}{by \ghuser{aequitas}}
 }
 
