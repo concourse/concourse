@@ -451,6 +451,36 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	DisableResourceVersionStub        func(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
+	disableResourceVersionMutex       sync.RWMutex
+	disableResourceVersionArgsForCall []struct {
+		pipelineName      string
+		resourceName      string
+		resourceVersionID int
+	}
+	disableResourceVersionReturns struct {
+		result1 bool
+		result2 error
+	}
+	disableResourceVersionReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
+	EnableResourceVersionStub        func(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
+	enableResourceVersionMutex       sync.RWMutex
+	enableResourceVersionArgsForCall []struct {
+		pipelineName      string
+		resourceName      string
+		resourceVersionID int
+	}
+	enableResourceVersionReturns struct {
+		result1 bool
+		result2 error
+	}
+	enableResourceVersionReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	BuildsWithVersionAsInputStub        func(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 	buildsWithVersionAsInputMutex       sync.RWMutex
 	buildsWithVersionAsInputArgsForCall []struct {
@@ -2144,6 +2174,112 @@ func (fake *FakeTeam) CheckResourceReturnsOnCall(i int, result1 bool, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) DisableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error) {
+	fake.disableResourceVersionMutex.Lock()
+	ret, specificReturn := fake.disableResourceVersionReturnsOnCall[len(fake.disableResourceVersionArgsForCall)]
+	fake.disableResourceVersionArgsForCall = append(fake.disableResourceVersionArgsForCall, struct {
+		pipelineName      string
+		resourceName      string
+		resourceVersionID int
+	}{pipelineName, resourceName, resourceVersionID})
+	fake.recordInvocation("DisableResourceVersion", []interface{}{pipelineName, resourceName, resourceVersionID})
+	fake.disableResourceVersionMutex.Unlock()
+	if fake.DisableResourceVersionStub != nil {
+		return fake.DisableResourceVersionStub(pipelineName, resourceName, resourceVersionID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.disableResourceVersionReturns.result1, fake.disableResourceVersionReturns.result2
+}
+
+func (fake *FakeTeam) DisableResourceVersionCallCount() int {
+	fake.disableResourceVersionMutex.RLock()
+	defer fake.disableResourceVersionMutex.RUnlock()
+	return len(fake.disableResourceVersionArgsForCall)
+}
+
+func (fake *FakeTeam) DisableResourceVersionArgsForCall(i int) (string, string, int) {
+	fake.disableResourceVersionMutex.RLock()
+	defer fake.disableResourceVersionMutex.RUnlock()
+	return fake.disableResourceVersionArgsForCall[i].pipelineName, fake.disableResourceVersionArgsForCall[i].resourceName, fake.disableResourceVersionArgsForCall[i].resourceVersionID
+}
+
+func (fake *FakeTeam) DisableResourceVersionReturns(result1 bool, result2 error) {
+	fake.DisableResourceVersionStub = nil
+	fake.disableResourceVersionReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) DisableResourceVersionReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.DisableResourceVersionStub = nil
+	if fake.disableResourceVersionReturnsOnCall == nil {
+		fake.disableResourceVersionReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.disableResourceVersionReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) EnableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error) {
+	fake.enableResourceVersionMutex.Lock()
+	ret, specificReturn := fake.enableResourceVersionReturnsOnCall[len(fake.enableResourceVersionArgsForCall)]
+	fake.enableResourceVersionArgsForCall = append(fake.enableResourceVersionArgsForCall, struct {
+		pipelineName      string
+		resourceName      string
+		resourceVersionID int
+	}{pipelineName, resourceName, resourceVersionID})
+	fake.recordInvocation("EnableResourceVersion", []interface{}{pipelineName, resourceName, resourceVersionID})
+	fake.enableResourceVersionMutex.Unlock()
+	if fake.EnableResourceVersionStub != nil {
+		return fake.EnableResourceVersionStub(pipelineName, resourceName, resourceVersionID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.enableResourceVersionReturns.result1, fake.enableResourceVersionReturns.result2
+}
+
+func (fake *FakeTeam) EnableResourceVersionCallCount() int {
+	fake.enableResourceVersionMutex.RLock()
+	defer fake.enableResourceVersionMutex.RUnlock()
+	return len(fake.enableResourceVersionArgsForCall)
+}
+
+func (fake *FakeTeam) EnableResourceVersionArgsForCall(i int) (string, string, int) {
+	fake.enableResourceVersionMutex.RLock()
+	defer fake.enableResourceVersionMutex.RUnlock()
+	return fake.enableResourceVersionArgsForCall[i].pipelineName, fake.enableResourceVersionArgsForCall[i].resourceName, fake.enableResourceVersionArgsForCall[i].resourceVersionID
+}
+
+func (fake *FakeTeam) EnableResourceVersionReturns(result1 bool, result2 error) {
+	fake.EnableResourceVersionStub = nil
+	fake.enableResourceVersionReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) EnableResourceVersionReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.EnableResourceVersionStub = nil
+	if fake.enableResourceVersionReturnsOnCall == nil {
+		fake.enableResourceVersionReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.enableResourceVersionReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
 	fake.buildsWithVersionAsInputMutex.Lock()
 	ret, specificReturn := fake.buildsWithVersionAsInputReturnsOnCall[len(fake.buildsWithVersionAsInputArgsForCall)]
@@ -2571,6 +2707,10 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.resourceVersionsMutex.RUnlock()
 	fake.checkResourceMutex.RLock()
 	defer fake.checkResourceMutex.RUnlock()
+	fake.disableResourceVersionMutex.RLock()
+	defer fake.disableResourceVersionMutex.RUnlock()
+	fake.enableResourceVersionMutex.RLock()
+	defer fake.enableResourceVersionMutex.RUnlock()
 	fake.buildsWithVersionAsInputMutex.RLock()
 	defer fake.buildsWithVersionAsInputMutex.RUnlock()
 	fake.buildsWithVersionAsOutputMutex.RLock()
