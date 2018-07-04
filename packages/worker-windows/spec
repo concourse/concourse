@@ -30,8 +30,6 @@ files:
   - github.com/concourse/worker/cmd/worker/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/drainer/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/land/*.{go,s,c,h} # gosub
-  - github.com/concourse/worker/reaper/*.{go,s,c,h} # gosub
-  - github.com/concourse/worker/reaper/api/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/retire/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/start/*.{go,s,c,h} # gosub
   - github.com/concourse/worker/sweeper/*.{go,s,c,h} # gosub
