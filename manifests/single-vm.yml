@@ -35,7 +35,8 @@ instance_groups:
           password: ((postgres_password))
 
       main_team:
-        allow_all_users: true
+        auth:
+          allow_all_users: true
 
       add_local_users:
       - test:$2a$10$sDB6AsH2HheOWHILrnHVJOCZq/GYtUYE02ypJJTQBmWJNivYNhP3y

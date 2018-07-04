@@ -182,40 +182,40 @@ case $1 in
       <% if_p("generic_oidc.ca_cert") do |_| %> \
       --oidc-ca-cert $OIDC_CA_CERT \
       <% end %> \
-      <% if p("main_team.allow_all_users") %> \
+      <% if p("main_team.auth.allow_all_users") %> \
       --main-team-allow-all-users \
       <% end %> \
-      <% p("main_team.local.users").each do |v| %> \
+      <% p("main_team.auth.local.users").each do |v| %> \
         --main-team-local-user <%= esc(v) %>\
       <% end %> \
-      <% p("main_team.github.users").each do |v| %> \
+      <% p("main_team.auth.github.users").each do |v| %> \
         --main-team-github-user <%= esc(v) %>\
       <% end %> \
-      <% p("main_team.github.orgs").each do |v| %> \
+      <% p("main_team.auth.github.orgs").each do |v| %> \
         --main-team-github-org <%= esc(v) %> \
       <% end %> \
-      <% p("main_team.github.teams").each do |v| %> \
+      <% p("main_team.auth.github.teams").each do |v| %> \
         --main-team-github-team <%= esc(v) %> \
       <% end %> \
-      <% p("main_team.cf.users").each do |v| %> \
+      <% p("main_team.auth.cf.users").each do |v| %> \
       --main-team-cf-user <%= esc(v) %> \
       <% end %> \
-      <% p("main_team.cf.orgs").each do |v| %> \
+      <% p("main_team.auth.cf.orgs").each do |v| %> \
       --main-team-cf-org <%= esc(v) %> \
       <% end %> \
-      <% p("main_team.cf.spaces").each do |v| %> \
+      <% p("main_team.auth.cf.spaces").each do |v| %> \
       --main-team-cf-space <%= esc(v) %> \
       <% end %> \
-      <% p("main_team.oauth.users").each do |v| %> \
+      <% p("main_team.auth.oauth.users").each do |v| %> \
       --main-team-oauth-user <%= esc(v) %> \
       <% end %> \
-      <% p("main_team.oauth.groups").each do |v| %> \
+      <% p("main_team.auth.oauth.groups").each do |v| %> \
       --main-team-oauth-group <%= esc(v) %> \
       <% end %> \
-      <% p("main_team.oidc.users").each do |v| %> \
+      <% p("main_team.auth.oidc.users").each do |v| %> \
       --main-team-oidc-user <%= esc(v) %> \
       <% end %> \
-      <% p("main_team.oidc.groups").each do |v| %> \
+      <% p("main_team.auth.oidc.groups").each do |v| %> \
       --main-team-oidc-group <%= esc(v) %> \
       <% end %> \
       --session-signing-key $SIGNING_KEY \

@@ -279,80 +279,80 @@ properties:
     description: |
       The CA certificate for the Generic OIDC provider's endpoints.
 
-  main_team.allow_all_users:
+  main_team.auth.allow_all_users:
     description: |
       Whitelist all authenticated users for the main team.
     default: false
 
-  main_team.local.users:
+  main_team.auth.local.users:
     description: |
       An array of local users that are authorized for the main team.
     default: []
 
-  main_team.github.users:
+  main_team.auth.github.users:
     default: []
     description: |
       An array of GitHub userids/logins that are authorized for the main team
     example:
     - my-github-login
 
-  main_team.github.orgs:
+  main_team.auth.github.orgs:
     default: []
     description: |
       An array of GitHub orgs that are authorized for the main team
     example:
     - my-github-org
 
-  main_team.github.teams:
+  main_team.auth.github.teams:
     default: []
     description: |
       An array of GitHub teams that are authorized for the main team
     example:
     - my-github-org:my-github-team
 
-  main_team.cf.users:
+  main_team.auth.cf.users:
     description: |
       List of CloudFoundry userids/usernames that are authorized for the main team
     default: []
     example:
     - my-username
 
-  main_team.cf.orgs:
+  main_team.auth.cf.orgs:
     description: |
       List of CloudFoundry Orgs that are authorized for the main team
     default: []
     example:
     - myorg
 
-  main_team.cf.spaces:
+  main_team.auth.cf.spaces:
     description: |
       List of CloudFoundry Spaces that are authorized for the main team
     default: []
     example:
     - myorg:myspace
 
-  main_team.oauth.users:
+  main_team.auth.oauth.users:
     description: |
       List of Generic OAuth users that are authorized for the main team
     default: []
     example:
     - my-username
 
-  main_team.oauth.groups:
+  main_team.auth.oauth.groups:
     description: |
       List of Generic OAuth groups that are authorized for the main team
     default: []
     example:
     - my-group
 
-  main_team.oidc.users:
+  main_team.auth.oidc.users:
     description: |
       List of Generic OIDC users that are authorized for the main team
     default: []
     example:
     - my-username
 
-  main_team.oidc.groups:
+  main_team.auth.oidc.groups:
     description: |
       List of Generic OIDC groups that are authorized for the main team
     default: []
