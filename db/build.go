@@ -253,17 +253,19 @@ func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
 		return false, err
 	}
 
+	if b.jobID != 0 {
+		err = updateNextBuildForJob(tx, b.jobID)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}
 
 	err = b.conn.Bus().Notify(buildEventsChannel(b.id))
-	if err != nil {
-		return false, err
-	}
-
-	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY next_builds_per_job`)
 	if err != nil {
 		return false, err
 	}
@@ -339,6 +341,21 @@ func (b *build) Finish(status BuildStatus) error {
 		if err != nil {
 			return err
 		}
+
+		err = updateTransitionBuildForJob(tx, b.jobID, b.id, status)
+		if err != nil {
+			return err
+		}
+
+		err = updateLatestCompletedBuildForJob(tx, b.jobID)
+		if err != nil {
+			return err
+		}
+
+		err = updateNextBuildForJob(tx, b.jobID)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = tx.Commit()
@@ -351,18 +368,7 @@ func (b *build) Finish(status BuildStatus) error {
 		return err
 	}
 
-	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY latest_completed_builds_per_job`)
-	if err != nil {
-		return err
-	}
-
-	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY next_builds_per_job`)
-	if err != nil {
-		return err
-	}
-
-	_, err = b.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY transition_builds_per_job`)
-	return err
+	return nil
 }
 
 func (b *build) Delete() (bool, error) {
@@ -1092,4 +1098,89 @@ func buildEventsChannel(buildID int) string {
 
 func buildAbortChannel(buildID int) string {
 	return fmt.Sprintf("build_abort_%d", buildID)
+}
+
+func updateNextBuildForJob(tx Tx, jobID int) error {
+	_, err := tx.Exec(`
+		UPDATE jobs AS j
+		SET next_build_id = (
+			SELECT min(b.id)
+			FROM builds b
+			WHERE b.job_id = $1
+			AND b.status IN ('pending', 'started')
+		)
+		WHERE j.id = $1
+	`, jobID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateLatestCompletedBuildForJob(tx Tx, jobID int) error {
+	_, err := tx.Exec(`
+		UPDATE jobs AS j
+		SET latest_completed_build_id = (
+			SELECT max(b.id)
+			FROM builds b
+			WHERE b.job_id = $1
+			AND b.status NOT IN ('pending', 'started')
+		)
+		WHERE j.id = $1
+	`, jobID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus BuildStatus) error {
+	var shouldUpdateTransition bool
+
+	var latestID int
+	var latestStatus BuildStatus
+	err := psql.Select("b.id", "b.status").
+		From("builds b").
+		JoinClause("INNER JOIN jobs j ON j.latest_completed_build_id = b.id").
+		Where(sq.Eq{"j.id": jobID}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&latestID, &latestStatus)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// this is the first completed build; initiate transition
+			shouldUpdateTransition = true
+		} else {
+			return err
+		}
+	}
+
+	if buildID < latestID {
+		// latest completed build is actually after this one, so this build
+		// has no influence on the job's overall state
+		//
+		// this can happen when multiple builds are running at a time and the
+		// later-queued ones finish earlier
+		return nil
+	}
+
+	if latestStatus != buildStatus {
+		// status has changed; transitioned!
+		shouldUpdateTransition = true
+	}
+
+	if shouldUpdateTransition {
+		_, err := psql.Update("jobs").
+			Set("transition_build_id", buildID).
+			Where(sq.Eq{"id": jobID}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

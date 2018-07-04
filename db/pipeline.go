@@ -898,12 +898,12 @@ func (p *pipeline) Dashboard() (Dashboard, error) {
 		return nil, err
 	}
 
-	nextBuilds, err := p.getBuildsFrom("next_builds_per_job")
+	nextBuilds, err := p.getBuildsFrom("next_build_id")
 	if err != nil {
 		return nil, err
 	}
 
-	finishedBuilds, err := p.getBuildsFrom("latest_completed_builds_per_job")
+	finishedBuilds, err := p.getBuildsFrom("latest_completed_build_id")
 	if err != nil {
 		return nil, err
 	}
@@ -1528,10 +1528,12 @@ func (p *pipeline) toggleVersionedResource(versionedResourceID int, enable bool)
 	return tx.Commit()
 }
 
-func (p *pipeline) getBuildsFrom(view string) (map[string]Build, error) {
+func (p *pipeline) getBuildsFrom(col string) (map[string]Build, error) {
 	rows, err := buildsQuery.
-		From(view + " b").
-		Where(sq.Eq{"b.pipeline_id": p.id}).
+		Where(sq.Eq{
+			"b.pipeline_id": p.id,
+		}).
+		Where(sq.Expr("j." + col + " = b.id")).
 		RunWith(p.conn).Query()
 	if err != nil {
 		return nil, err
