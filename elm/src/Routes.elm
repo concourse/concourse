@@ -8,8 +8,7 @@ import Route exposing (..)
 
 
 type Route
-    = Home
-    | Build String String String String
+    = Build String String String String
     | Resource String String String
     | Job String String String
     | OneOffBuild String
@@ -57,12 +56,12 @@ pipeline =
 
 dashboard : Route.Route Route
 dashboard =
-    Dashboard := static "dashboard"
+    Dashboard := static ""
 
 
 dashboardHd : Route.Route Route
 dashboardHd =
-    DashboardHd := static "dashboard" </> static "hd"
+    DashboardHd := static "hd"
 
 
 
@@ -119,7 +118,7 @@ sitemap =
 match : String -> Route
 match =
     Route.match sitemap
-        >> Maybe.withDefault Home
+        >> Maybe.withDefault Dashboard
 
 
 toString : Route -> String
@@ -145,9 +144,6 @@ toString route =
 
         DashboardHd ->
             reverse dashboardHd []
-
-        Home ->
-            "/"
 
 
 parsePath : Location -> ConcourseRoute

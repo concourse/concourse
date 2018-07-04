@@ -14,40 +14,6 @@ describe 'Nav', type: :feature do
     dash_login
   end
 
-  context 'on home page' do
-    before do
-      visit dash_route('/')
-      expect(page).to have_content 'resource-metadata'
-    end
-
-    it 'includes the pipeline name' do
-      within('.top-bar') do
-        expect(page).to have_content 'test-pipeline'
-      end
-    end
-
-    it 'the pipeline name is a link that resets the group' do
-      expect(page).to have_link 'test-pipeline'
-
-      other_group = page.find '.main', text: 'some-other-group'
-      page.driver.browser.action.key_down(:shift)
-          .click(other_group.native)
-          .key_up(:shift).perform
-      expect(page).to have_css '.active', text: 'some-group'
-      expect(page).to have_css '.active', text: 'some-other-group'
-
-      click_link 'test-pipeline'
-      expect(page).to have_css '.active', text: 'some-group'
-      expect(page).not_to have_css '.active', text: 'some-other-group'
-    end
-
-    it 'includes the group names' do
-      within('.groups-bar') do
-        expect(page).to have_content 'some-group'
-      end
-    end
-  end
-
   context 'on pipeline page' do
     before do
       visit dash_route(pipeline_route)
@@ -175,10 +141,6 @@ describe 'Nav', type: :feature do
     end
 
     it 'updates the title' do
-      fly('destroy-pipeline -n -p test-pipeline')
-      visit dash_route
-      expect(page).to have_title 'pipeline with special characters :) - Concourse'
-
       visit dash_route("/teams/#{team_name}/pipelines/pipeline%20with%20special%20characters%20%3A%29")
       expect(page).to have_title 'pipeline with special characters :) - Concourse'
     end

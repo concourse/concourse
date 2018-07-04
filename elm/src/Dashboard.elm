@@ -21,6 +21,7 @@ import Http
 import Keyboard
 import Mouse
 import NewTopBar
+import NoPipeline exposing (view, Msg)
 import RemoteData
 import Routes
 import Simple.Fuzzy exposing (match, root, filter)
@@ -223,6 +224,9 @@ view model =
 dashboardView : Model -> Html Msg
 dashboardView model =
     case ( model.mPipelines, model.mJobs ) of
+        ( RemoteData.Success [], _ ) ->
+            Html.map (\_ -> Noop) NoPipeline.view
+
         ( RemoteData.Success _, RemoteData.Success _ ) ->
             if List.length model.filteredPipelines > 0 then
                 pipelinesView model model.filteredPipelines

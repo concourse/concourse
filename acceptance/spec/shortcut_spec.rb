@@ -108,14 +108,14 @@ describe 'keyboard shortcut', type: :feature do
   describe 'when on dashboard page' do
     context 'pressing the "/" key' do
       it 'focus search input field' do
-        visit dash_route('/dashboard')
+        visit dash_route
         page.find('body').native.send_keys '/'
         expect(page).to have_selector('#search-input-field:focus')
       end
     end
     context 'pressing the "?" key' do
       it 'shows the help' do
-        visit dash_route('/dashboard')
+        visit dash_route
         page.find('body').native.send_keys '?'
         expect(page).to have_content 'keyboard shortcuts'
       end

@@ -18,15 +18,6 @@
     <div id="elm-app-embed"></div>
 
     <script type="text/javascript">
-      $(window).on("load", function() {
-        var root, path = window.location.pathname;
-
-        if (path.startsWith("/dashboard")) {
-          root = document.getElementsByTagName('html')[0];
-          root.setAttribute('class', 'beta');
-        }
-      });
-
       var node = document.getElementById("elm-app-embed");
 
       var app = Elm.Main.embed(node, {

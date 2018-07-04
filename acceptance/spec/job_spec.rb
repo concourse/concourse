@@ -15,6 +15,8 @@ describe 'job', type: :feature do
 
   context 'without builds' do
     it 'links to the builds page' do
+      visit dash_route("/teams/#{team_name}/pipelines/test-pipeline")
+
       page.find('a > text', text: 'passing').click
       expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline/jobs/passing"
     end
@@ -23,7 +25,7 @@ describe 'job', type: :feature do
   context 'with builds' do
     before do
       fly('trigger-job -w -j test-pipeline/passing')
-      visit dash_route
+      visit dash_route("/teams/#{team_name}/pipelines/test-pipeline")
     end
 
     it 'links to the latest build' do

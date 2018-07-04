@@ -189,9 +189,6 @@ extractPidFromRoute route =
         Routes.DashboardHd ->
             Nothing
 
-        Routes.Home ->
-            Nothing
-
 
 urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
 urlUpdate route model =
@@ -244,14 +241,6 @@ viewBreadcrumbs : Model -> List (Html Msg)
 viewBreadcrumbs model =
     List.intersperse viewBreadcrumbSeparator <|
         case model.route.logical of
-            Routes.Home ->
-                case model.pipeline of
-                    Nothing ->
-                        []
-
-                    Just pipeline ->
-                        [ viewBreadcrumbPipeline pipeline.name model.route.logical ]
-
             Routes.Pipeline teamName pipelineName ->
                 [ viewBreadcrumbPipeline pipelineName model.route.logical ]
 

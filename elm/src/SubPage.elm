@@ -3,21 +3,18 @@ port module SubPage exposing (Model(..), Msg(..), init, subscriptions, update, u
 import Autoscroll
 import Build
 import Concourse
-import Concourse.Pipeline
 import Html exposing (Html)
 import Http
 import Job
 import Json.Encode
 import Resource
 import Build
-import NoPipeline
 import NotFound
 import Pipeline
 import QueryString
 import Resource
 import Routes
 import String
-import Task
 import UpdateMsg exposing (UpdateMsg)
 import Dashboard
 import DashboardHd
@@ -34,7 +31,6 @@ port setTitle : String -> Cmd msg
 
 type Model
     = WaitingModel Routes.ConcourseRoute
-    | NoPipelineModel
     | BuildModel (Autoscroll.Model Build.Model)
     | JobModel Job.Model
     | ResourceModel Resource.Model
@@ -45,10 +41,7 @@ type Model
 
 
 type Msg
-    = PipelinesFetched (Result Http.Error (List Concourse.Pipeline))
-    | DefaultPipelineFetched (Maybe Concourse.Pipeline)
-    | NoPipelineMsg NoPipeline.Msg
-    | BuildMsg (Autoscroll.Msg Build.Msg)
+    = BuildMsg (Autoscroll.Msg Build.Msg)
     | JobMsg Job.Msg
     | ResourceMsg Resource.Msg
     | PipelineMsg Pipeline.Msg
@@ -139,14 +132,6 @@ init turbulencePath route =
             superDupleWrap ( DashboardHdModel, DashboardHdMsg ) <|
                 DashboardHd.init { title = setTitle } turbulencePath
 
-        Routes.Home ->
-            ( WaitingModel route
-            , Cmd.batch
-                [ fetchPipelines
-                , setTitle ""
-                ]
-            )
-
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
 handleNotFound notFound ( mdlFunc, msgFunc ) ( mdl, msg, outMessage ) =
@@ -161,9 +146,6 @@ handleNotFound notFound ( mdlFunc, msgFunc ) ( mdl, msg, outMessage ) =
 update : String -> String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
 update turbulence notFound csrfToken msg mdl =
     case ( msg, mdl ) of
-        ( NoPipelineMsg msg, model ) ->
-            ( model, fetchPipelines )
-
         ( NewCSRFToken c, BuildModel scrollModel ) ->
             let
                 buildModel =
@@ -198,25 +180,6 @@ update turbulence notFound csrfToken msg mdl =
 
         ( ResourceMsg message, ResourceModel model ) ->
             handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
-
-        ( DefaultPipelineFetched pipeline, WaitingModel route ) ->
-            case pipeline of
-                Nothing ->
-                    ( NoPipelineModel, setTitle "" )
-
-                Just p ->
-                    let
-                        flags =
-                            { teamName = p.teamName
-                            , pipelineName = p.name
-                            , turbulenceImgSrc = turbulence
-                            , route = route
-                            }
-                    in
-                        superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.init { render = renderPipeline, title = setTitle } flags
-
-        ( DefaultPipelineFetched _, NoPipelineModel ) ->
-            ( mdl, Cmd.none )
 
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )
@@ -312,9 +275,6 @@ view mdl =
         WaitingModel _ ->
             Html.div [] []
 
-        NoPipelineModel ->
-            Html.map NoPipelineMsg <| NoPipeline.view
-
         NotFoundModel model ->
             NotFound.view model
 
@@ -327,9 +287,6 @@ subscriptions mdl =
 
         JobModel model ->
             Sub.map JobMsg <| Job.subscriptions model
-
-        NoPipelineModel ->
-            Sub.map NoPipelineMsg <| NoPipeline.subscriptions
 
         PipelineModel model ->
             Sub.map PipelineMsg <| Pipeline.subscriptions model
@@ -348,8 +305,3 @@ subscriptions mdl =
 
         NotFoundModel _ ->
             Sub.none
-
-
-fetchPipelines : Cmd Msg
-fetchPipelines =
-    Task.attempt PipelinesFetched Concourse.Pipeline.fetchPipelines

@@ -1,14 +1,13 @@
-module NoPipeline exposing (view, Msg, subscriptions)
+module NoPipeline exposing (view, Msg)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, target, href)
 import Html.Attributes.Aria exposing (ariaLabel)
-import Time
 import Concourse.Cli
 
 
 type Msg
-    = Tick Time.Time
+    = Noop
 
 
 view : Html Msg
@@ -44,8 +43,3 @@ view =
             , Html.text "` to set up your new pipeline"
             ]
         ]
-
-
-subscriptions : Sub Msg
-subscriptions =
-    Time.every (10 * Time.second) Tick

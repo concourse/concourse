@@ -10,19 +10,21 @@ describe 'pipeline', type: :feature do
 
     fly_login team_name
     fly('set-pipeline -n -p test-pipeline -c fixtures/simple-pipeline.yml')
+    fly('set-pipeline -n -p other-pipeline -c fixtures/simple-pipeline.yml')
 
     dash_login
+    visit dash_route("/teams/#{team_name}/pipelines/test-pipeline")
   end
 
   it 'is linked in the sidebar' do
     page.find('.sidebar-toggle').click
 
     within('.sidebar') do
-      expect(page).to have_content('test-pipeline')
-      expect(page).to have_link('test-pipeline')
+      expect(page).to have_content('other-pipeline')
+      expect(page).to have_link('other-pipeline')
 
-      click_on 'test-pipeline'
-      expect(page).to have_current_path "/teams/#{team_name}/pipelines/test-pipeline"
+      click_on 'other-pipeline'
+      expect(page).to have_current_path "/teams/#{team_name}/pipelines/other-pipeline"
     end
   end
 
@@ -40,7 +42,7 @@ describe 'pipeline', type: :feature do
 
   it 'can be paused' do
     fly('unpause-pipeline -p test-pipeline')
-    visit dash_route
+    visit dash_route("/teams/#{team_name}/pipelines/test-pipeline")
 
     page.find('.sidebar-toggle').click
 

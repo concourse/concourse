@@ -48,22 +48,22 @@ describe 'dashboard', type: :feature do
     context 'when the view is the default view' do
       it 'switches to compact view' do
         dash_login
-        visit dash_route('/dashboard')
+        visit_dashboard
         expect(page).to have_content('HIGH-DENSITY')
 
         click_on 'high-density'
-        expect(page).to have_current_path '/dashboard/hd'
+        expect(page).to have_current_path '/hd'
       end
     end
 
     context 'when the view is the compact view' do
       it 'switches to default view' do
         dash_login
-        visit dash_route('/dashboard/hd')
+        visit_hd_dashboard
         expect(page).to have_content('HIGH-DENSITY')
 
         click_on 'high-density'
-        expect(page).to have_current_path '/dashboard'
+        expect(page).to have_current_path '/'
       end
     end
   end
@@ -71,7 +71,7 @@ describe 'dashboard', type: :feature do
   describe 'default view' do
     context 'with no user logged in' do
       it 'displays a login button' do
-        visit dash_route('/dashboard')
+        visit dash_route
         expect(page).to have_link('login', href: '/sky/login')
       end
     end
@@ -101,7 +101,7 @@ describe 'dashboard', type: :feature do
 
       it 'shows all pipelines from the authenticated team and public pipelines from other teams' do
         dash_login
-        visit dash_route('/dashboard')
+        visit_dashboard
         within '.dashboard-team-group', text: team_name do
           expect(page).to have_content 'some-pipeline'
         end
@@ -115,7 +115,7 @@ describe 'dashboard', type: :feature do
       it 'shows authenticated team first' do
         dash_login
 
-        visit dash_route('/dashboard')
+        visit_dashboard
 
         expect(page).to have_content(team_name)
         expect(page).to have_content(other_team_name)
@@ -330,7 +330,7 @@ describe 'dashboard', type: :feature do
   describe 'high density view' do
     context 'with no user logged in' do
       it 'displays a login button' do
-        visit dash_route('/dashboard/hd')
+        visit dash_route('/hd')
         expect(page).to have_link('login', href: '/sky/login')
       end
     end
@@ -493,7 +493,7 @@ describe 'dashboard', type: :feature do
         fly_with_input("set-team -n #{other_team_name} --local-user=bad-username", 'y')
         fly_login team_name
 
-        visit dash_route('/dashboard/hd')
+        visit dash_route('/hd')
         expect(page).to have_css('.dashboard-team-name')
         expect(page.first('.dashboard-team-name').text).to eq(other_team_name)
 
@@ -546,11 +546,11 @@ describe 'dashboard', type: :feature do
 
   def visit_dashboard
     login
-    visit dash_route('/dashboard')
+    visit dash_route
   end
 
   def visit_hd_dashboard
     login
-    visit dash_route('/dashboard/hd')
+    visit dash_route('/hd')
   end
 end

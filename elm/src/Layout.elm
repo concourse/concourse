@@ -190,44 +190,6 @@ update msg model =
                     ]
                 )
 
-        SubMsg navIndex (SubPage.PipelinesFetched (Ok pipelines)) ->
-            let
-                pipeline =
-                    List.head pipelines
-
-                ( subModel, subCmd ) =
-                    SubPage.update
-                        model.turbulenceImgSrc
-                        model.notFoundImgSrc
-                        model.csrfToken
-                        (SubPage.DefaultPipelineFetched pipeline)
-                        model.subModel
-            in
-                case pipeline of
-                    Nothing ->
-                        ( { model
-                            | subModel = subModel
-                          }
-                        , Cmd.map (SubMsg navIndex) subCmd
-                        )
-
-                    Just p ->
-                        let
-                            ( topModel, topCmd ) =
-                                TopBar.update
-                                    (TopBar.FetchPipeline { teamName = p.teamName, pipelineName = p.name })
-                                    model.topModel
-                        in
-                            ( { model
-                                | subModel = subModel
-                                , topModel = topModel
-                              }
-                            , Cmd.batch
-                                [ Cmd.map (SubMsg navIndex) subCmd
-                                , Cmd.map (TopMsg navIndex) topCmd
-                                ]
-                            )
-
         -- otherwise, pass down
         SubMsg navIndex m ->
             if validNavIndex model.navIndex navIndex then

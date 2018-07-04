@@ -78,16 +78,31 @@ button.build-action[disabled] i {
   padding-right: 7px;
 }
 
-.cli-downloads li:last-child {
+.display-in-middle .cli-downloads li {
+  margin: 0.5em;
+  border: 1px solid white;
   padding-right: 0px;
+
+  &:hover {
+    background: #242424;
+  }
 }
 
 .cli-downloads a {
   text-decoration: none;
 }
 
-.display-in-middle .cli-downloads li {
-  margin: 1em;
+.display-in-middle .cli-downloads a {
+  display: inline-block;
+  padding: 2em;
+
+  .fa-apple {
+    padding: 0 0.07em;
+  }
+
+  .fa-linux {
+    padding: 0 0.03em;
+  }
 }
 
 .lower-right-info {

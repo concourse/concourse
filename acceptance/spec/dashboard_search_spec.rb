@@ -19,7 +19,7 @@ describe 'dashboard search', type: :feature do
     fly('set-pipeline -n -p other-pipeline -c fixtures/dashboard-pipeline.yml')
     fly('unpause-pipeline -p other-pipeline')
 
-    visit dash_route('/dashboard')
+    visit dash_route
   end
 
   it 'shows "no result" text when query returns nothing' do
@@ -83,7 +83,7 @@ describe 'dashboard search', type: :feature do
       fly('unpause-pipeline -p other-pipeline')
 
       dash_login
-      visit dash_route('/dashboard')
+      visit dash_route
     end
 
     after do
@@ -126,7 +126,7 @@ describe 'dashboard search', type: :feature do
     it 'filters the pipelines by succeeded status' do
       fly('trigger-job -w -j some-pipeline/passing')
 
-      visit dash_route('/dashboard')
+      visit dash_route
       expect(border_palette).to eq(GREEN)
 
       search 'status:succeeded'
@@ -136,7 +136,7 @@ describe 'dashboard search', type: :feature do
     it 'filters the pipelines by errored status' do
       fly_fail('trigger-job -w -j some-pipeline/erroring')
 
-      visit dash_route('/dashboard')
+      visit dash_route
       expect(border_palette).to eq(AMBER)
 
       search 'status:errored'
@@ -149,7 +149,7 @@ describe 'dashboard search', type: :feature do
       expect(page).to have_content 'hello'
 
       fly('abort-build -j some-pipeline/running -b 1')
-      visit dash_route('/dashboard')
+      visit dash_route
       expect(page).not_to have_content 'running'
       expect(border_palette).to eq(BROWN)
 
@@ -160,7 +160,7 @@ describe 'dashboard search', type: :feature do
     it 'filters the pipelines by paused status' do
       fly('pause-pipeline -p some-pipeline')
 
-      visit dash_route('/dashboard')
+      visit dash_route
       expect(border_palette).to eq(BLUE)
 
       search 'status:paused'
@@ -170,7 +170,7 @@ describe 'dashboard search', type: :feature do
     it 'filters the pipelines by failed status' do
       fly_fail('trigger-job -w -j some-pipeline/failing')
 
-      visit dash_route('/dashboard')
+      visit dash_route
       expect(border_palette).to eq(RED)
 
       search 'status:failed'
@@ -180,7 +180,7 @@ describe 'dashboard search', type: :feature do
     it 'filters the pipelines by negate failed status' do
       fly_fail('trigger-job -w -j some-pipeline/failing')
 
-      visit dash_route('/dashboard')
+      visit dash_route
       expect(border_palette).to eq(RED)
 
       search 'status:-failed'
@@ -197,7 +197,7 @@ describe 'dashboard search', type: :feature do
       visit dash_route("/teams/#{team_name}/pipelines/some-pipeline/jobs/running/builds/1")
       expect(page).to have_content 'hello'
 
-      visit dash_route('/dashboard')
+      visit dash_route
       expect(page).to have_content 'some-pipeline'
 
       search 'status:running'

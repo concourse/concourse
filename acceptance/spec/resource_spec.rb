@@ -68,7 +68,7 @@ describe 'resource', type: :feature do
 
   describe 'navigating' do
     it 'can navigate to the resource' do
-      visit dash_route
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline")
 
       page.find('a > text', text: 'some-resource').click
 
@@ -107,7 +107,7 @@ describe 'resource', type: :feature do
     it 'shows last checked time' do
       fly('check-resource -r pipeline/some-resource')
 
-      visit dash_route
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline")
       page.find('a > text', text: 'some-resource').click
 
       expect(page).to have_current_path("/teams/#{team_name}/pipelines/pipeline/resources/some-resource")
