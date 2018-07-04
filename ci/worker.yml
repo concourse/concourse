@@ -3,8 +3,7 @@ platform: linux
 
 image_resource:
   type: docker-image
-  source:
-    repository: concourse/atc-ci
+  source: {repository: golang}
 
 inputs:
   - name: concourse
