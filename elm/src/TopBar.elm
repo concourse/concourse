@@ -212,12 +212,14 @@ view : Model -> Html Msg
 view model =
     Html.nav
         [ classList
-            [ ( "top-bar", True )
+            [ ( "module-topbar", True )
+            , ( "top-bar", True )
             , ( "test", True )
             , ( "paused", isPaused model.pipeline )
             ]
         ]
-        [ Html.ul [ class "groups" ] <|
+        [ Html.div [ class "topbar-logo" ] [ Html.a [ class "logo-image-link", href "/" ] [] ]
+        , Html.ul [ class "groups" ] <|
             [ Html.li [ class "main" ]
                 [ Html.span
                     [ class "sidebar-toggle test btn-hamburger"
@@ -229,8 +231,8 @@ view model =
                 ]
             ]
                 ++ viewBreadcrumbs model
-        , Html.ul [ class "nav-right" ]
-            [ Html.li [ class "nav-item" ]
+        , Html.div [ class "topbar-login" ]
+            [ Html.div [ class "topbar-user-info" ]
                 [ viewUserState model.userState model.userMenuVisible
                 ]
             ]
@@ -318,10 +320,9 @@ viewUserState userState userMenuVisible =
             Html.text ""
 
         UserStateLoggedOut ->
-            Html.div [ class "user-info" ]
+            Html.div [ class "user-id", onClick LogIn ]
                 [ Html.a
-                    [ StrictEvents.onLeftClick <| LogIn
-                    , href "/sky/login"
+                    [ href "/sky/login"
                     , Html.Attributes.attribute "aria-label" "Log In"
                     , class "login-button"
                     ]
@@ -332,16 +333,12 @@ viewUserState userState userMenuVisible =
         UserStateLoggedIn user ->
             Html.div [ class "user-info" ]
                 [ Html.div [ class "user-id", onClick ToggleUserMenu ]
-                    [ Html.i [ class "fa fa-user" ] []
-                    , Html.text " "
-                    , Html.text <| userDisplayName user
-                    , Html.text " "
-                    , Html.i [ class "fa fa-caret-down" ] []
+                    [ Html.text <|
+                        userDisplayName user
                     ]
-                , Html.div [ classList [ ( "user-menu", True ), ( "hidden", not userMenuVisible ) ] ]
+                , Html.div [ classList [ ( "user-menu", True ), ( "hidden", not userMenuVisible ) ], onClick LogOut ]
                     [ Html.a
                         [ Html.Attributes.attribute "aria-label" "Log Out"
-                        , onClick LogOut
                         ]
                         [ Html.text "logout"
                         ]

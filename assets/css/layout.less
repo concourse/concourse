@@ -4,11 +4,11 @@ html, body, #elm-app-embed, #subpage, .content-frame {
   height: 100%;
 }
 
-@top-bar-height: 40px;
-@fixed-header-height: 60px;
+@top-bar-height: 64px;
+@fixed-header-height: 64px;
 @builds-list-height: 30px;
 @sidebar-width: 300px;
-@pagination-header-height: 60px;
+@pagination-header-height: 64px;
 
 @user-menu-z-index: 100;
 @fixed-header-z-index: @user-menu-z-index - 1;
@@ -24,7 +24,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
 
     .groups {
       overflow: hidden;
-      height: 40px;
+      height: @top-bar-height;
       font-size: 14px;
     }
 
@@ -217,7 +217,7 @@ nav .groups {
 
 .nav-right {
   list-style: none;
-  height: 40px;
+  height: @top-bar-height;
   padding: 0;
   margin: 0;
 }
@@ -233,7 +233,7 @@ nav .groups li a {
     color: @base07;
   }
   font-size: 18px;
-  line-height: 40px;
+  line-height: @top-bar-height;
 }
 
 .build-actions {

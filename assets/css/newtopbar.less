@@ -6,14 +6,16 @@
   width: 100%;
   z-index: 999;
   background: @base00;
+  &.paused {
+    background: @base0D;
+  }
   color: @white;
-  height: 64px;
-  line-height: 64px;
+  height: @top-bar-height;
+  line-height: @top-bar-height;
   text-align: center;
 
   .topbar-logo {
     float: left;
-    width: 10%;
     text-align: left;
 
     .logo-image-link {
@@ -22,8 +24,8 @@
       background-position: center center;
       background-repeat: no-repeat;
       display: inline-block;
-      height: 64px;
-      width: 64px;
+      height: @top-bar-height;
+      width: @top-bar-height;
     }
   }
 
@@ -104,7 +106,7 @@
       border-left: 1px solid @base02;
       background-color: @base00;
       display: inline-block;
-      line-height: 64px;
+      line-height: @top-bar-height;
       max-width: 80%;
       overflow: hidden;
       white-space: nowrap;
@@ -118,6 +120,10 @@
       .user-id {
         border-bottom: 1px solid @base02;
         padding: 0 30px;
+      }
+
+      .user-menu:hover {
+        background-color: @base01;
       }
     }
   }
