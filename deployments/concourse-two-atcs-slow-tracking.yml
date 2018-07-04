@@ -26,7 +26,8 @@ instance_groups:
       - some-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
       - some-other-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
       main_team:
-        allow_all_users: true
+        auth:
+          allow_all_users: true
       log_level: debug
       postgresql:
         database: &db-name atc
