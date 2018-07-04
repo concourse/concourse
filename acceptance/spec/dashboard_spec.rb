@@ -275,10 +275,15 @@ describe 'dashboard', type: :feature do
     end
 
     it 'links to latest build in the preview' do
+      build_path = "/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1"
       fly_fail('trigger-job -w -j some-pipeline/failing')
+
       visit_dashboard
-      expect(page).to have_css("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]")
-      expect(page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").text).not_to be_nil
+      expect(page).to have_css("a[href=\"#{build_path}\"]")
+      expect(page.find("a[href=\"#{build_path}\"]").text).not_to be_nil
+
+      page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").click
+      expect(page).to have_current_path(build_path)
     end
   end
 
