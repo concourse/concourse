@@ -88,7 +88,6 @@ type gardenWorker struct {
 func NewGardenWorker(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
-	// reaperClient reaper.ReaperClient,
 	containerProvider ContainerProvider,
 	volumeClient VolumeClient,
 	dbWorker db.Worker,
@@ -110,7 +109,6 @@ func NewGardenWorker(
 		name:             dbWorker.Name(),
 		startTime:        dbWorker.StartTime(),
 		version:          dbWorker.Version(),
-		// reaperClient:     reaperClient,
 	}
 }
 

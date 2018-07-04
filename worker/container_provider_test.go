@@ -35,8 +35,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeCreatingContainer *dbfakes.FakeCreatingContainer
 		fakeCreatedContainer  *dbfakes.FakeCreatedContainer
 
-		fakeGardenClient *gardenfakes.FakeClient
-		//fakeReaperClient            *reaperfakes.FakeReaperClient
+		fakeGardenClient            *gardenfakes.FakeClient
 		fakeGardenContainer         *gardenfakes.FakeContainer
 		fakeBaggageclaimClient      *baggageclaimfakes.FakeClient
 		fakeVolumeClient            *workerfakes.FakeVolumeClient
@@ -87,7 +86,6 @@ var _ = Describe("ContainerProvider", func() {
 
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
-		//fakeReaperClient = new(reaperfakes.FakeReaperClient)
 		fakeVolumeClient = new(workerfakes.FakeVolumeClient)
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage = new(workerfakes.FakeImage)

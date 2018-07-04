@@ -19,9 +19,8 @@ var _ = Describe("WorkerFactory", func() {
 
 	BeforeEach(func() {
 		atcWorker = atc.Worker{
-			GardenAddr:      "some-garden-addr",
-			BaggageclaimURL: "some-bc-url",
-			//		ReaperAddr:       "some-reaper-addr",
+			GardenAddr:       "some-garden-addr",
+			BaggageclaimURL:  "some-bc-url",
 			HTTPProxyURL:     "some-http-proxy-url",
 			HTTPSProxyURL:    "some-https-proxy-url",
 			NoProxy:          "some-no-proxy",
@@ -199,7 +198,6 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(*foundWorker.GardenAddr()).To(Equal("some-garden-addr"))
 				Expect(foundWorker.State()).To(Equal(db.WorkerStateRunning))
 				Expect(*foundWorker.BaggageclaimURL()).To(Equal("some-bc-url"))
-				//	Expect(*foundWorker.ReaperAddr()).To(Equal("some-reaper-addr"))
 				Expect(foundWorker.HTTPProxyURL()).To(Equal("some-http-proxy-url"))
 				Expect(foundWorker.HTTPSProxyURL()).To(Equal("some-https-proxy-url"))
 				Expect(foundWorker.NoProxy()).To(Equal("some-no-proxy"))
@@ -238,7 +236,6 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(found).To(BeTrue())
 					Expect(foundWorker.GardenAddr()).To(BeNil())
 					Expect(foundWorker.BaggageclaimURL()).To(BeNil())
-					//			Expect(foundWorker.ReaperAddr()).To(BeNil())
 				})
 			})
 		})
@@ -273,21 +270,18 @@ var _ = Describe("WorkerFactory", func() {
 				atcWorker.Name = "some-new-worker"
 				atcWorker.GardenAddr = "some-other-garden-addr"
 				atcWorker.BaggageclaimURL = "some-other-bc-url"
-				//		atcWorker.ReaperAddr = "some-other-reaper-addr"
 				_, err = team1.SaveWorker(atcWorker, 0)
 				Expect(err).NotTo(HaveOccurred())
 
 				atcWorker.Name = "some-other-new-worker"
 				atcWorker.GardenAddr = "some-other-other-garden-addr"
 				atcWorker.BaggageclaimURL = "some-other-other-bc-url"
-				//	atcWorker.ReaperAddr = "some-other-reaper-addr"
 				_, err = team2.SaveWorker(atcWorker, 0)
 				Expect(err).NotTo(HaveOccurred())
 
 				atcWorker.Name = "not-this-worker"
 				atcWorker.GardenAddr = "not-this-garden-addr"
 				atcWorker.BaggageclaimURL = "not-this-bc-url"
-				//	atcWorker.ReaperAddr = "not-this-reaper-addr"
 				_, err = team3.SaveWorker(atcWorker, 0)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -340,7 +334,6 @@ var _ = Describe("WorkerFactory", func() {
 				atcWorker.Name = "some-new-worker"
 				atcWorker.GardenAddr = "some-other-garden-addr"
 				atcWorker.BaggageclaimURL = "some-other-bc-url"
-				//	atcWorker.ReaperAddr = "some-other-reaper-addr"
 				_, err = workerFactory.SaveWorker(atcWorker, 0)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -359,13 +352,11 @@ var _ = Describe("WorkerFactory", func() {
 						WithTransform((db.Worker).Name, Equal("some-name")),
 						WithTransform((db.Worker).GardenAddr, Equal(strptr("some-garden-addr"))),
 						WithTransform((db.Worker).BaggageclaimURL, Equal(strptr("some-bc-url"))),
-						//		WithTransform((db.Worker).ReaperAddr, Equal(strptr("some-reaper-addr"))),
 					),
 					And(
 						WithTransform((db.Worker).Name, Equal("some-new-worker")),
 						WithTransform((db.Worker).GardenAddr, Equal(strptr("some-other-garden-addr"))),
 						WithTransform((db.Worker).BaggageclaimURL, Equal(strptr("some-other-bc-url"))),
-						//		WithTransform((db.Worker).ReaperAddr, Equal(strptr("some-other-reaper-addr"))),
 					),
 				))
 			})
@@ -420,7 +411,6 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.ActiveContainers()).To(And(Not(Equal(activeContainers)), Equal(1)))
 				Expect(*foundWorker.GardenAddr()).To(Equal("some-garden-addr"))
 				Expect(*foundWorker.BaggageclaimURL()).To(Equal("some-bc-url"))
-				//		Expect(*foundWorker.ReaperAddr()).To(Equal("some-reaper-addr"))
 			})
 
 			Context("when the current state is landing", func() {
@@ -490,7 +480,6 @@ var _ = Describe("WorkerFactory", func() {
 
 					Expect(*foundWorker.GardenAddr()).To(Equal("some-garden-addr"))
 					Expect(*foundWorker.BaggageclaimURL()).To(Equal("some-bc-url"))
-					//			Expect(*foundWorker.ReaperAddr()).To(Equal("some-reaper-addr"))
 					Expect(foundWorker.State()).To(Equal(db.WorkerStateRunning))
 				})
 			})
