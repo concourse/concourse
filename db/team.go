@@ -85,6 +85,11 @@ func (t *team) Admin() bool  { return t.admin }
 func (t *team) Auth() map[string][]string { return t.auth }
 
 func (t *team) Delete() error {
+	pipelines, err := t.Pipelines()
+	if err != nil {
+		return err
+	}
+
 	tx, err := t.conn.Begin()
 	if err != nil {
 		return err
@@ -108,6 +113,15 @@ func (t *team) Delete() error {
 	`, t.id))
 	if err != nil {
 		return err
+	}
+
+	for _, p := range pipelines {
+		_, err = tx.Exec(fmt.Sprintf(`
+		DROP TABLE IF EXISTS pipeline_build_events_%d
+	`, p.ID()))
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
