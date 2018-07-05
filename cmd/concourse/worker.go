@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/flag"
 	concourseWorker "github.com/concourse/worker"
 	"github.com/concourse/worker/beacon"
-	"github.com/concourse/worker/reaper"
 	workerConfig "github.com/concourse/worker/start"
 	"github.com/concourse/worker/sweeper"
 	"github.com/concourse/worker/tsa"
@@ -109,14 +108,6 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				logger.Session("beacon"),
 				worker,
 				beaconConfig,
-			),
-		})
-		members = append(members, grouper.Member{
-			Name: "reaper",
-			Runner: reaper.NewReaperRunner(
-				logger.Session("reaper"),
-				worker.GardenAddr,
-				"7799",
 			),
 		})
 
