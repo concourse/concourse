@@ -349,6 +349,19 @@ function createGraph(svg, jobs, resources) {
     }));
   }
 
+  var resourceStatus = function (resource) {
+    var status = "";
+    if (resourceFailing[resource]) {
+      status += " failing";
+    }
+
+    if (resourcePaused[resource]) {
+      status += " paused";
+    }
+
+    return status;
+  };
+
   // populate job output nodes and edges
   for (var i in jobs) {
     var job = jobs[i];
@@ -365,7 +378,7 @@ function createGraph(svg, jobs, resources) {
           id: outputId,
           name: output.resource,
           key: output.resource,
-          class: "output",
+          class: "output" + resourceStatus(output.resource),
           repeatable: true,
           url: resourceURLs[output.resource],
           svg: svg
@@ -441,21 +454,11 @@ function createGraph(svg, jobs, resources) {
         var inputId = inputNode(job.name, input.resource+"-unconstrained");
 
         if (!graph.node(inputId)) {
-          var classes = "input";
-          if (resourceFailing[input.resource]) {
-            classes += " failing";
-          }
-
-          if (resourcePaused[input.resource]) {
-            classes += " paused";
-            status = "paused";
-          }
-
           graph.setNode(inputId, new GraphNode({
             id: inputId,
             name: input.resource,
             key: input.resource,
-            class: classes,
+            class: "input" + resourceStatus(input.resource),
             status: status,
             repeatable: true,
             url: resourceURLs[input.resource],

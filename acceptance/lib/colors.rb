@@ -17,6 +17,10 @@ RSpec::Matchers.define :be_greyscale do
 end
 
 module Colors
+  def fill_color(element)
+    by_rgb(computed_style(element, 'fill'))
+  end
+
   def foreground_color(element)
     by_rgb(computed_style(element, 'color'))
   end
@@ -34,7 +38,7 @@ module Colors
   end
 
   def computed_style(node, attribute)
-    page.evaluate_script("window.getComputedStyle(document.evaluate('#{node.path}', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue).#{attribute}")
+    page.evaluate_script("window.getComputedStyle(document.evaluate(\"#{node.path}\", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue).#{attribute}")
   end
 
   def by_rgb(rgb)

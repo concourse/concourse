@@ -1,3 +1,5 @@
+require 'colors'
+
 describe 'pipeline', type: :feature do
   let(:team_name) { generate_team_name }
   let(:fly_home) { Dir.mktmpdir }
@@ -49,5 +51,38 @@ describe 'pipeline', type: :feature do
     pause_button.click
     expect(page).to have_css('.top-bar.paused')
     expect(pause_button['class']).to include 'enabled'
+  end
+
+  context 'with a failing output resource' do
+    include Colors
+
+    let(:node) do
+      page.find('.node.output', text: 'broken-time')
+    end
+
+    let(:rect) do
+      node.find('rect')
+    end
+
+    before do
+      fly('set-pipeline -n -p states-pipeline -c fixtures/states-pipeline.yml')
+      fly('unpause-pipeline -p states-pipeline')
+      fly_fail('check-resource -r states-pipeline/broken-time')
+      dash_login
+      visit dash_route("/teams/#{team_name}/pipelines/states-pipeline")
+    end
+
+    it 'shows the resource node in amber' do
+      amber = Color::RGB.by_hex('#E67E22') # TODO: once dashboard colors are used everywhere, remove this
+      expect(fill_color(rect)).to eq amber
+    end
+
+    it 'when the resource is paused shows the node in blue' do
+      node.click
+      page.find('.btn-pause').click
+      visit dash_route("/teams/#{team_name}/pipelines/states-pipeline")
+      blue = Color::RGB.by_hex('#3498DB') # TODO: once dashboard colors are used everywhere, remove this
+      expect(fill_color(rect)).to eq blue
+    end
   end
 end

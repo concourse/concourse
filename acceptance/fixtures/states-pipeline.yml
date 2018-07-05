@@ -97,6 +97,7 @@ jobs:
 - name: broken-resource
   plan:
   - get: broken-time
+  - put: broken-time
 
 - name: resource-metadata
   plan:
