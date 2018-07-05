@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 
 	"encoding/json"
@@ -64,14 +63,6 @@ func (factory *teamFactory) createTeam(t atc.Team, admin bool) (Team, error) {
 	}
 	err = factory.scanTeam(team, row)
 
-	if err != nil {
-		return nil, err
-	}
-
-	createTableString := fmt.Sprintf(`
-		CREATE TABLE team_build_events_%d ()
-		INHERITS (build_events);`, team.ID())
-	_, err = tx.Exec(createTableString)
 	if err != nil {
 		return nil, err
 	}

@@ -988,28 +988,14 @@ func (p *pipeline) Rename(name string) error {
 }
 
 func (p *pipeline) Destroy() error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
+	_, err := psql.Delete("pipelines").
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
 
-	defer Rollback(tx)
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		DROP TABLE pipeline_build_events_%d
-	`, p.id))
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
-		DELETE FROM pipelines WHERE id = $1;
-	`, p.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return err
 }
 
 func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {

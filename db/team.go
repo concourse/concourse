@@ -85,46 +85,14 @@ func (t *team) Admin() bool  { return t.admin }
 func (t *team) Auth() map[string][]string { return t.auth }
 
 func (t *team) Delete() error {
-	pipelines, err := t.Pipelines()
-	if err != nil {
-		return err
-	}
-
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	_, err = psql.Delete("teams").
+	_, err := psql.Delete("teams").
 		Where(sq.Eq{
 			"name": t.name,
 		}).
-		RunWith(tx).
+		RunWith(t.conn).
 		Exec()
 
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		DROP TABLE IF EXISTS team_build_events_%d
-	`, t.id))
-	if err != nil {
-		return err
-	}
-
-	for _, p := range pipelines {
-		_, err = tx.Exec(fmt.Sprintf(`
-		DROP TABLE IF EXISTS pipeline_build_events_%d
-	`, p.ID()))
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
+	return err
 }
 
 func (t *team) Rename(name string) error {
@@ -466,28 +434,6 @@ func (t *team) SavePipeline(
 		}
 
 		created = true
-
-		_, err = tx.Exec(fmt.Sprintf(`
-			CREATE TABLE pipeline_build_events_%[1]d ()
-			INHERITS (build_events)
-		`, pipelineID))
-		if err != nil {
-			return nil, false, err
-		}
-
-		_, err = tx.Exec(fmt.Sprintf(`
-			CREATE INDEX pipeline_build_events_%[1]d_build_id ON pipeline_build_events_%[1]d (build_id)
-		`, pipelineID))
-		if err != nil {
-			return nil, false, err
-		}
-
-		_, err = tx.Exec(fmt.Sprintf(`
-			CREATE UNIQUE INDEX pipeline_build_events_%[1]d_build_id_event_id ON pipeline_build_events_%[1]d (build_id, event_id)
-		`, pipelineID))
-		if err != nil {
-			return nil, false, err
-		}
 	} else {
 		update := psql.Update("pipelines").
 			Set("groups", groupsPayload).
