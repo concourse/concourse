@@ -125,8 +125,9 @@ type ATCCommand struct {
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 
 	GC struct {
-		Interval          time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
-		WorkerConcurrency int           `long:"worker-concurrency" default:"50" description:"Maximum number of delete operations to have in flight per worker."`
+		Interval               time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
+		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Grace period before reaping one-off task containers"`
+		WorkerConcurrency      int           `long:"worker-concurrency" default:"50" description:"Maximum number of delete operations to have in flight per worker."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
@@ -368,7 +369,7 @@ func (cmd *ATCCommand) constructMembers(
 
 	bus := dbConn.Bus()
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
-	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory)
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)

@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc/db/lock"
@@ -19,14 +21,16 @@ type BuildFactory interface {
 }
 
 type buildFactory struct {
-	conn        Conn
-	lockFactory lock.LockFactory
+	conn              Conn
+	lockFactory       lock.LockFactory
+	oneOffGracePeriod time.Duration
 }
 
-func NewBuildFactory(conn Conn, lockFactory lock.LockFactory) BuildFactory {
+func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod time.Duration) BuildFactory {
 	return &buildFactory{
-		conn:        conn,
-		lockFactory: lockFactory,
+		conn:              conn,
+		lockFactory:       lockFactory,
+		oneOffGracePeriod: oneOffGracePeriod,
 	}
 }
 
@@ -72,6 +76,10 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 		Where(sq.Eq{
 			"completed":     true,
 			"interceptible": true,
+		}).
+		Where(sq.Or{
+			sq.NotEq{"job_id": nil},
+			sq.Expr(fmt.Sprintf("now() - end_time > '%d seconds'::interval", int(f.oneOffGracePeriod.Seconds()))),
 		}).
 		Where(sq.Or{
 			sq.Expr("NOT EXISTS (SELECT 1 FROM jobs j WHERE j.latest_completed_build_id = b.id)"),

@@ -67,7 +67,7 @@ var _ = BeforeEach(func() {
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
-	buildFactory = db.NewBuildFactory(dbConn, lockFactory)
+	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0)
 
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())
