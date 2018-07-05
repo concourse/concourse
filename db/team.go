@@ -103,10 +103,9 @@ func (t *team) Delete() error {
 		return err
 	}
 
-	teamBuildEvents := fmt.Sprintf("team_build_events_%d", int64(t.id))
-	_, err = psql.Delete(teamBuildEvents).
-		RunWith(tx).
-		Exec()
+	_, err = tx.Exec(fmt.Sprintf(`
+		DROP TABLE IF EXISTS team_build_events_%d
+	`, t.id))
 	if err != nil {
 		return err
 	}

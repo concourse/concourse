@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"database/sql"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -40,12 +41,7 @@ var _ = Describe("Team", func() {
 
 	Describe("Delete", func() {
 		BeforeEach(func() {
-			team, found, err := teamFactory.FindTeam("some-other-team")
-			Expect(team.Name()).To(Equal("some-other-team"))
-			Expect(found).To(BeTrue())
-			Expect(err).ToNot(HaveOccurred())
-
-			err = otherTeam.Delete()
+			err := otherTeam.Delete()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -54,6 +50,13 @@ var _ = Describe("Team", func() {
 			Expect(team).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("drops the team_build_events_ID table", func() {
+			var exists bool
+			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'team_build_events_%s')", otherTeam.ID())).Scan(&exists)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeFalse())
 		})
 	})
 
