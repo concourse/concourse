@@ -26,7 +26,6 @@ type Command struct {
 func NewSweeperRunner(logger lager.Logger,
 	atcWorker atc.Worker,
 	config beacon.Config,
-	gardenAddr string,
 ) ifrit.Runner {
 	logger.Info("sweep-starting")
 
@@ -43,7 +42,7 @@ func NewSweeperRunner(logger lager.Logger,
 		BeaconClient: beaconC,
 		Logger:       logger.Session("sweeper"),
 		GCInterval:   30 * time.Second,
-		GardenClient: gdnClient.New(connection.New("tcp", gardenAddr)),
+		GardenClient: gdnClient.New(connection.New("tcp", atcWorker.GardenAddr)),
 	}
 	return scmd
 }

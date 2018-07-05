@@ -33,13 +33,8 @@ type Config struct {
 	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
 }
 
-// type ReaperConfig struct {
-// 	Port string
-// }
-
 type StartCommand struct {
 	WorkerConfig Config
-	//	ReaperConfig ReaperConfig //{Port:"7799"} //`group:"Reaper Configuration"`
 
 	TSA beacon.Config `group:"TSA Beacon Configuration"`
 
@@ -75,36 +70,23 @@ func (cmd *StartCommand) Execute(args []string) error {
 		resourceTypes = append(resourceTypes, workerResourceType)
 	}
 
-	// reaperURL := strings.Split(cmd.GardenAddr, ":")
-	// if len(reaperURL) != 2 {
-	// 	return fmt.Errorf("failed to parse GardenAddr: %s", cmd.GardenAddr)
-	// }
 	var atcWorker = atc.Worker{
 		GardenAddr:      cmd.GardenAddr,
 		BaggageclaimURL: cmd.BaggageclaimURL,
 		ResourceTypes:   resourceTypes,
-		//		ReaperAddr:      "http://" + reaperURL[0] + ":" + cmd.ReaperConfig.Port,
-		Platform:      cmd.Platform,
-		Tags:          cmd.WorkerConfig.Tags,
-		Team:          cmd.WorkerConfig.TeamName,
-		Name:          cmd.WorkerConfig.Name,
-		StartTime:     time.Now().Unix(),
-		Version:       cmd.WorkerConfig.Version,
-		CertsPath:     cmd.CertsPath,
-		HTTPProxyURL:  cmd.WorkerConfig.HTTPProxy,
-		HTTPSProxyURL: cmd.WorkerConfig.HTTPSProxy,
-		NoProxy:       cmd.WorkerConfig.NoProxy,
+		Platform:        cmd.Platform,
+		Tags:            cmd.WorkerConfig.Tags,
+		Team:            cmd.WorkerConfig.TeamName,
+		Name:            cmd.WorkerConfig.Name,
+		StartTime:       time.Now().Unix(),
+		Version:         cmd.WorkerConfig.Version,
+		CertsPath:       cmd.CertsPath,
+		HTTPProxyURL:    cmd.WorkerConfig.HTTPProxy,
+		HTTPSProxyURL:   cmd.WorkerConfig.HTTPSProxy,
+		NoProxy:         cmd.WorkerConfig.NoProxy,
 	}
 
 	groupLogger, _ := cmd.Logger.Logger("worker")
-
-	var gardenAddr string
-	if cmd.TSA.GardenForwardAddr != "" {
-		gardenAddr = cmd.TSA.GardenForwardAddr
-	} else {
-		gardenAddr = cmd.GardenAddr
-	}
-
 	groupMembers := grouper.Members{
 		{Name: "beacon", Runner: worker.BeaconRunner(
 			groupLogger,
@@ -119,7 +101,6 @@ func (cmd *StartCommand) Execute(args []string) error {
 			groupLogger,
 			atcWorker,
 			cmd.TSA,
-			gardenAddr,
 		)},
 	}
 
