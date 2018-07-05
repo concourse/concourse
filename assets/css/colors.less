@@ -28,14 +28,14 @@
 .build-step i.errored   { color: @base07; background: @base09; }
 
 // combined statuses go first so previous status background wins
-.pending { background: @base04; }
+.pending { background: @grey-primary; }
 .started { background: @base0A; }
 .no-builds { background: @base03; }
-.succeeded { background: @base0B; }
-.failed { background: @base08; }
-.errored { background: @base09; }
-.aborted { background: @base0F; }
-.paused { background: @base0D; }
+.succeeded { background: @green-primary; }
+.failed { background: @red-primary; }
+.errored { background: @amber-primary; }
+.aborted { background: @brown-primary; }
+.paused { background: @blue-primary; }
 
 .build-step .header i.pending { color: @base04; background: transparent; }
 .build-step .header i.started { color: @base0A; background: transparent; }
