@@ -22,6 +22,23 @@ html, body, #elm-app-embed, #subpage, .content-frame {
     top: 0;
     height: @top-bar-height;
 
+    .main {
+      border-right: 1px solid @base02;
+      .sidebar-dismiss {
+        margin: 23px 0;
+        width: 17px;
+        height: 17px;
+        background-image: url('images/ic_close_white.svg');
+      }
+    }
+
+    .topbar-logo {
+      width: unset;
+      &.wide {
+        width: 242px;
+      }
+    }
+
     .groups {
       overflow: hidden;
       height: @top-bar-height;
@@ -64,7 +81,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
   }
 
   .groups-bar {
-    background: #0C1217;
+    background: #2B2A2A;
     color: white;
 
     &.groups-bar-pull-right {
@@ -84,7 +101,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
       background: rgba(151, 151, 151, 0.1);
       margin: 5px;
       padding: 10px;
-      border: 1px solid #0C1217;
+      border: 1px solid #2B2A2A;
     }
 
     .groups li.active a {
@@ -274,6 +291,7 @@ pre {
   overflow-y: auto;
   overflow-x: hidden;
   background: @base00;
+  border-top: 1px solid @base02;
 
   position: fixed;
   top: @top-bar-height;

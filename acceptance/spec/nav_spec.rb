@@ -45,6 +45,18 @@ describe 'Nav', type: :feature do
         expect(page).to have_content 'some-group'
       end
     end
+
+    it 'sidebar button and logo update on toggle' do
+      page.find('.sidebar-toggle').click
+      expect(page).not_to have_css '.sidebar-toggle .fa-bars'
+      expect(page).to have_css '.sidebar-toggle .sidebar-dismiss'
+      expect(page).to have_css '.topbar-logo.wide'
+
+      page.find('.sidebar-toggle').click
+      expect(page).to have_css '.sidebar-toggle .fa-bars'
+      expect(page).not_to have_css '.sidebar-toggle .sidebar-dismiss'
+      expect(page).not_to have_css '.topbar-logo.wide'
+    end
   end
 
   context 'on resource page' do

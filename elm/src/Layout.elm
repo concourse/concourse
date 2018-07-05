@@ -297,7 +297,7 @@ view model =
             _ ->
                 Html.div [ class "content-frame" ]
                     [ Html.div [ id "top-bar-app" ]
-                        [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel) ]
+                        [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel model.sidebarVisible) ]
                     , Html.div [ class "bottom" ]
                         [ Html.div
                             [ id "pipelines-nav-app"

@@ -208,8 +208,8 @@ urlUpdate route model =
         )
 
 
-view : Model -> Html Msg
-view model =
+view : Model -> Bool -> Html Msg
+view model sidebarVisible =
     Html.nav
         [ classList
             [ ( "module-topbar", True )
@@ -218,16 +218,12 @@ view model =
             , ( "paused", isPaused model.pipeline )
             ]
         ]
-        [ Html.div [ class "topbar-logo" ] [ Html.a [ class "logo-image-link", href "/" ] [] ]
+        [ Html.div
+            [ classList [ ( "topbar-logo", True ), ( "wide", sidebarVisible ) ] ]
+            [ Html.a [ class "logo-image-link", href "/" ] [] ]
         , Html.ul [ class "groups" ] <|
             [ Html.li [ class "main" ]
-                [ Html.span
-                    [ class "sidebar-toggle test btn-hamburger"
-                    , onClick ToggleSidebar
-                    , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
-                    ]
-                    [ Html.i [ class "fa fa-bars" ] []
-                    ]
+                [ viewSidebarToggle sidebarVisible
                 ]
             ]
                 ++ viewBreadcrumbs model
@@ -237,6 +233,20 @@ view model =
                 ]
             ]
         ]
+
+
+viewSidebarToggle : Bool -> Html Msg
+viewSidebarToggle sidebarVisible =
+    Html.span
+        [ class "sidebar-toggle test btn-hamburger"
+        , onClick ToggleSidebar
+        , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
+        ]
+    <|
+        if sidebarVisible then
+            [ Html.div [ class "sidebar-dismiss" ] [] ]
+        else
+            [ Html.i [ class "fa fa-bars" ] [] ]
 
 
 viewBreadcrumbs : Model -> List (Html Msg)
