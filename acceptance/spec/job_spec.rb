@@ -7,7 +7,7 @@ describe 'job', type: :feature do
     fly_with_input("set-team -n #{team_name} --local-user=#{ATC_USERNAME}", 'y')
 
     fly_login team_name
-    fly('set-pipeline -n -p test-pipeline -c fixtures/passing-pipeline.yml')
+    fly('set-pipeline -n -p test-pipeline -c fixtures/simple-pipeline.yml')
     fly('unpause-pipeline -p test-pipeline')
 
     dash_login

@@ -316,7 +316,7 @@ describe 'dashboard', type: :feature do
 
     it 'keeps the team name sticky on scroll' do
       1.upto(50) do |i|
-        fly("set-pipeline -n -p some-pipeline-#{i} -c fixtures/passing-pipeline.yml")
+        fly("set-pipeline -n -p some-pipeline-#{i} -c fixtures/simple-pipeline.yml")
       end
 
       visit_dashboard
@@ -506,15 +506,15 @@ describe 'dashboard', type: :feature do
 
     it 'does not scroll' do
       1.upto(50) do |i|
-        fly("set-pipeline -n -p some-pipeline-#{i} -c fixtures/passing-pipeline.yml")
+        fly("set-pipeline -n -p some-pipeline-#{i} -c fixtures/simple-pipeline.yml")
       end
 
       visit_hd_dashboard
       expect(page).to have_content team_name
 
-      scrollHeight = page.evaluate_script('document.body.scrollHeight')
-      windowHeight = page.evaluate_script('window.innerHeight')
-      expect(scrollHeight).to eq windowHeight
+      scroll_height = page.evaluate_script('document.body.scrollHeight')
+      window_height = page.evaluate_script('window.innerHeight')
+      expect(scroll_height).to eq window_height
     end
   end
 

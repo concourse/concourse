@@ -150,7 +150,7 @@ describe 'dashboard search', type: :feature do
 
       fly('abort-build -j some-pipeline/running -b 1')
       visit dash_route('/dashboard')
-      expect(page).to have_css('.dashboard-pipeline.dashboard-status-aborted')
+      expect(page).not_to have_content 'running'
       expect(border_palette).to eq(BROWN)
 
       search 'status:aborted'

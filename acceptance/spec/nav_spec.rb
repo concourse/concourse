@@ -156,7 +156,7 @@ describe 'Nav', type: :feature do
 
   context 'pipeline name has special characters' do
     before do
-      fly('set-pipeline -n -p "pipeline with special characters :)" -c fixtures/pipeline.yml')
+      fly('set-pipeline -n -p "pipeline with special characters :)" -c fixtures/pipeline-with-special-characters.yml')
       fly('unpause-pipeline -p "pipeline with special characters :)"')
     end
 

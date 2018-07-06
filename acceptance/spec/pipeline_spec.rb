@@ -9,7 +9,7 @@ describe 'pipeline', type: :feature do
     fly_with_input("set-team -n #{team_name} --local-user=#{ATC_USERNAME}", 'y')
 
     fly_login team_name
-    fly('set-pipeline -n -p test-pipeline -c fixtures/pipeline.yml')
+    fly('set-pipeline -n -p test-pipeline -c fixtures/simple-pipeline.yml')
 
     dash_login
   end
@@ -56,13 +56,8 @@ describe 'pipeline', type: :feature do
   context 'with a failing output resource' do
     include Colors
 
-    let(:node) do
-      page.find('.node.output', text: 'broken-time')
-    end
-
-    let(:rect) do
-      node.find('rect')
-    end
+    let(:node) { page.find('.node.output', text: 'broken-time') }
+    let(:rect) { node.find('rect') }
 
     before do
       fly('set-pipeline -n -p states-pipeline -c fixtures/states-pipeline.yml')
