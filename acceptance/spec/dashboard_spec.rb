@@ -16,6 +16,34 @@ describe 'dashboard', type: :feature do
     fly('unpause-pipeline -p some-pipeline')
   end
 
+  describe 'logout' do
+    context 'with user logged in' do
+      before(:each) do
+        fly('set-pipeline -n -p some-other-pipeline -c fixtures/dashboard-pipeline.yml')
+        fly('expose-pipeline -p some-other-pipeline')
+      end
+
+      it 'logout current user' do
+        visit_dashboard
+
+        expect(page).to have_content ATC_USERNAME.to_s
+        expect(page).to have_content 'some-pipeline'
+        expect(page).to have_content 'some-other-pipeline'
+
+        page.find('.user-id', text: username).click
+        expect(page).to have_content 'logout'
+
+        page.find('.user-menu', text: 'logout').click
+
+        expect(page).to_not have_content 'logout'
+        expect(page).to have_content 'login'
+
+        expect(page).to have_content 'some-other-pipeline'
+        expect(page).to_not have_content 'some-pipeline'
+      end
+    end
+  end
+
   describe 'view toggle' do
     context 'when the view is the default view' do
       it 'switches to compact view' do
@@ -285,33 +313,17 @@ describe 'dashboard', type: :feature do
       page.find("a[href=\"/teams/#{team_name}/pipelines/some-pipeline/jobs/failing/builds/1\"]").click
       expect(page).to have_current_path(build_path)
     end
-  end
 
-  describe 'logout' do
-    context 'with user logged in' do
-      before(:each) do
-        fly('set-pipeline -n -p some-other-pipeline -c fixtures/dashboard-pipeline.yml')
-        fly('expose-pipeline -p some-other-pipeline')
+    it 'keeps the team name sticky on scroll' do
+      1.upto(50) do |i|
+        fly("set-pipeline -n -p some-pipeline-#{i} -c fixtures/passing-pipeline.yml")
       end
 
-      it 'logout current user' do
-        visit_dashboard
+      visit_dashboard
+      expect(page).to have_content team_name
 
-        expect(page).to have_content ATC_USERNAME.to_s
-        expect(page).to have_content 'some-pipeline'
-        expect(page).to have_content 'some-other-pipeline'
-
-        page.find('.user-id', text: username).click
-        expect(page).to have_content 'logout'
-
-        page.find('.user-menu', text: 'logout').click
-
-        expect(page).to_not have_content 'logout'
-        expect(page).to have_content 'login'
-
-        expect(page).to have_content 'some-other-pipeline'
-        expect(page).to_not have_content 'some-pipeline'
-      end
+      page.evaluate_script('window.scrollTo(0, document.body.scrollHeight)')
+      expect(page.find('.dashboard-team-name').native.style('position')).to eq 'fixed'
     end
   end
 
@@ -485,12 +497,24 @@ describe 'dashboard', type: :feature do
         expect(page).to have_css('.dashboard-team-name')
         expect(page.first('.dashboard-team-name').text).to eq(other_team_name)
 
-        dash_login
         visit_hd_dashboard
         expect(page).to have_content(team_name)
         expect(page).to have_content(other_team_name)
         expect(page.first('.dashboard-team-name').text).to eq(team_name)
       end
+    end
+
+    it 'does not scroll' do
+      1.upto(50) do |i|
+        fly("set-pipeline -n -p some-pipeline-#{i} -c fixtures/passing-pipeline.yml")
+      end
+
+      visit_hd_dashboard
+      expect(page).to have_content team_name
+
+      scrollHeight = page.evaluate_script('document.body.scrollHeight')
+      windowHeight = page.evaluate_script('window.innerHeight')
+      expect(scrollHeight).to eq windowHeight
     end
   end
 

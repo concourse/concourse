@@ -24,15 +24,6 @@
         if (path.startsWith("/dashboard")) {
           root = document.getElementsByTagName('html')[0];
           root.setAttribute('class', 'beta');
-
-          app.ports.pinTeamNames.subscribe(function() {
-            $(document).on('scroll', function() {
-              $(".dashboard-team-name").pin({
-                containerSelector: ".dashboard-team-group",
-                padding: { top: 64 }
-              });
-            });
-          });
         }
       });
 
@@ -43,6 +34,17 @@
         notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
         csrfToken: {{ .CSRFToken }}
       });
+
+      if (window.location.pathname.startsWith("/dashboard")) {
+        app.ports.pinTeamNames.subscribe(function() {
+          $(document).on('scroll', function() {
+            $(".dashboard-team-name").pin({
+              containerSelector: ".dashboard-team-group",
+              padding: { top: 64 }
+            });
+          });
+        });
+      }
 
       app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
 
