@@ -4,8 +4,8 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: alekzonder/puppeteer
-    tag: 1.0.0
+    repository: buildkite/puppeteer
+    tag: 1.5.0
 
 params:
   ATC_URL: http://10.244.15.2:8080
