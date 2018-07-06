@@ -23,9 +23,9 @@ resources/cf-resource-bac795c.tar.gz:
   object_id: 2c81ba1f-1eae-4fff-5796-031fe2d18f69
   sha: 16847d1cc8eaaf8eeafb809817d023972e07ff84
 resources/docker-image-resource-c725c62.tar.gz:
-  size: 58903282
-  object_id: 73266763-15f9-4aa2-6978-014f7406d534
-  sha: f4f61f40aa9847cfabff78ea9cd0c5bda3497470
+  size: 58240207
+  object_id: 13bf8759-78ef-449c-5ab6-cb54da84e226
+  sha: c1c21386524fd60368883a6090b16fd3e9c66087
 resources/git-resource-5a1accb.tar.gz:
   size: 24862050
   object_id: e1249442-2950-4e42-662c-fe79482d91ee
