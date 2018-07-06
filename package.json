@@ -1,0 +1,19 @@
+{
+  "name": "web",
+  "version": "0.0.1",
+  "main": "index.js",
+  "repository": "https://github.com/concourse/web",
+  "license": "MIT",
+  "dependencies": {},
+  "engines": {
+    "node": "^8.0.0"
+  },
+  "devDependencies": {
+    "elm-format": "^0.6.1-alpha",
+    "elm": "^0.18.0",
+    "uglify-js": "^3.3.22",
+    "less": "^3.0.2",
+    "less-plugin-autoprefix": "^1.5.1",
+    "less-plugin-clean-css": "^1.5.1"
+  }
+}

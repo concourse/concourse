@@ -617,7 +617,7 @@ view : Model -> Html Msg
 view model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
-            Html.div [ class "with-fixed-header" ]
+            Html.div [ class "with-fixed-header", attribute "data-build-name" currentBuild.build.name ]
                 [ viewBuildHeader currentBuild.build model
                 , Html.div [ class "scrollable-body build-body" ] <|
                     [ viewBuildPrep currentBuild.prep
