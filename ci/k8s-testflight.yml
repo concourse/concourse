@@ -8,6 +8,7 @@ image_resource:
 inputs:
 - name: concourse
 - name: version
+- name: charts
 
 params:
   RELEASE_NAME:
