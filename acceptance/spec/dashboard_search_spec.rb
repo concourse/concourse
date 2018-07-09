@@ -154,7 +154,7 @@ describe 'dashboard search', type: :feature do
       expect(border_palette).to eq(BROWN)
 
       search 'status:aborted'
-      expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
+      expect(page.find_all('.dashboard-pipeline-name', minimum: 1).map(&:text)).to eq ['some-pipeline']
     end
 
     it 'filters the pipelines by paused status' do

@@ -15,9 +15,18 @@ RSpec.configure do |config|
   config.include Dash
 
   config.after(:each) do
-    fly_login 'main'
-    fly_with_input("destroy-team -n #{team_name}", team_name)
-    fly('logout')
+    tries = 3
+    begin
+      fly_login 'main'
+      fly_with_input("destroy-team -n #{team_name}", team_name)
+      fly('logout')
+    rescue StandardError
+      # there is a chance for deadlock deleting the team while
+      # resource checking is saving new versions
+      sleep 60
+      tries -= 1
+      retry if tries > 0
+    end
   end
 end
 
@@ -45,4 +54,4 @@ Capybara.javascript_driver = :headless_chrome
 
 Capybara.save_path = '/tmp'
 
-Capybara.default_max_wait_time = 30
+Capybara.default_max_wait_time = ATC_URL.include?('localhost') ? 10 : 60
