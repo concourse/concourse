@@ -80,22 +80,27 @@ describe 'dashboard autocomplete', type: :feature do
         expect(page).to have_content "team:#{team_name}"
       end
 
-      it 'shows a max of 10 teams' do
-        fly_login 'main'
-        teams = []
-        15.times do |_i|
-          team = generate_team_name
-          fly_with_input("set-team -n #{team} --local-user=#{ATC_USERNAME}", 'y')
-          teams << team
+      context 'with many teams' do
+        let(:teams) { (1..15).map { generate_team_name } }
+
+        before do
+          fly_login 'main'
+          teams.each do |team|
+            fly_with_input("set-team -n #{team} --local-user=#{ATC_USERNAME}", 'y')
+          end
         end
 
-        visit dash_route('/dashboard')
-        search 'team:'
-        expect(page).to have_css '.search-option', count: 10
+        it 'shows a max of 10 teams' do
+          visit dash_route('/dashboard')
+          search 'team:'
+          expect(page).to have_css '.search-option', count: 10
+        end
 
-        fly_login 'main'
-        teams.each do |team|
-          fly_with_input("destroy-team -n #{team}", team)
+        after do
+          fly_login 'main'
+          teams.each do |team|
+            fly_with_input("destroy-team -n #{team}", team)
+          end
         end
       end
     end
