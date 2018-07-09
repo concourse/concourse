@@ -175,7 +175,7 @@ permitted by that team.
       }
     }{
       \definition{\code{--github-team=ORG_NAME:TEAM_NAME}}{
-        Authorize an team's members within an organization.
+        Authorize a team's members within an organization.
       }
     }
 
