@@ -166,15 +166,15 @@ permitted by that team.
     This is done by passing the following flags:
 
     \definitions{
-      \definition{\code{--github-user=LOGIN}}{
+      \definition{\code{--github-auth-user=LOGIN}}{
         Authorize an individual user.
       }
     }{
-      \definition{\code{--github-org=ORG_NAME}}{
+      \definition{\code{--github-auth-organization=ORG_NAME}}{
         Authorize an entire organization's members.
       }
     }{
-      \definition{\code{--github-team=ORG_NAME:TEAM_NAME}}{
+      \definition{\code{--github-auth-team=ORG_NAME:TEAM_NAME}}{
         Authorize a team's members within an organization.
       }
     }
@@ -183,9 +183,9 @@ permitted by that team.
 
     \codeblock{bash}{{{
     $ fly set-team -n my-team \
-        --github-user my-github-login \
-        --github-org my-org \
-        --github-team my-other-org:my-team
+        --github-auth-user my-github-login \
+        --github-auth-organization my-org \
+        --github-auth-team my-other-org:my-team
     }}}
   }
 
