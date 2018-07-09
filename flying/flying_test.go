@@ -360,8 +360,11 @@ echo hello > output-1/file-1
 
 			cTeam := concourseClient.Team(teamName)
 			Eventually(func() error {
-				versionedResource, _, _, err := cTeam.ResourceVersions("some-pipeline", "git-repo", concourse.Page{})
+				versionedResource, _, found, err := cTeam.ResourceVersions("some-pipeline", "git-repo", concourse.Page{})
 				Expect(err).ToNot(HaveOccurred())
+				if !found {
+					return errors.New("not found")
+				}
 
 				if len(versionedResource) == 0 {
 					cTeam.CheckResource("some-pipeline", "git-repo", atc.Version{})
