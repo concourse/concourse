@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/atc/api/cliserver"
 	"github.com/concourse/atc/api/configserver"
 	"github.com/concourse/atc/api/containerserver"
-	"github.com/concourse/atc/api/healthserver"
 	"github.com/concourse/atc/api/infoserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/loglevelserver"
@@ -92,8 +91,7 @@ func NewHandler(
 	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory, containerRepository, destroyer)
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
-	infoServer := infoserver.NewServer(logger, version, workerVersion)
-	healthServer := healthserver.NewServer(logger, credsManagers)
+	infoServer := infoserver.NewServer(logger, version, workerVersion, credsManagers)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
@@ -168,10 +166,9 @@ func NewHandler(
 		atc.SetLogLevel: http.HandlerFunc(logLevelServer.SetMinLevel),
 		atc.GetLogLevel: http.HandlerFunc(logLevelServer.GetMinLevel),
 
-		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
-		atc.GetInfo:     http.HandlerFunc(infoServer.Info),
-
-		atc.CredsHealth: http.HandlerFunc(healthServer.Creds),
+		atc.DownloadCLI:  http.HandlerFunc(cliServer.Download),
+		atc.GetInfo:      http.HandlerFunc(infoServer.Info),
+		atc.GetInfoCreds: http.HandlerFunc(infoServer.Creds),
 
 		atc.ListContainers:           teamHandlerFactory.HandlerFor(containerServer.ListContainers),
 		atc.GetContainer:             teamHandlerFactory.HandlerFor(containerServer.GetContainer),

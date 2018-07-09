@@ -1,6 +1,7 @@
 package credhub
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -18,17 +19,29 @@ type CredHubManager struct {
 
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 
-	TLS struct {
-		CACerts    []string `long:"ca-cert"              description:"Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert."`
-		ClientCert string   `long:"client-cert"          description:"Path to the client certificate for mutual TLS authorization."`
-		ClientKey  string   `long:"client-key"           description:"Path to the client private key for mutual TLS authorization."`
-		Insecure   bool     `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
-	}
+	TLS TLS
+	UAA UAA
+}
 
-	UAA struct {
-		ClientId     string `long:"client-id"     description:"Client ID for CredHub authorization."`
-		ClientSecret string `long:"client-secret" description:"Client secret for CredHub authorization."`
-	}
+type TLS struct {
+	CACerts    []string `long:"ca-cert"              description:"Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert."`
+	ClientCert string   `long:"client-cert"          description:"Path to the client certificate for mutual TLS authorization."`
+	ClientKey  string   `long:"client-key"           description:"Path to the client private key for mutual TLS authorization."`
+	Insecure   bool     `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
+}
+
+type UAA struct {
+	ClientId     string `long:"client-id"     description:"Client ID for CredHub authorization."`
+	ClientSecret string `long:"client-secret" description:"Client secret for CredHub authorization."`
+}
+
+func (manager *CredHubManager) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&map[string]interface{}{
+		"url":           manager.URL,
+		"path_prefix":   manager.PathPrefix,
+		"ca_certs":      manager.TLS.CACerts,
+		"uaa_client_id": manager.UAA.ClientId,
+	})
 }
 
 func (manager CredHubManager) IsConfigured() bool {

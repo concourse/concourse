@@ -1,4 +1,4 @@
-package healthserver
+package infoserver
 
 import (
 	"encoding/json"

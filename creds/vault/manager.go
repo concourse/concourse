@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -21,16 +22,17 @@ type VaultManager struct {
 	Cache    bool          `long:"cache" description:"Cache returned secrets for their lease duration in memory"`
 	MaxLease time.Duration `long:"max-lease" description:"If the cache is enabled, and this is set, override secrets lease duration with a maximum value"`
 
-	TLS struct {
-		CACert     string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
-		CAPath     string `long:"ca-path"              description:"Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert."`
-		ClientCert string `long:"client-cert"          description:"Path to the client certificate for Vault authorization."`
-		ClientKey  string `long:"client-key"           description:"Path to the client private key for Vault authorization."`
-		ServerName string `long:"server-name"          description:"If set, is used to set the SNI host when connecting via TLS."`
-		Insecure   bool   `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
-	}
-
+	TLS  TLS
 	Auth AuthConfig
+}
+
+type TLS struct {
+	CACert     string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
+	CAPath     string `long:"ca-path"              description:"Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert."`
+	ClientCert string `long:"client-cert"          description:"Path to the client certificate for Vault authorization."`
+	ClientKey  string `long:"client-key"           description:"Path to the client private key for Vault authorization."`
+	ServerName string `long:"server-name"          description:"If set, is used to set the SNI host when connecting via TLS."`
+	Insecure   bool   `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
 }
 
 type AuthConfig struct {
@@ -42,6 +44,21 @@ type AuthConfig struct {
 	RetryInitial  time.Duration `long:"retry-initial" default:"1s" description:"The initial time between retries when logging in or re-authing a secret."`
 
 	Params []template.VarKV `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME=VALUE"`
+}
+
+func (manager *VaultManager) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&map[string]interface{}{
+		"url":                manager.URL,
+		"path_prefix":        manager.PathPrefix,
+		"cache":              manager.Cache,
+		"max_lease":          manager.MaxLease,
+		"ca_cert":            manager.TLS.CACert,
+		"server_name":        manager.TLS.ServerName,
+		"auth_backend":       manager.Auth.Backend,
+		"auth_max_ttl":       manager.Auth.BackendMaxTTL,
+		"auth_retry_max":     manager.Auth.RetryMax,
+		"auth_retry_initial": manager.Auth.RetryInitial,
+	})
 }
 
 func (manager VaultManager) IsConfigured() bool {

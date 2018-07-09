@@ -209,9 +209,9 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.DestroyTeam:     authenticated(inputHandlers[atc.DestroyTeam]),
 
 				// authenticated and is admin
-				atc.GetLogLevel: authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),
-				atc.SetLogLevel: authenticatedAndAdmin(inputHandlers[atc.SetLogLevel]),
-				atc.CredsHealth: authenticatedAndAdmin(inputHandlers[atc.CredsHealth]),
+				atc.GetLogLevel:  authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),
+				atc.SetLogLevel:  authenticatedAndAdmin(inputHandlers[atc.SetLogLevel]),
+				atc.GetInfoCreds: authenticatedAndAdmin(inputHandlers[atc.GetInfoCreds]),
 
 				// authorized (requested team matches resource team)
 				atc.CheckResource:          authorized(inputHandlers[atc.CheckResource]),
