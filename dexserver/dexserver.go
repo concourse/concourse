@@ -61,11 +61,6 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 				Name:   connector.Name(),
 				Config: c,
 			})
-		} else {
-			config.Logger.Info("connector-not-configured", lager.Data{
-				"connector": connector.Name(),
-				"reason":    err.Error(),
-			})
 		}
 	}
 
@@ -160,7 +155,7 @@ func newLocalUsers(config *DexConfig) map[string][]byte {
 			if _, err := bcrypt.Cost([]byte(password)); err != nil {
 				if hashed, err = bcrypt.GenerateFromPassword([]byte(password), 0); err != nil {
 
-					config.Logger.Error("add-local-user-bcrypt-error", err, lager.Data{
+					config.Logger.Error("bcrypt-local-user", err, lager.Data{
 						"username": username,
 					})
 
@@ -169,11 +164,6 @@ func newLocalUsers(config *DexConfig) map[string][]byte {
 			} else {
 				hashed = []byte(password)
 			}
-
-			config.Logger.Info("add-local-user", lager.Data{
-				"username":      username,
-				"password_hash": string(hashed),
-			})
 
 			users[username] = hashed
 		}
