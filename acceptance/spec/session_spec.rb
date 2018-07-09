@@ -62,7 +62,7 @@ describe 'session', type: :feature do
   context 'when session expires' do
     it 'redirects to login from a non-exposed pipeline' do
       fly_login team_name
-      fly('set-pipeline -n -p pipeline -c fixtures/passing-pipeline.yml')
+      fly('set-pipeline -n -p pipeline -c fixtures/simple-pipeline.yml')
 
       dash_login
       visit dash_route("/teams/#{team_name}/pipelines/pipeline")

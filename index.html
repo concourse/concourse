@@ -26,7 +26,7 @@
         csrfToken: {{ .CSRFToken }}
       });
 
-      if (window.location.pathname.startsWith("/dashboard")) {
+      if (window.location.pathname == '/') {
         app.ports.pinTeamNames.subscribe(function() {
           $(document).on('scroll', function() {
             $(".dashboard-team-name").pin({

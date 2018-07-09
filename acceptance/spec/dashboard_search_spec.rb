@@ -98,7 +98,7 @@ describe 'dashboard search', type: :feature do
 
       fill_in 'search-input-field', with: ''
       search "team:#{team_name} some"
-      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [team_name]
+      expect(page.find_all('.dashboard-team-name', minimum: 1).map(&:text)).to eq [team_name]
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 

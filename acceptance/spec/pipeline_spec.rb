@@ -70,16 +70,14 @@ describe 'pipeline', type: :feature do
     end
 
     it 'shows the resource node in amber' do
-      amber = Color::RGB.by_hex('#E67E22') # TODO: once dashboard colors are used everywhere, remove this
-      expect(fill_color(rect)).to eq amber
+      expect(fill_color(rect)).to eq AMBER
     end
 
     it 'when the resource is paused shows the node in blue' do
       node.click
       page.find('.btn-pause').click
       visit dash_route("/teams/#{team_name}/pipelines/states-pipeline")
-      blue = Color::RGB.by_hex('#3498DB') # TODO: once dashboard colors are used everywhere, remove this
-      expect(fill_color(rect)).to eq blue
+      expect(fill_color(rect)).to eq BLUE
     end
   end
 end
