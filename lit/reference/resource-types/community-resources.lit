@@ -179,7 +179,7 @@ before using it!
 }{
   \table-row{\link{Artifactory Resource}{https://github.com/emerald-squad/artifactory-resource}}{by \ghuser{emerald-squad}}
 }{
-  \table-row{\link{CF blue green Resource}{https://github.com/emerald-squad/cf-blue-green-resource}}{by \ghuser{emerald-squad}}
+  \table-row{\link{CF Zero Downtime Resource}{https://github.com/emerald-squad/cf-zero-downtime-resource}}{by \ghuser{emerald-squad}}
 }{
   \table-row{\link{FiaaS Resource}{https://github.com/leboncoin/concourse-fiaas-resource}}{by \ghuser{leboncoin}}
 }{
