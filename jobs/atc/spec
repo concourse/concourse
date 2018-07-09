@@ -172,7 +172,7 @@ properties:
       GitHub client ID to use for OAuth.
 
       The application must be configured with its callback URL as
-      `{external_url}/sky/dex/callback/github` (replacing `{external_url}`
+      `{external_url}/sky/issuer/callback` (replacing `{external_url}`
       with the actual value).
     default: ""
 
@@ -181,7 +181,7 @@ properties:
       GitHub client secret to use for OAuth.
 
       The application must be configured with its callback URL as
-      `{external_url}/sky/dex/callback/github` (replacing `{external_url}`
+      `{external_url}/sky/issuer/callback` (replacing `{external_url}`
       with the actual value).
     default: ""
 
