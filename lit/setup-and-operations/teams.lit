@@ -160,7 +160,7 @@ permitted by that team.
   \section{
     \title{GitHub Auth}{github-auth}
 
-    You can con configure which organizations, teams, and individual users
+    You can configure which organizations, teams, and individual users
     should have access to your team.
 
     This is done by passing the following flags:
