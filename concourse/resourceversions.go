@@ -43,14 +43,14 @@ func (team *team) ResourceVersions(pipelineName string, resourceName string, pag
 }
 
 func (team *team) DisableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error) {
-	return team.connectionSend(pipelineName, resourceName, resourceVersionID, atc.DisableResourceVersion)
+	return team.sendResourceVersion(pipelineName, resourceName, resourceVersionID, atc.DisableResourceVersion)
 }
 
 func (team *team) EnableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error) {
-	return team.connectionSend(pipelineName, resourceName, resourceVersionID, atc.EnableResourceVersion)
+	return team.sendResourceVersion(pipelineName, resourceName, resourceVersionID, atc.EnableResourceVersion)
 }
 
-func (team *team) connectionSend(pipelineName string, resourceName string, resourceVersionID int, resourceVersionReq string) (bool, error) {
+func (team *team) sendResourceVersion(pipelineName string, resourceName string, resourceVersionID int, resourceVersionReq string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name":       pipelineName,
 		"resource_name":       resourceName,
