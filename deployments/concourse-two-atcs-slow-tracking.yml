@@ -16,7 +16,7 @@ instance_groups:
   azs: [z1]
   persistent_disk: 1240
   vm_type: topgun
-  stemcell: trusty
+  stemcell: xenial
   jobs:
   - release: concourse
     name: atc
@@ -51,7 +51,7 @@ instance_groups:
   azs: [z1]
   persistent_disk: 10240
   vm_type: topgun
-  stemcell: trusty
+  stemcell: xenial
   jobs:
   - release: postgres
     name: postgres
@@ -68,7 +68,7 @@ instance_groups:
   networks: [{name: topgun}]
   azs: [z1]
   vm_type: topgun
-  stemcell: trusty
+  stemcell: xenial
   jobs:
   - release: concourse
     name: worker
@@ -101,8 +101,8 @@ variables:
   type: ssh
 
 stemcells:
-- alias: trusty
-  os: ubuntu-trusty
+- alias: xenial
+  os: ubuntu-xenial
   version: ((stemcell_version))
 
 update:

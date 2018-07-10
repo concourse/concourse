@@ -6,5 +6,5 @@
     networks: [{name: topgun}]
     azs: [z1]
     vm_type: topgun
-    stemcell: trusty
+    stemcell: xenial
     jobs: []

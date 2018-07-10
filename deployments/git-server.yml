@@ -11,7 +11,7 @@ instance_groups:
   networks: [{name: topgun}]
   azs: [z1]
   vm_type: topgun
-  stemcell: trusty
+  stemcell: xenial
   jobs:
   - release: git-server
     name: git-server
@@ -20,8 +20,8 @@ instance_groups:
       - some-repo
 
 stemcells:
-- alias: trusty
-  os: ubuntu-trusty
+- alias: xenial
+  os: ubuntu-xenial
   version: ((stemcell_version))
 
 update:

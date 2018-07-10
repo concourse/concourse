@@ -14,7 +14,7 @@
     azs: [z1]
     persistent_disk: 10240
     vm_type: topgun
-    stemcell: trusty
+    stemcell: xenial
     jobs:
     - release: vault
       name: vault
