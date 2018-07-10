@@ -790,13 +790,8 @@ func (j *job) nextBuild() (Build, error) {
 	var next Build
 
 	row := buildsQuery.
-		Where(sq.Eq{
-			"j.name":        j.name,
-			"j.pipeline_id": j.pipelineID,
-			"b.status":      []BuildStatus{BuildStatusPending, BuildStatusStarted},
-		}).
-		OrderBy("b.id ASC").
-		Limit(1).
+		Where(sq.Eq{"j.id": j.id}).
+		Where(sq.Expr("b.id = j.next_build_id")).
 		RunWith(j.conn).
 		QueryRow()
 
@@ -815,13 +810,8 @@ func (j *job) finishedBuild() (Build, error) {
 	var finished Build
 
 	row := buildsQuery.
-		Where(sq.Eq{
-			"j.name":        j.name,
-			"j.pipeline_id": j.pipelineID,
-		}).
-		Where(sq.Expr("b.status NOT IN ('pending', 'started')")).
-		OrderBy("b.id DESC").
-		Limit(1).
+		Where(sq.Eq{"j.id": j.id}).
+		Where(sq.Expr("b.id = j.latest_completed_build_id")).
 		RunWith(j.conn).
 		QueryRow()
 
