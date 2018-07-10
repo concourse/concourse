@@ -12,7 +12,9 @@ helm init --client-only
 helm dependency update
 helm upgrade -f values.yaml --set image="concourse/concourse-rc" --set imageTag="$version" "$RELEASE_NAME" . --wait --timeout 300
 
-while kubectl get pods | grep "$app" | grep "0/1" > /dev/null; do
+# https://github.com/kubernetes/helm/issues/3296
+# Have to use this until --wait works
+while kubectl get pods | grep "$app" | grep "0/1" | grep -v "Running" > /dev/null; do
   echo "Web node not ready. Sleeping for 10s and trying again..."
   sleep 10
 done
