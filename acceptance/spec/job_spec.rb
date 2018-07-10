@@ -57,9 +57,8 @@ describe 'job', type: :feature do
     visit dash_route("/teams/#{team_name}/pipelines/test-pipeline/jobs/passing")
 
     page.find_by_id('job-state').click
+    expect(page).to_not have_css('#job-state.loading')
     pause_button = page.find_by_id('job-state')
-
-    expect(pause_button['class']).to_not include 'loading'
     expect(pause_button['class']).to_not include 'enabled'
     expect(pause_button['class']).to include 'disabled'
   end
