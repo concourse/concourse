@@ -3,12 +3,13 @@ set -e
 
 mkdir -p ~/.kube
 echo "$KUBE_CONFIG" > ~/.kube/config
+version=$(cat version/version)
 
 pushd charts/stable/concourse/
 
 helm init --client-only
 helm dependency update
-helm upgrade -f values.yaml --set image="concourse/concourse-rc" --set imageTag="4.0.0-rc.17" "$RELEASE_NAME" . --wait --timeout 300
+helm upgrade -f values.yaml --set image="concourse/concourse-rc" --set imageTag="$version" "$RELEASE_NAME" . --wait --timeout 300
 
 while kubectl get pods | grep funky-sloth-web | grep "0/1" > /dev/null; do
   echo "Web node not ready. Sleeping for 10s and trying again..."
@@ -33,4 +34,4 @@ trap "kill $pids" EXIT
 
 popd
 
-ATC_URL="http://$external_ip:8080" ATC_USERNAME="test1" ATC_PASSWORD="test1" concourse/ci/scripts/testflight
+ATC_URL="http://$external_ip:8080" concourse/ci/scripts/testflight
