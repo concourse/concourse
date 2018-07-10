@@ -47,9 +47,9 @@ bosh -e vbox login \
 by "setting cloud config..."
 bosh -n -e vbox update-cloud-config ./cloud_config.yml
 
-if ! bosh -e vbox stemcells | grep bosh-warden-boshlite-ubuntu-trusty-go_agent >/dev/null; then
-  by "uploading an initial ubuntu trusty stemcell..."
-  bosh -n -e vbox upload-stemcell "https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent"
+if ! bosh -e vbox stemcells | grep bosh-warden-boshlite-ubuntu-xenial-go_agent >/dev/null; then
+  by "uploading an initial ubuntu xenial stemcell..."
+  bosh -n -e vbox upload-stemcell "https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-xenial-go_agent?v=87"
 fi
 
 if ! bosh -e vbox releases | grep garden-runc >/dev/null; then
