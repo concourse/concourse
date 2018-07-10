@@ -50,7 +50,8 @@ describe 'dashboard search', type: :feature do
       search 'some'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
 
-      fill_in 'search-input-field', with: ''
+      clear_search
+
       search 'pipeline'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline', 'other-pipeline']
     end
@@ -61,7 +62,8 @@ describe 'dashboard search', type: :feature do
       search '-some'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['other-pipeline']
 
-      fill_in 'search-input-field', with: ''
+      clear_search
+
       search '-pipeline'
       expect(page).to have_content('No results for "-pipeline" matched your search.')
     end
@@ -96,7 +98,8 @@ describe 'dashboard search', type: :feature do
       search "team:#{team_name}"
       expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [team_name]
 
-      fill_in 'search-input-field', with: ''
+      clear_search
+
       search "team:#{team_name} some"
       expect(page.find_all('.dashboard-team-name', minimum: 1).map(&:text)).to eq [team_name]
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
@@ -106,7 +109,8 @@ describe 'dashboard search', type: :feature do
       search "team:-#{team_name}"
       expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
 
-      fill_in 'search-input-field', with: ''
+      clear_search
+
       search "team:-#{team_name} -some"
       expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['other-pipeline']
@@ -116,7 +120,8 @@ describe 'dashboard search', type: :feature do
       search "team:-#{team_name}"
       expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
 
-      fill_in 'search-input-field', with: ''
+      clear_search
+
       search "team:-#{team_name} status:-pending -some"
       expect(page).to have_content("No results for \"team:-#{team_name} status:-pending -some\" matched your search.")
     end
@@ -206,6 +211,11 @@ describe 'dashboard search', type: :feature do
   end
 
   private
+
+  def clear_search
+    page.find('#search-clear-button').click
+    expect(page.find('#search-input-field').value).to be_empty
+  end
 
   def search(term)
     term.split('').each { |c| find_field('search-input-field').native.send_keys(c) }
