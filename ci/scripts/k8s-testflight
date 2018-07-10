@@ -4,6 +4,7 @@ set -e
 mkdir -p ~/.kube
 echo "$KUBE_CONFIG" > ~/.kube/config
 version=$(cat version/version)
+app="${RELEASE_NAME}-web"
 
 pushd charts/stable/concourse/
 
@@ -11,13 +12,13 @@ helm init --client-only
 helm dependency update
 helm upgrade -f values.yaml --set image="concourse/concourse-rc" --set imageTag="$version" "$RELEASE_NAME" . --wait --timeout 300
 
-while kubectl get pods | grep funky-sloth-web | grep "0/1" > /dev/null; do
+while kubectl get pods | grep "$app" | grep "0/1" > /dev/null; do
   echo "Web node not ready. Sleeping for 10s and trying again..."
   sleep 10
 done
 
-external_ip=$(kubectl get svc "$RELEASE_NAME"-web -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-pod_name=$(kubectl get po -l app="$RELEASE_NAME"-web -o jsonpath='{.items[0].metadata.name}')
+external_ip=$(kubectl get svc "$app" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
 internal_ip=$(kubectl get po "$pod_name" -o jsonpath='{.status.podIP}')
 
 bearer_token=$(curl -u fly:Zmx5 "http://$external_ip:8080/sky/token?grant_type=password&username=test1&password=test1&scope=openid+profile+email+federated:id+groups" | jq -r '.access_token')
