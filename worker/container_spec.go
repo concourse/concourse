@@ -33,6 +33,9 @@ type ContainerSpec struct {
 	// Outputs for which volumes should be created and mounted into the container.
 	Outputs OutputPaths
 
+	// Resource limits to be set on the container when creating in garden.
+	Limits ContainerLimits
+
 	// Local volumes to bind mount directly to the container when creating in garden.
 	BindMounts []BindMountSource
 
@@ -57,6 +60,11 @@ type ImageResource struct {
 	Source  creds.Source
 	Params  *atc.Params
 	Version *atc.Version
+}
+
+type ContainerLimits struct {
+	CPU    uint64
+	Memory uint64
 }
 
 func (spec ContainerSpec) WorkerSpec() WorkerSpec {

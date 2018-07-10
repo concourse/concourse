@@ -20,6 +20,9 @@ type TaskConfig struct {
 
 	ImageResource *ImageResource `json:"image_resource,omitempty" yaml:"image_resource,omitempty" mapstructure:"image_resource"`
 
+	// Limits to set on the Task Container
+	Limits ContainerLimits `json:"container_limits,omitempty" yaml:"container_limits,omitempty" mapstructure:"container_limits"`
+
 	// Parameters to pass to the task via environment variables.
 	Params map[string]string `json:"params,omitempty" yaml:"params,omitempty" mapstructure:"params"`
 
@@ -42,6 +45,11 @@ type ImageResource struct {
 
 	Params  *Params  `yaml:"params,omitempty"  json:"params,omitempty"  mapstructure:"params"`
 	Version *Version `yaml:"version,omitempty" json:"version,omitempty" mapstructure:"version"`
+}
+
+type ContainerLimits struct {
+	CPU    uint64 `yaml:"cpu,omitempty"  json:"cpu,omitempty"  mapstructure:"cpu"`
+	Memory uint64 `yaml:"memory,omitempty"  json:"memory,omitempty"  mapstructure:"memory"`
 }
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {

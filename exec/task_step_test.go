@@ -152,6 +152,10 @@ var _ = Describe("TaskStep", func() {
 					Params:  &atc.Params{"some": "params"},
 					Version: &atc.Version{"some": "version"},
 				},
+				Limits: atc.ContainerLimits{
+					CPU:    1024,
+					Memory: 1024,
+				},
 				Params: map[string]string{
 					"SECURE": "((task-param))",
 				},
@@ -212,6 +216,10 @@ var _ = Describe("TaskStep", func() {
 							Version: &atc.Version{"some": "version"},
 						},
 						Privileged: false,
+					},
+					Limits: worker.ContainerLimits{
+						CPU:    1024,
+						Memory: 1024,
 					},
 					Dir:     "some-artifact-root",
 					Env:     []string{"SECURE=super-secret-param"},

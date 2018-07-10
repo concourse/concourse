@@ -35,17 +35,15 @@ var _ = Describe("ContainerProvider", func() {
 		fakeCreatingContainer *dbfakes.FakeCreatingContainer
 		fakeCreatedContainer  *dbfakes.FakeCreatedContainer
 
-		fakeGardenClient            *gardenfakes.FakeClient
-		fakeGardenContainer         *gardenfakes.FakeContainer
-		fakeBaggageclaimClient      *baggageclaimfakes.FakeClient
-		fakeVolumeClient            *workerfakes.FakeVolumeClient
-		fakeImageFactory            *workerfakes.FakeImageFactory
-		fakeImage                   *workerfakes.FakeImage
-		fakeDBTeam                  *dbfakes.FakeTeam
-		fakeDBVolumeRepository      *dbfakes.FakeVolumeRepository
-		fakeDBResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
-		fakeDBResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-		fakeLockFactory             *lockfakes.FakeLockFactory
+		fakeGardenClient       *gardenfakes.FakeClient
+		fakeGardenContainer    *gardenfakes.FakeContainer
+		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
+		fakeVolumeClient       *workerfakes.FakeVolumeClient
+		fakeImageFactory       *workerfakes.FakeImageFactory
+		fakeImage              *workerfakes.FakeImage
+		fakeDBTeam             *dbfakes.FakeTeam
+		fakeDBVolumeRepository *dbfakes.FakeVolumeRepository
+		fakeLockFactory        *lockfakes.FakeLockFactory
 
 		containerProvider ContainerProvider
 
@@ -103,8 +101,6 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
 		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
 		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
-		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
-		fakeDBResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 
@@ -236,6 +232,10 @@ var _ = Describe("ContainerProvider", func() {
 			},
 			BindMounts: []BindMountSource{
 				fakeBindMount,
+			},
+			Limits: ContainerLimits{
+				CPU:    1024,
+				Memory: 1024,
 			},
 		}
 
@@ -448,6 +448,10 @@ var _ = Describe("ContainerProvider", func() {
 						DstPath: "/some/work-dir/output",
 						Mode:    garden.BindMountModeRW,
 					},
+				},
+				Limits: garden.Limits{
+					CPU:    garden.CPULimits{LimitInShares: 1024},
+					Memory: garden.MemoryLimits{LimitInBytes: 1024},
 				},
 				Env: []string{
 					"IMAGE=ENV",

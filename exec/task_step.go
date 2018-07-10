@@ -324,6 +324,7 @@ func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.Ar
 		Tags:      action.tags,
 		TeamID:    action.teamID,
 		ImageSpec: imageSpec,
+		Limits:    worker.ContainerLimits(config.Limits),
 		User:      config.Run.User,
 		Dir:       action.artifactsRoot,
 		Env:       action.envForParams(params),

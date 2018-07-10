@@ -158,6 +158,23 @@ run: {path: a/file}
 			})
 		})
 
+		Context("when container limits are specified", func() {
+			It("parses the limits", func() {
+				data := []byte(`
+platform: beos
+container_limits: { cpu: 1024, memory: 1024 }
+
+run: {path: a/file}
+`)
+				task, err := NewTaskConfig(data)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(task.Limits).To(Equal(ContainerLimits{
+					CPU:    1024,
+					Memory: 1024,
+				}))
+			})
+		})
+
 		Context("when the task has inputs", func() {
 			BeforeEach(func() {
 				validConfig.Inputs = append(validConfig.Inputs, TaskInputConfig{Name: "concourse"})
