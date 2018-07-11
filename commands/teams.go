@@ -8,10 +8,12 @@ import (
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
+	"strings"
 )
 
 type TeamsCommand struct {
 	Json bool `long:"json" description:"Print command result as JSON"`
+	Details bool `short:"d" long:"details" description:"Print authentication configuration"`
 }
 
 func (command *TeamsCommand) Execute([]string) error {
@@ -38,15 +40,42 @@ func (command *TeamsCommand) Execute([]string) error {
 		return nil
 	}
 
-	table := ui.Table{
-		Headers: ui.TableRow{
-			{Contents: "name", Color: color.New(color.Bold)},
-		},
+	headers := ui.TableRow{
+		{Contents: "name", Color: color.New(color.Bold)},
 	}
+
+	if command.Details {
+		headers = append(headers,
+			ui.TableCell{Contents: "users", Color: color.New(color.Bold)},
+			ui.TableCell{Contents: "groups", Color: color.New(color.Bold)},
+		)
+	}
+
+	table := ui.Table{Headers: headers}
 
 	for _, t := range teams {
 		row := ui.TableRow{
 			{Contents: t.Name},
+		}
+
+		if command.Details {
+			var usersCell, groupsCell ui.TableCell
+
+			if len(t.Auth["users"]) == 0 {
+				usersCell.Contents = "none"
+				usersCell.Color = color.New(color.Faint)
+			}else {
+				usersCell.Contents = strings.Join(t.Auth["users"],",")
+			}
+			row = append(row, usersCell)
+
+			if len(t.Auth["groups"]) == 0 {
+				groupsCell.Contents = "none"
+				groupsCell.Color = color.New(color.Faint)
+			}else {
+				groupsCell.Contents = strings.Join(t.Auth["groups"],",")
+			}
+			row = append(row, groupsCell)
 		}
 
 		table.Data = append(table.Data, row)

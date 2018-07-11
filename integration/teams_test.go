@@ -32,14 +32,34 @@ var _ = Describe("Fly CLI", func() {
 							{
 								ID:   1,
 								Name: "main",
+								Auth: map[string][]string{
+									"groups": []string{},
+									"users": []string{},
+								},
 							},
 							{
 								ID:   2,
 								Name: "a-team",
+								Auth: map[string][]string{
+									"groups": []string{"github:github-org"},
+									"users": []string{},
+								},
 							},
 							{
 								ID:   3,
 								Name: "b-team",
+								Auth: map[string][]string{
+									"groups": []string{},
+									"users": []string{"github:github-user"},
+								},
+							},
+							{
+								ID:   4,
+								Name: "c-team",
+								Auth: map[string][]string{
+									"users": []string{"github:github-user"},
+									"groups":[]string{"github:github-org"},
+								},
 							},
 						}),
 					),
@@ -58,6 +78,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{{Contents: "a-team"}},
 						{{Contents: "b-team"}},
+						{{Contents: "c-team"}},
 						{{Contents: "main"}},
 					},
 				}))
@@ -76,17 +97,59 @@ var _ = Describe("Fly CLI", func() {
 					Expect(sess.Out.Contents()).To(MatchJSON(`[
               {
                 "id": 1,
-                "name": "main"
+                "name": "main",
+				"auth": {"groups":[], "users":[]}
               },
               {
                 "id": 2,
-                "name": "a-team"
+                "name": "a-team",
+				"auth": {
+					"groups": ["github:github-org"],
+					"users": []
+				}
               },
               {
                 "id": 3,
-                "name": "b-team"
+                "name": "b-team",
+				"auth": {
+					"users": ["github:github-user"],
+					"groups": []
+				}
+              },
+              {
+				"id": 4,
+				"name": "c-team",
+				"auth": {
+					"groups":["github:github-org"],
+					"users":["github:github-user"]
+				}
               }
             ]`))
+				})
+			})
+
+			Context("when the details flag is specified", func() {
+				BeforeEach(func() {
+					flyCmd.Args = append(flyCmd.Args, "--details")
+				})
+
+				It("lists them to the user, ordered by name", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out).To(PrintTable(ui.Table{
+						Headers: ui.TableRow{
+							{Contents: "name", Color: color.New(color.Bold)},
+							{Contents: "auth", Color: color.New(color.Bold)},
+						},
+						Data: []ui.TableRow{
+							{{Contents: "a-team"}, {Contents: "none"}, {Contents: "github:github-org"}},
+							{{Contents: "b-team"}, {Contents: "github:github-user"}, {Contents: "none"}},
+							{{Contents: "c-team"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
+							{{Contents: "main"}, {Contents: "none"}, {Contents: "none"}},
+						},
+					}))
 				})
 			})
 		})
