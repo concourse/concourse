@@ -78,17 +78,20 @@ var _ = Describe("Teams API", func() {
 
 				fakeTeamOne.IDReturns(5)
 				fakeTeamOne.NameReturns("avengers")
+				fakeTeamOne.AuthReturns(map[string][]string{
+					"groups":[]string{}, "users":[]string{},
+				})
 
 				fakeTeamTwo.IDReturns(9)
 				fakeTeamTwo.NameReturns("aliens")
 				fakeTeamTwo.AuthReturns(map[string][]string{
-					"groups": []string{"github:org:team"},
+					"groups": []string{"github:org:team"}, "users": []string{},
 				})
 
 				fakeTeamThree.IDReturns(22)
 				fakeTeamThree.NameReturns("predators")
 				fakeTeamThree.AuthReturns(map[string][]string{
-					"users": []string{"local:username"},
+					"users": []string{"local:username"}, "groups":[]string{},
 				})
 
 				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
@@ -109,15 +112,18 @@ var _ = Describe("Teams API", func() {
 				Expect(body).To(MatchJSON(`[
  					{
  						"id": 5,
- 						"name": "avengers"
+ 						"name": "avengers",
+						"auth": {"users":[],"groups":[]}
  					},
  					{
  						"id": 9,
- 						"name": "aliens"
+ 						"name": "aliens",
+						"auth": {"groups":["github:org:team"],"users":[]}
  					},
  					{
  						"id": 22,
- 						"name": "predators"
+ 						"name": "predators",
+						"auth": {"users":["local:username"],"groups":[]}
  					}
  				]`))
 			})
