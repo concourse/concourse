@@ -51,6 +51,12 @@ type Msg
     | DashboardHdMsg DashboardHd.Msg
 
 
+type alias Flags =
+    { csrfToken : String
+    , turbulencePath : String
+    }
+
+
 superDupleWrap : ( a -> b, c -> d ) -> ( a, Cmd c ) -> ( b, Cmd d )
 superDupleWrap ( modelFunc, msgFunc ) ( model, msg ) =
     ( modelFunc model, Cmd.map msgFunc msg )
@@ -61,8 +67,8 @@ queryGroupsForRoute route =
     QueryString.all "groups" route.queries
 
 
-init : String -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
-init turbulencePath route =
+init : Flags -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
+init flags route =
     case route.logical of
         Routes.Build teamName pipelineName jobName buildName ->
             superDupleWrap ( BuildModel, BuildMsg ) <|
@@ -70,7 +76,7 @@ init turbulencePath route =
                     Build.getScrollBehavior
                     << Build.init
                         { title = setTitle }
-                        { csrfToken = "", hash = route.hash }
+                        { csrfToken = flags.csrfToken, hash = route.hash }
                 <|
                     Build.JobBuildPage
                         { teamName = teamName
@@ -85,7 +91,7 @@ init turbulencePath route =
                     Build.getScrollBehavior
                     << Build.init
                         { title = setTitle }
-                        { csrfToken = "", hash = route.hash }
+                        { csrfToken = flags.csrfToken, hash = route.hash }
                 <|
                     Build.BuildPage <|
                         Result.withDefault 0 (String.toInt buildId)
@@ -98,7 +104,7 @@ init turbulencePath route =
                     , teamName = teamName
                     , pipelineName = pipelineName
                     , paging = route.page
-                    , csrfToken = ""
+                    , csrfToken = flags.csrfToken
                     }
 
         Routes.Job teamName pipelineName jobName ->
@@ -109,7 +115,7 @@ init turbulencePath route =
                     , teamName = teamName
                     , pipelineName = pipelineName
                     , paging = route.page
-                    , csrfToken = ""
+                    , csrfToken = flags.csrfToken
                     }
 
         Routes.Pipeline teamName pipelineName ->
@@ -120,17 +126,17 @@ init turbulencePath route =
                     }
                     { teamName = teamName
                     , pipelineName = pipelineName
-                    , turbulenceImgSrc = turbulencePath
+                    , turbulenceImgSrc = flags.turbulencePath
                     , route = route
                     }
 
         Routes.Dashboard ->
             superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init { title = setTitle } turbulencePath
+                Dashboard.init { title = setTitle } { turbulencePath = flags.turbulencePath, csrfToken = flags.csrfToken }
 
         Routes.DashboardHd ->
             superDupleWrap ( DashboardHdModel, DashboardHdMsg ) <|
-                DashboardHd.init { title = setTitle } turbulencePath
+                DashboardHd.init { title = setTitle } flags.turbulencePath
 
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
@@ -181,11 +187,14 @@ update turbulence notFound csrfToken msg mdl =
         ( ResourceMsg message, ResourceModel model ) ->
             handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
 
-        ( NewCSRFToken _, _ ) ->
-            ( mdl, Cmd.none )
+        ( NewCSRFToken c, DashboardModel model ) ->
+            ( DashboardModel { model | csrfToken = c }, Cmd.none )
 
         ( DashboardMsg message, DashboardModel model ) ->
             superDupleWrap ( DashboardModel, DashboardMsg ) <| Dashboard.update message model
+
+        ( NewCSRFToken _, _ ) ->
+            ( mdl, Cmd.none )
 
         ( DashboardHdMsg message, DashboardHdModel model ) ->
             superDupleWrap ( DashboardHdModel, DashboardHdMsg ) <| DashboardHd.update message model

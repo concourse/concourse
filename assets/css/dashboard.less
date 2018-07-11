@@ -26,7 +26,7 @@
   .pipeline-grid {
     float: none;
     display: flex;
-    padding: 20px 36px 10px;
+    padding: 20px 36px;
     width: 200px;
     height: 120px;
   }
@@ -81,6 +81,7 @@
     vertical-align: middle;
     font-size: (30px * @scale);
     margin-left: (16px * @scale);
+    float: left;
   }
 
   .dashboard-team-group {
@@ -138,7 +139,33 @@
 
     .dashboard-pipeline-footer {
       text-align: center;
-      margin-bottom: (27px * @scale);
+      padding: (27px * @scale);
+      border-top: 2px solid @base02;
+
+      .dashboard-pipeline-icon {
+        float: left;
+      }
+
+      .pause-toggle {
+        float: right;
+        background-size: contain;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        opacity: 0.5;
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+
+      .icon-play {
+        background-image: url('images/ic_play_white.svg');
+      }
+
+      .icon-pause {
+        background-image: url('images/ic_pause_white.svg');
+      }
     }
   }
 
@@ -408,10 +435,9 @@
 
 .dashboard-pipeline-name {
   color: @white;
-  text-align: center;
+  text-align: left;
   font-size: (34px * @scale);
-  margin: 0 auto;
-  padding: (17px * @scale);
+  padding: (25px * @scale);
   width: (300px * @scale);
   white-space: nowrap;
   overflow: hidden;

@@ -89,7 +89,7 @@ init flags location =
                     Normal
 
         ( subModel, subCmd ) =
-            SubPage.init flags.turbulenceImgSrc route
+            SubPage.init { turbulencePath = flags.turbulenceImgSrc, csrfToken = flags.csrfToken } route
 
         ( topModel, topCmd ) =
             TopBar.init route
@@ -248,7 +248,7 @@ urlUpdate route model =
             else if routeMatchesModel route model then
                 SubPage.urlUpdate route model.subModel
             else
-                SubPage.init model.turbulenceImgSrc route
+                SubPage.init { turbulencePath = model.turbulenceImgSrc, csrfToken = model.csrfToken } route
 
         ( newTopModel, tCmd ) =
             if route == model.route then

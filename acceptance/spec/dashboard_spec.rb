@@ -180,6 +180,16 @@ describe 'dashboard', type: :feature do
           expect(page).to have_content('paused')
         end
       end
+
+      it 'shows a play button that unpauses' do
+        within '.dashboard-pipeline', text: 'some-pipeline' do
+          expect(page).to have_css '.icon-play'
+
+          page.find('.icon-play').click
+          expect(page).not_to have_css '.icon-play'
+        end
+        expect(banner_color).to be_greyscale
+      end
     end
 
     context 'when a pipeline is pending' do
@@ -196,6 +206,16 @@ describe 'dashboard', type: :feature do
         within '.dashboard-pipeline', text: 'some-pipeline' do
           expect(page).to have_content('pending', wait: 10)
         end
+      end
+
+      it 'shows a pause button that pauses' do
+        within '.dashboard-pipeline', text: 'some-pipeline' do
+          expect(page).to have_css '.icon-pause'
+
+          page.find('.icon-pause').click
+          expect(page).not_to have_css '.icon-pause'
+        end
+        expect(banner_palette).to eq(BLUE)
       end
     end
 
@@ -546,7 +566,6 @@ describe 'dashboard', type: :feature do
 
   def visit_dashboard
     login
-    visit dash_route
   end
 
   def visit_hd_dashboard

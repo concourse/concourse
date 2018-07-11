@@ -19,12 +19,14 @@ import Html.Attributes exposing (class, classList, id, href, src, attribute)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Keyboard
+import List.Extra
 import Mouse
 import NewTopBar
 import NoPipeline exposing (view, Msg)
 import RemoteData
 import Routes
 import Simple.Fuzzy exposing (match, root, filter)
+import StrictEvents exposing (onLeftClick)
 import Task exposing (Task)
 import Time exposing (Time)
 
@@ -46,6 +48,7 @@ type alias Model =
     , pipelineJobs : Dict Int (List Concourse.Job)
     , pipelineResourceErrors : Dict ( String, String ) Bool
     , concourseVersion : String
+    , csrfToken : String
     , turbulenceImgSrc : String
     , now : Maybe Time
     , showHelp : Bool
@@ -66,10 +69,18 @@ type Msg
     | KeyPressed Keyboard.KeyCode
     | KeyDowns Keyboard.KeyCode
     | TopBarMsg NewTopBar.Msg
+    | TogglePipelinePaused Concourse.Pipeline
+    | PipelinePauseToggled Concourse.Pipeline (Result Http.Error ())
 
 
-init : Ports -> String -> ( Model, Cmd Msg )
-init ports turbulencePath =
+type alias Flags =
+    { csrfToken : String
+    , turbulencePath : String
+    }
+
+
+init : Ports -> Flags -> ( Model, Cmd Msg )
+init ports flags =
     let
         ( topBar, topBarMsg ) =
             NewTopBar.init True
@@ -82,7 +93,8 @@ init ports turbulencePath =
           , pipelineJobs = Dict.empty
           , pipelineResourceErrors = Dict.empty
           , now = Nothing
-          , turbulenceImgSrc = turbulencePath
+          , csrfToken = flags.csrfToken
+          , turbulenceImgSrc = flags.turbulencePath
           , concourseVersion = ""
           , showHelp = False
           , hideFooter = False
@@ -199,6 +211,32 @@ update msg model =
                                 Cmd.map TopBarMsg newTopBarMsg
                 in
                     ( newModel, newMsg )
+
+            TogglePipelinePaused pipeline ->
+                ( model, togglePipelinePaused pipeline model.csrfToken )
+
+            PipelinePauseToggled pipeline (Ok ()) ->
+                ( { model
+                    | pipelines =
+                        List.Extra.updateIf
+                            ((==) pipeline)
+                            (\pipeline -> { pipeline | paused = not pipeline.paused })
+                            model.pipelines
+                  }
+                , Cmd.none
+                )
+
+            PipelinePauseToggled _ (Err _) ->
+                ( model, Cmd.none )
+
+
+togglePipelinePaused : Concourse.Pipeline -> Concourse.CSRFToken -> Cmd Msg
+togglePipelinePaused pipeline csrfToken =
+    Task.attempt (PipelinePauseToggled pipeline) <|
+        if pipeline.paused then
+            Concourse.Pipeline.unpause pipeline.teamName pipeline.name csrfToken
+        else
+            Concourse.Pipeline.pause pipeline.teamName pipeline.name csrfToken
 
 
 subscriptions : Model -> Sub Msg
@@ -375,7 +413,7 @@ handleKeyPressed key model =
             update ShowFooter model
 
 
-groupView : Maybe Time -> String -> List PipelineWithJobs -> Html msg
+groupView : Maybe Time -> String -> List PipelineWithJobs -> Html Msg
 groupView now teamName pipelines =
     Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
         [ Html.div [ class "pin-wrapper" ]
@@ -385,7 +423,7 @@ groupView now teamName pipelines =
         ]
 
 
-pipelineView : Maybe Time -> PipelineWithJobs -> Html msg
+pipelineView : Maybe Time -> PipelineWithJobs -> Html Msg
 pipelineView now ({ pipeline, jobs, resourceError } as pipelineWithJobs) =
     Html.div
         [ classList
@@ -412,9 +450,23 @@ pipelineView now ({ pipeline, jobs, resourceError } as pipelineWithJobs) =
                 [ Html.div [ class "dashboard-pipeline-icon" ]
                     []
                 , timeSincePipelineTransitioned now pipelineWithJobs
+                , pauseToggleView pipeline
                 ]
             ]
         ]
+
+
+pauseToggleView : Concourse.Pipeline -> Html Msg
+pauseToggleView pipeline =
+    Html.a
+        [ classList
+            [ ( "pause-toggle", True )
+            , ( "icon-play", pipeline.paused )
+            , ( "icon-pause", not pipeline.paused )
+            ]
+        , onLeftClick <| TogglePipelinePaused pipeline
+        ]
+        []
 
 
 timeSincePipelineTransitioned : Maybe Time -> PipelineWithJobs -> Html a
