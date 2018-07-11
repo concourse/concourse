@@ -99,7 +99,7 @@
 
   .topbar-login {
     float: right;
-    width: 10%;
+    max-width: 20%;
     text-align: right;
     white-space: nowrap;
 
@@ -108,10 +108,7 @@
       background-color: @base00;
       display: inline-block;
       line-height: @top-bar-height;
-      max-width: 80%;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+      width: 100%;
       text-align: center;
 
       &:hover {
@@ -120,6 +117,9 @@
 
       .user-id {
         padding: 0 30px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
 
       .user-menu {
@@ -130,12 +130,6 @@
         background-color: @base01;
       }
     }
-  }
-}
-
-@media (min-width : 320px) and (max-width : 768px) {
-  .module-topbar .topbar-search .topbar-search-form .search-input-field {
-    width: 160px;
   }
 }
 
@@ -170,7 +164,7 @@
     }
 
     .topbar-login {
-      width: 25%;
+      max-width: 65%;
 
       .topbar-user-info {
         border: none;
