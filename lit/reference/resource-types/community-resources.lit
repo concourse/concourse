@@ -43,6 +43,8 @@ before using it!
 }{
   \table-row{\link{BOSH Config: cloud-config and runtime-config}{https://github.com/EMC-Dojo/bosh-config-resource}}{by \ghuser{EMC-Dojo}}
 }{
+  \table-row{\link{BOSH Release}{https://github.com/dpb587/bosh-release-resource}}{by \ghuser{dpb587}}
+}{
   \table-row{\link{Pool Trigger}{https://github.com/cfmobile/pool-trigger-resource}}{by \ghuser{sfmobile}}
 }{
   \table-row{\link{Pivotal Network}{https://github.com/pivotal-cf-experimental/pivnet-resource}}{by \ghuser{pivotal-cf-experimental}}
