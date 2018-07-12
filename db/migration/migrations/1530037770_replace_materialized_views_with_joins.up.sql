@@ -12,7 +12,8 @@ BEGIN;
   UPDATE jobs j SET next_build_id = v.id FROM next_builds_per_job v WHERE v.job_id = j.id;
   UPDATE jobs j SET transition_build_id = v.id FROM transition_builds_per_job v WHERE v.job_id = j.id;
 
-  DROP MATERIALIZED VIEW transition_builds_per_job;
-  DROP MATERIALIZED VIEW next_builds_per_job;
-  DROP MATERIALIZED VIEW latest_completed_builds_per_job;
+  -- these are to be done in a later release
+  -- DROP MATERIALIZED VIEW transition_builds_per_job;
+  -- DROP MATERIALIZED VIEW next_builds_per_job;
+  -- DROP MATERIALIZED VIEW latest_completed_builds_per_job;
 COMMIT;
