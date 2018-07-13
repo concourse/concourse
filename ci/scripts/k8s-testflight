@@ -19,6 +19,11 @@ while kubectl get pods | grep "$app" | grep "0/1" | grep -v "Running" > /dev/nul
   sleep 10
 done
 
+while kubectl get pods | grep "${RELEASE_NAME}-worker" | grep "0/1" | grep -v "Running" > /dev/null; do
+  echo "Worker node not ready. Sleeping for 10s and trying again..."
+  sleep 10
+done
+
 external_ip=$(kubectl get svc "$app" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
 internal_ip=$(kubectl get po "$pod_name" -o jsonpath='{.status.podIP}')
