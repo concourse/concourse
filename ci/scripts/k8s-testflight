@@ -35,7 +35,7 @@ bearer_token=$(curl -u fly:Zmx5 "http://$external_ip:8080/sky/token?grant_type=p
 
 # wait for worker running
 get_worker_state_cmd=$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .state')
-until [[ "$get_worker_state_cmd" == "running" ]]; do
+until [[ "$get_worker_state_cmd" == "Running" ]]; do
   echo "Waiting worker to be running ..."
   sleep 5;
 done
