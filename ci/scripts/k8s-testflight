@@ -34,7 +34,8 @@ internal_ip=$(kubectl get po "$pod_name" -o jsonpath='{.status.podIP}')
 bearer_token=$(curl -u fly:Zmx5 "http://$external_ip:8080/sky/token?grant_type=password&username=test1&password=test1&scope=openid+profile+email+federated:id+groups" | jq -r '.access_token')
 
 # wait for worker running
-until [ "$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .state')" -eq "running" ]; do
+get_worker_state_cmd=$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .state')
+until [[ "$get_worker_state_cmd" == "running" ]]; do
   echo "Waiting worker to be running ..."
   sleep 5;
 done
