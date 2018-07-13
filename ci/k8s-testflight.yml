@@ -13,5 +13,7 @@ inputs:
 params:
   RELEASE_NAME:
   KUBE_CONFIG:
+  ATC_USERNAME:
+  ATC_PASSWORD:
 run:
   path: concourse/ci/scripts/k8s-testflight

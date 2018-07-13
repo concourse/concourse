@@ -14,13 +14,11 @@ helm upgrade -f values.yaml --set image="concourse/concourse-rc" --set imageTag=
 
 # https://github.com/kubernetes/helm/issues/3296
 # Have to use this until --wait works
-while kubectl get pods | grep "$app" | grep "0/1" | grep -v "Running" > /dev/null; do
-  echo "Web node not ready. Sleeping for 10s and trying again..."
-  sleep 10
-done
-
-while kubectl get pods | grep "${RELEASE_NAME}-worker" | grep "0/1" | grep -v "Running" > /dev/null; do
-  echo "Worker node not ready. Sleeping for 10s and trying again..."
+check_web_cmd=`kubectl get pods | grep "$app" | grep "0/1" | grep -v "Running"`
+check_worker_cmd=`kubectl get pods | grep "$RELEASE_NAME-worker" | grep "0/1" | grep -v "Running"`
+while [ check_web_cmd ] || [ check_worker_cmd ] > /dev/null; do
+  echo "Nodes are not ready. Sleeping for 10s and trying again..."
+  kubectl get pods
   sleep 10
 done
 
