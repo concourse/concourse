@@ -25,8 +25,6 @@ while kubectl get pods | grep "$RELEASE_NAME-worker" | grep "0/1" | grep -v "Run
   kubectl get pods
   sleep 10
 done
-
-sleep 60
 set +x
 
 external_ip=$(kubectl get svc "$app" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -34,7 +32,13 @@ pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
 internal_ip=$(kubectl get po "$pod_name" -o jsonpath='{.status.podIP}')
 
 bearer_token=$(curl -u fly:Zmx5 "http://$external_ip:8080/sky/token?grant_type=password&username=test1&password=test1&scope=openid+profile+email+federated:id+groups" | jq -r '.access_token')
-echo $bearer_token
+
+# wait for worker running
+until [ "$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .state')" -eq "running" ]; do
+  echo "Waiting worker to be running ..."
+  sleep 5;
+done
+
 ports=$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .addr,.baggageclaim_url' | awk -F: '{print $NF}')
 
 pids=""
