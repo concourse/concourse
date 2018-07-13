@@ -39,17 +39,17 @@ type TaskConfig struct {
 	Caches []CacheConfig `json:"caches,omitempty" yaml:"caches,omitempty" mapstructure:"caches"`
 }
 
+type ContainerLimits struct {
+	CPU    uint64 `yaml:"cpu,omitempty"  json:"cpu,omitempty"  mapstructure:"cpu"`
+	Memory uint64 `yaml:"memory,omitempty"  json:"memory,omitempty"  mapstructure:"memory"`
+}
+
 type ImageResource struct {
 	Type   string `yaml:"type"   json:"type"   mapstructure:"type"`
 	Source Source `yaml:"source" json:"source" mapstructure:"source"`
 
 	Params  *Params  `yaml:"params,omitempty"  json:"params,omitempty"  mapstructure:"params"`
 	Version *Version `yaml:"version,omitempty" json:"version,omitempty" mapstructure:"version"`
-}
-
-type ContainerLimits struct {
-	CPU    uint64 `yaml:"cpu,omitempty"  json:"cpu,omitempty"  mapstructure:"cpu"`
-	Memory uint64 `yaml:"memory,omitempty"  json:"memory,omitempty"  mapstructure:"memory"`
 }
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
@@ -66,7 +66,10 @@ func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 		Metadata:         &metadata,
 		Result:           &config,
 		WeaklyTypedInput: true,
-		DecodeHook:       SanitizeDecodeHook,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			SanitizeDecodeHook,
+			ContainerLimitsDecodeHook,
+		),
 	}
 
 	decoder, err := mapstructure.NewDecoder(msConfig)
