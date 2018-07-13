@@ -21,6 +21,9 @@ fly -t local login -c "http://$WEB_IP:8080" -u $WEB_USERNAME -p $WEB_PASSWORD ||
   fly -t local login -c "http://$WEB_IP:8080" # -u $WEB_USERNAME -p $WEB_PASSWORD
 }
 
+# wait for worker to be available
+until [ "$(fly -t local workers | wc -l)" -eq 1 ]; do sleep 2; done
+
 # test that the pipeline exists
 fly -t local pipelines | grep "$PIPELINE_NAME.*no.*no"
 
