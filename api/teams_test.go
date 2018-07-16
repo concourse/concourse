@@ -40,7 +40,13 @@ var _ = Describe("Teams API", func() {
 	})
 
 	Describe("GET /api/v1/teams", func() {
-		var response *http.Response
+		var (
+			response *http.Response
+			fakeTeamOne   *dbfakes.FakeTeam
+			fakeTeamTwo   *dbfakes.FakeTeam
+			fakeTeamThree *dbfakes.FakeTeam
+			teamNames 	  []string
+		)
 
 		JustBeforeEach(func() {
 			path := fmt.Sprintf("%s/api/v1/teams", server.URL)
@@ -50,6 +56,94 @@ var _ = Describe("Teams API", func() {
 
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			fakeTeamOne = new(dbfakes.FakeTeam)
+			fakeTeamTwo = new(dbfakes.FakeTeam)
+			fakeTeamThree = new(dbfakes.FakeTeam)
+
+			teamNames = []string{"avengers", "aliens", "predators"}
+
+			fakeTeamOne.IDReturns(5)
+			fakeTeamOne.NameReturns(teamNames[0])
+			fakeTeamOne.AuthReturns(map[string][]string{
+				"groups":[]string{}, "users":[]string{"local:username"},
+			})
+
+			fakeTeamTwo.IDReturns(9)
+			fakeTeamTwo.NameReturns(teamNames[1])
+			fakeTeamTwo.AuthReturns(map[string][]string{
+				"groups": []string{}, "users": []string{"local:username"},
+			})
+
+			fakeTeamThree.IDReturns(22)
+			fakeTeamThree.NameReturns(teamNames[2])
+			fakeTeamThree.AuthReturns(map[string][]string{
+				"users": []string{"local:username"}, "groups":[]string{},
+			})
+		})
+
+		Context("when the requester is an admin user", func() {
+			BeforeEach(func() {
+			 	fakeaccess.IsAdminReturns(true)
+
+				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
+
+			})
+
+			It("should return all teams", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+ 					{
+ 						"id": 5,
+ 						"name": "avengers",
+						"auth": {"users":["local:username"],"groups":[]}
+ 					},
+ 					{
+ 						"id": 9,
+ 						"name": "aliens",
+						"auth": {"groups":[],"users":["local:username"]}
+ 					},
+ 					{
+ 						"id": 22,
+ 						"name": "predators",
+						"auth": {"users":["local:username"],"groups":[]}
+ 					}
+ 				]`))
+			})
+		})
+
+		Context("when the requester is NOT an admin user", func() {
+			BeforeEach(func(){
+				fakeaccess.IsAdminReturns(false)
+
+				fakeaccess.IsAuthorizedReturnsOnCall(0, true)
+				fakeaccess.IsAuthorizedReturnsOnCall(1, false)
+				fakeaccess.IsAuthorizedReturnsOnCall(2, true)
+
+				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
+			})
+
+			It("should return only the teams the user is authorized for", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+ 					{
+ 						"id": 5,
+ 						"name": "avengers",
+						"auth": {"users":["local:username"],"groups":[]}
+ 					},
+ 					{
+ 						"id": 22,
+ 						"name": "predators",
+						"auth": {"users":["local:username"],"groups":[]}
+ 					}
+ 				]`))
+			})
 		})
 
 		Context("when the database returns an error", func() {
@@ -62,70 +156,6 @@ var _ = Describe("Teams API", func() {
 
 			It("returns 500 Internal Server Error", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
-
-		Context("when the database returns teams", func() {
-			var (
-				fakeTeamOne   *dbfakes.FakeTeam
-				fakeTeamTwo   *dbfakes.FakeTeam
-				fakeTeamThree *dbfakes.FakeTeam
-			)
-			BeforeEach(func() {
-				fakeTeamOne = new(dbfakes.FakeTeam)
-				fakeTeamTwo = new(dbfakes.FakeTeam)
-				fakeTeamThree = new(dbfakes.FakeTeam)
-
-				fakeTeamOne.IDReturns(5)
-				fakeTeamOne.NameReturns("avengers")
-				fakeTeamOne.AuthReturns(map[string][]string{
-					"groups":[]string{}, "users":[]string{},
-				})
-
-				fakeTeamTwo.IDReturns(9)
-				fakeTeamTwo.NameReturns("aliens")
-				fakeTeamTwo.AuthReturns(map[string][]string{
-					"groups": []string{"github:org:team"}, "users": []string{},
-				})
-
-				fakeTeamThree.IDReturns(22)
-				fakeTeamThree.NameReturns("predators")
-				fakeTeamThree.AuthReturns(map[string][]string{
-					"users": []string{"local:username"}, "groups":[]string{},
-				})
-
-				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
-			})
-
-			It("returns 200 OK", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("returns Content-Type 'application/json'", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-			})
-
-			It("returns the teams", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(body).To(MatchJSON(`[
- 					{
- 						"id": 5,
- 						"name": "avengers",
-						"auth": {"users":[],"groups":[]}
- 					},
- 					{
- 						"id": 9,
- 						"name": "aliens",
-						"auth": {"groups":["github:org:team"],"users":[]}
- 					},
- 					{
- 						"id": 22,
- 						"name": "predators",
-						"auth": {"users":["local:username"],"groups":[]}
- 					}
- 				]`))
 			})
 		})
 	})
