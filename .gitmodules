@@ -279,10 +279,6 @@
 	path = src/github.com/google/jsonapi
 	url = https://github.com/google/jsonapi
 	branch = master
-[submodule "src/github.com/cloudfoundry-incubator/credhub-cli"]
-	path = src/github.com/cloudfoundry-incubator/credhub-cli
-	url = https://github.com/cloudfoundry-incubator/credhub-cli
-	branch = master
 [submodule "src/github.com/bmizerany/pat"]
 	path = src/github.com/bmizerany/pat
 	url = https://github.com/bmizerany/pat
