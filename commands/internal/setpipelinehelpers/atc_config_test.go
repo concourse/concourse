@@ -109,19 +109,23 @@ resource_types:
 		})
 
 		It("validates a good pipeline", func() {
-			err := atcConfig.Validate(atc.PathFlag(filepath.Join(tmpdir, "good-pipeline.yml")), nil, nil, nil, false)
+			err := atcConfig.Validate(atc.PathFlag(filepath.Join(tmpdir, "good-pipeline.yml")), nil, nil, nil, false, false)
 			Expect(err).To(BeNil())
 		})
 		It("validates a good pipeline with strict", func() {
-			err := atcConfig.Validate(atc.PathFlag(filepath.Join(tmpdir, "good-pipeline.yml")), nil, nil, nil, true)
+			err := atcConfig.Validate(atc.PathFlag(filepath.Join(tmpdir, "good-pipeline.yml")), nil, nil, nil, true, false)
+			Expect(err).To(BeNil())
+		})
+		It("validates a good pipeline with output", func() {
+			err := atcConfig.Validate(atc.PathFlag(filepath.Join(tmpdir, "good-pipeline.yml")), nil, nil, nil, true, true)
 			Expect(err).To(BeNil())
 		})
 		It("do not fail validating a pipeline with repeated resource types (probably should but for compat doesn't)", func() {
-			err := atcConfig.Validate(atc.PathFlag(filepath.Join(tmpdir, "dupkey-pipeline.yml")), nil, nil, nil, false)
+			err := atcConfig.Validate(atc.PathFlag(filepath.Join(tmpdir, "dupkey-pipeline.yml")), nil, nil, nil, false, false)
 			Expect(err).To(BeNil())
 		})
 		It("fail validating a pipeline with repeated resource types with strict", func() {
-			err := atcConfig.Validate(atc.PathFlag(filepath.Join(tmpdir, "dupkey-pipeline.yml")), nil, nil, nil, true)
+			err := atcConfig.Validate(atc.PathFlag(filepath.Join(tmpdir, "dupkey-pipeline.yml")), nil, nil, nil, true, false)
 			Expect(err).ToNot(BeNil())
 		})
 	})
