@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/api/present"
 )
 
@@ -18,9 +19,12 @@ func (s *Server) ListTeams(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	presentedTeams := make([]atc.Team, len(teams))
-	for i, team := range teams {
-		presentedTeams[i] = present.Team(team)
+	acc := accessor.GetAccessor(r)
+	presentedTeams := make([]atc.Team, 0)
+	for _, team := range teams {
+		if  acc.IsAdmin() || acc.IsAuthorized(team.Name()) {
+			presentedTeams = append(presentedTeams, present.Team(team))
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
