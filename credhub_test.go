@@ -111,16 +111,16 @@ var _ = Describe("Credhub", func() {
 
 		Context("with a pipeline build", func() {
 			BeforeEach(func() {
-				_, err := credhubClient.SetValue("/concourse/main/pipeline-credhub-test/resource_type_repository", values.Value("concourse/time-resource"), credhub.Overwrite)
+				_, err := credhubClient.SetValue("/concourse/main/pipeline-credhub-test/resource_type_repository", values.Value("concourse/time-resource"))
 				Expect(err).ToNot(HaveOccurred())
 
-				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/time_resource_interval", values.Value("10m"), credhub.Overwrite)
+				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/time_resource_interval", values.Value("10m"))
 				credhubClient.SetUser("/concourse/main/pipeline-credhub-test/job_secret", values.User{
 					Username: "Hello",
 					Password: "World",
-				}, credhub.Overwrite)
-				credhubClient.SetValue("/concourse/main/team_secret", values.Value("Sauce"), credhub.Overwrite)
-				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/image_resource_repository", values.Value("busybox"), credhub.Overwrite)
+				})
+				credhubClient.SetValue("/concourse/main/team_secret", values.Value("Sauce"))
+				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/image_resource_repository", values.Value("busybox"))
 
 				By("setting a pipeline that contains credhub secrets")
 				fly("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "pipeline-credhub-test")
@@ -183,10 +183,10 @@ var _ = Describe("Credhub", func() {
 
 		Context("with a one-off build", func() {
 			BeforeEach(func() {
-				_, err := credhubClient.SetValue("/concourse/main/task_secret", values.Value("Hiii"), credhub.Overwrite)
+				_, err := credhubClient.SetValue("/concourse/main/task_secret", values.Value("Hiii"))
 				Expect(err).ToNot(HaveOccurred())
 
-				credhubClient.SetValue("/concourse/main/image_resource_repository", values.Value("busybox"), credhub.Overwrite)
+				credhubClient.SetValue("/concourse/main/image_resource_repository", values.Value("busybox"))
 			})
 
 			It("parameterizes image_resource and params in a task config", func() {
