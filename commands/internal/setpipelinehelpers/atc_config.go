@@ -85,11 +85,6 @@ func (atcConfig ATCConfig) Validate(
 	}
 
 	if output {
-		var config atc.Config
-		err = yaml.Unmarshal([]byte(newConfig), &config)
-		if err != nil {
-			return err
-		}
 		fmt.Println(string(newConfig))
 	} else {
 		fmt.Println("looks good")
