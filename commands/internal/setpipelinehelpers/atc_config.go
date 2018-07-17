@@ -46,6 +46,7 @@ func (atcConfig ATCConfig) Validate(
 	yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag,
 	templateVariablesFiles []atc.PathFlag,
 	strict bool,
+	output bool,
 ) error {
 	newConfig, err := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, true, strict)
 	if err != nil {
@@ -83,7 +84,16 @@ func (atcConfig ATCConfig) Validate(
 		displayhelpers.Failf("configuration invalid")
 	}
 
-	fmt.Println("looks good")
+	if output {
+		var config atc.Config
+		err = yaml.Unmarshal([]byte(newConfig), &config)
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(newConfig))
+	} else {
+		fmt.Println("looks good")
+	}
 
 	return nil
 }
