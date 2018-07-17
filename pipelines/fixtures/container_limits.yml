@@ -1,0 +1,16 @@
+---
+jobs:
+  - name: container-limits-job
+    plan:
+      - task: task-with-container-limits
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
+          container_limits:
+            cpu: 512
+            memory: 1GB
+          run:
+            path: sh
+            args: ["-c", "echo hello"]
