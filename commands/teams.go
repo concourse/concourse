@@ -61,20 +61,27 @@ func (command *TeamsCommand) Execute([]string) error {
 		if command.Details {
 			var usersCell, groupsCell ui.TableCell
 
-			if len(t.Auth["users"]) == 0 {
+			hasUsers := len(t.Auth["users"]) != 0
+			hasGroups := len(t.Auth["groups"]) != 0
+
+			if !hasUsers && !hasGroups{
+				usersCell.Contents = "all"
+				usersCell.Color = color.New(color.Faint)
+			} else if !hasUsers {
 				usersCell.Contents = "none"
 				usersCell.Color = color.New(color.Faint)
-			}else {
+			} else {
 				usersCell.Contents = strings.Join(t.Auth["users"],",")
 			}
-			row = append(row, usersCell)
 
-			if len(t.Auth["groups"]) == 0 {
+			if hasGroups {
+				groupsCell.Contents = strings.Join(t.Auth["groups"],",")
+			} else {
 				groupsCell.Contents = "none"
 				groupsCell.Color = color.New(color.Faint)
-			}else {
-				groupsCell.Contents = strings.Join(t.Auth["groups"],",")
 			}
+
+			row = append(row, usersCell)
 			row = append(row, groupsCell)
 		}
 
