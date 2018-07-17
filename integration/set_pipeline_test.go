@@ -157,6 +157,30 @@ var _ = Describe("Fly CLI", func() {
 				)
 			})
 
+			Context("when configuring container limits in task", func() {
+				It("succeeds", func() {
+					flyCmd := exec.Command(
+						flyPath, "-t", targetName,
+						"set-pipeline",
+						"--pipeline", "awesome-pipeline",
+						"-c", "fixtures/testConfigContainerLimits.yml",
+					)
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gbytes.Say(`cpu: 1024`))
+					Eventually(sess).Should(gbytes.Say(`memory: 2147483648`))
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					no(stdin)
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+			})
+
 			Context("when configuring with old-style templated value that fails", func() {
 				It("shows helpful error messages", func() {
 					flyCmd := exec.Command(
