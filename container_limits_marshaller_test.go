@@ -10,11 +10,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("ContainerLimits", func() {
+var _ = Describe("ContainerLimits", func() {
 	Context("when unmarshaling a container_limits from YAML", func() {
 		It("produces the correct ContainerLimits object without error", func() {
 			var containerLimits ContainerLimits
-			bs := []byte(`{ "container_limits": { "cpu": "1024", "memory":"1024" }}`)
+			bs := []byte(`{ cpu: 1024, memory: 1024 }`)
 			err := yaml.Unmarshal(bs, &containerLimits)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -30,7 +30,7 @@ var _ = FDescribe("ContainerLimits", func() {
 	Context("when unmarshaling a container_limits from JSON", func() {
 		It("produces the correct ContainerLimits without error", func() {
 			var containerLimits ContainerLimits
-			bs := []byte(`{ "container_limits": { "cpu": "1024", "memory":"1024" }}`)
+			bs := []byte(`{ "cpu": 1024, "memory": 1024 }`)
 			err := json.Unmarshal(bs, &containerLimits)
 			Expect(err).NotTo(HaveOccurred())
 
