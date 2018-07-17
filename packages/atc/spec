@@ -10,6 +10,14 @@ files:
   - github.com/concourse/web/index.html
   - github.com/concourse/web/public/**/*
   - code.cloudfoundry.org/clock/*.{go,s,c,h} # gosub
+  - code.cloudfoundry.org/credhub-cli/credhub/auth/*.{go,s,c,h} # gosub
+  - code.cloudfoundry.org/credhub-cli/credhub/auth/uaa/*.{go,s,c,h} # gosub
+  - code.cloudfoundry.org/credhub-cli/credhub/credentials/*.{go,s,c,h} # gosub
+  - code.cloudfoundry.org/credhub-cli/credhub/credentials/generate/*.{go,s,c,h} # gosub
+  - code.cloudfoundry.org/credhub-cli/credhub/credentials/values/*.{go,s,c,h} # gosub
+  - code.cloudfoundry.org/credhub-cli/credhub/permissions/*.{go,s,c,h} # gosub
+  - code.cloudfoundry.org/credhub-cli/credhub/server/*.{go,s,c,h} # gosub
+  - code.cloudfoundry.org/credhub-cli/errors/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/client/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/client/connection/*.{go,s,c,h} # gosub
@@ -62,14 +70,18 @@ files:
   - github.com/cenkalti/backoff/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry-incubator/credhub-cli/credhub/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry-incubator/credhub-cli/credhub/auth/*.{go,s,c,h} # gosub
-  - github.com/cloudfoundry-incubator/credhub-cli/credhub/auth/uaa/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/*.{go,s,c,h} # gosub
-  - github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/generate/*.{go,s,c,h} # gosub
-  - github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values/*.{go,s,c,h} # gosub
-  - github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions/*.{go,s,c,h} # gosub
-  - github.com/cloudfoundry-incubator/credhub-cli/credhub/server/*.{go,s,c,h} # gosub
-  - github.com/cloudfoundry-incubator/credhub-cli/errors/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/github.com/cloudfoundry/go-socks5/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/github.com/cloudfoundry/socks5-proxy/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry-incubator/credhub-cli/vendor/github.com/hashicorp/go-version/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/golang.org/x/crypto/curve25519/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/golang.org/x/crypto/ed25519/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/golang.org/x/crypto/ed25519/internal/edwards25519/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/golang.org/x/crypto/internal/chacha20/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/golang.org/x/crypto/poly1305/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/golang.org/x/crypto/ssh/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/golang.org/x/net/context/*.{go,s,c,h} # gosub
+  - github.com/cloudfoundry-incubator/credhub-cli/vendor/golang.org/x/net/proxy/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry/bosh-cli/director/template/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry/bosh-cli/vendor/github.com/bmatcuk/doublestar/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry/bosh-cli/vendor/github.com/charlievieth/fs/*.{go,s,c,h} # gosub
