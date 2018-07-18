@@ -28,7 +28,7 @@ type VolumeRepository interface {
 	CreateResourceCertsVolume(workerName string, uwrc *UsedWorkerResourceCerts) (CreatingVolume, error)
 
 	FindVolumesForContainer(CreatedContainer) ([]CreatedVolume, error)
-	GetOrphanedVolumes(workerName string) ([]CreatedVolume, []string, error)
+	GetOrphanedVolumes() ([]CreatedVolume, error)
 
 	DestroyFailedVolumes() (int, error)
 
@@ -293,14 +293,13 @@ func (repository *volumeRepository) FindCreatedVolume(handle string) (CreatedVol
 	return createdVolume, true, nil
 }
 
-func (repository *volumeRepository) GetOrphanedVolumes(workerName string) ([]CreatedVolume, []string, error) {
+func (repository *volumeRepository) GetOrphanedVolumes() ([]CreatedVolume, error) {
 	query, args, err := psql.Select(volumeColumns...).
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
 		LeftJoin("containers c ON v.container_id = c.id").
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
 		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
-		Where(sq.Eq{"v.worker_name": workerName}).
 		Where(
 			sq.Or{
 				sq.Eq{
@@ -324,10 +323,7 @@ func (repository *volumeRepository) GetOrphanedVolumes(workerName string) ([]Cre
 				},
 			},
 		).
-		Where(sq.Or{
-			sq.Eq{"v.state": string(VolumeStateCreated)},
-			sq.Eq{"v.state": string(VolumeStateDestroying)},
-		}).
+		Where(sq.Eq{"v.state": string(VolumeStateCreated)}).
 		Where(sq.Or{
 			sq.Eq{"w.state": string(WorkerStateRunning)},
 			sq.Eq{"w.state": string(WorkerStateLanding)},
@@ -335,35 +331,31 @@ func (repository *volumeRepository) GetOrphanedVolumes(workerName string) ([]Cre
 		}).
 		ToSql()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	rows, err := repository.conn.Query(query, args...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer Close(rows)
 
 	createdVolumes := []CreatedVolume{}
-	destroyingVolumesHandles := []string{}
 
 	for rows.Next() {
-		_, createdVolume, destroyingVolume, _, err := scanVolume(rows, repository.conn)
+		_, createdVolume, _, _, err := scanVolume(rows, repository.conn)
 
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		if createdVolume != nil {
 			createdVolumes = append(createdVolumes, createdVolume)
 		}
 
-		if destroyingVolume != nil {
-			destroyingVolumesHandles = append(destroyingVolumesHandles, destroyingVolume.Handle())
-		}
 	}
 
-	return createdVolumes, destroyingVolumesHandles, nil
+	return createdVolumes, nil
 }
 
 func (repository *volumeRepository) DestroyFailedVolumes() (int, error) {

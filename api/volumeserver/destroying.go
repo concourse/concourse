@@ -15,7 +15,7 @@ func (s *Server) ListDestroyingVolumes(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("marked-volumes-for-worker", lager.Data{"worker_name": workerName})
 
 	if workerName != "" {
-		destroyingVolumesHandles, err := s.destroyer.FindOrphanedVolumesasDestroying(workerName)
+		destroyingVolumesHandles, err := s.destroyer.FindDestroyingVolumesForGc(workerName)
 		if err != nil {
 			logger.Error("failed-to-find-destroying-volumes", err)
 			w.WriteHeader(http.StatusInternalServerError)

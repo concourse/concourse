@@ -46,6 +46,8 @@ var (
 	defaultTeam               db.Team
 	defaultWorkerPayload      atc.Worker
 	defaultWorker             db.Worker
+	otherWorker               db.Worker
+	otherWorkerPayload        atc.Worker
 	defaultResourceType       db.ResourceType
 	defaultResource           db.Resource
 	defaultPipeline           db.Pipeline
@@ -125,7 +127,16 @@ var _ = BeforeEach(func() {
 		CertsPath:       &certsPath,
 	}
 
+	otherWorkerPayload = atc.Worker{
+		ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+		Name:            "other-worker",
+		GardenAddr:      "2.3.4.5:7777",
+		BaggageclaimURL: "6.7.8.9:7878",
+		CertsPath:       &certsPath,
+	}
+
 	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
+	otherWorker, err = workerFactory.SaveWorker(otherWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
