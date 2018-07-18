@@ -7,6 +7,8 @@ import Html.Attributes exposing (class, src, href)
 view : Html msg
 view =
     Html.div [ class "not-authorized" ]
-        [ Html.div [ class "title" ] [ Html.text "401" ]
-        , Html.div [ class "reason" ] [ Html.text "You are not authorized to view that thing you wanted to see." ]
+        [ Html.img [] []
+        , Html.div [ class "title" ] [ Html.text "401 Unauthorized" ]
+        , Html.div [ class "reason" ] [ Html.text "You are not authorized to view" ]
+        , Html.div [ class "reason" ] [ Html.text "the details of this pipeline" ]
         ]
