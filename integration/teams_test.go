@@ -147,7 +147,7 @@ var _ = Describe("Fly CLI", func() {
 							{{Contents: "a-team"}, {Contents: "none"}, {Contents: "github:github-org"}},
 							{{Contents: "b-team"}, {Contents: "github:github-user"}, {Contents: "none"}},
 							{{Contents: "c-team"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
-							{{Contents: "main"}, {Contents: "none"}, {Contents: "none"}},
+							{{Contents: "main"}, {Contents: "all"}, {Contents: "none"}},
 						},
 					}))
 				})
