@@ -12,7 +12,7 @@ import (
 
 // Destroyer allows the caller to remove containers and volumes
 type Destroyer interface {
-	FindOrphanedVolumesasDestroying(workerName string) ([]string, error)
+	FindDestroyingVolumesForGc(workerName string) ([]string, error)
 	DestroyContainers(workerName string, handles []string) error
 	DestroyVolumes(workerName string, handles []string) error
 }
@@ -78,43 +78,22 @@ func (d *destroyer) DestroyVolumes(workerName string, currentHandles []string) e
 	return err
 }
 
-func (d *destroyer) FindOrphanedVolumesasDestroying(workerName string) ([]string, error) {
-	createdVolumes, destroyingVolumesHandles, err := d.volumeRepository.GetOrphanedVolumes(workerName)
+func (d *destroyer) FindDestroyingVolumesForGc(workerName string) ([]string, error) {
+	destroyingVolumesHandles, err := d.volumeRepository.GetDestroyingVolumes(workerName)
 	if err != nil {
 		d.logger.Error("failed-to-get-orphaned-volumes", err)
 		return nil, err
 	}
 
-	if len(createdVolumes) > 0 || len(destroyingVolumesHandles) > 0 {
+	if len(destroyingVolumesHandles) > 0 {
 		d.logger.Debug("found-orphaned-volumes", lager.Data{
-			"created":    len(createdVolumes),
 			"destroying": len(destroyingVolumesHandles),
 		})
 	}
 
-	metric.CreatedVolumesToBeGarbageCollected{
-		Volumes: len(createdVolumes),
-	}.Emit(d.logger)
-
 	metric.DestroyingVolumesToBeGarbageCollected{
 		Volumes: len(destroyingVolumesHandles),
 	}.Emit(d.logger)
-
-	for _, createdVolume := range createdVolumes {
-		// queue
-		vLog := d.logger.Session("mark-created-as-destroying", lager.Data{
-			"volume": createdVolume.Handle(),
-			"worker": createdVolume.WorkerName(),
-		})
-
-		destroyingVolume, err := createdVolume.Destroying()
-		if err != nil {
-			vLog.Error("failed-to-transition", err)
-			continue
-		}
-
-		destroyingVolumesHandles = append(destroyingVolumesHandles, destroyingVolume.Handle())
-	}
 
 	return destroyingVolumesHandles, nil
 }

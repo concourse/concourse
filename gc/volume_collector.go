@@ -37,6 +37,12 @@ func (vc *volumeCollector) Run(ctx context.Context) error {
 		logger.Error("failed-to-clean-up-failed-volumes", err)
 	}
 
+	err = vc.markOrphanedVolumesAsDestroying(logger.Session("mark-volumes"))
+	if err != nil {
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-transition-created-volumes-to-destroying", err)
+	}
+
 	return errs
 }
 
@@ -56,6 +62,41 @@ func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {
 	metric.FailedVolumesToBeGarbageCollected{
 		Volumes: failedVolumesLen,
 	}.Emit(logger)
+
+	return nil
+}
+
+func (vc *volumeCollector) markOrphanedVolumesAsDestroying(logger lager.Logger) error {
+	orphanedVolumesHandles, err := vc.volumeRepository.GetOrphanedVolumes()
+	if err != nil {
+		logger.Error("failed-to-get-orphaned-volumes", err)
+		return err
+	}
+
+	if len(orphanedVolumesHandles) > 0 {
+		logger.Debug("found-orphaned-volumes", lager.Data{
+			"destroying": len(orphanedVolumesHandles),
+		})
+	}
+
+	metric.CreatedVolumesToBeGarbageCollected{
+		Volumes: len(orphanedVolumesHandles),
+	}.Emit(logger)
+
+	for _, orphanedVolume := range orphanedVolumesHandles {
+		// queue
+		vLog := logger.Session("mark-created-as-destroying", lager.Data{
+			"volume": orphanedVolume.Handle(),
+			"worker": orphanedVolume.WorkerName(),
+		})
+
+		_, err = orphanedVolume.Destroying()
+		if err != nil {
+			vLog.Error("failed-to-transition", err)
+			continue
+		}
+
+	}
 
 	return nil
 }
