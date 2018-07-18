@@ -36,7 +36,7 @@ bearer_token=$(curl -u fly:Zmx5 "http://$external_ip:8080/sky/token?grant_type=p
 # wait for worker running
 until [[ "$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .state')" == "running" ]]; do
   echo "Waiting worker to be running ..."
-  sleep 5;
+  sleep 5
 done
 
 ports=$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .addr,.baggageclaim_url' | awk -F: '{print $NF}')
