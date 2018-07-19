@@ -308,6 +308,29 @@ var _ = Describe("Sky Server API", func() {
 			})
 		})
 
+		Describe("GET /sky/token", func() {
+			var (
+				err      error
+				request  *http.Request
+				response *http.Response
+			)
+
+			BeforeEach(func() {
+				reqPayload := "grant_type=password&username=some-username&password=some-password&scope=some-scope"
+
+				request, err = http.NewRequest("GET", skyServer.URL+"/sky/token?"+reqPayload, nil)
+				request.Header.Add("Authorization", "Basic "+string(base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))))
+				Expect(err).NotTo(HaveOccurred())
+
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("rejects every request", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+			})
+		})
+
 		Describe("POST /sky/token", func() {
 			var (
 				err        error

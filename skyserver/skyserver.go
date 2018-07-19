@@ -207,6 +207,12 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 		verifiedClaims     *token.VerifiedClaims
 	)
 
+	if r.Method != "POST" {
+		logger.Error("invalid-method", nil)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	clientId, clientSecret, ok := r.BasicAuth()
 	if !ok {
 		logger.Error("invalid-basic-auth", nil)
