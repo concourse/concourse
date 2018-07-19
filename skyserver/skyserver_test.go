@@ -315,7 +315,7 @@ var _ = Describe("Sky Server API", func() {
 				response *http.Response
 			)
 
-			BeforeEach(func() {
+			JustBeforeEach(func() {
 				reqPayload := "grant_type=password&username=some-username&password=some-password&scope=some-scope"
 
 				request, err = http.NewRequest("GET", skyServer.URL+"/sky/token?"+reqPayload, nil)
