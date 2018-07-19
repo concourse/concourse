@@ -19,30 +19,19 @@ helm upgrade -f values.yaml \
   --wait \
   --timeout 300
 
-# https://github.com/kubernetes/helm/issues/3296
-# Have to use this until --wait works
-set -x
-while kubectl get pods | grep "$app" | grep "0/1" | grep -v "Running" > /dev/null; do
-  echo "Web Nodes are not ready. Sleeping for 10s and trying again..."
-  kubectl get pods
-  sleep 10
-done
-while kubectl get pods | grep "$RELEASE_NAME-worker" | grep "0/1" | grep -v "Running" > /dev/null; do
-  echo "Worker Nodes are not ready. Sleeping for 10s and trying again..."
-  kubectl get pods
-  sleep 10
-done
-set +x
-
 external_ip=$(kubectl get svc "$app" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
 internal_ip=$(kubectl get po "$pod_name" -o jsonpath='{.status.podIP}')
 
-bearer_token=$(curl -u fly:Zmx5 "http://$external_ip:8080/sky/token?grant_type=password&username=test1&password=test1&scope=openid+profile+email+federated:id+groups" | jq -r '.access_token')
+until curl -q -f "http://$external_ip:8080/api/v1/info"; do
+  echo "Waiting for atc to be running ..."
+  sleep 5
+done
 
-# wait for worker running
-until [[ "$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .state')" == "running" ]]; do
-  echo "Waiting worker to be running ..."
+bearer_token=$(curl -u fly:Zmx5 "http://$external_ip:8080/sky/token" -d "grant_type=password&username=$ATC_USERNAME&password=$ATC_PASSWORD&scope=openid+profile+email+federated:id+groups" | jq -r '.access_token')
+
+until [[ "$(curl -q -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/api/v1/workers" | jq -r '.[] | .state')" == "running" ]]; do
+  echo "Waiting for worker to be running ..."
   sleep 5
 done
 
