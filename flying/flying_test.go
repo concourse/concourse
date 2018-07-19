@@ -2,6 +2,7 @@ package flying_test
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ import (
 	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
@@ -400,6 +402,7 @@ echo hello > output-1/file-1
 
 	Context("when the input is custom resource", func() {
 		var gitServer *gitserver.Server
+		var pipelineName string
 		BeforeEach(func() {
 			gitServer = gitserver.Start(concourseClient)
 
@@ -436,15 +439,16 @@ echo hello > output-1/file-1
 
 			Eventually(gitServer.Alive).Should(BeTrue())
 
+			pipelineName = fmt.Sprintf("some-pipeline-custom-resource-%d", config.GinkgoConfig.ParallelNode)
 			flyHelper.ConfigurePipeline(
-				"some-pipeline-custom-resource",
+				pipelineName,
 				"-c", "fixtures/custom-resource-type.yml",
 				"-v", "git-server="+gitServer.URI(),
 			)
 
 			cTeam := concourseClient.Team(teamName)
 			Eventually(func() error {
-				versionedResource, _, found, err := cTeam.ResourceVersions("some-pipeline-custom-resource", "git-repo", concourse.Page{})
+				versionedResource, _, found, err := cTeam.ResourceVersions(pipelineName, "git-repo", concourse.Page{})
 				Expect(err).ToNot(HaveOccurred())
 				if !found {
 					return errors.New("not found")
@@ -452,7 +456,7 @@ echo hello > output-1/file-1
 
 				if len(versionedResource) == 0 {
 					// force resource check
-					cTeam.CheckResource("some-pipeline-custom-resource", "git-repo", atc.Version{})
+					cTeam.CheckResource(pipelineName, "git-repo", atc.Version{})
 					return errors.New("did not find any version for custom resource")
 				}
 
@@ -466,7 +470,7 @@ echo hello > output-1/file-1
 
 		Context("when -j is specified", func() {
 			It("runs the task without error by infer the pipeline name from -j", func() {
-				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline-custom-resource/input-test", "-o", "output-1=./output-1")
+				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/input-test", "-o", "output-1=./output-1")
 				fly.Dir = tmpdir
 
 				session := helpers.StartFly(fly)
