@@ -376,7 +376,7 @@ echo hello > output-1/file-1
 				Expect(versionedResource[0].Version).ToNot(BeNil())
 
 				return nil
-			}, 2*time.Minute).ShouldNot(HaveOccurred())
+			}, 10*time.Minute).ShouldNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -461,7 +461,7 @@ echo hello > output-1/file-1
 				Expect(versionedResource[0].Version).ToNot(BeNil())
 
 				return nil
-			}, 2*time.Minute).ShouldNot(HaveOccurred())
+			}, 10*time.Minute).ShouldNot(HaveOccurred())
 		})
 
 		Context("when -j is specified", func() {
