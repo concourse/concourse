@@ -10,7 +10,14 @@ pushd charts/stable/concourse/
 
 helm init --client-only
 helm dependency update
-helm upgrade -f values.yaml --set image="concourse/concourse-rc" --set imageTag="$version" "$RELEASE_NAME" . --wait --timeout 300
+helm upgrade -f values.yaml \
+  --set image="concourse/concourse-rc" \
+  --set imageTag="$version" \
+  --set concourse.baggageclaimDriver="detect" \
+  "$RELEASE_NAME" \
+  . \
+  --wait \
+  --timeout 300
 
 # https://github.com/kubernetes/helm/issues/3296
 # Have to use this until --wait works
