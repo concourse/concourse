@@ -20,13 +20,14 @@ helm upgrade -f values.yaml \
   --timeout 300
 
 external_ip=$(kubectl get svc "$app" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
-internal_ip=$(kubectl get po "$pod_name" -o jsonpath='{.status.podIP}')
 
 until curl -s -f "http://$external_ip:8080/api/v1/info"; do
   echo "Waiting for atc to be running ..."
   sleep 5
 done
+
+pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
+internal_ip=$(kubectl get po "$pod_name" -o jsonpath='{.status.podIP}')
 
 bearer_token=$(curl -u fly:Zmx5 "http://$external_ip:8080/sky/token" -d "grant_type=password&username=$ATC_USERNAME&password=$ATC_PASSWORD&scope=openid+profile+email+federated:id+groups" | jq -r '.access_token')
 
