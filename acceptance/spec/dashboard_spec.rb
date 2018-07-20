@@ -317,6 +317,57 @@ describe 'dashboard', type: :feature do
       end
     end
 
+    context 'when drag-n-dropping a pipeline' do
+      def expect_team_pipelines(team, pipelines)
+        within '.dashboard-team-group', text: team do
+          expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq pipelines
+        end
+      end
+
+      def drag_and_drop(team, source, target = nil)
+        page.driver.execute_script <<~EVENTS
+          $(".dashboard-team-group:contains('#{team}') .pipeline-wrapper:contains(#{source}) .dashboard-pipeline")[0].dispatchEvent(new Event('dragstart'));
+          #{if target.nil?
+              "$('.dashboard-team-group:contains(\"#{team}\") .drop-area:last-of-type')[0].dispatchEvent(new Event('dragenter'));"
+            else
+              "$('.dashboard-team-group:contains(\"#{team}\") .pipeline-wrapper:contains(#{target}) .drop-area')[0].dispatchEvent(new Event('dragenter'));"
+            end}
+          $(".dashboard-team-group:contains('#{team}') .pipeline-wrapper:contains(#{source}) .dashboard-pipeline")[0].dispatchEvent(new Event('dragend'));
+        EVENTS
+      end
+
+      it 'reorders the pipeline within the same team' do
+        other_team_name = generate_team_name
+        fly_login 'main'
+        fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
+
+        fly_login other_team_name
+        fly('set-pipeline -n -p some-pipeline -c fixtures/dashboard-pipeline.yml')
+        fly('set-pipeline -n -p another-pipeline -c fixtures/dashboard-pipeline.yml')
+        fly('set-pipeline -n -p third-pipeline -c fixtures/dashboard-pipeline.yml')
+
+        visit_dashboard
+        expect_team_pipelines other_team_name, ['some-pipeline', 'another-pipeline', 'third-pipeline']
+
+        drag_and_drop(other_team_name, 'some-pipeline', 'third-pipeline')
+        expect_team_pipelines other_team_name, ['another-pipeline', 'some-pipeline', 'third-pipeline']
+
+        fly_login 'main'
+        fly_with_input("destroy-team -n #{other_team_name}", other_team_name)
+      end
+
+      it 'reorders when dragging to the end of the pipeline list' do
+        fly('set-pipeline -n -p another-pipeline -c fixtures/dashboard-pipeline.yml')
+        fly('set-pipeline -n -p third-pipeline -c fixtures/dashboard-pipeline.yml')
+
+        visit_dashboard
+        expect_team_pipelines team_name, ['some-pipeline', 'another-pipeline', 'third-pipeline']
+
+        drag_and_drop(team_name, 'some-pipeline')
+        expect_team_pipelines team_name, ['another-pipeline', 'third-pipeline', 'some-pipeline']
+      end
+    end
+
     it 'anchors URL links on team groups' do
       visit_dashboard
       expect(page).to have_css('.dashboard-team-group', id: team_name)

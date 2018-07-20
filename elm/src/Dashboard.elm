@@ -15,9 +15,11 @@ import Date exposing (Date)
 import Dict exposing (Dict)
 import Dom
 import Html exposing (Html)
-import Html.Attributes exposing (class, classList, id, href, src, attribute)
+import Html.Attributes exposing (class, classList, id, href, src, attribute, draggable)
 import Html.Attributes.Aria exposing (ariaLabel)
+import Html.Events exposing (on)
 import Http
+import Json.Decode
 import Keyboard
 import List.Extra
 import Mouse
@@ -39,6 +41,26 @@ type alias Ports =
 port pinTeamNames : () -> Cmd msg
 
 
+type alias PipelineIndex =
+    Int
+
+
+type DragState
+    = NotDragging
+    | Dragging Concourse.TeamName PipelineIndex
+
+
+type DropState
+    = NotDropping
+    | Dropping PipelineIndex
+
+
+type alias Flags =
+    { csrfToken : String
+    , turbulencePath : String
+    }
+
+
 type alias Model =
     { topBar : NewTopBar.Model
     , mPipelines : RemoteData.WebData (List Concourse.Pipeline)
@@ -54,6 +76,8 @@ type alias Model =
     , showHelp : Bool
     , hideFooter : Bool
     , hideFooterCounter : Time
+    , dragState : DragState
+    , dropState : DropState
     }
 
 
@@ -71,12 +95,9 @@ type Msg
     | TopBarMsg NewTopBar.Msg
     | TogglePipelinePaused Concourse.Pipeline
     | PipelinePauseToggled Concourse.Pipeline (Result Http.Error ())
-
-
-type alias Flags =
-    { csrfToken : String
-    , turbulencePath : String
-    }
+    | DragStart String Int
+    | DragOver String Int
+    | DragEnd
 
 
 init : Ports -> Flags -> ( Model, Cmd Msg )
@@ -99,6 +120,8 @@ init ports flags =
           , showHelp = False
           , hideFooter = False
           , hideFooterCounter = 0
+          , dragState = NotDragging
+          , dropState = NotDropping
           }
         , Cmd.batch
             [ fetchPipelines
@@ -228,6 +251,71 @@ update msg model =
 
             PipelinePauseToggled _ (Err _) ->
                 ( model, Cmd.none )
+
+            DragStart teamName index ->
+                ( { model | dragState = Dragging teamName index }, Cmd.none )
+
+            DragOver teamName index ->
+                ( { model | dropState = Dropping index }, Cmd.none )
+
+            DragEnd ->
+                case ( model.dragState, model.dropState ) of
+                    ( Dragging teamName dragIndex, Dropping dropIndex ) ->
+                        let
+                            pipelines =
+                                if dragIndex == dropIndex then
+                                    model.pipelines
+                                else
+                                    case
+                                        List.head <|
+                                            List.drop dragIndex <|
+                                                (List.filter ((==) teamName << .teamName) model.pipelines)
+                                    of
+                                        Nothing ->
+                                            model.pipelines
+
+                                        Just pipeline ->
+                                            shiftPipelineTo pipeline dropIndex model.pipelines
+                        in
+                            ( { model
+                                | dragState = NotDragging
+                                , dropState = NotDropping
+                                , pipelines = pipelines
+                              }
+                            , orderPipelines teamName pipelines model.csrfToken
+                            )
+
+                    _ ->
+                        ( { model | dragState = NotDragging, dropState = NotDropping }, Cmd.none )
+
+
+shiftPipelineTo : Concourse.Pipeline -> Int -> List Concourse.Pipeline -> List Concourse.Pipeline
+shiftPipelineTo pipeline position pipelines =
+    case pipelines of
+        [] ->
+            if position < 0 then
+                []
+            else
+                [ pipeline ]
+
+        p :: ps ->
+            if p.teamName /= pipeline.teamName then
+                p :: (shiftPipelineTo pipeline position ps)
+            else if p == pipeline then
+                shiftPipelineTo pipeline (position - 1) ps
+            else if position == 0 then
+                pipeline :: p :: (shiftPipelineTo pipeline (position - 1) ps)
+            else
+                p :: (shiftPipelineTo pipeline (position - 1) ps)
+
+
+orderPipelines : String -> List Concourse.Pipeline -> Concourse.CSRFToken -> Cmd Msg
+orderPipelines teamName pipelines csrfToken =
+    Task.attempt (always Noop) <|
+        Concourse.Pipeline.order
+            teamName
+            (List.map (.name) <| List.filter ((==) teamName << .teamName) pipelines)
+            csrfToken
 
 
 togglePipelinePaused : Concourse.Pipeline -> Concourse.CSRFToken -> Cmd Msg
@@ -389,7 +477,7 @@ pipelinesView model pipelines =
                 (pipelinesWithJobs model.pipelineJobs model.pipelineResourceErrors pipelines)
 
         pipelinesByTeamView =
-            List.map (\( teamName, pipelines ) -> groupView model.now teamName (List.reverse pipelines)) pipelinesByTeam
+            List.map (\( teamName, pipelines ) -> groupView model teamName (List.reverse pipelines)) pipelinesByTeam
     in
         Html.div
             [ class "dashboard" ]
@@ -413,31 +501,43 @@ handleKeyPressed key model =
             update ShowFooter model
 
 
-groupView : Maybe Time -> String -> List PipelineWithJobs -> Html Msg
-groupView now teamName pipelines =
+groupView : Model -> String -> List PipelineWithJobs -> Html Msg
+groupView model teamName pipelines =
     Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
         [ Html.div [ class "pin-wrapper" ]
             [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ] ]
-        , Html.div [ class "dashboard-team-pipelines" ]
-            (List.map (pipelineView now) pipelines)
+        , Html.div [ class "dashboard-team-pipelines" ] <|
+            List.append
+                (List.indexedMap
+                    (\i pipeline ->
+                        Html.div [ class "pipeline-wrapper" ] [ pipelineDropAreaView model teamName i, pipelineView model pipeline i ]
+                    )
+                    pipelines
+                )
+                [ (pipelineDropAreaView model teamName (List.length pipelines)) ]
         ]
 
 
-pipelineView : Maybe Time -> PipelineWithJobs -> Html Msg
-pipelineView now ({ pipeline, jobs, resourceError } as pipelineWithJobs) =
+pipelineView : Model -> PipelineWithJobs -> Int -> Html Msg
+pipelineView model ({ pipeline, jobs, resourceError } as pipelineWithJobs) index =
     Html.div
         [ classList
             [ ( "dashboard-pipeline", True )
             , ( "dashboard-paused", pipeline.paused )
             , ( "dashboard-running", List.any (\job -> job.nextBuild /= Nothing) jobs )
             , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (pipelineStatusFromJobs jobs False), not pipeline.paused )
+            , ( "dragging", model.dragState == Dragging pipeline.teamName index )
             ]
         , attribute "data-pipeline-name" pipeline.name
+        , attribute "ondragstart" "event.dataTransfer.setData('text/plain', '');"
+        , draggable "true"
+        , on "dragstart" (Json.Decode.succeed (DragStart pipeline.teamName index))
+        , on "dragend" (Json.Decode.succeed DragEnd)
         ]
         [ Html.div [ class "dashboard-pipeline-banner" ] []
         , Html.div
             [ class "dashboard-pipeline-content" ]
-            [ Html.a [ href <| Routes.pipelineRoute pipeline ]
+            [ Html.a [ href <| Routes.pipelineRoute pipeline, draggable "false" ]
                 [ Html.div
                     [ class "dashboard-pipeline-header" ]
                     [ Html.div [ class "dashboard-pipeline-name" ]
@@ -447,13 +547,33 @@ pipelineView now ({ pipeline, jobs, resourceError } as pipelineWithJobs) =
                 ]
             , DashboardPreview.view jobs
             , Html.div [ class "dashboard-pipeline-footer" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ]
-                    []
-                , timeSincePipelineTransitioned now pipelineWithJobs
+                [ Html.div [ class "dashboard-pipeline-icon" ] []
+                , timeSincePipelineTransitioned model.now pipelineWithJobs
                 , pauseToggleView pipeline
                 ]
             ]
         ]
+
+
+pipelineDropAreaView : Model -> String -> Int -> Html Msg
+pipelineDropAreaView model teamName index =
+    let
+        ( active, over ) =
+            case ( model.dragState, model.dropState ) of
+                ( Dragging team dragIndex, NotDropping ) ->
+                    ( team == teamName, index == dragIndex )
+
+                ( Dragging team dragIndex, Dropping dropIndex ) ->
+                    ( team == teamName, index == dropIndex )
+
+                _ ->
+                    ( False, False )
+    in
+        Html.div
+            [ classList [ ( "drop-area", True ), ( "active", active ), ( "over", over ), ( "animation", model.dropState /= NotDropping ) ]
+            , on "dragenter" (Json.Decode.succeed (DragOver teamName index))
+            ]
+            [ Html.text "" ]
 
 
 pauseToggleView : Concourse.Pipeline -> Html Msg

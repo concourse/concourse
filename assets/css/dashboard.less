@@ -4,7 +4,7 @@
 
 .dashboard {
   .dashboard-content {
-    padding: 64px 0 30px 30px;
+    padding: 64px 0 30px;
   }
 
   .pending   { background: @grey-primary; &:hover { background: @grey-secondary }}
@@ -88,12 +88,43 @@
     overflow: hidden;
   }
 
+  .dashboard-team-pipelines {
+    display: flex;
+    flex-wrap: wrap;
+    padding-left: (50px * @scale);
+
+    .pipeline-wrapper {
+      display: flex;
+    }
+
+    .drop-area {
+      position: relative;
+      left: (-125px * @scale);
+      margin-right: (-250px * @scale);
+      padding: 0 (100px * @scale);
+      z-index: -1;
+
+      &.active {
+        z-index: 2;
+      }
+
+      &.active.over {
+        padding: 0 211px;
+      }
+
+      &.animation {
+        transition: all 0.2s ease-in-out;
+      }
+    }
+  }
+
   .dashboard-team-name {
     background: @base02;
     color: @base04;
     font-size: (30px * @scale);
     padding-top: (55px * @scale);
     padding-bottom: (25px * @scale);
+    padding-left: (50px * @scale);
     z-index: 2;
     opacity: 0.9;
     &.no-results {
@@ -103,8 +134,14 @@
 
   .dashboard-pipeline {
     display: inline-block;
-    margin-bottom: (50px * @scale);
-    margin-right: (50px * @scale);
+    margin: (50px * @scale);
+    cursor: move;
+
+    &.dragging {
+      width: 0;
+      margin: 0 (25px * @scale);
+      overflow: hidden;
+    }
 
     .dashboard-pipeline-header {
       border-bottom: 2px solid @base02;
@@ -454,7 +491,7 @@
 
 [data-tooltip]:before,
 [data-tooltip]:after {
-  visibility: hidden;
+  display: none;
   top: ~"calc(50% - 15px)";
   pointer-events: none;
 }
@@ -484,6 +521,6 @@
 
 [data-tooltip]:hover:before,
 [data-tooltip]:hover:after {
-  visibility: visible;
+  display: unset;
   z-index: 1;
 }
