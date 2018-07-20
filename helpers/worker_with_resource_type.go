@@ -3,16 +3,20 @@ package helpers
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
+	groutes "code.cloudfoundry.org/garden/routes"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/retryhttp"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tedsuo/rata"
 )
 
 func WorkersAreLocal(logger lager.Logger, client concourse.Client) bool {
@@ -63,7 +67,31 @@ func WorkerWithResourceType(logger lager.Logger, client concourse.Client, resour
 			ginkgo.Skip("worker is registered with local address; skipping")
 		}
 
-		gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
+		backoff := retryhttp.NewExponentialBackOffFactory(5 * time.Minute)
+
+		httpClient := &http.Client{
+			Transport: &retryhttp.RetryRoundTripper{
+				Logger:         logger.Session("retryable-http-client"),
+				BackOffFactory: backoff,
+				RoundTripper:   http.DefaultTransport,
+				Retryer:        &retryhttp.DefaultRetryer{},
+			},
+		}
+
+		hijackableClient := &retryhttp.RetryHijackableClient{
+			Logger:           logger.Session("retry-hijackable-client"),
+			BackOffFactory:   backoff,
+			HijackableClient: retryhttp.DefaultHijackableClient,
+			Retryer:          &retryhttp.DefaultRetryer{},
+		}
+
+		hijackStreamer := &WorkerHijackStreamer{
+			HttpClient:       httpClient,
+			HijackableClient: hijackableClient,
+			Req:              rata.NewRequestGenerator("http://"+w.GardenAddr, groutes.Routes),
+		}
+
+		gardenClient = gclient.New(NewRetryableConnection(gconn.NewWithHijacker(hijackStreamer, gLog)))
 		baggageclaimClient = bclient.New(w.BaggageclaimURL, http.DefaultTransport)
 
 		break
