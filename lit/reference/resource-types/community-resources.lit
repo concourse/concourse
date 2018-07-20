@@ -204,6 +204,8 @@ before using it!
   \table-row{\link{Spring Initializr Resource}{https://github.com/jghiloni/spring-initializr-resource}}{by \ghuser{jghiloni}}
 }{
   \table-row{\link{HTTP Resource}{https://github.com/aequitas/concourse-http-resource}}{by \ghuser{aequitas}}
+}{
+  \table-row{\link{DigitalOcean Worker Provision Resource}{https://github.com/CloudInn/concourse-digitalocean-resource}}{by \ghuser{CloudInn}}
 }
 
 \section{
