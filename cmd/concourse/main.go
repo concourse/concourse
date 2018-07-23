@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/concourse/atc/atccmd"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/vito/twentythousandtonnesofcrudeoil"
 )
@@ -31,7 +32,12 @@ func main() {
 
 	_, err := parser.Parse()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		if err == atccmd.HelpError {
+			parser.WriteHelp(os.Stdout)
+			os.Exit(1)
+		} else {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	}
 }
