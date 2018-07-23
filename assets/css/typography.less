@@ -1,14 +1,23 @@
 @import (reference) "_vars.less";
 
 @font-face {
-  font-family: "UnifrakturCook";
-  src: url("https://fonts.googleapis.com/css?family=UnifrakturCook:700");
+  font-family: 'Inconsolata';
+  font-style: normal;
+  font-weight: 400;
+  src: url("/public/fonts/Inconsolata-Regular.ttf");
+}
+
+@font-face {
+  font-family: 'Inconsolata';
+  font-style: normal;
+  font-weight: 700;
+  src: url("/public/fonts/Inconsolata-Bold.ttf");
 }
 
 h1, .h1 {
   line-height: 60px;
   color: @base07;
-  font-weight: bold;
+  font-weight: 300;
   font-size: 24px;
 }
 
@@ -23,7 +32,7 @@ h3, .h3 {
 /* ansi text */
 .ansi-bold { font-weight: bold; }
 .ansi-faint { color: darken(@base05, 50%) }
-.ansi-Fraktur { font-family: 'UnifrakturCook', cursive; }
+.ansi-Fraktur { font-family: 'Inconsolata', monospace; }
 .ansi-framed {
   background-color: darken(@base05, 70%);
   border: 1px solid darken(@base05, 50%);
@@ -39,7 +48,7 @@ h3, .h3 {
 .ansi-cyan-fg { color: @base0C; }
 .ansi-white-fg { color: @base07; }
 
-.ansi-bright-black-fg { color: @base03; font-weight: bold; }
+.ansi-bright-black-fg { color: @grey-secondary; font-weight: bold; }
 .ansi-bright-red-fg { color: @base08; font-weight: bold; }
 .ansi-bright-green-fg { color: @base0B; font-weight: bold; }
 .ansi-bright-yellow-fg { color: @base0A; font-weight: bold; }

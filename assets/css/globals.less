@@ -1,7 +1,9 @@
 @import (reference) "_vars.less";
+@import (reference) "typography.less";
 
 body {
-  font-family: monospace;
+  font-family: 'Inconsolata', monospace;
+  letter-spacing: (0.085em * @scale);
   font-size: 12px;
   line-height: 1.4;
   margin: 0;
@@ -10,7 +12,8 @@ body {
 }
 
 pre {
-  font-family: monospace;
+  font-family: 'Inconsolata', monospace;
+  letter-spacing: (0.085em * @scale);
   word-wrap: break-word;
 }
 

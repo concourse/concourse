@@ -80,6 +80,7 @@
     display: inline-block;
     vertical-align: middle;
     font-size: (30px * @scale);
+    letter-spacing: (0.1em * @scale);
     margin-left: (16px * @scale);
     float: left;
   }
@@ -358,7 +359,7 @@
 
   .dashboard-legend {
     float: left;
-    letter-spacing: 0.2em;
+    letter-spacing: (0.1em * @scale);
     margin-left: 30px;
 
     & > div {
@@ -473,7 +474,8 @@
 .dashboard-pipeline-name {
   color: @white;
   text-align: left;
-  font-size: (34px * @scale);
+  font-size: (3em * @scale);
+  letter-spacing: (0.1em * @scale);
   padding: (25px * @scale);
   width: (300px * @scale);
   white-space: nowrap;
