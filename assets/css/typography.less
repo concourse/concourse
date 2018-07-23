@@ -1,6 +1,11 @@
 @import (reference) "_vars.less";
 
 @font-face {
+  font-family: 'UnifrakturCook';
+  src: url("https://fonts.googleapis.com/css?family=UnifrakturCook:700");
+}
+
+@font-face {
   font-family: 'Inconsolata';
   font-style: normal;
   font-weight: 400;
@@ -32,7 +37,7 @@ h3, .h3 {
 /* ansi text */
 .ansi-bold { font-weight: bold; }
 .ansi-faint { color: darken(@base05, 50%) }
-.ansi-Fraktur { font-family: 'Inconsolata', monospace; }
+.ansi-Fraktur { font-family: 'UnifrakturCook', cursive; }
 .ansi-framed {
   background-color: darken(@base05, 70%);
   border: 1px solid darken(@base05, 50%);
