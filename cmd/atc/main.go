@@ -12,6 +12,7 @@ func main() {
 	cmd := &atccmd.ATCCommand{}
 
 	parser := flags.NewParser(cmd, flags.Default)
+	parser.Command.SubcommandsOptional = true
 	parser.NamespaceDelimiter = "-"
 
 	cmd.WireDynamicFlags(parser.Command)
