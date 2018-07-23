@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 mkdir -p ~/.kube
 echo "$KUBE_CONFIG" > ~/.kube/config
