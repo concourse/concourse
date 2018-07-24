@@ -494,8 +494,17 @@ pipelinesView model pipelines =
                 []
                 (pipelinesWithJobs model.pipelineJobs model.pipelineResourceErrors pipelines)
 
+        emptyTeams =
+            teamsWithoutPipelines model.topBar.teams <| Dict.fromList pipelinesByTeam
+
         pipelinesByTeamView =
-            List.map (\( teamName, pipelines ) -> groupView model teamName (List.reverse pipelines)) pipelinesByTeam
+            List.append
+                (List.map (\( teamName, pipelines ) -> groupView model teamName (List.reverse pipelines))
+                    pipelinesByTeam
+                )
+                (List.map (\team -> groupView model team.name [])
+                    emptyTeams
+                )
     in
         Html.div
             [ class "dashboard" ]
@@ -521,19 +530,25 @@ handleKeyPressed key model =
 
 groupView : Model -> String -> List PipelineWithJobs -> Html Msg
 groupView model teamName pipelines =
-    Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
-        [ Html.div [ class "pin-wrapper" ]
-            [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ] ]
-        , Html.div [ class "dashboard-team-pipelines" ] <|
-            List.append
-                (List.indexedMap
-                    (\i pipeline ->
-                        Html.div [ class "pipeline-wrapper" ] [ pipelineDropAreaView model teamName i, pipelineView model pipeline i ]
+    let
+        teamPipelines =
+            if List.isEmpty pipelines then
+                [ pipelineNotSetView ]
+            else
+                List.append
+                    (List.indexedMap
+                        (\i pipeline ->
+                            Html.div [ class "pipeline-wrapper" ] [ pipelineDropAreaView model teamName i, pipelineView model pipeline i ]
+                        )
+                        pipelines
                     )
-                    pipelines
-                )
-                [ (pipelineDropAreaView model teamName (List.length pipelines)) ]
-        ]
+                    [ (pipelineDropAreaView model teamName (List.length pipelines)) ]
+    in
+        Html.div [ id teamName, class "dashboard-team-group", attribute "data-team-name" teamName ]
+            [ Html.div [ class "pin-wrapper" ]
+                [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ] ]
+            , Html.div [ class "dashboard-team-pipelines" ] teamPipelines
+            ]
 
 
 pipelineView : Model -> PipelineWithJobs -> Int -> Html Msg
@@ -568,6 +583,21 @@ pipelineView model ({ pipeline, jobs, resourceError } as pipelineWithJobs) index
                 [ Html.div [ class "dashboard-pipeline-icon" ] []
                 , timeSincePipelineTransitioned model.now pipelineWithJobs
                 , pauseToggleView pipeline
+                ]
+            ]
+        ]
+
+
+pipelineNotSetView : Html msg
+pipelineNotSetView =
+    Html.div [ class "pipeline-wrapper" ]
+        [ Html.div
+            [ class "dashboard-pipeline no-set"
+            ]
+            [ Html.div
+                [ class "dashboard-pipeline-content" ]
+                [ Html.div [ class "no-set-wrapper" ]
+                    [ Html.text "no pipelines set" ]
                 ]
             ]
         ]

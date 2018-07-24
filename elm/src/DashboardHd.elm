@@ -15,6 +15,7 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Mouse
 import NewTopBar
+import NoPipeline exposing (view, Msg)
 import RemoteData
 import Routes
 import Task exposing (Task)
@@ -179,6 +180,9 @@ view model =
 dashboardView : Model -> Html Msg
 dashboardView model =
     case model.mPipelines of
+        RemoteData.Success [] ->
+            Html.map (\_ -> Noop) NoPipeline.view
+
         RemoteData.Success _ ->
             pipelinesView model model.pipelines
 
@@ -213,10 +217,21 @@ pipelinesView model pipelines =
                 _ ->
                     List.reverse <| List.sortBy (List.length << Tuple.second) pipelinesByTeam
 
+        emptyTeams =
+            teamsWithoutPipelines model.topBar.teams <| Dict.fromList pipelinesByTeam
+
         pipelinesByTeamView =
-            List.concatMap (\( teamName, pipelines ) -> groupView model.now teamName (List.reverse pipelines)) sortedPipelinesByTeam
+            List.append
+                (List.concatMap (\( teamName, pipelines ) -> groupView model.now teamName (List.reverse pipelines))
+                    sortedPipelinesByTeam
+                )
+                (List.concatMap (\team -> groupView model.now team.name [])
+                    emptyTeams
+                )
     in
-        Html.div
+        flip always
+            (Debug.log "teams" emptyTeams)
+            Html.div
             [ class "dashboard dashboard-hd" ]
         <|
             [ Html.div [ class "dashboard-content" ] pipelinesByTeamView
@@ -284,10 +299,13 @@ turbulenceView model =
 groupView : Maybe Time -> String -> List PipelineWithJobs -> List (Html msg)
 groupView now teamName pipelines =
     let
-        teamPiplines =
-            List.map (pipelineView now) pipelines
+        teamPipelines =
+            if List.isEmpty pipelines then
+                [ pipelineNotSetView ]
+            else
+                List.map (pipelineView now) pipelines
     in
-        case teamPiplines of
+        case teamPipelines of
             [] ->
                 [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ] ]
 
@@ -314,6 +332,21 @@ pipelineView now { pipeline, jobs, resourceError } =
                 [ Html.text pipeline.name ]
             ]
         , Html.div [ classList [ ( "dashboard-resource-error", resourceError ) ] ] []
+        ]
+
+
+pipelineNotSetView : Html msg
+pipelineNotSetView =
+    Html.div
+        [ class "dashboard-pipeline" ]
+        [ Html.div
+            [ classList
+                [ ( "dashboard-pipeline-content", True )
+                , ( "no-set", True )
+                ]
+            ]
+            [ Html.a [] [ Html.text "no pipelines set" ]
+            ]
         ]
 
 

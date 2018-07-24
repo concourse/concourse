@@ -82,6 +82,26 @@ describe 'dashboard', type: :feature do
       before do
         fly_login 'main'
         fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
+      end
+
+      after do
+        fly_login 'main'
+        fly_with_input("destroy-team -n #{other_team_name}", other_team_name)
+      end
+
+      it 'shows no pipelines set group for the other teams' do
+        visit_dashboard
+        expect(page).to have_content other_team_name
+        expect(page).to have_content 'no pipelines set'
+      end
+    end
+
+    context 'with multiple teams' do
+      let(:other_team_name) { generate_team_name }
+
+      before do
+        fly_login 'main'
+        fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
 
         fly_login other_team_name
         fly('set-pipeline -n -p other-pipeline-private -c fixtures/dashboard-pipeline.yml')
@@ -100,7 +120,6 @@ describe 'dashboard', type: :feature do
       end
 
       it 'shows all pipelines from the authenticated team and public pipelines from other teams' do
-        dash_login
         visit_dashboard
         within '.dashboard-team-group', text: team_name do
           expect(page).to have_content 'some-pipeline'
@@ -439,7 +458,8 @@ describe 'dashboard', type: :feature do
       expect(page).to have_content team_name
 
       page.evaluate_script('window.scrollTo(0, document.body.scrollHeight)')
-      expect(page.find('.dashboard-team-name').native.style('position')).to eq 'fixed'
+      expect(page.find("##{team_name}").find('.dashboard-team-name').native.style('position')).to eq 'fixed'
+      expect(page.find("#main").find('.dashboard-team-name').native.style('position')).to eq 'static'
     end
   end
 
@@ -575,6 +595,26 @@ describe 'dashboard', type: :feature do
       before do
         fly_login 'main'
         fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
+      end
+
+      after do
+        fly_login 'main'
+        fly_with_input("destroy-team -n #{other_team_name}", other_team_name)
+      end
+
+      it 'shows no pipelines set group for the other teams' do
+        visit_hd_dashboard
+        expect(page).to have_content other_team_name
+        expect(page).to have_content 'no pipelines set'
+      end
+    end
+
+    context 'with multiple teams' do
+      let(:other_team_name) { generate_team_name }
+
+      before do
+        fly_login 'main'
+        fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
 
         fly_login other_team_name
         fly('set-pipeline -n -p other-pipeline-private -c fixtures/dashboard-pipeline.yml')
@@ -622,7 +662,6 @@ describe 'dashboard', type: :feature do
 
     it 'does not scroll' do
       1.upto(50) do |i|
-        fly("set-pipeline -n -p some-pipeline-#{i} -c fixtures/simple-pipeline.yml")
       end
 
       visit_hd_dashboard

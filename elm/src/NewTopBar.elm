@@ -105,6 +105,7 @@ update msg model =
                 ( { model
                     | userState = UserStateLoggedOut
                     , userMenuVisible = False
+                    , teams = RemoteData.Loading
                   }
                 , Navigation.newUrl redirectUrl
                 )

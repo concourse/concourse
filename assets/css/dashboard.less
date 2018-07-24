@@ -1,6 +1,9 @@
 // dashboard.less
 
 @scale: 0.6;
+@banner-height: 14px;
+@footer-padding: 27px;
+@name-padding: 25px;
 
 .dashboard {
   .dashboard-content {
@@ -138,6 +141,24 @@
     margin: (50px * @scale);
     cursor: move;
 
+    &.no-set {
+      margin: auto;
+      cursor: default;
+
+      .dashboard-pipeline-content{
+        width: 272px;
+        // fix height 214px = 160px(grid height) + 20px(pipeline name height) + 30px(footer height) + 2px * 2 (border height)
+        height: 214px + (@banner-height + @footer-padding * 2 + @name-padding * 2) * @scale;
+        text-align: center;
+
+        .no-set-wrapper {
+          font-size: 18px;
+          color: @base04;
+          margin: auto;
+        }
+      }
+    }
+
     &.dragging {
       width: 0;
       margin: 0 (25px * @scale);
@@ -165,7 +186,7 @@
     .dashboard-pipeline-banner {
       background-color: @grey-primary;
       background-size: 200% 100%;
-      height: (14px * @scale);
+      height: (@banner-height * @scale);
     }
 
     .dashboard-pipeline-content {
@@ -177,7 +198,7 @@
 
     .dashboard-pipeline-footer {
       text-align: center;
-      padding: (27px * @scale);
+      padding: (@footer-padding * @scale);
       border-top: 2px solid @base02;
 
       .dashboard-pipeline-icon {
@@ -476,7 +497,7 @@
   text-align: left;
   font-size: (3em * @scale);
   letter-spacing: (0.1em * @scale);
-  padding: (25px * @scale);
+  padding: (@name-padding * @scale);
   width: (300px * @scale);
   white-space: nowrap;
   overflow: hidden;
