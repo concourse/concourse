@@ -73,8 +73,10 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		return 0, db.ResourceTypeNotFoundError{Name: resourceTypeName}
 	}
 
-	// TODO: maybe consider scanner.checkInterval
-	interval := scanner.defaultInterval
+	interval, err := scanner.checkInterval(savedResourceType.CheckEvery())
+	if err != nil {
+		return 0, err
+	}
 
 	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
 	if err != nil {
@@ -252,4 +254,18 @@ func (scanner *resourceTypeScanner) check(
 	}
 
 	return nil
+}
+
+func (scanner *resourceTypeScanner) checkInterval(checkEvery string) (time.Duration, error) {
+	interval := scanner.defaultInterval
+	if checkEvery != "" {
+		configuredInterval, err := time.ParseDuration(checkEvery)
+		if err != nil {
+			return 0, err
+		}
+
+		interval = configuredInterval
+	}
+
+	return interval, nil
 }

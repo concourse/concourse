@@ -214,6 +214,40 @@ var _ = Describe("ResourceTypeScanner", func() {
 				})
 			})
 
+			Context("when the resource type config has a specified check interval", func() {
+				BeforeEach(func() {
+					fakeResourceType.CheckEveryReturns("10ms")
+					fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+				})
+
+				It("leases for the configured interval", func() {
+					Expect(fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
+
+					_, resourceTypeName, resourceConfig, leaseInterval, immediate := fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckArgsForCall(0)
+					Expect(resourceTypeName).To(Equal(fakeResourceType.Name()))
+					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
+					Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
+					Expect(immediate).To(BeFalse())
+
+					Eventually(fakeLock.ReleaseCallCount()).Should(Equal(1))
+				})
+
+				It("returns configured interval", func() {
+					Expect(actualInterval).To(Equal(10 * time.Millisecond))
+				})
+
+				Context("when the interval cannot be parsed", func() {
+					BeforeEach(func() {
+						fakeResourceType.CheckEveryReturns("bad-value")
+						fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+					})
+
+					It("returns an error", func() {
+						Expect(runErr).To(HaveOccurred())
+					})
+				})
+			})
+
 			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
 				Expect(fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 

@@ -361,6 +361,7 @@ var _ = Describe("Resources API", func() {
 				resourceType2.TypeReturns("type-2")
 				resourceType2.SourceReturns(map[string]interface{}{"source-key-2": "source-value-2"})
 				resourceType2.PrivilegedReturns(true)
+				resourceType2.CheckEveryReturns("10ms")
 				resourceType2.TagsReturns([]string{"tag1", "tag2"})
 				resourceType2.ParamsReturns(map[string]interface{}{"param-key-2": "param-value-2"})
 				resourceType2.VersionReturns(map[string]string{
@@ -411,6 +412,7 @@ var _ = Describe("Resources API", func() {
 					"type": "type-1",
 					"tags": ["tag1"],
 					"privileged": false,
+					"check_every": "",
 					"params": {"param-key-1": "param-value-1"},
 					"source": {"source-key-1": "source-value-1"},
 					"version": {
@@ -423,6 +425,7 @@ var _ = Describe("Resources API", func() {
 					"type": "type-2",
 					"tags": ["tag1", "tag2"],
 					"privileged": true,
+					"check_every": "10ms",
 					"params": {"param-key-2": "param-value-2"},
 					"source": {"source-key-2": "source-value-2"},
 					"version": {
@@ -458,6 +461,7 @@ var _ = Describe("Resources API", func() {
 				"type": "type-1",
 				"tags": ["tag1"],
 				"privileged": false,
+				"check_every": "",
 				"params": {"param-key-1": "param-value-1"},
 				"source": {"source-key-1": "source-value-1"},
 				"version": {
@@ -470,6 +474,7 @@ var _ = Describe("Resources API", func() {
 				"type": "type-2",
 				"tags": ["tag1", "tag2"],
 				"privileged": true,
+				"check_every": "10ms",
 				"params": {"param-key-2": "param-value-2"},
 				"source": {"source-key-2": "source-value-2"},
 				"version": {

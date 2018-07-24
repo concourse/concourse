@@ -35,6 +35,12 @@ var _ = Describe("Resource", func() {
 						Type:   "git",
 						Source: atc.Source{"some": "((secret-repository))"},
 					},
+					{
+						Name:       "some-resource-custom-check",
+						Type:       "git",
+						Source:     atc.Source{"some": "some-repository"},
+						CheckEvery: "10ms",
+					},
 				},
 			},
 			0,
@@ -54,7 +60,7 @@ var _ = Describe("Resource", func() {
 		})
 
 		It("returns the resources", func() {
-			Expect(resources).To(HaveLen(3))
+			Expect(resources).To(HaveLen(4))
 
 			ids := map[int]struct{}{}
 
@@ -71,6 +77,10 @@ var _ = Describe("Resource", func() {
 				case "some-secret-resource":
 					Expect(r.Type()).To(Equal("git"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "((secret-repository))"}))
+				case "some-resource-custom-check":
+					Expect(r.Type()).To(Equal("git"))
+					Expect(r.Source()).To(Equal(atc.Source{"some": "some-repository"}))
+					Expect(r.CheckEvery()).To(Equal("10ms"))
 				}
 			}
 		})

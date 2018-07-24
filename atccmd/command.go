@@ -104,8 +104,11 @@ type RunCommand struct {
 	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16  `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
 
-	InterceptIdleTimeout              time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
-	ResourceCheckingInterval          time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
+
+	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
+
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" description:"Method by which a worker is selected during container placement."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
@@ -431,6 +434,7 @@ func (cmd *RunCommand) constructMembers(
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceFactory,
 		dbResourceConfigCheckSessionFactory,
+		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
 	)
@@ -438,6 +442,7 @@ func (cmd *RunCommand) constructMembers(
 	radarScannerFactory := radar.NewScannerFactory(
 		resourceFactory,
 		dbResourceConfigCheckSessionFactory,
+		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
 		variablesFactory,
