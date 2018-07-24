@@ -239,15 +239,20 @@ update msg model =
                 ( model, togglePipelinePaused pipeline model.csrfToken )
 
             PipelinePauseToggled pipeline (Ok ()) ->
-                ( { model
-                    | pipelines =
+                let
+                    togglePipelinePause : List Concourse.Pipeline -> List Concourse.Pipeline
+                    togglePipelinePause pipelines =
                         List.Extra.updateIf
                             ((==) pipeline)
                             (\pipeline -> { pipeline | paused = not pipeline.paused })
-                            model.pipelines
-                  }
-                , Cmd.none
-                )
+                            pipelines
+                in
+                    ( { model
+                        | pipelines = togglePipelinePause model.pipelines
+                        , filteredPipelines = togglePipelinePause model.filteredPipelines
+                      }
+                    , Cmd.none
+                    )
 
             PipelinePauseToggled _ (Err _) ->
                 ( model, Cmd.none )
@@ -262,25 +267,37 @@ update msg model =
                 case ( model.dragState, model.dropState ) of
                     ( Dragging teamName dragIndex, Dropping dropIndex ) ->
                         let
-                            pipelines =
+                            shiftPipelines : List Concourse.Pipeline -> List Concourse.Pipeline
+                            shiftPipelines pipelines =
                                 if dragIndex == dropIndex then
-                                    model.pipelines
+                                    pipelines
                                 else
                                     case
                                         List.head <|
                                             List.drop dragIndex <|
-                                                (List.filter ((==) teamName << .teamName) model.pipelines)
+                                                (List.filter ((==) teamName << .teamName) pipelines)
                                     of
                                         Nothing ->
-                                            model.pipelines
+                                            pipelines
 
                                         Just pipeline ->
-                                            shiftPipelineTo pipeline dropIndex model.pipelines
+                                            shiftPipelineTo pipeline dropIndex pipelines
+
+                            pipelines =
+                                if String.isEmpty model.topBar.query then
+                                    shiftPipelines model.pipelines
+                                else
+                                    shiftPipelines model.filteredPipelines
+
+                            newModel =
+                                if String.isEmpty model.topBar.query then
+                                    { model | pipelines = pipelines }
+                                else
+                                    { model | filteredPipelines = pipelines }
                         in
-                            ( { model
+                            ( { newModel
                                 | dragState = NotDragging
                                 , dropState = NotDropping
-                                , pipelines = pipelines
                               }
                             , orderPipelines teamName pipelines model.csrfToken
                             )

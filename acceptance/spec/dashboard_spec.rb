@@ -190,6 +190,23 @@ describe 'dashboard', type: :feature do
         end
         expect(banner_color).to be_greyscale
       end
+
+      context 'when there is a search query' do
+        before do
+          search 'some'
+          expect(page).to have_content 'some-pipeline'
+        end
+
+        it 'shows a play button that unpauses' do
+          within '.dashboard-pipeline', text: 'some-pipeline' do
+            expect(page).to have_css '.icon-play'
+
+            page.find('.icon-play').click
+            expect(page).not_to have_css '.icon-play'
+          end
+          expect(banner_color).to be_greyscale
+        end
+      end
     end
 
     context 'when a pipeline is pending' do
@@ -216,6 +233,23 @@ describe 'dashboard', type: :feature do
           expect(page).not_to have_css '.icon-pause'
         end
         expect(banner_palette).to eq(BLUE)
+      end
+
+      context 'when there is a search query' do
+        before do
+          search 'some'
+          expect(page).to have_content 'some-pipeline'
+        end
+
+        it 'shows a play button that pauses' do
+          within '.dashboard-pipeline', text: 'some-pipeline' do
+            expect(page).to have_css '.icon-pause'
+
+            page.find('.icon-pause').click
+            expect(page).not_to have_css '.icon-pause'
+          end
+          expect(banner_palette).to eq(BLUE)
+        end
       end
     end
 
@@ -363,6 +397,17 @@ describe 'dashboard', type: :feature do
         visit_dashboard
         expect_team_pipelines team_name, ['some-pipeline', 'another-pipeline', 'third-pipeline']
 
+        drag_and_drop(team_name, 'some-pipeline')
+        expect_team_pipelines team_name, ['another-pipeline', 'third-pipeline', 'some-pipeline']
+      end
+
+      it 'reorders when dragging in a fitered list' do
+        fly('set-pipeline -n -p another-pipeline -c fixtures/dashboard-pipeline.yml')
+        fly('set-pipeline -n -p third-pipeline -c fixtures/dashboard-pipeline.yml')
+
+        visit_dashboard
+        expect_team_pipelines team_name, ['some-pipeline', 'another-pipeline', 'third-pipeline']
+        search('pipeline')
         drag_and_drop(team_name, 'some-pipeline')
         expect_team_pipelines team_name, ['another-pipeline', 'third-pipeline', 'some-pipeline']
       end
@@ -622,5 +667,9 @@ describe 'dashboard', type: :feature do
   def visit_hd_dashboard
     login
     visit dash_route('/hd')
+  end
+
+  def search(term)
+    term.split('').each { |c| find_field('search-input-field').native.send_keys(c) }
   end
 end
