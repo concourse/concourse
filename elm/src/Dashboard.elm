@@ -25,6 +25,7 @@ import List.Extra
 import Mouse
 import NewTopBar
 import NoPipeline exposing (view, Msg)
+import Regex exposing (replace, regex, HowMany(AtMost))
 import RemoteData
 import Routes
 import Simple.Fuzzy exposing (match, root, filter)
@@ -702,8 +703,15 @@ getCurrentTime =
 
 
 filter : String -> Model -> List Concourse.Pipeline
-filter query model =
-    filterByTerms model (String.split " " query) model.pipelines
+filter queryStr model =
+    let
+        queries =
+            queryStr
+                |> replace (AtMost 1) (regex "team:\\s*") (\_ -> "team:")
+                |> replace (AtMost 1) (regex "status:\\s*") (\_ -> "status:")
+                |> String.words
+    in
+        filterByTerms model queries model.pipelines
 
 
 filterByTerms : Model -> List String -> List Concourse.Pipeline -> List Concourse.Pipeline

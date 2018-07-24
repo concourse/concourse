@@ -270,17 +270,17 @@ fetchTeams =
 
 autocompleteOptions : Model -> List String
 autocompleteOptions model =
-    case model.query of
+    case String.trim model.query of
         "" ->
-            [ "status:", "team:" ]
+            [ "status: ", "team: " ]
 
         "status:" ->
-            [ "status:paused", "status:pending", "status:failed", "status:errored", "status:aborted", "status:running", "status:succeeded" ]
+            [ "status: paused", "status: pending", "status: failed", "status: errored", "status: aborted", "status: running", "status: succeeded" ]
 
         "team:" ->
             case model.teams of
                 RemoteData.Success teams ->
-                    List.map (\team -> "team:" ++ team.name) <| List.take 10 teams
+                    List.map (\team -> "team: " ++ team.name) <| List.take 10 teams
 
                 _ ->
                     []

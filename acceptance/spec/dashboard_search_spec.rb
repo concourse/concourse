@@ -95,35 +95,35 @@ describe 'dashboard search', type: :feature do
     end
 
     it 'filters the pipelines by team' do
-      search "team:#{team_name}"
+      search "team: #{team_name}"
       expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [team_name]
 
       clear_search
 
-      search "team:#{team_name} some"
+      search "team: #{team_name} some"
       expect(page.find_all('.dashboard-team-name', minimum: 1).map(&:text)).to eq [team_name]
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 
     it 'filters the pipelines by negate team' do
-      search "team:-#{team_name}"
+      search "team: -#{team_name}"
       expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
 
       clear_search
 
-      search "team:-#{team_name} -some"
+      search "team: -#{team_name} -some"
       expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['other-pipeline']
     end
 
     it 'filters the pipelines by negate team, negate pipeline and negate status' do
-      search "team:-#{team_name}"
+      search "team: -#{team_name}"
       expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
 
       clear_search
 
-      search "team:-#{team_name} status:-pending -some"
-      expect(page).to have_content("No results for \"team:-#{team_name} status:-pending -some\" matched your search.")
+      search "team: -#{team_name} status: -pending -some"
+      expect(page).to have_content("No results for \"team: -#{team_name} status: -pending -some\" matched your search.")
     end
   end
 
@@ -134,7 +134,7 @@ describe 'dashboard search', type: :feature do
       visit dash_route
       expect(border_palette).to eq(GREEN)
 
-      search 'status:succeeded'
+      search 'status: succeeded'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 
@@ -144,7 +144,7 @@ describe 'dashboard search', type: :feature do
       visit dash_route
       expect(border_palette).to eq(AMBER)
 
-      search 'status:errored'
+      search 'status: errored'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 
@@ -158,7 +158,7 @@ describe 'dashboard search', type: :feature do
       expect(page).not_to have_content 'running'
       expect(border_palette).to eq(BROWN)
 
-      search 'status:aborted'
+      search 'status: aborted'
       expect(page.find_all('.dashboard-pipeline-name', minimum: 1).map(&:text)).to eq ['some-pipeline']
     end
 
@@ -168,7 +168,7 @@ describe 'dashboard search', type: :feature do
       visit dash_route
       expect(border_palette).to eq(BLUE)
 
-      search 'status:paused'
+      search 'status: paused'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 
@@ -178,7 +178,7 @@ describe 'dashboard search', type: :feature do
       visit dash_route
       expect(border_palette).to eq(RED)
 
-      search 'status:failed'
+      search 'status: failed'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
 
@@ -188,12 +188,12 @@ describe 'dashboard search', type: :feature do
       visit dash_route
       expect(border_palette).to eq(RED)
 
-      search 'status:-failed'
+      search 'status: -failed'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['other-pipeline']
     end
 
     it 'filters the pipelines by pending status' do
-      search 'status:pending'
+      search 'status: pending'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline', 'other-pipeline']
     end
 
@@ -205,7 +205,7 @@ describe 'dashboard search', type: :feature do
       visit dash_route
       expect(page).to have_content 'some-pipeline'
 
-      search 'status:running'
+      search 'status: running'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
     end
   end
