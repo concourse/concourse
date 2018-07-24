@@ -36,7 +36,6 @@ type Msg
     | UserFetched (Result Http.Error Concourse.User)
     | FetchUser Time.Time
     | FetchPipeline Concourse.PipelineIdentifier
-    | ToggleSidebar
     | LogOut
     | LogIn
     | ResetToPipeline String
@@ -103,10 +102,6 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
-
-        ToggleSidebar ->
-            flip always (Debug.log "sidebar-toggle-incorrectly-handled" ()) <|
-                ( model, Cmd.none )
 
         LogIn ->
             ( { model
@@ -208,8 +203,8 @@ urlUpdate route model =
         )
 
 
-view : Model -> Bool -> Html Msg
-view model sidebarVisible =
+view : Model -> Html Msg
+view model =
     Html.nav
         [ classList
             [ ( "module-topbar", True )
@@ -219,34 +214,15 @@ view model sidebarVisible =
             ]
         ]
         [ Html.div
-            [ classList [ ( "topbar-logo", True ), ( "wide", sidebarVisible ) ] ]
+            [ classList [ ( "topbar-logo", True ) ] ]
             [ Html.a [ class "logo-image-link", href "/" ] [] ]
-        , Html.ul [ class "groups" ] <|
-            [ Html.li [ class "main" ]
-                [ viewSidebarToggle sidebarVisible
-                ]
-            ]
-                ++ viewBreadcrumbs model
+        , Html.ul [ class "groups" ] <| viewBreadcrumbs model
         , Html.div [ class "topbar-login" ]
             [ Html.div [ class "topbar-user-info" ]
                 [ viewUserState model.userState model.userMenuVisible
                 ]
             ]
         ]
-
-
-viewSidebarToggle : Bool -> Html Msg
-viewSidebarToggle sidebarVisible =
-    Html.span
-        [ class "sidebar-toggle test btn-hamburger"
-        , onClick ToggleSidebar
-        , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
-        ]
-    <|
-        if sidebarVisible then
-            [ Html.div [ class "sidebar-dismiss" ] [] ]
-        else
-            [ Html.i [ class "fa fa-bars" ] [] ]
 
 
 viewBreadcrumbs : Model -> List (Html Msg)

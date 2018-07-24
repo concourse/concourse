@@ -5,7 +5,6 @@ import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
 import Navigation
 import Routes
-import SideBar
 import SubPage
 import Task exposing (Task)
 import TopBar
@@ -44,8 +43,6 @@ type alias Model =
     , subModel : SubPage.Model
     , topModel : TopBar.Model
     , topBarType : TopBarType
-    , sideModel : SideBar.Model
-    , sidebarVisible : Bool
     , turbulenceImgSrc : String
     , notFoundImgSrc : String
     , csrfToken : String
@@ -63,7 +60,6 @@ type Msg
     | RouteChanged Routes.ConcourseRoute
     | SubMsg NavIndex SubPage.Msg
     | TopMsg NavIndex TopBar.Msg
-    | SideMsg NavIndex SideBar.Msg
     | NewUrl String
     | ModifyUrl String
     | SaveToken String
@@ -94,9 +90,6 @@ init flags location =
         ( topModel, topCmd ) =
             TopBar.init route
 
-        ( sideModel, sideCmd ) =
-            SideBar.init { csrfToken = flags.csrfToken }
-
         navIndex =
             1
 
@@ -105,8 +98,6 @@ init flags location =
             , subModel = subModel
             , topModel = topModel
             , topBarType = topBarType
-            , sideModel = sideModel
-            , sidebarVisible = False
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , route = route
@@ -133,7 +124,6 @@ init flags location =
             , stripCSRFTokenParamCmd
             , Cmd.map (SubMsg navIndex) subCmd
             , Cmd.map (TopMsg navIndex) topCmd
-            , Cmd.map (SideMsg navIndex) sideCmd
             ]
         )
 
@@ -155,13 +145,6 @@ update msg model =
         RouteChanged route ->
             urlUpdate route model
 
-        TopMsg _ TopBar.ToggleSidebar ->
-            ( { model
-                | sidebarVisible = not model.sidebarVisible
-              }
-            , Cmd.none
-            )
-
         SaveToken tokenValue ->
             ( model, saveToken tokenValue )
 
@@ -175,18 +158,13 @@ update msg model =
             let
                 ( newSubModel, subCmd ) =
                     SubPage.update model.turbulenceImgSrc model.notFoundImgSrc tokenValue (SubPage.NewCSRFToken tokenValue) model.subModel
-
-                ( newSideModel, sideCmd ) =
-                    SideBar.update (SideBar.NewCSRFToken tokenValue) model.sideModel
             in
                 ( { model
                     | csrfToken = tokenValue
                     , subModel = newSubModel
-                    , sideModel = newSideModel
                   }
                 , Cmd.batch
                     [ Cmd.map (SubMsg anyNavIndex) subCmd
-                    , Cmd.map (SideMsg anyNavIndex) sideCmd
                     ]
                 )
 
@@ -208,16 +186,6 @@ update msg model =
                         TopBar.update m model.topModel
                 in
                     ( { model | topModel = topModel }, Cmd.map (TopMsg navIndex) topCmd )
-            else
-                ( model, Cmd.none )
-
-        SideMsg navIndex m ->
-            if validNavIndex model.navIndex navIndex then
-                let
-                    ( sideModel, sideCmd ) =
-                        SideBar.update m model.sideModel
-                in
-                    ( { model | sideModel = sideModel }, Cmd.map (SideMsg navIndex) sideCmd )
             else
                 ( model, Cmd.none )
 
@@ -278,38 +246,24 @@ resetFavicon =
 
 view : Model -> Html Msg
 view model =
-    let
-        sidebarVisibileAppendage =
-            case model.sidebarVisible of
-                True ->
-                    " visible"
+    case model.subModel of
+        SubPage.DashboardModel _ ->
+            Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
 
-                False ->
-                    ""
-    in
-        case model.subModel of
-            SubPage.DashboardModel _ ->
-                Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+        SubPage.DashboardHdModel _ ->
+            Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
 
-            SubPage.DashboardHdModel _ ->
-                Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
-
-            _ ->
-                Html.div [ class "content-frame" ]
-                    [ Html.div [ id "top-bar-app" ]
-                        [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel model.sidebarVisible) ]
-                    , Html.div [ class "bottom" ]
-                        [ Html.div
-                            [ id "pipelines-nav-app"
-                            , class <| "sidebar test" ++ sidebarVisibileAppendage
-                            ]
-                            [ Html.map (SideMsg model.navIndex) (SideBar.view model.sideModel) ]
-                        , Html.div [ id "content" ]
-                            [ Html.div [ id "subpage" ]
-                                [ Html.map (SubMsg model.navIndex) (SubPage.view model.subModel) ]
-                            ]
+        _ ->
+            Html.div [ class "content-frame" ]
+                [ Html.div [ id "top-bar-app" ]
+                    [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel) ]
+                , Html.div [ class "bottom" ]
+                    [ Html.div [ id "content" ]
+                        [ Html.div [ id "subpage" ]
+                            [ Html.map (SubMsg model.navIndex) (SubPage.view model.subModel) ]
                         ]
                     ]
+                ]
 
 
 subscriptions : Model -> Sub Msg
@@ -319,7 +273,6 @@ subscriptions model =
             Sub.batch
                 [ newUrl NewUrl
                 , tokenReceived TokenReceived
-                , Sub.map (SideMsg model.navIndex) <| SideBar.subscriptions model.sideModel
                 , Sub.map (SubMsg model.navIndex) <| SubPage.subscriptions model.subModel
                 ]
 
@@ -328,7 +281,6 @@ subscriptions model =
                 [ newUrl NewUrl
                 , tokenReceived TokenReceived
                 , Sub.map (TopMsg model.navIndex) <| TopBar.subscriptions model.topModel
-                , Sub.map (SideMsg model.navIndex) <| SideBar.subscriptions model.sideModel
                 , Sub.map (SubMsg model.navIndex) <| SubPage.subscriptions model.subModel
                 ]
 
