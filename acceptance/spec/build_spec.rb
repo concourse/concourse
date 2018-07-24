@@ -186,7 +186,7 @@ describe 'build', type: :feature do
       visit dash_route("/teams/#{team_name}/pipelines/pipeline")
       expect(page).to have_content 'manual-trigger'
 
-      page.find('a > text', text: 'manual-trigger').click
+      page.find('a', text: 'manual-trigger').click
       page.find_button('Trigger Build').click
       expect(page).to have_content 'manual-trigger #1'
     end

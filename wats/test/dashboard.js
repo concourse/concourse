@@ -48,7 +48,7 @@ test('shows pipelines in their correct order', async t => {
   await t.context.page.goto(t.context.web.route('/dashboard'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  await t.context.page.waitFor(`${group} .dashboard-pipeline:nth-child(${pipelineOrder.length})`);
+  await t.context.page.waitFor(`${group} .pipeline-wrapper:nth-child(${pipelineOrder.length}) .dashboard-pipeline`);
 
   const names = await t.context.page.$$eval(`${group} .dashboard-pipeline-name`, nameElements => {
     var names = [];
