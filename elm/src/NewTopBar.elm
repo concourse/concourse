@@ -228,7 +228,7 @@ view model =
                     ]
                     []
                 , Html.span
-                    [ class "search-clear-button"
+                    [ classList [ ( "search-clear-button", True ), ( "active", not <| String.isEmpty model.query ) ]
                     , id "search-clear-button"
                     , onClick (FilterMsg "")
                     ]
