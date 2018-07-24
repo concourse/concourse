@@ -37,20 +37,20 @@ describe 'dashboard autocomplete', type: :feature do
     context 'with a status query' do
       it 'shows the matching options' do
         search 'status:'
-        expect(page).to have_content 'status:paused'
-        expect(page).to have_content 'status:pending'
-        expect(page).to have_content 'status:failed'
-        expect(page).to have_content 'status:errored'
-        expect(page).to have_content 'status:aborted'
-        expect(page).to have_content 'status:running'
-        expect(page).to have_content 'status:succeeded'
+        expect(page).to have_content 'status: paused'
+        expect(page).to have_content 'status: pending'
+        expect(page).to have_content 'status: failed'
+        expect(page).to have_content 'status: errored'
+        expect(page).to have_content 'status: aborted'
+        expect(page).to have_content 'status: running'
+        expect(page).to have_content 'status: succeeded'
       end
 
       it 'populates the search box when clicking on an option' do
         search 'status:'
-        find('li', text: 'status:paused').click
-        expect(page).to have_no_content 'status:failed'
-        expect(page).to have_field('search-input-field', with: 'status:paused')
+        find('li', text: 'status: paused').click
+        expect(page).to have_no_content 'status: failed'
+        expect(page).to have_field('search-input-field', with: 'status: paused')
       end
 
       it 'supports arrow keys' do
@@ -61,23 +61,23 @@ describe 'dashboard autocomplete', type: :feature do
         find_field('search-input-field').native.send_keys :down
         find_field('search-input-field').native.send_keys :up
         find_field('search-input-field').native.send_keys :enter
-        expect(page).to have_field 'search-input-field', with: 'status:failed'
+        expect(page).to have_field 'search-input-field', with: 'status: failed'
         expect(page).to have_text 'No results'
       end
 
       it 'blurs when escape key is pressed' do
         find_field('search-input-field').click
         find_field('search-input-field').native.send_keys :escape
-        expect(page).to have_no_content 'status:'
-        expect(page).to have_no_content 'team:'
+        expect(page).to have_no_content 'status: '
+        expect(page).to have_no_content 'team: '
       end
     end
 
     context 'with a team query' do
       it 'shows the matching options' do
         search 'team:'
-        expect(page).to have_content 'team:main'
-        expect(page).to have_content "team:#{team_name}"
+        expect(page).to have_content 'team: main'
+        expect(page).to have_content "team: #{team_name}"
       end
 
       context 'with many teams' do
