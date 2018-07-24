@@ -65,7 +65,7 @@ test -n "$version" && {
   until sudo /var/vcap/bosh/bin/monit stop atc; do sleep 2; done
   until sudo /var/vcap/bosh/bin/monit summary | grep -E "atc.*not monitored"; do sleep 2; done
 
-  /var/vcap/data/packages/atc/${downgrade_from}/bin/atc migrate \
+  /var/vcap/data/packages/atc/${downgrade_from}/bin/atc \
     --postgres-host=<%= esc(postgres_host) %> \
     --postgres-user=<%= esc(postgres_role_name) %> \
     --postgres-password=<%= esc(postgres_role_password) %> \
