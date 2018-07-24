@@ -20,7 +20,7 @@ import (
 )
 
 type WebCommand struct {
-	*atccmd.RunCommand
+	*atccmd.ATCCommand
 
 	*tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
 }
@@ -50,12 +50,12 @@ func (cmd *WebCommand) Execute(args []string) error {
 func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 	err := bindata.RestoreAssets(os.TempDir(), cliArtifactsBindata)
 	if err == nil {
-		cmd.RunCommand.CLIArtifactsDir = flag.Dir(filepath.Join(os.TempDir(), cliArtifactsBindata))
+		cmd.ATCCommand.CLIArtifactsDir = flag.Dir(filepath.Join(os.TempDir(), cliArtifactsBindata))
 	}
 
 	cmd.populateTSAFlagsFromATCFlags()
 
-	atcRunner, shouldSkipTSA, err := cmd.RunCommand.Runner(args)
+	atcRunner, shouldSkipTSA, err := cmd.ATCCommand.Runner(args)
 	if err != nil {
 		return nil, err
 	}
@@ -76,32 +76,32 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 }
 
 func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
-	cmd.TSACommand.SessionSigningKey = cmd.RunCommand.Auth.AuthFlags.SigningKey
+	cmd.TSACommand.SessionSigningKey = cmd.ATCCommand.Auth.AuthFlags.SigningKey
 
-	if cmd.RunCommand.Auth.AuthFlags.SigningKey.PrivateKey == nil &&
+	if cmd.ATCCommand.Auth.AuthFlags.SigningKey.PrivateKey == nil &&
 		cmd.TSACommand.SessionSigningKey.PrivateKey == nil {
 		signingKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return fmt.Errorf("failed to generate session signing key: %s", err)
 		}
 
-		cmd.RunCommand.Auth.AuthFlags.SigningKey = &flag.PrivateKey{PrivateKey: signingKey}
+		cmd.ATCCommand.Auth.AuthFlags.SigningKey = &flag.PrivateKey{PrivateKey: signingKey}
 		cmd.TSACommand.SessionSigningKey = &flag.PrivateKey{PrivateKey: signingKey}
 	}
 
 	if len(cmd.TSACommand.ATCURLs) == 0 {
-		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.PeerURL}
+		cmd.TSACommand.ATCURLs = []flag.URL{cmd.ATCCommand.PeerURL}
 	}
 
-	host, _, err := net.SplitHostPort(cmd.RunCommand.PeerURL.URL.Host)
+	host, _, err := net.SplitHostPort(cmd.ATCCommand.PeerURL.URL.Host)
 	if err != nil {
 		return err
 	}
 
 	cmd.TSACommand.PeerIP = host
 
-	cmd.TSACommand.Metrics.YellerAPIKey = cmd.RunCommand.Metrics.YellerAPIKey
-	cmd.TSACommand.Metrics.YellerEnvironment = cmd.RunCommand.Metrics.YellerEnvironment
+	cmd.TSACommand.Metrics.YellerAPIKey = cmd.ATCCommand.Metrics.YellerAPIKey
+	cmd.TSACommand.Metrics.YellerEnvironment = cmd.ATCCommand.Metrics.YellerEnvironment
 
 	return nil
 }
