@@ -11,6 +11,8 @@ pushd charts/stable/concourse/
 helm init --client-only
 helm dependency update
 helm upgrade -f values.yaml \
+  --install \
+  --force \
   --set image="concourse/concourse-rc" \
   --set imageTag="$version" \
   --set concourse.baggageclaimDriver="detect" \
