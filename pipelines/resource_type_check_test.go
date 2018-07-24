@@ -48,6 +48,6 @@ var _ = Describe("Updating resource types", func() {
 			Expect(watch).To(gexec.Exit(0))
 			buildNum += 1
 			return watch
-		}, "3m").Should(gbytes.Say("new-contents"))
+		}, "10s").Should(gbytes.Say("new-contents"))
 	})
 })
