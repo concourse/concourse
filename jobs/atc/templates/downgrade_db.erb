@@ -58,14 +58,15 @@ downgrade_from=$(ls -t /var/vcap/data/packages/atc/ | grep -v $downgrade_to | he
 set +x
 
 test -n "$downgrade_from" && {
-  version=$(/var/vcap/data/packages/atc/${downgrade_to}/bin/atc --supported-db-version)
+  version=$(/var/vcap/data/packages/atc/${downgrade_to}/bin/atc --supported-db-version \
+    || /var/vcap/data/packages/atc/${downgrade_to}/bin/atc migrate --supported-db-version)
 }
 
 test -n "$version" && {
   until sudo /var/vcap/bosh/bin/monit stop atc; do sleep 2; done
   until sudo /var/vcap/bosh/bin/monit summary | grep -E "atc.*not monitored"; do sleep 2; done
 
-  /var/vcap/data/packages/atc/${downgrade_from}/bin/atc \
+  /var/vcap/data/packages/atc/${downgrade_from}/bin/atc migrate \
     --postgres-host=<%= esc(postgres_host) %> \
     --postgres-user=<%= esc(postgres_role_name) %> \
     --postgres-password=<%= esc(postgres_role_password) %> \
