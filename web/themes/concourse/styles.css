@@ -1,10 +1,20 @@
 @font-face {
-  font-family: "iosevka";
-  src: url("../../static/fonts/iosevka-regular.ttf");
+  font-family: 'Inconsolata';
+  font-style: normal;
+  font-weight: 400;
+  src: url("../../static/fonts/Inconsolata-Regular.ttf");
 }
 
+@font-face {
+  font-family: 'Inconsolata';
+  font-style: normal;
+  font-weight: 700;
+  src: url("../../static/fonts/Inconsolata-Bold.ttf");
+}
+
+
 * {
-  font-family: "iosevka", monospace;
+  font-family: "Inconsolata", monospace;
   font-weight: normal;
   color: #ccc;
 }
@@ -16,19 +26,19 @@
 
 .theme-navbar {
   background-color: #1E1D1D;
-  height: 65px;
+  height: 54px;
 }
 
 .theme-navbar__logo-wrap {
   display: inline-block;
   height: 100%;
   overflow: hidden;
-  margin: 15px;
+  margin: 6px;
 }
 
 .theme-navbar__logo {
-  height: 29px;
-  width: 29px;
+  height: 42px;
+  width: 42px;
 }
 
 .theme-heading {
@@ -109,7 +119,8 @@
 }
 
 .theme-form-label {
-  font-size: 12px;
+  font-size: 14px;
+  letter-spacing: 0.05em;
   width: 230px;
   margin: 0 auto 5px;
   position: relative;
