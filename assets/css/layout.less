@@ -4,7 +4,8 @@ html, body, #elm-app-embed, #subpage, .content-frame {
   height: 100%;
 }
 
-@top-bar-height: 64px;
+@scale: 0.5;
+@top-bar-height: 108px * @scale;
 @fixed-header-height: 64px;
 @builds-list-height: 30px;
 @pagination-header-height: 64px;
@@ -27,14 +28,10 @@ html, body, #elm-app-embed, #subpage, .content-frame {
 
     .topbar-logo {
       width: unset;
-      &.wide {
-        width: 242px;
-      }
     }
 
     .groups {
       overflow: hidden;
-      height: @top-bar-height;
       font-size: 14px;
     }
 
@@ -85,7 +82,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
     }
 
     .groups li a {
-      font-size: (2em * @scale);
+      font-size: 1.2em;
       opacity: 0.6;
       background: rgba(151, 151, 151, 0.1);
       margin: 5px;
@@ -111,48 +108,6 @@ html, body, #elm-app-embed, #subpage, .content-frame {
       flex-grow: 1;
       display: flex;
       flex-flow: row wrap;
-    }
-
-    .nav-right {
-      flex-shrink: 1;
-      max-width: 25%;
-
-      .user-info {
-        text-align: right;
-        cursor: pointer;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-
-        .user-id, .login-button {
-          padding: 0 10px;
-        }
-
-        .user-id {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          margin-right: 21px;
-
-          .fa-caret-down {
-            position: absolute;
-            top: 11px;
-            right: 10px;
-          }
-        }
-
-        .user-menu {
-          max-width: 100%;
-          width: 200px;
-          font-size: 12px;
-          background: @base00;
-
-          a {
-            display: block;
-            padding: 0 10px;
-          }
-        }
-      }
     }
   }
 
@@ -219,13 +174,6 @@ nav .groups {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.nav-right {
-  list-style: none;
-  height: @top-bar-height;
-  padding: 0;
-  margin: 0;
 }
 
 nav .groups li a {

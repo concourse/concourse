@@ -1,13 +1,12 @@
 // dashboard.less
 
-@scale: 0.6;
 @banner-height: 14px;
 @footer-padding: 27px;
 @name-padding: 25px;
 
 .dashboard {
   .dashboard-content {
-    padding: 64px 0 30px;
+    padding: @top-bar-height 0 30px;
   }
 
   .pending   { background: @grey-primary; &:hover { background: @grey-secondary }}
@@ -29,25 +28,25 @@
   .pipeline-grid {
     float: none;
     display: flex;
-    padding: 20px 36px;
-    width: 200px;
-    height: 120px;
+    padding: 40px*@scale 72px*@scale;
+    width: 400px * @scale;
+    height: 240px * @scale;
   }
 
   .pipeline-grid-tall {
-    height: 364px;
+    height: 728px * @scale;
   }
 
   .pipeline-grid-wide {
-    width: 502px;
+    width: 1004px * @scale;
   }
 
   .pipeline-grid-super-tall {
-    height: 608px;
+    height: 1216px * @scale;
   }
 
   .pipeline-grid-super-wide {
-    width: 804px;
+    width: 1608px * @scale;
   }
 
   .pipeline-grid >* {
@@ -81,8 +80,8 @@
 
   .build-duration {
     display: inline-block;
-    vertical-align: middle;
-    font-size: (30px * @scale);
+    line-height: 40px * @scale;
+    font-size: (36px * @scale);
     letter-spacing: (0.1em * @scale);
     margin-left: (16px * @scale);
     float: left;
@@ -113,7 +112,7 @@
       }
 
       &.active.over {
-        padding: 0 211px;
+        padding: 0 (422px * @scale);
       }
 
       &.animation {
@@ -125,9 +124,9 @@
   .dashboard-team-name {
     background: @base02;
     color: @base04;
-    font-size: (30px * @scale);
-    padding-top: (55px * @scale);
-    padding-bottom: (25px * @scale);
+    font-size: (36px * @scale);
+    padding-top: (35px * @scale);
+    padding-bottom: (5px * @scale);
     padding-left: (50px * @scale);
     z-index: 2;
     opacity: 0.9;
@@ -146,13 +145,13 @@
       cursor: default;
 
       .dashboard-pipeline-content{
-        width: 272px;
+        width: 544px * @scale;
         // fix height 214px = 160px(grid height) + 20px(pipeline name height) + 30px(footer height) + 2px * 2 (border height)
         height: 214px + (@banner-height + @footer-padding * 2 + @name-padding * 2) * @scale;
         text-align: center;
 
         .no-set-wrapper {
-          font-size: 18px;
+          font-size: 36px * @scale;
           color: @base04;
           margin: auto;
         }
@@ -179,8 +178,8 @@
       right: 0;
       width: 0;
       height: 0;
-      border-top: 30px solid @base09;
-      border-left: 30px solid transparent;
+      border-top: 60px*@scale solid @base09;
+      border-left: 60px*@scale solid transparent;
     }
 
     .dashboard-pipeline-banner {
@@ -208,8 +207,8 @@
       .pause-toggle {
         float: right;
         background-size: contain;
-        width: 20px;
-        height: 20px;
+        width: 40px * @scale;
+        height: 40px * @scale;
         cursor: pointer;
         opacity: 0.5;
 
@@ -254,7 +253,7 @@
 
   .dashboard-status-pending {
     .dashboard-pipeline-icon {
-      min-width: 12px;
+      min-width: 24px * @scale;
       background-image: url('images/ic_pending_grey.svg');
     }
 
@@ -350,7 +349,7 @@
     }
 
     .dashboard-pipeline-icon {
-      width: 35px;
+      width: 70px * @scale;
 
       &.hd-off {
         background-image: url('images/ic_hd_off.svg');
@@ -373,27 +372,27 @@
   background: @base00;
   text-align: right;
   color: @base04;
-  font-size: 10px;
+  font-size: 20px * @scale;
   z-index: 10;
-  height: 64px;
-  line-height: 64px;
+  height: 100px * @scale;
+  line-height: 100px * @scale;
 
   .dashboard-legend {
     float: left;
     letter-spacing: (0.1em * @scale);
-    margin-left: 30px;
+    margin-left: 60px * @scale;
 
     & > div {
       display: inline;
       text-transform: uppercase;
-      font-size: 14px;
-      margin-right: 30px;
+      font-size: 24px * @scale;
+      margin-right: 40px * @scale;
     }
 
     .dashboard-running .dashboard-pipeline-icon {
       background-image: url('images/ic_running_legend.svg');
       background-position: center center;
-      width: 30px;
+      width: 60px * @scale;
     }
   }
 
@@ -401,23 +400,23 @@
     position: initial;
     display: inline-block;
     vertical-align: middle;
-    margin: 0 10px 2px 0;
+    margin: 0 20px*@scale 4px*@scale 0;
   }
 
   .concourse-version {
     display: inline-block;
-    margin-right: 30px;
-    font-size: 1.2em;
+    margin-right: 60px * @scale;
+    font-size: 3em * @scale;
   }
 
   .concourse-cli {
     display: inline-block;
-    margin-right: 20px;
-    font-size: 1.2em;
+    margin-right: 40px * @scale;
+    font-size: 3em * @scale;
 
     .fa {
-      margin-right: 10px;
-      font-size: 1.4em;
+      margin-right: 20px * @scale;
+      font-size: 2.4em * @scale;
       color: @base04;
 
       &:hover {
@@ -428,18 +427,18 @@
 }
 
 
-@media (max-width : 1440px) {
+@media (max-width : 1230px) {
   .dashboard-footer {
     height: unset;
-    line-height: 35px;
+    line-height: 70px * @scale;
     text-align: left;
 
     .dashboard-legend {
       float: none;
-      margin-top: 22px;
+      margin-top: 44px * @scale;
 
       & > div {
-        width: 111px;
+        width: 222px * @scale;
       }
 
       .dashboard-status-separator, .dashboard-high-density {
@@ -448,8 +447,8 @@
     }
 
     .concourse-info {
-      margin-left: 34px;
-      margin-bottom: 22px;
+      margin-left: 68px * @scale;
+      margin-bottom: 33px * @scale;
     }
   }
 }
@@ -465,10 +464,10 @@
 
     .dashboard-legend {
       margin-top: 0;
-      padding-top: 22px;
+      padding-top: 44px * @scale;
 
       .dashboard-running .dashboard-pipeline-icon {
-        width: 20px;
+        width: 40px * @scale;
       }
 
       .dashboard-status-separator {
@@ -478,7 +477,7 @@
 
     .concourse-info {
       margin-bottom: 0;
-      padding-bottom: 22px;
+      padding-bottom: 44px * @scale;
     }
   }
 }
@@ -487,8 +486,8 @@
   display: inline-block;
   vertical-align: middle;
   background-size: contain;
-  min-width: 20px;
-  height: 20px;
+  min-width: 40px * @scale;
+  height: 40px * @scale;
   background-repeat: no-repeat;
 }
 
@@ -496,7 +495,7 @@
   color: @white;
   text-align: left;
   font-size: (3em * @scale);
-  letter-spacing: (0.1em * @scale);
+  letter-spacing: (0.2em * @scale);
   padding: (@name-padding * @scale);
   width: (300px * @scale);
   white-space: nowrap;
@@ -522,10 +521,10 @@
 [data-tooltip]:before {
   position: absolute;
   left: 100%;
-  padding: 6px 15px 6px 6px;
+  padding: 12px*@scale 30px*@scale 12px*@scale 12px*@scale;
   background-color: black;
   content: attr(data-tooltip);
-  font-size: 13px;
+  font-size: 26px * @scale;
   white-space: nowrap;
 }
 
@@ -533,10 +532,10 @@
   position: absolute;
   left: ~"calc(100% - 15px)";
   width: 0;
-  border-right: 15px solid black;
-  border-right: 15px solid black;
-  border-top: 15px solid transparent;
-  border-bottom: 15px solid transparent;
+  border-right: 30px*@scale solid black;
+  border-right: 30px*@scale solid black;
+  border-top: 30px*@scale solid transparent;
+  border-bottom: 30px*@scale solid transparent;
   content: " ";
   font-size: 0;
   line-height: 0;

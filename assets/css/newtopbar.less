@@ -21,7 +21,7 @@
 
     .logo-image-link {
       background-image: url('images/concourse_logo_white.svg');
-      background-size: 30px 30px;
+      background-size: 42px 42px;
       background-position: center center;
       background-repeat: no-repeat;
       display: inline-block;
@@ -38,18 +38,19 @@
       display: flex;
       margin: 0 auto;
       position: relative;
-      margin-top: 14px;
+      margin-top: 22px * @scale;
 
       .search-input-field {
-        background: transparent url('images/ic_search_white_24px.svg') 10px 10px no-repeat;
+        background: transparent url('images/ic_search_white_24px.svg') 20px*@scale 20px*@scale no-repeat;
         border: 1px solid @base03;
         color: @white;
         font-size: (2.3em * @scale);
         font-family: Inconsolata, monospace;
-        height: 35px;
-        width: 220px;
-        padding: 0 42px;
-        background-position-x: 12px;
+        height: 60px * @scale;
+        width: 440px * @scale;
+        padding: 0 84px * @scale;
+        background-position-x: 24px * @scale;
+        background-position-y: 16px * @scale;
         &:focus {
           border: 1px solid @base03;
           outline: 0;
@@ -58,11 +59,11 @@
 
       .search-clear-button {
         flex-grow: 1;
-        background: transparent url('images/ic_close_white_24px.svg') 10px 12px no-repeat;
+        background: transparent url('images/ic_close_white_24px.svg') 20px*@scale 20px*@scale no-repeat;
         border: 0;
         color: @base03;
         cursor: pointer;
-        padding: 17px;
+        padding: 34px * @scale;
         position: absolute;
         right: 0;
         opacity: 0.2;
@@ -114,7 +115,7 @@
       border-left: 1px solid @base02;
       background-color: @base00;
       display: inline-block;
-      line-height: @top-bar-height;
+      height: @top-bar-height;
       width: 100%;
       text-align: center;
 
@@ -130,6 +131,7 @@
       }
 
       .user-menu {
+        background-color: @base00;
         border-top: 1px solid @base02;
       }
 
