@@ -241,19 +241,9 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 }
 
 func (repository *containerRepository) DestroyFailedContainers() (int, error) {
-	query, args, err := psql.Select("c.id").
-		From("containers c").
-		LeftJoin("builds b ON b.id = c.build_id").
-		LeftJoin("containers icc ON icc.id = c.image_check_container_id").
-		LeftJoin("containers igc ON igc.id = c.image_get_container_id").
-		Where(sq.Eq{"c.state": ContainerStateFailed}).
-		ToSql()
-	if err != nil {
-		return 0, err
-	}
-
 	result, err := sq.Delete("containers").
-		Where("id IN ("+query+")", args...).
+		Where(sq.Eq{"containers.state": ContainerStateFailed}).
+		PlaceholderFormat(sq.Dollar).
 		RunWith(repository.conn).
 		Exec()
 	if err != nil {
