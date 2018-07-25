@@ -424,7 +424,7 @@ view model =
                                 [ Html.i [ class "fa fa-plus-circle" ] []
                                 ]
                             ]
-                        , Html.h1 [] [ Html.text (job.name) ]
+                        , Html.h1 [] [ Html.span [ class "build-name" ] [ Html.text job.name ] ]
                         ]
                     , Html.div [ class "pagination-header" ]
                         [ viewPaginationBar model

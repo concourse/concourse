@@ -863,7 +863,9 @@ viewBuildHeader build { now, job, history } =
                             [ StrictEvents.onLeftClick <| NavTo jobUrl
                             , href jobUrl
                             ]
-                            [ Html.text (jobName ++ " #" ++ build.name) ]
+                            [ Html.span [ class "build-name" ] [ Html.text jobName ]
+                            , Html.text (" #" ++ build.name)
+                            ]
 
                 _ ->
                     Html.text ("build #" ++ toString build.id)
