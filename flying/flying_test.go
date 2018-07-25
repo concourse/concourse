@@ -110,7 +110,7 @@ run:
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
 mkfifo /tmp/fifo
-echo waiting
+echo waiting-for-hijack
 cat < /tmp/fifo
 `),
 				0755,
@@ -128,7 +128,7 @@ cat < /tmp/fifo
 			matches := buildRegex.FindSubmatch(flyS.Out.Contents())
 			buildID := string(matches[1])
 
-			Eventually(flyS).Should(gbytes.Say("waiting"))
+			Eventually(flyS).Should(gbytes.Say("waiting-for-hijack"))
 
 			env := exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-b", buildID, "-s", "one-off", "--", "env")
 			envS := helpers.StartFly(env)
@@ -269,7 +269,7 @@ echo world > output-2/file-2
 				[]byte(`#!/bin/sh
 trap "echo task got sigterm; exit 1" SIGTERM
 sleep 1000 &
-echo waiting
+echo waiting-for-abort
 wait
 `),
 				0755,
@@ -281,7 +281,7 @@ wait
 
 			flyS := helpers.StartFly(fly)
 
-			Eventually(flyS).Should(gbytes.Say("waiting"))
+			Eventually(flyS).Should(gbytes.Say("waiting-for-abort"))
 
 			flyS.Signal(syscall.SIGTERM)
 
