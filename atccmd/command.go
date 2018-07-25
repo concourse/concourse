@@ -68,8 +68,11 @@ var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
 
 type ATCCommand struct {
-	Migration Migration `group:"Migration Options"`
+	RunCommand RunCommand `command:"run"`
+	Migration  Migration  `command:"migrate"`
+}
 
+type RunCommand struct {
 	Logger flag.Lager
 
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
@@ -146,30 +149,30 @@ type ATCCommand struct {
 	} `group:"Authentication"`
 }
 
+var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
+
 type Migration struct {
-	CurrentDBVersion   bool `long:"current-db-version" description:"Print the current database version and exit"`
-	SupportedDBVersion bool `long:"supported-db-version" description:"Print the max supported database version and exit"`
-	MigrateDBToVersion int  `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
+	Postgres           flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
+	EncryptionKey      flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	CurrentDBVersion   bool                `long:"current-db-version" description:"Print the current database version and exit"`
+	SupportedDBVersion bool                `long:"supported-db-version" description:"Print the max supported database version and exit"`
+	MigrateDBToVersion int                 `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
 }
 
-func (m *Migration) CommandProvided() bool {
-	return m.CurrentDBVersion || m.SupportedDBVersion || m.MigrateDBToVersion > 0
+func (m *Migration) Execute(args []string) error {
+	if m.CurrentDBVersion {
+		return m.currentDBVersion()
+	}
+	if m.SupportedDBVersion {
+		return m.supportedDBVersion()
+	}
+	if m.MigrateDBToVersion > 0 {
+		return m.migrateDBToVersion()
+	}
+	return HelpError
 }
 
-func (cmd *ATCCommand) RunMigrationCommand() error {
-	if cmd.Migration.CurrentDBVersion {
-		return cmd.currentDBVersion()
-	}
-	if cmd.Migration.SupportedDBVersion {
-		return cmd.supportedDBVersion()
-	}
-	if cmd.Migration.MigrateDBToVersion > 0 {
-		return cmd.migrateDBToVersion()
-	}
-	return nil
-}
-
-func (cmd *ATCCommand) currentDBVersion() error {
+func (cmd *Migration) currentDBVersion() error {
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
@@ -186,7 +189,7 @@ func (cmd *ATCCommand) currentDBVersion() error {
 	return nil
 }
 
-func (cmd *ATCCommand) supportedDBVersion() error {
+func (cmd *Migration) supportedDBVersion() error {
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
@@ -203,8 +206,8 @@ func (cmd *ATCCommand) supportedDBVersion() error {
 	return nil
 }
 
-func (cmd *ATCCommand) migrateDBToVersion() error {
-	version := cmd.Migration.MigrateDBToVersion
+func (cmd *Migration) migrateDBToVersion() error {
+	version := cmd.MigrateDBToVersion
 
 	var newKey *encryption.Key
 	if cmd.EncryptionKey.AEAD != nil {
@@ -218,20 +221,14 @@ func (cmd *ATCCommand) migrateDBToVersion() error {
 		strategy = encryption.NewNoEncryption()
 	}
 
-	lockConn, err := cmd.constructLockConn(defaultDriverName)
-	if err != nil {
-		return err
-	}
-	defer lockConn.Close()
-
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
-		lock.NewLockFactory(lockConn),
+		nil,
 		strategy,
 	)
 
-	err = helper.MigrateToVersion(version)
+	err := helper.MigrateToVersion(version)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not migrate to version: %d Reason: %s", version, err.Error()))
 	}
@@ -241,6 +238,10 @@ func (cmd *ATCCommand) migrateDBToVersion() error {
 }
 
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
+	cmd.RunCommand.WireDynamicFlags(commandFlags)
+}
+
+func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	var metricsGroup *flags.Group
 	var credsGroup *flags.Group
 	var authGroup *flags.Group
@@ -292,7 +293,7 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
 }
 
-func (cmd *ATCCommand) Execute(args []string) error {
+func (cmd *RunCommand) Execute(args []string) error {
 	runner, _, err := cmd.Runner(args)
 	if err != nil {
 		return err
@@ -301,7 +302,7 @@ func (cmd *ATCCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (cmd *ATCCommand) constructMembers(
+func (cmd *RunCommand) constructMembers(
 	positionalArguments []string,
 	requiredMemberNames []string,
 	maxConns int,
@@ -718,28 +719,7 @@ func (cmd *ATCCommand) constructMembers(
 	return filteredMembers, nil
 }
 
-func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, bool, error) {
-	if cmd.Migration.CommandProvided() {
-		return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-			close(ready)
-
-			errCh := make(chan error)
-
-			go func() {
-				errCh <- cmd.RunMigrationCommand()
-			}()
-
-			for {
-				select {
-				case <-signals:
-					return nil
-				case err := <-errCh:
-					return err
-				}
-			}
-		}), true, nil
-	}
-
+func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool, error) {
 	var members []grouper.Member
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
@@ -826,7 +806,7 @@ func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
 	})
 }
 
-func (cmd *ATCCommand) validate() error {
+func (cmd *RunCommand) validate() error {
 	var errs *multierror.Error
 
 	tlsFlagCount := 0
@@ -857,19 +837,19 @@ func (cmd *ATCCommand) validate() error {
 	return errs.ErrorOrNil()
 }
 
-func (cmd *ATCCommand) nonTLSBindAddr() string {
+func (cmd *RunCommand) nonTLSBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 }
 
-func (cmd *ATCCommand) tlsBindAddr() string {
+func (cmd *RunCommand) tlsBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.TLSBindPort)
 }
 
-func (cmd *ATCCommand) debugBindAddr() string {
+func (cmd *RunCommand) debugBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
 }
 
-func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
+func (cmd *RunCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
 	logger, reconfigurableSink := cmd.Logger.Logger("atc")
 
 	if cmd.Metrics.YellerAPIKey != "" {
@@ -880,7 +860,7 @@ func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSin
 	return logger, reconfigurableSink
 }
 
-func (cmd *ATCCommand) configureMetrics(logger lager.Logger) error {
+func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
 	host := cmd.Metrics.HostName
 	if host == "" {
 		host, _ = os.Hostname()
@@ -889,7 +869,7 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) error {
 	return metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
 }
 
-func (cmd *ATCCommand) constructDBConn(
+func (cmd *RunCommand) constructDBConn(
 	driverName string,
 	logger lager.Logger,
 	newKey *encryption.Key,
@@ -918,7 +898,7 @@ func (cmd *ATCCommand) constructDBConn(
 	return dbConn, nil
 }
 
-func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {
+func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	dbConn, err := sql.Open(driverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
@@ -931,7 +911,7 @@ func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (cmd *ATCCommand) constructWorkerPool(
+func (cmd *RunCommand) constructWorkerPool(
 	logger lager.Logger,
 	workerProvider worker.WorkerProvider,
 ) worker.Client {
@@ -950,7 +930,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	)
 }
 
-func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
+func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
 	team, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 	if err != nil {
 		return err
@@ -973,7 +953,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 	return nil
 }
 
-func (cmd *ATCCommand) constructEngine(
+func (cmd *RunCommand) constructEngine(
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
@@ -999,7 +979,7 @@ func (cmd *ATCCommand) constructEngine(
 	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURL.String())
 }
 
-func (cmd *ATCCommand) constructHTTPHandler(
+func (cmd *RunCommand) constructHTTPHandler(
 	logger lager.Logger,
 	webHandler http.Handler,
 	apiHandler http.Handler,
@@ -1030,7 +1010,7 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	return httpHandler
 }
 
-func (cmd *ATCCommand) constructAPIHandler(
+func (cmd *RunCommand) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	teamFactory db.TeamFactory,
@@ -1126,7 +1106,7 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (cmd *ATCCommand) constructPipelineSyncer(
+func (cmd *RunCommand) constructPipelineSyncer(
 	logger lager.Logger,
 	pipelineFactory db.PipelineFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
@@ -1163,7 +1143,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 	)
 }
 
-func (cmd *ATCCommand) appendStaticWorker(
+func (cmd *RunCommand) appendStaticWorker(
 	logger lager.Logger,
 	workerFactory db.WorkerFactory,
 	members []grouper.Member,
@@ -1191,7 +1171,7 @@ func (cmd *ATCCommand) appendStaticWorker(
 	)
 }
 
-func (cmd *ATCCommand) isTLSEnabled() bool {
+func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
 }
 
