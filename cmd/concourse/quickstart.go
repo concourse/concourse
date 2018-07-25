@@ -49,13 +49,13 @@ func checkNilKeys(key *flag.PrivateKey) bool {
 }
 
 func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
-	if checkNilKeys(cmd.WebCommand.ATCCommand.Auth.AuthFlags.SigningKey) {
+	if checkNilKeys(cmd.WebCommand.RunCommand.Auth.AuthFlags.SigningKey) {
 		signingKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate session signing key: %s", err)
 		}
 
-		cmd.WebCommand.ATCCommand.Auth.AuthFlags.SigningKey = &flag.PrivateKey{PrivateKey: signingKey}
+		cmd.WebCommand.RunCommand.Auth.AuthFlags.SigningKey = &flag.PrivateKey{PrivateKey: signingKey}
 		cmd.WebCommand.TSACommand.SessionSigningKey = &flag.PrivateKey{PrivateKey: signingKey}
 	}
 
