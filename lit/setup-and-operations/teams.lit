@@ -5,13 +5,13 @@
 Every pipeline and one-off build belongs to a \italic{team}.
 
 A team is simply a conceptual owner and a separate namespace for data in
-Concourse (pipelines, builds, etc.) with its own auth configuration. A team may
-whitelist users or groups either from local auth or from an external provider
-such as GitHub, UAA, etc.
+Concourse (pipelines, builds, etc.). Individual user access to a team is
+determined by how the team is configured with \reference{fly-set-team}: either
+by whitelisting local users or configuring external providers that are enabled
+for the Concourse server (see \reference{auth-config}).
 
-As described in \reference{auth-config}, onced logged into Concourse, a user
-will belong to one or more teams. They may perform any actions that are
-permitted by that team.
+Once a user has logged into Concourse, they are authorized to perform actions
+against the teams that have granted them access.
 
 \split-sections
 \table-of-contents
@@ -40,18 +40,19 @@ permitted by that team.
   \section{
     \title{\code{fly set-team}}{fly-set-team}
 
-    Once you've \reference{fly-login}{logged in as the \code{main} team
-    with \code{fly}}, you can run \reference{fly-set-team} to create or
-    update other teams.
-
-    To create a new team or update an existing team's authorized users and groups run:
-
-    \codeblock{bash}{{{
-    $ fly -t example set-team --team-name my-team \
-        --local-user some_username 
-    }}}
+    Once you've \reference{fly-login}{logged in as the \code{main} team with
+    \code{fly}}, you can run \reference{fly-set-team} to create or update other
+    teams.
 
     Teams can also update their own configuration with the same command.
+
+    For example, to create a new team that authorizes the local \code{foo}
+    user, you would run:
+
+    \codeblock{bash}{{{
+    fly -t example set-team --team-name my-team \
+      --local-user foo
+    }}}
 
     There are many different ways to configure auth; see
     \reference{authentication} for more information.
@@ -141,19 +142,20 @@ permitted by that team.
   \warn{
     In order to use any of the auth providers listed below, you must first
     enable the provider by configuring any required information at deployment
-    time as per the \reference{install} guide.
+    time as per the \reference{auth-config} guide.
   }
 
   \section{
     \title{Local Auth}{local-auth}
 
-    You can configure local users for a team via the \code{--local-user} flag.
+    You can grant \reference{local-auth-config}{local users} access to a team
+    via the \code{--local-user} flag.
 
     For example:
 
     \codeblock{bash}{{{
     $ fly set-team -n my-team \
-        --local-user some_username 
+        --local-user some_username
     }}}
   }
 

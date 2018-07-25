@@ -75,12 +75,6 @@ page.
   At startup, you will need to configure any local users or third-party auth
   providers that you wish to use with Concourse.
 
-  In contrast to previous releases of Concourse, \code{users} are now central
-  to the authentication flow. Instead of logging in as a team, you now log in
-  as a user and can belong to one or more teams. Users can be added to a team
-  by configuring the team's whitelist as described in
-  \reference{authentication}.
-
   \section{
     \title{Local Auth}{local-auth-config}
 
@@ -92,6 +86,11 @@ page.
     concourse web \
       --add-local-user myuser:mypass
     }}}
+
+    This will allow someone to log in with the username \code{myuser} and
+    password \code{mypass}. Note that this user doesn't intrinsically have
+    access to anything - they must be granted access on a team-by-team basis
+    (see \reference{teams}).
   }
 
   \section{
@@ -117,13 +116,22 @@ page.
       \title{Configuring the client}
 
       You will be given a Client ID and a Client Secret for your new
-      application. These will then be passed to the following flags:
+      application. These will then be passed as the following flags to
+      \code{concourse web}:
 
       \list{
         \code{--github-client-id=CLIENT_ID}
       }{
         \code{--github-client-secret=CLIENT_SECRET}
       }
+
+      Here's a full example:
+
+      \codeblock{bash}{{{
+      concourse web \
+        --github-client-id CLIENT_ID \
+        --github-client-secret CLIENT_SECRET
+      }}}
 
       If you're configuring GitHub Enterprise, you'll also need to set the
       following flags:
@@ -136,12 +144,6 @@ page.
 
       The GitHub Enterprise host should not contain a scheme, or a trailing
       slash.
-
-      \codeblock{bash}{{{
-      concourse web \
-        --github-client-id CLIENT_ID \
-        --github-client-secret CLIENT_SECRET
-      }}}
     }
   }
 
@@ -181,7 +183,8 @@ page.
       \title{Configuring the client}
 
       You will be given a Client ID and a Client Secret for your new
-      application. These will then be passed to the following flags:
+      application. These will then be passed as the following flags to
+      \code{concourse web}:
 
       \list{
         \code{--cf-client-id=CLIENT_ID}
@@ -195,6 +198,8 @@ page.
       \list{
         \code{--cf-api-url=CF_API_URL}
       }
+
+      Here's a full example:
 
       \codeblock{bash}{{{
       concourse web \
@@ -233,11 +238,11 @@ page.
       something like:
 
       \codeblock{bash}{{{
-      $ concourse web \
-          --oidc-display-name='X' \
-          --oidc-client-id=CLIENT_ID \
-          --oidc-client-secret=CLIENT_SECRET \
-          --oidc-issuer=https://oidc.example.com
+      concourse web \
+        --oidc-display-name='X' \
+        --oidc-client-id=CLIENT_ID \
+        --oidc-client-secret=CLIENT_SECRET \
+        --oidc-issuer=https://oidc.example.com
       }}}
     }
   }
@@ -268,13 +273,13 @@ page.
       something like:
 
       \codeblock{bash}{{{
-      $ concourse web \
-          --oauth-display-name='X' \
-          --oauth-client-id=CLIENT_ID \
-          --oauth-client-secret=CLIENT_SECRET \
-          --oauth-auth-url=https://oauth.example.com/oauth2/auth \
-          --oauth-token-url=https://oauth.example.com/oauth2/token \
-          --oauth-userinfo-url=https://oauth.example.com/oauth2/userinfo
+      concourse web \
+        --oauth-display-name='X' \
+        --oauth-client-id=CLIENT_ID \
+        --oauth-client-secret=CLIENT_SECRET \
+        --oauth-auth-url=https://oauth.example.com/oauth2/auth \
+        --oauth-token-url=https://oauth.example.com/oauth2/token \
+        --oauth-userinfo-url=https://oauth.example.com/oauth2/userinfo
       }}}
     }
   }
