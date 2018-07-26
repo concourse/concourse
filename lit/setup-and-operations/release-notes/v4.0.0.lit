@@ -89,9 +89,8 @@
     The dashboard's influence has taken hold on the web UI! The main page
     (\code{/}) now shows the dashboard instead of some random pipeline
     configured by the first team on the instance. We've also made the dashboard
-    more powerful with pipeline pausing and re-ordering. We hope you like it,
-    because we've removed the sidebar from the pipeline views in favour of having
-    the dashboard as root! It's just \italic{cleaner}.
+    more powerful with pipeline pausing and re-ordering. We hope you like it
+    because we've removed the sidebar from the pipeline view...it's just \italic{cleaner}.
 
     We've also spread the colour scheme to the rest of the UI and changed the
     font everywhere to Inconsolata.
