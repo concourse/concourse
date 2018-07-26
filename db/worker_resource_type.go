@@ -2,20 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/lib/pq"
 )
-
-type WorkerBaseResourceTypeAlreadyExistsError struct {
-	WorkerName           string
-	BaseResourceTypeName string
-}
-
-func (e WorkerBaseResourceTypeAlreadyExistsError) Error() string {
-	return fmt.Sprintf("worker '%s' base resource type '%s' already exists", e.WorkerName, e.BaseResourceTypeName)
-}
 
 // base_resource_types: <- gced referenced by 0 workers
 // | id | type | image | version |
@@ -99,18 +88,16 @@ func (wrt WorkerResourceType) create(tx Tx, usedBaseResourceType *UsedBaseResour
 			wrt.Image,
 			wrt.Version,
 		).
-		Suffix("RETURNING id").
+		Suffix(`
+			ON CONFLICT (worker_name, base_resource_type_id) DO UPDATE SET
+				image = ?,
+				version = ?
+			RETURNING id
+		`, wrt.Image, wrt.Version).
 		RunWith(tx).
 		QueryRow().
 		Scan(&id)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
-			return nil, WorkerBaseResourceTypeAlreadyExistsError{
-				WorkerName:           wrt.Worker.Name(),
-				BaseResourceTypeName: usedBaseResourceType.Name,
-			}
-		}
-
 		return nil, err
 	}
 
