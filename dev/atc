@@ -23,7 +23,7 @@ done
 cd $ROOT/src/github.com/concourse/atc
 
 # passwords are the same as user names
-atc \
+atc run \
   --log-level debug \
   --external-url "http://localhost:8080" \
   --session-signing-key $KEYSDIR/web/session_signing_key \
