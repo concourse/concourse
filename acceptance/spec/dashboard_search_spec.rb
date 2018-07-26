@@ -45,6 +45,26 @@ describe 'dashboard search', type: :feature do
     expect(page).to have_content('No results for "invalid" matched your search.')
   end
 
+  context 'by search query string' do
+    it 'modifies the url to include the query' do
+      search 'some-text'
+      expect(page.current_url).to end_with '?search=some-text'
+    end
+
+    it 'cleans the url with empty query' do
+      search 'some-text'
+      search("\b" * 'some-text'.size)
+
+      expect(page.current_url).to end_with '?'
+    end
+
+    it 'populates the query from the url' do
+      visit dash_route('/dashboard?search=some-text')
+
+      expect(page.find_field('search-input-field').value).to eq 'some-text'
+    end
+  end
+
   context 'by pipeline name' do
     it 'filters the pipelines by the search term' do
       search 'some'

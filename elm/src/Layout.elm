@@ -300,5 +300,8 @@ routeMatchesModel route model =
         ( Routes.Job _ _ _, SubPage.JobModel _ ) ->
             True
 
+        ( Routes.Dashboard, SubPage.DashboardModel _ ) ->
+            True
+
         _ ->
             False

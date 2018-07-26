@@ -67,6 +67,12 @@ queryGroupsForRoute route =
     QueryString.all "groups" route.queries
 
 
+querySearchForRoute : Routes.ConcourseRoute -> String
+querySearchForRoute route =
+    QueryString.one QueryString.string "search" route.queries
+        |> Maybe.withDefault ""
+
+
 init : Flags -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
 init flags route =
     case route.logical of
@@ -132,11 +138,11 @@ init flags route =
 
         Routes.Dashboard ->
             superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init { title = setTitle } { turbulencePath = flags.turbulencePath, csrfToken = flags.csrfToken }
+                Dashboard.init { title = setTitle } { turbulencePath = flags.turbulencePath, csrfToken = flags.csrfToken, search = querySearchForRoute route }
 
         Routes.DashboardHd ->
             superDupleWrap ( DashboardHdModel, DashboardHdMsg ) <|
-                DashboardHd.init { title = setTitle } flags.turbulencePath
+                DashboardHd.init { title = setTitle } flags.turbulencePath (querySearchForRoute route)
 
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )

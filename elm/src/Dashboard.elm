@@ -59,6 +59,7 @@ type DropState
 type alias Flags =
     { csrfToken : String
     , turbulencePath : String
+    , search : String
     }
 
 
@@ -105,7 +106,7 @@ init : Ports -> Flags -> ( Model, Cmd Msg )
 init ports flags =
     let
         ( topBar, topBarMsg ) =
-            NewTopBar.init True
+            NewTopBar.init True flags.search
     in
         ( { topBar = topBar
           , mPipelines = RemoteData.NotAsked
@@ -154,7 +155,11 @@ update msg model =
             PipelinesResponse response ->
                 case response of
                     RemoteData.Success pipelines ->
-                        ( { model | mPipelines = response, pipelines = pipelines }, Cmd.batch [ fetchAllJobs, fetchAllResources ] )
+                        let
+                            newModel =
+                                { model | pipelines = pipelines }
+                        in
+                            ( { newModel | mPipelines = response, filteredPipelines = filter model.topBar.query newModel }, Cmd.batch [ fetchAllJobs, fetchAllResources ] )
 
                     _ ->
                         ( model, Cmd.none )

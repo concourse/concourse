@@ -148,14 +148,32 @@ toString route =
 
 parsePath : Location -> ConcourseRoute
 parsePath location =
-    { logical = match <| location.pathname
-    , queries =
-        QueryString.parse location.search
-            |> QueryString.remove "csrf_token"
-            |> QueryString.remove "token"
-    , page = createPageFromSearch location.search
-    , hash = location.hash
-    }
+    let
+        queries =
+            QueryString.parse location.search
+                |> QueryString.remove "csrf_token"
+                |> QueryString.remove "token"
+
+        search =
+            QueryString.one QueryString.string "search" queries
+                |> Maybe.withDefault ""
+                |> String.map (\c -> if c == '+' then ' ' else c)
+
+        cleanedQueries =
+            case search of
+                "" ->
+                    queries
+
+                term ->
+                    queries
+                        |> QueryString.remove "search"
+                        |> QueryString.add "search" search
+    in
+        { logical = match <| location.pathname
+        , queries = cleanedQueries
+        , page = createPageFromSearch location.search
+        , hash = location.hash
+        }
 
 
 customToString : ConcourseRoute -> String
