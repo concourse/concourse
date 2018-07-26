@@ -198,6 +198,13 @@
     information!
   }
 
+  \note{fix}{
+    When running on Windows, we will no longer shell out to \code{tar} for
+    performing volume streaming operations, since it seems to be pretty
+    unreliable. A native Go implementation will be used instead, which is a bit
+    slower but much more portable. Thanks for the PR, \ghuser{ankeesler}!
+  }
+
   \note{feature}{
     The \reference{fly-cli} now supports \code{--json} on most commands to dump
     info in JSON format, rather than the human-friendly table format.
