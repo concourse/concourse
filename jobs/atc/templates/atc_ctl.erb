@@ -223,6 +223,7 @@ case $1 in
       --intercept-idle-timeout <%= esc(timeout) %> \
       <% end %> \
       --resource-checking-interval <%= p("default_check_interval") %> \
+      --resource-type-checking-interval <%= p("default_resource_type_check_interval") %> \
       --container-placement-strategy <%= p("container_placement_strategy") %> \
       --gc-interval <%= p("gc_interval") %> \
       --build-tracker-interval <%= p("build_tracker_interval") %> \

@@ -372,6 +372,15 @@ properties:
       `check_every` on the resource config.
     default: 1m
 
+  default_resource_type_check_interval:
+    description: |
+      The interval, in Go duration format (1m = 1 minute), on which to check
+      for new versions of resource types.
+
+      This can also be specified on a per-resource_type basis by specifying
+      `check_every` on the resource type config.
+    default: 1m
+
   gc_interval:
     description: |
       The interval, in Go duration format (1m = 1 minute), on which to garbage
