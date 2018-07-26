@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\release{2018-7-26}{4.0.0}{1.15.1}{
+\release{2018-7-26}{4.0.0}{1.16.0}{
   \note{feature,breaking}{
     \link{\image{images/whoami.gif}{Who am I?}}{https://www.youtube.com/watch?v=AK2B5ffWR6g}
 
