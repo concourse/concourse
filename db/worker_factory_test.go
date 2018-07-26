@@ -484,7 +484,6 @@ var _ = Describe("WorkerFactory", func() {
 
 					_, err = workerLifecycle.StallUnresponsiveWorkers()
 					Expect(err).NotTo(HaveOccurred())
-
 				})
 
 				It("sets the state as running", func() {
@@ -492,6 +491,7 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
+					Expect(stalledWorker.State()).To(Equal(db.WorkerStateStalled))
 					Expect(stalledWorker.GardenAddr()).To(BeNil())
 					Expect(stalledWorker.BaggageclaimURL()).To(BeNil())
 

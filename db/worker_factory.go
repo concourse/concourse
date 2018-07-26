@@ -334,8 +334,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
 	}
 
-	var oldTeamID sql.NullInt64
-
 	var workerState WorkerState
 	if atcWorker.State != "" {
 		workerState = WorkerState(atcWorker.State)
@@ -348,87 +346,87 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		workerVersion = &atcWorker.Version
 	}
 
-	err = psql.Select("team_id").From("workers").Where(sq.Eq{
-		"name": atcWorker.Name,
-	}).RunWith(tx).QueryRow().Scan(&oldTeamID)
+	values := []interface{}{
+		atcWorker.GardenAddr,
+		atcWorker.ActiveContainers,
+		resourceTypes,
+		tags,
+		atcWorker.Platform,
+		atcWorker.BaggageclaimURL,
+		atcWorker.CertsPath,
+		atcWorker.HTTPProxyURL,
+		atcWorker.HTTPSProxyURL,
+		atcWorker.NoProxy,
+		atcWorker.Name,
+		workerVersion,
+		atcWorker.StartTime,
+		string(workerState),
+		teamID,
+	}
 
-	if err != nil {
-		if err == sql.ErrNoRows {
-			_, err = psql.Insert("workers").
-				Columns(
-					"addr",
-					"expires",
-					"active_containers",
-					"resource_types",
-					"tags",
-					"platform",
-					"baggageclaim_url",
-					"certs_path",
-					"http_proxy_url",
-					"https_proxy_url",
-					"no_proxy",
-					"name",
-					"version",
-					"start_time",
-					"team_id",
-					"state",
-				).
-				Values(
-					atcWorker.GardenAddr,
-					sq.Expr(expires),
-					atcWorker.ActiveContainers,
-					resourceTypes,
-					tags,
-					atcWorker.Platform,
-					atcWorker.BaggageclaimURL,
-					atcWorker.CertsPath,
-					atcWorker.HTTPProxyURL,
-					atcWorker.HTTPSProxyURL,
-					atcWorker.NoProxy,
-					atcWorker.Name,
-					workerVersion,
-					atcWorker.StartTime,
-					teamID,
-					string(workerState),
-				).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
+	conflictValues := values
+	var matchTeamUpsert string
+	if teamID == nil {
+		matchTeamUpsert = "workers.team_id IS NULL"
 	} else {
-		if (oldTeamID.Valid == (teamID == nil)) ||
-			(oldTeamID.Valid && (*teamID != int(oldTeamID.Int64))) {
-			return nil, errors.New("update-of-other-teams-worker-not-allowed")
-		}
+		matchTeamUpsert = "workers.team_id = ?"
+		conflictValues = append(conflictValues, *teamID)
+	}
 
-		_, err = psql.Update("workers").
-			Set("addr", atcWorker.GardenAddr).
-			Set("expires", sq.Expr(expires)).
-			Set("active_containers", atcWorker.ActiveContainers).
-			Set("resource_types", resourceTypes).
-			Set("tags", tags).
-			Set("platform", atcWorker.Platform).
-			Set("baggageclaim_url", atcWorker.BaggageclaimURL).
-			Set("certs_path", atcWorker.CertsPath).
-			Set("http_proxy_url", atcWorker.HTTPProxyURL).
-			Set("https_proxy_url", atcWorker.HTTPSProxyURL).
-			Set("no_proxy", atcWorker.NoProxy).
-			Set("name", atcWorker.Name).
-			Set("version", workerVersion).
-			Set("start_time", atcWorker.StartTime).
-			Set("state", string(workerState)).
-			Where(sq.Eq{
-				"name": atcWorker.Name,
-			}).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return nil, err
-		}
+	rows, err := psql.Insert("workers").
+		Columns(
+			"expires",
+			"addr",
+			"active_containers",
+			"resource_types",
+			"tags",
+			"platform",
+			"baggageclaim_url",
+			"certs_path",
+			"http_proxy_url",
+			"https_proxy_url",
+			"no_proxy",
+			"name",
+			"version",
+			"start_time",
+			"state",
+			"team_id",
+		).
+		Values(append([]interface{}{sq.Expr(expires)}, values...)...).
+		Suffix(`
+			ON CONFLICT (name) DO UPDATE SET
+				expires = `+expires+`,
+				addr = ?,
+				active_containers = ?,
+				resource_types = ?,
+				tags = ?,
+				platform = ?,
+				baggageclaim_url = ?,
+				certs_path = ?,
+				http_proxy_url = ?,
+				https_proxy_url = ?,
+				no_proxy = ?,
+				name = ?,
+				version = ?,
+				start_time = ?,
+				state = ?,
+				team_id = ?
+			WHERE `+matchTeamUpsert,
+			conflictValues...,
+		).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	count, err := rows.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if count == 0 {
+		return nil, errors.New("worker already exists and is either global or owned by another team")
 	}
 
 	var workerTeamID int
