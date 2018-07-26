@@ -141,6 +141,12 @@
     CPU usage. Yay!
   }
 
+  \note{feature}{
+    The interval on which resource types are checked for new versions can now
+    be set globally via \code{--resource-type-checking-interval}, or
+    per-resource-type in a pipeline via \reference{resource-type-check-every}.
+  }
+
   \note{fix}{
     We fixed a couple situations in the UI where jobs or pipelines with spaces
     in their name would render incorrectly. (Please don't do this though. It
