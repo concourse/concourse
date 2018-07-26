@@ -458,12 +458,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 
 	workerBaseResourceTypeIDs := []int{}
 
-	var (
-		brt  BaseResourceType
-		ubrt *UsedBaseResourceType
-		uwrt *UsedWorkerResourceType
-	)
-
 	for _, resourceType := range atcWorker.ResourceTypes {
 		workerResourceType := WorkerResourceType{
 			Worker:  savedWorker,
@@ -474,11 +468,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			},
 		}
 
-		brt = BaseResourceType{
-			Name: resourceType.Type,
-		}
-
-		ubrt, err = brt.FindOrCreate(tx)
+		ubrt, err := workerResourceType.BaseResourceType.FindOrCreate(tx)
 		if err != nil {
 			return nil, err
 		}
@@ -488,15 +478,21 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				"worker_name":           atcWorker.Name,
 				"base_resource_type_id": ubrt.ID,
 			}).
-			Where(sq.NotEq{
-				"version": resourceType.Version,
+			Where(sq.Or{
+				sq.NotEq{
+					"image": resourceType.Image,
+				},
+				sq.NotEq{
+					"version": resourceType.Version,
+				},
 			}).
 			RunWith(tx).
 			Exec()
 		if err != nil {
 			return nil, err
 		}
-		uwrt, err = workerResourceType.FindOrCreate(tx)
+
+		uwrt, err := workerResourceType.FindOrCreate(tx)
 		if err != nil {
 			return nil, err
 		}
@@ -522,7 +518,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			WorkerName: atcWorker.Name,
 			CertsPath:  *atcWorker.CertsPath,
 		}.FindOrCreate(tx)
-
 		if err != nil {
 			return nil, err
 		}

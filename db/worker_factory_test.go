@@ -104,17 +104,37 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(count).To(Equal(1))
 			})
 
-			It("replaces outdated worker resource type", func() {
+			It("replaces outdated worker resource type image", func() {
 				beforeIDs := resourceTypeIDs("some-name")
 				Expect(len(beforeIDs)).To(Equal(2))
 
-				atcWorker.ResourceTypes[0].Version = "some-new-version"
+				atcWorker.ResourceTypes[0].Image = "some-wild-new-image"
 
 				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 
 				afterIDs := resourceTypeIDs("some-name")
 				Expect(len(afterIDs)).To(Equal(2))
+
+				Expect(afterIDs).ToNot(Equal(beforeIDs))
+
+				Expect(beforeIDs["some-resource-type"]).ToNot(Equal(afterIDs["some-resource-type"]))
+				Expect(beforeIDs["other-resource-type"]).To(Equal(afterIDs["other-resource-type"]))
+			})
+
+			It("replaces outdated worker resource type version", func() {
+				beforeIDs := resourceTypeIDs("some-name")
+				Expect(len(beforeIDs)).To(Equal(2))
+
+				atcWorker.ResourceTypes[0].Version = "some-wild-new-version"
+
+				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+
+				afterIDs := resourceTypeIDs("some-name")
+				Expect(len(afterIDs)).To(Equal(2))
+
+				Expect(afterIDs).ToNot(Equal(beforeIDs))
 
 				Expect(beforeIDs["some-resource-type"]).ToNot(Equal(afterIDs["some-resource-type"]))
 				Expect(beforeIDs["other-resource-type"]).To(Equal(afterIDs["other-resource-type"]))
