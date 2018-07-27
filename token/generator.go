@@ -3,6 +3,7 @@ package token
 import (
 	"crypto/rsa"
 	"errors"
+	"time"
 
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
@@ -52,9 +53,19 @@ func (self *generator) Generate(claims map[string]interface{}) (*oauth2.Token, e
 		return nil, err
 	}
 
+	var expiry time.Time
+
+	exp, ok := claims["exp"].(int)
+	if !ok {
+		expiry = time.Now().Add(time.Hour)
+	} else {
+		expiry = time.Unix(int64(exp), 0)
+	}
+
 	oauth2Token := &oauth2.Token{
 		TokenType:   "Bearer",
 		AccessToken: signedToken,
+		Expiry:      expiry,
 	}
 
 	return oauth2Token.WithExtra(claims), nil

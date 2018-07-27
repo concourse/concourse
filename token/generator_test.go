@@ -57,11 +57,13 @@ var _ = Describe("Token Generator", func() {
 
 					oauthToken, err = tokenGenerator.Generate(claims)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(oauthToken).NotTo(BeNil())
 				})
 
-				It("returns a bearer token", func() {
+				It("returns a bearer token with an expiration", func() {
+					Expect(oauthToken).NotTo(BeNil())
+					Expect(oauthToken.AccessToken).NotTo(BeNil())
 					Expect(oauthToken.TokenType).To(Equal("Bearer"))
+					Expect(oauthToken.Expiry.Unix()).To(Equal(int64(2524608000)))
 				})
 
 				It("returns a signed jwt token", func() {
