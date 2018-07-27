@@ -2,8 +2,8 @@
 package imagefakes
 
 import (
+	"context"
 	"io"
-	"os"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -14,11 +14,11 @@ import (
 )
 
 type FakeImageResourceFetcher struct {
-	FetchStub        func(logger lager.Logger, cancel <-chan os.Signal, container db.CreatingContainer, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error)
+	FetchStub        func(ctx context.Context, logger lager.Logger, container db.CreatingContainer, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
+		ctx        context.Context
 		logger     lager.Logger
-		cancel     <-chan os.Signal
 		container  db.CreatingContainer
 		privileged bool
 	}
@@ -38,19 +38,19 @@ type FakeImageResourceFetcher struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageResourceFetcher) Fetch(logger lager.Logger, cancel <-chan os.Signal, container db.CreatingContainer, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error) {
+func (fake *FakeImageResourceFetcher) Fetch(ctx context.Context, logger lager.Logger, container db.CreatingContainer, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error) {
 	fake.fetchMutex.Lock()
 	ret, specificReturn := fake.fetchReturnsOnCall[len(fake.fetchArgsForCall)]
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
+		ctx        context.Context
 		logger     lager.Logger
-		cancel     <-chan os.Signal
 		container  db.CreatingContainer
 		privileged bool
-	}{logger, cancel, container, privileged})
-	fake.recordInvocation("Fetch", []interface{}{logger, cancel, container, privileged})
+	}{ctx, logger, container, privileged})
+	fake.recordInvocation("Fetch", []interface{}{ctx, logger, container, privileged})
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
-		return fake.FetchStub(logger, cancel, container, privileged)
+		return fake.FetchStub(ctx, logger, container, privileged)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
@@ -64,10 +64,10 @@ func (fake *FakeImageResourceFetcher) FetchCallCount() int {
 	return len(fake.fetchArgsForCall)
 }
 
-func (fake *FakeImageResourceFetcher) FetchArgsForCall(i int) (lager.Logger, <-chan os.Signal, db.CreatingContainer, bool) {
+func (fake *FakeImageResourceFetcher) FetchArgsForCall(i int) (context.Context, lager.Logger, db.CreatingContainer, bool) {
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
-	return fake.fetchArgsForCall[i].logger, fake.fetchArgsForCall[i].cancel, fake.fetchArgsForCall[i].container, fake.fetchArgsForCall[i].privileged
+	return fake.fetchArgsForCall[i].ctx, fake.fetchArgsForCall[i].logger, fake.fetchArgsForCall[i].container, fake.fetchArgsForCall[i].privileged
 }
 
 func (fake *FakeImageResourceFetcher) FetchReturns(result1 worker.Volume, result2 io.ReadCloser, result3 atc.Version, result4 error) {

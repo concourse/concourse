@@ -2,7 +2,6 @@
 package dbfakes
 
 import (
-	"encoding/json"
 	"sync"
 	"time"
 
@@ -40,14 +39,14 @@ type FakeTeam struct {
 	adminReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	AuthStub        func() map[string]*json.RawMessage
+	AuthStub        func() map[string][]string
 	authMutex       sync.RWMutex
 	authArgsForCall []struct{}
 	authReturns     struct {
-		result1 map[string]*json.RawMessage
+		result1 map[string][]string
 	}
 	authReturnsOnCall map[int]struct {
-		result1 map[string]*json.RawMessage
+		result1 map[string][]string
 	}
 	DeleteStub        func() error
 	deleteMutex       sync.RWMutex
@@ -168,6 +167,21 @@ type FakeTeam struct {
 		result3 error
 	}
 	privateAndPublicBuildsReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
+	BuildsStub        func(page db.Page) ([]db.Build, db.Pagination, error)
+	buildsMutex       sync.RWMutex
+	buildsArgsForCall []struct {
+		page db.Page
+	}
+	buildsReturns struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
+	buildsReturnsOnCall map[int]struct {
 		result1 []db.Build
 		result2 db.Pagination
 		result3 error
@@ -317,41 +331,16 @@ type FakeTeam struct {
 		result1 db.CreatingContainer
 		result2 error
 	}
-	UpdateProviderAuthStub        func(auth map[string]*json.RawMessage) error
+	UpdateProviderAuthStub        func(auth map[string][]string) error
 	updateProviderAuthMutex       sync.RWMutex
 	updateProviderAuthArgsForCall []struct {
-		auth map[string]*json.RawMessage
+		auth map[string][]string
 	}
 	updateProviderAuthReturns struct {
 		result1 error
 	}
 	updateProviderAuthReturnsOnCall map[int]struct {
 		result1 error
-	}
-	CreatePipeStub        func(string, string) error
-	createPipeMutex       sync.RWMutex
-	createPipeArgsForCall []struct {
-		arg1 string
-		arg2 string
-	}
-	createPipeReturns struct {
-		result1 error
-	}
-	createPipeReturnsOnCall map[int]struct {
-		result1 error
-	}
-	GetPipeStub        func(string) (db.Pipe, error)
-	getPipeMutex       sync.RWMutex
-	getPipeArgsForCall []struct {
-		arg1 string
-	}
-	getPipeReturns struct {
-		result1 db.Pipe
-		result2 error
-	}
-	getPipeReturnsOnCall map[int]struct {
-		result1 db.Pipe
-		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -477,7 +466,7 @@ func (fake *FakeTeam) AdminReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeTeam) Auth() map[string]*json.RawMessage {
+func (fake *FakeTeam) Auth() map[string][]string {
 	fake.authMutex.Lock()
 	ret, specificReturn := fake.authReturnsOnCall[len(fake.authArgsForCall)]
 	fake.authArgsForCall = append(fake.authArgsForCall, struct{}{})
@@ -498,22 +487,22 @@ func (fake *FakeTeam) AuthCallCount() int {
 	return len(fake.authArgsForCall)
 }
 
-func (fake *FakeTeam) AuthReturns(result1 map[string]*json.RawMessage) {
+func (fake *FakeTeam) AuthReturns(result1 map[string][]string) {
 	fake.AuthStub = nil
 	fake.authReturns = struct {
-		result1 map[string]*json.RawMessage
+		result1 map[string][]string
 	}{result1}
 }
 
-func (fake *FakeTeam) AuthReturnsOnCall(i int, result1 map[string]*json.RawMessage) {
+func (fake *FakeTeam) AuthReturnsOnCall(i int, result1 map[string][]string) {
 	fake.AuthStub = nil
 	if fake.authReturnsOnCall == nil {
 		fake.authReturnsOnCall = make(map[int]struct {
-			result1 map[string]*json.RawMessage
+			result1 map[string][]string
 		})
 	}
 	fake.authReturnsOnCall[i] = struct {
-		result1 map[string]*json.RawMessage
+		result1 map[string][]string
 	}{result1}
 }
 
@@ -989,6 +978,60 @@ func (fake *FakeTeam) PrivateAndPublicBuildsReturnsOnCall(i int, result1 []db.Bu
 		})
 	}
 	fake.privateAndPublicBuildsReturnsOnCall[i] = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) Builds(page db.Page) ([]db.Build, db.Pagination, error) {
+	fake.buildsMutex.Lock()
+	ret, specificReturn := fake.buildsReturnsOnCall[len(fake.buildsArgsForCall)]
+	fake.buildsArgsForCall = append(fake.buildsArgsForCall, struct {
+		page db.Page
+	}{page})
+	fake.recordInvocation("Builds", []interface{}{page})
+	fake.buildsMutex.Unlock()
+	if fake.BuildsStub != nil {
+		return fake.BuildsStub(page)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.buildsReturns.result1, fake.buildsReturns.result2, fake.buildsReturns.result3
+}
+
+func (fake *FakeTeam) BuildsCallCount() int {
+	fake.buildsMutex.RLock()
+	defer fake.buildsMutex.RUnlock()
+	return len(fake.buildsArgsForCall)
+}
+
+func (fake *FakeTeam) BuildsArgsForCall(i int) db.Page {
+	fake.buildsMutex.RLock()
+	defer fake.buildsMutex.RUnlock()
+	return fake.buildsArgsForCall[i].page
+}
+
+func (fake *FakeTeam) BuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.BuildsStub = nil
+	fake.buildsReturns = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) BuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.BuildsStub = nil
+	if fake.buildsReturnsOnCall == nil {
+		fake.buildsReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 db.Pagination
+			result3 error
+		})
+	}
+	fake.buildsReturnsOnCall[i] = struct {
 		result1 []db.Build
 		result2 db.Pagination
 		result3 error
@@ -1519,11 +1562,11 @@ func (fake *FakeTeam) CreateContainerReturnsOnCall(i int, result1 db.CreatingCon
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
+func (fake *FakeTeam) UpdateProviderAuth(auth map[string][]string) error {
 	fake.updateProviderAuthMutex.Lock()
 	ret, specificReturn := fake.updateProviderAuthReturnsOnCall[len(fake.updateProviderAuthArgsForCall)]
 	fake.updateProviderAuthArgsForCall = append(fake.updateProviderAuthArgsForCall, struct {
-		auth map[string]*json.RawMessage
+		auth map[string][]string
 	}{auth})
 	fake.recordInvocation("UpdateProviderAuth", []interface{}{auth})
 	fake.updateProviderAuthMutex.Unlock()
@@ -1542,7 +1585,7 @@ func (fake *FakeTeam) UpdateProviderAuthCallCount() int {
 	return len(fake.updateProviderAuthArgsForCall)
 }
 
-func (fake *FakeTeam) UpdateProviderAuthArgsForCall(i int) map[string]*json.RawMessage {
+func (fake *FakeTeam) UpdateProviderAuthArgsForCall(i int) map[string][]string {
 	fake.updateProviderAuthMutex.RLock()
 	defer fake.updateProviderAuthMutex.RUnlock()
 	return fake.updateProviderAuthArgsForCall[i].auth
@@ -1565,106 +1608,6 @@ func (fake *FakeTeam) UpdateProviderAuthReturnsOnCall(i int, result1 error) {
 	fake.updateProviderAuthReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeTeam) CreatePipe(arg1 string, arg2 string) error {
-	fake.createPipeMutex.Lock()
-	ret, specificReturn := fake.createPipeReturnsOnCall[len(fake.createPipeArgsForCall)]
-	fake.createPipeArgsForCall = append(fake.createPipeArgsForCall, struct {
-		arg1 string
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("CreatePipe", []interface{}{arg1, arg2})
-	fake.createPipeMutex.Unlock()
-	if fake.CreatePipeStub != nil {
-		return fake.CreatePipeStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.createPipeReturns.result1
-}
-
-func (fake *FakeTeam) CreatePipeCallCount() int {
-	fake.createPipeMutex.RLock()
-	defer fake.createPipeMutex.RUnlock()
-	return len(fake.createPipeArgsForCall)
-}
-
-func (fake *FakeTeam) CreatePipeArgsForCall(i int) (string, string) {
-	fake.createPipeMutex.RLock()
-	defer fake.createPipeMutex.RUnlock()
-	return fake.createPipeArgsForCall[i].arg1, fake.createPipeArgsForCall[i].arg2
-}
-
-func (fake *FakeTeam) CreatePipeReturns(result1 error) {
-	fake.CreatePipeStub = nil
-	fake.createPipeReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeTeam) CreatePipeReturnsOnCall(i int, result1 error) {
-	fake.CreatePipeStub = nil
-	if fake.createPipeReturnsOnCall == nil {
-		fake.createPipeReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.createPipeReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeTeam) GetPipe(arg1 string) (db.Pipe, error) {
-	fake.getPipeMutex.Lock()
-	ret, specificReturn := fake.getPipeReturnsOnCall[len(fake.getPipeArgsForCall)]
-	fake.getPipeArgsForCall = append(fake.getPipeArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("GetPipe", []interface{}{arg1})
-	fake.getPipeMutex.Unlock()
-	if fake.GetPipeStub != nil {
-		return fake.GetPipeStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.getPipeReturns.result1, fake.getPipeReturns.result2
-}
-
-func (fake *FakeTeam) GetPipeCallCount() int {
-	fake.getPipeMutex.RLock()
-	defer fake.getPipeMutex.RUnlock()
-	return len(fake.getPipeArgsForCall)
-}
-
-func (fake *FakeTeam) GetPipeArgsForCall(i int) string {
-	fake.getPipeMutex.RLock()
-	defer fake.getPipeMutex.RUnlock()
-	return fake.getPipeArgsForCall[i].arg1
-}
-
-func (fake *FakeTeam) GetPipeReturns(result1 db.Pipe, result2 error) {
-	fake.GetPipeStub = nil
-	fake.getPipeReturns = struct {
-		result1 db.Pipe
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeTeam) GetPipeReturnsOnCall(i int, result1 db.Pipe, result2 error) {
-	fake.GetPipeStub = nil
-	if fake.getPipeReturnsOnCall == nil {
-		fake.getPipeReturnsOnCall = make(map[int]struct {
-			result1 db.Pipe
-			result2 error
-		})
-	}
-	fake.getPipeReturnsOnCall[i] = struct {
-		result1 db.Pipe
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeTeam) Invocations() map[string][][]interface{} {
@@ -1698,6 +1641,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.createOneOffBuildMutex.RUnlock()
 	fake.privateAndPublicBuildsMutex.RLock()
 	defer fake.privateAndPublicBuildsMutex.RUnlock()
+	fake.buildsMutex.RLock()
+	defer fake.buildsMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.workersMutex.RLock()
@@ -1720,10 +1665,6 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.createContainerMutex.RUnlock()
 	fake.updateProviderAuthMutex.RLock()
 	defer fake.updateProviderAuthMutex.RUnlock()
-	fake.createPipeMutex.RLock()
-	defer fake.createPipeMutex.RUnlock()
-	fake.getPipeMutex.RLock()
-	defer fake.getPipeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

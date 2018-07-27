@@ -8,14 +8,16 @@ import (
 )
 
 type FakePipelineFactory struct {
-	PublicPipelinesStub        func() ([]db.Pipeline, error)
-	publicPipelinesMutex       sync.RWMutex
-	publicPipelinesArgsForCall []struct{}
-	publicPipelinesReturns     struct {
+	VisiblePipelinesStub        func([]string) ([]db.Pipeline, error)
+	visiblePipelinesMutex       sync.RWMutex
+	visiblePipelinesArgsForCall []struct {
+		arg1 []string
+	}
+	visiblePipelinesReturns struct {
 		result1 []db.Pipeline
 		result2 error
 	}
-	publicPipelinesReturnsOnCall map[int]struct {
+	visiblePipelinesReturnsOnCall map[int]struct {
 		result1 []db.Pipeline
 		result2 error
 	}
@@ -34,44 +36,57 @@ type FakePipelineFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePipelineFactory) PublicPipelines() ([]db.Pipeline, error) {
-	fake.publicPipelinesMutex.Lock()
-	ret, specificReturn := fake.publicPipelinesReturnsOnCall[len(fake.publicPipelinesArgsForCall)]
-	fake.publicPipelinesArgsForCall = append(fake.publicPipelinesArgsForCall, struct{}{})
-	fake.recordInvocation("PublicPipelines", []interface{}{})
-	fake.publicPipelinesMutex.Unlock()
-	if fake.PublicPipelinesStub != nil {
-		return fake.PublicPipelinesStub()
+func (fake *FakePipelineFactory) VisiblePipelines(arg1 []string) ([]db.Pipeline, error) {
+	var arg1Copy []string
+	if arg1 != nil {
+		arg1Copy = make([]string, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	fake.visiblePipelinesMutex.Lock()
+	ret, specificReturn := fake.visiblePipelinesReturnsOnCall[len(fake.visiblePipelinesArgsForCall)]
+	fake.visiblePipelinesArgsForCall = append(fake.visiblePipelinesArgsForCall, struct {
+		arg1 []string
+	}{arg1Copy})
+	fake.recordInvocation("VisiblePipelines", []interface{}{arg1Copy})
+	fake.visiblePipelinesMutex.Unlock()
+	if fake.VisiblePipelinesStub != nil {
+		return fake.VisiblePipelinesStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.publicPipelinesReturns.result1, fake.publicPipelinesReturns.result2
+	return fake.visiblePipelinesReturns.result1, fake.visiblePipelinesReturns.result2
 }
 
-func (fake *FakePipelineFactory) PublicPipelinesCallCount() int {
-	fake.publicPipelinesMutex.RLock()
-	defer fake.publicPipelinesMutex.RUnlock()
-	return len(fake.publicPipelinesArgsForCall)
+func (fake *FakePipelineFactory) VisiblePipelinesCallCount() int {
+	fake.visiblePipelinesMutex.RLock()
+	defer fake.visiblePipelinesMutex.RUnlock()
+	return len(fake.visiblePipelinesArgsForCall)
 }
 
-func (fake *FakePipelineFactory) PublicPipelinesReturns(result1 []db.Pipeline, result2 error) {
-	fake.PublicPipelinesStub = nil
-	fake.publicPipelinesReturns = struct {
+func (fake *FakePipelineFactory) VisiblePipelinesArgsForCall(i int) []string {
+	fake.visiblePipelinesMutex.RLock()
+	defer fake.visiblePipelinesMutex.RUnlock()
+	return fake.visiblePipelinesArgsForCall[i].arg1
+}
+
+func (fake *FakePipelineFactory) VisiblePipelinesReturns(result1 []db.Pipeline, result2 error) {
+	fake.VisiblePipelinesStub = nil
+	fake.visiblePipelinesReturns = struct {
 		result1 []db.Pipeline
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipelineFactory) PublicPipelinesReturnsOnCall(i int, result1 []db.Pipeline, result2 error) {
-	fake.PublicPipelinesStub = nil
-	if fake.publicPipelinesReturnsOnCall == nil {
-		fake.publicPipelinesReturnsOnCall = make(map[int]struct {
+func (fake *FakePipelineFactory) VisiblePipelinesReturnsOnCall(i int, result1 []db.Pipeline, result2 error) {
+	fake.VisiblePipelinesStub = nil
+	if fake.visiblePipelinesReturnsOnCall == nil {
+		fake.visiblePipelinesReturnsOnCall = make(map[int]struct {
 			result1 []db.Pipeline
 			result2 error
 		})
 	}
-	fake.publicPipelinesReturnsOnCall[i] = struct {
+	fake.visiblePipelinesReturnsOnCall[i] = struct {
 		result1 []db.Pipeline
 		result2 error
 	}{result1, result2}
@@ -123,8 +138,8 @@ func (fake *FakePipelineFactory) AllPipelinesReturnsOnCall(i int, result1 []db.P
 func (fake *FakePipelineFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.publicPipelinesMutex.RLock()
-	defer fake.publicPipelinesMutex.RUnlock()
+	fake.visiblePipelinesMutex.RLock()
+	defer fake.visiblePipelinesMutex.RUnlock()
 	fake.allPipelinesMutex.RLock()
 	defer fake.allPipelinesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

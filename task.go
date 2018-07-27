@@ -20,6 +20,9 @@ type TaskConfig struct {
 
 	ImageResource *ImageResource `json:"image_resource,omitempty" yaml:"image_resource,omitempty" mapstructure:"image_resource"`
 
+	// Limits to set on the Task Container
+	Limits ContainerLimits `json:"container_limits,omitempty" yaml:"container_limits,omitempty" mapstructure:"container_limits"`
+
 	// Parameters to pass to the task via environment variables.
 	Params map[string]string `json:"params,omitempty" yaml:"params,omitempty" mapstructure:"params"`
 
@@ -34,6 +37,11 @@ type TaskConfig struct {
 
 	// Path to cached directory that will be shared between builds for the same task.
 	Caches []CacheConfig `json:"caches,omitempty" yaml:"caches,omitempty" mapstructure:"caches"`
+}
+
+type ContainerLimits struct {
+	CPU    uint64 `yaml:"cpu,omitempty"  json:"cpu,omitempty"  mapstructure:"cpu"`
+	Memory uint64 `yaml:"memory,omitempty"  json:"memory,omitempty"  mapstructure:"memory"`
 }
 
 type ImageResource struct {
@@ -58,7 +66,10 @@ func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 		Metadata:         &metadata,
 		Result:           &config,
 		WeaklyTypedInput: true,
-		DecodeHook:       SanitizeDecodeHook,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			SanitizeDecodeHook,
+			ContainerLimitsDecodeHook,
+		),
 	}
 
 	decoder, err := mapstructure.NewDecoder(msConfig)
@@ -344,8 +355,8 @@ type TaskRunConfig struct {
 
 type TaskInputConfig struct {
 	Name     string `json:"name" yaml:"name"`
-	Path     string `json:"path,omitempty" yaml:"path"`
-	Optional bool   `json:"optional,omitempty" yaml:"optional"`
+	Path     string `json:"path,omitempty" yaml:"path,omitempty"`
+	Optional bool   `json:"optional,omitempty" yaml:"optional,omitempty"`
 }
 
 func (input TaskInputConfig) resolvePath() string {
@@ -357,7 +368,7 @@ func (input TaskInputConfig) resolvePath() string {
 
 type TaskOutputConfig struct {
 	Name string `json:"name" yaml:"name"`
-	Path string `json:"path,omitempty" yaml:"path"`
+	Path string `json:"path,omitempty" yaml:"path,omitempty"`
 }
 
 func (output TaskOutputConfig) resolvePath() string {

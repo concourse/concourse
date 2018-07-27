@@ -1,7 +1,8 @@
 package db_test
 
 import (
-	"encoding/json"
+	"database/sql"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/concourse/atc/creds/credsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	uuid "github.com/nu7hatch/gouuid"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -40,10 +40,15 @@ var _ = Describe("Team", func() {
 	})
 
 	Describe("Delete", func() {
+		var err error
+		var otherTeamPipeline db.Pipeline
+
 		BeforeEach(func() {
-			team, found, err := teamFactory.FindTeam("some-other-team")
-			Expect(team.Name()).To(Equal("some-other-team"))
-			Expect(found).To(BeTrue())
+			otherTeamPipeline, _, err = otherTeam.SavePipeline("fake-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{Name: "job-name"},
+				},
+			}, db.ConfigVersion(1), db.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = otherTeam.Delete()
@@ -55,6 +60,20 @@ var _ = Describe("Team", func() {
 			Expect(team).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("drops the team_build_events_ID table", func() {
+			var exists bool
+			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'team_build_events_%s')", otherTeam.ID())).Scan(&exists)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeFalse())
+		})
+
+		It("drops the teams pipeline_build_events_ID table", func() {
+			var exists bool
+			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'pipeline_build_events_%s')", otherTeamPipeline.ID())).Scan(&exists)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeFalse())
 		})
 	})
 
@@ -702,58 +721,14 @@ var _ = Describe("Team", func() {
 
 	Describe("Updating Auth", func() {
 		var (
-			// basicAuth    *atc.BasicAuth
-			authProvider map[string]*json.RawMessage
+			authProvider map[string][]string
 		)
 
 		BeforeEach(func() {
-			// basicAuth = &atc.BasicAuth{
-			// 	BasicAuthUsername: "fake user",
-			// 	BasicAuthPassword: "no, bad",
-			// }
-
-			data := []byte(`{"credit_card":"please"}`)
-			authProvider = map[string]*json.RawMessage{
-				"fake-provider": (*json.RawMessage)(&data),
+			authProvider = map[string][]string{
+				"users": []string{"local:username"},
 			}
 		})
-
-		// Describe("UpdateBasicAuth", func() {
-		// 	It("saves basic auth team info without overwriting the provider auth", func() {
-		// 		err := team.UpdateProviderAuth(authProvider)
-		// 		Expect(err).ToNot(HaveOccurred())
-
-		// 		err = team.UpdateBasicAuth(basicAuth)
-		// 		Expect(err).ToNot(HaveOccurred())
-
-		// 		Expect(team.Auth()).To(Equal(authProvider))
-		// 	})
-
-		// 	It("saves basic auth team info to the existing team", func() {
-		// 		err := team.UpdateBasicAuth(basicAuth)
-		// 		Expect(err).ToNot(HaveOccurred())
-
-		// 		Expect(team.BasicAuth().BasicAuthUsername).To(Equal(basicAuth.BasicAuthUsername))
-		// 		Expect(bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword),
-		// 			[]byte(basicAuth.BasicAuthPassword))).To(BeNil())
-		// 	})
-
-		// 	It("nulls basic auth when has a blank username", func() {
-		// 		basicAuth.BasicAuthUsername = ""
-		// 		err := team.UpdateBasicAuth(basicAuth)
-		// 		Expect(err).ToNot(HaveOccurred())
-
-		// 		Expect(team.BasicAuth()).To(BeNil())
-		// 	})
-
-		// 	It("nulls basic auth when has a blank password", func() {
-		// 		basicAuth.BasicAuthPassword = ""
-		// 		err := team.UpdateBasicAuth(basicAuth)
-		// 		Expect(err).ToNot(HaveOccurred())
-
-		// 		Expect(team.BasicAuth()).To(BeNil())
-		// 	})
-		// })
 
 		Describe("UpdateProviderAuth", func() {
 			It("saves auth team info to the existing team", func() {
@@ -764,15 +739,20 @@ var _ = Describe("Team", func() {
 			})
 
 			It("saves github auth team info without over writing the basic auth", func() {
-				// err := team.UpdateBasicAuth(basicAuth)
-				// Expect(err).ToNot(HaveOccurred())
-
 				err := team.UpdateProviderAuth(authProvider)
 				Expect(err).ToNot(HaveOccurred())
+			})
 
-				// Expect(team.BasicAuth().BasicAuthUsername).To(Equal(basicAuth.BasicAuthUsername))
-				// Expect(bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword),
-				// 	[]byte(basicAuth.BasicAuthPassword))).To(BeNil())
+			It("resets legacy_auth to NULL", func() {
+				oldLegacyAuth := `{"basicauth": {"username": "u", "password": "p"}}`
+				_, err := dbConn.Exec("UPDATE teams SET legacy_auth = $1 WHERE id = $2", oldLegacyAuth, team.ID())
+				team.UpdateProviderAuth(authProvider)
+				var newLegacyAuth sql.NullString
+				err = dbConn.QueryRow("SELECT legacy_auth FROM teams WHERE id = $1", team.ID()).Scan(&newLegacyAuth)
+				Expect(err).ToNot(HaveOccurred())
+				value, err := newLegacyAuth.Value()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(value).To(BeNil())
 			})
 		})
 	})
@@ -968,6 +948,13 @@ var _ = Describe("Team", func() {
 			Expect(otherTeamOrderedPipelines[0].ID()).To(Equal(otherPipeline1.ID()))
 			Expect(otherTeamOrderedPipelines[1].ID()).To(Equal(otherPipeline2.ID()))
 		})
+
+		Context("when pipeline does not exist", func() {
+			It("returns error ", func() {
+				err := otherTeam.OrderPipelines([]string{"pipeline-name-a", "pipeline-does-not-exist"})
+				Expect(err).To(HaveOccurred())
+			})
+		})
 	})
 
 	Describe("CreateOneOffBuild", func() {
@@ -1153,11 +1140,134 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("Builds", func() {
+		var (
+			expectedBuilds []db.Build
+			pipeline       db.Pipeline
+		)
+
+		BeforeEach(func() {
+			oneOfAKind, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, oneOfAKind)
+
+			config := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+					{
+						Name: "some-other-job",
+					},
+				},
+			}
+			pipeline, _, err = team.SavePipeline("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, build)
+
+			secondBuild, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, secondBuild)
+
+			someOtherJob, found, err := pipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			thirdBuild, err := someOtherJob.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			expectedBuilds = append(expectedBuilds, thirdBuild)
+		})
+
+		It("returns builds for the current team", func() {
+			builds, _, err := team.Builds(db.Page{Limit: 10})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builds).To(ConsistOf(expectedBuilds))
+		})
+
+		Context("when there are builds that belong to different teams", func() {
+			var teamABuilds [3]db.Build
+			var teamBBuilds [3]db.Build
+
+			var caseInsensitiveTeamA db.Team
+			var caseInsensitiveTeamB db.Team
+
+			BeforeEach(func() {
+				_, err := teamFactory.CreateTeam(atc.Team{Name: "team-a"})
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = teamFactory.CreateTeam(atc.Team{Name: "team-b"})
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				caseInsensitiveTeamA, found, err = teamFactory.FindTeam("team-A")
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				caseInsensitiveTeamB, found, err = teamFactory.FindTeam("team-B")
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				for i := 0; i < 3; i++ {
+					teamABuilds[i], err = caseInsensitiveTeamA.CreateOneOffBuild()
+					Expect(err).ToNot(HaveOccurred())
+
+					teamBBuilds[i], err = caseInsensitiveTeamB.CreateOneOffBuild()
+					Expect(err).ToNot(HaveOccurred())
+				}
+			})
+
+			Context("when other team builds are private", func() {
+				It("returns only builds for requested team", func() {
+					builds, _, err := caseInsensitiveTeamA.Builds(db.Page{Limit: 10})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamABuilds))
+
+					builds, _, err = caseInsensitiveTeamB.Builds(db.Page{Limit: 10})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamBBuilds))
+				})
+			})
+
+			Context("when other team builds are public", func() {
+				BeforeEach(func() {
+					err := pipeline.Expose()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns only builds for requested team", func() {
+					builds, _, err := caseInsensitiveTeamA.Builds(db.Page{Limit: 10})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamABuilds))
+
+					builds, _, err = caseInsensitiveTeamB.Builds(db.Page{Limit: 10})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamBBuilds))
+				})
+			})
+		})
+	})
+
 	Describe("SavePipeline", func() {
 		type SerialGroup struct {
 			JobID int
 			Name  string
 		}
+
 		var (
 			config       atc.Config
 			otherConfig  atc.Config
@@ -1236,7 +1346,7 @@ var _ = Describe("Team", func() {
 				Groups: atc.GroupConfigs{
 					{
 						Name:      "some-group",
-						Jobs:      []string{"job-1", "job-2"},
+						Jobs:      []string{"some-other-job", "job-1", "job-2"},
 						Resources: []string{"resource-1", "resource-2"},
 					},
 				},
@@ -1532,6 +1642,48 @@ var _ = Describe("Team", func() {
 					Name:  "serial-group-2",
 				},
 			}))
+		})
+
+		It("saves tags in the jobs table", func() {
+			savedPipeline, _, err := team.SavePipeline(pipelineName, otherConfig, 0, db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err := savedPipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.Tags()).To(Equal([]string{"some-group"}))
+		})
+
+		It("updates tags in the jobs table", func() {
+			savedPipeline, _, err := team.SavePipeline(pipelineName, otherConfig, 0, db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err := savedPipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.Tags()).To(Equal([]string{"some-group"}))
+
+			otherConfig.Groups = atc.GroupConfigs{
+				{
+					Name: "some-other-group",
+					Jobs: []string{"job-1", "job-2", "some-other-job"},
+				},
+				{
+					Name: "some-another-group",
+					Jobs: []string{"some-other-job"},
+				},
+			}
+
+			savedPipeline, _, err = team.SavePipeline(pipelineName, otherConfig, savedPipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err = savedPipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.Tags()).To(ConsistOf([]string{"some-another-group", "some-other-group"}))
 		})
 
 		It("it returns created as false when updated", func() {
@@ -1833,22 +1985,6 @@ var _ = Describe("Team", func() {
 				_, _, err = team.SavePipeline("steve", otherConfig, otherTeamPipeline.ConfigVersion(), db.PipelinePaused)
 				Expect(err).To(HaveOccurred())
 			})
-		})
-	})
-
-	Describe("CreatePipe/GetPipe", func() {
-		It("saves a pipe to the db", func() {
-			myGuid, err := uuid.NewV4()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = team.CreatePipe(myGuid.String(), "a-url")
-			Expect(err).ToNot(HaveOccurred())
-
-			pipe, err := team.GetPipe(myGuid.String())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(pipe.ID).To(Equal(myGuid.String()))
-			Expect(pipe.URL).To(Equal("a-url"))
-			Expect(pipe.TeamName).To(Equal("some-team"))
 		})
 	})
 

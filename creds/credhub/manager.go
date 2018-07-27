@@ -1,14 +1,15 @@
 package credhub
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"sync"
 
+	"code.cloudfoundry.org/credhub-cli/credhub"
+	"code.cloudfoundry.org/credhub-cli/credhub/auth"
 	"code.cloudfoundry.org/lager"
-
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/concourse/atc/creds"
 )
 
@@ -17,17 +18,29 @@ type CredHubManager struct {
 
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 
-	TLS struct {
-		CACerts    []string `long:"ca-cert"              description:"Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert."`
-		ClientCert string   `long:"client-cert"          description:"Path to the client certificate for mutual TLS authorization."`
-		ClientKey  string   `long:"client-key"           description:"Path to the client private key for mutual TLS authorization."`
-		Insecure   bool     `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
-	}
+	TLS TLS
+	UAA UAA
+}
 
-	UAA struct {
-		ClientId     string `long:"client-id"     description:"Client ID for CredHub authorization."`
-		ClientSecret string `long:"client-secret" description:"Client secret for CredHub authorization."`
-	}
+type TLS struct {
+	CACerts    []string `long:"ca-cert"              description:"Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert."`
+	ClientCert string   `long:"client-cert"          description:"Path to the client certificate for mutual TLS authorization."`
+	ClientKey  string   `long:"client-key"           description:"Path to the client private key for mutual TLS authorization."`
+	Insecure   bool     `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
+}
+
+type UAA struct {
+	ClientId     string `long:"client-id"     description:"Client ID for CredHub authorization."`
+	ClientSecret string `long:"client-secret" description:"Client secret for CredHub authorization."`
+}
+
+func (manager *CredHubManager) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&map[string]interface{}{
+		"url":           manager.URL,
+		"path_prefix":   manager.PathPrefix,
+		"ca_certs":      manager.TLS.CACerts,
+		"uaa_client_id": manager.UAA.ClientId,
+	})
 }
 
 func (manager CredHubManager) IsConfigured() bool {
@@ -86,10 +99,36 @@ func (manager CredHubManager) NewVariablesFactory(logger lager.Logger) (creds.Va
 		options = append(options, credhub.ClientCert(manager.TLS.ClientCert, manager.TLS.ClientKey))
 	}
 
-	ch, err := credhub.New(manager.URL, options...)
+	return NewCredHubFactory(logger, newLazyCredhub(manager.URL, options), manager.PathPrefix), nil
+}
+
+type lazyCredhub struct {
+	url     string
+	options []credhub.Option
+	credhub *credhub.CredHub
+	mu      sync.Mutex
+}
+
+func newLazyCredhub(url string, options []credhub.Option) *lazyCredhub {
+	return &lazyCredhub{
+		url:     url,
+		options: options,
+	}
+}
+
+func (lc *lazyCredhub) CredHub() (*credhub.CredHub, error) {
+	lc.mu.Lock()
+	defer lc.mu.Unlock()
+	if lc.credhub != nil {
+		return lc.credhub, nil
+	}
+
+	ch, err := credhub.New(lc.url, lc.options...)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewCredHubFactory(logger, ch, manager.PathPrefix), nil
+	lc.credhub = ch
+
+	return lc.credhub, nil
 }

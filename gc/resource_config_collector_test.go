@@ -1,9 +1,9 @@
 package gc_test
 
 import (
+	"context"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
@@ -17,8 +17,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 	var collector gc.Collector
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("resource-cache-use-collector")
-		collector = gc.NewResourceConfigCollector(logger, resourceConfigFactory)
+		collector = gc.NewResourceConfigCollector(resourceConfigFactory)
 	})
 
 	Describe("Run", func() {
@@ -61,7 +60,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("preserves the config", func() {
 					Expect(countResourceConfigs()).ToNot(BeZero())
-					Expect(collector.Run()).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).ToNot(BeZero())
 				})
 			})
@@ -96,7 +95,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("cleans up the config", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run()).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).To(BeZero())
 				})
 			})
@@ -119,7 +118,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("preserve the config", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run()).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).NotTo(BeZero())
 				})
 			})
@@ -152,7 +151,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("cleans up the config", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run()).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).To(BeZero())
 				})
 			})

@@ -1,38 +1,24 @@
 package exec
 
 import (
-	"os"
+	"context"
 
-	"github.com/concourse/atc/worker"
 	"github.com/hashicorp/go-multierror"
 )
 
 // EnsureStep will run one step, and then a second step regardless of whether
 // the first step fails or errors.
 type EnsureStep struct {
-	stepFactory   StepFactory
-	ensureFactory StepFactory
-
-	repo *worker.ArtifactRepository
-
-	step   Step
-	ensure Step
+	step Step
+	hook Step
 }
 
-// Ensure constructs an EnsureStep factory.
-func Ensure(firstStep StepFactory, secondStep StepFactory) EnsureStep {
+// Ensure constructs an EnsureStep.
+func Ensure(step Step, hook Step) EnsureStep {
 	return EnsureStep{
-		stepFactory:   firstStep,
-		ensureFactory: secondStep,
+		step: step,
+		hook: hook,
 	}
-}
-
-// Using constructs an *EnsureStep.
-func (o EnsureStep) Using(repo *worker.ArtifactRepository) Step {
-	o.repo = repo
-
-	o.step = o.stepFactory.Using(o.repo)
-	return &o
 }
 
 // Run will call Run on the first step, wait for it to complete, and then call
@@ -41,25 +27,33 @@ func (o EnsureStep) Using(repo *worker.ArtifactRepository) Step {
 //
 // If the first step or the second step errors, an aggregate of their errors is
 // returned.
-func (o *EnsureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (o EnsureStep) Run(ctx context.Context, state RunState) error {
 	var errors error
 
-	originalErr := o.step.Run(signals, ready)
+	originalErr := o.step.Run(ctx, state)
 	if originalErr != nil {
 		errors = multierror.Append(errors, originalErr)
 	}
 
-	o.ensure = o.ensureFactory.Using(o.repo)
+	hookCtx := ctx
+	if ctx.Err() != nil {
+		// prevent hook from being immediately canceled
+		hookCtx = context.Background()
+	}
 
-	hookErr := o.ensure.Run(signals, make(chan struct{}))
+	hookErr := o.hook.Run(hookCtx, state)
 	if hookErr != nil {
 		errors = multierror.Append(errors, hookErr)
+	}
+
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 
 	return errors
 }
 
-// Succeeded is true if both of its steps are true
-func (o *EnsureStep) Succeeded() bool {
-	return o.step.Succeeded() && o.ensure.Succeeded()
+// Succeeded is true if both of its steps succeeded.
+func (o EnsureStep) Succeeded() bool {
+	return o.step.Succeeded() && o.hook.Succeeded()
 }

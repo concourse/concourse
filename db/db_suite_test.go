@@ -3,6 +3,7 @@ package db_test
 import (
 	"os"
 	"testing"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
@@ -28,7 +29,7 @@ var (
 
 	dbConn                              db.Conn
 	buildFactory                        db.BuildFactory
-	volumeFactory                       db.VolumeFactory
+	volumeRepository                    db.VolumeRepository
 	containerRepository                 db.ContainerRepository
 	teamFactory                         db.TeamFactory
 	workerFactory                       db.WorkerFactory
@@ -45,6 +46,8 @@ var (
 	defaultTeam               db.Team
 	defaultWorkerPayload      atc.Worker
 	defaultWorker             db.Worker
+	otherWorker               db.Worker
+	otherWorkerPayload        atc.Worker
 	defaultResourceType       db.ResourceType
 	defaultResource           db.Resource
 	defaultPipeline           db.Pipeline
@@ -90,8 +93,8 @@ var _ = BeforeEach(func() {
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
-	buildFactory = db.NewBuildFactory(dbConn, lockFactory)
-	volumeFactory = db.NewVolumeFactory(dbConn)
+	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 5*time.Minute)
+	volumeRepository = db.NewVolumeRepository(dbConn)
 	containerRepository = db.NewContainerRepository(dbConn)
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 	workerFactory = db.NewWorkerFactory(dbConn)
@@ -124,7 +127,16 @@ var _ = BeforeEach(func() {
 		CertsPath:       &certsPath,
 	}
 
+	otherWorkerPayload = atc.Worker{
+		ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+		Name:            "other-worker",
+		GardenAddr:      "2.3.4.5:7777",
+		BaggageclaimURL: "6.7.8.9:7878",
+		CertsPath:       &certsPath,
+	}
+
 	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
+	otherWorker, err = workerFactory.SaveWorker(otherWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{

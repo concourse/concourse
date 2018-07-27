@@ -16,7 +16,7 @@ func (s *Server) ListVolumes(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hLog.Debug("listing")
 
-		volumes, err := s.factory.GetTeamVolumes(team.ID())
+		volumes, err := s.repository.GetTeamVolumes(team.ID())
 		if err != nil {
 			hLog.Error("failed-to-find-volumes", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -35,6 +35,7 @@ func (s *Server) ListVolumes(team db.Team) http.Handler {
 			}
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(presentedVolumes)
 		if err != nil {
 			hLog.Error("failed-to-encode-volumes", err)

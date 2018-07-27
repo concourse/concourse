@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
 )
@@ -28,14 +28,14 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-
+		acc := accessor.GetAccessor(r)
 		resource := present.Resource(
 			dbResource,
-			pipeline.Groups(),
-			auth.IsAuthenticated(r),
+			acc.IsAuthenticated(),
 			teamName,
 		)
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
 		err = json.NewEncoder(w).Encode(resource)

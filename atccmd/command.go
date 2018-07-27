@@ -1,14 +1,11 @@
 package atccmd
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
@@ -19,6 +16,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/containerserver"
@@ -41,30 +39,19 @@ import (
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/wrappa"
+	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/concourse/skymarshal"
+	"github.com/concourse/skymarshal/skycmd"
 	"github.com/concourse/web"
 	"github.com/cppforlife/go-semi-semantic/version"
-	jwt "github.com/dgrijalva/jwt-go"
-	multierror "github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/hashicorp/go-multierror"
+	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/xoebus/zest"
-
-	"github.com/concourse/skymarshal/provider"
-
-	// dynamically registered auth providers
-	_ "github.com/concourse/skymarshal/basicauth"
-	_ "github.com/concourse/skymarshal/bitbucket/cloud"
-	_ "github.com/concourse/skymarshal/bitbucket/server"
-	_ "github.com/concourse/skymarshal/genericoauth"
-	_ "github.com/concourse/skymarshal/github"
-	_ "github.com/concourse/skymarshal/gitlab"
-	_ "github.com/concourse/skymarshal/noauth"
-	_ "github.com/concourse/skymarshal/uaa"
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/atc/metric/emitter"
@@ -72,6 +59,7 @@ import (
 	// dynamically registered credential managers
 	_ "github.com/concourse/atc/creds/credhub"
 	_ "github.com/concourse/atc/creds/kubernetes"
+	_ "github.com/concourse/atc/creds/secretsmanager"
 	_ "github.com/concourse/atc/creds/ssm"
 	_ "github.com/concourse/atc/creds/vault"
 )
@@ -80,55 +68,51 @@ var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
 
 type ATCCommand struct {
-	Migration Migration `group:"Migration Options"`
+	RunCommand RunCommand `command:"run"`
+	Migration  Migration  `command:"migrate"`
+}
 
-	Logger LagerFlag
+type RunCommand struct {
+	Logger flag.Lager
 
-	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
-	BindPort uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
+	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
+	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
-	TLSBindPort uint16   `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
-	TLSCert     FileFlag `long:"tls-cert"      description:"File containing an SSL certificate."`
-	TLSKey      FileFlag `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
+	TLSBindPort uint16    `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
+	TLSCert     flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`
+	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
-	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
-	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
+	ExternalURL flag.URL `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
+	PeerURL     flag.URL `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
 
-	Authentication atc.AuthFlags `group:"Authentication"`
-	ProviderAuth   provider.AuthConfigs
-
-	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
-	OAuthBaseURL URLFlag       `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
-
-	Postgres PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
+	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
 	CredentialManagement struct{} `group:"Credential Management"`
 	CredentialManagers   creds.Managers
 
-	EncryptionKey    CipherFlag `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
-	OldEncryptionKey CipherFlag `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
+	EncryptionKey    flag.Cipher `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey flag.Cipher `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
 
-	DebugBindIP   IPFlag `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
-	DebugBindPort uint16 `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
+	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
+	DebugBindPort uint16  `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
 
-	SessionSigningKey FileFlag `long:"session-signing-key" description:"File containing an RSA private key, used to sign session tokens."`
+	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
-	InterceptIdleTimeout              time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
-	ResourceCheckingInterval          time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
-	OldResourceGracePeriod            time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
-	ResourceCacheCleanupInterval      time.Duration `long:"resource-cache-cleanup-interval" default:"30s" description:"Interval on which to cleanup old caches of resources."`
+	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
+
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" description:"Method by which a worker is selected during container placement."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
-	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
+	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
 	Developer struct {
 		Noop bool `short:"n" long:"noop"              description:"Don't actually do any automatic scheduling or checking."`
 	} `group:"Developer Options"`
 
 	Worker struct {
-		GardenURL       URLFlag           `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
-		BaggageclaimURL URLFlag           `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
+		GardenURL       flag.URL          `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
+		BaggageclaimURL flag.URL          `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
 		ResourceTypes   map[string]string `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
@@ -147,39 +131,48 @@ type ATCCommand struct {
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 
 	GC struct {
-		Interval          time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
-		WorkerConcurrency int           `long:"worker-concurrency" default:"50" description:"Maximum number of delete operations to have in flight per worker."`
+		Interval               time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
+		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Grace period before reaping one-off task containers"`
+		WorkerConcurrency      int           `long:"worker-concurrency" default:"50" description:"Maximum number of delete operations to have in flight per worker."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
 
 	TelemetryOptIn bool `long:"telemetry-opt-in" hidden:"true" description:"Enable anonymous concourse version reporting."`
+
+	DefaultBuildLogsToRetain uint64 `long:"default-build-logs-to-retain" description:"Default build logs to retain, 0 means all"`
+	MaxBuildLogsToRetain     uint64 `long:"max-build-logs-to-retain" description:"Maximum build logs to retain, 0 means not specified. Will override values configured in jobs"`
+
+	Auth struct {
+		AuthFlags     skycmd.AuthFlags
+		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
+	} `group:"Authentication"`
 }
+
+var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
 
 type Migration struct {
-	CurrentDBVersion   bool `long:"current-db-version" description:"Print the current database version and exit"`
-	SupportedDBVersion bool `long:"supported-db-version" description:"Print the max supported database version and exit"`
-	MigrateDBToVersion int  `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
+	Postgres           flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
+	EncryptionKey      flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	CurrentDBVersion   bool                `long:"current-db-version" description:"Print the current database version and exit"`
+	SupportedDBVersion bool                `long:"supported-db-version" description:"Print the max supported database version and exit"`
+	MigrateDBToVersion int                 `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
 }
 
-func (m *Migration) CommandProvided() bool {
-	return m.CurrentDBVersion || m.SupportedDBVersion || m.MigrateDBToVersion > 0
+func (m *Migration) Execute(args []string) error {
+	if m.CurrentDBVersion {
+		return m.currentDBVersion()
+	}
+	if m.SupportedDBVersion {
+		return m.supportedDBVersion()
+	}
+	if m.MigrateDBToVersion > 0 {
+		return m.migrateDBToVersion()
+	}
+	return HelpError
 }
 
-func (cmd *ATCCommand) RunMigrationCommand() error {
-	if cmd.Migration.CurrentDBVersion {
-		return cmd.currentDBVersion()
-	}
-	if cmd.Migration.SupportedDBVersion {
-		return cmd.supportedDBVersion()
-	}
-	if cmd.Migration.MigrateDBToVersion > 0 {
-		return cmd.migrateDBToVersion()
-	}
-	return nil
-}
-
-func (cmd *ATCCommand) currentDBVersion() error {
+func (cmd *Migration) currentDBVersion() error {
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
@@ -196,7 +189,7 @@ func (cmd *ATCCommand) currentDBVersion() error {
 	return nil
 }
 
-func (cmd *ATCCommand) supportedDBVersion() error {
+func (cmd *Migration) supportedDBVersion() error {
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
@@ -213,8 +206,8 @@ func (cmd *ATCCommand) supportedDBVersion() error {
 	return nil
 }
 
-func (cmd *ATCCommand) migrateDBToVersion() error {
-	version := cmd.Migration.MigrateDBToVersion
+func (cmd *Migration) migrateDBToVersion() error {
+	version := cmd.MigrateDBToVersion
 
 	var newKey *encryption.Key
 	if cmd.EncryptionKey.AEAD != nil {
@@ -228,20 +221,14 @@ func (cmd *ATCCommand) migrateDBToVersion() error {
 		strategy = encryption.NewNoEncryption()
 	}
 
-	lockConn, err := cmd.constructLockConn(defaultDriverName)
-	if err != nil {
-		return err
-	}
-	defer lockConn.Close()
-
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
-		lock.NewLockFactory(lockConn),
+		nil,
 		strategy,
 	)
 
-	err = helper.MigrateToVersion(version)
+	err := helper.MigrateToVersion(version)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not migrate to version: %d Reason: %s", version, err.Error()))
 	}
@@ -251,17 +238,17 @@ func (cmd *ATCCommand) migrateDBToVersion() error {
 }
 
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
-	var authGroup *flags.Group
+	cmd.RunCommand.WireDynamicFlags(commandFlags)
+}
+
+func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	var metricsGroup *flags.Group
 	var credsGroup *flags.Group
+	var authGroup *flags.Group
 
 	groups := commandFlags.Groups()
 	for i := 0; i < len(groups); i++ {
 		group := groups[i]
-
-		if authGroup == nil && group.ShortDescription == "Authentication" {
-			authGroup = group
-		}
 
 		if credsGroup == nil && group.ShortDescription == "Credential Management" {
 			credsGroup = group
@@ -271,15 +258,15 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 			metricsGroup = group
 		}
 
-		if metricsGroup != nil && authGroup != nil && credsGroup != nil {
+		if authGroup == nil && group.ShortDescription == "Authentication" {
+			authGroup = group
+		}
+
+		if metricsGroup != nil && credsGroup != nil && authGroup != nil {
 			break
 		}
 
 		groups = append(groups, group.Groups()...)
-	}
-
-	if authGroup == nil {
-		panic("could not find Authentication group for registering providers")
 	}
 
 	if metricsGroup == nil {
@@ -290,11 +277,9 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 		panic("could not find Credential Management group for registering managers")
 	}
 
-	authConfigs := make(provider.AuthConfigs)
-	for name, p := range provider.GetProviders() {
-		authConfigs[name] = p.AddAuthGroup(authGroup)
+	if authGroup == nil {
+		panic("could not find Authentication group for registering connectors")
 	}
-	cmd.ProviderAuth = authConfigs
 
 	managerConfigs := make(creds.Managers)
 	for name, p := range creds.ManagerFactories() {
@@ -304,15 +289,12 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 
 	metric.WireEmitters(metricsGroup)
 
+	skycmd.WireConnectors(authGroup)
+	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
 }
 
-func (cmd *ATCCommand) Execute(args []string) error {
-
-	if cmd.Migration.CommandProvided() {
-		return cmd.RunMigrationCommand()
-	}
-
-	runner, err := cmd.Runner(args)
+func (cmd *RunCommand) Execute(args []string) error {
+	runner, _, err := cmd.Runner(args)
 	if err != nil {
 		return err
 	}
@@ -320,7 +302,7 @@ func (cmd *ATCCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (cmd *ATCCommand) constructMembers(
+func (cmd *RunCommand) constructMembers(
 	positionalArguments []string,
 	requiredMemberNames []string,
 	maxConns int,
@@ -390,12 +372,14 @@ func (cmd *ATCCommand) constructMembers(
 	}
 
 	bus := dbConn.Bus()
-
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
-	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory)
-	dbVolumeFactory := db.NewVolumeFactory(dbConn)
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	dbVolumeRepository := db.NewVolumeRepository(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
+	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
+	dbResourceFactory := db.NewResourceFactory(dbConn, lockFactory)
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
@@ -406,6 +390,7 @@ func (cmd *ATCCommand) constructMembers(
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
+	credsManagers := cmd.CredentialManagers
 
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
@@ -422,7 +407,7 @@ func (cmd *ATCCommand) constructMembers(
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
 		dbWorkerTaskCacheFactory,
-		dbVolumeFactory,
+		dbVolumeRepository,
 		teamFactory,
 		dbWorkerFactory,
 		workerVersion,
@@ -441,6 +426,7 @@ func (cmd *ATCCommand) constructMembers(
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceFactory,
 		dbResourceConfigCheckSessionFactory,
+		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
 	)
@@ -448,15 +434,11 @@ func (cmd *ATCCommand) constructMembers(
 	radarScannerFactory := radar.NewScannerFactory(
 		resourceFactory,
 		dbResourceConfigCheckSessionFactory,
+		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
 		variablesFactory,
 	)
-
-	signingKey, err := cmd.loadOrGenerateSigningKey()
-	if err != nil {
-		return nil, err
-	}
 
 	_, err = teamFactory.CreateDefaultTeamIfNotExists()
 	if err != nil {
@@ -470,16 +452,75 @@ func (cmd *ATCCommand) constructMembers(
 
 	drain := make(chan struct{})
 
+	httpClient := http.DefaultClient
+
+	var tlsConfig *tls.Config
+
+	if cmd.isTLSEnabled() {
+		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+		if err != nil {
+			return nil, err
+		}
+
+		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
+		if err != nil {
+			return nil, err
+		}
+
+		certpool, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
+
+		certpool.AddCert(x509Cert)
+
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: certpool,
+			},
+		}
+
+		tlsConfig = &tls.Config{
+			Certificates:     []tls.Certificate{cert},
+			MinVersion:       tls.VersionTLS12,
+			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+			},
+			PreferServerCipherSuites: true,
+			NextProtos:               []string{"h2"},
+		}
+
+		cmd.Auth.AuthFlags.SecureCookies = true
+	}
+
+	authHandler, err := skymarshal.NewServer(&skymarshal.Config{
+		Logger:      logger,
+		TeamFactory: teamFactory,
+		Flags:       cmd.Auth.AuthFlags,
+		ServerURL:   cmd.ExternalURL.String(),
+		HttpClient:  httpClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
 		teamFactory,
 		dbPipelineFactory,
+		dbJobFactory,
+		dbResourceFactory,
 		dbWorkerFactory,
-		dbVolumeFactory,
+		dbVolumeRepository,
 		dbContainerRepository,
+		gcContainerDestroyer,
 		dbBuildFactory,
-		signingKey,
 		engine,
 		workerClient,
 		workerProvider,
@@ -487,25 +528,15 @@ func (cmd *ATCCommand) constructMembers(
 		radarSchedulerFactory,
 		radarScannerFactory,
 		variablesFactory,
+		credsManagers,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	authHandler, err := skymarshal.NewHandler(&skymarshal.Config{
-		cmd.ExternalURL.String(),
-		cmd.oauthBaseURL(),
-		signingKey,
-		cmd.AuthDuration,
-		cmd.isTLSEnabled(),
-		teamFactory,
-		logger,
-	})
-
-	if err != nil {
-		return nil, err
-	}
+	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
+	apiHandler = accessor.NewHandler(apiHandler, accessFactory)
 
 	webHandler, err := web.NewHandler(logger)
 	if err != nil {
@@ -520,7 +551,7 @@ func (cmd *ATCCommand) constructMembers(
 			logger,
 
 			tlsRedirectHandler{
-				externalHost: cmd.ExternalURL.URL().Host,
+				externalHost: cmd.ExternalURL.URL.Host,
 				baseHandler:  webHandler,
 			},
 
@@ -534,7 +565,7 @@ func (cmd *ATCCommand) constructMembers(
 			apiHandler,
 
 			tlsRedirectHandler{
-				externalHost: cmd.ExternalURL.URL().Host,
+				externalHost: cmd.ExternalURL.URL.Host,
 				baseHandler:  authHandler,
 			},
 		)
@@ -596,46 +627,17 @@ func (cmd *ATCCommand) constructMembers(
 		}},
 
 		{"collector", lockrunner.NewRunner(
-			logger.Session("collector-runner"),
+			logger.Session("collector"),
 			gc.NewCollector(
-				logger.Session("ng-collector"),
-				gc.NewBuildCollector(
-					logger.Session("build-collector"),
-					dbBuildFactory,
-				),
-				gc.NewWorkerCollector(
-					logger.Session("worker-collector"),
-					dbWorkerLifecycle,
-				),
-				gc.NewResourceCacheUseCollector(
-					logger.Session("resource-cache-use-collector"),
-					dbResourceCacheLifecycle,
-				),
-				gc.NewResourceConfigCollector(
-					logger.Session("resource-config-collector"),
-					dbResourceConfigFactory,
-				),
-				gc.NewResourceCacheCollector(
-					logger.Session("resource-cache-collector"),
-					dbResourceCacheLifecycle,
-				),
+				gc.NewBuildCollector(dbBuildFactory),
+				gc.NewWorkerCollector(dbWorkerLifecycle),
+				gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
+				gc.NewResourceConfigCollector(dbResourceConfigFactory),
+				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 				gc.NewVolumeCollector(
-					logger.Session("volume-collector"),
-					dbVolumeFactory,
-					gc.NewWorkerJobRunner(
-						logger.Session("volume-collector-worker-job-runner"),
-						workerClient,
-						time.Minute,
-						cmd.GC.WorkerConcurrency,
-						func(logger lager.Logger, workerName string) {
-							metric.GarbageCollectionVolumeCollectorJobDropped{
-								WorkerName: workerName,
-							}.Emit(logger)
-						},
-					),
+					dbVolumeRepository,
 				),
 				gc.NewContainerCollector(
-					logger.Session("container-collector"),
 					dbContainerRepository,
 					gc.NewWorkerJobRunner(
 						logger.Session("container-collector-worker-job-runner"),
@@ -650,7 +652,6 @@ func (cmd *ATCCommand) constructMembers(
 					),
 				),
 				gc.NewResourceConfigCheckSessionCollector(
-					logger.Session("resource-config-check-session-collector"),
 					resourceConfigCheckSessionLifecycle,
 				),
 			),
@@ -660,12 +661,16 @@ func (cmd *ATCCommand) constructMembers(
 			cmd.GC.Interval,
 		)},
 
-		{"build-reaper", lockrunner.NewRunner(
-			logger.Session("build-reaper-runner"),
-			gc.NewBuildReaper(
-				logger.Session("build-reaper"),
+		// run separately so as to not preempt critical GC
+		{"build-log-collector", lockrunner.NewRunner(
+			logger.Session("build-log-collector"),
+			gc.NewBuildLogCollector(
 				dbPipelineFactory,
 				500,
+				gc.NewBuildLogRetentionCalculator(
+					cmd.DefaultBuildLogsToRetain,
+					cmd.MaxBuildLogsToRetain,
+				),
 			),
 			"build-reaper",
 			lockFactory,
@@ -675,7 +680,7 @@ func (cmd *ATCCommand) constructMembers(
 	}
 
 	if cmd.TelemetryOptIn {
-		url := fmt.Sprintf("http://telemetry.concourse.ci/?version=%s", Version)
+		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", Version)
 		go func() {
 			_, err := http.Get(url)
 			if err != nil {
@@ -684,21 +689,11 @@ func (cmd *ATCCommand) constructMembers(
 		}()
 	}
 
-	if cmd.Worker.GardenURL.URL() != nil {
+	if cmd.Worker.GardenURL.URL != nil {
 		members = cmd.appendStaticWorker(logger, dbWorkerFactory, members)
 	}
 
 	if httpsHandler != nil {
-		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
-		if err != nil {
-			return nil, err
-		}
-
-		tlsConfig := &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			NextProtos:   []string{"h2"},
-		}
-
 		members = append(members, grouper.Member{"web-tls", http_server.NewTLSServer(
 			cmd.tlsBindAddr(),
 			httpsHandler,
@@ -724,7 +719,7 @@ func (cmd *ATCCommand) constructMembers(
 	return filteredMembers, nil
 }
 
-func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
+func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool, error) {
 	var members []grouper.Member
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
@@ -738,7 +733,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	})
 
 	if err := cmd.configureMetrics(logger); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
 
@@ -753,7 +748,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		reconfigurableSink,
 	)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	serviceMembers, err := cmd.constructMembers(positionalArguments, []string{
@@ -761,7 +756,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		"pipelines",
 		"builds",
 		"collector",
-		"build-reaper",
+		"build-log-collector",
 		"static-worker",
 	},
 		32,
@@ -770,7 +765,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		reconfigurableSink,
 	)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	members = append(members, apiMembers...)
@@ -787,7 +782,7 @@ func (cmd *ATCCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		}
 
 		logger.Info("listening", logData)
-	}), nil
+	}), false, nil
 }
 
 func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
@@ -811,36 +806,8 @@ func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
 	})
 }
 
-func (cmd *ATCCommand) oauthBaseURL() string {
-	baseURL := cmd.OAuthBaseURL.String()
-	if baseURL == "" {
-		baseURL = cmd.ExternalURL.String()
-	}
-	return baseURL
-}
-
-func (cmd *ATCCommand) validate() error {
+func (cmd *RunCommand) validate() error {
 	var errs *multierror.Error
-	isConfigured := false
-
-	for _, config := range cmd.ProviderAuth {
-		if config.IsConfigured() {
-			err := config.Validate()
-
-			if err != nil {
-				errs = multierror.Append(errs, err)
-			}
-
-			isConfigured = true
-		}
-	}
-
-	if !isConfigured {
-		errs = multierror.Append(
-			errs,
-			errors.New("must configure basic auth, OAuth, UAAAuth, or provide no-auth flag"),
-		)
-	}
 
 	tlsFlagCount := 0
 	if cmd.TLSBindPort != 0 {
@@ -854,7 +821,7 @@ func (cmd *ATCCommand) validate() error {
 	}
 
 	if tlsFlagCount == 3 {
-		if cmd.ExternalURL.URL().Scheme != "https" {
+		if cmd.ExternalURL.URL.Scheme != "https" {
 			errs = multierror.Append(
 				errs,
 				errors.New("must specify HTTPS external-url to use TLS"),
@@ -870,19 +837,19 @@ func (cmd *ATCCommand) validate() error {
 	return errs.ErrorOrNil()
 }
 
-func (cmd *ATCCommand) nonTLSBindAddr() string {
+func (cmd *RunCommand) nonTLSBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 }
 
-func (cmd *ATCCommand) tlsBindAddr() string {
+func (cmd *RunCommand) tlsBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.TLSBindPort)
 }
 
-func (cmd *ATCCommand) debugBindAddr() string {
+func (cmd *RunCommand) debugBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
 }
 
-func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
+func (cmd *RunCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
 	logger, reconfigurableSink := cmd.Logger.Logger("atc")
 
 	if cmd.Metrics.YellerAPIKey != "" {
@@ -893,7 +860,7 @@ func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSin
 	return logger, reconfigurableSink
 }
 
-func (cmd *ATCCommand) configureMetrics(logger lager.Logger) error {
+func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
 	host := cmd.Metrics.HostName
 	if host == "" {
 		host, _ = os.Hostname()
@@ -902,7 +869,7 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) error {
 	return metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
 }
 
-func (cmd *ATCCommand) constructDBConn(
+func (cmd *RunCommand) constructDBConn(
 	driverName string,
 	logger lager.Logger,
 	newKey *encryption.Key,
@@ -931,7 +898,7 @@ func (cmd *ATCCommand) constructDBConn(
 	return dbConn, nil
 }
 
-func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {
+func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	dbConn, err := sql.Open(driverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
@@ -944,7 +911,7 @@ func (cmd *ATCCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (cmd *ATCCommand) constructWorkerPool(
+func (cmd *RunCommand) constructWorkerPool(
 	logger lager.Logger,
 	workerProvider worker.WorkerProvider,
 ) worker.Client {
@@ -963,32 +930,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	)
 }
 
-func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
-	var signingKey *rsa.PrivateKey
-
-	if cmd.SessionSigningKey == "" {
-		generatedKey, err := rsa.GenerateKey(rand.Reader, 2048)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate session signing key: %s", err)
-		}
-
-		signingKey = generatedKey
-	} else {
-		rsaKeyBlob, err := ioutil.ReadFile(string(cmd.SessionSigningKey))
-		if err != nil {
-			return nil, fmt.Errorf("failed to read session signing key file: %s", err)
-		}
-
-		signingKey, err = jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse session signing key as RSA: %s", err)
-		}
-	}
-
-	return signingKey, nil
-}
-
-func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
+func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
 	team, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 	if err != nil {
 		return err
@@ -998,47 +940,12 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return errors.New("default team not found")
 	}
 
-	// var basicAuth *atc.BasicAuth
-	// if cmd.Authentication.BasicAuth.IsConfigured() {
-	// 	basicAuth = &atc.BasicAuth{
-	// 		BasicAuthUsername: cmd.Authentication.BasicAuth.Username,
-	// 		BasicAuthPassword: cmd.Authentication.BasicAuth.Password,
-	// 	}
-	// }
-
-	// err = team.UpdateBasicAuth(basicAuth)
-	// if err != nil {
-	// 	return err
-	// }
-
-	providers := provider.GetProviders()
-	teamAuth := make(map[string]*json.RawMessage)
-
-	for name, config := range cmd.ProviderAuth {
-
-		if config.IsConfigured() {
-			if err := config.Finalize(); err == nil {
-
-				p, found := providers[name]
-				if !found {
-					return errors.New("provider not found: " + name)
-				}
-
-				data, err := p.MarshalConfig(config)
-				if err != nil {
-					return err
-				}
-
-				teamAuth[name] = data
-			}
-		}
+	auth, err := cmd.Auth.MainTeamFlags.Format()
+	if err != nil {
+		return fmt.Errorf("default team auth not configured: %v", err)
 	}
 
-	if len(teamAuth) > 1 {
-		delete(teamAuth, "noauth")
-	}
-
-	err = team.UpdateProviderAuth(teamAuth)
+	err = team.UpdateProviderAuth(auth)
 	if err != nil {
 		return err
 	}
@@ -1046,7 +953,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 	return nil
 }
 
-func (cmd *ATCCommand) constructEngine(
+func (cmd *RunCommand) constructEngine(
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
@@ -1069,10 +976,10 @@ func (cmd *ATCCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine})
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURL.String())
 }
 
-func (cmd *ATCCommand) constructHTTPHandler(
+func (cmd *RunCommand) constructHTTPHandler(
 	logger lager.Logger,
 	webHandler http.Handler,
 	apiHandler http.Handler,
@@ -1080,8 +987,10 @@ func (cmd *ATCCommand) constructHTTPHandler(
 ) http.Handler {
 	webMux := http.NewServeMux()
 	webMux.Handle("/api/v1/", apiHandler)
-	webMux.Handle("/oauth/", authHandler)
+	webMux.Handle("/sky/", authHandler)
 	webMux.Handle("/auth/", authHandler)
+	webMux.Handle("/login", authHandler)
+	webMux.Handle("/logout", authHandler)
 	webMux.Handle("/", webHandler)
 
 	httpHandler := wrappa.LoggerHandler{
@@ -1101,16 +1010,18 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	return httpHandler
 }
 
-func (cmd *ATCCommand) constructAPIHandler(
+func (cmd *RunCommand) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	teamFactory db.TeamFactory,
 	dbPipelineFactory db.PipelineFactory,
+	dbJobFactory db.JobFactory,
+	dbResourceFactory db.ResourceFactory,
 	dbWorkerFactory db.WorkerFactory,
-	dbVolumeFactory db.VolumeFactory,
+	dbVolumeRepository db.VolumeRepository,
 	dbContainerRepository db.ContainerRepository,
+	gcContainerDestroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
-	signingKey *rsa.PrivateKey,
 	engine engine.Engine,
 	workerClient worker.Client,
 	workerProvider worker.WorkerProvider,
@@ -1118,6 +1029,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
 	variablesFactory creds.VariablesFactory,
+	credsManagers creds.Managers,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -1128,8 +1040,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
-			auth.JWTValidator{PublicKey: &signingKey.PublicKey},
-			auth.JWTReader{PublicKey: &signingKey.PublicKey},
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,
@@ -1143,13 +1053,14 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.ExternalURL.String(),
 		apiWrapper,
 
-		cmd.oauthBaseURL(),
-
 		teamFactory,
 		dbPipelineFactory,
+		dbJobFactory,
+		dbResourceFactory,
 		dbWorkerFactory,
-		dbVolumeFactory,
+		dbVolumeRepository,
 		dbContainerRepository,
+		gcContainerDestroyer,
 		dbBuildFactory,
 
 		cmd.PeerURL.String(),
@@ -1164,14 +1075,13 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		reconfigurableSink,
 
-		cmd.AuthDuration,
-
 		cmd.isTLSEnabled(),
 
 		cmd.CLIArtifactsDir.Path(),
 		Version,
 		WorkerVersion,
 		variablesFactory,
+		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
 	)
 }
@@ -1196,7 +1106,7 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (cmd *ATCCommand) constructPipelineSyncer(
+func (cmd *RunCommand) constructPipelineSyncer(
 	logger lager.Logger,
 	pipelineFactory db.PipelineFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
@@ -1233,7 +1143,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 	)
 }
 
-func (cmd *ATCCommand) appendStaticWorker(
+func (cmd *RunCommand) appendStaticWorker(
 	logger lager.Logger,
 	workerFactory db.WorkerFactory,
 	members []grouper.Member,
@@ -1253,7 +1163,7 @@ func (cmd *ATCCommand) appendStaticWorker(
 				logger,
 				workerFactory,
 				clock.NewClock(),
-				cmd.Worker.GardenURL.URL().Host,
+				cmd.Worker.GardenURL.URL.Host,
 				cmd.Worker.BaggageclaimURL.String(),
 				resourceTypes,
 			),
@@ -1261,7 +1171,7 @@ func (cmd *ATCCommand) appendStaticWorker(
 	)
 }
 
-func (cmd *ATCCommand) isTLSEnabled() bool {
+func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
 }
 

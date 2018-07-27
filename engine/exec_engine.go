@@ -1,18 +1,18 @@
 package engine
 
 import (
+	"context"
 	"encoding/json"
+	"io"
 	"strconv"
 	"strings"
-
-	"os"
+	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/worker"
-	"github.com/tedsuo/ifrit"
 )
 
 type execMetadata struct {
@@ -25,7 +25,9 @@ type execEngine struct {
 	factory         exec.Factory
 	delegateFactory BuildDelegateFactory
 	externalURL     string
-	releaseCh       chan struct{}
+
+	releaseCh     chan struct{}
+	trackedStates *sync.Map
 }
 
 func NewExecEngine(
@@ -37,7 +39,9 @@ func NewExecEngine(
 		factory:         factory,
 		delegateFactory: delegateFactory,
 		externalURL:     externalURL,
-		releaseCh:       make(chan struct{}),
+
+		releaseCh:     make(chan struct{}),
+		trackedStates: new(sync.Map),
 	}
 }
 
@@ -46,6 +50,8 @@ func (engine *execEngine) Name() string {
 }
 
 func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &execBuild{
 		dbBuild: build,
 
@@ -57,12 +63,17 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan 
 			Plan: plan,
 		},
 
-		releaseCh: engine.releaseCh,
-		signals:   make(chan os.Signal, 1),
+		ctx:    ctx,
+		cancel: cancel,
+
+		releaseCh:     engine.releaseCh,
+		trackedStates: engine.trackedStates,
 	}, nil
 }
 
 func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	var metadata execMetadata
 	err := json.Unmarshal([]byte(build.EngineMetadata()), &metadata)
 	if err != nil {
@@ -79,8 +90,11 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 		delegate: engine.delegateFactory.Delegate(build),
 		metadata: metadata,
 
-		releaseCh: engine.releaseCh,
-		signals:   make(chan os.Signal, 1),
+		ctx:    ctx,
+		cancel: cancel,
+
+		releaseCh:     engine.releaseCh,
+		trackedStates: engine.trackedStates,
 	}, nil
 }
 
@@ -107,8 +121,11 @@ type execBuild struct {
 	factory  exec.Factory
 	delegate BuildDelegate
 
-	signals   chan os.Signal
-	releaseCh chan struct{}
+	ctx    context.Context
+	cancel func()
+
+	releaseCh     chan struct{}
+	trackedStates *sync.Map
 
 	metadata execMetadata
 }
@@ -123,45 +140,53 @@ func (build *execBuild) Metadata() string {
 }
 
 func (build *execBuild) Abort(lager.Logger) error {
-	build.signals <- os.Kill
+	build.cancel()
 	return nil
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	stepFactory := build.buildStepFactory(logger, build.metadata.Plan)
-	source := stepFactory.Using(worker.NewArtifactRepository())
+	step := build.buildStep(logger, build.metadata.Plan)
 
-	process := ifrit.Background(source)
+	runCtx := lagerctx.NewContext(build.ctx, logger)
 
-	exited := process.Wait()
+	state := build.runState()
+	defer build.clearRunState()
 
-	aborted := false
-	var succeeded bool
+	done := make(chan error, 1)
+	go func() {
+		done <- step.Run(runCtx, state)
+	}()
 
 	for {
 		select {
 		case <-build.releaseCh:
 			logger.Info("releasing")
 			return
-		case err := <-exited:
-			if !aborted {
-				succeeded = source.Succeeded()
-			}
-
-			build.delegate.Finish(logger.Session("finish"), err, exec.Success(succeeded), aborted)
+		case err := <-done:
+			build.delegate.Finish(logger.Session("finish"), err, step.Succeeded())
 			return
-
-		case sig := <-build.signals:
-			process.Signal(sig)
-
-			if sig == os.Kill {
-				aborted = true
-			}
 		}
 	}
 }
 
-func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exec.StepFactory {
+func (build *execBuild) ReceiveInput(logger lager.Logger, plan atc.PlanID, stream io.ReadCloser) {
+	build.runState().SendUserInput(plan, stream)
+}
+
+func (build *execBuild) SendOutput(logger lager.Logger, plan atc.PlanID, output io.Writer) {
+	build.runState().ReadPlanOutput(plan, output)
+}
+
+func (build *execBuild) runState() exec.RunState {
+	existingState, _ := build.trackedStates.LoadOrStore(build.dbBuild.ID(), exec.NewRunState())
+	return existingState.(exec.RunState)
+}
+
+func (build *execBuild) clearRunState() {
+	build.trackedStates.Delete(build.dbBuild.ID())
+}
+
+func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step {
 	if plan.Aggregate != nil {
 		return build.buildAggregateStep(logger, plan)
 	}
@@ -210,7 +235,15 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 		return build.buildRetryStep(logger, plan)
 	}
 
-	return exec.Identity{}
+	if plan.UserArtifact != nil {
+		return build.buildUserArtifactStep(logger, plan)
+	}
+
+	if plan.ArtifactOutput != nil {
+		return build.buildArtifactOutputStep(logger, plan)
+	}
+
+	return exec.IdentityStep{}
 }
 
 func (build *execBuild) containerMetadata(

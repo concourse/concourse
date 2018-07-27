@@ -1,7 +1,8 @@
 package gc_test
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
+	"context"
+
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -17,9 +18,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 	var buildCollector gc.Collector
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("resource-cache-use-collector")
-		collector = gc.NewResourceCacheUseCollector(logger, resourceCacheLifecycle)
-		buildCollector = gc.NewBuildCollector(logger, buildFactory)
+		collector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
+		buildCollector = gc.NewBuildCollector(buildFactory)
 	})
 
 	Describe("Run", func() {
@@ -104,7 +104,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("before the build has completed", func() {
 					It("does not clean up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						Expect(collector.Run()).To(Succeed())
+						Expect(collector.Run(context.TODO())).To(Succeed())
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 					})
 				})
@@ -113,8 +113,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 						Expect(defaultBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
-						Expect(buildCollector.Run()).To(Succeed())
-						Expect(collector.Run()).To(Succeed())
+						Expect(buildCollector.Run(context.TODO())).To(Succeed())
+						Expect(collector.Run(context.TODO())).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
 				})
@@ -123,8 +123,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 						Expect(defaultBuild.Finish(db.BuildStatusAborted)).To(Succeed())
-						Expect(buildCollector.Run()).To(Succeed())
-						Expect(collector.Run()).To(Succeed())
+						Expect(buildCollector.Run(context.TODO())).To(Succeed())
+						Expect(collector.Run(context.TODO())).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
 				})
@@ -134,8 +134,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						It("cleans up the uses", func() {
 							Expect(countResourceCacheUses()).NotTo(BeZero())
 							Expect(defaultBuild.Finish(db.BuildStatusFailed)).To(Succeed())
-							Expect(buildCollector.Run()).To(Succeed())
-							Expect(collector.Run()).To(Succeed())
+							Expect(buildCollector.Run(context.TODO())).To(Succeed())
+							Expect(collector.Run(context.TODO())).To(Succeed())
 							Expect(countResourceCacheUses()).To(BeZero())
 						})
 					})
@@ -172,8 +172,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					It("preserves the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 						Expect(jobBuild.Finish(db.BuildStatusFailed)).To(Succeed())
-						Expect(buildCollector.Run()).To(Succeed())
-						Expect(collector.Run()).To(Succeed())
+						Expect(buildCollector.Run(context.TODO())).To(Succeed())
+						Expect(collector.Run(context.TODO())).To(Succeed())
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 					})
 				})
@@ -206,14 +206,14 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 					It("cleans up the uses", func() {
 						Expect(jobBuild.Finish(db.BuildStatusFailed)).To(Succeed())
-						Expect(buildCollector.Run()).To(Succeed())
-						Expect(collector.Run()).To(Succeed())
+						Expect(buildCollector.Run(context.TODO())).To(Succeed())
+						Expect(collector.Run(context.TODO())).To(Succeed())
 
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 
 						Expect(secondJobBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
-						Expect(buildCollector.Run()).To(Succeed())
-						Expect(collector.Run()).To(Succeed())
+						Expect(buildCollector.Run(context.TODO())).To(Succeed())
+						Expect(collector.Run(context.TODO())).To(Succeed())
 
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
@@ -257,7 +257,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("while the container is still in use", func() {
 					It("does not clean up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						Expect(collector.Run()).To(Succeed())
+						Expect(collector.Run(context.TODO())).To(Succeed())
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 					})
 				})
@@ -270,7 +270,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						destroying, err := created.Destroying()
 						Expect(err).ToNot(HaveOccurred())
 						Expect(destroying.Destroy()).To(BeTrue())
-						Expect(collector.Run()).To(Succeed())
+						Expect(collector.Run(context.TODO())).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
 				})

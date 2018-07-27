@@ -1,7 +1,10 @@
 package engine_test
 
 import (
+	"bytes"
 	"errors"
+	"io"
+	"io/ioutil"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -40,7 +43,7 @@ var _ = Describe("DBEngine", func() {
 		dbBuild = new(dbfakes.FakeBuild)
 		dbBuild.IDReturns(128)
 
-		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB})
+		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB}, "http://10.2.3.4:8080")
 	})
 
 	Describe("CreateBuild", func() {
@@ -457,11 +460,28 @@ var _ = Describe("DBEngine", func() {
 					dbBuild.AcquireTrackingLockReturns(fakeLock, true, nil)
 				})
 
+				It("updates the tracking information on the build", func() {
+					Expect(dbBuild.TrackedByCallCount()).To(Equal(1))
+					Expect(dbBuild.TrackedByArgsForCall(0)).To(Equal("http://10.2.3.4:8080"))
+				})
+
 				Context("when the build is active", func() {
 					BeforeEach(func() {
 						dbBuild.EngineReturns("fake-engine-b")
 						dbBuild.IsRunningReturns(true)
 						dbBuild.ReloadReturns(true, nil)
+					})
+
+					Context("when updating the tracking information fails", func() {
+						disaster := errors.New("oh no")
+
+						BeforeEach(func() {
+							dbBuild.TrackedByReturns(disaster)
+						})
+
+						It("does not resume the build", func() {
+							Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
+						})
 					})
 
 					Context("when the engine build exists", func() {
@@ -689,6 +709,58 @@ var _ = Describe("DBEngine", func() {
 					Expect(dbBuild.ReloadCallCount()).To(BeZero())
 					Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 				})
+			})
+		})
+
+		Describe("ReceiveInput", func() {
+			var (
+				input io.ReadCloser
+
+				realBuild *enginefakes.FakeBuild
+			)
+
+			BeforeEach(func() {
+				input = ioutil.NopCloser(bytes.NewBufferString("some-payload"))
+				dbBuild.EngineReturns("fake-engine-b")
+				realBuild = new(enginefakes.FakeBuild)
+				fakeEngineB.LookupBuildReturns(realBuild, nil)
+			})
+
+			JustBeforeEach(func() {
+				build.ReceiveInput(lagertest.NewTestLogger("test"), "some-plan-id", input)
+			})
+
+			It("delegates to the real build", func() {
+				Expect(realBuild.ReceiveInputCallCount()).To(Equal(1))
+				_, id, in := realBuild.ReceiveInputArgsForCall(0)
+				Expect(id).To(Equal(atc.PlanID("some-plan-id")))
+				Expect(in).To(Equal(input))
+			})
+		})
+
+		Describe("SendOutput", func() {
+			var (
+				output *bytes.Buffer
+
+				realBuild *enginefakes.FakeBuild
+			)
+
+			BeforeEach(func() {
+				output = new(bytes.Buffer)
+				dbBuild.EngineReturns("fake-engine-b")
+				realBuild = new(enginefakes.FakeBuild)
+				fakeEngineB.LookupBuildReturns(realBuild, nil)
+			})
+
+			JustBeforeEach(func() {
+				build.SendOutput(lagertest.NewTestLogger("test"), "some-plan-id", output)
+			})
+
+			It("delegates to the real build", func() {
+				Expect(realBuild.SendOutputCallCount()).To(Equal(1))
+				_, id, out := realBuild.SendOutputArgsForCall(0)
+				Expect(id).To(Equal(atc.PlanID("some-plan-id")))
+				Expect(out).To(Equal(output))
 			})
 		})
 	})

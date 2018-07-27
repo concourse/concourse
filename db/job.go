@@ -23,6 +23,7 @@ type Job interface {
 	TeamID() int
 	TeamName() string
 	Config() atc.JobConfig
+	Tags() []string
 
 	Reload() (bool, error)
 
@@ -48,7 +49,7 @@ type Job interface {
 	GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bool, error)
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "array_to_json(j.tags)").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -73,6 +74,7 @@ type job struct {
 	teamID             int
 	teamName           string
 	config             atc.JobConfig
+	tags               []string
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -99,6 +101,7 @@ func (j *job) PipelineName() string    { return j.pipelineName }
 func (j *job) TeamID() int             { return j.teamID }
 func (j *job) TeamName() string        { return j.teamName }
 func (j *job) Config() atc.JobConfig   { return j.config }
+func (j *job) Tags() []string          { return j.tags }
 
 func (j *job) Reload() (bool, error) {
 	row := jobsQuery.Where(sq.Eq{"j.id": j.id}).
@@ -565,12 +568,12 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	err = tx.Commit()
+	err = updateNextBuildForJob(tx, j.id)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = j.conn.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY next_builds_per_job`)
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -787,13 +790,8 @@ func (j *job) nextBuild() (Build, error) {
 	var next Build
 
 	row := buildsQuery.
-		Where(sq.Eq{
-			"j.name":        j.name,
-			"j.pipeline_id": j.pipelineID,
-			"b.status":      []BuildStatus{BuildStatusPending, BuildStatusStarted},
-		}).
-		OrderBy("b.id ASC").
-		Limit(1).
+		Where(sq.Eq{"j.id": j.id}).
+		Where(sq.Expr("b.id = j.next_build_id")).
 		RunWith(j.conn).
 		QueryRow()
 
@@ -812,13 +810,8 @@ func (j *job) finishedBuild() (Build, error) {
 	var finished Build
 
 	row := buildsQuery.
-		Where(sq.Eq{
-			"j.name":        j.name,
-			"j.pipeline_id": j.pipelineID,
-		}).
-		Where(sq.Expr("b.status NOT IN ('pending', 'started')")).
-		OrderBy("b.id DESC").
-		Limit(1).
+		Where(sq.Eq{"j.id": j.id}).
+		Where(sq.Expr("b.id = j.latest_completed_build_id")).
 		RunWith(j.conn).
 		QueryRow()
 
@@ -837,9 +830,11 @@ func scanJob(j *job, row scannable) error {
 	var (
 		configBlob []byte
 		nonce      sql.NullString
+		tagsBlob   []byte
+		tags       []string
 	)
 
-	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce)
+	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, &tagsBlob)
 	if err != nil {
 		return err
 	}
@@ -863,6 +858,9 @@ func scanJob(j *job, row scannable) error {
 	}
 
 	j.config = config
+
+	json.Unmarshal(tagsBlob, &tags)
+	j.tags = tags
 
 	return nil
 }

@@ -1,11 +1,13 @@
 package lockrunner
 
 import (
+	"context"
 	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc/db/lock"
 	"github.com/tedsuo/ifrit"
 )
@@ -13,7 +15,7 @@ import (
 //go:generate counterfeiter . Task
 
 type Task interface {
-	Run() error
+	Run(context.Context) error
 }
 
 func NewRunner(
@@ -33,29 +35,29 @@ func NewRunner(
 		for {
 			select {
 			case <-ticker.C():
-				lockLogger := logger.Session("lock-task", lager.Data{"task-name": taskName})
-				lockLogger.Debug("tick")
+				lockLogger := logger.Session("tick")
 
 				lock, acquired, err := lockFactory.Acquire(lockLogger, lock.NewTaskLockID(taskName))
-
 				if err != nil {
-					lockLogger.Error("failed-to-get-lock", err)
 					break
 				}
 
 				if !acquired {
-					lockLogger.Debug("did-not-get-lock")
 					break
 				}
 
-				lockLogger.Debug("run-task", lager.Data{"task-name": taskName})
+				ctx := lagerctx.NewContext(context.Background(), lockLogger)
 
-				err = task.Run()
+				err = task.Run(ctx)
 				if err != nil {
 					lockLogger.Error("failed-to-run-task", err, lager.Data{"task-name": taskName})
 				}
 
-				lock.Release()
+				err = lock.Release()
+				if err != nil {
+					lockLogger.Error("failed-to-release", err)
+					break
+				}
 			case <-signals:
 				return nil
 			}

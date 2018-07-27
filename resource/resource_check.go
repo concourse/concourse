@@ -1,8 +1,9 @@
 package resource
 
 import (
+	"context"
+
 	"github.com/concourse/atc"
-	"github.com/tedsuo/ifrit"
 )
 
 type checkRequest struct {
@@ -13,16 +14,15 @@ type checkRequest struct {
 func (resource *resource) Check(source atc.Source, fromVersion atc.Version) ([]atc.Version, error) {
 	var versions []atc.Version
 
-	checking := ifrit.Invoke(resource.runScript(
+	err := resource.runScript(
+		context.TODO(),
 		"/opt/resource/check",
 		nil,
 		checkRequest{source, fromVersion},
 		&versions,
 		nil,
 		false,
-	))
-
-	err := <-checking.Wait()
+	)
 	if err != nil {
 		return nil, err
 	}

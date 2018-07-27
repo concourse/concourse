@@ -17,6 +17,7 @@ const (
 
 	GetJob         = "GetJob"
 	CreateJobBuild = "CreateJobBuild"
+	ListAllJobs    = "ListAllJobs"
 	ListJobs       = "ListJobs"
 	ListJobBuilds  = "ListJobBuilds"
 	ListJobInputs  = "ListJobInputs"
@@ -27,7 +28,9 @@ const (
 	JobBadge       = "JobBadge"
 	MainJobBadge   = "MainJobBadge"
 
+	ListAllResources     = "ListAllResources"
 	ListResources        = "ListResources"
+	ListResourceTypes    = "ListResourceTypes"
 	GetResource          = "GetResource"
 	PauseResource        = "PauseResource"
 	UnpauseResource      = "UnpauseResource"
@@ -52,12 +55,9 @@ const (
 	ExposePipeline      = "ExposePipeline"
 	HidePipeline        = "HidePipeline"
 	RenamePipeline      = "RenamePipeline"
+	ListPipelineBuilds  = "ListPipelineBuilds"
 	CreatePipelineBuild = "CreatePipelineBuild"
 	PipelineBadge       = "PipelineBadge"
-
-	CreatePipe = "CreatePipe"
-	WritePipe  = "WritePipe"
-	ReadPipe   = "ReadPipe"
 
 	RegisterWorker  = "RegisterWorker"
 	LandWorker      = "LandWorker"
@@ -70,38 +70,47 @@ const (
 	SetLogLevel = "SetLogLevel"
 	GetLogLevel = "GetLogLevel"
 
-	DownloadCLI = "DownloadCLI"
-	GetInfo     = "Info"
+	DownloadCLI  = "DownloadCLI"
+	GetInfo      = "Info"
+	GetInfoCreds = "InfoCreds"
 
-	ListContainers  = "ListContainers"
-	GetContainer    = "GetContainer"
-	HijackContainer = "HijackContainer"
+	ListContainers           = "ListContainers"
+	GetContainer             = "GetContainer"
+	HijackContainer          = "HijackContainer"
+	ListDestroyingContainers = "ListDestroyingContainers"
+	ReportWorkerContainers   = "ReportWorkerContainers"
 
-	ListVolumes = "ListVolumes"
+	ListVolumes           = "ListVolumes"
+	ListDestroyingVolumes = "ListDestroyingVolumes"
+	ReportWorkerVolumes   = "ReportWorkerVolumes"
 
-	LegacyListAuthMethods = "LegacyListAuthMethods"
-	LegacyGetAuthToken    = "LegacyGetAuthToken"
-	LegacyGetUser         = "LegacyGetUser"
+	ListTeams      = "ListTeams"
+	SetTeam        = "SetTeam"
+	RenameTeam     = "RenameTeam"
+	DestroyTeam    = "DestroyTeam"
+	ListTeamBuilds = "ListTeamBuilds"
 
-	ListTeams   = "ListTeams"
-	SetTeam     = "SetTeam"
-	RenameTeam  = "RenameTeam"
-	DestroyTeam = "DestroyTeam"
+	SendInputToBuildPlan    = "SendInputToBuildPlan"
+	ReadOutputFromBuildPlan = "ReadOutputFromBuildPlan"
 )
 
 var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/config", Method: "PUT", Name: SaveConfig},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/config", Method: "GET", Name: GetConfig},
 
-	{Path: "/api/v1/builds", Method: "POST", Name: CreateBuild},
+	{Path: "/api/v1/teams/:team_name/builds", Method: "POST", Name: CreateBuild},
+
 	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},
 	{Path: "/api/v1/builds/:build_id", Method: "GET", Name: GetBuild},
 	{Path: "/api/v1/builds/:build_id/plan", Method: "GET", Name: GetBuildPlan},
+	{Path: "/api/v1/builds/:build_id/plan/:plan_id/input", Method: "PUT", Name: SendInputToBuildPlan},
+	{Path: "/api/v1/builds/:build_id/plan/:plan_id/output", Method: "GET", Name: ReadOutputFromBuildPlan},
 	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},
 	{Path: "/api/v1/builds/:build_id/resources", Method: "GET", Name: BuildResources},
 	{Path: "/api/v1/builds/:build_id/abort", Method: "PUT", Name: AbortBuild},
 	{Path: "/api/v1/builds/:build_id/preparation", Method: "GET", Name: GetBuildPreparation},
 
+	{Path: "/api/v1/jobs", Method: "GET", Name: ListAllJobs},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", Method: "GET", Name: ListJobs},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name", Method: "GET", Name: GetJob},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds", Method: "GET", Name: ListJobBuilds},
@@ -124,10 +133,13 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/hide", Method: "PUT", Name: HidePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/versions-db", Method: "GET", Name: GetVersionsDB},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/rename", Method: "PUT", Name: RenamePipeline},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/builds", Method: "GET", Name: ListPipelineBuilds},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/builds", Method: "POST", Name: CreatePipelineBuild},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/badge", Method: "GET", Name: PipelineBadge},
 
+	{Path: "/api/v1/resources", Method: "GET", Name: ListAllResources},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types", Method: "GET", Name: ListResourceTypes},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name", Method: "GET", Name: GetResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pause", Method: "PUT", Name: PauseResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/unpause", Method: "PUT", Name: UnpauseResource},
@@ -142,10 +154,6 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/causality", Method: "GET", Name: GetResourceCausality},
 
-	{Path: "/api/v1/pipes", Method: "POST", Name: CreatePipe},
-	{Path: "/api/v1/pipes/:pipe_id", Method: "PUT", Name: WritePipe},
-	{Path: "/api/v1/pipes/:pipe_id", Method: "GET", Name: ReadPipe},
-
 	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
 	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
 	{Path: "/api/v1/workers/:worker_name/land", Method: "PUT", Name: LandWorker},
@@ -159,19 +167,21 @@ var Routes = rata.Routes([]rata.Route{
 
 	{Path: "/api/v1/cli", Method: "GET", Name: DownloadCLI},
 	{Path: "/api/v1/info", Method: "GET", Name: GetInfo},
+	{Path: "/api/v1/info/creds", Method: "GET", Name: GetInfoCreds},
 
-	{Path: "/api/v1/containers", Method: "GET", Name: ListContainers},
-	{Path: "/api/v1/containers/:id", Method: "GET", Name: GetContainer},
-	{Path: "/api/v1/containers/:id/hijack", Method: "GET", Name: HijackContainer},
+	{Path: "/api/v1/containers/destroying", Method: "GET", Name: ListDestroyingContainers},
+	{Path: "/api/v1/containers/report", Method: "PUT", Name: ReportWorkerContainers},
+	{Path: "/api/v1/teams/:team_name/containers", Method: "GET", Name: ListContainers},
+	{Path: "/api/v1/teams/:team_name/containers/:id", Method: "GET", Name: GetContainer},
+	{Path: "/api/v1/teams/:team_name/containers/:id/hijack", Method: "GET", Name: HijackContainer},
 
-	{Path: "/api/v1/volumes", Method: "GET", Name: ListVolumes},
-
-	{Path: "/api/v1/teams/:team_name/auth/methods", Method: "GET", Name: LegacyListAuthMethods},
-	{Path: "/api/v1/teams/:team_name/auth/token", Method: "GET", Name: LegacyGetAuthToken},
-	{Path: "/api/v1/user", Method: "GET", Name: LegacyGetUser},
+	{Path: "/api/v1/teams/:team_name/volumes", Method: "GET", Name: ListVolumes},
+	{Path: "/api/v1/volumes/destroying", Method: "GET", Name: ListDestroyingVolumes},
+	{Path: "/api/v1/volumes/report", Method: "PUT", Name: ReportWorkerVolumes},
 
 	{Path: "/api/v1/teams", Method: "GET", Name: ListTeams},
 	{Path: "/api/v1/teams/:team_name", Method: "PUT", Name: SetTeam},
 	{Path: "/api/v1/teams/:team_name/rename", Method: "PUT", Name: RenameTeam},
 	{Path: "/api/v1/teams/:team_name", Method: "DELETE", Name: DestroyTeam},
+	{Path: "/api/v1/teams/:team_name/builds", Method: "GET", Name: ListTeamBuilds},
 })

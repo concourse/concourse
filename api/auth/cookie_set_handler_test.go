@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 
@@ -48,7 +49,7 @@ var _ = Describe("CookieSetHandler", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("does not set ATC-Authorization", func() {
+		It("does not set auth cookie", func() {
 			Expect(response.Cookies()).To(HaveLen(0))
 		})
 
@@ -61,7 +62,7 @@ var _ = Describe("CookieSetHandler", func() {
 			Expect(csrfRequiredContext).To(BeNil())
 		})
 
-		Context("with the ATC-Authorization cookie", func() {
+		Context("with the auth cookie", func() {
 			BeforeEach(func() {
 				request.AddCookie(&http.Cookie{
 					Name:  auth.AuthCookieName,
@@ -74,8 +75,11 @@ var _ = Describe("CookieSetHandler", func() {
 			})
 
 			It("sets CSRF required context in request", func() {
-				csrfRequiredContext := givenRequest.Context().Value(auth.CSRFRequiredKey).(bool)
-				Expect(csrfRequiredContext).To(BeTrue())
+				csrfRequiredContext := givenRequest.Context().Value(auth.CSRFRequiredKey)
+				Expect(csrfRequiredContext).NotTo(BeNil())
+
+				boolCsrf := csrfRequiredContext.(bool)
+				Expect(boolCsrf).To(BeFalse())
 			})
 
 			Context("and the request also has an Authorization header", func() {
@@ -87,6 +91,35 @@ var _ = Describe("CookieSetHandler", func() {
 					Expect(givenRequest.Header.Get("Authorization")).To(Equal("foobar"))
 				})
 			})
+		})
+
+	})
+	Describe("CSRF Required", func() {
+		var request *http.Request
+		var err error
+		Context("when CSRF context is set", func() {
+			BeforeEach(func() {
+				request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
+				Expect(err).To(BeNil())
+
+				ctx := context.WithValue(request.Context(), auth.CSRFRequiredKey, true)
+				request = request.WithContext(ctx)
+
+			})
+			It("fetches the bool value", func() {
+				Expect(auth.IsCSRFRequired(request)).To(BeTrue())
+			})
+		})
+
+		Context("when CSRF context is not set", func() {
+			BeforeEach(func() {
+				request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
+				Expect(err).To(BeNil())
+			})
+			It("fetches the bool value", func() {
+				Expect(auth.IsCSRFRequired(request)).To(BeFalse())
+			})
+
 		})
 	})
 })

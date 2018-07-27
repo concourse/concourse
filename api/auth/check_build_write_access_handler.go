@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/db"
 )
 
@@ -42,7 +43,8 @@ type checkBuildWriteAccessHandler struct {
 }
 
 func (h checkBuildWriteAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !IsAuthenticated(r) {
+	acc := accessor.GetAccessor(r)
+	if !acc.IsAuthenticated() {
 		h.rejector.Unauthorized(w, r)
 		return
 	}
@@ -65,8 +67,7 @@ func (h checkBuildWriteAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	authTeam, authTeamFound := GetTeam(r)
-	if authTeamFound && !authTeam.IsAuthorized(build.TeamName()) {
+	if !acc.IsAuthorized(build.TeamName()) {
 		h.rejector.Forbidden(w, r)
 		return
 	}

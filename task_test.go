@@ -158,6 +158,97 @@ run: {path: a/file}
 			})
 		})
 
+		Context("when container limits are specified", func() {
+			Context("when memory and cpu limits are correctly specified", func() {
+				It("successfully parses the limits with memory units", func() {
+					data := []byte(`
+platform: beos
+container_limits: { cpu: 1024, memory: 1KB }
+
+run: {path: a/file}
+`)
+					task, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(task.Limits).To(Equal(ContainerLimits{
+						CPU:    1024,
+						Memory: 1024,
+					}))
+				})
+
+				It("successfully parses the limits without memory units", func() {
+					data := []byte(`
+platform: beos
+container_limits: { cpu: 1024, memory: 209715200 }
+
+run: {path: a/file}
+`)
+					task, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(task.Limits).To(Equal(ContainerLimits{
+						CPU:    1024,
+						Memory: 209715200,
+					}))
+				})
+			})
+
+			Context("when either one of memory or cpu is correctly specified", func() {
+				It("parses the provided memory limit without any errors", func() {
+					data := []byte(`
+platform: beos
+container_limits: { memory: 1KB }
+
+run: {path: a/file}
+`)
+					task, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(task.Limits).To(Equal(ContainerLimits{
+						Memory: 1024,
+					}))
+				})
+
+				It("parses the provided cpu limit without any errors", func() {
+					data := []byte(`
+platform: beos
+container_limits: { cpu: 355 }
+
+run: {path: a/file}
+`)
+					task, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(task.Limits).To(Equal(ContainerLimits{
+						CPU: 355,
+					}))
+				})
+			})
+
+			Context("when invalid memory limit value is provided", func() {
+				It("throws an error and does not continue", func() {
+					data := []byte(`
+platform: beos
+container_limits: { cpu: 1024, memory: abc1000kb  }
+
+run: {path: a/file}
+`)
+					_, err := NewTaskConfig(data)
+					Expect(err).To(MatchError(ContainSubstring("could not parse container memory limit")))
+				})
+
+			})
+
+			Context("when invalid cpu limit value is provided", func() {
+				It("throws an error and does not continue", func() {
+					data := []byte(`
+platform: beos
+container_limits: { cpu: str1ng-cpu-l1mit, memory: 20MB}
+
+run: {path: a/file}
+`)
+					_, err := NewTaskConfig(data)
+					Expect(err).To(MatchError(ContainSubstring("cpu limit must be an integer")))
+				})
+			})
+		})
+
 		Context("when the task has inputs", func() {
 			BeforeEach(func() {
 				validConfig.Inputs = append(validConfig.Inputs, TaskInputConfig{Name: "concourse"})

@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/onsi/gomega/gbytes"
@@ -24,10 +25,13 @@ var _ = Describe("Config API", func() {
 	var (
 		pipelineConfig   atc.Config
 		requestGenerator *rata.RequestGenerator
+		fakeaccess       *accessorfakes.FakeAccess
 	)
 
 	BeforeEach(func() {
 		requestGenerator = rata.NewRequestGenerator(server.URL, atc.Routes)
+
+		fakeaccess = new(accessorfakes.FakeAccess)
 
 		pipelineConfig = atc.Config{
 			Groups: atc.GroupConfigs{
@@ -61,6 +65,7 @@ var _ = Describe("Config API", func() {
 					Name:   "custom-resource",
 					Type:   "custom-type",
 					Source: atc.Source{"custom": "source"},
+					Tags:   atc.Tags{"some-tag"},
 				},
 			},
 
@@ -117,6 +122,10 @@ var _ = Describe("Config API", func() {
 		}
 	})
 
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
+	})
+
 	Describe("GET /api/v1/teams/:team_name/pipelines/:name/config", func() {
 		var (
 			response *http.Response
@@ -135,8 +144,8 @@ var _ = Describe("Config API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when the team is found", func() {
@@ -247,12 +256,17 @@ var _ = Describe("Config API", func() {
 									fakeResourceType.NameReturns("custom-resource")
 									fakeResourceType.TypeReturns("custom-type")
 									fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
+									fakeResourceType.TagsReturns(atc.Tags{"some-tag"})
 
 									fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeResourceType}, nil)
 								})
 
 								It("returns 200", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusOK))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 								})
 
 								It("returns the config version as X-Concourse-Config-Version", func() {
@@ -349,9 +363,9 @@ var _ = Describe("Config API", func() {
 			})
 		})
 
-		Context("when not authorized", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -383,8 +397,8 @@ var _ = Describe("Config API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when a config version is specified", func() {
@@ -401,6 +415,10 @@ var _ = Describe("Config API", func() {
 
 						It("returns 400", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 						})
 
 						It("returns error JSON", func() {
@@ -425,6 +443,10 @@ var _ = Describe("Config API", func() {
 
 						It("returns 400", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 						})
 
 						It("returns error JSON", func() {
@@ -455,6 +477,10 @@ var _ = Describe("Config API", func() {
 
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 						})
 
 						It("saves it", func() {
@@ -504,6 +530,10 @@ var _ = Describe("Config API", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
 							It("returns error JSON", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
@@ -531,6 +561,10 @@ var _ = Describe("Config API", func() {
 
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 						})
 
 						It("saves it", func() {
@@ -580,6 +614,10 @@ jobs:
 
 							It("returns 200", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
+
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 							})
 
 							It("saves it", func() {
@@ -666,6 +704,10 @@ jobs:
 								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
 							It("returns error JSON", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
@@ -721,6 +763,10 @@ jobs:
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
 							It("saves it", func() {
 								Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
@@ -764,6 +810,10 @@ jobs:
 
 								It("returns 400", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 								})
 
 								It("returns error JSON", func() {
@@ -856,6 +906,10 @@ jobs:
 								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
 							It("returns error JSON", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
 										"errors": [
@@ -890,6 +944,10 @@ jobs:
 
 								It("returns 400", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 								})
 
 								It("returns error JSON", func() {
@@ -929,6 +987,10 @@ jobs:
 
 								It("returns 400", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 								})
 
 								It("returns error JSON", func() {
@@ -995,6 +1057,10 @@ jobs:
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
 					It("saves it", func() {
 						Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
@@ -1037,6 +1103,10 @@ jobs:
 						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 					})
 
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
 					It("returns an error in the response body", func() {
 						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
@@ -1061,6 +1131,10 @@ jobs:
 					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 
+				It("returns Content-Type 'application/json'", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
 				It("returns an error in the response body", func() {
 					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
@@ -1078,7 +1152,7 @@ jobs:
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {

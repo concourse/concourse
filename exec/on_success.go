@@ -1,37 +1,22 @@
 package exec
 
 import (
-	"os"
-
-	"github.com/concourse/atc/worker"
+	"context"
 )
 
 // OnSuccessStep will run one step, and then a second step if the first step
 // succeeds.
 type OnSuccessStep struct {
-	stepFactory    StepFactory
-	successFactory StepFactory
-
-	repo *worker.ArtifactRepository
-
-	step    Step
-	success Step
+	step Step
+	hook Step
 }
 
 // OnSuccess constructs an OnSuccessStep factory.
-func OnSuccess(firstStep StepFactory, secondStep StepFactory) OnSuccessStep {
+func OnSuccess(firstStep Step, secondStep Step) Step {
 	return OnSuccessStep{
-		stepFactory:    firstStep,
-		successFactory: secondStep,
+		step: firstStep,
+		hook: secondStep,
 	}
-}
-
-// Using constructs an *OnSuccessStep.
-func (o OnSuccessStep) Using(repo *worker.ArtifactRepository) Step {
-	o.repo = repo
-
-	o.step = o.stepFactory.Using(o.repo)
-	return &o
 }
 
 // Run will call Run on the first step and wait for it to complete. If the
@@ -40,27 +25,22 @@ func (o OnSuccessStep) Using(repo *worker.ArtifactRepository) Step {
 //
 // If the first step succeeds (that is, its Success result is true), the second
 // step is executed. If the second step errors, its error is returned.
-func (o *OnSuccessStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	stepRunErr := o.step.Run(signals, ready)
-
+func (o OnSuccessStep) Run(ctx context.Context, state RunState) error {
+	stepRunErr := o.step.Run(ctx, state)
 	if stepRunErr != nil {
 		return stepRunErr
 	}
 
 	success := o.step.Succeeded()
-
 	if !success {
 		return nil
 	}
 
-	o.success = o.successFactory.Using(o.repo)
-
-	err := o.success.Run(signals, make(chan struct{}))
-	return err
+	return o.hook.Run(ctx, state)
 }
 
 // Succeeded is true if the first step completed and the second
 // step completed successfully.
-func (o *OnSuccessStep) Succeeded() bool {
-	return o.step.Succeeded() && o.success.Succeeded()
+func (o OnSuccessStep) Succeeded() bool {
+	return o.step.Succeeded() && o.hook.Succeeded()
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/db"
 )
 
@@ -40,23 +41,13 @@ type checkWorkerTeamHandler struct {
 }
 
 func (h checkWorkerTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !IsAuthenticated(r) {
+	acc := accessor.GetAccessor(r)
+	if !acc.IsAuthenticated() {
 		h.rejector.Unauthorized(w, r)
 		return
 	}
 
-	if IsSystem(r) {
-		h.delegateHandler.ServeHTTP(w, r)
-		return
-	}
-
-	team, found := GetTeam(r)
-	if !found {
-		h.rejector.Unauthorized(w, r)
-		return
-	}
-
-	if team.IsAdmin() {
+	if acc.IsSystem() || acc.IsAdmin() {
 		h.delegateHandler.ServeHTTP(w, r)
 		return
 	}
@@ -74,9 +65,11 @@ func (h checkWorkerTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if worker.TeamName() != team.Name() {
-		h.rejector.Forbidden(w, r)
-		return
+	if worker.TeamName() != "" {
+		if !acc.IsAuthorized(worker.TeamName()) {
+			h.rejector.Forbidden(w, r)
+			return
+		}
 	}
 
 	h.delegateHandler.ServeHTTP(w, r)

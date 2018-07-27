@@ -16,7 +16,8 @@ type ScannerFactory interface {
 type scannerFactory struct {
 	resourceFactory                   resource.ResourceFactory
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory
-	defaultInterval                   time.Duration
+	resourceTypeCheckingInterval      time.Duration
+	resourceCheckingInterval          time.Duration
 	externalURL                       string
 	variablesFactory                  creds.VariablesFactory
 }
@@ -30,37 +31,42 @@ var ContainerExpiries = db.ContainerOwnerExpiries{
 func NewScannerFactory(
 	resourceFactory resource.ResourceFactory,
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory,
-	defaultInterval time.Duration,
+	resourceTypeCheckingInterval time.Duration,
+	resourceCheckingInterval time.Duration,
 	externalURL string,
 	variablesFactory creds.VariablesFactory,
 ) ScannerFactory {
 	return &scannerFactory{
 		resourceFactory:                   resourceFactory,
 		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,
-		defaultInterval:                   defaultInterval,
+		resourceCheckingInterval:          resourceCheckingInterval,
+		resourceTypeCheckingInterval:      resourceTypeCheckingInterval,
 		externalURL:                       externalURL,
 		variablesFactory:                  variablesFactory,
 	}
 }
 
 func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
+	variables := f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name())
+
 	resourceTypeScanner := NewResourceTypeScanner(
 		clock.NewClock(),
 		f.resourceFactory,
 		f.resourceConfigCheckSessionFactory,
-		f.defaultInterval,
+		f.resourceTypeCheckingInterval,
 		dbPipeline,
 		f.externalURL,
-		f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name()),
+		variables,
 	)
 
-	return NewResourceScanner(clock.NewClock(),
+	return NewResourceScanner(
+		clock.NewClock(),
 		f.resourceFactory,
 		f.resourceConfigCheckSessionFactory,
-		f.defaultInterval,
+		f.resourceCheckingInterval,
 		dbPipeline,
 		f.externalURL,
-		f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name()),
+		variables,
 		resourceTypeScanner,
 	)
 }

@@ -27,7 +27,7 @@ type dbWorkerProvider struct {
 	dbResourceConfigFactory           db.ResourceConfigFactory
 	dbWorkerBaseResourceTypeFactory   db.WorkerBaseResourceTypeFactory
 	dbWorkerTaskCacheFactory          db.WorkerTaskCacheFactory
-	dbVolumeFactory                   db.VolumeFactory
+	dbVolumeRepository                db.VolumeRepository
 	dbTeamFactory                     db.TeamFactory
 	dbWorkerFactory                   db.WorkerFactory
 	workerVersion                     *version.Version
@@ -42,7 +42,7 @@ func NewDBWorkerProvider(
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
 	dbWorkerTaskCacheFactory db.WorkerTaskCacheFactory,
-	dbVolumeFactory db.VolumeFactory,
+	dbVolumeRepository db.VolumeRepository,
 	dbTeamFactory db.TeamFactory,
 	workerFactory db.WorkerFactory,
 	workerVersion *version.Version,
@@ -56,7 +56,7 @@ func NewDBWorkerProvider(
 		dbResourceConfigFactory:           dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory:   dbWorkerBaseResourceTypeFactory,
 		dbWorkerTaskCacheFactory:          dbWorkerTaskCacheFactory,
-		dbVolumeFactory:                   dbVolumeFactory,
+		dbVolumeRepository:                dbVolumeRepository,
 		dbTeamFactory:                     dbTeamFactory,
 		dbWorkerFactory:                   workerFactory,
 		workerVersion:                     workerVersion,
@@ -165,7 +165,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		savedWorker,
 		clock.NewClock(),
 		provider.lockFactory,
-		provider.dbVolumeFactory,
+		provider.dbVolumeRepository,
 		provider.dbWorkerBaseResourceTypeFactory,
 		provider.dbWorkerTaskCacheFactory,
 	)
@@ -173,11 +173,12 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 	containerProvider := NewContainerProvider(
 		gClient,
 		bClient,
+		// rClient,
 		volumeClient,
 		savedWorker,
 		tikTok,
 		provider.imageFactory,
-		provider.dbVolumeFactory,
+		provider.dbVolumeRepository,
 		provider.dbTeamFactory,
 		provider.lockFactory,
 	)
@@ -185,6 +186,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 	return NewGardenWorker(
 		gClient,
 		bClient,
+		// rClient,
 		containerProvider,
 		volumeClient,
 		savedWorker,

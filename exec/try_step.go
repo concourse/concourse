@@ -1,41 +1,34 @@
 package exec
 
 import (
-	"os"
-
-	"github.com/concourse/atc/worker"
+	"context"
 )
 
 // TryStep wraps another step, ignores its errors, and always succeeds.
 type TryStep struct {
-	step    StepFactory
-	runStep Step
+	step Step
 }
 
-// Try constructs a TryStep factory.
-func Try(step StepFactory) TryStep {
+// Try constructs a TryStep.
+func Try(step Step) Step {
 	return TryStep{
 		step: step,
 	}
 }
 
-// Using constructs a *TryStep.
-func (ts TryStep) Using(repo *worker.ArtifactRepository) Step {
-	ts.runStep = ts.step.Using(repo)
-	return &ts
-}
-
 // Run runs the nested step, and always returns nil, ignoring the nested step's
 // error.
-func (ts *TryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	err := ts.runStep.Run(signals, ready)
-	if err == ErrInterrupted {
+func (ts TryStep) Run(ctx context.Context, state RunState) error {
+	err := ts.step.Run(ctx, state)
+	if err == context.Canceled {
+		// propagate aborts but not timeouts
 		return err
 	}
+
 	return nil
 }
 
 // Succeeded is true
-func (ts *TryStep) Succeeded() bool {
+func (ts TryStep) Succeeded() bool {
 	return true
 }

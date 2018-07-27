@@ -28,7 +28,7 @@ var _ = Describe("VolumeClient", func() {
 
 		fakeBaggageclaimClient            *baggageclaimfakes.FakeClient
 		fakeLockFactory                   *lockfakes.FakeLockFactory
-		fakeDBVolumeFactory               *dbfakes.FakeVolumeFactory
+		fakeDBVolumeRepository            *dbfakes.FakeVolumeRepository
 		fakeWorkerBaseResourceTypeFactory *dbfakes.FakeWorkerBaseResourceTypeFactory
 		fakeWorkerTaskCacheFactory        *dbfakes.FakeWorkerTaskCacheFactory
 		fakeClock                         *fakeclock.FakeClock
@@ -46,7 +46,7 @@ var _ = Describe("VolumeClient", func() {
 
 		testLogger = lagertest.NewTestLogger("test")
 
-		fakeDBVolumeFactory = new(dbfakes.FakeVolumeFactory)
+		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
 		fakeWorkerBaseResourceTypeFactory = new(dbfakes.FakeWorkerBaseResourceTypeFactory)
 		fakeWorkerTaskCacheFactory = new(dbfakes.FakeWorkerTaskCacheFactory)
 		fakeLock = new(lockfakes.FakeLock)
@@ -57,7 +57,7 @@ var _ = Describe("VolumeClient", func() {
 			fakeClock,
 
 			fakeLockFactory,
-			fakeDBVolumeFactory,
+			fakeDBVolumeRepository,
 			fakeWorkerBaseResourceTypeFactory,
 			fakeWorkerTaskCacheFactory,
 		)
@@ -75,7 +75,7 @@ var _ = Describe("VolumeClient", func() {
 			fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
 			fakeCreatingVolume = new(dbfakes.FakeCreatingVolume)
 			fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
-			fakeDBVolumeFactory.CreateContainerVolumeReturns(fakeCreatingVolume, nil)
+			fakeDBVolumeRepository.CreateContainerVolumeReturns(fakeCreatingVolume, nil)
 
 			volumeStrategy = baggageclaim.ImportStrategy{
 				Path: "/some/path",
@@ -97,7 +97,7 @@ var _ = Describe("VolumeClient", func() {
 
 		Context("when volume exists in creating state", func() {
 			BeforeEach(func() {
-				fakeDBVolumeFactory.FindContainerVolumeReturns(fakeCreatingVolume, nil, nil)
+				fakeDBVolumeRepository.FindContainerVolumeReturns(fakeCreatingVolume, nil, nil)
 			})
 
 			Context("when acquiring volume creating lock fails", func() {
@@ -130,7 +130,7 @@ var _ = Describe("VolumeClient", func() {
 
 				It("retries to find volume again", func() {
 					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(3))
-					Expect(fakeDBVolumeFactory.FindContainerVolumeCallCount()).To(Equal(3))
+					Expect(fakeDBVolumeRepository.FindContainerVolumeCallCount()).To(Equal(3))
 				})
 			})
 
@@ -195,7 +195,8 @@ var _ = Describe("VolumeClient", func() {
 			BeforeEach(func() {
 				fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
 				fakeCreatedVolume.HandleReturns("fake-handle")
-				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
+				fakeCreatedVolume.WorkerNameReturns("fake-worker")
+				fakeDBVolumeRepository.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
 			})
 
 			Context("when volume exists in baggageclaim", func() {
@@ -216,7 +217,7 @@ var _ = Describe("VolumeClient", func() {
 
 				It("returns an error", func() {
 					Expect(foundOrCreatedErr).To(HaveOccurred())
-					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("failed to find created volume in baggageclaim. Volume handle: fake-handle"))
+					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("volume 'fake-handle' disappeared from worker 'fake-worker'"))
 				})
 			})
 		})
@@ -225,9 +226,9 @@ var _ = Describe("VolumeClient", func() {
 			var fakeCreatedVolume *dbfakes.FakeCreatedVolume
 
 			BeforeEach(func() {
-				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, nil, nil)
+				fakeDBVolumeRepository.FindContainerVolumeReturns(nil, nil, nil)
 				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-				fakeDBVolumeFactory.CreateContainerVolumeReturns(fakeCreatingVolume, nil)
+				fakeDBVolumeRepository.CreateContainerVolumeReturns(fakeCreatingVolume, nil)
 				fakeCreatedVolume = new(dbfakes.FakeCreatedVolume)
 				fakeCreatingVolume.CreatedReturns(fakeCreatedVolume, nil)
 			})
@@ -237,8 +238,8 @@ var _ = Describe("VolumeClient", func() {
 			})
 
 			It("creates volume in creating state", func() {
-				Expect(fakeDBVolumeFactory.CreateContainerVolumeCallCount()).To(Equal(1))
-				actualTeamID, actualWorkerName, actualContainer, actualMountPath := fakeDBVolumeFactory.CreateContainerVolumeArgsForCall(0)
+				Expect(fakeDBVolumeRepository.CreateContainerVolumeCallCount()).To(Equal(1))
+				actualTeamID, actualWorkerName, actualContainer, actualMountPath := fakeDBVolumeRepository.CreateContainerVolumeArgsForCall(0)
 				Expect(actualTeamID).To(Equal(42))
 				Expect(actualWorkerName).To(Equal(dbWorker.Name()))
 				Expect(actualContainer).To(Equal(container))
@@ -310,7 +311,7 @@ var _ = Describe("VolumeClient", func() {
 
 		Context("when volume exists in creating state", func() {
 			BeforeEach(func() {
-				fakeDBVolumeFactory.FindContainerVolumeReturns(fakeCreatingVolume, nil, nil)
+				fakeDBVolumeRepository.FindContainerVolumeReturns(fakeCreatingVolume, nil, nil)
 			})
 
 			Context("when acquiring volume creating lock fails", func() {
@@ -343,7 +344,7 @@ var _ = Describe("VolumeClient", func() {
 
 				It("retries to find volume again", func() {
 					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(3))
-					Expect(fakeDBVolumeFactory.FindContainerVolumeCallCount()).To(Equal(3))
+					Expect(fakeDBVolumeRepository.FindContainerVolumeCallCount()).To(Equal(3))
 				})
 			})
 
@@ -385,7 +386,8 @@ var _ = Describe("VolumeClient", func() {
 			BeforeEach(func() {
 				fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
 				fakeCreatedVolume.HandleReturns("fake-handle")
-				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
+				fakeCreatedVolume.WorkerNameReturns("fake-worker")
+				fakeDBVolumeRepository.FindContainerVolumeReturns(nil, fakeCreatedVolume, nil)
 			})
 
 			Context("when volume exists in baggageclaim", func() {
@@ -406,14 +408,14 @@ var _ = Describe("VolumeClient", func() {
 
 				It("returns an error", func() {
 					Expect(foundOrCreatedErr).To(HaveOccurred())
-					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("failed to find created volume in baggageclaim. Volume handle: fake-handle"))
+					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("volume 'fake-handle' disappeared from worker 'fake-worker'"))
 				})
 			})
 		})
 
 		Context("when volume does not exist in db", func() {
 			BeforeEach(func() {
-				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, nil, nil)
+				fakeDBVolumeRepository.FindContainerVolumeReturns(nil, nil, nil)
 				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 			})
 
@@ -483,7 +485,7 @@ var _ = Describe("VolumeClient", func() {
 		Context("when a created volume exists in the database", func() {
 			BeforeEach(func() {
 				fakeCreatedVolume.HandleReturns("created-handle")
-				fakeDBVolumeFactory.FindResourceCertsVolumeReturns(nil, fakeCreatedVolume, nil)
+				fakeDBVolumeRepository.FindResourceCertsVolumeReturns(nil, fakeCreatedVolume, nil)
 			})
 
 			It("looks up the volume in baggageclaim", func() {
@@ -496,7 +498,7 @@ var _ = Describe("VolumeClient", func() {
 		Context("when a creating volume exists in the database", func() {
 			BeforeEach(func() {
 				fakeCreatingVolume.HandleReturns("creating-handle")
-				fakeDBVolumeFactory.FindResourceCertsVolumeReturns(fakeCreatingVolume, nil, nil)
+				fakeDBVolumeRepository.FindResourceCertsVolumeReturns(fakeCreatingVolume, nil, nil)
 			})
 
 			It("looks up the volume in baggageclaim", func() {
@@ -514,17 +516,17 @@ var _ = Describe("VolumeClient", func() {
 			BeforeEach(func() {
 				fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
 				fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
-				fakeDBVolumeFactory.CreateResourceCertsVolumeReturns(fakeCreatingVolume, nil)
+				fakeDBVolumeRepository.CreateResourceCertsVolumeReturns(fakeCreatingVolume, nil)
 			})
 
 			Context("when the resource certs volume doesn't exist in the db", func() {
 				BeforeEach(func() {
-					fakeDBVolumeFactory.FindResourceCertsVolumeReturns(nil, nil, nil)
+					fakeDBVolumeRepository.FindResourceCertsVolumeReturns(nil, nil, nil)
 				})
 
 				It("creates the resource certs volume in the db", func() {
 					Expect(err).NotTo(HaveOccurred())
-					Expect(fakeDBVolumeFactory.CreateResourceCertsVolumeCallCount()).To(Equal(1))
+					Expect(fakeDBVolumeRepository.CreateResourceCertsVolumeCallCount()).To(Equal(1))
 				})
 
 				It("creates the volume in baggageclaim", func() {
@@ -535,7 +537,7 @@ var _ = Describe("VolumeClient", func() {
 			Context("when a creating volume exists in the database", func() {
 				BeforeEach(func() {
 					fakeCreatingVolume.HandleReturns("creating-handle")
-					fakeDBVolumeFactory.FindResourceCertsVolumeReturns(fakeCreatingVolume, nil, nil)
+					fakeDBVolumeRepository.FindResourceCertsVolumeReturns(fakeCreatingVolume, nil, nil)
 				})
 
 				It("looks up the volume in baggageclaim", func() {
@@ -584,7 +586,7 @@ var _ = Describe("VolumeClient", func() {
 
 			Context("when task cache volume does not exist in db", func() {
 				BeforeEach(func() {
-					fakeDBVolumeFactory.FindTaskCacheVolumeReturns(nil, nil, nil)
+					fakeDBVolumeRepository.FindTaskCacheVolumeReturns(nil, nil, nil)
 				})
 
 				It("returns false", func() {
@@ -599,7 +601,7 @@ var _ = Describe("VolumeClient", func() {
 
 				BeforeEach(func() {
 					dbVolume = new(dbfakes.FakeCreatedVolume)
-					fakeDBVolumeFactory.FindTaskCacheVolumeReturns(nil, dbVolume, nil)
+					fakeDBVolumeRepository.FindTaskCacheVolumeReturns(nil, dbVolume, nil)
 				})
 
 				Context("when task cache volume does not exist in baggageclaim", func() {
@@ -644,7 +646,7 @@ var _ = Describe("VolumeClient", func() {
 			handle = "some-handle"
 
 			fakeCreatedVolume := new(dbfakes.FakeCreatedVolume)
-			fakeDBVolumeFactory.FindCreatedVolumeReturns(fakeCreatedVolume, true, nil)
+			fakeDBVolumeRepository.FindCreatedVolumeReturns(fakeCreatedVolume, true, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -654,7 +656,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeClock,
 
 				fakeLockFactory,
-				fakeDBVolumeFactory,
+				fakeDBVolumeRepository,
 				fakeWorkerBaseResourceTypeFactory,
 				fakeWorkerTaskCacheFactory,
 			).LookupVolume(testLogger, handle)
@@ -697,7 +699,7 @@ var _ = Describe("VolumeClient", func() {
 
 		Context("when the volume cannot be found in database", func() {
 			BeforeEach(func() {
-				fakeDBVolumeFactory.FindCreatedVolumeReturns(nil, false, nil)
+				fakeDBVolumeRepository.FindCreatedVolumeReturns(nil, false, nil)
 			})
 
 			It("succeeds", func() {

@@ -1,6 +1,7 @@
 package ssm
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"text/template"
@@ -43,6 +44,14 @@ func buildSecretTemplate(name, tmpl string) (*template.Template, error) {
 		return nil, errors.New("secret template should not be empty")
 	}
 	return t, nil
+}
+
+func (manager *SsmManager) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&map[string]interface{}{
+		"aws_region":               manager.AwsRegion,
+		"pipeline_secret_template": manager.PipelineSecretTemplate,
+		"team_secret_template":     manager.TeamSecretTemplate,
+	})
 }
 
 func (manager SsmManager) IsConfigured() bool {

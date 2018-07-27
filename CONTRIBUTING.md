@@ -14,7 +14,7 @@ git submodule update --init --recursive
 ## Install development tools
 Concourse is built with Go and Elm. You also need Node and few modules. Assuming you're using a mac:
 
-- Install Elm 0.18 from http://install.elm-lang.org/Elm-Platform-0.18.pkg
+- Install Elm 0.18 from https://guide.elm-lang.org/install.html
 - Install homebrew from http://brew.sh/
 
 Then use homebrew to install the following:
@@ -73,7 +73,13 @@ Finally you can run the ATC:
 
 ```
 cd ..
-go run cmd/atc/*.go --no-really-i-dont-want-any-auth
+go run cmd/atc/*.go --add-local-user test:test --main-team-allow-all-users
 ```
 
 Concourse should be live at http://localhost:8080
+
+## go-bindata
+
+If you are making changes to the database migrations, it is important that you
+ensure the file `bindata/bindata.go` is up-to-date. This is most easily done by
+running `scripts/generate-bindata`.

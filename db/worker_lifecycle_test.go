@@ -366,23 +366,25 @@ var _ = Describe("Worker Lifecycle", func() {
 
 				It("clears out the garden/baggageclaim addresses", func() {
 					var (
-						a1    sql.NullString
-						b1    sql.NullString
-						a2    sql.NullString
-						b2    sql.NullString
-						found bool
-						err   error
+						beforegardenAddr      sql.NullString
+						beforeBaggagaClaimUrl sql.NullString
+						aftergardenAddr       sql.NullString
+						afterBaggagaClaimUrl  sql.NullString
+						found                 bool
+						err                   error
 					)
 
 					worker, found, err = workerFactory.GetWorker(atcWorker.Name)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					err = dbConn.QueryRow("SELECT addr, baggageclaim_url FROM workers WHERE name = '"+atcWorker.Name+"'").Scan(&a1, &b1)
+					err = dbConn.QueryRow("SELECT addr, baggageclaim_url FROM workers WHERE name = '"+atcWorker.Name+"'").Scan(&beforegardenAddr,
+						&beforeBaggagaClaimUrl,
+					)
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(a1.Valid).To(BeTrue())
-					Expect(b1.Valid).To(BeTrue())
+					Expect(beforegardenAddr.Valid).To(BeTrue())
+					Expect(beforeBaggagaClaimUrl.Valid).To(BeTrue())
 
 					err = worker.Land()
 					Expect(err).ToNot(HaveOccurred())
@@ -391,11 +393,14 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(len(landedWorkers)).To(Equal(1))
 					Expect(landedWorkers[0]).To(Equal(atcWorker.Name))
 
-					err = dbConn.QueryRow("SELECT addr, baggageclaim_url FROM workers WHERE name = '"+atcWorker.Name+"'").Scan(&a2, &b2)
+					err = dbConn.QueryRow("SELECT addr, baggageclaim_url FROM workers WHERE name = '"+atcWorker.Name+"'").Scan(&aftergardenAddr,
+						&afterBaggagaClaimUrl,
+					)
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(a2.String).To(Equal(""))
-					Expect(b2.String).To(Equal(""))
+					Expect(aftergardenAddr.String).To(Equal(""))
+					Expect(afterBaggagaClaimUrl.String).To(Equal(""))
+
 				})
 			})
 
@@ -547,5 +552,4 @@ var _ = Describe("Worker Lifecycle", func() {
 			})
 		})
 	})
-
 })

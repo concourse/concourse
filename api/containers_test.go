@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -11,22 +12,22 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"code.cloudfoundry.org/garden"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
-	"github.com/gorilla/websocket"
-
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker/workerfakes"
+	"github.com/gorilla/websocket"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Containers API", func() {
 	var (
 		stepType         = db.ContainerTypeTask
+		fakeaccess       *accessorfakes.FakeAccess
 		stepName         = "some-step"
 		pipelineID       = 1111
 		jobID            = 2222
@@ -42,6 +43,7 @@ var _ = Describe("Containers API", func() {
 	)
 
 	BeforeEach(func() {
+		fakeaccess = new(accessorfakes.FakeAccess)
 		fakeContainer1 = new(dbfakes.FakeContainer)
 		fakeContainer1.HandleReturns("some-handle")
 		fakeContainer1.WorkerNameReturns("some-worker-name")
@@ -76,18 +78,21 @@ var _ = Describe("Containers API", func() {
 			User:             user + "-other",
 		})
 	})
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
+	})
 
-	Describe("GET /api/v1/containers", func() {
+	Describe("GET /api/v1/teams/a-team/containers", func() {
 		BeforeEach(func() {
 			var err error
-			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers", nil)
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/containers", nil)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -100,8 +105,8 @@ var _ = Describe("Containers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("with no params", func() {
@@ -371,14 +376,14 @@ var _ = Describe("Containers API", func() {
 			dbTeam.FindContainerByHandleReturns(fakeContainer1, true, nil)
 
 			var err error
-			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/"+handle, nil)
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/containers/"+handle, nil)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -391,8 +396,8 @@ var _ = Describe("Containers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when the container is not found", func() {
@@ -443,19 +448,19 @@ var _ = Describe("Containers API", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`
-						{
-							"id": "some-handle",
-							"worker_name": "some-worker-name",
-							"type": "task",
-							"step_name": "some-step",
-							"attempt": "1.5",
-							"pipeline_id": 1111,
-							"job_id": 2222,
-							"build_id": 3333,
-							"working_directory": "/tmp/build/my-favorite-guid",
-							"user": "snoopy"
-						}
-					`))
+	 					{
+	 						"id": "some-handle",
+	 						"worker_name": "some-worker-name",
+	 						"type": "task",
+	 						"step_name": "some-step",
+	 						"attempt": "1.5",
+	 						"pipeline_id": 1111,
+	 						"job_id": 2222,
+	 						"build_id": 3333,
+	 						"working_directory": "/tmp/build/my-favorite-guid",
+	 						"user": "snoopy"
+	 					}
+	 				`))
 				})
 			})
 
@@ -501,7 +506,7 @@ var _ = Describe("Containers API", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			wsURL.Scheme = "ws"
-			wsURL.Path = "/api/v1/containers/" + handle + "/hijack"
+			wsURL.Path = "/api/v1/teams/a-team/containers/" + handle + "/hijack"
 
 			dialer := websocket.Dialer{}
 			conn, response, err = dialer.Dial(wsURL.String(), nil)
@@ -527,8 +532,8 @@ var _ = Describe("Containers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				jwtValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", true, true)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
 			})
 
 			Context("and the worker client returns a container", func() {
@@ -825,7 +830,7 @@ var _ = Describe("Containers API", func() {
 			BeforeEach(func() {
 				expectBadHandshake = true
 
-				jwtValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -834,6 +839,244 @@ var _ = Describe("Containers API", func() {
 
 			It("does not hijack the build", func() {
 				Expect(fakeEngine.LookupBuildCallCount()).To(BeZero())
+			})
+		})
+	})
+
+	Describe("GET /api/v1/containers/destroying", func() {
+		BeforeEach(func() {
+			var err error
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/destroying", nil)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+
+			fakeaccess.IsAuthenticatedReturns(true)
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				response, err := client.Do(req)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not attempt to find the worker", func() {
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(BeZero())
+			})
+		})
+
+		Context("when authenticated as system", func() {
+			BeforeEach(func() {
+				fakeaccess.IsSystemReturns(true)
+			})
+
+			Context("with no params", func() {
+				It("returns 404", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakeContainerRepository.FindDestroyingContainersCallCount()).To(Equal(0))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+
+				It("returns Content-Type application/json", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+			})
+
+			Context("querying with worker name", func() {
+				BeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"worker_name": []string{"some-worker-name"},
+					}.Encode()
+				})
+
+				Context("when there is an error", func() {
+					BeforeEach(func() {
+						fakeContainerRepository.FindDestroyingContainersReturns(nil, errors.New("some error"))
+					})
+
+					It("returns 500", func() {
+						response, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when no containers are found", func() {
+					BeforeEach(func() {
+						fakeContainerRepository.FindDestroyingContainersReturns([]string{}, nil)
+					})
+
+					It("returns 200", func() {
+						response, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns an empty array", func() {
+						response, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`
+							[]
+						`))
+					})
+
+					Context("when containers are found", func() {
+						BeforeEach(func() {
+							fakeContainerRepository.FindDestroyingContainersReturns([]string{
+								"handle1",
+								"handle2",
+							}, nil)
+						})
+						It("returns container handles array", func() {
+							response, err := client.Do(req)
+							Expect(err).NotTo(HaveOccurred())
+
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`
+								["handle1", "handle2"]
+							`))
+						})
+					})
+				})
+
+				It("queries with it in the worker name", func() {
+					_, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakeContainerRepository.FindDestroyingContainersCallCount()).To(Equal(1))
+
+					workerName := fakeContainerRepository.FindDestroyingContainersArgsForCall(0)
+					Expect(workerName).To(Equal("some-worker-name"))
+				})
+			})
+		})
+	})
+
+	Describe("GET /api/v1/containers/report", func() {
+		var response *http.Response
+		var body io.Reader
+		var err error
+
+		BeforeEach(func() {
+			body = bytes.NewBufferString(`
+				[
+					"handle1",
+					"handle2"
+				]
+			`)
+		})
+		JustBeforeEach(func() {
+
+			req, err = http.NewRequest("PUT", server.URL+"/api/v1/containers/report", body)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				response, err = client.Do(req)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated as system", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsSystemReturns(true)
+			})
+
+			Context("with no params", func() {
+				It("returns 404", func() {
+					response, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeDestroyer.DestroyContainersCallCount()).To(Equal(0))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+
+				It("returns Content-Type application/json", func() {
+					response, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+			})
+
+			Context("querying with worker name", func() {
+				JustBeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"worker_name": []string{"some-worker-name"},
+					}.Encode()
+				})
+
+				Context("with invalid json", func() {
+					BeforeEach(func() {
+						body = bytes.NewBufferString(`{}`)
+					})
+
+					It("returns 400", func() {
+						response, err = client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				Context("when there is an error", func() {
+					BeforeEach(func() {
+						fakeDestroyer.DestroyContainersReturns(errors.New("some error"))
+					})
+
+					It("returns 500", func() {
+						response, err = client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when containers are destroyed", func() {
+					BeforeEach(func() {
+						fakeDestroyer.DestroyContainersReturns(nil)
+					})
+
+					It("returns 204", func() {
+						response, err = client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+					})
+				})
+
+				It("queries with it in the worker name", func() {
+					_, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeDestroyer.DestroyContainersCallCount()).To(Equal(1))
+
+					workerName, handles := fakeDestroyer.DestroyContainersArgsForCall(0)
+					Expect(workerName).To(Equal("some-worker-name"))
+					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
+				})
 			})
 		})
 	})

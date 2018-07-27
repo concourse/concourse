@@ -20,6 +20,7 @@ func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
 func (FinishTask) Version() atc.EventVersion { return "4.0" }
 
 type InitializeTask struct {
+	Time       int64      `json:"time"`
 	Origin     Origin     `json:"origin"`
 	TaskConfig TaskConfig `json:"config"`
 }
@@ -111,35 +112,20 @@ const (
 
 type FinishGet struct {
 	Origin          Origin              `json:"origin"`
-	Plan            GetPlan             `json:"plan"`
 	ExitStatus      int                 `json:"exit_status"`
 	FetchedVersion  atc.Version         `json:"version"`
 	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
 }
 
 func (FinishGet) EventType() atc.EventType  { return EventTypeFinishGet }
-func (FinishGet) Version() atc.EventVersion { return "4.0" }
-
-type GetPlan struct {
-	Name     string      `json:"name"`
-	Resource string      `json:"resource"`
-	Type     string      `json:"type"`
-	Version  atc.Version `json:"version"`
-}
+func (FinishGet) Version() atc.EventVersion { return "5.0" }
 
 type FinishPut struct {
 	Origin          Origin              `json:"origin"`
-	Plan            PutPlan             `json:"plan"`
+	ExitStatus      int                 `json:"exit_status"`
 	CreatedVersion  atc.Version         `json:"version"`
 	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
-	ExitStatus      int                 `json:"exit_status"`
 }
 
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
-func (FinishPut) Version() atc.EventVersion { return "4.0" }
-
-type PutPlan struct {
-	Name     string `json:"name"`
-	Resource string `json:"resource"`
-	Type     string `json:"type"`
-}
+func (FinishPut) Version() atc.EventVersion { return "5.0" }

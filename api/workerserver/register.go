@@ -10,7 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/metric"
 )
 
@@ -24,7 +24,8 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("register-worker")
 	var registration atc.Worker
 
-	if !auth.IsSystem(r) {
+	acc := accessor.GetAccessor(r)
+	if !acc.IsSystem() {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -65,11 +66,13 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	metric.WorkerContainers{
 		WorkerName: registration.Name,
 		Containers: registration.ActiveContainers,
+		Platform:   registration.Platform,
 	}.Emit(s.logger)
 
 	metric.WorkerVolumes{
 		WorkerName: registration.Name,
 		Volumes:    registration.ActiveVolumes,
+		Platform:   registration.Platform,
 	}.Emit(s.logger)
 
 	if registration.Team != "" {

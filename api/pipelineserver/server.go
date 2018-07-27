@@ -13,12 +13,14 @@ type Server struct {
 	rejector        auth.Rejector
 	pipelineFactory db.PipelineFactory
 	engine          engine.Engine
+	externalURL     string
 }
 
 func NewServer(
 	logger lager.Logger,
 	teamFactory db.TeamFactory,
 	pipelineFactory db.PipelineFactory,
+	externalURL string,
 	engine engine.Engine,
 ) *Server {
 	return &Server{
@@ -26,6 +28,7 @@ func NewServer(
 		teamFactory:     teamFactory,
 		rejector:        auth.UnauthorizedRejector{},
 		pipelineFactory: pipelineFactory,
+		externalURL:     externalURL,
 		engine:          engine,
 	}
 }

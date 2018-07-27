@@ -1,12 +1,11 @@
 package exec_test
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/tedsuo/ifrit"
 
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
@@ -15,95 +14,93 @@ import (
 
 var _ = Describe("On Abort Step", func() {
 	var (
-		noError       = BeNil
-		errorMatching = MatchError
-
-		stepFactory  *execfakes.FakeStepFactory
-		abortFactory *execfakes.FakeStepFactory
+		ctx    context.Context
+		cancel func()
 
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
-		repo *worker.ArtifactRepository
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
-		onAbortFactory exec.StepFactory
-		onAbortStep    exec.Step
+		onAbortStep exec.Step
+
+		stepErr error
 	)
 
 	BeforeEach(func() {
-		stepFactory = &execfakes.FakeStepFactory{}
-		abortFactory = &execfakes.FakeStepFactory{}
+		ctx, cancel = context.WithCancel(context.Background())
 
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
 
-		stepFactory.UsingReturns(step)
-		abortFactory.UsingReturns(hook)
-
 		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
 
-		onAbortFactory = exec.OnAbort(stepFactory, abortFactory)
-		onAbortStep = onAbortFactory.Using(repo)
+		onAbortStep = exec.OnAbort(step, hook)
+
+		stepErr = nil
 	})
 
-	Context("When running a build step that has an abort hook", func() {
-		Context("When abort is triggered", func() {
-			It("runs the abort hook if step aborted", func() {
-				step.RunReturns(exec.ErrInterrupted)
+	JustBeforeEach(func() {
+		stepErr = onAbortStep.Run(ctx, state)
+	})
 
-				process := ifrit.Background(onAbortStep)
-				Eventually(step.RunCallCount).Should(Equal(1))
-				Eventually(process.Wait()).Should(Receive(errorMatching(ContainSubstring("interrupted"))))
-				Expect(hook.RunCallCount()).To(Equal(1))
-			})
+	Context("when the step is aborted", func() {
+		BeforeEach(func() {
+			step.RunReturns(context.Canceled)
 		})
 
-		Context("When abort is not triggered", func() {
-			BeforeEach(func() {
-				stepFactory := &execfakes.FakeStepFactory{}
-				abortFactory := &execfakes.FakeStepFactory{}
+		It("runs the abort hook", func() {
+			Expect(stepErr).To(Equal(context.Canceled))
+			Expect(hook.RunCallCount()).To(Equal(1))
+		})
+	})
 
-				step = &execfakes.FakeStep{}
-				hook = &execfakes.FakeStep{}
+	Context("when the step succeeds", func() {
+		BeforeEach(func() {
+			step.SucceededReturns(true)
+		})
 
-				stepFactory.UsingReturns(step)
-				abortFactory.UsingReturns(hook)
+		It("is successful", func() {
+			Expect(onAbortStep.Succeeded()).To(BeTrue())
+		})
 
-				repo = worker.NewArtifactRepository()
+		It("does not run the abort hook", func() {
+			Expect(hook.RunCallCount()).To(Equal(0))
+		})
+	})
 
-				onAbortFactory := exec.OnAbort(stepFactory, abortFactory)
-				onAbortStep = onAbortFactory.Using(repo)
-			})
+	Context("when the step fails", func() {
+		BeforeEach(func() {
+			step.SucceededReturns(false)
+		})
 
-			It("should not run abort hook on step success", func() {
-				step.SucceededReturns(true)
+		It("is not successful", func() {
+			Expect(onAbortStep.Succeeded()).ToNot(BeTrue())
+		})
 
-				process := ifrit.Background(onAbortStep)
+		It("does not run the abort hook", func() {
+			Expect(step.RunCallCount()).To(Equal(1))
+			Expect(hook.RunCallCount()).To(Equal(0))
+		})
+	})
 
-				Eventually(step.RunCallCount).Should(Equal(1))
-				Eventually(process.Wait()).Should(Receive(noError()))
-				Expect(hook.RunCallCount()).To(Equal(0))
-			})
+	Context("when the step errors", func() {
+		disaster := errors.New("disaster")
 
-			It("should not run abort hook on step failure", func() {
-				step.SucceededReturns(false)
+		BeforeEach(func() {
+			step.RunReturns(disaster)
+		})
 
-				process := ifrit.Background(onAbortStep)
+		It("returns the error", func() {
+			Expect(stepErr).To(Equal(disaster))
+		})
 
-				Eventually(step.RunCallCount).Should(Equal(1))
-				Eventually(process.Wait()).Should(Receive(noError()))
-				Expect(hook.RunCallCount()).To(Equal(0))
-			})
-
-			It("does not run the abort hook if the step errors", func() {
-				step.RunReturns(errors.New("disaster"))
-
-				process := ifrit.Background(onAbortStep)
-
-				Eventually(step.RunCallCount).Should(Equal(1))
-				Eventually(process.Wait()).Should(Receive(errorMatching(ContainSubstring("disaster"))))
-				Expect(hook.RunCallCount()).To(Equal(0))
-			})
+		It("does not run the abort hook", func() {
+			Expect(step.RunCallCount()).To(Equal(1))
+			Expect(hook.RunCallCount()).To(Equal(0))
 		})
 	})
 })

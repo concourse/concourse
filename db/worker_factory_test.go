@@ -105,17 +105,37 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(count).To(Equal(1))
 			})
 
-			It("replaces outdated worker resource type", func() {
+			It("replaces outdated worker resource type image", func() {
 				beforeIDs := resourceTypeIDs("some-name")
 				Expect(len(beforeIDs)).To(Equal(2))
 
-				atcWorker.ResourceTypes[0].Version = "some-new-version"
+				atcWorker.ResourceTypes[0].Image = "some-wild-new-image"
 
 				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 
 				afterIDs := resourceTypeIDs("some-name")
 				Expect(len(afterIDs)).To(Equal(2))
+
+				Expect(afterIDs).ToNot(Equal(beforeIDs))
+
+				Expect(beforeIDs["some-resource-type"]).ToNot(Equal(afterIDs["some-resource-type"]))
+				Expect(beforeIDs["other-resource-type"]).To(Equal(afterIDs["other-resource-type"]))
+			})
+
+			It("replaces outdated worker resource type version", func() {
+				beforeIDs := resourceTypeIDs("some-name")
+				Expect(len(beforeIDs)).To(Equal(2))
+
+				atcWorker.ResourceTypes[0].Version = "some-wild-new-version"
+
+				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+
+				afterIDs := resourceTypeIDs("some-name")
+				Expect(len(afterIDs)).To(Equal(2))
+
+				Expect(afterIDs).ToNot(Equal(beforeIDs))
 
 				Expect(beforeIDs["some-resource-type"]).ToNot(Equal(afterIDs["some-resource-type"]))
 				Expect(beforeIDs["other-resource-type"]).To(Equal(afterIDs["other-resource-type"]))
@@ -248,6 +268,77 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(foundWorker).To(BeNil())
+			})
+		})
+	})
+
+	Describe("VisibleWorkers", func() {
+		BeforeEach(func() {
+			postgresRunner.Truncate()
+		})
+
+		Context("when there are public and private workers on multiple teams", func() {
+			BeforeEach(func() {
+				team1, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+				Expect(err).NotTo(HaveOccurred())
+				team2, err := teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
+				Expect(err).NotTo(HaveOccurred())
+				team3, err := teamFactory.CreateTeam(atc.Team{Name: "not-this-team"})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = workerFactory.SaveWorker(atcWorker, 0)
+				Expect(err).NotTo(HaveOccurred())
+
+				atcWorker.Name = "some-new-worker"
+				atcWorker.GardenAddr = "some-other-garden-addr"
+				atcWorker.BaggageclaimURL = "some-other-bc-url"
+				_, err = team1.SaveWorker(atcWorker, 0)
+				Expect(err).NotTo(HaveOccurred())
+
+				atcWorker.Name = "some-other-new-worker"
+				atcWorker.GardenAddr = "some-other-other-garden-addr"
+				atcWorker.BaggageclaimURL = "some-other-other-bc-url"
+				_, err = team2.SaveWorker(atcWorker, 0)
+				Expect(err).NotTo(HaveOccurred())
+
+				atcWorker.Name = "not-this-worker"
+				atcWorker.GardenAddr = "not-this-garden-addr"
+				atcWorker.BaggageclaimURL = "not-this-bc-url"
+				_, err = team3.SaveWorker(atcWorker, 0)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("finds visble workers for the given teams", func() {
+				workers, err := workerFactory.VisibleWorkers([]string{"some-team", "some-other-team"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(workers)).To(Equal(3))
+
+				w1, found, err := workerFactory.GetWorker("some-name")
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				w2, found, err := workerFactory.GetWorker("some-new-worker")
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				w3, found, err := workerFactory.GetWorker("some-other-new-worker")
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				w4, found, err := workerFactory.GetWorker("not-this-worker")
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(workers).To(ConsistOf(w1, w2, w3))
+				Expect(workers).NotTo(ContainElement(w4))
+			})
+		})
+
+		Context("when there are no workers", func() {
+			It("returns an error", func() {
+				workers, err := workerFactory.VisibleWorkers([]string{"some-team"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(workers).To(BeEmpty())
 			})
 		})
 	})
@@ -395,7 +486,6 @@ var _ = Describe("WorkerFactory", func() {
 
 					_, err = workerLifecycle.StallUnresponsiveWorkers()
 					Expect(err).NotTo(HaveOccurred())
-
 				})
 
 				It("sets the state as running", func() {
@@ -403,6 +493,7 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
+					Expect(stalledWorker.State()).To(Equal(db.WorkerStateStalled))
 					Expect(stalledWorker.GardenAddr()).To(BeNil())
 					Expect(stalledWorker.BaggageclaimURL()).To(BeNil())
 

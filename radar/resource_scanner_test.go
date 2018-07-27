@@ -504,6 +504,41 @@ var _ = Describe("ResourceScanner", func() {
 				fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
 			})
 
+			Context("Parent resource has no version and attempt to Scan fails", func() {
+				BeforeEach(func() {
+					var fakeGitResourceType *dbfakes.FakeResourceType
+					fakeGitResourceType = new(dbfakes.FakeResourceType)
+
+					fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeGitResourceType}, nil)
+
+					fakeGitResourceType.IDReturns(5)
+					fakeGitResourceType.NameReturns("git")
+					fakeGitResourceType.TypeReturns("docker-image")
+					fakeGitResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
+					fakeGitResourceType.VersionReturns(nil)
+
+					fakeResourceTypeScanner.ScanReturns(errors.New("some-resource-type-error"))
+				})
+
+				It("fails and returns error", func() {
+					Expect(fakeResourceTypeScanner.ScanCallCount()).To(Equal(1))
+					_, parentTypeName := fakeResourceTypeScanner.ScanArgsForCall(0)
+					Expect(parentTypeName).To(Equal("git"))
+
+					Expect(scanErr).To(HaveOccurred())
+					Expect(scanErr.Error()).To(Equal("some-resource-type-error"))
+				})
+
+				It("saves the error to check_error on resource row in db", func() {
+					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+
+					savedResource, err := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("some-resource-type-error"))
+					Expect(savedResource.Name()).To(Equal("some-resource"))
+				})
+			})
+
 			It("succeeds", func() {
 				Expect(scanErr).NotTo(HaveOccurred())
 			})

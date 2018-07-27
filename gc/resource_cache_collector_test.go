@@ -1,6 +1,8 @@
 package gc_test
 
 import (
+	"context"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -17,8 +19,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 	var buildCollector gc.Collector
 
 	BeforeEach(func() {
-		collector = gc.NewResourceCacheCollector(logger, resourceCacheLifecycle)
-		buildCollector = gc.NewBuildCollector(logger, buildFactory)
+		collector = gc.NewResourceCacheCollector(resourceCacheLifecycle)
+		buildCollector = gc.NewBuildCollector(buildFactory)
 	})
 
 	Describe("Run", func() {
@@ -32,7 +34,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 			var jobCache *db.UsedResourceCache
 
 			BeforeEach(func() {
-				resourceCacheUseCollector = gc.NewResourceCacheUseCollector(logger, resourceCacheLifecycle)
+				resourceCacheUseCollector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
 
 				oneOffBuild, err = defaultTeam.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
@@ -87,14 +89,14 @@ var _ = Describe("ResourceCacheCollector", func() {
 			}
 
 			JustBeforeEach(func() {
-				Expect(buildCollector.Run()).To(Succeed())
-				Expect(resourceCacheUseCollector.Run()).To(Succeed())
-				Expect(collector.Run()).To(Succeed())
+				Expect(buildCollector.Run(context.TODO())).To(Succeed())
+				Expect(resourceCacheUseCollector.Run(context.TODO())).To(Succeed())
+				Expect(collector.Run(context.TODO())).To(Succeed())
 			})
 
 			Context("when the resource cache is still in use", func() {
 				It("does not delete the cache", func() {
-					Expect(collector.Run()).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(resourceCacheExists(oneOffCache)).To(BeTrue())
 					Expect(resourceCacheExists(jobCache)).To(BeTrue())
 				})

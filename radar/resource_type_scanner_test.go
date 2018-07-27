@@ -55,6 +55,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Name:   "some-custom-resource",
 				Type:   "docker-image",
 				Source: atc.Source{"custom": "((source-params))"},
+				Tags:   atc.Tags{"some-tag"},
 			},
 			Version: atc.Version{"custom": "version"},
 		}
@@ -75,6 +76,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceType.TypeReturns("docker-image")
 		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
+		fakeResourceType.TagsReturns(atc.Tags{"some-tag"})
 		fakeResourceType.SetResourceConfigReturns(nil)
 
 		fakeDBPipeline.IDReturns(42)
@@ -156,7 +158,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "docker-image",
 					},
-					Tags:   []string{},
+					Tags:   []string{"some-tag"},
 					TeamID: 123,
 				}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
@@ -204,12 +206,45 @@ var _ = Describe("ResourceTypeScanner", func() {
 						ImageSpec: worker.ImageSpec{
 							ResourceType: "docker-image",
 						},
-						Tags:   []string{},
 						TeamID: 123,
 					}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
 					})))
+				})
+			})
+
+			Context("when the resource type config has a specified check interval", func() {
+				BeforeEach(func() {
+					fakeResourceType.CheckEveryReturns("10ms")
+					fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+				})
+
+				It("leases for the configured interval", func() {
+					Expect(fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
+
+					_, resourceTypeName, resourceConfig, leaseInterval, immediate := fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckArgsForCall(0)
+					Expect(resourceTypeName).To(Equal(fakeResourceType.Name()))
+					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
+					Expect(resourceConfig).To(Equal(fakeResourceConfigCheckSession.ResourceConfig()))
+					Expect(immediate).To(BeFalse())
+
+					Eventually(fakeLock.ReleaseCallCount()).Should(Equal(1))
+				})
+
+				It("returns configured interval", func() {
+					Expect(actualInterval).To(Equal(10 * time.Millisecond))
+				})
+
+				Context("when the interval cannot be parsed", func() {
+					BeforeEach(func() {
+						fakeResourceType.CheckEveryReturns("bad-value")
+						fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+					})
+
+					It("returns an error", func() {
+						Expect(runErr).To(HaveOccurred())
+					})
 				})
 			})
 
@@ -366,7 +401,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "docker-image",
 					},
-					Tags:   []string{},
+					Tags:   []string{"some-tag"},
 					TeamID: 123,
 				}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
@@ -479,7 +514,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 						ImageSpec: worker.ImageSpec{
 							ResourceType: "docker-image",
 						},
-						Tags:   []string{},
 						TeamID: 123,
 					}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{

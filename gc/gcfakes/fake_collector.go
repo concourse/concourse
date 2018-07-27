@@ -2,16 +2,19 @@
 package gcfakes
 
 import (
+	"context"
 	"sync"
 
 	"github.com/concourse/atc/gc"
 )
 
 type FakeCollector struct {
-	RunStub        func() error
+	RunStub        func(context.Context) error
 	runMutex       sync.RWMutex
-	runArgsForCall []struct{}
-	runReturns     struct {
+	runArgsForCall []struct {
+		arg1 context.Context
+	}
+	runReturns struct {
 		result1 error
 	}
 	runReturnsOnCall map[int]struct {
@@ -21,14 +24,16 @@ type FakeCollector struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCollector) Run() error {
+func (fake *FakeCollector) Run(arg1 context.Context) error {
 	fake.runMutex.Lock()
 	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
-	fake.runArgsForCall = append(fake.runArgsForCall, struct{}{})
-	fake.recordInvocation("Run", []interface{}{})
+	fake.runArgsForCall = append(fake.runArgsForCall, struct {
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("Run", []interface{}{arg1})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		return fake.RunStub()
+		return fake.RunStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -40,6 +45,12 @@ func (fake *FakeCollector) RunCallCount() int {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	return len(fake.runArgsForCall)
+}
+
+func (fake *FakeCollector) RunArgsForCall(i int) context.Context {
+	fake.runMutex.RLock()
+	defer fake.runMutex.RUnlock()
+	return fake.runArgsForCall[i].arg1
 }
 
 func (fake *FakeCollector) RunReturns(result1 error) {

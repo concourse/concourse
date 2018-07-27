@@ -532,6 +532,7 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 	}, nil
 }
 
+//go:generate counterfeiter . DestroyingVolume
 type DestroyingVolume interface {
 	Handle() string
 	Destroy() (bool, error)

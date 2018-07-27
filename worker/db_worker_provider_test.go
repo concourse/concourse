@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -45,7 +46,7 @@ var _ = Describe("DBProvider", func() {
 
 		fakeImageFactory                    *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
-		fakeDBVolumeFactory                 *dbfakes.FakeVolumeFactory
+		fakeDBVolumeRepository              *dbfakes.FakeVolumeRepository
 		fakeDBWorkerFactory                 *dbfakes.FakeWorkerFactory
 		fakeDBTeamFactory                   *dbfakes.FakeTeamFactory
 		fakeDBWorkerBaseResourceTypeFactory *dbfakes.FakeWorkerBaseResourceTypeFactory
@@ -66,6 +67,7 @@ var _ = Describe("DBProvider", func() {
 
 	BeforeEach(func() {
 		var err error
+
 		baggageclaimServer = ghttp.NewServer()
 
 		baggageclaimServer.RouteToHandler("POST", "/volumes", ghttp.RespondWithJSONEncoded(
@@ -138,7 +140,7 @@ var _ = Describe("DBProvider", func() {
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
-		fakeDBVolumeFactory = new(dbfakes.FakeVolumeFactory)
+		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
 
 		fakeBackOffFactory := new(retryhttpfakes.FakeBackOffFactory)
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
@@ -165,7 +167,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDBResourceConfigFactory,
 			fakeDBWorkerBaseResourceTypeFactory,
 			fakeDBWorkerTaskCacheFactory,
-			fakeDBVolumeFactory,
+			fakeDBVolumeRepository,
 			fakeDBTeamFactory,
 			fakeDBWorkerFactory,
 			&wantWorkerVersion,
@@ -408,7 +410,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateContainer(logger, nil, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")), db.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")), db.ContainerMetadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -439,8 +441,8 @@ var _ = Describe("DBProvider", func() {
 					createdVolume := new(dbfakes.FakeCreatedVolume)
 					createdVolume.HandleReturns("vol-handle")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
-					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
+					fakeDBVolumeRepository.FindContainerVolumeReturns(nil, createdVolume, nil)
+					fakeDBVolumeRepository.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 
 					fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 					fakeCreatingContainer.HandleReturns("some-handle")
@@ -465,7 +467,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateContainer(logger, nil, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")), db.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")), db.ContainerMetadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(container.Handle()).To(Equal("created-handle"))

@@ -64,6 +64,19 @@ type FakeWorkerFactory struct {
 		result1 []db.Worker
 		result2 error
 	}
+	VisibleWorkersStub        func([]string) ([]db.Worker, error)
+	visibleWorkersMutex       sync.RWMutex
+	visibleWorkersArgsForCall []struct {
+		arg1 []string
+	}
+	visibleWorkersReturns struct {
+		result1 []db.Worker
+		result2 error
+	}
+	visibleWorkersReturnsOnCall map[int]struct {
+		result1 []db.Worker
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -269,6 +282,62 @@ func (fake *FakeWorkerFactory) WorkersReturnsOnCall(i int, result1 []db.Worker, 
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerFactory) VisibleWorkers(arg1 []string) ([]db.Worker, error) {
+	var arg1Copy []string
+	if arg1 != nil {
+		arg1Copy = make([]string, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	fake.visibleWorkersMutex.Lock()
+	ret, specificReturn := fake.visibleWorkersReturnsOnCall[len(fake.visibleWorkersArgsForCall)]
+	fake.visibleWorkersArgsForCall = append(fake.visibleWorkersArgsForCall, struct {
+		arg1 []string
+	}{arg1Copy})
+	fake.recordInvocation("VisibleWorkers", []interface{}{arg1Copy})
+	fake.visibleWorkersMutex.Unlock()
+	if fake.VisibleWorkersStub != nil {
+		return fake.VisibleWorkersStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.visibleWorkersReturns.result1, fake.visibleWorkersReturns.result2
+}
+
+func (fake *FakeWorkerFactory) VisibleWorkersCallCount() int {
+	fake.visibleWorkersMutex.RLock()
+	defer fake.visibleWorkersMutex.RUnlock()
+	return len(fake.visibleWorkersArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) VisibleWorkersArgsForCall(i int) []string {
+	fake.visibleWorkersMutex.RLock()
+	defer fake.visibleWorkersMutex.RUnlock()
+	return fake.visibleWorkersArgsForCall[i].arg1
+}
+
+func (fake *FakeWorkerFactory) VisibleWorkersReturns(result1 []db.Worker, result2 error) {
+	fake.VisibleWorkersStub = nil
+	fake.visibleWorkersReturns = struct {
+		result1 []db.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorkerFactory) VisibleWorkersReturnsOnCall(i int, result1 []db.Worker, result2 error) {
+	fake.VisibleWorkersStub = nil
+	if fake.visibleWorkersReturnsOnCall == nil {
+		fake.visibleWorkersReturnsOnCall = make(map[int]struct {
+			result1 []db.Worker
+			result2 error
+		})
+	}
+	fake.visibleWorkersReturnsOnCall[i] = struct {
+		result1 []db.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -280,6 +349,8 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.heartbeatWorkerMutex.RUnlock()
 	fake.workersMutex.RLock()
 	defer fake.workersMutex.RUnlock()
+	fake.visibleWorkersMutex.RLock()
+	defer fake.visibleWorkersMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

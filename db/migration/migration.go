@@ -265,12 +265,23 @@ func (self *migrator) openWithLock() (*migrate.Migrate, lock.Lock, error) {
 	return m, newLock, err
 }
 
+func (self *migrator) existLegacyVersion() bool {
+	var exists bool
+	err := self.db.QueryRow("SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE table_name = 'migration_version')").Scan(&exists)
+	return err != nil || exists
+}
+
 func (self *migrator) checkLegacyVersion() (int, error) {
 	oldMigrationLastVersion := 189
 	newMigrationStartVersion := 1510262030
 
 	var err error
 	var dbVersion int
+
+	exists := self.existLegacyVersion()
+	if !exists {
+		return -1, nil
+	}
 
 	if err = self.db.QueryRow("SELECT version FROM migration_version").Scan(&dbVersion); err != nil {
 		return -1, nil

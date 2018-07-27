@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 
+	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/api/auth"
 	"github.com/concourse/atc/api/auth/authfakes"
 
@@ -17,9 +19,9 @@ import (
 
 var _ = Describe("CheckAuthorizationHandler", func() {
 	var (
-		fakeValidator         *authfakes.FakeValidator
-		fakeUserContextReader *authfakes.FakeUserContextReader
-		fakeRejector          *authfakes.FakeRejector
+		fakeAccessor *accessorfakes.FakeAccessFactory
+		fakeaccess   *accessorfakes.FakeAccess
+		fakeRejector *authfakes.FakeRejector
 
 		server *httptest.Server
 		client *http.Client
@@ -33,8 +35,8 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 	})
 
 	BeforeEach(func() {
-		fakeValidator = new(authfakes.FakeValidator)
-		fakeUserContextReader = new(authfakes.FakeUserContextReader)
+		fakeAccessor = new(accessorfakes.FakeAccessFactory)
+		fakeaccess = new(accessorfakes.FakeAccess)
 		fakeRejector = new(authfakes.FakeRejector)
 
 		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
@@ -45,20 +47,19 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 			http.Error(w, "nope", http.StatusForbidden)
 		}
 
-		server = httptest.NewServer(
-			auth.WrapHandler( // for setting context on the request
-				auth.CheckAuthorizationHandler(
-					simpleHandler,
-					fakeRejector,
-				),
-				fakeValidator,
-				fakeUserContextReader,
-			),
+		server = httptest.NewServer(accessor.NewHandler(auth.CheckAuthorizationHandler(
+			simpleHandler,
+			fakeRejector,
+		), fakeAccessor),
 		)
 
 		client = &http.Client{
 			Transport: &http.Transport{},
 		}
+	})
+
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
 	})
 
 	Context("when a request is made", func() {
@@ -82,12 +83,12 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 
 		Context("when the request is authenticated", func() {
 			BeforeEach(func() {
-				fakeValidator.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when the bearer token's team matches the request's team", func() {
 				BeforeEach(func() {
-					fakeUserContextReader.GetTeamReturns("some-team", true, true)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
 				It("returns 200", func() {
@@ -103,7 +104,7 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 
 			Context("when the bearer token's team is set to something other than the request's team", func() {
 				BeforeEach(func() {
-					fakeUserContextReader.GetTeamReturns("another-team", true, true)
+					fakeaccess.IsAuthorizedReturns(false)
 				})
 
 				It("returns 403", func() {
@@ -117,7 +118,7 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 
 		Context("when the request is not authenticated", func() {
 			BeforeEach(func() {
-				fakeValidator.IsAuthenticatedReturns(false)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -125,19 +126,6 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 				responseBody, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(responseBody)).To(Equal("nope\n"))
-			})
-
-			Context("when the bearer token is for the requested team", func() {
-				BeforeEach(func() {
-					fakeUserContextReader.GetTeamReturns("some-team", true, true)
-				})
-
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-					responseBody, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(string(responseBody)).To(Equal("nope\n"))
-				})
 			})
 		})
 	})

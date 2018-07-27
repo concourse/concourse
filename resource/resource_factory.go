@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"os"
+	"context"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/creds"
@@ -19,8 +19,8 @@ func NewResourceFactory(workerClient worker.Client) ResourceFactory {
 
 type ResourceFactory interface {
 	NewResource(
+		ctx context.Context,
 		logger lager.Logger,
-		signals <-chan os.Signal,
 		owner db.ContainerOwner,
 		metadata db.ContainerMetadata,
 		containerSpec worker.ContainerSpec,
@@ -33,10 +33,9 @@ type resourceFactory struct {
 	workerClient worker.Client
 }
 
-//TODO ~> workerClient.Resource()
 func (f *resourceFactory) NewResource(
+	ctx context.Context,
 	logger lager.Logger,
-	signals <-chan os.Signal,
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec worker.ContainerSpec,
@@ -49,8 +48,8 @@ func (f *resourceFactory) NewResource(
 	}
 
 	container, err := f.workerClient.FindOrCreateContainer(
+		ctx,
 		logger,
-		signals,
 		imageFetchingDelegate,
 		owner,
 		metadata,

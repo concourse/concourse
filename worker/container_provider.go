@@ -1,8 +1,8 @@
 package worker
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -25,7 +25,7 @@ func NewContainerProvider(
 	clock clock.Clock,
 	//TODO: less of all this junk..
 	imageFactory ImageFactory,
-	dbVolumeFactory db.VolumeFactory,
+	dbVolumeRepository db.VolumeRepository,
 	dbTeamFactory db.TeamFactory,
 	lockFactory lock.LockFactory,
 ) ContainerProvider {
@@ -35,7 +35,7 @@ func NewContainerProvider(
 		baggageclaimClient: baggageclaimClient,
 		volumeClient:       volumeClient,
 		imageFactory:       imageFactory,
-		dbVolumeFactory:    dbVolumeFactory,
+		dbVolumeRepository: dbVolumeRepository,
 		dbTeamFactory:      dbTeamFactory,
 		lockFactory:        lockFactory,
 		httpProxyURL:       dbWorker.HTTPProxyURL(),
@@ -56,8 +56,8 @@ type ContainerProvider interface {
 	) (Container, bool, error)
 
 	FindOrCreateContainer(
+		ctx context.Context,
 		logger lager.Logger,
-		cancel <-chan os.Signal,
 		owner db.ContainerOwner,
 		delegate ImageFetchingDelegate,
 		metadata db.ContainerMetadata,
@@ -71,7 +71,7 @@ type containerProvider struct {
 	baggageclaimClient baggageclaim.Client
 	volumeClient       VolumeClient
 	imageFactory       ImageFactory
-	dbVolumeFactory    db.VolumeFactory
+	dbVolumeRepository db.VolumeRepository
 	dbTeamFactory      db.TeamFactory
 
 	lockFactory lock.LockFactory
@@ -85,8 +85,8 @@ type containerProvider struct {
 }
 
 func (p *containerProvider) FindOrCreateContainer(
+	ctx context.Context,
 	logger lager.Logger,
-	cancel <-chan os.Signal,
 	owner db.ContainerOwner,
 	delegate ImageFetchingDelegate,
 	metadata db.ContainerMetadata,
@@ -196,7 +196,7 @@ func (p *containerProvider) FindOrCreateContainer(
 
 			logger.Debug("fetching-image")
 
-			fetchedImage, err := image.FetchForContainer(logger, cancel, creatingContainer)
+			fetchedImage, err := image.FetchForContainer(ctx, logger, creatingContainer)
 			if err != nil {
 				creatingContainer.Failed()
 				logger.Error("failed-to-fetch-image-for-container", err)
@@ -272,7 +272,7 @@ func (p *containerProvider) FindCreatedContainerByHandle(
 		return nil, false, nil
 	}
 
-	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
+	createdVolumes, err := p.dbVolumeRepository.FindVolumesForContainer(createdContainer)
 	if err != nil {
 		return nil, false, err
 	}
@@ -300,7 +300,7 @@ func (p *containerProvider) constructGardenWorkerContainer(
 	createdContainer db.CreatedContainer,
 	gardenContainer garden.Container,
 ) (Container, error) {
-	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
+	createdVolumes, err := p.dbVolumeRepository.FindVolumesForContainer(createdContainer)
 	if err != nil {
 		logger.Error("failed-to-find-container-volumes", err)
 		return nil, err
@@ -475,6 +475,11 @@ func (p *containerProvider) createGardenContainer(
 		gardenProperties[userPropertyName] = fetchedImage.Metadata.User
 	}
 
+	containerLimits := garden.Limits{}
+
+	containerLimits.CPU = garden.CPULimits{LimitInShares: spec.Limits.CPU}
+	containerLimits.Memory = garden.MemoryLimits{LimitInBytes: spec.Limits.Memory}
+
 	env := append(fetchedImage.Metadata.Env, spec.Env...)
 
 	if p.httpProxyURL != "" {
@@ -494,6 +499,7 @@ func (p *containerProvider) createGardenContainer(
 		RootFSPath: fetchedImage.URL,
 		Privileged: fetchedImage.Privileged,
 		BindMounts: bindMounts,
+		Limits:     containerLimits,
 		Env:        env,
 		Properties: gardenProperties,
 	})

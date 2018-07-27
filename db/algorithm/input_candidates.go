@@ -15,33 +15,46 @@ type InputVersionCandidates struct {
 	UseEveryVersion       bool
 	PinnedVersionID       int
 	ExistingBuildResolver *ExistingBuildResolver
-	usingEveryVersion     *bool
 
 	VersionCandidates
+
+	hasUsedResource *bool
 }
 
 func (inputVersionCandidates InputVersionCandidates) IsNext(version int, versionIDs *VersionsIter) bool {
-	if !inputVersionCandidates.UsingEveryVersion() {
+	if !inputVersionCandidates.HasUsedResource() {
+		// the build has never used the resource, so don't start from the beginning
 		return true
 	}
 
 	if inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(version) {
+		// there's already a build for this version; just keep using it
 		return true
 	}
 
-	next, hasNext := versionIDs.Peek()
-	return !hasNext ||
-		inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(next)
-}
-
-func (inputVersionCandidates InputVersionCandidates) UsingEveryVersion() bool {
-	if inputVersionCandidates.usingEveryVersion == nil {
-		usingEveryVersion := inputVersionCandidates.UseEveryVersion &&
-			inputVersionCandidates.ExistingBuildResolver.Exists()
-		inputVersionCandidates.usingEveryVersion = &usingEveryVersion
+	older, hasOlder := versionIDs.Peek()
+	if !hasOlder {
+		// this is the earliest version; use it
+		return true
 	}
 
-	return *inputVersionCandidates.usingEveryVersion
+	if inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(older) {
+		// there's already a build for the prior version; use this one
+		return true
+	}
+
+	return false
+}
+
+func (inputVersionCandidates InputVersionCandidates) HasUsedResource() bool {
+	if inputVersionCandidates.hasUsedResource == nil {
+		hasUsedResource := inputVersionCandidates.UseEveryVersion &&
+			inputVersionCandidates.ExistingBuildResolver.ExistsForResource()
+
+		inputVersionCandidates.hasUsedResource = &hasUsedResource
+	}
+
+	return *inputVersionCandidates.hasUsedResource
 }
 
 func (candidates InputCandidates) String() string {

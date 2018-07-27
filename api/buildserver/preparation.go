@@ -25,6 +25,7 @@ func (s *Server) GetBuildPreparation(build db.Build) http.Handler {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(present.BuildPreparation(prep))
 		if err != nil {
 			logger.Error("failed-to-encode-build-preparation", err)

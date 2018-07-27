@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/api/auth"
-	"github.com/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 
@@ -24,8 +25,8 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 		pipeline    *dbfakes.FakePipeline
 		handler     http.Handler
 
-		authValidator     *authfakes.FakeValidator
-		userContextReader *authfakes.FakeUserContextReader
+		fakeAccessor *accessorfakes.FakeAccessFactory
+		fakeaccess   *accessorfakes.FakeAccess
 	)
 
 	BeforeEach(func() {
@@ -36,16 +37,16 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 		pipeline = new(dbfakes.FakePipeline)
 
 		handlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
-
-		authValidator = new(authfakes.FakeValidator)
-		userContextReader = new(authfakes.FakeUserContextReader)
+		fakeAccessor = new(accessorfakes.FakeAccessFactory)
+		fakeaccess = new(accessorfakes.FakeAccess)
 
 		delegate = &pipelineDelegateHandler{}
 		checkPipelineAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = auth.WrapHandler(checkPipelineAccessHandler, authValidator, userContextReader)
+		handler = accessor.NewHandler(checkPipelineAccessHandler, fakeAccessor)
 	})
 
 	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
 		server = httptest.NewServer(handler)
 
 		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:pipeline_name=some-pipeline", nil)
@@ -57,6 +58,26 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 
 	var _ = AfterEach(func() {
 		server.Close()
+	})
+
+	Context("When team is not returned", func() {
+		Context("when it returns an error", func() {
+			BeforeEach(func() {
+				teamFactory.FindTeamReturns(nil, false, errors.New("some-error"))
+			})
+			It("returns an interneral server error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+		Context("when team is not found", func() {
+			BeforeEach(func() {
+				teamFactory.FindTeamReturns(nil, false, nil)
+			})
+			It("returns not found error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
 	})
 
 	Context("when pipeline exists", func() {
@@ -81,10 +102,14 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 		})
 
 		Context("when pipeline is private", func() {
+			BeforeEach(func() {
+				pipeline.PublicReturns(false)
+			})
+
 			Context("and authorized", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", true, true)
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
 				It("calls pipelineScopedHandler with pipelineDB in context", func() {
@@ -99,25 +124,25 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 
 			Context("and unauthorized", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("some-other-team", true, true)
+					fakeaccess.IsAuthorizedReturns(false)
 				})
 
 				Context("and is authenticated", func() {
 					BeforeEach(func() {
-						authValidator.IsAuthenticatedReturns(true)
+						fakeaccess.IsAuthenticatedReturns(true)
 					})
 
-					It("returns 403 forbidden", func() {
+					It("returns 403 Forbidden", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
 
 				Context("and not authenticated", func() {
 					BeforeEach(func() {
-						authValidator.IsAuthenticatedReturns(false)
+						fakeaccess.IsAuthenticatedReturns(false)
 					})
 
-					It("returns 401 unauthorized", func() {
+					It("returns 401 Unauthorized", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})

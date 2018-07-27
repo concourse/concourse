@@ -2,18 +2,18 @@
 package execfakes
 
 import (
-	"os"
+	"context"
 	"sync"
 
 	"github.com/concourse/atc/exec"
 )
 
 type FakeStep struct {
-	RunStub        func(signals <-chan os.Signal, ready chan<- struct{}) error
+	RunStub        func(context.Context, exec.RunState) error
 	runMutex       sync.RWMutex
 	runArgsForCall []struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
+		arg1 context.Context
+		arg2 exec.RunState
 	}
 	runReturns struct {
 		result1 error
@@ -34,17 +34,17 @@ type FakeStep struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (fake *FakeStep) Run(arg1 context.Context, arg2 exec.RunState) error {
 	fake.runMutex.Lock()
 	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
-	}{signals, ready})
-	fake.recordInvocation("Run", []interface{}{signals, ready})
+		arg1 context.Context
+		arg2 exec.RunState
+	}{arg1, arg2})
+	fake.recordInvocation("Run", []interface{}{arg1, arg2})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		return fake.RunStub(signals, ready)
+		return fake.RunStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -58,10 +58,10 @@ func (fake *FakeStep) RunCallCount() int {
 	return len(fake.runArgsForCall)
 }
 
-func (fake *FakeStep) RunArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) {
+func (fake *FakeStep) RunArgsForCall(i int) (context.Context, exec.RunState) {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	return fake.runArgsForCall[i].signals, fake.runArgsForCall[i].ready
+	return fake.runArgsForCall[i].arg1, fake.runArgsForCall[i].arg2
 }
 
 func (fake *FakeStep) RunReturns(result1 error) {

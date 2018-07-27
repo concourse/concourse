@@ -2,7 +2,7 @@
 package resourcefakes
 
 import (
-	"os"
+	"context"
 	"sync"
 
 	"github.com/concourse/atc/resource"
@@ -33,11 +33,10 @@ type FakeFetchSource struct {
 		result2 bool
 		result3 error
 	}
-	CreateStub        func(signals <-chan os.Signal, ready chan<- struct{}) (resource.VersionedSource, error)
+	CreateStub        func(context.Context) (resource.VersionedSource, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
+		arg1 context.Context
 	}
 	createReturns struct {
 		result1 resource.VersionedSource
@@ -140,17 +139,16 @@ func (fake *FakeFetchSource) FindReturnsOnCall(i int, result1 resource.Versioned
 	}{result1, result2, result3}
 }
 
-func (fake *FakeFetchSource) Create(signals <-chan os.Signal, ready chan<- struct{}) (resource.VersionedSource, error) {
+func (fake *FakeFetchSource) Create(arg1 context.Context) (resource.VersionedSource, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
-	}{signals, ready})
-	fake.recordInvocation("Create", []interface{}{signals, ready})
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("Create", []interface{}{arg1})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
-		return fake.CreateStub(signals, ready)
+		return fake.CreateStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -164,10 +162,10 @@ func (fake *FakeFetchSource) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeFetchSource) CreateArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) {
+func (fake *FakeFetchSource) CreateArgsForCall(i int) context.Context {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].signals, fake.createArgsForCall[i].ready
+	return fake.createArgsForCall[i].arg1
 }
 
 func (fake *FakeFetchSource) CreateReturns(result1 resource.VersionedSource, result2 error) {

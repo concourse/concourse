@@ -44,11 +44,13 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 	metric.WorkerContainers{
 		WorkerName: registration.Name,
 		Containers: registration.ActiveContainers,
+		Platform:   registration.Platform,
 	}.Emit(s.logger)
 
 	metric.WorkerVolumes{
 		WorkerName: registration.Name,
 		Volumes:    registration.ActiveVolumes,
+		Platform:   registration.Platform,
 	}.Emit(s.logger)
 
 	savedWorker, err := s.dbWorkerFactory.HeartbeatWorker(registration, ttl)
@@ -64,6 +66,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(present.Worker(savedWorker))
 	if err != nil {

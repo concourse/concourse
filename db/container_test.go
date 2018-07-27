@@ -1,8 +1,8 @@
 package db_test
 
 import (
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc/db"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -58,13 +58,13 @@ var _ = Describe("Container", func() {
 
 			Describe("Volumes", func() {
 				BeforeEach(func() {
-					creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
+					creatingVolume1, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-1")
 					Expect(err).NotTo(HaveOccurred())
 					_, err = creatingVolume1.Created()
 					Expect(err).NotTo(HaveOccurred())
 					expectedHandles = append(expectedHandles, creatingVolume1.Handle())
 
-					creatingVolume2, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-2")
+					creatingVolume2, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-2")
 					Expect(err).NotTo(HaveOccurred())
 					_, err = creatingVolume2.Created()
 					Expect(err).NotTo(HaveOccurred())
@@ -75,7 +75,7 @@ var _ = Describe("Container", func() {
 				})
 
 				It("returns created container volumes", func() {
-					volumes, err := volumeFactory.FindVolumesForContainer(createdContainer)
+					volumes, err := volumeRepository.FindVolumesForContainer(createdContainer)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(volumes).To(HaveLen(2))
 					Expect([]string{volumes[0].Handle(), volumes[1].Handle()}).To(ConsistOf(expectedHandles))
@@ -119,80 +119,103 @@ var _ = Describe("Container", func() {
 
 	Describe("Failed", func() {
 		var failedContainer db.FailedContainer
-		var failedContainers []db.FailedContainer
 		var failedErr error
+		var failedContainerHandles []string
 
-		JustBeforeEach(func() {
-			failedContainer, failedErr = creatingContainer.Failed()
-			failedContainers, _ = containerRepository.FindFailedContainers()
-		})
-
-		Context("when the container is in the creating state", func() {
-			It("makes the state failed", func() {
-				Expect(failedContainers).To(HaveLen(1))
-				Expect(failedContainers).To(ContainElement(failedContainer))
-			})
-
-			It("does not return an error", func() {
-				Expect(failedErr).ToNot(HaveOccurred())
-			})
-		})
-
-		Context("when the container is already in failed state", func() {
-			BeforeEach(func() {
-				_, err := creatingContainer.Failed()
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("keeps the state failed", func() {
-				Expect(failedContainers).To(HaveLen(1))
-				Expect(failedContainers).To(ContainElement(failedContainer))
-			})
-
-			It("does not return an error", func() {
-				Expect(failedErr).ToNot(HaveOccurred())
-			})
-		})
-
-		Context("when the container is actually in created state", func() {
-			BeforeEach(func() {
-				_, err := creatingContainer.Created()
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("does not mark it as failed", func() {
-				Expect(failedContainers).To(HaveLen(0))
-				Expect(failedContainers).ToNot(ContainElement(failedContainer))
-			})
-
-			It("returns an error", func() {
-				Expect(failedErr).To(HaveOccurred())
-			})
-		})
-
-		Context("when the container is actually in destroying state", func() {
-			BeforeEach(func() {
-				createdContainer, err := creatingContainer.Created()
-				Expect(err).ToNot(HaveOccurred())
-
-				_, err = createdContainer.Destroying()
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("does not mark it as failed", func() {
-				Expect(failedContainers).To(HaveLen(0))
-				Expect(failedContainers).ToNot(ContainElement(failedContainer))
-			})
-
-			It("returns an error", func() {
-				Expect(failedErr).To(HaveOccurred())
-			})
-		})
-
-		Context("when the container object connection is closed", func() {
+		Context("db conn is closed", func() {
 			safelyCloseConection()
 			It("returns an error", func() {
+				failedContainer, failedErr = creatingContainer.Failed()
+				Expect(failedContainer).To(BeNil())
 				Expect(failedErr).To(HaveOccurred())
+			})
+		})
+
+		Context("db conn is good", func() {
+			JustBeforeEach(func() {
+				By("transition to failed")
+				failedContainer, failedErr = creatingContainer.Failed()
+
+				rows, err := psql.Select("handle").
+					From("containers").
+					Where(sq.Eq{"state": db.ContainerStateFailed}).
+					RunWith(dbConn).
+					Query()
+				Expect(err).NotTo(HaveOccurred())
+
+				for rows.Next() {
+					var handle = "handle"
+					columns := []interface{}{&handle}
+
+					err = rows.Scan(columns...)
+					Expect(err).NotTo(HaveOccurred())
+
+					failedContainerHandles = append(failedContainerHandles, handle)
+				}
+			})
+
+			BeforeEach(func() {
+				failedErr = nil
+				failedContainerHandles = []string{}
+			})
+
+			Context("when the container is in the creating state", func() {
+				It("makes the state failed", func() {
+					Expect(failedContainerHandles).To(HaveLen(1))
+					Expect(failedContainerHandles).To(ContainElement(failedContainer.Handle()))
+				})
+
+				It("does not return an error", func() {
+					Expect(failedErr).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when the container is already in failed state", func() {
+				BeforeEach(func() {
+					_, err := creatingContainer.Failed()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("keeps the state failed", func() {
+					Expect(failedContainerHandles).To(HaveLen(1))
+					Expect(failedContainerHandles).To(ContainElement(failedContainer.Handle()))
+				})
+
+				It("does not return an error", func() {
+					Expect(failedErr).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when the container is actually in created state", func() {
+				BeforeEach(func() {
+					c, err := creatingContainer.Created()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(c.Handle()).NotTo(BeNil())
+				})
+
+				It("does not mark it as failed", func() {
+					Expect(failedContainerHandles).To(HaveLen(0))
+					Expect(failedContainer).To(BeNil())
+				})
+			})
+
+			Context("when the container is actually in destroying state", func() {
+				BeforeEach(func() {
+					createdContainer, err := creatingContainer.Created()
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = createdContainer.Destroying()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("does not mark it as failed", func() {
+					Expect(failedContainerHandles).To(HaveLen(0))
+					Expect(failedContainer).To(BeNil())
+				})
+
+				It("returns an error", func() {
+					Expect(failedErr).To(HaveOccurred())
+				})
 			})
 		})
 	})

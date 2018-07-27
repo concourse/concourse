@@ -1,9 +1,8 @@
 package gc_test
 
 import (
+	"context"
 	"errors"
-
-	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/concourse/atc/gc"
 	"github.com/concourse/atc/gc/gcfakes"
@@ -30,7 +29,6 @@ var _ = Describe("Aggregate Collector", func() {
 	)
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("collector")
 		fakeBuildCollector = new(gcfakes.FakeCollector)
 		fakeWorkerCollector = new(gcfakes.FakeCollector)
 		fakeResourceCacheUseCollector = new(gcfakes.FakeCollector)
@@ -41,7 +39,6 @@ var _ = Describe("Aggregate Collector", func() {
 		fakeResourceConfigCheckSessionCollector = new(gcfakes.FakeCollector)
 
 		subject = NewCollector(
-			logger,
 			fakeBuildCollector,
 			fakeWorkerCollector,
 			fakeResourceCacheUseCollector,
@@ -57,7 +54,7 @@ var _ = Describe("Aggregate Collector", func() {
 
 	Describe("Run", func() {
 		JustBeforeEach(func() {
-			err = subject.Run()
+			err = subject.Run(context.TODO())
 		})
 
 		It("runs the build collector", func() {

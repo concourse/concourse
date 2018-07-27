@@ -1,37 +1,44 @@
 package gc
 
 import (
-	"code.cloudfoundry.org/lager"
+	"context"
+
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/atc/db"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 type resourceConfigCheckSessionCollector struct {
-	logger                      lager.Logger
 	configCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle
 }
 
 func NewResourceConfigCheckSessionCollector(
-	logger lager.Logger,
 	configCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle,
 ) Collector {
 	return &resourceConfigCheckSessionCollector{
-		logger: logger.Session("resource-config-check-session-collector"),
 		configCheckSessionLifecycle: configCheckSessionLifecycle,
 	}
 }
 
-func (rccsc *resourceConfigCheckSessionCollector) Run() error {
+func (rccsc *resourceConfigCheckSessionCollector) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx).Session("resource-config-check-session-collector")
+
+	logger.Debug("start")
+	defer logger.Debug("done")
+
+	var errs error
+
 	err := rccsc.configCheckSessionLifecycle.CleanExpiredResourceConfigCheckSessions()
 	if err != nil {
-		rccsc.logger.Error("unable-to-clean-up-expired-resource-config-check-sessions", err)
-		return err
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-up-expired-resource-config-check-sessions", err)
 	}
 
 	err = rccsc.configCheckSessionLifecycle.CleanInactiveResourceConfigCheckSessions()
 	if err != nil {
-		rccsc.logger.Error("unable-to-clean-up-resource-config-check-sessions-for-paused-and-inactive-resources", err)
-		return err
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-up-inactive-resource-config-check-sessions", err)
 	}
 
-	return nil
+	return errs
 }

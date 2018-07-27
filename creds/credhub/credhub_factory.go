@@ -3,24 +3,21 @@ package credhub
 import (
 	"code.cloudfoundry.org/lager"
 
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/concourse/atc/creds"
 )
 
 type credhubFactory struct {
-	credhub *credhub.CredHub
+	credhub *lazyCredhub
 	logger  lager.Logger
 	prefix  string
 }
 
-func NewCredHubFactory(logger lager.Logger, credhub *credhub.CredHub, prefix string) *credhubFactory {
-	factory := &credhubFactory{
+func NewCredHubFactory(logger lager.Logger, credhub *lazyCredhub, prefix string) *credhubFactory {
+	return &credhubFactory{
 		credhub: credhub,
 		logger:  logger,
 		prefix:  prefix,
 	}
-
-	return factory
 }
 
 func (factory *credhubFactory) NewVariables(teamName string, pipelineName string) creds.Variables {

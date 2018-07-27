@@ -1,15 +1,18 @@
 package gc
 
-import "code.cloudfoundry.org/lager"
+import (
+	"context"
+
+	"code.cloudfoundry.org/lager/lagerctx"
+)
 
 //go:generate counterfeiter . Collector
 
 type Collector interface {
-	Run() error
+	Run(context.Context) error
 }
 
 type aggregateCollector struct {
-	logger                              lager.Logger
 	buildCollector                      Collector
 	workerCollector                     Collector
 	resourceCacheUseCollector           Collector
@@ -21,7 +24,6 @@ type aggregateCollector struct {
 }
 
 func NewCollector(
-	logger lager.Logger,
 	buildCollector Collector,
 	workers Collector,
 	resourceCacheUses Collector,
@@ -32,7 +34,6 @@ func NewCollector(
 	resourceConfigCheckSessionCollector Collector,
 ) Collector {
 	return &aggregateCollector{
-		logger:                              logger,
 		buildCollector:                      buildCollector,
 		workerCollector:                     workers,
 		resourceCacheUseCollector:           resourceCacheUses,
@@ -44,47 +45,49 @@ func NewCollector(
 	}
 }
 
-func (c *aggregateCollector) Run() error {
+func (c *aggregateCollector) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx)
+
 	var err error
 
-	err = c.buildCollector.Run()
+	err = c.buildCollector.Run(ctx)
 	if err != nil {
-		c.logger.Error("failed-to-run-build-collector", err)
+		logger.Error("failed-to-run-build-collector", err)
 	}
 
-	err = c.workerCollector.Run()
+	err = c.workerCollector.Run(ctx)
 	if err != nil {
-		c.logger.Error("failed-to-run-worker-collector", err)
+		logger.Error("failed-to-run-worker-collector", err)
 	}
 
-	err = c.resourceCacheUseCollector.Run()
+	err = c.resourceCacheUseCollector.Run(ctx)
 	if err != nil {
-		c.logger.Error("failed-to-run-resource-cache-use-collector", err)
+		logger.Error("failed-to-run-resource-cache-use-collector", err)
 	}
 
-	err = c.resourceConfigCollector.Run()
+	err = c.resourceConfigCollector.Run(ctx)
 	if err != nil {
-		c.logger.Error("failed-to-run-resource-config-collector", err)
+		logger.Error("failed-to-run-resource-config-collector", err)
 	}
 
-	err = c.resourceCacheCollector.Run()
+	err = c.resourceCacheCollector.Run(ctx)
 	if err != nil {
-		c.logger.Error("failed-to-run-resource-cache-collector", err)
+		logger.Error("failed-to-run-resource-cache-collector", err)
 	}
 
-	err = c.resourceConfigCheckSessionCollector.Run()
+	err = c.resourceConfigCheckSessionCollector.Run(ctx)
 	if err != nil {
-		c.logger.Error("resource-config-check-session-collector", err)
+		logger.Error("resource-config-check-session-collector", err)
 	}
 
-	err = c.containerCollector.Run()
+	err = c.containerCollector.Run(ctx)
 	if err != nil {
-		c.logger.Error("container-collector", err)
+		logger.Error("container-collector", err)
 	}
 
-	err = c.volumeCollector.Run()
+	err = c.volumeCollector.Run(ctx)
 	if err != nil {
-		c.logger.Error("volume-collector", err)
+		logger.Error("volume-collector", err)
 	}
 
 	return nil

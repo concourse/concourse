@@ -1,4 +1,4 @@
-# atc ![badge](https://ci.concourse.ci/api/v1/teams/main/pipelines/main/jobs/bosh-rc/badge)
+# atc ![badge](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/main/jobs/bosh-rc/badge)
 
 *air traffic control - web ui and build scheduler*
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/db"
 )
 
@@ -41,10 +42,10 @@ type checkPipelineAccessHandler struct {
 }
 
 func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	teamName := r.FormValue(":team_name")
 	pipelineName := r.FormValue(":pipeline_name")
-	requestTeamName := r.FormValue(":team_name")
 
-	team, found, err := h.teamFactory.FindTeam(requestTeamName)
+	team, found, err := h.teamFactory.FindTeam(teamName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -65,16 +66,18 @@ func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if IsAuthorized(r) || pipeline.Public() {
+	acc := accessor.GetAccessor(r)
+
+	if acc.IsAuthorized(teamName) || pipeline.Public() {
 		ctx := context.WithValue(r.Context(), PipelineContextKey, pipeline)
 		h.delegateHandler.ServeHTTP(w, r.WithContext(ctx))
 		return
 	}
 
-	if IsAuthenticated(r) {
-		h.rejector.Forbidden(w, r)
+	if !acc.IsAuthenticated() {
+		h.rejector.Unauthorized(w, r)
 		return
 	}
 
-	h.rejector.Unauthorized(w, r)
+	h.rejector.Forbidden(w, r)
 }

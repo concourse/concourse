@@ -2,42 +2,37 @@ package workerserver
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/auth"
+	"github.com/concourse/atc/api/accessor"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
 )
 
-func (s *Server) ListWorkers(team db.Team) http.Handler {
+func (s *Server) ListWorkers(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-workers")
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, authTeamFound := auth.GetTeam(r)
-		if !authTeamFound {
-			logger.Error("team-not-found-in-context", errors.New("team-not-found-in-context"))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	var workers []db.Worker
 
-		savedWorkers, err := team.Workers()
-		if err != nil {
-			logger.Error("failed-to-get-workers", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	acc := accessor.GetAccessor(r)
 
-		workers := make([]atc.Worker, len(savedWorkers))
-		for i, savedWorker := range savedWorkers {
-			workers[i] = present.Worker(savedWorker)
-		}
+	workers, err := s.dbWorkerFactory.VisibleWorkers(acc.TeamNames())
+	if err != nil {
+		logger.Error("failed-to-get-workers", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-		err = json.NewEncoder(w).Encode(workers)
-		if err != nil {
-			logger.Error("failed-to-encode-workers", err)
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-	})
+	atcWorkers := make([]atc.Worker, len(workers))
+	for i, savedWorker := range workers {
+		atcWorkers[i] = present.Worker(savedWorker)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(atcWorkers)
+	if err != nil {
+		logger.Error("failed-to-encode-workers", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }

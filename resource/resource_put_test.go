@@ -2,10 +2,10 @@ package resource_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
-	"os"
 
 	"code.cloudfoundry.org/garden"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
@@ -37,11 +37,13 @@ var _ = Describe("Resource Put", func() {
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
-		signalsCh chan os.Signal
-		readyCh   chan<- struct{}
+		ctx    context.Context
+		cancel func()
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+
 		source = atc.Source{"some": "source"}
 		params = atc.Params{"some": "params"}
 
@@ -63,8 +65,6 @@ var _ = Describe("Resource Put", func() {
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}
-		signalsCh = make(chan os.Signal)
-		readyCh = make(chan<- struct{})
 		putErr = nil
 	})
 
@@ -98,7 +98,7 @@ var _ = Describe("Resource Put", func() {
 				return outScriptProcess, nil
 			}
 
-			versionedSource, putErr = resourceForContainer.Put(ioConfig, source, params, signalsCh, readyCh)
+			versionedSource, putErr = resourceForContainer.Put(ctx, ioConfig, source, params)
 		})
 
 		itCanStreamOut := func() {
@@ -455,23 +455,23 @@ var _ = Describe("Resource Put", func() {
 			}
 
 			go func() {
-				versionedSource, putErr = resourceForContainer.Put(ioConfig, source, params, signalsCh, readyCh)
+				versionedSource, putErr = resourceForContainer.Put(ctx, ioConfig, source, params)
 				close(done)
 			}()
 		})
 
 		It("stops the container", func() {
-			signalsCh <- os.Interrupt
+			cancel()
 			<-done
 			Expect(fakeContainer.StopCallCount()).To(Equal(1))
 			Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
-			Expect(putErr).To(Equal(ErrAborted))
+			Expect(putErr).To(Equal(context.Canceled))
 		})
 
 		It("doesn't send garden terminate signal to process", func() {
-			signalsCh <- os.Interrupt
+			cancel()
 			<-done
-			Expect(putErr).To(Equal(ErrAborted))
+			Expect(putErr).To(Equal(context.Canceled))
 			Expect(outScriptProcess.SignalCallCount()).To(BeZero())
 		})
 
@@ -487,10 +487,10 @@ var _ = Describe("Resource Put", func() {
 				}
 			})
 
-			It("returns the error", func() {
-				signalsCh <- os.Interrupt
+			It("masks the error", func() {
+				cancel()
 				<-done
-				Expect(putErr).To(Equal(ErrAborted))
+				Expect(putErr).To(Equal(context.Canceled))
 			})
 		})
 	})

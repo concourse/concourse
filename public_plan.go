@@ -6,19 +6,21 @@ func (plan Plan) Public() *json.RawMessage {
 	var public struct {
 		ID PlanID `json:"id"`
 
-		Aggregate    *json.RawMessage `json:"aggregate,omitempty"`
-		Do           *json.RawMessage `json:"do,omitempty"`
-		Get          *json.RawMessage `json:"get,omitempty"`
-		Put          *json.RawMessage `json:"put,omitempty"`
-		Task         *json.RawMessage `json:"task,omitempty"`
-		OnAbort      *json.RawMessage `json:"on_abort,omitempty"`
-		Ensure       *json.RawMessage `json:"ensure,omitempty"`
-		OnSuccess    *json.RawMessage `json:"on_success,omitempty"`
-		OnFailure    *json.RawMessage `json:"on_failure,omitempty"`
-		Try          *json.RawMessage `json:"try,omitempty"`
-		DependentGet *json.RawMessage `json:"dependent_get,omitempty"`
-		Timeout      *json.RawMessage `json:"timeout,omitempty"`
-		Retry        *json.RawMessage `json:"retry,omitempty"`
+		Aggregate      *json.RawMessage `json:"aggregate,omitempty"`
+		Do             *json.RawMessage `json:"do,omitempty"`
+		Get            *json.RawMessage `json:"get,omitempty"`
+		Put            *json.RawMessage `json:"put,omitempty"`
+		Task           *json.RawMessage `json:"task,omitempty"`
+		OnAbort        *json.RawMessage `json:"on_abort,omitempty"`
+		Ensure         *json.RawMessage `json:"ensure,omitempty"`
+		OnSuccess      *json.RawMessage `json:"on_success,omitempty"`
+		OnFailure      *json.RawMessage `json:"on_failure,omitempty"`
+		Try            *json.RawMessage `json:"try,omitempty"`
+		DependentGet   *json.RawMessage `json:"dependent_get,omitempty"`
+		Timeout        *json.RawMessage `json:"timeout,omitempty"`
+		Retry          *json.RawMessage `json:"retry,omitempty"`
+		UserArtifact   *json.RawMessage `json:"user_artifact,omitempty"`
+		ArtifactOutput *json.RawMessage `json:"artifact_output,omitempty"`
 	}
 
 	public.ID = plan.ID
@@ -69,6 +71,14 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.Retry != nil {
 		public.Retry = plan.Retry.Public()
+	}
+
+	if plan.UserArtifact != nil {
+		public.UserArtifact = plan.UserArtifact.Public()
+	}
+
+	if plan.ArtifactOutput != nil {
+		public.ArtifactOutput = plan.ArtifactOutput.Public()
 	}
 
 	if plan.DependentGet != nil {
@@ -212,6 +222,14 @@ func (plan RetryPlan) Public() *json.RawMessage {
 	}
 
 	return enc(public)
+}
+
+func (plan UserArtifactPlan) Public() *json.RawMessage {
+	return enc(plan)
+}
+
+func (plan ArtifactOutputPlan) Public() *json.RawMessage {
+	return enc(plan)
 }
 
 func enc(public interface{}) *json.RawMessage {

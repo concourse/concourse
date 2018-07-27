@@ -1,9 +1,9 @@
 package gc_test
 
 import (
+	"context"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -25,10 +25,9 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 	)
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("resource-config-check-session-collector")
 		resourceConfigCheckSessionLifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
 		resourceConfigCheckSessionFactory = db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
-		collector = gc.NewResourceConfigCheckSessionCollector(logger, resourceConfigCheckSessionLifecycle)
+		collector = gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle)
 	})
 
 	Describe("Run", func() {
@@ -74,7 +73,7 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 		}
 
 		JustBeforeEach(func() {
-			runErr = collector.Run()
+			runErr = collector.Run(context.TODO())
 			Expect(runErr).ToNot(HaveOccurred())
 		})
 

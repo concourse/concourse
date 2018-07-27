@@ -26,6 +26,8 @@ type ResourceType interface {
 	Privileged() bool
 	Source() atc.Source
 	Params() atc.Params
+	Tags() atc.Tags
+	CheckEvery() string
 
 	SetResourceConfig(int) error
 
@@ -46,8 +48,10 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 				Name:       t.Name(),
 				Type:       t.Type(),
 				Source:     t.Source(),
-				Params:     t.Params(),
 				Privileged: t.Privileged(),
+				CheckEvery: t.CheckEvery(),
+				Tags:       t.Tags(),
+				Params:     t.Params(),
 			},
 			Version: t.Version(),
 		})
@@ -64,8 +68,10 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 			Name:       r.Name(),
 			Type:       r.Type(),
 			Source:     r.Source(),
-			Params:     r.Params(),
 			Privileged: r.Privileged(),
+			CheckEvery: r.CheckEvery(),
+			Tags:       r.Tags(),
+			Params:     r.Params(),
 		})
 	}
 
@@ -83,7 +89,9 @@ type resourceType struct {
 	privileged bool
 	source     atc.Source
 	params     atc.Params
+	tags       atc.Tags
 	version    atc.Version
+	checkEvery string
 
 	conn Conn
 }
@@ -92,8 +100,10 @@ func (t *resourceType) ID() int            { return t.id }
 func (t *resourceType) Name() string       { return t.name }
 func (t *resourceType) Type() string       { return t.type_ }
 func (t *resourceType) Privileged() bool   { return t.privileged }
+func (t *resourceType) CheckEvery() string { return t.checkEvery }
 func (t *resourceType) Source() atc.Source { return t.source }
 func (t *resourceType) Params() atc.Params { return t.params }
+func (r *resourceType) Tags() atc.Tags     { return r.tags }
 
 func (t *resourceType) Version() atc.Version { return t.version }
 func (t *resourceType) SaveVersion(version atc.Version) error {
@@ -188,6 +198,8 @@ func scanResourceType(t *resourceType, row scannable) error {
 	t.source = config.Source
 	t.params = config.Params
 	t.privileged = config.Privileged
+	t.tags = config.Tags
+	t.checkEvery = config.CheckEvery
 
 	return nil
 }

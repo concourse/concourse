@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc/db/lock"
@@ -11,22 +13,24 @@ import (
 
 type BuildFactory interface {
 	Build(int) (Build, bool, error)
+	VisibleBuilds([]string, Page) ([]Build, Pagination, error)
 	PublicBuilds(Page) ([]Build, Pagination, error)
 	GetAllStartedBuilds() ([]Build, error)
-
 	// TODO: move to BuildLifecycle, new interface (see WorkerLifecycle)
 	MarkNonInterceptibleBuilds() error
 }
 
 type buildFactory struct {
-	conn        Conn
-	lockFactory lock.LockFactory
+	conn              Conn
+	lockFactory       lock.LockFactory
+	oneOffGracePeriod time.Duration
 }
 
-func NewBuildFactory(conn Conn, lockFactory lock.LockFactory) BuildFactory {
+func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod time.Duration) BuildFactory {
 	return &buildFactory{
-		conn:        conn,
-		lockFactory: lockFactory,
+		conn:              conn,
+		lockFactory:       lockFactory,
+		oneOffGracePeriod: oneOffGracePeriod,
 	}
 }
 
@@ -52,29 +56,33 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 	return build, true, nil
 }
 
+func (f *buildFactory) VisibleBuilds(teamNames []string, page Page) ([]Build, Pagination, error) {
+	newBuildsQuery := buildsQuery.
+		Where(sq.Or{
+			sq.Eq{"p.public": true},
+			sq.Eq{"t.name": teamNames},
+		})
+
+	return getBuildsWithPagination(newBuildsQuery, page, f.conn, f.lockFactory)
+}
+
 func (f *buildFactory) PublicBuilds(page Page) ([]Build, Pagination, error) {
 	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"p.public": true}), page, f.conn, f.lockFactory)
 }
 
 func (f *buildFactory) MarkNonInterceptibleBuilds() error {
-	latestBuildsPrefix := `WITH
-		latest_builds AS (
-			SELECT COALESCE(MAX(b.id)) AS build_id
-			FROM builds b, jobs j
-			WHERE b.job_id = j.id
-			AND b.completed
-			GROUP BY j.id
-		)`
-
-	_, err := psql.Update("builds").
-		Prefix(latestBuildsPrefix).
+	_, err := psql.Update("builds b").
 		Set("interceptible", false).
 		Where(sq.Eq{
 			"completed":     true,
 			"interceptible": true,
 		}).
 		Where(sq.Or{
-			sq.Expr("id NOT IN (select build_id FROM latest_builds)"),
+			sq.NotEq{"job_id": nil},
+			sq.Expr(fmt.Sprintf("now() - end_time > '%d seconds'::interval", int(f.oneOffGracePeriod.Seconds()))),
+		}).
+		Where(sq.Or{
+			sq.Expr("NOT EXISTS (SELECT 1 FROM jobs j WHERE j.latest_completed_build_id = b.id)"),
 			sq.Eq{"status": string(BuildStatusSucceeded)},
 		}).
 		RunWith(f.conn).

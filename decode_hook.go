@@ -3,13 +3,16 @@ package atc
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
 const VersionLatest = "latest"
 const VersionEvery = "every"
+const MemoryRegex = "^([0-9]+)([G|M|K|g|m|k]?[b|B])?$"
 
 var VersionConfigDecodeHook = func(
 	srcType reflect.Type,
@@ -48,6 +51,23 @@ var VersionConfigDecodeHook = func(
 	return data, nil
 }
 
+var ContainerLimitsDecodeHook = func(
+	srcType reflect.Type,
+	dstType reflect.Type,
+	data interface{},
+) (interface{}, error) {
+
+	if dstType != reflect.TypeOf(ContainerLimits{}) {
+		return data, nil
+	}
+	var containerLimits ContainerLimits
+	if limitsData, ok := data.(interface{}); ok {
+		return ContainerLimitsParser(limitsData)
+	}
+
+	return containerLimits, nil
+}
+
 var SanitizeDecodeHook = func(
 	dataKind reflect.Kind,
 	valKind reflect.Kind,
@@ -77,6 +97,61 @@ var SanitizeDecodeHook = func(
 	}
 
 	return data, nil
+}
+
+var ContainerLimitsParser = func(data interface{}) (ContainerLimits, error) {
+
+	var c ContainerLimits
+	mapData := make(map[string]interface{})
+
+	// this is a workaround for https://github.com/go-yaml/yaml/issues/139
+	switch data.(type) {
+	case map[interface{}]interface{}:
+		for key, value := range data.(map[interface{}]interface{}) {
+			sKey := key.(string)
+			mapData[sKey] = value
+		}
+	case map[string]interface{}:
+		mapData = data.(map[string]interface{})
+	}
+
+	var memoryBytes uint64
+	var uVal int
+	var err error
+
+	// the json unmarshaller returns numbers as float64 while yaml returns int
+	for key, val := range mapData {
+		if key == "memory" {
+
+			switch val.(type) {
+			case string:
+				memoryBytes, err = parseMemoryLimit(val.(string))
+				if err != nil {
+					return ContainerLimits{}, err
+				}
+			case float64:
+				memoryBytes = uint64(int(val.(float64)))
+			case int:
+				memoryBytes = uint64(val.(int))
+			}
+			c.Memory = memoryBytes
+
+		} else if key == "cpu" {
+
+			switch val.(type) {
+			case float64:
+				uVal = int(val.(float64))
+			case int:
+				uVal = val.(int)
+			default:
+				return ContainerLimits{}, errors.New("cpu limit must be an integer")
+			}
+			c.CPU = uint64(uVal)
+
+		}
+	}
+
+	return c, nil
 }
 
 func sanitize(root interface{}) (interface{}, error) {
@@ -114,4 +189,36 @@ func sanitize(root interface{}) (interface{}, error) {
 	default:
 		return rootVal, nil
 	}
+}
+
+func parseMemoryLimit(limit string) (uint64, error) {
+
+	limit = strings.ToUpper(limit)
+	var sizeRegex *regexp.Regexp = regexp.MustCompile(MemoryRegex)
+	matches := sizeRegex.FindStringSubmatch(limit)
+
+	if len(matches) > 3 || len(matches) < 1 {
+		return 0, errors.New("could not parse container memory limit")
+	}
+
+	value, err := strconv.ParseUint(matches[1], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	var power float64
+	var base float64 = 2
+	var unit string = matches[2]
+	switch unit {
+	case "KB":
+		power = 10
+	case "MB":
+		power = 20
+	case "GB":
+		power = 30
+	default:
+		power = 0
+	}
+
+	return value * uint64(math.Pow(base, power)), nil
 }

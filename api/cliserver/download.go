@@ -3,6 +3,7 @@ package cliserver
 import (
 	"net/http"
 	"path/filepath"
+	"strings"
 )
 
 func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
@@ -10,8 +11,8 @@ func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "cli downloads directory not configured", http.StatusNotFound)
 		return
 	}
-	platform := r.URL.Query().Get("platform")
 
+	platform := strings.ToLower(r.URL.Query().Get("platform"))
 	arch := r.URL.Query().Get("arch")
 
 	var extension string

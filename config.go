@@ -64,6 +64,7 @@ type ResourceType struct {
 	Type       string `yaml:"type" json:"type" mapstructure:"type"`
 	Source     Source `yaml:"source" json:"source" mapstructure:"source"`
 	Privileged bool   `yaml:"privileged,omitempty" json:"privileged" mapstructure:"privileged"`
+	CheckEvery string `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
 	Tags       Tags   `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
 	Params     Params `yaml:"params,omitempty" json:"params" mapstructure:"params"`
 }

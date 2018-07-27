@@ -134,6 +134,8 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	session.Info("saved")
 
+	w.Header().Set("Content-Type", "application/json")
+
 	if created {
 		w.WriteHeader(http.StatusCreated)
 	} else {
@@ -144,6 +146,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleBadRequest(w http.ResponseWriter, errorMessages []string, session lager.Logger) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
 	s.writeSaveConfigResponse(w, SaveConfigResponse{
 		Errors: errorMessages,
@@ -250,6 +253,7 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			atc.SanitizeDecodeHook,
 			atc.VersionConfigDecodeHook,
+			atc.ContainerLimitsDecodeHook,
 		),
 	}
 

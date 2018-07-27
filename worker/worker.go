@@ -1,10 +1,10 @@
 package worker
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"time"
 
@@ -185,8 +185,8 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 }
 
 func (worker *gardenWorker) FindOrCreateContainer(
+	ctx context.Context,
 	logger lager.Logger,
-	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
@@ -195,8 +195,8 @@ func (worker *gardenWorker) FindOrCreateContainer(
 ) (Container, error) {
 
 	return worker.containerProvider.FindOrCreateContainer(
+		ctx,
 		logger,
-		cancel,
 		owner,
 		delegate,
 		metadata,

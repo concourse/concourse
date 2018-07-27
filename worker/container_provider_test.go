@@ -2,10 +2,10 @@ package worker_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -35,17 +35,15 @@ var _ = Describe("ContainerProvider", func() {
 		fakeCreatingContainer *dbfakes.FakeCreatingContainer
 		fakeCreatedContainer  *dbfakes.FakeCreatedContainer
 
-		fakeGardenClient            *gardenfakes.FakeClient
-		fakeGardenContainer         *gardenfakes.FakeContainer
-		fakeBaggageclaimClient      *baggageclaimfakes.FakeClient
-		fakeVolumeClient            *workerfakes.FakeVolumeClient
-		fakeImageFactory            *workerfakes.FakeImageFactory
-		fakeImage                   *workerfakes.FakeImage
-		fakeDBTeam                  *dbfakes.FakeTeam
-		fakeDBVolumeFactory         *dbfakes.FakeVolumeFactory
-		fakeDBResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
-		fakeDBResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-		fakeLockFactory             *lockfakes.FakeLockFactory
+		fakeGardenClient       *gardenfakes.FakeClient
+		fakeGardenContainer    *gardenfakes.FakeContainer
+		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
+		fakeVolumeClient       *workerfakes.FakeVolumeClient
+		fakeImageFactory       *workerfakes.FakeImageFactory
+		fakeImage              *workerfakes.FakeImage
+		fakeDBTeam             *dbfakes.FakeTeam
+		fakeDBVolumeRepository *dbfakes.FakeVolumeRepository
+		fakeLockFactory        *lockfakes.FakeLockFactory
 
 		containerProvider ContainerProvider
 
@@ -60,7 +58,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeOutputVolume               *workerfakes.FakeVolume
 		fakeLocalCOWVolume             *workerfakes.FakeVolume
 
-		cancel             <-chan os.Signal
+		ctx                context.Context
 		containerSpec      ContainerSpec
 		fakeContainerOwner *dbfakes.FakeContainerOwner
 		containerMetadata  db.ContainerMetadata
@@ -101,10 +99,8 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBTeamFactory := new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
-		fakeDBVolumeFactory = new(dbfakes.FakeVolumeFactory)
+		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
 		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
-		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
-		fakeDBResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 
@@ -120,7 +116,7 @@ var _ = Describe("ContainerProvider", func() {
 			fakeDBWorker,
 			fakeClock,
 			fakeImageFactory,
-			fakeDBVolumeFactory,
+			fakeDBVolumeRepository,
 			fakeDBTeamFactory,
 			fakeLockFactory,
 		)
@@ -198,7 +194,7 @@ var _ = Describe("ContainerProvider", func() {
 			return volume, nil
 		}
 
-		cancel = make(chan os.Signal)
+		ctx = context.Background()
 
 		fakeContainerOwner = new(dbfakes.FakeContainerOwner)
 
@@ -236,6 +232,10 @@ var _ = Describe("ContainerProvider", func() {
 			},
 			BindMounts: []BindMountSource{
 				fakeBindMount,
+			},
+			Limits: ContainerLimits{
+				CPU:    1024,
+				Memory: 1024,
 			},
 		}
 
@@ -396,9 +396,9 @@ var _ = Describe("ContainerProvider", func() {
 			Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 			Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
-			_, actualCancel, actualContainer := fakeImage.FetchForContainerArgsForCall(0)
+			actualCtx, _, actualContainer := fakeImage.FetchForContainerArgsForCall(0)
 			Expect(actualContainer).To(Equal(fakeCreatingContainer))
-			Expect(actualCancel).To(Equal(cancel))
+			Expect(actualCtx).To(Equal(ctx))
 		})
 
 		It("creates container in database", func() {
@@ -448,6 +448,10 @@ var _ = Describe("ContainerProvider", func() {
 						DstPath: "/some/work-dir/output",
 						Mode:    garden.BindMountModeRW,
 					},
+				},
+				Limits: garden.Limits{
+					CPU:    garden.CPULimits{LimitInShares: 1024},
+					Memory: garden.MemoryLimits{LimitInBytes: 1024},
 				},
 				Env: []string{
 					"IMAGE=ENV",
@@ -603,8 +607,8 @@ var _ = Describe("ContainerProvider", func() {
 
 		JustBeforeEach(func() {
 			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateContainer(
+				ctx,
 				logger,
-				cancel,
 				fakeContainerOwner,
 				fakeImageFetchingDelegate,
 				containerMetadata,
@@ -660,7 +664,7 @@ var _ = Describe("ContainerProvider", func() {
 				fakeContainer = new(gardenfakes.FakeContainer)
 				fakeContainer.HandleReturns("provider-handle")
 
-				fakeDBVolumeFactory.FindVolumesForContainerReturns([]db.CreatedVolume{}, nil)
+				fakeDBVolumeRepository.FindVolumesForContainerReturns([]db.CreatedVolume{}, nil)
 
 				fakeDBTeam.FindCreatedContainerByHandleReturns(fakeCreatedContainer, true, nil)
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
@@ -711,7 +715,7 @@ var _ = Describe("ContainerProvider", func() {
 
 					dbVolume1 := new(dbfakes.FakeCreatedVolume)
 					dbVolume2 := new(dbfakes.FakeCreatedVolume)
-					fakeDBVolumeFactory.FindVolumesForContainerReturns([]db.CreatedVolume{dbVolume1, dbVolume2}, nil)
+					fakeDBVolumeRepository.FindVolumesForContainerReturns([]db.CreatedVolume{dbVolume1, dbVolume2}, nil)
 					dbVolume1.HandleReturns("handle-1")
 					dbVolume2.HandleReturns("handle-2")
 					dbVolume1.PathReturns("/handle-1/path")

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"sync"
 	"time"
@@ -14,9 +15,10 @@ import (
 
 const trackLockDuration = time.Minute
 
-func NewDBEngine(engines Engines) Engine {
+func NewDBEngine(engines Engines, peerURL string) Engine {
 	return &dbEngine{
 		engines:   engines,
+		peerURL:   peerURL,
 		releaseCh: make(chan struct{}),
 		waitGroup: new(sync.WaitGroup),
 	}
@@ -32,6 +34,7 @@ func (err UnknownEngineError) Error() string {
 
 type dbEngine struct {
 	engines   Engines
+	peerURL   string
 	releaseCh chan struct{}
 	waitGroup *sync.WaitGroup
 }
@@ -59,6 +62,7 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 
 	return &dbBuild{
 		engines:   engine.engines,
+		peerURL:   engine.peerURL,
 		releaseCh: engine.releaseCh,
 		waitGroup: engine.waitGroup,
 		build:     build,
@@ -68,6 +72,7 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 func (engine *dbEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	return &dbBuild{
 		engines:   engine.engines,
+		peerURL:   engine.peerURL,
 		releaseCh: engine.releaseCh,
 		waitGroup: engine.waitGroup,
 		build:     build,
@@ -92,6 +97,7 @@ func (engine *dbEngine) ReleaseAll(logger lager.Logger) {
 
 type dbBuild struct {
 	engines   Engines
+	peerURL   string
 	releaseCh chan struct{}
 	build     db.Build
 	waitGroup *sync.WaitGroup
@@ -186,6 +192,12 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}
 
 	defer lock.Release()
+
+	err = build.build.TrackedBy(build.peerURL)
+	if err != nil {
+		logger.Error("failed-to-update-build-tracker", err)
+		return
+	}
 
 	found, err := build.build.Reload()
 	if err != nil {
@@ -291,6 +303,50 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 			TeamName:      build.build.TeamName(),
 		}.Emit(logger)
 	}
+}
+
+func (build *dbBuild) ReceiveInput(logger lager.Logger, id atc.PlanID, input io.ReadCloser) {
+	buildEngineName := build.build.Engine()
+	if buildEngineName == "" {
+		logger.Info("sending-input-to-build-with-no-engine")
+		return
+	}
+
+	buildEngine, found := build.engines.Lookup(buildEngineName)
+	if !found {
+		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
+		return
+	}
+
+	engineBuild, err := buildEngine.LookupBuild(logger, build.build)
+	if err != nil {
+		logger.Error("failed-to-lookup-build-in-engine", err)
+		return
+	}
+
+	engineBuild.ReceiveInput(logger, id, input)
+}
+
+func (build *dbBuild) SendOutput(logger lager.Logger, id atc.PlanID, output io.Writer) {
+	buildEngineName := build.build.Engine()
+	if buildEngineName == "" {
+		logger.Info("sending-input-to-build-with-no-engine")
+		return
+	}
+
+	buildEngine, found := build.engines.Lookup(buildEngineName)
+	if !found {
+		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
+		return
+	}
+
+	engineBuild, err := buildEngine.LookupBuild(logger, build.build)
+	if err != nil {
+		logger.Error("failed-to-lookup-build-in-engine", err)
+		return
+	}
+
+	engineBuild.SendOutput(logger, id, output)
 }
 
 func (build *dbBuild) finishWithError(logger lager.Logger, finishErr error) {

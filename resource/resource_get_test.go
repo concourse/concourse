@@ -2,10 +2,10 @@ package resource_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
-	"os"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
@@ -39,13 +39,15 @@ var _ = Describe("Resource Get", func() {
 
 		fakeVolume *workerfakes.FakeVolume
 
-		signalsCh chan os.Signal
-		readyCh   chan<- struct{}
+		ctx    context.Context
+		cancel func()
 
 		getErr error
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+
 		source = atc.Source{"some": "source"}
 		version = atc.Version{"some": "version"}
 		params = atc.Params{"some": "params"}
@@ -71,8 +73,6 @@ var _ = Describe("Resource Get", func() {
 		}
 
 		fakeVolume = new(workerfakes.FakeVolume)
-		signalsCh = make(chan os.Signal)
-		readyCh = make(chan<- struct{})
 	})
 
 	itCanStreamOut := func() {
@@ -145,7 +145,7 @@ var _ = Describe("Resource Get", func() {
 				return inScriptProcess, nil
 			}
 
-			versionedSource, getErr = resourceForContainer.Get(fakeVolume, ioConfig, source, params, version, signalsCh, readyCh)
+			versionedSource, getErr = resourceForContainer.Get(ctx, fakeVolume, ioConfig, source, params, version)
 		})
 
 		Context("when a result is already present on the container", func() {
@@ -403,7 +403,7 @@ var _ = Describe("Resource Get", func() {
 		})
 	})
 
-	Context("when a signal is received", func() {
+	Context("when canceling the context", func() {
 		var waited chan<- struct{}
 		var done chan struct{}
 
@@ -427,22 +427,22 @@ var _ = Describe("Resource Get", func() {
 			}
 
 			go func() {
-				versionedSource, getErr = resourceForContainer.Get(fakeVolume, ioConfig, source, params, version, signalsCh, readyCh)
+				versionedSource, getErr = resourceForContainer.Get(ctx, fakeVolume, ioConfig, source, params, version)
 				close(done)
 			}()
 		})
 
 		It("stops the container", func() {
-			signalsCh <- os.Interrupt
+			cancel()
 			<-done
 			Expect(fakeContainer.StopCallCount()).To(Equal(1))
 			Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
 		})
 
 		It("doesn't send garden terminate signal to process", func() {
-			signalsCh <- os.Interrupt
+			cancel()
 			<-done
-			Expect(getErr).To(Equal(resource.ErrAborted))
+			Expect(getErr).To(Equal(context.Canceled))
 			Expect(inScriptProcess.SignalCallCount()).To(BeZero())
 		})
 
@@ -458,10 +458,10 @@ var _ = Describe("Resource Get", func() {
 				}
 			})
 
-			It("returns the error", func() {
-				signalsCh <- os.Interrupt
+			It("masks the error", func() {
+				cancel()
 				<-done
-				Expect(getErr).To(Equal(resource.ErrAborted))
+				Expect(getErr).To(Equal(context.Canceled))
 			})
 		})
 	})

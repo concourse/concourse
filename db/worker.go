@@ -78,12 +78,13 @@ type worker struct {
 	ephemeral        bool
 }
 
-func (worker *worker) Name() string                            { return worker.name }
-func (worker *worker) Version() *string                        { return worker.version }
-func (worker *worker) State() WorkerState                      { return worker.state }
-func (worker *worker) GardenAddr() *string                     { return worker.gardenAddr }
-func (worker *worker) CertsPath() *string                      { return worker.certsPath }
-func (worker *worker) BaggageclaimURL() *string                { return worker.baggageclaimURL }
+func (worker *worker) Name() string             { return worker.name }
+func (worker *worker) Version() *string         { return worker.version }
+func (worker *worker) State() WorkerState       { return worker.state }
+func (worker *worker) GardenAddr() *string      { return worker.gardenAddr }
+func (worker *worker) CertsPath() *string       { return worker.certsPath }
+func (worker *worker) BaggageclaimURL() *string { return worker.baggageclaimURL }
+
 func (worker *worker) HTTPProxyURL() string                    { return worker.httpProxyURL }
 func (worker *worker) HTTPSProxyURL() string                   { return worker.httpsProxyURL }
 func (worker *worker) NoProxy() string                         { return worker.noProxy }

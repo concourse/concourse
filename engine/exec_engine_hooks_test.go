@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
-	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -69,34 +68,23 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 	Context("running hooked composes", func() {
 		var (
-			taskStepFactory *execfakes.FakeStepFactory
-			taskStep        *execfakes.FakeStep
-
-			inputStepFactory *execfakes.FakeStepFactory
-			inputStep        *execfakes.FakeStep
-
-			outputStepFactory *execfakes.FakeStepFactory
-			outputStep        *execfakes.FakeStep
+			taskStep   *execfakes.FakeStep
+			inputStep  *execfakes.FakeStep
+			outputStep *execfakes.FakeStep
 		)
 
 		BeforeEach(func() {
-			taskStepFactory = new(execfakes.FakeStepFactory)
 			taskStep = new(execfakes.FakeStep)
 			taskStep.SucceededReturns(true)
-			taskStepFactory.UsingReturns(taskStep)
-			fakeFactory.TaskReturns(taskStepFactory)
+			fakeFactory.TaskReturns(taskStep)
 
-			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
 			inputStep.SucceededReturns(true)
-			inputStepFactory.UsingReturns(inputStep)
-			fakeFactory.GetReturns(inputStepFactory)
+			fakeFactory.GetReturns(inputStep)
 
-			outputStepFactory = new(execfakes.FakeStepFactory)
 			outputStep = new(execfakes.FakeStep)
 			outputStep.SucceededReturns(true)
-			outputStepFactory.UsingReturns(outputStep)
-			fakeFactory.PutReturns(outputStepFactory)
+			fakeFactory.PutReturns(outputStep)
 
 			taskStep.RunReturns(nil)
 			inputStep.RunReturns(nil)
@@ -105,16 +93,12 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 		Context("constructing steps", func() {
 			var (
-				fakeDelegate            *enginefakes.FakeBuildDelegate
-				fakeBuildEventsDelegate *execfakes.FakeActionsBuildEventsDelegate
+				fakeDelegate *enginefakes.FakeBuildDelegate
 			)
 
 			BeforeEach(func() {
 				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
-
-				fakeBuildEventsDelegate = new(execfakes.FakeActionsBuildEventsDelegate)
-				fakeDelegate.DBActionsBuildEventsDelegateReturns(fakeBuildEventsDelegate)
 			})
 
 			Context("with all the hooks", func() {
@@ -171,7 +155,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the step correctly", func() {
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
-					logger, plan, dbBuild, stepMetadata, containerMetadata, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, plan, dbBuild, stepMetadata, containerMetadata, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(inputPlan))
@@ -190,7 +174,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the completion hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					logger, plan, dbBuild, containerMetadata, _ := fakeFactory.TaskArgsForCall(2)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(completionTaskPlan))
@@ -208,7 +192,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the failure hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, plan, dbBuild, containerMetadata, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(failureTaskPlan))
@@ -226,7 +210,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the success hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					logger, plan, dbBuild, containerMetadata, _ := fakeFactory.TaskArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(successTaskPlan))
@@ -244,7 +228,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the next step correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, plan, dbBuild, containerMetadata, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					logger, plan, dbBuild, containerMetadata, _ := fakeFactory.TaskArgsForCall(3)
 					Expect(logger).NotTo(BeNil())
 					Expect(dbBuild).To(Equal(build))
 					Expect(plan).To(Equal(nextTaskPlan))
@@ -404,10 +388,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				Expect(outputStep.RunCallCount()).To(Equal(0))
 
-				_, cbErr, successful, aborted := fakeDelegate.FinishArgsForCall(0)
+				_, cbErr, successful := fakeDelegate.FinishArgsForCall(0)
 				Expect(cbErr).NotTo(HaveOccurred())
-				Expect(successful).To(Equal(exec.Success(false)))
-				Expect(aborted).To(BeFalse())
+				Expect(successful).To(BeFalse())
 			})
 		})
 

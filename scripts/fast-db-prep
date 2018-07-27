@@ -1,0 +1,4 @@
+#!/bin/bash
+
+mkdir /tmp/concourse-pg-runner
+sudo mount -t tmpfs none /tmp/concourse-pg-runner

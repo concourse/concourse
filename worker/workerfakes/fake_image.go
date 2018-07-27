@@ -2,7 +2,7 @@
 package workerfakes
 
 import (
-	"os"
+	"context"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -11,11 +11,11 @@ import (
 )
 
 type FakeImage struct {
-	FetchForContainerStub        func(logger lager.Logger, cancel <-chan os.Signal, container db.CreatingContainer) (worker.FetchedImage, error)
+	FetchForContainerStub        func(ctx context.Context, logger lager.Logger, container db.CreatingContainer) (worker.FetchedImage, error)
 	fetchForContainerMutex       sync.RWMutex
 	fetchForContainerArgsForCall []struct {
+		ctx       context.Context
 		logger    lager.Logger
-		cancel    <-chan os.Signal
 		container db.CreatingContainer
 	}
 	fetchForContainerReturns struct {
@@ -30,18 +30,18 @@ type FakeImage struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImage) FetchForContainer(logger lager.Logger, cancel <-chan os.Signal, container db.CreatingContainer) (worker.FetchedImage, error) {
+func (fake *FakeImage) FetchForContainer(ctx context.Context, logger lager.Logger, container db.CreatingContainer) (worker.FetchedImage, error) {
 	fake.fetchForContainerMutex.Lock()
 	ret, specificReturn := fake.fetchForContainerReturnsOnCall[len(fake.fetchForContainerArgsForCall)]
 	fake.fetchForContainerArgsForCall = append(fake.fetchForContainerArgsForCall, struct {
+		ctx       context.Context
 		logger    lager.Logger
-		cancel    <-chan os.Signal
 		container db.CreatingContainer
-	}{logger, cancel, container})
-	fake.recordInvocation("FetchForContainer", []interface{}{logger, cancel, container})
+	}{ctx, logger, container})
+	fake.recordInvocation("FetchForContainer", []interface{}{ctx, logger, container})
 	fake.fetchForContainerMutex.Unlock()
 	if fake.FetchForContainerStub != nil {
-		return fake.FetchForContainerStub(logger, cancel, container)
+		return fake.FetchForContainerStub(ctx, logger, container)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -55,10 +55,10 @@ func (fake *FakeImage) FetchForContainerCallCount() int {
 	return len(fake.fetchForContainerArgsForCall)
 }
 
-func (fake *FakeImage) FetchForContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, db.CreatingContainer) {
+func (fake *FakeImage) FetchForContainerArgsForCall(i int) (context.Context, lager.Logger, db.CreatingContainer) {
 	fake.fetchForContainerMutex.RLock()
 	defer fake.fetchForContainerMutex.RUnlock()
-	return fake.fetchForContainerArgsForCall[i].logger, fake.fetchForContainerArgsForCall[i].cancel, fake.fetchForContainerArgsForCall[i].container
+	return fake.fetchForContainerArgsForCall[i].ctx, fake.fetchForContainerArgsForCall[i].logger, fake.fetchForContainerArgsForCall[i].container
 }
 
 func (fake *FakeImage) FetchForContainerReturns(result1 worker.FetchedImage, result2 error) {

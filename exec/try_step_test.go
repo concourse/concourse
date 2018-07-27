@@ -1,9 +1,11 @@
 package exec_test
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 
 	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
@@ -12,21 +14,27 @@ import (
 
 var _ = Describe("Try Step", func() {
 	var (
-		fakeStepFactoryStep *execfakes.FakeStepFactory
+		ctx    context.Context
+		cancel func()
 
 		runStep *execfakes.FakeStep
 
-		try  StepFactory
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
+
 		step Step
 	)
 
 	BeforeEach(func() {
-		fakeStepFactoryStep = new(execfakes.FakeStepFactory)
-		runStep = new(execfakes.FakeStep)
-		fakeStepFactoryStep.UsingReturns(runStep)
+		ctx, cancel = context.WithCancel(context.Background())
 
-		try = Try(fakeStepFactoryStep)
-		step = try.Using(nil)
+		runStep = new(execfakes.FakeStep)
+
+		repo = worker.NewArtifactRepository()
+		state = new(execfakes.FakeRunState)
+		state.ArtifactsReturns(repo)
+
+		step = Try(runStep)
 	})
 
 	Describe("Succeeded", func() {
@@ -36,14 +44,14 @@ var _ = Describe("Try Step", func() {
 	})
 
 	Describe("Run", func() {
-		Context("when the inner step is interrupted", func() {
+		Context("when interrupted", func() {
 			BeforeEach(func() {
-				runStep.RunReturns(ErrInterrupted)
+				runStep.RunReturns(context.Canceled)
 			})
 
 			It("propagates the error", func() {
-				err := step.Run(nil, nil)
-				Expect(err).To(Equal(ErrInterrupted))
+				err := step.Run(ctx, state)
+				Expect(err).To(Equal(context.Canceled))
 			})
 		})
 
@@ -53,7 +61,7 @@ var _ = Describe("Try Step", func() {
 			})
 
 			It("swallows the error", func() {
-				err := step.Run(nil, nil)
+				err := step.Run(ctx, state)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})

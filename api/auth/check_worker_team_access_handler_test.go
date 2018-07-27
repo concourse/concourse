@@ -6,8 +6,9 @@ import (
 	"net/http/httptest"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/atc/api/auth"
-	"github.com/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/tedsuo/rata"
 
@@ -23,24 +24,25 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 		workerFactory *dbfakes.FakeWorkerFactory
 		handler       http.Handler
 
-		authValidator     *authfakes.FakeValidator
-		userContextReader *authfakes.FakeUserContextReader
-		fakeWorker        *dbfakes.FakeWorker
+		fakeAccessor *accessorfakes.FakeAccessFactory
+		fakeaccess   *accessorfakes.FakeAccess
+		fakeWorker   *dbfakes.FakeWorker
 	)
 
 	BeforeEach(func() {
 		workerFactory = new(dbfakes.FakeWorkerFactory)
-		authValidator = new(authfakes.FakeValidator)
-		userContextReader = new(authfakes.FakeUserContextReader)
+		fakeAccessor = new(accessorfakes.FakeAccessFactory)
+		fakeaccess = new(accessorfakes.FakeAccess)
 
 		handlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(workerFactory)
 
 		delegate = &workerDelegateHandler{}
 		checkWorkerTeamAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = auth.WrapHandler(checkWorkerTeamAccessHandler, authValidator, userContextReader)
+		handler = accessor.NewHandler(checkWorkerTeamAccessHandler, fakeAccessor)
 	})
 
 	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
 		routes := rata.Routes{}
 		for _, route := range atc.Routes {
 			if route.Name == atc.RetireWorker {
@@ -57,6 +59,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 		requestGenerator := rata.NewRequestGenerator(server.URL, atc.Routes)
 		request, err := requestGenerator.CreateRequest(atc.RetireWorker, rata.Params{
 			"worker_name": "some-worker",
+			"team_name":   "some-team",
 		}, nil)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -70,7 +73,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 	Context("when not authenticated", func() {
 		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(false)
+			fakeaccess.IsAuthenticatedReturns(false)
 		})
 
 		It("returns 401", func() {
@@ -84,8 +87,8 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 	Context("when authenticated", func() {
 		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(true)
-			userContextReader.GetTeamReturns("some-team", false, true)
+			fakeaccess.IsAuthenticatedReturns(true)
+			fakeaccess.IsAuthorizedReturns(true)
 		})
 
 		Context("when worker exists and belongs to a team", func() {
@@ -97,9 +100,23 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 				workerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			})
 
+			Context("when user is admin/system", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAdminReturns(true)
+				})
+
+				It("calls worker delegate", func() {
+					Expect(delegate.IsCalled).To(BeTrue())
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+
 			Context("when team in auth matches worker team", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("some-team", false, true)
+					fakeaccess.IsAuthorizedReturns(true)
 				})
 
 				It("fetches worker by the correct name", func() {
@@ -114,7 +131,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 			Context("when team in auth does not match worker team", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("some-other-team", false, true)
+					fakeaccess.IsAuthorizedReturns(false)
 				})
 
 				It("fetches worker by the correct name", func() {
@@ -133,34 +150,38 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 		Context("when worker is not owned by a team", func() {
 			BeforeEach(func() {
+				fakeaccess.IsAuthorizedReturns(false)
 				fakeWorker = new(dbfakes.FakeWorker)
 				fakeWorker.NameReturns("some-worker")
 
 				workerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			})
 
-			Context("when team in auth is admin", func() {
+			Context("when user is admin/system", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("admin-team", true, true)
+					fakeaccess.IsAdminReturns(true)
 				})
 
 				It("calls worker delegate", func() {
 					Expect(delegate.IsCalled).To(BeTrue())
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
 			})
 
-			Context("when team in auth is not admin", func() {
+			Context("when user is not admin/system", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("some-other-team", false, true)
+					fakeaccess.IsAdminReturns(false)
 				})
 
-				It("does not call worker delegate", func() {
-					Expect(delegate.IsCalled).To(BeFalse())
+				It("calls worker delegate", func() {
+					Expect(delegate.IsCalled).To(BeTrue())
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
-
-				It("returns 403 Forbidden", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 		})

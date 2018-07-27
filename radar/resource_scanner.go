@@ -1,6 +1,7 @@
 package radar
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -110,6 +112,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		err = scanner.typeScanner.Scan(logger.Session("resource-type-scanner"), parentType.Name())
 		if err != nil {
 			logger.Error("failed-to-scan-parent-resource-type-version", err)
+			scanner.setResourceCheckError(logger, savedResource, err)
 			return 0, err
 		}
 	}
@@ -251,8 +254,8 @@ func (scanner *resourceScanner) check(
 	}
 
 	res, err := scanner.resourceFactory.NewResource(
+		context.Background(),
 		logger,
-		nil,
 		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, scanner.dbPipeline.TeamID()),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
@@ -274,6 +277,12 @@ func (scanner *resourceScanner) check(
 	newVersions, err := res.Check(source, fromVersion)
 
 	scanner.setResourceCheckError(logger, savedResource, err)
+	metric.ResourceCheck{
+		PipelineName: scanner.dbPipeline.Name(),
+		ResourceName: savedResource.Name(),
+		TeamName:     scanner.dbPipeline.TeamName(),
+		Success:      err == nil,
+	}.Emit(logger)
 
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {

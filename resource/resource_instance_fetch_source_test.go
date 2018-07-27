@@ -1,8 +1,8 @@
 package resource_test
 
 import (
+	"context"
 	"errors"
-	"os"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
@@ -34,15 +34,14 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeDelegate             *workerfakes.FakeImageFetchingDelegate
 		resourceTypes            creds.VersionedResourceTypes
 
-		signals <-chan os.Signal
-		ready   chan<- struct{}
+		ctx    context.Context
+		cancel func()
 	)
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("test")
 		fakeContainer = new(workerfakes.FakeContainer)
-		signals = make(<-chan os.Signal)
-		ready = make(chan<- struct{})
+		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeContainer.PropertyReturns("", errors.New("nope"))
 		inProcess := new(gardenfakes.FakeProcess)
@@ -157,7 +156,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		})
 
 		JustBeforeEach(func() {
-			versionedSource, initErr = fetchSource.Create(signals, ready)
+			versionedSource, initErr = fetchSource.Create(ctx)
 		})
 
 		Context("when there is initialized volume", func() {
@@ -188,7 +187,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			It("creates container with volume and worker", func() {
 				Expect(initErr).NotTo(HaveOccurred())
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				logger, _, delegate, owner, metadata, spec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, logger, delegate, owner, metadata, spec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(delegate).To(Equal(fakeDelegate))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"))))
 				Expect(metadata).To(BeZero())
@@ -222,17 +221,6 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(1))
 				passedResourceCache, _ := fakeResourceCacheFactory.UpdateResourceCacheMetadataArgsForCall(0)
 				Expect(passedResourceCache).To(Equal(resourceCache))
-			})
-
-			Context("when getting resource fails with ErrAborted", func() {
-				BeforeEach(func() {
-					fakeContainer.RunReturns(nil, resource.ErrAborted)
-				})
-
-				It("returns ErrInterrupted", func() {
-					Expect(initErr).To(HaveOccurred())
-					Expect(initErr).To(Equal(resource.ErrInterrupted))
-				})
 			})
 
 			Context("when getting resource fails with other error", func() {

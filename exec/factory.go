@@ -12,38 +12,34 @@ import (
 
 // Factory is used when building up the steps for a build.
 type Factory interface {
-	// Get constructs a ActionsStep factory for Get.
+	// Get constructs a Get step.
 	Get(
 		lager.Logger,
 		atc.Plan,
 		db.Build,
 		StepMetadata,
 		db.ContainerMetadata,
-		ActionsBuildEventsDelegate,
-		BuildStepDelegate,
-	) StepFactory
+		GetDelegate,
+	) Step
 
-	// Put constructs a ActionsStep factory for Put.
+	// Put constructs a Put step.
 	Put(
 		lager.Logger,
 		atc.Plan,
 		db.Build,
 		StepMetadata,
 		db.ContainerMetadata,
-		ActionsBuildEventsDelegate,
-		BuildStepDelegate,
-	) StepFactory
+		PutDelegate,
+	) Step
 
-	// Task constructs a ActionsStep factory for Task.
+	// Task constructs a Task step.
 	Task(
 		lager.Logger,
 		atc.Plan,
 		db.Build,
 		db.ContainerMetadata,
-		TaskBuildEventsDelegate,
-		ActionsBuildEventsDelegate,
-		BuildStepDelegate,
-	) StepFactory
+		TaskDelegate,
+	) Step
 }
 
 // StepMetadata is used to inject metadata to make available to the step when
@@ -56,8 +52,11 @@ type StepMetadata interface {
 
 type BuildStepDelegate interface {
 	ImageVersionDetermined(*db.UsedResourceCache) error
+
 	Stdout() io.Writer
 	Stderr() io.Writer
+
+	Errored(lager.Logger, string)
 }
 
 // Privileged is used to indicate whether the given step should run with

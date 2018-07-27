@@ -27,26 +27,29 @@ type RadarSchedulerFactory interface {
 type radarSchedulerFactory struct {
 	resourceFactory                   resource.ResourceFactory
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory
-	interval                          time.Duration
+	resourceTypeCheckingInterval      time.Duration
+	resourceCheckingInterval          time.Duration
 	engine                            engine.Engine
 }
 
 func NewRadarSchedulerFactory(
 	resourceFactory resource.ResourceFactory,
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory,
-	interval time.Duration,
+	resourceTypeCheckingInterval time.Duration,
+	resourceCheckingInterval time.Duration,
 	engine engine.Engine,
 ) RadarSchedulerFactory {
 	return &radarSchedulerFactory{
 		resourceFactory:                   resourceFactory,
 		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,
-		interval: interval,
-		engine:   engine,
+		resourceTypeCheckingInterval:      resourceTypeCheckingInterval,
+		resourceCheckingInterval:          resourceCheckingInterval,
+		engine: engine,
 	}
 }
 
 func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables creds.Variables) radar.ScanRunnerFactory {
-	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.resourceConfigCheckSessionFactory, rsf.interval, dbPipeline, clock.NewClock(), externalURL, variables)
+	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.resourceConfigCheckSessionFactory, rsf.resourceTypeCheckingInterval, rsf.resourceCheckingInterval, dbPipeline, clock.NewClock(), externalURL, variables)
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string, variables creds.Variables) scheduler.BuildScheduler {
@@ -55,7 +58,7 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 		clock.NewClock(),
 		rsf.resourceFactory,
 		rsf.resourceConfigCheckSessionFactory,
-		rsf.interval,
+		rsf.resourceTypeCheckingInterval,
 		pipeline,
 		externalURL,
 		variables,
@@ -65,7 +68,7 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 		clock.NewClock(),
 		rsf.resourceFactory,
 		rsf.resourceConfigCheckSessionFactory,
-		rsf.interval,
+		rsf.resourceCheckingInterval,
 		pipeline,
 		externalURL,
 		variables,
