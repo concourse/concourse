@@ -53,17 +53,75 @@ type skyServer struct {
 
 func (self *skyServer) Login(w http.ResponseWriter, r *http.Request) {
 
+	logger := self.config.Logger.Session("login")
+
+	authCookie, err := r.Cookie(authCookieName)
+	if err != nil {
+		self.NewLogin(w, r)
+		return
+	}
+
+	redirectUri := r.FormValue("redirect_uri")
+	if redirectUri == "" {
+		redirectUri = "/"
+	}
+
+	parts := strings.Split(authCookie.Value, " ")
+
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
+		logger.Info("failed-to-parse-cookie")
+		self.NewLogin(w, r)
+		return
+	}
+
+	parsed, err := jwt.ParseSigned(parts[1])
+	if err != nil {
+		logger.Error("failed-to-parse-cookie-token", err)
+		self.NewLogin(w, r)
+		return
+	}
+
+	var claims jwt.Claims
+	var result map[string]interface{}
+
+	if err = parsed.Claims(&self.config.SigningKey.PublicKey, &claims, &result); err != nil {
+		logger.Error("failed-to-parse-claims", err)
+		self.NewLogin(w, r)
+		return
+	}
+
+	if err = claims.Validate(jwt.Expected{Time: time.Now()}); err != nil {
+		logger.Error("failed-to-validate-claims", err)
+		self.NewLogin(w, r)
+		return
+	}
+
+	oauth2Token := &oauth2.Token{
+		TokenType:   parts[0],
+		AccessToken: parts[1],
+		Expiry:      claims.Expiry.Time(),
+	}
+
+	token := oauth2Token.WithExtra(map[string]interface{}{
+		"csrf": result["csrf"],
+	})
+
+	self.Redirect(w, r, token, redirectUri)
+}
+
+func (self *skyServer) NewLogin(w http.ResponseWriter, r *http.Request) {
+
+	redirectUri := r.FormValue("redirect_uri")
+	if redirectUri == "" {
+		redirectUri = "/"
+	}
+
 	oauth2Config := &oauth2.Config{
 		ClientID:     self.config.DexClientID,
 		ClientSecret: self.config.DexClientSecret,
 		RedirectURL:  self.config.DexRedirectURL,
 		Endpoint:     self.endpoint(),
 		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
-	}
-
-	redirectUri := r.FormValue("redirect_uri")
-	if redirectUri == "" {
-		redirectUri = "/"
 	}
 
 	stateToken := encode(&token.StateToken{
@@ -122,6 +180,12 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:   stateCookieName,
+		Path:   "/",
+		MaxAge: -1,
+	})
+
 	if authCode = r.FormValue("code"); authCode == "" {
 		logger.Error("failed-to-get-auth-code", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -154,11 +218,24 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenStr := skyToken.TokenType + " " + skyToken.AccessToken
+	self.Redirect(w, r, skyToken, decode(stateToken).RedirectUri)
+}
 
-	csrfToken, ok := skyToken.Extra("csrf").(string)
+func (self *skyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oauth2.Token, redirectUri string) {
+	logger := self.config.Logger.Session("redirect")
+
+	redirectUrl, err := url.Parse(redirectUri)
+	if err != nil {
+		logger.Error("failed-to-parse-redirect-url", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	tokenStr := token.TokenType + " " + token.AccessToken
+
+	csrfToken, ok := token.Extra("csrf").(string)
 	if !ok {
-		logger.Error("failed-to-include-csrf-token", err)
+		logger.Error("failed-to-extract-csrf-token", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -167,28 +244,14 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		Name:     authCookieName,
 		Value:    tokenStr,
 		Path:     "/",
-		Expires:  skyToken.Expiry,
+		Expires:  token.Expiry,
 		HttpOnly: true,
 		Secure:   self.config.SecureCookies,
 	})
 
-	http.SetCookie(w, &http.Cookie{
-		Name:   stateCookieName,
-		Path:   "/",
-		MaxAge: -1,
-	})
-
-	redirectUrl, err := url.Parse(decode(stateToken).RedirectUri)
-	if err != nil {
-		logger.Error("failed-to-parse-redirect-url", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	params := redirectUrl.Query()
 	params.Set("token", tokenStr)
 	params.Set("csrf_token", csrfToken)
-
 	redirectUrl.RawQuery = params.Encode()
 
 	w.Header().Set("X-Csrf-Token", csrfToken)
