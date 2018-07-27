@@ -29,10 +29,6 @@ type UsedBaseResourceType struct {
 
 // FindOrCreate looks for an existing BaseResourceType and creates it if it
 // doesn't exist. It returns a UsedBaseResourceType.
-//
-// Note that if the BaseResourceType already existed, there's a chance that it
-// will be garbage-collected before the referencing ResourceConfig can be
-// created and used.
 func (brt BaseResourceType) FindOrCreate(tx Tx) (*UsedBaseResourceType, error) {
 	ubrt, found, err := brt.Find(tx)
 	if err != nil {
@@ -46,11 +42,15 @@ func (brt BaseResourceType) FindOrCreate(tx Tx) (*UsedBaseResourceType, error) {
 	return brt.create(tx)
 }
 
-func (brt BaseResourceType) Find(tx Tx) (*UsedBaseResourceType, bool, error) {
+func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool, error) {
 	var id int
-	err := psql.Select("id").From("base_resource_types").Where(sq.Eq{
-		"name": brt.Name,
-	}).RunWith(tx).QueryRow().Scan(&id)
+	err := psql.Select("id").
+		From("base_resource_types").
+		Where(sq.Eq{"name": brt.Name}).
+		Suffix("FOR SHARE").
+		RunWith(runner).
+		QueryRow().
+		Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil

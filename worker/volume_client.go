@@ -158,6 +158,7 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 	if err != nil {
 		return nil, err
 	}
+
 	if !found {
 		logger.Error("base-resource-type-not-found", ErrBaseResourceTypeNotFound, lager.Data{"resource-type-name": resourceTypeName})
 		return nil, ErrBaseResourceTypeNotFound
