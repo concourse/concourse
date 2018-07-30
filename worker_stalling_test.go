@@ -34,13 +34,13 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 			var stalledWorkerName string
 
 			BeforeEach(func() {
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop beacon")
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
 				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop garden")
 				stalledWorkerName = waitForStalledWorker()
 			})
 
 			AfterEach(func() {
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start beacon")
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
 				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start garden")
 				waitForWorkersToBeRunning()
 			})
@@ -80,8 +80,8 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 				Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
-				By("stopping the beacon without draining")
-				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop beacon")
+				By("stopping the worker without draining")
+				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
 				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop garden")
 
 				By("waiting for it to stall")
@@ -95,7 +95,7 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 			Context("when the worker does not come back", func() {
 				AfterEach(func() {
-					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start beacon")
+					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
 					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start garden")
 					waitForWorkersToBeRunning()
 				})
@@ -107,7 +107,7 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 			Context("when the worker comes back", func() {
 				It("resumes the build", func() {
-					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start beacon")
+					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
 					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start garden")
 					waitForWorkersToBeRunning()
 
