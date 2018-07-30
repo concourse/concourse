@@ -28,6 +28,8 @@ type Config struct {
 	HTTPSProxy string `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
 	NoProxy    string `long:"no-proxy"    env:"no_proxy"                    description:"Blacklist of addresses to skip the proxy when reaching."`
 
+	Ephemeral bool `long:"ephemeral" description:"If set, the worker will be immediately removed upon stalling."`
+
 	DebugBindPort uint16 `long:"bind-debug-port" default:"9099"    description:"Port on which to listen for beacon pprof server."`
 
 	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
@@ -84,6 +86,7 @@ func (cmd *StartCommand) Execute(args []string) error {
 		HTTPProxyURL:    cmd.WorkerConfig.HTTPProxy,
 		HTTPSProxyURL:   cmd.WorkerConfig.HTTPSProxy,
 		NoProxy:         cmd.WorkerConfig.NoProxy,
+		Ephemeral:       cmd.WorkerConfig.Ephemeral,
 	}
 
 	groupLogger, _ := cmd.Logger.Logger("worker")
