@@ -51,6 +51,7 @@ var _ = Describe("Fly CLI", func() {
 								Team:             "team-1",
 								State:            "running",
 								Version:          "1.2.3",
+								Ephemeral:        true,
 							},
 							{
 								Name:             "worker-7",
@@ -170,7 +171,8 @@ var _ = Describe("Fly CLI", func() {
                 "name": "worker-2",
                 "version": "4.5.6",
                 "start_time": 0,
-                "state": "running"
+                "state": "running",
+								"ephemeral": false
               },
               {
                 "addr": "5.5.5.5:7777",
@@ -186,7 +188,8 @@ var _ = Describe("Fly CLI", func() {
                 "name": "worker-6",
                 "version": "1.2.3",
                 "start_time": 0,
-                "state": "running"
+                "state": "running",
+								"ephemeral": true
               },
               {
                 "addr": "7.7.7.7:7777",
@@ -202,7 +205,8 @@ var _ = Describe("Fly CLI", func() {
                 "name": "worker-7",
                 "version": "",
                 "start_time": 0,
-                "state": "running"
+                "state": "running",
+								"ephemeral": false
               },
               {
                 "addr": "2.2.3.4:7777",
@@ -231,7 +235,8 @@ var _ = Describe("Fly CLI", func() {
                 "name": "worker-1",
                 "version": "4.5.6",
                 "start_time": 0,
-                "state": "landing"
+                "state": "landing",
+								"ephemeral": false
               },
               {
                 "addr": "3.2.3.4:7777",
@@ -245,7 +250,8 @@ var _ = Describe("Fly CLI", func() {
                 "name": "worker-3",
                 "version": "4.5.6",
                 "start_time": 0,
-                "state": "landed"
+                "state": "landed",
+								"ephemeral": false
               },
               {
                 "addr": "",
@@ -261,7 +267,8 @@ var _ = Describe("Fly CLI", func() {
                 "name": "worker-4",
                 "version": "4.5.6",
                 "start_time": 0,
-                "state": "stalled"
+                "state": "stalled",
+								"ephemeral": false
               },
               {
                 "addr": "3.2.3.4:7777",
@@ -275,7 +282,8 @@ var _ = Describe("Fly CLI", func() {
                 "name": "worker-5",
                 "version": "4.5.6",
                 "start_time": 0,
-                "state": "retiring"
+                "state": "retiring",
+								"ephemeral": false
               }
             ]`))
 				})
