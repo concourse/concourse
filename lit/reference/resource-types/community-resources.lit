@@ -208,6 +208,8 @@ before using it!
   \table-row{\link{Android SDK Resource}{https://github.com/xaethos/android-sdk-resource}}{by \ghuser{xaethos}}
 }{
   \table-row{\link{DigitalOcean Worker Provision Resource}{https://github.com/CloudInn/concourse-digitalocean-resource}}{by \ghuser{CloudInn}}
+}{
+  \table-row{\link{Knative Service Resource}{https://github.com/jchesterpivotal/knative-service-resource}}{by \ghuser{jchesterpivotal}}
 }
 
 \section{
