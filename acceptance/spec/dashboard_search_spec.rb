@@ -104,6 +104,7 @@ describe 'dashboard search', type: :feature do
       fly('set-pipeline -n -p other-pipeline -c fixtures/dashboard-pipeline.yml')
       fly('unpause-pipeline -p other-pipeline')
 
+      dash_logout
       dash_login
       visit dash_route
     end

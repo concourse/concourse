@@ -47,7 +47,6 @@ describe 'dashboard', type: :feature do
   describe 'view toggle' do
     context 'when the view is the default view' do
       it 'switches to compact view' do
-        dash_login
         visit_dashboard
         expect(page).to have_content('HIGH-DENSITY')
 
@@ -58,7 +57,6 @@ describe 'dashboard', type: :feature do
 
     context 'when the view is the compact view' do
       it 'switches to default view' do
-        dash_login
         visit_hd_dashboard
         expect(page).to have_content('HIGH-DENSITY')
 
@@ -132,8 +130,6 @@ describe 'dashboard', type: :feature do
       end
 
       it 'shows authenticated team first' do
-        dash_login
-
         visit_dashboard
 
         expect(page).to have_content(team_name)

@@ -10,4 +10,11 @@ module Dash
     click_button 'login'
     expect(page).to_not have_content 'login'
   end
+
+  def dash_logout
+    page.find('.user-id', text: ATC_USERNAME).click
+    expect(page).to have_content 'logout'
+    page.find('a', text: 'logout').click
+    expect(page).to have_content 'login'
+  end
 end

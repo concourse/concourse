@@ -26,7 +26,6 @@ describe 'pipeline', type: :feature do
       fly('set-pipeline -n -p states-pipeline -c fixtures/states-pipeline.yml')
       fly('unpause-pipeline -p states-pipeline')
       fly_fail('check-resource -r states-pipeline/broken-time')
-      dash_login
       visit dash_route("/teams/#{team_name}/pipelines/states-pipeline")
     end
 
