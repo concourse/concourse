@@ -37,6 +37,12 @@ chown -R vcap:vcap $LOG_DIR
   end
 
   if garden_addr.empty?
+    if_p("garden.forward_address") do |addr|
+      garden_addr = addr
+    end
+  end
+
+  if garden_addr.empty?
     if_link("garden") do |garden|
       instance = garden.instances.find { |i| i.id == spec.id }
       if instance
@@ -54,6 +60,12 @@ chown -R vcap:vcap $LOG_DIR
 
   if_p("baggageclaim.url") do |url|
     baggageclaim_url = url
+  end
+
+  if baggageclaim_url.empty?
+    if_p("baggageclaim.forward_address") do |addr|
+      baggageclaim_url = "http://#{addr}"
+    end
   end
 
   if baggageclaim_url.empty?
