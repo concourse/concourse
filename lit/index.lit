@@ -25,12 +25,13 @@
   }}
 
   Concourse will be running at \link{127.0.0.1:8080}{http://127.0.0.1:8080}.
+  You can log in with the username/password as \code{test}/\code{test}.
 
   Next, install \reference{fly-cli} by downloading it from the web UI and
-  target your local Concourse:
+  target your local Concourse as the \code{test} user:
 
   \codeblock{bash}{{
-  $ fly -t tutorial login -c http://127.0.0.1:8080
+  $ fly -t tutorial login -c http://127.0.0.1:8080 -u test -p test
   logging in to team 'main'
 
   target saved

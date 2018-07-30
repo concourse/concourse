@@ -72,6 +72,13 @@ following attributes:
   \italic{Optional.} Arbitrary params to pass when fetching the resource.
 }{resource-type-params}
 
+\define-attribute{check_every: string}{
+  \italic{Optional. Default \code{1m}.} The interval on which to check for new
+  versions of the resource type. Acceptable interval options are defined by the
+  \link{time.ParseDuration
+  function}{https://golang.org/pkg/time/#ParseDuration}.
+}{resource-type-check-every}
+
 \define-attribute{tags: [string]}{
   \italic{Optional. Default \code{[]}.} A list of tags to determine which
   workers the checks will be performed on. You'll want to specify this if the
