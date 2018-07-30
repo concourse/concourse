@@ -123,11 +123,17 @@ describe 'dashboard search', type: :feature do
       search "team: #{team_name} some"
       expect(page.find_all('.dashboard-team-name', minimum: 1).map(&:text)).to eq [team_name]
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['some-pipeline']
+
+      clear_search
+
+      search "team: ma team: in"
+      expect(page.find_all('.dashboard-team-name', minimum: 1).map(&:text)).to eq ["main"]
+      expect(page).to have_content 'no pipelines set'
     end
 
     it 'filters the pipelines by negate team' do
       search "team: -#{team_name}"
-      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
+      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name, "main"]
 
       clear_search
 
@@ -138,12 +144,12 @@ describe 'dashboard search', type: :feature do
 
     it 'filters the pipelines by negate team, negate pipeline and negate status' do
       search "team: -#{team_name}"
-      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name]
+      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name, "main"]
 
       clear_search
 
-      search "team: -#{team_name} status: -pending -some"
-      expect(page).to have_content("No results for \"team: -#{team_name} status: -pending -some\" matched your search.")
+      search "team: -#{team_name} team: -main status: -pending -some"
+      expect(page).to have_content("No results for \"team: -#{team_name} team: -main status: -pending -some\" matched your search.")
     end
   end
 

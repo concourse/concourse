@@ -25,9 +25,10 @@ import List.Extra
 import Mouse
 import NewTopBar
 import NoPipeline exposing (view, Msg)
-import Regex exposing (replace, regex, HowMany(AtMost))
+import Regex exposing (replace, regex, HowMany(All))
 import RemoteData
 import Routes
+import Set
 import Simple.Fuzzy exposing (match, root, filter)
 import StrictEvents exposing (onLeftClick)
 import Task exposing (Task)
@@ -155,11 +156,7 @@ update msg model =
             PipelinesResponse response ->
                 case response of
                     RemoteData.Success pipelines ->
-                        let
-                            newModel =
-                                { model | pipelines = pipelines }
-                        in
-                            ( { newModel | mPipelines = response, filteredPipelines = filter model.topBar.query newModel }, Cmd.batch [ fetchAllJobs, fetchAllResources ] )
+                        ( { model | mPipelines = response, pipelines = pipelines }, Cmd.batch [ fetchAllJobs, fetchAllResources ] )
 
                     _ ->
                         ( model, Cmd.none )
@@ -167,7 +164,11 @@ update msg model =
             JobsResponse response ->
                 case ( response, model.mPipelines ) of
                     ( RemoteData.Success jobs, RemoteData.Success pipelines ) ->
-                        ( { model | mJobs = response, pipelineJobs = jobsByPipelineId pipelines jobs }, Cmd.none )
+                        let
+                            pipelineJobs =
+                                jobsByPipelineId pipelines jobs
+                        in
+                            ( { model | mJobs = response, pipelineJobs = pipelineJobs, filteredPipelines = filter model.topBar.query pipelines pipelineJobs }, Cmd.none )
 
                     _ ->
                         ( model, Cmd.none )
@@ -216,14 +217,14 @@ update msg model =
                             NewTopBar.FilterMsg query ->
                                 { model
                                     | topBar = newTopBar
-                                    , filteredPipelines = filter query model
+                                    , filteredPipelines = filter query model.pipelines model.pipelineJobs
                                 }
 
                             NewTopBar.KeyDown keycode ->
                                 if keycode == 13 then
                                     { model
                                         | topBar = newTopBar
-                                        , filteredPipelines = filter newTopBar.query model
+                                        , filteredPipelines = filter newTopBar.query model.pipelines model.pipelineJobs
                                     }
                                 else
                                     { model | topBar = newTopBar }
@@ -254,8 +255,7 @@ update msg model =
                             pipelines
                 in
                     ( { model
-                        | pipelines = togglePipelinePause model.pipelines
-                        , filteredPipelines = togglePipelinePause model.filteredPipelines
+                        | filteredPipelines = togglePipelinePause model.filteredPipelines
                       }
                     , Cmd.none
                     )
@@ -289,23 +289,15 @@ update msg model =
                                         Just pipeline ->
                                             shiftPipelineTo pipeline dropIndex pipelines
 
-                            pipelines =
-                                if String.isEmpty model.topBar.query then
-                                    shiftPipelines model.pipelines
-                                else
-                                    shiftPipelines model.filteredPipelines
-
-                            newModel =
-                                if String.isEmpty model.topBar.query then
-                                    { model | pipelines = pipelines }
-                                else
-                                    { model | filteredPipelines = pipelines }
+                            filteredPipelines =
+                                shiftPipelines model.filteredPipelines
                         in
-                            ( { newModel
-                                | dragState = NotDragging
+                            ( { model
+                                | filteredPipelines = filteredPipelines
+                                , dragState = NotDragging
                                 , dropState = NotDropping
                               }
-                            , orderPipelines teamName pipelines model.csrfToken
+                            , orderPipelines teamName filteredPipelines model.csrfToken
                             )
 
                     _ ->
@@ -377,12 +369,7 @@ dashboardView model =
             Html.map (\_ -> Noop) NoPipeline.view
 
         ( RemoteData.Success _, RemoteData.Success _ ) ->
-            if List.length model.filteredPipelines > 0 then
-                pipelinesView model model.filteredPipelines
-            else if not (String.isEmpty model.topBar.query) then
-                noResultsView (toString model.topBar.query)
-            else
-                pipelinesView model model.pipelines
+            pipelinesView model model.filteredPipelines
 
         ( RemoteData.Failure _, _ ) ->
             turbulenceView model
@@ -499,25 +486,50 @@ pipelinesView model pipelines =
                 []
                 (pipelinesWithJobs model.pipelineJobs model.pipelineResourceErrors pipelines)
 
-        emptyTeams =
-            teamsWithoutPipelines model.topBar.teams <| Dict.fromList pipelinesByTeam
+        teamsWithPipelines =
+            List.map (Tuple.first) pipelinesByTeam
+
+        teamsWithoutPipelines =
+            case model.topBar.teams of
+                RemoteData.Success teams ->
+                    Set.toList <| Set.diff (Set.fromList (List.map .name teams)) (Set.fromList teamsWithPipelines)
+
+                _ ->
+                    []
 
         pipelinesByTeamView =
-            List.append
-                (List.map (\( teamName, pipelines ) -> groupView model teamName (List.reverse pipelines))
-                    pipelinesByTeam
-                )
-                (List.map (\team -> groupView model team.name [])
-                    emptyTeams
+            List.map (\( teamName, pipelines ) -> groupView model teamName (List.reverse pipelines))
+                (if String.isEmpty model.topBar.query then
+                    pipelinesByTeam ++ List.map (\team -> ( team, [] )) teamsWithoutPipelines
+                 else
+                    let
+                        teamFilters =
+                            filterTerms model.topBar.query |> List.filter (String.startsWith "team:")
+
+                        matchedTeams =
+                            List.foldl
+                                (\teamFilter byTeam ->
+                                    fuzzySearch identity (String.dropLeft 5 teamFilter) byTeam
+                                )
+                                teamsWithoutPipelines
+                                teamFilters
+                    in
+                        if List.isEmpty teamFilters || not (List.all (String.startsWith "team:") (filterTerms model.topBar.query)) then
+                            pipelinesByTeam
+                        else
+                            pipelinesByTeam ++ List.map (\team -> ( team, [] )) matchedTeams
                 )
     in
-        Html.div
-            [ class "dashboard" ]
-        <|
-            [ Html.div [ class "dashboard-content" ] <| pipelinesByTeamView
-            , footerView model
-            , helpView model
-            ]
+        if List.isEmpty pipelinesByTeamView then
+            noResultsView (toString model.topBar.query)
+        else
+            Html.div
+                [ class "dashboard" ]
+            <|
+                [ Html.div [ class "dashboard-content" ] <| pipelinesByTeamView
+                , footerView model
+                , helpView model
+                ]
 
 
 handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )
@@ -737,26 +749,27 @@ getCurrentTime =
     Task.perform ClockTick Time.now
 
 
-filter : String -> Model -> List Concourse.Pipeline
-filter queryStr model =
-    let
-        queries =
-            queryStr
-                |> replace (AtMost 1) (regex "team:\\s*") (\_ -> "team:")
-                |> replace (AtMost 1) (regex "status:\\s*") (\_ -> "status:")
-                |> String.words
-    in
-        filterByTerms model queries model.pipelines
+filter : String -> List Concourse.Pipeline -> Dict PipelineId (List Concourse.Job) -> List Concourse.Pipeline
+filter query pipelines pipelineJobs =
+    filterByTerms (filterTerms query) pipelines pipelineJobs
 
 
-filterByTerms : Model -> List String -> List Concourse.Pipeline -> List Concourse.Pipeline
-filterByTerms model terms pipelines =
+filterTerms : String -> List String
+filterTerms query =
+    query
+        |> replace All (regex "team:\\s*") (\_ -> "team:")
+        |> replace All (regex "status:\\s*") (\_ -> "status:")
+        |> String.words
+
+
+filterByTerms : List String -> List Concourse.Pipeline -> Dict PipelineId (List Concourse.Job) -> List Concourse.Pipeline
+filterByTerms terms pipelines pipelineJobs =
     case terms of
         [] ->
             pipelines
 
         x :: xs ->
-            filterByTerms model xs (filterByTerm x (pipelinesWithJobs model.pipelineJobs model.pipelineResourceErrors pipelines))
+            filterByTerms xs (filterByTerm x (pipelinesWithJobs pipelineJobs Dict.empty pipelines)) pipelineJobs
 
 
 filterByTerm : String -> List PipelineWithJobs -> List Concourse.Pipeline

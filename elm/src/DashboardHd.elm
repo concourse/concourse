@@ -18,6 +18,7 @@ import NewTopBar
 import NoPipeline exposing (view, Msg)
 import RemoteData
 import Routes
+import Set
 import Task exposing (Task)
 import Time exposing (Time)
 
@@ -217,23 +218,28 @@ pipelinesView model pipelines =
                 _ ->
                     List.reverse <| List.sortBy (List.length << Tuple.second) pipelinesByTeam
 
+        teamsWithPipelines =
+            List.map (Tuple.first) pipelinesByTeam
+
         emptyTeams =
-            teamsWithoutPipelines model.topBar.teams <| Dict.fromList pipelinesByTeam
+            case model.topBar.teams of
+                RemoteData.Success teams ->
+                    Set.toList <| Set.diff (Set.fromList (List.map .name teams)) (Set.fromList teamsWithPipelines)
+
+                _ ->
+                    []
 
         pipelinesByTeamView =
             List.append
                 (List.concatMap (\( teamName, pipelines ) -> groupView model.now teamName (List.reverse pipelines))
                     sortedPipelinesByTeam
                 )
-                (List.concatMap (\team -> groupView model.now team.name [])
+                (List.concatMap (\team -> groupView model.now team [])
                     emptyTeams
                 )
     in
-        flip always
-            (Debug.log "teams" emptyTeams)
-            Html.div
+        Html.div
             [ class "dashboard dashboard-hd" ]
-        <|
             [ Html.div [ class "dashboard-content" ] pipelinesByTeamView
             , footerView model
             ]

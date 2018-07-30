@@ -10,12 +10,10 @@ module DashboardHelpers
         , pipelineStatusFromJobs
         , pipelinesWithJobs
         , resourceErrorsByPipelineIdentifier
-        , teamsWithoutPipelines
         )
 
 import Concourse
 import Dict exposing (Dict)
-import RemoteData
 
 
 type alias PipelineId =
@@ -161,17 +159,3 @@ pipelineStatusFromJobs jobs includeNextBuilds =
             Concourse.PipelineStatusSucceeded
         else
             Concourse.PipelineStatusPending
-
-
-teamsWithoutPipelines : RemoteData.WebData (List Concourse.Team) -> Dict String (List PipelineWithJobs) -> List Concourse.Team
-teamsWithoutPipelines concourseTeams pipelinesByTeam =
-    let
-        teamsWithPipeline =
-            Dict.keys pipelinesByTeam
-    in
-        case concourseTeams of
-            RemoteData.Success teams ->
-                List.filter (\team -> not <| List.member team.name teamsWithPipeline) teams
-
-            _ ->
-                []

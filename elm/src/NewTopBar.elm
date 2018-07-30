@@ -52,7 +52,7 @@ type Msg
 
 
 init : Bool -> String -> ( Model, Cmd Msg )
-init showSearch query = 
+init showSearch query =
     ( { teams = RemoteData.Loading
       , userState = UserStateUnknown
       , userMenuVisible = False

@@ -389,24 +389,34 @@ describe 'dashboard', type: :feature do
         EVENTS
       end
 
-      it 'reorders the pipeline within the same team' do
-        other_team_name = generate_team_name
-        fly_login 'main'
-        fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
+      context 'with multiple teams' do
+        let(:other_team_name) { generate_team_name }
 
-        fly_login other_team_name
-        fly('set-pipeline -n -p some-pipeline -c fixtures/dashboard-pipeline.yml')
-        fly('set-pipeline -n -p another-pipeline -c fixtures/dashboard-pipeline.yml')
-        fly('set-pipeline -n -p third-pipeline -c fixtures/dashboard-pipeline.yml')
+        before do
+          fly_login 'main'
+          fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
+        end
 
-        visit_dashboard
-        expect_team_pipelines other_team_name, ['some-pipeline', 'another-pipeline', 'third-pipeline']
+        after do
+          fly_login 'main'
+          fly_with_input("destroy-team -n #{other_team_name}", other_team_name)
+        end
 
-        drag_and_drop(other_team_name, 'some-pipeline', 'third-pipeline')
-        expect_team_pipelines other_team_name, ['another-pipeline', 'some-pipeline', 'third-pipeline']
+        it 'reorders the pipeline within the same team' do
+          fly_login other_team_name
+          fly('set-pipeline -n -p some-pipeline -c fixtures/dashboard-pipeline.yml')
+          fly('set-pipeline -n -p another-pipeline -c fixtures/dashboard-pipeline.yml')
+          fly('set-pipeline -n -p third-pipeline -c fixtures/dashboard-pipeline.yml')
 
-        fly_login 'main'
-        fly_with_input("destroy-team -n #{other_team_name}", other_team_name)
+          visit_dashboard
+          expect_team_pipelines other_team_name, ['some-pipeline', 'another-pipeline', 'third-pipeline']
+
+          drag_and_drop(other_team_name, 'some-pipeline', 'third-pipeline')
+          expect_team_pipelines other_team_name, ['another-pipeline', 'some-pipeline', 'third-pipeline']
+
+          sleep 5 # refresh interval
+          expect_team_pipelines other_team_name, ['another-pipeline', 'some-pipeline', 'third-pipeline']
+        end
       end
 
       it 'reorders when dragging to the end of the pipeline list' do
@@ -418,6 +428,9 @@ describe 'dashboard', type: :feature do
 
         drag_and_drop(team_name, 'some-pipeline')
         expect_team_pipelines team_name, ['another-pipeline', 'third-pipeline', 'some-pipeline']
+
+        sleep 5 # refresh interval
+        expect_team_pipelines team_name, ['another-pipeline', 'third-pipeline', 'some-pipeline']
       end
 
       it 'reorders when dragging in a fitered list' do
@@ -426,8 +439,14 @@ describe 'dashboard', type: :feature do
 
         visit_dashboard
         expect_team_pipelines team_name, ['some-pipeline', 'another-pipeline', 'third-pipeline']
+
         search('pipeline')
+        expect_team_pipelines team_name, ['some-pipeline', 'another-pipeline', 'third-pipeline']
+
         drag_and_drop(team_name, 'some-pipeline')
+        expect_team_pipelines team_name, ['another-pipeline', 'third-pipeline', 'some-pipeline']
+
+        sleep 5 # refresh interval
         expect_team_pipelines team_name, ['another-pipeline', 'third-pipeline', 'some-pipeline']
       end
     end
