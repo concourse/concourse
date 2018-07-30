@@ -25,14 +25,12 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	defer logger.Debug("done")
 
 	affected, err := wc.workerLifecycle.DeleteUnresponsiveEphemeralWorkers()
-
 	if err != nil {
 		logger.Error("failed-to-remove-dead-ephemeral-workers", err)
 		return err
 	}
 
 	affected, err = wc.workerLifecycle.StallUnresponsiveWorkers()
-
 	if err != nil {
 		logger.Error("failed-to-mark-workers-as-stalled", err)
 		return err

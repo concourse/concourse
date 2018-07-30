@@ -29,7 +29,6 @@ func (lifecycle *workerLifecycle) DeleteUnresponsiveEphemeralWorkers() ([]string
 	query, args, err := psql.Delete("workers").
 		Where(sq.Eq{"ephemeral": true}).
 		Where(sq.Expr("expires < NOW()")).
-		Where(sq.Eq{"state": string(WorkerStateRunning)}).
 		Suffix("RETURNING name").
 		ToSql()
 

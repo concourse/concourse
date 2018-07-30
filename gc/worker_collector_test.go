@@ -31,7 +31,7 @@ var _ = Describe("WorkerCollector", func() {
 
 	Describe("Run", func() {
 		It("tells the worker factory to delete unresponsive ephemeral workers", func() {
-			err := workerCollector.Run()
+			err := workerCollector.Run(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeWorkerLifecycle.DeleteUnresponsiveEphemeralWorkersCallCount()).To(Equal(1))

@@ -252,7 +252,6 @@ var _ = Describe("Migration", func() {
 	})
 
 	Context("Downgrade", func() {
-
 		It("Downgrades to a given version", func() {
 			migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, []string{
 				"1510262030_initial_schema.up.sql",
