@@ -205,6 +205,8 @@ before using it!
 }{
   \table-row{\link{HTTP Resource}{https://github.com/aequitas/concourse-http-resource}}{by \ghuser{aequitas}}
 }{
+  \table-row{\link{Android SDK Resource}{https://github.com/xaethos/android-sdk-resource}}{by \ghuser{xaethos}}
+}{
   \table-row{\link{DigitalOcean Worker Provision Resource}{https://github.com/CloudInn/concourse-digitalocean-resource}}{by \ghuser{CloudInn}}
 }
 
