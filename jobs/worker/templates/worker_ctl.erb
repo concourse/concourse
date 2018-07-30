@@ -91,7 +91,7 @@ chmod 0400 $TSA_HOST_KEY
 case $1 in
 
   start)
-    pid_guard $PIDFILE "beacon"
+    pid_guard $PIDFILE "worker"
 
     echo $$ > $PIDFILE
 
@@ -116,6 +116,9 @@ case $1 in
        --platform=<%= p("platform") %> \
        <% p("tags").each do |tag| %> \
          --tag=<%= tag %> \
+       <% end %> \
+       <% if p("ephemeral") %> \
+         --ephemeral \
        <% end %> \
        --garden-addr=<%= garden_addr %> \
        --baggageclaim-url=<%= baggageclaim_url %> \
@@ -148,8 +151,8 @@ case $1 in
            --baggageclaim-forward-addr=<%= p("baggageclaim.forward_address") %> \
          <% end %> \
        <% end %> \
-        1>>$LOG_DIR/beacon.stdout.log \
-        2>>$LOG_DIR/beacon.stderr.log
+        1>>$LOG_DIR/worker.stdout.log \
+        2>>$LOG_DIR/worker.stderr.log
 
     ;;
 

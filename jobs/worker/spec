@@ -8,7 +8,7 @@ description: >
 
 templates:
   drain.erb: bin/drain
-  beacon_ctl.erb: bin/beacon_ctl
+  worker_ctl.erb: bin/worker_ctl
   tsa_host_key.pub.erb: config/tsa_host_key.pub
   worker_key.erb: config/worker_key
 
@@ -178,3 +178,8 @@ properties:
     description: |
       Environment name you wish to group errors under in yeller.
     default: ""
+
+  ephemeral:
+    description: |
+      If set, the worker will immediately disappear upon stalling.
+    default: false
