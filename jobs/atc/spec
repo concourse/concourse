@@ -230,7 +230,7 @@ properties:
     default: ""
 
   generic_oauth.userinfo_url:
-    description: Generic OAuth provider token endpoint URL.
+    description: Generic OAuth provider user info endpoint URL.
     default: ""
 
   generic_oauth.scopes:
