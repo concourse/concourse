@@ -40,8 +40,8 @@ type TaskConfig struct {
 }
 
 type ContainerLimits struct {
-	CPU    uint64 `yaml:"cpu,omitempty"  json:"cpu,omitempty"  mapstructure:"cpu"`
-	Memory uint64 `yaml:"memory,omitempty"  json:"memory,omitempty"  mapstructure:"memory"`
+	CPU    *uint64 `yaml:"cpu,omitempty" json:"cpu,omitempty"  mapstructure:"cpu"`
+	Memory *uint64 `yaml:"memory,omitempty" json:"memory,omitempty"  mapstructure:"memory"`
 }
 
 type ImageResource struct {
@@ -101,6 +101,17 @@ func (config TaskConfig) Merge(other TaskConfig) TaskConfig {
 
 	if other.RootfsURI != "" {
 		config.RootfsURI = other.RootfsURI
+	}
+
+	if other.ImageResource != nil {
+		config.ImageResource = other.ImageResource
+	}
+
+	if other.Limits.CPU != nil {
+		config.Limits.CPU = other.Limits.CPU
+	}
+	if other.Limits.Memory != nil {
+		config.Limits.Memory = other.Limits.Memory
 	}
 
 	if len(config.Params) > 0 {

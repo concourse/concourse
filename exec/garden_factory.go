@@ -20,6 +20,7 @@ type gardenFactory struct {
 	resourceFactory        resource.ResourceFactory
 	dbResourceCacheFactory db.ResourceCacheFactory
 	variablesFactory       creds.VariablesFactory
+	defaultLimits          atc.ContainerLimits
 }
 
 func NewGardenFactory(
@@ -28,6 +29,7 @@ func NewGardenFactory(
 	resourceFactory resource.ResourceFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	variablesFactory creds.VariablesFactory,
+	defaultLimits atc.ContainerLimits,
 ) Factory {
 	return &gardenFactory{
 		workerClient:           workerClient,
@@ -35,6 +37,7 @@ func NewGardenFactory(
 		resourceFactory:        resourceFactory,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 		variablesFactory:       variablesFactory,
+		defaultLimits:          defaultLimits,
 	}
 }
 
@@ -132,6 +135,10 @@ func (factory *gardenFactory) Task(
 		taskConfigSource = FileConfigSource{plan.Task.ConfigPath}
 	}
 
+	taskConfigSource = MergedConfigSource{
+		A: StaticConfigSource{Plan: atc.TaskPlan{Config: &atc.TaskConfig{Limits: factory.defaultLimits}}},
+		B: taskConfigSource,
+	}
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
 
 	taskConfigSource = DeprecationConfigSource{

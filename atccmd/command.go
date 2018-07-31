@@ -143,6 +143,9 @@ type RunCommand struct {
 	DefaultBuildLogsToRetain uint64 `long:"default-build-logs-to-retain" description:"Default build logs to retain, 0 means all"`
 	MaxBuildLogsToRetain     uint64 `long:"max-build-logs-to-retain" description:"Maximum build logs to retain, 0 means not specified. Will override values configured in jobs"`
 
+	DefaultCpuLimit    *int    `long:"default-task-cpu-limit" description:"Default max number of cpu shares per task, 0 means unlimited"`
+	DefaultMemoryLimit *string `long:"default-task-memory-limit" description:"Default maximum memory per task, 0 means unlimited"`
+
 	Auth struct {
 		AuthFlags     skycmd.AuthFlags
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
@@ -421,7 +424,11 @@ func (cmd *RunCommand) constructMembers(
 
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
 	resourceFactory := resource.NewResourceFactory(workerClient)
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory)
+	defaultLimits, err := cmd.parseDefaultLimits()
+	if err != nil {
+		return nil, err
+	}
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory, defaultLimits)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceFactory,
@@ -719,6 +726,13 @@ func (cmd *RunCommand) constructMembers(
 	return filteredMembers, nil
 }
 
+func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
+	return atc.ContainerLimitsParser(map[string]interface{}{
+		"cpu":    cmd.DefaultCpuLimit,
+		"memory": cmd.DefaultMemoryLimit,
+	})
+}
+
 func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool, error) {
 	var members []grouper.Member
 
@@ -959,6 +973,7 @@ func (cmd *RunCommand) constructEngine(
 	resourceFactory resource.ResourceFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	variablesFactory creds.VariablesFactory,
+	defaultLimits atc.ContainerLimits,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
@@ -966,6 +981,7 @@ func (cmd *RunCommand) constructEngine(
 		resourceFactory,
 		dbResourceCacheFactory,
 		variablesFactory,
+		defaultLimits,
 	)
 
 	execV2Engine := engine.NewExecEngine(

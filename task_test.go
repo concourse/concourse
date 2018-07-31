@@ -169,9 +169,11 @@ run: {path: a/file}
 `)
 					task, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
+					cpu := uint64(1024)
+					memory := uint64(1024)
 					Expect(task.Limits).To(Equal(ContainerLimits{
-						CPU:    1024,
-						Memory: 1024,
+						CPU:    &cpu,
+						Memory: &memory,
 					}))
 				})
 
@@ -184,9 +186,11 @@ run: {path: a/file}
 `)
 					task, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
+					cpu := uint64(1024)
+					memory := uint64(209715200)
 					Expect(task.Limits).To(Equal(ContainerLimits{
-						CPU:    1024,
-						Memory: 209715200,
+						CPU:    &cpu,
+						Memory: &memory,
 					}))
 				})
 			})
@@ -201,8 +205,9 @@ run: {path: a/file}
 `)
 					task, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
+					memory := uint64(1024)
 					Expect(task.Limits).To(Equal(ContainerLimits{
-						Memory: 1024,
+						Memory: &memory,
 					}))
 				})
 
@@ -215,8 +220,9 @@ run: {path: a/file}
 `)
 					task, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
+					cpu := uint64(355)
 					Expect(task.Limits).To(Equal(ContainerLimits{
-						CPU: 355,
+						CPU: &cpu,
 					}))
 				})
 			})
@@ -810,6 +816,50 @@ run: {path: a/file}
 				Equal(TaskConfig{
 					Inputs: []TaskInputConfig{
 						{Name: "another-input", Path: "another-destination"},
+					},
+				}))
+
+		})
+
+		It("overrides memory limit", func() {
+			cpu := uint64(10)
+			memory := uint64(100)
+			Expect(TaskConfig{
+				Limits: ContainerLimits{
+					CPU: &cpu,
+				},
+			}.Merge(TaskConfig{
+				Limits: ContainerLimits{
+					Memory: &memory,
+				},
+			})).To(
+
+				Equal(TaskConfig{
+					Limits: ContainerLimits{
+						CPU:    &cpu,
+						Memory: &memory,
+					},
+				}))
+
+		})
+
+		It("overrides CPU limit", func() {
+			memory := uint64(100)
+			cpu := uint64(100)
+			Expect(TaskConfig{
+				Limits: ContainerLimits{
+					Memory: &memory,
+				},
+			}.Merge(TaskConfig{
+				Limits: ContainerLimits{
+					CPU: &cpu,
+				},
+			})).To(
+
+				Equal(TaskConfig{
+					Limits: ContainerLimits{
+						CPU:    &cpu,
+						Memory: &memory,
 					},
 				}))
 
