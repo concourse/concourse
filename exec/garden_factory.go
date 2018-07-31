@@ -135,10 +135,6 @@ func (factory *gardenFactory) Task(
 		taskConfigSource = FileConfigSource{plan.Task.ConfigPath}
 	}
 
-	taskConfigSource = MergedConfigSource{
-		A: StaticConfigSource{Plan: atc.TaskPlan{Config: &atc.TaskConfig{Limits: factory.defaultLimits}}},
-		B: taskConfigSource,
-	}
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
 
 	taskConfigSource = DeprecationConfigSource{
@@ -170,6 +166,7 @@ func (factory *gardenFactory) Task(
 
 		creds.NewVersionedResourceTypes(variables, plan.Task.VersionedResourceTypes),
 		variables,
+		factory.defaultLimits,
 	)
 
 	return LogError(taskStep, delegate)

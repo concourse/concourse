@@ -88,7 +88,8 @@ type TaskStep struct {
 
 	resourceTypes creds.VersionedResourceTypes
 
-	variables creds.Variables
+	variables     creds.Variables
+	defaultLimits atc.ContainerLimits
 
 	succeeded bool
 }
@@ -111,6 +112,7 @@ func NewTaskStep(
 	containerMetadata db.ContainerMetadata,
 	resourceTypes creds.VersionedResourceTypes,
 	variables creds.Variables,
+	defaultLimits atc.ContainerLimits,
 ) Step {
 	return &TaskStep{
 		privileged:        privileged,
@@ -130,6 +132,7 @@ func NewTaskStep(
 		containerMetadata: containerMetadata,
 		resourceTypes:     resourceTypes,
 		variables:         variables,
+		defaultLimits:     defaultLimits,
 	}
 }
 
@@ -156,6 +159,12 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 	config, err := action.configSource.FetchConfig(repository)
 	if err != nil {
 		return err
+	}
+	if config.Limits.CPU == nil {
+		config.Limits.CPU = action.defaultLimits.CPU
+	}
+	if config.Limits.Memory == nil {
+		config.Limits.Memory = action.defaultLimits.Memory
 	}
 
 	action.delegate.Initializing(logger, config)

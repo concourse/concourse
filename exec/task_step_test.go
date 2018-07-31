@@ -135,6 +135,7 @@ var _ = Describe("TaskStep", func() {
 			containerMetadata,
 			resourceTypes,
 			variables,
+			atc.ContainerLimits{},
 		)
 
 		stepErr = taskStep.Run(ctx, state)

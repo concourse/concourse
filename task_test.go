@@ -820,49 +820,5 @@ run: {path: a/file}
 				}))
 
 		})
-
-		It("overrides memory limit", func() {
-			cpu := uint64(10)
-			memory := uint64(100)
-			Expect(TaskConfig{
-				Limits: ContainerLimits{
-					CPU: &cpu,
-				},
-			}.Merge(TaskConfig{
-				Limits: ContainerLimits{
-					Memory: &memory,
-				},
-			})).To(
-
-				Equal(TaskConfig{
-					Limits: ContainerLimits{
-						CPU:    &cpu,
-						Memory: &memory,
-					},
-				}))
-
-		})
-
-		It("overrides CPU limit", func() {
-			memory := uint64(100)
-			cpu := uint64(100)
-			Expect(TaskConfig{
-				Limits: ContainerLimits{
-					Memory: &memory,
-				},
-			}.Merge(TaskConfig{
-				Limits: ContainerLimits{
-					CPU: &cpu,
-				},
-			})).To(
-
-				Equal(TaskConfig{
-					Limits: ContainerLimits{
-						CPU:    &cpu,
-						Memory: &memory,
-					},
-				}))
-
-		})
 	})
 })

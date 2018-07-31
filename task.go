@@ -103,17 +103,6 @@ func (config TaskConfig) Merge(other TaskConfig) TaskConfig {
 		config.RootfsURI = other.RootfsURI
 	}
 
-	if other.ImageResource != nil {
-		config.ImageResource = other.ImageResource
-	}
-
-	if other.Limits.CPU != nil {
-		config.Limits.CPU = other.Limits.CPU
-	}
-	if other.Limits.Memory != nil {
-		config.Limits.Memory = other.Limits.Memory
-	}
-
 	if len(config.Params) > 0 {
 		newParams := map[string]string{}
 
