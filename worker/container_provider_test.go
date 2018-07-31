@@ -207,6 +207,8 @@ var _ = Describe("ContainerProvider", func() {
 			"secret-source": "super-secret-source",
 		}
 
+		cpu := uint64(1024)
+		memory := uint64(1024)
 		containerSpec = ContainerSpec{
 			TeamID: 73410,
 
@@ -234,8 +236,8 @@ var _ = Describe("ContainerProvider", func() {
 				fakeBindMount,
 			},
 			Limits: ContainerLimits{
-				CPU:    1024,
-				Memory: 1024,
+				CPU:    &cpu,
+				Memory: &memory,
 			},
 		}
 
