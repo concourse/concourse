@@ -347,6 +347,12 @@ case $1 in
       <% if_p("build_log_retention.maximum") do |build_log_retention_maximum| %> \
       --max-build-logs-to-retain <%= esc(build_log_retention_maximum) %> \
       <% end %> \
+      <% if_p("default_task_cpu_limit") do |default_task_cpu_limit| %> \
+      --default-task-cpu-limit <%= esc(default_task_cpu_limit) %> \
+      <% end %> \
+      <% if_p("default_task_memory_limit") do |default_task_memory_limit| %> \
+      --default-task-memory-limit <%= esc(default_task_memory_limit) %> \
+      <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 

@@ -667,3 +667,14 @@ properties:
       capping any value set in a job itself or the build_log_retention.default.
       0 (or not set) means no maximum is specified.
     example: 1000
+
+  default_task_cpu_limit:
+    description: |
+      Default limit for cpu shares used per task. This can be overridden by specifying
+      a different limit in the task yaml.
+    example: 256
+  default_task_memory_limit:
+    description: |
+      Default limit for memory used per task. This can be overridden by specifying
+      a different limit in the task yaml.
+    example: 200mb
