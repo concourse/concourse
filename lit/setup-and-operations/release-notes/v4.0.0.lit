@@ -57,6 +57,11 @@
       The flags for \reference{fly-set-team} have been split between
       \code{set-team} and \code{concourse web} (because part of the config is
       now global).
+    }{
+      You may also need to download and install the latest 4.0.0 \code{fly} CLI.
+      In the past you would have been able to \code{fly sync} your way to the
+      latest version of \code{fly} but the new auth in 4.0.0 will cause the old
+      \code{fly} to error out.
     }
 
     You should definitely check for these conditions and take a database backup
