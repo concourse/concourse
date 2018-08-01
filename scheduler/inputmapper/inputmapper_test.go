@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler/inputmapper"
@@ -37,6 +38,7 @@ var _ = Describe("Inputmapper", func() {
 		var (
 			versionsDB   *algorithm.VersionsDB
 			fakeJob      *dbfakes.FakeJob
+			resources    db.Resources
 			inputMapping algorithm.InputMapping
 			mappingErr   error
 		)
@@ -69,6 +71,7 @@ var _ = Describe("Inputmapper", func() {
 				lagertest.NewTestLogger("test"),
 				versionsDB,
 				fakeJob,
+				resources,
 			)
 		})
 
@@ -375,6 +378,58 @@ var _ = Describe("Inputmapper", func() {
 			It("returns an empty mapping and no error", func() {
 				Expect(mappingErr).NotTo(HaveOccurred())
 				Expect(inputMapping).To(BeEmpty())
+			})
+		})
+
+		Context("when a resource has a pinned version", func() {
+			BeforeEach(func() {
+				fakeJob = new(dbfakes.FakeJob)
+				fakeJob.NameReturns("some-job")
+				fakeJob.ConfigReturns(atc.JobConfig{
+					Plan: atc.PlanSequence{
+						{Get: "a", Resource: "a"},
+					},
+				})
+
+				fakeResource := new(dbfakes.FakeResource)
+				fakeResource.NameReturns("a")
+				fakeResource.PinnedVersionReturns(map[string]string{"ref": "abc"})
+
+				resources = db.Resources{fakeResource}
+			})
+
+			It("returns the inputs with the pinned version", func() {
+				Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
+				_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
+				Expect(actualJobInputs).To(ConsistOf(
+					atc.JobInput{
+						Name:     "a",
+						Resource: "a",
+						Version:  &atc.VersionConfig{Pinned: atc.Version{"ref": "abc"}},
+					},
+				))
+			})
+
+			Context("when the get has a version", func() {
+				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						Plan: atc.PlanSequence{
+							{Get: "a", Resource: "a", Version: &atc.VersionConfig{Latest: true}},
+						},
+					})
+				})
+
+				It("returns an input config with the resource pinned version", func() {
+					Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
+					_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
+					Expect(actualJobInputs).To(ConsistOf(
+						atc.JobInput{
+							Name:     "a",
+							Resource: "a",
+							Version:  &atc.VersionConfig{Pinned: atc.Version{"ref": "abc"}},
+						},
+					))
+				})
 			})
 		})
 	})

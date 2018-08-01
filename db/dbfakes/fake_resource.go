@@ -118,6 +118,15 @@ type FakeResource struct {
 	webhookTokenReturnsOnCall map[int]struct {
 		result1 string
 	}
+	PinnedVersionStub        func() atc.Version
+	pinnedVersionMutex       sync.RWMutex
+	pinnedVersionArgsForCall []struct{}
+	pinnedVersionReturns     struct {
+		result1 atc.Version
+	}
+	pinnedVersionReturnsOnCall map[int]struct {
+		result1 atc.Version
+	}
 	FailingToCheckStub        func() bool
 	failingToCheckMutex       sync.RWMutex
 	failingToCheckArgsForCall []struct{}
@@ -651,6 +660,46 @@ func (fake *FakeResource) WebhookTokenReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeResource) PinnedVersion() atc.Version {
+	fake.pinnedVersionMutex.Lock()
+	ret, specificReturn := fake.pinnedVersionReturnsOnCall[len(fake.pinnedVersionArgsForCall)]
+	fake.pinnedVersionArgsForCall = append(fake.pinnedVersionArgsForCall, struct{}{})
+	fake.recordInvocation("PinnedVersion", []interface{}{})
+	fake.pinnedVersionMutex.Unlock()
+	if fake.PinnedVersionStub != nil {
+		return fake.PinnedVersionStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.pinnedVersionReturns.result1
+}
+
+func (fake *FakeResource) PinnedVersionCallCount() int {
+	fake.pinnedVersionMutex.RLock()
+	defer fake.pinnedVersionMutex.RUnlock()
+	return len(fake.pinnedVersionArgsForCall)
+}
+
+func (fake *FakeResource) PinnedVersionReturns(result1 atc.Version) {
+	fake.PinnedVersionStub = nil
+	fake.pinnedVersionReturns = struct {
+		result1 atc.Version
+	}{result1}
+}
+
+func (fake *FakeResource) PinnedVersionReturnsOnCall(i int, result1 atc.Version) {
+	fake.PinnedVersionStub = nil
+	if fake.pinnedVersionReturnsOnCall == nil {
+		fake.pinnedVersionReturnsOnCall = make(map[int]struct {
+			result1 atc.Version
+		})
+	}
+	fake.pinnedVersionReturnsOnCall[i] = struct {
+		result1 atc.Version
+	}{result1}
+}
+
 func (fake *FakeResource) FailingToCheck() bool {
 	fake.failingToCheckMutex.Lock()
 	ret, specificReturn := fake.failingToCheckReturnsOnCall[len(fake.failingToCheckArgsForCall)]
@@ -889,6 +938,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.pausedMutex.RUnlock()
 	fake.webhookTokenMutex.RLock()
 	defer fake.webhookTokenMutex.RUnlock()
+	fake.pinnedVersionMutex.RLock()
+	defer fake.pinnedVersionMutex.RUnlock()
 	fake.failingToCheckMutex.RLock()
 	defer fake.failingToCheckMutex.RUnlock()
 	fake.setResourceConfigMutex.RLock()

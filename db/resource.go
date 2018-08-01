@@ -27,6 +27,7 @@ type Resource interface {
 	CheckError() error
 	Paused() bool
 	WebhookToken() string
+	PinnedVersion() atc.Version
 	FailingToCheck() bool
 
 	SetResourceConfig(int) error
@@ -44,19 +45,20 @@ var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.pause
 	Where(sq.Eq{"r.active": true})
 
 type resource struct {
-	id           int
-	name         string
-	pipelineID   int
-	pipelineName string
-	teamName     string
-	type_        string
-	source       atc.Source
-	checkEvery   string
-	lastChecked  time.Time
-	tags         atc.Tags
-	checkError   error
-	paused       bool
-	webhookToken string
+	id            int
+	name          string
+	pipelineID    int
+	pipelineName  string
+	teamName      string
+	type_         string
+	source        atc.Source
+	checkEvery    string
+	lastChecked   time.Time
+	tags          atc.Tags
+	checkError    error
+	paused        bool
+	webhookToken  string
+	pinnedVersion atc.Version
 
 	conn Conn
 }
@@ -92,25 +94,35 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 			Source:       r.Source(),
 			CheckEvery:   r.CheckEvery(),
 			Tags:         r.Tags(),
+			Version:      r.PinnedVersion(),
 		})
 	}
 
 	return configs
 }
 
-func (r *resource) ID() int                { return r.id }
-func (r *resource) Name() string           { return r.name }
-func (r *resource) PipelineID() int        { return r.pipelineID }
-func (r *resource) PipelineName() string   { return r.pipelineName }
-func (r *resource) TeamName() string       { return r.teamName }
-func (r *resource) Type() string           { return r.type_ }
-func (r *resource) Source() atc.Source     { return r.source }
-func (r *resource) CheckEvery() string     { return r.checkEvery }
-func (r *resource) LastChecked() time.Time { return r.lastChecked }
-func (r *resource) Tags() atc.Tags         { return r.tags }
-func (r *resource) CheckError() error      { return r.checkError }
-func (r *resource) Paused() bool           { return r.paused }
-func (r *resource) WebhookToken() string   { return r.webhookToken }
+func (resources Resources) PinnedVersions() map[string]atc.Version {
+	var pinnedVersions map[string]atc.Version
+	for _, r := range resources {
+		pinnedVersions[r.Name()] = r.PinnedVersion()
+	}
+	return pinnedVersions
+}
+
+func (r *resource) ID() int                    { return r.id }
+func (r *resource) Name() string               { return r.name }
+func (r *resource) PipelineID() int            { return r.pipelineID }
+func (r *resource) PipelineName() string       { return r.pipelineName }
+func (r *resource) TeamName() string           { return r.teamName }
+func (r *resource) Type() string               { return r.type_ }
+func (r *resource) Source() atc.Source         { return r.source }
+func (r *resource) CheckEvery() string         { return r.checkEvery }
+func (r *resource) LastChecked() time.Time     { return r.lastChecked }
+func (r *resource) Tags() atc.Tags             { return r.tags }
+func (r *resource) CheckError() error          { return r.checkError }
+func (r *resource) Paused() bool               { return r.paused }
+func (r *resource) WebhookToken() string       { return r.webhookToken }
+func (r *resource) PinnedVersion() atc.Version { return r.pinnedVersion }
 func (r *resource) FailingToCheck() bool {
 	return r.checkError != nil
 }
@@ -206,6 +218,7 @@ func scanResource(r *resource, row scannable) error {
 	r.checkEvery = config.CheckEvery
 	r.tags = config.Tags
 	r.webhookToken = config.WebhookToken
+	r.pinnedVersion = config.Version
 
 	if checkErr.Valid {
 		r.checkError = errors.New(checkErr.String)

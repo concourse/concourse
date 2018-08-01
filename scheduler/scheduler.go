@@ -35,7 +35,7 @@ func (s *Scheduler) Schedule(
 
 	for _, job := range jobs {
 		jStart := time.Now()
-		err := s.ensurePendingBuildExists(logger, versions, job)
+		err := s.ensurePendingBuildExists(logger, versions, job, resources)
 		jobSchedulingTime[job.Name()] = time.Since(jStart)
 
 		if err != nil {
@@ -71,8 +71,9 @@ func (s *Scheduler) ensurePendingBuildExists(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
 	job db.Job,
+	resources db.Resources,
 ) error {
-	inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, job)
+	inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, job, resources)
 	if err != nil {
 		return err
 	}
@@ -134,13 +135,13 @@ func (s *Scheduler) TriggerImmediately(
 	return build, wg, nil
 }
 
-func (s *Scheduler) SaveNextInputMapping(logger lager.Logger, job db.Job) error {
+func (s *Scheduler) SaveNextInputMapping(logger lager.Logger, job db.Job, resources db.Resources) error {
 	versions, err := s.Pipeline.LoadVersionsDB()
 	if err != nil {
 		logger.Error("failed-to-load-versions-db", err)
 		return err
 	}
 
-	_, err = s.InputMapper.SaveNextInputMapping(logger, versions, job)
+	_, err = s.InputMapper.SaveNextInputMapping(logger, versions, job, resources)
 	return err
 }

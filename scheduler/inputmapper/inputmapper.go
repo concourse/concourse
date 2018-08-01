@@ -2,6 +2,7 @@ package inputmapper
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
@@ -14,6 +15,7 @@ type InputMapper interface {
 		logger lager.Logger,
 		versions *algorithm.VersionsDB,
 		job db.Job,
+		resources db.Resources,
 	) (algorithm.InputMapping, error)
 }
 
@@ -30,10 +32,24 @@ func (i *inputMapper) SaveNextInputMapping(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
 	job db.Job,
+	resources db.Resources,
 ) (algorithm.InputMapping, error) {
 	logger = logger.Session("save-next-input-mapping")
 
 	inputConfigs := job.Config().Inputs()
+
+	for i, inputConfig := range inputConfigs {
+		resource, found := resources.Lookup(inputConfig.Resource)
+
+		if !found {
+			logger.Debug("failed-to-find-resource")
+			continue
+		}
+
+		if len(resource.PinnedVersion()) != 0 {
+			inputConfigs[i].Version = &atc.VersionConfig{Pinned: resource.PinnedVersion()}
+		}
+	}
 
 	algorithmInputConfigs, err := i.transformer.TransformInputConfigs(versions, job.Name(), inputConfigs)
 	if err != nil {

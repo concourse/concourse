@@ -48,11 +48,12 @@ type FakeBuildScheduler struct {
 		result2 scheduler.Waiter
 		result3 error
 	}
-	SaveNextInputMappingStub        func(logger lager.Logger, job db.Job) error
+	SaveNextInputMappingStub        func(logger lager.Logger, job db.Job, resource db.Resources) error
 	saveNextInputMappingMutex       sync.RWMutex
 	saveNextInputMappingArgsForCall []struct {
-		logger lager.Logger
-		job    db.Job
+		logger   lager.Logger
+		job      db.Job
+		resource db.Resources
 	}
 	saveNextInputMappingReturns struct {
 		result1 error
@@ -181,17 +182,18 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyReturnsOnCall(i int, result1 d
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildScheduler) SaveNextInputMapping(logger lager.Logger, job db.Job) error {
+func (fake *FakeBuildScheduler) SaveNextInputMapping(logger lager.Logger, job db.Job, resource db.Resources) error {
 	fake.saveNextInputMappingMutex.Lock()
 	ret, specificReturn := fake.saveNextInputMappingReturnsOnCall[len(fake.saveNextInputMappingArgsForCall)]
 	fake.saveNextInputMappingArgsForCall = append(fake.saveNextInputMappingArgsForCall, struct {
-		logger lager.Logger
-		job    db.Job
-	}{logger, job})
-	fake.recordInvocation("SaveNextInputMapping", []interface{}{logger, job})
+		logger   lager.Logger
+		job      db.Job
+		resource db.Resources
+	}{logger, job, resource})
+	fake.recordInvocation("SaveNextInputMapping", []interface{}{logger, job, resource})
 	fake.saveNextInputMappingMutex.Unlock()
 	if fake.SaveNextInputMappingStub != nil {
-		return fake.SaveNextInputMappingStub(logger, job)
+		return fake.SaveNextInputMappingStub(logger, job, resource)
 	}
 	if specificReturn {
 		return ret.result1
@@ -205,10 +207,10 @@ func (fake *FakeBuildScheduler) SaveNextInputMappingCallCount() int {
 	return len(fake.saveNextInputMappingArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) SaveNextInputMappingArgsForCall(i int) (lager.Logger, db.Job) {
+func (fake *FakeBuildScheduler) SaveNextInputMappingArgsForCall(i int) (lager.Logger, db.Job, db.Resources) {
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
-	return fake.saveNextInputMappingArgsForCall[i].logger, fake.saveNextInputMappingArgsForCall[i].job
+	return fake.saveNextInputMappingArgsForCall[i].logger, fake.saveNextInputMappingArgsForCall[i].job, fake.saveNextInputMappingArgsForCall[i].resource
 }
 
 func (fake *FakeBuildScheduler) SaveNextInputMappingReturns(result1 error) {

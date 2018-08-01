@@ -122,11 +122,11 @@ var _ = Describe("Scheduler", func() {
 
 				It("saved the next input mapping for the right job and versions", func() {
 					Expect(fakeInputMapper.SaveNextInputMappingCallCount()).To(Equal(2))
-					_, actualVersionsDB, actualJob := fakeInputMapper.SaveNextInputMappingArgsForCall(0)
+					_, actualVersionsDB, actualJob, _ := fakeInputMapper.SaveNextInputMappingArgsForCall(0)
 					Expect(actualVersionsDB).To(Equal(versionsDB))
 					Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
 
-					_, actualVersionsDB, actualJob = fakeInputMapper.SaveNextInputMappingArgsForCall(1)
+					_, actualVersionsDB, actualJob, _ = fakeInputMapper.SaveNextInputMappingArgsForCall(1)
 					Expect(actualVersionsDB).To(Equal(versionsDB))
 					Expect(actualJob.Name()).To(Equal(fakeJob2.Name()))
 				})
@@ -355,7 +355,7 @@ var _ = Describe("Scheduler", func() {
 			fakeJob = new(dbfakes.FakeJob)
 			fakeJob.NameReturns("some-job")
 
-			saveErr = scheduler.SaveNextInputMapping(lagertest.NewTestLogger("test"), fakeJob)
+			saveErr = scheduler.SaveNextInputMapping(lagertest.NewTestLogger("test"), fakeJob, db.Resources{})
 		})
 
 		Context("when loading the versions DB fails", func() {
@@ -387,7 +387,7 @@ var _ = Describe("Scheduler", func() {
 
 				It("saved the next input mapping for the right job and versions", func() {
 					Expect(fakeInputMapper.SaveNextInputMappingCallCount()).To(Equal(1))
-					_, actualVersionsDB, actualJob := fakeInputMapper.SaveNextInputMappingArgsForCall(0)
+					_, actualVersionsDB, actualJob, _ := fakeInputMapper.SaveNextInputMappingArgsForCall(0)
 					Expect(actualVersionsDB).To(Equal(versionsDB))
 					Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
 				})
