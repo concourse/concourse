@@ -12,8 +12,6 @@ import (
 	"github.com/concourse/atc/db/migration/migrations"
 	multierror "github.com/hashicorp/go-multierror"
 	_ "github.com/lib/pq"
-	"github.com/mattes/migrate/source"
-	_ "github.com/mattes/migrate/source/file"
 )
 
 func NewOpenHelper(driver, name string, lockFactory lock.LockFactory, strategy encryption.Strategy) *OpenHelper {
@@ -127,16 +125,19 @@ type migrator struct {
 	bindata     Bindata
 }
 
-func (self *migrator) SupportedVersion() (int, error) {
+func (m *migrator) SupportedVersion() (int, error) {
+	matches := []migration{}
 
-	latest := filenames(self.bindata.AssetNames()).Latest()
+	assets := m.bindata.AssetNames()
 
-	m, err := source.Parse(latest)
-	if err != nil {
-		return -1, err
+	var parser = NewParser(m.bindata)
+	for _, match := range assets {
+		if migration, err := parser.ParseMigrationFilename(match); err == nil {
+			matches = append(matches, migration)
+		}
 	}
-
-	return int(m.Version), nil
+	sortMigrations(matches)
+	return matches[len(matches)-1].Version, nil
 }
 
 func (self *migrator) CurrentVersion() (int, error) {
@@ -281,10 +282,10 @@ func (self *migrator) Migrations() ([]migration, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		migrationList = append(migrationList, parsedMigration)
 	}
-	sort.Slice(migrationList, func(i, j int) bool { return migrationList[i].Version < migrationList[j].Version })
+
+	sortMigrations(migrationList)
 
 	return migrationList, nil
 }
@@ -362,30 +363,8 @@ func (self *migrator) convertLegacySchemaTableToCurrent() error {
 
 type filenames []string
 
-func (m filenames) Len() int {
-	return len(m)
-}
-
-func (m filenames) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-func (m filenames) Less(i, j int) bool {
-	m1, _ := source.Parse(m[i])
-	m2, _ := source.Parse(m[j])
-	return m1.Version < m2.Version
-}
-
-func (m filenames) Latest() string {
-	matches := []string{}
-
-	for _, match := range m {
-		if _, err := source.Parse(match); err == nil {
-			matches = append(matches, match)
-		}
-	}
-
-	sort.Sort(filenames(matches))
-
-	return matches[len(matches)-1]
+func sortMigrations(migrationList []migration) {
+	sort.Slice(migrationList, func(i, j int) bool {
+		return migrationList[i].Version < migrationList[j].Version
+	})
 }

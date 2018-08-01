@@ -309,14 +309,11 @@ var _ = Describe("Migration", func() {
 					}
 
 					bindata.AssetNamesReturns([]string{
-						"1510262030_initial_schema.up.sql",
 						dirtyMigrationFilename,
-						"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 					})
 
 					migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
 
-					_ = migrator.Up()
 					err := migrator.Up()
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(MatchRegexp("Migration.*failed"))

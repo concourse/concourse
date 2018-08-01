@@ -22,12 +22,34 @@ func NewParser(bindata Bindata) *Parser {
 		bindata: bindata,
 	}
 }
+func (p *Parser) ParseMigrationFilename(fileName string) (migration, error) {
+
+	var (
+		migration migration
+		err       error
+	)
+
+	migration.Direction, err = determineDirection(fileName)
+	if err != nil {
+		return migration, err
+	}
+
+	migration.Version, err = schemaVersion(fileName)
+	if err != nil {
+		return migration, err
+	}
+
+	return migration, nil
+}
 
 func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
-	var (
-		migrationContents string
-		migration         migration
-	)
+
+	var migrationContents string
+
+	migration, err := p.ParseMigrationFilename(migrationName)
+	if err != nil {
+		return migration, err
+	}
 
 	migrationBytes, err := p.bindata.Asset(migrationName)
 	if err != nil {
@@ -35,18 +57,8 @@ func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
 	}
 
 	migrationContents = string(migrationBytes)
-
-	migration.Direction, err = determineDirection(migrationName)
-	if err != nil {
-		return migration, err
-	}
-
-	migration.Version, err = schemaVersion(migrationName)
-	if err != nil {
-		return migration, err
-	}
-
 	migration.Strategy = determineMigrationStrategy(migrationName, migrationContents)
+
 	switch migration.Strategy {
 	case GoMigration:
 		migration.Name = goMigrationFuncName.FindString(migrationContents)
