@@ -34,5 +34,6 @@ func Worker(workerInfo db.Worker) atc.Worker {
 		State:            string(workerInfo.State()),
 		StartTime:        workerInfo.StartTime(),
 		Version:          version,
+		Ephemeral:        workerInfo.Ephemeral(),
 	}
 }

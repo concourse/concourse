@@ -40,8 +40,8 @@ type TaskConfig struct {
 }
 
 type ContainerLimits struct {
-	CPU    uint64 `yaml:"cpu,omitempty"  json:"cpu,omitempty"  mapstructure:"cpu"`
-	Memory uint64 `yaml:"memory,omitempty"  json:"memory,omitempty"  mapstructure:"memory"`
+	CPU    *uint64 `yaml:"cpu,omitempty" json:"cpu,omitempty"  mapstructure:"cpu"`
+	Memory *uint64 `yaml:"memory,omitempty" json:"memory,omitempty"  mapstructure:"memory"`
 }
 
 type ImageResource struct {

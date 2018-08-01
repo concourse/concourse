@@ -475,11 +475,6 @@ func (p *containerProvider) createGardenContainer(
 		gardenProperties[userPropertyName] = fetchedImage.Metadata.User
 	}
 
-	containerLimits := garden.Limits{}
-
-	containerLimits.CPU = garden.CPULimits{LimitInShares: spec.Limits.CPU}
-	containerLimits.Memory = garden.MemoryLimits{LimitInBytes: spec.Limits.Memory}
-
 	env := append(fetchedImage.Metadata.Env, spec.Env...)
 
 	if p.httpProxyURL != "" {
@@ -499,7 +494,7 @@ func (p *containerProvider) createGardenContainer(
 		RootFSPath: fetchedImage.URL,
 		Privileged: fetchedImage.Privileged,
 		BindMounts: bindMounts,
-		Limits:     containerLimits,
+		Limits:     spec.Limits.ToGardenLimits(),
 		Env:        env,
 		Properties: gardenProperties,
 	})

@@ -9,6 +9,7 @@ import (
 //go:generate counterfeiter . WorkerLifecycle
 
 type WorkerLifecycle interface {
+	DeleteUnresponsiveEphemeralWorkers() ([]string, error)
 	StallUnresponsiveWorkers() ([]string, error)
 	LandFinishedLandingWorkers() ([]string, error)
 	DeleteFinishedRetiringWorkers() ([]string, error)
@@ -22,6 +23,25 @@ func NewWorkerLifecycle(conn Conn) WorkerLifecycle {
 	return &workerLifecycle{
 		conn: conn,
 	}
+}
+
+func (lifecycle *workerLifecycle) DeleteUnresponsiveEphemeralWorkers() ([]string, error) {
+	query, args, err := psql.Delete("workers").
+		Where(sq.Eq{"ephemeral": true}).
+		Where(sq.Expr("expires < NOW()")).
+		Suffix("RETURNING name").
+		ToSql()
+
+	if err != nil {
+		return []string{}, err
+	}
+
+	rows, err := lifecycle.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return workersAffected(rows)
 }
 
 func (lifecycle *workerLifecycle) StallUnresponsiveWorkers() ([]string, error) {

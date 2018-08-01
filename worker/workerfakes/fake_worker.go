@@ -188,6 +188,15 @@ type FakeWorker struct {
 	isOwnedByTeamReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	EphemeralStub        func() bool
+	ephemeralMutex       sync.RWMutex
+	ephemeralArgsForCall []struct{}
+	ephemeralReturns     struct {
+		result1 bool
+	}
+	ephemeralReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	IsVersionCompatibleStub        func(lager.Logger, *version.Version) bool
 	isVersionCompatibleMutex       sync.RWMutex
 	isVersionCompatibleArgsForCall []struct {
@@ -928,6 +937,46 @@ func (fake *FakeWorker) IsOwnedByTeamReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeWorker) Ephemeral() bool {
+	fake.ephemeralMutex.Lock()
+	ret, specificReturn := fake.ephemeralReturnsOnCall[len(fake.ephemeralArgsForCall)]
+	fake.ephemeralArgsForCall = append(fake.ephemeralArgsForCall, struct{}{})
+	fake.recordInvocation("Ephemeral", []interface{}{})
+	fake.ephemeralMutex.Unlock()
+	if fake.EphemeralStub != nil {
+		return fake.EphemeralStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.ephemeralReturns.result1
+}
+
+func (fake *FakeWorker) EphemeralCallCount() int {
+	fake.ephemeralMutex.RLock()
+	defer fake.ephemeralMutex.RUnlock()
+	return len(fake.ephemeralArgsForCall)
+}
+
+func (fake *FakeWorker) EphemeralReturns(result1 bool) {
+	fake.EphemeralStub = nil
+	fake.ephemeralReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeWorker) EphemeralReturnsOnCall(i int, result1 bool) {
+	fake.EphemeralStub = nil
+	if fake.ephemeralReturnsOnCall == nil {
+		fake.ephemeralReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.ephemeralReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeWorker) IsVersionCompatible(arg1 lager.Logger, arg2 *version.Version) bool {
 	fake.isVersionCompatibleMutex.Lock()
 	ret, specificReturn := fake.isVersionCompatibleReturnsOnCall[len(fake.isVersionCompatibleArgsForCall)]
@@ -1255,6 +1304,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.uptimeMutex.RUnlock()
 	fake.isOwnedByTeamMutex.RLock()
 	defer fake.isOwnedByTeamMutex.RUnlock()
+	fake.ephemeralMutex.RLock()
+	defer fake.ephemeralMutex.RUnlock()
 	fake.isVersionCompatibleMutex.RLock()
 	defer fake.isVersionCompatibleMutex.RUnlock()
 	fake.findVolumeForResourceCacheMutex.RLock()

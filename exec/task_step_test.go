@@ -135,6 +135,7 @@ var _ = Describe("TaskStep", func() {
 			containerMetadata,
 			resourceTypes,
 			variables,
+			atc.ContainerLimits{},
 		)
 
 		stepErr = taskStep.Run(ctx, state)
@@ -144,6 +145,8 @@ var _ = Describe("TaskStep", func() {
 		var fetchedConfig atc.TaskConfig
 
 		BeforeEach(func() {
+			cpu := uint64(1024)
+			memory := uint64(1024)
 			fetchedConfig = atc.TaskConfig{
 				Platform: "some-platform",
 				ImageResource: &atc.ImageResource{
@@ -153,8 +156,8 @@ var _ = Describe("TaskStep", func() {
 					Version: &atc.Version{"some": "version"},
 				},
 				Limits: atc.ContainerLimits{
-					CPU:    1024,
-					Memory: 1024,
+					CPU:    &cpu,
+					Memory: &memory,
 				},
 				Params: map[string]string{
 					"SECURE": "((task-param))",
@@ -204,6 +207,8 @@ var _ = Describe("TaskStep", func() {
 
 				Expect(delegate).To(Equal(fakeDelegate))
 
+				cpu := uint64(1024)
+				memory := uint64(1024)
 				Expect(spec).To(Equal(worker.ContainerSpec{
 					Platform: "some-platform",
 					Tags:     []string{"step", "tags"},
@@ -218,8 +223,8 @@ var _ = Describe("TaskStep", func() {
 						Privileged: false,
 					},
 					Limits: worker.ContainerLimits{
-						CPU:    1024,
-						Memory: 1024,
+						CPU:    &cpu,
+						Memory: &memory,
 					},
 					Dir:     "some-artifact-root",
 					Env:     []string{"SECURE=super-secret-param"},

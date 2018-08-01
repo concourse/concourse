@@ -48,7 +48,8 @@ var workersQuery = psql.Select(`
 		t.name,
 		w.team_id,
 		w.start_time,
-		w.expires
+		w.expires,
+		w.ephemeral
 	`).
 	From("workers w").
 	LeftJoin("teams t ON w.team_id = t.id")
@@ -132,6 +133,7 @@ func scanWorker(worker *worker, row scannable) error {
 		teamID        sql.NullInt64
 		startTime     sql.NullInt64
 		expiresAt     *time.Time
+		ephemeral     sql.NullBool
 	)
 
 	err := row.Scan(
@@ -152,6 +154,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&teamID,
 		&startTime,
 		&expiresAt,
+		&ephemeral,
 	)
 	if err != nil {
 		return err
@@ -205,6 +208,10 @@ func scanWorker(worker *worker, row scannable) error {
 
 	if platform.Valid {
 		worker.platform = platform.String
+	}
+
+	if ephemeral.Valid {
+		worker.ephemeral = ephemeral.Bool
 	}
 
 	err = json.Unmarshal(resourceTypes, &worker.resourceTypes)
@@ -362,6 +369,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		atcWorker.StartTime,
 		string(workerState),
 		teamID,
+		atcWorker.Ephemeral,
 	}
 
 	conflictValues := values
@@ -391,6 +399,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"start_time",
 			"state",
 			"team_id",
+			"ephemeral",
 		).
 		Values(append([]interface{}{sq.Expr(expires)}, values...)...).
 		Suffix(`
@@ -410,7 +419,8 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				version = ?,
 				start_time = ?,
 				state = ?,
-				team_id = ?
+				team_id = ?,
+				ephemeral = ?
 			WHERE `+matchTeamUpsert,
 			conflictValues...,
 		).
@@ -451,6 +461,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		teamName:         atcWorker.Team,
 		teamID:           workerTeamID,
 		startTime:        atcWorker.StartTime,
+		ephemeral:        atcWorker.Ephemeral,
 		conn:             conn,
 	}
 

@@ -55,6 +55,7 @@ type Worker interface {
 	Tags() atc.Tags
 	Uptime() time.Duration
 	IsOwnedByTeam() bool
+	Ephemeral() bool
 	IsVersionCompatible(lager.Logger, *version.Version) bool
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error)
@@ -82,6 +83,7 @@ type gardenWorker struct {
 	teamID           int
 	name             string
 	startTime        int64
+	ephemeral        bool
 	version          *string
 }
 
@@ -109,6 +111,7 @@ func NewGardenWorker(
 		name:             dbWorker.Name(),
 		startTime:        dbWorker.StartTime(),
 		version:          dbWorker.Version(),
+		ephemeral:        dbWorker.Ephemeral(),
 	}
 }
 
@@ -301,6 +304,10 @@ func (worker *gardenWorker) IsOwnedByTeam() bool {
 
 func (worker *gardenWorker) Uptime() time.Duration {
 	return worker.clock.Since(time.Unix(worker.startTime, 0))
+}
+
+func (worker *gardenWorker) Ephemeral() bool {
+	return worker.ephemeral
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {

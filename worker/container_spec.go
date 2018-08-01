@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.cloudfoundry.org/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 )
@@ -63,8 +64,25 @@ type ImageResource struct {
 }
 
 type ContainerLimits struct {
-	CPU    uint64
-	Memory uint64
+	CPU    *uint64
+	Memory *uint64
+}
+
+var GardenLimitDefault = uint64(0)
+
+func (cl ContainerLimits) ToGardenLimits() garden.Limits {
+	gardenLimits := garden.Limits{}
+	if cl.CPU == nil {
+		gardenLimits.CPU = garden.CPULimits{LimitInShares: GardenLimitDefault}
+	} else {
+		gardenLimits.CPU = garden.CPULimits{LimitInShares: *cl.CPU}
+	}
+	if cl.Memory == nil {
+		gardenLimits.Memory = garden.MemoryLimits{LimitInBytes: GardenLimitDefault}
+	} else {
+		gardenLimits.Memory = garden.MemoryLimits{LimitInBytes: *cl.Memory}
+	}
+	return gardenLimits
 }
 
 func (spec ContainerSpec) WorkerSpec() WorkerSpec {

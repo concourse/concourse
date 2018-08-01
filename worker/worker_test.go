@@ -34,6 +34,7 @@ var _ = Describe("Worker", func() {
 		platform                   string
 		tags                       atc.Tags
 		teamID                     int
+		ephemeral                  bool
 		workerName                 string
 		workerStartTime            int64
 		workerUptime               uint64
@@ -59,6 +60,7 @@ var _ = Describe("Worker", func() {
 		platform = "some-platform"
 		tags = atc.Tags{"some", "tags"}
 		teamID = 17
+		ephemeral = true
 		workerName = "some-worker"
 		workerStartTime = fakeClock.Now().Unix()
 		workerUptime = 0
@@ -77,6 +79,7 @@ var _ = Describe("Worker", func() {
 		dbWorker.ResourceTypesReturns(resourceTypes)
 		dbWorker.PlatformReturns(platform)
 		dbWorker.TagsReturns(tags)
+		dbWorker.EphemeralReturns(ephemeral)
 		dbWorker.TeamIDReturns(teamID)
 		dbWorker.NameReturns(workerName)
 		dbWorker.StartTimeReturns(workerStartTime)

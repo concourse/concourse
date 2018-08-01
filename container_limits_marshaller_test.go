@@ -18,9 +18,11 @@ var _ = Describe("ContainerLimits", func() {
 			err := yaml.Unmarshal(bs, &containerLimits)
 			Expect(err).NotTo(HaveOccurred())
 
+			cpu := uint64(1024)
+			mem := uint64(1024)
 			expected := ContainerLimits{
-				CPU:    1024,
-				Memory: 1024,
+				CPU:    &cpu,
+				Memory: &mem,
 			}
 
 			Expect(containerLimits).To(Equal(expected))
@@ -34,9 +36,11 @@ var _ = Describe("ContainerLimits", func() {
 			err := json.Unmarshal(bs, &containerLimits)
 			Expect(err).NotTo(HaveOccurred())
 
+			cpu := uint64(1024)
+			mem := uint64(1024)
 			expected := ContainerLimits{
-				CPU:    1024,
-				Memory: 1024,
+				CPU:    &cpu,
+				Memory: &mem,
 			}
 
 			Expect(containerLimits).To(Equal(expected))

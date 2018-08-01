@@ -122,10 +122,18 @@ var ContainerLimitsParser = func(data interface{}) (ContainerLimits, error) {
 	// the json unmarshaller returns numbers as float64 while yaml returns int
 	for key, val := range mapData {
 		if key == "memory" {
-
 			switch val.(type) {
 			case string:
 				memoryBytes, err = parseMemoryLimit(val.(string))
+				if err != nil {
+					return ContainerLimits{}, err
+				}
+			case *string:
+				if val.(*string) == nil {
+					c.Memory = nil
+					continue
+				}
+				memoryBytes, err = parseMemoryLimit(*val.(*string))
 				if err != nil {
 					return ContainerLimits{}, err
 				}
@@ -134,19 +142,25 @@ var ContainerLimitsParser = func(data interface{}) (ContainerLimits, error) {
 			case int:
 				memoryBytes = uint64(val.(int))
 			}
-			c.Memory = memoryBytes
+			c.Memory = &memoryBytes
 
 		} else if key == "cpu" {
-
 			switch val.(type) {
 			case float64:
 				uVal = int(val.(float64))
 			case int:
 				uVal = val.(int)
+			case *int:
+				if val.(*int) == nil {
+					c.CPU = nil
+					continue
+				}
+				uVal = *val.(*int)
 			default:
 				return ContainerLimits{}, errors.New("cpu limit must be an integer")
 			}
-			c.CPU = uint64(uVal)
+			helper := uint64(uVal)
+			c.CPU = &helper
 
 		}
 	}
