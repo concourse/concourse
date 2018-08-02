@@ -2,6 +2,7 @@ package migration
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -87,8 +88,47 @@ func (self *OpenHelper) MigrateToVersion(version int) error {
 	}
 
 	defer db.Close()
+	m := NewMigrator(db, self.lockFactory, self.strategy)
 
-	if err := NewMigrator(db, self.lockFactory, self.strategy).Migrate(version); err != nil {
+	err = self.migrateFromMigrationVersion(db)
+	if err != nil {
+		return err
+	}
+
+	return m.Migrate(version)
+}
+
+func (self *OpenHelper) migrateFromMigrationVersion(db *sql.DB) error {
+
+	if !checkTableExist(db, "migration_version") {
+		return nil
+	}
+
+	oldMigrationLastVersion := 189
+	newMigrationStartVersion := 1510262030
+
+	var err error
+	var dbVersion int
+
+	if err = db.QueryRow("SELECT version FROM migration_version").Scan(&dbVersion); err != nil {
+		return err
+	}
+
+	if dbVersion != oldMigrationLastVersion {
+		return fmt.Errorf("Must upgrade from db version %d (concourse 3.6.0), current db version: %d", oldMigrationLastVersion, dbVersion)
+	}
+
+	if _, err = db.Exec("DROP TABLE IF EXISTS migration_version"); err != nil {
+		return err
+	}
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS schema_migrations (version bigint, dirty boolean)")
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("INSERT INTO schema_migrations (version, dirty) VALUES ($1, false)", newMigrationStartVersion)
+	if err != nil {
 		return err
 	}
 
@@ -143,7 +183,7 @@ func (m *migrator) SupportedVersion() (int, error) {
 func (self *migrator) CurrentVersion() (int, error) {
 	var currentVersion int
 	var direction string
-	err := self.db.QueryRow("SELECT version, direction FROM schema_migrations WHERE status!='failed' ORDER BY tstamp DESC LIMIT 1").Scan(&currentVersion, &direction)
+	err := self.db.QueryRow("SELECT version, direction FROM migrations_history WHERE status!='failed' ORDER BY tstamp DESC LIMIT 1").Scan(&currentVersion, &direction)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, nil
@@ -180,18 +220,33 @@ func (self *migrator) Migrate(toVersion int) error {
 		defer lock.Release()
 	}
 
-	_, err = self.db.Exec("CREATE TABLE IF NOT EXISTS schema_migrations (version bigint, tstamp timestamp with time zone, direction varchar, status varchar, dirty boolean)")
+	existingDBVersion, err := self.migrateFromSchemaMigrations()
 	if err != nil {
 		return err
 	}
-	err = self.convertLegacySchemaTableToCurrent()
+
+	_, err = self.db.Exec("CREATE TABLE IF NOT EXISTS migrations_history (version bigint, tstamp timestamp with time zone, direction varchar, status varchar, dirty boolean)")
 	if err != nil {
 		return err
 	}
+
+	if existingDBVersion > 0 {
+		var containsOldMigrationInfo bool
+		err = self.db.QueryRow("SELECT EXISTS (SELECT 1 FROM migrations_history where version=$1)", existingDBVersion).Scan(&containsOldMigrationInfo)
+
+		if !containsOldMigrationInfo {
+			_, err = self.db.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, 'up', 'passed', false)", existingDBVersion)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	currentVersion, err := self.CurrentVersion()
 	if err != nil {
 		return err
 	}
+
 	migrations, err := self.Migrations()
 	if err != nil {
 		return err
@@ -236,7 +291,7 @@ type migration struct {
 }
 
 func (m *migrator) recordMigrationFailure(migration migration, err error, dirty bool) error {
-	_, dbErr := m.db.Exec("INSERT INTO schema_migrations (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'failed', $3)", migration.Version, migration.Direction, dirty)
+	_, dbErr := m.db.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'failed', $3)", migration.Version, migration.Direction, dirty)
 	return multierror.Append(fmt.Errorf("Migration '%s' failed: %v", migration.Name, err), dbErr)
 }
 
@@ -269,7 +324,7 @@ func (m *migrator) runMigration(migration migration) error {
 		}
 	}
 
-	_, err = m.db.Exec("INSERT INTO schema_migrations (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'passed', false)", migration.Version, migration.Direction)
+	_, err = m.db.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'passed', false)", migration.Version, migration.Direction)
 	return err
 }
 
@@ -323,42 +378,29 @@ func (self *migrator) acquireLock() (lock.Lock, error) {
 	return newLock, err
 }
 
-func (self *migrator) existLegacyVersion() bool {
+func checkTableExist(db *sql.DB, tableName string) bool {
 	var exists bool
-	err := self.db.QueryRow("SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE table_name = 'migration_version')").Scan(&exists)
+	err := db.QueryRow("SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE table_name=$1)", tableName).Scan(&exists)
 	return err != nil || exists
 }
 
-func (self *migrator) convertLegacySchemaTableToCurrent() error {
-	oldMigrationLastVersion := 189
-	newMigrationStartVersion := 1510262030
-
-	var err error
-	var dbVersion int
-
-	exists := self.existLegacyVersion()
-	if !exists {
-		return nil
+func (self *migrator) migrateFromSchemaMigrations() (int, error) {
+	if !checkTableExist(self.db, "schema_migrations") {
+		return 0, nil
 	}
 
-	if err = self.db.QueryRow("SELECT version FROM migration_version").Scan(&dbVersion); err != nil {
-		return err
-	}
-
-	if dbVersion != oldMigrationLastVersion {
-		return fmt.Errorf("Must upgrade from db version %d (concourse 3.6.0), current db version: %d", oldMigrationLastVersion, dbVersion)
-	}
-
-	if _, err = self.db.Exec("DROP TABLE IF EXISTS migration_version"); err != nil {
-		return err
-	}
-
-	_, err = self.db.Exec("INSERT INTO schema_migrations (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, 'up', 'passed', false)", newMigrationStartVersion)
+	var isDirty = false
+	var existingVersion int
+	err := self.db.QueryRow("SELECT dirty, version FROM schema_migrations LIMIT 1").Scan(&isDirty, &existingVersion)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	if isDirty {
+		return 0, errors.New("cannot begin migration. Database is in a dirty state")
+	}
+
+	return existingVersion, nil
 }
 
 type filenames []string

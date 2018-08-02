@@ -227,7 +227,7 @@ func (runner *Runner) Truncate() {
 			DECLARE
 					statements CURSOR FOR
 							SELECT tablename FROM pg_tables
-							WHERE schemaname = 'public' AND tablename != 'schema_migrations';
+							WHERE schemaname = 'public' AND tablename != 'migrations_history';
 			BEGIN
 					FOR stmt IN statements LOOP
 							EXECUTE 'TRUNCATE TABLE ' || quote_ident(stmt.tablename) || ' RESTART IDENTITY CASCADE;';
