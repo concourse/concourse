@@ -469,17 +469,6 @@ properties:
       Dialing timeout, in Go duration format (1m = 1 minute). 0 means wait indefinitely.
     default: 5m
 
-  yeller.api_key:
-    description: |
-      If configured, errors emitted to the logs will also be emitted to Yeller.
-      This is only really useful for Concourse developers.
-    default: ""
-
-  yeller.environment_name:
-    description: |
-      Environment name to specify for errors emitted to Yeller.
-    default: ""
-
   datadog.agent_host:
     description: |
       If configured, detailed metrics will be emitted to the specified Datadog Agent's

@@ -29,7 +29,6 @@ files:
   - github.com/concourse/tsa/cmd/tsa/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/tsacmd/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/tsaflags/*.{go,s,c,h} # gosub
-  - github.com/contraband/holler/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/felixge/tcpkeepalive/*.{go,s,c,h} # gosub
   - github.com/jessevdk/go-flags/*.{go,s,c,h} # gosub
@@ -40,7 +39,6 @@ files:
   - github.com/tedsuo/ifrit/http_server/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/sigmon/*.{go,s,c,h} # gosub
   - github.com/tedsuo/rata/*.{go,s,c,h} # gosub
-  - github.com/xoebus/zest/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/curve25519/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/ed25519/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/ed25519/internal/edwards25519/*.{go,s,c,h} # gosub

@@ -62,10 +62,6 @@
 	path = src/github.com/concourse/baggageclaim
 	url = https://github.com/concourse/baggageclaim
 	branch = master
-[submodule "src/github.com/xoebus/zest"]
-	path = src/github.com/xoebus/zest
-	url = https://github.com/xoebus/zest
-	branch = master
 [submodule "src/golang.org/x/net"]
 	path = src/golang.org/x/net
 	url = https://go.googlesource.com/net
@@ -151,10 +147,6 @@
 [submodule "src/github.com/concourse/go-concourse"]
 	path = src/github.com/concourse/go-concourse
 	url = https://github.com/concourse/go-concourse
-	branch = master
-[submodule "src/github.com/contraband/holler"]
-	path = src/github.com/contraband/holler
-	url = https://github.com/contraband/holler
 	branch = master
 [submodule "src/github.com/peterhellberg/link"]
 	path = src/github.com/peterhellberg/link

@@ -169,16 +169,6 @@ properties:
 
       If not specified, it will be indefinite.
 
-  yeller.api_key:
-    description: |
-      API key to output errors from Concourse to Yeller.
-    default: ""
-
-  yeller.environment_name:
-    description: |
-      Environment name you wish to group errors under in yeller.
-    default: ""
-
   ephemeral:
     description: |
       If set, the worker will immediately disappear upon stalling.

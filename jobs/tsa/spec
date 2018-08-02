@@ -85,17 +85,6 @@ properties:
       The log level for the TSA.
     default: info
 
-  yeller.api_key:
-    description: |
-      If configured, errors emitted to the logs will also be emitted to Yeller.
-      This is only really useful for Concourse developers.
-    default: ""
-
-  yeller.environment_name:
-    description: |
-      Environment name to specify for errors emitted to Yeller.
-    default: ""
-
   atc.urls:
     description: |
       ATC API endpoints to which workers will be advertised.

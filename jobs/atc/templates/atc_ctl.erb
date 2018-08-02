@@ -229,8 +229,6 @@ case $1 in
       --build-tracker-interval <%= p("build_tracker_interval") %> \
       --baggageclaim-response-header-timeout <%= p("baggageclaim_response_header_timeout") %> \
       --cli-artifacts-dir /var/vcap/packages/fly \
-      --yeller-api-key <%= esc(p("yeller.api_key")) %> \
-      --yeller-environment <%= esc(p("yeller.environment_name")) %> \
       <% if_p("influxdb.url") do |url| %> \
       --influxdb-url <%= esc(url) %> \
       <% end %> \

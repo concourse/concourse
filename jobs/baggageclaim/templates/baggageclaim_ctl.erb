@@ -62,8 +62,6 @@ case $1 in
       --bind-ip <%= p("bind_ip") %> \
       --bind-port <%= p("bind_port") %> \
       --log-level <%= p("log_level") %> \
-      --yeller-api-key <%= esc(p("yeller.api_key")) %> \
-      --yeller-environment <%= esc(p("yeller.environment_name")) %> \
       1>>$LOG_DIR/baggageclaim.stdout.log \
       2>>$LOG_DIR/baggageclaim.stderr.log
 
