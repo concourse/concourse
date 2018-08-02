@@ -36,11 +36,7 @@ type WorkerCommand struct {
 
 	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
 
-	Logger  flag.Lager
-	Metrics struct {
-		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
-		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
-	} `group:"Metrics & Diagnostics"`
+	Logger flag.Lager
 }
 
 func (cmd *WorkerCommand) Execute(args []string) error {

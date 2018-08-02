@@ -100,8 +100,5 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 
 	cmd.TSACommand.PeerIP = host
 
-	cmd.TSACommand.Metrics.YellerAPIKey = cmd.RunCommand.Metrics.YellerAPIKey
-	cmd.TSACommand.Metrics.YellerEnvironment = cmd.RunCommand.Metrics.YellerEnvironment
-
 	return nil
 }
