@@ -41,11 +41,11 @@ var _ = Describe("Teams API", func() {
 
 	Describe("GET /api/v1/teams", func() {
 		var (
-			response *http.Response
+			response      *http.Response
 			fakeTeamOne   *dbfakes.FakeTeam
 			fakeTeamTwo   *dbfakes.FakeTeam
 			fakeTeamThree *dbfakes.FakeTeam
-			teamNames 	  []string
+			teamNames     []string
 		)
 
 		JustBeforeEach(func() {
@@ -68,7 +68,7 @@ var _ = Describe("Teams API", func() {
 			fakeTeamOne.IDReturns(5)
 			fakeTeamOne.NameReturns(teamNames[0])
 			fakeTeamOne.AuthReturns(map[string][]string{
-				"groups":[]string{}, "users":[]string{"local:username"},
+				"groups": []string{}, "users": []string{"local:username"},
 			})
 
 			fakeTeamTwo.IDReturns(9)
@@ -80,13 +80,13 @@ var _ = Describe("Teams API", func() {
 			fakeTeamThree.IDReturns(22)
 			fakeTeamThree.NameReturns(teamNames[2])
 			fakeTeamThree.AuthReturns(map[string][]string{
-				"users": []string{"local:username"}, "groups":[]string{},
+				"users": []string{"local:username"}, "groups": []string{},
 			})
 		})
 
 		Context("when the requester is an admin user", func() {
 			BeforeEach(func() {
-			 	fakeaccess.IsAdminReturns(true)
+				fakeaccess.IsAdminReturns(true)
 
 				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
 
@@ -117,7 +117,7 @@ var _ = Describe("Teams API", func() {
 		})
 
 		Context("when the requester is NOT an admin user", func() {
-			BeforeEach(func(){
+			BeforeEach(func() {
 				fakeaccess.IsAdminReturns(false)
 
 				fakeaccess.IsAuthorizedReturnsOnCall(0, true)

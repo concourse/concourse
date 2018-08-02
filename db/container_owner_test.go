@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("ContainerOwner", func() {
-
 	Describe("ResourceConfigCheckSessionContainerOwner", func() {
 		var (
 			worker db.Worker

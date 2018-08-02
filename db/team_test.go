@@ -1992,7 +1992,7 @@ var _ = Describe("Team", func() {
 		var (
 			containerMetadata db.ContainerMetadata
 			team              db.Team
-			fakeOwner         *dbfakes.FakeContainerOwner
+			containerOwner    db.ContainerOwner
 			build             db.Build
 
 			foundCreatingContainer db.CreatingContainer
@@ -2014,16 +2014,6 @@ var _ = Describe("Team", func() {
 			var err error
 			build, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
-
-			fakeOwner = new(dbfakes.FakeContainerOwner)
-			fakeOwner.FindReturns(sq.Eq{
-				"build_id": build.ID(),
-				"plan_id":  "simple-plan",
-			}, true, nil)
-			fakeOwner.CreateReturns(map[string]interface{}{
-				"build_id": build.ID(),
-				"plan_id":  "simple-plan",
-			}, nil)
 
 			team = defaultTeam
 			_, err = team.SaveWorker(atc.Worker{
@@ -2050,12 +2040,12 @@ var _ = Describe("Team", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			_ = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, team.ID())
+			containerOwner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, team.ID())
 		})
 
 		JustBeforeEach(func() {
 			var err error
-			foundCreatingContainer, foundCreatedContainer, err = team.FindContainerOnWorker(defaultWorker.Name(), fakeOwner)
+			foundCreatingContainer, foundCreatedContainer, err = team.FindContainerOnWorker(defaultWorker.Name(), containerOwner)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -2064,7 +2054,7 @@ var _ = Describe("Team", func() {
 
 			BeforeEach(func() {
 				var err error
-				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), fakeOwner, containerMetadata)
+				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), containerOwner, containerMetadata)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -2103,6 +2093,41 @@ var _ = Describe("Team", func() {
 					It("does not find it", func() {
 						Expect(foundCreatingContainer).To(BeNil())
 						Expect(foundCreatedContainer).To(BeNil())
+					})
+				})
+			})
+
+			Context("when the creating container is failed and gced", func() {
+				BeforeEach(func() {
+					var err error
+					_, err = creatingContainer.Failed()
+					Expect(err).ToNot(HaveOccurred())
+
+					containerRepository := db.NewContainerRepository(dbConn)
+					containersDestroyed, err := containerRepository.DestroyFailedContainers()
+					Expect(containersDestroyed).To(Equal(1))
+					Expect(err).ToNot(HaveOccurred())
+
+					var checkSessions int
+					err = dbConn.QueryRow("SELECT COUNT(*) FROM worker_resource_config_check_sessions").Scan(&checkSessions)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(checkSessions).To(Equal(1))
+				})
+
+				Context("and we create a new container", func() {
+					var newContainer db.CreatingContainer
+
+					BeforeEach(func() {
+						var err error
+						newContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), containerOwner, containerMetadata)
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("does not duplicate the worker resource config check session", func() {
+						var checkSessions int
+						err := dbConn.QueryRow("SELECT COUNT(*) FROM worker_resource_config_check_sessions").Scan(&checkSessions)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(checkSessions).To(Equal(1))
 					})
 				})
 			})
