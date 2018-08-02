@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/lib/pq"
 )
 
 type WorkerResourceCache struct {
@@ -53,15 +52,16 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 			workerResourceCache.ResourceCache.ID,
 			usedWorkerBaseResourceType.ID,
 		).
-		Suffix("RETURNING id").
+		Suffix(`
+			ON CONFLICT (resource_cache_id, worker_base_resource_type_id) DO UPDATE SET
+				resource_cache_id = ?,
+				worker_base_resource_type_id = ?
+			RETURNING id
+		`, workerResourceCache.ResourceCache.ID, usedWorkerBaseResourceType.ID).
 		RunWith(tx).
 		QueryRow().
 		Scan(&id)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
-			return nil, ErrSafeRetryFindOrCreate
-		}
-
 		return nil, err
 	}
 
@@ -107,6 +107,7 @@ func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, usedWorker
 			"resource_cache_id":            workerResourceCache.ResourceCache.ID,
 			"worker_base_resource_type_id": usedWorkerBaseResourceType.ID,
 		}).
+		Suffix("FOR SHARE").
 		RunWith(runner).
 		QueryRow().
 		Scan(&id)

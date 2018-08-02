@@ -5,7 +5,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/lib/pq"
 )
 
 type UsedWorkerTaskCache struct {
@@ -65,14 +64,19 @@ func (f *workerTaskCacheFactory) FindOrCreate(jobID int, stepName string, path s
 		Path:       path,
 	}
 
-	var usedWorkerTaskCache *UsedWorkerTaskCache
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
 
-	err := safeFindOrCreate(f.conn, func(tx Tx) error {
-		var err error
-		usedWorkerTaskCache, err = workerTaskCache.FindOrCreate(tx)
-		return err
-	})
+	defer Rollback(tx)
 
+	usedWorkerTaskCache, err := workerTaskCache.FindOrCreate(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -117,15 +121,15 @@ func (wtc WorkerTaskCache) FindOrCreate(
 					wtc.WorkerName,
 					wtc.Path,
 				).
-				Suffix("RETURNING id").
+				Suffix(`
+					ON CONFLICT (job_id, step_name, worker_name, path) DO UPDATE SET
+						path = ?
+					RETURNING id
+				`, wtc.Path).
 				RunWith(tx).
 				QueryRow().
 				Scan(&id)
 			if err != nil {
-				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
-					return nil, ErrSafeRetryFindOrCreate
-				}
-
 				return nil, err
 			}
 

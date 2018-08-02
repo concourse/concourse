@@ -61,18 +61,24 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 		Params:         params,
 	}
 
-	var usedResourceCache *UsedResourceCache
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
 
-	err = safeFindOrCreate(f.conn, func(tx Tx) error {
-		var findOrCreateErr error
-		usedResourceCache, findOrCreateErr = resourceCache.findOrCreate(logger, tx)
-		if findOrCreateErr != nil {
-			return findOrCreateErr
-		}
+	defer Rollback(tx)
 
-		return resourceCache.use(logger, tx, usedResourceCache, resourceCacheUser)
-	})
+	usedResourceCache, err := resourceCache.findOrCreate(logger, tx)
+	if err != nil {
+		return nil, err
+	}
 
+	err = resourceCache.use(logger, tx, usedResourceCache, resourceCacheUser)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}

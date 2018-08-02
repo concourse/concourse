@@ -8,7 +8,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/lib/pq"
 )
 
 var ErrResourceConfigAlreadyExists = errors.New("resource config already exists")
@@ -99,6 +98,8 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx) (*
 	}
 
 	if !found {
+		hash := mapHash(resourceConfig.Source)
+
 		err := psql.Insert("resource_configs").
 			Columns(
 				parentColumnName,
@@ -106,21 +107,18 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx) (*
 			).
 			Values(
 				parentID,
-				mapHash(resourceConfig.Source),
+				hash,
 			).
-			Suffix("RETURNING id").
+			Suffix(`
+				ON CONFLICT (resource_cache_id, base_resource_type_id, source_hash) DO UPDATE SET
+					`+parentColumnName+` = ?,
+					source_hash = ?
+				RETURNING id
+			`, parentID, hash).
 			RunWith(tx).
 			QueryRow().
 			Scan(&id)
 		if err != nil {
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
-				return nil, ErrSafeRetryFindOrCreate
-			}
-
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
-				return nil, ErrSafeRetryFindOrCreate
-			}
-
 			return nil, err
 		}
 	}
@@ -185,10 +183,16 @@ func (resourceConfig ResourceConfig) Find(tx Tx) (*UsedResourceConfig, bool, err
 
 func (resourceConfig ResourceConfig) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, bool, error) {
 	var id int
-	err := psql.Select("id").From("resource_configs").Where(sq.Eq{
-		parentColumnName: parentID,
-		"source_hash":    mapHash(resourceConfig.Source),
-	}).Suffix("FOR SHARE").RunWith(tx).QueryRow().Scan(&id)
+	err := psql.Select("id").
+		From("resource_configs").
+		Where(sq.Eq{
+			parentColumnName: parentID,
+			"source_hash":    mapHash(resourceConfig.Source),
+		}).
+		Suffix("FOR SHARE").
+		RunWith(tx).
+		QueryRow().
+		Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, false, nil

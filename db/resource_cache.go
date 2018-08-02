@@ -11,7 +11,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
-	"github.com/lib/pq"
 )
 
 var ErrResourceCacheAlreadyExists = errors.New("resource-cache-already-exists")
@@ -109,19 +108,17 @@ func (cache ResourceCache) findOrCreate(
 				cache.version(),
 				paramsHash(cache.Params),
 			).
-			Suffix("RETURNING id").
+			Suffix(`
+				ON CONFLICT (resource_config_id, md5(version), params_hash) DO UPDATE SET
+					resource_config_id = ?,
+					version = ?,
+					params_hash = ?
+				RETURNING id
+			`, usedResourceConfig.ID, cache.version(), paramsHash(cache.Params)).
 			RunWith(tx).
 			QueryRow().
 			Scan(&id)
 		if err != nil {
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
-				return nil, ErrSafeRetryFindOrCreate
-			}
-
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
-				return nil, ErrSafeRetryFindOrCreate
-			}
-
 			return nil, err
 		}
 
@@ -171,11 +168,17 @@ func (cache ResourceCache) use(
 
 func (cache ResourceCache) findWithResourceConfig(tx Tx, resourceConfig *UsedResourceConfig) (*UsedResourceCache, bool, error) {
 	var id int
-	err := psql.Select("id").From("resource_caches").Where(sq.Eq{
-		"resource_config_id": resourceConfig.ID,
-		"version":            cache.version(),
-		"params_hash":        paramsHash(cache.Params),
-	}).Suffix("FOR SHARE").RunWith(tx).QueryRow().Scan(&id)
+	err := psql.Select("id").
+		From("resource_caches").
+		Where(sq.Eq{
+			"resource_config_id": resourceConfig.ID,
+			"version":            cache.version(),
+			"params_hash":        paramsHash(cache.Params),
+		}).
+		Suffix("FOR SHARE").
+		RunWith(tx).
+		QueryRow().
+		Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil

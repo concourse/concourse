@@ -74,55 +74,54 @@ func (factory resourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheck
 		return nil, err
 	}
 
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	usedResourceConfig, err := resourceConfig.findOrCreate(logger, tx)
+	if err != nil {
+		return nil, err
+	}
+
 	var rccsID int
-	var usedResourceConfig *UsedResourceConfig
+	err = psql.Select("id").
+		From("resource_config_check_sessions").
+		Where(sq.And{
+			sq.Eq{
+				"resource_config_id": usedResourceConfig.ID,
+			},
+			sq.Expr(fmt.Sprintf("expires_at > NOW() + interval '%d seconds'", int(expiries.GraceTime.Seconds()))),
+		}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&rccsID)
+	if err == sql.ErrNoRows {
+		expiryStmt := fmt.Sprintf(
+			"NOW() + LEAST(GREATEST('%d seconds'::interval, NOW() - to_timestamp(max(start_time))), '%d seconds'::interval)",
+			int(expiries.Min.Seconds()),
+			int(expiries.Max.Seconds()),
+		)
 
-	err = safeFindOrCreate(factory.conn, func(tx Tx) error {
-		var err error
-
-		usedResourceConfig, err = resourceConfig.findOrCreate(logger, tx)
-		if err != nil {
-			return err
-		}
-
-		err = psql.Select("id").
-			From("resource_config_check_sessions").
-			Where(sq.And{
-				sq.Eq{
-					"resource_config_id": usedResourceConfig.ID,
-				},
-				sq.Expr(fmt.Sprintf("expires_at > NOW() + interval '%d seconds'", int(expiries.GraceTime.Seconds()))),
+		err = psql.Insert("resource_config_check_sessions").
+			SetMap(map[string]interface{}{
+				"resource_config_id": usedResourceConfig.ID,
+				"expires_at":         sq.Expr("(SELECT " + expiryStmt + " FROM workers)"),
 			}).
+			Suffix("RETURNING id").
 			RunWith(tx).
 			QueryRow().
 			Scan(&rccsID)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				expiryStmt := fmt.Sprintf(
-					"NOW() + LEAST(GREATEST('%d seconds'::interval, NOW() - to_timestamp(max(start_time))), '%d seconds'::interval)",
-					int(expiries.Min.Seconds()),
-					int(expiries.Max.Seconds()),
-				)
-
-				err = psql.Insert("resource_config_check_sessions").
-					SetMap(map[string]interface{}{
-						"resource_config_id": usedResourceConfig.ID,
-						"expires_at":         sq.Expr("(SELECT " + expiryStmt + " FROM workers)"),
-					}).
-					Suffix("RETURNING id").
-					RunWith(tx).
-					QueryRow().
-					Scan(&rccsID)
-				if err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
+			return nil, err
 		}
+	} else if err != nil {
+		return nil, err
+	}
 
-		return nil
-	})
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}

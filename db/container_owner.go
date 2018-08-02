@@ -158,6 +158,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 			"worker_name":           workerName,
 			"base_resource_type_id": c.resourceConfigCheckSession.ResourceConfig().OriginBaseResourceType().ID,
 		}).
+		Suffix("FOR SHARE").
 		RunWith(tx).
 		QueryRow().
 		Scan(&wbrtID)
@@ -172,7 +173,13 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 			"worker_base_resource_type_id":     wbrtID,
 			"team_id":                          c.teamID,
 		}).
-		Suffix("RETURNING id").
+		Suffix(`
+			ON CONFLICT (resource_config_check_session_id, worker_base_resource_type_id, team_id) DO UPDATE SET
+				resource_config_check_session_id = ?,
+				worker_base_resource_type_id = ?,
+				team_id = ?
+			RETURNING id
+		`, c.resourceConfigCheckSession.ID(), wbrtID, c.teamID).
 		RunWith(tx).
 		QueryRow().
 		Scan(&wrccsID)

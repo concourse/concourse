@@ -6,15 +6,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-// base_resource_types: <- gced referenced by 0 workers
-// | id | type | image | version |
-
-// worker_resource_types: <- synced w/ worker creation
-// | worker_name | base_resource_type_id |
-
-// resource_caches: <- gced by cache collector
-// | id | resource_cache_id | base_resource_type_id | source_hash | params_hash | version |
-
 type WorkerResourceType struct {
 	Worker  Worker
 	Image   string // The path to the image, e.g. '/opt/concourse/resources/git'.
@@ -36,6 +27,7 @@ func (wrt WorkerResourceType) FindOrCreate(tx Tx) (*UsedWorkerResourceType, erro
 	if err != nil {
 		return nil, err
 	}
+
 	uwrt, found, err := wrt.find(tx, usedBaseResourceType)
 	if err != nil {
 		return nil, err
@@ -53,12 +45,18 @@ func (wrt WorkerResourceType) find(tx Tx, usedBaseResourceType *UsedBaseResource
 		workerName string
 		id         int
 	)
-	err := psql.Select("id", "worker_name").From("worker_base_resource_types").Where(sq.Eq{
-		"worker_name":           wrt.Worker.Name(),
-		"base_resource_type_id": usedBaseResourceType.ID,
-		"image":                 wrt.Image,
-		"version":               wrt.Version,
-	}).RunWith(tx).QueryRow().Scan(&id, &workerName)
+	err := psql.Select("id", "worker_name").
+		From("worker_base_resource_types").
+		Where(sq.Eq{
+			"worker_name":           wrt.Worker.Name(),
+			"base_resource_type_id": usedBaseResourceType.ID,
+			"image":                 wrt.Image,
+			"version":               wrt.Version,
+		}).
+		Suffix("FOR SHARE").
+		RunWith(tx).
+		QueryRow().
+		Scan(&id, &workerName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil

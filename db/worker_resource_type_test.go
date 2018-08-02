@@ -21,18 +21,28 @@ var _ = Describe("WorkerResourceType", func() {
 		}
 	})
 
-	It("can be find or create worker", func() {
+	It("can be found/created", func() {
 		tx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
+
 		usedWorkerResourceType, err := wrt.FindOrCreate(tx)
 		Expect(err).ToNot(HaveOccurred())
-		err = tx.Rollback()
+
+		err = tx.Commit()
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(usedWorkerResourceType.Worker.Name()).To(Equal(defaultWorker.Name()))
-		baseResourceType, found, err := baseResourceTypeFactory.Find("some-base-resource-type")
+		Expect(usedWorkerResourceType.UsedBaseResourceType.Name).To(Equal("some-base-resource-type"))
+
+		tx, err = dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(found).To(BeTrue())
-		Expect(usedWorkerResourceType.UsedBaseResourceType.ID).To(Equal(baseResourceType.ID))
+
+		usedWorkerResourceType2, err := wrt.FindOrCreate(tx)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(usedWorkerResourceType2).To(Equal(usedWorkerResourceType))
 	})
 })
