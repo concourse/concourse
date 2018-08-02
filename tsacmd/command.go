@@ -20,7 +20,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"github.com/xoebus/zest"
 )
 
 type TSACommand struct {
@@ -40,11 +39,6 @@ type TSACommand struct {
 	SessionSigningKey *flag.PrivateKey `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
 
 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
-
-	Metrics struct {
-		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
-		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
-	} `group:"Metrics & Diagnostics"`
 }
 
 func (cmd *TSACommand) debugBindAddr() string {
@@ -126,11 +120,6 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
 	logger, reconfigurableSink := cmd.Logger.Logger("tsa")
-
-	if cmd.Metrics.YellerAPIKey != "" {
-		yellerSink := zest.NewYellerSink(cmd.Metrics.YellerAPIKey, cmd.Metrics.YellerEnvironment)
-		logger.RegisterSink(yellerSink)
-	}
 
 	return logger, reconfigurableSink
 }
