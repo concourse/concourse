@@ -51,7 +51,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"github.com/xoebus/zest"
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/atc/metric/emitter"
@@ -119,9 +118,6 @@ type RunCommand struct {
 	Metrics struct {
 		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`
 		Attributes map[string]string `long:"metrics-attribute"   description:"A key-value attribute to attach to emitted metrics. Can be specified multiple times." value-name:"NAME:VALUE"`
-
-		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
-		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
 	} `group:"Metrics & Diagnostics"`
 
 	Server struct {
@@ -739,7 +735,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool,
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
 	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
-	logger, reconfigurableSink := cmd.constructLogger()
+	logger, reconfigurableSink := cmd.Logger.Logger("atc")
+
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
 		for _, stack := range db.GlobalConnectionTracker.Current() {
 			fmt.Fprintln(w, stack)
@@ -861,17 +858,6 @@ func (cmd *RunCommand) tlsBindAddr() string {
 
 func (cmd *RunCommand) debugBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
-}
-
-func (cmd *RunCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
-	logger, reconfigurableSink := cmd.Logger.Logger("atc")
-
-	if cmd.Metrics.YellerAPIKey != "" {
-		yellerSink := zest.NewYellerSink(cmd.Metrics.YellerAPIKey, cmd.Metrics.YellerEnvironment)
-		logger.RegisterSink(yellerSink)
-	}
-
-	return logger, reconfigurableSink
 }
 
 func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
