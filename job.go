@@ -43,3 +43,7 @@ type BuildInput struct {
 	Version  Version  `json:"version"`
 	Tags     []string `json:"tags,omitempty"`
 }
+
+const (
+	ClearTaskCacheQueryPath = "cachePath"
+)
