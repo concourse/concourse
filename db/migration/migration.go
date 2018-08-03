@@ -391,7 +391,7 @@ func checkTableExist(db *sql.DB, tableName string) bool {
 }
 
 func (self *migrator) migrateFromSchemaMigrations() (int, error) {
-	if !checkTableExist(self.db, "schema_migrations") {
+	if !checkTableExist(self.db, "schema_migrations") || checkTableExist(self.db, "migrations_history") {
 		return 0, nil
 	}
 

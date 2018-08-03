@@ -461,9 +461,8 @@ var _ = Describe("Migration", func() {
 				ExpectToBeAbleToInsertData(db)
 			})
 
-			It("Downgrades to a given version and write it to the existing schema_migrations table", func() {
+			It("Downgrades to a given version and write it to the existing schema_migrations table with dirty true", func() {
 
-				SetupSchemaMigrationsTable(db, 8878, false)
 				bindata.AssetNamesReturns([]string{
 					"1510262030_initial_schema.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
@@ -471,12 +470,14 @@ var _ = Describe("Migration", func() {
 				})
 				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
 
-				err = migrator.Up()
+				err := migrator.Up()
 				Expect(err).NotTo(HaveOccurred())
 
 				currentVersion, err := migrator.CurrentVersion()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(currentVersion).To(Equal(upgradedSchemaVersion))
+
+				SetupSchemaMigrationsTable(db, 8878, true)
 
 				err = migrator.Migrate(initialSchemaVersion)
 				Expect(err).NotTo(HaveOccurred())
