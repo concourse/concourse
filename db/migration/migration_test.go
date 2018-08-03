@@ -131,10 +131,7 @@ var _ = Describe("Migration", func() {
 			var dirty bool
 
 			JustBeforeEach(func() {
-				_, err := db.Exec("CREATE TABLE IF NOT EXISTS schema_migrations (version bigint, dirty boolean)")
-				Expect(err).NotTo(HaveOccurred())
-				_, err = db.Exec("INSERT INTO schema_migrations (version, dirty) VALUES ($1, $2)", 8878, dirty)
-				Expect(err).NotTo(HaveOccurred())
+				SetupSchemaMigrationsTable(db, 8878, dirty)
 			})
 
 			Context("dirty state is true", func() {
@@ -205,22 +202,7 @@ var _ = Describe("Migration", func() {
 						Expect(timeStamp.Time.Before(startTime)).To(Equal(true))
 					})
 				})
-
-				// It("updates the existing schema_migrations record", func() {
-				// 	startTime := time.Now()
-				// 	migrator := migration.NewMigrator(db, lockFactory, strategy)
-
-				// 	err = migrator.Up()
-				// 	Expect(err).NotTo(HaveOccurred())
-
-				// 	var timeStamp pq.NullTime
-				// 	err := db.QueryRow("SELECT tstamp from schema_migrations where version='8878'").Scan(&timeStamp)
-				// 	Expect(err).NotTo(HaveOccurred())
-				// 	validTimestamp := timeStamp.Time.After(startTime)
-				// 	Expect(validTimestamp).To(Equal(true))
-				// })
 			})
-
 		})
 
 		Context("sql migrations", func() {
@@ -452,7 +434,61 @@ var _ = Describe("Migration", func() {
 
 	Context("Downgrade", func() {
 		Context("Downgrades to a version that uses the old mattes/migrate schema_migrations table", func() {
+			It("Downgrades to a given version and write it to a new created schema_migrations table", func() {
+				bindata.AssetNamesReturns([]string{
+					"1510262030_initial_schema.up.sql",
+					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
+					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
+				})
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
 
+				err := migrator.Up()
+				Expect(err).NotTo(HaveOccurred())
+
+				currentVersion, err := migrator.CurrentVersion()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(currentVersion).To(Equal(upgradedSchemaVersion))
+
+				err = migrator.Migrate(initialSchemaVersion)
+				Expect(err).NotTo(HaveOccurred())
+
+				currentVersion, err = migrator.CurrentVersion()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(currentVersion).To(Equal(initialSchemaVersion))
+
+				ExpectDatabaseVersionToEqual(db, initialSchemaVersion, "schema_migrations")
+
+				ExpectToBeAbleToInsertData(db)
+			})
+
+			It("Downgrades to a given version and write it to the existing schema_migrations table", func() {
+
+				SetupSchemaMigrationsTable(db, 8878, false)
+				bindata.AssetNamesReturns([]string{
+					"1510262030_initial_schema.up.sql",
+					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
+					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
+				})
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+
+				err = migrator.Up()
+				Expect(err).NotTo(HaveOccurred())
+
+				currentVersion, err := migrator.CurrentVersion()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(currentVersion).To(Equal(upgradedSchemaVersion))
+
+				err = migrator.Migrate(initialSchemaVersion)
+				Expect(err).NotTo(HaveOccurred())
+
+				currentVersion, err = migrator.CurrentVersion()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(currentVersion).To(Equal(initialSchemaVersion))
+
+				ExpectDatabaseVersionToEqual(db, initialSchemaVersion, "schema_migrations")
+
+				ExpectToBeAbleToInsertData(db)
+			})
 		})
 
 		Context("Downgrades to a version with new migrations_history table", func() {
@@ -559,6 +595,13 @@ func SetupMigrationsHistoryTableToExistAtVersion(db *sql.DB, version int) {
 	Expect(err).NotTo(HaveOccurred())
 
 	_, err = db.Exec(`INSERT INTO migrations_history(version, tstamp, direction, status, dirty) VALUES($1, current_timestamp, 'up', 'passed', false)`, version)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func SetupSchemaMigrationsTable(db *sql.DB, version int, dirty bool) {
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS schema_migrations (version bigint, dirty boolean)")
+	Expect(err).NotTo(HaveOccurred())
+	_, err = db.Exec("INSERT INTO schema_migrations (version, dirty) VALUES ($1, $2)", version, dirty)
 	Expect(err).NotTo(HaveOccurred())
 }
 

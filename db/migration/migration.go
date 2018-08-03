@@ -268,7 +268,13 @@ func (self *migrator) Migrate(toVersion int) error {
 				if err != nil {
 					return err
 				}
+
 			}
+		}
+
+		err = self.migrateToSchemaMigrations(toVersion)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -409,4 +415,31 @@ func sortMigrations(migrationList []migration) {
 	sort.Slice(migrationList, func(i, j int) bool {
 		return migrationList[i].Version < migrationList[j].Version
 	})
+}
+
+func (self *migrator) migrateToSchemaMigrations(toVersion int) error {
+	newMigrationsHistoryFirstVersion := 1532706545
+
+	if toVersion >= newMigrationsHistoryFirstVersion {
+		return nil
+	}
+
+	if !checkTableExist(self.db, "schema_migrations") {
+		_, err := self.db.Exec("CREATE TABLE schema_migrations (version bigint, dirty boolean)")
+		if err != nil {
+			return err
+		}
+
+		_, err = self.db.Exec("INSERT INTO schema_migrations (version, dirty) VALUES ($1, false)", toVersion)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := self.db.Exec("UPDATE schema_migrations SET version=$1, dirty=false", toVersion)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
