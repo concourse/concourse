@@ -186,7 +186,6 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger, hasAssets bool
 		return nil, err
 	}
 
-	cmd.Baggageclaim.Metrics = cmd.Metrics
 	cmd.Baggageclaim.VolumesDir = flag.Dir(volumesDir)
 
 	cmd.Baggageclaim.OverlaysDir = filepath.Join(cmd.WorkDir.Path(), "overlays")
