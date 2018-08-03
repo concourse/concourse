@@ -2,6 +2,7 @@ package concourse
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse/internal"
@@ -123,6 +124,41 @@ func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) 
 		RequestName: atc.UnpauseJob,
 		Params:      params,
 	}, &internal.Response{})
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
+func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (bool, error) {
+	params := rata.Params{
+		"team_name":     team.name,
+		"pipeline_name": pipelineName,
+		"job_name":      jobName,
+		"step_name":     stepName,
+	}
+
+	queryParams := url.Values{}
+	if len(cachePath) > 0 {
+		queryParams.Add(atc.ClearTaskCacheQueryPath, cachePath)
+	}
+
+	//var taskResponse atc.ConfigResponse
+
+	responseHeaders := http.Header{}
+	response := internal.Response{
+		Headers: &responseHeaders,
+	}
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.ClearTaskCache,
+		Params:      params,
+		Query:       queryParams,
+	}, &response)
 
 	switch err.(type) {
 	case nil:
