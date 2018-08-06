@@ -1,7 +1,7 @@
 ---
 resource_types:
 - name: echo-resource
-  type: docker-image
+  type: registry-image
   source:
     repository: concourse/echo-resource
     tag: latest

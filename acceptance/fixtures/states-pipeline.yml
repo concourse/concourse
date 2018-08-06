@@ -1,7 +1,7 @@
 ---
 resources:
 - name: some-resource
-  type: docker-image
+  type: registry-image
   source: {repository: busybox}
 
 - name: broken-time
@@ -22,7 +22,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       run:
@@ -40,7 +40,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       run: {path: ((path))}
@@ -52,7 +52,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       run: {path: 'echo', args: ['i passed']}
@@ -64,7 +64,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       run: {path: 'banana'}
@@ -76,7 +76,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       run:

@@ -7,7 +7,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       run:
@@ -28,7 +28,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       run:
