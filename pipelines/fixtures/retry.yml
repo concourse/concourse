@@ -8,7 +8,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       outputs:
@@ -23,7 +23,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
       inputs:
       - name: attempts-log
@@ -60,7 +60,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       run: {path: 'false'}

@@ -17,7 +17,7 @@ jobs:
       outputs:
       - name: first-task-output
       image_resource:
-        type: docker-image
+        type: registry-image
         source:
           repository: busybox
       platform: linux
@@ -34,7 +34,7 @@ jobs:
       - path: first-task-output/blobs
       - path: second-task-cache
       image_resource:
-        type: docker-image
+        type: registry-image
         source:
           repository: busybox
       platform: linux

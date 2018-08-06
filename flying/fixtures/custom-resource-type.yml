@@ -1,7 +1,7 @@
 ---
 resource_types:
   - name: custom-type
-    type: docker-image
+    type: registry-image
     source:
       repository: concourse/git-resource
 

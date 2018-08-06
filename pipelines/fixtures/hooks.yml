@@ -6,7 +6,7 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: docker-image
+            type: registry-image
             source: {repository: busybox}
           run:
             path: echo
@@ -16,7 +16,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -26,7 +26,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -36,7 +36,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -46,7 +46,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -56,7 +56,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -66,7 +66,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -76,7 +76,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -86,7 +86,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -98,7 +98,7 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: docker-image
+            type: registry-image
             source: {repository: busybox}
           run:
             path: "false"
@@ -107,7 +107,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -117,7 +117,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -127,7 +127,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -137,7 +137,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -147,7 +147,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -157,7 +157,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -167,7 +167,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -177,7 +177,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -189,7 +189,7 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: docker-image
+            type: registry-image
             source: {repository: busybox}
           run:
             path: sh
@@ -204,7 +204,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -214,7 +214,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -224,7 +224,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -234,7 +234,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             run:
               path: echo
@@ -244,7 +244,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -254,7 +254,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -264,7 +264,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo
@@ -274,7 +274,7 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: docker-image
+          type: registry-image
           source: {repository: busybox}
         run:
           path: echo

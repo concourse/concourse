@@ -63,7 +63,7 @@ exit 0
 platform: linux
 
 image_resource:
-  type: docker-image
+  type: registry-image
   source: {repository: busybox}
 
 inputs:
@@ -325,7 +325,7 @@ ls`),
 platform: linux
 
 image_resource:
-  type: docker-image
+  type: registry-image
   source: {repository: busybox}
 
 inputs:
@@ -410,7 +410,7 @@ echo hello > output-1/file-1
 platform: linux
 
 image_resource:
-  type: docker-image
+  type: registry-image
   source: {repository: busybox}
 
 inputs:

@@ -6,9 +6,9 @@ params:
 outputs:
 - name: output
 image_resource:
-  type: docker-image
+  type: registry-image
   source:
-    repository: concourse/docker-image-resource
+    repository: concourse/registry-image-resource
 run:
   path: sh
   args:

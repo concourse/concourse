@@ -6,7 +6,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
       outputs:
       - name: output-1
@@ -24,7 +24,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
       inputs:
       - name: output-1

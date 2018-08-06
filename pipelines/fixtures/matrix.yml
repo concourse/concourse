@@ -16,7 +16,7 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: docker-image
+                type: registry-image
                 source: {repository: busybox}
               run:
                 path: touch
@@ -28,7 +28,7 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: docker-image
+                type: registry-image
                 source: {repository: busybox}
               run:
                 path: touch
@@ -40,7 +40,7 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: docker-image
+            type: registry-image
             source: {repository: busybox}
           inputs:
             - name: passing-unit-1
@@ -54,7 +54,7 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: docker-image
+                type: registry-image
                 source: {repository: busybox}
               run:
                 path: sh
@@ -63,7 +63,7 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: docker-image
+                type: registry-image
                 source: {repository: busybox}
               run:
                 path: sh
@@ -73,7 +73,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: busybox}
             inputs:
               - name: some-git-resource

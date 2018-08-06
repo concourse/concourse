@@ -1,10 +1,10 @@
 ---
 resource_types:
 - name: echo-resource-parent
-  type: docker-image
+  type: registry-image
   privileged: true
   source:
-    repository: concourse/docker-image-resource
+    repository: concourse/registry-image-resource
     tag: latest
 
 - name: echo-resource-child
@@ -14,7 +14,7 @@ resource_types:
     tag: latest
 
 - name: echo-resource
-  type: docker-image
+  type: registry-image
   source:
     repository: concourse/echo-resource
     tag: latest

@@ -23,7 +23,7 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 platform: linux
 
 image_resource:
-  type: docker-image
+  type: registry-image
   source: {repository: busybox}
 
 run:

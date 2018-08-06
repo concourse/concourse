@@ -1,10 +1,10 @@
 ---
 resource_types:
 - name: custom-resource-type
-  type: docker-image
+  type: registry-image
   privileged: ((privileged))
   source:
-    repository: concourse/docker-image-resource
+    repository: concourse/registry-image-resource
     tag: latest
 
 jobs:

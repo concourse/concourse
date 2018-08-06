@@ -26,6 +26,6 @@ jobs:
 
 resources:
 - name: busybox
-  type: docker-image
+  type: registry-image
   source:
     repository: busybox

@@ -48,7 +48,7 @@ var _ = Describe("A job with multiple inputs", func() {
 			[]byte(`---
 platform: linux
 image_resource:
-  type: docker-image
+  type: registry-image
   source: {repository: busybox}
 inputs:
 - name: git-repo-a
