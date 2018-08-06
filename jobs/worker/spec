@@ -32,6 +32,7 @@ packages:
   - semver_resource
   - time_resource
   - tracker_resource
+  - registry_image_resource
 
 consumes:
 - name: tsa
