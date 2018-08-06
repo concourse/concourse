@@ -29,7 +29,9 @@ export HOME=$PWD
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
 
-bosh blobs --column="path"  | grep "resources/${RESOURCE_NAME}" | xargs bosh remove-blob
+for blob in $(bosh blobs --column="path" | grep "resources/${RESOURCE_NAME}"); do
+  bosh remove-blob "$blob"
+done
 
 bosh -n add-blob ../${RESOURCE_NAME}.tar.gz resources/${RESOURCE_NAME}-${COMMIT_SHA}.tar.gz
 bosh -n upload-blobs
