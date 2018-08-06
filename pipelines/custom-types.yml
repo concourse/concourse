@@ -1,7 +1,7 @@
 ---
 resource_types:
 - name: my-time
-  type: docker-image
+  type: registry-image
   source: {repository: concourse/time-resource}
 
 resources:
@@ -18,7 +18,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
 
       run:

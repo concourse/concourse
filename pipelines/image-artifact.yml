@@ -1,7 +1,7 @@
 ---
 resources:
   - name: a-docker-resource-with-bash
-    type: docker-image
+    type: registry-image
     source:
       repository: ubuntu
 
@@ -16,7 +16,7 @@ jobs:
       platform: linux
       rootfs_uri: docker:///ignored     # this should be overriden
       image_resource:                   # this should also be overriden
-        type: docker-image
+        type: registry-image
         source: {repository: ignored}
       run:
           path: ls
@@ -31,7 +31,7 @@ jobs:
       platform: linux
       rootfs_uri: docker:///ignored     # this should be overriden
       image_resource:                   # this should also be overriden
-        type: docker-image
+        type: registry-image
         source: {repository: ignored}
       run:
           path: ls

@@ -1,7 +1,7 @@
 ---
 resource_types:
 - name: my-time
-  type: docker-image
+  type: registry-image
   tags: [tagged]
   source: {repository: concourse/time-resource}
 
