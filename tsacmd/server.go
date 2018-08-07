@@ -27,6 +27,7 @@ const maxForwards = 2
 
 type registrarSSHServer struct {
 	logger            lager.Logger
+	logLevel          lager.LogLevel
 	atcEndpointPicker tsa.EndpointPicker
 	tokenGenerator    tsa.TokenGenerator
 	heartbeatInterval time.Duration
@@ -194,7 +195,7 @@ func (server *registrarSSHServer) handleChannel(
 
 			req.Reply(true, nil)
 
-			logger.RegisterSink(lager.NewWriterSink(channel, lager.DEBUG))
+			logger.RegisterSink(lager.NewWriterSink(channel, server.logLevel))
 			err := server.landWorker(logger, channel, sessionID)
 			if err != nil {
 				logger.Error("failed-to-land-worker", err)
@@ -210,7 +211,7 @@ func (server *registrarSSHServer) handleChannel(
 
 			req.Reply(true, nil)
 
-			logger.RegisterSink(lager.NewWriterSink(channel, lager.DEBUG))
+			logger.RegisterSink(lager.NewWriterSink(channel, server.logLevel))
 			err := server.retireWorker(logger, channel, sessionID)
 			if err != nil {
 				logger.Error("failed-to-retire-worker", err)
@@ -226,7 +227,7 @@ func (server *registrarSSHServer) handleChannel(
 
 			req.Reply(true, nil)
 
-			logger.RegisterSink(lager.NewWriterSink(channel, lager.DEBUG))
+			logger.RegisterSink(lager.NewWriterSink(channel, server.logLevel))
 			err := server.deleteWorker(logger, channel, sessionID)
 			if err != nil {
 				logger.Error("failed-to-delete-worker", err)
@@ -639,6 +640,7 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker atc.Worker, channel ssh.Channel) ifrit.Process {
 	return ifrit.Background(tsa.NewHeartbeater(
 		logger,
+		server.logLevel,
 		clock.NewClock(),
 		server.heartbeatInterval,
 		server.cprInterval,

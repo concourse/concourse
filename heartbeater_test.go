@@ -31,7 +31,8 @@ var _ = Describe("Heartbeater", func() {
 	}
 
 	var (
-		logger lager.Logger
+		logger   lager.Logger
+		logLevel lager.LogLevel
 
 		addrToRegister string
 		fakeClock      *fakeclock.FakeClock
@@ -60,6 +61,7 @@ var _ = Describe("Heartbeater", func() {
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
+		logLevel = lager.DEBUG
 
 		addrToRegister = "1.2.3.4:7777"
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -153,6 +155,7 @@ var _ = Describe("Heartbeater", func() {
 		heartbeater = ifrit.Invoke(
 			NewHeartbeater(
 				logger,
+				logLevel,
 				fakeClock,
 				interval,
 				cprInterval,

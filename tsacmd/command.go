@@ -102,8 +102,13 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	if cmd.SessionSigningKey != nil {
 		tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
 
+		logLevel, err := lager.LogLevelFromString(cmd.Logger.LogLevel)
+		if err != nil {
+			panic(err)
+		}
 		server := &registrarSSHServer{
 			logger:            logger,
+			logLevel:          logLevel,
 			heartbeatInterval: cmd.HeartbeatInterval,
 			cprInterval:       1 * time.Second,
 			atcEndpointPicker: atcEndpointPicker,

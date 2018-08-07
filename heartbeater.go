@@ -25,7 +25,8 @@ type EndpointPicker interface {
 }
 
 type heartbeater struct {
-	logger lager.Logger
+	logger   lager.Logger
+	logLevel lager.LogLevel
 
 	clock       clock.Clock
 	interval    time.Duration
@@ -43,6 +44,7 @@ type heartbeater struct {
 
 func NewHeartbeater(
 	logger lager.Logger,
+	logLevel lager.LogLevel,
 	clock clock.Clock,
 	interval time.Duration,
 	cprInterval time.Duration,
@@ -54,7 +56,8 @@ func NewHeartbeater(
 	clientWriter io.Writer,
 ) ifrit.Runner {
 	return &heartbeater{
-		logger: logger,
+		logger:   logger,
+		logLevel: logLevel,
 
 		clock:       clock,
 		interval:    interval,
@@ -107,7 +110,7 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 }
 
 func (heartbeater *heartbeater) register(logger lager.Logger) bool {
-	logger.RegisterSink(lager.NewWriterSink(heartbeater.clientWriter, lager.DEBUG))
+	logger.RegisterSink(lager.NewWriterSink(heartbeater.clientWriter, heartbeater.logLevel))
 
 	heartbeatData := lager.Data{
 		"worker-platform": heartbeater.registration.Platform,
@@ -176,7 +179,7 @@ const (
 )
 
 func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
-	logger.RegisterSink(lager.NewWriterSink(heartbeater.clientWriter, lager.DEBUG))
+	logger.RegisterSink(lager.NewWriterSink(heartbeater.clientWriter, heartbeater.logLevel))
 
 	heartbeatData := lager.Data{
 		"worker-platform": heartbeater.registration.Platform,
