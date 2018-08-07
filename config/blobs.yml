@@ -42,10 +42,10 @@ resources/pool-resource-06598ca.tar.gz:
   size: 25925573
   object_id: cd6e60fe-ad2c-49c5-41d7-e065ba14784e
   sha: 42c6515067293be31a04d1aa06db22f5755ca3e0
-resources/registry-image-resource-0b49915.tar.gz:
-  size: 12882302
-  object_id: 13ca57ee-6bde-4689-5ded-2484a3c2435a
-  sha: 1d542a3ef77377765ab329b798e85ef6dd2caae5
+resources/registry-image-resource-bd27f9c.tar.gz:
+  size: 12881866
+  object_id: 688f97d3-0d39-4b05-664e-fda762bedc17
+  sha: c37857f8e2399c68dcbffef51cb7b19af98d5c66
 resources/s3-resource-2bbfea5.tar.gz:
   size: 14568632
   object_id: 24911fa3-46a9-4600-442e-37581b787f00
