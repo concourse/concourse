@@ -45,11 +45,11 @@ var _ = Describe("ATC Config", func() {
 				[]byte(`---
 resource_types:
 - name: foo
-  type: docker-image
+  type: registry-image
   source:
     repository: foo/foo
 - name: bar
-  type: docker-image
+  type: registry-image
   source:
     repository: bar/bar
 jobs:
@@ -59,7 +59,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: ubuntu}
       run:
         path: echo
@@ -74,11 +74,11 @@ jobs:
 				[]byte(`---
 resource_types:
 - name: foo
-  type: docker-image
+  type: registry-image
   source:
     repository: foo/foo
 - name: bar
-  type: docker-image
+  type: registry-image
   source:
     repository: bar/bar
 jobs:
@@ -88,14 +88,14 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: ubuntu}
       run:
         path: echo
         args: ["Hello, world!"]
 resource_types:
 - name: baz
-  type: docker-image
+  type: registry-image
   source:
     repository: baz/baz
 `),

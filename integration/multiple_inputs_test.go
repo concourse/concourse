@@ -50,7 +50,7 @@ var _ = Describe("Fly CLI", func() {
 platform: some-platform
 
 image_resource:
-  type: docker-image
+  type: registry-image
   source:
     repository: ubuntu
 
@@ -97,7 +97,7 @@ run:
 				Config: &atc.TaskConfig{
 					Platform: "some-platform",
 					ImageResource: &atc.ImageResource{
-						Type: "docker-image",
+						Type: "registry-image",
 						Source: atc.Source{
 							"repository": "ubuntu",
 						},
