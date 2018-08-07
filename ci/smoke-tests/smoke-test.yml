@@ -2,7 +2,7 @@
 platform: linux
 
 image_resource:
-  type: docker-image
+  type: registry-image
   source:
     repository: concourse/bin-test-ec2-ci
 
@@ -82,7 +82,7 @@ run:
     platform: linux
 
     image_resource:
-      type: docker-image
+      type: registry-image
       source:
         repository: busybox
 
