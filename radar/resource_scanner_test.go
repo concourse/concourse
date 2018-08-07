@@ -67,7 +67,7 @@ var _ = Describe("ResourceScanner", func() {
 		versionedResourceType = atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
 				Name:   "some-custom-resource",
-				Type:   "docker-image",
+				Type:   "registry-image",
 				Source: atc.Source{"custom": "((source-params))"},
 			},
 			Version: atc.Version{"custom": "version"},
@@ -94,7 +94,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeResourceType.IDReturns(1)
 		fakeResourceType.NameReturns("some-custom-resource")
-		fakeResourceType.TypeReturns("docker-image")
+		fakeResourceType.TypeReturns("registry-image")
 		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
 
@@ -513,7 +513,7 @@ var _ = Describe("ResourceScanner", func() {
 
 					fakeGitResourceType.IDReturns(5)
 					fakeGitResourceType.NameReturns("git")
-					fakeGitResourceType.TypeReturns("docker-image")
+					fakeGitResourceType.TypeReturns("registry-image")
 					fakeGitResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 					fakeGitResourceType.VersionReturns(nil)
 

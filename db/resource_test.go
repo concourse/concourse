@@ -22,7 +22,7 @@ var _ = Describe("Resource", func() {
 				Resources: atc.ResourceConfigs{
 					{
 						Name:    "some-resource",
-						Type:    "docker-image",
+						Type:    "registry-image",
 						Source:  atc.Source{"some": "repository"},
 						Version: atc.Version{"ref": "abcdef"},
 					},
@@ -70,7 +70,7 @@ var _ = Describe("Resource", func() {
 
 				switch r.Name() {
 				case "some-resource":
-					Expect(r.Type()).To(Equal("docker-image"))
+					Expect(r.Type()).To(Equal("registry-image"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "repository"}))
 					Expect(r.PinnedVersion()).To(Equal(atc.Version{"ref": "abcdef"}))
 				case "some-other-resource":
@@ -104,7 +104,7 @@ var _ = Describe("Resource", func() {
 			It("returns the resource", func() {
 				Expect(found).To(BeTrue())
 				Expect(resource.Name()).To(Equal("some-resource"))
-				Expect(resource.Type()).To(Equal("docker-image"))
+				Expect(resource.Type()).To(Equal("registry-image"))
 				Expect(resource.Source()).To(Equal(atc.Source{"some": "repository"}))
 			})
 		})

@@ -214,7 +214,7 @@ var _ = Describe("ContainerProvider", func() {
 
 			ImageSpec: ImageSpec{
 				ImageResource: &ImageResource{
-					Type:   "docker-image",
+					Type:   "registry-image",
 					Source: creds.NewSource(variables, atc.Source{"some": "((secret-image))"}),
 				},
 			},

@@ -53,7 +53,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		versionedResourceType = atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
 				Name:   "some-custom-resource",
-				Type:   "docker-image",
+				Type:   "registry-image",
 				Source: atc.Source{"custom": "((source-params))"},
 				Tags:   atc.Tags{"some-tag"},
 			},
@@ -73,7 +73,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		fakeResourceType.IDReturns(39)
 		fakeResourceType.NameReturns("some-custom-resource")
-		fakeResourceType.TypeReturns("docker-image")
+		fakeResourceType.TypeReturns("registry-image")
 		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
 		fakeResourceType.TagsReturns(atc.Tags{"some-tag"})
@@ -140,7 +140,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
 				_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
-				Expect(resourceType).To(Equal("docker-image"))
+				Expect(resourceType).To(Equal("registry-image"))
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 
@@ -156,7 +156,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
-						ResourceType: "docker-image",
+						ResourceType: "registry-image",
 					},
 					Tags:   []string{"some-tag"},
 					TeamID: 123,
@@ -170,8 +170,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					fakeResourceType = new(dbfakes.FakeResourceType)
 					fakeResourceType.IDReturns(40)
-					fakeResourceType.NameReturns("docker-image")
-					fakeResourceType.TypeReturns("docker-image")
+					fakeResourceType.NameReturns("registry-image")
+					fakeResourceType.TypeReturns("registry-image")
 					fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 					fakeResourceType.VersionReturns(atc.Version{"custom": "image-version"})
 
@@ -186,7 +186,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				It("constructs the resource of the correct type", func() {
 					Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
 					_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
-					Expect(resourceType).To(Equal("docker-image"))
+					Expect(resourceType).To(Equal("registry-image"))
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
@@ -204,7 +204,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					}))
 					Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 						ImageSpec: worker.ImageSpec{
-							ResourceType: "docker-image",
+							ResourceType: "registry-image",
 						},
 						TeamID: 123,
 					}))
@@ -383,7 +383,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
 				_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
-				Expect(resourceType).To(Equal("docker-image"))
+				Expect(resourceType).To(Equal("registry-image"))
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 
@@ -399,7 +399,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
-						ResourceType: "docker-image",
+						ResourceType: "registry-image",
 					},
 					Tags:   []string{"some-tag"},
 					TeamID: 123,
@@ -414,7 +414,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					otherResourceType = new(dbfakes.FakeResourceType)
 					otherResourceType.IDReturns(39)
 					otherResourceType.NameReturns("custom-resource-parent")
-					otherResourceType.TypeReturns("docker-image")
+					otherResourceType.TypeReturns("registry-image")
 
 					fakeResourceType = new(dbfakes.FakeResourceType)
 					fakeResourceType.IDReturns(40)
@@ -479,8 +479,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					fakeResourceType = new(dbfakes.FakeResourceType)
 					fakeResourceType.IDReturns(40)
-					fakeResourceType.NameReturns("docker-image")
-					fakeResourceType.TypeReturns("docker-image")
+					fakeResourceType.NameReturns("registry-image")
+					fakeResourceType.TypeReturns("registry-image")
 					fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 
 					fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{
@@ -494,7 +494,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				It("constructs the resource of the correct type", func() {
 					Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
 					_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
-					Expect(resourceType).To(Equal("docker-image"))
+					Expect(resourceType).To(Equal("registry-image"))
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
@@ -512,7 +512,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					}))
 					Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 						ImageSpec: worker.ImageSpec{
-							ResourceType: "docker-image",
+							ResourceType: "registry-image",
 						},
 						TeamID: 123,
 					}))

@@ -22,12 +22,12 @@ var _ = Describe("ResourceType", func() {
 				ResourceTypes: atc.ResourceTypes{
 					{
 						Name:   "some-type",
-						Type:   "docker-image",
+						Type:   "registry-image",
 						Source: atc.Source{"some": "repository"},
 					},
 					{
 						Name:       "some-other-type",
-						Type:       "docker-image-ng",
+						Type:       "registry-image-ng",
 						Privileged: true,
 						Source:     atc.Source{"some": "other-repository"},
 					},
@@ -39,7 +39,7 @@ var _ = Describe("ResourceType", func() {
 					},
 					{
 						Name:       "some-type-with-custom-check",
-						Type:       "docker-image",
+						Type:       "registry-image",
 						Source:     atc.Source{"some": "repository"},
 						CheckEvery: "10ms",
 					},
@@ -72,12 +72,12 @@ var _ = Describe("ResourceType", func() {
 				switch t.Name() {
 				case "some-type":
 					Expect(t.Name()).To(Equal("some-type"))
-					Expect(t.Type()).To(Equal("docker-image"))
+					Expect(t.Type()).To(Equal("registry-image"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
 					Expect(t.Version()).To(BeNil())
 				case "some-other-type":
 					Expect(t.Name()).To(Equal("some-other-type"))
-					Expect(t.Type()).To(Equal("docker-image-ng"))
+					Expect(t.Type()).To(Equal("registry-image-ng"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "other-repository"}))
 					Expect(t.Version()).To(BeNil())
 					Expect(t.Privileged()).To(BeTrue())
@@ -87,7 +87,7 @@ var _ = Describe("ResourceType", func() {
 					Expect(t.Params()).To(Equal(atc.Params{"unpack": "true"}))
 				case "some-type-with-custom-check":
 					Expect(t.Name()).To(Equal("some-type-with-custom-check"))
-					Expect(t.Type()).To(Equal("docker-image"))
+					Expect(t.Type()).To(Equal("registry-image"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
 					Expect(t.Version()).To(BeNil())
 					Expect(t.CheckEvery()).To(Equal("10ms"))
@@ -110,7 +110,7 @@ var _ = Describe("ResourceType", func() {
 						ResourceTypes: atc.ResourceTypes{
 							{
 								Name:   "some-type",
-								Type:   "docker-image",
+								Type:   "registry-image",
 								Source: atc.Source{"some": "repository"},
 							},
 						},

@@ -38,7 +38,7 @@ var _ = Describe("Factory Task", func() {
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "some-custom-resource",
-						Type:   "docker-image",
+						Type:   "registry-image",
 						Source: atc.Source{"some": "custom-source"},
 					},
 					Version: atc.Version{"some": "version"},
