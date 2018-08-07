@@ -80,7 +80,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 
 					By("triggering a job")
 					buildSession := spawnFly("trigger-job", "-w", "-j", "topgun/simple-job")
-					Eventually(buildSession).Should(gbytes.Say("Pulling .*busybox.*"))
+					Eventually(buildSession).Should(gbytes.Say("fetching .*busybox.*"))
 					<-buildSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
@@ -100,7 +100,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 					By("retaining cached image resource in second job build")
 					buildSession := spawnFly("trigger-job", "-w", "-j", "topgun/simple-job")
 					<-buildSession.Exited
-					Expect(buildSession).NotTo(gbytes.Say("Pulling .*busybox.*"))
+					Expect(buildSession).NotTo(gbytes.Say("fetching .*busybox.*"))
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
 					By("retaining check containers")
