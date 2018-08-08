@@ -31,7 +31,8 @@ var _ = Describe("Heartbeater", func() {
 	}
 
 	var (
-		logger lager.Logger
+		logger   lager.Logger
+		logLevel lager.LogLevel
 
 		addrToRegister string
 		fakeClock      *fakeclock.FakeClock
@@ -60,6 +61,7 @@ var _ = Describe("Heartbeater", func() {
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
+		logLevel = lager.DEBUG
 
 		addrToRegister = "1.2.3.4:7777"
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -153,6 +155,7 @@ var _ = Describe("Heartbeater", func() {
 		heartbeater = ifrit.Invoke(
 			NewHeartbeater(
 				logger,
+				logLevel,
 				fakeClock,
 				interval,
 				cprInterval,
@@ -233,25 +236,58 @@ var _ = Describe("Heartbeater", func() {
 		})
 
 		Context("when the ATC responds to registration requests", func() {
-			BeforeEach(func() {
-				fakeATC1.AppendHandlers(verifyRegister)
-				fakeATC2.AppendHandlers(verifyHeartbeat)
+			Context("When the DEBUG log level is set", func() {
+				BeforeEach(func() {
+					fakeATC1.AppendHandlers(verifyRegister)
+					fakeATC2.AppendHandlers(verifyHeartbeat)
+				})
+
+				It("immediately registers", func() {
+					expectedWorker.ActiveContainers = 2
+					expectedWorker.ActiveVolumes = 3
+					Expect(registrations).To(Receive(Equal(registration{expectedWorker, 2 * interval})))
+				})
+
+				It("heartbeats", func() {
+					Expect(registrations).To(Receive())
+
+					fakeClock.WaitForWatcherAndIncrement(interval)
+					expectedWorker.ActiveContainers = 5
+					expectedWorker.ActiveVolumes = 2
+					Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
+				})
+
+				It("logs debug messages", func() {
+					Expect(clientWriter).Should(gbytes.Say("test.register.start"))
+					Expect(clientWriter).Should(gbytes.Say("test.register.reached-worker"))
+					Expect(clientWriter).Should(gbytes.Say("test.register.done"))
+
+					fakeClock.WaitForWatcherAndIncrement(interval)
+					Eventually(clientWriter).Should(gbytes.Say("test.heartbeat.start"))
+					Eventually(clientWriter).Should(gbytes.Say("test.heartbeat.reached-worker"))
+					Eventually(clientWriter).Should(gbytes.Say("test.heartbeat.done"))
+				})
 			})
 
-			It("immediately registers", func() {
-				expectedWorker.ActiveContainers = 2
-				expectedWorker.ActiveVolumes = 3
-				Expect(registrations).To(Receive(Equal(registration{expectedWorker, 2 * interval})))
+			Context("When the ERROR log level is set", func() {
+				BeforeEach(func() {
+					fakeATC1.AppendHandlers(verifyRegister)
+					fakeATC2.AppendHandlers(verifyHeartbeat)
+					logLevel = lager.ERROR
+				})
+
+				It("does not log messages", func() {
+					Expect(clientWriter).ShouldNot(gbytes.Say("test.register.start"))
+					Expect(clientWriter).ShouldNot(gbytes.Say("test.register.reached-worker"))
+					Expect(clientWriter).ShouldNot(gbytes.Say("test.register.done"))
+
+					fakeClock.WaitForWatcherAndIncrement(interval)
+					Eventually(clientWriter).ShouldNot(gbytes.Say("test.heartbeat.start"))
+					Eventually(clientWriter).ShouldNot(gbytes.Say("test.heartbeat.reached-worker"))
+					Eventually(clientWriter).ShouldNot(gbytes.Say("test.heartbeat.done"))
+				})
 			})
 
-			It("heartbeats", func() {
-				Expect(registrations).To(Receive())
-
-				fakeClock.WaitForWatcherAndIncrement(interval)
-				expectedWorker.ActiveContainers = 5
-				expectedWorker.ActiveVolumes = 2
-				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
-			})
 		})
 
 		Context("when heartbeat returns worker is landed", func() {
