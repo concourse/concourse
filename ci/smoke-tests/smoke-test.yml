@@ -70,7 +70,7 @@ run:
       --tsa-public-key host_key.pub \
       --tsa-worker-private-key worker_key \
       --garden-network-pool 10.255.0.0/22 \
-      --garden-dns-proxy-enable \
+      --garden-dns-server 8.8.8.8 \
       > worker.stdout.log 2> worker.stderr.log &
 
     until [ $(./fly -t local workers | wc -l) -gt 0 ]; do
