@@ -276,7 +276,7 @@ var _ = Describe("VolumeFactory", func() {
 			for _, vol := range createdVolumes {
 				createdHandles = append(createdHandles, vol.Handle())
 			}
-			Expect(createdHandles).To(Equal(expectedCreatedHandles))
+			Expect(createdHandles).To(ConsistOf(expectedCreatedHandles))
 			Expect(createdHandles).ToNot(ContainElement(certsVolumeHandle))
 		})
 
