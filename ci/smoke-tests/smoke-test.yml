@@ -69,7 +69,9 @@ run:
       --tsa-host 127.0.0.1:2222 \
       --tsa-public-key host_key.pub \
       --tsa-worker-private-key worker_key \
-      --garden-network-pool 10.255.0.0/22 > worker.stdout.log 2> worker.stderr.log &
+      --garden-network-pool 10.255.0.0/22 \
+      --garden-dns-proxy-enable \
+      > worker.stdout.log 2> worker.stderr.log &
 
     until [ $(./fly -t local workers | wc -l) -gt 0 ]; do
       echo "waiting for worker to become available..."
