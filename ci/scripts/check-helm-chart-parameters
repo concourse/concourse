@@ -3,16 +3,17 @@ set -e
 
 CHART=$PWD/helm-chart
 
+unnecessary="CONCOURSE_VERSION"
 expected=
 subcommands="$(concourse --help 2>&1 | grep '^  [^-]' | tail -n+2 | awk '{print $1}')"
 for sc in $subcommands; do
-  expected+="$(concourse $sc --help 2>&1 | grep -o '\[\$CONCOURSE_.*\]' | tr -d \[\]\$)\n"
+  expected+="$(concourse $sc --help 2>&1 | grep -o '\[\$CONCOURSE_.*\]' | tr -d \[\]\$ | grep -v "$unnecessary")\n"
 done
 actual="$(grep -REoh 'CONCOURSE_([A-Z_])+' $CHART)"
 echo These parameters need to be removed from the Helm chart:
-to_remove=$(comm -23 <(echo "$actual" | sort | uniq) <(echo "$expected" | sort | uniq) | paste -sd, -)
+to_remove=$(comm -23 <(echo "$actual" | sort | uniq) <(echo -e "$expected" | sort | uniq) | paste -sd, -)
 echo "$to_remove"
 echo These parameters need to be added to the Helm chart:
-to_add=$(comm -13 <(echo "$actual" | sort | uniq) <(echo "$expected" | sort | uniq) | paste -sd, -)
+to_add=$(comm -13 <(echo "$actual" | sort | uniq) <(echo -e "$expected" | sort | uniq) | paste -sd, -)
 echo "$to_add"
 [ -z "$to_remove" ] && [ -z "$to_add" ]
