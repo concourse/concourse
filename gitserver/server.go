@@ -191,8 +191,10 @@ func (server *Server) CommitFileToBranch(fileContents, fileName, branch string) 
 			"-c",
 			fmt.Sprintf(
 				`
+
 					cd some-repo
 					git checkout -B '%s'
+				  mkdir -p $(dirname %s)
 					cat > %s <<EOF
 %s
 EOF
@@ -200,6 +202,7 @@ EOF
 					git commit -m "adding file %s"
 				`,
 				branch,
+				fileName,
 				fileName,
 				fileContents,
 				fileName,
@@ -265,7 +268,9 @@ func (server *Server) WriteFile(fileName string, fileContents string) {
 		Path: "sh",
 		Args: []string{
 			"-exc",
-			`cat > ` + fileName + ` <<EOF
+			`
+			mkdir -p $(dirname ` + fileName + `)
+			cat > ` + fileName + ` <<EOF
 ` + fileContents + `
 EOF
 ` + `chmod +x ` + fileName,
@@ -296,7 +301,7 @@ func (server *Server) CommitResourceWithFile(fileNames ...string) {
 			"-exc",
 			`
 				cd some-repo
-				mkdir rootfs
+				mkdir -p rootfs
 				cp -a /bin rootfs/bin
 				cp -a /etc rootfs/etc
 				cp -a /lib rootfs/lib
