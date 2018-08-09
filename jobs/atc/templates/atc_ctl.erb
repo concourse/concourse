@@ -17,6 +17,7 @@ SIGNING_KEY=/var/vcap/jobs/atc/config/token_signing_key
 PIDFILE=$RUN_DIR/atc.pid
 CF_CA_CERT=/var/vcap/jobs/atc/config/cf_ca_cert
 GITHUB_CA_CERT=/var/vcap/jobs/atc/config/github_ca_cert
+LDAP_CA_CERT=/var/vcap/jobs/atc/config/ldap_ca_cert
 OAUTH_CA_CERT=/var/vcap/jobs/atc/config/oauth_ca_cert
 OIDC_CA_CERT=/var/vcap/jobs/atc/config/oidc_ca_cert
 POSTGRESQL_CA_CERT=/var/vcap/jobs/atc/config/postgres_ca_cert
@@ -90,6 +91,9 @@ case $1 in
     chown vcap:vcap $GITHUB_CA_CERT
     chmod 0400 $GITHUB_CA_CERT
 
+    chown vcap:vcap $LDAP_CA_CERT
+    chmod 0400 $LDAP_CA_CERT
+
     chown vcap:vcap $OAUTH_CA_CERT
     chmod 0400 $OAUTH_CA_CERT
 
@@ -160,6 +164,42 @@ case $1 in
       <% if_p("cf_auth.ca_cert") do |_| %> \
       --cf-ca-cert $CF_CA_CERT \
       <% end %> \
+      --ldap-host <%= esc(p("ldap_auth.host")) %> \
+      --ldap-bind-dn <%= esc(p("ldap_auth.bind_dn")) %> \
+      --ldap-bind-pw <%= esc(p("ldap_auth.bind_pw")) %> \
+      <% if p("ldap_auth.insecure_no_ssl") %> \
+      --ldap-insecure-no-ssl \
+      <% end %> \
+      <% if p("ldap_auth.insecure_skip_verify") %> \
+      --ldap-insecure-skip-verify \
+      <% end %> \
+      <% if p("ldap_auth.start_tls") %> \
+      --ldap-start-tls \
+      <% end %> \
+      <% if_p("ldap_auth.ca_cert") do |_| %> \
+      --ldap-ca-cert $LDAP_CA_CERT \
+      <% end %> \
+      --ldap-user-search-base-dn <%= esc(p("ldap_auth.user_search_base_dn")) %> \
+      --ldap-user-search-filter <%= esc(p("ldap_auth.user_search_filter")) %> \
+      --ldap-user-search-username <%= esc(p("ldap_auth.user_search_username")) %> \
+      <% if p("ldap_auth.user_search_scope") %> \
+      --ldap-user-search-scope <%= esc(p("ldap_auth.user_search_scope")) %> \
+      <% end %> \
+      <% if p("ldap_auth.user_search_id_attr") %> \
+      --ldap-user-search-id-attr <%= esc(p("ldap_auth.user_search_id_attr")) %> \
+      <% end %> \
+     <% if p("ldap_auth.user_search_email_attr") %> \
+      --ldap-user-search-email-attr <%= esc(p("ldap_auth.user_search_email_attr")) %> \
+      <% end %> \
+      --ldap-user-search-name-attr <%= esc(p("ldap_auth.user_search_name_attr")) %> \
+      --ldap-group-search-base-dn <%= esc(p("ldap_auth.group_search_base_dn")) %> \
+      --ldap-group-search-filter <%= esc(p("ldap_auth.group_search_filter")) %> \
+      <% if p("ldap_auth.group_search_scope") %> \
+      --ldap-group-search-scope <%= esc(p("ldap_auth.group_search_scope")) %> \
+      <% end %> \
+      --ldap-group-search-user-attr <%= esc(p("ldap_auth.group_search_user_attr")) %> \
+      --ldap-group-search-group-attr <%= esc(p("ldap_auth.group_search_group_attr")) %> \
+      --ldap-group-search-name-attr <%= esc(p("ldap_auth.group_search_name_attr")) %> \
       --oauth-client-id <%= esc(p("generic_oauth.client_id")) %> \
       --oauth-client-secret <%= esc(p("generic_oauth.client_secret")) %> \
       --oauth-auth-url <%= esc(p("generic_oauth.auth_url")) %> \
@@ -205,6 +245,12 @@ case $1 in
       <% end %> \
       <% p("main_team.auth.cf.spaces").each do |v| %> \
       --main-team-cf-space <%= esc(v) %> \
+      <% end %> \
+      <% p("main_team.auth.ldap.users").each do |v| %> \
+      --main-team-ldap-user <%= esc(v) %> \
+      <% end %> \
+      <% p("main_team.auth.ldap.groups").each do |v| %> \
+      --main-team-ldap-group <%= esc(v) %> \
       <% end %> \
       <% p("main_team.auth.oauth.users").each do |v| %> \
       --main-team-oauth-user <%= esc(v) %> \

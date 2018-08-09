@@ -11,6 +11,7 @@ templates:
   tls_key.erb: config/tls_key
   cf_ca_cert.erb: config/cf_ca_cert
   github_ca_cert.erb: config/github_ca_cert
+  ldap_ca_cert.erb: config/ldap_ca_cert
   oauth_ca_cert.erb: config/oauth_ca_cert
   oidc_ca_cert.erb: config/oidc_ca_cert
   postgres_ca_cert.erb: config/postgres_ca_cert
@@ -119,7 +120,7 @@ properties:
     description: |
       A 16 or 32 byte passphrase. This is used to generate an AES key to encrypt
       sensitive iinformation in the database.
-      
+
       If specified, all existing data will be encrypted on start and any new
       data will be encrypted.
 
@@ -212,6 +213,87 @@ properties:
     type: certificate
     description: |
       Cloud Foundry CA Certificate.
+
+  ldap_auth.host:
+    description: The host and optional port of the LDAP server. If port isn't supplied, it will be guessed based on the TLS configuration. 389 or 636.
+    default: ""
+
+  ldap_auth.bind_dn:
+    description: Bind DN for searching LDAP users and groups. Typically this is a read-only user.
+    default: ""
+
+  ldap_auth.bind_pw:
+    description: Bind Password for the user specified by 'bind-dn'.
+    default: ""
+
+  ldap_auth.insecure_no_ssl:
+    description: Required if LDAP host does not use TLS.
+    default: false
+
+  ldap_auth.insecure_skip_verify:
+    description: Skip certificate verification.
+    default: false
+
+  ldap_auth.start_tls:
+    description: Start on insecure port, then negotiate TLS.
+    default: false
+
+  ldap_auth.ca_cert:
+    type: certificate
+    description: |
+      The CA certificate for the LDAP auth provider's endpoints.
+
+  ldap_auth.user_search_base_dn:
+    description: BaseDN to start the search from. For example 'cn=users,dc=example,dc=com'.
+    default: ""
+
+  ldap_auth.user_search_filter:
+    description: Optional filter to apply when searching the directory. For example '(objectClass=person)'.
+    default: ""
+
+  ldap_auth.user_search_username:
+    description: Attribute to match against the inputted username. This will be translated and combined with the other filter as '(<attr>=<username>)'.
+    default: ""
+
+  ldap_auth.user_search_scope:
+    description: Can either be: 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub' if empty.
+    default: ""
+
+  ldap_auth.user_search_id_attr:
+    description: A mapping of attributes on the user entry to claims. Defaults to 'uid' if empty.
+    default: ""
+
+  ldap_auth.user_search_email_attr:
+    description: A mapping of attributes on the user entry to claims. Defaults to 'mail' if empty.
+    default: ""
+
+  ldap_auth.user_search_name_attr:
+    description: A mapping of attributes on the user entry to claims.
+    default: ""
+
+  ldap_auth.group_search_base_dn:
+    description: BaseDN to start the search from. For example 'cn=groups,dc=example,dc=com'.
+    default: ""
+
+  ldap_auth.group_search_filter:
+    description: Optional filter to apply when searching the directory. For example '(objectClass=posixGroup)'.
+    default: ""
+
+  ldap_auth.group_search_scope:
+    description: Can either be: 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub' if empty.
+    default: ""
+
+  ldap_auth.group_search_user_attr:
+    description: Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is: (<groupAttr>=<userAttrvalue>).
+    default: ""
+
+  ldap_auth.group_search_group_attr:
+    description: Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is: (<groupAttr>=<userAttrvalue>)
+    default: ""
+
+  ldap_auth.group_search_name_attr:
+    description: The attribute of the group that represents its name.
+    default: ""
 
   generic_oauth.client_id:
     description: Application client ID for enabling generic OAuth.
@@ -330,6 +412,20 @@ properties:
     default: []
     example:
     - myorg:myspace
+
+  main_team.auth.ldap.users:
+    description: |
+      List of LDAP users that are authorized for the main team
+    default: []
+    example:
+    - my-username
+
+  main_team.auth.ldap.groups:
+    description: |
+      List of LDAP groups that are authorized for the main team
+    default: []
+    example:
+    - my-group
 
   main_team.auth.oauth.users:
     description: |
