@@ -256,7 +256,7 @@ properties:
     default: ""
 
   ldap_auth.user_search_scope:
-    description: Can either be: 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub' if empty.
+    description: Can either be 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub' if empty.
     default: ""
 
   ldap_auth.user_search_id_attr:
@@ -280,15 +280,15 @@ properties:
     default: ""
 
   ldap_auth.group_search_scope:
-    description: Can either be: 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub' if empty.
+    description: Can either be 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub' if empty.
     default: ""
 
   ldap_auth.group_search_user_attr:
-    description: Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is: (<groupAttr>=<userAttrvalue>).
+    description: Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is (<groupAttr>=<userAttrvalue>).
     default: ""
 
   ldap_auth.group_search_group_attr:
-    description: Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is: (<groupAttr>=<userAttrvalue>)
+    description: Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is (<groupAttr>=<userAttrvalue>)
     default: ""
 
   ldap_auth.group_search_name_attr:
