@@ -14,6 +14,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
+	"github.com/concourse/atc/creds/noop"
 	"github.com/concourse/atc/db"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tedsuo/rata"
@@ -50,6 +52,14 @@ type SaveConfigResponse struct {
 }
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
+	s.saveConfig(w, r, true)
+}
+
+func (s *Server) SaveConfigSkipCredentials(w http.ResponseWriter, r *http.Request) {
+	s.saveConfig(w, r, false)
+}
+
+func (s *Server) saveConfig(w http.ResponseWriter, r *http.Request, checkCredentials bool) {
 	session := s.logger.Session("set-config")
 
 	var version db.ConfigVersion
@@ -106,10 +116,23 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.Info("saving")
-
 	pipelineName := rata.Param(r, "pipeline_name")
 	teamName := rata.Param(r, "team_name")
+
+	if checkCredentials {
+		variables := s.variablesFactory.NewVariables(teamName, pipelineName)
+		_, isNoop := variables.(*noop.Noop)
+
+		if !isNoop {
+			errs := validateCredParams(variables, config, session)
+			if len(errs) > 0 {
+				s.handleBadRequest(w, errs, session)
+				return
+			}
+		}
+	}
+
+	session.Info("saving")
 
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
@@ -143,6 +166,71 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.writeSaveConfigResponse(w, SaveConfigResponse{Warnings: warnings}, session)
+}
+
+// Simply validate that the credentials exist; don't do anything with the actual secrets
+func validateCredParams(vars creds.Variables, config atc.Config, session lager.Logger) []string {
+	// 1. currently doesn't support tasks specified using a task file
+	// 2. should we check each of these are not nil first before Evaluating them to prevent unnecessary lookups, or is this already cached in vars?
+
+	errs := []string{}
+
+	for _, resourceType := range config.ResourceTypes {
+		_, err := creds.NewSource(vars, resourceType.Source).Evaluate()
+		if err != nil {
+			session.Debug(err.Error())
+			errs = append(errs, err.Error())
+		}
+	}
+
+	for _, resource := range config.Resources {
+		_, err := creds.NewSource(vars, resource.Source).Evaluate()
+		if err != nil {
+			session.Debug(err.Error())
+			errs = append(errs, err.Error())
+		}
+
+		_, err = creds.NewString(vars, resource.WebhookToken).Evaluate()
+		if err != nil {
+			session.Debug(err.Error())
+			errs = append(errs, err.Error())
+		}
+	}
+
+	for _, job := range config.Jobs {
+		for _, plan := range job.Plan {
+			_, err := creds.NewParams(vars, plan.Params).Evaluate()
+			if err != nil {
+				session.Debug(err.Error())
+				errs = append(errs, err.Error())
+			}
+
+			if plan.TaskConfig != nil {
+				if plan.TaskConfig.ImageResource != nil {
+					_, err = creds.NewSource(vars, plan.TaskConfig.ImageResource.Source).Evaluate()
+					if err != nil {
+						session.Debug(err.Error())
+						errs = append(errs, err.Error())
+					}
+				}
+
+				_, err = creds.NewTaskParams(vars, plan.TaskConfig.Params).Evaluate()
+				if err != nil {
+					session.Debug(err.Error())
+					errs = append(errs, err.Error())
+				}
+
+				// Are ImageResource.Params needed too?  According to the docs at https://concourse-ci.org/creds.html#vault,
+				// it seems like they aren't supported at the moment
+				// _, err = creds.NewParams(vars, plan.TaskConfig.ImageResource.Params).Evaluate()
+				// if err != nil {
+				// 	return err
+				// }
+			}
+		}
+	}
+
+	return errs
 }
 
 func (s *Server) handleBadRequest(w http.ResponseWriter, errorMessages []string, session lager.Logger) {
