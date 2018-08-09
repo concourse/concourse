@@ -24,6 +24,7 @@ type ATCConfig struct {
 	Team            concourse.Team
 	Target          string
 	SkipInteraction bool
+	SkipCredentials bool
 }
 
 func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
@@ -129,6 +130,7 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables []flag
 		atcConfig.PipelineName,
 		existingConfigVersion,
 		newConfig,
+		atcConfig.SkipCredentials,
 	)
 	if err != nil {
 		return err
