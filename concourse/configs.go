@@ -67,7 +67,7 @@ type setConfigResponse struct {
 	Warnings []ConfigWarning `json:"warnings"`
 }
 
-func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte) (bool, bool, []ConfigWarning, error) {
+func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, skipCredentials bool) (bool, bool, []ConfigWarning, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"team_name":     team.name,
@@ -75,9 +75,16 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersio
 
 	response := internal.Response{}
 
+	var requestName string
+	if skipCredentials {
+		requestName = atc.SaveConfigSkipCredentials
+	} else {
+		requestName = atc.SaveConfig
+	}
+
 	err := team.connection.Send(internal.Request{
 		ReturnResponseBody: true,
-		RequestName:        atc.SaveConfig,
+		RequestName:        requestName,
 		Params:             params,
 		Body:               bytes.NewBuffer(passedConfig),
 		Header: http.Header{
@@ -87,6 +94,7 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersio
 	},
 		&response,
 	)
+
 	if err != nil {
 		if unexpectedResponseError, ok := err.(internal.UnexpectedResponseError); ok {
 			if unexpectedResponseError.StatusCode == http.StatusBadRequest {
