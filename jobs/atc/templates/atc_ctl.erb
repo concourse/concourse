@@ -145,7 +145,7 @@ case $1 in
       --log-db-queries \
       <% end %> \
       <% p("add_local_users").each do |v| %> \
-      --add-local-user <%= esc(v) %> \
+      --add-local-user <%= esc(v.keys[0]) + ":" + esc(v.values[0]) %> \
       <% end %> \
       --auth-duration <%= p("auth_duration") %> \
       --github-client-id <%= esc(p("github_auth.client_id")) %> \
