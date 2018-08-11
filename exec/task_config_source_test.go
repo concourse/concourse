@@ -438,6 +438,16 @@ run: {path: a/file}
 					}))
 				})
 
+				Context("but B defines a param not in A", func() {
+					BeforeEach(func() {
+						configB.Params["EXTRA_PARAM"] = "EXTRA_PARAM isn't defined in task file"
+					})
+
+					It("should fail", func() {
+						Expect(fetchErr).To(HaveOccurred())
+					})
+				})
+
 			})
 
 			Context("and fetching via B fails", func() {

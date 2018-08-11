@@ -715,7 +715,6 @@ run: {path: a/file}
 			}.Merge(TaskConfig{
 				Params: map[string]string{
 					"FOO": "3",
-					"BAZ": "4",
 				},
 			})).To(
 
@@ -724,10 +723,25 @@ run: {path: a/file}
 					Params: map[string]string{
 						"FOO": "3",
 						"BAR": "2",
-						"BAZ": "4",
 					},
 				}))
 
+		})
+
+		It("errors if params key in pipeline.yml is not defined in task.yml", func() {
+			_, err := TaskConfig{
+				RootfsURI: "some-image",
+				Params: map[string]string{
+					"FOO": "1",
+					"BAR": "2",
+				},
+			}.Merge(TaskConfig{
+				Params: map[string]string{
+					"FOO": "3",
+					"BAZ": "4",
+				},
+			})
+			Expect(err.Error()).To(ContainSubstring("BAZ was defined in pipeline but missing from task file"))
 		})
 
 		It("overrides the platform", func() {

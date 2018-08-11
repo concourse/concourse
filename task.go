@@ -94,7 +94,7 @@ func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 	return config, nil
 }
 
-func (config TaskConfig) Merge(other TaskConfig) TaskConfig {
+func (config TaskConfig) Merge(other TaskConfig) (TaskConfig, error) {
 	if other.Platform != "" {
 		config.Platform = other.Platform
 	}
@@ -103,21 +103,22 @@ func (config TaskConfig) Merge(other TaskConfig) TaskConfig {
 		config.RootfsURI = other.RootfsURI
 	}
 
-	if len(config.Params) > 0 {
-		newParams := map[string]string{}
+	messages := []string{}
+	newParams := config.Params
 
-		for k, v := range config.Params {
+	for k, v := range other.Params {
+		if _, exists := newParams[k]; exists {
 			newParams[k] = v
+		} else {
+			messages = append(messages, fmt.Sprintf("%s was defined in pipeline but missing from task file", k))
 		}
-
-		for k, v := range other.Params {
-			newParams[k] = v
-		}
-
-		config.Params = newParams
-	} else {
-		config.Params = other.Params
 	}
+
+	if len(messages) > 0 {
+		return TaskConfig{}, fmt.Errorf("invalid task configuration:\n%s", strings.Join(messages, "\n"))
+	}
+
+	config.Params = newParams
 
 	if len(other.Inputs) != 0 {
 		config.Inputs = other.Inputs
@@ -127,7 +128,7 @@ func (config TaskConfig) Merge(other TaskConfig) TaskConfig {
 		config.Run = other.Run
 	}
 
-	return config
+	return config, nil
 }
 
 func (config TaskConfig) Validate() error {
