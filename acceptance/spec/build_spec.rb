@@ -30,6 +30,30 @@ describe 'build', type: :feature do
     end
   end
 
+  describe 'step arrow color' do
+    before do
+      fly('set-pipeline -n -p pipeline -c fixtures/resource-checking.yml')
+      fly('unpause-pipeline -p pipeline')
+      fly('trigger-job -w -j pipeline/checker')
+      visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/checker/builds/1")
+    end
+
+    context "new resource version found" do
+      it "set step arrow color to yellow" do
+        expect(foreground_color(page.find('.build-step[data-step-name="few-versions"]').find('.fa-arrow-down'))).to eq(YELLOW)
+      end
+    end
+
+    context "no new resource version" do
+      it "does not change step arrow color " do
+        fly('trigger-job -w -j pipeline/checker')
+        visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/checker/builds/2")
+
+        expect(foreground_color(page.find('.build-step[data-step-name="few-versions"]').find('.fa-arrow-down'))).to eq(WHITE)
+      end
+    end
+  end
+
   describe 'build logs' do
     let(:timestamp_regex) { /\d{2}:\d{2}:\d{2}/ }
 
