@@ -38,6 +38,6 @@ fetchJobBuilds : Concourse.JobIdentifier -> Maybe Page -> Task Http.Error (Pagin
 fetchJobBuilds job page =
     let
         url =
-            "/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ Http.encodeUri(job.jobName) ++ "/builds"
+            "/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds"
     in
         Concourse.Pagination.fetch Concourse.decodeBuild url page

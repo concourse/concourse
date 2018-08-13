@@ -15,7 +15,7 @@ fetchJob job =
     Http.toTask <|
         flip Http.get
             (Concourse.decodeJob { teamName = job.teamName, pipelineName = job.pipelineName })
-            ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ Http.encodeUri(job.jobName))
+            ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName)
 
 
 fetchJobs : Concourse.PipelineIdentifier -> Task Http.Error (List Concourse.Job)
@@ -44,7 +44,7 @@ fetchJobsRaw pi =
 
 triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error Concourse.Build
 triggerBuild job csrfToken =
-    HttpBuilder.post ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ Http.encodeUri(job.jobName) ++ "/builds")
+    HttpBuilder.post ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds")
         |> HttpBuilder.withHeader Concourse.csrfTokenHeaderName csrfToken
         |> HttpBuilder.withExpect (Http.expectJson (Concourse.decodeBuild))
         |> HttpBuilder.toTask
