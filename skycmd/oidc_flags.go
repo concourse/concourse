@@ -24,6 +24,7 @@ type OIDCFlags struct {
 	ClientSecret       string      `long:"client-secret" description:"(Required) Client secret"`
 	Scopes             []string    `long:"scope" description:"Any additional scopes that need to be requested during authorization"`
 	GroupsKey          string      `long:"groups-key" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
+	HostedDomains      []string    `long:"hosted-domains" description:"List of whitelisted domains when using Google, only users from a listed domain will be allowed to log in"`
 	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
@@ -70,6 +71,7 @@ func (self *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 		ClientSecret:       self.ClientSecret,
 		Scopes:             self.Scopes,
 		GroupsKey:          self.GroupsKey,
+		HostedDomains:      self.HostedDomains,
 		RootCAs:            caCerts,
 		InsecureSkipVerify: self.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
