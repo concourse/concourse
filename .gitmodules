@@ -432,3 +432,6 @@
 	path = src/code.cloudfoundry.org/credhub-cli
 	url = https://github.com/cloudfoundry-incubator/credhub-cli
 	branch = master
+[submodule "src/github.com/mattn/go-shellwords"]
+	path = src/github.com/mattn/go-shellwords
+	url = https://github.com/mattn/go-shellwords.git
