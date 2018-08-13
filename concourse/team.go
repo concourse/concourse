@@ -41,7 +41,7 @@ type Team interface {
 	PauseJob(pipelineName string, jobName string) (bool, error)
 	UnpauseJob(pipelineName string, jobName string) (bool, error)
 
-	ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (bool, error)
+	ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (int64, error)
 
 	Resource(pipelineName string, resourceName string) (atc.Resource, bool, error)
 	VersionedResourceTypes(pipelineName string) (atc.VersionedResourceTypes, bool, error)

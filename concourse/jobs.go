@@ -135,7 +135,7 @@ func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) 
 	}
 }
 
-func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (bool, error) {
+func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (int64, error) {
 	params := rata.Params{
 		"team_name":     team.name,
 		"pipeline_name": pipelineName,
@@ -148,11 +148,11 @@ func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName s
 		queryParams.Add(atc.ClearTaskCacheQueryPath, cachePath)
 	}
 
-	//var taskResponse atc.ConfigResponse
-
+	var ctcResponse atc.ClearTaskCacheResponse
 	responseHeaders := http.Header{}
 	response := internal.Response{
 		Headers: &responseHeaders,
+		Result:  &ctcResponse,
 	}
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ClearTaskCache,
@@ -160,12 +160,9 @@ func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName s
 		Query:       queryParams,
 	}, &response)
 
-	switch err.(type) {
-	case nil:
-		return true, nil
-	case internal.ResourceNotFoundError:
-		return false, nil
-	default:
-		return false, err
+	if err != nil {
+		return 0, err
+	} else {
+		return ctcResponse.NumCacheRemoved, nil
 	}
 }
