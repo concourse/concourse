@@ -484,7 +484,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest(requestMethod, expectedURL),
-						ghttp.RespondWith(http.StatusOK, nil),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{NumCacheRemoved: 1}),
 					),
 				)
 			})
@@ -492,9 +492,9 @@ var _ = Describe("ATC Handler Jobs", func() {
 			Context("when no cache path is given", func() {
 				It("succeeds", func() {
 					Expect(func() {
-						found, err := team.ClearTaskCache("mypipeline", "myjob", "mystep", "")
+						numDeleted, err := team.ClearTaskCache("mypipeline", "myjob", "mystep", "")
 						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
+						Expect(numDeleted).To(Equal(int64(1)))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(1))
@@ -505,9 +505,9 @@ var _ = Describe("ATC Handler Jobs", func() {
 				Context("when the cache path exists", func() {
 					It("succeeds", func() {
 						Expect(func() {
-							found, err := team.ClearTaskCache("mypipeline", "myjob", "mystep", "mycachepath")
+							numDeleted, err := team.ClearTaskCache("mypipeline", "myjob", "mystep", "mycachepath")
 							Expect(err).NotTo(HaveOccurred())
-							Expect(found).To(BeTrue())
+							Expect(numDeleted).To(Equal(int64(1)))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
 						}).By(1))
@@ -523,16 +523,16 @@ var _ = Describe("ATC Handler Jobs", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest(requestMethod, expectedURL),
-						ghttp.RespondWith(http.StatusNotFound, nil),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{NumCacheRemoved: 0}),
 					),
 				)
 			})
 
-			It("returns false and no error", func() {
+			It("returns that 0 caches were deleted", func() {
 				Expect(func() {
-					found, err := team.ClearTaskCache("mypipeline", "myjob", "my-nonexistent-step", "mycachepath")
+					numDeleted, err := team.ClearTaskCache("mypipeline", "myjob", "my-nonexistent-step", "mycachepath")
 					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeFalse())
+					Expect(numDeleted).To(BeZero())
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(1))
