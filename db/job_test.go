@@ -1188,7 +1188,7 @@ var _ = Describe("Job", func() {
 		})
 	})
 
-	FDescribe("Clear worker task cache", func() {
+	Describe("Clear worker task cache", func() {
 		Context("when worker task cache exists", func() {
 			var (
 				someOtherJob db.Job
