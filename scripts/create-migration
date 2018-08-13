@@ -2,6 +2,6 @@
 
 set -e -u
 
-go build -tags 'postgres' -o $GOPATH/bin/migrate github.com/mattes/migrate/cli
+go build -tags 'postgres' -o $GOPATH/bin/migrate github.com/concourse/atc/db/migration/cli
 
-migrate create -ext sql -dir db/migration/migrations/ "$@"
+migrate generate -d db/migration/migrations/ -n"$1" -t ${2-"sql"}
