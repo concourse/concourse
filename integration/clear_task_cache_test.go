@@ -3,8 +3,10 @@ package integration_test
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os/exec"
 
+	"github.com/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -107,14 +109,14 @@ var _ = Describe("Fly CLI", func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/tasks/some-step-name/cache"),
-							ghttp.RespondWith(204, ""),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{NumCacheRemoved: 1}),
 						),
 					)
 				})
 
 				It("succeeds if the user says yes", func() {
 					yes()
-					Eventually(sess).Should(gbytes.Say("`some-job`'s caches were deleted"))
+					Eventually(sess).Should(gbytes.Say("1 caches removed"))
 					Eventually(sess).Should(gexec.Exit(0))
 				})
 
@@ -124,7 +126,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("destroys the task step cache without confirming", func() {
-						Eventually(sess).Should(gbytes.Say("`some-job`'s caches were deleted"))
+						Eventually(sess).Should(gbytes.Say("1 caches removed"))
 						Eventually(sess).Should(gexec.Exit(0))
 					})
 				})
@@ -136,7 +138,7 @@ var _ = Describe("Fly CLI", func() {
 
 					It("succeeds if the user says yes", func() {
 						yes()
-						Eventually(sess).Should(gbytes.Say("`some-job`'s caches were deleted"))
+						Eventually(sess).Should(gbytes.Say("1 caches removed"))
 						Eventually(sess).Should(gexec.Exit(0))
 					})
 
@@ -148,14 +150,14 @@ var _ = Describe("Fly CLI", func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/tasks/some-step-name/cache"),
-							ghttp.RespondWith(404, ""),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{NumCacheRemoved: 0}),
 						),
 					)
 				})
 
 				It("writes that it did not exist and exits successfully", func() {
 					yes()
-					Eventually(sess).Should(gbytes.Say("`some-job`'s caches were already deleted or could not be found"))
+					Eventually(sess).Should(gbytes.Say("0 caches removed"))
 					Eventually(sess).Should(gexec.Exit(0))
 				})
 			})

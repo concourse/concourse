@@ -43,17 +43,13 @@ func (command *ClearTaskCacheCommand) Execute([]string) error {
 		}
 	}
 
-	found, err := target.Team().ClearTaskCache(command.Job.PipelineName, command.Job.JobName, command.StepName, command.CachePath)
+	numRemoved, err := target.Team().ClearTaskCache(command.Job.PipelineName, command.Job.JobName, command.StepName, command.CachePath)
 
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
-	}
-
-	if !found {
-		fmt.Printf("`%s`'s caches were already deleted or could not be found\n", command.Job.JobName)
 	} else {
-		fmt.Printf("`%s`'s caches were deleted\n", command.Job.JobName)
+		fmt.Printf("%d caches removed\n", numRemoved)
+		return nil
 	}
-
-	return nil
 }
