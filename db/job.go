@@ -586,14 +586,17 @@ func (j *job) CreateBuild() (Build, error) {
 func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	defer Rollback(tx)
 
 	var sqlBuilder sq.DeleteBuilder
 	sqlBuilder = psql.Delete("worker_task_caches").
-		Where(sq.Eq{"job_id": j.id})
+		Where(sq.Eq{
+			"job_id":    j.id,
+			"step_name": stepName,
+		})
 
 	if len(cachePath) > 0 {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"path": cachePath})
@@ -604,13 +607,13 @@ func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 		Exec()
 
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	rowsDeleted, err := sqlResult.RowsAffected()
 
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	return rowsDeleted, tx.Commit()

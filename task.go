@@ -10,6 +10,11 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// Not sure where best to put this?
+type ClearTaskCacheResponse struct {
+	NumCacheRemoved int64 `json:"num_cache_removed"`
+}
+
 type TaskConfig struct {
 	// The platform the task must run on (e.g. linux, windows).
 	Platform string `json:"platform,omitempty" yaml:"platform,omitempty" mapstructure:"platform"`

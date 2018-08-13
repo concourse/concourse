@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/google/jsonapi"
 )
 
 func (s *Server) ClearTaskCache(pipeline db.Pipeline) http.Handler {
@@ -30,36 +31,39 @@ func (s *Server) ClearTaskCache(pipeline db.Pipeline) http.Handler {
 				"stepName":  stepName,
 				"cachePath": cachePath,
 			})
+			w.Header().Set("Content-Type", jsonapi.MediaType)
 			w.WriteHeader(http.StatusNotFound)
+			jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
+				Title:  "Job Not Found Error",
+				Detail: fmt.Sprintf("Job with name '%s' not found.", jobName),
+				Status: "404",
+			}})
 			return
 		}
 
 		rowsDeleted, err := job.ClearTaskCache(stepName, cachePath)
 
-		if rowsDeleted == 0 {
-			logger.Debug("could-not-find-cache-path", lager.Data{
-				"jobName":   jobName,
-				"stepName":  stepName,
-				"cachePath": cachePath,
-			})
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
 		if err != nil {
 			logger.Error("failed-to-clear-task-cache", err)
+			w.Header().Set("Content-Type", jsonapi.MediaType)
 			w.WriteHeader(http.StatusInternalServerError)
-			s.writeResponse(w, []string{err.Error()})
+			jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
+				Title:  "Clear Task Cache Error",
+				Detail: err.Error(),
+				Status: "500",
+			}})
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		s.writeJSONResponse(w, atc.ClearTaskCacheResponse{NumCacheRemoved: rowsDeleted})
 	})
 }
 
-func (s *Server) writeResponse(w http.ResponseWriter, messages []string) {
+func (s *Server) writeJSONResponse(w http.ResponseWriter, obj interface{}) {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 
-	responseJSON, err := json.Marshal(messages)
+	responseJSON, err := json.Marshal(obj)
 	if err != nil {
 		s.logger.Error("failed-to-marshal-response", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -73,4 +77,5 @@ func (s *Server) writeResponse(w http.ResponseWriter, messages []string) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 }

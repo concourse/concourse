@@ -2126,8 +2126,21 @@ var _ = Describe("Jobs API", func() {
 						Expect(fakeJob.ClearTaskCacheCallCount()).To(Equal(1))
 						_, cachePath := fakeJob.ClearTaskCacheArgsForCall(0)
 						Expect(cachePath).To(Equal(""))
+					})
 
-						Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
+					It("it returns the number of rows deleted", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{"num_cache_removed": 1}`))
 					})
 
 					Context("but no rows were deleted", func() {
@@ -2135,9 +2148,13 @@ var _ = Describe("Jobs API", func() {
 							fakeJob.ClearTaskCacheReturns(0, nil)
 						})
 
-						It("should return a 404", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						It("it returns that 0 rows were deleted", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{"num_cache_removed": 0}`))
 						})
+
 					})
 				})
 
@@ -2157,8 +2174,21 @@ var _ = Describe("Jobs API", func() {
 						Expect(fakeJob.ClearTaskCacheCallCount()).To(Equal(1))
 						_, cachePath := fakeJob.ClearTaskCacheArgsForCall(0)
 						Expect(cachePath).To(Equal("cache-path"))
+					})
 
-						Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
+					It("it returns the number of rows deleted", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{"num_cache_removed": 1}`))
 					})
 
 					Context("but no rows corresponding to the cachePath are deleted", func() {
@@ -2166,8 +2196,11 @@ var _ = Describe("Jobs API", func() {
 							fakeJob.ClearTaskCacheReturns(0, nil)
 						})
 
-						It("should return a 404", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						It("it returns that 0 rows were deleted", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{"num_cache_removed": 0}`))
 						})
 					})
 				})

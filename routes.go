@@ -28,7 +28,8 @@ const (
 	JobBadge       = "JobBadge"
 	MainJobBadge   = "MainJobBadge"
 
-	ClearTaskCache = "ClearTaskCache"
+	ClearTaskCache          = "ClearTaskCache"
+	ClearTaskCacheQueryPath = "CachePath"
 
 	ListAllResources     = "ListAllResources"
 	ListResources        = "ListResources"
