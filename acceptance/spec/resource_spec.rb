@@ -39,7 +39,7 @@ describe 'resource', type: :feature do
         resource_name = 'some-resource'
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/resources/#{resource_name}")
         page.find('.list-collapsable-item', match: :first).click
-        expect(page.find('.build-metadata')).to have_content 'image'
+        expect(page.find('.build-metadata')).to have_content 'commit'
       end
     end
 
@@ -56,12 +56,12 @@ describe 'resource', type: :feature do
         fly("trigger-job -w -j pipeline/#{job_name}")
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/resources/#{resource_name}")
         page.find('.list-collapsable-item', match: :first).click
-        expect(page.find('.build-metadata')).to have_content 'image'
+        expect(page.find('.build-metadata')).to have_content 'commit'
 
         fly("trigger-job -w -j other-pipeline/#{job_name}")
         visit dash_route("/teams/#{team_name}/pipelines/other-pipeline/resources/#{resource_name}")
         page.find('.list-collapsable-item', match: :first).click
-        expect(page.find('.build-metadata')).to have_content 'image'
+        expect(page.find('.build-metadata')).to have_content 'commit'
       end
     end
   end

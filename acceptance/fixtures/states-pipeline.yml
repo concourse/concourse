@@ -1,8 +1,9 @@
 ---
 resources:
 - name: some-resource
-  type: registry-image
-  source: {repository: busybox}
+  type: git
+  source:
+    uri: https://github.com/concourse/test.git
 
 - name: broken-time
   type: time
