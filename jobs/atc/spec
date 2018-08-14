@@ -161,7 +161,8 @@ properties:
 
   add_local_users:
     description: |
-      List of local concourse users to add with their bcrypted passwords
+      List of local concourse users to add with their bcrypted passwords.
+      bcrypted password must have a strength of 10 or higher or the user will not be able to login
     default: []
     example:
     - some-user:$2a$10$sKZelZprWWcBAWbp28rB1uFef0Ybxsiqh05uo.H8EIm0sWc6IZGJu
