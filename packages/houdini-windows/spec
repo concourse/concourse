@@ -25,3 +25,4 @@ files:
   - github.com/vito/houdini/process/*.{go,s,c,h} # gosub
   - github.com/vito/houdini/ptyutil/*.{go,s,c,h} # gosub
   - github.com/vito/houdini/win32/*.{go,s,c,h} # gosub
+  - golang.org/x/sys/unix/*.{go,s,c,h} # gosub

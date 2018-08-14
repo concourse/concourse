@@ -20,6 +20,13 @@ files:
   - github.com/cloudfoundry/bosh-cli/vendor/gopkg.in/yaml.v2/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/event/*.{go,s,c,h} # gosub
+  - github.com/concourse/dex/connector/*.{go,s,c,h} # gosub
+  - github.com/concourse/dex/connector/cf/*.{go,s,c,h} # gosub
+  - github.com/concourse/dex/connector/github/*.{go,s,c,h} # gosub
+  - github.com/concourse/dex/connector/gitlab/*.{go,s,c,h} # gosub
+  - github.com/concourse/dex/connector/ldap/*.{go,s,c,h} # gosub
+  - github.com/concourse/dex/connector/oauth/*.{go,s,c,h} # gosub
+  - github.com/concourse/dex/connector/oidc/*.{go,s,c,h} # gosub
   - github.com/concourse/flag/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/commands/*.{go,s,c,h} # gosub
@@ -36,30 +43,13 @@ files:
   - github.com/concourse/fly/template/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/ui/*.{go,s,c,h} # gosub
   - github.com/concourse/fly/version/*.{go,s,c,h} # gosub
+  - github.com/concourse/go-archive/tarfs/*.{go,s,c,h} # gosub
   - github.com/concourse/go-archive/tgzfs/*.{go,s,c,h} # gosub
   - github.com/concourse/go-concourse/concourse/*.{go,s,c,h} # gosub
   - github.com/concourse/go-concourse/concourse/eventstream/*.{go,s,c,h} # gosub
   - github.com/concourse/go-concourse/concourse/internal/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/skycmd/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/connector/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/connector/cf/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/connector/github/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/connector/gitlab/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/connector/ldap/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/connector/oauth/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/connector/oidc/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/github.com/coreos/go-oidc/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/github.com/pquerna/cachecontrol/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/github.com/pquerna/cachecontrol/cacheobject/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/golang.org/x/net/context/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/golang.org/x/oauth2/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/golang.org/x/oauth2/github/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/golang.org/x/oauth2/internal/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/gopkg.in/asn1-ber.v1/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/gopkg.in/ldap.v2/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/gopkg.in/square/go-jose.v2/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/gopkg.in/square/go-jose.v2/cipher/*.{go,s,c,h} # gosub
-  - github.com/coreos/dex/vendor/gopkg.in/square/go-jose.v2/json/*.{go,s,c,h} # gosub
+  - github.com/coreos/go-oidc/*.{go,s,c,h} # gosub
   - github.com/cppforlife/go-semi-semantic/version/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/fatih/color/*.{go,s,c,h} # gosub
@@ -95,6 +85,8 @@ files:
   - github.com/peterhellberg/link/*.{go,s,c,h} # gosub
   - github.com/pkg/term/*.{go,s,c,h} # gosub
   - github.com/pkg/term/termios/*.{go,s,c,h} # gosub
+  - github.com/pquerna/cachecontrol/*.{go,s,c,h} # gosub
+  - github.com/pquerna/cachecontrol/cacheobject/*.{go,s,c,h} # gosub
   - github.com/sirupsen/logrus/*.{go,s,c,h} # gosub
   - github.com/skratchdot/open-golang/open/*.{go,s,c,h} # gosub
   - github.com/tedsuo/rata/*.{go,s,c,h} # gosub
@@ -111,8 +103,14 @@ files:
   - golang.org/x/net/context/*.{go,s,c,h} # gosub
   - golang.org/x/net/context/ctxhttp/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/*.{go,s,c,h} # gosub
+  - golang.org/x/oauth2/github/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/internal/*.{go,s,c,h} # gosub
   - golang.org/x/sys/unix/*.{go,s,c,h} # gosub
   - golang.org/x/sys/windows/*.{go,s,c,h} # gosub
+  - gopkg.in/asn1-ber.v1/*.{go,s,c,h} # gosub
   - gopkg.in/cheggaaa/pb.v1/*.{go,s,c,h} # gosub
+  - gopkg.in/ldap.v2/*.{go,s,c,h} # gosub
+  - gopkg.in/square/go-jose.v2/*.{go,s,c,h} # gosub
+  - gopkg.in/square/go-jose.v2/cipher/*.{go,s,c,h} # gosub
+  - gopkg.in/square/go-jose.v2/json/*.{go,s,c,h} # gosub
   - gopkg.in/yaml.v2/*.{go,s,c,h} # gosub

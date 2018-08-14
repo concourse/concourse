@@ -302,9 +302,6 @@
 	path = src/github.com/prometheus/client_golang
 	url = https://github.com/prometheus/client_golang
 	branch = master
-[submodule "src/github.com/mattes/migrate"]
-	path = src/github.com/mattes/migrate
-	url = https://github.com/mattes/migrate
 [submodule "src/github.com/NYTimes/gziphandler"]
 	path = src/github.com/NYTimes/gziphandler
 	url = https://github.com/NYTimes/gziphandler
@@ -405,10 +402,6 @@
 	path = src/github.com/skratchdot/open-golang
 	url = https://github.com/skratchdot/open-golang
 	branch = master
-[submodule "src/github.com/coreos/dex"]
-	path = src/github.com/coreos/dex
-	url = https://github.com/concourse/dex
-	branch = feature/dex
 [submodule "src/github.com/coreos/go-oidc"]
 	path = src/github.com/coreos/go-oidc
 	url = https://github.com/coreos/go-oidc
@@ -431,4 +424,48 @@
 [submodule "src/code.cloudfoundry.org/credhub-cli"]
 	path = src/code.cloudfoundry.org/credhub-cli
 	url = https://github.com/cloudfoundry-incubator/credhub-cli
+	branch = master
+[submodule "src/github.com/felixge/httpsnoop"]
+	path = src/github.com/felixge/httpsnoop
+	url = https://github.com/felixge/httpsnoop
+	branch = master
+[submodule "src/github.com/gorilla/mux"]
+	path = src/github.com/gorilla/mux
+	url = https://github.com/gorilla/mux
+	branch = master
+[submodule "src/gopkg.in/asn1-ber.v1"]
+	path = src/gopkg.in/asn1-ber.v1
+	url = https://gopkg.in/asn1-ber.v1
+	branch = master
+[submodule "src/google.golang.org/grpc"]
+	path = src/google.golang.org/grpc
+	url = https://github.com/grpc/grpc-go
+	branch = master
+[submodule "src/github.com/russellhaering/goxmldsig"]
+	path = src/github.com/russellhaering/goxmldsig
+	url = https://github.com/russellhaering/goxmldsig
+	branch = master
+[submodule "src/google.golang.org/genproto"]
+	path = src/google.golang.org/genproto
+	url = https://github.com/google/go-genproto
+	branch = master
+[submodule "src/github.com/gorilla/handlers"]
+	path = src/github.com/gorilla/handlers
+	url = https://github.com/gorilla/handlers
+	branch = master
+[submodule "src/github.com/beevik/etree"]
+	path = src/github.com/beevik/etree
+	url = https://github.com/beevik/etree
+	branch = master
+[submodule "src/github.com/concourse/dex"]
+	path = src/github.com/concourse/dex
+	url = https://github.com/concourse/dex
+	branch = master
+[submodule "src/gopkg.in/ldap.v2"]
+	path = src/gopkg.in/ldap.v2
+	url = https://gopkg.in/ldap.v2
+	branch = master
+[submodule "src/github.com/jonboulle/clockwork"]
+	path = src/github.com/jonboulle/clockwork
+	url = https://github.com/jonboulle/clockwork
 	branch = master

@@ -23,6 +23,7 @@ files:
   - github.com/concourse/baggageclaim/uidgid/*.{go,s,c,h} # gosub
   - github.com/concourse/baggageclaim/volume/*.{go,s,c,h} # gosub
   - github.com/concourse/flag/*.{go,s,c,h} # gosub
+  - github.com/concourse/go-archive/tarfs/*.{go,s,c,h} # gosub
   - github.com/concourse/go-archive/tgzfs/*.{go,s,c,h} # gosub
   - github.com/concourse/retryhttp/*.{go,s,c,h} # gosub
   - github.com/concourse/tsa/*.{go,s,c,h} # gosub
@@ -52,4 +53,5 @@ files:
   - golang.org/x/crypto/poly1305/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/ssh/*.{go,s,c,h} # gosub
   - golang.org/x/net/context/*.{go,s,c,h} # gosub
+  - golang.org/x/sys/unix/*.{go,s,c,h} # gosub
   - gopkg.in/yaml.v2/*.{go,s,c,h} # gosub
