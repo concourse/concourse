@@ -8,7 +8,6 @@ import (
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
@@ -32,13 +31,14 @@ var _ = Describe("FetchSourceProvider", func() {
 		tags                     atc.Tags
 		resourceTypes            creds.VersionedResourceTypes
 		teamID                   = 3
-		resourceCache            *db.UsedResourceCache
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+		fakeUsedResourceCache    *dbfakes.FakeUsedResourceCache
 	)
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
 		fetchSourceProviderFactory := resource.NewFetchSourceProviderFactory(fakeWorkerClient, fakeResourceCacheFactory)
 		logger = lagertest.NewTestLogger("test")
 		resourceInstance = new(resourcefakes.FakeResourceInstance)
@@ -61,8 +61,8 @@ var _ = Describe("FetchSourceProvider", func() {
 
 		resourceInstance.ResourceTypeReturns("some-resource-type")
 		fakeBuildStepDelegate = new(workerfakes.FakeImageFetchingDelegate)
-		resourceCache = &db.UsedResourceCache{ID: 42}
-		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(resourceCache, nil)
+		fakeUsedResourceCache.IDReturns(42)
+		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
 
 		fetchSourceProvider = fetchSourceProviderFactory.NewFetchSourceProvider(
 			logger,

@@ -25,7 +25,7 @@ type Volume interface {
 
 	COWStrategy() baggageclaim.COWStrategy
 
-	InitializeResourceCache(*db.UsedResourceCache) error
+	InitializeResourceCache(db.UsedResourceCache) error
 	InitializeTaskCache(lager.Logger, int, string, string, bool) error
 
 	CreateChildForContainer(db.CreatingContainer, string) (db.CreatingVolume, error)
@@ -90,7 +90,7 @@ func (v *volume) COWStrategy() baggageclaim.COWStrategy {
 	}
 }
 
-func (v *volume) InitializeResourceCache(urc *db.UsedResourceCache) error {
+func (v *volume) InitializeResourceCache(urc db.UsedResourceCache) error {
 	return v.dbVolume.InitializeResourceCache(urc)
 }
 

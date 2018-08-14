@@ -10,13 +10,13 @@ import (
 func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 	logger lager.Logger,
 	resourceName string,
-	usedResourceConfig *UsedResourceConfig,
+	resourceConfig ResourceConfig,
 	interval time.Duration,
 	immediate bool,
 ) (lock.Lock, bool, error) {
 	lock, acquired, err := p.lockFactory.Acquire(
 		logger,
-		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
+		lock.NewResourceConfigCheckingLockID(resourceConfig.ID()),
 	)
 	if err != nil {
 		return nil, false, err
@@ -49,13 +49,13 @@ func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 func (p *pipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(
 	logger lager.Logger,
 	resourceTypeName string,
-	usedResourceConfig *UsedResourceConfig,
+	resourceConfig ResourceConfig,
 	interval time.Duration,
 	immediate bool,
 ) (lock.Lock, bool, error) {
 	lock, acquired, err := p.lockFactory.Acquire(
 		logger,
-		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
+		lock.NewResourceConfigCheckingLockID(resourceConfig.ID()),
 	)
 	if err != nil {
 		return nil, false, err

@@ -8,6 +8,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
+	"github.com/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . ResourceCacheFactory
@@ -21,23 +22,25 @@ type ResourceCacheFactory interface {
 		source atc.Source,
 		params atc.Params,
 		resourceTypes creds.VersionedResourceTypes,
-	) (*UsedResourceCache, error)
+	) (UsedResourceCache, error)
 
 	// changing resource cache to interface to allow updates on object is not feasible.
-	// Since we need to pass it recursively in UsedResourceConfig.
+	// Since we need to pass it recursively in ResourceConfig.
 	// Also, metadata will be available to us before we create resource cache so this
 	// method can be removed at that point. See  https://github.com/concourse/concourse/issues/534
-	UpdateResourceCacheMetadata(*UsedResourceCache, []atc.MetadataField) error
-	ResourceCacheMetadata(*UsedResourceCache) (ResourceMetadataFields, error)
+	UpdateResourceCacheMetadata(UsedResourceCache, []atc.MetadataField) error
+	ResourceCacheMetadata(UsedResourceCache) (ResourceMetadataFields, error)
 }
 
 type resourceCacheFactory struct {
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
-func NewResourceCacheFactory(conn Conn) ResourceCacheFactory {
+func NewResourceCacheFactory(conn Conn, lockFactory lock.LockFactory) ResourceCacheFactory {
 	return &resourceCacheFactory{
-		conn: conn,
+		conn:        conn,
+		lockFactory: lockFactory,
 	}
 }
 
@@ -49,16 +52,16 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	source atc.Source,
 	params atc.Params,
 	resourceTypes creds.VersionedResourceTypes,
-) (*UsedResourceCache, error) {
-	resourceConfig, err := constructResourceConfig(resourceTypeName, source, resourceTypes)
+) (UsedResourceCache, error) {
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceTypeName, source, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	resourceCache := ResourceCache{
-		ResourceConfig: resourceConfig,
-		Version:        version,
-		Params:         params,
+	resourceCache := ResourceCacheDescriptor{
+		ResourceConfigDescriptor: resourceConfigDescriptor,
+		Version:                  version,
+		Params:                   params,
 	}
 
 	tx, err := f.conn.Begin()
@@ -68,7 +71,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 
 	defer Rollback(tx)
 
-	usedResourceCache, err := resourceCache.findOrCreate(logger, tx)
+	usedResourceCache, err := resourceCache.findOrCreate(logger, tx, f.lockFactory, f.conn)
 	if err != nil {
 		return nil, err
 	}
@@ -86,24 +89,24 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	return usedResourceCache, nil
 }
 
-func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache *UsedResourceCache, metadata []atc.MetadataField) error {
+func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache UsedResourceCache, metadata []atc.MetadataField) error {
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
 	_, err = psql.Update("resource_caches").
 		Set("metadata", metadataJSON).
-		Where(sq.Eq{"id": resourceCache.ID}).
+		Where(sq.Eq{"id": resourceCache.ID()}).
 		RunWith(f.conn).
 		Exec()
 	return err
 }
 
-func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache *UsedResourceCache) (ResourceMetadataFields, error) {
+func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceCache) (ResourceMetadataFields, error) {
 	var metadataJSON sql.NullString
 	err := psql.Select("metadata").
 		From("resource_caches").
-		Where(sq.Eq{"id": resourceCache.ID}).
+		Where(sq.Eq{"id": resourceCache.ID()}).
 		RunWith(f.conn).
 		QueryRow().
 		Scan(&metadataJSON)

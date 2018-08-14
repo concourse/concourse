@@ -375,10 +375,10 @@ type FakeBuild struct {
 		result1 db.SavedVersionedResources
 		result2 error
 	}
-	SaveImageResourceVersionStub        func(*db.UsedResourceCache) error
+	SaveImageResourceVersionStub        func(db.UsedResourceCache) error
 	saveImageResourceVersionMutex       sync.RWMutex
 	saveImageResourceVersionArgsForCall []struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 	}
 	saveImageResourceVersionReturns struct {
 		result1 error
@@ -1974,11 +1974,11 @@ func (fake *FakeBuild) GetVersionedResourcesReturnsOnCall(i int, result1 db.Save
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) SaveImageResourceVersion(arg1 *db.UsedResourceCache) error {
+func (fake *FakeBuild) SaveImageResourceVersion(arg1 db.UsedResourceCache) error {
 	fake.saveImageResourceVersionMutex.Lock()
 	ret, specificReturn := fake.saveImageResourceVersionReturnsOnCall[len(fake.saveImageResourceVersionArgsForCall)]
 	fake.saveImageResourceVersionArgsForCall = append(fake.saveImageResourceVersionArgsForCall, struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 	}{arg1})
 	fake.recordInvocation("SaveImageResourceVersion", []interface{}{arg1})
 	fake.saveImageResourceVersionMutex.Unlock()
@@ -1997,7 +1997,7 @@ func (fake *FakeBuild) SaveImageResourceVersionCallCount() int {
 	return len(fake.saveImageResourceVersionArgsForCall)
 }
 
-func (fake *FakeBuild) SaveImageResourceVersionArgsForCall(i int) *db.UsedResourceCache {
+func (fake *FakeBuild) SaveImageResourceVersionArgsForCall(i int) db.UsedResourceCache {
 	fake.saveImageResourceVersionMutex.RLock()
 	defer fake.saveImageResourceVersionMutex.RUnlock()
 	return fake.saveImageResourceVersionArgsForCall[i].arg1

@@ -32,7 +32,7 @@ func NewBuildStepDelegate(
 	}
 }
 
-func (delegate *BuildStepDelegate) ImageVersionDetermined(resourceCache *db.UsedResourceCache) error {
+func (delegate *BuildStepDelegate) ImageVersionDetermined(resourceCache db.UsedResourceCache) error {
 	return delegate.build.SaveImageResourceVersion(resourceCache)
 }
 

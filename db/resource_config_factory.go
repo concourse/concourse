@@ -27,7 +27,14 @@ type ResourceConfigFactory interface {
 		resourceType string,
 		source atc.Source,
 		resourceTypes creds.VersionedResourceTypes,
-	) (*UsedResourceConfig, bool, error)
+	) (ResourceConfig, bool, error)
+
+	FindOrCreateResourceConfig(
+		logger lager.Logger,
+		resourceType string,
+		source atc.Source,
+		resourceTypes creds.VersionedResourceTypes,
+	) (ResourceConfig, error)
 
 	CleanUnreferencedConfigs() error
 }
@@ -49,13 +56,13 @@ func (f *resourceConfigFactory) FindResourceConfig(
 	resourceType string,
 	source atc.Source,
 	resourceTypes creds.VersionedResourceTypes,
-) (*UsedResourceConfig, bool, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
+) (ResourceConfig, bool, error) {
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
 	if err != nil {
 		return nil, false, err
 	}
 
-	var usedResourceConfig *UsedResourceConfig
+	var resourceConfig ResourceConfig
 
 	tx, err := f.conn.Begin()
 	if err != nil {
@@ -63,7 +70,7 @@ func (f *resourceConfigFactory) FindResourceConfig(
 	}
 	defer Rollback(tx)
 
-	usedResourceConfig, found, err := resourceConfig.Find(tx)
+	resourceConfig, found, err := resourceConfigDescriptor.find(tx, f.lockFactory, f.conn)
 	if err != nil {
 		return nil, false, err
 	}
@@ -77,18 +84,48 @@ func (f *resourceConfigFactory) FindResourceConfig(
 		return nil, false, nil
 	}
 
-	return usedResourceConfig, true, nil
+	return resourceConfig, true, nil
+}
+
+func (f *resourceConfigFactory) FindOrCreateResourceConfig(
+	logger lager.Logger,
+	resourceType string,
+	source atc.Source,
+	resourceTypes creds.VersionedResourceTypes,
+) (ResourceConfig, error) {
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer Rollback(tx)
+
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, f.lockFactory, f.conn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceConfig, nil
 }
 
 // constructResourceConfig cannot be called for constructing a resource type's
 // resource config while also containing the same resource type in the list of
 // resource types, because that results in a circular dependency.
-func constructResourceConfig(
+func constructResourceConfigDescriptor(
 	resourceTypeName string,
 	source atc.Source,
 	resourceTypes creds.VersionedResourceTypes,
-) (ResourceConfig, error) {
-	resourceConfig := ResourceConfig{
+) (ResourceConfigDescriptor, error) {
+	resourceConfigDescriptor := ResourceConfigDescriptor{
 		Source: source,
 	}
 
@@ -96,29 +133,29 @@ func constructResourceConfig(
 	if found {
 		source, err := customType.Source.Evaluate()
 		if err != nil {
-			return ResourceConfig{}, err
+			return ResourceConfigDescriptor{}, err
 		}
 
-		customTypeResourceConfig, err := constructResourceConfig(
+		customTypeResourceConfig, err := constructResourceConfigDescriptor(
 			customType.Type,
 			source,
 			resourceTypes.Without(customType.Name),
 		)
 		if err != nil {
-			return ResourceConfig{}, err
+			return ResourceConfigDescriptor{}, err
 		}
 
-		resourceConfig.CreatedByResourceCache = &ResourceCache{
-			ResourceConfig: customTypeResourceConfig,
-			Version:        customType.Version,
+		resourceConfigDescriptor.CreatedByResourceCache = &ResourceCacheDescriptor{
+			ResourceConfigDescriptor: customTypeResourceConfig,
+			Version:                  customType.Version,
 		}
 	} else {
-		resourceConfig.CreatedByBaseResourceType = &BaseResourceType{
+		resourceConfigDescriptor.CreatedByBaseResourceType = &BaseResourceType{
 			Name: resourceTypeName,
 		}
 	}
 
-	return resourceConfig, nil
+	return resourceConfigDescriptor, nil
 }
 
 func (f *resourceConfigFactory) CleanUnreferencedConfigs() error {

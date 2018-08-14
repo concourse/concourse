@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/clock/fakeclock"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/event"
@@ -30,21 +29,20 @@ var _ = Describe("BuildStepDelegate", func() {
 	})
 
 	Describe("ImageVersionDetermined", func() {
-		var resourceCache *db.UsedResourceCache
+		var fakeResourceCache *dbfakes.FakeUsedResourceCache
 
 		BeforeEach(func() {
-			resourceCache = &db.UsedResourceCache{
-				ID: 42,
-			}
+			fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+			fakeResourceCache.IDReturns(42)
 		})
 
 		JustBeforeEach(func() {
-			Expect(delegate.ImageVersionDetermined(resourceCache)).To(Succeed())
+			Expect(delegate.ImageVersionDetermined(fakeResourceCache)).To(Succeed())
 		})
 
 		It("records the resource cache as an image resource for the build", func() {
 			Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
-			Expect(fakeBuild.SaveImageResourceVersionArgsForCall(0)).To(Equal(resourceCache))
+			Expect(fakeBuild.SaveImageResourceVersionArgsForCall(0)).To(Equal(fakeResourceCache))
 		})
 	})
 

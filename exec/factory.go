@@ -51,7 +51,7 @@ type StepMetadata interface {
 //go:generate counterfeiter . BuildStepDelegate
 
 type BuildStepDelegate interface {
-	ImageVersionDetermined(*db.UsedResourceCache) error
+	ImageVersionDetermined(db.UsedResourceCache) error
 
 	Stdout() io.Writer
 	Stderr() io.Writer

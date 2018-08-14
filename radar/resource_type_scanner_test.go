@@ -30,6 +30,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceConfigCheckSessionFactory *dbfakes.FakeResourceConfigCheckSessionFactory
 		fakeResourceConfigCheckSession        *dbfakes.FakeResourceConfigCheckSession
 		fakeDBPipeline                        *dbfakes.FakePipeline
+		fakeResourceConfig                    *dbfakes.FakeResourceConfig
 		fakeClock                             *fakeclock.FakeClock
 		interval                              time.Duration
 		variables                             creds.Variables
@@ -65,11 +66,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceConfigCheckSession = new(dbfakes.FakeResourceConfigCheckSession)
 		fakeResourceType = new(dbfakes.FakeResourceType)
 		fakeDBPipeline = new(dbfakes.FakePipeline)
+		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeClock = fakeclock.NewFakeClock(epoch)
 
 		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
 
-		fakeResourceConfigCheckSession.ResourceConfigReturns(&db.UsedResourceConfig{ID: 123})
+		fakeResourceConfig.IDReturns(123)
+		fakeResourceConfigCheckSession.ResourceConfigReturns(fakeResourceConfig)
 
 		fakeResourceType.IDReturns(39)
 		fakeResourceType.NameReturns("some-custom-resource")
@@ -619,7 +622,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					results <- true
 					close(results)
 
-					fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckStub = func(logger lager.Logger, resourceName string, resourceConfig *db.UsedResourceConfig, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+					fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckStub = func(logger lager.Logger, resourceName string, resourceConfig db.ResourceConfig, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {

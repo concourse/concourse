@@ -58,7 +58,7 @@ type Worker interface {
 	Ephemeral() bool
 	IsVersionCompatible(lager.Logger, *version.Version) bool
 
-	FindVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error)
+	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
 
 	CertsVolume(lager.Logger) (volume Volume, found bool, err error)
@@ -168,7 +168,7 @@ func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResou
 	return atc.WorkerResourceType{}, false
 }
 
-func (worker *gardenWorker) FindVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (Volume, bool, error) {
+func (worker *gardenWorker) FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error) {
 	return worker.volumeClient.FindVolumeForResourceCache(logger, resourceCache)
 }
 

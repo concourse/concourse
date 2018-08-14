@@ -130,7 +130,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		return 0, err
 	}
 
-	err = savedResourceType.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID)
+	err = savedResourceType.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID())
 	if err != nil {
 		logger.Error("failed-to-set-resource-config-id-on-resource-type", err)
 		return 0, err

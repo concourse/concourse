@@ -24,13 +24,13 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 	Describe("CleanUpInvalidCaches", func() {
 		Context("the resource cache is used by a build", func() {
-			resourceCacheForOneOffBuild := func() (*db.UsedResourceCache, db.Build) {
+			resourceCacheForOneOffBuild := func() (db.UsedResourceCache, db.Build) {
 				build, err := defaultTeam.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
 				return createResourceCacheWithUser(db.ForBuild(build.ID())), build
 			}
 
-			resourceCacheForJobBuild := func() (*db.UsedResourceCache, db.Build) {
+			resourceCacheForJobBuild := func() (db.UsedResourceCache, db.Build) {
 				build, err := defaultJob.CreateBuild()
 				Expect(err).ToNot(HaveOccurred())
 				return createResourceCacheWithUser(db.ForBuild(build.ID())), build
@@ -109,7 +109,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 			Context("when its a build of a job in a pipeline", func() {
 				Context("when the cache is for a saved image resource version for a finished build", func() {
-					setBuildStatus := func(a db.BuildStatus) (*db.UsedResourceCache, db.Build) {
+					setBuildStatus := func(a db.BuildStatus) (db.UsedResourceCache, db.Build) {
 						resourceCache, build := resourceCacheForJobBuild()
 						Expect(build.JobID()).ToNot(BeZero())
 
@@ -142,7 +142,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 						It("removes resource caches for previous finished builds", func() {
 							resourceCache1, _ := setBuildStatus(db.BuildStatusFailed)
 							resourceCache2, _ := setBuildStatus(db.BuildStatusSucceeded)
-							Expect(resourceCache1.ID).ToNot(Equal(resourceCache2.ID))
+							Expect(resourceCache1.ID()).ToNot(Equal(resourceCache2.ID()))
 
 							Expect(countResourceCaches()).To(Equal(2))
 
@@ -333,7 +333,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 				rc := createResourceCacheWithUser(db.ForContainer(container.ID()))
 
-				err = defaultResource.SetResourceConfig(rc.ResourceConfig.ID)
+				err = defaultResource.SetResourceConfig(rc.ResourceConfig().ID())
 				Expect(err).ToNot(HaveOccurred())
 
 				err = defaultPipeline.SaveResourceVersions(atc.ResourceConfig{
@@ -386,7 +386,7 @@ func countResourceCaches() int {
 
 }
 
-func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) *db.UsedResourceCache {
+func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.UsedResourceCache {
 	usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 		logger,
 		resourceCacheUser,

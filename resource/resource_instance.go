@@ -21,7 +21,7 @@ type ResourceInstance interface {
 	Version() atc.Version
 	ResourceType() ResourceType
 
-	ResourceCache() *db.UsedResourceCache
+	ResourceCache() db.UsedResourceCache
 	ContainerOwner() db.ContainerOwner
 
 	LockName(string) (string, error)
@@ -36,7 +36,7 @@ type resourceInstance struct {
 	params           atc.Params
 	resourceTypes    creds.VersionedResourceTypes
 
-	resourceCache  *db.UsedResourceCache
+	resourceCache  db.UsedResourceCache
 	containerOwner db.ContainerOwner
 }
 
@@ -47,7 +47,7 @@ func NewResourceInstance(
 	params atc.Params,
 	resourceTypes creds.VersionedResourceTypes,
 
-	resourceCache *db.UsedResourceCache,
+	resourceCache db.UsedResourceCache,
 	containerOwner db.ContainerOwner,
 ) ResourceInstance {
 	return &resourceInstance{
@@ -66,7 +66,7 @@ func (instance resourceInstance) ContainerOwner() db.ContainerOwner {
 	return instance.containerOwner
 }
 
-func (instance resourceInstance) ResourceCache() *db.UsedResourceCache {
+func (instance resourceInstance) ResourceCache() db.UsedResourceCache {
 	return instance.resourceCache
 }
 

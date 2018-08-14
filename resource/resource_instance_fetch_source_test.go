@@ -29,8 +29,8 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeVolume               *workerfakes.FakeVolume
 		fakeResourceInstance     *resourcefakes.FakeResourceInstance
 		fakeWorker               *workerfakes.FakeWorker
-		resourceCache            *db.UsedResourceCache
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+		fakeUsedResourceCache    *dbfakes.FakeUsedResourceCache
 		fakeDelegate             *workerfakes.FakeImageFetchingDelegate
 		resourceTypes            creds.VersionedResourceTypes
 
@@ -68,12 +68,13 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
-		resourceCache = &db.UsedResourceCache{
-			ID: 42,
-		}
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
+		fakeUsedResourceCache.IDReturns(42)
+		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
 
 		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
-		fakeResourceInstance.ResourceCacheReturns(resourceCache)
+		fakeResourceInstance.ResourceCacheReturns(fakeUsedResourceCache)
 		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id")))
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceMetadataField{
@@ -214,13 +215,13 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				Expect(initErr).NotTo(HaveOccurred())
 				Expect(fakeVolume.InitializeResourceCacheCallCount()).To(Equal(1))
 				rc := fakeVolume.InitializeResourceCacheArgsForCall(0)
-				Expect(rc).To(Equal(resourceCache))
+				Expect(rc).To(Equal(fakeUsedResourceCache))
 			})
 
 			It("updates resource cache metadata", func() {
 				Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(1))
 				passedResourceCache, _ := fakeResourceCacheFactory.UpdateResourceCacheMetadataArgsForCall(0)
-				Expect(passedResourceCache).To(Equal(resourceCache))
+				Expect(passedResourceCache).To(Equal(fakeUsedResourceCache))
 			})
 
 			Context("when getting resource fails with other error", func() {

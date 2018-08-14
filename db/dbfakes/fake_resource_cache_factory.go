@@ -11,7 +11,7 @@ import (
 )
 
 type FakeResourceCacheFactory struct {
-	FindOrCreateResourceCacheStub        func(logger lager.Logger, resourceCacheUser db.ResourceCacheUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceCache, error)
+	FindOrCreateResourceCacheStub        func(logger lager.Logger, resourceCacheUser db.ResourceCacheUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, resourceTypes creds.VersionedResourceTypes) (db.UsedResourceCache, error)
 	findOrCreateResourceCacheMutex       sync.RWMutex
 	findOrCreateResourceCacheArgsForCall []struct {
 		logger            lager.Logger
@@ -23,17 +23,17 @@ type FakeResourceCacheFactory struct {
 		resourceTypes     creds.VersionedResourceTypes
 	}
 	findOrCreateResourceCacheReturns struct {
-		result1 *db.UsedResourceCache
+		result1 db.UsedResourceCache
 		result2 error
 	}
 	findOrCreateResourceCacheReturnsOnCall map[int]struct {
-		result1 *db.UsedResourceCache
+		result1 db.UsedResourceCache
 		result2 error
 	}
-	UpdateResourceCacheMetadataStub        func(*db.UsedResourceCache, []atc.MetadataField) error
+	UpdateResourceCacheMetadataStub        func(db.UsedResourceCache, []atc.MetadataField) error
 	updateResourceCacheMetadataMutex       sync.RWMutex
 	updateResourceCacheMetadataArgsForCall []struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 		arg2 []atc.MetadataField
 	}
 	updateResourceCacheMetadataReturns struct {
@@ -42,10 +42,10 @@ type FakeResourceCacheFactory struct {
 	updateResourceCacheMetadataReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ResourceCacheMetadataStub        func(*db.UsedResourceCache) (db.ResourceMetadataFields, error)
+	ResourceCacheMetadataStub        func(db.UsedResourceCache) (db.ResourceMetadataFields, error)
 	resourceCacheMetadataMutex       sync.RWMutex
 	resourceCacheMetadataArgsForCall []struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 	}
 	resourceCacheMetadataReturns struct {
 		result1 db.ResourceMetadataFields
@@ -59,7 +59,7 @@ type FakeResourceCacheFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(logger lager.Logger, resourceCacheUser db.ResourceCacheUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceCache, error) {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(logger lager.Logger, resourceCacheUser db.ResourceCacheUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, resourceTypes creds.VersionedResourceTypes) (db.UsedResourceCache, error) {
 	fake.findOrCreateResourceCacheMutex.Lock()
 	ret, specificReturn := fake.findOrCreateResourceCacheReturnsOnCall[len(fake.findOrCreateResourceCacheArgsForCall)]
 	fake.findOrCreateResourceCacheArgsForCall = append(fake.findOrCreateResourceCacheArgsForCall, struct {
@@ -94,29 +94,29 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheArgsForCall(i int
 	return fake.findOrCreateResourceCacheArgsForCall[i].logger, fake.findOrCreateResourceCacheArgsForCall[i].resourceCacheUser, fake.findOrCreateResourceCacheArgsForCall[i].resourceTypeName, fake.findOrCreateResourceCacheArgsForCall[i].version, fake.findOrCreateResourceCacheArgsForCall[i].source, fake.findOrCreateResourceCacheArgsForCall[i].params, fake.findOrCreateResourceCacheArgsForCall[i].resourceTypes
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheReturns(result1 *db.UsedResourceCache, result2 error) {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheReturns(result1 db.UsedResourceCache, result2 error) {
 	fake.FindOrCreateResourceCacheStub = nil
 	fake.findOrCreateResourceCacheReturns = struct {
-		result1 *db.UsedResourceCache
+		result1 db.UsedResourceCache
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheReturnsOnCall(i int, result1 *db.UsedResourceCache, result2 error) {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheReturnsOnCall(i int, result1 db.UsedResourceCache, result2 error) {
 	fake.FindOrCreateResourceCacheStub = nil
 	if fake.findOrCreateResourceCacheReturnsOnCall == nil {
 		fake.findOrCreateResourceCacheReturnsOnCall = make(map[int]struct {
-			result1 *db.UsedResourceCache
+			result1 db.UsedResourceCache
 			result2 error
 		})
 	}
 	fake.findOrCreateResourceCacheReturnsOnCall[i] = struct {
-		result1 *db.UsedResourceCache
+		result1 db.UsedResourceCache
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadata(arg1 *db.UsedResourceCache, arg2 []atc.MetadataField) error {
+func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadata(arg1 db.UsedResourceCache, arg2 []atc.MetadataField) error {
 	var arg2Copy []atc.MetadataField
 	if arg2 != nil {
 		arg2Copy = make([]atc.MetadataField, len(arg2))
@@ -125,7 +125,7 @@ func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadata(arg1 *db.UsedR
 	fake.updateResourceCacheMetadataMutex.Lock()
 	ret, specificReturn := fake.updateResourceCacheMetadataReturnsOnCall[len(fake.updateResourceCacheMetadataArgsForCall)]
 	fake.updateResourceCacheMetadataArgsForCall = append(fake.updateResourceCacheMetadataArgsForCall, struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 		arg2 []atc.MetadataField
 	}{arg1, arg2Copy})
 	fake.recordInvocation("UpdateResourceCacheMetadata", []interface{}{arg1, arg2Copy})
@@ -145,7 +145,7 @@ func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataCallCount() int
 	return len(fake.updateResourceCacheMetadataArgsForCall)
 }
 
-func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataArgsForCall(i int) (*db.UsedResourceCache, []atc.MetadataField) {
+func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataArgsForCall(i int) (db.UsedResourceCache, []atc.MetadataField) {
 	fake.updateResourceCacheMetadataMutex.RLock()
 	defer fake.updateResourceCacheMetadataMutex.RUnlock()
 	return fake.updateResourceCacheMetadataArgsForCall[i].arg1, fake.updateResourceCacheMetadataArgsForCall[i].arg2
@@ -170,11 +170,11 @@ func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataReturnsOnCall(i
 	}{result1}
 }
 
-func (fake *FakeResourceCacheFactory) ResourceCacheMetadata(arg1 *db.UsedResourceCache) (db.ResourceMetadataFields, error) {
+func (fake *FakeResourceCacheFactory) ResourceCacheMetadata(arg1 db.UsedResourceCache) (db.ResourceMetadataFields, error) {
 	fake.resourceCacheMetadataMutex.Lock()
 	ret, specificReturn := fake.resourceCacheMetadataReturnsOnCall[len(fake.resourceCacheMetadataArgsForCall)]
 	fake.resourceCacheMetadataArgsForCall = append(fake.resourceCacheMetadataArgsForCall, struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 	}{arg1})
 	fake.recordInvocation("ResourceCacheMetadata", []interface{}{arg1})
 	fake.resourceCacheMetadataMutex.Unlock()
@@ -193,7 +193,7 @@ func (fake *FakeResourceCacheFactory) ResourceCacheMetadataCallCount() int {
 	return len(fake.resourceCacheMetadataArgsForCall)
 }
 
-func (fake *FakeResourceCacheFactory) ResourceCacheMetadataArgsForCall(i int) *db.UsedResourceCache {
+func (fake *FakeResourceCacheFactory) ResourceCacheMetadataArgsForCall(i int) db.UsedResourceCache {
 	fake.resourceCacheMetadataMutex.RLock()
 	defer fake.resourceCacheMetadataMutex.RUnlock()
 	return fake.resourceCacheMetadataArgsForCall[i].arg1

@@ -56,7 +56,7 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resource.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID)
+			err = resource.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID())
 			Expect(err).ToNot(HaveOccurred())
 		})
 

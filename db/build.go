@@ -80,7 +80,7 @@ type Build interface {
 
 	Resources() ([]BuildInput, []BuildOutput, error)
 	GetVersionedResources() (SavedVersionedResources, error)
-	SaveImageResourceVersion(*UsedResourceCache) error
+	SaveImageResourceVersion(UsedResourceCache) error
 
 	Pipeline() (Pipeline, bool, error)
 
@@ -470,10 +470,10 @@ func (b *build) Pipeline() (Pipeline, bool, error) {
 	return pipeline, true, nil
 }
 
-func (b *build) SaveImageResourceVersion(rc *UsedResourceCache) error {
+func (b *build) SaveImageResourceVersion(rc UsedResourceCache) error {
 	_, err := psql.Insert("build_image_resource_caches").
 		Columns("resource_cache_id", "build_id").
-		Values(rc.ID, b.id).
+		Values(rc.ID(), b.id).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {

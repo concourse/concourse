@@ -42,8 +42,9 @@ var _ = Describe("ResourceScanner", func() {
 		scanner                 Scanner
 		fakeResourceTypeScanner *radarfakes.FakeScanner
 
-		resourceConfig atc.ResourceConfig
-		fakeDBResource *dbfakes.FakeResource
+		resourceConfig     atc.ResourceConfig
+		fakeDBResource     *dbfakes.FakeResource
+		fakeResourceConfig *dbfakes.FakeResourceConfig
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
@@ -79,10 +80,12 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceType = new(dbfakes.FakeResourceType)
 		fakeDBResource = new(dbfakes.FakeResource)
 		fakeDBPipeline = new(dbfakes.FakePipeline)
+		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 
 		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
 
-		fakeResourceConfigCheckSession.ResourceConfigReturns(&db.UsedResourceConfig{ID: 123})
+		fakeResourceConfig.IDReturns(123)
+		fakeResourceConfigCheckSession.ResourceConfigReturns(fakeResourceConfig)
 
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.NameReturns("some-pipeline")
@@ -679,7 +682,7 @@ var _ = Describe("ResourceScanner", func() {
 					results <- true
 					close(results)
 
-					fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckStub = func(logger lager.Logger, resourceName string, resourceConfig *db.UsedResourceConfig, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+					fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckStub = func(logger lager.Logger, resourceName string, resourceConfig db.ResourceConfig, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {

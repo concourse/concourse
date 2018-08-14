@@ -17,14 +17,14 @@ type FakeResourceConfigCheckSession struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	ResourceConfigStub        func() *db.UsedResourceConfig
+	ResourceConfigStub        func() db.ResourceConfig
 	resourceConfigMutex       sync.RWMutex
 	resourceConfigArgsForCall []struct{}
 	resourceConfigReturns     struct {
-		result1 *db.UsedResourceConfig
+		result1 db.ResourceConfig
 	}
 	resourceConfigReturnsOnCall map[int]struct {
-		result1 *db.UsedResourceConfig
+		result1 db.ResourceConfig
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -70,7 +70,7 @@ func (fake *FakeResourceConfigCheckSession) IDReturnsOnCall(i int, result1 int) 
 	}{result1}
 }
 
-func (fake *FakeResourceConfigCheckSession) ResourceConfig() *db.UsedResourceConfig {
+func (fake *FakeResourceConfigCheckSession) ResourceConfig() db.ResourceConfig {
 	fake.resourceConfigMutex.Lock()
 	ret, specificReturn := fake.resourceConfigReturnsOnCall[len(fake.resourceConfigArgsForCall)]
 	fake.resourceConfigArgsForCall = append(fake.resourceConfigArgsForCall, struct{}{})
@@ -91,22 +91,22 @@ func (fake *FakeResourceConfigCheckSession) ResourceConfigCallCount() int {
 	return len(fake.resourceConfigArgsForCall)
 }
 
-func (fake *FakeResourceConfigCheckSession) ResourceConfigReturns(result1 *db.UsedResourceConfig) {
+func (fake *FakeResourceConfigCheckSession) ResourceConfigReturns(result1 db.ResourceConfig) {
 	fake.ResourceConfigStub = nil
 	fake.resourceConfigReturns = struct {
-		result1 *db.UsedResourceConfig
+		result1 db.ResourceConfig
 	}{result1}
 }
 
-func (fake *FakeResourceConfigCheckSession) ResourceConfigReturnsOnCall(i int, result1 *db.UsedResourceConfig) {
+func (fake *FakeResourceConfigCheckSession) ResourceConfigReturnsOnCall(i int, result1 db.ResourceConfig) {
 	fake.ResourceConfigStub = nil
 	if fake.resourceConfigReturnsOnCall == nil {
 		fake.resourceConfigReturnsOnCall = make(map[int]struct {
-			result1 *db.UsedResourceConfig
+			result1 db.ResourceConfig
 		})
 	}
 	fake.resourceConfigReturnsOnCall[i] = struct {
-		result1 *db.UsedResourceConfig
+		result1 db.ResourceConfig
 	}{result1}
 }
 

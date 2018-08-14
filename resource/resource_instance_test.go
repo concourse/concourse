@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -28,6 +29,7 @@ var _ = Describe("ResourceInstance", func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeWorker = new(workerfakes.FakeWorker)
 		disaster = errors.New("disaster")
+		fakeResourceCache := new(dbfakes.FakeUsedResourceCache)
 
 		resourceInstance = NewResourceInstance(
 			"some-resource-type",
@@ -35,7 +37,7 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
 			creds.VersionedResourceTypes{},
-			&db.UsedResourceCache{},
+			fakeResourceCache,
 			db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")),
 		)
 	})

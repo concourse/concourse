@@ -382,7 +382,7 @@ func (cmd *RunCommand) constructMembers(
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
-	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn)
+	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)

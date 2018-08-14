@@ -101,7 +101,7 @@ var _ = BeforeEach(func() {
 	resourceConfigCheckSessionLifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	resourceConfigCheckSessionFactory = db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
-	resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
+	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 

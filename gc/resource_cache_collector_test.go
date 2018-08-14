@@ -30,8 +30,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 			var oneOffBuild db.Build
 			var jobBuild db.Build
 
-			var oneOffCache *db.UsedResourceCache
-			var jobCache *db.UsedResourceCache
+			var oneOffCache db.UsedResourceCache
+			var jobCache db.UsedResourceCache
 
 			BeforeEach(func() {
 				resourceCacheUseCollector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
@@ -72,15 +72,15 @@ var _ = Describe("ResourceCacheCollector", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				err = resource.SetResourceConfig(jobCache.ResourceConfig.ID)
+				err = resource.SetResourceConfig(jobCache.ResourceConfig().ID())
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			resourceCacheExists := func(resourceCache *db.UsedResourceCache) bool {
+			resourceCacheExists := func(resourceCache db.UsedResourceCache) bool {
 				var count int
 				err = psql.Select("COUNT(*)").
 					From("resource_caches").
-					Where(sq.Eq{"id": resourceCache.ID}).
+					Where(sq.Eq{"id": resourceCache.ID()}).
 					RunWith(dbConn).
 					QueryRow().
 					Scan(&count)
@@ -155,7 +155,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 					Context("when another build of the same job exists with a different image cache", func() {
 						var secondJobBuild db.Build
-						var secondJobCache *db.UsedResourceCache
+						var secondJobCache db.UsedResourceCache
 
 						BeforeEach(func() {
 							secondJobBuild, err = defaultJob.CreateBuild()
@@ -202,7 +202,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 					Context("when another build of a different job exists with a different image cache", func() {
 						var secondJobBuild db.Build
-						var secondJobCache *db.UsedResourceCache
+						var secondJobCache db.UsedResourceCache
 
 						BeforeEach(func() {
 							secondJob, found, err := defaultPipeline.Job("some-other-job")

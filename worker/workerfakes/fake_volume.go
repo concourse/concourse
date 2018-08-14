@@ -98,10 +98,10 @@ type FakeVolume struct {
 	cOWStrategyReturnsOnCall map[int]struct {
 		result1 baggageclaim.COWStrategy
 	}
-	InitializeResourceCacheStub        func(*db.UsedResourceCache) error
+	InitializeResourceCacheStub        func(db.UsedResourceCache) error
 	initializeResourceCacheMutex       sync.RWMutex
 	initializeResourceCacheArgsForCall []struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 	}
 	initializeResourceCacheReturns struct {
 		result1 error
@@ -511,11 +511,11 @@ func (fake *FakeVolume) COWStrategyReturnsOnCall(i int, result1 baggageclaim.COW
 	}{result1}
 }
 
-func (fake *FakeVolume) InitializeResourceCache(arg1 *db.UsedResourceCache) error {
+func (fake *FakeVolume) InitializeResourceCache(arg1 db.UsedResourceCache) error {
 	fake.initializeResourceCacheMutex.Lock()
 	ret, specificReturn := fake.initializeResourceCacheReturnsOnCall[len(fake.initializeResourceCacheArgsForCall)]
 	fake.initializeResourceCacheArgsForCall = append(fake.initializeResourceCacheArgsForCall, struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 	}{arg1})
 	fake.recordInvocation("InitializeResourceCache", []interface{}{arg1})
 	fake.initializeResourceCacheMutex.Unlock()
@@ -534,7 +534,7 @@ func (fake *FakeVolume) InitializeResourceCacheCallCount() int {
 	return len(fake.initializeResourceCacheArgsForCall)
 }
 
-func (fake *FakeVolume) InitializeResourceCacheArgsForCall(i int) *db.UsedResourceCache {
+func (fake *FakeVolume) InitializeResourceCacheArgsForCall(i int) db.UsedResourceCache {
 	fake.initializeResourceCacheMutex.RLock()
 	defer fake.initializeResourceCacheMutex.RUnlock()
 	return fake.initializeResourceCacheArgsForCall[i].arg1

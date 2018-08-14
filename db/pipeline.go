@@ -70,7 +70,7 @@ type Pipeline interface {
 	AcquireResourceCheckingLockWithIntervalCheck(
 		logger lager.Logger,
 		resourceName string,
-		usedResourceConfig *UsedResourceConfig,
+		resourceConfig ResourceConfig,
 		interval time.Duration,
 		immediate bool,
 	) (lock.Lock, bool, error)
@@ -78,7 +78,7 @@ type Pipeline interface {
 	AcquireResourceTypeCheckingLockWithIntervalCheck(
 		logger lager.Logger,
 		resourceTypeName string,
-		usedResourceConfig *UsedResourceConfig,
+		resourceConfig ResourceConfig,
 		interval time.Duration,
 		immediate bool,
 	) (lock.Lock, bool, error)

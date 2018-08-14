@@ -148,7 +148,7 @@ type CreatedVolume interface {
 	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
-	InitializeResourceCache(*UsedResourceCache) error
+	InitializeResourceCache(UsedResourceCache) error
 	InitializeTaskCache(int, string, string) error
 	ContainerHandle() string
 	ParentHandle() string
@@ -333,7 +333,7 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(base
 	}, nil
 }
 
-func (volume *createdVolume) InitializeResourceCache(resourceCache *UsedResourceCache) error {
+func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceCache) error {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return err
@@ -379,7 +379,7 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache *UsedResource
 		return err
 	}
 
-	volume.resourceCacheID = resourceCache.ID
+	volume.resourceCacheID = resourceCache.ID()
 	volume.typ = VolumeTypeResource
 
 	return nil

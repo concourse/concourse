@@ -27,7 +27,7 @@ var _ = Describe("ResourceCache", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(setupTx.Commit()).To(Succeed())
 
-		resourceCacheFactory = db.NewResourceCacheFactory(dbConn)
+		resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	})
 
 	Describe("creating for a build", func() {
@@ -55,16 +55,16 @@ var _ = Describe("ResourceCache", func() {
 				),
 			)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(urc.ID).ToNot(BeZero())
+			Expect(urc.ID()).ToNot(BeZero())
 
 			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
-			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(dbConn).Exec()
+			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID()}).RunWith(dbConn).Exec()
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
 		})
 
 		Context("when it already exists", func() {
-			var existingResourceCache *db.UsedResourceCache
+			var existingResourceCache db.UsedResourceCache
 
 			BeforeEach(func() {
 				var err error
@@ -101,14 +101,14 @@ var _ = Describe("ResourceCache", func() {
 					),
 				)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(urc.ID).To(Equal(existingResourceCache.ID))
+				Expect(urc.ID()).To(Equal(existingResourceCache.ID()))
 			})
 		})
 	})
 
 	Describe("creating for a container", func() {
 		var container db.CreatingContainer
-		var urc *db.UsedResourceCache
+		var urc db.UsedResourceCache
 
 		BeforeEach(func() {
 			worker, err := defaultTeam.SaveWorker(atc.Worker{
@@ -145,13 +145,13 @@ var _ = Describe("ResourceCache", func() {
 		It("resource cache cannot be deleted through use", func() {
 			var err error
 			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
-			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(dbConn).Exec()
+			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID()}).RunWith(dbConn).Exec()
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
 		})
 
 		Context("when it already exists", func() {
-			var existingResourceCache *db.UsedResourceCache
+			var existingResourceCache db.UsedResourceCache
 
 			BeforeEach(func() {
 				var err error
@@ -172,7 +172,7 @@ var _ = Describe("ResourceCache", func() {
 			})
 
 			It("returns the same used resource cache", func() {
-				Expect(urc.ID).To(Equal(existingResourceCache.ID))
+				Expect(urc.ID()).To(Equal(existingResourceCache.ID()))
 			})
 		})
 	})

@@ -48,14 +48,14 @@ type FakeResourceInstance struct {
 	resourceTypeReturnsOnCall map[int]struct {
 		result1 resource.ResourceType
 	}
-	ResourceCacheStub        func() *db.UsedResourceCache
+	ResourceCacheStub        func() db.UsedResourceCache
 	resourceCacheMutex       sync.RWMutex
 	resourceCacheArgsForCall []struct{}
 	resourceCacheReturns     struct {
-		result1 *db.UsedResourceCache
+		result1 db.UsedResourceCache
 	}
 	resourceCacheReturnsOnCall map[int]struct {
-		result1 *db.UsedResourceCache
+		result1 db.UsedResourceCache
 	}
 	ContainerOwnerStub        func() db.ContainerOwner
 	containerOwnerMutex       sync.RWMutex
@@ -259,7 +259,7 @@ func (fake *FakeResourceInstance) ResourceTypeReturnsOnCall(i int, result1 resou
 	}{result1}
 }
 
-func (fake *FakeResourceInstance) ResourceCache() *db.UsedResourceCache {
+func (fake *FakeResourceInstance) ResourceCache() db.UsedResourceCache {
 	fake.resourceCacheMutex.Lock()
 	ret, specificReturn := fake.resourceCacheReturnsOnCall[len(fake.resourceCacheArgsForCall)]
 	fake.resourceCacheArgsForCall = append(fake.resourceCacheArgsForCall, struct{}{})
@@ -280,22 +280,22 @@ func (fake *FakeResourceInstance) ResourceCacheCallCount() int {
 	return len(fake.resourceCacheArgsForCall)
 }
 
-func (fake *FakeResourceInstance) ResourceCacheReturns(result1 *db.UsedResourceCache) {
+func (fake *FakeResourceInstance) ResourceCacheReturns(result1 db.UsedResourceCache) {
 	fake.ResourceCacheStub = nil
 	fake.resourceCacheReturns = struct {
-		result1 *db.UsedResourceCache
+		result1 db.UsedResourceCache
 	}{result1}
 }
 
-func (fake *FakeResourceInstance) ResourceCacheReturnsOnCall(i int, result1 *db.UsedResourceCache) {
+func (fake *FakeResourceInstance) ResourceCacheReturnsOnCall(i int, result1 db.UsedResourceCache) {
 	fake.ResourceCacheStub = nil
 	if fake.resourceCacheReturnsOnCall == nil {
 		fake.resourceCacheReturnsOnCall = make(map[int]struct {
-			result1 *db.UsedResourceCache
+			result1 db.UsedResourceCache
 		})
 	}
 	fake.resourceCacheReturnsOnCall[i] = struct {
-		result1 *db.UsedResourceCache
+		result1 db.UsedResourceCache
 	}{result1}
 }
 

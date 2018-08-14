@@ -11,7 +11,7 @@ import (
 )
 
 type FakeResourceConfigFactory struct {
-	FindResourceConfigStub        func(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceConfig, bool, error)
+	FindResourceConfigStub        func(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (db.ResourceConfig, bool, error)
 	findResourceConfigMutex       sync.RWMutex
 	findResourceConfigArgsForCall []struct {
 		logger        lager.Logger
@@ -20,14 +20,30 @@ type FakeResourceConfigFactory struct {
 		resourceTypes creds.VersionedResourceTypes
 	}
 	findResourceConfigReturns struct {
-		result1 *db.UsedResourceConfig
+		result1 db.ResourceConfig
 		result2 bool
 		result3 error
 	}
 	findResourceConfigReturnsOnCall map[int]struct {
-		result1 *db.UsedResourceConfig
+		result1 db.ResourceConfig
 		result2 bool
 		result3 error
+	}
+	FindOrCreateResourceConfigStub        func(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (db.ResourceConfig, error)
+	findOrCreateResourceConfigMutex       sync.RWMutex
+	findOrCreateResourceConfigArgsForCall []struct {
+		logger        lager.Logger
+		resourceType  string
+		source        atc.Source
+		resourceTypes creds.VersionedResourceTypes
+	}
+	findOrCreateResourceConfigReturns struct {
+		result1 db.ResourceConfig
+		result2 error
+	}
+	findOrCreateResourceConfigReturnsOnCall map[int]struct {
+		result1 db.ResourceConfig
+		result2 error
 	}
 	CleanUnreferencedConfigsStub        func() error
 	cleanUnreferencedConfigsMutex       sync.RWMutex
@@ -42,7 +58,7 @@ type FakeResourceConfigFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceConfigFactory) FindResourceConfig(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (*db.UsedResourceConfig, bool, error) {
+func (fake *FakeResourceConfigFactory) FindResourceConfig(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (db.ResourceConfig, bool, error) {
 	fake.findResourceConfigMutex.Lock()
 	ret, specificReturn := fake.findResourceConfigReturnsOnCall[len(fake.findResourceConfigArgsForCall)]
 	fake.findResourceConfigArgsForCall = append(fake.findResourceConfigArgsForCall, struct {
@@ -74,29 +90,83 @@ func (fake *FakeResourceConfigFactory) FindResourceConfigArgsForCall(i int) (lag
 	return fake.findResourceConfigArgsForCall[i].logger, fake.findResourceConfigArgsForCall[i].resourceType, fake.findResourceConfigArgsForCall[i].source, fake.findResourceConfigArgsForCall[i].resourceTypes
 }
 
-func (fake *FakeResourceConfigFactory) FindResourceConfigReturns(result1 *db.UsedResourceConfig, result2 bool, result3 error) {
+func (fake *FakeResourceConfigFactory) FindResourceConfigReturns(result1 db.ResourceConfig, result2 bool, result3 error) {
 	fake.FindResourceConfigStub = nil
 	fake.findResourceConfigReturns = struct {
-		result1 *db.UsedResourceConfig
+		result1 db.ResourceConfig
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceConfigFactory) FindResourceConfigReturnsOnCall(i int, result1 *db.UsedResourceConfig, result2 bool, result3 error) {
+func (fake *FakeResourceConfigFactory) FindResourceConfigReturnsOnCall(i int, result1 db.ResourceConfig, result2 bool, result3 error) {
 	fake.FindResourceConfigStub = nil
 	if fake.findResourceConfigReturnsOnCall == nil {
 		fake.findResourceConfigReturnsOnCall = make(map[int]struct {
-			result1 *db.UsedResourceConfig
+			result1 db.ResourceConfig
 			result2 bool
 			result3 error
 		})
 	}
 	fake.findResourceConfigReturnsOnCall[i] = struct {
-		result1 *db.UsedResourceConfig
+		result1 db.ResourceConfig
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfig(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes) (db.ResourceConfig, error) {
+	fake.findOrCreateResourceConfigMutex.Lock()
+	ret, specificReturn := fake.findOrCreateResourceConfigReturnsOnCall[len(fake.findOrCreateResourceConfigArgsForCall)]
+	fake.findOrCreateResourceConfigArgsForCall = append(fake.findOrCreateResourceConfigArgsForCall, struct {
+		logger        lager.Logger
+		resourceType  string
+		source        atc.Source
+		resourceTypes creds.VersionedResourceTypes
+	}{logger, resourceType, source, resourceTypes})
+	fake.recordInvocation("FindOrCreateResourceConfig", []interface{}{logger, resourceType, source, resourceTypes})
+	fake.findOrCreateResourceConfigMutex.Unlock()
+	if fake.FindOrCreateResourceConfigStub != nil {
+		return fake.FindOrCreateResourceConfigStub(logger, resourceType, source, resourceTypes)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.findOrCreateResourceConfigReturns.result1, fake.findOrCreateResourceConfigReturns.result2
+}
+
+func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigCallCount() int {
+	fake.findOrCreateResourceConfigMutex.RLock()
+	defer fake.findOrCreateResourceConfigMutex.RUnlock()
+	return len(fake.findOrCreateResourceConfigArgsForCall)
+}
+
+func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigArgsForCall(i int) (lager.Logger, string, atc.Source, creds.VersionedResourceTypes) {
+	fake.findOrCreateResourceConfigMutex.RLock()
+	defer fake.findOrCreateResourceConfigMutex.RUnlock()
+	return fake.findOrCreateResourceConfigArgsForCall[i].logger, fake.findOrCreateResourceConfigArgsForCall[i].resourceType, fake.findOrCreateResourceConfigArgsForCall[i].source, fake.findOrCreateResourceConfigArgsForCall[i].resourceTypes
+}
+
+func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigReturns(result1 db.ResourceConfig, result2 error) {
+	fake.FindOrCreateResourceConfigStub = nil
+	fake.findOrCreateResourceConfigReturns = struct {
+		result1 db.ResourceConfig
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigReturnsOnCall(i int, result1 db.ResourceConfig, result2 error) {
+	fake.FindOrCreateResourceConfigStub = nil
+	if fake.findOrCreateResourceConfigReturnsOnCall == nil {
+		fake.findOrCreateResourceConfigReturnsOnCall = make(map[int]struct {
+			result1 db.ResourceConfig
+			result2 error
+		})
+	}
+	fake.findOrCreateResourceConfigReturnsOnCall[i] = struct {
+		result1 db.ResourceConfig
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigs() error {
@@ -144,6 +214,8 @@ func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} 
 	defer fake.invocationsMutex.RUnlock()
 	fake.findResourceConfigMutex.RLock()
 	defer fake.findResourceConfigMutex.RUnlock()
+	fake.findOrCreateResourceConfigMutex.RLock()
+	defer fake.findOrCreateResourceConfigMutex.RUnlock()
 	fake.cleanUnreferencedConfigsMutex.RLock()
 	defer fake.cleanUnreferencedConfigsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -9,7 +9,7 @@ import (
 
 type WorkerResourceCache struct {
 	WorkerName    string
-	ResourceCache *UsedResourceCache
+	ResourceCache UsedResourceCache
 }
 
 type UsedWorkerResourceCache struct {
@@ -49,7 +49,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 			"worker_base_resource_type_id",
 		).
 		Values(
-			workerResourceCache.ResourceCache.ID,
+			workerResourceCache.ResourceCache.ID(),
 			usedWorkerBaseResourceType.ID,
 		).
 		Suffix(`
@@ -57,7 +57,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 				resource_cache_id = ?,
 				worker_base_resource_type_id = ?
 			RETURNING id
-		`, workerResourceCache.ResourceCache.ID, usedWorkerBaseResourceType.ID).
+		`, workerResourceCache.ResourceCache.ID(), usedWorkerBaseResourceType.ID).
 		RunWith(tx).
 		QueryRow().
 		Scan(&id)
@@ -104,7 +104,7 @@ func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, usedWorker
 	err := psql.Select("id").
 		From("worker_resource_caches").
 		Where(sq.Eq{
-			"resource_cache_id":            workerResourceCache.ResourceCache.ID,
+			"resource_cache_id":            workerResourceCache.ResourceCache.ID(),
 			"worker_base_resource_type_id": usedWorkerBaseResourceType.ID,
 		}).
 		Suffix("FOR SHARE").

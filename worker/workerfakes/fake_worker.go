@@ -209,11 +209,11 @@ type FakeWorker struct {
 	isVersionCompatibleReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	FindVolumeForResourceCacheStub        func(logger lager.Logger, resourceCache *db.UsedResourceCache) (worker.Volume, bool, error)
+	FindVolumeForResourceCacheStub        func(logger lager.Logger, resourceCache db.UsedResourceCache) (worker.Volume, bool, error)
 	findVolumeForResourceCacheMutex       sync.RWMutex
 	findVolumeForResourceCacheArgsForCall []struct {
 		logger        lager.Logger
-		resourceCache *db.UsedResourceCache
+		resourceCache db.UsedResourceCache
 	}
 	findVolumeForResourceCacheReturns struct {
 		result1 worker.Volume
@@ -1026,12 +1026,12 @@ func (fake *FakeWorker) IsVersionCompatibleReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeWorker) FindVolumeForResourceCache(logger lager.Logger, resourceCache *db.UsedResourceCache) (worker.Volume, bool, error) {
+func (fake *FakeWorker) FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (worker.Volume, bool, error) {
 	fake.findVolumeForResourceCacheMutex.Lock()
 	ret, specificReturn := fake.findVolumeForResourceCacheReturnsOnCall[len(fake.findVolumeForResourceCacheArgsForCall)]
 	fake.findVolumeForResourceCacheArgsForCall = append(fake.findVolumeForResourceCacheArgsForCall, struct {
 		logger        lager.Logger
-		resourceCache *db.UsedResourceCache
+		resourceCache db.UsedResourceCache
 	}{logger, resourceCache})
 	fake.recordInvocation("FindVolumeForResourceCache", []interface{}{logger, resourceCache})
 	fake.findVolumeForResourceCacheMutex.Unlock()
@@ -1050,7 +1050,7 @@ func (fake *FakeWorker) FindVolumeForResourceCacheCallCount() int {
 	return len(fake.findVolumeForResourceCacheArgsForCall)
 }
 
-func (fake *FakeWorker) FindVolumeForResourceCacheArgsForCall(i int) (lager.Logger, *db.UsedResourceCache) {
+func (fake *FakeWorker) FindVolumeForResourceCacheArgsForCall(i int) (lager.Logger, db.UsedResourceCache) {
 	fake.findVolumeForResourceCacheMutex.RLock()
 	defer fake.findVolumeForResourceCacheMutex.RUnlock()
 	return fake.findVolumeForResourceCacheArgsForCall[i].logger, fake.findVolumeForResourceCacheArgsForCall[i].resourceCache

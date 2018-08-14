@@ -41,7 +41,7 @@ type VolumeClient interface {
 	) (Volume, error)
 	FindVolumeForResourceCache(
 		lager.Logger,
-		*db.UsedResourceCache,
+		db.UsedResourceCache,
 	) (Volume, bool, error)
 	FindVolumeForTaskCache(
 		logger lager.Logger,
@@ -178,7 +178,7 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 
 func (c *volumeClient) FindVolumeForResourceCache(
 	logger lager.Logger,
-	usedResourceCache *db.UsedResourceCache,
+	usedResourceCache db.UsedResourceCache,
 ) (Volume, bool, error) {
 	dbVolume, found, err := c.dbVolumeRepository.FindResourceCacheVolume(c.dbWorker.Name(), usedResourceCache)
 	if err != nil {

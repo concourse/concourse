@@ -16,19 +16,19 @@ import (
 
 type ResourceConfigCheckSession interface {
 	ID() int
-	ResourceConfig() *UsedResourceConfig
+	ResourceConfig() ResourceConfig
 }
 
 type resourceConfigCheckSession struct {
 	id             int
-	resourceConfig *UsedResourceConfig
+	resourceConfig ResourceConfig
 }
 
 func (session resourceConfigCheckSession) ID() int {
 	return session.id
 }
 
-func (session resourceConfigCheckSession) ResourceConfig() *UsedResourceConfig {
+func (session resourceConfigCheckSession) ResourceConfig() ResourceConfig {
 	return session.resourceConfig
 }
 
@@ -69,7 +69,7 @@ func (factory resourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheck
 	resourceTypes creds.VersionedResourceTypes,
 	expiries ContainerOwnerExpiries,
 ) (ResourceConfigCheckSession, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (factory resourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheck
 
 	defer tx.Rollback()
 
-	usedResourceConfig, err := resourceConfig.findOrCreate(logger, tx)
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, factory.lockFactory, factory.conn)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (factory resourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheck
 		From("resource_config_check_sessions").
 		Where(sq.And{
 			sq.Eq{
-				"resource_config_id": usedResourceConfig.ID,
+				"resource_config_id": resourceConfig.ID(),
 			},
 			sq.Expr(fmt.Sprintf("expires_at > NOW() + interval '%d seconds'", int(expiries.GraceTime.Seconds()))),
 		}).
@@ -107,7 +107,7 @@ func (factory resourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheck
 
 		err = psql.Insert("resource_config_check_sessions").
 			SetMap(map[string]interface{}{
-				"resource_config_id": usedResourceConfig.ID,
+				"resource_config_id": resourceConfig.ID(),
 				"expires_at":         sq.Expr("(SELECT " + expiryStmt + " FROM workers)"),
 			}).
 			Suffix("RETURNING id").
@@ -128,6 +128,6 @@ func (factory resourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheck
 
 	return resourceConfigCheckSession{
 		id:             rccsID,
-		resourceConfig: usedResourceConfig,
+		resourceConfig: resourceConfig,
 	}, nil
 }

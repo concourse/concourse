@@ -12,10 +12,10 @@ import (
 )
 
 type FakeTaskDelegate struct {
-	ImageVersionDeterminedStub        func(*db.UsedResourceCache) error
+	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 	}
 	imageVersionDeterminedReturns struct {
 		result1 error
@@ -69,11 +69,11 @@ type FakeTaskDelegate struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 *db.UsedResourceCache) error {
+func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	ret, specificReturn := fake.imageVersionDeterminedReturnsOnCall[len(fake.imageVersionDeterminedArgsForCall)]
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
-		arg1 *db.UsedResourceCache
+		arg1 db.UsedResourceCache
 	}{arg1})
 	fake.recordInvocation("ImageVersionDetermined", []interface{}{arg1})
 	fake.imageVersionDeterminedMutex.Unlock()
@@ -92,7 +92,7 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedCallCount() int {
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) *db.UsedResourceCache {
+func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) db.UsedResourceCache {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return fake.imageVersionDeterminedArgsForCall[i].arg1

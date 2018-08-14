@@ -167,7 +167,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				),
 			)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(usedResourceCache.Version).To(Equal(atc.Version{"some": "version"}))
+			Expect(usedResourceCache.Version()).To(Equal(atc.Version{"some": "version"}))
 
 			rows, err := psql.Select("a.version, a.params_hash, o.source_hash, b.name").
 				From("resource_caches a").
@@ -269,9 +269,9 @@ var _ = Describe("ResourceCacheFactory", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(usedResourceCache.Version).To(Equal(atc.Version{"some": "version"}))
-			Expect(usedResourceCache.ResourceConfig.CreatedByResourceCache.Version).To(Equal(atc.Version{"some-image-type": "version"}))
-			Expect(usedResourceCache.ResourceConfig.CreatedByResourceCache.ResourceConfig.CreatedByBaseResourceType.ID).To(Equal(usedImageBaseResourceType.ID))
+			Expect(usedResourceCache.Version()).To(Equal(atc.Version{"some": "version"}))
+			Expect(usedResourceCache.ResourceConfig().CreatedByResourceCache().Version()).To(Equal(atc.Version{"some-image-type": "version"}))
+			Expect(usedResourceCache.ResourceConfig().CreatedByResourceCache().ResourceConfig().CreatedByBaseResourceType().ID).To(Equal(usedImageBaseResourceType.ID))
 		})
 
 		Context("when the resource cache is concurrently deleted and created", func() {

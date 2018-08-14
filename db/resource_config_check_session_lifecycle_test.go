@@ -47,7 +47,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				resourceConfigCheckSession = findOrCreateSessionForDefaultResource()
 
 				By("mapping the resource to the session's config")
-				Expect(defaultResource.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID)).To(Succeed())
+				Expect(defaultResource.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID())).To(Succeed())
 			})
 
 			It("keeps check sessions for active resources", func() {
@@ -141,7 +141,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				resourceConfigCheckSession = findOrCreateSessionForDefaultResourceType()
 
 				By("mapping the resource to the session's config")
-				Expect(defaultResourceType.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID)).To(Succeed())
+				Expect(defaultResourceType.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID())).To(Succeed())
 			})
 
 			It("keeps check sessions for active resource types", func() {
