@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/skymarshal/dexserver"
 	"github.com/concourse/skymarshal/skycmd"
-	"github.com/coreos/dex/server"
+	"github.com/concourse/dex/server"
 	"golang.org/x/crypto/bcrypt"
 )
 

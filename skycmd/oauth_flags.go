@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/concourse/flag"
-	"github.com/coreos/dex/connector/oauth"
+	"github.com/concourse/dex/connector/oauth"
 	"github.com/hashicorp/go-multierror"
 )
 
