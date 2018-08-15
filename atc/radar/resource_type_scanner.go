@@ -136,17 +136,17 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		return 0, err
 	}
 
+	resourceConfig := resourceConfigCheckSession.ResourceConfig()
 	for breaker := true; breaker == true; breaker = mustComplete {
-		lock, acquired, err := scanner.dbPipeline.AcquireResourceTypeCheckingLockWithIntervalCheck(
+		lock, acquired, err := resourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheck(
 			logger,
-			savedResourceType.Name(),
-			resourceConfigCheckSession.ResourceConfig(),
 			interval,
 			mustComplete,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
-				"resource-type": resourceTypeName,
+				"resource-type":      resourceTypeName,
+				"resource-config-id": resourceConfig.ID(),
 			})
 			return interval, ErrFailedToAcquireLock
 		}
@@ -167,7 +167,15 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 	}
 
 	if fromVersion == nil {
-		fromVersion = atc.Version(savedResourceType.Version())
+		rcv, found, err := resourceConfig.GetLatestVersion()
+		if err != nil {
+			logger.Error("failed-to-get-current-version", err)
+			return interval, err
+		}
+
+		if found {
+			fromVersion = atc.Version(rcv.Version())
+		}
 	}
 
 	return interval, scanner.check(
@@ -246,11 +254,10 @@ func (scanner *resourceTypeScanner) check(
 		"total":    len(newVersions),
 	})
 
-	version := newVersions[len(newVersions)-1]
-	err = savedResourceType.SaveVersion(version)
+	err = resourceConfigCheckSession.ResourceConfig().SaveVersions(newVersions)
 	if err != nil {
-		logger.Error("failed-to-save-resource-type-version", err, lager.Data{
-			"version": version,
+		logger.Error("failed-to-save-resource-config-versions", err, lager.Data{
+			"versions": newVersions,
 		})
 		return err
 	}

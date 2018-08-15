@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -45,6 +46,9 @@ type ResourceConfig interface {
 		interval time.Duration,
 		immediate bool,
 	) (lock.Lock, bool, error)
+
+	GetLatestVersion() (ResourceConfigVersion, bool, error)
+	SaveVersions(versions []atc.Version) error
 }
 
 type resourceConfig struct {
@@ -111,6 +115,144 @@ func (r *resourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheck(
 	return lock, true, nil
 }
 
+func (r *resourceConfig) GetLatestVersion() (ResourceConfigVersion, bool, error) {
+	var version, metadata string
+
+	rcv := &resourceConfigVersion{
+		resourceConfigID: r.id,
+	}
+
+	err := psql.Select("v.id, v.version, v.metadata, v.check_order").
+		From("resource_config_versions v").
+		Where(sq.Eq{
+			"v.resource_config_id": r.id,
+		}).
+		OrderBy("check_order DESC").
+		Limit(1).
+		RunWith(r.conn).
+		QueryRow().
+		Scan(&rcv.id, &version, &metadata, &rcv.checkOrder)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return &resourceConfigVersion{}, false, nil
+		}
+
+		return &resourceConfigVersion{}, false, err
+	}
+
+	err = json.Unmarshal([]byte(version), &rcv.version)
+	if err != nil {
+		return &resourceConfigVersion{}, false, err
+	}
+
+	err = json.Unmarshal([]byte(metadata), &rcv.metadata)
+	if err != nil {
+		return &resourceConfigVersion{}, false, err
+	}
+
+	return rcv, true, nil
+}
+
+func (r *resourceConfig) SaveVersions(versions []atc.Version) error {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	for _, version := range versions {
+		rcv := &resourceConfigVersion{
+			resourceConfigID: r.id,
+			version:          Version(version),
+		}
+
+		versionJSON, err := json.Marshal(rcv.version)
+		if err != nil {
+			return err
+		}
+
+		_, err = r.saveResourceConfigVersion(tx, rcv)
+		if err != nil {
+			return err
+		}
+
+		err = r.incrementCheckOrderWhenNewerVersion(tx, string(versionJSON))
+		if err != nil {
+			return err
+		}
+	}
+
+	// XXX: IDKKKKKK
+	// err = bumpCacheIndex(tx, p.id)
+	// if err != nil {
+	// 	return err
+	// }
+
+	return tx.Commit()
+}
+
+func (r *resourceConfig) saveResourceConfigVersion(tx Tx, rcv ResourceConfigVersion) (ResourceConfigVersion, error) {
+	versionJSON, err := json.Marshal(rcv.Version())
+	if err != nil {
+		return nil, err
+	}
+
+	metadataJSON, err := json.Marshal(rcv.Metadata())
+	if err != nil {
+		return nil, err
+	}
+
+	var id, resourceConfigID, checkOrder int
+	var version, metadata string
+
+	// XXX uniq
+	err = tx.QueryRow(`
+		INSERT INTO resource_config_versions (resource_config_id, version, metadata)
+		SELECT $1, $2, $3
+		ON CONFLICT (resource_config_id, version) DO UPDATE SET metadata = $3
+		RETURNING id, resource_config_id, check_order, version, metadata
+		`, r.ID(), string(versionJSON), string(metadataJSON)).Scan(&id, &resourceConfigID, &checkOrder, &version, &metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	savedRCV := &resourceConfigVersion{
+		id:               id,
+		resourceConfigID: resourceConfigID,
+		checkOrder:       checkOrder,
+	}
+
+	err = json.Unmarshal([]byte(version), &savedRCV.version)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal([]byte(metadata), &savedRCV.metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return savedRCV, nil
+}
+
+func (r *resourceConfig) incrementCheckOrderWhenNewerVersion(tx Tx, version string) error {
+	_, err := tx.Exec(`
+		WITH max_checkorder AS (
+			SELECT max(check_order) co
+			FROM resource_config_versions
+			WHERE resource_config_id = $1
+		)
+
+		UPDATE resource_config_versions
+		SET check_order = mc.co + 1
+		FROM max_checkorder mc
+		WHERE resource_config_id = $1
+		AND version = $2
+		AND check_order <= mc.co;`, r.ID(), version)
+	return err
+}
+
 func (r *resourceConfig) checkIfResourceConfigIntervalUpdated(
 	interval time.Duration,
 	immediate bool,
@@ -133,7 +275,7 @@ func (r *resourceConfig) checkIfResourceConfigIntervalUpdated(
 	updated, err := checkIfRowsUpdated(tx, `
 			UPDATE resource_configs
 			SET last_checked = now()
-			WHERE id == $1
+			WHERE id = $1
 		`+condition, params...)
 	if err != nil {
 		return false, err
