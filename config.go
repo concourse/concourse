@@ -56,6 +56,7 @@ type ResourceConfig struct {
 	Type         string  `yaml:"type" json:"type" mapstructure:"type"`
 	Source       Source  `yaml:"source" json:"source" mapstructure:"source"`
 	CheckEvery   string  `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
+	CheckTimeout string  `yaml:"check_timeout,omitempty" json:"check_timeout" mapstructure:"check_timeout"`
 	Tags         Tags    `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
 	Version      Version `yaml:"version,omitempty" json:"version" mapstructure:"version"`
 }

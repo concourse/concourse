@@ -45,11 +45,12 @@ type FakeResource struct {
 		result1 resource.VersionedSource
 		result2 error
 	}
-	CheckStub        func(atc.Source, atc.Version) ([]atc.Version, error)
+	CheckStub        func(context.Context, atc.Source, atc.Version) ([]atc.Version, error)
 	checkMutex       sync.RWMutex
 	checkArgsForCall []struct {
-		arg1 atc.Source
-		arg2 atc.Version
+		arg1 context.Context
+		arg2 atc.Source
+		arg3 atc.Version
 	}
 	checkReturns struct {
 		result1 []atc.Version
@@ -182,17 +183,18 @@ func (fake *FakeResource) PutReturnsOnCall(i int, result1 resource.VersionedSour
 	}{result1, result2}
 }
 
-func (fake *FakeResource) Check(arg1 atc.Source, arg2 atc.Version) ([]atc.Version, error) {
+func (fake *FakeResource) Check(arg1 context.Context, arg2 atc.Source, arg3 atc.Version) ([]atc.Version, error) {
 	fake.checkMutex.Lock()
 	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
-		arg1 atc.Source
-		arg2 atc.Version
-	}{arg1, arg2})
-	fake.recordInvocation("Check", []interface{}{arg1, arg2})
+		arg1 context.Context
+		arg2 atc.Source
+		arg3 atc.Version
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3})
 	fake.checkMutex.Unlock()
 	if fake.CheckStub != nil {
-		return fake.CheckStub(arg1, arg2)
+		return fake.CheckStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -206,10 +208,10 @@ func (fake *FakeResource) CheckCallCount() int {
 	return len(fake.checkArgsForCall)
 }
 
-func (fake *FakeResource) CheckArgsForCall(i int) (atc.Source, atc.Version) {
+func (fake *FakeResource) CheckArgsForCall(i int) (context.Context, atc.Source, atc.Version) {
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
-	return fake.checkArgsForCall[i].arg1, fake.checkArgsForCall[i].arg2
+	return fake.checkArgsForCall[i].arg1, fake.checkArgsForCall[i].arg2, fake.checkArgsForCall[i].arg3
 }
 
 func (fake *FakeResource) CheckReturns(result1 []atc.Version, result2 error) {

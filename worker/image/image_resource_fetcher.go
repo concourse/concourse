@@ -251,7 +251,7 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		return err
 	}
 
-	versions, err := checkResourceType.Check(source, nil)
+	versions, err := checkResourceType.Check(context.TODO(), source, nil)
 	if err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 		return nil, err
 	}
 
-	versions, err := checkingResource.Check(source, nil)
+	versions, err := checkingResource.Check(context.TODO(), source, nil)
 	if err != nil {
 		return nil, err
 	}

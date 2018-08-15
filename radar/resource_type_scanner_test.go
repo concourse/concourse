@@ -1,6 +1,7 @@
 package radar_test
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -269,7 +270,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				})
 
 				It("checks from nil", func() {
-					_, version := fakeResource.CheckArgsForCall(0)
+					_, _, version := fakeResource.CheckArgsForCall(0)
 					Expect(version).To(BeNil())
 				})
 			})
@@ -281,7 +282,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("checks with it", func() {
 					Expect(fakeResource.CheckCallCount()).To(Equal(1))
-					_, version := fakeResource.CheckArgsForCall(0)
+					_, _, version := fakeResource.CheckArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"version": "42"}))
 				})
 			})
@@ -305,7 +306,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					}
 
 					check := 0
-					fakeResource.CheckStub = func(source atc.Source, from atc.Version) ([]atc.Version, error) {
+					fakeResource.CheckStub = func(ctx context.Context, source atc.Source, from atc.Version) ([]atc.Version, error) {
 						defer GinkgoRecover()
 
 						Expect(source).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
@@ -543,7 +544,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				})
 
 				It("checks from nil", func() {
-					_, version := fakeResource.CheckArgsForCall(0)
+					_, _, version := fakeResource.CheckArgsForCall(0)
 					Expect(version).To(BeNil())
 				})
 			})
@@ -555,7 +556,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("checks with it", func() {
 					Expect(fakeResource.CheckCallCount()).To(Equal(1))
-					_, version := fakeResource.CheckArgsForCall(0)
+					_, _, version := fakeResource.CheckArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"version": "42"}))
 				})
 			})
@@ -579,7 +580,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					}
 
 					check := 0
-					fakeResource.CheckStub = func(source atc.Source, from atc.Version) ([]atc.Version, error) {
+					fakeResource.CheckStub = func(ctx context.Context, source atc.Source, from atc.Version) ([]atc.Version, error) {
 						defer GinkgoRecover()
 
 						Expect(source).To(Equal(atc.Source{"custom": "some-secret-sauce"}))

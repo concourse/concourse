@@ -97,6 +97,7 @@ type RunCommand struct {
 
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
+	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
 
@@ -293,6 +294,7 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 }
 
 func (cmd *RunCommand) Execute(args []string) error {
+	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	runner, _, err := cmd.Runner(args)
 	if err != nil {
 		return err

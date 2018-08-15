@@ -342,7 +342,7 @@ var _ = Describe("Image", func() {
 
 							It("ran 'check' with the right config", func() {
 								Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
-								checkSource, checkVersion := fakeCheckResource.CheckArgsForCall(0)
+								_, checkSource, checkVersion := fakeCheckResource.CheckArgsForCall(0)
 								Expect(checkVersion).To(BeNil())
 								Expect(checkSource).To(Equal(atc.Source{"some": "super-secret-sauce"}))
 							})

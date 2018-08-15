@@ -37,10 +37,11 @@ var _ = Describe("Resource", func() {
 						Source: atc.Source{"some": "((secret-repository))"},
 					},
 					{
-						Name:       "some-resource-custom-check",
-						Type:       "git",
-						Source:     atc.Source{"some": "some-repository"},
-						CheckEvery: "10ms",
+						Name:         "some-resource-custom-check",
+						Type:         "git",
+						Source:       atc.Source{"some": "some-repository"},
+						CheckEvery:   "10ms",
+						CheckTimeout: "1m",
 					},
 				},
 			},
@@ -83,6 +84,7 @@ var _ = Describe("Resource", func() {
 					Expect(r.Type()).To(Equal("git"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "some-repository"}))
 					Expect(r.CheckEvery()).To(Equal("10ms"))
+					Expect(r.CheckTimeout()).To(Equal("1m"))
 				}
 			}
 		})

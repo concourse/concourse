@@ -22,6 +22,7 @@ type Resource interface {
 	Type() string
 	Source() atc.Source
 	CheckEvery() string
+	CheckTimeout() string
 	LastChecked() time.Time
 	Tags() atc.Tags
 	CheckError() error
@@ -53,6 +54,7 @@ type resource struct {
 	type_         string
 	source        atc.Source
 	checkEvery    string
+	checkTimeout  string
 	lastChecked   time.Time
 	tags          atc.Tags
 	checkError    error
@@ -117,6 +119,7 @@ func (r *resource) TeamName() string           { return r.teamName }
 func (r *resource) Type() string               { return r.type_ }
 func (r *resource) Source() atc.Source         { return r.source }
 func (r *resource) CheckEvery() string         { return r.checkEvery }
+func (r *resource) CheckTimeout() string       { return r.checkTimeout }
 func (r *resource) LastChecked() time.Time     { return r.lastChecked }
 func (r *resource) Tags() atc.Tags             { return r.tags }
 func (r *resource) CheckError() error          { return r.checkError }
@@ -216,6 +219,7 @@ func scanResource(r *resource, row scannable) error {
 	r.type_ = config.Type
 	r.source = config.Source
 	r.checkEvery = config.CheckEvery
+	r.checkTimeout = config.CheckTimeout
 	r.tags = config.Tags
 	r.webhookToken = config.WebhookToken
 	r.pinnedVersion = config.Version

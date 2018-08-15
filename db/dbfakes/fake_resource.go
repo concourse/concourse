@@ -73,6 +73,15 @@ type FakeResource struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 string
 	}
+	CheckTimeoutStub        func() string
+	checkTimeoutMutex       sync.RWMutex
+	checkTimeoutArgsForCall []struct{}
+	checkTimeoutReturns     struct {
+		result1 string
+	}
+	checkTimeoutReturnsOnCall map[int]struct {
+		result1 string
+	}
 	LastCheckedStub        func() time.Time
 	lastCheckedMutex       sync.RWMutex
 	lastCheckedArgsForCall []struct{}
@@ -456,6 +465,46 @@ func (fake *FakeResource) CheckEveryReturnsOnCall(i int, result1 string) {
 		})
 	}
 	fake.checkEveryReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) CheckTimeout() string {
+	fake.checkTimeoutMutex.Lock()
+	ret, specificReturn := fake.checkTimeoutReturnsOnCall[len(fake.checkTimeoutArgsForCall)]
+	fake.checkTimeoutArgsForCall = append(fake.checkTimeoutArgsForCall, struct{}{})
+	fake.recordInvocation("CheckTimeout", []interface{}{})
+	fake.checkTimeoutMutex.Unlock()
+	if fake.CheckTimeoutStub != nil {
+		return fake.CheckTimeoutStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.checkTimeoutReturns.result1
+}
+
+func (fake *FakeResource) CheckTimeoutCallCount() int {
+	fake.checkTimeoutMutex.RLock()
+	defer fake.checkTimeoutMutex.RUnlock()
+	return len(fake.checkTimeoutArgsForCall)
+}
+
+func (fake *FakeResource) CheckTimeoutReturns(result1 string) {
+	fake.CheckTimeoutStub = nil
+	fake.checkTimeoutReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) CheckTimeoutReturnsOnCall(i int, result1 string) {
+	fake.CheckTimeoutStub = nil
+	if fake.checkTimeoutReturnsOnCall == nil {
+		fake.checkTimeoutReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.checkTimeoutReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
 }
@@ -928,6 +977,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.sourceMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
+	fake.checkTimeoutMutex.RLock()
+	defer fake.checkTimeoutMutex.RUnlock()
 	fake.lastCheckedMutex.RLock()
 	defer fake.lastCheckedMutex.RUnlock()
 	fake.tagsMutex.RLock()

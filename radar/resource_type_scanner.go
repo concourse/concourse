@@ -223,7 +223,7 @@ func (scanner *resourceTypeScanner) check(
 		return err
 	}
 
-	newVersions, err := res.Check(source, fromVersion)
+	newVersions, err := res.Check(context.TODO(), source, fromVersion)
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})

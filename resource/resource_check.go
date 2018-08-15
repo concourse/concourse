@@ -11,11 +11,11 @@ type checkRequest struct {
 	Version atc.Version `json:"version"`
 }
 
-func (resource *resource) Check(source atc.Source, fromVersion atc.Version) ([]atc.Version, error) {
+func (resource *resource) Check(ctx context.Context, source atc.Source, fromVersion atc.Version) ([]atc.Version, error) {
 	var versions []atc.Version
 
 	err := resource.runScript(
-		context.TODO(),
+		ctx,
 		"/opt/resource/check",
 		nil,
 		checkRequest{source, fromVersion},

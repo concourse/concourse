@@ -594,6 +594,7 @@ resources:
 - name: some-resource
   type: some-type
   check_every: 10s
+  check_timeout: 1m
 jobs:
 - name: some-job
   plan:
@@ -628,10 +629,11 @@ jobs:
 								Expect(savedConfig).To(Equal(atc.Config{
 									Resources: []atc.ResourceConfig{
 										{
-											Name:       "some-resource",
-											Type:       "some-type",
-											Source:     nil,
-											CheckEvery: "10s",
+											Name:         "some-resource",
+											Type:         "some-type",
+											Source:       nil,
+											CheckEvery:   "10s",
+											CheckTimeout: "1m",
 										},
 									},
 									Jobs: atc.JobConfigs{
