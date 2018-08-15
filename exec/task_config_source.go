@@ -177,7 +177,7 @@ func (configSource MergedConfigSource) FetchConfig(source *worker.ArtifactReposi
 		return atc.TaskConfig{}, err
 	}
 
-	return aConfig.Merge(bConfig), nil
+	return aConfig.Merge(bConfig)
 }
 
 func (configSource MergedConfigSource) Warnings() []string {
