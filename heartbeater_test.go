@@ -170,9 +170,9 @@ var _ = Describe("Heartbeater", func() {
 	})
 
 	AfterEach(func() {
+		ginkgomon.Interrupt(heartbeater)
 		fakeATC2.Close()
 		fakeATC1.Close()
-		ginkgomon.Interrupt(heartbeater)
 	})
 
 	Context("when Garden returns containers and Baggageclaim returns volumes", func() {
