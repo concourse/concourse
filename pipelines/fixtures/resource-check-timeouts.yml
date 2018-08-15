@@ -11,6 +11,7 @@ resource_types:
 resources:
 - name: my-resource
   type: custom-resource-type
+  check_timeout: 10s
   source: {}
 
 jobs:
