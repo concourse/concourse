@@ -15,7 +15,7 @@ Please report all issues and feature requests in [concourse/concourse](https://g
 
 ## Usage
 
-See [Standalone Binaries](https://concourse-ci.org/binaries.html).
+See [Standalone Binaries](https://concourse-ci.org/download.html).
 
 
 ## Building
