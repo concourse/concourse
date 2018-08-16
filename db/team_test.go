@@ -64,14 +64,14 @@ var _ = Describe("Team", func() {
 
 		It("drops the team_build_events_ID table", func() {
 			var exists bool
-			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'team_build_events_%s')", otherTeam.ID())).Scan(&exists)
+			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'team_build_events_%d')", otherTeam.ID())).Scan(&exists)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(exists).To(BeFalse())
 		})
 
 		It("drops the teams pipeline_build_events_ID table", func() {
 			var exists bool
-			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'pipeline_build_events_%s')", otherTeamPipeline.ID())).Scan(&exists)
+			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'pipeline_build_events_%d')", otherTeamPipeline.ID())).Scan(&exists)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(exists).To(BeFalse())
 		})
@@ -1993,7 +1993,6 @@ var _ = Describe("Team", func() {
 			containerMetadata db.ContainerMetadata
 			team              db.Team
 			containerOwner    db.ContainerOwner
-			build             db.Build
 
 			foundCreatingContainer db.CreatingContainer
 			foundCreatedContainer  db.CreatedContainer
@@ -2011,12 +2010,8 @@ var _ = Describe("Team", func() {
 				StepName: "some-task",
 			}
 
-			var err error
-			build, err = defaultTeam.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-
 			team = defaultTeam
-			_, err = team.SaveWorker(atc.Worker{
+			_, err := team.SaveWorker(atc.Worker{
 				Name:      "fake-worker",
 				Team:      "default-team",
 				StartTime: 1501703719,
@@ -2115,11 +2110,8 @@ var _ = Describe("Team", func() {
 				})
 
 				Context("and we create a new container", func() {
-					var newContainer db.CreatingContainer
-
 					BeforeEach(func() {
-						var err error
-						newContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), containerOwner, containerMetadata)
+						_, err := defaultTeam.CreateContainer(defaultWorker.Name(), containerOwner, containerMetadata)
 						Expect(err).ToNot(HaveOccurred())
 					})
 

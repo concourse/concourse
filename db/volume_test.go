@@ -89,11 +89,14 @@ var _ = Describe("Volume", func() {
 					Expect(err).ToNot(HaveOccurred())
 				})
 
+				It("returns the failed volume", func() {
+					Expect(failedVolume).ToNot(BeNil())
+				})
+
 				It("does not fail to transition", func() {
 					Expect(failErr).ToNot(HaveOccurred())
 				})
 			})
-
 		})
 	})
 
