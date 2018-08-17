@@ -119,7 +119,7 @@ var _ = Describe("Credhub", func() {
 					Url     string   `json:"url"`
 					CACerts []string `json:"ca_certs"`
 					Health  struct {
-						Error    string `json:"errors"`
+						Error    string `json:"error"`
 						Response struct {
 							Status string `json:"status"`
 						} `json:"response"`
