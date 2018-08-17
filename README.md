@@ -4,7 +4,7 @@ A command line interface that runs a build in a container with [ATC](https://git
 
 [The documentation](https://concourse-ci.org/fly.html) is hosted together with Concourse's docs.
 
-A good place to start learning about Concourse is [its documentation](https://concourse-ci.org/docs.html)
+A good place to start learning about Concourse is [its documentation](https://concourse-ci.org/index.html)
 or its [BOSH release](https://github.com/concourse/concourse).
 
 ## Reporting Issues and Requesting Features
