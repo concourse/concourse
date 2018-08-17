@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -354,6 +355,21 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			Context("get credhub health info returns error", func() {
+				type responseSkeleton struct {
+					CredHub struct {
+						Url     string   `json:"url"`
+						CACerts []string `json:"ca_certs"`
+						Health  struct {
+							Error    string `json:"error"`
+							Response struct {
+								Status string `json:"status"`
+							} `json:"response"`
+							Method string `json:"method"`
+						} `json:"health"`
+						PathPrefix  string `json:"path_prefix"`
+						UAAClientId string `json:"uaa_client_id"`
+					} `json:"credhub"`
+				}
 
 				BeforeEach(func() {
 					credhubManager := &credhub.CredHubManager{
@@ -368,18 +384,19 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns configured creds manager with error", func() {
-					Expect(body).To(MatchJSON(`{
-					"credhub": {
-						"url": "http://wrong.inexistent.tld",
-						"path_prefix": "some-prefix",
-						"ca_certs": [],
-						"uaa_client_id": "client-id",
-						"health": {
-							"error": "Get http://wrong.inexistent.tld/health: dial tcp: lookup wrong.inexistent.tld: no such host",
-							"method": "/health"
-						}
-					}
-				}`))
+					var parsedResponse responseSkeleton
+
+					err := json.Unmarshal(body, &parsedResponse)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(parsedResponse.CredHub.Url).To(Equal("http://wrong.inexistent.tld"))
+					Expect(parsedResponse.CredHub.CACerts).To(BeEmpty())
+					Expect(parsedResponse.CredHub.PathPrefix).To(Equal("some-prefix"))
+					Expect(parsedResponse.CredHub.UAAClientId).To(Equal("client-id"))
+					Expect(parsedResponse.CredHub.Health.Response).ToNot(BeNil())
+					Expect(parsedResponse.CredHub.Health.Response.Status).To(BeEmpty())
+					Expect(parsedResponse.CredHub.Health.Method).To(Equal("/health"))
+					Expect(parsedResponse.CredHub.Health.Error).To(ContainSubstring("no such host"))
 				})
 			})
 		})
