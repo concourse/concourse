@@ -10,7 +10,7 @@ import (
 )
 
 type CredHubAtc struct {
-	CredHub *lazyCredhub
+	CredHub *LazyCredhub
 	logger  lager.Logger
 
 	PathPrefix   string

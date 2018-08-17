@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/creds"
 )
 
@@ -15,8 +14,6 @@ func (s *Server) Creds(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("creds")
 
 	w.Header().Set("Content-Type", "application/json")
-
-	logger.Info("creds managers", lager.Data{"creds-managers": s.credsManagers})
 
 	configuredManagers := make(creds.Managers)
 

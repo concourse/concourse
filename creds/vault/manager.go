@@ -22,8 +22,9 @@ type VaultManager struct {
 	Cache    bool          `long:"cache" description:"Cache returned secrets for their lease duration in memory"`
 	MaxLease time.Duration `long:"max-lease" description:"If the cache is enabled, and this is set, override secrets lease duration with a maximum value"`
 
-	TLS  TLS
-	Auth AuthConfig
+	TLS    TLS
+	Auth   AuthConfig
+	Client *APIClient
 }
 
 type TLS struct {
@@ -46,7 +47,33 @@ type AuthConfig struct {
 	Params []template.VarKV `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME=VALUE"`
 }
 
+func (manager *VaultManager) Init(log lager.Logger) error {
+	var err error
+
+	tlsConfig := &vaultapi.TLSConfig{
+		CACert:        manager.TLS.CACert,
+		CAPath:        manager.TLS.CAPath,
+		TLSServerName: manager.TLS.ServerName,
+		Insecure:      manager.TLS.Insecure,
+
+		ClientCert: manager.TLS.ClientCert,
+		ClientKey:  manager.TLS.ClientKey,
+	}
+
+	manager.Client, err = NewAPIClient(nil, manager.URL, tlsConfig, manager.Auth)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (manager *VaultManager) MarshalJSON() ([]byte, error) {
+	health, err := manager.Health()
+	if err != nil {
+		return nil, err
+	}
+
 	return json.Marshal(&map[string]interface{}{
 		"url":                manager.URL,
 		"path_prefix":        manager.PathPrefix,
@@ -58,6 +85,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 		"auth_max_ttl":       manager.Auth.BackendMaxTTL,
 		"auth_retry_max":     manager.Auth.RetryMax,
 		"auth_retry_initial": manager.Auth.RetryInitial,
+		"health":             health,
 	})
 }
 
@@ -82,26 +110,26 @@ func (manager VaultManager) Validate() error {
 	return errors.New("must configure client token or auth backend")
 }
 
-func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
-	tlsConfig := &vaultapi.TLSConfig{
-		CACert:        manager.TLS.CACert,
-		CAPath:        manager.TLS.CAPath,
-		TLSServerName: manager.TLS.ServerName,
-		Insecure:      manager.TLS.Insecure,
-
-		ClientCert: manager.TLS.ClientCert,
-		ClientKey:  manager.TLS.ClientKey,
+func (manager VaultManager) Health() (*creds.HealthResponse, error) {
+	health := &creds.HealthResponse{
+		Method: "/v1/sys/health",
 	}
 
-	c, err := NewAPIClient(logger, manager.URL, tlsConfig, manager.Auth)
+	response, err := manager.Client.health()
 	if err != nil {
-		return nil, err
+		health.Error = err.Error()
+		return health, nil
 	}
 
-	ra := NewReAuther(c, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
-	var sr SecretReader = c
+	health.Response = response
+	return health, nil
+}
+
+func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
+	ra := NewReAuther(manager.Client, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
+	var sr SecretReader = manager.Client
 	if manager.Cache {
-		sr = NewCache(c, manager.MaxLease)
+		sr = NewCache(manager.Client, manager.MaxLease)
 	}
 
 	return NewVaultFactory(sr, ra.LoggedIn(), manager.PathPrefix), nil

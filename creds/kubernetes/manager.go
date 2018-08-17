@@ -19,11 +19,16 @@ type KubernetesManager struct {
 }
 
 func (manager *KubernetesManager) MarshalJSON() ([]byte, error) {
+	// XXX: Get Health
 	return json.Marshal(&map[string]interface{}{
 		"in_cluster_config": manager.InClusterConfig,
 		"config_path":       manager.ConfigPath,
 		"namespace_config":  manager.NamespacePrefix,
 	})
+}
+
+func (manager KubernetesManager) Init(log lager.Logger) error {
+	return nil
 }
 
 func (manager KubernetesManager) IsConfigured() bool {
@@ -36,6 +41,10 @@ func (manager KubernetesManager) buildConfig() (*rest.Config, error) {
 	}
 
 	return clientcmd.BuildConfigFromFlags("", manager.ConfigPath)
+}
+
+func (manager KubernetesManager) Health() (*creds.HealthResponse, error) {
+	return nil, nil
 }
 
 func (manager KubernetesManager) Validate() error {

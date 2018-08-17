@@ -335,14 +335,23 @@ func (cmd *RunCommand) constructMembers(
 			continue
 		}
 
-		err := manager.Validate()
+		credsLogger := logger.Session("credential-manager", lager.Data{
+			"name": name,
+		})
+
+		credsLogger.Info("configured credentials manager")
+
+		err = manager.Init(credsLogger)
+		if err != nil {
+			return nil, err
+		}
+
+		err = manager.Validate()
 		if err != nil {
 			return nil, fmt.Errorf("credential manager '%s' misconfigured: %s", name, err)
 		}
 
-		variablesFactory, err = manager.NewVariablesFactory(logger.Session("credential-manager", lager.Data{
-			"name": name,
-		}))
+		variablesFactory, err = manager.NewVariablesFactory(credsLogger)
 		if err != nil {
 			return nil, err
 		}

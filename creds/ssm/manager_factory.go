@@ -21,6 +21,7 @@ func (factory *ssmManagerFactory) AddConfig(group *flags.Group) creds.Manager {
 	if err != nil {
 		panic(err)
 	}
+
 	subGroup.Namespace = "aws-ssm"
 	return manager
 }

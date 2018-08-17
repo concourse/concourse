@@ -28,6 +28,9 @@ var _ = Describe("SsmManager", func() {
 		})
 	})
 
+	Describe("Health()", func() {
+	})
+
 	Describe("Validate()", func() {
 		JustBeforeEach(func() {
 			manager = ssm.SsmManager{AwsRegion: "test-region"}

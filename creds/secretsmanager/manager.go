@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/concourse/atc/creds"
 )
 
@@ -24,6 +25,7 @@ type Manager struct {
 	AwsRegion              string `long:"region" description:"AWS region to send requests to" env:"AWS_REGION"`
 	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
 	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	SecretManager          *SecretsManager
 }
 
 type Secret struct {
@@ -43,19 +45,62 @@ func buildSecretTemplate(name, tmpl string) (*template.Template, error) {
 	return t, nil
 }
 
+func (manager *Manager) Init(log lager.Logger) error {
+	config := &aws.Config{Region: &manager.AwsRegion}
+	if manager.AwsAccessKeyID != "" {
+		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)
+	}
+
+	sess, err := session.NewSession(config)
+	if err != nil {
+		log.Error("create-aws-session", err)
+		return err
+	}
+
+	manager.SecretManager = &SecretsManager{
+		log: log,
+		api: secretsmanager.New(sess),
+	}
+	return nil
+}
+
+func (manager *Manager) Health() (*creds.HealthResponse, error) {
+	health := &creds.HealthResponse{
+		Method: "GetSecretValue",
+	}
+
+	_, _, err := manager.SecretManager.getSecretById("__concourse-health-check")
+	if err != nil {
+		health.Error = err.Error()
+		return health, nil
+	}
+
+	health.Response = map[string]string{
+		"status": "UP",
+	}
+
+	return health, nil
+}
+
 func (manager *Manager) MarshalJSON() ([]byte, error) {
+	health, err := manager.Health()
+	if err != nil {
+		return nil, err
+	}
+
 	return json.Marshal(&map[string]interface{}{
 		"aws_region":               manager.AwsRegion,
 		"pipeline_secret_template": manager.PipelineSecretTemplate,
 		"team_secret_template":     manager.TeamSecretTemplate,
+		"health":                   health,
 	})
 }
 
-func (manager Manager) IsConfigured() bool {
+func (manager *Manager) IsConfigured() bool {
 	return manager.AwsRegion != ""
 }
 
-func (manager Manager) Validate() error {
+func (manager *Manager) Validate() error {
 	// Make sure that the template is valid
 	pipelineSecretTemplate, err := buildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
 	if err != nil {
@@ -92,7 +137,7 @@ func (manager Manager) Validate() error {
 	return nil
 }
 
-func (manager Manager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
+func (manager *Manager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
 	config := &aws.Config{Region: &manager.AwsRegion}
 	if manager.AwsAccessKeyID != "" {
 		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)

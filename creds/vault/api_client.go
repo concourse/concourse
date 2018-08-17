@@ -174,3 +174,13 @@ func (ac *APIClient) clientWithToken(token string) (*vaultapi.Client, error) {
 
 	return client, nil
 }
+
+func (ac *APIClient) health() (*vaultapi.HealthResponse, error) {
+	client, err := ac.baseClient()
+	if err != nil {
+		return nil, err
+	}
+
+	healthResponse, err := client.Sys().Health()
+	return healthResponse, err
+}

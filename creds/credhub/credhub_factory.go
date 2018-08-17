@@ -7,12 +7,12 @@ import (
 )
 
 type credhubFactory struct {
-	credhub *lazyCredhub
+	credhub *LazyCredhub
 	logger  lager.Logger
 	prefix  string
 }
 
-func NewCredHubFactory(logger lager.Logger, credhub *lazyCredhub, prefix string) *credhubFactory {
+func NewCredHubFactory(logger lager.Logger, credhub *LazyCredhub, prefix string) *credhubFactory {
 	return &credhubFactory{
 		credhub: credhub,
 		logger:  logger,

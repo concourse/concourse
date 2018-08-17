@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"strings"
 	"text/template"
 	"text/template/parse"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/concourse/atc/creds"
 )
 
@@ -24,6 +27,7 @@ type SsmManager struct {
 	AwsRegion              string `long:"region" description:"AWS region to send requests to" env:"AWS_REGION"`
 	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS SSM parameter name template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
 	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS SSM parameter name template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	Ssm                    *Ssm
 }
 
 type SsmSecret struct {
@@ -47,18 +51,74 @@ func buildSecretTemplate(name, tmpl string) (*template.Template, error) {
 }
 
 func (manager *SsmManager) MarshalJSON() ([]byte, error) {
+	health, err := manager.Health()
+	if err != nil {
+		return nil, err
+	}
+
 	return json.Marshal(&map[string]interface{}{
 		"aws_region":               manager.AwsRegion,
 		"pipeline_secret_template": manager.PipelineSecretTemplate,
 		"team_secret_template":     manager.TeamSecretTemplate,
+		"health":                   health,
 	})
 }
 
-func (manager SsmManager) IsConfigured() bool {
+func (manager *SsmManager) Init(log lager.Logger) error {
+	session, err := manager.getSession()
+	if err != nil {
+		log.Error("failed-to-create-aws-session", err)
+		return err
+	}
+
+	manager.Ssm = &Ssm{
+		api: ssm.New(session),
+	}
+
+	return nil
+}
+
+func (manager *SsmManager) getSession() (*session.Session, error) {
+
+	config := &aws.Config{Region: &manager.AwsRegion}
+	if manager.AwsAccessKeyID != "" {
+		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)
+	}
+
+	return session.NewSession(config)
+}
+
+func (manager *SsmManager) Health() (*creds.HealthResponse, error) {
+	health := &creds.HealthResponse{
+		Method: "GetParameter",
+	}
+
+	_, _, err := manager.Ssm.getParameterByName("__concourse-health-check")
+	if err != nil {
+		if errObj, ok := err.(awserr.Error); ok && strings.Contains(errObj.Code(), "AccessDenied") {
+			health.Response = map[string]string{
+				"status": "UP",
+			}
+
+			return health, nil
+		}
+
+		health.Error = err.Error()
+		return health, nil
+	}
+
+	health.Response = map[string]string{
+		"status": "UP",
+	}
+
+	return health, nil
+}
+
+func (manager *SsmManager) IsConfigured() bool {
 	return manager.AwsRegion != ""
 }
 
-func (manager SsmManager) Validate() error {
+func (manager *SsmManager) Validate() error {
 	// Make sure that the template is valid
 	pipelineSecretTemplate, err := buildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
 	if err != nil {
@@ -93,13 +153,9 @@ func (manager SsmManager) Validate() error {
 	return nil
 }
 
-func (manager SsmManager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
-	config := &aws.Config{Region: &manager.AwsRegion}
-	if manager.AwsAccessKeyID != "" {
-		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)
-	}
+func (manager *SsmManager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
 
-	session, err := session.NewSession(config)
+	session, err := manager.getSession()
 	if err != nil {
 		log.Error("failed-to-create-aws-session", err)
 		return nil, err

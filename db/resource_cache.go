@@ -206,9 +206,9 @@ type usedResourceCache struct {
 	conn        Conn
 }
 
-func (cache *usedResourceCache) ID() int                           { return cache.id }
+func (cache *usedResourceCache) ID() int                        { return cache.id }
 func (cache *usedResourceCache) ResourceConfig() ResourceConfig { return cache.resourceConfig }
-func (cache *usedResourceCache) Version() atc.Version              { return cache.version }
+func (cache *usedResourceCache) Version() atc.Version           { return cache.version }
 
 func (cache *usedResourceCache) Destroy(tx Tx) (bool, error) {
 	rows, err := psql.Delete("resource_caches").

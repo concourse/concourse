@@ -14,6 +14,9 @@ func init() {
 func NewManagerFactory() creds.ManagerFactory {
 	return &managerFactory{}
 }
+func (manager managerFactory) Health() (interface{}, error) {
+	return nil, nil
+}
 
 func (factory *managerFactory) AddConfig(group *flags.Group) creds.Manager {
 	manager := &Manager{}
