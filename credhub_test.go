@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"io/ioutil"
 	"math/big"
@@ -48,18 +49,21 @@ var _ = Describe("Credhub", func() {
 		if !strings.Contains(string(bosh("releases").Out.Contents()), "credhub") {
 			Skip("credhub release not uploaded")
 		}
-
 	})
 
 	Describe("A deployment with credhub", func() {
-		var credhubClient *credhub.CredHub
+		var (
+			credhubClient   *credhub.CredHub
+			credhubInstance *boshInstance
+		)
+
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
 				"-o", "operations/add-empty-credhub.yml",
 			)
 
-			credhubInstance := Instance("credhub")
+			credhubInstance = Instance("credhub")
 			postgresInstance := JobInstance("postgres")
 
 			varsDir, err := ioutil.TempDir("", "vars")
@@ -107,6 +111,49 @@ var _ = Describe("Credhub", func() {
 				credhub.ClientCert(clientCert, clientKey),
 			)
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("/api/v1/info/creds", func() {
+			type responseSkeleton struct {
+				CredHub struct {
+					Url     string   `json:"url"`
+					CACerts []string `json:"ca_certs"`
+					Health  struct {
+						Error    string `json:"errors"`
+						Response struct {
+							Status string `json:"status"`
+						} `json:"response"`
+						Method string `json:"method"`
+					} `json:"health"`
+					PathPrefix  string `json:"path_prefix"`
+					UAAClientId string `json:"uaa_client_id"`
+				} `json:"credhub"`
+			}
+
+			var (
+				atcUrl         string
+				parsedResponse responseSkeleton
+			)
+
+			BeforeEach(func() {
+				atcUrl = "http://" + jobInstances["atc"][0].IP + ":8080"
+			})
+
+			JustBeforeEach(func() {
+				body, err := requestCredsInfo(atcUrl)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = json.Unmarshal(body, &parsedResponse)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("contains credhub config", func() {
+				Expect(parsedResponse.CredHub.Url).To(Equal("https://" + credhubInstance.IP + ":8844"))
+				Expect(parsedResponse.CredHub.Health.Response).ToNot(BeNil())
+				Expect(parsedResponse.CredHub.Health.Response.Status).To(Equal("UP"))
+				Expect(parsedResponse.CredHub.Health.Error).To(BeEmpty())
+			})
+
 		})
 
 		Context("with a pipeline build", func() {

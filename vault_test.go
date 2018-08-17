@@ -46,8 +46,9 @@ var _ = Describe("Vault", func() {
 
 	Describe("A deployment with vault", func() {
 		var (
-			v         *vault
-			varsStore *os.File
+			v             *vault
+			varsStore     *os.File
+			vaultInstance *boshInstance
 		)
 
 		BeforeEach(func() {
@@ -67,7 +68,7 @@ var _ = Describe("Vault", func() {
 				"-v", "vault_auth_params=dontcare",
 			)
 
-			vaultInstance := JobInstance("vault")
+			vaultInstance = JobInstance("vault")
 			v = newVault(vaultInstance.IP)
 
 			v.Run("policy-write", "concourse", "vault/concourse-policy.hcl")

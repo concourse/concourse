@@ -2,6 +2,7 @@ package topgun_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"os/exec"
 
@@ -106,6 +107,48 @@ var _ = Describe("AWS SSM", func() {
 				"-v", "aws_session_token="+sessionToken,
 			)
 		})
+
+		Context("/api/v1/info/creds", func() {
+			type responseSkeleton struct {
+				Ssm struct {
+					AwsRegion string `json:"aws_region"`
+					Health    struct {
+						Response struct {
+							Status string `json:"status"`
+						} `json:"response"`
+						Error string `json:"error,omitempty"`
+					} `json:"health"`
+					PipelineSecretTemplate string `json:"pipeline_secret_template"`
+					TeamSecretTemplate     string `json:"team_secret_template"`
+				} `json:"ssm"`
+			}
+
+			var (
+				atcUrl         string
+				parsedResponse responseSkeleton
+			)
+
+			BeforeEach(func() {
+				atcUrl = "http://" + jobInstances["atc"][0].IP + ":8080"
+			})
+
+			JustBeforeEach(func() {
+				body, err := requestCredsInfo(atcUrl)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = json.Unmarshal(body, &parsedResponse)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("contains ssm config", func() {
+				Expect(parsedResponse.Ssm.AwsRegion).To(Equal(awsRegion))
+				Expect(parsedResponse.Ssm.Health).ToNot(BeNil())
+				Expect(parsedResponse.Ssm.Health.Error).To(BeEmpty())
+				Expect(parsedResponse.Ssm.Health.Response).ToNot(BeNil())
+				Expect(parsedResponse.Ssm.Health.Response.Status).To(Equal("UP"))
+			})
+		})
+
 		Context("with a pipeline build", func() {
 			BeforeEach(func() {
 				By("setting a pipeline that contains ssm secrets")

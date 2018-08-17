@@ -1,10 +1,8 @@
 package topgun_test
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/concourse/atc"
 	_ "github.com/lib/pq"
@@ -40,40 +38,20 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 			It("request successfully", func() {
 
 				var (
-					err        error
-					request    *http.Request
-					response   *http.Response
-					reqHeader  http.Header
-					reqPayload string
+					err       error
+					request   *http.Request
+					response  *http.Response
+					reqHeader http.Header
 				)
-
-				reqPayload = "grant_type=password&username=some-user&password=password&scope=openid+profile+email+federated:id+groups"
-
-				reqHeader = http.Header{}
-				reqHeader.Set("Authorization", "Basic "+string(base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))))
-				reqHeader.Set("Content-Type", "application/x-www-form-urlencoded")
-
-				By("login to first atc")
-				request, err = http.NewRequest("POST", atc0URL+"/sky/token", strings.NewReader(reqPayload))
-				request.Header = reqHeader
-				Expect(err).NotTo(HaveOccurred())
-
-				client = &http.Client{}
-				response, err = client.Do(request)
-				Expect(err).NotTo(HaveOccurred())
-
-				var token map[string]string
-				err = json.NewDecoder(response.Body).Decode(&token)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(token["access_token"]).NotTo(BeNil())
 
 				By("stopping the first atc")
 				stopSession := spawnBosh("stop", atcs[0].Name)
 				Eventually(stopSession).Should(gexec.Exit(0))
 
+				token, err := fetchToken(atc0URL, "test", "test")
+				Expect(err).ToNot(HaveOccurred())
 				reqHeader = http.Header{}
-				reqHeader.Set("Authorization", "Bearer "+token["access_token"])
+				reqHeader.Set("Authorization", "Bearer "+token.AccessToken)
 
 				By("make request with the token to second atc")
 				request, err = http.NewRequest("GET", atc1URL+"/api/v1/workers", nil)

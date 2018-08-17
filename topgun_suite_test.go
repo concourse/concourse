@@ -167,6 +167,28 @@ var _ = AfterEach(func() {
 	Expect(os.RemoveAll(tmp)).To(Succeed())
 })
 
+func requestCredsInfo(atcUrl string) ([]byte, error) {
+	request, err := http.NewRequest("GET", atcUrl+"/api/v1/info/creds", nil)
+	Expect(err).ToNot(HaveOccurred())
+
+	reqHeader := http.Header{}
+	token, err := fetchToken(atcUrl, "some-user", "password")
+	Expect(err).ToNot(HaveOccurred())
+
+	reqHeader.Set("Authorization", "Bearer "+token.AccessToken)
+	request.Header = reqHeader
+
+	client := &http.Client{}
+	resp, err := client.Do(request)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(resp.StatusCode).To(Equal(200))
+
+	body, err := ioutil.ReadAll(resp.Body)
+	Expect(err).NotTo(HaveOccurred())
+
+	return body, err
+}
+
 func StartDeploy(manifest string, args ...string) *gexec.Session {
 	return spawnBosh(
 		append([]string{
@@ -329,12 +351,11 @@ func concourseClient() concourse.Client {
 }
 
 func fetchToken(atcURL string, username, password string) (*oauth2.Token, error) {
-
 	oauth2Config := oauth2.Config{
 		ClientID:     "fly",
 		ClientSecret: "Zmx5",
 		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/token"},
-		Scopes:       []string{"openid", "federated:id"},
+		Scopes:       []string{"openid", "profile", "email", "federated:id"},
 	}
 
 	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
