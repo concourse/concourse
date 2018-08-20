@@ -55,7 +55,7 @@ func (s *Server) ClearTaskCache(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		s.writeJSONResponse(w, atc.ClearTaskCacheResponse{NumCacheRemoved: rowsDeleted})
+		s.writeJSONResponse(w, atc.ClearTaskCacheResponse{CachesRemoved: rowsDeleted})
 	})
 }
 

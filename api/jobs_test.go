@@ -2140,7 +2140,7 @@ var _ = Describe("Jobs API", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(body).To(MatchJSON(`{"num_cache_removed": 1}`))
+						Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
 					})
 
 					Context("but no rows were deleted", func() {
@@ -2152,7 +2152,7 @@ var _ = Describe("Jobs API", func() {
 							body, err := ioutil.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
-							Expect(body).To(MatchJSON(`{"num_cache_removed": 0}`))
+							Expect(body).To(MatchJSON(`{"caches_removed": 0}`))
 						})
 
 					})
@@ -2188,7 +2188,7 @@ var _ = Describe("Jobs API", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(body).To(MatchJSON(`{"num_cache_removed": 1}`))
+						Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
 					})
 
 					Context("but no rows corresponding to the cachePath are deleted", func() {
@@ -2200,7 +2200,7 @@ var _ = Describe("Jobs API", func() {
 							body, err := ioutil.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
-							Expect(body).To(MatchJSON(`{"num_cache_removed": 0}`))
+							Expect(body).To(MatchJSON(`{"caches_removed": 0}`))
 						})
 					})
 				})
