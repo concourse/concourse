@@ -34,7 +34,7 @@ var _ = Describe("Fly CLI", func() {
 								Name: "main",
 								Auth: map[string][]string{
 									"groups": []string{},
-									"users": []string{},
+									"users":  []string{},
 								},
 							},
 							{
@@ -42,7 +42,7 @@ var _ = Describe("Fly CLI", func() {
 								Name: "a-team",
 								Auth: map[string][]string{
 									"groups": []string{"github:github-org"},
-									"users": []string{},
+									"users":  []string{},
 								},
 							},
 							{
@@ -50,15 +50,15 @@ var _ = Describe("Fly CLI", func() {
 								Name: "b-team",
 								Auth: map[string][]string{
 									"groups": []string{},
-									"users": []string{"github:github-user"},
+									"users":  []string{"github:github-user"},
 								},
 							},
 							{
 								ID:   4,
 								Name: "c-team",
 								Auth: map[string][]string{
-									"users": []string{"github:github-user"},
-									"groups":[]string{"github:github-org"},
+									"users":  []string{"github:github-user"},
+									"groups": []string{"github:github-org"},
 								},
 							},
 						}),

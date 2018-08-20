@@ -12,7 +12,7 @@ import (
 )
 
 type TeamsCommand struct {
-	Json bool `long:"json" description:"Print command result as JSON"`
+	Json    bool `long:"json" description:"Print command result as JSON"`
 	Details bool `short:"d" long:"details" description:"Print authentication configuration"`
 }
 
@@ -64,18 +64,18 @@ func (command *TeamsCommand) Execute([]string) error {
 			hasUsers := len(t.Auth["users"]) != 0
 			hasGroups := len(t.Auth["groups"]) != 0
 
-			if !hasUsers && !hasGroups{
+			if !hasUsers && !hasGroups {
 				usersCell.Contents = "all"
 				usersCell.Color = color.New(color.Faint)
 			} else if !hasUsers {
 				usersCell.Contents = "none"
 				usersCell.Color = color.New(color.Faint)
 			} else {
-				usersCell.Contents = strings.Join(t.Auth["users"],",")
+				usersCell.Contents = strings.Join(t.Auth["users"], ",")
 			}
 
 			if hasGroups {
-				groupsCell.Contents = strings.Join(t.Auth["groups"],",")
+				groupsCell.Contents = strings.Join(t.Auth["groups"], ",")
 			} else {
 				groupsCell.Contents = "none"
 				groupsCell.Color = color.New(color.Faint)
