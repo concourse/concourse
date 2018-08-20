@@ -15,6 +15,9 @@ params:
   BOSH_KEY:
   SKIP:
   TOPGUN_NETWORK_OFFSET:
+  AWS_REGION:
+  AWS_ACCESS_KEY_ID:
+  AWS_SECRET_ACCESS_KEY:
 
 inputs:
 - name: concourse
