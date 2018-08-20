@@ -109,7 +109,7 @@ var _ = Describe("Fly CLI", func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/tasks/some-step-name/cache"),
-							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{NumCacheRemoved: 1}),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{CachesRemoved: 1}),
 						),
 					)
 				})
@@ -150,7 +150,7 @@ var _ = Describe("Fly CLI", func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/tasks/some-step-name/cache"),
-							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{NumCacheRemoved: 0}),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{CachesRemoved: 0}),
 						),
 					)
 				})
