@@ -60,7 +60,7 @@ func (manager *VaultManager) Init(log lager.Logger) error {
 		ClientKey:  manager.TLS.ClientKey,
 	}
 
-	manager.Client, err = NewAPIClient(nil, manager.URL, tlsConfig, manager.Auth)
+	manager.Client, err = NewAPIClient(log, manager.URL, tlsConfig, manager.Auth)
 	if err != nil {
 		return err
 	}
