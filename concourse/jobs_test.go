@@ -484,7 +484,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest(requestMethod, expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{NumCacheRemoved: 1}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{CachesRemoved: 1}),
 					),
 				)
 			})
@@ -523,7 +523,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest(requestMethod, expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{NumCacheRemoved: 0}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{CachesRemoved: 0}),
 					),
 				)
 			})

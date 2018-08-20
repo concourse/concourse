@@ -163,6 +163,6 @@ func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName s
 	if err != nil {
 		return 0, err
 	} else {
-		return ctcResponse.NumCacheRemoved, nil
+		return ctcResponse.CachesRemoved, nil
 	}
 }
