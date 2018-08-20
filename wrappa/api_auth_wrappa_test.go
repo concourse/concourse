@@ -215,6 +215,7 @@ var _ = Describe("APIAuthWrappa", func() {
 
 				// authorized (requested team matches resource team)
 				atc.CheckResource:          authorized(inputHandlers[atc.CheckResource]),
+				atc.CheckResourceType:      authorized(inputHandlers[atc.CheckResourceType]),
 				atc.CreateJobBuild:         authorized(inputHandlers[atc.CreateJobBuild]),
 				atc.DeletePipeline:         authorized(inputHandlers[atc.DeletePipeline]),
 				atc.DisableResourceVersion: authorized(inputHandlers[atc.DisableResourceVersion]),

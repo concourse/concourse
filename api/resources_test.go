@@ -330,6 +330,81 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
+	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_name/check", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			request, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resource-types/resource-type-name/check", nil)
+			Expect(err).NotTo(HaveOccurred())
+			request.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when not authorized", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(false)
+			})
+
+			It("returns Forbidden", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			})
+		})
+
+		Context("when authenticated and authorized", func() {
+			var fakeScanner *radarfakes.FakeScanner
+
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
+
+				fakeScanner = new(radarfakes.FakeScanner)
+				fakeScannerFactory.NewResourceTypeScannerReturns(fakeScanner)
+			})
+
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("calls Scan", func() {
+				Expect(fakeScanner.ScanCallCount()).To(Equal(1))
+			})
+
+			Context("when resource type checking fails with ResourceNotFoundError", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanReturns(db.ResourceTypeNotFoundError{})
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when resource type fails with unexpected error", func() {
+				BeforeEach(func() {
+					err := errors.New("some-error")
+					fakeScanner.ScanReturns(err)
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+	})
+
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types", func() {
 		var response *http.Response
 
@@ -822,7 +897,7 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check", func() {
+	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check", func() {
 		var fakeScanner *radarfakes.FakeScanner
 		var checkRequestBody atc.CheckRequestBody
 		var response *http.Response

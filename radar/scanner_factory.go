@@ -9,8 +9,13 @@ import (
 	"github.com/concourse/atc/resource"
 )
 
+// ScannerFactory is the same interface as resourceserver/server.go
+// They are in two places because there would be cyclic dependencies otherwise
+
+// go:generate counterfeiter . ScannerFactory
 type ScannerFactory interface {
 	NewResourceScanner(dbPipeline db.Pipeline) Scanner
+	NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner
 }
 
 type scannerFactory struct {
@@ -68,5 +73,19 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 		f.externalURL,
 		variables,
 		resourceTypeScanner,
+	)
+}
+
+func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner {
+	variables := f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name())
+
+	return NewResourceTypeScanner(
+		clock.NewClock(),
+		f.resourceFactory,
+		f.resourceConfigCheckSessionFactory,
+		f.resourceTypeCheckingInterval,
+		dbPipeline,
+		f.externalURL,
+		variables,
 	)
 }

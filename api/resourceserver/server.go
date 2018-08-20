@@ -11,6 +11,7 @@ import (
 
 type ScannerFactory interface {
 	NewResourceScanner(pipeline db.Pipeline) radar.Scanner
+	NewResourceTypeScanner(dbPipeline db.Pipeline) radar.Scanner
 }
 
 type Server struct {
