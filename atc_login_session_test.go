@@ -44,12 +44,14 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 					reqHeader http.Header
 				)
 
+				client = &http.Client{}
+				token, err := fetchToken(atc0URL, "some-user", "password")
+				Expect(err).ToNot(HaveOccurred())
+
 				By("stopping the first atc")
 				stopSession := spawnBosh("stop", atcs[0].Name)
 				Eventually(stopSession).Should(gexec.Exit(0))
 
-				token, err := fetchToken(atc0URL, "test", "test")
-				Expect(err).ToNot(HaveOccurred())
 				reqHeader = http.Header{}
 				reqHeader.Set("Authorization", "Bearer "+token.AccessToken)
 
