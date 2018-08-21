@@ -386,6 +386,22 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	ClearTaskCacheStub        func(pipelineName string, jobName string, stepName string, cachePath string) (int64, error)
+	clearTaskCacheMutex       sync.RWMutex
+	clearTaskCacheArgsForCall []struct {
+		pipelineName string
+		jobName      string
+		stepName     string
+		cachePath    string
+	}
+	clearTaskCacheReturns struct {
+		result1 int64
+		result2 error
+	}
+	clearTaskCacheReturnsOnCall map[int]struct {
+		result1 int64
+		result2 error
+	}
 	ResourceStub        func(pipelineName string, resourceName string) (atc.Resource, bool, error)
 	resourceMutex       sync.RWMutex
 	resourceArgsForCall []struct {
@@ -1953,6 +1969,60 @@ func (fake *FakeTeam) UnpauseJobReturnsOnCall(i int, result1 bool, result2 error
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (int64, error) {
+	fake.clearTaskCacheMutex.Lock()
+	ret, specificReturn := fake.clearTaskCacheReturnsOnCall[len(fake.clearTaskCacheArgsForCall)]
+	fake.clearTaskCacheArgsForCall = append(fake.clearTaskCacheArgsForCall, struct {
+		pipelineName string
+		jobName      string
+		stepName     string
+		cachePath    string
+	}{pipelineName, jobName, stepName, cachePath})
+	fake.recordInvocation("ClearTaskCache", []interface{}{pipelineName, jobName, stepName, cachePath})
+	fake.clearTaskCacheMutex.Unlock()
+	if fake.ClearTaskCacheStub != nil {
+		return fake.ClearTaskCacheStub(pipelineName, jobName, stepName, cachePath)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.clearTaskCacheReturns.result1, fake.clearTaskCacheReturns.result2
+}
+
+func (fake *FakeTeam) ClearTaskCacheCallCount() int {
+	fake.clearTaskCacheMutex.RLock()
+	defer fake.clearTaskCacheMutex.RUnlock()
+	return len(fake.clearTaskCacheArgsForCall)
+}
+
+func (fake *FakeTeam) ClearTaskCacheArgsForCall(i int) (string, string, string, string) {
+	fake.clearTaskCacheMutex.RLock()
+	defer fake.clearTaskCacheMutex.RUnlock()
+	return fake.clearTaskCacheArgsForCall[i].pipelineName, fake.clearTaskCacheArgsForCall[i].jobName, fake.clearTaskCacheArgsForCall[i].stepName, fake.clearTaskCacheArgsForCall[i].cachePath
+}
+
+func (fake *FakeTeam) ClearTaskCacheReturns(result1 int64, result2 error) {
+	fake.ClearTaskCacheStub = nil
+	fake.clearTaskCacheReturns = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) ClearTaskCacheReturnsOnCall(i int, result1 int64, result2 error) {
+	fake.ClearTaskCacheStub = nil
+	if fake.clearTaskCacheReturnsOnCall == nil {
+		fake.clearTaskCacheReturnsOnCall = make(map[int]struct {
+			result1 int64
+			result2 error
+		})
+	}
+	fake.clearTaskCacheReturnsOnCall[i] = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) Resource(pipelineName string, resourceName string) (atc.Resource, bool, error) {
 	fake.resourceMutex.Lock()
 	ret, specificReturn := fake.resourceReturnsOnCall[len(fake.resourceArgsForCall)]
@@ -2699,6 +2769,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.pauseJobMutex.RUnlock()
 	fake.unpauseJobMutex.RLock()
 	defer fake.unpauseJobMutex.RUnlock()
+	fake.clearTaskCacheMutex.RLock()
+	defer fake.clearTaskCacheMutex.RUnlock()
 	fake.resourceMutex.RLock()
 	defer fake.resourceMutex.RUnlock()
 	fake.versionedResourceTypesMutex.RLock()
