@@ -36,21 +36,22 @@ type FlyCommand struct {
 	PauseJob   PauseJobCommand   `command:"pause-job" alias:"pj" description:"Pause a job"`
 	UnpauseJob UnpauseJobCommand `command:"unpause-job" alias:"uj" description:"Unpause a job"`
 
-	Pipelines        PipelinesCommand        `command:"pipelines"         alias:"ps" description:"List the configured pipelines"`
-	DestroyPipeline  DestroyPipelineCommand  `command:"destroy-pipeline"  alias:"dp" description:"Destroy a pipeline"`
-	GetPipeline      GetPipelineCommand      `command:"get-pipeline"      alias:"gp" description:"Get a pipeline's current configuration"`
-	SetPipeline      SetPipelineCommand      `command:"set-pipeline"      alias:"sp" description:"Create or update a pipeline's configuration"`
-	PausePipeline    PausePipelineCommand    `command:"pause-pipeline"    alias:"pp" description:"Pause a pipeline"`
-	UnpausePipeline  UnpausePipelineCommand  `command:"unpause-pipeline"  alias:"up" description:"Un-pause a pipeline"`
-	ExposePipeline   ExposePipelineCommand   `command:"expose-pipeline"   alias:"ep" description:"Make a pipeline publicly viewable"`
-	HidePipeline     HidePipelineCommand     `command:"hide-pipeline"     alias:"hp" description:"Hide a pipeline from the public"`
-	RenamePipeline   RenamePipelineCommand   `command:"rename-pipeline"   alias:"rp" description:"Rename a pipeline"`
-	ValidatePipeline ValidatePipelineCommand `command:"validate-pipeline" alias:"vp" description:"Validate a pipeline config"`
-	FormatPipeline   FormatPipelineCommand   `command:"format-pipeline"   alias:"fp" description:"Format a pipeline config"`
-	OrderPipelines   OrderPipelinesCommand   `command:"order-pipelines" alias:"op" description:"Orders pipelines"`
-	CheckResource    CheckResourceCommand    `command:"check-resource"    alias:"cr" description:"Check a resource"`
-	PauseResource    PauseResourceCommand    `command:"pause-resource"    alias:"pr" description:"Pause a resource"`
-	UnpauseResource  UnpauseResourceCommand  `command:"unpause-resource"  alias:"ur" description:"Unpause a resource"`
+	Pipelines         PipelinesCommand         `command:"pipelines"           alias:"ps"   description:"List the configured pipelines"`
+	DestroyPipeline   DestroyPipelineCommand   `command:"destroy-pipeline"    alias:"dp"   description:"Destroy a pipeline"`
+	GetPipeline       GetPipelineCommand       `command:"get-pipeline"        alias:"gp"   description:"Get a pipeline's current configuration"`
+	SetPipeline       SetPipelineCommand       `command:"set-pipeline"        alias:"sp"   description:"Create or update a pipeline's configuration"`
+	PausePipeline     PausePipelineCommand     `command:"pause-pipeline"      alias:"pp"   description:"Pause a pipeline"`
+	UnpausePipeline   UnpausePipelineCommand   `command:"unpause-pipeline"    alias:"up"   description:"Un-pause a pipeline"`
+	ExposePipeline    ExposePipelineCommand    `command:"expose-pipeline"     alias:"ep"   description:"Make a pipeline publicly viewable"`
+	HidePipeline      HidePipelineCommand      `command:"hide-pipeline"       alias:"hp"   description:"Hide a pipeline from the public"`
+	RenamePipeline    RenamePipelineCommand    `command:"rename-pipeline"     alias:"rp"   description:"Rename a pipeline"`
+	ValidatePipeline  ValidatePipelineCommand  `command:"validate-pipeline"   alias:"vp"   description:"Validate a pipeline config"`
+	FormatPipeline    FormatPipelineCommand    `command:"format-pipeline"     alias:"fp"   description:"Format a pipeline config"`
+	OrderPipelines    OrderPipelinesCommand    `command:"order-pipelines"     alias:"op"   description:"Orders pipelines"`
+	CheckResource     CheckResourceCommand     `command:"check-resource"      alias:"cr"   description:"Check a resource"`
+	CheckResourceType CheckResourceTypeCommand `command:"check-resource-type" alias:"crt"  description:"Check a resource-type"`
+	PauseResource     PauseResourceCommand     `command:"pause-resource"      alias:"pr"   description:"Pause a resource"`
+	UnpauseResource   UnpauseResourceCommand   `command:"unpause-resource"    alias:"ur"   description:"Unpause a resource"`
 
 	ClearTaskCache ClearTaskCacheCommand `command:"clear-task-cache" alias:"ctc" description:"Clears cache from a task container"`
 
