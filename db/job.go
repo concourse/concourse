@@ -47,6 +47,8 @@ type Job interface {
 	SetMaxInFlightReached(bool) error
 	GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, error)
 	GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bool, error)
+
+	ClearTaskCache(string, string) (int64, error)
 }
 
 var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "array_to_json(j.tags)").
@@ -579,6 +581,42 @@ func (j *job) CreateBuild() (Build, error) {
 	}
 
 	return build, nil
+}
+
+func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer Rollback(tx)
+
+	var sqlBuilder sq.DeleteBuilder
+	sqlBuilder = psql.Delete("worker_task_caches").
+		Where(sq.Eq{
+			"job_id":    j.id,
+			"step_name": stepName,
+		})
+
+	if len(cachePath) > 0 {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"path": cachePath})
+	}
+
+	sqlResult, err := sqlBuilder.
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return 0, err
+	}
+
+	rowsDeleted, err := sqlResult.RowsAffected()
+
+	if err != nil {
+		return 0, err
+	}
+
+	return rowsDeleted, tx.Commit()
 }
 
 func (j *job) updateSerialGroups(serialGroups []string) error {
