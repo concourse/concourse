@@ -28,8 +28,7 @@ const (
 	JobBadge       = "JobBadge"
 	MainJobBadge   = "MainJobBadge"
 
-	ClearTaskCache          = "ClearTaskCache"
-	ClearTaskCacheQueryPath = "CachePath"
+	ClearTaskCache = "ClearTaskCache"
 
 	ListAllResources     = "ListAllResources"
 	ListResources        = "ListResources"
@@ -95,6 +94,10 @@ const (
 
 	SendInputToBuildPlan    = "SendInputToBuildPlan"
 	ReadOutputFromBuildPlan = "ReadOutputFromBuildPlan"
+)
+
+const (
+	ClearTaskCacheQueryPath = "cache_path"
 )
 
 var Routes = rata.Routes([]rata.Route{
