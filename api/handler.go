@@ -123,6 +123,8 @@ func NewHandler(
 			Route:  atc.JobBadge,
 		},
 
+		atc.ClearTaskCache: pipelineHandlerFactory.HandlerFor(jobServer.ClearTaskCache),
+
 		atc.ListAllPipelines:    http.HandlerFunc(pipelineServer.ListAllPipelines),
 		atc.ListPipelines:       http.HandlerFunc(pipelineServer.ListPipelines),
 		atc.GetPipeline:         pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline),

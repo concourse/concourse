@@ -234,6 +234,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ExposePipeline:         authorized(inputHandlers[atc.ExposePipeline]),
 				atc.HidePipeline:           authorized(inputHandlers[atc.HidePipeline]),
 				atc.CreatePipelineBuild:    authorized(inputHandlers[atc.CreatePipelineBuild]),
+				atc.ClearTaskCache:         authorized(inputHandlers[atc.ClearTaskCache]),
 			}
 		})
 

@@ -308,6 +308,20 @@ type FakeJob struct {
 		result2 bool
 		result3 error
 	}
+	ClearTaskCacheStub        func(string, string) (int64, error)
+	clearTaskCacheMutex       sync.RWMutex
+	clearTaskCacheArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	clearTaskCacheReturns struct {
+		result1 int64
+		result2 error
+	}
+	clearTaskCacheReturnsOnCall map[int]struct {
+		result1 int64
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -1551,6 +1565,58 @@ func (fake *FakeJob) GetNextPendingBuildBySerialGroupReturnsOnCall(i int, result
 	}{result1, result2, result3}
 }
 
+func (fake *FakeJob) ClearTaskCache(arg1 string, arg2 string) (int64, error) {
+	fake.clearTaskCacheMutex.Lock()
+	ret, specificReturn := fake.clearTaskCacheReturnsOnCall[len(fake.clearTaskCacheArgsForCall)]
+	fake.clearTaskCacheArgsForCall = append(fake.clearTaskCacheArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("ClearTaskCache", []interface{}{arg1, arg2})
+	fake.clearTaskCacheMutex.Unlock()
+	if fake.ClearTaskCacheStub != nil {
+		return fake.ClearTaskCacheStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.clearTaskCacheReturns.result1, fake.clearTaskCacheReturns.result2
+}
+
+func (fake *FakeJob) ClearTaskCacheCallCount() int {
+	fake.clearTaskCacheMutex.RLock()
+	defer fake.clearTaskCacheMutex.RUnlock()
+	return len(fake.clearTaskCacheArgsForCall)
+}
+
+func (fake *FakeJob) ClearTaskCacheArgsForCall(i int) (string, string) {
+	fake.clearTaskCacheMutex.RLock()
+	defer fake.clearTaskCacheMutex.RUnlock()
+	return fake.clearTaskCacheArgsForCall[i].arg1, fake.clearTaskCacheArgsForCall[i].arg2
+}
+
+func (fake *FakeJob) ClearTaskCacheReturns(result1 int64, result2 error) {
+	fake.ClearTaskCacheStub = nil
+	fake.clearTaskCacheReturns = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJob) ClearTaskCacheReturnsOnCall(i int, result1 int64, result2 error) {
+	fake.ClearTaskCacheStub = nil
+	if fake.clearTaskCacheReturnsOnCall == nil {
+		fake.clearTaskCacheReturnsOnCall = make(map[int]struct {
+			result1 int64
+			result2 error
+		})
+	}
+	fake.clearTaskCacheReturnsOnCall[i] = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1610,6 +1676,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.getRunningBuildsBySerialGroupMutex.RUnlock()
 	fake.getNextPendingBuildBySerialGroupMutex.RLock()
 	defer fake.getNextPendingBuildBySerialGroupMutex.RUnlock()
+	fake.clearTaskCacheMutex.RLock()
+	defer fake.clearTaskCacheMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

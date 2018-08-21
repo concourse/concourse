@@ -2081,6 +2081,172 @@ var _ = Describe("Jobs API", func() {
 			})
 		})
 	})
+
+	Describe("DELETE /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/tasks/:step_name/cache", func() {
+		var (
+			request  *http.Request
+			response *http.Response
+		)
+
+		BeforeEach(func() {
+			var err error
+
+			request, err = http.NewRequest("DELETE", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/job-name/tasks/:step_name/cache", nil)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authorized", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthorizedReturns(true)
+			})
+
+			Context("when authenticated", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthenticatedReturns(true)
+
+					fakePipeline.JobReturns(fakeJob, true, nil)
+					fakeJob.ClearTaskCacheReturns(1, nil)
+
+				})
+
+				Context("when no cachePath is passed", func() {
+					It("it finds the right job", func() {
+						jobName := fakePipeline.JobArgsForCall(0)
+						Expect(jobName).To(Equal("job-name"))
+					})
+
+					It("it clears the db cache entries successfully", func() {
+						Expect(fakeJob.ClearTaskCacheCallCount()).To(Equal(1))
+						_, cachePath := fakeJob.ClearTaskCacheArgsForCall(0)
+						Expect(cachePath).To(Equal(""))
+					})
+
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
+					It("it returns the number of rows deleted", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
+					})
+
+					Context("but no rows were deleted", func() {
+						BeforeEach(func() {
+							fakeJob.ClearTaskCacheReturns(0, nil)
+						})
+
+						It("it returns that 0 rows were deleted", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{"caches_removed": 0}`))
+						})
+
+					})
+				})
+
+				Context("when a cachePath is passed", func() {
+					BeforeEach(func() {
+						query := request.URL.Query()
+						query.Add(atc.ClearTaskCacheQueryPath, "cache-path")
+						request.URL.RawQuery = query.Encode()
+					})
+
+					It("it finds the right job", func() {
+						jobName := fakePipeline.JobArgsForCall(0)
+						Expect(jobName).To(Equal("job-name"))
+					})
+
+					It("it clears the db cache entries successfully", func() {
+						Expect(fakeJob.ClearTaskCacheCallCount()).To(Equal(1))
+						_, cachePath := fakeJob.ClearTaskCacheArgsForCall(0)
+						Expect(cachePath).To(Equal("cache-path"))
+					})
+
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
+					It("it returns the number of rows deleted", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
+					})
+
+					Context("but no rows corresponding to the cachePath are deleted", func() {
+						BeforeEach(func() {
+							fakeJob.ClearTaskCacheReturns(0, nil)
+						})
+
+						It("it returns that 0 rows were deleted", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{"caches_removed": 0}`))
+						})
+					})
+				})
+
+				Context("when the job is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.JobReturns(nil, false, nil)
+					})
+
+					It("returns a 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when finding the job fails", func() {
+					BeforeEach(func() {
+						fakePipeline.JobReturns(nil, false, errors.New("some-error"))
+					})
+
+					It("returns a 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when there are problems removing the db cache entries", func() {
+					BeforeEach(func() {
+						fakeJob.ClearTaskCacheReturns(-1, errors.New("some-error"))
+					})
+
+					It("returns a 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Status Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
 })
 
 func fakeDBResourceType(t atc.VersionedResourceType) *dbfakes.FakeResourceType {
