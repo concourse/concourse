@@ -1,0 +1,57 @@
+\use-plugin{concourse-docs}
+
+\release{2019-7-26}{4.0.0}{1.16.0}{
+  \note{fix}{
+    We've fixed a scary container snowballing failure mode that could happen
+    when \code{check} containers failed to create. This was a somewhat hairy
+    bug; see \ghissue{2454} for more information.
+  }
+
+  \note{feature}{
+    Resources can now be pinned across the pipeline as part of the pipeline
+    config by specifying \reference{resource-version} on the resource
+    definition in the pipeline. This is analogous to setting
+    \reference{get-version} on every \reference{get-step} that references the
+    resource.
+  }
+
+  \note{feature}{
+    When logging in to \reference{fly-cli}, if you're already logged in via the
+    web UI it'll just shimmy the existing token over to \code{fly} rather than
+    requiring you to go through the login flow all over again.
+  }
+
+  \note{feature}{
+    We gave up on using third-party Go migration libraries and wrote our own.
+    This should make failed migrations a lot easier to troubleshoot and recover
+    from. All of our migrations run in transactions, so there's no more
+    confusing "dirty" state, and failed migrations will record the failure
+    error in the database.
+
+    We'll be extracting this package from the ATC soon as a proper library.
+  }
+
+  \note{feature}{
+    Previously Concourse would allow you to configure arbitrary
+    \reference{task-params} in a pipeline, even if the task file itself didn't
+    configure them. This was confusing as it meant the tasks could not be
+    trusted to describe all their required parameters.
+
+    Concourse will now emit a warning to the task logs upon noticing this. A
+    future release will turn this into an error. Thanks for the PR,
+    \ghuser{edtan}!
+  }
+
+  \note{feature}{
+    Searching on the dashboard will now live-update the URL bar, making it easy
+    to copy-paste and share the search with your best friends. Thanks for the
+    PR, \ghuser{SHyx0rmZ}!
+  }
+
+  \note{fix}{
+    Previously, when searching something on the dashboard that filtered out all
+    the pipelines for a given team, the UI showed messaging that made it look
+    like the team had no pipelines at all, when in reality they just didn't
+    match your search terms. Now the UI will just hide the teams entirely!
+  }
+}
