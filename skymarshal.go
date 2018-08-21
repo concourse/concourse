@@ -3,6 +3,8 @@ package skymarshal
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -22,6 +24,7 @@ type Config struct {
 	Flags       skycmd.AuthFlags
 	ServerURL   string
 	HttpClient  *http.Client
+	Postgres    flag.PostgresConfig
 }
 
 type Server struct {
@@ -34,10 +37,6 @@ func (self *Server) PublicKey() *rsa.PublicKey {
 }
 
 func NewServer(config *Config) (*Server, error) {
-
-	clientId := "skymarshal"
-	clientSecret := token.RandomString()
-
 	signingKey, err := loadOrGenerateSigningKey(config.Flags.SigningKey)
 	if err != nil {
 		return nil, err
@@ -47,6 +46,10 @@ func NewServer(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	clientId := "skymarshal"
+	clientSecretBytes := sha256.Sum256(signingKey.D.Bytes())
+	clientSecret := fmt.Sprintf("%x", clientSecretBytes[:])
 
 	issuerUrl := serverURL.String() + "/sky/issuer"
 	redirectUrl := serverURL.String() + "/sky/callback"
@@ -77,6 +80,7 @@ func NewServer(config *Config) (*Server, error) {
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectUrl,
+		Postgres:     config.Postgres,
 	})
 	if err != nil {
 		return nil, err
