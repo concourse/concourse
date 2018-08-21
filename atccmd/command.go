@@ -518,6 +518,7 @@ func (cmd *RunCommand) constructMembers(
 		Flags:       cmd.Auth.AuthFlags,
 		ServerURL:   cmd.ExternalURL.String(),
 		HttpClient:  httpClient,
+		Postgres:    cmd.Postgres,
 	})
 	if err != nil {
 		return nil, err
