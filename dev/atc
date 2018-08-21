@@ -27,7 +27,10 @@ atc run \
   --log-level debug \
   --external-url "http://localhost:8080" \
   --session-signing-key $KEYSDIR/web/session_signing_key \
-  --postgres-data-source "user=postgres dbname=atc port=${pg_port} sslmode=disable" \
+  --postgres-user "postgres" \
+  --postgres-database "atc" \
+  --postgres-port "${pg_port}" \
+  --postgres-sslmode "disable" \
   --add-local-user 'user:$2a$10$M9oqnjK.uXnrf4DStWfFQ.y9HCHb0tBa80NMc6Dn9m9HbaRbUlaEC' \
   --add-local-user 'test:$2a$10$sKZelZprWWcBAWbp28rB1uFef0Ybxsiqh05uo.H8EIm0sWc6IZGJu' \
   --add-local-user 'test2:$2a$10$pfLM0jRnlIwLYt.up4kH5OBTquL5Zu2AMnTAej.uSAvlgPmKcLiU.' \

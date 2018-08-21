@@ -89,6 +89,7 @@ files:
   - github.com/cloudfoundry/bosh-cli/vendor/github.com/cloudfoundry/bosh-utils/system/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry/bosh-cli/vendor/github.com/cppforlife/go-patch/patch/*.{go,s,c,h} # gosub
   - github.com/cloudfoundry/bosh-cli/vendor/gopkg.in/yaml.v2/*.{go,s,c,h} # gosub
+  - github.com/cockroachdb/cockroach-go/crdb/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/api/accessor/*.{go,s,c,h} # gosub
@@ -164,7 +165,7 @@ files:
   - github.com/concourse/dex/server/*.{go,s,c,h} # gosub
   - github.com/concourse/dex/server/internal/*.{go,s,c,h} # gosub
   - github.com/concourse/dex/storage/*.{go,s,c,h} # gosub
-  - github.com/concourse/dex/storage/memory/*.{go,s,c,h} # gosub
+  - github.com/concourse/dex/storage/sql/*.{go,s,c,h} # gosub
   - github.com/concourse/dex/version/*.{go,s,c,h} # gosub
   - github.com/concourse/flag/*.{go,s,c,h} # gosub
   - github.com/concourse/go-archive/tarfs/*.{go,s,c,h} # gosub
@@ -195,6 +196,7 @@ files:
   - github.com/go-openapi/jsonreference/*.{go,s,c,h} # gosub
   - github.com/go-openapi/spec/*.{go,s,c,h} # gosub
   - github.com/go-openapi/swag/*.{go,s,c,h} # gosub
+  - github.com/go-sql-driver/mysql/*.{go,s,c,h} # gosub
   - github.com/golang/glog/*.{go,s,c,h} # gosub
   - github.com/golang/protobuf/proto/*.{go,s,c,h} # gosub
   - github.com/golang/protobuf/ptypes/any/*.{go,s,c,h} # gosub
@@ -250,6 +252,7 @@ files:
   - github.com/mailru/easyjson/jlexer/*.{go,s,c,h} # gosub
   - github.com/mailru/easyjson/jwriter/*.{go,s,c,h} # gosub
   - github.com/mattn/go-runewidth/*.{go,s,c,h} # gosub
+  - github.com/mattn/go-sqlite3/*.{go,s,c,h} # gosub
   - github.com/matttproud/golang_protobuf_extensions/pbutil/*.{go,s,c,h} # gosub
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub

@@ -469,3 +469,14 @@
 	path = src/github.com/jonboulle/clockwork
 	url = https://github.com/jonboulle/clockwork
 	branch = master
+[submodule "src/github.com/cockroachdb/cockroach-go"]
+	path = src/github.com/cockroachdb/cockroach-go
+	url = https://github.com/cockroachdb/cockroach-go
+[submodule "src/github.com/go-sql-driver/mysql"]
+	path = src/github.com/go-sql-driver/mysql
+	url = https://github.com/go-sql-driver/mysql
+	branch = master
+[submodule "src/github.com/mattn/go-sqlite3"]
+	path = src/github.com/mattn/go-sqlite3
+	url = https://github.com/mattn/go-sqlite3
+	branch = master
