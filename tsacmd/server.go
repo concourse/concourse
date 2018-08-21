@@ -253,7 +253,6 @@ func (server *registrarSSHServer) handleChannel(
 				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
 			}
 
-			logger.Info("closing-channel")
 			channel.Close()
 
 		case reportContainerRequest:
@@ -271,7 +270,6 @@ func (server *registrarSSHServer) handleChannel(
 				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
 			}
 
-			logger.Info("closing-channel")
 			channel.Close()
 
 		case sweepContainerRequest:
@@ -290,7 +288,7 @@ func (server *registrarSSHServer) handleChannel(
 				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
 				logger.Info("finished-writing-sweeper-containers", lager.Data{"bytes-written": bytesNum, "err": err})
 			}
-			logger.Info("closing-channel")
+
 			channel.Close()
 
 		case sweepVolumeRequest:
@@ -309,7 +307,7 @@ func (server *registrarSSHServer) handleChannel(
 				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
 				logger.Info("finished-writing-sweeper-volumes", lager.Data{"bytes-written": bytesNum, "err": err})
 			}
-			logger.Info("closing-channel")
+
 			channel.Close()
 
 		case registerWorkerRequest:
@@ -819,7 +817,6 @@ func forwardLocalConn(logger lager.Logger, cancel <-chan struct{}, localConn net
 	}
 
 	defer func() {
-		logger.Debug("closing-forwarded-tcpip")
 		channel.Close()
 	}()
 
@@ -852,8 +849,6 @@ func forwardLocalConn(logger lager.Logger, cancel <-chan struct{}, localConn net
 	go pipe(localConn, channel)
 	go pipe(channel, localConn)
 
-	logger.Debug("waiting-for-tcpip-io")
-
 	done := 0
 dance:
 	for {
@@ -864,14 +859,12 @@ dance:
 				break dance
 			}
 
-			logger.Debug("io-complete")
+			logger.Debug("tcpip-io-complete")
 		case <-cancel:
-			logger.Info("interrupted")
+			logger.Info("tcpip-io-interrupted")
 			break dance
 		}
 	}
-
-	logger.Debug("done-waiting")
 
 	return
 }
