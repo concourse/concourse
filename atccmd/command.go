@@ -294,7 +294,6 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 }
 
 func (cmd *RunCommand) Execute(args []string) error {
-	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	runner, _, err := cmd.Runner(args)
 	if err != nil {
 		return err
@@ -744,6 +743,7 @@ func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
 func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool, error) {
 	var members []grouper.Member
 
+	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
 	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
