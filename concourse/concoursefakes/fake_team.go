@@ -467,6 +467,20 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	CheckResourceTypeStub        func(pipelineName string, resourceTypeName string) (bool, error)
+	checkResourceTypeMutex       sync.RWMutex
+	checkResourceTypeArgsForCall []struct {
+		pipelineName     string
+		resourceTypeName string
+	}
+	checkResourceTypeReturns struct {
+		result1 bool
+		result2 error
+	}
+	checkResourceTypeReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	DisableResourceVersionStub        func(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
 	disableResourceVersionMutex       sync.RWMutex
 	disableResourceVersionArgsForCall []struct {
@@ -2244,6 +2258,58 @@ func (fake *FakeTeam) CheckResourceReturnsOnCall(i int, result1 bool, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) CheckResourceType(pipelineName string, resourceTypeName string) (bool, error) {
+	fake.checkResourceTypeMutex.Lock()
+	ret, specificReturn := fake.checkResourceTypeReturnsOnCall[len(fake.checkResourceTypeArgsForCall)]
+	fake.checkResourceTypeArgsForCall = append(fake.checkResourceTypeArgsForCall, struct {
+		pipelineName     string
+		resourceTypeName string
+	}{pipelineName, resourceTypeName})
+	fake.recordInvocation("CheckResourceType", []interface{}{pipelineName, resourceTypeName})
+	fake.checkResourceTypeMutex.Unlock()
+	if fake.CheckResourceTypeStub != nil {
+		return fake.CheckResourceTypeStub(pipelineName, resourceTypeName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.checkResourceTypeReturns.result1, fake.checkResourceTypeReturns.result2
+}
+
+func (fake *FakeTeam) CheckResourceTypeCallCount() int {
+	fake.checkResourceTypeMutex.RLock()
+	defer fake.checkResourceTypeMutex.RUnlock()
+	return len(fake.checkResourceTypeArgsForCall)
+}
+
+func (fake *FakeTeam) CheckResourceTypeArgsForCall(i int) (string, string) {
+	fake.checkResourceTypeMutex.RLock()
+	defer fake.checkResourceTypeMutex.RUnlock()
+	return fake.checkResourceTypeArgsForCall[i].pipelineName, fake.checkResourceTypeArgsForCall[i].resourceTypeName
+}
+
+func (fake *FakeTeam) CheckResourceTypeReturns(result1 bool, result2 error) {
+	fake.CheckResourceTypeStub = nil
+	fake.checkResourceTypeReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) CheckResourceTypeReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.CheckResourceTypeStub = nil
+	if fake.checkResourceTypeReturnsOnCall == nil {
+		fake.checkResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.checkResourceTypeReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) DisableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error) {
 	fake.disableResourceVersionMutex.Lock()
 	ret, specificReturn := fake.disableResourceVersionReturnsOnCall[len(fake.disableResourceVersionArgsForCall)]
@@ -2779,6 +2845,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.resourceVersionsMutex.RUnlock()
 	fake.checkResourceMutex.RLock()
 	defer fake.checkResourceMutex.RUnlock()
+	fake.checkResourceTypeMutex.RLock()
+	defer fake.checkResourceTypeMutex.RUnlock()
 	fake.disableResourceVersionMutex.RLock()
 	defer fake.disableResourceVersionMutex.RUnlock()
 	fake.enableResourceVersionMutex.RLock()
