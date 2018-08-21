@@ -19,6 +19,9 @@
     When logging in to \reference{fly-cli}, if you're already logged in via the
     web UI it'll just shimmy the existing token over to \code{fly} rather than
     requiring you to go through the login flow all over again.
+
+    This also fixes the annoying behavior of having to log back in to the web
+    UI whenever logging in to \code{fly}. Huzzah!
   }
 
   \note{feature}{
