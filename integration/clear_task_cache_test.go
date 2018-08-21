@@ -74,7 +74,7 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag " + "`" + "-j, --job'"))
+				Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("j", "job")))
 				Expect(sess.Err).To(gbytes.Say(`argument format should be <pipeline>/<job>`))
 			})
 		})
