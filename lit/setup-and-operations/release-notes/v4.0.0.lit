@@ -276,4 +276,10 @@
     The \resource{cf} now supports \code{no_start: true}, thanks to a PR by
     \ghuser{klakin-pivotal}!
   }
+
+  \note{feature}{
+    The \resource{docker-image} now has a \code{tag_file} param which
+    deprecates the old \code{tag} command which does the same thing. This is in
+    the interest of clearer naming. Thanks for the PR, \ghuser{ghostsquad}!
+  }
 }
