@@ -20,10 +20,13 @@ class Suite {
     await this.fly.setup();
 
     this.browser = await puppeteer.launch({
+      //headless: false,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     this.page = await this.browser.newPage();
+    //Default page navigation timeout to 90 Seconds.
+    this.page.setDefaultNavigationTimeout(90000);
     this.page.on("console", (msg) => {
       console.log(`BROWSER (${msg.type}):`, msg.text);
     });

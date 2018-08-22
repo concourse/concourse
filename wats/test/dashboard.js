@@ -123,7 +123,7 @@ test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
 
   await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/failing"));
 
-  await t.context.page.waitFor(5000);
+  await t.context.page.waitFor(10000);
 
   let newBanner = await t.context.page.$(`${group} .dashboard-pipeline-banner`);
   let newBackground = await t.context.web.computedStyle(t.context.page, newBanner, 'backgroundColor');

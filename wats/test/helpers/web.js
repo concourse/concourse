@@ -23,12 +23,13 @@ class Web {
       return document.body.innerText.indexOf(text) !== -1
     }, {
       polling: 100,
-      timeout: 60000
+      timeout: 90000
     }, text)
   }
 
   async login(t, page) {
     await page.goto(`${this.url}/sky/login`);
+    await page.waitForSelector('#login', {timeout: 90000});
     await page.type('#login', this.username);
     await page.type('#password', this.password);
     await this.clickAndWait(page, '#submit-login', '.user-info .user-id');
@@ -38,7 +39,7 @@ class Web {
   async clickAndWait(page, clickSelector, waitSelector) {
     await page.waitFor(clickSelector);
     await page.click(clickSelector);
-    await page.waitForSelector(waitSelector);
+    await page.waitForSelector(waitSelector, {timeout: 90000});
   }
 
   computedStyle(page, element, style) {
