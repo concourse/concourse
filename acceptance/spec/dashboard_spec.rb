@@ -138,6 +138,40 @@ describe 'dashboard', type: :feature do
       end
     end
 
+    context 'with pipeline that has long name' do
+      let(:other_team_name) { generate_team_name }
+      let(:long_pipeline_name) { 'other-pipeline-public-with-long-name' }
+      let(:short_pipeline_name) { 'some-pipeline' }
+
+      before do
+        fly_login 'main'
+        fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
+
+        fly_login other_team_name
+        fly("set-pipeline -n -p #{long_pipeline_name} -c fixtures/dashboard-pipeline.yml")
+        fly("unpause-pipeline -p #{long_pipeline_name}")
+        fly("expose-pipeline -p #{long_pipeline_name}")
+
+        fly_with_input("set-team -n #{other_team_name} --local-user=bad-username", 'y')
+        fly_login team_name
+      end
+
+      after do
+        fly_login 'main'
+        fly_with_input("destroy-team -n #{other_team_name}", other_team_name)
+      end
+
+      it 'shows tooltip with full pipeline name when hover the long pipeline name' do
+        visit_dashboard
+        expect(tooltip_content(long_pipeline_name)).to eq("\"#{long_pipeline_name}\"")
+      end
+
+      it 'doesnt show tooltip when hover the short pipeline name' do
+        visit_dashboard
+        expect(tooltip_content(short_pipeline_name)).to eq('none')
+      end
+    end
+
     context 'when pipelines have different states' do
       before do
         fly('destroy-pipeline -n -p some-pipeline')
@@ -675,6 +709,40 @@ describe 'dashboard', type: :feature do
       end
     end
 
+    context 'with pipeline that has long name' do
+      let(:other_team_name) { generate_team_name }
+      let(:long_pipeline_name) { 'other-pipeline-public-with-long-name' }
+      let(:short_pipeline_name) { 'some-pipeline' }
+
+      before do
+        fly_login 'main'
+        fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
+
+        fly_login other_team_name
+        fly("set-pipeline -n -p #{long_pipeline_name} -c fixtures/dashboard-pipeline.yml")
+        fly("unpause-pipeline -p #{long_pipeline_name}")
+        fly("expose-pipeline -p #{long_pipeline_name}")
+
+        fly_with_input("set-team -n #{other_team_name} --local-user=bad-username", 'y')
+        fly_login team_name
+      end
+
+      after do
+        fly_login 'main'
+        fly_with_input("destroy-team -n #{other_team_name}", other_team_name)
+      end
+
+      it 'shows tooltip with full pipeline name when hover the long pipeline name' do
+        visit_hd_dashboard
+        expect(tooltip_hd_content(long_pipeline_name)).to eq("\"#{long_pipeline_name}\"")
+      end
+
+      it 'doesnt show tooltip when hover the short pipeline name' do
+        visit_hd_dashboard
+        expect(tooltip_hd_content(short_pipeline_name)).to eq('none')
+      end
+    end
+
     it 'does not scroll' do
       1.upto(50) do |i|
       end
@@ -712,6 +780,18 @@ describe 'dashboard', type: :feature do
 
   def title_element(pipeline = 'some-pipeline')
     page.find('.dashboard-pipeline-content', text: pipeline)
+  end
+
+  def tooltip_content(pipeline_name)
+    pipe_selector = ".dashboard-pipeline[data-pipeline-name=\"#{pipeline_name}\"]"
+    page.find(pipe_selector).find('.dashboard-pipeline-header').hover
+    page.evaluate_script "window.getComputedStyle($('#{pipe_selector}').find('.dashboard-pipeline-header').get(0), ':before').getPropertyValue('content')"
+  end
+
+  def tooltip_hd_content(pipeline_name)
+    pipe_selector = ".dashboard-pipeline[data-pipeline-name=\"#{pipeline_name}\"]"
+    page.find(pipe_selector).find('a').hover
+    page.evaluate_script "window.getComputedStyle($('#{pipe_selector}').find('a').get(0), ':before').getPropertyValue('content')"
   end
 
   def visit_dashboard

@@ -65,6 +65,29 @@
         }, 0)
       });
 
+      app.ports.tooltip.subscribe(function (pipelineInfo) {
+        var pipelineName = pipelineInfo[0];
+        var pipelineTeamName = pipelineInfo[1];
+
+        var team = $('#' + pipelineTeamName);
+        var title = team.find('.dashboard-pipeline[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name');
+
+        if(title.get(0).offsetWidth < title.get(0).scrollWidth){
+            title.parent().attr('data-tooltip', pipelineName);
+        }
+      });
+
+      app.ports.tooltipHd.subscribe(function (pipelineInfo) {
+        var pipelineName = pipelineInfo[0];
+        var pipelineTeamName = pipelineInfo[1];
+
+        var title = $('.dashboard-pipeline[data-pipeline-name="' + pipelineName + '"][data-team-name="' + pipelineTeamName + '"]').find('.dashboardhd-pipeline-name');
+
+        if(title.get(0).offsetWidth < title.get(0).scrollWidth){
+            title.parent().attr('data-tooltip', pipelineName);
+        }
+      });
+
       var storageKey = "csrf_token";
       app.ports.saveToken.subscribe(function(value) {
         localStorage.setItem(storageKey, value);

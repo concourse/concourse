@@ -166,10 +166,6 @@
 
     .dashboard-pipeline-header {
       border-bottom: 2px solid @base02;
-
-      &:hover {
-        background: @base00;
-      }
     }
 
     .dashboard-resource-error {
@@ -497,14 +493,10 @@
   font-size: (3em * @scale);
   letter-spacing: (0.2em * @scale);
   padding: (@name-padding * @scale);
-  width: (300px * @scale);
+  width: (490px * @scale);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-
-  &:hover {
-    direction: rtl;
-  }
 }
 
 [data-tooltip] {
@@ -526,6 +518,14 @@
   content: attr(data-tooltip);
   font-size: 26px * @scale;
   white-space: nowrap;
+
+  .dashboard-pipeline-header& {
+    top: -45px;
+    left: -10px;
+    font-size: (3em * @scale);
+    letter-spacing: (0.2em * @scale);
+    padding: (@name-padding * @scale);
+  }
 }
 
 [data-tooltip]:after {
@@ -533,12 +533,19 @@
   left: ~"calc(100% - 15px)";
   width: 0;
   border-right: 30px*@scale solid black;
-  border-right: 30px*@scale solid black;
   border-top: 30px*@scale solid transparent;
   border-bottom: 30px*@scale solid transparent;
   content: " ";
   font-size: 0;
   line-height: 0;
+
+  .dashboard-pipeline-header& {
+    top: 0;
+    left: 2px;
+    border-top: 30px*@scale solid black;
+    border-left: 30px*@scale solid transparent;
+    border-right: 30px*@scale solid transparent;
+  }
 }
 
 [data-tooltip]:hover:before,

@@ -12,6 +12,7 @@ import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src, attribute)
 import Html.Attributes.Aria exposing (ariaLabel)
+import Html.Events exposing (onMouseEnter)
 import Http
 import Mouse
 import NewTopBar
@@ -26,6 +27,9 @@ import Time exposing (Time)
 type alias Ports =
     { title : String -> Cmd Msg
     }
+
+
+port tooltipHd : ( String, String ) -> Cmd msg
 
 
 type alias Model =
@@ -54,6 +58,7 @@ type Msg
     | AutoRefresh Time
     | ShowFooter
     | TopBarMsg NewTopBar.Msg
+    | Tooltip String String
 
 
 init : Ports -> String -> String -> ( Model, Cmd Msg )
@@ -158,6 +163,9 @@ update msg model =
                                 Cmd.map TopBarMsg newTopBarMsg
                 in
                     ( { model | topBar = newTopBar }, newMsg )
+
+            Tooltip pipelineName teamName ->
+                ( model, tooltipHd ( pipelineName, teamName ) )
 
 
 subscriptions : Model -> Sub Msg
@@ -302,7 +310,7 @@ turbulenceView model =
         ]
 
 
-groupView : Maybe Time -> String -> List PipelineWithJobs -> List (Html msg)
+groupView : Maybe Time -> String -> List PipelineWithJobs -> List (Html Msg)
 groupView now teamName pipelines =
     let
         teamPipelines =
@@ -320,7 +328,7 @@ groupView now teamName pipelines =
                 List.append [ Html.div [ class "dashboard-team-name-wrapper" ] [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ], p ] ] ps
 
 
-pipelineView : Maybe Time -> PipelineWithJobs -> Html msg
+pipelineView : Maybe Time -> PipelineWithJobs -> Html Msg
 pipelineView now { pipeline, jobs, resourceError } =
     Html.div
         [ classList
@@ -330,12 +338,20 @@ pipelineView now { pipeline, jobs, resourceError } =
             , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (pipelineStatusFromJobs jobs False), not pipeline.paused )
             ]
         , attribute "data-pipeline-name" pipeline.name
+        , attribute "data-team-name" pipeline.teamName
         ]
         [ Html.div [ class "dashboard-pipeline-banner" ] []
         , Html.div
-            [ class "dashboard-pipeline-content" ]
+            [ class "dashboard-pipeline-content"
+            , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
+            ]
             [ Html.a [ href <| Routes.pipelineRoute pipeline ]
-                [ Html.text pipeline.name ]
+                [ Html.div
+                    [ class "dashboardhd-pipeline-name"
+                    , attribute "data-team-name" pipeline.teamName
+                    ]
+                    [ Html.text pipeline.name ]
+                ]
             ]
         , Html.div [ classList [ ( "dashboard-resource-error", resourceError ) ] ] []
         ]

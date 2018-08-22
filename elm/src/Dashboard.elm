@@ -17,7 +17,7 @@ import Dom
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src, attribute, draggable)
 import Html.Attributes.Aria exposing (ariaLabel)
-import Html.Events exposing (on)
+import Html.Events exposing (on, onMouseEnter)
 import Http
 import Json.Decode
 import Keyboard
@@ -41,6 +41,9 @@ type alias Ports =
 
 
 port pinTeamNames : () -> Cmd msg
+
+
+port tooltip : ( String, String ) -> Cmd msg
 
 
 type alias PipelineIndex =
@@ -101,6 +104,7 @@ type Msg
     | DragStart String Int
     | DragOver String Int
     | DragEnd
+    | Tooltip String String
 
 
 init : Ports -> Flags -> ( Model, Cmd Msg )
@@ -268,6 +272,9 @@ update msg model =
 
             DragOver teamName index ->
                 ( { model | dropState = Dropping index }, Cmd.none )
+
+            Tooltip pipelineName teamName ->
+                ( model, tooltip ( pipelineName, teamName ) )
 
             DragEnd ->
                 case ( model.dragState, model.dropState ) of
@@ -589,7 +596,9 @@ pipelineView model ({ pipeline, jobs, resourceError } as pipelineWithJobs) index
             [ class "dashboard-pipeline-content" ]
             [ Html.a [ href <| Routes.pipelineRoute pipeline, draggable "false" ]
                 [ Html.div
-                    [ class "dashboard-pipeline-header" ]
+                    [ class "dashboard-pipeline-header"
+                    , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
+                    ]
                     [ Html.div [ class "dashboard-pipeline-name" ]
                         [ Html.text pipeline.name ]
                     , Html.div [ classList [ ( "dashboard-resource-error", resourceError ) ] ] []
