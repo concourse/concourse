@@ -227,7 +227,7 @@ func (scanner *resourceTypeScanner) check(
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
-			return nil
+			return rErr
 		}
 
 		logger.Error("failed-to-check", err)
