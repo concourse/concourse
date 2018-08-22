@@ -187,6 +187,21 @@ func (h *FlyHelper) TriggerPipelineJob(pipeline string, jobName string) *gexec.S
 	))
 }
 
+func (h *FlyHelper) CheckResourceType(argv ...string) *gexec.Session {
+	args := append([]string{
+		"-t",
+		TargetedConcourse,
+		"check-resource-type",
+	}, argv...)
+
+	command := exec.Command(
+		h.Path,
+		args...,
+	)
+
+	return start(command)
+}
+
 func (h *FlyHelper) CheckResource(argv ...string) *gexec.Session {
 	args := append([]string{
 		"-t",

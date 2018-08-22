@@ -8,6 +8,14 @@ resource_types:
     uri: {{origin-git-server}}
     branch: master
 
+- name: failing-custom-resource-type
+  type: git
+  privileged: ((privileged))
+  check_every: 5s
+  source:
+    uri: failure
+    something-nonexistent: something-nonexistent
+
 resources:
 - name: my-resource
   type: custom-resource-type
