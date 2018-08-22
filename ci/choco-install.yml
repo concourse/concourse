@@ -4,8 +4,11 @@ platform: windows
 inputs:
 - name: concourse
 
+params:
+  PACKAGE:
+
 run:
   path: powershell.exe
   args:
   - -File
-  - '.\concourse\ci\scripts\install-git-windows.ps1'
+  - '.\concourse\ci\scripts\choco-install.ps1'
