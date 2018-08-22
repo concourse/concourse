@@ -14,7 +14,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/baggageclaim"
 )
 
 //go:generate counterfeiter . WorkerProvider
@@ -197,10 +196,6 @@ func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 
 func (*pool) GardenClient() garden.Client {
 	panic("GardenClient not implemented for pool")
-}
-
-func (*pool) BaggageclaimClient() baggageclaim.Client {
-	panic("BaggageclaimClient not implemented for pool")
 }
 
 func resourcesDir(suffix string) string {

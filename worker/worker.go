@@ -64,7 +64,6 @@ type Worker interface {
 	CertsVolume(lager.Logger) (volume Volume, found bool, err error)
 
 	GardenClient() garden.Client
-	BaggageclaimClient() baggageclaim.Client
 }
 
 type gardenWorker struct {
@@ -117,10 +116,6 @@ func NewGardenWorker(
 
 func (worker *gardenWorker) GardenClient() garden.Client {
 	return worker.gardenClient
-}
-
-func (worker *gardenWorker) BaggageclaimClient() baggageclaim.Client {
-	return worker.baggageclaimClient
 }
 
 func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVersion *version.Version) bool {

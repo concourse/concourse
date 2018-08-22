@@ -386,7 +386,6 @@ var _ = Describe("ContainerProvider", func() {
 			Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
 			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualDelegate, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
 
-			Expect(actualWorker.BaggageclaimClient()).To(Equal(fakeBaggageclaimClient))
 			Expect(actualWorker.GardenClient()).To(Equal(fakeGardenClient))
 
 			Expect(actualVolumeClient).To(Equal(fakeVolumeClient))

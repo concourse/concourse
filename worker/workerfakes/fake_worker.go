@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
@@ -267,15 +266,6 @@ type FakeWorker struct {
 	}
 	gardenClientReturnsOnCall map[int]struct {
 		result1 garden.Client
-	}
-	BaggageclaimClientStub        func() baggageclaim.Client
-	baggageclaimClientMutex       sync.RWMutex
-	baggageclaimClientArgsForCall []struct{}
-	baggageclaimClientReturns     struct {
-		result1 baggageclaim.Client
-	}
-	baggageclaimClientReturnsOnCall map[int]struct {
-		result1 baggageclaim.Client
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -1233,46 +1223,6 @@ func (fake *FakeWorker) GardenClientReturnsOnCall(i int, result1 garden.Client) 
 	}{result1}
 }
 
-func (fake *FakeWorker) BaggageclaimClient() baggageclaim.Client {
-	fake.baggageclaimClientMutex.Lock()
-	ret, specificReturn := fake.baggageclaimClientReturnsOnCall[len(fake.baggageclaimClientArgsForCall)]
-	fake.baggageclaimClientArgsForCall = append(fake.baggageclaimClientArgsForCall, struct{}{})
-	fake.recordInvocation("BaggageclaimClient", []interface{}{})
-	fake.baggageclaimClientMutex.Unlock()
-	if fake.BaggageclaimClientStub != nil {
-		return fake.BaggageclaimClientStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.baggageclaimClientReturns.result1
-}
-
-func (fake *FakeWorker) BaggageclaimClientCallCount() int {
-	fake.baggageclaimClientMutex.RLock()
-	defer fake.baggageclaimClientMutex.RUnlock()
-	return len(fake.baggageclaimClientArgsForCall)
-}
-
-func (fake *FakeWorker) BaggageclaimClientReturns(result1 baggageclaim.Client) {
-	fake.BaggageclaimClientStub = nil
-	fake.baggageclaimClientReturns = struct {
-		result1 baggageclaim.Client
-	}{result1}
-}
-
-func (fake *FakeWorker) BaggageclaimClientReturnsOnCall(i int, result1 baggageclaim.Client) {
-	fake.BaggageclaimClientStub = nil
-	if fake.baggageclaimClientReturnsOnCall == nil {
-		fake.baggageclaimClientReturnsOnCall = make(map[int]struct {
-			result1 baggageclaim.Client
-		})
-	}
-	fake.baggageclaimClientReturnsOnCall[i] = struct {
-		result1 baggageclaim.Client
-	}{result1}
-}
-
 func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1316,8 +1266,6 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.certsVolumeMutex.RUnlock()
 	fake.gardenClientMutex.RLock()
 	defer fake.gardenClientMutex.RUnlock()
-	fake.baggageclaimClientMutex.RLock()
-	defer fake.baggageclaimClientMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
