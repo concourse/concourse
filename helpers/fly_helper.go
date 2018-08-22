@@ -251,6 +251,24 @@ func (h *FlyHelper) HijackInteractive(argv ...string) (*gexec.Session, io.Writer
 	return start(command), stdin
 }
 
+func (h *FlyHelper) ClearTaskCache(jobName string, stepName string) {
+	clearTaskCacheCmd := exec.Command(
+		h.Path,
+		"-t", TargetedConcourse,
+		"clear-task-cache",
+		"-j", jobName,
+		"-s", stepName,
+		"--non-interactive",
+	)
+
+	clearTaskCache, err := gexec.Start(clearTaskCacheCmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+
+	<-clearTaskCache.Exited
+
+	Expect(clearTaskCache).To(gexec.Exit(0))
+}
+
 func start(cmd *exec.Cmd) *gexec.Session {
 	session, err := gexec.Start(
 		cmd,
