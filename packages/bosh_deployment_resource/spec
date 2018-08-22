@@ -1,5 +1,0 @@
----
-name: bosh_deployment_resource
-
-files:
-  - resources/bosh-deployment-resource*.tar.gz
