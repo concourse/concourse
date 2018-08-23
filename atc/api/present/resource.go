@@ -6,9 +6,13 @@ import (
 )
 
 func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Resource {
-	var checkErrString string
+	var checkErrString, rcCheckErrString string
 	if resource.CheckError() != nil && showCheckError {
 		checkErrString = resource.CheckError().Error()
+	}
+
+	if resource.ResourceConfigCheckError() != nil && showCheckError {
+		rcCheckErrString = resource.ResourceConfigCheckError().Error()
 	}
 
 	atcResource := atc.Resource{
@@ -19,8 +23,9 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 
 		Paused: resource.Paused(),
 
-		FailingToCheck: resource.FailingToCheck(),
-		CheckError:     checkErrString,
+		FailingToCheck:  resource.FailingToCheck(),
+		CheckSetupError: checkErrString,
+		CheckError:      rcCheckErrString,
 	}
 
 	if !resource.LastChecked().IsZero() {

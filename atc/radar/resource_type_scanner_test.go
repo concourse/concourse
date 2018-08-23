@@ -197,6 +197,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 						versionedResourceType,
 					})))
 
+					Expect(fakeResourceType.SetCheckErrorCallCount()).To(Equal(1))
+					err := fakeResourceType.SetCheckErrorArgsForCall(0)
+					Expect(err).To(BeNil())
+
 					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
 					resourceConfigID := fakeResourceType.SetResourceConfigArgsForCall(0)
 					Expect(resourceConfigID).To(Equal(123))
@@ -243,6 +247,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 					BeforeEach(func() {
 						fakeResourceType.CheckEveryReturns("bad-value")
 						fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+					})
+
+					It("sets the check error", func() {
+						Expect(fakeResourceType.SetCheckErrorCallCount()).To(Equal(1))
+
+						resourceErr := fakeResourceType.SetCheckErrorArgsForCall(0)
+						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 
 					It("returns an error", func() {
@@ -339,6 +350,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(runErr).To(HaveOccurred())
 					Expect(runErr).To(Equal(disaster))
 				})
+
+				It("sets the resource's check error", func() {
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+
+					err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					Expect(err).To(Equal(disaster))
+				})
 			})
 
 			Context("when the pipeline is paused", func() {
@@ -391,6 +409,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(resourceType).To(Equal("registry-image"))
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+
+				Expect(fakeResourceType.SetCheckErrorCallCount()).To(Equal(1))
+				err := fakeResourceType.SetCheckErrorArgsForCall(0)
+				Expect(err).To(BeNil())
 
 				Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
 				resourceConfigID := fakeResourceType.SetResourceConfigArgsForCall(0)
@@ -462,6 +484,14 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 						It("returns the error from scanning the parent", func() {
 							Expect(runErr).To(Equal(parentResourceTypeErr))
+						})
+
+						It("saves the error to check_error on resource type row in db", func() {
+							Expect(fakeResourceType.SetCheckErrorCallCount()).To(Equal(1))
+
+							err := fakeResourceType.SetCheckErrorArgsForCall(0)
+							Expect(err).To(HaveOccurred())
+							Expect(err.Error()).To(Equal("jma says no recursion in production"))
 						})
 					})
 				})
@@ -535,6 +565,48 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(immediate).To(BeTrue())
 
 				Eventually(fakeLock.ReleaseCallCount()).Should(Equal(1))
+			})
+
+			Context("when creating the resource config fails", func() {
+				BeforeEach(func() {
+					fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(nil, errors.New("catastrophe"))
+				})
+
+				It("sets the check error and returns the error", func() {
+					Expect(runErr).To(HaveOccurred())
+					Expect(fakeResourceType.SetCheckErrorCallCount()).To(Equal(1))
+
+					chkErr := fakeResourceType.SetCheckErrorArgsForCall(0)
+					Expect(chkErr).To(MatchError("catastrophe"))
+				})
+			})
+
+			Context("when updating the resource config id on the resource type fails", func() {
+				BeforeEach(func() {
+					fakeResourceType.SetResourceConfigReturns(errors.New("catastrophe"))
+				})
+
+				It("sets the check error and returns the error", func() {
+					Expect(runErr).To(HaveOccurred())
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+
+					chkErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					Expect(chkErr).To(MatchError("catastrophe"))
+				})
+			})
+
+			Context("when creating the resource checker fails", func() {
+				BeforeEach(func() {
+					fakeResourceFactory.NewResourceReturns(nil, errors.New("catastrophe"))
+				})
+
+				It("sets the check error and returns the error", func() {
+					Expect(runErr).To(HaveOccurred())
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+
+					chkErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					Expect(chkErr).To(MatchError("catastrophe"))
+				})
 			})
 
 			Context("when there is no current version", func() {
@@ -654,6 +726,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
+			})
+
+			It("clears the resource's check error", func() {
+				Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+
+				err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+				Expect(err).To(BeNil())
 			})
 
 			Context("when the pipeline is paused", func() {

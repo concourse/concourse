@@ -177,6 +177,10 @@ var _ = Describe("ResourceScanner", func() {
 					versionedResourceType,
 				})))
 
+				Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+				err := fakeDBResource.SetCheckErrorArgsForCall(0)
+				Expect(err).To(BeNil())
+
 				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
 				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
 				Expect(resourceConfigID).To(Equal(123))
@@ -230,10 +234,9 @@ var _ = Describe("ResourceScanner", func() {
 					})
 
 					It("sets the check error", func() {
-						Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
 
-						savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
-						Expect(savedResource.Name()).To(Equal("some-resource"))
+						resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 
@@ -522,12 +525,11 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("saves the error to check_error on resource row in db", func() {
-					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
 
-					savedResource, err := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+					err := fakeDBResource.SetCheckErrorArgsForCall(0)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("some-resource-type-error"))
-					Expect(savedResource.Name()).To(Equal("some-resource"))
 				})
 			})
 
@@ -543,6 +545,10 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
 				})))
+
+				Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+				err := fakeDBResource.SetCheckErrorArgsForCall(0)
+				Expect(err).To(BeNil())
 
 				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
 				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
@@ -587,10 +593,9 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
 
-					savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
-					Expect(savedResource.Name()).To(Equal("some-resource"))
+					resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})
@@ -602,10 +607,9 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-					savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
-					Expect(savedResource.Name()).To(Equal("some-resource"))
+					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})
@@ -617,10 +621,9 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-					savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
-					Expect(savedResource.Name()).To(Equal("some-resource"))
+					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})
@@ -649,10 +652,9 @@ var _ = Describe("ResourceScanner", func() {
 
 					It("sets the check error and returns the error", func() {
 						Expect(scanErr).To(HaveOccurred())
-						Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
 
-						savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
-						Expect(savedResource.Name()).To(Equal("some-resource"))
+						resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 				})
@@ -728,10 +730,9 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("clears the resource's check error", func() {
-				Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+				Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-				savedResourceArg, err := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
-				Expect(savedResourceArg.Name()).To(Equal("some-resource"))
+				err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 			})
 
@@ -845,10 +846,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-					savedResourceArg, err := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
-					Expect(savedResourceArg.Name()).To(Equal("some-resource"))
+					err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(err).To(Equal(disaster))
 				})
 			})
@@ -865,10 +865,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-					savedResourceArg, err := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
-					Expect(savedResourceArg.Name()).To(Equal("some-resource"))
+					err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(err).To(Equal(scriptFail))
 				})
 			})

@@ -56,6 +56,7 @@ var _ = Describe("Resources API", func() {
 				resource1 = new(dbfakes.FakeResource)
 				resource1.IDReturns(1)
 				resource1.CheckErrorReturns(nil)
+				resource1.ResourceConfigCheckErrorReturns(nil)
 				resource1.PausedReturns(true)
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.TeamNameReturns("some-team")
@@ -65,7 +66,8 @@ var _ = Describe("Resources API", func() {
 
 				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
-				resource2.CheckErrorReturns(errors.New("sup"))
+				resource2.CheckErrorReturns(nil)
+				resource2.ResourceConfigCheckErrorReturns(errors.New("sup"))
 				resource2.FailingToCheckReturns(true)
 				resource2.PausedReturns(false)
 				resource2.PipelineNameReturns("a-pipeline")
@@ -75,7 +77,8 @@ var _ = Describe("Resources API", func() {
 
 				resource3 := new(dbfakes.FakeResource)
 				resource3.IDReturns(3)
-				resource3.CheckErrorReturns(nil)
+				resource3.CheckErrorReturns(errors.New("sup"))
+				resource3.ResourceConfigCheckErrorReturns(nil)
 				resource3.PausedReturns(true)
 				resource3.PipelineNameReturns("a-pipeline")
 				resource3.TeamNameReturns("another-team")
@@ -121,7 +124,8 @@ var _ = Describe("Resources API", func() {
 							"pipeline_name": "a-pipeline",
 							"team_name": "another-team",
 							"type": "type-3",
-							"paused": true
+							"paused": true,
+							"check_setup_error": "sup"
 						}
 					]`))
 			})
@@ -171,6 +175,7 @@ var _ = Describe("Resources API", func() {
 				resource1 = new(dbfakes.FakeResource)
 				resource1.IDReturns(1)
 				resource1.CheckErrorReturns(nil)
+				resource1.ResourceConfigCheckErrorReturns(nil)
 				resource1.PausedReturns(true)
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.NameReturns("resource-1")
@@ -179,7 +184,8 @@ var _ = Describe("Resources API", func() {
 
 				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
-				resource2.CheckErrorReturns(errors.New("sup"))
+				resource2.CheckErrorReturns(nil)
+				resource2.ResourceConfigCheckErrorReturns(errors.New("sup"))
 				resource2.FailingToCheckReturns(true)
 				resource2.PausedReturns(false)
 				resource2.PipelineNameReturns("a-pipeline")
@@ -188,7 +194,8 @@ var _ = Describe("Resources API", func() {
 
 				resource3 := new(dbfakes.FakeResource)
 				resource3.IDReturns(3)
-				resource3.CheckErrorReturns(nil)
+				resource3.CheckErrorReturns(errors.New("sup"))
+				resource3.ResourceConfigCheckErrorReturns(nil)
 				resource3.PausedReturns(true)
 				resource3.PipelineNameReturns("a-pipeline")
 				resource3.NameReturns("resource-3")
@@ -300,7 +307,8 @@ var _ = Describe("Resources API", func() {
 							"pipeline_name": "a-pipeline",
 							"team_name": "a-team",
 							"type": "type-3",
-							"paused": true
+							"paused": true,
+							"check_setup_error": "sup"
 						}
 					]`))
 				})
@@ -454,6 +462,8 @@ var _ = Describe("Resources API", func() {
 					"version-key-1": "version-value-1",
 					"version-key-2": "version-value-2",
 				})
+				resourceType1.ResourceConfigCheckErrorReturns(nil)
+				resourceType1.CheckErrorReturns(nil)
 
 				resourceType2 := new(dbfakes.FakeResourceType)
 				resourceType2.IDReturns(2)
@@ -467,6 +477,8 @@ var _ = Describe("Resources API", func() {
 				resourceType2.VersionReturns(map[string]string{
 					"version-key-2": "version-value-2",
 				})
+				resourceType2.ResourceConfigCheckErrorReturns(errors.New("sup"))
+				resourceType2.CheckErrorReturns(errors.New("sup"))
 
 				fakePipeline.ResourceTypesReturns(db.ResourceTypes{
 					resourceType1, resourceType2,
@@ -502,7 +514,7 @@ var _ = Describe("Resources API", func() {
 						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 					})
 
-					It("returns each resource type", func() {
+					It("returns each resource type, excluding the check errors", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
@@ -512,7 +524,6 @@ var _ = Describe("Resources API", func() {
 					"type": "type-1",
 					"tags": ["tag1"],
 					"privileged": false,
-					"check_every": "",
 					"params": {"param-key-1": "param-value-1"},
 					"source": {"source-key-1": "source-value-1"},
 					"version": {
@@ -561,7 +572,6 @@ var _ = Describe("Resources API", func() {
 				"type": "type-1",
 				"tags": ["tag1"],
 				"privileged": false,
-				"check_every": "",
 				"params": {"param-key-1": "param-value-1"},
 				"source": {"source-key-1": "source-value-1"},
 				"version": {
@@ -579,7 +589,9 @@ var _ = Describe("Resources API", func() {
 				"source": {"source-key-2": "source-value-2"},
 				"version": {
 					"version-key-2": "version-value-2"
-				}
+				},
+				"check_setup_error": "sup",
+				"check_error": "sup"
 			}
 		]`))
 				})
@@ -653,6 +665,7 @@ var _ = Describe("Resources API", func() {
 
 					resource1 := new(dbfakes.FakeResource)
 					resource1.CheckErrorReturns(errors.New("sup"))
+					resource1.ResourceConfigCheckErrorReturns(errors.New("sup"))
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
 					resource1.FailingToCheckReturns(true)
@@ -722,6 +735,7 @@ var _ = Describe("Resources API", func() {
 				BeforeEach(func() {
 					resource1 := new(dbfakes.FakeResource)
 					resource1.CheckErrorReturns(errors.New("sup"))
+					resource1.ResourceConfigCheckErrorReturns(errors.New("sup"))
 					resource1.PausedReturns(true)
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
@@ -753,6 +767,7 @@ var _ = Describe("Resources API", func() {
 								"last_checked": 1513364881,
 								"paused": true,
 								"failing_to_check": true,
+								"check_setup_error": "sup",
 								"check_error": "sup"
 							}`))
 				})

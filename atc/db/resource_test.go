@@ -1,7 +1,10 @@
 package db_test
 
 import (
+	"errors"
+
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -109,6 +112,48 @@ var _ = Describe("Resource", func() {
 				Expect(resource.Type()).To(Equal("registry-image"))
 				Expect(resource.Source()).To(Equal(atc.Source{"some": "repository"}))
 			})
+
+			Context("when the resource config id is set on the resource", func() {
+				var resourceConfig db.ResourceConfig
+
+				BeforeEach(func() {
+					setupTx, err := dbConn.Begin()
+					Expect(err).ToNot(HaveOccurred())
+
+					brt := db.BaseResourceType{
+						Name: "registry-image",
+					}
+					_, err = brt.FindOrCreate(setupTx)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(setupTx.Commit()).To(Succeed())
+
+					resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+					Expect(err).NotTo(HaveOccurred())
+
+					err = resourceConfig.SetCheckError(errors.New("oops"))
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				JustBeforeEach(func() {
+					err = resource.SetResourceConfig(resourceConfig.ID())
+					Expect(err).NotTo(HaveOccurred())
+
+					found, err = resource.Reload()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns the resource config check error", func() {
+					Expect(found).To(BeTrue())
+					Expect(resource.ResourceConfigCheckError()).To(Equal(errors.New("oops")))
+				})
+			})
+
+			Context("when the resource config id is not set on the resource", func() {
+				It("returns nil for the resource config check error", func() {
+					Expect(found).To(BeTrue())
+					Expect(resource.ResourceConfigCheckError()).To(BeNil())
+				})
+			})
 		})
 
 		Context("when the resource does not exist", func() {
@@ -181,4 +226,50 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
+	Describe("SetCheckError", func() {
+		var resource db.Resource
+
+		BeforeEach(func() {
+			var err error
+			resource, _, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the resource is first created", func() {
+			It("is not errored", func() {
+				Expect(resource.CheckError()).To(BeNil())
+			})
+		})
+
+		Context("when a resource check is marked as errored", func() {
+			It("is then marked as errored", func() {
+				originalCause := errors.New("on fire")
+
+				err := resource.SetCheckError(originalCause)
+				Expect(err).ToNot(HaveOccurred())
+
+				returnedResource, _, err := pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(returnedResource.CheckError()).To(Equal(originalCause))
+			})
+		})
+
+		Context("when a resource is cleared of check errors", func() {
+			It("is not marked as errored again", func() {
+				originalCause := errors.New("on fire")
+
+				err := resource.SetCheckError(originalCause)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = resource.SetCheckError(nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				returnedResource, _, err := pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(returnedResource.CheckError()).To(BeNil())
+			})
+		})
+	})
 })

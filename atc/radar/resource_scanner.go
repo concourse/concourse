@@ -151,14 +151,18 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		return 0, err
 	}
 
+	scanner.setResourceCheckError(logger, savedResource, err)
+	resourceConfig := resourceConfigCheckSession.ResourceConfig()
 	err = savedResource.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID())
 	if err != nil {
 		logger.Error("failed-to-set-resource-config-id-on-resource", err)
-		scanner.setResourceCheckError(logger, savedResource, err)
+		chkErr := resourceConfig.SetCheckError(err)
+		if chkErr != nil {
+			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
+		}
 		return 0, err
 	}
 
-	resourceConfig := resourceConfigCheckSession.ResourceConfig()
 	for breaker := true; breaker == true; breaker = mustComplete {
 		lock, acquired, err := resourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheck(
 			logger,
@@ -275,7 +279,10 @@ func (scanner *resourceScanner) check(
 
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)
-		scanner.setResourceCheckError(logger, savedResource, err)
+		chkErr := resourceConfigCheckSession.ResourceConfig().SetCheckError(err)
+		if chkErr != nil {
+			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
+		}
 		return err
 	}
 
@@ -297,7 +304,7 @@ func (scanner *resourceScanner) check(
 		err = fmt.Errorf("Timed out after %v while checking for new versions - perhaps increase your resource check timeout?", timeout)
 	}
 
-	scanner.setResourceCheckError(logger, savedResource, err)
+	resourceConfigCheckSession.ResourceConfig().SetCheckError(err)
 	metric.ResourceCheck{
 		PipelineName: scanner.dbPipeline.Name(),
 		ResourceName: savedResource.Name(),
@@ -371,7 +378,7 @@ func (scanner *resourceScanner) checkInterval(checkEvery string) (time.Duration,
 }
 
 func (scanner *resourceScanner) setResourceCheckError(logger lager.Logger, savedResource db.Resource, err error) {
-	setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
+	setErr := savedResource.SetCheckError(err)
 	if setErr != nil {
 		logger.Error("failed-to-set-check-error", err)
 	}

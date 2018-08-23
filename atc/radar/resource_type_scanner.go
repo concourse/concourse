@@ -75,6 +75,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 
 	interval, err := scanner.checkInterval(savedResourceType.CheckEvery())
 	if err != nil {
+		scanner.setCheckError(logger, savedResourceType, err)
 		return 0, err
 	}
 
@@ -97,6 +98,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 
 		if err = scanner.Scan(logger, parentType.Name()); err != nil {
 			logger.Error("failed-to-scan-parent-resource-type-version", err)
+			scanner.setCheckError(logger, savedResourceType, err)
 			return 0, err
 		}
 	}
@@ -115,6 +117,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 	source, err := creds.NewSource(scanner.variables, savedResourceType.Source()).Evaluate()
 	if err != nil {
 		logger.Error("failed-to-evaluate-resource-type-source", err)
+		scanner.setCheckError(logger, savedResourceType, err)
 		return 0, err
 	}
 
@@ -127,16 +130,22 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 	)
 	if err != nil {
 		logger.Error("failed-to-find-or-create-resource-config", err)
+		scanner.setCheckError(logger, savedResourceType, err)
 		return 0, err
 	}
 
+	scanner.setCheckError(logger, savedResourceType, err)
+	resourceConfig := resourceConfigCheckSession.ResourceConfig()
 	err = savedResourceType.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID())
 	if err != nil {
 		logger.Error("failed-to-set-resource-config-id-on-resource-type", err)
+		chkErr := resourceConfig.SetCheckError(err)
+		if chkErr != nil {
+			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
+		}
 		return 0, err
 	}
 
-	resourceConfig := resourceConfigCheckSession.ResourceConfig()
 	for breaker := true; breaker == true; breaker = mustComplete {
 		lock, acquired, err := resourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheck(
 			logger,
@@ -229,11 +238,16 @@ func (scanner *resourceTypeScanner) check(
 		worker.NoopImageFetchingDelegate{},
 	)
 	if err != nil {
+		chkErr := resourceConfigCheckSession.ResourceConfig().SetCheckError(err)
+		if chkErr != nil {
+			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
+		}
 		logger.Error("failed-to-initialize-new-container", err)
 		return err
 	}
 
 	newVersions, err := res.Check(context.TODO(), source, fromVersion)
+	resourceConfigCheckSession.ResourceConfig().SetCheckError(err)
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
@@ -277,4 +291,11 @@ func (scanner *resourceTypeScanner) checkInterval(checkEvery string) (time.Durat
 	}
 
 	return interval, nil
+}
+
+func (scanner *resourceTypeScanner) setCheckError(logger lager.Logger, savedResourceType db.ResourceType, err error) {
+	setErr := savedResourceType.SetCheckError(err)
+	if setErr != nil {
+		logger.Error("failed-to-set-check-error", err)
+	}
 }
