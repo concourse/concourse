@@ -2,8 +2,6 @@
 
 set -e -u
 
-go get github.com/jteeuwen/go-bindata/...
-
 go-bindata \
   -pkg bindata \
   -o bindata/bindata.go \
