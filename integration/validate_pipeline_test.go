@@ -28,6 +28,25 @@ var _ = Describe("Fly CLI", func() {
 			Expect(sess.ExitCode()).To(Equal(0))
 		})
 
+		It("returns valid on valid configuration to stdout", func() {
+			flyCmd := exec.Command(
+				flyPath,
+				"validate-pipeline",
+				"-c", "fixtures/testConfigValid.yml",
+				"-o",
+			)
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess).Should(gbytes.Say("groups:"))
+			Eventually(sess).Should(gbytes.Say("jobs:"))
+			Eventually(sess).Should(gbytes.Say("resources:"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+		})
+
 		It("returns valid on templated configuration with variables", func() {
 			flyCmd := exec.Command(
 				flyPath,
