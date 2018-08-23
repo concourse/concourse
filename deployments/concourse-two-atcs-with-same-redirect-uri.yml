@@ -13,10 +13,10 @@ instance_groups:
 - name: web
   instances: 2
   networks:
-  - name: topgun
+  - name: testflight
     static_ips:
-    - 10.234.0.14
-    - 10.234.0.15
+    - 10.244.23.2
+    - 10.244.24.2
   azs: [z1]
   persistent_disk: 1240
   vm_type: topgun
@@ -39,7 +39,7 @@ instance_groups:
           name: atc
           password: dummy-password
       build_tracker_interval: 5m
-      external_url: http://10.234.0.14:8080
+      external_url: http://10.244.23.2:8080
 
   - release: concourse
     name: tsa
