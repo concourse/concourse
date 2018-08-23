@@ -15,14 +15,19 @@ networks:
 - name: testflight
   subnets:
   - az: z1
-    gateway: 10.244.15.1
-    range: 10.244.15.0/30
+    gateway: 10.244.0.1
+    range: 10.244.0.0/16
     static:
     - 10.244.15.2
-  - az: z1
-    gateway: 10.244.16.1
-    range: 10.244.16.0/24
-
+    - 10.244.16.2
+    - 10.244.17.2
+    - 10.244.18.2
+    - 10.244.19.2
+    - 10.244.20.2
+    - 10.244.21.2
+    - 10.244.22.2
+    - 10.244.23.2
+    - 10.244.24.2
 vm_types:
 - name: topgun
   network: topgun
