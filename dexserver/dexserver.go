@@ -3,7 +3,6 @@ package dexserver
 import (
 	"context"
 	"io/ioutil"
-	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
@@ -45,10 +44,9 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 	postgres := config.Postgres
 
 	var host string
+
 	if postgres.Socket != "" {
 		host = postgres.Socket
-	} else {
-		host = postgres.Host + ":" + strconv.Itoa(int(postgres.Port))
 	}
 
 	db := sql.Postgres{
@@ -56,6 +54,7 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 		User:     postgres.User,
 		Password: postgres.Password,
 		Host:     host,
+		Port:     postgres.Port,
 		SSL: sql.PostgresSSL{
 			Mode:     postgres.SSLMode,
 			CAFile:   string(postgres.CACert),
