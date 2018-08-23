@@ -125,6 +125,11 @@ page.
         \code{--github-client-secret=CLIENT_SECRET}
       }
 
+      Note that the client must be created under an \italic{organization} if
+      you want to authorize users based on organization/team membership. If the
+      client is created under a personal account, only individual users can be
+      authorized.
+
       Here's a full example:
 
       \codeblock{bash}{{{
