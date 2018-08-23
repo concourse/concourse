@@ -110,12 +110,21 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 		}
 	}
 
-	if _, err = store.GetClient(config.ClientID); err != nil {
-		store.CreateClient(storage.Client{
-			ID:           config.ClientID,
-			Secret:       config.ClientSecret,
-			RedirectURIs: []string{config.RedirectURL},
-		})
+	client := storage.Client{
+		ID:           config.ClientID,
+		Secret:       config.ClientSecret,
+		RedirectURIs: []string{config.RedirectURL},
+	}
+
+	_, err = store.GetClient(config.ClientID)
+	if err == storage.ErrNotFound {
+		store.CreateClient(client)
+	} else if err == nil {
+		store.UpdateClient(
+			config.ClientID,
+			func(_ storage.Client) (storage.Client, error) { return client, nil })
+	} else {
+		panic("could not save Dex client")
 	}
 
 	assets := &assetfs.AssetFS{
