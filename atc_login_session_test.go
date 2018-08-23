@@ -92,7 +92,18 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 				manifestFile = "deployments/concourse-two-atcs-with-same-redirect-uri.yml"
 			})
 
-			It("is able to login to both atcs", func() {
+			It("should be able to login to both ATCs", func() {
+				Eventually(func() *gexec.Session {
+					return flyLogin("-c", atc0URL).Wait()
+				}, 2*time.Minute).Should(gexec.Exit(0))
+
+				Eventually(func() *gexec.Session {
+					return flyLogin("-c", atc1URL).Wait()
+				}, 2*time.Minute).Should(gexec.Exit(0))
+
+				By("Deploying a second time (with a different token signing key")
+				Deploy(manifestFile)
+
 				Eventually(func() *gexec.Session {
 					return flyLogin("-c", atc0URL).Wait()
 				}, 2*time.Minute).Should(gexec.Exit(0))
