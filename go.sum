@@ -48,6 +48,8 @@ github.com/concourse/baggageclaim v0.0.0-20180813193019-8b2f78e159c4 h1:7ziRNpGy
 github.com/concourse/baggageclaim v0.0.0-20180813193019-8b2f78e159c4/go.mod h1:vM/dGNuIHSouhdCfTLwZ5LhmrBSxUPc5XhO4McTBxLg=
 github.com/concourse/dex v0.0.0-20180814203905-05fb40c6910d h1:7Vb75h9T6qiJZ67TsOOPQITLr9OsjYbPFX8h1rHwM8g=
 github.com/concourse/dex v0.0.0-20180814203905-05fb40c6910d/go.mod h1:SHLfz0jDUTe81wTRI8ATTI8v5tU6vQVz5NJBHrR0pa0=
+github.com/concourse/dex v0.0.0-20180823195634-d37894a0812f h1:mIUVU26YGo4/KS9OpyChEuT73QP+QuAHsmhnI8jcSro=
+github.com/concourse/dex v0.0.0-20180823195634-d37894a0812f/go.mod h1:SHLfz0jDUTe81wTRI8ATTI8v5tU6vQVz5NJBHrR0pa0=
 github.com/concourse/dex v2.9.0+incompatible h1:OOegUSJNBOI30WYALSsUnPqIWVIZPhOvpNUgLUzk9/Q=
 github.com/concourse/dex v2.9.0+incompatible/go.mod h1:OWHazGjmnR6tRNSg2awRwpUMVEWZ4Guq3PbU9fejJxs=
 github.com/concourse/flag v0.0.0-20180709134844-b093f650fadb h1:E1ep58Drny+cfePT6DaWfYY2Jz3ypf38GG+/TkfC6uQ=
