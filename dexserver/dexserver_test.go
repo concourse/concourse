@@ -18,6 +18,7 @@ var _ = Describe("Dex Server", func() {
 	var config *dexserver.DexConfig
 	var serverConfig server.Config
 	var postgresConfig flag.PostgresConfig
+	var err error
 
 	Describe("Configuration", func() {
 		BeforeEach(func() {
@@ -36,7 +37,8 @@ var _ = Describe("Dex Server", func() {
 		})
 
 		JustBeforeEach(func() {
-			serverConfig = dexserver.NewDexServerConfig(config)
+			serverConfig, err = dexserver.NewDexServerConfig(config)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("static configuration", func() {

@@ -28,10 +28,15 @@ type DexConfig struct {
 }
 
 func NewDexServer(config *DexConfig) (*server.Server, error) {
-	return server.NewServer(context.Background(), NewDexServerConfig(config))
+	newDexServerConfig, err := NewDexServerConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return server.NewServer(context.Background(), newDexServerConfig)
 }
 
-func NewDexServerConfig(config *DexConfig) server.Config {
+func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 	var log = &logrus.Logger{
 		Out:       ioutil.Discard,
 		Hooks:     make(logrus.LevelHooks),
@@ -68,29 +73,40 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 
 	store, err := db.Open(log)
 	if err != nil {
-		panic(err)
+		return server.Config{}, err
 	}
 
 	var localAuthConfigured = false
 	localUsers := newLocalUsers(config)
 	for username, password := range localUsers {
 		pass, err := store.GetPassword(username)
-		if err != nil || pass.Email == "" {
-			store.CreatePassword(storage.Password{
+		if err == storage.ErrNotFound || pass.Email == "" {
+			err = store.CreatePassword(storage.Password{
 				UserID:   username,
 				Username: username,
 				Email:    username,
 				Hash:     password,
 			})
-
+			if err != nil {
+				return server.Config{}, err
+			}
+		} else if err != nil {
+			return server.Config{}, err
 		}
+
 		if !localAuthConfigured {
-			if _, err = store.GetConnector("local"); err != nil {
-				store.CreateConnector(storage.Connector{
+			_, err = store.GetConnector("local")
+			if err == storage.ErrNotFound {
+				err = store.CreateConnector(storage.Connector{
 					ID:   "local",
 					Type: "local",
 					Name: "Username/Password",
 				})
+				if err != nil {
+					return server.Config{}, err
+				}
+			} else if err != nil {
+				return server.Config{}, err
 			}
 			localAuthConfigured = true
 		}
@@ -100,13 +116,19 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 
 	for _, connector := range skycmd.GetConnectors() {
 		if c, err := connector.Serialize(redirectURI); err == nil {
-			if _, err = store.GetConnector(connector.ID()); err != nil {
-				store.CreateConnector(storage.Connector{
+			_, err = store.GetConnector(connector.ID())
+			if err == storage.ErrNotFound {
+				err = store.CreateConnector(storage.Connector{
 					ID:     connector.ID(),
 					Type:   connector.ID(),
 					Name:   connector.Name(),
 					Config: c,
 				})
+				if err != nil {
+					return server.Config{}, err
+				}
+			} else if err != nil {
+				return server.Config{}, err
 			}
 		}
 	}
@@ -119,13 +141,20 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 
 	_, err = store.GetClient(config.ClientID)
 	if err == storage.ErrNotFound {
-		store.CreateClient(client)
+		err = store.CreateClient(client)
+		if err != nil {
+			return server.Config{}, err
+		}
 	} else if err == nil {
-		store.UpdateClient(
+		err = store.UpdateClient(
 			config.ClientID,
-			func(_ storage.Client) (storage.Client, error) { return client, nil })
+			func(_ storage.Client) (storage.Client, error) { return client, nil },
+		)
+		if err != nil {
+			return server.Config{}, err
+		}
 	} else {
-		panic("could not save Dex client")
+		return server.Config{}, err
 	}
 
 	assets := &assetfs.AssetFS{
@@ -149,7 +178,7 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 		Storage:                store,
 		Web:                    webConfig,
 		Logger:                 log,
-	}
+	}, nil
 }
 
 func NewLagerHook(logger lager.Logger) *lagerHook {
