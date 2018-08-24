@@ -47,6 +47,8 @@ func NewDexServerConfig(config *DexConfig) server.Config {
 
 	if postgres.Socket != "" {
 		host = postgres.Socket
+	} else {
+		host = postgres.Host
 	}
 
 	db := sql.Postgres{
