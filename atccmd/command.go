@@ -81,8 +81,8 @@ type RunCommand struct {
 	TLSCert     flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
-	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
-	PeerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
+	ExternalURL flag.URL `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
+	PeerURL     flag.URL `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -741,12 +741,6 @@ func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
 }
 
 func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool, error) {
-	if cmd.ExternalURL.URL == nil {
-		cmd.ExternalURL = cmd.defaultURL()
-	}
-	if cmd.PeerURL.URL == nil {
-		cmd.PeerURL = cmd.defaultURL()
-	}
 	var members []grouper.Member
 
 	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
@@ -812,19 +806,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool,
 
 		logger.Info("listening", logData)
 	}), false, nil
-}
-
-func (cmd *RunCommand) defaultURL() flag.URL {
-	URL := cmd.BindIP.String()
-	if URL == "0.0.0.0" {
-		URL = "127.0.0.1"
-	}
-	return flag.URL{
-		URL: &url.URL{
-			Scheme: "http",
-			Host:   fmt.Sprintf("%s:%d", URL, cmd.BindPort),
-		},
-	}
 }
 
 func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
