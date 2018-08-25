@@ -125,7 +125,7 @@ func (factory *gardenFactory) Task(
 
 	var taskConfigSource TaskConfigSource
 	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
-		taskConfigSource = MergedConfigSource{
+		taskConfigSource = &MergedConfigSource{
 			A: FileConfigSource{plan.Task.ConfigPath},
 			B: StaticConfigSource{Plan: *plan.Task},
 		}

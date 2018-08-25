@@ -384,7 +384,7 @@ run: {path: a/file}
 			fakeConfigSourceA = new(execfakes.FakeTaskConfigSource)
 			fakeConfigSourceB = new(execfakes.FakeTaskConfigSource)
 
-			configSource = MergedConfigSource{
+			configSource = &MergedConfigSource{
 				A: fakeConfigSourceA,
 				B: fakeConfigSourceB,
 			}
@@ -443,8 +443,13 @@ run: {path: a/file}
 						configB.Params["EXTRA_PARAM"] = "EXTRA_PARAM isn't defined in task file"
 					})
 
-					It("should fail", func() {
-						Expect(fetchErr).To(HaveOccurred())
+					It("should have a warning", func() {
+						Expect(configSource.Warnings()).To(HaveLen(1))
+						Expect(configSource.Warnings()[0]).To(ContainSubstring("EXTRA_PARAM was defined in pipeline but missing from task file"))
+					})
+
+					It("should not fail", func() {
+						Expect(fetchErr).ToNot(HaveOccurred())
 					})
 				})
 
