@@ -26,7 +26,7 @@ type Team interface {
 	UnpauseResource(pipelineName string, resourceName string) (bool, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
-	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, skipCredentials bool) (bool, bool, []ConfigWarning, error)
+	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error)
 
 	CreatePipelineBuild(pipelineName string, plan atc.Plan) (atc.Build, error)
 

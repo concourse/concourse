@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/concourse/atc"
@@ -67,25 +68,24 @@ type setConfigResponse struct {
 	Warnings []ConfigWarning `json:"warnings"`
 }
 
-func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, skipCredentials bool) (bool, bool, []ConfigWarning, error) {
+func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"team_name":     team.name,
 	}
 
-	response := internal.Response{}
-
-	var requestName string
-	if skipCredentials {
-		requestName = atc.SaveConfigSkipCredentials
-	} else {
-		requestName = atc.SaveConfig
+	queryParams := url.Values{}
+	if checkCredentials {
+		queryParams.Add(atc.SaveConfigCheckCreds, "")
 	}
+
+	response := internal.Response{}
 
 	err := team.connection.Send(internal.Request{
 		ReturnResponseBody: true,
-		RequestName:        requestName,
+		RequestName:        atc.SaveConfig,
 		Params:             params,
+		Query:              queryParams,
 		Body:               bytes.NewBuffer(passedConfig),
 		Header: http.Header{
 			"Content-Type":          {"application/x-yaml"},
