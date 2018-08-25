@@ -3,9 +3,8 @@ package atc
 import "github.com/tedsuo/rata"
 
 const (
-	SaveConfig                = "SaveConfig"
-	SaveConfigSkipCredentials = "SaveConfigSkipCredentials"
-	GetConfig                 = "GetConfig"
+	SaveConfig = "SaveConfig"
+	GetConfig  = "GetConfig"
 
 	GetBuild            = "GetBuild"
 	GetBuildPlan        = "GetBuildPlan"
@@ -100,11 +99,11 @@ const (
 
 const (
 	ClearTaskCacheQueryPath = "cache_path"
+	SaveConfigCheckCreds    = "check_creds"
 )
 
 var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/config", Method: "PUT", Name: SaveConfig},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/configskipcredentials", Method: "PUT", Name: SaveConfigSkipCredentials},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/config", Method: "GET", Name: GetConfig},
 
 	{Path: "/api/v1/teams/:team_name/builds", Method: "POST", Name: CreateBuild},

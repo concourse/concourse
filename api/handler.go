@@ -94,9 +94,8 @@ func NewHandler(
 	infoServer := infoserver.NewServer(logger, version, workerVersion, credsManagers)
 
 	handlers := map[string]http.Handler{
-		atc.GetConfig:                 http.HandlerFunc(configServer.GetConfig),
-		atc.SaveConfig:                http.HandlerFunc(configServer.SaveConfig),
-		atc.SaveConfigSkipCredentials: http.HandlerFunc(configServer.SaveConfigSkipCredentials),
+		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
+		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
 
 		atc.ListBuilds:              http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild:             teamHandlerFactory.HandlerFor(buildServer.CreateBuild),

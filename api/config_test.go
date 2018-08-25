@@ -732,55 +732,64 @@ jobs:
 								request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
 							})
 
-							Context("the credential exists in the credential manager", func() {
+							Context("when the check_creds param is set", func() {
 								BeforeEach(func() {
-									fakeVariables := new(credsfakes.FakeVariables)
-									fakeVariablesFactory.NewVariablesReturns(fakeVariables)
-									fakeVariables.GetReturns("this-string-value-doesn't-matter", true, nil)
+									query := request.URL.Query()
+									query.Add(atc.SaveConfigCheckCreds, "")
+									request.URL.RawQuery = query.Encode()
 								})
 
-								It("passes validation and saves it un-interpolated", func() {
-									Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
+								Context("the credential exists in the credential manager", func() {
+									BeforeEach(func() {
+										fakeVariables := new(credsfakes.FakeVariables)
+										fakeVariablesFactory.NewVariablesReturns(fakeVariables)
+										fakeVariables.GetReturns("this-string-value-doesn't-matter", true, nil)
+									})
 
-									name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
-									Expect(name).To(Equal("a-pipeline"))
-									Expect(savedConfig).To(Equal(payloadAsConfig))
+									It("passes validation and saves it un-interpolated", func() {
+										Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-									Expect(id).To(Equal(db.ConfigVersion(42)))
-									Expect(pipelineState).To(Equal(db.PipelineNoChange))
+										name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
+										Expect(name).To(Equal("a-pipeline"))
+										Expect(savedConfig).To(Equal(payloadAsConfig))
+
+										Expect(id).To(Equal(db.ConfigVersion(42)))
+										Expect(pipelineState).To(Equal(db.PipelineNoChange))
+									})
+
+									It("returns 200", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusOK))
+									})
 								})
 
-								It("returns 200", func() {
-									Expect(response.StatusCode).To(Equal(http.StatusOK))
+								Context("the credential does not exist in the credential manager", func() {
+									BeforeEach(func() {
+										fakeVariables := new(credsfakes.FakeVariables)
+										fakeVariablesFactory.NewVariablesReturns(fakeVariables)
+										fakeVariables.GetReturns(nil, false, nil) // nil value, not found, no error
+									})
+
+									It("returns 400", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+									})
+
+									It("returns the credential name that was missing", func() {
+										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["1 error occurred:\n\n* Expected to find variables: BAR"]}`))
+									})
+								})
+
+								Context("a credentials manager is not used", func() {
+									BeforeEach(func() {
+										fakeVariables := noop.Noop{}
+										fakeVariablesFactory.NewVariablesReturns(&fakeVariables)
+									})
+
+									It("returns 200", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusOK))
+									})
 								})
 							})
 
-							Context("the credential does not exist in the credential manager", func() {
-								BeforeEach(func() {
-									fakeVariables := new(credsfakes.FakeVariables)
-									fakeVariablesFactory.NewVariablesReturns(fakeVariables)
-									fakeVariables.GetReturns(nil, false, nil) // nil value, not found, no error
-								})
-
-								It("returns 400", func() {
-									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-								})
-
-								It("returns the credential name that was missing", func() {
-									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["Expected to find variables: BAR"]}`))
-								})
-							})
-
-							Context("a credentials manager is not used", func() {
-								BeforeEach(func() {
-									fakeVariables := noop.Noop{}
-									fakeVariablesFactory.NewVariablesReturns(&fakeVariables)
-								})
-
-								It("returns 200", func() {
-									Expect(response.StatusCode).To(Equal(http.StatusOK))
-								})
-							})
 						})
 
 						Context("when it's the first time the pipeline has been created", func() {
@@ -1279,158 +1288,5 @@ jobs:
 				Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 			})
 		})
-	})
-
-	Describe("PUT /api/v1/teams/:team_name/pipelines/:name/configskipcredentials", func() {
-		var (
-			request  *http.Request
-			response *http.Response
-		)
-
-		BeforeEach(func() {
-			var err error
-			request, err = requestGenerator.CreateRequest(atc.SaveConfigSkipCredentials, rata.Params{
-				"team_name":     "a-team",
-				"pipeline_name": "a-pipeline",
-			}, nil)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		JustBeforeEach(func() {
-			var err error
-			response, err = client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when authorized", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(true)
-			})
-
-			Context("when a config version is specified", func() {
-				BeforeEach(func() {
-					request.Header.Set(atc.ConfigVersionHeader, "42")
-				})
-
-				Context("YAML", func() {
-					var (
-						payloadAsConfig atc.Config
-						payload         string
-					)
-
-					BeforeEach(func() {
-						payload = `---
-resources:
-- name: some-resource
-  type: some-type
-  check_every: 10s
-jobs:
-- name: some-job
-  plan:
-  - get: some-resource
-  - task: some-task
-    config:
-      platform: linux
-      run:
-        path: ls
-      params:
-        FOO: ((BAR))`
-						payloadAsConfig = atc.Config{Resources: []atc.ResourceConfig{
-							{
-								Name:       "some-resource",
-								Type:       "some-type",
-								Source:     nil,
-								CheckEvery: "10s",
-							},
-						},
-							Jobs: atc.JobConfigs{
-								{
-									Name: "some-job",
-									Plan: atc.PlanSequence{
-										{
-											Get: "some-resource",
-										},
-										{
-											Task: "some-task",
-											TaskConfig: &atc.TaskConfig{
-												Platform: "linux",
-
-												Run: atc.TaskRunConfig{
-													Path: "ls",
-												},
-
-												Params: map[string]string{
-													"FOO": "((BAR))",
-												},
-											},
-										},
-									},
-								},
-							},
-						}
-
-						request.Header.Set("Content-Type", "application/x-yaml")
-						request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
-					})
-
-					Context("the credential exists in the credential manager", func() {
-
-						BeforeEach(func() {
-							fakeVariables := new(credsfakes.FakeVariables)
-							fakeVariablesFactory.NewVariablesReturns(fakeVariables)
-							fakeVariables.GetReturns("this-string-value-doesn't-matter", true, nil)
-						})
-
-						It("does not try to validate credentials", func() {
-							Expect(fakeVariablesFactory.NewVariablesCallCount()).To(Equal(0))
-						})
-
-						It("saves it un-interpolated", func() {
-							Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
-
-							name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
-							Expect(name).To(Equal("a-pipeline"))
-							Expect(savedConfig).To(Equal(payloadAsConfig))
-
-							Expect(id).To(Equal(db.ConfigVersion(42)))
-							Expect(pipelineState).To(Equal(db.PipelineNoChange))
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
-					})
-
-					Context("the credential does not exist in the credential manager", func() {
-						BeforeEach(func() {
-							fakeVariables := new(credsfakes.FakeVariables)
-							fakeVariablesFactory.NewVariablesReturns(fakeVariables)
-							fakeVariables.GetReturns(nil, false, nil) // nil value, not found, no error
-						})
-
-						It("does not try to validate credentials", func() {
-							Expect(fakeVariablesFactory.NewVariablesCallCount()).To(Equal(0))
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
-					})
-
-					Context("a credentials manager is not used", func() {
-						BeforeEach(func() {
-							fakeVariables := noop.Noop{}
-							fakeVariablesFactory.NewVariablesReturns(&fakeVariables)
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
-					})
-				})
-			})
-		})
-
 	})
 })

@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/creds/noop"
 	"github.com/concourse/atc/db"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
@@ -52,15 +53,14 @@ type SaveConfigResponse struct {
 }
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
-	s.saveConfig(w, r, true)
-}
-
-func (s *Server) SaveConfigSkipCredentials(w http.ResponseWriter, r *http.Request) {
-	s.saveConfig(w, r, false)
-}
-
-func (s *Server) saveConfig(w http.ResponseWriter, r *http.Request, checkCredentials bool) {
 	session := s.logger.Session("set-config")
+
+	query := r.URL.Query()
+
+	checkCredentials := false
+	if _, exists := query[atc.SaveConfigCheckCreds]; exists {
+		checkCredentials = true
+	}
 
 	var version db.ConfigVersion
 	if configVersionStr := r.Header.Get(atc.ConfigVersionHeader); len(configVersionStr) != 0 {
@@ -125,8 +125,8 @@ func (s *Server) saveConfig(w http.ResponseWriter, r *http.Request, checkCredent
 
 		if !isNoop {
 			errs := validateCredParams(variables, config, session)
-			if len(errs) > 0 {
-				s.handleBadRequest(w, errs, session)
+			if errs != nil {
+				s.handleBadRequest(w, []string{errs.Error()}, session)
 				return
 			}
 		}
@@ -169,31 +169,25 @@ func (s *Server) saveConfig(w http.ResponseWriter, r *http.Request, checkCredent
 }
 
 // Simply validate that the credentials exist; don't do anything with the actual secrets
-func validateCredParams(vars creds.Variables, config atc.Config, session lager.Logger) []string {
-	// 1. currently doesn't support tasks specified using a task file
-	// 2. should we check each of these are not nil first before Evaluating them to prevent unnecessary lookups, or is this already cached in vars?
-
-	errs := []string{}
+func validateCredParams(vars creds.Variables, config atc.Config, session lager.Logger) error {
+	var errs error
 
 	for _, resourceType := range config.ResourceTypes {
 		_, err := creds.NewSource(vars, resourceType.Source).Evaluate()
 		if err != nil {
-			session.Debug(err.Error())
-			errs = append(errs, err.Error())
+			errs = multierror.Append(errs, err)
 		}
 	}
 
 	for _, resource := range config.Resources {
 		_, err := creds.NewSource(vars, resource.Source).Evaluate()
 		if err != nil {
-			session.Debug(err.Error())
-			errs = append(errs, err.Error())
+			errs = multierror.Append(errs, err)
 		}
 
 		_, err = creds.NewString(vars, resource.WebhookToken).Evaluate()
 		if err != nil {
-			session.Debug(err.Error())
-			errs = append(errs, err.Error())
+			errs = multierror.Append(errs, err)
 		}
 	}
 
@@ -201,33 +195,27 @@ func validateCredParams(vars creds.Variables, config atc.Config, session lager.L
 		for _, plan := range job.Plan {
 			_, err := creds.NewParams(vars, plan.Params).Evaluate()
 			if err != nil {
-				session.Debug(err.Error())
-				errs = append(errs, err.Error())
+				errs = multierror.Append(errs, err)
 			}
 
 			if plan.TaskConfig != nil {
 				if plan.TaskConfig.ImageResource != nil {
 					_, err = creds.NewSource(vars, plan.TaskConfig.ImageResource.Source).Evaluate()
 					if err != nil {
-						session.Debug(err.Error())
-						errs = append(errs, err.Error())
+						errs = multierror.Append(errs, err)
 					}
 				}
 
 				_, err = creds.NewTaskParams(vars, plan.TaskConfig.Params).Evaluate()
 				if err != nil {
-					session.Debug(err.Error())
-					errs = append(errs, err.Error())
+					errs = multierror.Append(errs, err)
 				}
-
-				// Are ImageResource.Params needed too?  According to the docs at https://concourse-ci.org/creds.html#vault,
-				// it seems like they aren't supported at the moment
-				// _, err = creds.NewParams(vars, plan.TaskConfig.ImageResource.Params).Evaluate()
-				// if err != nil {
-				// 	return err
-				// }
 			}
 		}
+	}
+
+	if errs != nil {
+		session.Info("config-has-invalid-creds", lager.Data{"errors": errs.Error()})
 	}
 
 	return errs

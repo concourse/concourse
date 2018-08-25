@@ -137,8 +137,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ExposePipeline,
 			atc.HidePipeline,
 			atc.SaveConfig,
-			atc.ClearTaskCache,
-			atc.SaveConfigSkipCredentials:
+			atc.ClearTaskCache:
 			newHandler = auth.CheckAuthorizationHandler(handler, rejector)
 
 		// think about it!
