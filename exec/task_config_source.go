@@ -3,7 +3,6 @@ package exec
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
 	"strconv"
@@ -71,30 +70,6 @@ func (configSource StaticConfigSource) Warnings() []string {
 	return []string{}
 }
 
-// DeprecationConfigSource returns the Delegate TaskConfig and prints warnings to Stderr.
-type DeprecationConfigSource struct {
-	Delegate TaskConfigSource
-	Stderr   io.Writer
-}
-
-// FetchConfig calls the Delegate's FetchConfig and prints warnings to Stderr
-func (configSource DeprecationConfigSource) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	taskConfig, err := configSource.Delegate.FetchConfig(repo)
-	if err != nil {
-		return atc.TaskConfig{}, err
-	}
-
-	for _, warning := range configSource.Delegate.Warnings() {
-		fmt.Fprintln(configSource.Stderr, warning)
-	}
-
-	return taskConfig, nil
-}
-
-func (configSource DeprecationConfigSource) Warnings() []string {
-	return []string{}
-}
-
 // FileConfigSource represents a dynamically configured TaskConfig, which will
 // be fetched from a specified file in the worker.ArtifactRepository.
 type FileConfigSource struct {
@@ -159,14 +134,15 @@ func (configSource FileConfigSource) Warnings() []string {
 
 // MergedConfigSource is used to join two config sources together.
 type MergedConfigSource struct {
-	A TaskConfigSource
-	B TaskConfigSource
+	A             TaskConfigSource
+	B             TaskConfigSource
+	MergeWarnings []string
 }
 
 // FetchConfig fetches both config sources, and merges the second config source
 // into the first. This allows the user to set params required by a task loaded
 // from a file by providing them in static configuration.
-func (configSource MergedConfigSource) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
+func (configSource *MergedConfigSource) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	aConfig, err := configSource.A.FetchConfig(source)
 	if err != nil {
 		return atc.TaskConfig{}, err
@@ -177,13 +153,17 @@ func (configSource MergedConfigSource) FetchConfig(source *worker.ArtifactReposi
 		return atc.TaskConfig{}, err
 	}
 
-	return aConfig.Merge(bConfig)
+	mergedConfig, warnings, err := aConfig.Merge(bConfig)
+	configSource.MergeWarnings = warnings
+
+	return mergedConfig, err
 }
 
-func (configSource MergedConfigSource) Warnings() []string {
+func (configSource *MergedConfigSource) Warnings() []string {
 	warnings := []string{}
 	warnings = append(warnings, configSource.A.Warnings()...)
 	warnings = append(warnings, configSource.B.Warnings()...)
+	warnings = append(warnings, configSource.MergeWarnings...)
 
 	return warnings
 }

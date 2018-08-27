@@ -58,64 +58,6 @@ var _ = Describe("TaskConfigSource", func() {
 		}
 	})
 
-	Describe("DeprecationConfigSource", func() {
-		var (
-			configSource TaskConfigSource
-			stderrBuf    *gbytes.Buffer
-		)
-
-		JustBeforeEach(func() {
-			delegate := StaticConfigSource{Plan: taskPlan}
-			stderrBuf = gbytes.NewBuffer()
-			configSource = DeprecationConfigSource{
-				Delegate: &delegate,
-				Stderr:   stderrBuf,
-			}
-		})
-
-		It("merges task params prefering params in task plan", func() {
-			fetchedConfig, err := configSource.FetchConfig(repo)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fetchedConfig.Params).To(Equal(map[string]string{
-				"task-plan-param-key":   "task-plan-param-val-1",
-				"task-config-param-key": "task-config-param-val-1",
-				"common-key":            "task-plan-param-val-2",
-			}))
-		})
-
-		Context("when task config params are not set", func() {
-			BeforeEach(func() {
-				taskConfig = atc.TaskConfig{}
-			})
-
-			It("uses params from task plan", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fetchedConfig.Params).To(Equal(map[string]string{
-					"task-plan-param-key": "task-plan-param-val-1",
-					"common-key":          "task-plan-param-val-2",
-				}))
-			})
-		})
-
-		Context("when task plan params are not set", func() {
-			BeforeEach(func() {
-				taskPlan = atc.TaskPlan{
-					Config: &taskConfig,
-				}
-			})
-
-			It("uses params from task config", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fetchedConfig.Params).To(Equal(map[string]string{
-					"task-config-param-key": "task-config-param-val-1",
-					"common-key":            "task-config-param-val-2",
-				}))
-			})
-		})
-	})
-
 	Describe("StaticConfigSource", func() {
 		var (
 			configSource TaskConfigSource
@@ -384,7 +326,7 @@ run: {path: a/file}
 			fakeConfigSourceA = new(execfakes.FakeTaskConfigSource)
 			fakeConfigSourceB = new(execfakes.FakeTaskConfigSource)
 
-			configSource = MergedConfigSource{
+			configSource = &MergedConfigSource{
 				A: fakeConfigSourceA,
 				B: fakeConfigSourceB,
 			}
@@ -443,8 +385,13 @@ run: {path: a/file}
 						configB.Params["EXTRA_PARAM"] = "EXTRA_PARAM isn't defined in task file"
 					})
 
-					It("should fail", func() {
-						Expect(fetchErr).To(HaveOccurred())
+					It("should have a warning", func() {
+						Expect(configSource.Warnings()).To(HaveLen(1))
+						Expect(configSource.Warnings()[0]).To(ContainSubstring("EXTRA_PARAM was defined in pipeline but missing from task file"))
+					})
+
+					It("should not fail", func() {
+						Expect(fetchErr).ToNot(HaveOccurred())
 					})
 				})
 

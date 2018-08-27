@@ -157,6 +157,11 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 	repository := state.Artifacts()
 
 	config, err := action.configSource.FetchConfig(repository)
+
+	for _, warning := range action.configSource.Warnings() {
+		fmt.Fprintln(action.delegate.Stderr(), "[WARNING]", warning)
+	}
+
 	if err != nil {
 		return err
 	}
