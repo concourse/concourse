@@ -26,12 +26,14 @@ against the teams that have granted them access.
   admin team, so \code{main} is a special-case.
 
   The \code{main} team is configured as part of the deployment itself as flags
-  passed to the ATC. Changes to these flags take effect whenever the ATC starts
-  up. This is so that you can't get locked out, and so that you can have
+  passed to the ATC. You can find more about the required flags in \reference{auth-config}.
+
+  The values set in the auth flags take effect whenever the ATC starts
+  up. This is done for two reasons:so that you can't get locked out, and so that you can have
   Concourse sanely configured as soon as it comes up.
 
-  Consult \code{web --help} to discover the flags for configuring auth for the
-  \code{main} team.
+  Consult \code{concourse web --help} to discover the complete list of flags
+  for configuring auth for the \code{main} team.
 }
 
 \section{

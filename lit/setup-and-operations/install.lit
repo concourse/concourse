@@ -72,8 +72,18 @@ page.
 \section{
   \title{Configuring Auth Providers}{auth-config}
 
-  At startup, you will need to configure any local users or third-party auth
-  providers that you wish to use with Concourse.
+  Starting from Concourse 4.0.0 an operator will need to provide the following
+  information to \code{concourse web} upon startup:
+    \list{
+      Any \reference{local-auth-config} users (formerly known as \code{basic auth} users)
+    }{
+      Third-party auth providers (e.g. \reference{github-auth-config}, \reference{cf-auth-config}, etc. )
+    }{
+      Users who should be members of the \reference{main-team}
+    }
+
+  Please refer to the \code{concourse web} subcommand's help section for more information
+  on specific auth providers and their configuration options.
 
   \section{
     \title{Local Auth}{local-auth-config}
@@ -91,6 +101,18 @@ page.
     password \code{mypass}. Note that this user doesn't intrinsically have
     access to anything - they must be granted access on a team-by-team basis
     (see \reference{teams}).
+
+    \section{
+      \title{Main Team Local Users}{main-team-local-user}
+
+      Once you have added the user \code{myuser}, you can add them to the \reference{main-team}:
+
+      \codeblock{bash}{{{
+      concourse web \
+        --add-local-user myuser:mypass
+        --main-team-local-user myuser
+      }}}
+    }
   }
 
   \section{
@@ -149,6 +171,34 @@ page.
 
       The GitHub Enterprise host should not contain a scheme, or a trailing
       slash.
+    }
+    \section{
+      \title{Adding GitHub Users to \reference{main-team}}{main-team-gh-user}
+
+      Once you have added the GitHub auth connector, you can specify a GitHub Organization,
+      GitHub Team, and/or GitHub User to the \reference{main-team}.
+
+      \bold{GitHub Organization}
+      \codeblock{bash}{{{
+        concourse web \
+          --github-client-id CLIENT_ID \
+          --github-client-secret CLIENT_SECRET
+          --main-team-github-org=ORG_NAME
+      }}}
+      \bold{GitHub Team}
+      \codeblock{bash}{{{
+        concourse web \
+          --github-client-id CLIENT_ID \
+          --github-client-secret CLIENT_SECRET
+          --main-team-github-team=ORG_NAME:TEAM_NAME
+      }}}
+      \bold{GitHub User}
+      \codeblock{bash}{{{
+        concourse web \
+          --github-client-id CLIENT_ID \
+          --github-client-secret CLIENT_SECRET
+          --main-team-github-user=USERNAME
+      }}}
     }
   }
 
@@ -213,6 +263,45 @@ page.
         --cf-api-url CF_API_URL
       }}}
     }
+    \section{
+      \title{Adding CF Users to \reference{main-team}}{main-team-cf-user}
+
+      Once you have added the CF auth connector you can add a CF Org,
+      CF Space, CF Space GUID and/or CF User to the \reference{main-team}.
+
+      \bold{CF Organization}
+      \codeblock{bash}{{{
+        concourse web \
+          --cf-client-id CLIENT_ID \
+          --cf-client-secret CLIENT_SECRET \
+          --cf-api-url CF_API_URL
+          --main-team-cf-org=ORG_NAME
+      }}}
+      \bold{CF Space}
+      \codeblock{bash}{{{
+        concourse web \
+          --cf-client-id CLIENT_ID \
+          --cf-client-secret CLIENT_SECRET \
+          --cf-api-url CF_API_URL
+          --main-team-cf-space=ORG_NAME:SPACE_NAME
+      }}}
+      \bold{CF Space GUID}
+      \codeblock{bash}{{{
+        concourse web \
+          --cf-client-id CLIENT_ID \
+          --cf-client-secret CLIENT_SECRET \
+          --cf-api-url CF_API_URL
+          --main-team-cf-space-guid=SPACE_GUID
+      }}}
+      \bold{CF User}
+      \codeblock{bash}{{{
+        concourse web \
+          --cf-client-id CLIENT_ID \
+          --cf-client-secret CLIENT_SECRET \
+          --cf-api-url CF_API_URL
+          --main-team-cf-user=USERNAME
+      }}}
+    }
   }
 
   \section{
@@ -248,6 +337,31 @@ page.
         --oidc-client-id=CLIENT_ID \
         --oidc-client-secret=CLIENT_SECRET \
         --oidc-issuer=https://oidc.example.com
+      }}}
+    }
+
+    \section{
+      \title{Adding OIDC Users to \reference{main-team}}{main-team-oidc-user}
+      Once you have added the OIDC auth connector you can add a Group and/or
+      User to the \reference{main-team}.
+
+      \bold{OIDC Group}
+      \codeblock{bash}{{{
+        concourse web \
+          --oidc-display-name='X' \
+          --oidc-client-id=CLIENT_ID \
+          --oidc-client-secret=CLIENT_SECRET \
+          --oidc-issuer=https://oidc.example.com
+          --main-team-oidc-group=GROUP_NAME
+      }}}
+      \bold{OIDC User}
+      \codeblock{bash}{{{
+        concourse web \
+          --oidc-display-name='X' \
+          --oidc-client-id=CLIENT_ID \
+          --oidc-client-secret=CLIENT_SECRET \
+          --oidc-issuer=https://oidc.example.com
+          --main-team-oidc-user=USERNAME
       }}}
     }
   }
@@ -287,6 +401,25 @@ page.
         --oauth-userinfo-url=https://oauth.example.com/oauth2/userinfo
       }}}
     }
+
+    \section{
+      \title{Adding OAuth Users to \reference{main-team}}{main-oauth-main-team}
+      Once you have added the OAuth auth connector you can add a Group and/or
+      User to the \reference{main-team}.
+
+      \bold{OAuth Group}
+      \codeblock{bash}{{{
+      concourse web \
+        ...
+        --main-team-oidc-group=GROUP_NAME
+      }}}
+      \bold{OAuth User}
+      \codeblock{bash}{{{
+        concourse web \
+        ...
+        --main-team-oidc-user=USERNAME
+      }}}
+    }
   }
 
   \section{
@@ -299,9 +432,6 @@ page.
     bit of configuration to
     \link{concourse/skymarshal}{https://github.com/concourse/skymarshal}.
   }
-
-  For more auth provider configuration options, take a look at \code{concourse
-  web} subcommand's help section.
 }
 
 \section{
