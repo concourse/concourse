@@ -58,64 +58,6 @@ var _ = Describe("TaskConfigSource", func() {
 		}
 	})
 
-	Describe("DeprecationConfigSource", func() {
-		var (
-			configSource TaskConfigSource
-			stderrBuf    *gbytes.Buffer
-		)
-
-		JustBeforeEach(func() {
-			delegate := StaticConfigSource{Plan: taskPlan}
-			stderrBuf = gbytes.NewBuffer()
-			configSource = DeprecationConfigSource{
-				Delegate: &delegate,
-				Stderr:   stderrBuf,
-			}
-		})
-
-		It("merges task params prefering params in task plan", func() {
-			fetchedConfig, err := configSource.FetchConfig(repo)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fetchedConfig.Params).To(Equal(map[string]string{
-				"task-plan-param-key":   "task-plan-param-val-1",
-				"task-config-param-key": "task-config-param-val-1",
-				"common-key":            "task-plan-param-val-2",
-			}))
-		})
-
-		Context("when task config params are not set", func() {
-			BeforeEach(func() {
-				taskConfig = atc.TaskConfig{}
-			})
-
-			It("uses params from task plan", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fetchedConfig.Params).To(Equal(map[string]string{
-					"task-plan-param-key": "task-plan-param-val-1",
-					"common-key":          "task-plan-param-val-2",
-				}))
-			})
-		})
-
-		Context("when task plan params are not set", func() {
-			BeforeEach(func() {
-				taskPlan = atc.TaskPlan{
-					Config: &taskConfig,
-				}
-			})
-
-			It("uses params from task config", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fetchedConfig.Params).To(Equal(map[string]string{
-					"task-config-param-key": "task-config-param-val-1",
-					"common-key":            "task-config-param-val-2",
-				}))
-			})
-		})
-	})
-
 	Describe("StaticConfigSource", func() {
 		var (
 			configSource TaskConfigSource

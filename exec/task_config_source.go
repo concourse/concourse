@@ -3,7 +3,6 @@ package exec
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
 	"strconv"
@@ -69,26 +68,6 @@ func (configSource StaticConfigSource) FetchConfig(*worker.ArtifactRepository) (
 
 func (configSource StaticConfigSource) Warnings() []string {
 	return []string{}
-}
-
-// DeprecationConfigSource returns the Delegate TaskConfig and prints warnings to Stderr.
-type DeprecationConfigSource struct {
-	Delegate TaskConfigSource
-	Stderr   io.Writer
-}
-
-// FetchConfig calls the Delegate's FetchConfig and prints warnings to Stderr
-func (configSource DeprecationConfigSource) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	taskConfig, err := configSource.Delegate.FetchConfig(repo)
-	if err != nil {
-		return atc.TaskConfig{}, err
-	}
-
-	return taskConfig, nil
-}
-
-func (configSource DeprecationConfigSource) Warnings() []string {
-	return configSource.Delegate.Warnings()
 }
 
 // FileConfigSource represents a dynamically configured TaskConfig, which will
