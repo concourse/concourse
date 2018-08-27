@@ -15,7 +15,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/creds/noop"
 	"github.com/concourse/atc/db"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
@@ -121,14 +120,11 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	if checkCredentials {
 		variables := s.variablesFactory.NewVariables(teamName, pipelineName)
-		_, isNoop := variables.(*noop.Noop)
 
-		if !isNoop {
-			errs := validateCredParams(variables, config, session)
-			if errs != nil {
-				s.handleBadRequest(w, []string{errs.Error()}, session)
-				return
-			}
+		errs := validateCredParams(variables, config, session)
+		if errs != nil {
+			s.handleBadRequest(w, []string{errs.Error()}, session)
+			return
 		}
 	}
 

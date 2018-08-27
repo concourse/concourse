@@ -739,7 +739,7 @@ jobs:
 									request.URL.RawQuery = query.Encode()
 								})
 
-								Context("the credential exists in the credential manager", func() {
+								Context("when the credential exists in the credential manager", func() {
 									BeforeEach(func() {
 										fakeVariables := new(credsfakes.FakeVariables)
 										fakeVariablesFactory.NewVariablesReturns(fakeVariables)
@@ -762,7 +762,7 @@ jobs:
 									})
 								})
 
-								Context("the credential does not exist in the credential manager", func() {
+								Context("when the credential does not exist in the credential manager", func() {
 									BeforeEach(func() {
 										fakeVariables := new(credsfakes.FakeVariables)
 										fakeVariablesFactory.NewVariablesReturns(fakeVariables)
@@ -778,14 +778,18 @@ jobs:
 									})
 								})
 
-								Context("a credentials manager is not used", func() {
+								Context("when a credentials manager is not used", func() {
 									BeforeEach(func() {
 										fakeVariables := noop.Noop{}
 										fakeVariablesFactory.NewVariablesReturns(&fakeVariables)
 									})
 
-									It("returns 200", func() {
-										Expect(response.StatusCode).To(Equal(http.StatusOK))
+									It("returns 400", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+									})
+
+									It("returns the credential name that was missing", func() {
+										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["1 error occurred:\n\n* Expected to find variables: BAR"]}`))
 									})
 								})
 							})
