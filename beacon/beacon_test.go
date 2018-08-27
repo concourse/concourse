@@ -11,7 +11,6 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/concourse/baggageclaim/volume"
 	. "github.com/concourse/worker/beacon"
 	"github.com/concourse/worker/beacon/beaconfakes"
@@ -28,16 +27,12 @@ var _ = Describe("Beacon", func() {
 		fakeClient    *beaconfakes.FakeClient
 		fakeSession   *beaconfakes.FakeSession
 		fakeCloseable *beaconfakes.FakeCloseable
-		fakeVolumeOne *baggageclaimfakes.FakeVolume
-		fakeVolumeTwo *baggageclaimfakes.FakeVolume
 	)
 
 	BeforeEach(func() {
 		fakeClient = new(beaconfakes.FakeClient)
 		fakeSession = new(beaconfakes.FakeSession)
 		fakeCloseable = new(beaconfakes.FakeCloseable)
-		fakeVolumeOne = new(baggageclaimfakes.FakeVolume)
-		fakeVolumeTwo = new(baggageclaimfakes.FakeVolume)
 		fakeClient.NewSessionReturns(fakeSession, nil)
 		fakeClient.DialReturns(fakeCloseable, nil)
 		logger := lager.NewLogger("test")
@@ -218,7 +213,6 @@ var _ = Describe("Beacon", func() {
 	var _ = Describe("Retire", func() {
 		var (
 			signals   chan os.Signal
-			ready     chan<- struct{}
 			retireErr chan error
 
 			wait chan bool
@@ -226,7 +220,6 @@ var _ = Describe("Beacon", func() {
 
 		JustBeforeEach(func() {
 			signals = make(chan os.Signal)
-			ready = make(chan struct{})
 			retireErr = make(chan error)
 			wait = make(chan bool, 1)
 			go func() {
@@ -352,12 +345,10 @@ var _ = Describe("Beacon", func() {
 	var _ = Describe("Land", func() {
 		var (
 			signals chan os.Signal
-			ready   chan<- struct{}
 		)
 
 		BeforeEach(func() {
 			signals = make(chan os.Signal)
-			ready = make(chan struct{})
 		})
 
 		AfterEach(func() {
