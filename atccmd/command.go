@@ -82,7 +82,7 @@ type RunCommand struct {
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
-	PeerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
+	peerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -147,6 +147,13 @@ type RunCommand struct {
 		AuthFlags     skycmd.AuthFlags
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
+}
+
+func (cmd *RunCommand) PeerURL() flag.URL {
+	if cmd.peerURL.URL == nil {
+		cmd.peerURL = cmd.defaultURL()
+	}
+	return cmd.peerURL
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -744,9 +751,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool,
 	if cmd.ExternalURL.URL == nil {
 		cmd.ExternalURL = cmd.defaultURL()
 	}
-	if cmd.PeerURL.URL == nil {
-		cmd.PeerURL = cmd.defaultURL()
-	}
 	var members []grouper.Member
 
 	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
@@ -1010,7 +1014,7 @@ func (cmd *RunCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURL.String())
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURL().String())
 }
 
 func (cmd *RunCommand) constructHTTPHandler(
@@ -1097,7 +1101,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		gcContainerDestroyer,
 		dbBuildFactory,
 
-		cmd.PeerURL.String(),
+		cmd.PeerURL().String(),
 		buildserver.NewEventHandler,
 		drain,
 
