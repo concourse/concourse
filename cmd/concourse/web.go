@@ -90,10 +90,10 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	}
 
 	if len(cmd.TSACommand.ATCURLs) == 0 {
-		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.PeerURL()}
+		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.PeerURLOrDefault()}
 	}
 
-	host, _, err := net.SplitHostPort(cmd.RunCommand.PeerURL().URL.Host)
+	host, _, err := net.SplitHostPort(cmd.RunCommand.PeerURLOrDefault().URL.Host)
 	if err != nil {
 		return err
 	}
