@@ -82,7 +82,7 @@ type RunCommand struct {
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
-	peerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
+	PeerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -149,11 +149,11 @@ type RunCommand struct {
 	} `group:"Authentication"`
 }
 
-func (cmd *RunCommand) PeerURL() flag.URL {
-	if cmd.peerURL.URL == nil {
-		cmd.peerURL = cmd.defaultURL()
+func (cmd *RunCommand) PeerURLOrDefault() flag.URL {
+	if cmd.PeerURL.URL == nil {
+		cmd.PeerURL = cmd.defaultURL()
 	}
-	return cmd.peerURL
+	return cmd.PeerURL
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -1014,7 +1014,7 @@ func (cmd *RunCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURL().String())
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURLOrDefault().String())
 }
 
 func (cmd *RunCommand) constructHTTPHandler(
@@ -1101,7 +1101,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		gcContainerDestroyer,
 		dbBuildFactory,
 
-		cmd.PeerURL().String(),
+		cmd.PeerURLOrDefault().String(),
 		buildserver.NewEventHandler,
 		drain,
 
