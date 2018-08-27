@@ -566,27 +566,23 @@ this is super secure
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
-					pathSkipCreds, errSkipCreds := atc.Routes.CreatePathForRoute(atc.SaveConfigSkipCredentials, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
-					Expect(errSkipCreds).NotTo(HaveOccurred())
+					atcServer.RouteToHandler("PUT", path,
+						ghttp.CombineHandlers(
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+							func(w http.ResponseWriter, r *http.Request) {
+								bodyConfig := getConfig(r)
 
-					combinedHandlers := ghttp.CombineHandlers(
-						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-						func(w http.ResponseWriter, r *http.Request) {
-							bodyConfig := getConfig(r)
+								receivedConfig := atc.Config{}
+								err = yaml.Unmarshal(bodyConfig, &receivedConfig)
+								Expect(err).NotTo(HaveOccurred())
 
-							receivedConfig := atc.Config{}
-							err = yaml.Unmarshal(bodyConfig, &receivedConfig)
-							Expect(err).NotTo(HaveOccurred())
+								Expect(receivedConfig).To(Equal(config))
 
-							Expect(receivedConfig).To(Equal(config))
-
-							w.WriteHeader(http.StatusOK)
-							w.Write([]byte(`{}`))
-						},
+								w.WriteHeader(http.StatusOK)
+								w.Write([]byte(`{}`))
+							},
+						),
 					)
-
-					atcServer.RouteToHandler("PUT", path, combinedHandlers)
-					atcServer.RouteToHandler("PUT", pathSkipCreds, combinedHandlers)
 				})
 
 				It("succeeds, sending the remaining vars uninterpolated", func() {
@@ -610,76 +606,79 @@ this is super secure
 					}).By(3))
 				})
 
-				Context("and the --skip-creds option is used", func() {
-					It("should succeed and send the vars uninterpolated", func() {
-						Expect(func() {
-							flyCmd := exec.Command(
-								flyPath, "-t", targetName,
-								"set-pipeline",
-								"-n",
-								"--pipeline", "awesome-pipeline",
-								"-c", "fixtures/vars-pipeline.yml",
-								"-l", "fixtures/vars-pipeline-params-a.yml",
-								"-l", "fixtures/vars-pipeline-params-types.yml",
-								"--skip-creds",
-							)
+				Context("when the --check-creds option is used", func() {
+					Context("when the variable exists in the credentials maanger", func() {
+						It("should succeed and send the vars uninterpolated", func() {
+							Expect(func() {
+								flyCmd := exec.Command(
+									flyPath, "-t", targetName,
+									"set-pipeline",
+									"-n",
+									"--pipeline", "awesome-pipeline",
+									"-c", "fixtures/vars-pipeline.yml",
+									"-l", "fixtures/vars-pipeline-params-a.yml",
+									"-l", "fixtures/vars-pipeline-params-types.yml",
+									"--check-creds",
+								)
 
-							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-							Expect(err).NotTo(HaveOccurred())
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
-						}).To(Change(func() int {
-							return len(atcServer.ReceivedRequests())
-						}).By(3))
-					})
-				})
-
-				Context("but the variable does not exist in the credentials manager", func() {
-					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
-						Expect(err).NotTo(HaveOccurred())
-
-						configResponse := atc.ConfigResponse{Errors: []string{"Expected to find variables: param-b"}}
-						atcServer.RouteToHandler("PUT", path,
-							ghttp.CombineHandlers(
-								ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-								func(w http.ResponseWriter, r *http.Request) {
-									bodyConfig := getConfig(r)
-
-									receivedConfig := atc.Config{}
-									err = yaml.Unmarshal(bodyConfig, &receivedConfig)
-									Expect(err).NotTo(HaveOccurred())
-
-									Expect(receivedConfig).To(Equal(config))
-								},
-								ghttp.RespondWithJSONEncoded(http.StatusBadRequest, configResponse, http.Header{atc.ConfigVersionHeader: {"42"}}),
-							),
-						)
+								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+								Expect(err).NotTo(HaveOccurred())
+								<-sess.Exited
+								Expect(sess.ExitCode()).To(Equal(0))
+							}).To(Change(func() int {
+								return len(atcServer.ReceivedRequests())
+							}).By(3))
+						})
 					})
 
-					It("should error and return the missing field", func() {
-						Expect(func() {
-							flyCmd := exec.Command(
-								flyPath, "-t", targetName,
-								"set-pipeline",
-								"-n",
-								"--pipeline", "awesome-pipeline",
-								"-c", "fixtures/vars-pipeline.yml",
-								"-l", "fixtures/vars-pipeline-params-a.yml",
-								"-l", "fixtures/vars-pipeline-params-types.yml",
-							)
-
-							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Context("when the variable does not exist in the credentials manager", func() {
+						BeforeEach(func() {
+							path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 							Expect(err).NotTo(HaveOccurred())
 
-							Eventually(sess.Err).Should(gbytes.Say(`error: invalid configuration:`))
-							Eventually(sess.Err).Should(gbytes.Say(`Expected to find variables: param-b`))
+							configResponse := atc.ConfigResponse{Errors: []string{"Expected to find variables: param-b"}}
+							atcServer.RouteToHandler("PUT", path,
+								ghttp.CombineHandlers(
+									ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+									func(w http.ResponseWriter, r *http.Request) {
+										bodyConfig := getConfig(r)
 
-							<-sess.Exited
-							Expect(sess.ExitCode()).NotTo(Equal(0))
-						}).To(Change(func() int {
-							return len(atcServer.ReceivedRequests())
-						}).By(3))
+										receivedConfig := atc.Config{}
+										err = yaml.Unmarshal(bodyConfig, &receivedConfig)
+										Expect(err).NotTo(HaveOccurred())
+
+										Expect(receivedConfig).To(Equal(config))
+									},
+									ghttp.RespondWithJSONEncoded(http.StatusBadRequest, configResponse, http.Header{atc.ConfigVersionHeader: {"42"}}),
+								),
+							)
+						})
+
+						It("should error and return the missing field", func() {
+							Expect(func() {
+								flyCmd := exec.Command(
+									flyPath, "-t", targetName,
+									"set-pipeline",
+									"-n",
+									"--pipeline", "awesome-pipeline",
+									"-c", "fixtures/vars-pipeline.yml",
+									"-l", "fixtures/vars-pipeline-params-a.yml",
+									"-l", "fixtures/vars-pipeline-params-types.yml",
+									"--check-creds",
+								)
+
+								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+								Expect(err).NotTo(HaveOccurred())
+
+								Eventually(sess.Err).Should(gbytes.Say(`error: invalid configuration:`))
+								Eventually(sess.Err).Should(gbytes.Say(`Expected to find variables: param-b`))
+
+								<-sess.Exited
+								Expect(sess.ExitCode()).NotTo(Equal(0))
+							}).To(Change(func() int {
+								return len(atcServer.ReceivedRequests())
+							}).By(3))
+						})
 					})
 				})
 
