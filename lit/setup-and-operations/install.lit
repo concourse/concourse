@@ -109,7 +109,7 @@ page.
 
       \codeblock{bash}{{{
       concourse web \
-        --add-local-user myuser:mypass
+        ...
         --main-team-local-user myuser
       }}}
     }
@@ -181,22 +181,19 @@ page.
       \bold{GitHub Organization}
       \codeblock{bash}{{{
         concourse web \
-          --github-client-id CLIENT_ID \
-          --github-client-secret CLIENT_SECRET
+          ...
           --main-team-github-org=ORG_NAME
       }}}
       \bold{GitHub Team}
       \codeblock{bash}{{{
         concourse web \
-          --github-client-id CLIENT_ID \
-          --github-client-secret CLIENT_SECRET
+          ...
           --main-team-github-team=ORG_NAME:TEAM_NAME
       }}}
       \bold{GitHub User}
       \codeblock{bash}{{{
         concourse web \
-          --github-client-id CLIENT_ID \
-          --github-client-secret CLIENT_SECRET
+          ...
           --main-team-github-user=USERNAME
       }}}
     }
@@ -272,33 +269,25 @@ page.
       \bold{CF Organization}
       \codeblock{bash}{{{
         concourse web \
-          --cf-client-id CLIENT_ID \
-          --cf-client-secret CLIENT_SECRET \
-          --cf-api-url CF_API_URL
+          ...
           --main-team-cf-org=ORG_NAME
       }}}
       \bold{CF Space}
       \codeblock{bash}{{{
         concourse web \
-          --cf-client-id CLIENT_ID \
-          --cf-client-secret CLIENT_SECRET \
-          --cf-api-url CF_API_URL
+          ...
           --main-team-cf-space=ORG_NAME:SPACE_NAME
       }}}
       \bold{CF Space GUID}
       \codeblock{bash}{{{
         concourse web \
-          --cf-client-id CLIENT_ID \
-          --cf-client-secret CLIENT_SECRET \
-          --cf-api-url CF_API_URL
+          ...
           --main-team-cf-space-guid=SPACE_GUID
       }}}
       \bold{CF User}
       \codeblock{bash}{{{
         concourse web \
-          --cf-client-id CLIENT_ID \
-          --cf-client-secret CLIENT_SECRET \
-          --cf-api-url CF_API_URL
+          ...
           --main-team-cf-user=USERNAME
       }}}
     }
@@ -348,19 +337,13 @@ page.
       \bold{OIDC Group}
       \codeblock{bash}{{{
         concourse web \
-          --oidc-display-name='X' \
-          --oidc-client-id=CLIENT_ID \
-          --oidc-client-secret=CLIENT_SECRET \
-          --oidc-issuer=https://oidc.example.com
+          ...
           --main-team-oidc-group=GROUP_NAME
       }}}
       \bold{OIDC User}
       \codeblock{bash}{{{
         concourse web \
-          --oidc-display-name='X' \
-          --oidc-client-id=CLIENT_ID \
-          --oidc-client-secret=CLIENT_SECRET \
-          --oidc-issuer=https://oidc.example.com
+          ...
           --main-team-oidc-user=USERNAME
       }}}
     }
