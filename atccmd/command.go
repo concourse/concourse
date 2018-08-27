@@ -819,6 +819,7 @@ func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
 			select {
 			case <-subReady:
 				cb()
+				close(ready)
 				subReady = nil
 			case err := <-subExited:
 				return err
