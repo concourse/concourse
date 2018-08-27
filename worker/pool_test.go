@@ -359,6 +359,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("succeeds", func() {
+				Expect(found).To(BeTrue())
 				Expect(findErr).NotTo(HaveOccurred())
 			})
 

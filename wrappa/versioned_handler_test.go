@@ -28,7 +28,7 @@ var _ = Describe("VersionedHandler", func() {
 		server = httptest.NewServer(wrappa.VersionedHandler{
 			Version: version,
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintln(w, "sup\n")
+				fmt.Fprintln(w, "sup")
 			}),
 		})
 

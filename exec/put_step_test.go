@@ -29,10 +29,8 @@ var _ = Describe("PutStep", func() {
 
 		pipelineResourceName string
 
-		fakeWorkerClient           *workerfakes.FakeClient
-		fakeResourceFactory        *resourcefakes.FakeResourceFactory
-		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		variables                  creds.Variables
+		fakeResourceFactory *resourcefakes.FakeResourceFactory
+		variables           creds.Variables
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
@@ -66,9 +64,7 @@ var _ = Describe("PutStep", func() {
 
 		pipelineResourceName = "some-resource"
 
-		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
-		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		variables = template.StaticVariables{
 			"custom-param": "source",
 			"source-param": "super-secret-source",
@@ -96,6 +92,10 @@ var _ = Describe("PutStep", func() {
 		})
 
 		stepErr = nil
+	})
+
+	AfterEach(func() {
+		cancel()
 	})
 
 	JustBeforeEach(func() {

@@ -493,6 +493,11 @@ var _ = Describe("VolumeClient", func() {
 				_, handle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
 				Expect(handle).To(Equal("created-handle"))
 			})
+
+			It("finds a volume", func() {
+				Expect(found).To(BeTrue())
+				Expect(volume).ToNot(BeNil())
+			})
 		})
 
 		Context("when a creating volume exists in the database", func() {

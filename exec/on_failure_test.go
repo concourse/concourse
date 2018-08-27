@@ -41,6 +41,10 @@ var _ = Describe("On Failure Step", func() {
 		onFailureStep = exec.OnFailure(step, hook)
 	})
 
+	AfterEach(func() {
+		cancel()
+	})
+
 	JustBeforeEach(func() {
 		stepErr = onFailureStep.Run(ctx, state)
 	})

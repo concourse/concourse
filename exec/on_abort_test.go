@@ -43,6 +43,10 @@ var _ = Describe("On Abort Step", func() {
 		stepErr = nil
 	})
 
+	AfterEach(func() {
+		cancel()
+	})
+
 	JustBeforeEach(func() {
 		stepErr = onAbortStep.Run(ctx, state)
 	})

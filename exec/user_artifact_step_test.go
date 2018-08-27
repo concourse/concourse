@@ -33,6 +33,10 @@ var _ = Describe("UserArtifactStep", func() {
 		delegate.StdoutReturns(ioutil.Discard)
 	})
 
+	AfterEach(func() {
+		cancel()
+	})
+
 	JustBeforeEach(func() {
 		step = exec.UserArtifact(
 			"some-plan-id",

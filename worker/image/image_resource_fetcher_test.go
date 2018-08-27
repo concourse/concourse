@@ -32,7 +32,6 @@ import (
 
 var _ = Describe("Image", func() {
 	var fakeResourceFactory *resourcefakes.FakeResourceFactory
-	var fakeImageResource *resourcefakes.FakeResource
 	var fakeResourceFetcherFactory *resourcefakes.FakeFetcherFactory
 	var fakeResourceFetcher *resourcefakes.FakeFetcher
 	var fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
@@ -62,7 +61,6 @@ var _ = Describe("Image", func() {
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
-		fakeImageResource = new(resourcefakes.FakeResource)
 		fakeResourceFetcherFactory = new(resourcefakes.FakeFetcherFactory)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
@@ -145,12 +143,10 @@ var _ = Describe("Image", func() {
 		Context("when initializing the Check resource works", func() {
 			var (
 				fakeCheckResource *resourcefakes.FakeResource
-				fakeBuildResource *resourcefakes.FakeResource
 			)
 
 			BeforeEach(func() {
 				fakeCheckResource = new(resourcefakes.FakeResource)
-				fakeBuildResource = new(resourcefakes.FakeResource)
 				fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource, nil)
 			})
 

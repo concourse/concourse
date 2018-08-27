@@ -117,6 +117,10 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 	})
 
+	AfterEach(func() {
+		cancel()
+	})
+
 	JustBeforeEach(func() {
 		getStep = factory.Get(
 			lagertest.NewTestLogger("get-action-test"),

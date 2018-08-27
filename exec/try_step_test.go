@@ -37,6 +37,10 @@ var _ = Describe("Try Step", func() {
 		step = Try(runStep)
 	})
 
+	AfterEach(func() {
+		cancel()
+	})
+
 	Describe("Succeeded", func() {
 		It("returns true", func() {
 			Expect(step.Succeeded()).Should(BeTrue())

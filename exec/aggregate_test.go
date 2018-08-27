@@ -21,9 +21,8 @@ var _ = Describe("Aggregate", func() {
 		fakeStepA *execfakes.FakeStep
 		fakeStepB *execfakes.FakeStep
 
-		inStep *execfakes.FakeStep
-		repo   *worker.ArtifactRepository
-		state  *execfakes.FakeRunState
+		repo  *worker.ArtifactRepository
+		state *execfakes.FakeRunState
 
 		step    Step
 		stepErr error
@@ -40,10 +39,13 @@ var _ = Describe("Aggregate", func() {
 			fakeStepB,
 		}
 
-		inStep = new(execfakes.FakeStep)
 		repo = worker.NewArtifactRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
+	})
+
+	AfterEach(func() {
+		cancel()
 	})
 
 	JustBeforeEach(func() {

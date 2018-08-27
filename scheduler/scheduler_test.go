@@ -257,7 +257,6 @@ var _ = Describe("Scheduler", func() {
 		var (
 			fakeJob           *dbfakes.FakeJob
 			fakeResource      *dbfakes.FakeResource
-			triggeredBuild    db.Build
 			triggerErr        error
 			nextPendingBuilds []db.Build
 		)
@@ -273,7 +272,7 @@ var _ = Describe("Scheduler", func() {
 
 		JustBeforeEach(func() {
 			var waiter Waiter
-			triggeredBuild, waiter, triggerErr = scheduler.TriggerImmediately(
+			_, waiter, triggerErr = scheduler.TriggerImmediately(
 				lagertest.NewTestLogger("test"),
 				fakeJob,
 				db.Resources{fakeResource},

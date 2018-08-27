@@ -16,7 +16,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/worker"
@@ -31,8 +30,7 @@ var _ = Describe("TaskStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		fakeWorkerClient           *workerfakes.FakeClient
-		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+		fakeWorkerClient *workerfakes.FakeClient
 
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
@@ -66,7 +64,6 @@ var _ = Describe("TaskStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
-		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -663,17 +660,11 @@ var _ = Describe("TaskStep", func() {
 
 				Context("when the configuration specifies paths for caches", func() {
 					var (
-						inputSource      *workerfakes.FakeArtifactSource
-						otherInputSource *workerfakes.FakeArtifactSource
-
 						fakeVolume1 *workerfakes.FakeVolume
 						fakeVolume2 *workerfakes.FakeVolume
 					)
 
 					BeforeEach(func() {
-						inputSource = new(workerfakes.FakeArtifactSource)
-						otherInputSource = new(workerfakes.FakeArtifactSource)
-
 						configSource.FetchConfigReturns(atc.TaskConfig{
 							Platform:  "some-platform",
 							RootfsURI: "some-image",

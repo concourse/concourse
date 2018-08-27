@@ -833,7 +833,6 @@ var _ = Describe("Jobs API", func() {
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
 		var dashboardResponse db.Dashboard
-		var groups []atc.GroupConfig
 
 		JustBeforeEach(func() {
 			var err error
@@ -846,17 +845,6 @@ var _ = Describe("Jobs API", func() {
 			var job1 *dbfakes.FakeJob
 
 			BeforeEach(func() {
-				groups = []atc.GroupConfig{
-					{
-						Name: "group-1",
-						Jobs: []string{"job-1"},
-					},
-					{
-						Name: "group-2",
-						Jobs: []string{"job-1", "job-2"},
-					},
-				}
-
 				job1 = new(dbfakes.FakeJob)
 				job1.IDReturns(1)
 				job1.PausedReturns(true)

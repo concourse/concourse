@@ -39,6 +39,10 @@ var _ = Describe("LogErrorStep", func() {
 		step = LogError(fakeStep, fakeDelegate)
 	})
 
+	AfterEach(func() {
+		cancel()
+	})
+
 	Describe("Run", func() {
 		var runErr error
 

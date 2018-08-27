@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/engine"
-	"github.com/concourse/atc/event"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,8 +22,6 @@ var _ = Describe("BuildDelegate", func() {
 		delegate BuildDelegate
 
 		logger *lagertest.TestLogger
-
-		originID event.OriginID
 	)
 
 	BeforeEach(func() {
@@ -34,8 +31,6 @@ var _ = Describe("BuildDelegate", func() {
 		delegate = factory.Delegate(fakeBuild)
 
 		logger = lagertest.NewTestLogger("test")
-
-		originID = event.OriginID("some-origin-id")
 	})
 
 	Describe("Finish", func() {

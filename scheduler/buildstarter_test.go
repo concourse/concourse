@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("I'm a BuildStarter", func() {
+var _ = Describe("BuildStarter", func() {
 	var (
 		fakePipeline     *dbfakes.FakePipeline
 		fakeUpdater      *maxinflightfakes.FakeUpdater
@@ -29,7 +29,6 @@ var _ = Describe("I'm a BuildStarter", func() {
 		pendingBuilds    []db.Build
 		fakeScanner      *schedulerfakes.FakeScanner
 		fakeInputMapper  *inputmapperfakes.FakeInputMapper
-		fakeBuildStarter *schedulerfakes.FakeBuildStarter
 
 		buildStarter scheduler.BuildStarter
 
@@ -43,7 +42,6 @@ var _ = Describe("I'm a BuildStarter", func() {
 		fakeEngine = new(enginefakes.FakeEngine)
 		fakeScanner = new(schedulerfakes.FakeScanner)
 		fakeInputMapper = new(inputmapperfakes.FakeInputMapper)
-		fakeBuildStarter = new(schedulerfakes.FakeBuildStarter)
 
 		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeUpdater, fakeFactory, fakeScanner, fakeInputMapper, fakeEngine)
 

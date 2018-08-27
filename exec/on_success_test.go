@@ -47,6 +47,10 @@ var _ = Describe("On Success Step", func() {
 		stepErr = onSuccessStep.Run(ctx, state)
 	})
 
+	AfterEach(func() {
+		cancel()
+	})
+
 	Context("when the step succeeds", func() {
 		BeforeEach(func() {
 			step.SucceededReturns(true)

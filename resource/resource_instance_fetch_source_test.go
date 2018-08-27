@@ -41,6 +41,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("test")
 		fakeContainer = new(workerfakes.FakeContainer)
+
 		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeContainer.PropertyReturns("", errors.New("nope"))
@@ -110,6 +111,10 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			fakeDelegate,
 			fakeResourceCacheFactory,
 		)
+	})
+
+	AfterEach(func() {
+		cancel()
 	})
 
 	Describe("Find", func() {

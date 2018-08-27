@@ -7,8 +7,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/gc"
-	"github.com/concourse/atc/worker/workerfakes"
-	"github.com/concourse/baggageclaim/baggageclaimfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,14 +18,11 @@ var _ = Describe("VolumeCollector", func() {
 
 		volumeRepository   db.VolumeRepository
 		workerFactory      db.WorkerFactory
-		fakeBCVolume       *baggageclaimfakes.FakeVolume
 		creatingContainer1 db.CreatingContainer
 		creatingContainer2 db.CreatingContainer
 		team               db.Team
 		worker             db.Worker
 		build              db.Build
-
-		fakeWorker *workerfakes.FakeWorker
 	)
 
 	BeforeEach(func() {
@@ -36,17 +31,12 @@ var _ = Describe("VolumeCollector", func() {
 		volumeRepository = db.NewVolumeRepository(dbConn)
 		workerFactory = db.NewWorkerFactory(dbConn)
 
-		fakeBCVolume = new(baggageclaimfakes.FakeVolume)
-
-		fakeWorker = new(workerfakes.FakeWorker)
-
 		volumeCollector = gc.NewVolumeCollector(
 			volumeRepository,
 		)
 	})
 
 	Describe("Run", func() {
-
 		BeforeEach(func() {
 			var err error
 			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
@@ -68,14 +58,13 @@ var _ = Describe("VolumeCollector", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 		})
-		Context("when there are failed volumes", func() {
-			var failedVolume1 db.FailedVolume
 
+		Context("when there are failed volumes", func() {
 			JustBeforeEach(func() {
 				creatingVolume1, err := volumeRepository.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer1, "some-path-1")
 				Expect(err).NotTo(HaveOccurred())
 
-				failedVolume1, err = creatingVolume1.Failed()
+				_, err = creatingVolume1.Failed()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -94,11 +83,9 @@ var _ = Describe("VolumeCollector", func() {
 		})
 
 		Context("when there are orphaned volumes", func() {
-			var createdVolume1 db.CreatedVolume
 			var expectedOrphanedVolumeHandles []string
 
 			JustBeforeEach(func() {
-
 				creatingContainer2, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
 					Type:     "task",
 					StepName: "some-task",
@@ -109,7 +96,8 @@ var _ = Describe("VolumeCollector", func() {
 				Expect(err).NotTo(HaveOccurred())
 				expectedOrphanedVolumeHandles = append(expectedOrphanedVolumeHandles, creatingVolume1.Handle())
 
-				createdVolume1, err = creatingVolume1.Created()
+				_, err = creatingVolume1.Created()
+				Expect(err).NotTo(HaveOccurred())
 
 				creatingVolume2, err := volumeRepository.CreateContainerVolume(team.ID(), worker.Name(), creatingContainer2, "some-path-1")
 				Expect(err).NotTo(HaveOccurred())
@@ -129,8 +117,8 @@ var _ = Describe("VolumeCollector", func() {
 				destroyed, err := destroyingContainer.Destroy()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(destroyed).To(BeTrue())
-
 			})
+
 			It("marks orphaned volumes as 'destroying'", func() {
 				err = volumeCollector.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())

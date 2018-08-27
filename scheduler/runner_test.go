@@ -27,8 +27,6 @@ var _ = Describe("Runner", func() {
 
 		lock *lockfakes.FakeLock
 
-		initialConfig atc.Config
-
 		someVersions *algorithm.VersionsDB
 
 		process ifrit.Process
@@ -103,29 +101,6 @@ var _ = Describe("Runner", func() {
 
 		fakePipeline.LoadVersionsDBReturns(someVersions, nil)
 
-		initialConfig = atc.Config{
-			Jobs: atc.JobConfigs{
-				{
-					Name: "some-job",
-				},
-				{
-					Name: "some-other-job",
-				},
-			},
-
-			Resources: atc.ResourceConfigs{
-				{
-					Name:   "some-resource",
-					Type:   "git",
-					Source: atc.Source{"uri": "git://some-resource"},
-				},
-				{
-					Name:   "some-dependant-resource",
-					Type:   "git",
-					Source: atc.Source{"uri": "git://some-dependant-resource"},
-				},
-			},
-		}
 		fakeJob1 = new(dbfakes.FakeJob)
 		fakeJob1.NameReturns("some-job")
 		fakeJob2 = new(dbfakes.FakeJob)

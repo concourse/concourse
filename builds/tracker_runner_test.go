@@ -20,7 +20,6 @@ var _ = Describe("TrackerRunner", func() {
 	var fakeClock *fakeclock.FakeClock
 	var tracked <-chan struct{}
 	var notify chan<- bool
-	var notifyrec <-chan bool
 	var trackerRunner TrackerRunner
 	var process ifrit.Process
 	var interval = 10 * time.Second
@@ -41,7 +40,6 @@ var _ = Describe("TrackerRunner", func() {
 
 		n := make(chan bool)
 		notify = n
-		notifyrec = n
 		fakeListener.ListenReturns(n, nil)
 
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
