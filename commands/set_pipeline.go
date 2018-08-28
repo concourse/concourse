@@ -12,6 +12,8 @@ type SetPipelineCommand struct {
 	SkipInteractive  bool `short:"n"  long:"non-interactive"               description:"Skips interactions, uses default values"`
 	DisableAnsiColor bool `long:"no-color"               description:"Disable color output"`
 
+	CheckCredentials bool `long:"check-creds"  description:"Validate credential variables against credential manager"`
+
 	Pipeline flaghelpers.PipelineFlag `short:"p"  long:"pipeline"  required:"true"  description:"Pipeline to configure"`
 	Config   atc.PathFlag             `short:"c"  long:"config"    required:"true"  description:"Pipeline configuration file"`
 
@@ -47,10 +49,11 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	ansi.DisableColors(command.DisableAnsiColor)
 
 	atcConfig := setpipelinehelpers.ATCConfig{
-		Team:            target.Team(),
-		PipelineName:    pipelineName,
-		Target:          target.Client().URL(),
-		SkipInteraction: command.SkipInteractive,
+		Team:             target.Team(),
+		PipelineName:     pipelineName,
+		Target:           target.Client().URL(),
+		SkipInteraction:  command.SkipInteractive,
+		CheckCredentials: command.CheckCredentials,
 	}
 
 	return atcConfig.Set(configPath, command.Var, command.YAMLVar, templateVariablesFiles)

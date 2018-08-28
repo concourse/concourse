@@ -20,10 +20,11 @@ import (
 )
 
 type ATCConfig struct {
-	PipelineName    string
-	Team            concourse.Team
-	Target          string
-	SkipInteraction bool
+	PipelineName     string
+	Team             concourse.Team
+	Target           string
+	SkipInteraction  bool
+	CheckCredentials bool
 }
 
 func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
@@ -134,6 +135,7 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables []flag
 		atcConfig.PipelineName,
 		existingConfigVersion,
 		newConfig,
+		atcConfig.CheckCredentials,
 	)
 	if err != nil {
 		return err
