@@ -14,7 +14,9 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/creds"
 	"github.com/concourse/atc/db"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
@@ -51,6 +53,13 @@ type SaveConfigResponse struct {
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session := s.logger.Session("set-config")
+
+	query := r.URL.Query()
+
+	checkCredentials := false
+	if _, exists := query[atc.SaveConfigCheckCreds]; exists {
+		checkCredentials = true
+	}
 
 	var version db.ConfigVersion
 	if configVersionStr := r.Header.Get(atc.ConfigVersionHeader); len(configVersionStr) != 0 {
@@ -106,10 +115,20 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.Info("saving")
-
 	pipelineName := rata.Param(r, "pipeline_name")
 	teamName := rata.Param(r, "team_name")
+
+	if checkCredentials {
+		variables := s.variablesFactory.NewVariables(teamName, pipelineName)
+
+		errs := validateCredParams(variables, config, session)
+		if errs != nil {
+			s.handleBadRequest(w, []string{errs.Error()}, session)
+			return
+		}
+	}
+
+	session.Info("saving")
 
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
@@ -143,6 +162,59 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.writeSaveConfigResponse(w, SaveConfigResponse{Warnings: warnings}, session)
+}
+
+// Simply validate that the credentials exist; don't do anything with the actual secrets
+func validateCredParams(vars creds.Variables, config atc.Config, session lager.Logger) error {
+	var errs error
+
+	for _, resourceType := range config.ResourceTypes {
+		_, err := creds.NewSource(vars, resourceType.Source).Evaluate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	for _, resource := range config.Resources {
+		_, err := creds.NewSource(vars, resource.Source).Evaluate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
+		}
+
+		_, err = creds.NewString(vars, resource.WebhookToken).Evaluate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	for _, job := range config.Jobs {
+		for _, plan := range job.Plan {
+			_, err := creds.NewParams(vars, plan.Params).Evaluate()
+			if err != nil {
+				errs = multierror.Append(errs, err)
+			}
+
+			if plan.TaskConfig != nil {
+				if plan.TaskConfig.ImageResource != nil {
+					_, err = creds.NewSource(vars, plan.TaskConfig.ImageResource.Source).Evaluate()
+					if err != nil {
+						errs = multierror.Append(errs, err)
+					}
+				}
+
+				_, err = creds.NewTaskParams(vars, plan.TaskConfig.Params).Evaluate()
+				if err != nil {
+					errs = multierror.Append(errs, err)
+				}
+			}
+		}
+	}
+
+	if errs != nil {
+		session.Info("config-has-invalid-creds", lager.Data{"errors": errs.Error()})
+	}
+
+	return errs
 }
 
 func (s *Server) handleBadRequest(w http.ResponseWriter, errorMessages []string, session lager.Logger) {

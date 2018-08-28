@@ -11,6 +11,8 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/atc/creds/credsfakes"
+	"github.com/concourse/atc/creds/noop"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/onsi/gomega/gbytes"
@@ -667,6 +669,131 @@ jobs:
 								Expect(id).To(Equal(db.ConfigVersion(42)))
 								Expect(pipelineState).To(Equal(db.PipelineNoChange))
 							})
+						})
+
+						Context("when it contains credentials to be interpolated", func() {
+							var (
+								payloadAsConfig atc.Config
+								payload         string
+							)
+
+							BeforeEach(func() {
+								payload = `---
+resources:
+- name: some-resource
+  type: some-type
+  check_every: 10s
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource
+  - task: some-task
+    config:
+      platform: linux
+      run:
+        path: ls
+      params:
+        FOO: ((BAR))`
+								payloadAsConfig = atc.Config{Resources: []atc.ResourceConfig{
+									{
+										Name:       "some-resource",
+										Type:       "some-type",
+										Source:     nil,
+										CheckEvery: "10s",
+									},
+								},
+									Jobs: atc.JobConfigs{
+										{
+											Name: "some-job",
+											Plan: atc.PlanSequence{
+												{
+													Get: "some-resource",
+												},
+												{
+													Task: "some-task",
+													TaskConfig: &atc.TaskConfig{
+														Platform: "linux",
+
+														Run: atc.TaskRunConfig{
+															Path: "ls",
+														},
+
+														Params: map[string]string{
+															"FOO": "((BAR))",
+														},
+													},
+												},
+											},
+										},
+									},
+								}
+
+								request.Header.Set("Content-Type", "application/x-yaml")
+								request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+							})
+
+							Context("when the check_creds param is set", func() {
+								BeforeEach(func() {
+									query := request.URL.Query()
+									query.Add(atc.SaveConfigCheckCreds, "")
+									request.URL.RawQuery = query.Encode()
+								})
+
+								Context("when the credential exists in the credential manager", func() {
+									BeforeEach(func() {
+										fakeVariables := new(credsfakes.FakeVariables)
+										fakeVariablesFactory.NewVariablesReturns(fakeVariables)
+										fakeVariables.GetReturns("this-string-value-doesn't-matter", true, nil)
+									})
+
+									It("passes validation and saves it un-interpolated", func() {
+										Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
+
+										name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
+										Expect(name).To(Equal("a-pipeline"))
+										Expect(savedConfig).To(Equal(payloadAsConfig))
+
+										Expect(id).To(Equal(db.ConfigVersion(42)))
+										Expect(pipelineState).To(Equal(db.PipelineNoChange))
+									})
+
+									It("returns 200", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusOK))
+									})
+								})
+
+								Context("when the credential does not exist in the credential manager", func() {
+									BeforeEach(func() {
+										fakeVariables := new(credsfakes.FakeVariables)
+										fakeVariablesFactory.NewVariablesReturns(fakeVariables)
+										fakeVariables.GetReturns(nil, false, nil) // nil value, not found, no error
+									})
+
+									It("returns 400", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+									})
+
+									It("returns the credential name that was missing", func() {
+										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["1 error occurred:\n\n* Expected to find variables: BAR"]}`))
+									})
+								})
+
+								Context("when a credentials manager is not used", func() {
+									BeforeEach(func() {
+										fakeVariables := noop.Noop{}
+										fakeVariablesFactory.NewVariablesReturns(&fakeVariables)
+									})
+
+									It("returns 400", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+									})
+
+									It("returns the credential name that was missing", func() {
+										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["1 error occurred:\n\n* Expected to find variables: BAR"]}`))
+									})
+								})
+							})
+
 						})
 
 						Context("when it's the first time the pipeline has been created", func() {

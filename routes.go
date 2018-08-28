@@ -99,6 +99,7 @@ const (
 
 const (
 	ClearTaskCacheQueryPath = "cache_path"
+	SaveConfigCheckCreds    = "check_creds"
 )
 
 var Routes = rata.Routes([]rata.Route{

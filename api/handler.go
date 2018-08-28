@@ -84,7 +84,7 @@ func NewHandler(
 	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, engine)
-	configServer := configserver.NewServer(logger, dbTeamFactory)
+	configServer := configserver.NewServer(logger, dbTeamFactory, variablesFactory)
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
