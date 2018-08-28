@@ -72,10 +72,10 @@ func (cache *ResourceCacheDescriptor) findOrCreate(
 				paramsHash(cache.Params),
 			).
 			Suffix(`
-				ON CONFLICT (resource_config_id, md5(version), params_hash) DO UPDATE SET
-					resource_config_id = ?,
-					version = ?,
-					params_hash = ?
+				ON CONFLICT (resource_config_id, md5(version::text), params_hash) DO UPDATE SET
+				resource_config_id = ?,
+				version = ?,
+				params_hash = ?
 				RETURNING id
 			`, resourceConfig.ID(), cache.version(), paramsHash(cache.Params)).
 			RunWith(tx).
@@ -190,6 +190,7 @@ func paramsHash(p atc.Params) string {
 
 type UsedResourceCache interface {
 	ID() int
+
 	ResourceConfig() ResourceConfig
 	Version() atc.Version
 

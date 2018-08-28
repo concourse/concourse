@@ -33,14 +33,15 @@ var _ = Describe("GetStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		fakeWorkerClient           *workerfakes.FakeClient
-		fakeResourceFetcher        *resourcefakes.FakeFetcher
-		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeVariablesFactory       *credsfakes.FakeVariablesFactory
-		variables                  creds.Variables
-		fakeBuild                  *dbfakes.FakeBuild
-		fakeDelegate               *execfakes.FakeGetDelegate
-		getPlan                    *atc.GetPlan
+		fakeWorkerClient          *workerfakes.FakeClient
+		fakeResourceFetcher       *resourcefakes.FakeFetcher
+		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
+		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+		fakeVariablesFactory      *credsfakes.FakeVariablesFactory
+		variables                 creds.Variables
+		fakeBuild                 *dbfakes.FakeBuild
+		fakeDelegate              *execfakes.FakeGetDelegate
+		getPlan                   *atc.GetPlan
 
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 		resourceTypes       atc.VersionedResourceTypes
@@ -70,7 +71,7 @@ var _ = Describe("GetStep", func() {
 
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeWorkerClient = new(workerfakes.FakeClient)
-		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
 		variables = template.StaticVariables{
@@ -112,7 +113,7 @@ var _ = Describe("GetStep", func() {
 			VersionedResourceTypes: resourceTypes,
 		}
 
-		factory = exec.NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory, fakeVariablesFactory, atc.ContainerLimits{})
+		factory = exec.NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{})
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 	})
@@ -197,37 +198,95 @@ var _ = Describe("GetStep", func() {
 		})
 
 		Context("when getting a pipeline resource", func() {
+			var fakeResourceCache *dbfakes.FakeUsedResourceCache
+			var fakeResourceConfig *dbfakes.FakeResourceConfig
+
 			BeforeEach(func() {
 				getPlan.Resource = "some-pipeline-resource"
+
+				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+				fakeResourceCache.ResourceConfigReturns(fakeResourceConfig)
+				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 			})
 
-			It("saves the build input so that the metadata is visible", func() {
-				// TODO: this can be removed once /check returns metadata
+			It("finds the resource config version", func() {
+				Expect(fakeResourceConfig.FindVersionCallCount()).To(Equal(1))
 
-				Expect(fakeBuild.SaveInputCallCount()).To(Equal(1))
+				version := fakeResourceConfig.FindVersionArgsForCall(0)
+				Expect(version).To(Equal(atc.Version{"some": "version"}))
+			})
 
-				input := fakeBuild.SaveInputArgsForCall(0)
-				Expect(input).To(Equal(db.BuildInput{
-					Name: "some-name",
-					VersionedResource: db.VersionedResource{
-						Resource: "some-pipeline-resource",
-						Type:     "some-resource-type",
-						Version:  db.ResourceVersion{"some": "version"},
-						Metadata: db.NewResourceMetadataFields([]atc.MetadataField{{"some", "metadata"}}),
-					},
-				}))
+			Context("when the version is found", func() {
+				var fakeResourceConfigVersion *dbfakes.FakeResourceConfigVersion
+
+				BeforeEach(func() {
+					fakeResourceConfigVersion = new(dbfakes.FakeResourceConfigVersion)
+					fakeResourceConfig.FindVersionReturns(fakeResourceConfigVersion, true, nil)
+				})
+
+				It("saves the metadata", func() {
+					// TODO: this can be removed once /check returns metadata
+					Expect(fakeResourceConfigVersion.SaveMetadataCallCount()).To(Equal(1))
+
+					input := fakeResourceConfigVersion.SaveMetadataArgsForCall(0)
+					Expect(input).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
+				})
+
+				Context("when saving the metadata fails", func() {
+					disaster := errors.New("oops")
+
+					BeforeEach(func() {
+						fakeResourceConfigVersion.SaveMetadataReturns(disaster)
+					})
+
+					It("returns an error", func() {
+						Expect(stepErr).To(Equal(disaster))
+					})
+				})
+			})
+
+			Context("when the version is not found", func() {
+				BeforeEach(func() {
+					fakeResourceConfig.FindVersionReturns(nil, false, nil)
+				})
+
+				It("returns an error", func() {
+					Expect(stepErr).To(Equal(exec.ErrResourceConfigVersionNotFound{ResourceName: "some-pipeline-resource", Version: atc.Version{"some": "version"}}))
+				})
+			})
+
+			Context("when it fails to find the version", func() {
+				disaster := errors.New("oops")
+
+				BeforeEach(func() {
+					fakeResourceConfig.FindVersionReturns(nil, false, disaster)
+				})
+
+				It("returns an error", func() {
+					Expect(stepErr).To(Equal(disaster))
+				})
 			})
 		})
 
 		Context("when getting an anonymous resource", func() {
+			var fakeResourceCache *dbfakes.FakeUsedResourceCache
+			var fakeResourceConfig *dbfakes.FakeResourceConfig
 			BeforeEach(func() {
 				getPlan.Resource = ""
+
+				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+				fakeResourceCache.ResourceConfigReturns(fakeResourceConfig)
+				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 			})
 
 			It("does not save the build input", func() {
 				// TODO: this can be removed once /check returns metadata
 
-				Expect(fakeBuild.SaveInputCallCount()).To(Equal(0))
+				fakeResourceConfigVersion := new(dbfakes.FakeResourceConfigVersion)
+				fakeResourceConfig.FindVersionReturns(fakeResourceConfigVersion, true, nil)
+				Expect(fakeResourceConfigVersion.SaveMetadataCallCount()).To(Equal(0))
 			})
 		})
 

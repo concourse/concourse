@@ -32,6 +32,8 @@ type Resource interface {
 	FailingToCheck() bool
 	ResourceConfigCheckError() error
 
+	ResourceConfigVersionID(atc.Version) (int, bool, error)
+
 	SetResourceConfig(int) error
 	SetCheckError(error) error
 
@@ -207,6 +209,31 @@ func (r *resource) SetCheckError(cause error) error {
 	}
 
 	return err
+}
+
+func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, error) {
+	requestedVersion, err := json.Marshal(version)
+	if err != nil {
+		return 0, false, err
+	}
+
+	var id int
+	err = psql.Select("rcv.id").
+		From("resource_config_versions rcv").
+		Join("resource_configs rc ON rc.id = resource_config_id").
+		Join("resources r ON rc.id = r.resource_config_id").
+		Where(sq.Eq{"r.id": r.ID(), "version": requestedVersion}).
+		RunWith(r.conn).
+		QueryRow().
+		Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+
+	return id, true, nil
 }
 
 func scanResource(r *resource, row scannable) error {

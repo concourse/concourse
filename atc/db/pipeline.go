@@ -47,7 +47,6 @@ type Pipeline interface {
 
 	Causality(versionedResourceID int) ([]Cause, error)
 
-	SetResourceCheckError(Resource, error) error
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 
@@ -310,26 +309,6 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	}
 
 	return build, nil
-}
-
-func (p *pipeline) SetResourceCheckError(resource Resource, cause error) error {
-	var err error
-
-	if cause == nil {
-		_, err = psql.Update("resources").
-			Set("check_error", nil).
-			Where(sq.Eq{"id": resource.ID()}).
-			RunWith(p.conn).
-			Exec()
-	} else {
-		_, err = psql.Update("resources").
-			Set("check_error", cause.Error()).
-			Where(sq.Eq{"id": resource.ID()}).
-			RunWith(p.conn).
-			Exec()
-	}
-
-	return err
 }
 
 func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
@@ -701,11 +680,11 @@ func (p *pipeline) EnableVersionedResource(versionedResourceID int) error {
 	return p.toggleVersionedResource(versionedResourceID, true)
 }
 
-func (p *pipeline) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error) {
+func (p *pipeline) GetBuildsWithVersionAsInput(resourceConfigVersionID int) ([]Build, error) {
 	rows, err := buildsQuery.
-		JoinClause("LEFT OUTER JOIN build_inputs bi ON bi.build_id = b.id").
+		JoinClause("LEFT OUTER JOIN build_resource_config_versions_inputs bi ON bi.build_id = b.id").
 		Where(sq.Eq{
-			"bi.versioned_resource_id": versionedResourceID,
+			"bi.resource_config_version_id": resourceConfigVersionID,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -727,11 +706,11 @@ func (p *pipeline) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build
 	return builds, err
 }
 
-func (p *pipeline) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error) {
+func (p *pipeline) GetBuildsWithVersionAsOutput(resourceConfigVersionID int) ([]Build, error) {
 	rows, err := buildsQuery.
-		JoinClause("LEFT OUTER JOIN build_outputs bo ON bo.build_id = b.id").
+		JoinClause("LEFT OUTER JOIN build_resource_config_versions_outputs bo ON bo.build_id = b.id").
 		Where(sq.Eq{
-			"bo.versioned_resource_id": versionedResourceID,
+			"bo.resource_config_version_id": resourceConfigVersionID,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -778,29 +757,11 @@ func (p *pipeline) Builds(page Page) ([]Build, Pagination, error) {
 }
 
 func (p *pipeline) Resources() (Resources, error) {
-	rows, err := resourcesQuery.Where(sq.Eq{"r.pipeline_id": p.id}).RunWith(p.conn).Query()
-	if err != nil {
-		return nil, err
-	}
-	defer Close(rows)
-
-	var resources Resources
-
-	for rows.Next() {
-		newResource := &resource{conn: p.conn}
-		err := scanResource(newResource, rows)
-		if err != nil {
-			return nil, err
-		}
-
-		resources = append(resources, newResource)
-	}
-
-	return resources, nil
+	return resources(p.id, p.conn)
 }
 
 func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
-	rows, err := resourceTypesQuery.Where(sq.Eq{"pipeline_id": p.id}).RunWith(p.conn).Query()
+	rows, err := resourceTypesQuery.Where(sq.Eq{"r.pipeline_id": p.id}).RunWith(p.conn).Query()
 	if err != nil {
 		return nil, err
 	}
@@ -823,8 +784,8 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 
 func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 	row := resourceTypesQuery.Where(sq.Eq{
-		"pipeline_id": p.id,
-		"name":        name,
+		"r.pipeline_id": p.id,
+		"r.name":        name,
 	}).RunWith(p.conn).QueryRow()
 
 	resourceType := &resourceType{conn: p.conn}
@@ -1022,13 +983,13 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		ResourceIDs:      map[string]int{},
 	}
 
+	// XXX: Add functionality to only grab enabled resource config versions
 	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, b.job_id").
-		From("build_outputs o, builds b, versioned_resources v, resources r").
-		Where(sq.Expr("v.id = o.versioned_resource_id")).
+		From("build_resource_config_versions_outputs o, builds b, resource_config_versions v, resources r").
+		Where(sq.Expr("v.id = o.resource_config_version_id")).
 		Where(sq.Expr("b.id = o.build_id")).
-		Where(sq.Expr("r.id = v.resource_id")).
+		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
 		Where(sq.Eq{
-			"v.enabled":     true,
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
 		}).
@@ -1052,13 +1013,13 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		db.BuildOutputs = append(db.BuildOutputs, output)
 	}
 
+	// XXX: Add functionality to only grab enabled resource config versions
 	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
-		From("build_inputs i, builds b, versioned_resources v, resources r").
-		Where(sq.Expr("v.id = i.versioned_resource_id")).
+		From("build_resource_config_versions_inputs i, builds b, resource_config_versions v, resources r").
+		Where(sq.Expr("v.id = i.resource_config_version_id")).
 		Where(sq.Expr("b.id = i.build_id")).
-		Where(sq.Expr("r.id = v.resource_id")).
+		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
 		Where(sq.Eq{
-			"v.enabled":     true,
 			"r.pipeline_id": p.id,
 		}).
 		RunWith(p.conn).
@@ -1092,11 +1053,11 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		}
 	}
 
+	// XXX: Add functionality to only grab enabled resource config versions
 	rows, err = psql.Select("v.id, v.check_order, r.id").
-		From("versioned_resources v, resources r").
-		Where(sq.Expr("r.id = v.resource_id")).
+		From("resource_config_versions v, resources r").
+		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
 		Where(sq.Eq{
-			"v.enabled":     true,
 			"r.pipeline_id": p.id,
 		}).
 		RunWith(p.conn).
@@ -1259,63 +1220,6 @@ func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Dura
 	return lock, true, nil
 }
 
-func (p *pipeline) saveOutput(buildID int, vr VersionedResource) error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	var resourceID int
-	err = psql.Select("id").
-		From("resources").
-		Where(sq.Eq{
-			"name":        vr.Resource,
-			"pipeline_id": p.id,
-		}).RunWith(tx).QueryRow().Scan(&resourceID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrResourceNotFound{Name: vr.Resource}
-		}
-		return err
-	}
-
-	svr, created, err := p.saveVersionedResource(tx, resourceID, vr)
-	if err != nil {
-		return err
-	}
-
-	if created {
-		var versionJSON []byte
-		versionJSON, err = json.Marshal(vr.Version)
-		if err != nil {
-			return err
-		}
-
-		err = p.incrementCheckOrderWhenNewerVersion(tx, resourceID, vr.Type, string(versionJSON))
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = psql.Insert("build_outputs").
-		Columns("build_id", "versioned_resource_id").
-		Values(buildID, svr.ID).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	err = bumpCacheIndex(tx, p.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
 func (p *pipeline) CreateOneOffBuild() (Build, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
@@ -1341,38 +1245,6 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 	}
 
 	return build, nil
-}
-
-func (p *pipeline) saveInputTx(tx Tx, buildID int, input BuildInput) error {
-	var resourceID int
-	err := psql.Select("id").
-		From("resources").
-		Where(sq.Eq{
-			"name":        input.VersionedResource.Resource,
-			"pipeline_id": p.id,
-		}).RunWith(tx).QueryRow().Scan(&resourceID)
-	if err != nil {
-		return err
-	}
-
-	svr, _, err := p.saveVersionedResource(tx, resourceID, input.VersionedResource)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
-		INSERT INTO build_inputs (build_id, versioned_resource_id, name)
-		SELECT $1, $2, $3
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM build_inputs
-			WHERE build_id = $1
-			AND versioned_resource_id = $2
-			AND name = $3
-		)
-	`, buildID, svr.ID, input.Name)
-
-	return swallowUniqueViolation(err)
 }
 
 func (p *pipeline) saveVersionedResource(tx Tx, resourceID int, vr VersionedResource) (SavedVersionedResource, bool, error) {
@@ -1573,4 +1445,26 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 		RETURNING build_number_seq, id
 	`, jobName, pipelineID).Scan(&buildName, &jobID)
 	return buildName, jobID, err
+}
+
+func resources(pipelineID int, conn Conn) (Resources, error) {
+	rows, err := resourcesQuery.Where(sq.Eq{"r.pipeline_id": pipelineID}).RunWith(conn).Query()
+	if err != nil {
+		return nil, err
+	}
+	defer Close(rows)
+
+	var resources Resources
+
+	for rows.Next() {
+		newResource := &resource{conn: conn}
+		err := scanResource(newResource, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, newResource)
+	}
+
+	return resources, nil
 }

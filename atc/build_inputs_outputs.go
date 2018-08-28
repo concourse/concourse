@@ -6,13 +6,10 @@ type BuildInputsOutputs struct {
 }
 
 type PublicBuildInput struct {
-	Name            string          `json:"name"`
-	Resource        string          `json:"resource"`
-	Type            string          `json:"type"`
-	Version         Version         `json:"version"`
-	Metadata        []MetadataField `json:"metadata"`
-	PipelineID      int             `json:"pipeline_id"`
-	FirstOccurrence bool            `json:"first_occurrence"`
+	Name            string  `json:"name"`
+	Version         Version `json:"version"`
+	PipelineID      int     `json:"pipeline_id"`
+	FirstOccurrence bool    `json:"first_occurrence"`
 }
 
 type VersionedResource struct {

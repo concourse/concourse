@@ -62,13 +62,15 @@ type ResourceConfig struct {
 }
 
 type ResourceType struct {
-	Name       string `yaml:"name" json:"name" mapstructure:"name"`
-	Type       string `yaml:"type" json:"type" mapstructure:"type"`
-	Source     Source `yaml:"source" json:"source" mapstructure:"source"`
-	Privileged bool   `yaml:"privileged,omitempty" json:"privileged" mapstructure:"privileged"`
-	CheckEvery string `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
-	Tags       Tags   `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
-	Params     Params `yaml:"params,omitempty" json:"params" mapstructure:"params"`
+	Name            string `yaml:"name" json:"name" mapstructure:"name"`
+	Type            string `yaml:"type" json:"type" mapstructure:"type"`
+	Source          Source `yaml:"source" json:"source" mapstructure:"source"`
+	Privileged      bool   `yaml:"privileged,omitempty" json:"privileged" mapstructure:"privileged"`
+	CheckEvery      string `yaml:"check_every,omitempty" json:"check_every,omitempty" mapstructure:"check_every"`
+	Tags            Tags   `yaml:"tags,omitempty" json:"tags,omitempty" mapstructure:"tags"`
+	Params          Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
+	CheckSetupError string `yaml:"check_setup_error,omitempty" json:"check_setup_error,omitempty" mapstructure:"check_setup_error"`
+	CheckError      string `yaml:"check_error,omitempty" json:"check_error,omitempty" mapstructure:"check_error"`
 }
 
 type ResourceTypes []ResourceType

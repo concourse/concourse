@@ -336,19 +336,16 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err = defaultResource.SetResourceConfig(rc.ResourceConfig().ID())
 				Expect(err).ToNot(HaveOccurred())
 
-				err = defaultPipeline.SaveResourceVersions(atc.ResourceConfig{
-					Name: defaultResource.Name(),
-					Type: defaultResource.Type(),
-				}, []atc.Version{{"some": "version"}})
+				err = rc.ResourceConfig().SaveVersions([]atc.Version{{"some": "version"}})
 				Expect(err).ToNot(HaveOccurred())
 
-				versionedResource, found, err := defaultPipeline.GetVersionedResourceByVersion(atc.Version{"some": "version"}, defaultResource.Name())
+				resourceConfigVersion, found, err := rc.ResourceConfig().FindVersion(atc.Version{"some": "version"})
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
 				err = defaultJob.SaveNextInputMapping(algorithm.InputMapping{
 					"some-resource": algorithm.InputVersion{
-						VersionID: versionedResource.ID,
+						VersionID: resourceConfigVersion.ID(),
 					},
 				})
 				Expect(err).ToNot(HaveOccurred())

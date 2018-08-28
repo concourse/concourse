@@ -91,10 +91,17 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		return 0, db.ResourceNotFoundError{Name: resourceName}
 	}
 
+	timeout, err := scanner.parseResourceCheckTimeoutOrDefault(savedResource.CheckTimeout())
+	if err != nil {
+		scanner.setResourceCheckError(logger, savedResource, err)
+		logger.Error("failed-to-read-check-timeout", err)
+		return 0, err
+	}
+
 	interval, err := scanner.checkInterval(savedResource.CheckEvery())
 	if err != nil {
 		scanner.setResourceCheckError(logger, savedResource, err)
-
+		logger.Error("failed-to-read-check-interval", err)
 		return 0, err
 	}
 
@@ -151,7 +158,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		return 0, err
 	}
 
-	scanner.setResourceCheckError(logger, savedResource, err)
+	scanner.setResourceCheckError(logger, savedResource, nil)
 	resourceConfig := resourceConfigCheckSession.ResourceConfig()
 	err = savedResource.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID())
 	if err != nil {
@@ -193,7 +200,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 	}
 
 	if fromVersion == nil {
-		rcv, found, err := resourceConfig.GetLatestVersion()
+		rcv, found, err := resourceConfig.LatestVersion()
 		if err != nil {
 			logger.Error("failed-to-get-current-version", err)
 			return interval, err
@@ -212,6 +219,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		versionedResourceTypes,
 		source,
 		saveGiven,
+		timeout,
 	)
 }
 
@@ -223,6 +231,7 @@ func (scanner *resourceScanner) check(
 	resourceTypes creds.VersionedResourceTypes,
 	source atc.Source,
 	saveGiven bool,
+	timeout time.Duration,
 ) error {
 	pipelinePaused, err := scanner.dbPipeline.CheckPaused()
 	if err != nil {
@@ -290,12 +299,6 @@ func (scanner *resourceScanner) check(
 		"from": fromVersion,
 	})
 
-	timeout, err := scanner.parseResourceCheckTimeoutOrDefault(savedResource.CheckTimeout())
-	if err != nil {
-		scanner.setResourceCheckError(logger, savedResource, err)
-		logger.Error("failed-to-read-check-timeout", err)
-		return err
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 

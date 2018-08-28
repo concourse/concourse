@@ -210,18 +210,18 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 			Expect(resourceCaches).To(ConsistOf(
 				resourceCache{
-					Version:          `{"some-type-type":"version"}`,
+					Version:          `{"some-type-type": "version"}`,
 					ParamsHash:       toHash(`{}`),
 					BaseResourceName: "some-base-type",
 					SourceHash:       toHash(`{"some-type-type":"some-secret-sauce"}`),
 				},
 				resourceCache{
-					Version:    `{"some-type":"version"}`,
+					Version:    `{"some-type": "version"}`,
 					ParamsHash: toHash(`{}`),
 					SourceHash: toHash(`{"some-type":"source"}`),
 				},
 				resourceCache{
-					Version:    `{"some":"version"}`,
+					Version:    `{"some": "version"}`,
 					ParamsHash: toHash(`{"some":"params"}`),
 					SourceHash: toHash(`{"some":"source"}`),
 				},

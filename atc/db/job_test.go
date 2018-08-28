@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	. "github.com/onsi/ginkgo"
@@ -579,24 +580,36 @@ var _ = Describe("Job", func() {
 
 	Describe("NextBuildInputs", func() {
 		var pipeline2 db.Pipeline
-		var versions db.SavedVersionedResources
+		var versions db.ResourceConfigVersions
 		var job db.Job
 		var job2 db.Job
+		var resourceConfig db.ResourceConfig
 
 		BeforeEach(func() {
-			resourceConfig := atc.ResourceConfig{
-				Name: "some-resource",
-				Type: "some-type",
+			atcResourceConfig := atc.ResourceConfig{
+				Name:   "some-resource",
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
 			}
 
-			err := pipeline.SaveResourceVersions(
-				resourceConfig,
-				[]atc.Version{
-					{"version": "v1"},
-					{"version": "v2"},
-					{"version": "v3"},
-				},
-			)
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "some-type",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = resourceConfig.SaveVersions([]atc.Version{
+				{"version": "v1"},
+				{"version": "v2"},
+				{"version": "v3"},
+			})
 			Expect(err).NotTo(HaveOccurred())
 
 			var found bool
@@ -604,26 +617,24 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			// save metadata for v1
-			build, err := job.CreateBuild()
-			Expect(err).ToNot(HaveOccurred())
-			err = build.SaveInput(db.BuildInput{
-				Name: "some-input",
-				VersionedResource: db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Version:  db.ResourceVersion{"version": "v1"},
-					Metadata: []db.ResourceMetadataField{{Name: "name1", Value: "value1"}},
-				},
-				FirstOccurrence: true,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			reversions, _, found, err := pipeline.GetResourceVersions("some-resource", db.Page{Limit: 3})
+			rcv1, found, err := resourceConfig.FindVersion(atc.Version{"version": "v1"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			versions = []db.SavedVersionedResource{reversions[2], reversions[1], reversions[0]}
+			// save metadata for v1
+			err = rcv1.SaveMetadata(db.ResourceConfigMetadataFields{
+				db.ResourceConfigMetadataField{
+					Name:  "name1",
+					Value: "value1",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			reversions, _, found, err := resourceConfig.Versions(db.Page{Limit: 3})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			versions = []db.ResourceConfigVersion{reversions[2], reversions[1], reversions[0]}
 
 			config := atc.Config{
 				Jobs: atc.JobConfigs{
@@ -634,7 +645,7 @@ var _ = Describe("Job", func() {
 						Name: "some-other-job",
 					},
 				},
-				Resources: atc.ResourceConfigs{resourceConfig},
+				Resources: atc.ResourceConfigs{atcResourceConfig},
 			}
 
 			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, db.PipelineUnpaused)
@@ -650,11 +661,11 @@ var _ = Describe("Job", func() {
 			It("gets independent build inputs for the given job name", func() {
 				inputVersions := algorithm.InputMapping{
 					"some-input-1": algorithm.InputVersion{
-						VersionID:       versions[0].ID,
+						VersionID:       versions[0].ID(),
 						FirstOccurrence: false,
 					},
 					"some-input-2": algorithm.InputVersion{
-						VersionID:       versions[1].ID,
+						VersionID:       versions[1].ID(),
 						FirstOccurrence: true,
 					},
 				}
@@ -663,62 +674,84 @@ var _ = Describe("Job", func() {
 
 				pipeline2InputVersions := algorithm.InputMapping{
 					"some-input-3": algorithm.InputVersion{
-						VersionID:       versions[2].ID,
+						VersionID:       versions[2].ID(),
 						FirstOccurrence: false,
 					},
 				}
 				err = job2.SaveIndependentInputMapping(pipeline2InputVersions)
 				Expect(err).NotTo(HaveOccurred())
 
+				rcv1, found, err := resourceConfig.FindVersion(atc.Version{"version": "v1"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				rcv2, found, err := resourceConfig.FindVersion(atc.Version{"version": "v2"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
 				buildInputs := []db.BuildInput{
 					{
-						Name:              "some-input-1",
-						VersionedResource: versions[0].VersionedResource,
-						FirstOccurrence:   false,
+						Name:                    "some-input-1",
+						ResourceConfigVersionID: rcv1.ID(),
+						Version:                 atc.Version(rcv1.Version()),
+						FirstOccurrence:         false,
 					},
 					{
-						Name:              "some-input-2",
-						VersionedResource: versions[1].VersionedResource,
-						FirstOccurrence:   true,
+						Name:                    "some-input-2",
+						ResourceConfigVersionID: rcv2.ID(),
+						Version:                 atc.Version(rcv2.Version()),
+						FirstOccurrence:         true,
 					},
 				}
 
 				actualBuildInputs, err := job.GetIndependentBuildInputs()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
+				Expect(actualBuildInputs[0].Name).To(Equal(buildInputs[0].Name))
+				Expect(actualBuildInputs[0].Version).To(Equal(buildInputs[0].Version))
+				Expect(actualBuildInputs[1].Name).To(Equal(buildInputs[1].Name))
+				Expect(actualBuildInputs[1].Version).To(Equal(buildInputs[1].Version))
 
 				By("updating the set of independent build inputs")
 				inputVersions2 := algorithm.InputMapping{
 					"some-input-2": algorithm.InputVersion{
-						VersionID:       versions[2].ID,
+						VersionID:       versions[2].ID(),
 						FirstOccurrence: false,
 					},
 					"some-input-3": algorithm.InputVersion{
-						VersionID:       versions[2].ID,
+						VersionID:       versions[2].ID(),
 						FirstOccurrence: true,
 					},
 				}
 				err = job.SaveIndependentInputMapping(inputVersions2)
 				Expect(err).NotTo(HaveOccurred())
 
+				rcv3, found, err := resourceConfig.FindVersion(atc.Version{"version": "v3"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
 				buildInputs2 := []db.BuildInput{
 					{
-						Name:              "some-input-2",
-						VersionedResource: versions[2].VersionedResource,
-						FirstOccurrence:   false,
+						Name:                    "some-input-2",
+						ResourceConfigVersionID: rcv3.ID(),
+						Version:                 atc.Version(rcv3.Version()),
+						FirstOccurrence:         false,
 					},
 					{
-						Name:              "some-input-3",
-						VersionedResource: versions[2].VersionedResource,
-						FirstOccurrence:   true,
+						Name:                    "some-input-3",
+						ResourceConfigVersionID: rcv3.ID(),
+						Version:                 atc.Version(rcv3.Version()),
+						FirstOccurrence:         true,
 					},
 				}
 
 				actualBuildInputs2, err := job.GetIndependentBuildInputs()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualBuildInputs2).To(ConsistOf(buildInputs2))
+				Expect(actualBuildInputs2[0].Name).To(Equal(buildInputs2[0].Name))
+				Expect(actualBuildInputs2[0].Version).To(Equal(buildInputs2[0].Version))
+				Expect(actualBuildInputs2[1].Name).To(Equal(buildInputs2[1].Name))
+				Expect(actualBuildInputs2[1].Version).To(Equal(buildInputs2[1].Version))
 
 				By("updating independent build inputs to an empty set when the mapping is nil")
 				err = job.SaveIndependentInputMapping(nil)
@@ -734,11 +767,11 @@ var _ = Describe("Job", func() {
 			It("gets next build inputs for the given job name", func() {
 				inputVersions := algorithm.InputMapping{
 					"some-input-1": algorithm.InputVersion{
-						VersionID:       versions[0].ID,
+						VersionID:       versions[0].ID(),
 						FirstOccurrence: false,
 					},
 					"some-input-2": algorithm.InputVersion{
-						VersionID:       versions[1].ID,
+						VersionID:       versions[1].ID(),
 						FirstOccurrence: true,
 					},
 				}
@@ -747,23 +780,33 @@ var _ = Describe("Job", func() {
 
 				pipeline2InputVersions := algorithm.InputMapping{
 					"some-input-3": algorithm.InputVersion{
-						VersionID:       versions[2].ID,
+						VersionID:       versions[2].ID(),
 						FirstOccurrence: false,
 					},
 				}
 				err = job2.SaveNextInputMapping(pipeline2InputVersions)
 				Expect(err).NotTo(HaveOccurred())
 
+				rcv1, found, err := resourceConfig.FindVersion(atc.Version{"version": "v1"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				rcv2, found, err := resourceConfig.FindVersion(atc.Version{"version": "v2"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
 				buildInputs := []db.BuildInput{
 					{
-						Name:              "some-input-1",
-						VersionedResource: versions[0].VersionedResource,
-						FirstOccurrence:   false,
+						Name:                    "some-input-1",
+						ResourceConfigVersionID: rcv1.ID(),
+						Version:                 atc.Version(rcv1.Version()),
+						FirstOccurrence:         false,
 					},
 					{
-						Name:              "some-input-2",
-						VersionedResource: versions[1].VersionedResource,
-						FirstOccurrence:   true,
+						Name:                    "some-input-2",
+						ResourceConfigVersionID: rcv2.ID(),
+						Version:                 atc.Version(rcv2.Version()),
+						FirstOccurrence:         true,
 					},
 				}
 
@@ -771,32 +814,41 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
+				Expect(actualBuildInputs[0].Name).To(Equal(buildInputs[0].Name))
+				Expect(actualBuildInputs[0].Version).To(Equal(buildInputs[0].Version))
+				Expect(actualBuildInputs[1].Name).To(Equal(buildInputs[1].Name))
+				Expect(actualBuildInputs[1].Version).To(Equal(buildInputs[1].Version))
 
 				By("updating the set of next build inputs")
 				inputVersions2 := algorithm.InputMapping{
 					"some-input-2": algorithm.InputVersion{
-						VersionID:       versions[2].ID,
+						VersionID:       versions[2].ID(),
 						FirstOccurrence: false,
 					},
 					"some-input-3": algorithm.InputVersion{
-						VersionID:       versions[2].ID,
+						VersionID:       versions[2].ID(),
 						FirstOccurrence: true,
 					},
 				}
 				err = job.SaveNextInputMapping(inputVersions2)
 				Expect(err).NotTo(HaveOccurred())
 
+				rcv3, found, err := resourceConfig.FindVersion(atc.Version{"version": "v3"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
 				buildInputs2 := []db.BuildInput{
 					{
-						Name:              "some-input-2",
-						VersionedResource: versions[2].VersionedResource,
-						FirstOccurrence:   false,
+						Name:                    "some-input-2",
+						ResourceConfigVersionID: rcv3.ID(),
+						Version:                 atc.Version(rcv3.Version()),
+						FirstOccurrence:         false,
 					},
 					{
-						Name:              "some-input-3",
-						VersionedResource: versions[2].VersionedResource,
-						FirstOccurrence:   true,
+						Name:                    "some-input-3",
+						ResourceConfigVersionID: rcv3.ID(),
+						Version:                 atc.Version(rcv3.Version()),
+						FirstOccurrence:         true,
 					},
 				}
 
@@ -804,7 +856,10 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(actualBuildInputs2).To(ConsistOf(buildInputs2))
+				Expect(actualBuildInputs2[0].Name).To(Equal(buildInputs2[0].Name))
+				Expect(actualBuildInputs2[0].Version).To(Equal(buildInputs2[0].Version))
+				Expect(actualBuildInputs2[1].Name).To(Equal(buildInputs2[1].Name))
+				Expect(actualBuildInputs2[1].Version).To(Equal(buildInputs2[1].Version))
 
 				By("updating next build inputs to an empty set when the mapping is nil")
 				err = job.SaveNextInputMapping(nil)
@@ -842,43 +897,14 @@ var _ = Describe("Job", func() {
 	})
 
 	Describe("saving build inputs", func() {
-		var (
-			buildMetadata []db.ResourceMetadataField
-			vr1           db.VersionedResource
-		)
-
-		BeforeEach(func() {
-			buildMetadata = []db.ResourceMetadataField{
-				{
-					Name:  "meta1",
-					Value: "value1",
-				},
-				{
-					Name:  "meta2",
-					Value: "value2",
-				},
-			}
-
-			vr1 = db.VersionedResource{
-				Resource: "some-other-resource",
-				Type:     "some-type",
-				Version:  db.ResourceVersion{"ver": "2"},
-			}
-		})
-
-		It("fails to save build input if resource does not exist", func() {
+		It("fails to save build input if resource config version id does not exist", func() {
 			build, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			vr := db.VersionedResource{
-				Resource: "unknown-resource",
-				Type:     "some-type",
-				Version:  db.ResourceVersion{"ver": "2"},
-			}
-
 			input := db.BuildInput{
-				Name:              "some-input",
-				VersionedResource: vr,
+				Name:                    "some-input",
+				Version:                 atc.Version{"ver": "2"},
+				ResourceConfigVersionID: 10,
 			}
 
 			err = build.SaveInput(input)
@@ -887,84 +913,53 @@ var _ = Describe("Job", func() {
 
 		It("updates metadata of existing versioned resources", func() {
 			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "some-type",
+			}
+			_, err = brt.FindOrCreate(setupTx)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceConfig.SaveVersions([]atc.Version{atc.Version{"ver": "1"}})
+			Expect(err).ToNot(HaveOccurred())
+
+			rcv, found, err := resourceConfig.FindVersion(atc.Version{"ver": "1"})
+			Expect(found).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
 
 			err = build.SaveInput(db.BuildInput{
-				Name:              "some-input",
-				VersionedResource: vr1,
+				Name:                    "some-input",
+				ResourceConfigVersionID: rcv.ID(),
+				Version:                 atc.Version{"ver": "1"},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			inputs, _, err := build.Resources()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(inputs).To(ConsistOf([]db.BuildInput{
-				{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
+				{Name: "some-input", ResourceConfigVersionID: rcv.ID(), Version: atc.Version{"ver": "1"}, FirstOccurrence: true},
 			}))
 
-			withMetadata := vr1
-			withMetadata.Metadata = buildMetadata
-
 			err = build.SaveInput(db.BuildInput{
-				Name:              "some-other-input",
-				VersionedResource: withMetadata,
+				Name:                    "some-other-input",
+				ResourceConfigVersionID: rcv.ID(),
+				Version:                 atc.Version{"ver": "1"},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			inputs, _, err = build.Resources()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(inputs).To(ConsistOf([]db.BuildInput{
-				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
-				{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
-			}))
-
-			err = build.SaveInput(db.BuildInput{
-				Name:              "some-input",
-				VersionedResource: withMetadata,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			inputs, _, err = build.Resources()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(inputs).To(ConsistOf([]db.BuildInput{
-				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
-				{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
-			}))
-
-		})
-
-		It("does not clobber metadata of existing versioned resources", func() {
-			build, err := job.CreateBuild()
-			Expect(err).NotTo(HaveOccurred())
-
-			withMetadata := vr1
-			withMetadata.Metadata = buildMetadata
-
-			withoutMetadata := vr1
-			withoutMetadata.Metadata = nil
-
-			err = build.SaveInput(db.BuildInput{
-				Name:              "some-input",
-				VersionedResource: withMetadata,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			inputs, _, err := build.Resources()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(inputs).To(ConsistOf([]db.BuildInput{
-				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
-			}))
-
-			err = build.SaveInput(db.BuildInput{
-				Name:              "some-other-input",
-				VersionedResource: withoutMetadata,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			inputs, _, err = build.Resources()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(inputs).To(ConsistOf([]db.BuildInput{
-				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
-				{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
+				{Name: "some-input", ResourceConfigVersionID: rcv.ID(), Version: atc.Version{"ver": "1"}, FirstOccurrence: true},
+				{Name: "some-other-input", ResourceConfigVersionID: rcv.ID(), Version: atc.Version{"ver": "1"}, FirstOccurrence: true},
 			}))
 		})
 	})

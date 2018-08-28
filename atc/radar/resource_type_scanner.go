@@ -176,7 +176,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 	}
 
 	if fromVersion == nil {
-		rcv, found, err := resourceConfig.GetLatestVersion()
+		rcv, found, err := resourceConfig.LatestVersion()
 		if err != nil {
 			logger.Error("failed-to-get-current-version", err)
 			return interval, err

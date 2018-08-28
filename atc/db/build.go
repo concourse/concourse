@@ -75,11 +75,10 @@ type Build interface {
 	SaveEvent(event atc.Event) error
 
 	SaveInput(input BuildInput) error
-	SaveOutput(vr VersionedResource) error
+	SaveOutput(ResourceConfig, atc.Version, ResourceConfigMetadataFields) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
-	GetVersionedResources() (SavedVersionedResources, error)
 	SaveImageResourceVersion(UsedResourceCache) error
 
 	Pipeline() (Pipeline, bool, error)
@@ -91,6 +90,9 @@ type Build interface {
 
 	IsDrained() bool
 	SetDrained(bool) error
+
+	// XXX: This is only being used in tests
+	ResourceConfigVersions() ([]int, error)
 }
 
 type build struct {
@@ -659,19 +661,28 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 				inputs[configInput.Name] = BuildPreparationStatusBlocking
 				if len(configInput.Passed) > 0 {
 					if configInput.Version != nil && configInput.Version.Pinned != nil {
-						_, found, err := pipeline.GetVersionedResourceByVersion(configInput.Version.Pinned, configInput.Resource)
+						versionJSON, err := json.Marshal(configInput.Version.Pinned)
+						if err != nil {
+							return BuildPreparation{}, false, err
+						}
+
+						resource, found, err := pipeline.Resource(configInput.Resource)
 						if err != nil {
 							return BuildPreparation{}, false, err
 						}
 
 						if found {
-							missingInputReasons.RegisterPassedConstraint(configInput.Name)
-						} else {
-							versionJSON, err := json.Marshal(configInput.Version.Pinned)
+							_, found, err = resource.ResourceConfigVersionID(configInput.Version.Pinned)
 							if err != nil {
 								return BuildPreparation{}, false, err
 							}
 
+							if found {
+								missingInputReasons.RegisterPassedConstraint(configInput.Name)
+							} else {
+								missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
+							}
+						} else {
 							missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
 						}
 					} else {
@@ -757,42 +768,64 @@ func (b *build) SaveInput(input BuildInput) error {
 
 	defer Rollback(tx)
 
-	row := pipelinesQuery.
-		Where(sq.Eq{"p.id": b.pipelineID}).
-		RunWith(tx).
-		QueryRow()
-
-	pipeline := &pipeline{conn: b.conn, lockFactory: b.lockFactory}
-	err = scanPipeline(pipeline, row)
+	err = b.saveInputTx(tx, b.id, input)
 	if err != nil {
 		return err
 	}
 
-	err = pipeline.saveInputTx(tx, b.id, input)
-	if err != nil {
-		return err
-	}
-
-	err = bumpCacheIndex(tx, b.pipelineID)
-	if err != nil {
-		return err
+	if b.pipelineID != 0 {
+		err = bumpCacheIndex(tx, b.pipelineID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
 }
 
-func (b *build) SaveOutput(vr VersionedResource) error {
-	row := pipelinesQuery.
-		Where(sq.Eq{"p.id": b.pipelineID}).
-		RunWith(b.conn).
-		QueryRow()
-	pipeline := &pipeline{conn: b.conn, lockFactory: b.lockFactory}
-	err := scanPipeline(pipeline, row)
+func (b *build) SaveOutput(rc ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields) error {
+	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
 	}
 
-	return pipeline.saveOutput(b.id, vr)
+	defer Rollback(tx)
+
+	rcv, created, err := saveResourceConfigVersion(tx, b.conn, rc, version, metadata)
+	if err != nil {
+		return err
+	}
+
+	if created {
+		var versionJSON []byte
+		versionJSON, err = json.Marshal(rcv.Version())
+		if err != nil {
+			return err
+		}
+
+		err = incrementCheckOrderWhenNewerVersion(tx, rc, string(versionJSON))
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = psql.Insert("build_resource_config_versions_outputs").
+		Columns("build_id", "resource_config_version_id").
+		Values(b.id, rcv.ID()).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	if b.pipelineID != 0 {
+		err = bumpCacheIndex(tx, b.pipelineID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (b *build) UseInputs(inputs []BuildInput) error {
@@ -803,7 +836,7 @@ func (b *build) UseInputs(inputs []BuildInput) error {
 
 	defer Rollback(tx)
 
-	_, err = psql.Delete("build_inputs").
+	_, err = psql.Delete("build_resource_config_versions_inputs").
 		Where(sq.Eq{"build_id": b.id}).
 		RunWith(tx).
 		Exec()
@@ -811,27 +844,18 @@ func (b *build) UseInputs(inputs []BuildInput) error {
 		return err
 	}
 
-	row := pipelinesQuery.
-		Where(sq.Eq{"p.id": b.pipelineID}).
-		RunWith(tx).
-		QueryRow()
-
-	pipeline := &pipeline{conn: b.conn, lockFactory: b.lockFactory}
-	err = scanPipeline(pipeline, row)
-	if err != nil {
-		return err
-	}
-
 	for _, input := range inputs {
-		err = pipeline.saveInputTx(tx, b.id, input)
+		err = b.saveInputTx(tx, b.id, input)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = bumpCacheIndex(tx, b.pipelineID)
-	if err != nil {
-		return err
+	if b.pipelineID != 0 {
+		err = bumpCacheIndex(tx, b.pipelineID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
@@ -842,24 +866,23 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	outputs := []BuildOutput{}
 
 	rows, err := b.conn.Query(`
-		SELECT i.name, r.name, v.type, v.version, v.metadata,
+		SELECT i.name, v.id, v.version,
 		NOT EXISTS (
 			SELECT 1
-			FROM build_inputs ci, builds cb
-			WHERE versioned_resource_id = v.id
+			FROM build_resource_config_versions_inputs ci, builds cb
+			WHERE resource_config_version_id = v.id
 			AND cb.job_id = b.job_id
 			AND ci.build_id = cb.id
 			AND ci.build_id < b.id
 		)
-		FROM versioned_resources v, build_inputs i, builds b, resources r
+		FROM resource_config_versions v, build_resource_config_versions_inputs i, builds b
 		WHERE b.id = $1
 		AND i.build_id = b.id
-		AND i.versioned_resource_id = v.id
-    AND r.id = v.resource_id
+		AND i.resource_config_version_id = v.id
 		AND NOT EXISTS (
 			SELECT 1
-			FROM build_outputs o
-			WHERE o.versioned_resource_id = v.id
+			FROM build_resource_config_versions_outputs o
+			WHERE o.resource_config_version_id = v.id
 			AND o.build_id = i.build_id
 		)
 	`, b.id)
@@ -870,30 +893,29 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		var inputName string
-		var vr VersionedResource
-		var firstOccurrence bool
+		var (
+			inputName       string
+			firstOccurrence bool
+			versionBlob     string
+			version         atc.Version
+			rcvID           int
+		)
 
-		var version, metadata string
-		err = rows.Scan(&inputName, &vr.Resource, &vr.Type, &version, &metadata, &firstOccurrence)
+		err = rows.Scan(&inputName, &rcvID, &versionBlob, &firstOccurrence)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		err = json.Unmarshal([]byte(version), &vr.Version)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		err = json.Unmarshal([]byte(versionBlob), &version)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		inputs = append(inputs, BuildInput{
-			Name:              inputName,
-			VersionedResource: vr,
-			FirstOccurrence:   firstOccurrence,
+			Name:                    inputName,
+			Version:                 version,
+			ResourceConfigVersionID: rcvID,
+			FirstOccurrence:         firstOccurrence,
 		})
 	}
 
@@ -938,71 +960,59 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	return inputs, outputs, nil
 }
 
-func (b *build) GetVersionedResources() (SavedVersionedResources, error) {
-	return b.getVersionedResources(`
-		SELECT vr.id,
-			vr.enabled,
-			vr.version,
-			vr.metadata,
-			vr.type,
-			r.name
+func (b *build) ResourceConfigVersions() ([]int, error) {
+	rows, err := b.conn.Query(`
+		SELECT vr.id
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN build_inputs bi ON bi.build_id = b.id
-		INNER JOIN versioned_resources vr ON bi.versioned_resource_id = vr.id
-		INNER JOIN resources r ON vr.resource_id = r.id
+		INNER JOIN build_resource_config_versions_inputs bi ON bi.build_id = b.id
+		INNER JOIN resource_config_versions vr ON bi.resource_config_version_id = vr.id
 		WHERE b.id = $1
 
 		UNION ALL
 
-		SELECT vr.id,
-			vr.enabled,
-			vr.version,
-			vr.metadata,
-			vr.type,
-			r.name
+		SELECT vr.id
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN build_outputs bo ON bo.build_id = b.id
-		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
-		INNER JOIN resources r ON vr.resource_id = r.id
+		INNER JOIN build_resource_config_versions_outputs bo ON bo.build_id = b.id
+		INNER JOIN resource_config_versions vr ON bo.resource_config_version_id = vr.id
 		WHERE b.id = $1
-	`)
-}
-
-func (b *build) getVersionedResources(resourceRequest string) (SavedVersionedResources, error) {
-	rows, err := b.conn.Query(resourceRequest, b.id)
+	`, b.id)
 	if err != nil {
 		return nil, err
 	}
 
 	defer Close(rows)
 
-	savedVersionedResources := SavedVersionedResources{}
-
+	var ids []int
 	for rows.Next() {
-		var versionedResource SavedVersionedResource
-		var versionJSON []byte
-		var metadataJSON []byte
-		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource)
+		var id int
+
+		err = rows.Scan(&id)
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal(versionJSON, &versionedResource.Version)
-		if err != nil {
-			return nil, err
-		}
-
-		err = json.Unmarshal(metadataJSON, &versionedResource.Metadata)
-		if err != nil {
-			return nil, err
-		}
-
-		savedVersionedResources = append(savedVersionedResources, versionedResource)
+		ids = append(ids, id)
 	}
 
-	return savedVersionedResources, nil
+	return ids, nil
+}
+
+func (p *build) saveInputTx(tx Tx, buildID int, input BuildInput) error {
+	_, err := tx.Exec(`
+		INSERT INTO build_resource_config_versions_inputs (build_id, resource_config_version_id, name)
+		SELECT $1, $2, $3
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM build_resource_config_versions_inputs
+			WHERE build_id = $1
+			AND resource_config_version_id = $2
+			AND name = $3
+		)
+	`, buildID, input.ResourceConfigVersionID, input.Name)
+
+	return swallowUniqueViolation(err)
 }
 
 func createBuildEventSeq(tx Tx, buildid int) error {

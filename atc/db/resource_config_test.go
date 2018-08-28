@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
@@ -12,10 +13,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("ResourceConfig", func() {
+var _ = Describe("ResourceConfig", func() {
 	Describe("AcquireResourceConfigCheckingLockWithIntervalCheck", func() {
 		var (
-			resourceConfigFactory      db.ResourceConfigFactory
 			someResource               db.Resource
 			resourceConfigCheckSession db.ResourceConfigCheckSession
 			resourceConfig             db.ResourceConfig
@@ -226,7 +226,7 @@ var _ = FDescribe("ResourceConfig", func() {
 			err := resourceConfig.SaveVersions(originalVersionSlice)
 			Expect(err).ToNot(HaveOccurred())
 
-			latestVR, found, err := resourceConfig.GetLatestVersion()
+			latestVR, found, err := resourceConfig.LatestVersion()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -241,7 +241,7 @@ var _ = FDescribe("ResourceConfig", func() {
 			err = resourceConfig.SaveVersions(pretendCheckResults)
 			Expect(err).ToNot(HaveOccurred())
 
-			latestVR, found, err = resourceConfig.GetLatestVersion()
+			latestVR, found, err = resourceConfig.LatestVersion()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -263,7 +263,7 @@ var _ = FDescribe("ResourceConfig", func() {
 				err := resourceConfig.SaveVersions(newVersionSlice)
 				Expect(err).ToNot(HaveOccurred())
 
-				latestVR, found, err := resourceConfig.GetLatestVersion()
+				latestVR, found, err := resourceConfig.LatestVersion()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -273,7 +273,7 @@ var _ = FDescribe("ResourceConfig", func() {
 		})
 	})
 
-	Describe("GetLatestVersion", func() {
+	Describe("LatestVersion", func() {
 		var (
 			originalVersionSlice []atc.Version
 			resourceConfig       db.ResourceConfig
@@ -305,7 +305,7 @@ var _ = FDescribe("ResourceConfig", func() {
 				err = resourceConfig.SaveVersions(originalVersionSlice)
 				Expect(err).ToNot(HaveOccurred())
 
-				latestCV, found, err = resourceConfig.GetLatestVersion()
+				latestCV, found, err = resourceConfig.LatestVersion()
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -314,6 +314,335 @@ var _ = FDescribe("ResourceConfig", func() {
 
 				Expect(latestCV.Version()).To(Equal(db.Version{"ref": "v3"}))
 				Expect(latestCV.CheckOrder()).To(Equal(2))
+			})
+		})
+	})
+
+	Describe("FindVersion", func() {
+		var (
+			originalVersionSlice []atc.Version
+			resourceConfig       db.ResourceConfig
+			latestCV             db.ResourceConfigVersion
+			found                bool
+		)
+
+		BeforeEach(func() {
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "some-type",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			originalVersionSlice = []atc.Version{
+				{"ref": "v1"},
+				{"ref": "v3"},
+			}
+
+			err = resourceConfig.SaveVersions(originalVersionSlice)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the version exists", func() {
+			BeforeEach(func() {
+				var err error
+				latestCV, found, err = resourceConfig.FindVersion(atc.Version{"ref": "v1"})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("gets the version of resource", func() {
+				Expect(found).To(BeTrue())
+
+				Expect(latestCV.ResourceConfig().ID()).To(Equal(resourceConfig.ID()))
+				Expect(latestCV.Version()).To(Equal(db.Version{"ref": "v1"}))
+				Expect(latestCV.CheckOrder()).To(Equal(1))
+			})
+		})
+
+		Context("when the version does not exist", func() {
+			BeforeEach(func() {
+				var err error
+				latestCV, found, err = resourceConfig.FindVersion(atc.Version{"ref": "v2"})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("does not get the version of resource", func() {
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
+	Context("Versions", func() {
+		var (
+			originalVersionSlice []atc.Version
+			resourceConfig       db.ResourceConfig
+		)
+
+		Context("when resource has versions created in order of check order", func() {
+			var resourceConfigVersions db.ResourceConfigVersions
+
+			BeforeEach(func() {
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "some-type",
+				}
+				_, err = brt.FindOrCreate(setupTx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+
+				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+
+				originalVersionSlice = []atc.Version{
+					{"ref": "v0"},
+					{"ref": "v1"},
+					{"ref": "v2"},
+					{"ref": "v3"},
+					{"ref": "v4"},
+					{"ref": "v5"},
+					{"ref": "v6"},
+					{"ref": "v7"},
+					{"ref": "v8"},
+					{"ref": "v9"},
+				}
+
+				err = resourceConfig.SaveVersions(originalVersionSlice)
+				Expect(err).ToNot(HaveOccurred())
+
+				resourceConfigVersions = nil
+				for i := 0; i < 10; i++ {
+					rcv, found, err := resourceConfig.FindVersion(atc.Version{"ref": "v" + strconv.Itoa(i)})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					resourceConfigVersions = append(resourceConfigVersions, rcv)
+				}
+			})
+
+			Context("with no since/until", func() {
+				It("returns the first page, with the given limit, and a next page", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{Limit: 2})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(len(historyPage)).To(Equal(2))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[9].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[8].Version()))
+					Expect(pagination.Previous).To(BeNil())
+					Expect(pagination.Next).To(Equal(&db.Page{Since: resourceConfigVersions[8].ID(), Limit: 2}))
+				})
+			})
+
+			Context("with a since that places it in the middle of the builds", func() {
+				It("returns the builds, with previous/next pages", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{Since: resourceConfigVersions[6].ID(), Limit: 2})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(len(historyPage)).To(Equal(2))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[5].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[4].Version()))
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: resourceConfigVersions[5].ID(), Limit: 2}))
+					Expect(pagination.Next).To(Equal(&db.Page{Since: resourceConfigVersions[4].ID(), Limit: 2}))
+				})
+			})
+
+			Context("with a since that places it at the end of the builds", func() {
+				It("returns the builds, with previous/next pages", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{Since: resourceConfigVersions[2].ID(), Limit: 2})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(len(historyPage)).To(Equal(2))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[1].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[0].Version()))
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: resourceConfigVersions[1].ID(), Limit: 2}))
+					Expect(pagination.Next).To(BeNil())
+				})
+			})
+
+			Context("with an until that places it in the middle of the builds", func() {
+				It("returns the builds, with previous/next pages", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{Until: resourceConfigVersions[6].ID(), Limit: 2})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(len(historyPage)).To(Equal(2))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[8].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[7].Version()))
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: resourceConfigVersions[8].ID(), Limit: 2}))
+					Expect(pagination.Next).To(Equal(&db.Page{Since: resourceConfigVersions[7].ID(), Limit: 2}))
+				})
+			})
+
+			Context("with a until that places it at the beginning of the builds", func() {
+				It("returns the builds, with previous/next pages", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{Until: resourceConfigVersions[7].ID(), Limit: 2})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(len(historyPage)).To(Equal(2))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[9].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[8].Version()))
+					Expect(pagination.Previous).To(BeNil())
+					Expect(pagination.Next).To(Equal(&db.Page{Since: resourceConfigVersions[8].ID(), Limit: 2}))
+				})
+			})
+
+			Context("when the version has metadata", func() {
+				BeforeEach(func() {
+					metadata := []db.ResourceConfigMetadataField{{Name: "name1", Value: "value1"}}
+
+					err := resourceConfigVersions[9].SaveMetadata(metadata)
+					Expect(err).ToNot(HaveOccurred())
+
+					reloaded, err := resourceConfigVersions[9].Reload()
+					Expect(reloaded).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns the metadata in the version history", func() {
+					historyPage, _, found, err := resourceConfig.Versions(db.Page{Limit: 1})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(len(historyPage)).To(Equal(1))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[9].Version()))
+				})
+			})
+
+			// XXX: Implement version disabling first
+			// Context("when a version is disabled", func() {
+			// 	BeforeEach(func() {
+			// 		err := pipeline.DisableVersionedResource(10)
+			// 		Expect(err).ToNot(HaveOccurred())
+
+			// 		resourceConfigVersions[9].Enabled = false
+			// 	})
+
+			// 	It("returns a disabled version", func() {
+			// 		historyPage, _, found, err := pipeline.GetResourceVersions("some-resource", db.Page{Limit: 1})
+			// 		Expect(err).ToNot(HaveOccurred())
+			// 		Expect(found).To(BeTrue())
+			// 		Expect(historyPage).To(Equal([]db.SavedVersionedResource{resourceConfigVersions[9]}))
+			// 	})
+			// })
+		})
+
+		Context("when check orders are different than versions ids", func() {
+			var resourceConfigVersions db.ResourceConfigVersions
+
+			BeforeEach(func() {
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "some-type",
+				}
+				_, err = brt.FindOrCreate(setupTx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+
+				resourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
+				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+
+				originalVersionSlice := []atc.Version{
+					{"ref": "v1"}, // id: 1, check_order: 1
+					{"ref": "v3"}, // id: 2, check_order: 2
+					{"ref": "v4"}, // id: 3, check_order: 3
+				}
+
+				err = resourceConfig.SaveVersions(originalVersionSlice)
+				Expect(err).ToNot(HaveOccurred())
+
+				secondVersionSlice := []atc.Version{
+					{"ref": "v2"}, // id: 4, check_order: 4
+					{"ref": "v3"}, // id: 2, check_order: 5
+					{"ref": "v4"}, // id: 3, check_order: 6
+				}
+
+				err = resourceConfig.SaveVersions(secondVersionSlice)
+				Expect(err).ToNot(HaveOccurred())
+
+				for i := 1; i < 5; i++ {
+					rcv, found, err := resourceConfig.FindVersion(atc.Version{"ref": "v" + strconv.Itoa(i)})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					resourceConfigVersions = append(resourceConfigVersions, rcv)
+				}
+
+				// ids ordered by check order now: [3, 2, 4, 1]
+			})
+
+			Context("with no since/until", func() {
+				It("returns versions ordered by check order", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{Limit: 4})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(historyPage).To(HaveLen(4))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[3].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[2].Version()))
+					Expect(historyPage[2].Version()).To(Equal(resourceConfigVersions[1].Version()))
+					Expect(historyPage[3].Version()).To(Equal(resourceConfigVersions[0].Version()))
+					Expect(pagination.Previous).To(BeNil())
+					Expect(pagination.Next).To(BeNil())
+				})
+			})
+
+			Context("with a since", func() {
+				It("returns the builds, with previous/next pages excluding since", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{Since: 3, Limit: 2})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(historyPage).To(HaveLen(2))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[2].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[1].Version()))
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: 2, Limit: 2}))
+					Expect(pagination.Next).To(Equal(&db.Page{Since: 4, Limit: 2}))
+				})
+			})
+
+			Context("with from", func() {
+				It("returns the builds, with previous/next pages including from", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{From: 2, Limit: 2})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(historyPage).To(HaveLen(2))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[2].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[1].Version()))
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: 2, Limit: 2}))
+					Expect(pagination.Next).To(Equal(&db.Page{Since: 4, Limit: 2}))
+				})
+			})
+
+			Context("with a until", func() {
+				It("returns the builds, with previous/next pages excluding until", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{Until: 1, Limit: 2})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(historyPage).To(HaveLen(2))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[2].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[1].Version()))
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: 2, Limit: 2}))
+					Expect(pagination.Next).To(Equal(&db.Page{Since: 4, Limit: 2}))
+				})
+			})
+
+			Context("with to", func() {
+				It("returns the builds, with previous/next pages including to", func() {
+					historyPage, pagination, found, err := resourceConfig.Versions(db.Page{To: 4, Limit: 2})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(historyPage).To(HaveLen(2))
+					Expect(historyPage[0].Version()).To(Equal(resourceConfigVersions[2].Version()))
+					Expect(historyPage[1].Version()).To(Equal(resourceConfigVersions[1].Version()))
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: 2, Limit: 2}))
+					Expect(pagination.Next).To(Equal(&db.Page{Since: 4, Limit: 2}))
+				})
 			})
 		})
 	})

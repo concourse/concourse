@@ -311,7 +311,7 @@ var _ = Describe("ResourceScanner", func() {
 					fakeResourceConfigVersion.IDReturns(1)
 					fakeResourceConfigVersion.VersionReturns(db.Version{"version": "1"})
 
-					fakeResourceConfig.GetLatestVersionReturns(fakeResourceConfigVersion, true, nil)
+					fakeResourceConfig.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
 				})
 
 				It("checks from it", func() {
@@ -660,7 +660,7 @@ var _ = Describe("ResourceScanner", func() {
 				})
 			})
 
-			Context("when the resource config has a specified timeout", func() {
+			Context("when the resource has a specified timeout", func() {
 				BeforeEach(func() {
 					fakeDBResource.CheckTimeoutReturns("10s")
 					fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
@@ -681,10 +681,9 @@ var _ = Describe("ResourceScanner", func() {
 
 					It("fails to parse the timeout and returns the error", func() {
 						Expect(scanErr).To(HaveOccurred())
-						Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
 
-						savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
-						Expect(savedResource.Name()).To(Equal("some-resource"))
+						resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 				})
@@ -738,7 +737,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when there is no current version", func() {
 				BeforeEach(func() {
-					fakeResourceConfig.GetLatestVersionReturns(nil, false, nil)
+					fakeResourceConfig.LatestVersionReturns(nil, false, nil)
 				})
 
 				It("checks from nil", func() {
@@ -751,7 +750,7 @@ var _ = Describe("ResourceScanner", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeResourceConfig.GetLatestVersionReturns(nil, false, disaster)
+					fakeResourceConfig.LatestVersionReturns(nil, false, disaster)
 				})
 
 				It("returns the error", func() {
@@ -771,7 +770,7 @@ var _ = Describe("ResourceScanner", func() {
 					fakeResourceConfigVersion.IDReturns(1)
 					fakeResourceConfigVersion.VersionReturns(db.Version(latestVersion))
 
-					fakeResourceConfig.GetLatestVersionReturns(fakeResourceConfigVersion, true, nil)
+					fakeResourceConfig.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
 				})
 
 				It("checks from it", func() {

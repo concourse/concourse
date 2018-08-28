@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -14,6 +15,15 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
+
+type ErrResourceConfigVersionNotFound struct {
+	ResourceName string
+	Version      atc.Version
+}
+
+func (e ErrResourceConfigVersionNotFound) Error() string {
+	return fmt.Sprintf("resource '%s' version '%v' not found", e.ResourceName, e.Version)
+}
 
 //go:generate counterfeiter . GetDelegate
 
@@ -195,18 +205,22 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	})
 
 	if step.resource != "" {
-		err := step.build.SaveInput(db.BuildInput{
-			Name: step.name,
-			VersionedResource: db.VersionedResource{
-				Resource: step.resource,
-				Type:     step.resourceType,
-				Version:  db.ResourceVersion(versionedSource.Version()),
-				Metadata: db.NewResourceMetadataFields(versionedSource.Metadata()),
-			},
-		})
+		rcv, found, err := resourceCache.ResourceConfig().FindVersion(versionedSource.Version())
 		if err != nil {
-			logger.Error("failed-to-save-input", err)
-			return nil
+			logger.Error("failed-to-find-the-resource-config-version", err)
+			return err
+		}
+
+		if !found {
+			resourceConfigVersionError := ErrResourceConfigVersionNotFound{ResourceName: step.resource, Version: versionedSource.Version()}
+			logger.Error("resource-config-version-not-found", resourceConfigVersionError)
+			return resourceConfigVersionError
+		}
+
+		err = rcv.SaveMetadata(db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
+		if err != nil {
+			logger.Error("failed-to-save-metadata", err)
+			return err
 		}
 	}
 

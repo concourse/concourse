@@ -33,11 +33,12 @@ type PutStep struct {
 
 	resource string
 
-	delegate          PutDelegate
-	resourceFactory   resource.ResourceFactory
-	planID            atc.PlanID
-	containerMetadata db.ContainerMetadata
-	stepMetadata      StepMetadata
+	delegate              PutDelegate
+	resourceFactory       resource.ResourceFactory
+	resourceConfigFactory db.ResourceConfigFactory
+	planID                atc.PlanID
+	containerMetadata     db.ContainerMetadata
+	stepMetadata          StepMetadata
 
 	resourceTypes creds.VersionedResourceTypes
 
@@ -55,6 +56,7 @@ func NewPutStep(
 	tags atc.Tags,
 	delegate PutDelegate,
 	resourceFactory resource.ResourceFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	stepMetadata StepMetadata,
@@ -63,18 +65,19 @@ func NewPutStep(
 	return &PutStep{
 		build: build,
 
-		resourceType:      resourceType,
-		name:              name,
-		resource:          resourceName,
-		source:            source,
-		params:            params,
-		tags:              tags,
-		delegate:          delegate,
-		resourceFactory:   resourceFactory,
-		planID:            planID,
-		containerMetadata: containerMetadata,
-		stepMetadata:      stepMetadata,
-		resourceTypes:     resourceTypes,
+		resourceType:          resourceType,
+		name:                  name,
+		resource:              resourceName,
+		source:                source,
+		params:                params,
+		tags:                  tags,
+		delegate:              delegate,
+		resourceFactory:       resourceFactory,
+		resourceConfigFactory: resourceConfigFactory,
+		planID:                planID,
+		containerMetadata:     containerMetadata,
+		stepMetadata:          stepMetadata,
+		resourceTypes:         resourceTypes,
 	}
 }
 
@@ -158,14 +161,13 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	if step.resource != "" {
-		err = step.build.SaveOutput(
-			db.VersionedResource{
-				Resource: step.resource,
-				Type:     step.resourceType,
-				Version:  db.ResourceVersion(step.versionInfo.Version),
-				Metadata: db.NewResourceMetadataFields(step.versionInfo.Metadata),
-			},
-		)
+		resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(logger, step.resourceType, source, step.resourceTypes)
+		if err != nil {
+			logger.Error("failed-to-find-or-create-resource-config", err)
+			return err
+		}
+
+		err = step.build.SaveOutput(resourceConfig, step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata))
 		if err != nil {
 			logger.Error("failed-to-save-output", err)
 			return err

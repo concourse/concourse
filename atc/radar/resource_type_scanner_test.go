@@ -289,7 +289,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					fakeResourceConfigVersion.IDReturns(1)
 					fakeResourceConfigVersion.VersionReturns(db.Version{"version": "42"})
 
-					fakeResourceConfig.GetLatestVersionReturns(fakeResourceConfigVersion, true, nil)
+					fakeResourceConfig.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
 				})
 
 				It("checks with it", func() {
@@ -626,7 +626,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					fakeResourceConfigVersion.IDReturns(1)
 					fakeResourceConfigVersion.VersionReturns(db.Version{"version": "42"})
 
-					fakeResourceConfig.GetLatestVersionReturns(fakeResourceConfigVersion, true, nil)
+					fakeResourceConfig.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
 				})
 
 				It("checks with it", func() {

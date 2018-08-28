@@ -696,33 +696,16 @@ var _ = Describe("Builds API", func() {
 					BeforeEach(func() {
 						build.ResourcesReturns([]db.BuildInput{
 							{
-								Name: "input1",
-								VersionedResource: db.VersionedResource{
-									Resource: "myresource1",
-									Type:     "git",
-									Version:  db.ResourceVersion{"version": "value1"},
-									Metadata: []db.ResourceMetadataField{
-										{
-											Name:  "meta1",
-											Value: "value1",
-										},
-										{
-											Name:  "meta2",
-											Value: "value2",
-										},
-									},
-								},
-								FirstOccurrence: true,
+								Name:                    "input1",
+								Version:                 atc.Version{"version": "value1"},
+								ResourceConfigVersionID: 1,
+								FirstOccurrence:         true,
 							},
 							{
-								Name: "input2",
-								VersionedResource: db.VersionedResource{
-									Resource: "myresource2",
-									Type:     "git",
-									Version:  db.ResourceVersion{"version": "value2"},
-									Metadata: []db.ResourceMetadataField{},
-								},
-								FirstOccurrence: false,
+								Name:                    "input2",
+								Version:                 atc.Version{"version": "value2"},
+								ResourceConfigVersionID: 2,
+								FirstOccurrence:         false,
 							},
 						},
 							[]db.BuildOutput{
@@ -753,28 +736,13 @@ var _ = Describe("Builds API", func() {
 							"inputs": [
 								{
 									"name": "input1",
-									"resource": "myresource1",
-									"type": "git",
 									"version": {"version": "value1"},
-									"metadata":[
-										{
-											"name": "meta1",
-											"value": "value1"
-										},
-										{
-											"name": "meta2",
-											"value": "value2"
-										}
-									],
 									"pipeline_id": 42,
 									"first_occurrence": true
 								},
 								{
 									"name": "input2",
-									"resource": "myresource2",
-									"type": "git",
 									"version": {"version": "value2"},
-									"metadata": [],
 									"pipeline_id": 42,
 									"first_occurrence": false
 								}

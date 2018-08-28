@@ -6,17 +6,10 @@ import (
 )
 
 func PublicBuildInput(input db.BuildInput, pipelineID int) atc.PublicBuildInput {
-	metadata := make([]atc.MetadataField, 0, len(input.Metadata))
-	for _, meta := range input.Metadata {
-		metadata = append(metadata, atc.MetadataField(meta))
-	}
-
+	// XXX: we probably don't need to expose this much here. name and version are all we show in the UI.
 	return atc.PublicBuildInput{
 		Name:            input.Name,
-		Resource:        input.Resource,
-		Type:            input.Type,
 		Version:         atc.Version(input.Version),
-		Metadata:        metadata,
 		PipelineID:      pipelineID,
 		FirstOccurrence: input.FirstOccurrence,
 	}

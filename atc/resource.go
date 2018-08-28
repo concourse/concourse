@@ -9,6 +9,7 @@ type Resource struct {
 
 	Paused bool `json:"paused,omitempty"`
 
-	FailingToCheck bool   `json:"failing_to_check,omitempty"`
-	CheckError     string `json:"check_error,omitempty"`
+	FailingToCheck  bool   `json:"failing_to_check,omitempty"`
+	CheckSetupError string `json:"check_setup_error,omitempty"`
+	CheckError      string `json:"check_error,omitempty"`
 }

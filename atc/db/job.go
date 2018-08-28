@@ -673,11 +673,10 @@ func (j *job) updatePausedJob(pause bool) error {
 }
 
 func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
-	rows, err := psql.Select("i.input_name, i.first_occurrence, r.name, v.type, v.version, v.metadata").
+	rows, err := psql.Select("i.input_name, i.first_occurrence, v.resource_config_id, v.version").
 		From(table + " i").
 		Join("jobs j ON i.job_id = j.id").
-		Join("versioned_resources v ON v.id = i.version_id").
-		Join("resources r ON r.id = v.resource_id").
+		Join("resource_config_versions v ON v.id = i.resource_config_version_id").
 		Where(sq.Eq{
 			"j.name":        j.name,
 			"j.pipeline_id": j.pipelineID,
@@ -691,17 +690,14 @@ func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
 	buildInputs := []BuildInput{}
 	for rows.Next() {
 		var (
-			inputName       string
-			firstOccurrence bool
-			resourceName    string
-			resourceType    string
-			versionBlob     string
-			metadataBlob    string
-			version         ResourceVersion
-			metadata        []ResourceMetadataField
+			inputName               string
+			firstOccurrence         bool
+			versionBlob             string
+			resourceConfigVersionID int
+			version                 atc.Version
 		)
 
-		err := rows.Scan(&inputName, &firstOccurrence, &resourceName, &resourceType, &versionBlob, &metadataBlob)
+		err := rows.Scan(&inputName, &firstOccurrence, &resourceConfigVersionID, &versionBlob)
 		if err != nil {
 			return nil, err
 		}
@@ -711,20 +707,11 @@ func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
 			return nil, err
 		}
 
-		err = json.Unmarshal([]byte(metadataBlob), &metadata)
-		if err != nil {
-			return nil, err
-		}
-
 		buildInputs = append(buildInputs, BuildInput{
-			Name: inputName,
-			VersionedResource: VersionedResource{
-				Resource: resourceName,
-				Type:     resourceType,
-				Version:  version,
-				Metadata: metadata,
-			},
-			FirstOccurrence: firstOccurrence,
+			Name:                    inputName,
+			ResourceConfigVersionID: resourceConfigVersionID,
+			Version:                 version,
+			FirstOccurrence:         firstOccurrence,
 		})
 	}
 	return buildInputs, nil
@@ -766,7 +753,7 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 		return err
 	}
 
-	rows, err := psql.Select("input_name, version_id, first_occurrence").
+	rows, err := psql.Select("input_name, resource_config_version_id, first_occurrence").
 		From(table).
 		Where(sq.Eq{"job_id": j.id}).
 		RunWith(tx).
@@ -808,10 +795,10 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 		if !found || inputVersion != oldInputVersion {
 			_, err := psql.Insert(table).
 				SetMap(map[string]interface{}{
-					"job_id":           j.id,
-					"input_name":       inputName,
-					"version_id":       inputVersion.VersionID,
-					"first_occurrence": inputVersion.FirstOccurrence,
+					"job_id":                     j.id,
+					"input_name":                 inputName,
+					"resource_config_version_id": inputVersion.VersionID,
+					"first_occurrence":           inputVersion.FirstOccurrence,
 				}).
 				RunWith(tx).
 				Exec()

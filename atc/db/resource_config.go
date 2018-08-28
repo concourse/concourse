@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -38,6 +39,7 @@ type ResourceConfigDescriptor struct {
 
 type ResourceConfig interface {
 	ID() int
+	CheckError() error
 	CreatedByResourceCache() UsedResourceCache
 	CreatedByBaseResourceType() *UsedBaseResourceType
 	OriginBaseResourceType() *UsedBaseResourceType
@@ -47,26 +49,25 @@ type ResourceConfig interface {
 		immediate bool,
 	) (lock.Lock, bool, error)
 
-	GetLatestVersion() (ResourceConfigVersion, bool, error)
+	LatestVersion() (ResourceConfigVersion, bool, error)
 	SaveVersions(versions []atc.Version) error
+	SetCheckError(error) error
+	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
+	Versions(page Page) (ResourceConfigVersions, Pagination, bool, error)
 }
 
 type resourceConfig struct {
 	id                        int
+	checkError                error
 	createdByResourceCache    UsedResourceCache
 	createdByBaseResourceType *UsedBaseResourceType
 	lockFactory               lock.LockFactory
 	conn                      Conn
 }
 
-func (r *resourceConfig) ID() int {
-	return r.id
-}
-
-func (r *resourceConfig) CreatedByResourceCache() UsedResourceCache {
-	return r.createdByResourceCache
-}
-
+func (r *resourceConfig) ID() int                                   { return r.id }
+func (r *resourceConfig) CheckError() error                         { return r.checkError }
+func (r *resourceConfig) CreatedByResourceCache() UsedResourceCache { return r.createdByResourceCache }
 func (r *resourceConfig) CreatedByBaseResourceType() *UsedBaseResourceType {
 	return r.createdByBaseResourceType
 }
@@ -115,38 +116,21 @@ func (r *resourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheck(
 	return lock, true, nil
 }
 
-func (r *resourceConfig) GetLatestVersion() (ResourceConfigVersion, bool, error) {
-	var version, metadata string
+func (r *resourceConfig) LatestVersion() (ResourceConfigVersion, bool, error) {
+	rcv := &resourceConfigVersion{conn: r.conn}
 
-	rcv := &resourceConfigVersion{
-		resourceConfigID: r.id,
-	}
-
-	err := psql.Select("v.id, v.version, v.metadata, v.check_order").
-		From("resource_config_versions v").
-		Where(sq.Eq{
-			"v.resource_config_id": r.id,
-		}).
+	row := resourceConfigVersionQuery.
+		Where(sq.Eq{"resource_config_id": r.id}).
 		OrderBy("check_order DESC").
 		Limit(1).
 		RunWith(r.conn).
-		QueryRow().
-		Scan(&rcv.id, &version, &metadata, &rcv.checkOrder)
+		QueryRow()
+
+	err := scanResourceConfigVersion(rcv, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return &resourceConfigVersion{}, false, nil
 		}
-
-		return &resourceConfigVersion{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(version), &rcv.version)
-	if err != nil {
-		return &resourceConfigVersion{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(metadata), &rcv.metadata)
-	if err != nil {
 		return &resourceConfigVersion{}, false, err
 	}
 
@@ -162,81 +146,235 @@ func (r *resourceConfig) SaveVersions(versions []atc.Version) error {
 	defer Rollback(tx)
 
 	for _, version := range versions {
-		rcv := &resourceConfigVersion{
-			resourceConfigID: r.id,
-			version:          Version(version),
-		}
-
-		versionJSON, err := json.Marshal(rcv.version)
+		_, _, err = saveResourceConfigVersion(tx, r.conn, r, version, nil)
 		if err != nil {
 			return err
 		}
 
-		_, err = r.saveResourceConfigVersion(tx, rcv)
+		versionJSON, err := json.Marshal(version)
 		if err != nil {
 			return err
 		}
 
-		err = r.incrementCheckOrderWhenNewerVersion(tx, string(versionJSON))
+		err = incrementCheckOrderWhenNewerVersion(tx, r, string(versionJSON))
 		if err != nil {
 			return err
 		}
 	}
 
-	// XXX: IDKKKKKK
-	// err = bumpCacheIndex(tx, p.id)
-	// if err != nil {
-	// 	return err
-	// }
+	err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, r.id)
+	if err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }
 
-func (r *resourceConfig) saveResourceConfigVersion(tx Tx, rcv ResourceConfigVersion) (ResourceConfigVersion, error) {
-	versionJSON, err := json.Marshal(rcv.Version())
-	if err != nil {
-		return nil, err
-	}
-
-	metadataJSON, err := json.Marshal(rcv.Metadata())
-	if err != nil {
-		return nil, err
-	}
-
-	var id, resourceConfigID, checkOrder int
+func (r *resourceConfig) FindVersion(v atc.Version) (ResourceConfigVersion, bool, error) {
 	var version, metadata string
 
-	// XXX uniq
-	err = tx.QueryRow(`
-		INSERT INTO resource_config_versions (resource_config_id, version, metadata)
-		SELECT $1, $2, $3
-		ON CONFLICT (resource_config_id, version) DO UPDATE SET metadata = $3
-		RETURNING id, resource_config_id, check_order, version, metadata
-		`, r.ID(), string(versionJSON), string(metadataJSON)).Scan(&id, &resourceConfigID, &checkOrder, &version, &metadata)
+	rcv := &resourceConfigVersion{
+		resourceConfig: r,
+		conn:           r.conn,
+	}
+
+	versionByte, err := json.Marshal(v)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	savedRCV := &resourceConfigVersion{
-		id:               id,
-		resourceConfigID: resourceConfigID,
-		checkOrder:       checkOrder,
-	}
-
-	err = json.Unmarshal([]byte(version), &savedRCV.version)
+	err = psql.Select("v.id, v.version, v.metadata, v.check_order").
+		From("resource_config_versions v").
+		Where(sq.Eq{
+			"v.resource_config_id": r.id,
+			"v.version":            versionByte,
+		}).
+		RunWith(r.conn).
+		QueryRow().
+		Scan(&rcv.id, &version, &metadata, &rcv.checkOrder)
 	if err != nil {
-		return nil, err
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+
+		return nil, false, err
 	}
 
-	err = json.Unmarshal([]byte(metadata), &savedRCV.metadata)
+	err = json.Unmarshal([]byte(version), &rcv.version)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return savedRCV, nil
+	err = json.Unmarshal([]byte(metadata), &rcv.metadata)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return rcv, true, nil
 }
 
-func (r *resourceConfig) incrementCheckOrderWhenNewerVersion(tx Tx, version string) error {
+func (r *resourceConfig) Versions(page Page) (ResourceConfigVersions, Pagination, bool, error) {
+	query := `
+		SELECT v.id, v.version, v.metadata, v.check_order
+		FROM resource_config_versions v
+		WHERE v.resource_config_id = $1
+	`
+
+	var rows *sql.Rows
+	var err error
+	if page.Until != 0 {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			SELECT sub.*
+				FROM (
+						%s
+					AND v.check_order > (SELECT check_order FROM resource_config_versions WHERE id = $2)
+				ORDER BY v.check_order ASC
+				LIMIT $3
+			) sub
+			ORDER BY sub.check_order DESC
+		`, query), r.id, page.Until, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else if page.Since != 0 {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			%s
+				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
+			ORDER BY v.check_order DESC
+			LIMIT $3
+		`, query), r.id, page.Since, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else if page.To != 0 {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			SELECT sub.*
+				FROM (
+						%s
+					AND v.check_order >= (SELECT check_order FROM resource_config_versions WHERE id = $2)
+				ORDER BY v.check_order ASC
+				LIMIT $3
+			) sub
+			ORDER BY sub.check_order DESC
+		`, query), r.id, page.To, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else if page.From != 0 {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			%s
+				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
+			ORDER BY v.check_order DESC
+			LIMIT $3
+		`, query), r.id, page.From, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			%s
+			ORDER BY v.check_order DESC
+			LIMIT $2
+		`, query), r.id, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	}
+
+	defer Close(rows)
+
+	rcvs := make([]ResourceConfigVersion, 0)
+	for rows.Next() {
+		rcv := &resourceConfigVersion{
+			resourceConfig: r,
+			conn:           r.conn,
+		}
+
+		var versionString, metadataString string
+
+		err = rows.Scan(
+			&rcv.id,
+			&versionString,
+			&metadataString,
+			&rcv.checkOrder,
+		)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+
+		err = json.Unmarshal([]byte(versionString), &rcv.version)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+
+		err = json.Unmarshal([]byte(metadataString), &rcv.metadata)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+
+		rcvs = append(rcvs, rcv)
+	}
+
+	if len(rcvs) == 0 {
+		return ResourceConfigVersions{}, Pagination{}, true, nil
+	}
+
+	var minCheckOrder int
+	var maxCheckOrder int
+
+	err = r.conn.QueryRow(`
+		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
+			COALESCE(MIN(v.check_order), 0) as minCheckOrder
+		FROM resource_config_versions v
+		WHERE v.resource_config_id = $1
+	`, r.id).Scan(&maxCheckOrder, &minCheckOrder)
+	if err != nil {
+		return nil, Pagination{}, false, err
+	}
+
+	firstResourceConfigVersion := rcvs[0]
+	lastResourceConfigVersion := rcvs[len(rcvs)-1]
+
+	var pagination Pagination
+
+	if firstResourceConfigVersion.CheckOrder() < maxCheckOrder {
+		pagination.Previous = &Page{
+			Until: firstResourceConfigVersion.ID(),
+			Limit: page.Limit,
+		}
+	}
+
+	if lastResourceConfigVersion.CheckOrder() > minCheckOrder {
+		pagination.Next = &Page{
+			Since: lastResourceConfigVersion.ID(),
+			Limit: page.Limit,
+		}
+	}
+
+	return rcvs, pagination, true, nil
+}
+
+func (r *resourceConfig) SetCheckError(cause error) error {
+	var err error
+
+	if cause == nil {
+		_, err = psql.Update("resource_configs").
+			Set("check_error", nil).
+			Where(sq.Eq{"id": r.id}).
+			RunWith(r.conn).
+			Exec()
+	} else {
+		_, err = psql.Update("resource_configs").
+			Set("check_error", cause.Error()).
+			Where(sq.Eq{"id": r.id}).
+			RunWith(r.conn).
+			Exec()
+	}
+
+	return err
+}
+
+func incrementCheckOrderWhenNewerVersion(tx Tx, r ResourceConfig, version string) error {
 	_, err := tx.Exec(`
 		WITH max_checkorder AS (
 			SELECT max(check_order) co
@@ -293,6 +431,51 @@ func (r *resourceConfig) checkIfResourceConfigIntervalUpdated(
 	return true, nil
 }
 
+func saveResourceConfigVersion(tx Tx, conn Conn, r ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields) (ResourceConfigVersion, bool, error) {
+	versionJSON, err := json.Marshal(version)
+	if err != nil {
+		return nil, false, err
+	}
+
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, false, err
+	}
+
+	var id, checkOrder int
+	var versionString, metadataString string
+
+	// XXX uniq
+	err = tx.QueryRow(`
+		INSERT INTO resource_config_versions (resource_config_id, version, metadata)
+		SELECT $1, $2, $3
+		ON CONFLICT (resource_config_id, version) DO UPDATE SET metadata = $3
+		RETURNING id, check_order, version, metadata
+		`, r.ID(), string(versionJSON), string(metadataJSON)).Scan(&id, &checkOrder, &versionString, &metadataString)
+	if err != nil {
+		return nil, false, err
+	}
+
+	savedRCV := &resourceConfigVersion{
+		id:             id,
+		resourceConfig: r,
+		checkOrder:     checkOrder,
+		conn:           conn,
+	}
+
+	err = json.Unmarshal([]byte(versionString), &savedRCV.version)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = json.Unmarshal([]byte(metadataString), &savedRCV.metadata)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return savedRCV, checkOrder == 0, nil
+}
+
 func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, error) {
 	rc := &resourceConfig{
 		lockFactory: lockFactory,
@@ -331,7 +514,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 		parentID = rc.CreatedByBaseResourceType().ID
 	}
 
-	id, found, err := r.findWithParentID(tx, parentColumnName, parentID)
+	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -363,6 +546,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 	}
 
 	rc.id = id
+	rc.checkError = checkError
 
 	return rc, nil
 }
@@ -409,7 +593,7 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 		parentID = rc.createdByBaseResourceType.ID
 	}
 
-	id, found, err := r.findWithParentID(tx, parentColumnName, parentID)
+	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -419,13 +603,16 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 	}
 
 	rc.id = id
+	rc.checkError = checkError
 
 	return rc, true, nil
 }
 
-func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, bool, error) {
+func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, error, bool, error) {
 	var id int
-	err := psql.Select("id").
+	var checkError sql.NullString
+
+	err := psql.Select("id, check_error").
 		From("resource_configs").
 		Where(sq.Eq{
 			parentColumnName: parentID,
@@ -434,14 +621,34 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName stri
 		Suffix("FOR SHARE").
 		RunWith(tx).
 		QueryRow().
-		Scan(&id)
+		Scan(&id, &checkError)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, false, nil
+			return 0, nil, false, nil
 		}
 
-		return 0, false, err
+		return 0, nil, false, err
 	}
 
-	return id, true, nil
+	var chkErr error
+	if checkError.Valid {
+		chkErr = errors.New(checkError.String)
+	}
+
+	return id, chkErr, true, nil
+}
+
+func bumpCacheIndexForPipelinesUsingResourceConfig(tx Tx, rcID int) error {
+	_, err := tx.Exec(`
+		UPDATE pipelines p
+		SET cache_index = cache_index + 1
+		FROM resources r
+		WHERE r.pipeline_id = p.id
+		AND r.resource_config_id = $1
+	`, rcID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

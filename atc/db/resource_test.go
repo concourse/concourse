@@ -272,4 +272,83 @@ var _ = Describe("Resource", func() {
 			})
 		})
 	})
+
+	Describe("ResourceConfigVersion", func() {
+		var (
+			resource                   db.Resource
+			version                    atc.Version
+			rcvID                      int
+			resourceConfigVersionFound bool
+			foundErr                   error
+		)
+
+		BeforeEach(func() {
+			var err error
+			var found bool
+			version = atc.Version{"version": "12345"}
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		JustBeforeEach(func() {
+			rcvID, resourceConfigVersionFound, foundErr = resource.ResourceConfigVersionID(version)
+		})
+
+		Context("when the version exists", func() {
+			var resourceConfigVersion db.ResourceConfigVersion
+
+			BeforeEach(func() {
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "registry-image",
+				}
+				_, err = brt.FindOrCreate(setupTx)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+
+				err = resourceConfig.SaveVersions([]atc.Version{version})
+				Expect(err).ToNot(HaveOccurred())
+
+				err = resource.SetResourceConfig(resourceConfig.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				resourceConfigVersion, found, err = resourceConfig.FindVersion(version)
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns resource config version and true", func() {
+				Expect(resourceConfigVersionFound).To(BeTrue())
+				Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+				Expect(foundErr).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("when the version is not found", func() {
+			BeforeEach(func() {
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "registry-image",
+				}
+				_, err = brt.FindOrCreate(setupTx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+				_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns false when resourceConfig is not found", func() {
+				Expect(foundErr).ToNot(HaveOccurred())
+				Expect(resourceConfigVersionFound).To(BeFalse())
+			})
+		})
+	})
 })
