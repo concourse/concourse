@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/concourse/atc"
@@ -67,10 +68,15 @@ type setConfigResponse struct {
 	Warnings []ConfigWarning `json:"warnings"`
 }
 
-func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte) (bool, bool, []ConfigWarning, error) {
+func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"team_name":     team.name,
+	}
+
+	queryParams := url.Values{}
+	if checkCredentials {
+		queryParams.Add(atc.SaveConfigCheckCreds, "")
 	}
 
 	response := internal.Response{}
@@ -79,6 +85,7 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersio
 		ReturnResponseBody: true,
 		RequestName:        atc.SaveConfig,
 		Params:             params,
+		Query:              queryParams,
 		Body:               bytes.NewBuffer(passedConfig),
 		Header: http.Header{
 			"Content-Type":          {"application/x-yaml"},
@@ -87,6 +94,7 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersio
 	},
 		&response,
 	)
+
 	if err != nil {
 		if unexpectedResponseError, ok := err.(internal.UnexpectedResponseError); ok {
 			if unexpectedResponseError.StatusCode == http.StatusBadRequest {

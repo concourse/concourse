@@ -53,6 +53,7 @@ var _ = Describe("ATC Handler Configs", func() {
 							Type: "some-other-type",
 							Source: atc.Source{
 								"source-config": "some-value",
+								"FOO":           "((BAR))",
 							},
 						},
 					},
@@ -176,6 +177,8 @@ var _ = Describe("ATC Handler Configs", func() {
 
 			returnHeader int
 			returnBody   []byte
+
+			checkCredentials bool
 		)
 
 		BeforeEach(func() {
@@ -184,6 +187,8 @@ var _ = Describe("ATC Handler Configs", func() {
 			expectedConfig = []byte("")
 
 			expectedPath := "/api/v1/teams/some-team/pipelines/mypipeline/config"
+
+			checkCredentials = false
 
 			atcServer.RouteToHandler("PUT", expectedPath,
 				ghttp.CombineHandlers(
@@ -217,7 +222,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns true for created and false for updated", func() {
-				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 				Expect(updated).To(BeFalse())
@@ -239,9 +244,29 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).To(HaveOccurred())
 				})
+			})
+
+			Context("when credential verification is enabled", func() {
+				BeforeEach(func() {
+					checkCredentials = true
+				})
+
+				Context("when credential doesn't exist in credentials manager", func() {
+					BeforeEach(func() {
+						returnHeader = http.StatusBadRequest
+						returnBody = []byte(`{"errors":["Expected to find variables: BAR"]}`)
+					})
+
+					It("returns an error", func() {
+						_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("Expected to find variables: BAR"))
+					})
+				})
+
 			})
 		})
 
@@ -255,7 +280,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns false for created and true for updated", func() {
-				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(updated).To(BeTrue())
@@ -277,9 +302,29 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).To(HaveOccurred())
 				})
+			})
+
+			Context("when credential verification is enabled", func() {
+				BeforeEach(func() {
+					checkCredentials = true
+				})
+
+				Context("when credential doesn't exist in credentials manager", func() {
+					BeforeEach(func() {
+						returnHeader = http.StatusBadRequest
+						returnBody = []byte(`{"errors":["Expected to find variables: BAR"]}`)
+					})
+
+					It("returns an error", func() {
+						_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("Expected to find variables: BAR"))
+					})
+				})
+
 			})
 		})
 
@@ -290,7 +335,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns config validation error", func() {
-				_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+				_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("invalid configuration:\n"))
 				Expect(err.Error()).To(ContainSubstring("fake-error1\nfake-error2"))
@@ -302,7 +347,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).To(HaveOccurred())
 				})
 			})
