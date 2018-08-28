@@ -938,7 +938,7 @@ var _ = Describe("Pipeline", func() {
 			build1DB, err := aJob.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = build1DB.SaveOutput(resourceConfig, atc.Version{"version": "1"}, nil)
+			err = build1DB.SaveOutput(resourceConfig, atc.Version{"version": "1"}, nil, "some-output-name")
 			Expect(err).ToNot(HaveOccurred())
 
 			err = build1DB.Finish(db.BuildStatusSucceeded)
@@ -985,7 +985,7 @@ var _ = Describe("Pipeline", func() {
 			build2DB, err := aJob.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = build2DB.SaveOutput(resourceConfig, atc.Version{"version": "1"}, nil)
+			err = build2DB.SaveOutput(resourceConfig, atc.Version{"version": "1"}, nil, "some-output-name")
 			Expect(err).ToNot(HaveOccurred())
 
 			err = build2DB.Finish(db.BuildStatusFailed)
@@ -1034,7 +1034,7 @@ var _ = Describe("Pipeline", func() {
 			otherPipelineBuild, err := anotherJob.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = otherPipelineBuild.SaveOutput(otherResourceConfig, atc.Version{"version": "1"}, nil)
+			err = otherPipelineBuild.SaveOutput(otherResourceConfig, atc.Version{"version": "1"}, nil, "some-output-name")
 			Expect(err).ToNot(HaveOccurred())
 
 			err = otherPipelineBuild.Finish(db.BuildStatusSucceeded)
@@ -1280,7 +1280,7 @@ var _ = Describe("Pipeline", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = build.SaveOutput(resourceConfig, atc.Version(beforeVR.Version()), nil)
+				err = build.SaveOutput(resourceConfig, atc.Version(beforeVR.Version()), nil, "some-output-name")
 				Expect(err).ToNot(HaveOccurred())
 
 				versions, _, found, err := resourceConfig.Versions(db.Page{Limit: 10})
@@ -1394,7 +1394,7 @@ var _ = Describe("Pipeline", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = build1.SaveOutput(resourceConfig, atc.Version{"version": "disabled"}, nil)
+				err = build1.SaveOutput(resourceConfig, atc.Version{"version": "disabled"}, nil, "some-output-name")
 				Expect(err).ToNot(HaveOccurred())
 
 				err = resourceConfig.SaveVersions([]atc.Version{{"version": "enabled"}})
@@ -1418,7 +1418,7 @@ var _ = Describe("Pipeline", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = build1.SaveOutput(resourceConfig, atc.Version{"version": "other-enabled"}, nil)
+				err = build1.SaveOutput(resourceConfig, atc.Version{"version": "other-enabled"}, nil, "some-output-name")
 				Expect(err).ToNot(HaveOccurred())
 
 				err = build1.Finish(db.BuildStatusSucceeded)
@@ -1539,7 +1539,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating build outputs")
-			err = build.SaveOutput(resourceConfig, nil, nil)
+			err = build.SaveOutput(resourceConfig, nil, nil, "some-output-name")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating build events")
@@ -1639,7 +1639,7 @@ var _ = Describe("Pipeline", func() {
 			})
 
 			It("will cache VersionsDB if no change has occured", func() {
-				err := build.SaveOutput(resourceConfig, atc.Version(savedVR.Version()), nil)
+				err := build.SaveOutput(resourceConfig, atc.Version(savedVR.Version()), nil, "some-output-name")
 				Expect(err).ToNot(HaveOccurred())
 
 				versionsDB, err := pipeline.LoadVersionsDB()
@@ -1717,7 +1717,7 @@ var _ = Describe("Pipeline", func() {
 					versionsDB, err := pipeline.LoadVersionsDB()
 					Expect(err).ToNot(HaveOccurred())
 
-					err = otherBuild.SaveOutput(otherResourceConfig, atc.Version(otherSavedVR.Version()), nil)
+					err = otherBuild.SaveOutput(otherResourceConfig, atc.Version(otherSavedVR.Version()), nil, "some-output-name")
 					Expect(err).ToNot(HaveOccurred())
 
 					cachedVersionsDB, err := pipeline.LoadVersionsDB()
@@ -2190,7 +2190,7 @@ var _ = Describe("Pipeline", func() {
 					Name:  "some",
 					Value: "value",
 				},
-			})
+			}, "some-output-name")
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceConfigVersions, err := dbBuild.ResourceConfigVersions()
@@ -2206,7 +2206,7 @@ var _ = Describe("Pipeline", func() {
 					Name:  "some",
 					Value: "value",
 				},
-			})
+			}, "some-output-name")
 			Expect(err).ToNot(HaveOccurred())
 
 			secondRCV, err := dbBuild.ResourceConfigVersions()

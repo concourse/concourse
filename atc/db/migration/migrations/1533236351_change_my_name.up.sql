@@ -36,7 +36,8 @@ BEGIN;
 
   CREATE TABLE build_resource_config_versions_outputs (
       "build_id" integer NOT NULL REFERENCES builds (id) ON DELETE CASCADE,
-      "resource_config_version_id" integer NOT NULL REFERENCES resource_config_versions (id) ON DELETE CASCADE
+      "resource_config_version_id" integer NOT NULL REFERENCES resource_config_versions (id) ON DELETE CASCADE,
+      "name" text NOT NULL
   );
 
   TRUNCATE TABLE next_build_inputs;

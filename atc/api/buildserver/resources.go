@@ -28,7 +28,7 @@ func (s *Server) BuildResources(build db.Build) http.Handler {
 
 		atcOutputs := []atc.VersionedResource{}
 		for _, output := range outputs {
-			atcOutputs = append(atcOutputs, present.VersionedResource(output.VersionedResource))
+			atcOutputs = append(atcOutputs, present.ResourceConfigVersion(output))
 		}
 
 		output := atc.BuildInputsOutputs{

@@ -5,10 +5,10 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func VersionedResource(vr db.VersionedResource) atc.VersionedResource {
+func ResourceConfigVersion(o db.BuildOutput) atc.VersionedResource {
 	return atc.VersionedResource{
-		Resource: vr.Resource,
-		Version:  atc.Version(vr.Version),
+		Resource: o.Name,
+		Version:  atc.Version(o.Version),
 	}
 }
 

@@ -75,7 +75,7 @@ type Build interface {
 	SaveEvent(event atc.Event) error
 
 	SaveInput(input BuildInput) error
-	SaveOutput(ResourceConfig, atc.Version, ResourceConfigMetadataFields) error
+	SaveOutput(ResourceConfig, atc.Version, ResourceConfigMetadataFields, string) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
@@ -783,7 +783,7 @@ func (b *build) SaveInput(input BuildInput) error {
 	return tx.Commit()
 }
 
-func (b *build) SaveOutput(rc ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields) error {
+func (b *build) SaveOutput(rc ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields, name string) error {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
@@ -810,8 +810,8 @@ func (b *build) SaveOutput(rc ResourceConfig, version atc.Version, metadata Reso
 	}
 
 	_, err = psql.Insert("build_resource_config_versions_outputs").
-		Columns("build_id", "resource_config_version_id").
-		Values(b.id, rcv.ID()).
+		Columns("build_id", "resource_config_version_id", "name").
+		Values(b.id, rcv.ID(), name).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -920,12 +920,11 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	}
 
 	rows, err = b.conn.Query(`
-		SELECT r.name, v.type, v.version, v.metadata
-		FROM versioned_resources v, build_outputs o, builds b, resources r
+		SELECT o.name, rcv.version
+		FROM resource_config_versions rcv, build_resource_config_versions_outputs o, builds b
 		WHERE b.id = $1
 		AND o.build_id = b.id
-		AND o.versioned_resource_id = v.id
-    AND r.id = v.resource_id
+		AND o.resource_config_version_id = rcv.id
 	`, b.id)
 	if err != nil {
 		return nil, nil, err
@@ -934,26 +933,25 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		var vr VersionedResource
+		var (
+			outputName  string
+			versionBlob string
+			version     atc.Version
+		)
 
-		var version, metadata string
-		err := rows.Scan(&vr.Resource, &vr.Type, &version, &metadata)
+		err := rows.Scan(&outputName, &versionBlob)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		err = json.Unmarshal([]byte(version), &vr.Version)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		err = json.Unmarshal([]byte(versionBlob), &version)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		outputs = append(outputs, BuildOutput{
-			VersionedResource: vr,
+			Name:    outputName,
+			Version: version,
 		})
 	}
 

@@ -239,10 +239,11 @@ var _ = Describe("PutStep", func() {
 				It("saves the build output", func() {
 					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
-					resourceConfig, version, metadata := fakeBuild.SaveOutputArgsForCall(0)
+					resourceConfig, version, metadata, name := fakeBuild.SaveOutputArgsForCall(0)
 					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
 					Expect(version).To(Equal(atc.Version{"some": "version"}))
 					Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
+					Expect(name).To(Equal("some-name"))
 				})
 			})
 

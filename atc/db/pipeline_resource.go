@@ -64,6 +64,4 @@ type BuildInput struct {
 type BuildOutput struct {
 	Name    string
 	Version atc.Version
-
-	VersionedResource
 }

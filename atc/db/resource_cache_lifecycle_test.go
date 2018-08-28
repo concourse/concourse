@@ -64,7 +64,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				})
 
 				Context("when the cache is for a saved image resource version for a finished build", func() {
-
 					setBuildStatus := func(a db.BuildStatus) {
 						resourceCache, build := resourceCacheForOneOffBuild()
 
@@ -129,7 +128,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 					Context("when the build has succeeded", func() {
 						It("does not remove the resource cache for the most recent build", func() {
-
 							setBuildStatus(db.BuildStatusSucceeded)
 							Expect(countResourceCaches()).To(Equal(1))
 
@@ -176,7 +174,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 			BeforeEach(func() {
 				var err error
-
 				resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
 					logger,
 					"some-base-resource-type",
@@ -189,7 +186,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 					),
 					db.ContainerOwnerExpiries{},
 				)
-
 				Expect(err).ToNot(HaveOccurred())
 
 				containerOwner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, defaultTeam.ID())

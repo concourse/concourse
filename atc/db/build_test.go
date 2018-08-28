@@ -487,7 +487,7 @@ var _ = Describe("Build", func() {
 					Name:  "meta2",
 					Value: "data2",
 				},
-			})
+			}, "output-name")
 			Expect(err).ToNot(HaveOccurred())
 
 			rcv, found, err := resourceConfig.FindVersion(atc.Version{"some": "version"})
@@ -498,6 +498,12 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(actualBuildOutput)).To(Equal(1))
 			Expect(actualBuildOutput[0]).To(Equal(rcv.ID()))
+
+			_, buildOutputs, err := build.Resources()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actualBuildOutput)).To(Equal(1))
+			Expect(buildOutputs[0].Name).To(Equal("output-name"))
+			Expect(buildOutputs[0].Version).To(Equal(atc.Version{"some": "version"}))
 		})
 	})
 
@@ -519,13 +525,6 @@ var _ = Describe("Build", func() {
 			_, err = brt.FindOrCreate(setupTx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
-
-			// XXX: DELETE WHEN NOT NEEDED
-			// vr2 = db.VersionedResource{
-			// 	Resource: "some-other-resource",
-			// 	Type:     "some-type",
-			// 	Version:  db.ResourceVersion{"ver": "2"},
-			// }
 
 			pipelineConfig := atc.Config{
 				Jobs: atc.JobConfigs{
@@ -599,21 +598,22 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// save explicit output from 'put'
-			err = build.SaveOutput(resourceConfig2, atc.Version{"ver": "2"}, nil)
+			err = build.SaveOutput(resourceConfig2, atc.Version{"ver": "2"}, nil, "some-output-name")
 			Expect(err).NotTo(HaveOccurred())
 
-			// XXX: ADD OUTPUTS
-			inputs, _, err := build.Resources()
+			inputs, outputs, err := build.Resources()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(inputs).To(ConsistOf([]db.BuildInput{
 				{Name: "some-input", Version: atc.Version{"ver": "1"}, ResourceConfigVersionID: rcv1.ID(), FirstOccurrence: true},
 			}))
 
-			// XXX: FIX PLS
-			// Expect(outputs).To(ConsistOf([]db.BuildOutput{
-			// 	{VersionedResource: vr2},
-			// }))
+			Expect(outputs).To(ConsistOf([]db.BuildOutput{
+				{
+					Name:    "some-output-name",
+					Version: atc.Version{"ver": "2"},
+				},
+			}))
 		})
 	})
 

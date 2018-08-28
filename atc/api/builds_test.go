@@ -710,16 +710,12 @@ var _ = Describe("Builds API", func() {
 						},
 							[]db.BuildOutput{
 								{
-									VersionedResource: db.VersionedResource{
-										Resource: "myresource3",
-										Version:  db.ResourceVersion{"version": "value3"},
-									},
+									Name:    "myresource3",
+									Version: atc.Version{"version": "value3"},
 								},
 								{
-									VersionedResource: db.VersionedResource{
-										Resource: "myresource4",
-										Version:  db.ResourceVersion{"version": "value4"},
-									},
+									Name:    "myresource4",
+									Version: atc.Version{"version": "value4"},
 								},
 							}, nil)
 					})
