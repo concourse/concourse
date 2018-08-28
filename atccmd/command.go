@@ -309,105 +309,121 @@ func (cmd *RunCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
+func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool, error) {
+	if cmd.ExternalURL.URL == nil {
+		cmd.ExternalURL = cmd.defaultURL()
+	}
+
+	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
+	//FIXME: These only need to run once for the entire binary. At the moment,
+	//they rely on state of the command.
+	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
+	logger, reconfigurableSink := cmd.Logger.Logger("atc")
+
+	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
+		for _, stack := range db.GlobalConnectionTracker.Current() {
+			fmt.Fprintln(w, stack)
+		}
+	})
+
+	if err := cmd.configureMetrics(logger); err != nil {
+		return nil, false, err
+	}
+	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
+
+	members, err := cmd.constructMembers(positionalArguments, logger, reconfigurableSink)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return onReady(grouper.NewParallel(os.Interrupt, members), func() {
+		logData := lager.Data{
+			"http":  cmd.nonTLSBindAddr(),
+			"debug": cmd.debugBindAddr(),
+		}
+
+		if cmd.isTLSEnabled() {
+			logData["https"] = cmd.tlsBindAddr()
+		}
+
+		logger.Info("listening", logData)
+	}), false, nil
+}
+
 func (cmd *RunCommand) constructMembers(
 	positionalArguments []string,
-	requiredMemberNames []string,
-	maxConns int,
-	connectionName string,
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 ) ([]grouper.Member, error) {
+
 	if len(positionalArguments) != 0 {
 		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
 	}
+
 	err := cmd.validate()
 	if err != nil {
 		return nil, err
 	}
 
-	var workerVersion *version.Version
-	if len(WorkerVersion) != 0 {
-		version, err := version.NewVersionFromString(WorkerVersion)
-		if err != nil {
-			return nil, err
-		}
-
-		workerVersion = &version
+	if cmd.TelemetryOptIn {
+		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", Version)
+		go func() {
+			_, err := http.Get(url)
+			if err != nil {
+				logger.Error("telemetry-version", err)
+			}
+		}()
 	}
 
-	var variablesFactory creds.VariablesFactory = noop.NewNoopFactory()
-	for name, manager := range cmd.CredentialManagers {
-		if !manager.IsConfigured() {
-			continue
-		}
-
-		credsLogger := logger.Session("credential-manager", lager.Data{
-			"name": name,
-		})
-
-		credsLogger.Info("configured credentials manager")
-
-		err = manager.Init(credsLogger)
-		if err != nil {
-			return nil, err
-		}
-
-		err = manager.Validate()
-		if err != nil {
-			return nil, fmt.Errorf("credential manager '%s' misconfigured: %s", name, err)
-		}
-
-		variablesFactory, err = manager.NewVariablesFactory(credsLogger)
-		if err != nil {
-			return nil, err
-		}
-
-		break
-	}
-
-	var newKey *encryption.Key
-	if cmd.EncryptionKey.AEAD != nil {
-		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
-	}
-
-	var oldKey *encryption.Key
-	if cmd.OldEncryptionKey.AEAD != nil {
-		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
-	}
-
-	lockConn, err := cmd.constructLockConn(retryingDriverName)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink)
 	if err != nil {
 		return nil, err
 	}
 
-	lockFactory := lock.NewLockFactory(lockConn)
-
-	dbConn, err := cmd.constructDBConn(retryingDriverName, logger, newKey, oldKey, maxConns, connectionName, lockFactory)
+	backendMembers, err := cmd.constructBackendMembers(logger)
 	if err != nil {
 		return nil, err
 	}
 
-	bus := dbConn.Bus()
+	return append(apiMembers, backendMembers...), nil
+}
+
+func (cmd *RunCommand) constructAPIMembers(
+	logger lager.Logger,
+	reconfigurableSink *lager.ReconfigurableSink,
+) ([]grouper.Member, error) {
+	connectionName := "api"
+	maxConns := 32
+
+	lockFactory, err := cmd.lockFactory()
+	if err != nil {
+		return nil, err
+	}
+	dbConn, err := cmd.constructDBConn(retryingDriverName, logger, maxConns, connectionName, lockFactory)
+	if err != nil {
+		return nil, err
+	}
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
-	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	dbVolumeRepository := db.NewVolumeRepository(dbConn)
-	dbContainerRepository := db.NewContainerRepository(dbConn)
-	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
-	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
-	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
-	dbResourceFactory := db.NewResourceFactory(dbConn, lockFactory)
-	dbWorkerFactory := db.NewWorkerFactory(dbConn)
-	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
-	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
-	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
-	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
-	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
-	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
-	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
-	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
-	credsManagers := cmd.CredentialManagers
 
+	httpClient, err := cmd.httpClient()
+	if err != nil {
+		return nil, err
+	}
+	authHandler, err := skymarshal.NewServer(&skymarshal.Config{
+		Logger:      logger,
+		TeamFactory: teamFactory,
+		Flags:       cmd.Auth.AuthFlags,
+		ServerURL:   cmd.ExternalURL.String(),
+		HttpClient:  httpClient,
+		Postgres:    cmd.Postgres,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
+	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
+	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
 		dbResourceCacheFactory,
@@ -415,6 +431,14 @@ func (cmd *RunCommand) constructMembers(
 		clock.NewClock(),
 	)
 
+	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
+	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
+	dbVolumeRepository := db.NewVolumeRepository(dbConn)
+	dbWorkerFactory := db.NewWorkerFactory(dbConn)
+	workerVersion, err := workerVersion()
+	if err != nil {
+		return nil, err
+	}
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
@@ -441,8 +465,14 @@ func (cmd *RunCommand) constructMembers(
 	if err != nil {
 		return nil, err
 	}
+
+	variablesFactory, err := cmd.variablesFactory(logger)
+	if err != nil {
+		return nil, err
+	}
 	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory, defaultLimits)
 
+	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceFactory,
 		dbResourceConfigCheckSessionFactory,
@@ -460,76 +490,14 @@ func (cmd *RunCommand) constructMembers(
 		variablesFactory,
 	)
 
-	_, err = teamFactory.CreateDefaultTeamIfNotExists()
-	if err != nil {
-		return nil, err
-	}
-
-	err = cmd.configureAuthForDefaultTeam(teamFactory)
-	if err != nil {
-		return nil, err
-	}
-
 	drain := make(chan struct{})
-
-	httpClient := http.DefaultClient
-
-	var tlsConfig *tls.Config
-
-	if cmd.isTLSEnabled() {
-		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
-		if err != nil {
-			return nil, err
-		}
-
-		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
-		if err != nil {
-			return nil, err
-		}
-
-		certpool, err := x509.SystemCertPool()
-		if err != nil {
-			return nil, err
-		}
-
-		certpool.AddCert(x509Cert)
-
-		httpClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: certpool,
-			},
-		}
-
-		tlsConfig = &tls.Config{
-			Certificates:     []tls.Certificate{cert},
-			MinVersion:       tls.VersionTLS12,
-			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-			},
-			PreferServerCipherSuites: true,
-			NextProtos:               []string{"h2"},
-		}
-
-		cmd.Auth.AuthFlags.SecureCookies = true
-	}
-
-	authHandler, err := skymarshal.NewServer(&skymarshal.Config{
-		Logger:      logger,
-		TeamFactory: teamFactory,
-		Flags:       cmd.Auth.AuthFlags,
-		ServerURL:   cmd.ExternalURL.String(),
-		HttpClient:  httpClient,
-		Postgres:    cmd.Postgres,
-	})
-	if err != nil {
-		return nil, err
-	}
-
+	credsManagers := cmd.CredentialManagers
+	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
+	dbResourceFactory := db.NewResourceFactory(dbConn, lockFactory)
+	dbContainerRepository := db.NewContainerRepository(dbConn)
+	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
@@ -558,13 +526,10 @@ func (cmd *RunCommand) constructMembers(
 
 	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
 	apiHandler = accessor.NewHandler(apiHandler, accessFactory)
-
-	webHandler, err := web.NewHandler(logger)
+	webHandler, err := webHandler(logger)
 	if err != nil {
 		return nil, err
 	}
-
-	webHandler = metric.WrapHandler(logger, "web", webHandler)
 
 	var httpHandler, httpsHandler http.Handler
 	if cmd.isTLSEnabled() {
@@ -607,7 +572,114 @@ func (cmd *RunCommand) constructMembers(
 	}
 
 	members := []grouper.Member{
-		{"drainer", drainer{
+		{Name: "debug", Runner: http_server.New(
+			cmd.debugBindAddr(),
+			http.DefaultServeMux,
+		)},
+		{Name: "web", Runner: http_server.New(
+			cmd.nonTLSBindAddr(),
+			httpHandler,
+		)},
+	}
+
+	if httpsHandler != nil {
+		tlsConfig, err := cmd.tlsConfig()
+		if err != nil {
+			return nil, err
+		}
+		members = append(members, grouper.Member{Name: "web-tls", Runner: http_server.NewTLSServer(
+			cmd.tlsBindAddr(),
+			httpsHandler,
+			tlsConfig,
+		)})
+	}
+
+	return members, nil
+}
+
+func (cmd *RunCommand) constructBackendMembers(
+	logger lager.Logger,
+) ([]grouper.Member, error) {
+	connectionName := "backend"
+	maxConns := 32
+
+	drain := make(chan struct{})
+	lockFactory, err := cmd.lockFactory()
+	if err != nil {
+		return nil, err
+	}
+	dbConn, err := cmd.constructDBConn(retryingDriverName, logger, maxConns, connectionName, lockFactory)
+	if err != nil {
+		return nil, err
+	}
+	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
+
+	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
+	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
+	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
+	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+		resourceFetcherFactory,
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		clock.NewClock(),
+	)
+	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
+	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
+	dbVolumeRepository := db.NewVolumeRepository(dbConn)
+	dbWorkerFactory := db.NewWorkerFactory(dbConn)
+	workerVersion, err := workerVersion()
+	if err != nil {
+		return nil, err
+	}
+	workerProvider := worker.NewDBWorkerProvider(
+		lockFactory,
+		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		image.NewImageFactory(imageResourceFetcherFactory),
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		dbWorkerBaseResourceTypeFactory,
+		dbWorkerTaskCacheFactory,
+		dbVolumeRepository,
+		teamFactory,
+		dbWorkerFactory,
+		workerVersion,
+		cmd.BaggageclaimResponseHeaderTimeout,
+	)
+	workerClient := cmd.constructWorkerPool(
+		logger,
+		workerProvider,
+	)
+
+	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
+	resourceFactory := resource.NewResourceFactory(workerClient)
+	defaultLimits, err := cmd.parseDefaultLimits()
+	if err != nil {
+		return nil, err
+	}
+
+	variablesFactory, err := cmd.variablesFactory(logger)
+	if err != nil {
+		return nil, err
+	}
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory, defaultLimits)
+
+	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
+	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
+		resourceFactory,
+		dbResourceConfigCheckSessionFactory,
+		cmd.ResourceTypeCheckingInterval,
+		cmd.ResourceCheckingInterval,
+		engine,
+	)
+	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
+	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
+	dbContainerRepository := db.NewContainerRepository(dbConn)
+	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	bus := dbConn.Bus()
+	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	members := []grouper.Member{
+		{Name: "drainer", Runner: drainer{
 			logger: logger.Session("drain"),
 			drain:  drain,
 			tracker: builds.NewTracker(
@@ -617,13 +689,7 @@ func (cmd *RunCommand) constructMembers(
 			),
 			bus: bus,
 		}},
-
-		{"debug", http_server.New(
-			cmd.debugBindAddr(),
-			http.DefaultServeMux,
-		)},
-
-		{"pipelines", pipelines.SyncRunner{
+		{Name: "pipelines", Runner: pipelines.SyncRunner{
 			Syncer: cmd.constructPipelineSyncer(
 				logger.Session("syncer"),
 				dbPipelineFactory,
@@ -633,8 +699,7 @@ func (cmd *RunCommand) constructMembers(
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
 		}},
-
-		{"builds", builds.TrackerRunner{
+		{Name: "builds", Runner: builds.TrackerRunner{
 			Tracker: builds.NewTracker(
 				logger.Session("build-tracker"),
 				dbBuildFactory,
@@ -646,8 +711,7 @@ func (cmd *RunCommand) constructMembers(
 			DrainCh:   drain,
 			Logger:    logger.Session("tracker-runner"),
 		}},
-
-		{"collector", lockrunner.NewRunner(
+		{Name: "collector", Runner: lockrunner.NewRunner(
 			logger.Session("collector"),
 			gc.NewCollector(
 				gc.NewBuildCollector(dbBuildFactory),
@@ -681,9 +745,8 @@ func (cmd *RunCommand) constructMembers(
 			clock.NewClock(),
 			cmd.GC.Interval,
 		)},
-
 		// run separately so as to not preempt critical GC
-		{"build-log-collector", lockrunner.NewRunner(
+		{Name: "build-log-collector", Runner: lockrunner.NewRunner(
 			logger.Session("build-log-collector"),
 			gc.NewBuildLogCollector(
 				dbPipelineFactory,
@@ -699,45 +762,145 @@ func (cmd *RunCommand) constructMembers(
 			30*time.Second,
 		)},
 	}
-
-	if cmd.TelemetryOptIn {
-		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", Version)
-		go func() {
-			_, err := http.Get(url)
-			if err != nil {
-				logger.Error("telemetry-version", err)
-			}
-		}()
-	}
-
 	if cmd.Worker.GardenURL.URL != nil {
 		members = cmd.appendStaticWorker(logger, dbWorkerFactory, members)
 	}
+	return members, nil
+}
 
-	if httpsHandler != nil {
-		members = append(members, grouper.Member{"web-tls", http_server.NewTLSServer(
-			cmd.tlsBindAddr(),
-			httpsHandler,
-			tlsConfig,
-		)})
+func workerVersion() (*version.Version, error) {
+	var workerVersion *version.Version
+	if len(WorkerVersion) != 0 {
+		version, err := version.NewVersionFromString(WorkerVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		workerVersion = &version
+	}
+	return workerVersion, nil
+}
+
+func (cmd *RunCommand) variablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
+	var variablesFactory creds.VariablesFactory = noop.NewNoopFactory()
+	for name, manager := range cmd.CredentialManagers {
+		if !manager.IsConfigured() {
+			continue
+		}
+
+		credsLogger := logger.Session("credential-manager", lager.Data{
+			"name": name,
+		})
+
+		credsLogger.Info("configured credentials manager")
+
+		err := manager.Init(credsLogger)
+		if err != nil {
+			return nil, err
+		}
+
+		err = manager.Validate()
+		if err != nil {
+			return nil, fmt.Errorf("credential manager '%s' misconfigured: %s", name, err)
+		}
+
+		variablesFactory, err = manager.NewVariablesFactory(credsLogger)
+		if err != nil {
+			return nil, err
+		}
+
+		break
+	}
+	return variablesFactory, nil
+}
+
+func (cmd *RunCommand) lockFactory() (lock.LockFactory, error) {
+	lockConn, err := cmd.constructLockConn(retryingDriverName)
+	if err != nil {
+		return nil, err
 	}
 
-	members = append(members, grouper.Member{"web", http_server.New(
-		cmd.nonTLSBindAddr(),
-		httpHandler,
-	)})
+	return lock.NewLockFactory(lockConn), nil
+}
 
-	var filteredMembers []grouper.Member
-	for _, member := range members {
-		for _, requiredMemberName := range requiredMemberNames {
-			if member.Name == requiredMemberName {
-				filteredMembers = append(filteredMembers, member)
-				break
-			}
+func (cmd *RunCommand) newKey() *encryption.Key {
+	var newKey *encryption.Key
+	if cmd.EncryptionKey.AEAD != nil {
+		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
+	}
+	return newKey
+}
+
+func (cmd *RunCommand) oldKey() *encryption.Key {
+	var oldKey *encryption.Key
+	if cmd.OldEncryptionKey.AEAD != nil {
+		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
+	}
+	return oldKey
+}
+
+func webHandler(logger lager.Logger) (http.Handler, error) {
+	webHandler, err := web.NewHandler(logger)
+	if err != nil {
+		return nil, err
+	}
+	return metric.WrapHandler(logger, "web", webHandler), nil
+}
+
+func (cmd *RunCommand) httpClient() (*http.Client, error) {
+	httpClient := http.DefaultClient
+	if cmd.isTLSEnabled() {
+		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+		if err != nil {
+			return nil, err
+		}
+
+		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
+		if err != nil {
+			return nil, err
+		}
+
+		certpool, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
+
+		certpool.AddCert(x509Cert)
+
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: certpool,
+			},
 		}
 	}
+	return httpClient, nil
+}
 
-	return filteredMembers, nil
+func (cmd *RunCommand) tlsConfig() (*tls.Config, error) {
+	var tlsConfig *tls.Config
+
+	if cmd.isTLSEnabled() {
+		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+		if err != nil {
+			return nil, err
+		}
+
+		tlsConfig = &tls.Config{
+			Certificates:     []tls.Certificate{cert},
+			MinVersion:       tls.VersionTLS12,
+			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+			},
+			PreferServerCipherSuites: true,
+			NextProtos:               []string{"h2"},
+		}
+	}
+	return tlsConfig, nil
 }
 
 func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
@@ -745,77 +908,6 @@ func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
 		"cpu":    cmd.DefaultCpuLimit,
 		"memory": cmd.DefaultMemoryLimit,
 	})
-}
-
-func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, bool, error) {
-	if cmd.ExternalURL.URL == nil {
-		cmd.ExternalURL = cmd.defaultURL()
-	}
-	var members []grouper.Member
-
-	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
-	//FIXME: These only need to run once for the entire binary. At the moment,
-	//they rely on state of the command.
-	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
-	logger, reconfigurableSink := cmd.Logger.Logger("atc")
-
-	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
-		for _, stack := range db.GlobalConnectionTracker.Current() {
-			fmt.Fprintln(w, stack)
-		}
-	})
-
-	if err := cmd.configureMetrics(logger); err != nil {
-		return nil, false, err
-	}
-	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
-
-	apiMembers, err := cmd.constructMembers(positionalArguments, []string{
-		"debug",
-		"web-tls",
-		"web",
-	},
-		32,
-		"api",
-		logger,
-		reconfigurableSink,
-	)
-	if err != nil {
-		return nil, false, err
-	}
-
-	serviceMembers, err := cmd.constructMembers(positionalArguments, []string{
-		"drainer",
-		"pipelines",
-		"builds",
-		"collector",
-		"build-log-collector",
-		"static-worker",
-	},
-		32,
-		"backend",
-		logger,
-		reconfigurableSink,
-	)
-	if err != nil {
-		return nil, false, err
-	}
-
-	members = append(members, apiMembers...)
-	members = append(members, serviceMembers...)
-
-	return onReady(grouper.NewParallel(os.Interrupt, members), func() {
-		logData := lager.Data{
-			"http":  cmd.nonTLSBindAddr(),
-			"debug": cmd.debugBindAddr(),
-		}
-
-		if cmd.isTLSEnabled() {
-			logData["https"] = cmd.tlsBindAddr()
-		}
-
-		logger.Info("listening", logData)
-	}), false, nil
 }
 
 func (cmd *RunCommand) defaultURL() flag.URL {
@@ -908,13 +1000,11 @@ func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
 func (cmd *RunCommand) constructDBConn(
 	driverName string,
 	logger lager.Logger,
-	newKey *encryption.Key,
-	oldKey *encryption.Key,
 	maxConn int,
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.Conn, error) {
-	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey, connectionName, lockFactory)
+	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}

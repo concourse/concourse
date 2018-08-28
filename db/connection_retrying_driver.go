@@ -13,6 +13,11 @@ type connectionRetryingDriver struct {
 }
 
 func SetupConnectionRetryingDriver(delegateDriverName, sqlDataSource, newDriverName string) {
+	for _, driverName := range sql.Drivers() {
+		if driverName == newDriverName {
+			return
+		}
+	}
 	delegateDBConn, err := sql.Open(delegateDriverName, sqlDataSource)
 	if err == nil {
 		// ignoring any connection errors since we only need this to access the driver struct
