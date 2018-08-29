@@ -29,6 +29,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	}
 	atcTeam.Name = teamName
 	if !acc.IsAdmin() && !acc.IsAuthorized(teamName) {
+		hLog.Debug("not-allowed")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}

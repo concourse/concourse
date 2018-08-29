@@ -36,6 +36,8 @@ var _ = Describe("ATC Integration Test", func() {
 		dbProcess = ifrit.Invoke(postgresRunner)
 		postgresRunner.CreateTestDB()
 
+		// workaround to avoid panic due to registering http handlers multiple times
+		http.DefaultServeMux = new(http.ServeMux)
 		cmd = RunCommand()
 	})
 
@@ -75,6 +77,19 @@ var _ = Describe("ATC Integration Test", func() {
 			DoLogin(fmt.Sprintf("http://127.0.0.1:%v/sky/login", cmd.BindPort))
 		})
 	})
+
+	It("set default team and config auth for the team", func() {
+		client := DoLogin(fmt.Sprintf("http://127.0.0.1:%v/sky/login", cmd.BindPort))
+
+		resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%v/api/v1/teams", cmd.BindPort))
+		Expect(err).NotTo(HaveOccurred())
+
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(200))
+		Expect(string(bodyBytes)).To(ContainSubstring("main"))
+		Expect(string(bodyBytes)).To(ContainSubstring("local:test"))
+	})
 })
 
 func RunCommand() *atccmd.RunCommand {
@@ -85,12 +100,12 @@ func RunCommand() *atccmd.RunCommand {
 	cmd.Postgres.Database = "testdb"
 	cmd.Postgres.Port = 5433 + uint16(GinkgoParallelNode())
 	cmd.Postgres.SSLMode = "disable"
-	cmd.Auth.MainTeamFlags.AllowAllUsers = true
+	cmd.Auth.MainTeamFlags.LocalUsers = []string{"test"}
 	cmd.Auth.AuthFlags.LocalUsers = map[string]string{"test": "$2y$10$yh24anANlBzyCu3DFWW1ze5dgbFEf0UE5I/dMxOworxt2QVVmZfty"}
 	return &cmd
 }
 
-func DoLogin(loginURL string) {
+func DoLogin(loginURL string) http.Client {
 	jar, err := cookiejar.New(nil)
 	Expect(err).NotTo(HaveOccurred())
 	client := http.Client{
@@ -109,6 +124,8 @@ func DoLogin(loginURL string) {
 	Expect(err).NotTo(HaveOccurred())
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	Expect(string(bodyBytes)).ToNot(ContainSubstring("invalid username and password"))
 	Expect(resp.StatusCode).To(Equal(200))
+	Expect(string(bodyBytes)).ToNot(ContainSubstring("invalid username and password"))
+
+	return client
 }

@@ -405,6 +405,15 @@ func (cmd *RunCommand) constructAPIMembers(
 	}
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 
+	_, err = teamFactory.CreateDefaultTeamIfNotExists()
+	if err != nil {
+		return nil, err
+	}
+	err = cmd.configureAuthForDefaultTeam(teamFactory)
+	if err != nil {
+		return nil, err
+	}
+
 	httpClient, err := cmd.httpClient()
 	if err != nil {
 		return nil, err
