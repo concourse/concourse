@@ -56,8 +56,8 @@ type Pipeline interface {
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
 
 	VersionedResource(versionedResourceID int) (SavedVersionedResource, bool, error)
-	DisableVersionedResource(versionedResourceID int) error
-	EnableVersionedResource(versionedResourceID int) error
+	DisableResourceVersion(int, int) error
+	EnableResourceVersion(int, int) error
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
@@ -672,12 +672,12 @@ func (p *pipeline) VersionedResource(versionedResourceID int) (SavedVersionedRes
 	return svr, true, nil
 }
 
-func (p *pipeline) DisableVersionedResource(versionedResourceID int) error {
-	return p.toggleVersionedResource(versionedResourceID, false)
+func (p *pipeline) DisableResourceVersion(resourceID int, resourceConfigVersionID int) error {
+	return p.toggleResourceVersion(resourceID, resourceConfigVersionID, false)
 }
 
-func (p *pipeline) EnableVersionedResource(versionedResourceID int) error {
-	return p.toggleVersionedResource(versionedResourceID, true)
+func (p *pipeline) EnableResourceVersion(resourceID int, resourceConfigVersionID int) error {
+	return p.toggleResourceVersion(resourceID, resourceConfigVersionID, true)
 }
 
 func (p *pipeline) GetBuildsWithVersionAsInput(resourceConfigVersionID int) ([]Build, error) {
@@ -983,15 +983,17 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		ResourceIDs:      map[string]int{},
 	}
 
-	// XXX: Add functionality to only grab enabled resource config versions
 	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, b.job_id").
-		From("build_resource_config_versions_outputs o, builds b, resource_config_versions v, resources r").
-		Where(sq.Expr("v.id = o.resource_config_version_id")).
-		Where(sq.Expr("b.id = o.build_id")).
-		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
+		From("build_resource_config_versions_outputs o").
+		Join("builds b ON b.id = o.build_id").
+		Join("resource_config_versions v ON v.id = o.resource_config_version_id").
+		Join("resources r ON r.resource_config_id = v.resource_config_id").
+		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version = v.version").
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
+			"d.resource_id": nil,
+			"d.version":     nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -1013,14 +1015,16 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		db.BuildOutputs = append(db.BuildOutputs, output)
 	}
 
-	// XXX: Add functionality to only grab enabled resource config versions
 	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
-		From("build_resource_config_versions_inputs i, builds b, resource_config_versions v, resources r").
-		Where(sq.Expr("v.id = i.resource_config_version_id")).
-		Where(sq.Expr("b.id = i.build_id")).
-		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
+		From("build_resource_config_versions_inputs i").
+		Join("builds b ON b.id = i.build_id").
+		Join("resource_config_versions v ON v.id = i.resource_config_version_id").
+		Join("resources r ON r.resource_config_id = v.resource_config_id").
+		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version = v.version").
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
+			"d.resource_id": nil,
+			"d.version":     nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -1053,12 +1057,14 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		}
 	}
 
-	// XXX: Add functionality to only grab enabled resource config versions
 	rows, err = psql.Select("v.id, v.check_order, r.id").
-		From("resource_config_versions v, resources r").
-		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
+		From("resource_config_versions v").
+		Join("resources r ON r.resource_config_id = v.resource_config_id").
+		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version = v.version").
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
+			"d.resource_id": nil,
+			"d.version":     nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -1352,7 +1358,7 @@ func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, re
 	return err
 }
 
-func (p *pipeline) toggleVersionedResource(versionedResourceID int, enable bool) error {
+func (p *pipeline) toggleResourceVersion(resourceID int, rcvID int, enable bool) error {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return err
@@ -1360,16 +1366,26 @@ func (p *pipeline) toggleVersionedResource(versionedResourceID int, enable bool)
 
 	defer Rollback(tx)
 
-	rows, err := psql.Update("versioned_resources").
-		Set("enabled", enable).
-		Where(sq.Eq{"id": versionedResourceID}).
-		RunWith(tx).
-		Exec()
+	var results sql.Result
+	if enable {
+		results, err = tx.Exec(`
+			DELETE FROM resource_disabled_versions
+			WHERE resource_id = $1
+			AND version = (SELECT version FROM resource_config_versions rcv WHERE rcv.id = $2)
+			`, resourceID, rcvID)
+	} else {
+		results, err = tx.Exec(`
+			INSERT INTO resource_disabled_versions (resource_id, version)
+			SELECT $1, rcv.version
+			FROM resource_config_versions rcv
+			WHERE rcv.id = $2
+			`, resourceID, rcvID)
+	}
 	if err != nil {
 		return err
 	}
 
-	rowsAffected, err := rows.RowsAffected()
+	rowsAffected, err := results.RowsAffected()
 	if err != nil {
 		return err
 	}

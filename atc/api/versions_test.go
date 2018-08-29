@@ -262,6 +262,7 @@ var _ = Describe("Versions API", func() {
 
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/enable", func() {
 		var response *http.Response
+		var fakeResource *dbfakes.FakeResource
 
 		JustBeforeEach(func() {
 			var err error
@@ -271,8 +272,8 @@ var _ = Describe("Versions API", func() {
 
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
-
 		})
+
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(true)
@@ -283,27 +284,62 @@ var _ = Describe("Versions API", func() {
 					fakeaccess.IsAuthorizedReturns(true)
 				})
 
-				Context("when enabling the resource succeeds", func() {
+				It("tries to find the resource", func() {
+					resourceName := fakePipeline.ResourceArgsForCall(0)
+					Expect(resourceName).To(Equal("resource-name"))
+				})
+
+				Context("when finding the resource succeeds", func() {
 					BeforeEach(func() {
-						fakePipeline.EnableVersionedResourceReturns(nil)
+						fakeResource = new(dbfakes.FakeResource)
+						fakeResource.IDReturns(1)
+						fakePipeline.ResourceReturns(fakeResource, true, nil)
 					})
 
-					It("enabled the right versioned resource", func() {
-						Expect(fakePipeline.EnableVersionedResourceArgsForCall(0)).To(Equal(42))
+					Context("when enabling the resource succeeds", func() {
+						BeforeEach(func() {
+							fakePipeline.EnableResourceVersionReturns(nil)
+						})
+
+						It("enabled the right versioned resource", func() {
+							resourceID, resourceConfigVersionID := fakePipeline.EnableResourceVersionArgsForCall(0)
+							Expect(resourceID).To(Equal(1))
+							Expect(resourceConfigVersionID).To(Equal(42))
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
 					})
 
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Context("when enabling the resource fails", func() {
+						BeforeEach(func() {
+							fakePipeline.EnableResourceVersionReturns(errors.New("welp"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
 					})
 				})
 
-				Context("when enabling the resource fails", func() {
+				Context("when it fails to find the resource", func() {
 					BeforeEach(func() {
-						fakePipeline.EnableVersionedResourceReturns(errors.New("welp"))
+						fakePipeline.ResourceReturns(nil, false, errors.New("welp"))
 					})
 
-					It("returns 500", func() {
+					It("returns Internal Server Error", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the resource is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, nil)
+					})
+
+					It("returns not found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 			})
@@ -331,6 +367,7 @@ var _ = Describe("Versions API", func() {
 
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/disable", func() {
 		var response *http.Response
+		var fakeResource *dbfakes.FakeResource
 
 		JustBeforeEach(func() {
 			var err error
@@ -341,6 +378,7 @@ var _ = Describe("Versions API", func() {
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 		})
+
 		Context("when authenticated ", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(true)
@@ -351,27 +389,62 @@ var _ = Describe("Versions API", func() {
 					fakeaccess.IsAuthorizedReturns(true)
 				})
 
-				Context("when enabling the resource succeeds", func() {
+				It("tries to find the resource", func() {
+					resourceName := fakePipeline.ResourceArgsForCall(0)
+					Expect(resourceName).To(Equal("resource-name"))
+				})
+
+				Context("when finding the resource succeeds", func() {
 					BeforeEach(func() {
-						fakePipeline.DisableVersionedResourceReturns(nil)
+						fakeResource = new(dbfakes.FakeResource)
+						fakeResource.IDReturns(1)
+						fakePipeline.ResourceReturns(fakeResource, true, nil)
 					})
 
-					It("disabled the right versioned resource", func() {
-						Expect(fakePipeline.DisableVersionedResourceArgsForCall(0)).To(Equal(42))
+					Context("when disabling the resource succeeds", func() {
+						BeforeEach(func() {
+							fakePipeline.DisableResourceVersionReturns(nil)
+						})
+
+						It("disabled the right versioned resource", func() {
+							resourceID, resourceConfigVersionID := fakePipeline.DisableResourceVersionArgsForCall(0)
+							Expect(resourceID).To(Equal(1))
+							Expect(resourceConfigVersionID).To(Equal(42))
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
 					})
 
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Context("when enabling the resource fails", func() {
+						BeforeEach(func() {
+							fakePipeline.DisableResourceVersionReturns(errors.New("welp"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
 					})
 				})
 
-				Context("when enabling the resource fails", func() {
+				Context("when it fails to find the resource", func() {
 					BeforeEach(func() {
-						fakePipeline.DisableVersionedResourceReturns(errors.New("welp"))
+						fakePipeline.ResourceReturns(nil, false, errors.New("welp"))
 					})
 
-					It("returns 500", func() {
+					It("returns Internal Server Error", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the resource is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, nil)
+					})
+
+					It("returns not found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 			})

@@ -707,10 +707,7 @@ var _ = Describe("Job", func() {
 				actualBuildInputs, err := job.GetIndependentBuildInputs()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualBuildInputs[0].Name).To(Equal(buildInputs[0].Name))
-				Expect(actualBuildInputs[0].Version).To(Equal(buildInputs[0].Version))
-				Expect(actualBuildInputs[1].Name).To(Equal(buildInputs[1].Name))
-				Expect(actualBuildInputs[1].Version).To(Equal(buildInputs[1].Version))
+				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
 
 				By("updating the set of independent build inputs")
 				inputVersions2 := algorithm.InputMapping{
@@ -748,10 +745,7 @@ var _ = Describe("Job", func() {
 				actualBuildInputs2, err := job.GetIndependentBuildInputs()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualBuildInputs2[0].Name).To(Equal(buildInputs2[0].Name))
-				Expect(actualBuildInputs2[0].Version).To(Equal(buildInputs2[0].Version))
-				Expect(actualBuildInputs2[1].Name).To(Equal(buildInputs2[1].Name))
-				Expect(actualBuildInputs2[1].Version).To(Equal(buildInputs2[1].Version))
+				Expect(actualBuildInputs2).To(ConsistOf(buildInputs2))
 
 				By("updating independent build inputs to an empty set when the mapping is nil")
 				err = job.SaveIndependentInputMapping(nil)
@@ -814,10 +808,7 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(actualBuildInputs[0].Name).To(Equal(buildInputs[0].Name))
-				Expect(actualBuildInputs[0].Version).To(Equal(buildInputs[0].Version))
-				Expect(actualBuildInputs[1].Name).To(Equal(buildInputs[1].Name))
-				Expect(actualBuildInputs[1].Version).To(Equal(buildInputs[1].Version))
+				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
 
 				By("updating the set of next build inputs")
 				inputVersions2 := algorithm.InputMapping{
@@ -856,10 +847,7 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(actualBuildInputs2[0].Name).To(Equal(buildInputs2[0].Name))
-				Expect(actualBuildInputs2[0].Version).To(Equal(buildInputs2[0].Version))
-				Expect(actualBuildInputs2[1].Name).To(Equal(buildInputs2[1].Name))
-				Expect(actualBuildInputs2[1].Version).To(Equal(buildInputs2[1].Version))
+				Expect(actualBuildInputs2).To(ConsistOf(buildInputs2))
 
 				By("updating next build inputs to an empty set when the mapping is nil")
 				err = job.SaveNextInputMapping(nil)

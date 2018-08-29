@@ -16,6 +16,9 @@ BEGIN;
     "version" jsonb NOT NULL
   );
 
+  CREATE UNIQUE INDEX resource_disabled_versions_resource_id_version_uniq
+  ON resource_disabled_versions (resource_id, md5(version::text));
+
   INSERT INTO resource_disabled_versions (resource_id, version)
   SELECT vr.resource_id, vr.version::jsonb
   FROM versioned_resources vr
