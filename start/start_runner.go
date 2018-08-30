@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/flag"
@@ -18,22 +17,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 )
-
-type Config struct {
-	Name     string   `long:"name"  description:"The name to set for the worker during registration. If not specified, the hostname will be used."`
-	Tags     []string `long:"tag"   description:"A tag to set during registration. Can be specified multiple times."`
-	TeamName string   `long:"team"  description:"The name of the team that this worker will be assigned to."`
-
-	HTTPProxy  string `long:"http-proxy"  env:"http_proxy"                  description:"HTTP proxy endpoint to use for containers."`
-	HTTPSProxy string `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
-	NoProxy    string `long:"no-proxy"    env:"no_proxy"                    description:"Blacklist of addresses to skip the proxy when reaching."`
-
-	Ephemeral bool `long:"ephemeral" description:"If set, the worker will be immediately removed upon stalling."`
-
-	DebugBindPort uint16 `long:"bind-debug-port" default:"9099"    description:"Port on which to listen for beacon pprof server."`
-
-	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
-}
 
 type StartCommand struct {
 	WorkerConfig Config
@@ -72,22 +55,7 @@ func (cmd *StartCommand) Execute(args []string) error {
 		resourceTypes = append(resourceTypes, workerResourceType)
 	}
 
-	var atcWorker = atc.Worker{
-		GardenAddr:      cmd.GardenAddr,
-		BaggageclaimURL: cmd.BaggageclaimURL,
-		ResourceTypes:   resourceTypes,
-		Platform:        cmd.Platform,
-		Tags:            cmd.WorkerConfig.Tags,
-		Team:            cmd.WorkerConfig.TeamName,
-		Name:            cmd.WorkerConfig.Name,
-		StartTime:       time.Now().Unix(),
-		Version:         cmd.WorkerConfig.Version,
-		CertsPath:       cmd.CertsPath,
-		HTTPProxyURL:    cmd.WorkerConfig.HTTPProxy,
-		HTTPSProxyURL:   cmd.WorkerConfig.HTTPSProxy,
-		NoProxy:         cmd.WorkerConfig.NoProxy,
-		Ephemeral:       cmd.WorkerConfig.Ephemeral,
-	}
+	var atcWorker = cmd.WorkerConfig.Worker()
 
 	groupLogger, _ := cmd.Logger.Logger("worker")
 	groupMembers := grouper.Members{
