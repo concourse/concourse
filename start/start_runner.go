@@ -55,7 +55,12 @@ func (cmd *StartCommand) Execute(args []string) error {
 		resourceTypes = append(resourceTypes, workerResourceType)
 	}
 
-	var atcWorker = cmd.WorkerConfig.Worker()
+	atcWorker := cmd.WorkerConfig.Worker()
+	atcWorker.Platform = cmd.Platform
+	atcWorker.GardenAddr = cmd.GardenAddr
+	atcWorker.BaggageclaimURL = cmd.BaggageclaimURL
+	atcWorker.ResourceTypes = resourceTypes
+	atcWorker.CertsPath = cmd.CertsPath
 
 	groupLogger, _ := cmd.Logger.Logger("worker")
 	groupMembers := grouper.Members{
