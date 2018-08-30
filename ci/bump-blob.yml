@@ -18,6 +18,7 @@ params:
   BLOB_VERSION:
   BLOB_VERSION_FILE:
   BLOB_DESTINATION:
+  BOSH_PRIVATE_CONFIG:
 
 run:
   path: concourse/ci/scripts/bump-blob
