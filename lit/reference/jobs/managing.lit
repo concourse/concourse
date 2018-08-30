@@ -58,3 +58,29 @@
   This will resume scheduling of builds queued for the job.
 }
 
+\section{
+  \title{\code{fly clear-task-cache}}{fly-clear-task-cache}
+
+  If you've got a \reference{task-caches}{task cache} that you need to clear
+  out for whatever reason, this can be done like so:
+
+  \codeblock{bash}{{
+  $ fly -t example clear-task-cache --job my-pipeline/my-job --step my-step-name
+  }}
+
+  This will immediately invalidate the caches - they'll be garbage collected
+  asynchronously and subsequent builds will run with empty caches.
+
+  You can also clear out a particular path for the given step's cache, using
+  \code{--cache-path}:
+
+  \codeblock{bash}{{
+  $ fly -t example clear-task-cache \\
+      --job my-pipeline/my-job \\
+      --step my-step-name \\
+      --cache-path go/pkg
+  }}
+
+  If \code{--cache-path} is not specified, all caches for the given step will
+  be cleared.
+}

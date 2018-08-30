@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\release{2019-7-26}{4.0.0}{1.16.0}{
+\release{2019-7-30}{4.1.0}{1.16.3}{
   \note{fix}{
     Fixed an annoying issue affecting deployments with multiple
     \reference{web-node}s. We were configurign an in-memory store for the Dex
@@ -33,7 +33,7 @@
 
     Note that the need for this may soon go away if we follow through with
     \link{RFC #8}{https://github.com/concourse/rfcs/pull/8} which proposes
-    merging \reference{resource_types} into \reference{resources}.
+    merging \reference{resource-types} into \reference{resources}.
   }
 
   \note{fix}{
@@ -60,8 +60,8 @@
     Resources can now be pinned across the pipeline as part of the pipeline
     config by specifying \reference{resource-version} on the resource
     definition in the pipeline. This is analogous to setting
-    \reference{get-version} on every \reference{get-step} that references the
-    resource.
+    \reference{get-step-version} on every \reference{get-step} that references
+    the resource.
   }
 
   \note{feature}{
