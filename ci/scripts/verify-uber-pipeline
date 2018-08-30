@@ -20,6 +20,9 @@ fly -t local login -c "http://$WEB_IP:8080" -u $WEB_USERNAME -p $WEB_PASSWORD ||
   fly -t local login -c "http://$WEB_IP:8080" # -u $WEB_USERNAME -p $WEB_PASSWORD
 }
 
+# sync up with deployed version of fly
+fly -t local sync
+
 # wait for worker to be available
 until fly -t local workers | grep running; do
   echo "waiting for running worker..."
