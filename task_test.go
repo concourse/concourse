@@ -728,8 +728,8 @@ run: {path: a/file}
 
 		})
 
-		It("errors if params key in pipeline.yml is not defined in task.yml", func() {
-			_, warnings, err := TaskConfig{
+		It("emits a warning if params key in pipeline.yml is not defined in task.yml", func() {
+			config, warnings, err := TaskConfig{
 				RootfsURI: "some-image",
 				Params: map[string]string{
 					"FOO": "1",
@@ -744,6 +744,11 @@ run: {path: a/file}
 
 			Expect(warnings).To(HaveLen(1))
 			Expect(warnings[0]).To(ContainSubstring("BAZ was defined in pipeline but missing from task file"))
+			Expect(config.Params).To(Equal(map[string]string{
+				"FOO": "3",
+				"BAR": "2",
+				"BAZ": "4",
+			}))
 			Expect(err).To(BeNil())
 		})
 

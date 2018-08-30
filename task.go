@@ -107,11 +107,11 @@ func (config TaskConfig) Merge(other TaskConfig) (TaskConfig, []string, error) {
 	newParams := config.Params
 
 	for k, v := range other.Params {
-		if _, exists := newParams[k]; exists {
-			newParams[k] = v
-		} else {
+		if _, exists := newParams[k]; !exists {
 			warnings = append(warnings, fmt.Sprintf("%s was defined in pipeline but missing from task file", k))
 		}
+
+		newParams[k] = v
 	}
 
 	config.Params = newParams
