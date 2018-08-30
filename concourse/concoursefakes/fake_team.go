@@ -230,12 +230,13 @@ type FakeTeam struct {
 		result4 bool
 		result5 error
 	}
-	CreateOrUpdatePipelineConfigStub        func(pipelineName string, configVersion string, passedConfig []byte) (bool, bool, []concourse.ConfigWarning, error)
+	CreateOrUpdatePipelineConfigStub        func(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []concourse.ConfigWarning, error)
 	createOrUpdatePipelineConfigMutex       sync.RWMutex
 	createOrUpdatePipelineConfigArgsForCall []struct {
-		pipelineName  string
-		configVersion string
-		passedConfig  []byte
+		pipelineName     string
+		configVersion    string
+		passedConfig     []byte
+		checkCredentials bool
 	}
 	createOrUpdatePipelineConfigReturns struct {
 		result1 bool
@@ -1435,7 +1436,7 @@ func (fake *FakeTeam) PipelineConfigReturnsOnCall(i int, result1 atc.Config, res
 	}{result1, result2, result3, result4, result5}
 }
 
-func (fake *FakeTeam) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte) (bool, bool, []concourse.ConfigWarning, error) {
+func (fake *FakeTeam) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []concourse.ConfigWarning, error) {
 	var passedConfigCopy []byte
 	if passedConfig != nil {
 		passedConfigCopy = make([]byte, len(passedConfig))
@@ -1444,14 +1445,15 @@ func (fake *FakeTeam) CreateOrUpdatePipelineConfig(pipelineName string, configVe
 	fake.createOrUpdatePipelineConfigMutex.Lock()
 	ret, specificReturn := fake.createOrUpdatePipelineConfigReturnsOnCall[len(fake.createOrUpdatePipelineConfigArgsForCall)]
 	fake.createOrUpdatePipelineConfigArgsForCall = append(fake.createOrUpdatePipelineConfigArgsForCall, struct {
-		pipelineName  string
-		configVersion string
-		passedConfig  []byte
-	}{pipelineName, configVersion, passedConfigCopy})
-	fake.recordInvocation("CreateOrUpdatePipelineConfig", []interface{}{pipelineName, configVersion, passedConfigCopy})
+		pipelineName     string
+		configVersion    string
+		passedConfig     []byte
+		checkCredentials bool
+	}{pipelineName, configVersion, passedConfigCopy, checkCredentials})
+	fake.recordInvocation("CreateOrUpdatePipelineConfig", []interface{}{pipelineName, configVersion, passedConfigCopy, checkCredentials})
 	fake.createOrUpdatePipelineConfigMutex.Unlock()
 	if fake.CreateOrUpdatePipelineConfigStub != nil {
-		return fake.CreateOrUpdatePipelineConfigStub(pipelineName, configVersion, passedConfig)
+		return fake.CreateOrUpdatePipelineConfigStub(pipelineName, configVersion, passedConfig, checkCredentials)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
@@ -1465,10 +1467,10 @@ func (fake *FakeTeam) CreateOrUpdatePipelineConfigCallCount() int {
 	return len(fake.createOrUpdatePipelineConfigArgsForCall)
 }
 
-func (fake *FakeTeam) CreateOrUpdatePipelineConfigArgsForCall(i int) (string, string, []byte) {
+func (fake *FakeTeam) CreateOrUpdatePipelineConfigArgsForCall(i int) (string, string, []byte, bool) {
 	fake.createOrUpdatePipelineConfigMutex.RLock()
 	defer fake.createOrUpdatePipelineConfigMutex.RUnlock()
-	return fake.createOrUpdatePipelineConfigArgsForCall[i].pipelineName, fake.createOrUpdatePipelineConfigArgsForCall[i].configVersion, fake.createOrUpdatePipelineConfigArgsForCall[i].passedConfig
+	return fake.createOrUpdatePipelineConfigArgsForCall[i].pipelineName, fake.createOrUpdatePipelineConfigArgsForCall[i].configVersion, fake.createOrUpdatePipelineConfigArgsForCall[i].passedConfig, fake.createOrUpdatePipelineConfigArgsForCall[i].checkCredentials
 }
 
 func (fake *FakeTeam) CreateOrUpdatePipelineConfigReturns(result1 bool, result2 bool, result3 []concourse.ConfigWarning, result4 error) {
