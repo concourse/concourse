@@ -82,9 +82,16 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 	return configs
 }
 
-var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, r.version, r.nonce, r.check_error, c.check_error").
+var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rcv.version, r.nonce, r.check_error, c.check_error").
 	From("resource_types r").
 	LeftJoin("resource_configs c ON r.resource_config_id = c.id").
+	LeftJoin(`LATERAL (
+		SELECT rcv.*
+		FROM resource_config_versions rcv
+		WHERE rcv.resource_config_id = c.id
+		ORDER BY rcv.check_order DESC
+		LIMIT 1
+	) AS rcv ON true`).
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -175,6 +176,47 @@ var _ = Describe("ResourceType", func() {
 
 				Expect(returnedResourceType.CheckError()).To(BeNil())
 			})
+		})
+	})
+
+	Describe("Resource type version", func() {
+		var resourceType db.ResourceType
+
+		BeforeEach(func() {
+			var err error
+			resourceType, _, err = pipeline.ResourceType("some-type")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resourceType.Version()).To(BeNil())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "registry-image",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceTypeConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceType.SetResourceConfig(resourceTypeConfig.ID())
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceTypeConfig.SaveVersions([]atc.Version{
+				atc.Version{"version": "1"},
+				atc.Version{"version": "2"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			reloaded, err := resourceType.Reload()
+			Expect(reloaded).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns the version", func() {
+			Expect(resourceType.Version()).To(Equal(atc.Version{"version": "2"}))
 		})
 	})
 })

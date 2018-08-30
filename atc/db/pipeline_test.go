@@ -103,6 +103,18 @@ var _ = Describe("Pipeline", func() {
 					Source: atc.Source{"some": "other-source"},
 				},
 			},
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name:   "some-resource-type",
+					Type:   "base-type",
+					Source: atc.Source{"some": "type-soure"},
+				},
+				{
+					Name:   "some-other-resource-type",
+					Type:   "base-type",
+					Source: atc.Source{"some": "other-type-soure"},
+				},
+			},
 		}
 		var created bool
 		pipeline, created, err = team.SavePipeline("fake-pipeline", pipelineConfig, db.ConfigVersion(0), db.PipelineUnpaused)
@@ -2235,6 +2247,71 @@ var _ = Describe("Pipeline", func() {
 			builds, _, err := pipeline.Builds(db.Page{Limit: 10})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builds).To(ConsistOf(expectedBuilds))
+		})
+	})
+
+	Describe("Resources", func() {
+		var resourceTypes db.ResourceTypes
+
+		BeforeEach(func() {
+			var err error
+			resourceType, _, err := pipeline.ResourceType("some-resource-type")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resourceType.Version()).To(BeNil())
+
+			otherResourceType, _, err := pipeline.ResourceType("some-other-resource-type")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resourceType.Version()).To(BeNil())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "base-type",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceTypeConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "base-type", atc.Source{"some": "type-source"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceType.SetResourceConfig(resourceTypeConfig.ID())
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceTypeConfig.SaveVersions([]atc.Version{
+				atc.Version{"version": "1"},
+				atc.Version{"version": "2"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			otherResourceTypeConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "base-type", atc.Source{"some": "other-type-source"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = otherResourceType.SetResourceConfig(otherResourceTypeConfig.ID())
+			Expect(err).ToNot(HaveOccurred())
+
+			err = otherResourceTypeConfig.SaveVersions([]atc.Version{
+				atc.Version{"version": "3"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = otherResourceTypeConfig.SaveVersions([]atc.Version{
+				atc.Version{"version": "3"},
+				atc.Version{"version": "5"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			resourceTypes, err = pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns the version", func() {
+			Expect(resourceTypes[0].Version()).To(Equal(atc.Version{"version": "2"}))
+			Expect(resourceTypes[1].Version()).To(Equal(atc.Version{"version": "5"}))
 		})
 	})
 })
