@@ -725,7 +725,6 @@ run: {path: a/file}
 						"BAR": "2",
 					},
 				}))
-
 		})
 
 		It("emits a warning if params key in pipeline.yml is not defined in task.yml", func() {
@@ -750,6 +749,41 @@ run: {path: a/file}
 				"BAZ": "4",
 			}))
 			Expect(err).To(BeNil())
+		})
+
+		It("merges into nil params without panicking", func() {
+			merged, warnings, err := TaskConfig{
+				Params: map[string]string{
+					"FOO": "3",
+				},
+			}.Merge(TaskConfig{
+				RootfsURI: "some-image",
+			})
+			Expect(err).To(BeNil())
+			Expect(warnings).To(BeEmpty())
+			Expect(merged).To(Equal(TaskConfig{
+				RootfsURI: "some-image",
+				Params: map[string]string{
+					"FOO": "3",
+				},
+			}))
+
+			merged, warnings, err = TaskConfig{
+				RootfsURI: "some-image",
+			}.Merge(TaskConfig{
+				Params: map[string]string{
+					"FOO": "3",
+				},
+			})
+			Expect(err).To(BeNil())
+			Expect(merged).To(Equal(TaskConfig{
+				RootfsURI: "some-image",
+				Params: map[string]string{
+					"FOO": "3",
+				},
+			}))
+			Expect(warnings).To(HaveLen(1))
+			Expect(warnings[0]).To(ContainSubstring("FOO was defined in pipeline but missing from task file"))
 		})
 
 		It("overrides the platform", func() {

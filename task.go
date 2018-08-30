@@ -104,17 +104,24 @@ func (config TaskConfig) Merge(other TaskConfig) (TaskConfig, []string, error) {
 	}
 
 	var warnings []string
-	newParams := config.Params
+
+	newParams := map[string]string{}
+
+	for k, v := range config.Params {
+		newParams[k] = v
+	}
 
 	for k, v := range other.Params {
-		if _, exists := newParams[k]; !exists {
+		if _, exists := config.Params[k]; !exists {
 			warnings = append(warnings, fmt.Sprintf("%s was defined in pipeline but missing from task file", k))
 		}
 
 		newParams[k] = v
 	}
 
-	config.Params = newParams
+	if len(newParams) > 0 {
+		config.Params = newParams
+	}
 
 	if len(other.Inputs) != 0 {
 		config.Inputs = other.Inputs
