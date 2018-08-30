@@ -1,11 +1,39 @@
 \use-plugin{concourse-docs}
 
 \release{2019-7-26}{4.0.0}{1.16.0}{
+  \note{fix}{
+    Fixed an annoying issue affecting deployments with multiple
+    \reference{web-node}s. We were configurign an in-memory store for the Dex
+    auth flow, meaning your login session would only work on one ATC at a time,
+    and could fail partway through the redirect dance.
+
+    We now store this state in the same Postgres database that you're already
+    configuring today, so everything should "just work" from here on.
+  }
+
   \note{feature}{
     Task caches can now be cleared via \reference{fly-clear-task-cache}, thanks
     to a few PRs by \ghuser{edtan}! This is handy when something has gone
     terribly wrong with your cache and you need to reset everything. It
     happens.
+  }
+
+  \note{breaking}{
+    We've removed the \resource{bosh-deployment} from our core set of
+    resources, as it has been deprecated for over a year. Use the
+    \link{CloudFoundry BOSH deployment
+    resource}{https://github.com/cloudfoundry/bosh-deployment-resource}
+    instead! It's much better.
+  }
+
+  \note{feature}{
+    You can now force an immediate check of a resource type via
+    \reference{fly-check-resource-type}. This should help shorten feedback
+    loops when testing your own resources types.
+
+    Note that the need for this may soon go away if we follow through with
+    \link{RFC #8}{https://github.com/concourse/rfcs/pull/8} which proposes
+    merging \reference{resource_types} into \reference{resources}.
   }
 
   \note{fix}{
@@ -234,5 +262,11 @@
     The \resource{cf} now configures env under each application in the
     manifest, rather than at the top level (which is deprecated). Thanks for
     the PR, \ghuser{jmcarp}!
+  }
+
+  \note{fix}{
+    Clarified the help-text for local user configuration to mention that the
+    password can be in plaintext, and if \code{bcrypt}ed it must have a minimum
+    cost of 10.
   }
 }
