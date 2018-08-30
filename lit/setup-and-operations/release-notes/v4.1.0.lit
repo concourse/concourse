@@ -3,7 +3,7 @@
 \release{2019-8-30}{4.1.0}{1.16.3}{
   \note{fix}{
     Fixed an annoying issue affecting deployments with multiple
-    \reference{web-node}s. We were configurign an in-memory store for the Dex
+    \reference{web-node}s. We were configuring an in-memory store for the Dex
     auth flow, meaning your login session would only work on one ATC at a time,
     and could fail partway through the redirect dance.
 
