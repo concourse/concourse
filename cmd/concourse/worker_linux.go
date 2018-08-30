@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"time"
 
 	"code.cloudfoundry.org/guardian/guardiancmd"
 	"code.cloudfoundry.org/lager"
@@ -71,17 +70,9 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 
 	cmd.Garden.Network.AllowHostAccess = true
 
-	worker := atc.Worker{
-		Platform:  "linux",
-		Tags:      cmd.Worker.Tags,
-		Team:      cmd.Worker.TeamName,
-		CertsPath: &cmd.Certs.Dir,
-
-		HTTPProxyURL:  cmd.Worker.HTTPProxy,
-		HTTPSProxyURL: cmd.Worker.HTTPSProxy,
-		NoProxy:       cmd.Worker.NoProxy,
-		StartTime:     time.Now().Unix(),
-	}
+	worker := cmd.Worker.Worker()
+	worker.Platform = "linux"
+	worker.CertsPath = &cmd.Certs.Dir
 
 	if hasAssets {
 		cmd.Garden.Runtime.Plugin = cmd.assetPath("bin", "runc")

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
@@ -33,16 +32,8 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (a
 		logger,
 	)
 
-	worker := atc.Worker{
-		Platform: platform,
-		Tags:     cmd.Worker.Tags,
-		Team:     cmd.Worker.TeamName,
-
-		HTTPProxyURL:  cmd.Worker.HTTPProxy,
-		HTTPSProxyURL: cmd.Worker.HTTPSProxy,
-		NoProxy:       cmd.Worker.NoProxy,
-		StartTime:     time.Now().Unix(),
-	}
+	worker := cmd.Worker.Worker()
+	worker.Platform = platform
 
 	worker.Name, err = cmd.workerName()
 	if err != nil {
