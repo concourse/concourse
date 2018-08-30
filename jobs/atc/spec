@@ -637,8 +637,9 @@ properties:
     description: |
       Vault server URL to use for parameterizing credentials.
   vault.cache:
-      description: |
-        Enable Vault cache for secrets lease duration in memory.
+    description: |
+      Enable Vault cache for secrets lease duration in memory.
+    default: false
   vault.path_prefix:
     description: |
       Path under which to namespace team/pipeline credentials.
