@@ -768,3 +768,21 @@ properties:
       Default limit for memory used per task. This can be overridden by specifying
       a different limit in the task yaml.
     example: 200mb
+
+  syslog_hostname:
+    description: |
+      Client hostname with which the build logs will be sent to the syslog server.
+    example: atc-syslog-drainer
+    default:  atc-syslog-drainer
+  syslog_address:
+    description: |
+      Remote syslog server address with port.
+    example: 0.0.0.0:514
+  syslog_transport:
+    description: Transport protocol for syslog messages (Currently supporting tcp, udp & tls).
+    example: tcp
+  syslog_drain_interval:
+    description: |
+      Interval over which checking is done for new build logs to send to syslog server (duration measurement units are s/m/h)
+    example: 30s
+    default: 30s

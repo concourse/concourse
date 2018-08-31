@@ -144,6 +144,8 @@ files:
   - github.com/concourse/atc/worker/image/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/worker/transport/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/wrappa/*.{go,s,c,h} # gosub
+  - github.com/concourse/atc/syslog/*.{go,s,c,h} # gosub
+  - github.com/papertrail/remote_syslog2/syslog/*.{go,s,c,h} # gosub
   - github.com/concourse/baggageclaim/*.{go,s,c,h} # gosub
   - github.com/concourse/baggageclaim/api/*.{go,s,c,h} # gosub
   - github.com/concourse/baggageclaim/client/*.{go,s,c,h} # gosub
