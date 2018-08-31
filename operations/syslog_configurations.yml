@@ -1,0 +1,35 @@
+- type: replace
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog_address?
+  value: ((syslog_address))
+
+- type: replace
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog_hostname?
+  value: ((syslog_hostname))
+
+- type: replace
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog_transport?
+  value: ((syslog_transport))
+
+- type: replace
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog_drain_interval?
+  value: ((syslog_drain_interval))
+
+- type: replace
+  path: /releases/-
+  value:
+    name: syslog
+    version: "11.3.2"
+    url: "https://bosh.io/d/github.com/cloudfoundry/syslog-release?v=11.3.2"
+    sha1: "64cf40d44746b50edffa78cb0e0dd6f072fee695"
+
+- type: replace
+  path: /instance_groups/name=concourse/jobs/name=syslog_storer?
+  value:
+    name: syslog_storer
+    release: syslog
+    properties:
+      syslog:
+        port: 8081
+        transport: tcp
+
+
