@@ -329,6 +329,9 @@ case $1 in
       <% end %> \
       <% if_p("vault.url") do |url| %> \
       --vault-url <%= esc(url) %> \
+      <% if p("vault.cache") %> \
+      --vault-cache \
+      <% end %> \
       <% if_p("vault.tls.ca_cert") do |ca_cert| %> \
       --vault-ca-cert /var/vcap/jobs/atc/config/vault_ca_cert \
       <% end %> \
