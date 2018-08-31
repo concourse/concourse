@@ -89,6 +89,7 @@ following attributes:
 \split-sections
 \table-of-contents
 
+\include-section{./resource-types/managing.lit}
 \include-section{./resource-types/included-resources.lit}
 \include-section{./resource-types/community-resources.lit}
 \include-section{./resource-types/implementing.lit}

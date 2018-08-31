@@ -41,6 +41,12 @@ Each configured resource consists of the following attributes:
   organization}{https://github.com/concourse?query=-resource}.
 }{resource-source}
 
+\define-attribute{version: object}{
+  \italic{Optional.} A version to pin the resource to across the pipeline. This
+  has the same effect as setting \reference{get-step-version} on every
+  \reference{get-step} referencing the resource.
+}{resource-version}
+
 \define-attribute{check_every: string}{
   \italic{Optional. Default \code{1m}.} The interval on which to check for new
   versions of the resource. Acceptable interval options are defined by the
