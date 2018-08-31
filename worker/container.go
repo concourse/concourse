@@ -2,7 +2,6 @@ package worker
 
 import (
 	"errors"
-	"sync"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -20,10 +19,7 @@ type gardenWorkerContainer struct {
 
 	volumeMounts []VolumeMount
 
-	user string
-
-	releaseOnce sync.Once
-
+	user       string
 	workerName string
 }
 

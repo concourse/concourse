@@ -4,17 +4,9 @@ import (
 	"io"
 	"strings"
 
-	"time"
-
 	"code.cloudfoundry.org/garden"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 )
-
-//go:generate counterfeiter . Sleeper
-
-type Sleeper interface {
-	Sleep(time.Duration)
-}
 
 type RetryableConnection struct {
 	gconn.Connection

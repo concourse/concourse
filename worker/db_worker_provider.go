@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
@@ -16,8 +15,6 @@ import (
 
 	"github.com/concourse/atc/db"
 )
-
-var ErrDesiredWorkerNotRunning = errors.New("desired garden worker is not known to be running")
 
 type dbWorkerProvider struct {
 	lockFactory                       lock.LockFactory

@@ -65,8 +65,6 @@ type VolumeClient interface {
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
 
-var ErrVolumeExpiredImmediately = errors.New("volume expired immediately after saving")
-
 type ErrCreatedVolumeNotFound struct {
 	Handle     string
 	WorkerName string
@@ -104,8 +102,8 @@ func NewVolumeClient(
 		dbVolumeRepository:              dbVolumeRepository,
 		dbWorkerBaseResourceTypeFactory: dbWorkerBaseResourceTypeFactory,
 		dbWorkerTaskCacheFactory:        dbWorkerTaskCacheFactory,
-		clock:    clock,
-		dbWorker: dbWorker,
+		clock:                           clock,
+		dbWorker:                        dbWorker,
 	}
 }
 

@@ -2,7 +2,6 @@ package gc
 
 import (
 	"context"
-	"errors"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -10,8 +9,6 @@ import (
 	"github.com/concourse/atc/metric"
 	multierror "github.com/hashicorp/go-multierror"
 )
-
-var volumeCollectorFailedErr = errors.New("volume collector failed")
 
 type volumeCollector struct {
 	volumeRepository db.VolumeRepository

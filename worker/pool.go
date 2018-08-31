@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"path/filepath"
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/creds"
@@ -41,8 +39,7 @@ type WorkerProvider interface {
 }
 
 var (
-	ErrNoWorkers     = errors.New("no workers")
-	ErrMissingWorker = errors.New("worker for container is missing")
+	ErrNoWorkers = errors.New("no workers")
 )
 
 type NoCompatibleWorkersError struct {
@@ -192,12 +189,4 @@ func (*pool) FindResourceTypeByPath(string) (atc.WorkerResourceType, bool) {
 
 func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 	return nil, false, errors.New("LookupVolume not implemented for pool")
-}
-
-func (*pool) GardenClient() garden.Client {
-	panic("GardenClient not implemented for pool")
-}
-
-func resourcesDir(suffix string) string {
-	return filepath.Join("/tmp", "build", suffix)
 }

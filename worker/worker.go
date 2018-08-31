@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -21,26 +20,10 @@ import (
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 var ErrIncompatiblePlatform = errors.New("incompatible platform")
 var ErrMismatchedTags = errors.New("mismatched tags")
-var ErrNoVolumeManager = errors.New("worker does not support volume management")
 var ErrTeamMismatch = errors.New("mismatched team")
 var ErrNotImplemented = errors.New("Not implemented")
 
-type MalformedMetadataError struct {
-	UnmarshalError error
-}
-
-func (err MalformedMetadataError) Error() string {
-	return fmt.Sprintf("malformed image metadata: %s", err.UnmarshalError)
-}
-
-const certsVolumeName = "certificates"
-
-const ephemeralPropertyName = "concourse:ephemeral"
-const volumePropertyName = "concourse:volumes"
-const volumeMountsPropertyName = "concourse:volume-mounts"
 const userPropertyName = "user"
-const RawRootFSScheme = "raw"
-const ImageMetadataFile = "metadata.json"
 
 //go:generate counterfeiter . Worker
 
@@ -62,7 +45,6 @@ type Worker interface {
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
 
 	CertsVolume(lager.Logger) (volume Volume, found bool, err error)
-
 	GardenClient() garden.Client
 }
 
@@ -265,10 +247,6 @@ func (worker *gardenWorker) RunningWorkers(logger lager.Logger) ([]Worker, error
 	return nil, ErrNotImplemented
 }
 
-func (worker *gardenWorker) GetWorker(logger lager.Logger, name string) (Worker, error) {
-	return nil, ErrNotImplemented
-}
-
 func (worker *gardenWorker) Description() string {
 	messages := []string{
 		fmt.Sprintf("platform '%s'", worker.platform),
@@ -322,12 +300,4 @@ insert_coin:
 	}
 
 	return true
-}
-
-type artifactDestination struct {
-	destination Volume
-}
-
-func (wad *artifactDestination) StreamIn(path string, tarStream io.Reader) error {
-	return wad.destination.StreamIn(path, tarStream)
 }

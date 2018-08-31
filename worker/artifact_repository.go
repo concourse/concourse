@@ -108,24 +108,6 @@ func (repo *ArtifactRepository) VolumeOn(worker Worker) (Volume, bool, error) {
 	return nil, false, nil
 }
 
-// ScopedTo returns a new ArtifactRepository restricted to the given set of
-// ArtifactNames. This is used by the Put step to stream in the sources that did
-// not have a volume available on its destination.
-func (repo *ArtifactRepository) ScopedTo(names ...ArtifactName) (*ArtifactRepository, error) {
-	newRepo := NewArtifactRepository()
-
-	for _, name := range names {
-		source, found := repo.SourceFor(name)
-		if !found {
-			return nil, fmt.Errorf("source does not exist in repository: %s", name)
-		}
-
-		newRepo.RegisterSource(name, source)
-	}
-
-	return newRepo, nil
-}
-
 // AsMap extracts the current contents of the ArtifactRepository into a new map
 // and returns it. Changes to the returned map or the ArtifactRepository will not
 // affect each other.

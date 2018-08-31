@@ -64,18 +64,6 @@ func (spec VolumeSpec) baggageclaimVolumeSpec() baggageclaim.VolumeSpec {
 	}
 }
 
-type HostRootFSStrategy struct {
-	Path       string
-	WorkerName string
-	Version    *string
-}
-
-func (strategy HostRootFSStrategy) baggageclaimStrategy() baggageclaim.Strategy {
-	return baggageclaim.ImportStrategy{
-		Path: strategy.Path,
-	}
-}
-
 //go:generate counterfeiter . Container
 
 type Container interface {

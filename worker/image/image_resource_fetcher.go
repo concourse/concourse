@@ -67,7 +67,7 @@ func NewImageResourceFetcherFactory(
 		resourceFetcherFactory:  resourceFetcherFactory,
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
-		clock: clock,
+		clock:                   clock,
 	}
 }
 
@@ -85,7 +85,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 		resourceFactory:         resourceFactory,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
-		clock: f.clock,
+		clock:                   f.clock,
 
 		worker:                worker,
 		imageResource:         imageResource,
@@ -109,7 +109,6 @@ type imageResourceFetcher struct {
 	teamID                int
 	customTypes           creds.VersionedResourceTypes
 	imageFetchingDelegate worker.ImageFetchingDelegate
-	variables             creds.Variables
 }
 
 func (i *imageResourceFetcher) Fetch(
@@ -319,13 +318,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 	}
 
 	return versions[0], nil
-}
-
-type leaseID struct {
-	Type       resource.ResourceType `json:"type"`
-	Version    atc.Version           `json:"version"`
-	Source     atc.Source            `json:"source"`
-	WorkerName string                `json:"worker_name"`
 }
 
 type readCloser struct {
