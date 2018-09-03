@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\release{2019-8-30}{4.1.0}{1.16.3}{
+\release{2018-8-30}{4.1.0}{1.16.3}{
   \note{fix}{
     Fixed an annoying issue affecting deployments with multiple
     \reference{web-node}s. We were configuring an in-memory store for the Dex
