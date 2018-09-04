@@ -140,12 +140,11 @@ files:
   - github.com/concourse/atc/scheduler/inputmapper/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/scheduler/inputmapper/inputconfig/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/scheduler/maxinflight/*.{go,s,c,h} # gosub
+  - github.com/concourse/atc/syslog/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/worker/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/worker/image/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/worker/transport/*.{go,s,c,h} # gosub
   - github.com/concourse/atc/wrappa/*.{go,s,c,h} # gosub
-  - github.com/concourse/atc/syslog/*.{go,s,c,h} # gosub
-  - github.com/papertrail/remote_syslog2/syslog/*.{go,s,c,h} # gosub
   - github.com/concourse/baggageclaim/*.{go,s,c,h} # gosub
   - github.com/concourse/baggageclaim/api/*.{go,s,c,h} # gosub
   - github.com/concourse/baggageclaim/client/*.{go,s,c,h} # gosub
@@ -193,7 +192,6 @@ files:
   - github.com/emicklei/go-restful/*.{go,s,c,h} # gosub
   - github.com/emicklei/go-restful/log/*.{go,s,c,h} # gosub
   - github.com/felixge/httpsnoop/*.{go,s,c,h} # gosub
-  - github.com/felixge/tcpkeepalive/*.{go,s,c,h} # gosub
   - github.com/go-openapi/jsonpointer/*.{go,s,c,h} # gosub
   - github.com/go-openapi/jsonreference/*.{go,s,c,h} # gosub
   - github.com/go-openapi/spec/*.{go,s,c,h} # gosub
@@ -258,6 +256,7 @@ files:
   - github.com/matttproud/golang_protobuf_extensions/pbutil/*.{go,s,c,h} # gosub
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub
+  - github.com/papertrail/remote_syslog2/syslog/*.{go,s,c,h} # gosub
   - github.com/pquerna/cachecontrol/*.{go,s,c,h} # gosub
   - github.com/pquerna/cachecontrol/cacheobject/*.{go,s,c,h} # gosub
   - github.com/prometheus/client_golang/prometheus/*.{go,s,c,h} # gosub
