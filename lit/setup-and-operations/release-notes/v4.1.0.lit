@@ -294,4 +294,10 @@
     deployed workers that are configured to forward through the \reference{tsa}
     (they would try to reach the instance IP rather than \code{127.0.0.1}).
   }
+
+  \note{fix}{
+    Fixed in-place upgrades of binary-deployed workers. Previously registration
+    would fail with a confusing message saying something like "base resource
+    type already exists."
+  }
 }
