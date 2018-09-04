@@ -35,13 +35,13 @@ type verifier struct {
 	IssuerURL string
 }
 
-func (self *verifier) Verify(ctx context.Context, token *oauth2.Token) (*VerifiedClaims, error) {
+func (v *verifier) Verify(ctx context.Context, token *oauth2.Token) (*VerifiedClaims, error) {
 
-	if self.ClientID == "" {
+	if v.ClientID == "" {
 		return nil, errors.New("Missing client id")
 	}
 
-	if self.IssuerURL == "" {
+	if v.IssuerURL == "" {
 		return nil, errors.New("Missing issuer")
 	}
 
@@ -54,13 +54,13 @@ func (self *verifier) Verify(ctx context.Context, token *oauth2.Token) (*Verifie
 		return nil, errors.New("Missing id_token")
 	}
 
-	provider, err := oidc.NewProvider(ctx, self.IssuerURL)
+	provider, err := oidc.NewProvider(ctx, v.IssuerURL)
 	if err != nil {
 		return nil, err
 	}
 
 	providerVerifier := provider.Verifier(&oidc.Config{
-		ClientID: self.ClientID,
+		ClientID: v.ClientID,
 	})
 
 	verifiedToken, err := providerVerifier.Verify(ctx, idToken)

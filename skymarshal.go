@@ -22,7 +22,8 @@ type Config struct {
 	Logger      lager.Logger
 	TeamFactory db.TeamFactory
 	Flags       skycmd.AuthFlags
-	ServerURL   string
+	ExternalURL string
+	InternalURL string
 	HttpClient  *http.Client
 	Postgres    flag.PostgresConfig
 }
@@ -42,7 +43,12 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	serverURL, err := url.Parse(config.ServerURL)
+	externalURL, err := url.Parse(config.ExternalURL)
+	if err != nil {
+		return nil, err
+	}
+
+	internalURL, err := url.Parse(config.InternalURL)
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +57,11 @@ func NewServer(config *Config) (*Server, error) {
 	clientSecretBytes := sha256.Sum256(signingKey.D.Bytes())
 	clientSecret := fmt.Sprintf("%x", clientSecretBytes[:])
 
-	issuerUrl := serverURL.String() + "/sky/issuer"
-	redirectUrl := serverURL.String() + "/sky/callback"
+	externalIssuerURL := externalURL.String() + "/sky/issuer"
+	internalIssuerURL := internalURL.String() + "/sky/issuer"
+	redirectURL := externalURL.String() + "/sky/callback"
 
-	tokenVerifier := token.NewVerifier(clientId, issuerUrl)
+	tokenVerifier := token.NewVerifier(clientId, internalIssuerURL)
 	tokenIssuer := token.NewIssuer(config.TeamFactory, token.NewGenerator(signingKey), config.Flags.Expiration)
 
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
@@ -62,10 +69,10 @@ func NewServer(config *Config) (*Server, error) {
 		TokenVerifier:   tokenVerifier,
 		TokenIssuer:     tokenIssuer,
 		SigningKey:      signingKey,
-		DexIssuerURL:    issuerUrl,
+		DexIssuerURL:    externalIssuerURL,
 		DexClientID:     clientId,
 		DexClientSecret: clientSecret,
-		DexRedirectURL:  redirectUrl,
+		DexRedirectURL:  redirectURL,
 		DexHttpClient:   config.HttpClient,
 		SecureCookies:   config.Flags.SecureCookies,
 	})
@@ -76,10 +83,10 @@ func NewServer(config *Config) (*Server, error) {
 	dexServer, err := dexserver.NewDexServer(&dexserver.DexConfig{
 		Logger:       config.Logger.Session("dex"),
 		Flags:        config.Flags,
-		IssuerURL:    issuerUrl,
+		IssuerURL:    internalIssuerURL,
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
-		RedirectURL:  redirectUrl,
+		RedirectURL:  redirectURL,
 		Postgres:     config.Postgres,
 	})
 	if err != nil {
