@@ -430,7 +430,8 @@ func (cmd *RunCommand) constructAPIMembers(
 		Logger:      logger,
 		TeamFactory: teamFactory,
 		Flags:       cmd.Auth.AuthFlags,
-		ServerURL:   cmd.defaultURL().String(),
+		InternalURL: cmd.defaultURL().String(),
+		ExternalURL: cmd.ExternalURL.String(),
 		HttpClient:  httpClient,
 		Postgres:    cmd.Postgres,
 	})
