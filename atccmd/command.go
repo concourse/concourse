@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
@@ -422,7 +423,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		Logger:      logger,
 		TeamFactory: teamFactory,
 		Flags:       cmd.Auth.AuthFlags,
-		ServerURL:   cmd.ExternalURL.String(),
+		ServerURL:   cmd.defaultURL().String(),
 		HttpClient:  httpClient,
 		Postgres:    cmd.Postgres,
 	})
@@ -919,15 +920,25 @@ func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
 	})
 }
 
-func (cmd *RunCommand) defaultURL() flag.URL {
+func (cmd *RunCommand) defaultBindIP() net.IP {
 	URL := cmd.BindIP.String()
 	if URL == "0.0.0.0" {
 		URL = "127.0.0.1"
 	}
+
+	return net.ParseIP(URL)
+}
+
+func (cmd *RunCommand) defaultURL() flag.URL {
+	scheme := "http"
+	if cmd.TLSBindPort != 0 && cmd.TLSCert != "" && cmd.TLSKey != "" {
+		scheme = "https"
+	}
+
 	return flag.URL{
 		URL: &url.URL{
-			Scheme: "http",
-			Host:   fmt.Sprintf("%s:%d", URL, cmd.BindPort),
+			Scheme: scheme,
+			Host:   fmt.Sprintf("%s:%d", cmd.defaultBindIP().String(), cmd.BindPort),
 		},
 	}
 }

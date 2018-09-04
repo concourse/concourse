@@ -44,8 +44,10 @@ var _ = Describe("ATC Integration Test", func() {
 	JustBeforeEach(func() {
 		cmd.BindPort = 9090 + uint16(GinkgoParallelNode())
 		cmd.DebugBindPort = 8079 + uint16(GinkgoParallelNode())
+
 		runner, _, err := cmd.Runner([]string{})
 		Expect(err).NotTo(HaveOccurred())
+
 		atcProcess = ifrit.Invoke(sigmon.New(runner))
 		Eventually(func() error {
 			_, err := http.Get(fmt.Sprintf("http://localhost:%v/api/v1/info", cmd.BindPort))
@@ -102,6 +104,7 @@ func RunCommand() *atccmd.RunCommand {
 	cmd.Postgres.SSLMode = "disable"
 	cmd.Auth.MainTeamFlags.LocalUsers = []string{"test"}
 	cmd.Auth.AuthFlags.LocalUsers = map[string]string{"test": "$2y$10$yh24anANlBzyCu3DFWW1ze5dgbFEf0UE5I/dMxOworxt2QVVmZfty"}
+	cmd.Logger.SetWriterSink(GinkgoWriter)
 	return &cmd
 }
 
