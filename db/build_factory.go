@@ -16,6 +16,7 @@ type BuildFactory interface {
 	VisibleBuilds([]string, Page) ([]Build, Pagination, error)
 	PublicBuilds(Page) ([]Build, Pagination, error)
 	GetAllStartedBuilds() ([]Build, error)
+	GetDrainableBuilds() ([]Build, error)
 	// TODO: move to BuildLifecycle, new interface (see WorkerLifecycle)
 	MarkNonInterceptibleBuilds() error
 }
@@ -90,11 +91,25 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 	return err
 }
 
+func (f *buildFactory) GetDrainableBuilds() ([]Build, error) {
+	query := buildsQuery.Where(sq.Eq{
+		"b.completed": true,
+		"b.drained":   false,
+	})
+
+	return getBuilds(query, f.conn, f.lockFactory)
+}
+
 func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
-	rows, err := buildsQuery.
-		Where(sq.Eq{"b.status": BuildStatusStarted}).
-		RunWith(f.conn).
-		Query()
+	query := buildsQuery.Where(sq.Eq{
+		"b.status": BuildStatusStarted,
+	})
+
+	return getBuilds(query, f.conn, f.lockFactory)
+}
+
+func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFactory) ([]Build, error) {
+	rows, err := buildsQuery.RunWith(conn).Query()
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +119,8 @@ func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
 	bs := []Build{}
 
 	for rows.Next() {
-		b := &build{conn: f.conn, lockFactory: f.lockFactory}
-		err := scanBuild(b, rows, f.conn.EncryptionStrategy())
+		b := &build{conn: conn, lockFactory: lockFactory}
+		err := scanBuild(b, rows, conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
 		}

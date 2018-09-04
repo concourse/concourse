@@ -37,6 +37,7 @@ import (
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/scheduler"
+	"github.com/concourse/atc/syslog"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/wrappa"
@@ -143,6 +144,13 @@ type RunCommand struct {
 
 	DefaultCpuLimit    *int    `long:"default-task-cpu-limit" description:"Default max number of cpu shares per task, 0 means unlimited"`
 	DefaultMemoryLimit *string `long:"default-task-memory-limit" description:"Default maximum memory per task, 0 means unlimited"`
+
+	Syslog struct {
+		Hostname      string        `long:"syslog-hostname" description:"Client hostname with which the build logs will be sent to the syslog server." default:"atc-syslog-drainer"`
+		Address       string        `long:"syslog-address" description:"Remote syslog server address with port (Example: 0.0.0.0:514)."`
+		Transport     string        `long:"syslog-transport" description:"Transport protocol for syslog messages (Currently supporting tcp, udp & tls)."`
+		DrainInterval time.Duration `long:"syslog-drain-interval" description:"Interval for which checking is done for new build logs to send to syslog server (duration measurement units are s/m/h; eg. 30s/30m/1h)" default:"30s"`
+	} ` group:"Syslog Drainer Configuration"`
 
 	Auth struct {
 		AuthFlags     skycmd.AuthFlags
@@ -365,7 +373,6 @@ func (cmd *RunCommand) constructMembers(
 	if err != nil {
 		return nil, err
 	}
-
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", Version)
 		go func() {
@@ -610,6 +617,16 @@ func (cmd *RunCommand) constructAPIMembers(
 func (cmd *RunCommand) constructBackendMembers(
 	logger lager.Logger,
 ) ([]grouper.Member, error) {
+
+	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
+		return nil, fmt.Errorf("syslog Drainer is misconfigured, cannot configure a drainer without a transport")
+	}
+
+	syslogDrainConfigured := true
+	if cmd.Syslog.Address == "" {
+		syslogDrainConfigured = false
+	}
+
 	connectionName := "backend"
 	maxConns := 32
 
@@ -765,12 +782,33 @@ func (cmd *RunCommand) constructBackendMembers(
 					cmd.DefaultBuildLogsToRetain,
 					cmd.MaxBuildLogsToRetain,
 				),
+				syslogDrainConfigured,
 			),
 			"build-reaper",
 			lockFactory,
 			clock.NewClock(),
 			30*time.Second,
 		)},
+	}
+
+	//Syslog Drainer Configuration
+	if syslogDrainConfigured {
+		members = append(members, grouper.Member{
+			Name: "syslog", Runner: lockrunner.NewRunner(
+				logger.Session("syslog"),
+
+				syslog.NewDrainer(
+					cmd.Syslog.Transport,
+					cmd.Syslog.Address,
+					cmd.Syslog.Hostname,
+					dbBuildFactory,
+				),
+				"syslog-drainer",
+				lockFactory,
+				clock.NewClock(),
+				cmd.Syslog.DrainInterval,
+			)},
+		)
 	}
 	if cmd.Worker.GardenURL.URL != nil {
 		members = cmd.appendStaticWorker(logger, dbWorkerFactory, members)

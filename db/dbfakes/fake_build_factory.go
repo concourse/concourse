@@ -65,6 +65,17 @@ type FakeBuildFactory struct {
 		result1 []db.Build
 		result2 error
 	}
+	GetDrainableBuildsStub        func() ([]db.Build, error)
+	getDrainableBuildsMutex       sync.RWMutex
+	getDrainableBuildsArgsForCall []struct{}
+	getDrainableBuildsReturns     struct {
+		result1 []db.Build
+		result2 error
+	}
+	getDrainableBuildsReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 error
+	}
 	MarkNonInterceptibleBuildsStub        func() error
 	markNonInterceptibleBuildsMutex       sync.RWMutex
 	markNonInterceptibleBuildsArgsForCall []struct{}
@@ -289,6 +300,49 @@ func (fake *FakeBuildFactory) GetAllStartedBuildsReturnsOnCall(i int, result1 []
 	}{result1, result2}
 }
 
+func (fake *FakeBuildFactory) GetDrainableBuilds() ([]db.Build, error) {
+	fake.getDrainableBuildsMutex.Lock()
+	ret, specificReturn := fake.getDrainableBuildsReturnsOnCall[len(fake.getDrainableBuildsArgsForCall)]
+	fake.getDrainableBuildsArgsForCall = append(fake.getDrainableBuildsArgsForCall, struct{}{})
+	fake.recordInvocation("GetDrainableBuilds", []interface{}{})
+	fake.getDrainableBuildsMutex.Unlock()
+	if fake.GetDrainableBuildsStub != nil {
+		return fake.GetDrainableBuildsStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getDrainableBuildsReturns.result1, fake.getDrainableBuildsReturns.result2
+}
+
+func (fake *FakeBuildFactory) GetDrainableBuildsCallCount() int {
+	fake.getDrainableBuildsMutex.RLock()
+	defer fake.getDrainableBuildsMutex.RUnlock()
+	return len(fake.getDrainableBuildsArgsForCall)
+}
+
+func (fake *FakeBuildFactory) GetDrainableBuildsReturns(result1 []db.Build, result2 error) {
+	fake.GetDrainableBuildsStub = nil
+	fake.getDrainableBuildsReturns = struct {
+		result1 []db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildFactory) GetDrainableBuildsReturnsOnCall(i int, result1 []db.Build, result2 error) {
+	fake.GetDrainableBuildsStub = nil
+	if fake.getDrainableBuildsReturnsOnCall == nil {
+		fake.getDrainableBuildsReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 error
+		})
+	}
+	fake.getDrainableBuildsReturnsOnCall[i] = struct {
+		result1 []db.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuildFactory) MarkNonInterceptibleBuilds() error {
 	fake.markNonInterceptibleBuildsMutex.Lock()
 	ret, specificReturn := fake.markNonInterceptibleBuildsReturnsOnCall[len(fake.markNonInterceptibleBuildsArgsForCall)]
@@ -340,6 +394,8 @@ func (fake *FakeBuildFactory) Invocations() map[string][][]interface{} {
 	defer fake.publicBuildsMutex.RUnlock()
 	fake.getAllStartedBuildsMutex.RLock()
 	defer fake.getAllStartedBuildsMutex.RUnlock()
+	fake.getDrainableBuildsMutex.RLock()
+	defer fake.getDrainableBuildsMutex.RUnlock()
 	fake.markNonInterceptibleBuildsMutex.RLock()
 	defer fake.markNonInterceptibleBuildsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

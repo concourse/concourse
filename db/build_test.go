@@ -41,6 +41,30 @@ var _ = Describe("Build", func() {
 		})
 	})
 
+	Describe("Drain", func() {
+		It("defaults drain to false in the beginning", func() {
+			build, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(build.IsDrained()).To(BeFalse())
+		})
+
+		It("has drain set to true after a drain and a reload", func() {
+			build, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build.SetDrained(true)
+			Expect(err).NotTo(HaveOccurred())
+
+			var drained bool
+			drained = build.IsDrained()
+			Expect(drained).To(BeTrue())
+
+			build.Reload()
+			drained = build.IsDrained()
+			Expect(drained).To(BeTrue())
+		})
+	})
+
 	Describe("Start", func() {
 		var build db.Build
 		var plan atc.Plan

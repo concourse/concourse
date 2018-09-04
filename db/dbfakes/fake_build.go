@@ -441,6 +441,26 @@ type FakeBuild struct {
 		result1 bool
 		result2 error
 	}
+	IsDrainedStub        func() bool
+	isDrainedMutex       sync.RWMutex
+	isDrainedArgsForCall []struct{}
+	isDrainedReturns     struct {
+		result1 bool
+	}
+	isDrainedReturnsOnCall map[int]struct {
+		result1 bool
+	}
+	SetDrainedStub        func(bool) error
+	setDrainedMutex       sync.RWMutex
+	setDrainedArgsForCall []struct {
+		arg1 bool
+	}
+	setDrainedReturns struct {
+		result1 error
+	}
+	setDrainedReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -2237,6 +2257,94 @@ func (fake *FakeBuild) ScheduleReturnsOnCall(i int, result1 bool, result2 error)
 	}{result1, result2}
 }
 
+func (fake *FakeBuild) IsDrained() bool {
+	fake.isDrainedMutex.Lock()
+	ret, specificReturn := fake.isDrainedReturnsOnCall[len(fake.isDrainedArgsForCall)]
+	fake.isDrainedArgsForCall = append(fake.isDrainedArgsForCall, struct{}{})
+	fake.recordInvocation("IsDrained", []interface{}{})
+	fake.isDrainedMutex.Unlock()
+	if fake.IsDrainedStub != nil {
+		return fake.IsDrainedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.isDrainedReturns.result1
+}
+
+func (fake *FakeBuild) IsDrainedCallCount() int {
+	fake.isDrainedMutex.RLock()
+	defer fake.isDrainedMutex.RUnlock()
+	return len(fake.isDrainedArgsForCall)
+}
+
+func (fake *FakeBuild) IsDrainedReturns(result1 bool) {
+	fake.IsDrainedStub = nil
+	fake.isDrainedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) IsDrainedReturnsOnCall(i int, result1 bool) {
+	fake.IsDrainedStub = nil
+	if fake.isDrainedReturnsOnCall == nil {
+		fake.isDrainedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isDrainedReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) SetDrained(arg1 bool) error {
+	fake.setDrainedMutex.Lock()
+	ret, specificReturn := fake.setDrainedReturnsOnCall[len(fake.setDrainedArgsForCall)]
+	fake.setDrainedArgsForCall = append(fake.setDrainedArgsForCall, struct {
+		arg1 bool
+	}{arg1})
+	fake.recordInvocation("SetDrained", []interface{}{arg1})
+	fake.setDrainedMutex.Unlock()
+	if fake.SetDrainedStub != nil {
+		return fake.SetDrainedStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.setDrainedReturns.result1
+}
+
+func (fake *FakeBuild) SetDrainedCallCount() int {
+	fake.setDrainedMutex.RLock()
+	defer fake.setDrainedMutex.RUnlock()
+	return len(fake.setDrainedArgsForCall)
+}
+
+func (fake *FakeBuild) SetDrainedArgsForCall(i int) bool {
+	fake.setDrainedMutex.RLock()
+	defer fake.setDrainedMutex.RUnlock()
+	return fake.setDrainedArgsForCall[i].arg1
+}
+
+func (fake *FakeBuild) SetDrainedReturns(result1 error) {
+	fake.SetDrainedStub = nil
+	fake.setDrainedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) SetDrainedReturnsOnCall(i int, result1 error) {
+	fake.SetDrainedStub = nil
+	if fake.setDrainedReturnsOnCall == nil {
+		fake.setDrainedReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setDrainedReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -2322,6 +2430,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.abortNotifierMutex.RUnlock()
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
+	fake.isDrainedMutex.RLock()
+	defer fake.isDrainedMutex.RUnlock()
+	fake.setDrainedMutex.RLock()
+	defer fake.setDrainedMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

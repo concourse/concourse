@@ -8,9 +8,9 @@ import (
 )
 
 type buildLogCollector struct {
-	pipelineFactory db.PipelineFactory
-	batchSize       int
-
+	pipelineFactory             db.PipelineFactory
+	batchSize                   int
+	drainerConfigured           bool
 	buildLogRetentionCalculator BuildLogRetentionCalculator
 }
 
@@ -18,11 +18,12 @@ func NewBuildLogCollector(
 	pipelineFactory db.PipelineFactory,
 	batchSize int,
 	buildLogRetentionCalculator BuildLogRetentionCalculator,
+	drainerConfigured bool,
 ) Collector {
 	return &buildLogCollector{
-		pipelineFactory: pipelineFactory,
-		batchSize:       batchSize,
-
+		pipelineFactory:             pipelineFactory,
+		batchSize:                   batchSize,
+		drainerConfigured:           drainerConfigured,
 		buildLogRetentionCalculator: buildLogRetentionCalculator,
 	}
 }
@@ -119,6 +120,12 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 
 				if build.ID() >= firstBuildToRetain || build.IsRunning() {
 					break
+				}
+
+				if br.drainerConfigured == true {
+					if build.IsDrained() == false {
+						continue
+					}
 				}
 
 				buildIDsToDelete = append(buildIDsToDelete, build.ID())

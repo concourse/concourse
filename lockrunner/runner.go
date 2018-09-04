@@ -2,6 +2,7 @@ package lockrunner
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -43,6 +44,7 @@ func NewRunner(
 				}
 
 				if !acquired {
+					lockLogger.Debug(fmt.Sprintln("failed to acquire a lock for ", taskName))
 					break
 				}
 

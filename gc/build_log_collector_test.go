@@ -33,6 +33,7 @@ var _ = Describe("BuildLogCollector", func() {
 			fakePipelineFactory,
 			batchSize,
 			buildLogRetainCalc,
+			false,
 		)
 	})
 
@@ -74,6 +75,72 @@ var _ = Describe("BuildLogCollector", func() {
 				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
 			})
 
+			Context("drain handling", func() {
+				JustBeforeEach(func() {
+					buildLogCollector = NewBuildLogCollector(
+						fakePipelineFactory,
+						batchSize,
+						buildLogRetainCalc,
+						true,
+					)
+				})
+				BeforeEach(func() {
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{sbDrained(1, true), sbDrained(2, false), sbDrained(3, false), sbDrained(4, true), sbDrained(5, false)}, db.Pagination{}, nil
+						} else if page == (db.Page{Limit: 10}) {
+							return []db.Build{sbDrained(6, true)}, db.Pagination{}, nil
+						}
+						return []db.Build{}, db.Pagination{}, nil
+					}
+
+					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
+					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
+				})
+
+				It("should not reap builds which have not been drained", func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(2)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(3)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(5)))
+				})
+
+				It("should reap builds which have been drained", func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(1, 4))
+				})
+
+			})
+
+			Context("when drain has not been configured", func() {
+				BeforeEach(func() {
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{sbDrained(1, true), sbDrained(2, false), sbDrained(3, false), sbDrained(4, true), sbDrained(5, false)}, db.Pagination{}, nil
+						} else if page == (db.Page{Limit: 10}) {
+							return []db.Build{sbDrained(6, true)}, db.Pagination{}, nil
+						}
+						return []db.Build{}, db.Pagination{}, nil
+					}
+
+					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
+					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
+				})
+				It("should reap builds if draining is not configured", func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(1, 2, 3, 4, 5))
+				})
+			})
 			Context("when there are more build logs than we can reap in this run", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
@@ -322,9 +389,9 @@ var _ = Describe("BuildLogCollector", func() {
 							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
 						} else if page == (db.Page{Limit: 3}) {
 							return []db.Build{sb(5), sb(4), sb(3)}, db.Pagination{}, nil
-						} else {
-							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
+
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						return nil, db.Pagination{}, nil
 					}
 
@@ -348,9 +415,9 @@ var _ = Describe("BuildLogCollector", func() {
 							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
 						} else if page == (db.Page{Since: 2, Limit: 1}) {
 							return []db.Build{sb(1)}, db.Pagination{}, nil
-						} else {
-							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+
 						return nil, db.Pagination{}, nil
 					}
 
@@ -410,9 +477,8 @@ var _ = Describe("BuildLogCollector", func() {
 							return []db.Build{sb(6), sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
 						} else if page == (db.Page{Since: 2, Limit: 1}) {
 							return []db.Build{}, db.Pagination{}, nil
-						} else {
-							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						return nil, db.Pagination{}, nil
 					}
 
@@ -469,9 +535,9 @@ var _ = Describe("BuildLogCollector", func() {
 							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
 						} else if page == (db.Page{Since: 2, Limit: 1}) {
 							return []db.Build{sb(1)}, db.Pagination{}, nil
-						} else {
-							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+
 						return nil, db.Pagination{}, nil
 					}
 
@@ -566,6 +632,14 @@ var _ = Describe("BuildLogCollector", func() {
 
 func sb(id int) db.Build {
 	build := new(dbfakes.FakeBuild)
+	build.IDReturns(id)
+	build.IsRunningReturns(false)
+	return build
+}
+
+func sbDrained(id int, drained bool) db.Build {
+	build := new(dbfakes.FakeBuild)
+	build.IsDrainedReturns(drained)
 	build.IDReturns(id)
 	build.IsRunningReturns(false)
 	return build

@@ -28,7 +28,7 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.tracked_by").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.tracked_by, b.drained").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -88,6 +88,9 @@ type Build interface {
 	MarkAsAborted() error
 	AbortNotifier() (Notifier, error)
 	Schedule() (bool, error)
+
+	IsDrained() bool
+	SetDrained(bool) error
 }
 
 type build struct {
@@ -118,6 +121,7 @@ type build struct {
 
 	conn        Conn
 	lockFactory lock.LockFactory
+	drained     bool
 }
 
 var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
@@ -140,6 +144,7 @@ func (b *build) ReapTime() time.Time          { return b.reapTime }
 func (b *build) Status() BuildStatus          { return b.status }
 func (b *build) Tracker() string              { return b.trackedBy }
 func (b *build) IsScheduled() bool            { return b.scheduled }
+func (b *build) IsDrained() bool              { return b.drained }
 
 func (b *build) IsRunning() bool {
 	switch b.status {
@@ -369,6 +374,19 @@ func (b *build) Finish(status BuildStatus) error {
 	}
 
 	return nil
+}
+
+func (b *build) SetDrained(drained bool) error {
+	_, err := psql.Update("builds").
+		Set("drained", drained).
+		Where(sq.Eq{"id": b.id}).
+		RunWith(b.conn).
+		Exec()
+
+	if err == nil {
+		b.drained = drained
+	}
+	return err
 }
 
 func (b *build) Delete() (bool, error) {
@@ -1004,11 +1022,12 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		engine, engineMetadata, jobName, pipelineName, publicPlan, trackedBy sql.NullString
 		startTime, endTime, reapTime                                         pq.NullTime
 		nonce                                                                sql.NullString
+		drained                                                              bool
 
 		status string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &engine, &engineMetadata, &publicPlan, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &trackedBy)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &engine, &engineMetadata, &publicPlan, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &trackedBy, &drained)
 	if err != nil {
 		return err
 	}
@@ -1023,6 +1042,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.endTime = endTime.Time
 	b.reapTime = reapTime.Time
 	b.trackedBy = trackedBy.String
+	b.drained = drained
 
 	var (
 		noncense                *string
