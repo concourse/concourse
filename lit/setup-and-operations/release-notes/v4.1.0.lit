@@ -18,6 +18,17 @@
     happens.
   }
 
+  \note{feature}{
+    Workers can now be registered with a \code{--ephemeral} flag. When
+    specified, the worker will be immediately removed once it stalls.
+
+    This is useful for situations where you don't have careful control over
+    when and how the worker goes away, for example with preemptible machines or
+    when running with Docker Compose or on a development machine.
+
+    Thanks to \ghuser{tanner-bruce} for kicking off the PR for this!
+  }
+
   \note{breaking}{
     We've removed the \resource{bosh-deployment} from our core set of
     resources, as it has been deprecated for over a year. Use the
@@ -41,6 +52,14 @@
     command, which is useful for...working. Without it the \code{btrfs} volume
     driver setup would fail. Sorry about that, and thanks to \ghuser{ElfoLiNk}
     for submitting the PR!
+  }
+
+  \note{fix}{
+    The \code{--external-url} and \code{--peer-url} flags for \code{concourse
+    web} will now infer defaults that match the configured \code{--bind-ip} and
+    \code{--bind-port}, rather than blindly defaulting to
+    \code{http://127.0.0.1:8080} and breaking when the bind IP/port are
+    changed.
   }
 
   \note{fix}{
@@ -268,5 +287,11 @@
     Clarified the help-text for local user configuration to mention that the
     password can be in plaintext, and if \code{bcrypt}ed it must have a minimum
     cost of 10.
+  }
+
+  \note{fix}{
+    Fixed a faulty default resulting in borked garbage collection on BOSH
+    deployed workers that are configured to forward through the \reference{tsa}
+    (they would try to reach the instance IP rather than \code{127.0.0.1}).
   }
 }
