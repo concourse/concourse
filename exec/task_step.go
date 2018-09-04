@@ -211,20 +211,12 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 		return nil
 	}
 
-	// for backwards compatibility with containers
-	// that had their task process name set as property
-	var processID string
-	processID, err = container.Property(taskProcessPropertyName)
-	if err != nil {
-		processID = taskProcessID
-	}
-
 	processIO := garden.ProcessIO{
 		Stdout: action.delegate.Stdout(),
 		Stderr: action.delegate.Stderr(),
 	}
 
-	process, err := container.Attach(processID, processIO)
+	process, err := container.Attach(taskProcessID, processIO)
 	if err == nil {
 		logger.Info("already-running")
 	} else {
