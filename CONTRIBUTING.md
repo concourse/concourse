@@ -239,3 +239,11 @@ ginkgo -r
 You may want to speed things up by specifying `-nodes=N` flag. Just don't use
 `-p` as things will get a bit slow if there are too many parallel threads
 contending for your machine's resources. Good values of `N` are 2 or 3.
+
+[Topgun](https://github.com/concourse/topgun) This suite is one level above Testflight in the sense that it will target a BOSH deployment and make changes to the cluster. This is to test things like workers disappearing, being recreated, etc.
+
+### To run `topgun` locally: 
+ - [bosh-lite](https://bosh.io/docs/bosh-lite/#install) prerequisites should be on the machine. Currently Bosh CLI V2 & Virtualbox.
+ - run the script `dev/vbox/setup` to deploy a bosh-lite director on vbox as well as the required stemcells and releases for concourse.
+ - run the `dev/vbox/topgun` to run the topgun tests.
+ - run the `dev/vbox/delete` after running topgun tests to delete the bosh director VM from your machine.
