@@ -3,3 +3,4 @@
 .idea
 /README.html
 cmd/atc/atc
+*-packr.go

@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/db/encryption"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/migration/migrations"
+	"github.com/gobuffalo/packr"
 	multierror "github.com/hashicorp/go-multierror"
 	_ "github.com/lib/pq"
 )
@@ -144,7 +145,7 @@ type Migrator interface {
 }
 
 func NewMigrator(db *sql.DB, lockFactory lock.LockFactory, strategy encryption.Strategy) Migrator {
-	return NewMigratorForMigrations(db, lockFactory, strategy, &bindataSource{})
+	return NewMigratorForMigrations(db, lockFactory, strategy, &packrSource{packr.NewBox("./migrations")})
 }
 
 func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, strategy encryption.Strategy, bindata Bindata) Migrator {

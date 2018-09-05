@@ -22,8 +22,8 @@ func NewParser(bindata Bindata) *Parser {
 		bindata: bindata,
 	}
 }
-func (p *Parser) ParseMigrationFilename(fileName string) (migration, error) {
 
+func (p *Parser) ParseMigrationFilename(fileName string) (migration, error) {
 	var (
 		migration migration
 		err       error
@@ -43,7 +43,6 @@ func (p *Parser) ParseMigrationFilename(fileName string) (migration, error) {
 }
 
 func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
-
 	var migrationContents string
 
 	migration, err := p.ParseMigrationFilename(migrationName)
