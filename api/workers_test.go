@@ -924,6 +924,16 @@ var _ = Describe("Workers API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
+			Context("when the given worker has already been deleted", func() {
+				BeforeEach(func() {
+					dbWorkerFactory.GetWorkerReturns(nil, false, nil)
+				})
+				It("returns 500", func() {
+					Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(1))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
 			Context("when deleting the worker fails", func() {
 				var returnedErr error
 

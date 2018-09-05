@@ -13,7 +13,7 @@ func (s *Server) DeleteWorker(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
 
 	worker, found, err := s.dbWorkerFactory.GetWorker(workerName)
-	if err != nil {
+	if err != nil || !found {
 		logger.Error("failed-finding-worker-to-delete", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
