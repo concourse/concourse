@@ -77,36 +77,44 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		return server.Config{}, err
 	}
 
+	localUsersToAdd := newLocalUsers(config)
+
+	storedPasses, err := store.ListPasswords()
+	if err != nil {
+		return server.Config{}, err
+	}
+
+	// First clear out users from dex store that are no longer in params
+	for _, pass := range storedPasses {
+		if _, exists := localUsersToAdd[pass.Email]; !exists {
+			removePasswordFromStore(store, pass.Email)
+		}
+	}
+
+	// Then add new local users to dex store
 	var localAuthConfigured = false
-	localUsers := newLocalUsers(config)
-	for username, password := range localUsers {
-		pass, err := store.GetPassword(username)
-		if err == storage.ErrNotFound || pass.Email == "" {
-			err = store.CreatePassword(storage.Password{
+	for username, password := range localUsersToAdd {
+		err = createPasswordInStore(store,
+			storage.Password{
 				UserID:   username,
 				Username: username,
 				Email:    username,
 				Hash:     password,
-			})
-			if err != nil {
-				return server.Config{}, err
-			}
-		} else if err != nil {
+			},
+			true)
+		if err != nil {
 			return server.Config{}, err
 		}
 
 		if !localAuthConfigured {
-			_, err = store.GetConnector("local")
-			if err == storage.ErrNotFound {
-				err = store.CreateConnector(storage.Connector{
+			err = createConnectorInStore(store,
+				storage.Connector{
 					ID:   "local",
 					Type: "local",
 					Name: "Username/Password",
-				})
-				if err != nil {
-					return server.Config{}, err
-				}
-			} else if err != nil {
+				},
+				false)
+			if err != nil {
 				return server.Config{}, err
 			}
 			localAuthConfigured = true
@@ -117,18 +125,21 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 
 	for _, connector := range skycmd.GetConnectors() {
 		if c, err := connector.Serialize(redirectURI); err == nil {
-			_, err = store.GetConnector(connector.ID())
-			if err == storage.ErrNotFound {
-				err = store.CreateConnector(storage.Connector{
+			err = createConnectorInStore(store,
+				storage.Connector{
 					ID:     connector.ID(),
 					Type:   connector.ID(),
 					Name:   connector.Name(),
 					Config: c,
-				})
-				if err != nil {
-					return server.Config{}, err
-				}
-			} else if err != nil {
+				},
+				true)
+			if err != nil {
+				return server.Config{}, err
+			}
+		} else {
+			// connector has not been configured, or has not been configured properly
+			err = removeConnectorFromStore(store, connector.ID())
+			if err != nil {
 				return server.Config{}, err
 			}
 		}
@@ -181,6 +192,90 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		Web:                    webConfig,
 		Logger:                 log,
 	}, nil
+}
+
+// Creates a password for the given username in the dex store.  If username and password already exists
+// in the store and update is set to true, the dex store will be updated with the password.
+func createPasswordInStore(store storage.Storage, password storage.Password, update bool) error {
+	existingPass, err := store.GetPassword(password.Email)
+	if err == storage.ErrNotFound || existingPass.Email == "" {
+		err = store.CreatePassword(password)
+		if err != nil {
+			return err
+		}
+	} else if err == nil {
+		if update {
+			err = store.UpdatePassword(
+				password.Email,
+				func(_ storage.Password) (storage.Password, error) { return password, nil },
+			)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		return err
+	}
+
+	return nil
+}
+
+// Checks if password exists and removes it if it does
+func removePasswordFromStore(store storage.Storage, email string) error {
+	_, err := store.GetPassword(email)
+	if err == nil {
+		// password exists, so remove it
+		err = store.DeletePassword(email)
+		if err != nil {
+			return err
+		}
+	} else if err != storage.ErrNotFound {
+		return err
+	}
+
+	return nil
+}
+
+// Creates a connector in the dex store.  If it already exists in the store and update is set to true,
+// the dex store will be updated with the connector.
+func createConnectorInStore(store storage.Storage, connector storage.Connector, update bool) error {
+	_, err := store.GetConnector(connector.ID)
+	if err == storage.ErrNotFound {
+		err = store.CreateConnector(connector)
+		if err != nil {
+			return err
+		}
+	} else if err == nil {
+		if update {
+			err = store.UpdateConnector(
+				connector.ID,
+				func(_ storage.Connector) (storage.Connector, error) { return connector, nil },
+			)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		return err
+	}
+
+	return nil
+}
+
+// Checks if connector exists and removes it if it does
+func removeConnectorFromStore(store storage.Storage, connectorID string) error {
+	_, err := store.GetConnector(connectorID)
+	if err == nil {
+		// connector exists, so remove it
+		err = store.DeleteConnector(connectorID)
+		if err != nil {
+			return err
+		}
+	} else if err != storage.ErrNotFound {
+		return err
+	}
+
+	return nil
 }
 
 func NewLagerHook(logger lager.Logger) *lagerHook {
