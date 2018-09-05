@@ -15,7 +15,7 @@ go install github.com/concourse/atc/cmd/atc
 pg_port=${POSTGRES_PORT:-6543}
 
 until createdb -U postgres -p ${pg_port} atc 2>&1 | grep 'already exists' >/dev/null; do
-  echo creating database...
+  echo creating database ...
   sleep 1
 done
 
