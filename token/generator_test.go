@@ -51,7 +51,7 @@ var _ = Describe("Token Generator", func() {
 				JustBeforeEach(func() {
 					claims := map[string]interface{}{
 						"sub":   "1234567890",
-						"exp":   2524608000,
+						"exp":   int64(2524608000),
 						"teams": []string{"some-team"},
 					}
 
@@ -76,19 +76,19 @@ var _ = Describe("Token Generator", func() {
 				It("returns a jwt token with claims", func() {
 					var claims struct {
 						Sub   string   `json:"sub"`
-						Exp   int      `json:"exp"`
+						Exp   int64    `json:"exp"`
 						Teams []string `json:"teams"`
 					}
 					err := parse(oauthToken.AccessToken, signingKey, &claims)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(claims.Sub).To(Equal("1234567890"))
-					Expect(claims.Exp).To(Equal(2524608000))
+					Expect(claims.Exp).To(Equal(int64(2524608000)))
 					Expect(claims.Teams).To(ContainElement("some-team"))
 				})
 
 				It("includes the claims in the token extras", func() {
 					Expect(oauthToken.Extra("sub")).To(Equal("1234567890"))
-					Expect(oauthToken.Extra("exp")).To(Equal(2524608000))
+					Expect(oauthToken.Extra("exp")).To(Equal(int64(2524608000)))
 					Expect(oauthToken.Extra("teams")).To(ContainElement("some-team"))
 				})
 			})

@@ -55,11 +55,11 @@ func (self *generator) Generate(claims map[string]interface{}) (*oauth2.Token, e
 
 	var expiry time.Time
 
-	exp, ok := claims["exp"].(int)
-	if !ok {
-		expiry = time.Now().Add(time.Hour)
+	exp, ok := claims["exp"].(int64)
+	if ok {
+		expiry = time.Unix(exp, 0)
 	} else {
-		expiry = time.Unix(int64(exp), 0)
+		expiry = time.Now().Add(24 * time.Hour)
 	}
 
 	oauth2Token := &oauth2.Token{
