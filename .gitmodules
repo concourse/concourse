@@ -480,3 +480,27 @@
 	path = src/github.com/mattn/go-sqlite3
 	url = https://github.com/mattn/go-sqlite3
 	branch = master
+[submodule "src/github.com/pkg/errors"]
+	path = src/github.com/pkg/errors
+	url = https://github.com/pkg/errors
+	branch = master
+[submodule "src/github.com/gobuffalo/packr"]
+	path = src/github.com/gobuffalo/packr
+	url = https://github.com/gobuffalo/packr
+	branch = master
+[submodule "src/github.com/inconshreveable/mousetrap"]
+	path = src/github.com/inconshreveable/mousetrap
+	url = https://github.com/inconshreveable/mousetrap
+	branch = master
+[submodule "src/github.com/spf13/cobra"]
+	path = src/github.com/spf13/cobra
+	url = https://github.com/spf13/cobra
+	branch = master
+[submodule "src/github.com/spf13/pflag"]
+	path = src/github.com/spf13/pflag
+	url = https://github.com/spf13/pflag
+	branch = master
+[submodule "src/golang.org/x/sync"]
+	path = src/golang.org/x/sync
+	url = https://go.googlesource.com/sync
+	branch = master

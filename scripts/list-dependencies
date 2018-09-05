@@ -23,4 +23,5 @@ gosub list \
   -t github.com/concourse/baggageclaim/integration/... \
   -a github.com/vito/gosub \
   -a github.com/jteeuwen/go-bindata/go-bindata \
+  -a github.com/gobuffalo/packr/packr \
   -a github.com/mattn/goreman | grep -v code.cloudfoundry.org/guardian

@@ -9,6 +9,7 @@ dependencies:
 files:
   - github.com/concourse/web/index.html
   - github.com/concourse/web/public/**/*
+  - github.com/concourse/atc/db/migration/migrations/*.sql
   - code.cloudfoundry.org/clock/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/credhub-cli/credhub/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/credhub-cli/credhub/auth/*.{go,s,c,h} # gosub
@@ -197,6 +198,10 @@ files:
   - github.com/go-openapi/spec/*.{go,s,c,h} # gosub
   - github.com/go-openapi/swag/*.{go,s,c,h} # gosub
   - github.com/go-sql-driver/mysql/*.{go,s,c,h} # gosub
+  - github.com/gobuffalo/packr/*.{go,s,c,h} # gosub
+  - github.com/gobuffalo/packr/builder/*.{go,s,c,h} # gosub
+  - github.com/gobuffalo/packr/packr/*.{go,s,c,h} # gosub
+  - github.com/gobuffalo/packr/packr/cmd/*.{go,s,c,h} # gosub
   - github.com/golang/glog/*.{go,s,c,h} # gosub
   - github.com/golang/protobuf/proto/*.{go,s,c,h} # gosub
   - github.com/golang/protobuf/ptypes/any/*.{go,s,c,h} # gosub
@@ -239,6 +244,7 @@ files:
   - github.com/hashicorp/vault/vendor/golang.org/x/text/transform/*.{go,s,c,h} # gosub
   - github.com/hashicorp/vault/vendor/golang.org/x/text/unicode/bidi/*.{go,s,c,h} # gosub
   - github.com/hashicorp/vault/vendor/golang.org/x/text/unicode/norm/*.{go,s,c,h} # gosub
+  - github.com/inconshreveable/mousetrap/*.{go,s,c,h} # gosub
   - github.com/influxdata/influxdb/client/v2/*.{go,s,c,h} # gosub
   - github.com/influxdata/influxdb/models/*.{go,s,c,h} # gosub
   - github.com/influxdata/influxdb/pkg/escape/*.{go,s,c,h} # gosub
@@ -257,6 +263,7 @@ files:
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub
   - github.com/papertrail/remote_syslog2/syslog/*.{go,s,c,h} # gosub
+  - github.com/pkg/errors/*.{go,s,c,h} # gosub
   - github.com/pquerna/cachecontrol/*.{go,s,c,h} # gosub
   - github.com/pquerna/cachecontrol/cacheobject/*.{go,s,c,h} # gosub
   - github.com/prometheus/client_golang/prometheus/*.{go,s,c,h} # gosub
@@ -271,6 +278,8 @@ files:
   - github.com/russellhaering/goxmldsig/etreeutils/*.{go,s,c,h} # gosub
   - github.com/russellhaering/goxmldsig/types/*.{go,s,c,h} # gosub
   - github.com/sirupsen/logrus/*.{go,s,c,h} # gosub
+  - github.com/spf13/cobra/*.{go,s,c,h} # gosub
+  - github.com/spf13/pflag/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/grouper/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/http_server/*.{go,s,c,h} # gosub
@@ -297,6 +306,7 @@ files:
   - golang.org/x/oauth2/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/github/*.{go,s,c,h} # gosub
   - golang.org/x/oauth2/internal/*.{go,s,c,h} # gosub
+  - golang.org/x/sync/errgroup/*.{go,s,c,h} # gosub
   - golang.org/x/sys/unix/*.{go,s,c,h} # gosub
   - golang.org/x/sys/windows/*.{go,s,c,h} # gosub
   - golang.org/x/text/secure/bidirule/*.{go,s,c,h} # gosub
