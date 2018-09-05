@@ -733,6 +733,63 @@ var _ = Describe("Resources API", func() {
 				})
 			})
 		})
+
+		Context("when authenticated but not authorized", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(false)
+			})
+
+			Context("and the pipeline is private", func() {
+				BeforeEach(func() {
+					fakePipeline.PublicReturns(false)
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("and the pipeline is public", func() {
+				BeforeEach(func() {
+					fakePipeline.PublicReturns(true)
+					resourceName = "resource-1"
+
+					resource1 := new(dbfakes.FakeResource)
+					resource1.CheckErrorReturns(errors.New("sup"))
+					resource1.PipelineNameReturns("a-pipeline")
+					resource1.NameReturns("resource-1")
+					resource1.FailingToCheckReturns(true)
+					resource1.TypeReturns("type-1")
+					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+
+					fakePipeline.ResourceReturns(resource1, true, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns Content-Type 'application/json'", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
+				It("returns the resource json without the check error", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`
+					{
+						"name": "resource-1",
+						"pipeline_name": "a-pipeline",
+						"team_name": "a-team",
+						"type": "type-1",
+						"last_checked": 1513364881,
+						"failing_to_check": true
+					}`))
+				})
+			})
+		})
 	})
 
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pause", func() {
