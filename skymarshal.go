@@ -84,6 +84,7 @@ func NewServer(config *Config) (*Server, error) {
 		Logger:       config.Logger.Session("dex"),
 		Flags:        config.Flags,
 		IssuerURL:    internalIssuerURL,
+		WebHostURL:   externalIssuerURL,
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectURL,

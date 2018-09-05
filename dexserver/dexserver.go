@@ -20,6 +20,7 @@ import (
 type DexConfig struct {
 	Logger       lager.Logger
 	IssuerURL    string
+	WebHostURL   string
 	ClientID     string
 	ClientSecret string
 	RedirectURL  string
@@ -164,7 +165,8 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 	}
 
 	webConfig := server.WebConfig{
-		LogoURL: strings.TrimRight(config.IssuerURL, "/") + "/themes/concourse/logo.svg",
+		LogoURL: strings.TrimRight(config.WebHostURL, "/") + "/themes/concourse/logo.svg",
+		HostURL: config.WebHostURL,
 		Theme:   "concourse",
 		Issuer:  "Concourse",
 		Dir:     assets,
