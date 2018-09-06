@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/web/bindata"
+	"github.com/gobuffalo/packr"
 )
 
 type templateData struct {
@@ -26,7 +26,9 @@ func NewHandler(logger lager.Logger) (http.Handler, error) {
 		"asset": tfuncs.asset,
 	}
 
-	src, err := bindata.Asset("index.html")
+	box := packr.NewBox("../public")
+
+	src, err := box.MustBytes("index.html")
 	if err != nil {
 		return nil, err
 	}

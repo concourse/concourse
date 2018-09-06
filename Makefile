@@ -3,12 +3,12 @@ ELM_TESTS_FILES = $(shell find elm/tests/ -type f -name '*.elm' -or -name '*.js'
 LESS_FILES = $(shell find assets/css/ -type f -name '*.less')
 PUBLIC_FILES = $(shell find public/ -type f)
 
-all: public/elm.min.js public/main.css bindata.go
+all: public/elm.min.js public/main.css
 
 .PHONY: clean
 
 clean:
-	rm -f public/elm.js public/elm.min.js public/main.css bindata.go
+	rm -f public/elm.js public/elm.min.js public/main.css
 
 public/elm.js: $(ELM_FILES) $(ELM_TESTS_FILES)
 	cd elm && elm make --warn --output ../public/elm.js --yes src/Main.elm
@@ -24,18 +24,3 @@ test: all
 
 test-watch: all
 	cd elm && elm-test --watch
-
-bindata.go: index.html $(PUBLIC_FILES)
-	go-bindata ${DEV} -pkg bindata -o bindata/bindata.go index.html public/...
-	go fmt bindata/bindata.go
-
-help:
-	@ echo "$$HELP_INFO"
-
-define HELP_INFO
-Usage:
-  make DEV=-dev: start development
-  make DEV=-dev test : start development and testing
-  make clean all : bundle code for production
-endef
-export HELP_INFO

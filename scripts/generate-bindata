@@ -1,7 +1,0 @@
-#!/bin/bash
-
-DEV=$1
-set -e -u
-
-go-bindata ${DEV} -pkg bindata -o bindata/bindata.go index.html public/...
-go fmt bindata/bindata.go

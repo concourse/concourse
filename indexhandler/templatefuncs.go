@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/concourse/web/bindata"
+	"github.com/gobuffalo/packr"
 )
 
 type templateFuncs struct {
@@ -17,11 +17,13 @@ func (funcs *templateFuncs) asset(asset string) (string, error) {
 	funcs.assetsL.Lock()
 	defer funcs.assetsL.Unlock()
 
+	box := packr.NewBox("../public")
+
 	id, found := funcs.assetIDs[asset]
 	if !found {
 		hash := md5.New()
 
-		contents, err := bindata.Asset("public/" + asset)
+		contents, err := box.MustBytes("public/" + asset)
 		if err != nil {
 			return "", err
 		}

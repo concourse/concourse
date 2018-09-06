@@ -7,3 +7,4 @@ public/elm-beta.min.js
 public/main.css
 wats/node_modules
 node_modules
+*-packr.go
