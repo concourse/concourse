@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -e -u
-
-go-bindata \
-  -pkg bindata \
-  -o bindata/bindata.go \
-  -prefix web \
-  web/...

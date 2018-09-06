@@ -10,9 +10,8 @@ import (
 	"github.com/concourse/dex/storage"
 	"github.com/concourse/dex/storage/sql"
 	"github.com/concourse/flag"
-	"github.com/concourse/skymarshal/bindata"
 	"github.com/concourse/skymarshal/skycmd"
-	"github.com/elazarl/go-bindata-assetfs"
+	"github.com/gobuffalo/packr"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -158,18 +157,12 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		return server.Config{}, err
 	}
 
-	assets := &assetfs.AssetFS{
-		Asset:     bindata.Asset,
-		AssetDir:  bindata.AssetDir,
-		AssetInfo: bindata.AssetInfo,
-	}
-
 	webConfig := server.WebConfig{
 		LogoURL: strings.TrimRight(config.WebHostURL, "/") + "/themes/concourse/logo.svg",
 		HostURL: config.WebHostURL,
 		Theme:   "concourse",
 		Issuer:  "Concourse",
-		Dir:     assets,
+		Dir:     packr.NewBox("../web"),
 	}
 
 	return server.Config{
