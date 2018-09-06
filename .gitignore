@@ -1,10 +1,5 @@
 .DS_Store
 .idea
-public/elm.js
-public/elm.min.js
-public/elm-beta.js
-public/elm-beta.min.js
-public/main.css
 wats/node_modules
 node_modules
 *-packr.go
