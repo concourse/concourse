@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -410,7 +411,7 @@ var _ = Describe("Sky Server API", func() {
 			})
 		})
 
-		Describe("GET /sky/token", func() {
+		Describe("PUT /sky/token", func() {
 			var (
 				err      error
 				request  *http.Request
@@ -420,7 +421,7 @@ var _ = Describe("Sky Server API", func() {
 			JustBeforeEach(func() {
 				reqPayload := "grant_type=password&username=some-username&password=some-password&scope=some-scope"
 
-				request, err = http.NewRequest("GET", skyServer.URL+"/sky/token?"+reqPayload, nil)
+				request, err = http.NewRequest("PUT", skyServer.URL+"/sky/token?"+reqPayload, nil)
 				request.Header.Add("Authorization", "Basic "+string(base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))))
 				Expect(err).NotTo(HaveOccurred())
 
@@ -430,6 +431,66 @@ var _ = Describe("Sky Server API", func() {
 
 			It("rejects every request", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+			})
+		})
+
+		Describe("GET /sky/token", func() {
+			var (
+				err      error
+				request  *http.Request
+				response *http.Response
+			)
+
+			JustBeforeEach(func() {
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when authenticated", func() {
+				var oauthToken *oauth2.Token
+
+				BeforeEach(func() {
+					request, err = http.NewRequest("GET", skyServer.URL+"/sky/token", nil)
+					Expect(err).NotTo(HaveOccurred())
+
+					cookieExpiration := time.Now().Add(time.Hour)
+					tokenGenerator := token.NewGenerator(signingKey)
+					oauthToken, err = tokenGenerator.Generate(map[string]interface{}{
+						"exp":  cookieExpiration.Unix(),
+						"csrf": "some-csrf",
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					request.AddCookie(&http.Cookie{
+						Name:     "skymarshal_auth",
+						Value:    oauthToken.TokenType + " " + oauthToken.AccessToken,
+						Path:     "/",
+						Expires:  cookieExpiration,
+						HttpOnly: true,
+					})
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns the concourse token", func() {
+					token, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(token)).To(Equal(oauthToken.TokenType + " " + oauthToken.AccessToken))
+				})
+			})
+
+			Context("when not authenticated", func() {
+				BeforeEach(func() {
+					request, err = http.NewRequest("GET", skyServer.URL+"/sky/token", nil)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
 			})
 		})
 
