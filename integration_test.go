@@ -18,7 +18,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/sigmon"
+	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
 var _ = Describe("ATC Integration Test", func() {
@@ -43,12 +43,13 @@ var _ = Describe("ATC Integration Test", func() {
 
 	JustBeforeEach(func() {
 		cmd.BindPort = 9090 + uint16(GinkgoParallelNode())
-		cmd.DebugBindPort = 8079 + uint16(GinkgoParallelNode())
+		cmd.DebugBindPort = 0
 
 		runner, _, err := cmd.Runner([]string{})
 		Expect(err).NotTo(HaveOccurred())
 
-		atcProcess = ifrit.Invoke(sigmon.New(runner))
+		atcProcess = ginkgomon.Invoke(runner)
+
 		Eventually(func() error {
 			_, err := http.Get(fmt.Sprintf("http://localhost:%v/api/v1/info", cmd.BindPort))
 			return err
@@ -104,6 +105,7 @@ func RunCommand() *atccmd.RunCommand {
 	cmd.Postgres.SSLMode = "disable"
 	cmd.Auth.MainTeamFlags.LocalUsers = []string{"test"}
 	cmd.Auth.AuthFlags.LocalUsers = map[string]string{"test": "$2y$10$yh24anANlBzyCu3DFWW1ze5dgbFEf0UE5I/dMxOworxt2QVVmZfty"}
+	cmd.Logger.LogLevel = "debug"
 	cmd.Logger.SetWriterSink(GinkgoWriter)
 	return &cmd
 }
