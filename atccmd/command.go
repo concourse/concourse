@@ -969,14 +969,9 @@ func (cmd *RunCommand) defaultBindIP() net.IP {
 }
 
 func (cmd *RunCommand) defaultURL() flag.URL {
-	scheme := "http"
-	if cmd.TLSBindPort != 0 && cmd.TLSCert != "" && cmd.TLSKey != "" {
-		scheme = "https"
-	}
-
 	return flag.URL{
 		URL: &url.URL{
-			Scheme: scheme,
+			Scheme: "http",
 			Host:   fmt.Sprintf("%s:%d", cmd.defaultBindIP().String(), cmd.BindPort),
 		},
 	}
