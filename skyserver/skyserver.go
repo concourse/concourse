@@ -365,7 +365,6 @@ func (self *skyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.Header.Get("Authorization"), " ")
 
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
-		logger.Info("failed-to-parse-authorization-header")
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
