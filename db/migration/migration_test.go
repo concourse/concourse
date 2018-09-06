@@ -43,7 +43,7 @@ var _ = Describe("Migration", func() {
 
 		strategy = encryption.NewNoEncryption()
 		bindata = new(migrationfakes.FakeBindata)
-		bindata.AssetStub = migration.Asset
+		bindata.AssetStub = asset
 	})
 
 	AfterEach(func() {
@@ -74,7 +74,7 @@ var _ = Describe("Migration", func() {
 				} else if name == "2000000000_latest_migration_does_not_matter.up.sql" {
 					return []byte{}, nil
 				}
-				return migration.Asset(name)
+				return asset(name)
 			}
 
 			myDatabaseVersion := 1234567890
@@ -249,7 +249,7 @@ var _ = Describe("Migration", func() {
 						COMMIT;
 						`), nil
 					}
-					return migration.Asset(name)
+					return asset(name)
 				}
 				bindata.AssetNamesReturns([]string{
 					simpleMigrationFilename,
@@ -284,7 +284,7 @@ var _ = Describe("Migration", func() {
 						COMMIT;
 						`), nil
 					}
-					return migration.Asset(name)
+					return asset(name)
 				}
 
 				bindata.AssetNamesReturns([]string{
@@ -324,7 +324,7 @@ var _ = Describe("Migration", func() {
 							DROP TABLE nonexistent;
 						`), nil
 						}
-						return migration.Asset(name)
+						return asset(name)
 					}
 
 					bindata.AssetNamesReturns([]string{

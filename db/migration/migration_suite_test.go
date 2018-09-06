@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc/postgresrunner"
+	"github.com/gobuffalo/packr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -39,3 +40,5 @@ var _ = AfterSuite(func() {
 	dbProcess.Signal(os.Interrupt)
 	Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
 })
+
+var asset = packr.NewBox("./migrations").MustBytes

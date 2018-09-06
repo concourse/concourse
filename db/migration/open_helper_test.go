@@ -34,7 +34,7 @@ var _ = Describe("OpenHelper", func() {
 		openHelper = migration.NewOpenHelper("postgres", postgresRunner.DataSourceName(), lockFactory, strategy)
 
 		bindata = new(migrationfakes.FakeBindata)
-		bindata.AssetStub = migration.Asset
+		bindata.AssetStub = asset
 	})
 
 	AfterEach(func() {

@@ -70,7 +70,7 @@ var _ = Describe("Parser", func() {
 		})
 
 		It("combines sql functions in one statement", func() {
-			bindata.AssetStub = migration.Asset
+			bindata.AssetStub = asset
 			migration, err := parser.ParseFileToMigration("1530823998_create_teams_trigger.up.sql")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(migration.Statements)).To(Equal(6))
