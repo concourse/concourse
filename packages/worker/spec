@@ -5,8 +5,6 @@ dependencies:
   - golang
 
 files:
-  - github.com/concourse/web/index.html
-  - github.com/concourse/web/public/**/*
   - code.cloudfoundry.org/clock/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/garden/client/*.{go,s,c,h} # gosub
@@ -38,15 +36,9 @@ files:
   - github.com/concourse/worker/tsa/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
   - github.com/felixge/tcpkeepalive/*.{go,s,c,h} # gosub
-  - github.com/gobuffalo/packr/*.{go,s,c,h} # gosub
-  - github.com/gobuffalo/packr/builder/*.{go,s,c,h} # gosub
-  - github.com/gobuffalo/packr/packr/*.{go,s,c,h} # gosub
-  - github.com/gobuffalo/packr/packr/cmd/*.{go,s,c,h} # gosub
   - github.com/jessevdk/go-flags/*.{go,s,c,h} # gosub
   - github.com/mitchellh/mapstructure/*.{go,s,c,h} # gosub
   - github.com/nu7hatch/gouuid/*.{go,s,c,h} # gosub
-  - github.com/pkg/errors/*.{go,s,c,h} # gosub
-  - github.com/spf13/cobra/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/grouper/*.{go,s,c,h} # gosub
   - github.com/tedsuo/ifrit/http_server/*.{go,s,c,h} # gosub
@@ -59,6 +51,5 @@ files:
   - golang.org/x/crypto/poly1305/*.{go,s,c,h} # gosub
   - golang.org/x/crypto/ssh/*.{go,s,c,h} # gosub
   - golang.org/x/net/context/*.{go,s,c,h} # gosub
-  - golang.org/x/sync/errgroup/*.{go,s,c,h} # gosub
   - golang.org/x/sys/unix/*.{go,s,c,h} # gosub
   - gopkg.in/yaml.v2/*.{go,s,c,h} # gosub

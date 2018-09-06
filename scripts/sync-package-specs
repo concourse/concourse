@@ -22,7 +22,7 @@ for pkg in atc blackbox baggageclaim tsa worker; do
   pushd packages/$pkg
     {
       cat spec | grep -v '# gosub'
-      gosub list -a github.com/concourse/$pkg/cmd/... -a github.com/gobuffalo/packr/packr | \
+      gosub list -a github.com/concourse/$pkg/cmd/... | \
         sed -e 's/\(.*\)/  - \1\/*.{go,s,c,h} # gosub/g'
     } > spec.new
 
@@ -46,6 +46,16 @@ pushd packages/houdini-windows
   {
     cat spec | grep -v '# gosub'
     gosub list -a github.com/vito/houdini/cmd/... | \
+      sed -e 's/\(.*\)/  - \1\/*.{go,s,c,h} # gosub/g'
+  } > spec.new
+
+  mv spec.new spec
+popd
+
+pushd packages/packr
+  {
+    cat spec | grep -v '# gosub'
+    gosub list -a github.com/gobuffalo/packr/packr | \
       sed -e 's/\(.*\)/  - \1\/*.{go,s,c,h} # gosub/g'
   } > spec.new
 
