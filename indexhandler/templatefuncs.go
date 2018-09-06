@@ -23,7 +23,7 @@ func (funcs *templateFuncs) asset(asset string) (string, error) {
 	if !found {
 		hash := md5.New()
 
-		contents, err := box.MustBytes("public/" + asset)
+		contents, err := box.MustBytes(asset)
 		if err != nil {
 			return "", err
 		}

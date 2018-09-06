@@ -7,5 +7,5 @@ import (
 )
 
 func NewHandler() (http.Handler, error) {
-	return CacheNearlyForever(http.FileServer(packr.NewBox("../public"))), nil
+	return CacheNearlyForever(http.StripPrefix("/public/", http.FileServer(packr.NewBox("../public")))), nil
 }
