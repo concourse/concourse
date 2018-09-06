@@ -17,11 +17,10 @@ mv fly-rc/fly_* cli-artifacts
 go get github.com/jteeuwen/go-bindata
 
 go build -o go-bindata github.com/jteeuwen/go-bindata/go-bindata
-
 ./go-bindata -pkg bindata -o gopath/src/github.com/concourse/bin/bindata/bindata.go cli-artifacts/...
 
-go install github.com/gobuffalo/packr/packr
-packr -i concourse/src/github.com/concourse
+go build -o packr github.com/gobuffalo/packr/packr
+./packr -i concourse/src/github.com/concourse
 
 cd binary
 
