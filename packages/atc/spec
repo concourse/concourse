@@ -9,6 +9,7 @@ dependencies:
 
 files:
   - github.com/concourse/web/public/**/*
+  - github.com/concourse/skymarshal/web/**/*
   - github.com/concourse/atc/db/migration/migrations/*.sql
   - code.cloudfoundry.org/clock/*.{go,s,c,h} # gosub
   - code.cloudfoundry.org/credhub-cli/credhub/*.{go,s,c,h} # gosub
@@ -174,7 +175,6 @@ files:
   - github.com/concourse/go-archive/tgzfs/*.{go,s,c,h} # gosub
   - github.com/concourse/retryhttp/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/*.{go,s,c,h} # gosub
-  - github.com/concourse/skymarshal/bindata/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/dexserver/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/legacyserver/*.{go,s,c,h} # gosub
   - github.com/concourse/skymarshal/skycmd/*.{go,s,c,h} # gosub
@@ -188,7 +188,6 @@ files:
   - github.com/coreos/go-oidc/*.{go,s,c,h} # gosub
   - github.com/cppforlife/go-semi-semantic/version/*.{go,s,c,h} # gosub
   - github.com/dgrijalva/jwt-go/*.{go,s,c,h} # gosub
-  - github.com/elazarl/go-bindata-assetfs/*.{go,s,c,h} # gosub
   - github.com/emicklei/go-restful/*.{go,s,c,h} # gosub
   - github.com/emicklei/go-restful/log/*.{go,s,c,h} # gosub
   - github.com/felixge/httpsnoop/*.{go,s,c,h} # gosub
