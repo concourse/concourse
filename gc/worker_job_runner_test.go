@@ -16,12 +16,11 @@ import (
 var _ = Describe("WorkerJobRunner", func() {
 	var fakeWorkerA *workerfakes.FakeWorker
 	var fakeWorkerB *workerfakes.FakeWorker
-	var fakeWorkerPool *workerfakes.FakeClient
+	var fakeWorkerProvider *workerfakes.FakeWorkerProvider
 
 	var workerState chan []worker.Worker
 
 	var pool WorkerJobRunner
-	var metricFuncCallCount int
 
 	setWorkerState := func(workers []worker.Worker) {
 		// two writes guarantees that it read the workers, updated its state, and
@@ -33,7 +32,7 @@ var _ = Describe("WorkerJobRunner", func() {
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("pool")
 
-		fakeWorkerPool = &workerfakes.FakeClient{}
+		fakeWorkerProvider = &workerfakes.FakeWorkerProvider{}
 
 		fakeWorkerA = new(workerfakes.FakeWorker)
 		fakeWorkerA.NameReturns("worker-a")
@@ -43,15 +42,11 @@ var _ = Describe("WorkerJobRunner", func() {
 
 		state := make(chan []worker.Worker)
 		workerState = state
-		fakeWorkerPool.RunningWorkersStub = func(lager.Logger) ([]worker.Worker, error) {
+		fakeWorkerProvider.RunningWorkersStub = func(lager.Logger) ([]worker.Worker, error) {
 			return <-state, nil
 		}
 
-		metricFuncCallCount = 0
-
-		pool = NewWorkerJobRunner(logger, fakeWorkerPool, time.Millisecond, 3, func(lager.Logger, string) {
-			metricFuncCallCount++
-		})
+		pool = NewWorkerJobRunner(logger, fakeWorkerProvider, time.Millisecond)
 
 		setWorkerState([]worker.Worker{fakeWorkerA, fakeWorkerB})
 	})
@@ -89,152 +84,6 @@ var _ = Describe("WorkerJobRunner", func() {
 					}))
 				})
 			})
-
-			Context("when the worker has reached its max-in-flight", func() {
-				var stopWaiting chan struct{}
-
-				BeforeEach(func() {
-					wait := make(chan struct{})
-					stopWaiting = wait
-
-					for i := 0; i < 3; i++ {
-						pool.Try(logger, "worker-a", JobFunc(func(worker.Worker) {
-							<-wait
-						}))
-					}
-				})
-
-				It("drops any new jobs for the worker on the floor", func() {
-					can := make(chan struct{}, 100)
-
-					attempts := 0
-					Consistently(func() chan struct{} {
-						pool.Try(logger, "worker-a", JobFunc(func(worker.Worker) {
-							can <- struct{}{}
-						}))
-
-						attempts++
-						return can
-					}).ShouldNot(Receive())
-
-					Expect(metricFuncCallCount).To(Equal(attempts))
-				})
-
-				It("can run jobs on other workers", func() {
-					called := make(chan struct{})
-
-					pool.Try(logger, "worker-b", JobFunc(func(w worker.Worker) {
-						defer GinkgoRecover()
-						Expect(w).To(Equal(fakeWorkerB))
-						close(called)
-					}))
-
-					<-called
-				})
-
-				Context("when the jobs finish", func() {
-					BeforeEach(func() {
-						close(stopWaiting)
-					})
-
-					It("can run more jobs", func() {
-						can := make(chan struct{}, 100)
-
-						Eventually(func() chan struct{} {
-							pool.Try(logger, "worker-a", JobFunc(func(worker.Worker) {
-								can <- struct{}{}
-							}))
-
-							return can
-						}).Should(Receive())
-					})
-				})
-			})
-
-			Context("when a job of the same name is already in-flight", func() {
-				var stopWaiting chan struct{}
-
-				BeforeEach(func() {
-					wait := make(chan struct{})
-					stopWaiting = wait
-
-					pool.Try(logger, "worker-a", namedJobFunc("some-name", func(worker.Worker) {
-						<-wait
-					}))
-				})
-
-				It("drops any new jobs of the same name on the floor", func() {
-					can := make(chan struct{}, 100)
-
-					Consistently(func() chan struct{} {
-						pool.Try(logger, "worker-a", namedJobFunc("some-name", func(worker.Worker) {
-							can <- struct{}{}
-						}))
-
-						return can
-					}).ShouldNot(Receive())
-				})
-
-				It("can run jobs with other names", func() {
-					called := make(chan struct{})
-
-					pool.Try(logger, "worker-a", namedJobFunc("some-other-name", func(w worker.Worker) {
-						defer GinkgoRecover()
-						Expect(w).To(Equal(fakeWorkerA))
-						close(called)
-					}))
-
-					<-called
-				})
-
-				It("can run jobs with no name", func() {
-					called := make(chan struct{})
-
-					pool.Try(logger, "worker-a", JobFunc(func(w worker.Worker) {
-						defer GinkgoRecover()
-						Expect(w).To(Equal(fakeWorkerA))
-						close(called)
-					}))
-
-					<-called
-				})
-
-				Context("when the job finishes", func() {
-					BeforeEach(func() {
-						close(stopWaiting)
-					})
-
-					It("can run it again", func() {
-						can := make(chan struct{}, 100)
-
-						Eventually(func() chan struct{} {
-							pool.Try(logger, "worker-a", namedJobFunc("some-name", func(worker.Worker) {
-								can <- struct{}{}
-							}))
-
-							return can
-						}).Should(Receive())
-					})
-				})
-			})
 		})
 	})
 })
-
-type njf struct {
-	name string
-	f    func(worker.Worker)
-}
-
-func namedJobFunc(name string, f func(worker.Worker)) Job {
-	return njf{
-		name: name,
-		f:    f,
-	}
-}
-
-func (njf njf) Name() string { return njf.name }
-
-func (njf njf) Run(w worker.Worker) {
-	njf.f(w)
-}

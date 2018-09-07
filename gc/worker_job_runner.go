@@ -10,19 +10,11 @@ import (
 )
 
 type workerJobRunner struct {
-	workerPool worker.Client
-
-	maxJobsPerWorker int
+	workerProvider worker.WorkerProvider
 
 	workers             map[string]worker.Worker
 	workersL            *sync.Mutex
 	workersSyncInterval time.Duration
-
-	workerJobs map[string]int
-
-	jobsL          *sync.Mutex
-	inFlightJobs   map[string]struct{}
-	dropMetricFunc func(lager.Logger, string)
 }
 
 type Job interface {
@@ -46,24 +38,15 @@ type WorkerJobRunner interface {
 
 func NewWorkerJobRunner(
 	logger lager.Logger,
-	workerPool worker.Client,
+	workerProvider worker.WorkerProvider,
 	workersSyncInterval time.Duration,
-	maxJobsPerWorker int,
-	dropMetricFunc func(lager.Logger, string),
 ) WorkerJobRunner {
 	runner := &workerJobRunner{
-		workerPool: workerPool,
-
-		maxJobsPerWorker: maxJobsPerWorker,
+		workerProvider: workerProvider,
 
 		workers:             map[string]worker.Worker{},
 		workersL:            &sync.Mutex{},
 		workersSyncInterval: workersSyncInterval,
-
-		workerJobs:     map[string]int{},
-		jobsL:          &sync.Mutex{},
-		inFlightJobs:   map[string]struct{}{},
-		dropMetricFunc: dropMetricFunc,
 	}
 
 	go runner.syncWorkersLoop(logger)
@@ -83,58 +66,16 @@ func (runner *workerJobRunner) Try(logger lager.Logger, workerName string, job J
 
 	if !found {
 		// drop the job on the floor; it'll be queued up again later
+		//TODO: move this over to container collector, as we only need the
+		//worker to be running if the container to be GC'd is hijacked
+		//so we shouldn't be dropping every job for non-running workers
 		logger.Info("worker-not-found")
 		return
 	}
 
-	if !runner.startJob(job.Name(), workerName) {
-		logger.Debug("job-limit-reached")
-		runner.dropMetricFunc(logger, workerName)
-
-		return
-	}
-
 	go func() {
-		defer runner.finishJob(job.Name(), workerName)
 		job.Run(workerClient)
 	}()
-}
-
-func (runner *workerJobRunner) startJob(jobName, workerName string) bool {
-	runner.jobsL.Lock()
-	defer runner.jobsL.Unlock()
-
-	if runner.workerJobs[workerName] == runner.maxJobsPerWorker {
-		return false
-	}
-
-	if jobName != "" {
-		_, inFlight := runner.inFlightJobs[jobName]
-		if inFlight {
-			return false
-		}
-
-		runner.inFlightJobs[jobName] = struct{}{}
-	}
-
-	runner.workerJobs[workerName]++
-
-	return true
-}
-
-func (runner *workerJobRunner) finishJob(jobName, workerName string) {
-	runner.jobsL.Lock()
-	if runner.workerJobs[workerName] == 1 {
-		delete(runner.workerJobs, workerName)
-	} else {
-		runner.workerJobs[workerName]--
-	}
-
-	if jobName != "" {
-		delete(runner.inFlightJobs, jobName)
-	}
-
-	runner.jobsL.Unlock()
 }
 
 func (runner *workerJobRunner) syncWorkersLoop(logger lager.Logger) {
@@ -151,7 +92,7 @@ func (runner *workerJobRunner) syncWorkersLoop(logger lager.Logger) {
 }
 
 func (runner *workerJobRunner) syncWorkers(logger lager.Logger) {
-	workers, err := runner.workerPool.RunningWorkers(logger)
+	workers, err := runner.workerProvider.RunningWorkers(logger)
 	if err != nil {
 		logger.Error("failed-to-get-running-workers", err)
 		return
