@@ -2,7 +2,10 @@ package syslog
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
+	"io/ioutil"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -20,19 +23,20 @@ type Drainer interface {
 }
 
 type drainer struct {
-	hostname  string
-	transport string `yaml:"transport"`
-	address   string `yaml:"address"`
-
+	hostname     string
+	transport    string `yaml:"transport"`
+	address      string `yaml:"address"`
+	caCerts      []string
 	buildFactory db.BuildFactory
 }
 
-func NewDrainer(transport string, address string, hostname string, buildFactory db.BuildFactory) Drainer {
+func NewDrainer(transport string, address string, hostname string, caCerts []string, buildFactory db.BuildFactory) Drainer {
 	return &drainer{
 		hostname:     hostname,
 		transport:    transport,
 		address:      address,
 		buildFactory: buildFactory,
+		caCerts:      caCerts,
 	}
 }
 
@@ -46,11 +50,32 @@ func (d *drainer) Run(ctx context.Context) error {
 	}
 
 	if len(builds) > 0 {
+		var certpool *x509.CertPool
+		if d.transport == "tls" {
+
+			certpool, err = x509.SystemCertPool()
+			if err != nil {
+				return err
+			}
+
+			for _, cert := range d.caCerts {
+				content, err := ioutil.ReadFile(cert)
+				if err != nil {
+					return err
+				}
+
+				ok := certpool.AppendCertsFromPEM(content)
+				if !ok {
+					return errors.New("syslog drainer certificate error")
+				}
+			}
+		}
+
 		syslog, err := sl.Dial(
 			d.hostname,
 			d.transport,
 			d.address,
-			nil,
+			certpool,
 			30*time.Second,
 			30*time.Second,
 			99990,

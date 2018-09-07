@@ -149,7 +149,8 @@ type RunCommand struct {
 		Hostname      string        `long:"syslog-hostname" description:"Client hostname with which the build logs will be sent to the syslog server." default:"atc-syslog-drainer"`
 		Address       string        `long:"syslog-address" description:"Remote syslog server address with port (Example: 0.0.0.0:514)."`
 		Transport     string        `long:"syslog-transport" description:"Transport protocol for syslog messages (Currently supporting tcp, udp & tls)."`
-		DrainInterval time.Duration `long:"syslog-drain-interval" description:"Interval for which checking is done for new build logs to send to syslog server (duration measurement units are s/m/h; eg. 30s/30m/1h)" default:"30s"`
+		DrainInterval time.Duration `long:"syslog-drain-interval" description:"Interval over which checking is done for new build logs to send to syslog server (duration measurement units are s/m/h; eg. 30s/30m/1h)" default:"30s"`
+		CACerts       []string      `long:"syslog-ca-cert"              description:"Paths to PEM-encoded CA cert files to use to verify the Syslog server SSL cert."`
 	} ` group:"Syslog Drainer Configuration"`
 
 	Auth struct {
@@ -802,6 +803,7 @@ func (cmd *RunCommand) constructBackendMembers(
 					cmd.Syslog.Transport,
 					cmd.Syslog.Address,
 					cmd.Syslog.Hostname,
+					cmd.Syslog.CACerts,
 					dbBuildFactory,
 				),
 				"syslog-drainer",
