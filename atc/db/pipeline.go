@@ -58,8 +58,8 @@ type Pipeline interface {
 	VersionedResource(versionedResourceID int) (SavedVersionedResource, bool, error)
 	DisableResourceVersion(int, int) error
 	EnableResourceVersion(int, int) error
-	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
-	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
+	GetBuildsWithVersionAsInput(int, int) ([]Build, error)
+	GetBuildsWithVersionAsOutput(int, int) ([]Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
@@ -680,11 +680,13 @@ func (p *pipeline) EnableResourceVersion(resourceID int, resourceConfigVersionID
 	return p.toggleResourceVersion(resourceID, resourceConfigVersionID, true)
 }
 
-func (p *pipeline) GetBuildsWithVersionAsInput(resourceConfigVersionID int) ([]Build, error) {
+func (p *pipeline) GetBuildsWithVersionAsInput(resourceID, resourceConfigVersionID int) ([]Build, error) {
 	rows, err := buildsQuery.
-		JoinClause("LEFT OUTER JOIN build_resource_config_versions_inputs bi ON bi.build_id = b.id").
+		Join("build_resource_config_version_inputs bi ON bi.build_id = b.id").
+		Join("resource_config_versions rcv ON rcv.version_md5 = bi.version_md5").
 		Where(sq.Eq{
-			"bi.resource_config_version_id": resourceConfigVersionID,
+			"rcv.id":         resourceConfigVersionID,
+			"bi.resource_id": resourceID,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -706,11 +708,13 @@ func (p *pipeline) GetBuildsWithVersionAsInput(resourceConfigVersionID int) ([]B
 	return builds, err
 }
 
-func (p *pipeline) GetBuildsWithVersionAsOutput(resourceConfigVersionID int) ([]Build, error) {
+func (p *pipeline) GetBuildsWithVersionAsOutput(resourceID, resourceConfigVersionID int) ([]Build, error) {
 	rows, err := buildsQuery.
-		JoinClause("LEFT OUTER JOIN build_resource_config_versions_outputs bo ON bo.build_id = b.id").
+		Join("build_resource_config_version_outputs bo ON bo.build_id = b.id").
+		Join("resource_config_versions rcv ON rcv.version_md5 = bo.version_md5").
 		Where(sq.Eq{
-			"bo.resource_config_version_id": resourceConfigVersionID,
+			"rcv.id":         resourceConfigVersionID,
+			"bo.resource_id": resourceID,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -984,16 +988,17 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	}
 
 	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, b.job_id").
-		From("build_resource_config_versions_outputs o").
+		From("build_resource_config_version_outputs o").
 		Join("builds b ON b.id = o.build_id").
-		Join("resource_config_versions v ON v.id = o.resource_config_version_id").
-		Join("resources r ON r.resource_config_id = v.resource_config_id").
-		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version = v.version").
+		Join("resource_config_versions v ON v.version_md5 = o.version_md5").
+		Join("resources r ON r.id = o.resource_id").
+		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
+		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
 			"d.resource_id": nil,
-			"d.version":     nil,
+			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -1016,15 +1021,16 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	}
 
 	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
-		From("build_resource_config_versions_inputs i").
+		From("build_resource_config_version_inputs i").
 		Join("builds b ON b.id = i.build_id").
-		Join("resource_config_versions v ON v.id = i.resource_config_version_id").
-		Join("resources r ON r.resource_config_id = v.resource_config_id").
-		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version = v.version").
+		Join("resource_config_versions v ON v.version_md5 = i.version_md5").
+		Join("resources r ON r.id = i.resource_id").
+		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
+		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"d.resource_id": nil,
-			"d.version":     nil,
+			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -1060,11 +1066,11 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err = psql.Select("v.id, v.check_order, r.id").
 		From("resource_config_versions v").
 		Join("resources r ON r.resource_config_id = v.resource_config_id").
-		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version = v.version").
+		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"d.resource_id": nil,
-			"d.version":     nil,
+			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -1371,12 +1377,12 @@ func (p *pipeline) toggleResourceVersion(resourceID int, rcvID int, enable bool)
 		results, err = tx.Exec(`
 			DELETE FROM resource_disabled_versions
 			WHERE resource_id = $1
-			AND version = (SELECT version FROM resource_config_versions rcv WHERE rcv.id = $2)
+			AND version_md5 = (SELECT version_md5 FROM resource_config_versions rcv WHERE rcv.id = $2)
 			`, resourceID, rcvID)
 	} else {
 		results, err = tx.Exec(`
-			INSERT INTO resource_disabled_versions (resource_id, version)
-			SELECT $1, rcv.version
+			INSERT INTO resource_disabled_versions (resource_id, version_md5)
+			SELECT $1, rcv.version_md5
 			FROM resource_config_versions rcv
 			WHERE rcv.id = $2
 			`, resourceID, rcvID)

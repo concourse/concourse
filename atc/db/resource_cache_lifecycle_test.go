@@ -341,7 +341,8 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 				err = defaultJob.SaveNextInputMapping(algorithm.InputMapping{
 					"some-resource": algorithm.InputVersion{
-						VersionID: resourceConfigVersion.ID(),
+						VersionID:  resourceConfigVersion.ID(),
+						ResourceID: defaultResource.ID(),
 					},
 				})
 				Expect(err).ToNot(HaveOccurred())

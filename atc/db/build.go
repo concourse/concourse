@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -75,7 +76,7 @@ type Build interface {
 	SaveEvent(event atc.Event) error
 
 	SaveInput(input BuildInput) error
-	SaveOutput(ResourceConfig, atc.Version, ResourceConfigMetadataFields, string) error
+	SaveOutput(ResourceConfig, atc.Version, ResourceConfigMetadataFields, string, string) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
@@ -127,6 +128,7 @@ type build struct {
 }
 
 var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
+var ErrBuildHasNoPipeline = errors.New("build-has-no-pipeline")
 
 func (b *build) ID() int                      { return b.id }
 func (b *build) Name() string                 { return b.name }
@@ -783,7 +785,14 @@ func (b *build) SaveInput(input BuildInput) error {
 	return tx.Commit()
 }
 
-func (b *build) SaveOutput(rc ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields, name string) error {
+func (b *build) SaveOutput(rc ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields, outputName string, resourceName string) error {
+	// We should never save outputs for builds without a Pipeline ID because
+	// One-off Builds will never have Put steps. This shouldn't happen, but
+	// its best to return an error just in case
+	if b.pipelineID == 0 {
+		return ErrBuildHasNoPipeline
+	}
+
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
@@ -796,33 +805,42 @@ func (b *build) SaveOutput(rc ResourceConfig, version atc.Version, metadata Reso
 		return err
 	}
 
-	if created {
-		var versionJSON []byte
-		versionJSON, err = json.Marshal(rcv.Version())
-		if err != nil {
-			return err
-		}
-
-		err = incrementCheckOrderWhenNewerVersion(tx, rc, string(versionJSON))
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = psql.Insert("build_resource_config_versions_outputs").
-		Columns("build_id", "resource_config_version_id", "name").
-		Values(b.id, rcv.ID(), name).
-		RunWith(tx).
-		Exec()
+	var versionJSON string
+	versionBytes, err := json.Marshal(rcv.Version())
 	if err != nil {
 		return err
 	}
 
-	if b.pipelineID != 0 {
-		err = bumpCacheIndex(tx, b.pipelineID)
+	versionJSON = string(versionBytes)
+
+	if created {
+		err = incrementCheckOrderWhenNewerVersion(tx, rc, versionJSON)
 		if err != nil {
 			return err
 		}
+	}
+
+	// Use the Resource Name and the Build's Pipeline ID to find the Resource ID
+	selectResourceID := sq.Select("r.id", strconv.Itoa(b.id), fmt.Sprintf("md5('%s')", versionJSON), fmt.Sprintf("'%s'", outputName)).
+		From("resources r").Where(sq.Eq{
+		"r.pipeline_id": b.pipelineID,
+		"r.name":        resourceName,
+	})
+
+	_, err = psql.Insert("build_resource_config_version_outputs").
+		Columns("resource_id", "build_id", "version_md5", "name").
+		Select(selectResourceID).
+		Suffix("ON CONFLICT DO NOTHING").
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = bumpCacheIndex(tx, b.pipelineID)
+	if err != nil {
+		return err
 	}
 
 	return tx.Commit()
@@ -836,7 +854,7 @@ func (b *build) UseInputs(inputs []BuildInput) error {
 
 	defer Rollback(tx)
 
-	_, err = psql.Delete("build_resource_config_versions_inputs").
+	_, err = psql.Delete("build_resource_config_version_inputs").
 		Where(sq.Eq{"build_id": b.id}).
 		RunWith(tx).
 		Exec()
@@ -865,27 +883,35 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	inputs := []BuildInput{}
 	outputs := []BuildOutput{}
 
-	rows, err := b.conn.Query(`
-		SELECT i.name, v.id, v.version,
+	firstOccurrence := `
 		NOT EXISTS (
 			SELECT 1
-			FROM build_resource_config_versions_inputs ci, builds cb
-			WHERE resource_config_version_id = v.id
-			AND cb.job_id = b.job_id
-			AND ci.build_id = cb.id
-			AND ci.build_id < b.id
-		)
-		FROM resource_config_versions v, build_resource_config_versions_inputs i, builds b
-		WHERE b.id = $1
-		AND i.build_id = b.id
-		AND i.resource_config_version_id = v.id
-		AND NOT EXISTS (
+			FROM build_resource_config_version_inputs i, builds b
+			WHERE versions.version_md5 = i.version_md5
+			AND resources.resource_config_id = versions.resource_config_id
+			AND resources.id = inputs.resource_id
+			AND b.job_id = builds.job_id
+			AND i.build_id = b.id
+			AND i.build_id < builds.id
+		)`
+
+	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", firstOccurrence).
+		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
+		Where(sq.Eq{"builds.id": b.id}).
+		Where(sq.Expr("inputs.build_id = builds.id")).
+		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
+		Where(sq.Expr("resources.resource_config_id = versions.resource_config_id")).
+		Where(sq.Expr("resources.id = inputs.resource_id")).
+		Where(sq.Expr(`NOT EXISTS (
 			SELECT 1
-			FROM build_resource_config_versions_outputs o
-			WHERE o.resource_config_version_id = v.id
-			AND o.build_id = i.build_id
-		)
-	`, b.id)
+			FROM build_resource_config_version_outputs outputs
+			WHERE outputs.version_md5 = versions.version_md5
+			AND versions.resource_config_id = resources.resource_config_id
+			AND outputs.resource_id = resources.id
+			AND outputs.build_id = inputs.build_id
+		)`)).
+		RunWith(b.conn).
+		Query()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -898,10 +924,10 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			firstOccurrence bool
 			versionBlob     string
 			version         atc.Version
-			rcvID           int
+			resourceID      int
 		)
 
-		err = rows.Scan(&inputName, &rcvID, &versionBlob, &firstOccurrence)
+		err = rows.Scan(&inputName, &resourceID, &versionBlob, &firstOccurrence)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -912,19 +938,21 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		}
 
 		inputs = append(inputs, BuildInput{
-			Name:                    inputName,
-			Version:                 version,
-			ResourceConfigVersionID: rcvID,
-			FirstOccurrence:         firstOccurrence,
+			Name:            inputName,
+			Version:         version,
+			ResourceID:      resourceID,
+			FirstOccurrence: firstOccurrence,
 		})
 	}
 
 	rows, err = b.conn.Query(`
-		SELECT o.name, rcv.version
-		FROM resource_config_versions rcv, build_resource_config_versions_outputs o, builds b
-		WHERE b.id = $1
-		AND o.build_id = b.id
-		AND o.resource_config_version_id = rcv.id
+		SELECT outputs.name, versions.version
+		FROM resource_config_versions versions, build_resource_config_version_outputs outputs, builds, resources
+		WHERE builds.id = $1
+		AND outputs.build_id = builds.id
+		AND outputs.version_md5 = versions.version_md5
+		AND outputs.resource_id = resources.id
+		AND resources.resource_config_id = versions.resource_config_id
 	`, b.id)
 	if err != nil {
 		return nil, nil, err
@@ -963,18 +991,20 @@ func (b *build) ResourceConfigVersions() ([]int, error) {
 		SELECT vr.id
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN build_resource_config_versions_inputs bi ON bi.build_id = b.id
-		INNER JOIN resource_config_versions vr ON bi.resource_config_version_id = vr.id
-		WHERE b.id = $1
+		INNER JOIN build_resource_config_version_inputs bi ON bi.build_id = b.id
+		INNER JOIN resource_config_versions vr ON bi.version_md5 = vr.version_md5
+		INNER JOIN resources r ON bi.resource_id = r.id
+		WHERE b.id = $1 AND r.resource_config_id = vr.resource_config_id
 
 		UNION ALL
 
 		SELECT vr.id
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN build_resource_config_versions_outputs bo ON bo.build_id = b.id
-		INNER JOIN resource_config_versions vr ON bo.resource_config_version_id = vr.id
-		WHERE b.id = $1
+		INNER JOIN build_resource_config_version_outputs bo ON bo.build_id = b.id
+		INNER JOIN resource_config_versions vr ON bo.version_md5 = vr.version_md5
+		INNER JOIN resources r ON bo.resource_id = r.id
+		WHERE b.id = $1 AND r.resource_config_id = vr.resource_config_id
 	`, b.id)
 	if err != nil {
 		return nil, err
@@ -998,19 +1028,19 @@ func (b *build) ResourceConfigVersions() ([]int, error) {
 }
 
 func (p *build) saveInputTx(tx Tx, buildID int, input BuildInput) error {
-	_, err := tx.Exec(`
-		INSERT INTO build_resource_config_versions_inputs (build_id, resource_config_version_id, name)
-		SELECT $1, $2, $3
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM build_resource_config_versions_inputs
-			WHERE build_id = $1
-			AND resource_config_version_id = $2
-			AND name = $3
-		)
-	`, buildID, input.ResourceConfigVersionID, input.Name)
+	versionJSON, err := json.Marshal(input.Version)
+	if err != nil {
+		return err
+	}
 
-	return swallowUniqueViolation(err)
+	_, err = psql.Insert("build_resource_config_version_inputs").
+		Columns("build_id", "resource_id", "version_md5", "name").
+		Values(buildID, input.ResourceID, sq.Expr(fmt.Sprintf("md5('%s')", versionJSON)), input.Name).
+		Suffix("ON CONFLICT DO NOTHING").
+		RunWith(tx).
+		Exec()
+
+	return err
 }
 
 func createBuildEventSeq(tx Tx, buildid int) error {
@@ -1142,7 +1172,6 @@ func updateNextBuildForJob(tx Tx, jobID int) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 

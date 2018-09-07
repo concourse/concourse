@@ -4,6 +4,7 @@ BEGIN;
       "id" serial NOT NULL PRIMARY KEY,
       "resource_config_id" integer NOT NULL REFERENCES resource_configs (id) ON DELETE CASCADE,
       "version" jsonb NOT NULL,
+      "version_md5" text NOT NULL,
       "metadata" jsonb NOT NULL DEFAULT 'null',
       "check_order" integer NOT NULL DEFAULT 0
   );
@@ -13,14 +14,14 @@ BEGIN;
 
   CREATE TABLE resource_disabled_versions (
     "resource_id" integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
-    "version" jsonb NOT NULL
+    "version_md5" text NOT NULL
   );
 
-  CREATE UNIQUE INDEX resource_disabled_versions_resource_id_version_uniq
-  ON resource_disabled_versions (resource_id, md5(version::text));
+  CREATE UNIQUE INDEX resource_disabled_versions_resource_id_version_md5_uniq
+  ON resource_disabled_versions (resource_id, version_md5);
 
-  INSERT INTO resource_disabled_versions (resource_id, version)
-  SELECT vr.resource_id, vr.version::jsonb
+  INSERT INTO resource_disabled_versions (resource_id, version_md5)
+  SELECT vr.resource_id, md5(vr.version)
   FROM versioned_resources vr
   WHERE NOT enabled;
 
@@ -31,28 +32,38 @@ BEGIN;
   ALTER TABLE resource_types
     ADD COLUMN check_error text;
 
-  CREATE TABLE build_resource_config_versions_inputs (
+  CREATE TABLE build_resource_config_version_inputs (
       "build_id" integer NOT NULL REFERENCES builds (id) ON DELETE CASCADE,
-      "resource_config_version_id" integer NOT NULL REFERENCES resource_config_versions (id) ON DELETE CASCADE,
+      "resource_id" integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
+      "version_md5" text NOT NULL,
       "name" text NOT NULL
   );
 
-  CREATE TABLE build_resource_config_versions_outputs (
+  CREATE UNIQUE INDEX build_resource_config_version_inputs_uniq
+  ON build_resource_config_version_inputs (build_id, resource_id, version_md5, name);
+
+  CREATE TABLE build_resource_config_version_outputs (
       "build_id" integer NOT NULL REFERENCES builds (id) ON DELETE CASCADE,
-      "resource_config_version_id" integer NOT NULL REFERENCES resource_config_versions (id) ON DELETE CASCADE,
+      "resource_id" integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
+      "version_md5" text NOT NULL,
       "name" text NOT NULL
   );
+
+  CREATE UNIQUE INDEX build_resource_config_version_outputs_uniq
+  ON build_resource_config_version_outputs (build_id, resource_id, version_md5, name);
 
   TRUNCATE TABLE next_build_inputs;
 
   ALTER TABLE next_build_inputs
     ADD COLUMN resource_config_version_id integer NOT NULL REFERENCES resource_config_versions (id) ON DELETE CASCADE,
+    ADD COLUMN resource_id integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
     DROP COLUMN version_id;
 
   TRUNCATE TABLE independent_build_inputs;
 
   ALTER TABLE independent_build_inputs
     ADD COLUMN resource_config_version_id integer NOT NULL REFERENCES resource_config_versions (id) ON DELETE CASCADE,
+    ADD COLUMN resource_id integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
     DROP COLUMN version_id;
 
   DROP INDEX resource_caches_resource_config_id_version_params_hash_key;

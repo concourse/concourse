@@ -54,9 +54,9 @@ func (rmf ResourceMetadataFields) ToATCMetadata() []atc.MetadataField {
 }
 
 type BuildInput struct {
-	Name                    string
-	Version                 atc.Version
-	ResourceConfigVersionID int
+	Name       string
+	Version    atc.Version
+	ResourceID int
 
 	FirstOccurrence bool
 }

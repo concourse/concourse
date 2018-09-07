@@ -673,7 +673,7 @@ func (j *job) updatePausedJob(pause bool) error {
 }
 
 func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
-	rows, err := psql.Select("i.input_name, i.first_occurrence, v.id, v.version").
+	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version").
 		From(table + " i").
 		Join("jobs j ON i.job_id = j.id").
 		Join("resource_config_versions v ON v.id = i.resource_config_version_id").
@@ -690,14 +690,14 @@ func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
 	buildInputs := []BuildInput{}
 	for rows.Next() {
 		var (
-			inputName               string
-			firstOccurrence         bool
-			versionBlob             string
-			resourceConfigVersionID int
-			version                 atc.Version
+			inputName       string
+			firstOccurrence bool
+			versionBlob     string
+			version         atc.Version
+			resourceID      int
 		)
 
-		err := rows.Scan(&inputName, &firstOccurrence, &resourceConfigVersionID, &versionBlob)
+		err := rows.Scan(&inputName, &firstOccurrence, &resourceID, &versionBlob)
 		if err != nil {
 			return nil, err
 		}
@@ -708,10 +708,10 @@ func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
 		}
 
 		buildInputs = append(buildInputs, BuildInput{
-			Name:                    inputName,
-			ResourceConfigVersionID: resourceConfigVersionID,
-			Version:                 version,
-			FirstOccurrence:         firstOccurrence,
+			Name:            inputName,
+			ResourceID:      resourceID,
+			Version:         version,
+			FirstOccurrence: firstOccurrence,
 		})
 	}
 	return buildInputs, nil
@@ -753,7 +753,7 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 		return err
 	}
 
-	rows, err := psql.Select("input_name, resource_config_version_id, first_occurrence").
+	rows, err := psql.Select("input_name, resource_config_version_id, resource_id, first_occurrence").
 		From(table).
 		Where(sq.Eq{"job_id": j.id}).
 		RunWith(tx).
@@ -766,7 +766,7 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 	for rows.Next() {
 		var inputName string
 		var inputVersion algorithm.InputVersion
-		err = rows.Scan(&inputName, &inputVersion.VersionID, &inputVersion.FirstOccurrence)
+		err = rows.Scan(&inputName, &inputVersion.VersionID, &inputVersion.ResourceID, &inputVersion.FirstOccurrence)
 		if err != nil {
 			return err
 		}
@@ -798,6 +798,7 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 					"job_id":                     j.id,
 					"input_name":                 inputName,
 					"resource_config_version_id": inputVersion.VersionID,
+					"resource_id":                inputVersion.ResourceID,
 					"first_occurrence":           inputVersion.FirstOccurrence,
 				}).
 				RunWith(tx).

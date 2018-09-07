@@ -68,7 +68,7 @@ var _ = Describe("Resolve", func() {
 
 		It("sets FirstOccurrence to false", func() {
 			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputVersion{VersionID: 2, FirstOccurrence: false},
+				"some-input": algorithm.InputVersion{VersionID: 2, ResourceID: 21, FirstOccurrence: false},
 			}))
 		})
 	})
@@ -87,7 +87,7 @@ var _ = Describe("Resolve", func() {
 
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+				"some-input": algorithm.InputVersion{VersionID: 2, ResourceID: 21, FirstOccurrence: true},
 			}))
 		})
 	})
@@ -106,7 +106,7 @@ var _ = Describe("Resolve", func() {
 
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+				"some-input": algorithm.InputVersion{VersionID: 2, ResourceID: 21, FirstOccurrence: true},
 			}))
 		})
 	})
@@ -125,7 +125,7 @@ var _ = Describe("Resolve", func() {
 
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+				"some-input": algorithm.InputVersion{VersionID: 2, ResourceID: 21, FirstOccurrence: true},
 			}))
 		})
 	})
@@ -143,7 +143,7 @@ var _ = Describe("Resolve", func() {
 
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+				"some-input": algorithm.InputVersion{VersionID: 2, ResourceID: 21, FirstOccurrence: true},
 			}))
 		})
 	})

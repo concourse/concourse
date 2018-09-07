@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"context"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -32,6 +33,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 			var oneOffCache db.UsedResourceCache
 			var jobCache db.UsedResourceCache
+
+			var resource db.Resource
 
 			BeforeEach(func() {
 				resourceCacheUseCollector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
@@ -68,7 +71,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				resource, found, err := defaultPipeline.Resource("some-resource")
+				var found bool
+				resource, found, err = defaultPipeline.Resource("some-resource")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -111,16 +115,18 @@ var _ = Describe("ResourceCacheCollector", func() {
 				Context("when the cache is an input to a job", func() {
 					BeforeEach(func() {
 						var versionID int
+						version := `{"some":"version"}`
 						err = psql.Insert("resource_config_versions").
-							Columns("version", "metadata", "resource_config_id").
-							Values(`{"some":"version"}`, `null`, jobCache.ResourceConfig().ID()).
+							Columns("version", "version_md5", "metadata", "resource_config_id").
+							Values(version, sq.Expr(fmt.Sprintf("md5('%s')", version)), `null`, jobCache.ResourceConfig().ID()).
 							Suffix("RETURNING id").
 							RunWith(dbConn).QueryRow().Scan(&versionID)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(defaultJob.SaveNextInputMapping(algorithm.InputMapping{
 							"whatever": algorithm.InputVersion{
-								VersionID: versionID,
+								VersionID:  versionID,
+								ResourceID: resource.ID(),
 							},
 						})).To(Succeed())
 					})

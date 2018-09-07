@@ -167,7 +167,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 			return err
 		}
 
-		err = step.build.SaveOutput(resourceConfig, step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata), step.name)
+		err = step.build.SaveOutput(resourceConfig, step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata), step.name, step.resource)
 		if err != nil {
 			logger.Error("failed-to-save-output", err)
 			return err

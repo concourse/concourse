@@ -1607,11 +1607,13 @@ var _ = Describe("Jobs API", func() {
 						fakeSchedulerFactory.BuildSchedulerReturns(fakeScheduler)
 
 						resource1 := new(dbfakes.FakeResource)
+						resource1.IDReturns(1)
 						resource1.NameReturns("some-resource")
 						resource1.TypeReturns("some-type")
 						resource1.SourceReturns(atc.Source{"some": "source"})
 
 						resource2 := new(dbfakes.FakeResource)
+						resource1.IDReturns(2)
 						resource2.NameReturns("some-other-resource")
 						resource2.TypeReturns("some-other-type")
 						resource2.SourceReturns(atc.Source{"some": "other-source"})
@@ -1625,14 +1627,14 @@ var _ = Describe("Jobs API", func() {
 								Expect(fakeScheduler.SaveNextInputMappingCallCount()).To(Equal(1))
 								return []db.BuildInput{
 									{
-										Name:                    "some-input",
-										Version:                 atc.Version{"some": "version"},
-										ResourceConfigVersionID: 1,
+										Name:       "some-input",
+										Version:    atc.Version{"some": "version"},
+										ResourceID: 1,
 									},
 									{
-										Name:                    "some-other-input",
-										Version:                 atc.Version{"some": "other-version"},
-										ResourceConfigVersionID: 2,
+										Name:       "some-other-input",
+										Version:    atc.Version{"some": "other-version"},
+										ResourceID: 2,
 									},
 								}, true, nil
 							}

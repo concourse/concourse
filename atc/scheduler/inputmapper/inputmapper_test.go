@@ -147,8 +147,8 @@ var _ = Describe("Inputmapper", func() {
 						Expect(fakeJob.SaveIndependentInputMappingCallCount()).To(Equal(1))
 						actualMapping := fakeJob.SaveIndependentInputMappingArgsForCall(0)
 						Expect(actualMapping).To(Equal(algorithm.InputMapping{
-							"alias": algorithm.InputVersion{VersionID: 1, FirstOccurrence: true},
-							"b":     algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+							"alias": algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: true},
+							"b":     algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: true},
 						}))
 					})
 				})
@@ -171,8 +171,8 @@ var _ = Describe("Inputmapper", func() {
 							Expect(fakeJob.SaveIndependentInputMappingCallCount()).To(Equal(1))
 							actualMapping := fakeJob.SaveIndependentInputMappingArgsForCall(0)
 							Expect(actualMapping).To(Equal(algorithm.InputMapping{
-								"alias": algorithm.InputVersion{VersionID: 1, FirstOccurrence: true},
-								"b":     algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+								"alias": algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: true},
+								"b":     algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: true},
 							}))
 						})
 					})
@@ -185,8 +185,8 @@ var _ = Describe("Inputmapper", func() {
 						It("returns the mapping", func() {
 							Expect(mappingErr).NotTo(HaveOccurred())
 							Expect(inputMapping).To(Equal(algorithm.InputMapping{
-								"alias": algorithm.InputVersion{VersionID: 1, FirstOccurrence: true},
-								"b":     algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+								"alias": algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: true},
+								"b":     algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: true},
 							}))
 						})
 
@@ -244,8 +244,8 @@ var _ = Describe("Inputmapper", func() {
 				It("saved the right individual input mapping", func() {
 					actualMapping := fakeJob.SaveIndependentInputMappingArgsForCall(0)
 					Expect(actualMapping).To(Equal(algorithm.InputMapping{
-						"a": algorithm.InputVersion{VersionID: 1, FirstOccurrence: true},
-						"b": algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+						"a": algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: true},
+						"b": algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: true},
 					}))
 				})
 
@@ -293,7 +293,7 @@ var _ = Describe("Inputmapper", func() {
 			It("saved the right individual input mapping", func() {
 				actualMapping := fakeJob.SaveIndependentInputMappingArgsForCall(0)
 				Expect(actualMapping).To(Equal(algorithm.InputMapping{
-					"a": algorithm.InputVersion{VersionID: 1, FirstOccurrence: true},
+					"a": algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: true},
 				}))
 			})
 
@@ -334,7 +334,7 @@ var _ = Describe("Inputmapper", func() {
 			It("saved the right individual input mapping", func() {
 				actualMapping := fakeJob.SaveIndependentInputMappingArgsForCall(0)
 				Expect(actualMapping).To(Equal(algorithm.InputMapping{
-					"b": algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+					"b": algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: true},
 				}))
 			})
 

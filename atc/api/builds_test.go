@@ -696,16 +696,16 @@ var _ = Describe("Builds API", func() {
 					BeforeEach(func() {
 						build.ResourcesReturns([]db.BuildInput{
 							{
-								Name:                    "input1",
-								Version:                 atc.Version{"version": "value1"},
-								ResourceConfigVersionID: 1,
-								FirstOccurrence:         true,
+								Name:            "input1",
+								Version:         atc.Version{"version": "value1"},
+								ResourceID:      1,
+								FirstOccurrence: true,
 							},
 							{
-								Name:                    "input2",
-								Version:                 atc.Version{"version": "value2"},
-								ResourceConfigVersionID: 2,
-								FirstOccurrence:         false,
+								Name:            "input2",
+								Version:         atc.Version{"version": "value2"},
+								ResourceID:      2,
+								FirstOccurrence: false,
 							},
 						},
 							[]db.BuildOutput{

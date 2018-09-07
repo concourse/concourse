@@ -129,9 +129,9 @@ func (r *resourceConfig) LatestVersion() (ResourceConfigVersion, bool, error) {
 	err := scanResourceConfigVersion(rcv, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return &resourceConfigVersion{}, false, nil
+			return nil, false, nil
 		}
-		return &resourceConfigVersion{}, false, err
+		return nil, false, err
 	}
 
 	return rcv, true, nil
@@ -290,24 +290,7 @@ func (r *resourceConfig) Versions(page Page) (ResourceConfigVersions, Pagination
 			conn:           r.conn,
 		}
 
-		var versionString, metadataString string
-
-		err = rows.Scan(
-			&rcv.id,
-			&versionString,
-			&metadataString,
-			&rcv.checkOrder,
-		)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-
-		err = json.Unmarshal([]byte(versionString), &rcv.version)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-
-		err = json.Unmarshal([]byte(metadataString), &rcv.metadata)
+		err = scanResourceConfigVersion(rcv, rows)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
@@ -447,11 +430,11 @@ func saveResourceConfigVersion(tx Tx, conn Conn, r ResourceConfig, version atc.V
 
 	// XXX uniq
 	err = tx.QueryRow(`
-		INSERT INTO resource_config_versions (resource_config_id, version, metadata)
-		SELECT $1, $2, $3
-		ON CONFLICT (resource_config_id, version) DO UPDATE SET metadata = $3
+		INSERT INTO resource_config_versions (resource_config_id, version, version_md5, metadata)
+		SELECT $1, $2, md5($3), $4
+		ON CONFLICT (resource_config_id, version) DO UPDATE SET metadata = $4
 		RETURNING id, check_order, version, metadata
-		`, r.ID(), string(versionJSON), string(metadataJSON)).Scan(&id, &checkOrder, &versionString, &metadataString)
+		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON)).Scan(&id, &checkOrder, &versionString, &metadataString)
 	if err != nil {
 		return nil, false, err
 	}
