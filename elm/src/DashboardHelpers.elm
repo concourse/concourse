@@ -65,17 +65,8 @@ jobStatuses jobs =
 
 
 containsStatus : Concourse.BuildStatus -> List (Maybe Concourse.BuildStatus) -> Bool
-containsStatus status statuses =
-    List.any
-        (\s ->
-            case s of
-                Just s ->
-                    status == s
-
-                Nothing ->
-                    False
-        )
-        statuses
+containsStatus =
+    List.member << Just
 
 
 jobsByPipelineId : List Concourse.Pipeline -> List Concourse.Job -> Dict PipelineId (List Concourse.Job)

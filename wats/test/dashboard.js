@@ -1,4 +1,7 @@
 import test from 'ava';
+import Fly from './helpers/fly'
+import Web from './helpers/web'
+import puppeteer from 'puppeteer';
 
 const Suite = require('./helpers/suite');
 
@@ -6,15 +9,14 @@ const color = require('color');
 const palette = require('./helpers/palette');
 
 test.beforeEach(async t => {
-  t.context = new Suite();
-  await t.context.start(t);
+  t.context = await Suite.build(t);
 });
 
 test.afterEach(async t => {
   t.context.passed(t);
 });
 
-test.always.afterEach(async t => {
+test.afterEach.always(async t => {
   await t.context.finish(t);
 });
 
@@ -24,18 +26,105 @@ async function showsPipelineState(t, setup, assertions) {
 
   await setup(t);
 
-  await t.context.page.goto(t.context.web.route('/dashboard'));
+  await t.context.web.page.goto(t.context.web.route('/dashboard'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  await t.context.page.waitFor(`${group} .dashboard-pipeline`);
-  const pipeline = await t.context.page.$(`${group} .dashboard-pipeline`);
-  const text = await t.context.web.text(t.context.page, pipeline);
+  await t.context.web.page.waitFor(`${group} .dashboard-pipeline`);
+  const pipeline = await t.context.web.page.$(`${group} .dashboard-pipeline`);
+  const text = await t.context.web.text(pipeline);
 
-  const banner = await t.context.page.$(`${group} .dashboard-pipeline-banner`);
-  const background = await t.context.web.computedStyle(t.context.page, banner, 'backgroundColor');
+  const banner = await t.context.web.page.$(`${group} .dashboard-pipeline-banner`);
+  const background = await t.context.web.computedStyle(banner, 'backgroundColor');
 
   await assertions(t, text, color(background), group);
 };
+
+test('does not show team name when unauthenticated and team has no exposed pipelines', async t => {
+  t.context.web = await Web.build(t.context.url)
+  await t.context.web.page.goto(t.context.web.route('/'));
+
+  const group = `.dashboard-team-group[data-team-name="main"]`;
+  const element = await t.context.web.page.$(group);
+
+  t.falsy(element);
+})
+
+test('shows team name with no tag when unauthenticated and team has an exposed pipeline', async t => {
+  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
+  await t.context.fly.run('expose-pipeline -p some-pipeline');
+
+  t.context.web = await Web.build(t.context.url)
+  await t.context.web.page.goto(t.context.web.route('/'));
+
+  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
+  const element = await t.context.web.page.waitFor(group);
+  t.truthy(element);
+
+  const tag = await t.context.web.page.$(`${group} .dashboard-team-tag`);
+  t.falsy(tag);
+});
+
+test('shows team name with member tag when user is a member of the team', async t => {
+  let teamName = await t.context.newTeam('test2');
+  let userFly = await Fly.build(t.context.url, 'test2', 'test2', teamName);
+  await userFly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
+
+  t.context.web = await Web.build(t.context.url, 'test2', 'test2');
+  await t.context.web.login(t);
+
+  const group = `.dashboard-team-group[data-team-name="${teamName}"] .dashboard-team-tag`;
+  const element = await t.context.web.page.waitFor(group);
+  t.truthy(element);
+
+  const tagText = await t.context.web.page.$$eval(group, n => n[0].innerText);
+  t.deepEqual(tagText, "MEMBER");
+})
+
+test('does not show team name when user is logged in another team and has no exposed pipelines', async t => {
+  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
+
+  let teamName = await t.context.newTeam('test2');
+  let myFly = await Fly.build(t.context.url, 'test2', 'test2', teamName);
+  myFly.run('set-pipeline -n -p another-pipeline -c fixtures/states-pipeline.yml');
+
+  t.context.web = await Web.build(t.context.url, 'test2', 'test2');
+  await t.context.web.login(t);
+
+  await t.context.web.page.waitFor('.dashboard-content');
+  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
+  const element = await t.context.web.page.$(group);
+  t.falsy(element);
+})
+
+test('shows team name with public tag when user is member of main team', async t => {
+  let teamName = await t.context.newTeam('test2');
+  let userFly = await Fly.build(t.context.url, 'test2', 'test2', teamName);
+  await userFly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
+
+  await t.context.web.page.goto(t.context.web.route('/'));
+  const group = `.dashboard-team-group[data-team-name="${teamName}"] .dashboard-team-tag`;
+  const element = await t.context.web.page.waitFor(group);
+  t.truthy(element);
+
+  const tagText = await t.context.web.page.$$eval(group, n => n[0].innerText);
+  t.deepEqual(tagText, "PUBLIC");
+});
+
+test('shows team name with public tag when team has an exposed pipeline and user is logged into another team', async t => {
+  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
+  await t.context.fly.run('expose-pipeline -p some-pipeline');
+  let teamName = await t.context.newTeam('test2');
+
+  t.context.web = await Web.build(t.context.url, 'test2', 'test2');
+  await t.context.web.login(t);
+
+  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"] .dashboard-team-tag`;
+  const element = await t.context.web.page.waitFor(group);
+  t.truthy(element);
+
+  const tagText = await t.context.web.page.$$eval(group, n => n[0].innerText);
+  t.deepEqual(tagText, "PUBLIC");
+});
 
 test('shows pipelines in their correct order', async t => {
   let pipelineOrder = ['first', 'second', 'third', 'fourth', 'fifth'];
@@ -45,12 +134,12 @@ test('shows pipelines in their correct order', async t => {
     await t.context.fly.run(`set-pipeline -n -p ${name} -c fixtures/states-pipeline.yml`);
   }
 
-  await t.context.page.goto(t.context.web.route('/dashboard'));
+  await t.context.web.page.goto(t.context.web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  await t.context.page.waitFor(`${group} .pipeline-wrapper:nth-child(${pipelineOrder.length}) .dashboard-pipeline`);
+  await t.context.web.page.waitFor(`${group} .pipeline-wrapper:nth-child(${pipelineOrder.length}) .dashboard-pipeline`);
 
-  const names = await t.context.page.$$eval(`${group} .dashboard-pipeline-name`, nameElements => {
+  const names = await t.context.web.page.$$eval(`${group} .dashboard-pipeline-name`, nameElements => {
     var names = [];
     nameElements.forEach(e => names.push(e.innerText));
     return names;
@@ -123,10 +212,10 @@ test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
 
   await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/failing"));
 
-  await t.context.page.waitFor(10000);
+  await t.context.web.page.waitFor(10000);
 
-  let newBanner = await t.context.page.$(`${group} .dashboard-pipeline-banner`);
-  let newBackground = await t.context.web.computedStyle(t.context.page, newBanner, 'backgroundColor');
+  let newBanner = await t.context.web.page.$(`${group} .dashboard-pipeline-banner`);
+  let newBackground = await t.context.web.computedStyle(newBanner, 'backgroundColor');
   t.deepEqual(color(newBackground), palette.red);
 });
 
@@ -135,9 +224,9 @@ test('links to specific builds', async t => {
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
 
-  await t.context.page.goto(t.context.web.route('/dashboard'));
+  await t.context.web.page.goto(t.context.web.route('/dashboard'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  await t.context.web.clickAndWait(t.context.page, `${group} .node[data-tooltip="passing"] a`, '.build-header');
-  t.regex(await t.context.web.text(t.context.page), /passing #1/);
+  await t.context.web.clickAndWait(`${group} .node[data-tooltip="passing"] a`, '.build-header');
+  t.regex(await t.context.web.text(), /passing #1/);
 });

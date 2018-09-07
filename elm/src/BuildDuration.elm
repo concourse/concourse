@@ -34,19 +34,9 @@ view duration now =
                     ]
 
 
-show : Concourse.BuildDuration -> Time.Time -> Html a
-show duration now =
-    Html.div [ class "build-duration" ] <|
-        case duration.startedAt of
-            Nothing ->
-                []
-
-            Just startedAt ->
-                let
-                    elapsed =
-                        Duration.between (Date.toTime startedAt) now
-                in
-                    [ Html.text <| Duration.format elapsed ]
+show : Time.Time -> Concourse.BuildDuration -> String
+show now =
+    .startedAt >> Maybe.map (Date.toTime >> flip Duration.between now >> Duration.format) >> Maybe.withDefault ""
 
 
 labeledRelativeDate : String -> Time -> Date -> Html a

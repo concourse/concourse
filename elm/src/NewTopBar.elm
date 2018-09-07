@@ -1,21 +1,30 @@
-module NewTopBar exposing (Model, Msg(FilterMsg, UserFetched, KeyDown, LoggedOut), UserState(UserStateLoggedIn), init, fetchUser, update, view)
+module NewTopBar
+    exposing
+        ( Model
+        , Msg(FilterMsg, KeyDown, LoggedOut, UserFetched)
+        , fetchUser
+        , init
+        , update
+        , view
+        )
 
 import Array
 import Concourse
-import Concourse.User
 import Concourse.Team
+import Concourse.User
 import Dom
 import Html exposing (Html)
-import Html.Attributes exposing (class, classList, href, id, src, type_, placeholder, value)
+import Html.Attributes exposing (class, classList, href, id, placeholder, src, type_, value)
 import Html.Events exposing (..)
 import Http
 import Keyboard
-import Navigation
 import LoginRedirect
+import Navigation
 import QueryString
 import RemoteData exposing (RemoteData)
 import Task
 import TopBar exposing (userDisplayName)
+import UserState exposing (UserState(..))
 
 
 type alias Model =
@@ -28,12 +37,6 @@ type alias Model =
     , selectionMade : Bool
     , selection : Int
     }
-
-
-type UserState
-    = UserStateLoggedIn Concourse.User
-    | UserStateLoggedOut
-    | UserStateUnknown
 
 
 type Msg
@@ -161,7 +164,7 @@ update msg model =
                                     Array.fromList (autocompleteOptions model)
 
                                 index =
-                                    (model.selection - 1) % (Array.length options)
+                                    (model.selection - 1) % Array.length options
 
                                 selectedItem =
                                     case Array.get index options of
@@ -262,7 +265,7 @@ view model =
                             Html.li
                                 [ classList
                                     [ ( "search-option", True )
-                                    , ( "active", model.selectionMade && index == (model.selection - 1) % (List.length options) )
+                                    , ( "active", model.selectionMade && index == (model.selection - 1) % List.length options )
                                     ]
                                 , onMouseDown (FilterMsg option)
                                 , onMouseOver (SelectMsg index)

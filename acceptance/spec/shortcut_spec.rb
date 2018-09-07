@@ -29,6 +29,7 @@ describe 'keyboard shortcut', type: :feature do
         fly('trigger-job -j pipeline/long-output')
         fly('trigger-job -j pipeline/long-output')
         visit dash_route("/teams/#{team_name}/pipelines/pipeline/jobs/long-output/builds/2")
+        expect(page).to have_css '.steps'
         page.find('body').native.send_keys 'l'
         expect(page).to have_current_path("/teams/#{team_name}/pipelines/pipeline/jobs/long-output/builds/1")
       end

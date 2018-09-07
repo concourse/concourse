@@ -1,5 +1,6 @@
 'use strict';
 
+const puppeteer = require('puppeteer');
 const { exec } = require('child-process-promise');
 const uuidv4 = require('uuid/v4');
 
@@ -10,16 +11,36 @@ class Web {
     this.password = password;
   }
 
+  static async build(url, username, password) {
+    let web = new Web(url, username, password);
+    await web.init();
+    return web;
+  }
+
+  async init() {
+    this.browser = await puppeteer.launch({
+      //headless: false,
+      args: ['--disable-setuid-sandbox']
+    });
+
+    this.page = await this.browser.newPage();
+    //Default page navigation timeout to 90 Seconds.
+    this.page.setDefaultNavigationTimeout(90000);
+    this.page.on("console", msg => {
+      console.log(`BROWSER (${msg.type()}):`, msg.text());
+    });
+  }
+
   route(path) {
     return `${this.url}${path}`;
   }
 
-  text(page, ele) {
-    return page.evaluate(x => (x || document.body).innerText, ele);
+  text(ele) {
+    return this.page.evaluate(x => (x || document.body).innerText, ele);
   }
 
-  waitForText(page, text) {
-    return page.waitForFunction((text) => {
+  waitForText(text) {
+    return this.page.waitForFunction((text) => {
       return document.body.innerText.indexOf(text) !== -1
     }, {
       polling: 100,
@@ -27,22 +48,22 @@ class Web {
     }, text)
   }
 
-  async login(t, page) {
-    await page.goto(`${this.url}/sky/login`);
-    await page.waitForSelector('#login', {timeout: 90000});
-    await page.type('#login', this.username);
-    await page.type('#password', this.password);
-    await this.clickAndWait(page, '#submit-login', '.user-info .user-id');
-    t.notRegex(await this.text(page), /login/);
+  async login(t) {
+    await this.page.goto(`${this.url}/sky/login`);
+    await this.page.waitForSelector('#login', {timeout: 90000});
+    await this.page.type('#login', this.username);
+    await this.page.type('#password', this.password);
+    await this.clickAndWait('#submit-login', '.user-info .user-id');
+    t.notRegex(await this.text(), /login/);
   }
 
-  async clickAndWait(page, clickSelector, waitSelector) {
-    await page.waitFor(clickSelector);
-    await page.click(clickSelector);
-    await page.waitForSelector(waitSelector, {timeout: 90000});
+  async clickAndWait(clickSelector, waitSelector) {
+    await this.page.waitFor(clickSelector);
+    await this.page.click(clickSelector);
+    await this.page.waitForSelector(waitSelector, {timeout: 90000});
   }
 
-  computedStyle(page, element, style) {
+  computedStyle(element, style) {
     return element.executionContext().evaluate((element, style) => {
       return window.getComputedStyle(element)[style]
     }, element, style)

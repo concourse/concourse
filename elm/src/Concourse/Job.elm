@@ -26,11 +26,11 @@ fetchJobs pi =
             ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
 
 
-fetchAllJobs : Task Http.Error (List Concourse.Job)
+fetchAllJobs : Task Http.Error (Maybe (List Concourse.Job))
 fetchAllJobs =
     Http.toTask <|
         flip Http.get
-            (Json.Decode.list (Concourse.decodeJob { teamName = "", pipelineName = "" }))
+            (Json.Decode.nullable <| Json.Decode.list (Concourse.decodeJob { teamName = "", pipelineName = "" }))
             "/api/v1/jobs"
 
 

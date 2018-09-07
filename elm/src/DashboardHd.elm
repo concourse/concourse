@@ -22,6 +22,7 @@ import Routes
 import Set
 import Task exposing (Task)
 import Time exposing (Time)
+import UserState
 
 
 type alias Ports =
@@ -215,7 +216,7 @@ pipelinesView model pipelines =
 
         sortedPipelinesByTeam =
             case model.topBar.userState of
-                NewTopBar.UserStateLoggedIn _ ->
+                UserState.UserStateLoggedIn _ ->
                     case pipelinesByTeam of
                         [] ->
                             []
@@ -382,13 +383,13 @@ fetchAllJobs : Cmd Msg
 fetchAllJobs =
     Cmd.map JobsResponse <|
         RemoteData.asCmd <|
-            Concourse.Job.fetchAllJobs
+            (Concourse.Job.fetchAllJobs |> Task.map (Maybe.withDefault []))
 
 
 fetchAllResources : Cmd Msg
 fetchAllResources =
     Cmd.map ResourcesResponse <|
-        RemoteData.asCmd Concourse.Resource.fetchAllResources
+        RemoteData.asCmd (Concourse.Resource.fetchAllResources |> Task.map (Maybe.withDefault []))
 
 
 fetchVersion : Cmd Msg

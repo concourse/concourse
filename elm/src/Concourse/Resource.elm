@@ -21,11 +21,11 @@ import Json.Decode
 import Task exposing (Task)
 
 
-fetchAllResources : Task Http.Error (List Concourse.Resource)
+fetchAllResources : Task Http.Error (Maybe (List Concourse.Resource))
 fetchAllResources =
     Http.toTask <|
         flip Http.get
-            (Json.Decode.list (Concourse.decodeResource))
+            (Json.Decode.nullable <| Json.Decode.list (Concourse.decodeResource))
             "/api/v1/resources"
 
 

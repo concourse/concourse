@@ -5,17 +5,27 @@ const uuidv4 = require('uuid/v4');
 const tmp = require('tmp-promise');
 
 class Fly {
-  constructor(url, username, password) {
+  constructor(url, username, password, teamName) {
     this.url = url;
     this.username = username;
     this.password = password;
+    this.teamName = teamName;
     this.target = `wats-target-${uuidv4()}`;
-
-    this.teams = [];
   }
 
-  async setup() {
+  static async build(url, username, password, teamName) {
+    let fly = new Fly(url, username, password, teamName);
+    await fly.init();
+    return fly;
+  }
+
+  async init() {
     this.home = await tmp.dir({ unsafeCleanup: true });
+    await this.loginAs(this.teamName);
+  }
+
+  destroyTeam (teamName) {
+    return this.run(`destroy-team --team-name ${teamName} --non-interactive`)
   }
 
   run(command) {
@@ -26,81 +36,16 @@ class Fly {
     return this._spawn('fly', ['-t', this.target].concat(command.split(' ')));
   }
 
-  async newTeam() {
-    await this.loginAs('main');
-
-    var name = `watsjs-team-${uuidv4()}`;
-
-    await this.run(`set-team -n ${name} --local-user=${this.username} --non-interactive`);
-
-    this.teams.push(name);
-
-    return name;
+  newTeam(teamName, username) {
+    return this.run(`set-team --team-name ${teamName} --local-user=${username} --non-interactive`);
   }
 
   async cleanup() {
-    await this.loginAs('main');
-
-    for (var i = 0; i < this.teams.length; i++) {
-      await this.run(`destroy-team --non-interactive --team-name ${this.teams[i]}`);
-    }
-
     await this.home.cleanup();
   }
 
   loginAs(teamName) {
     return this.run(`login -c ${this.url} -n ${teamName} -u ${this.username} -p ${this.password}`);
-  }
-
-  async cleanUpTestTeams() {
-    await this.loginAs("main");
-
-    var teams = await this.table("teams");
-
-    var destroys = [];
-
-    teams.forEach((team) => {
-      if (team.name.indexOf("watsjs-team-") === 0) {
-        let tryDeleting = this.run(`destroy-team --team-name ${team.name} --non-interactive`).catch((err) => {
-          if (err.stderr.indexOf("resource not found") !== -1) {
-            return;
-          } else {
-            throw err;
-          }
-        });
-
-        destroys.push(tryDeleting);
-      }
-    });
-
-    return Promise.all(destroys);
-  }
-
-  async table(command) {
-    const result = await this._run(`fly -t ${this.target} --print-table-headers ${command}`);
-
-    var rows = [];
-    var headers;
-    result.stdout.split('\n').forEach((line) => {
-      if (line == '') {
-        return;
-      }
-
-      var cols = line.trim().split(/\s{2,}/);
-
-      if (headers) {
-        var row = {};
-        for (var i = 0; i < headers.length; i++) {
-          row[headers[i]] = cols[i];
-        }
-
-        rows.push(row);
-      } else {
-        headers = cols;
-      }
-    });
-
-    return rows;
   }
 
   _run(command) {

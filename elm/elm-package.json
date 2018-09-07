@@ -31,6 +31,7 @@
         "fapian/elm-html-aria": "1.2.2 <= v < 2.0.0",
         "krisajenkins/remotedata": "4.3.0 <= v < 5.0.0",
         "lukewestby/elm-http-builder": "5.0.0 <= v < 6.0.0",
+        "matthewsj/elm-ordering": "1.1.0 <= v < 2.0.0",
         "mgold/elm-date-format": "1.2.0 <= v < 2.0.0",
         "sporto/erl": "11.1.1 <= v < 12.0.0",
         "truqu/elm-base64": "1.0.5 <= v < 2.0.0",

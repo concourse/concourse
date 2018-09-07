@@ -1,62 +1,62 @@
 module Concourse
     exposing
-        ( AuthToken
-        , decodeAuthToken
-        , CSRFToken
-        , retrieveCSRFToken
-        , csrfTokenHeaderName
-        , AuthSession
+        ( AuthSession
+        , AuthToken
         , Build
-        , BuildId
-        , JobBuildIdentifier
-        , BuildName
         , BuildDuration
-        , decodeBuild
+        , BuildId
+        , BuildName
+        , BuildPlan
         , BuildPrep
         , BuildPrepStatus(..)
-        , decodeBuildPrep
         , BuildResources
         , BuildResourcesInput
         , BuildResourcesOutput
-        , decodeBuildResources
         , BuildStatus(..)
-        , decodeBuildStatus
-        , BuildPlan
         , BuildStep(..)
+        , CSRFToken
+        , Cause
         , HookedPlan
-        , decodeBuildPlan
         , Info
-        , decodeInfo
         , Job
-        , JobName
+        , JobBuildIdentifier
         , JobIdentifier
         , JobInput
+        , JobName
         , JobOutput
-        , decodeJob
-        , Pipeline
-        , PipelineName
-        , PipelineIdentifier
-        , PipelineGroup
-        , PipelineStatus(..)
-        , decodePipeline
         , Metadata
         , MetadataField
-        , decodeMetadata
+        , Pipeline
+        , PipelineGroup
+        , PipelineIdentifier
+        , PipelineName
+        , PipelineStatus(..)
         , Resource
         , ResourceIdentifier
-        , VersionedResource
-        , VersionedResourceIdentifier
-        , decodeResource
-        , decodeVersionedResource
         , Team
         , TeamName
-        , decodeTeam
         , User
-        , decodeUser
         , Version
-        , decodeVersion
-        , Cause
+        , VersionedResource
+        , VersionedResourceIdentifier
+        , csrfTokenHeaderName
+        , decodeAuthToken
+        , decodeBuild
+        , decodeBuildPlan
+        , decodeBuildPrep
+        , decodeBuildResources
+        , decodeBuildStatus
         , decodeCause
+        , decodeInfo
+        , decodeJob
+        , decodeMetadata
+        , decodePipeline
+        , decodeResource
+        , decodeTeam
+        , decodeUser
+        , decodeVersion
+        , decodeVersionedResource
+        , retrieveCSRFToken
         )
 
 import Array exposing (Array)
@@ -77,8 +77,8 @@ decodeAuthToken : Json.Decode.Decoder AuthToken
 decodeAuthToken =
     customDecoder
         (Json.Decode.succeed (,)
-            |: (Json.Decode.field "type" Json.Decode.string)
-            |: (Json.Decode.field "value" Json.Decode.string)
+            |: Json.Decode.field "type" Json.Decode.string
+            |: Json.Decode.field "value" Json.Decode.string
         )
         authTokenFromTuple
 
@@ -175,21 +175,20 @@ type alias BuildDuration =
 decodeBuild : Json.Decode.Decoder Build
 decodeBuild =
     Json.Decode.succeed Build
-        |: (Json.Decode.field "id" Json.Decode.int)
-        |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.maybe
-                (Json.Decode.succeed JobIdentifier
-                    |: (Json.Decode.field "team_name" Json.Decode.string)
-                    |: (Json.Decode.field "pipeline_name" Json.Decode.string)
-                    |: (Json.Decode.field "job_name" Json.Decode.string)
-                )
-           )
-        |: (Json.Decode.field "status" decodeBuildStatus)
+        |: Json.Decode.field "id" Json.Decode.int
+        |: Json.Decode.field "name" Json.Decode.string
+        |: Json.Decode.maybe
+            (Json.Decode.succeed JobIdentifier
+                |: Json.Decode.field "team_name" Json.Decode.string
+                |: Json.Decode.field "pipeline_name" Json.Decode.string
+                |: Json.Decode.field "job_name" Json.Decode.string
+            )
+        |: Json.Decode.field "status" decodeBuildStatus
         |: (Json.Decode.succeed BuildDuration
-                |: (Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.float)))
-                |: (Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.float)))
+                |: Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.float))
+                |: Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.float))
            )
-        |: (Json.Decode.maybe (Json.Decode.field "reap_time" (Json.Decode.map dateFromSeconds Json.Decode.float)))
+        |: Json.Decode.maybe (Json.Decode.field "reap_time" (Json.Decode.map dateFromSeconds Json.Decode.float))
 
 
 decodeBuildStatus : Json.Decode.Decoder BuildStatus
@@ -242,11 +241,11 @@ type BuildPrepStatus
 decodeBuildPrep : Json.Decode.Decoder BuildPrep
 decodeBuildPrep =
     Json.Decode.succeed BuildPrep
-        |: (Json.Decode.field "paused_pipeline" decodeBuildPrepStatus)
-        |: (Json.Decode.field "paused_job" decodeBuildPrepStatus)
-        |: (Json.Decode.field "max_running_builds" decodeBuildPrepStatus)
+        |: Json.Decode.field "paused_pipeline" decodeBuildPrepStatus
+        |: Json.Decode.field "paused_job" decodeBuildPrepStatus
+        |: Json.Decode.field "max_running_builds" decodeBuildPrepStatus
         |: (Json.Decode.field "inputs" <| Json.Decode.dict decodeBuildPrepStatus)
-        |: (Json.Decode.field "inputs_satisfied" decodeBuildPrepStatus)
+        |: Json.Decode.field "inputs_satisfied" decodeBuildPrepStatus
         |: (defaultTo Dict.empty <| Json.Decode.field "missing_input_reasons" <| Json.Decode.dict Json.Decode.string)
 
 
@@ -304,18 +303,18 @@ decodeBuildResources =
 decodeResourcesInput : Json.Decode.Decoder BuildResourcesInput
 decodeResourcesInput =
     Json.Decode.succeed BuildResourcesInput
-        |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.field "resource" Json.Decode.string)
-        |: (Json.Decode.field "type" Json.Decode.string)
-        |: (Json.Decode.field "version" decodeVersion)
-        |: (Json.Decode.field "metadata" decodeMetadata)
-        |: (Json.Decode.field "first_occurrence" Json.Decode.bool)
+        |: Json.Decode.field "name" Json.Decode.string
+        |: Json.Decode.field "resource" Json.Decode.string
+        |: Json.Decode.field "type" Json.Decode.string
+        |: Json.Decode.field "version" decodeVersion
+        |: Json.Decode.field "metadata" decodeMetadata
+        |: Json.Decode.field "first_occurrence" Json.Decode.bool
 
 
 decodeResourcesOutput : Json.Decode.Decoder BuildResourcesOutput
 decodeResourcesOutput =
     Json.Decode.succeed BuildResourcesOutput
-        |: (Json.Decode.field "resource" Json.Decode.string)
+        |: Json.Decode.field "resource" Json.Decode.string
         |: (Json.Decode.field "version" <| Json.Decode.dict Json.Decode.string)
 
 
@@ -364,7 +363,7 @@ decodeBuildPlan =
 decodeBuildPlan_ : Json.Decode.Decoder BuildPlan
 decodeBuildPlan_ =
     Json.Decode.succeed BuildPlan
-        |: (Json.Decode.field "id" Json.Decode.string)
+        |: Json.Decode.field "id" Json.Decode.string
         |: Json.Decode.oneOf
             -- buckle up
             [ Json.Decode.field "task" <| lazy (\_ -> decodeBuildStepTask)
@@ -386,38 +385,38 @@ decodeBuildPlan_ =
 decodeBuildStepTask : Json.Decode.Decoder BuildStep
 decodeBuildStepTask =
     Json.Decode.succeed BuildStepTask
-        |: (Json.Decode.field "name" Json.Decode.string)
+        |: Json.Decode.field "name" Json.Decode.string
 
 
 decodeBuildStepGet : Json.Decode.Decoder BuildStep
 decodeBuildStepGet =
     Json.Decode.succeed BuildStepGet
-        |: (Json.Decode.field "name" Json.Decode.string)
+        |: Json.Decode.field "name" Json.Decode.string
         |: (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
 
 
 decodeBuildStepPut : Json.Decode.Decoder BuildStep
 decodeBuildStepPut =
     Json.Decode.succeed BuildStepPut
-        |: (Json.Decode.field "name" Json.Decode.string)
+        |: Json.Decode.field "name" Json.Decode.string
 
 
 decodeBuildStepDependentGet : Json.Decode.Decoder BuildStep
 decodeBuildStepDependentGet =
     Json.Decode.succeed BuildStepDependentGet
-        |: (Json.Decode.field "name" Json.Decode.string)
+        |: Json.Decode.field "name" Json.Decode.string
 
 
 decodeBuildStepAggregate : Json.Decode.Decoder BuildStep
 decodeBuildStepAggregate =
     Json.Decode.succeed BuildStepAggregate
-        |: (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
+        |: Json.Decode.array (lazy (\_ -> decodeBuildPlan_))
 
 
 decodeBuildStepDo : Json.Decode.Decoder BuildStep
 decodeBuildStepDo =
     Json.Decode.succeed BuildStepDo
-        |: (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
+        |: Json.Decode.array (lazy (\_ -> decodeBuildPlan_))
 
 
 decodeBuildStepOnSuccess : Json.Decode.Decoder BuildStep
@@ -461,7 +460,7 @@ decodeBuildStepTry =
 decodeBuildStepRetry : Json.Decode.Decoder BuildStep
 decodeBuildStepRetry =
     Json.Decode.succeed BuildStepRetry
-        |: (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
+        |: Json.Decode.array (lazy (\_ -> decodeBuildPlan_))
 
 
 decodeBuildStepTimeout : Json.Decode.Decoder BuildStep
@@ -482,7 +481,7 @@ type alias Info =
 decodeInfo : Json.Decode.Decoder Info
 decodeInfo =
     Json.Decode.succeed Info
-        |: (Json.Decode.field "version" Json.Decode.string)
+        |: Json.Decode.field "version" Json.Decode.string
 
 
 
@@ -533,12 +532,12 @@ type alias JobOutput =
 decodeJob : PipelineIdentifier -> Json.Decode.Decoder Job
 decodeJob pi =
     Json.Decode.succeed (Job pi)
-        |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.field "pipeline_name" Json.Decode.string)
-        |: (Json.Decode.field "team_name" Json.Decode.string)
-        |: (Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild))
-        |: (Json.Decode.maybe (Json.Decode.field "finished_build" decodeBuild))
-        |: (Json.Decode.maybe (Json.Decode.field "transition_build" decodeBuild))
+        |: Json.Decode.field "name" Json.Decode.string
+        |: Json.Decode.field "pipeline_name" Json.Decode.string
+        |: Json.Decode.field "team_name" Json.Decode.string
+        |: Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild)
+        |: Json.Decode.maybe (Json.Decode.field "finished_build" decodeBuild)
+        |: Json.Decode.maybe (Json.Decode.field "transition_build" decodeBuild)
         |: (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
         |: (defaultTo False <| Json.Decode.field "disable_manual_trigger" Json.Decode.bool)
         |: (defaultTo [] <| Json.Decode.field "inputs" <| Json.Decode.list decodeJobInput)
@@ -549,8 +548,8 @@ decodeJob pi =
 decodeJobInput : Json.Decode.Decoder JobInput
 decodeJobInput =
     Json.Decode.succeed JobInput
-        |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.field "resource" Json.Decode.string)
+        |: Json.Decode.field "name" Json.Decode.string
+        |: Json.Decode.field "resource" Json.Decode.string
         |: (defaultTo [] <| Json.Decode.field "passed" <| Json.Decode.list Json.Decode.string)
         |: (defaultTo False <| Json.Decode.field "trigger" Json.Decode.bool)
 
@@ -558,8 +557,8 @@ decodeJobInput =
 decodeJobOutput : Json.Decode.Decoder JobOutput
 decodeJobOutput =
     Json.Decode.succeed JobOutput
-        |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.field "resource" Json.Decode.string)
+        |: Json.Decode.field "name" Json.Decode.string
+        |: Json.Decode.field "resource" Json.Decode.string
 
 
 
@@ -606,18 +605,18 @@ type PipelineStatus
 decodePipeline : Json.Decode.Decoder Pipeline
 decodePipeline =
     Json.Decode.succeed Pipeline
-        |: (Json.Decode.field "id" Json.Decode.int)
-        |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.field "paused" Json.Decode.bool)
-        |: (Json.Decode.field "public" Json.Decode.bool)
-        |: (Json.Decode.field "team_name" Json.Decode.string)
+        |: Json.Decode.field "id" Json.Decode.int
+        |: Json.Decode.field "name" Json.Decode.string
+        |: Json.Decode.field "paused" Json.Decode.bool
+        |: Json.Decode.field "public" Json.Decode.bool
+        |: Json.Decode.field "team_name" Json.Decode.string
         |: (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))
 
 
 decodePipelineGroup : Json.Decode.Decoder PipelineGroup
 decodePipelineGroup =
     Json.Decode.succeed PipelineGroup
-        |: (Json.Decode.field "name" Json.Decode.string)
+        |: Json.Decode.field "name" Json.Decode.string
         |: (defaultTo [] <| Json.Decode.field "jobs" <| Json.Decode.list Json.Decode.string)
         |: (defaultTo [] <| Json.Decode.field "resources" <| Json.Decode.list Json.Decode.string)
 
@@ -665,24 +664,24 @@ type alias VersionedResourceIdentifier =
 decodeResource : Json.Decode.Decoder Resource
 decodeResource =
     Json.Decode.succeed Resource
-        |: (Json.Decode.field "team_name" Json.Decode.string)
-        |: (Json.Decode.field "pipeline_name" Json.Decode.string)
-        |: (Json.Decode.field "name" Json.Decode.string)
+        |: Json.Decode.field "team_name" Json.Decode.string
+        |: Json.Decode.field "pipeline_name" Json.Decode.string
+        |: Json.Decode.field "name" Json.Decode.string
         |: (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
         |: (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
         |: (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
-        |: (Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.float)))
+        |: Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.float))
 
 
 decodeVersionedResource : Json.Decode.Decoder VersionedResource
 decodeVersionedResource =
     Json.Decode.succeed VersionedResource
-        |: (Json.Decode.field "id" Json.Decode.int)
-        |: (Json.Decode.field "version" decodeVersion)
-        |: (Json.Decode.field "enabled" Json.Decode.bool)
+        |: Json.Decode.field "id" Json.Decode.int
+        |: Json.Decode.field "version" decodeVersion
+        |: Json.Decode.field "enabled" Json.Decode.bool
         |: defaultTo [] (Json.Decode.field "metadata" decodeMetadata)
-        |: (Json.Decode.field "type" Json.Decode.string)
-        |: (Json.Decode.field "resource" Json.Decode.string)
+        |: Json.Decode.field "type" Json.Decode.string
+        |: Json.Decode.field "resource" Json.Decode.string
 
 
 
@@ -720,8 +719,8 @@ decodeMetadata =
 decodeMetadataField : Json.Decode.Decoder MetadataField
 decodeMetadataField =
     Json.Decode.succeed MetadataField
-        |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.field "value" Json.Decode.string)
+        |: Json.Decode.field "name" Json.Decode.string
+        |: Json.Decode.field "value" Json.Decode.string
 
 
 
@@ -741,8 +740,8 @@ type alias Team =
 decodeTeam : Json.Decode.Decoder Team
 decodeTeam =
     Json.Decode.succeed Team
-        |: (Json.Decode.field "id" Json.Decode.int)
-        |: (Json.Decode.field "name" Json.Decode.string)
+        |: Json.Decode.field "id" Json.Decode.int
+        |: Json.Decode.field "name" Json.Decode.string
 
 
 
@@ -754,16 +753,18 @@ type alias User =
     , userName : String
     , name : String
     , email : String
+    , teams : List String
     }
 
 
 decodeUser : Json.Decode.Decoder User
 decodeUser =
     Json.Decode.succeed User
-        |: (Json.Decode.field "user_id" Json.Decode.string)
-        |: (Json.Decode.field "user_name" Json.Decode.string)
-        |: (Json.Decode.field "name" Json.Decode.string)
-        |: (Json.Decode.field "email" Json.Decode.string)
+        |: Json.Decode.field "user_id" Json.Decode.string
+        |: Json.Decode.field "user_name" Json.Decode.string
+        |: Json.Decode.field "name" Json.Decode.string
+        |: Json.Decode.field "email" Json.Decode.string
+        |: Json.Decode.field "teams" (Json.Decode.list Json.Decode.string)
 
 
 
@@ -779,8 +780,8 @@ type alias Cause =
 decodeCause : Json.Decode.Decoder Cause
 decodeCause =
     Json.Decode.succeed Cause
-        |: (Json.Decode.field "versioned_resource_id" Json.Decode.int)
-        |: (Json.Decode.field "build_id" Json.Decode.int)
+        |: Json.Decode.field "versioned_resource_id" Json.Decode.int
+        |: Json.Decode.field "build_id" Json.Decode.int
 
 
 
@@ -789,7 +790,7 @@ decodeCause =
 
 dateFromSeconds : Float -> Date
 dateFromSeconds =
-    Date.fromTime << ((*) 1000)
+    Date.fromTime << (*) 1000
 
 
 lazy : (() -> Json.Decode.Decoder a) -> Json.Decode.Decoder a

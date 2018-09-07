@@ -78,7 +78,7 @@ describe 'dashboard search', type: :feature do
   end
 
   context 'by pipeline name with -' do
-    it 'filters the pipelines by nagate the search term' do
+    it 'filters the pipelines by negate the search term' do
       search '-some'
       expect(page.find_all('.dashboard-pipeline-name').map(&:text)).to eq ['other-pipeline']
 
@@ -134,7 +134,7 @@ describe 'dashboard search', type: :feature do
 
     it 'filters the pipelines by negate team' do
       search "team: -#{team_name}"
-      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name, "main"]
+      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq ["main", other_team_name]
 
       clear_search
 
@@ -145,7 +145,7 @@ describe 'dashboard search', type: :feature do
 
     it 'filters the pipelines by negate team, negate pipeline and negate status' do
       search "team: -#{team_name}"
-      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq [other_team_name, "main"]
+      expect(page.find_all('.dashboard-team-name').map(&:text)).to eq ["main", other_team_name]
 
       clear_search
 
@@ -245,6 +245,8 @@ describe 'dashboard search', type: :feature do
   end
 
   def search(term)
+    page.find('#search-input-field').click
+    sleep 0.5
     term.split('').each { |c| find_field('search-input-field').native.send_keys(c) }
   end
 

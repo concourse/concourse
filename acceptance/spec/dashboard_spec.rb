@@ -134,7 +134,8 @@ describe 'dashboard', type: :feature do
 
         expect(page).to have_content(team_name)
         expect(page).to have_content(other_team_name)
-        expect(page.first('.dashboard-team-name').text).to eq(team_name)
+        save_and_open_screenshot
+        expect(page.find_all('.dashboard-team-name').map(&:text)).to eq(['main', team_name, other_team_name])
       end
     end
 
@@ -498,17 +499,29 @@ describe 'dashboard', type: :feature do
       expect(page).to have_current_path(build_path)
     end
 
-    it 'keeps the team name sticky on scroll' do
-      1.upto(50) do |i|
-        fly("set-pipeline -n -p some-pipeline-#{i} -c fixtures/simple-pipeline.yml")
+    context 'lots of pipelines' do
+      before do
+        fly_login 'main'
+        1.upto(50) do |i|
+          fly("set-pipeline -n -p some-pipeline-#{i} -c fixtures/simple-pipeline.yml")
+        end
       end
 
-      visit_dashboard
-      expect(page).to have_content team_name
+      after do
+        fly_login 'main'
+        1.upto(50) do |i|
+          fly("destroy-pipeline -n -p some-pipeline-#{i}")
+        end
+      end
 
-      page.evaluate_script('window.scrollTo(0, document.body.scrollHeight)')
-      expect(page.find("##{team_name}").find('.dashboard-team-name').native.style('position')).to eq 'fixed'
-      expect(page.find("#main").find('.dashboard-team-name').native.style('position')).to eq 'static'
+      it 'keeps the team name sticky on scroll' do
+        visit_dashboard
+        expect(page).to have_content team_name
+
+        page.evaluate_script('window.scrollTo(0, document.body.scrollHeight)')
+        expect(page.find('#main').find('.dashboard-team-name').native.style('position')).to eq 'fixed'
+        expect(page.find("##{team_name}").find('.dashboard-team-name').native.style('position')).to eq 'static'
+      end
     end
   end
 
