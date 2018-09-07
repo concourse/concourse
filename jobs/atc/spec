@@ -25,6 +25,7 @@ templates:
   credhub_client_key.erb: config/credhub_client_key
   token_signing_key.erb: config/token_signing_key
   downgrade_db.erb: bin/experimental_downgrade_db
+  syslog_ca_cert.erb: config/syslog_ca_cert
 
 packages:
   - pid_utils
@@ -769,20 +770,24 @@ properties:
       a different limit in the task yaml.
     example: 200mb
 
-  syslog_hostname:
+  syslog.hostname:
     description: |
       Client hostname with which the build logs will be sent to the syslog server.
     example: atc-syslog-drainer
     default:  atc-syslog-drainer
-  syslog_address:
+  syslog.address:
     description: |
       Remote syslog server address with port.
     example: 0.0.0.0:514
-  syslog_transport:
+  syslog.transport:
     description: Transport protocol for syslog messages (Currently supporting tcp, udp & tls).
     example: tcp
-  syslog_drain_interval:
+  syslog.drain_interval:
     description: |
       Interval over which checking is done for new build logs to send to syslog server (duration measurement units are s/m/h)
     example: 30s
     default: 30s
+  syslog.ca_cert:
+    type: certificate
+    description: |
+      A PEM-encoded CA cert to use to verify the Syslog server SSL cert.

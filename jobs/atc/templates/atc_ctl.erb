@@ -400,11 +400,14 @@ case $1 in
       <% if_p("default_task_memory_limit") do |default_task_memory_limit| %> \
       --default-task-memory-limit <%= esc(default_task_memory_limit) %> \
       <% end %> \
-      <% if_p("syslog_address") do |syslog_address| %> \
+      <% if_p("syslog.address") do |syslog_address| %> \
       --syslog-address <%= esc(syslog_address) %> \
-      --syslog-hostname <%= esc(p("syslog_hostname")) %> \
-      --syslog-transport <%= esc(p("syslog_transport")) %> \
-      --syslog-drain-interval <%= esc(p("syslog_drain_interval")) %> \
+      --syslog-hostname <%= esc(p("syslog.hostname")) %> \
+      --syslog-transport <%= esc(p("syslog.transport")) %> \
+      --syslog-drain-interval <%= esc(p("syslog.drain_interval")) %> \
+      <% if_p("syslog.ca_cert") do |syslog_ca_cert| %> \
+      --syslog-ca-cert /var/vcap/jobs/atc/config/syslog_ca_cert \
+      <% end %> \
       <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
