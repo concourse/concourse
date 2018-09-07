@@ -38,7 +38,6 @@ atc run \
   --add-local-user 'test4:$2a$10$kQ2TOqpr.mDG80vfJhjCC.6R3O4F7Pl9NN741lI8HLnBTVEhCrd2u' \
   --main-team-local-user "user" \
   --main-team-local-user "test" \
-  --main-team-local-user "test2" \
   --main-team-local-user "test3" \
   --main-team-local-user "test4" \
   "$@"
