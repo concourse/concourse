@@ -1,10 +1,11 @@
 @keyframes pipeline-running {
-  0%   {  background-position-x: (-53.5px) }
-  100% {  background-position-x: 0px }
+  0% { background-position-x: (-53.5px); }
+  100% { background-position-x: 0; }
 }
 
 .running-animation(@color1, @color2) {
   .striped-background(@color2, @color1);
+
   animation: pipeline-running 3s linear infinite;
 }
 

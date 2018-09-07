@@ -1,4 +1,6 @@
-.build-header, .job-header, .pagination-header {
+.build-header,
+.job-header,
+.pagination-header {
   padding: 0;
   height: 60px;
 
@@ -10,7 +12,8 @@
   }
 }
 
-.build-header .build-name, .pagination-header h1 {
+.build-header .build-name,
+.pagination-header h1 {
   font-weight: bold;
 }
 
@@ -20,7 +23,7 @@
 
 .build-header .build-duration {
   float: left;
-  margin: 6px 0px 6px 24px;
+  margin: 6px 0 6px 24px;
 }
 
 .pagination-header .last-checked {
@@ -49,7 +52,7 @@
   outline: none;
 }
 
-button.build-action[disabled]:hover:before {
+button.build-action[disabled]:hover::before {
   position: absolute;
   content: "manual triggering disabled in job config";
   right: 50px;
@@ -59,7 +62,7 @@ button.build-action[disabled]:hover:before {
   display: block;
   text-align: left;
   font-family: monospace;
-  color: #ECF0F1;
+  color: #ecf0f1;
 }
 
 button.build-action[disabled] {
@@ -144,19 +147,19 @@ button.build-action[disabled] i {
 }
 
 .jobs-builds-list {
-	background: none;
+  background: none;
 }
 
-.jobs-builds-list li{
-	background-color: @base02;
-	width:100%;
+.jobs-builds-list li {
+  background-color: @base02;
+  width: 100%;
   float: none;
-  margin: 0px;
+  margin: 0;
   margin-bottom: 10px;
 }
 
 #builds li {
-  opacity: .8;
+  opacity: 0.8;
   display: inline-block;
 }
 
@@ -200,7 +203,6 @@ span.error {
 ul.prep-status-list {
   margin-top: 5px;
   margin-bottom: 10px;
-
   padding-left: 5px;
 }
 
@@ -249,12 +251,17 @@ li.prep-status {
   margin-bottom: 0;
 }
 
-.build-step.inactive h3, .build-step.inactive i, .build-step.inactive .dictionary, .prep-status.inactive {
+.build-step.inactive h3,
+.build-step.inactive i,
+.build-step.inactive .dictionary,
+.prep-status.inactive {
   color: @base03;
 }
 
 .build-step.inactive.first-occurrence {
-  h3, i, .dictionary {
+  h3,
+  i,
+  .dictionary {
     color: @base04;
   }
 }
@@ -270,7 +277,6 @@ li.prep-status {
   line-height: 28px;
   width: 28px;
 }
-
 
 .build-step .header i.left {
   float: left;
@@ -302,13 +308,13 @@ li.prep-status {
 
 .dict-key {
   text-align: right;
-  padding: 0px 10px 0px 0px;
-  margin: 0px;
+  padding: 0 10px 0 0;
+  margin: 0;
 }
 
 .dict-value {
-  padding: 0px;
-  margin: 0px;
+  padding: 0;
+  margin: 0;
 }
 
 .resource-check-status .header {
@@ -368,7 +374,7 @@ svg.pipeline-graph {
     text-decoration: none;
   }
 
-  .node a{
+  .node a {
     cursor: pointer;
   }
 
@@ -386,7 +392,7 @@ svg.pipeline-graph {
   }
 
   .node.constrained-input {
-    text{
+    text {
       fill: @base04;
     }
   }

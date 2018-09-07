@@ -13,7 +13,7 @@
 
   .dashboard-team-group {
     display: inline-block;
-    width: 100%
+    width: 100%;
   }
 
   .dashboard-team-name {
@@ -44,7 +44,7 @@
 
     &.dashboard-status-succeeded {
       .dashboard-pipeline-content {
-        background-color: rgba(17,197,96, 0.2);
+        background-color: rgba(17, 197, 96, 0.2);
       }
     }
 
@@ -94,15 +94,15 @@
       line-height: 18px;
       padding-left: 4px;
 
-      &[data-tooltip]:hover:before {
+      &[data-tooltip]:hover::before {
         z-index: 2;
       }
 
-      &[data-tooltip]:after {
+      &[data-tooltip]::after {
         left: ~"calc(100% - 5px)";
       }
 
-      &[data-tooltip]:before {
+      &[data-tooltip]::before {
         left: ~"calc(100% + 3px)";
       }
 

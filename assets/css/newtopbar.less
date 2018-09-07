@@ -6,9 +6,11 @@
   width: 100%;
   z-index: 999;
   background: @base00;
+
   &.paused {
     background: @base0D;
   }
+
   color: @white;
   height: @top-bar-height;
   line-height: @top-bar-height;
@@ -51,6 +53,7 @@
         padding: 0 84px * @scale;
         background-position-x: 24px * @scale;
         background-position-y: 16px * @scale;
+
         &:focus {
           border: 1px solid @base03;
           outline: 0;
@@ -78,7 +81,7 @@
       position: relative;
       top: -13px;
       list-style-type: none;
-      background: #2E2E2E;
+      background: #2e2e2e;
       border: 1px solid @base03;
       border-bottom: none;
     }
@@ -142,7 +145,7 @@
   }
 }
 
-@media (max-width : 812px) {
+@media (max-width: 812px) {
   .module-topbar {
     position: unset;
     flex-flow: row wrap;

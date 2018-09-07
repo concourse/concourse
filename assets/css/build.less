@@ -19,7 +19,7 @@
   width: 100%;
   bottom: 0;
   left: 0;
-  background: rgba(0, 0, 0, .8);
+  background: rgba(0, 0, 0, 0.8);
   padding: 30px 0;
 
   .help-title {
@@ -64,7 +64,7 @@
       display: inline-block;
     }
 
-    &:hover:before {
+    &:hover::before {
       color: @base06;
     }
 
@@ -76,7 +76,7 @@
   &.highlighted-line {
     background: @base02;
 
-    .timestamp:before {
+    .timestamp::before {
       color: @base0A;
     }
   }

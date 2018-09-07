@@ -19,9 +19,11 @@
   padding-bottom: 5px;
   padding-left: 10px;
   padding-right: 10px;
+
   .expanded & {
     display: flex;
   }
+
   & div {
     box-sizing: border-box;
   }
@@ -41,20 +43,17 @@
   box-sizing: border-box;
 }
 
-
 .list-enableDisable .disabled {
   opacity: 0.5;
 }
-
 
 .dependent-get {
   opacity: 0.8;
 }
 
-.seq.seq-dependent-get{
-  margin-bottom: 0px;
+.seq.seq-dependent-get {
+  margin-bottom: 0;
 }
-
 
 .hook-success {
   margin-left: -1px;
@@ -86,11 +85,10 @@
 }
 
 .children > .hook {
-  margin-bottom: 0px;
+  margin-bottom: 0;
 }
 
-
-.pagination-handle{
+.pagination-handle {
   width: 25px;
   text-align: center;
   font-size: 16px;
@@ -98,11 +96,12 @@
   line-height: 25px;
 }
 
-.pagination-handle-flush{
+.pagination-handle-flush {
   width: auto;
 }
 
-.inputs .resource-name, .outputs .resource-name{
+.inputs .resource-name,
+.outputs .resource-name {
   font-weight: bold;
 }
 
@@ -120,7 +119,8 @@
     width: 15%;
   }
 
-  .inputs, .outputs {
+  .inputs,
+  .outputs {
     float: left;
     width: 40%;
   }
@@ -139,19 +139,20 @@
   }
 
   .resource-name {
-    margin: 0px;
+    margin: 0;
     padding: 0 15px 0 0;
   }
 
   .resource-version {
     width: 100%;
-    padding: 0px;
-    margin: 0px;
+    padding: 0;
+    margin: 0;
   }
 
-
   @media (max-width: 1200px) {
-    .inputs, .outputs, .build-duration {
+    .inputs,
+    .outputs,
+    .build-duration {
       width: 100%;
     }
 

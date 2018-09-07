@@ -107,25 +107,29 @@
   color: inherit;
   border: none;
   width: 100%;
+
   &::-webkit-input-placeholder { /* WebKit, Blink, Edge */
-    color:    @base03;
+    color: @base03;
   }
-  &:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
-     color:    @base03;
-     opacity:  1;
-  }
+
   &::-moz-placeholder { /* Mozilla Firefox 19+ */
-     color:    @base03;
-     opacity:  1;
+    color: @base03;
+    opacity: 1;
   }
+
+  &:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+    color: @base03;
+    opacity: 1;
+  }
+
   &:-ms-input-placeholder { /* Internet Explorer 10-11 */
-     color:    @base03;
+    color: @base03;
   }
 }
 
 .filter-form input {
   background: inherit;
-  padding: 0px 18px 0px 48px;
+  padding: 0 18px 0 48px;
 }
 
 .team-selection .input-holder {
@@ -140,7 +144,7 @@
   border-bottom: 1px solid @base01;
   display: block;
   color: inherit;
-  padding: 0px 18px;
+  padding: 0 18px;
 }
 
 .filter-form {
@@ -195,7 +199,7 @@
   height: 2px;
   background: @base03;
   width: 100%;
-  margin: 27px 0px;
+  margin: 27px 0;
 }
 
 .or-bar span {
@@ -203,7 +207,7 @@
   display: inline-block;
   background: inherit;
   position: relative;
-  padding: 0px 25px;
+  padding: 0 25px;
 }
 
 .login-error {

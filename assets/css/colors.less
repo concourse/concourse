@@ -11,8 +11,6 @@
 
 .steps .nest.odd { background: @base02; }
 
-.groups li.active a { background: @base0G; }
-
 .build-action { background-color: transparent; }
 .build-action i { color: @base07; }
 .build-action:hover i { background: @base02; }
@@ -68,9 +66,9 @@ span.error { color: @base08; }
 .builds-list li a { color: @base07; }
 #builds li a { color: @base07; }
 .groups li a { color: @base07; }
+.groups li.active a { background: @base0G; }
 #cli-downloads a { color: @base07; }
 
-.job-animation-node .animation,
 .job-animation-node .animation,
 .legend dt.started,
 .legend dt.pending,
@@ -80,11 +78,13 @@ span.error { color: @base08; }
 
 .legend dt.started {
   .ripple-animation("small-started-ripple-@{theme}", 2px, @base0A);
+
   background: transparent;
 }
 
 .legend dt.pending {
   .pending-outline(2px, 3px);
+
   background: transparent;
 }
 
@@ -111,7 +111,7 @@ span.error { color: @base08; }
 }
 
 .halo-outline(@grey-radius, @color-radius, @color) {
-  box-shadow: 0 0 0 @grey-radius @base02, 0 0 0 @grey-radius + @color-radius fade(@color, 70%)
+  box-shadow: 0 0 0 @grey-radius @base02, 0 0 0 @grey-radius + @color-radius fade(@color, 70%);
 }
 
 .failed-outline(@grey-radius, @red-radius) {
@@ -128,11 +128,11 @@ span.error { color: @base08; }
 
   @-webkit-keyframes @name {
     0% {
-      box-shadow: 0 0 0 -@ripple-factor @base02, 0 0 0 0px @ripple-color, 0 0 0 @ripple-factor @base02, 0 0 0 @ripple-factor * 2 @ripple-color;
+      box-shadow: 0 0 0 -@ripple-factor @base02, 0 0 0 0 @ripple-color, 0 0 0 @ripple-factor @base02, 0 0 0 @ripple-factor * 2 @ripple-color;
     }
 
     50% {
-      box-shadow: 0 0 0 0px @base02, 0 0 0 @ripple-factor @ripple-color, 0 0 0 @ripple-factor * 2  @base02, 0 0 0 @ripple-factor * 3 fade(@ripple-color, 50%);
+      box-shadow: 0 0 0 0 @base02, 0 0 0 @ripple-factor @ripple-color, 0 0 0 @ripple-factor * 2  @base02, 0 0 0 @ripple-factor * 3 fade(@ripple-color, 50%);
     }
 
     100% {
@@ -142,11 +142,11 @@ span.error { color: @base08; }
 
   @keyframes @name {
     0% {
-      box-shadow: 0 0 0 -@ripple-factor @base02, 0 0 0 0px @ripple-color, 0 0 0 @ripple-factor @base02, 0 0 0 @ripple-factor * 2 @ripple-color;
+      box-shadow: 0 0 0 -@ripple-factor @base02, 0 0 0 0 @ripple-color, 0 0 0 @ripple-factor @base02, 0 0 0 @ripple-factor * 2 @ripple-color;
     }
 
     50% {
-      box-shadow: 0 0 0 0px @base02, 0 0 0 @ripple-factor @ripple-color, 0 0 0 @ripple-factor * 2  @base02, 0 0 0 @ripple-factor * 3 fade(@ripple-color, 50%);
+      box-shadow: 0 0 0 0 @base02, 0 0 0 @ripple-factor @ripple-color, 0 0 0 @ripple-factor * 2  @base02, 0 0 0 @ripple-factor * 3 fade(@ripple-color, 50%);
     }
 
     100% {

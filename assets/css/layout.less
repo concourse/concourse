@@ -1,6 +1,10 @@
 @import (reference) "_vars.less";
 
-html, body, #elm-app-embed, #subpage, .content-frame {
+html,
+body,
+#elm-app-embed,
+#subpage,
+.content-frame {
   height: 100%;
 }
 
@@ -21,6 +25,11 @@ html, body, #elm-app-embed, #subpage, .content-frame {
     position: fixed;
     top: 0;
     height: @top-bar-height;
+    z-index: @user-menu-z-index;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: row;
 
     .main {
       border-right: 1px solid @base02;
@@ -33,6 +42,9 @@ html, body, #elm-app-embed, #subpage, .content-frame {
     .groups {
       overflow: hidden;
       font-size: 14px;
+      flex-grow: 1;
+      display: flex;
+      flex-flow: row wrap;
     }
 
     .groups li {
@@ -71,7 +83,7 @@ html, body, #elm-app-embed, #subpage, .content-frame {
   }
 
   .groups-bar {
-    background: #2B2A2A;
+    background: #2b2a2a;
     color: white;
 
     .groups {
@@ -87,27 +99,13 @@ html, body, #elm-app-embed, #subpage, .content-frame {
       background: rgba(151, 151, 151, 0.1);
       margin: 5px;
       padding: 10px;
-      border: 1px solid #2B2A2A;
+      border: 1px solid #2b2a2a;
     }
 
     .groups li.active a {
       opacity: 1;
       background: inherit;
       border-color: #979797;
-    }
-  }
-
-  .top-bar {
-    z-index: @user-menu-z-index;
-    left: 0;
-    right: 0;
-    display: flex;
-    flex-direction: row;
-
-    .groups {
-      flex-grow: 1;
-      display: flex;
-      flex-flow: row wrap;
     }
   }
 
@@ -183,9 +181,11 @@ nav .groups li a {
 }
 
 .nav-item {
-  &, a {
+  &,
+  a {
     color: @base07;
   }
+
   font-size: 18px;
   line-height: @top-bar-height;
 }
