@@ -37,5 +37,8 @@ atc run \
   --log-level debug \
   --external-url "http://${external_ip}:8080" \
   --session-signing-key $KEYSDIR/web/session_signing_key \
-  --postgres-data-source "user=postgres dbname=atc port=${pg_port} sslmode=disable" \
+  --postgres-user postgres \
+  --postgres-port "${pg_port}" \
+  --postgres-sslmode disable \
+  --postgres-database atc \
   "$@"
