@@ -345,7 +345,7 @@ func generateCert(commonName string, orgUnit string, isCA bool, extKeyUsage x509
 		ExtKeyUsage:  []x509.ExtKeyUsage{extKeyUsage},
 
 		BasicConstraintsValid: true,
-		IsCA: isCA,
+		IsCA:                  isCA,
 	}
 
 	if isCA {

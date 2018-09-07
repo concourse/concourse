@@ -14,10 +14,10 @@ var _ = Describe("an ATC with syslog draining set.", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml",
 			"-o", "operations/syslog_configurations.yml",
-			"-v", "syslog_address=localhost:8081",
-			"-v", "syslog_hostname=atc1",
-			"-v", "syslog_transport=tcp",
-			"-v", "syslog_drain_interval=1s",
+			"-v", "syslog.address=localhost:8081",
+			"-v", "syslog.hostname=atc1",
+			"-v", "syslog.transport=tcp",
+			"-v", "syslog.drain_interval=1s",
 		)
 	})
 

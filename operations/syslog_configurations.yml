@@ -1,18 +1,18 @@
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog_address?
-  value: ((syslog_address))
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog?/address?
+  value: ((syslog.address))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog_hostname?
-  value: ((syslog_hostname))
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog?/hostname?
+  value: ((syslog.hostname))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog_transport?
-  value: ((syslog_transport))
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog?/transport?
+  value: ((syslog.transport))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog_drain_interval?
-  value: ((syslog_drain_interval))
+  path: /instance_groups/name=concourse/jobs/name=atc/properties/syslog?/drain_interval?
+  value: ((syslog.drain_interval))
 
 - type: replace
   path: /releases/-
