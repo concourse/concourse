@@ -2,9 +2,9 @@
 
 \release{2018-8-30}{4.1.0}{1.16.3}{
   \warn{
-    This release unintentionally broke \code{--postgres-data-source}, which
-    was deprecated back in \reference{v2.7.2}. We're going to fully remove
-    it in the next release, so now's a good time to switch to the new flags!
+    This release unintentionally broke \code{--postgres-data-source}, which was
+    deprecated back in \reference{v2.7.2}. We're going to fully remove it in
+    the next release, so now's a good time to switch to the new flags!
   }
 
   \note{fix}{
@@ -297,8 +297,9 @@
 
   \note{fix}{
     Fixed a faulty default resulting in borked garbage collection on BOSH
-    deployed workers that are configured to forward through the \reference{tsa}
-    (they would try to reach the instance IP rather than \code{127.0.0.1}).
+    deployed workers that are configured to forward through the
+    \reference{component-tsa} (they would try to reach the instance IP rather
+    than \code{127.0.0.1}).
   }
 
   \note{fix}{
