@@ -1,6 +1,12 @@
 \use-plugin{concourse-docs}
 
 \release{2018-8-30}{4.1.0}{1.16.3}{
+  \warn{
+    This release unintentionally broke \code{--postgres-data-source}, which
+    was deprecated back in \reference{v2.7.2}. We're going to fully remove
+    it in the next release, so now's a good time to switch to the new flags!
+  }
+  
   \note{fix}{
     Fixed an annoying issue affecting deployments with multiple
     \reference{web-node}s. We were configuring an in-memory store for the Dex
