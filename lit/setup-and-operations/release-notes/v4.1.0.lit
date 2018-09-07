@@ -6,7 +6,7 @@
     was deprecated back in \reference{v2.7.2}. We're going to fully remove
     it in the next release, so now's a good time to switch to the new flags!
   }
-  
+
   \note{fix}{
     Fixed an annoying issue affecting deployments with multiple
     \reference{web-node}s. We were configuring an in-memory store for the Dex
