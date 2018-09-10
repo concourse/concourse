@@ -121,19 +121,30 @@
     }
   }
 
-  .dashboard-team-name {
+  .dashboard-team-header {
     background: @base02;
-    color: @base04;
-    font-size: (36px * @scale);
-    padding-top: (35px * @scale);
-    padding-bottom: (5px * @scale);
-    padding-left: (50px * @scale);
     z-index: 2;
     opacity: 0.9;
+    padding-top: (35px * @scale);
+    padding-bottom: (5px * @scale);
+    padding-left: ((50px + @name-padding) * @scale);
+  }
+
+  .dashboard-team-name {
+    display: inline-block;
+    color: @base04;
+    font-size: (36px * @scale);
+    padding-right: 0.5em;
 
     &.no-results {
       text-align: center;
     }
+  }
+
+  .dashboard-team-tag {
+    display: inline-block;
+    background: @base04;
+    padding: 0.25em 0.5em;
   }
 
   .dashboard-pipeline {
@@ -142,7 +153,7 @@
     cursor: move;
 
     &.no-set {
-      margin: auto;
+      margin-left: 0;
       cursor: default;
 
       .dashboard-pipeline-content{

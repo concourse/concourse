@@ -125,7 +125,8 @@ view header dragState dropState now group =
                     [ Pipeline.pipelineDropAreaView dragState dropState group.teamName (List.length group.pipelines) ]
     in
         Html.div [ id group.teamName, class "dashboard-team-group", attribute "data-team-name" group.teamName ]
-            [ Html.div [ class "pin-wrapper" ] header
+            [ Html.div [ class "pin-wrapper" ]
+                [ Html.div [ class "dashboard-team-header" ] header ]
             , Html.div [ class "dashboard-team-pipelines" ] pipelines
             ]
 

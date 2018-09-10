@@ -29,7 +29,7 @@
       if (window.location.pathname == '/') {
         app.ports.pinTeamNames.subscribe(function() {
           $(document).on('scroll', function() {
-            $(".dashboard-team-name").pin({
+            $(".dashboard-team-header").pin({
               containerSelector: ".dashboard-team-group",
               padding: { top: 54 }
             });
