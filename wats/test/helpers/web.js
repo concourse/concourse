@@ -20,7 +20,7 @@ class Web {
   async init() {
     this.browser = await puppeteer.launch({
       //headless: false,
-      args: ['--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     this.page = await this.browser.newPage();
