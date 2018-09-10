@@ -46,4 +46,11 @@
     property, thanks to a fix by \ghuser{flavorjones}. This broke back in
     \reference{v3.3.0} when we tweaked the type of the property.
   }
+
+  \note{fix}{
+    Removed an artificial limit to the garbage collector that was originally to
+    prevent a stampede of work on a single worker. Now that workers
+    garbage-collect themselves, this was no longer necessary, and only slowed
+    down the database side of the garbage collection lifecycle.
+  }
 }
