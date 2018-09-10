@@ -133,7 +133,7 @@ case $1 in
       <% if_p("postgresql.ca_cert") do |_| %> \
       --postgres-ca-cert $POSTGRESQL_CA_CERT \
       <% end %> \
-      <% if_p("postgresql.client_cert", "postgresql.client_key") do |*_| %> \
+      <% if_p("postgresql.client_cert") do |_| %> \
       --postgres-client-cert $POSTGRESQL_CLIENT_CERT \
       --postgres-client-key $POSTGRESQL_CLIENT_KEY \
       <% end %> \
