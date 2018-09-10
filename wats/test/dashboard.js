@@ -107,7 +107,7 @@ test('shows team name with public tag when user is member of main team', async t
   t.truthy(element);
 
   const tagText = await t.context.web.page.$$eval(group, n => n[0].innerText);
-  t.deepEqual(tagText, "PUBLIC");
+  t.deepEqual(tagText, "EXPOSED");
 });
 
 test('shows team name with public tag when team has an exposed pipeline and user is logged into another team', async t => {
@@ -123,7 +123,7 @@ test('shows team name with public tag when team has an exposed pipeline and user
   t.truthy(element);
 
   const tagText = await t.context.web.page.$$eval(group, n => n[0].innerText);
-  t.deepEqual(tagText, "PUBLIC");
+  t.deepEqual(tagText, "EXPOSED");
 });
 
 test('shows pipelines in their correct order', async t => {

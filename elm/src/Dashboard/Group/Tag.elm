@@ -5,20 +5,20 @@ import Ordering exposing (Ordering)
 
 
 type Tag
-    = Public
+    = Exposed
     | Member
 
 
 ordering : Ordering Tag
 ordering =
-    Ordering.explicit [ Member, Public ]
+    Ordering.explicit [ Member, Exposed ]
 
 
 text : Tag -> String
 text tag =
     case tag of
-        Public ->
-            "PUBLIC"
+        Exposed ->
+            "EXPOSED"
 
         Member ->
             "MEMBER"
@@ -29,4 +29,4 @@ tag user teamName =
     if List.member teamName user.teams then
         Member
     else
-        Public
+        Exposed
