@@ -28,6 +28,7 @@ var _ = Describe("Resource Get", func() {
 		inScriptStderr     string
 		inScriptExitStatus int
 		runInError         error
+		attachInError      error
 
 		inScriptProcess *gardenfakes.FakeProcess
 
@@ -56,10 +57,11 @@ var _ = Describe("Resource Get", func() {
 		inScriptStderr = ""
 		inScriptExitStatus = 0
 		runInError = nil
+		attachInError = nil
 		getErr = nil
 
 		inScriptProcess = new(gardenfakes.FakeProcess)
-		inScriptProcess.IDReturns("process-id")
+		inScriptProcess.IDReturns(resource.TaskProcessID)
 		inScriptProcess.WaitStub = func() (int, error) {
 			return inScriptExitStatus, nil
 		}
@@ -132,8 +134,8 @@ var _ = Describe("Resource Get", func() {
 			}
 
 			fakeContainer.AttachStub = func(pid string, io garden.ProcessIO) (garden.Process, error) {
-				if runInError != nil {
-					return nil, runInError
+				if attachInError != nil {
+					return nil, attachInError
 				}
 
 				_, err := io.Stdout.Write([]byte(inScriptStdout))
@@ -187,18 +189,15 @@ var _ = Describe("Resource Get", func() {
 		Context("when /in has already been spawned", func() {
 			BeforeEach(func() {
 				fakeContainer.PropertyStub = func(name string) (string, error) {
-					switch name {
-					case "concourse:resource-process":
-						return "process-id", nil
-					default:
-						return "", errors.New("unstubbed property: " + name)
-					}
+					return "", errors.New("unstubbed property: " + name)
 				}
 			})
 
 			It("reattaches to it", func() {
+				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+
 				pid, io := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal("process-id"))
+				Expect(pid).To(Equal(resource.TaskProcessID))
 
 				// send request on stdin in case process hasn't read it yet
 				request, err := ioutil.ReadAll(io.Stdin)
@@ -258,12 +257,24 @@ var _ = Describe("Resource Get", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
-					runInError = disaster
+					attachInError = disaster
 				})
 
-				It("returns an err", func() {
-					Expect(getErr).To(HaveOccurred())
-					Expect(getErr).To(Equal(disaster))
+				Context("and run succeeds", func() {
+					It("succeeds", func() {
+						Expect(getErr).ToNot(HaveOccurred())
+					})
+				})
+
+				Context("and run subsequently fails", func() {
+					BeforeEach(func() {
+						runInError = disaster
+					})
+
+					It("errors", func() {
+						Expect(getErr).To(HaveOccurred())
+						Expect(getErr).To(Equal(disaster))
+					})
 				})
 			})
 
@@ -285,12 +296,19 @@ var _ = Describe("Resource Get", func() {
 			BeforeEach(func() {
 				fakeContainer.PropertyStub = func(name string) (string, error) {
 					switch name {
-					case "concourse:resource-process":
-						return "", errors.New("nope")
 					default:
 						return "", errors.New("unstubbed property: " + name)
 					}
 				}
+
+				attachInError = errors.New("not found")
+			})
+
+			It("specifies the process id in the process spec", func() {
+				Expect(fakeContainer.RunCallCount()).To(Equal(1))
+
+				spec, _ := fakeContainer.RunArgsForCall(0)
+				Expect(spec.ID).To(Equal(resource.TaskProcessID))
 			})
 
 			It("uses the same working directory for all actions", func() {
@@ -313,9 +331,10 @@ var _ = Describe("Resource Get", func() {
 			})
 
 			It("runs /opt/resource/in <destination> with the request on stdin", func() {
+				Expect(fakeContainer.RunCallCount()).To(Equal(1))
+
 				spec, io := fakeContainer.RunArgsForCall(0)
 				Expect(spec.Path).To(Equal("/opt/resource/in"))
-
 				Expect(spec.Args).To(ConsistOf("/tmp/build/get"))
 
 				request, err := ioutil.ReadAll(io.Stdin)
@@ -326,14 +345,6 @@ var _ = Describe("Resource Get", func() {
 				"params": {"some":"params"},
 				"version": {"some":"version"}
 			}`))
-			})
-
-			It("saves the process ID as a property", func() {
-				Expect(fakeContainer.SetPropertyCallCount()).NotTo(BeZero())
-
-				name, value := fakeContainer.SetPropertyArgsForCall(0)
-				Expect(name).To(Equal("concourse:resource-process"))
-				Expect(value).To(Equal("process-id"))
 			})
 
 			Context("when /opt/resource/in prints the response", func() {
@@ -357,9 +368,9 @@ var _ = Describe("Resource Get", func() {
 				})
 
 				It("saves it as a property on the container", func() {
-					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(2))
+					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
 
-					name, value := fakeContainer.SetPropertyArgsForCall(1)
+					name, value := fakeContainer.SetPropertyArgsForCall(0)
 					Expect(name).To(Equal("concourse:resource-result"))
 					Expect(value).To(Equal(inScriptStdout))
 				})
@@ -408,6 +419,7 @@ var _ = Describe("Resource Get", func() {
 		var done chan struct{}
 
 		BeforeEach(func() {
+			fakeContainer.AttachReturns(nil, errors.New("not-found"))
 			fakeContainer.RunReturns(inScriptProcess, nil)
 			fakeContainer.PropertyReturns("", errors.New("nope"))
 

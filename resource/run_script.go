@@ -10,8 +10,9 @@ import (
 	"code.cloudfoundry.org/garden"
 )
 
-const resourceProcessIDPropertyName = "concourse:resource-process"
 const resourceResultPropertyName = "concourse:resource-result"
+
+const TaskProcessID = "resource"
 
 type ErrResourceScriptFailed struct {
 	Path       string
@@ -73,18 +74,17 @@ func (resource *resource) runScript(
 
 	var process garden.Process
 
-	var processID string
 	if recoverable {
-		processID, err = resource.container.Property(resourceProcessIDPropertyName)
+		process, err = resource.container.Attach(TaskProcessID, processIO)
 		if err != nil {
-			processID = ""
-		}
-	}
-
-	if processID != "" {
-		process, err = resource.container.Attach(processID, processIO)
-		if err != nil {
-			return err
+			process, err = resource.container.Run(garden.ProcessSpec{
+				ID:   TaskProcessID,
+				Path: path,
+				Args: args,
+			}, processIO)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		process, err = resource.container.Run(garden.ProcessSpec{
@@ -93,13 +93,6 @@ func (resource *resource) runScript(
 		}, processIO)
 		if err != nil {
 			return err
-		}
-
-		if recoverable {
-			err := resource.container.SetProperty(resourceProcessIDPropertyName, process.ID())
-			if err != nil {
-				return err
-			}
 		}
 	}
 

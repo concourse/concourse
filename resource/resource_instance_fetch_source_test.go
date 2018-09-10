@@ -51,6 +51,8 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			return 0, nil
 		}
 
+		fakeContainer.AttachReturns(nil, errors.New("process not found"))
+
 		fakeContainer.RunStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 			_, err := io.Stdout.Write([]byte("{}"))
 			Expect(err).NotTo(HaveOccurred())

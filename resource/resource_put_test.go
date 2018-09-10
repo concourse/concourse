@@ -27,6 +27,7 @@ var _ = Describe("Resource Put", func() {
 		outScriptStderr     string
 		outScriptExitStatus int
 		runOutError         error
+		attachOutError      error
 		putErr              error
 
 		outScriptProcess *gfakes.FakeProcess
@@ -51,9 +52,10 @@ var _ = Describe("Resource Put", func() {
 		outScriptStderr = ""
 		outScriptExitStatus = 0
 		runOutError = nil
+		attachOutError = nil
 
 		outScriptProcess = new(gfakes.FakeProcess)
-		outScriptProcess.IDReturns("process-id")
+		outScriptProcess.IDReturns(TaskProcessID)
 		outScriptProcess.WaitStub = func() (int, error) {
 			return outScriptExitStatus, nil
 		}
@@ -85,8 +87,8 @@ var _ = Describe("Resource Put", func() {
 			}
 
 			fakeContainer.AttachStub = func(processID string, io garden.ProcessIO) (garden.Process, error) {
-				if runOutError != nil {
-					return nil, runOutError
+				if attachOutError != nil {
+					return nil, attachOutError
 				}
 
 				_, err := io.Stdout.Write([]byte(outScriptStdout))
@@ -181,18 +183,15 @@ var _ = Describe("Resource Put", func() {
 		Context("when /out has already been spawned", func() {
 			BeforeEach(func() {
 				fakeContainer.PropertyStub = func(name string) (string, error) {
-					switch name {
-					case "concourse:resource-process":
-						return "process-id", nil
-					default:
-						return "", errors.New("unstubbed property: " + name)
-					}
+					return "", errors.New("unstubbed property: " + name)
 				}
 			})
 
 			It("reattaches to it", func() {
+				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+
 				pid, io := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal("process-id"))
+				Expect(pid).To(Equal(TaskProcessID))
 
 				// send request on stdin in case process hasn't read it yet
 				request, err := ioutil.ReadAll(io.Stdin)
@@ -252,6 +251,7 @@ var _ = Describe("Resource Put", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
+					attachOutError = disaster
 					runOutError = disaster
 				})
 
@@ -277,12 +277,19 @@ var _ = Describe("Resource Put", func() {
 			BeforeEach(func() {
 				fakeContainer.PropertyStub = func(name string) (string, error) {
 					switch name {
-					case "concourse:resource-process":
-						return "", errors.New("nope")
 					default:
 						return "", errors.New("unstubbed property: " + name)
 					}
 				}
+
+				attachOutError = errors.New("not-found")
+			})
+
+			It("specifies the process id in the process spec", func() {
+				Expect(fakeContainer.RunCallCount()).To(Equal(1))
+
+				spec, _ := fakeContainer.RunArgsForCall(0)
+				Expect(spec.ID).To(Equal(TaskProcessID))
 			})
 
 			It("uses the same working directory for all actions", func() {
@@ -307,6 +314,8 @@ var _ = Describe("Resource Put", func() {
 			})
 
 			It("runs /opt/resource/out <source path> with the request on stdin", func() {
+				Expect(fakeContainer.RunCallCount()).To(Equal(1))
+
 				spec, io := fakeContainer.RunArgsForCall(0)
 				Expect(spec.Path).To(Equal("/opt/resource/out"))
 				Expect(spec.Args).To(ConsistOf("/tmp/build/put"))
@@ -319,14 +328,6 @@ var _ = Describe("Resource Put", func() {
 				"source": {"some":"source"}
 			}`))
 
-			})
-
-			It("saves the process ID as a property", func() {
-				Expect(fakeContainer.SetPropertyCallCount()).NotTo(BeZero())
-
-				name, value := fakeContainer.SetPropertyArgsForCall(0)
-				Expect(name).To(Equal("concourse:resource-process"))
-				Expect(value).To(Equal("process-id"))
 			})
 
 			Describe("streaming in", func() {
@@ -385,9 +386,9 @@ var _ = Describe("Resource Put", func() {
 				})
 
 				It("saves it as a property on the container", func() {
-					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(2))
+					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
 
-					name, value := fakeContainer.SetPropertyArgsForCall(1)
+					name, value := fakeContainer.SetPropertyArgsForCall(0)
 					Expect(name).To(Equal("concourse:resource-result"))
 					Expect(value).To(Equal(outScriptStdout))
 				})
@@ -436,6 +437,7 @@ var _ = Describe("Resource Put", func() {
 		var done chan struct{}
 
 		BeforeEach(func() {
+			fakeContainer.AttachReturns(nil, errors.New("not-found"))
 			fakeContainer.RunReturns(outScriptProcess, nil)
 			fakeContainer.PropertyReturns("", errors.New("nope"))
 
