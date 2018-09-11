@@ -27,7 +27,6 @@ type SkyConfig struct {
 	DexClientSecret string
 	DexRedirectURL  string
 	DexIssuerURL    string
-	InternalURL     string
 	DexHttpClient   *http.Client
 }
 

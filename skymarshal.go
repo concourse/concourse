@@ -23,7 +23,6 @@ type Config struct {
 	TeamFactory db.TeamFactory
 	Flags       skycmd.AuthFlags
 	ExternalURL string
-	InternalURL string
 	HttpClient  *http.Client
 	Postgres    flag.PostgresConfig
 }
@@ -48,20 +47,15 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	internalURL, err := url.Parse(config.InternalURL)
-	if err != nil {
-		return nil, err
-	}
-
 	clientId := "skymarshal"
 	clientSecretBytes := sha256.Sum256(signingKey.D.Bytes())
 	clientSecret := fmt.Sprintf("%x", clientSecretBytes[:])
 
-	externalIssuerURL := externalURL.String() + "/sky/issuer"
-	internalIssuerURL := internalURL.String() + "/sky/issuer"
+	issuerPath := "/sky/issuer"
+	issuerURL := externalURL.String() + issuerPath
 	redirectURL := externalURL.String() + "/sky/callback"
 
-	tokenVerifier := token.NewVerifier(clientId, internalIssuerURL)
+	tokenVerifier := token.NewVerifier(clientId, issuerURL)
 	tokenIssuer := token.NewIssuer(config.TeamFactory, token.NewGenerator(signingKey), config.Flags.Expiration)
 
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
@@ -69,7 +63,7 @@ func NewServer(config *Config) (*Server, error) {
 		TokenVerifier:   tokenVerifier,
 		TokenIssuer:     tokenIssuer,
 		SigningKey:      signingKey,
-		DexIssuerURL:    externalIssuerURL,
+		DexIssuerURL:    issuerURL,
 		DexClientID:     clientId,
 		DexClientSecret: clientSecret,
 		DexRedirectURL:  redirectURL,
@@ -83,8 +77,8 @@ func NewServer(config *Config) (*Server, error) {
 	dexServer, err := dexserver.NewDexServer(&dexserver.DexConfig{
 		Logger:       config.Logger.Session("dex"),
 		Flags:        config.Flags,
-		IssuerURL:    internalIssuerURL,
-		WebHostURL:   externalIssuerURL,
+		IssuerURL:    issuerURL,
+		WebHostURL:   issuerPath,
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectURL,
