@@ -994,6 +994,9 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("resources r ON r.id = o.resource_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
+		Where(sq.NotEq{
+			"v.check_order": 0,
+		}).
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
@@ -1027,6 +1030,9 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("resources r ON r.id = i.resource_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
+		Where(sq.NotEq{
+			"v.check_order": 0,
+		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"d.resource_id": nil,
@@ -1067,6 +1073,9 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		From("resource_config_versions v").
 		Join("resources r ON r.resource_config_id = v.resource_config_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
+		Where(sq.NotEq{
+			"v.check_order": 0,
+		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"d.resource_id": nil,

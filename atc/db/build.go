@@ -76,7 +76,7 @@ type Build interface {
 	SaveEvent(event atc.Event) error
 
 	SaveInput(input BuildInput) error
-	SaveOutput(ResourceConfig, atc.Version, ResourceConfigMetadataFields, string, string) error
+	SaveOutput(ResourceConfig, atc.Version, string, string, bool) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
@@ -785,7 +785,13 @@ func (b *build) SaveInput(input BuildInput) error {
 	return tx.Commit()
 }
 
-func (b *build) SaveOutput(rc ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields, outputName string, resourceName string) error {
+func (b *build) SaveOutput(
+	rc ResourceConfig,
+	version atc.Version,
+	outputName string,
+	resourceName string,
+	newVersion bool,
+) error {
 	// We should never save outputs for builds without a Pipeline ID because
 	// One-off Builds will never have Put steps. This shouldn't happen, but
 	// its best to return an error just in case
@@ -800,21 +806,21 @@ func (b *build) SaveOutput(rc ResourceConfig, version atc.Version, metadata Reso
 
 	defer Rollback(tx)
 
-	rcv, created, err := saveResourceConfigVersion(tx, b.conn, rc, version, metadata)
-	if err != nil {
-		return err
-	}
-
 	var versionJSON string
-	versionBytes, err := json.Marshal(rcv.Version())
+	versionBytes, err := json.Marshal(version)
 	if err != nil {
 		return err
 	}
 
 	versionJSON = string(versionBytes)
 
-	if created {
-		err = incrementCheckOrderWhenNewerVersion(tx, rc, versionJSON)
+	if newVersion {
+		err = incrementCheckOrder(tx, rc, versionJSON)
+		if err != nil {
+			return err
+		}
+
+		err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, rc.ID())
 		if err != nil {
 			return err
 		}
@@ -898,6 +904,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", firstOccurrence).
 		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
+		Where(sq.NotEq{"versions.check_order": 0}).
 		Where(sq.Expr("inputs.build_id = builds.id")).
 		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("resources.resource_config_id = versions.resource_config_id")).
@@ -945,15 +952,17 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		})
 	}
 
-	rows, err = b.conn.Query(`
-		SELECT outputs.name, versions.version
-		FROM resource_config_versions versions, build_resource_config_version_outputs outputs, builds, resources
-		WHERE builds.id = $1
-		AND outputs.build_id = builds.id
-		AND outputs.version_md5 = versions.version_md5
-		AND outputs.resource_id = resources.id
-		AND resources.resource_config_id = versions.resource_config_id
-	`, b.id)
+	rows, err = psql.Select("outputs.name", "versions.version").
+		From("resource_config_versions versions, build_resource_config_version_outputs outputs, builds, resources").
+		Where(sq.Eq{"builds.id": b.id}).
+		Where(sq.NotEq{"versions.check_order": 0}).
+		Where(sq.Expr("outputs.build_id = builds.id")).
+		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
+		Where(sq.Expr("outputs.resource_id = resources.id")).
+		Where(sq.Expr("resources.resource_config_id = versions.resource_config_id")).
+		RunWith(b.conn).
+		Query()
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -986,6 +995,10 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	return inputs, outputs, nil
 }
 
+// ResourceConfigVersions gets the list of ids of the resource config
+// versions used by the build
+
+// TODO: remove this as it is only used in tests
 func (b *build) ResourceConfigVersions() ([]int, error) {
 	rows, err := b.conn.Query(`
 		SELECT vr.id

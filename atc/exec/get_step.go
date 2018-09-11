@@ -205,21 +205,12 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	})
 
 	if step.resource != "" {
-		rcv, found, err := resourceCache.ResourceConfig().FindVersion(versionedSource.Version())
+		// Find or Save* the version used in the get step, and update the Metadata
+		// *saving will occur when the resource's config has changed, but it hasn't
+		// checked yet, so the resource config versions don't exist
+		_, err := resourceCache.ResourceConfig().SaveVersion(versionedSource.Version(), db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
 		if err != nil {
-			logger.Error("failed-to-find-the-resource-config-version", err)
-			return err
-		}
-
-		if !found {
-			resourceConfigVersionError := ErrResourceConfigVersionNotFound{ResourceName: step.resource, Version: versionedSource.Version()}
-			logger.Error("resource-config-version-not-found", resourceConfigVersionError)
-			return resourceConfigVersionError
-		}
-
-		err = rcv.SaveMetadata(db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
-		if err != nil {
-			logger.Error("failed-to-save-metadata", err)
+			logger.Error("failed-to-save-resource-config-version", err, lager.Data{"name": step.name, "resource": step.resource, "version": versionedSource.Version()})
 			return err
 		}
 	}

@@ -296,7 +296,10 @@ var _ = Describe("Resource", func() {
 		})
 
 		Context("when the version exists", func() {
-			var resourceConfigVersion db.ResourceConfigVersion
+			var (
+				resourceConfigVersion db.ResourceConfigVersion
+				resourceConfig        db.ResourceConfig
+			)
 
 			BeforeEach(func() {
 				setupTx, err := dbConn.Begin()
@@ -308,7 +311,8 @@ var _ = Describe("Resource", func() {
 				_, err = brt.FindOrCreate(setupTx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
-				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+
+				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				err = resourceConfig.SaveVersions([]atc.Version{version})
@@ -327,6 +331,21 @@ var _ = Describe("Resource", func() {
 				Expect(resourceConfigVersionFound).To(BeTrue())
 				Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
 				Expect(foundErr).ToNot(HaveOccurred())
+			})
+
+			Context("when the check order is 0", func() {
+				BeforeEach(func() {
+					version = atc.Version{"version": "2"}
+					created, err := resourceConfig.SaveVersion(version, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(created).To(BeTrue())
+				})
+
+				It("does not find the resource config version", func() {
+					Expect(rcvID).To(Equal(0))
+					Expect(resourceConfigVersionFound).To(BeFalse())
+					Expect(foundErr).ToNot(HaveOccurred())
+				})
 			})
 		})
 

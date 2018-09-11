@@ -50,6 +50,7 @@ type ResourceConfig interface {
 	) (lock.Lock, bool, error)
 
 	LatestVersion() (ResourceConfigVersion, bool, error)
+	SaveVersion(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error)
 	SaveVersions(versions []atc.Version) error
 	SetCheckError(error) error
 	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
@@ -120,8 +121,8 @@ func (r *resourceConfig) LatestVersion() (ResourceConfigVersion, bool, error) {
 	rcv := &resourceConfigVersion{conn: r.conn}
 
 	row := resourceConfigVersionQuery.
-		Where(sq.Eq{"resource_config_id": r.id}).
-		OrderBy("check_order DESC").
+		Where(sq.Eq{"v.resource_config_id": r.id}).
+		OrderBy("v.check_order DESC").
 		Limit(1).
 		RunWith(r.conn).
 		QueryRow()
@@ -137,6 +138,38 @@ func (r *resourceConfig) LatestVersion() (ResourceConfigVersion, bool, error) {
 	return rcv, true, nil
 }
 
+// SaveVersion is used by the "get" and "put" step to find or create of a
+// resource config version. We want to do an upsert because there will be cases
+// where resource config versions can become outdated while the versions
+// associated to it are still valid. This will be special case where we save
+// the version with a check order of 0 in order to avoid using this version
+// until we do a proper check. Note that this method will not bump the cache
+// index for the pipeline because we want to ignore these versions until the
+// check orders get updated. The bumping of the index will be done in
+// SaveOutput for the put step.
+func (r *resourceConfig) SaveVersion(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer Rollback(tx)
+
+	newVersion, err := saveResourceConfigVersion(tx, r, version, metadata)
+	if err != nil {
+		return false, err
+	}
+
+	return newVersion, tx.Commit()
+}
+
+// SaveVersions stores a list of version in the db for a resource config
+// Each version will also have its check order field updated and the
+// Cache index for pipelines using the resource config will be bumped.
+//
+// In the case of a check resource from an older version, the versions
+// that already exist in the DB will be re-ordered using
+// incrementCheckOrderWhenNewerVersion to input the correct check order
 func (r *resourceConfig) SaveVersions(versions []atc.Version) error {
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -146,7 +179,7 @@ func (r *resourceConfig) SaveVersions(versions []atc.Version) error {
 	defer Rollback(tx)
 
 	for _, version := range versions {
-		_, _, err = saveResourceConfigVersion(tx, r.conn, r, version, nil)
+		_, err = saveResourceConfigVersion(tx, r, version, nil)
 		if err != nil {
 			return err
 		}
@@ -156,7 +189,7 @@ func (r *resourceConfig) SaveVersions(versions []atc.Version) error {
 			return err
 		}
 
-		err = incrementCheckOrderWhenNewerVersion(tx, r, string(versionJSON))
+		err = incrementCheckOrder(tx, r, string(versionJSON))
 		if err != nil {
 			return err
 		}
@@ -171,8 +204,6 @@ func (r *resourceConfig) SaveVersions(versions []atc.Version) error {
 }
 
 func (r *resourceConfig) FindVersion(v atc.Version) (ResourceConfigVersion, bool, error) {
-	var version, metadata string
-
 	rcv := &resourceConfigVersion{
 		resourceConfig: r,
 		conn:           r.conn,
@@ -183,30 +214,19 @@ func (r *resourceConfig) FindVersion(v atc.Version) (ResourceConfigVersion, bool
 		return nil, false, err
 	}
 
-	err = psql.Select("v.id, v.version, v.metadata, v.check_order").
-		From("resource_config_versions v").
+	row := resourceConfigVersionQuery.
 		Where(sq.Eq{
 			"v.resource_config_id": r.id,
 			"v.version":            versionByte,
 		}).
 		RunWith(r.conn).
-		QueryRow().
-		Scan(&rcv.id, &version, &metadata, &rcv.checkOrder)
+		QueryRow()
+
+	err = scanResourceConfigVersion(rcv, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
 		}
-
-		return nil, false, err
-	}
-
-	err = json.Unmarshal([]byte(version), &rcv.version)
-	if err != nil {
-		return nil, false, err
-	}
-
-	err = json.Unmarshal([]byte(metadata), &rcv.metadata)
-	if err != nil {
 		return nil, false, err
 	}
 
@@ -217,7 +237,7 @@ func (r *resourceConfig) Versions(page Page) (ResourceConfigVersions, Pagination
 	query := `
 		SELECT v.id, v.version, v.metadata, v.check_order
 		FROM resource_config_versions v
-		WHERE v.resource_config_id = $1
+		WHERE v.resource_config_id = $1 AND v.check_order != 0
 	`
 
 	var rows *sql.Rows
@@ -357,7 +377,11 @@ func (r *resourceConfig) SetCheckError(cause error) error {
 	return err
 }
 
-func incrementCheckOrderWhenNewerVersion(tx Tx, r ResourceConfig, version string) error {
+// increment the check order if the version's check order is less than the
+// current max. This will fix the case of a check from an old version causing
+// the desired order to change; existing versions will be re-ordered since
+// we add them in the desired order.
+func incrementCheckOrder(tx Tx, r ResourceConfig, version string) error {
 	_, err := tx.Exec(`
 		WITH max_checkorder AS (
 			SELECT max(check_order) co
@@ -414,49 +438,29 @@ func (r *resourceConfig) checkIfResourceConfigIntervalUpdated(
 	return true, nil
 }
 
-func saveResourceConfigVersion(tx Tx, conn Conn, r ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields) (ResourceConfigVersion, bool, error) {
+func saveResourceConfigVersion(tx Tx, r ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
 	versionJSON, err := json.Marshal(version)
 	if err != nil {
-		return nil, false, err
+		return false, err
 	}
 
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
-		return nil, false, err
+		return false, err
 	}
 
-	var id, checkOrder int
-	var versionString, metadataString string
-
-	// XXX uniq
+	var checkOrder int
 	err = tx.QueryRow(`
 		INSERT INTO resource_config_versions (resource_config_id, version, version_md5, metadata)
 		SELECT $1, $2, md5($3), $4
 		ON CONFLICT (resource_config_id, version) DO UPDATE SET metadata = $4
-		RETURNING id, check_order, version, metadata
-		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON)).Scan(&id, &checkOrder, &versionString, &metadataString)
+		RETURNING check_order
+		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON)).Scan(&checkOrder)
 	if err != nil {
-		return nil, false, err
+		return false, err
 	}
 
-	savedRCV := &resourceConfigVersion{
-		id:             id,
-		resourceConfig: r,
-		checkOrder:     checkOrder,
-		conn:           conn,
-	}
-
-	err = json.Unmarshal([]byte(versionString), &savedRCV.version)
-	if err != nil {
-		return nil, false, err
-	}
-
-	err = json.Unmarshal([]byte(metadataString), &savedRCV.metadata)
-	if err != nil {
-		return nil, false, err
-	}
-
-	return savedRCV, checkOrder == 0, nil
+	return checkOrder == 0, nil
 }
 
 func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, error) {

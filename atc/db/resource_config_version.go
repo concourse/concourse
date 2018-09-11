@@ -18,7 +18,6 @@ type ResourceConfigVersion interface {
 	ResourceConfig() ResourceConfig
 
 	Reload() (bool, error)
-	SaveMetadata(ResourceConfigMetadataFields) error
 }
 
 type ResourceConfigVersions []ResourceConfigVersion
@@ -56,12 +55,15 @@ type resourceConfigVersion struct {
 }
 
 var resourceConfigVersionQuery = psql.Select(`
-	id,
-	version,
-	metadata,
-	check_order
+	v.id,
+	v.version,
+	v.metadata,
+	v.check_order
 `).
-	From("resource_config_versions")
+	From("resource_config_versions v").
+	Where(sq.NotEq{
+		"v.check_order": 0,
+	})
 
 func (r *resourceConfigVersion) ID() int                                { return r.id }
 func (r *resourceConfigVersion) Version() Version                       { return r.version }
@@ -70,7 +72,7 @@ func (r *resourceConfigVersion) CheckOrder() int                        { return
 func (r *resourceConfigVersion) ResourceConfig() ResourceConfig         { return r.resourceConfig }
 
 func (r *resourceConfigVersion) Reload() (bool, error) {
-	row := resourceConfigVersionQuery.Where(sq.Eq{"id": r.id}).
+	row := resourceConfigVersionQuery.Where(sq.Eq{"v.id": r.id}).
 		RunWith(r.conn).
 		QueryRow()
 
@@ -83,23 +85,6 @@ func (r *resourceConfigVersion) Reload() (bool, error) {
 	}
 
 	return true, nil
-}
-
-func (r *resourceConfigVersion) SaveMetadata(metadata ResourceConfigMetadataFields) error {
-	metadataJSON, err := json.Marshal(metadata)
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Update("resource_config_versions").
-		Set("metadata", string(metadataJSON)).
-		Where(sq.Eq{
-			"id": r.id,
-		}).
-		RunWith(r.conn).
-		Exec()
-
-	return err
 }
 
 func scanResourceConfigVersion(r *resourceConfigVersion, scan scannable) error {

@@ -161,13 +161,20 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	if step.resource != "" {
+		logger = logger.WithData(lager.Data{"step": step.name, "resource": step.resource, "resource-type": step.resourceType, "version": step.versionInfo.Version})
 		resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(logger, step.resourceType, source, step.resourceTypes)
 		if err != nil {
 			logger.Error("failed-to-find-or-create-resource-config", err)
 			return err
 		}
 
-		err = step.build.SaveOutput(resourceConfig, step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata), step.name, step.resource)
+		created, err := resourceConfig.SaveVersion(step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata))
+		if err != nil {
+			logger.Error("failed-to-save-version", err)
+			return err
+		}
+
+		err = step.build.SaveOutput(resourceConfig, step.versionInfo.Version, step.name, step.resource, created)
 		if err != nil {
 			logger.Error("failed-to-save-output", err)
 			return err

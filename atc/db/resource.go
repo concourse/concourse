@@ -223,6 +223,7 @@ func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, erro
 		Join("resource_configs rc ON rc.id = resource_config_id").
 		Join("resources r ON rc.id = r.resource_config_id").
 		Where(sq.Eq{"r.id": r.ID(), "version": requestedVersion}).
+		Where(sq.NotEq{"rcv.check_order": 0}).
 		RunWith(r.conn).
 		QueryRow().
 		Scan(&id)

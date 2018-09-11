@@ -619,12 +619,8 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			rcv1, found, err := resourceConfig.FindVersion(atc.Version{"version": "v1"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
 			// save metadata for v1
-			err = rcv1.SaveMetadata(db.ResourceConfigMetadataFields{
+			_, err = resourceConfig.SaveVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
 				db.ResourceConfigMetadataField{
 					Name:  "name1",
 					Value: "value1",
@@ -802,12 +798,8 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			rcv1, found, err := resourceConfig.FindVersion(atc.Version{"version": "v1"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
 			// save metadata for v1
-			err = rcv1.SaveMetadata(db.ResourceConfigMetadataFields{
+			_, err = resourceConfig.SaveVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
 				db.ResourceConfigMetadataField{
 					Name:  "name1",
 					Value: "value1",

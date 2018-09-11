@@ -491,7 +491,7 @@ var _ = Describe("Build", func() {
 			build, err := job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = build.SaveOutput(resourceConfig, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{
+			created, err := resourceConfig.SaveVersion(atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{
 				{
 					Name:  "meta1",
 					Value: "data1",
@@ -500,7 +500,11 @@ var _ = Describe("Build", func() {
 					Name:  "meta2",
 					Value: "data2",
 				},
-			}, "output-name", "some-explicit-resource")
+			})
+			Expect(created).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+
+			err = build.SaveOutput(resourceConfig, atc.Version{"some": "version"}, "output-name", "some-explicit-resource", created)
 			Expect(err).ToNot(HaveOccurred())
 
 			rcv, found, err := resourceConfig.FindVersion(atc.Version{"some": "version"})
@@ -599,6 +603,11 @@ var _ = Describe("Build", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
+			// This version should not be returned by the Resources method because it has a check order of 0
+			created, err := resourceConfig1.SaveVersion(atc.Version{"ver": "not-returned"}, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(created).To(BeTrue())
+
 			err = resourceConfig2.SaveVersions([]atc.Version{atc.Version{"ver": "2"}})
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -616,7 +625,7 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// save explicit output from 'put'
-			err = build.SaveOutput(resourceConfig2, atc.Version{"ver": "2"}, nil, "some-output-name", "some-other-resource")
+			err = build.SaveOutput(resourceConfig2, atc.Version{"ver": "2"}, "some-output-name", "some-other-resource", false)
 			Expect(err).NotTo(HaveOccurred())
 
 			inputs, outputs, err := build.Resources()
@@ -632,6 +641,17 @@ var _ = Describe("Build", func() {
 					Version: atc.Version{"ver": "2"},
 				},
 			}))
+		})
+
+		It("can't get no satisfaction (resources from a one-off build)", func() {
+			oneOffBuild, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			inputs, outputs, err := oneOffBuild.Resources()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(inputs).To(BeEmpty())
+			Expect(outputs).To(BeEmpty())
 		})
 	})
 
@@ -1092,19 +1112,6 @@ var _ = Describe("Build", func() {
 					Expect(found).To(BeFalse())
 				})
 			})
-		})
-	})
-
-	Describe("Resources", func() {
-		It("can get (no) resources from a one-off build", func() {
-			oneOffBuild, err := team.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-
-			inputs, outputs, err := oneOffBuild.Resources()
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(inputs).To(BeEmpty())
-			Expect(outputs).To(BeEmpty())
 		})
 	})
 

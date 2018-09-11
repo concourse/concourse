@@ -88,7 +88,7 @@ var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rcv.versio
 	LeftJoin(`LATERAL (
 		SELECT rcv.*
 		FROM resource_config_versions rcv
-		WHERE rcv.resource_config_id = c.id
+		WHERE rcv.resource_config_id = c.id AND rcv.check_order != 0
 		ORDER BY rcv.check_order DESC
 		LIMIT 1
 	) AS rcv ON true`).

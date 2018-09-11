@@ -153,6 +153,8 @@ var _ = Describe("PutStep", func() {
 				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 				fakeResourceConfig.IDReturns(1)
 
+				fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
+
 				fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
 				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
@@ -232,19 +234,29 @@ var _ = Describe("PutStep", func() {
 			})
 
 			Context("when finding or creating a resource config", func() {
-				BeforeEach(func() {
-					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
-				})
+				It("saves the version", func() {
+					Expect(fakeResourceConfig.SaveVersionCallCount()).To(Equal(1))
 
-				It("saves the build output", func() {
-					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
-
-					resourceConfig, version, metadata, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
-					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
+					version, metadata := fakeResourceConfig.SaveVersionArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"some": "version"}))
 					Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
-					Expect(outputName).To(Equal("some-name"))
-					Expect(resourceName).To(Equal("some-resource"))
+				})
+
+				Context("when saving a version", func() {
+					BeforeEach(func() {
+						fakeResourceConfig.SaveVersionReturns(true, nil)
+					})
+
+					It("saves the build output", func() {
+						Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
+
+						resourceConfig, version, outputName, resourceName, created := fakeBuild.SaveOutputArgsForCall(0)
+						Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
+						Expect(version).To(Equal(atc.Version{"some": "version"}))
+						Expect(outputName).To(Equal("some-name"))
+						Expect(resourceName).To(Equal("some-resource"))
+						Expect(created).To(BeTrue())
+					})
 				})
 			})
 
@@ -280,8 +292,20 @@ var _ = Describe("PutStep", func() {
 				}))
 			})
 
+			Context("when saving a version of the resource config fails", func() {
+				disaster := errors.New("nah")
+
+				BeforeEach(func() {
+					fakeResourceConfig.SaveVersionReturns(false, disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(stepErr).To(Equal(disaster))
+				})
+			})
+
 			Context("when finding or creating resource config fails", func() {
-				disaster := errors.New("nope")
+				disaster := errors.New("no")
 
 				BeforeEach(func() {
 					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, disaster)

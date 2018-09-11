@@ -496,7 +496,8 @@ var _ = Describe("ResourceConfig", func() {
 				BeforeEach(func() {
 					metadata := []db.ResourceConfigMetadataField{{Name: "name1", Value: "value1"}}
 
-					err := resourceConfigVersions[9].SaveMetadata(metadata)
+					// save metadata
+					_, err := resourceConfig.SaveVersion(atc.Version(resourceConfigVersions[9].Version()), metadata)
 					Expect(err).ToNot(HaveOccurred())
 
 					reloaded, err := resourceConfigVersions[9].Reload()
@@ -513,22 +514,35 @@ var _ = Describe("ResourceConfig", func() {
 				})
 			})
 
-			// XXX: Implement version disabling first
-			// Context("when a version is disabled", func() {
-			// 	BeforeEach(func() {
-			// 		err := pipeline.DisableVersionedResource(10)
-			// 		Expect(err).ToNot(HaveOccurred())
+			Context("when a version is disabled", func() {
+				BeforeEach(func() {
+					pipeline, created, err := defaultTeam.SavePipeline("new-pipeline", atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}, db.ConfigVersion(0), db.PipelineUnpaused)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(created).To(BeTrue())
 
-			// 		resourceConfigVersions[9].Enabled = false
-			// 	})
+					resource, found, err := pipeline.Resource("some-resource")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
 
-			// 	It("returns a disabled version", func() {
-			// 		historyPage, _, found, err := pipeline.GetResourceVersions("some-resource", db.Page{Limit: 1})
-			// 		Expect(err).ToNot(HaveOccurred())
-			// 		Expect(found).To(BeTrue())
-			// 		Expect(historyPage).To(Equal([]db.SavedVersionedResource{resourceConfigVersions[9]}))
-			// 	})
-			// })
+					err = pipeline.DisableResourceVersion(resource.ID(), resourceConfigVersions[9].ID())
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns a disabled version", func() {
+					historyPage, _, found, err := resourceConfig.Versions(db.Page{Limit: 1})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(historyPage).To(ConsistOf(db.ResourceConfigVersions{resourceConfigVersions[9]}))
+				})
+			})
 		})
 
 		Context("when check orders are different than versions ids", func() {
@@ -643,6 +657,35 @@ var _ = Describe("ResourceConfig", func() {
 					Expect(pagination.Previous).To(Equal(&db.Page{Until: 2, Limit: 2}))
 					Expect(pagination.Next).To(Equal(&db.Page{Since: 4, Limit: 2}))
 				})
+			})
+		})
+
+		Context("when resource has a version with check order of 0", func() {
+			BeforeEach(func() {
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "some-type",
+				}
+				_, err = brt.FindOrCreate(setupTx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+
+				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+
+				created, err := resourceConfig.SaveVersion(atc.Version{"version": "not-returned"}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+			})
+
+			It("does not return the version", func() {
+				historyPage, pagination, found, err := resourceConfig.Versions(db.Page{Limit: 2})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(historyPage).To(Equal(db.ResourceConfigVersions{}))
+				Expect(pagination).To(Equal(db.Pagination{Previous: nil, Next: nil}))
 			})
 		})
 	})

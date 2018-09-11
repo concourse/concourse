@@ -210,57 +210,19 @@ var _ = Describe("GetStep", func() {
 				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 			})
 
-			It("finds the resource config version", func() {
-				Expect(fakeResourceConfig.FindVersionCallCount()).To(Equal(1))
+			It("saves the resource config version", func() {
+				Expect(fakeResourceConfig.SaveVersionCallCount()).To(Equal(1))
 
-				version := fakeResourceConfig.FindVersionArgsForCall(0)
+				version, metadata := fakeResourceConfig.SaveVersionArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"some": "version"}))
+				Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
 			})
 
-			Context("when the version is found", func() {
-				var fakeResourceConfigVersion *dbfakes.FakeResourceConfigVersion
-
-				BeforeEach(func() {
-					fakeResourceConfigVersion = new(dbfakes.FakeResourceConfigVersion)
-					fakeResourceConfig.FindVersionReturns(fakeResourceConfigVersion, true, nil)
-				})
-
-				It("saves the metadata", func() {
-					// TODO: this can be removed once /check returns metadata
-					Expect(fakeResourceConfigVersion.SaveMetadataCallCount()).To(Equal(1))
-
-					input := fakeResourceConfigVersion.SaveMetadataArgsForCall(0)
-					Expect(input).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
-				})
-
-				Context("when saving the metadata fails", func() {
-					disaster := errors.New("oops")
-
-					BeforeEach(func() {
-						fakeResourceConfigVersion.SaveMetadataReturns(disaster)
-					})
-
-					It("returns an error", func() {
-						Expect(stepErr).To(Equal(disaster))
-					})
-				})
-			})
-
-			Context("when the version is not found", func() {
-				BeforeEach(func() {
-					fakeResourceConfig.FindVersionReturns(nil, false, nil)
-				})
-
-				It("returns an error", func() {
-					Expect(stepErr).To(Equal(exec.ErrResourceConfigVersionNotFound{ResourceName: "some-pipeline-resource", Version: atc.Version{"some": "version"}}))
-				})
-			})
-
-			Context("when it fails to find the version", func() {
+			Context("when it fails to save the version", func() {
 				disaster := errors.New("oops")
 
 				BeforeEach(func() {
-					fakeResourceConfig.FindVersionReturns(nil, false, disaster)
+					fakeResourceConfig.SaveVersionReturns(false, disaster)
 				})
 
 				It("returns an error", func() {
@@ -281,12 +243,9 @@ var _ = Describe("GetStep", func() {
 				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 			})
 
-			It("does not save the build input", func() {
+			It("does not save the resource config version", func() {
 				// TODO: this can be removed once /check returns metadata
-
-				fakeResourceConfigVersion := new(dbfakes.FakeResourceConfigVersion)
-				fakeResourceConfig.FindVersionReturns(fakeResourceConfigVersion, true, nil)
-				Expect(fakeResourceConfigVersion.SaveMetadataCallCount()).To(Equal(0))
+				Expect(fakeResourceConfig.SaveVersionCallCount()).To(Equal(0))
 			})
 		})
 
