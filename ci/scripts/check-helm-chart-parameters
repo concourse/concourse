@@ -5,11 +5,10 @@ CHART=$PWD/helm-chart
 
 unnecessary="CONCOURSE_VERSION"
 expected=
-subcommands="$(concourse --help 2>&1 | grep '^  [^-]' | tail -n+2 | awk '{print $1}')"
-for sc in $subcommands; do
+for sc in web worker; do
   expected+="$(concourse $sc --help 2>&1 | grep -o '\[\$CONCOURSE_.*\]' | tr -d \[\]\$ | grep -v "$unnecessary")\n"
 done
-actual="$(grep -REoh 'CONCOURSE_([A-Z_])+' $CHART)"
+actual="$(grep -REhv '\s+#\s+' $CHART | grep -Eoh 'CONCOURSE_([A-Z_])+')"
 echo These parameters need to be removed from the Helm chart:
 to_remove=$(comm -23 <(echo "$actual" | sort | uniq) <(echo -e "$expected" | sort | uniq) | paste -sd, -)
 echo "$to_remove"
