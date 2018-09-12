@@ -1,26 +1,44 @@
 package vault
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
 
 type MockAuther struct {
-	LoggedIn chan bool
-	Renewed  chan bool
-	Delay    time.Duration
+	LoggedIn   chan bool
+	Renewed    chan bool
+	Delay      time.Duration
+	LoginError error
+	RenewError error
 }
 
 func (ma *MockAuther) Login() (time.Duration, error) {
-	ma.LoggedIn <- true
-	return ma.Delay, nil
+	loggedIn := true
+	if ma.LoginError != nil {
+		loggedIn = false
+	}
+
+	ma.LoggedIn <- loggedIn
+	return ma.Delay, ma.LoginError
 }
 func (ma *MockAuther) Renew() (time.Duration, error) {
-	ma.Renewed <- true
-	return ma.Delay, nil
+	renewed := true
+	if ma.RenewError != nil {
+		renewed = false
+	}
+
+	ma.Renewed <- renewed
+	return ma.Delay, ma.RenewError
 }
 
 func TestReAuther(t *testing.T) {
+	testWithoutVaultErrors(t)
+	testExponentialBackoff(t)
+}
+
+func testWithoutVaultErrors(t *testing.T) {
 	ma := &MockAuther{
 		LoggedIn: make(chan bool, 1),
 		Renewed:  make(chan bool, 1),
@@ -74,4 +92,42 @@ func TestReAuther(t *testing.T) {
 		t.Fatal("Didn't issue login within timeout")
 	}
 
+}
+
+func testExponentialBackoff(t *testing.T) {
+	maxRetryInterval := 2 * time.Second
+	buffer := 300 * time.Millisecond
+
+	ma := &MockAuther{
+		LoggedIn:   make(chan bool, 1),
+		Renewed:    make(chan bool, 1),
+		Delay:      1 * time.Second,
+		LoginError: fmt.Errorf("Could not login to Vault"),
+	}
+	ra := NewReAuther(ma, 0, 1*time.Second, maxRetryInterval)
+
+	select {
+	case <-ra.LoggedIn():
+		t.Error("error, shouldn't have logged in")
+	case <-time.After(1 * time.Second):
+	}
+
+	// Make enough login attempts to reach maxRetryInterval
+	var lastRetryInterval time.Duration
+	for i := 0; i < 4; i++ {
+		start := time.Now()
+		select {
+		case li := <-ma.LoggedIn:
+			lastRetryInterval = time.Now().Sub(start)
+			if li {
+				t.Error("error, shouldn't have logged in succesfully")
+			}
+		case <-time.After(maxRetryInterval * 2):
+			t.Fatal("Took too long to retry login")
+		}
+	}
+
+	if lastRetryInterval < (maxRetryInterval - buffer) {
+		t.Error("maxRetryInterval reached, but login was reattempted before maxRetryInterval")
+	}
 }

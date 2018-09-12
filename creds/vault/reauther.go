@@ -87,7 +87,11 @@ func (ra *ReAuther) authLoop() {
 		for {
 			lease, err := ra.auther.Login()
 			if err != nil {
-				time.Sleep(exp.NextBackOff())
+				nextBackoff := exp.NextBackOff()
+				if nextBackoff == backoff.Stop {
+					nextBackoff = exp.MaxElapsedTime
+				}
+				time.Sleep(nextBackoff)
 				continue
 			}
 
@@ -112,7 +116,11 @@ func (ra *ReAuther) authLoop() {
 
 			lease, err := ra.auther.Renew()
 			if err != nil {
-				time.Sleep(exp.NextBackOff())
+				nextBackoff := exp.NextBackOff()
+				if nextBackoff == backoff.Stop {
+					nextBackoff = exp.MaxElapsedTime
+				}
+				time.Sleep(nextBackoff)
 				continue
 			}
 
