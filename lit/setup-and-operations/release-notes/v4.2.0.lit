@@ -1,6 +1,18 @@
 \use-plugin{concourse-docs}
 
-\release{2018-9-10}{4.1.1}{1.16.3}{
+\release{2018-9-13}{4.2.0}{1.16.3}{
+  \note{feature}{
+    The dashboard view will now indicate whether you are a member of each team
+    or whether you're only seeing it because it has exposed pipelines.
+  }
+
+  \note{feature}{
+    The \reference{web-node} can now be configured to periodically emit build
+    logs to a syslog endpoint! This is configured via \code{--syslog-X} flags
+    on the \code{concourse web} command. When enabled, build logs will be
+    shipped off in batch as builds complete.
+  }
+
   \note{fix,security}{
     Fixed a potential information leak: when logged in and viewing a resource
     from some other team's (exposed) pipeline, you can no longer view the
@@ -52,5 +64,17 @@
     prevent a stampede of work on a single worker. Now that workers
     garbage-collect themselves, this was no longer necessary, and only slowed
     down the database side of the garbage collection lifecycle.
+  }
+
+  \note{fix}{
+    Cleaned up our idempotent process reattaching mumbo-jumbo to not rely on
+    Garden properties which should help quiet down the \reference{worker-node}
+    logs (from when we check for a property that hasn't yet been set).
+  }
+
+  \note{fix}{
+    Fixed a bug that caused the Vault login retry logic to go into a fast loop
+    if retrying failed for long enough to exceed the maximum retry backoff.
+    Thanks for the PR, \ghuser{edtan}!
   }
 }
