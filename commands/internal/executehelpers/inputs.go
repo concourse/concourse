@@ -161,12 +161,12 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 			Name: buildInput.Name,
 
 			Plan: fact.NewPlan(atc.GetPlan{
-				Name:    buildInput.Name,
-				Type:    buildInput.Type,
-				Source:  buildInput.Source,
-				Version: &version,
-				Params:  buildInput.Params,
-				Tags:    buildInput.Tags,
+				Name:                   buildInput.Name,
+				Type:                   buildInput.Type,
+				Source:                 buildInput.Source,
+				Version:                &version,
+				Params:                 buildInput.Params,
+				Tags:                   buildInput.Tags,
 				VersionedResourceTypes: versionedResourceTypes,
 			}),
 		}

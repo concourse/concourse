@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/commands/internal/hijacker"
@@ -72,12 +73,20 @@ func (command *HijackCommand) Execute([]string) error {
 		return err
 	}
 
+	hijackableContainers := make([]atc.Container, 0)
+
+	for _, container := range containers {
+		if container.State == db.ContainerStateCreated || container.State == db.ContainerStateFailed {
+			hijackableContainers = append(hijackableContainers, container)
+		}
+	}
+
 	var chosenContainer atc.Container
-	if len(containers) == 0 {
+	if len(hijackableContainers) == 0 {
 		displayhelpers.Failf("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.")
-	} else if len(containers) > 1 {
+	} else if len(hijackableContainers) > 1 {
 		var choices []interact.Choice
-		for _, container := range containers {
+		for _, container := range hijackableContainers {
 			var infos []string
 
 			if container.BuildID != 0 {

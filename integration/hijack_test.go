@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
@@ -150,7 +151,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, Type: "task", StepName: "some-step", User: user},
+						{ID: "container-id-1", State: db.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -182,7 +183,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, Type: "task", StepName: "some-step", WorkingDirectory: workingDirectory, User: user},
+						{ID: "container-id-1", State: db.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", WorkingDirectory: workingDirectory, User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -210,7 +211,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, Type: "task", StepName: "some-step", User: "amelia"},
+						{ID: "container-id-1", State: db.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", User: "amelia"},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -317,59 +318,71 @@ var _ = Describe("Hijacking", func() {
 	})
 
 	Context("when multiple step containers are found", func() {
-		BeforeEach(func() {
-			didHijack := make(chan struct{})
-			hijacked = didHijack
+		var (
+			containerList []atc.Container
+			didHijack     chan struct{}
+		)
 
+		BeforeEach(func() {
+			didHijack = make(chan struct{})
+			hijacked = didHijack
+			containerList = []atc.Container{
+				{
+					ID:           "container-id-1",
+					WorkerName:   "worker-name-1",
+					PipelineName: "pipeline-name-1",
+					JobName:      "some-job",
+					BuildName:    "2",
+					BuildID:      12,
+					Type:         "get",
+					StepName:     "some-input",
+					Attempt:      "1.1.1",
+					User:         user,
+					State:        db.ContainerStateCreated,
+				},
+				{
+					ID:           "container-id-2",
+					WorkerName:   "worker-name-2",
+					PipelineName: "pipeline-name-1",
+					JobName:      "some-job",
+					BuildName:    "2",
+					BuildID:      13,
+					Type:         "put",
+					StepName:     "some-output",
+					Attempt:      "1.1.2",
+					User:         user,
+					State:        db.ContainerStateCreated,
+				},
+				{
+					ID:           "container-id-3",
+					WorkerName:   "worker-name-2",
+					PipelineName: "pipeline-name-2",
+					JobName:      "some-job",
+					BuildName:    "2",
+					BuildID:      13,
+					StepName:     "some-output",
+					Type:         "task",
+					Attempt:      "1",
+					User:         user,
+					State:        db.ContainerStateCreated,
+				},
+				{
+					ID:           "container-id-4",
+					WorkerName:   "worker-name-2",
+					PipelineName: "pipeline-name-2",
+					ResourceName: "banana",
+					User:         user,
+					Type:         "check",
+					State:        db.ContainerStateCreated,
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "pipeline_name=pipeline-name-1&job_name=some-job"),
-					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{
-							ID:           "container-id-1",
-							WorkerName:   "worker-name-1",
-							PipelineName: "pipeline-name-1",
-							JobName:      "some-job",
-							BuildName:    "2",
-							BuildID:      12,
-							Type:         "get",
-							StepName:     "some-input",
-							Attempt:      "1.1.1",
-							User:         user,
-						},
-						{
-							ID:           "container-id-2",
-							WorkerName:   "worker-name-2",
-							PipelineName: "pipeline-name-1",
-							JobName:      "some-job",
-							BuildName:    "2",
-							BuildID:      13,
-							Type:         "put",
-							StepName:     "some-output",
-							Attempt:      "1.1.2",
-							User:         user,
-						},
-						{
-							ID:           "container-id-3",
-							WorkerName:   "worker-name-2",
-							PipelineName: "pipeline-name-2",
-							JobName:      "some-job",
-							BuildName:    "2",
-							BuildID:      13,
-							StepName:     "some-output",
-							Type:         "task",
-							Attempt:      "1",
-							User:         user,
-						},
-						{
-							ID:           "container-id-4",
-							WorkerName:   "worker-name-2",
-							PipelineName: "pipeline-name-2",
-							ResourceName: "banana",
-							User:         user,
-							Type:         "check",
-						},
-					}),
+					ghttp.RespondWithJSONEncoded(200, containerList),
 				),
 				hijackHandler("container-id-2", didHijack, nil),
 			)
@@ -406,6 +419,125 @@ var _ = Describe("Hijacking", func() {
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(123))
+		})
+
+		Context("and no containers are in hijackable state", func() {
+			BeforeEach(func() {
+				containerList = []atc.Container{
+					{
+						ID:           "container-id-2",
+						WorkerName:   "worker-name-1",
+						PipelineName: "pipeline-name-1",
+						JobName:      "some-job",
+						BuildName:    "2",
+						BuildID:      12,
+						Type:         "get",
+						StepName:     "some-input",
+						Attempt:      "1.1.1",
+						User:         user,
+						State:        db.ContainerStateCreating,
+					},
+				}
+			})
+
+			It("should show that no containers are hijackable", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "-j", "pipeline-name-1/some-job")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+
+				Eventually(sess.Err).Should(gbytes.Say("no containers matched"))
+				close(didHijack)
+			})
+		})
+
+		Context("and some containers are in a non-hijackable state", func() {
+			BeforeEach(func() {
+				containerList = []atc.Container{
+					{
+						ID:           "container-id-1",
+						WorkerName:   "worker-name-1",
+						PipelineName: "pipeline-name-1",
+						JobName:      "some-job",
+						BuildName:    "2",
+						BuildID:      12,
+						Type:         "get",
+						StepName:     "some-input",
+						Attempt:      "1.1.1",
+						User:         user,
+						State:        db.ContainerStateCreating,
+					},
+					{
+						ID:           "container-id-2",
+						WorkerName:   "worker-name-2",
+						PipelineName: "pipeline-name-1",
+						JobName:      "some-job",
+						BuildName:    "2",
+						BuildID:      13,
+						Type:         "put",
+						StepName:     "some-output",
+						Attempt:      "1.1.2",
+						User:         user,
+						State:        db.ContainerStateCreated,
+					},
+					{
+						ID:           "container-id-3",
+						WorkerName:   "worker-name-2",
+						PipelineName: "pipeline-name-2",
+						JobName:      "some-job",
+						BuildName:    "2",
+						BuildID:      13,
+						StepName:     "some-output",
+						Type:         "task",
+						Attempt:      "1",
+						User:         user,
+						State:        db.ContainerStateFailed,
+					},
+					{
+						ID:           "container-id-4",
+						WorkerName:   "worker-name-2",
+						PipelineName: "pipeline-name-2",
+						ResourceName: "banana",
+						User:         user,
+						Type:         "check",
+						State:        db.ContainerStateDestroying,
+					},
+				}
+			})
+
+			It("should not display those containers in the list of results", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "-j", "pipeline-name-1/some-job")
+
+				stdin, err := flyCmd.StdinPipe()
+				Expect(err).NotTo(HaveOccurred())
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("1. build #2, step: some-output, type: put, attempt: 1.1.2"))
+				Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: task, attempt: 1"))
+				Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
+
+				_, err = fmt.Fprintf(stdin, "1\n")
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(hijacked).Should(BeClosed())
+
+				_, err = fmt.Fprintf(stdin, "some stdin")
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("some stdout"))
+				Eventually(sess.Err).Should(gbytes.Say("some stderr"))
+
+				err = stdin.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(123))
+			})
 		})
 	})
 
@@ -445,7 +577,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", containerArguments),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, Type: stepType, StepName: stepName, ResourceName: resourceName, Attempt: attempt, User: user},
+						{ID: "container-id-1", State: db.ContainerStateCreated, WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, Type: stepType, StepName: stepName, ResourceName: resourceName, Attempt: attempt, User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, hijackHandlerError),
