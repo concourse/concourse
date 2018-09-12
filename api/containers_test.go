@@ -147,6 +147,7 @@ var _ = Describe("Containers API", func() {
 									"attempt": "1.5",
 									"pipeline_id": 1111,
 									"job_id": 2222,
+									"state": "container-state",
 									"build_id": 3333,
 									"working_directory": "/tmp/build/my-favorite-guid",
 									"user": "snoopy"
