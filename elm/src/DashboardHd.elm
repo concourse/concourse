@@ -7,6 +7,7 @@ import Concourse.Job
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.Resource
+import Dashboard.Pipeline as Pipeline
 import DashboardHelpers exposing (..)
 import Dict exposing (Dict)
 import Html exposing (Html)
@@ -311,7 +312,7 @@ turbulenceView model =
         ]
 
 
-groupView : Maybe Time -> String -> List PipelineWithJobs -> List (Html Msg)
+groupView : Maybe Time -> String -> List Pipeline.PipelineWithJobs -> List (Html Msg)
 groupView now teamName pipelines =
     let
         teamPipelines =
@@ -329,14 +330,14 @@ groupView now teamName pipelines =
                 List.append [ Html.div [ class "dashboard-team-name-wrapper" ] [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ], p ] ] ps
 
 
-pipelineView : Maybe Time -> PipelineWithJobs -> Html Msg
+pipelineView : Maybe Time -> Pipeline.PipelineWithJobs -> Html Msg
 pipelineView now { pipeline, jobs, resourceError } =
     Html.div
         [ classList
             [ ( "dashboard-pipeline", True )
             , ( "dashboard-paused", pipeline.paused )
             , ( "dashboard-running", List.any (\job -> job.nextBuild /= Nothing) jobs )
-            , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (pipelineStatusFromJobs jobs False), not pipeline.paused )
+            , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (Pipeline.pipelineStatusFromJobs jobs False), not pipeline.paused )
             ]
         , attribute "data-pipeline-name" pipeline.name
         , attribute "data-team-name" pipeline.teamName

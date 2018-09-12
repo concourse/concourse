@@ -1,9 +1,19 @@
-module Dashboard.Pipeline exposing (Msg(..), DragState(..), DropState(..), pipelineNotSetView, pipelineDropAreaView, pipelineView, pipelineStatus)
+module Dashboard.Pipeline
+    exposing
+        ( Msg(..)
+        , DragState(..)
+        , DropState(..)
+        , PipelineWithJobs
+        , pipelineNotSetView
+        , pipelineDropAreaView
+        , pipelineView
+        , pipelineStatus
+        , pipelineStatusFromJobs
+        )
 
 import Concourse
 import Concourse.PipelineStatus
 import Duration
-import DashboardHelpers exposing (..)
 import DashboardPreview
 import Date
 import Html exposing (..)
@@ -15,6 +25,13 @@ import Json.Decode
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
+
+
+type alias PipelineWithJobs =
+    { pipeline : Concourse.Pipeline
+    , jobs : List Concourse.Job
+    , resourceError : Bool
+    }
 
 
 type alias PipelineIndex =
@@ -75,7 +92,7 @@ pipelineDropAreaView dragState dropState teamName index =
             [ Html.text "" ]
 
 
-pipelineView : DragState -> Maybe Time -> PipelineWithJobs -> Int -> Html Msg
+pipelineView : DragState -> Time -> PipelineWithJobs -> Int -> Html Msg
 pipelineView dragState now ({ pipeline, jobs, resourceError } as pipelineWithJobs) index =
     Html.div
         [ classList
@@ -115,7 +132,7 @@ headerView ({ pipeline, resourceError } as pipelineWithJobs) =
         ]
 
 
-footerView : PipelineWithJobs -> Maybe Time -> Html Msg
+footerView : PipelineWithJobs -> Time -> Html Msg
 footerView pipelineWithJobs now =
     Html.div [ class "dashboard-pipeline-footer" ]
         [ Html.div [ class "dashboard-pipeline-icon" ] []
@@ -171,14 +188,14 @@ transitionStart =
         >> Maybe.map Date.toTime
 
 
-sinceTransitionText : PipelineWithJobs -> Maybe Time -> String
-sinceTransitionText pipeline =
-    Maybe.map2 Duration.between (transitionTime pipeline)
-        >> Maybe.map Duration.format
-        >> Maybe.withDefault ""
+sinceTransitionText : PipelineWithJobs -> Time -> String
+sinceTransitionText pipeline now =
+    Maybe.map (flip Duration.between now) (transitionTime pipeline)
+        |> Maybe.map Duration.format
+        |> Maybe.withDefault ""
 
 
-statusAgeText : PipelineWithJobs -> Maybe Time -> String
+statusAgeText : PipelineWithJobs -> Time -> String
 statusAgeText pipeline =
     case pipelineStatus pipeline of
         Concourse.PipelineStatusPaused ->
@@ -194,7 +211,7 @@ statusAgeText pipeline =
             sinceTransitionText pipeline
 
 
-transitionView : Maybe Time -> PipelineWithJobs -> Html a
+transitionView : Time -> PipelineWithJobs -> Html a
 transitionView time pipeline =
     Html.div [ class "build-duration" ]
         [ Html.text <| statusAgeText pipeline time ]
@@ -206,6 +223,44 @@ pipelineStatus { pipeline, jobs } =
         Concourse.PipelineStatusPaused
     else
         pipelineStatusFromJobs jobs True
+
+
+pipelineStatusFromJobs : List Concourse.Job -> Bool -> Concourse.PipelineStatus
+pipelineStatusFromJobs jobs includeNextBuilds =
+    let
+        statuses =
+            jobStatuses jobs
+    in
+        if containsStatus Concourse.BuildStatusPending statuses then
+            Concourse.PipelineStatusPending
+        else if includeNextBuilds && List.any (\job -> job.nextBuild /= Nothing) jobs then
+            Concourse.PipelineStatusRunning
+        else if containsStatus Concourse.BuildStatusFailed statuses then
+            Concourse.PipelineStatusFailed
+        else if containsStatus Concourse.BuildStatusErrored statuses then
+            Concourse.PipelineStatusErrored
+        else if containsStatus Concourse.BuildStatusAborted statuses then
+            Concourse.PipelineStatusAborted
+        else if containsStatus Concourse.BuildStatusSucceeded statuses then
+            Concourse.PipelineStatusSucceeded
+        else
+            Concourse.PipelineStatusPending
+
+
+jobStatuses : List Concourse.Job -> List (Maybe Concourse.BuildStatus)
+jobStatuses jobs =
+    List.concatMap
+        (\job ->
+            [ Maybe.map .status job.finishedBuild
+            , Maybe.map .status job.nextBuild
+            ]
+        )
+        jobs
+
+
+containsStatus : Concourse.BuildStatus -> List (Maybe Concourse.BuildStatus) -> Bool
+containsStatus =
+    List.member << Just
 
 
 pauseToggleView : Concourse.Pipeline -> Html Msg

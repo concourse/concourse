@@ -6,7 +6,6 @@ import Concourse.Job
 import Concourse.Pipeline
 import Concourse.Resource
 import Concourse.Team
-import DashboardHelpers exposing (PipelineWithJobs)
 import Dashboard.Pipeline as Pipeline
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -18,7 +17,7 @@ import Time exposing (Time)
 
 
 type alias Group =
-    { pipelines : List PipelineWithJobs
+    { pipelines : List Pipeline.PipelineWithJobs
     , teamName : String
     }
 
@@ -32,7 +31,7 @@ type alias APIData =
     }
 
 
-allPipelines : APIData -> List PipelineWithJobs
+allPipelines : APIData -> List Pipeline.PipelineWithJobs
 allPipelines data =
     data.pipelines
         |> List.map
@@ -96,7 +95,7 @@ apiData groups =
         }
 
 
-group : List PipelineWithJobs -> String -> Group
+group : List Pipeline.PipelineWithJobs -> String -> Group
 group allPipelines teamName =
     { pipelines = (List.filter ((==) teamName << .teamName << .pipeline) allPipelines)
     , teamName = teamName
@@ -108,7 +107,7 @@ ordering =
     Ordering.byField .teamName
 
 
-view : List (Html Pipeline.Msg) -> Pipeline.DragState -> Pipeline.DropState -> Maybe Time -> Group -> Html Pipeline.Msg
+view : List (Html Pipeline.Msg) -> Pipeline.DragState -> Pipeline.DropState -> Time -> Group -> Html Pipeline.Msg
 view header dragState dropState now group =
     let
         pipelines =

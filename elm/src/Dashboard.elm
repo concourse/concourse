@@ -6,7 +6,6 @@ import Concourse.Cli
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.User
-import DashboardHelpers exposing (..)
 import Dashboard.Group as Group
 import Dashboard.GroupWithTag as GroupWithTag
 import Dashboard.Pipeline as Pipeline
@@ -59,7 +58,7 @@ type alias SubState =
     , dropState : Pipeline.DropState
     , hideFooter : Bool
     , hideFooterCounter : Time
-    , now : Maybe Time
+    , now : Time
     , teamData : TeamData
     }
 
@@ -95,7 +94,7 @@ teamApiData teamData =
 
 type Msg
     = Noop
-    | APIDataFetched (RemoteData.WebData ( Group.APIData, Maybe Concourse.User ))
+    | APIDataFetched (RemoteData.WebData ( Time.Time, ( Group.APIData, Maybe Concourse.User ) ))
     | ClockTick Time.Time
     | AutoRefresh Time
     | ShowFooter
@@ -120,7 +119,6 @@ init ports flags =
           }
         , Cmd.batch
             [ fetchData
-            , getCurrentTime
             , Cmd.map TopBarMsg topBarMsg
             , pinTeamNames ()
             , ports.title <| "Dashboard" ++ " - "
@@ -159,7 +157,7 @@ update msg model =
                             RemoteData.Failure _ ->
                                 Turbulence ""
 
-                            RemoteData.Success ( apiData, user ) ->
+                            RemoteData.Success ( now, ( apiData, user ) ) ->
                                 case apiData.pipelines of
                                     [] ->
                                         NoPipelines
@@ -173,7 +171,7 @@ update msg model =
                                         in
                                             HasData
                                                 { teamData = teamData
-                                                , now = Nothing
+                                                , now = now
                                                 , hideFooter = False
                                                 , hideFooterCounter = 0
                                                 , dragState = Pipeline.NotDragging
@@ -189,9 +187,9 @@ update msg model =
                 case model.state of
                     HasData substate ->
                         if substate.hideFooterCounter + Time.second > 5 * Time.second then
-                            ( { model | state = HasData { substate | now = Just now, hideFooter = True } }, Cmd.none )
+                            ( { model | state = HasData { substate | now = now, hideFooter = True } }, Cmd.none )
                         else
-                            ( { model | state = HasData { substate | now = Just now, hideFooterCounter = substate.hideFooterCounter + Time.second } }, Cmd.none )
+                            ( { model | state = HasData { substate | now = now, hideFooterCounter = substate.hideFooterCounter + Time.second } }, Cmd.none )
 
                     _ ->
                         ( model, Cmd.none )
@@ -275,7 +273,7 @@ update msg model =
                         case ( substate.dragState, substate.dropState ) of
                             ( Pipeline.Dragging teamName dragIndex, Pipeline.Dropping dropIndex ) ->
                                 let
-                                    shiftPipelines : List PipelineWithJobs -> List PipelineWithJobs
+                                    shiftPipelines : List Pipeline.PipelineWithJobs -> List Pipeline.PipelineWithJobs
                                     shiftPipelines pipelines =
                                         if dragIndex == dropIndex then
                                             pipelines
@@ -333,7 +331,7 @@ update msg model =
                         ( model, Cmd.none )
 
 
-shiftPipelineTo : PipelineWithJobs -> Int -> List PipelineWithJobs -> List PipelineWithJobs
+shiftPipelineTo : Pipeline.PipelineWithJobs -> Int -> List Pipeline.PipelineWithJobs -> List Pipeline.PipelineWithJobs
 shiftPipelineTo ({ pipeline } as pipelineWithJobs) position pipelines =
     case pipelines of
         [] ->
@@ -353,7 +351,7 @@ shiftPipelineTo ({ pipeline } as pipelineWithJobs) position pipelines =
                 p :: shiftPipelineTo pipelineWithJobs (position - 1) ps
 
 
-orderPipelines : String -> List PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg
+orderPipelines : String -> List Pipeline.PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg
 orderPipelines teamName pipelines csrfToken =
     Task.attempt (always Noop) <|
         Concourse.Pipeline.order
@@ -551,7 +549,11 @@ handleKeyPressed key model =
 
 fetchData : Cmd Msg
 fetchData =
-    Group.remoteData |> Task.andThen remoteUser |> RemoteData.asCmd |> Cmd.map APIDataFetched
+    Group.remoteData
+        |> Task.andThen remoteUser
+        |> Task.map2 (,) Time.now
+        |> RemoteData.asCmd
+        |> Cmd.map APIDataFetched
 
 
 remoteUser : Group.APIData -> Task.Task Http.Error ( Group.APIData, Maybe Concourse.User )

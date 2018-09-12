@@ -1,18 +1,15 @@
 module DashboardHelpers
     exposing
         ( PipelineId
-        , PipelineWithJobs
         , classifyJob
-        , containsStatus
         , groupPipelines
-        , jobStatuses
         , jobsByPipelineId
-        , pipelineStatusFromJobs
         , pipelinesWithJobs
         , resourceErrorsByPipelineIdentifier
         )
 
 import Concourse
+import Dashboard.Pipeline as Pipeline
 import Dict exposing (Dict)
 
 
@@ -20,14 +17,7 @@ type alias PipelineId =
     Int
 
 
-type alias PipelineWithJobs =
-    { pipeline : Concourse.Pipeline
-    , jobs : List Concourse.Job
-    , resourceError : Bool
-    }
-
-
-pipelinesWithJobs : Dict PipelineId (List Concourse.Job) -> Dict ( String, String ) Bool -> List Concourse.Pipeline -> List PipelineWithJobs
+pipelinesWithJobs : Dict PipelineId (List Concourse.Job) -> Dict ( String, String ) Bool -> List Concourse.Pipeline -> List Pipeline.PipelineWithJobs
 pipelinesWithJobs pipelineJobs pipelineResourceErrors pipelines =
     List.map
         (\pipeline ->
@@ -40,7 +30,7 @@ pipelinesWithJobs pipelineJobs pipelineResourceErrors pipelines =
         pipelines
 
 
-groupPipelines : List ( String, List PipelineWithJobs ) -> ( String, PipelineWithJobs ) -> List ( String, List PipelineWithJobs )
+groupPipelines : List ( String, List Pipeline.PipelineWithJobs ) -> ( String, Pipeline.PipelineWithJobs ) -> List ( String, List Pipeline.PipelineWithJobs )
 groupPipelines pipelines ( teamName, pipeline ) =
     case pipelines of
         [] ->
@@ -51,22 +41,6 @@ groupPipelines pipelines ( teamName, pipeline ) =
                 ( teamName, pipeline :: (Tuple.second s) ) :: ss
             else
                 s :: (groupPipelines ss ( teamName, pipeline ))
-
-
-jobStatuses : List Concourse.Job -> List (Maybe Concourse.BuildStatus)
-jobStatuses jobs =
-    List.concatMap
-        (\job ->
-            [ Maybe.map .status job.finishedBuild
-            , Maybe.map .status job.nextBuild
-            ]
-        )
-        jobs
-
-
-containsStatus : Concourse.BuildStatus -> List (Maybe Concourse.BuildStatus) -> Bool
-containsStatus =
-    List.member << Just
 
 
 jobsByPipelineId : List Concourse.Pipeline -> List Concourse.Job -> Dict PipelineId (List Concourse.Job)
@@ -128,25 +102,3 @@ resourceErrorsByPipelineIdentifier resources =
         )
         Dict.empty
         resources
-
-
-pipelineStatusFromJobs : List Concourse.Job -> Bool -> Concourse.PipelineStatus
-pipelineStatusFromJobs jobs includeNextBuilds =
-    let
-        statuses =
-            jobStatuses jobs
-    in
-        if containsStatus Concourse.BuildStatusPending statuses then
-            Concourse.PipelineStatusPending
-        else if includeNextBuilds && List.any (\job -> job.nextBuild /= Nothing) jobs then
-            Concourse.PipelineStatusRunning
-        else if containsStatus Concourse.BuildStatusFailed statuses then
-            Concourse.PipelineStatusFailed
-        else if containsStatus Concourse.BuildStatusErrored statuses then
-            Concourse.PipelineStatusErrored
-        else if containsStatus Concourse.BuildStatusAborted statuses then
-            Concourse.PipelineStatusAborted
-        else if containsStatus Concourse.BuildStatusSucceeded statuses then
-            Concourse.PipelineStatusSucceeded
-        else
-            Concourse.PipelineStatusPending
