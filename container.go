@@ -4,7 +4,8 @@ type Container struct {
 	ID         string `json:"id"`
 	WorkerName string `json:"worker_name"`
 
-	Type string `json:"type,omitempty"`
+	State string `json:"state,omitempty"`
+	Type  string `json:"type,omitempty"`
 
 	StepName string `json:"step_name,omitempty"`
 	Attempt  string `json:"attempt,omitempty"`

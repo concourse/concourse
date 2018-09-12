@@ -12,7 +12,8 @@ func Container(container db.Container) atc.Container {
 		ID:         container.Handle(),
 		WorkerName: container.WorkerName(),
 
-		Type: string(meta.Type),
+		Type:  string(meta.Type),
+		State: container.State(),
 
 		PipelineID: meta.PipelineID,
 		JobID:      meta.JobID,

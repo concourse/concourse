@@ -22,6 +22,7 @@ const (
 
 type Container interface {
 	ID() int
+	State() string
 	Handle() string
 	WorkerName() string
 	Metadata() ContainerMetadata
@@ -61,6 +62,7 @@ func newCreatingContainer(
 }
 
 func (container *creatingContainer) ID() int                     { return container.id }
+func (container *creatingContainer) State() string               { return ContainerStateCreating }
 func (container *creatingContainer) Handle() string              { return container.handle }
 func (container *creatingContainer) WorkerName() string          { return container.workerName }
 func (container *creatingContainer) Metadata() ContainerMetadata { return container.metadata }
@@ -175,6 +177,7 @@ func newCreatedContainer(
 }
 
 func (container *createdContainer) ID() int                     { return container.id }
+func (container *createdContainer) State() string               { return ContainerStateCreated }
 func (container *createdContainer) Handle() string              { return container.handle }
 func (container *createdContainer) WorkerName() string          { return container.workerName }
 func (container *createdContainer) Metadata() ContainerMetadata { return container.metadata }
@@ -319,6 +322,7 @@ func newDestroyingContainer(
 }
 
 func (container *destroyingContainer) ID() int                     { return container.id }
+func (container *destroyingContainer) State() string               { return ContainerStateDestroying }
 func (container *destroyingContainer) Handle() string              { return container.handle }
 func (container *destroyingContainer) WorkerName() string          { return container.workerName }
 func (container *destroyingContainer) Metadata() ContainerMetadata { return container.metadata }
@@ -382,6 +386,7 @@ func newFailedContainer(
 }
 
 func (container *failedContainer) ID() int                     { return container.id }
+func (container *failedContainer) State() string               { return ContainerStateFailed }
 func (container *failedContainer) Handle() string              { return container.handle }
 func (container *failedContainer) WorkerName() string          { return container.workerName }
 func (container *failedContainer) Metadata() ContainerMetadata { return container.metadata }

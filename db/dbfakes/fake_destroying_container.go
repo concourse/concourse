@@ -17,6 +17,15 @@ type FakeDestroyingContainer struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
+	StateStub        func() string
+	stateMutex       sync.RWMutex
+	stateArgsForCall []struct{}
+	stateReturns     struct {
+		result1 string
+	}
+	stateReturnsOnCall map[int]struct {
+		result1 string
+	}
 	HandleStub        func() string
 	handleMutex       sync.RWMutex
 	handleArgsForCall []struct{}
@@ -105,6 +114,46 @@ func (fake *FakeDestroyingContainer) IDReturnsOnCall(i int, result1 int) {
 	}
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakeDestroyingContainer) State() string {
+	fake.stateMutex.Lock()
+	ret, specificReturn := fake.stateReturnsOnCall[len(fake.stateArgsForCall)]
+	fake.stateArgsForCall = append(fake.stateArgsForCall, struct{}{})
+	fake.recordInvocation("State", []interface{}{})
+	fake.stateMutex.Unlock()
+	if fake.StateStub != nil {
+		return fake.StateStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.stateReturns.result1
+}
+
+func (fake *FakeDestroyingContainer) StateCallCount() int {
+	fake.stateMutex.RLock()
+	defer fake.stateMutex.RUnlock()
+	return len(fake.stateArgsForCall)
+}
+
+func (fake *FakeDestroyingContainer) StateReturns(result1 string) {
+	fake.StateStub = nil
+	fake.stateReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeDestroyingContainer) StateReturnsOnCall(i int, result1 string) {
+	fake.StateStub = nil
+	if fake.stateReturnsOnCall == nil {
+		fake.stateReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.stateReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 
@@ -316,6 +365,8 @@ func (fake *FakeDestroyingContainer) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.stateMutex.RLock()
+	defer fake.stateMutex.RUnlock()
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
 	fake.workerNameMutex.RLock()
