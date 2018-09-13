@@ -125,6 +125,8 @@ before using it!
 }{
   \table-row{\link{Helm Chart resource}{https://github.com/linkyard/helm-chart-resource}}{by \ghuser{linkyard}}
 }{
+  \table-row{\link{Helm Chart repository (ChartMuseum) resource}{https://github.com/cathive/concourse-chartmuseum-resource}}{by \ghuser{cathive}}
+}{
   \table-row{\link{Vault}{https://github.com/Docurated/concourse-vault-resource}}{by \ghuser{Docurated}}
 }{
   \table-row{\link{AWS Key Management Service}{https://github.com/everpeace/aws-kms-resource}}{by \ghuser{everpeace}}
