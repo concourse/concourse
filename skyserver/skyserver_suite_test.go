@@ -58,14 +58,15 @@ var _ = BeforeEach(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	config = &skyserver.SkyConfig{
-		Logger:          lagertest.NewTestLogger("sky"),
-		TokenVerifier:   fakeTokenVerifier,
-		TokenIssuer:     fakeTokenIssuer,
-		DexClientID:     "dex-client-id",
-		DexClientSecret: "dex-client-secret",
-		DexIssuerURL:    dexIssuerUrl,
-		DexHttpClient:   dexServer.HTTPTestServer.Client(),
-		SigningKey:      signingKey,
+		Logger:               lagertest.NewTestLogger("sky"),
+		TokenVerifier:        fakeTokenVerifier,
+		TokenIssuer:          fakeTokenIssuer,
+		DexClientID:          "dex-client-id",
+		DexClientSecret:      "dex-client-secret",
+		DexExternalIssuerURL: dexIssuerUrl,
+		DexInternalIssuerURL: dexIssuerUrl,
+		DexHttpClient:        dexServer.HTTPTestServer.Client(),
+		SigningKey:           signingKey,
 	}
 
 	server, err := skyserver.NewSkyServer(config)
