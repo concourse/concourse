@@ -1,6 +1,15 @@
 \use-plugin{concourse-docs}
 
 \release{2018-9-13}{4.2.0}{1.16.3}{
+  \image{images/vapenaysh.png}{vape naysh}
+
+  \note{fix,security}{
+    Fixed a potential information leak: when logged in and viewing a resource
+    from some other team's (exposed) pipeline, you can no longer view the
+    resource's check error, as it may unintentionally have sensitive info in
+    the output. This regressed in \reference{v4.0.0}.
+  }
+
   \note{feature}{
     The dashboard view will now indicate whether you are a member of each team
     or whether you're only seeing it because it has exposed pipelines.
@@ -11,13 +20,6 @@
     logs to a syslog endpoint! This is configured via \code{--syslog-X} flags
     on the \code{concourse web} command. When enabled, build logs will be
     shipped off in batch as builds complete.
-  }
-
-  \note{fix,security}{
-    Fixed a potential information leak: when logged in and viewing a resource
-    from some other team's (exposed) pipeline, you can no longer view the
-    resource's check error, as it may unintentionally have sensitive info in
-    the output. This regressed in \reference{v4.0.0}.
   }
 
   \note{fix,breaking}{
@@ -37,6 +39,16 @@
     persist we have to do a comparison and update/remove things that were
     changed or removed from the flags. Thankfully \ghuser{edtan} noticed this
     and fixed it in a PR!
+  }
+
+  \note{fix}{
+    With switching to Dex for auth in \reference{v4.0.0} we ended up using the
+    external URL as part of the internal login flow callbacks. This meant it
+    would break if your external URL could not be reached (perhaps it's behind
+    a reverse proxy with auth, or a self-signed-cert, or a firewall).
+
+    This is now fixed - the callbacks will go to the internal address only.
+    Sorry for the turbulence! A few folks were stuck on this.
   }
 
   \note{fix}{
