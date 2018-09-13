@@ -15,20 +15,22 @@ helm upgrade -f values.yaml \
   --force \
   --set image="concourse/concourse-rc" \
   --set imageTag="$version" \
-  --set concourse.baggageclaimDriver="detect" \
+  --set concourse.worker.garden.allowHostAccess="true" \
   "$RELEASE_NAME" \
   . \
   --wait \
   --timeout 300
 
-external_ip=$(kubectl get svc "$app" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
+
+kubectl port-forward "$pod_name" "8080:8080" 2>&1 >/dev/null &
+external_ip='127.0.0.1'
 
 until curl -s -f "http://$external_ip:8080/api/v1/info"; do
   echo "Waiting for atc to be running ..."
   sleep 5
 done
 
-pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
 internal_ip=$(kubectl get po "$pod_name" -o jsonpath='{.status.podIP}')
 
 bearer_token=$(curl -f -u fly:Zmx5 "http://$external_ip:8080/sky/token" -d "grant_type=password&username=$ATC_USERNAME&password=$ATC_PASSWORD&scope=openid+profile+email+federated:id+groups" | jq -r '.access_token')
