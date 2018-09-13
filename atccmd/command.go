@@ -427,12 +427,13 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 	authHandler, err := skymarshal.NewServer(&skymarshal.Config{
-		Logger:      logger,
-		TeamFactory: teamFactory,
-		Flags:       cmd.Auth.AuthFlags,
-		ExternalURL: cmd.ExternalURL.String(),
-		HttpClient:  httpClient,
-		Postgres:    cmd.Postgres,
+		Logger:       logger,
+		TeamFactory:  teamFactory,
+		Flags:        cmd.Auth.AuthFlags,
+		ExternalURL:  cmd.ExternalURL.String(),
+		InternalHost: cmd.defaultURL().Host,
+		HttpClient:   httpClient,
+		Postgres:     cmd.Postgres,
 	})
 	if err != nil {
 		return nil, err
