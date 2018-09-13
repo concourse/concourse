@@ -519,8 +519,8 @@ describe 'dashboard', type: :feature do
         expect(page).to have_content team_name
 
         page.evaluate_script('window.scrollTo(0, document.body.scrollHeight)')
-        expect(page.find('#main').find('.dashboard-team-name').native.style('position')).to eq 'fixed'
-        expect(page.find("##{team_name}").find('.dashboard-team-name').native.style('position')).to eq 'static'
+        expect(page.find('#main').find('.dashboard-team-header').native.style('position')).to eq 'fixed'
+        expect(page.find("##{team_name}").find('.dashboard-team-header').native.style('position')).to eq 'static'
       end
     end
   end
