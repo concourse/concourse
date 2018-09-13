@@ -64,6 +64,7 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	internalURL.Scheme = "http"
 	internalURL.Host = config.InternalHost
 
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
