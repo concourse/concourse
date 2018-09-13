@@ -3,10 +3,13 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/lib/pq"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 var (
@@ -53,6 +56,9 @@ type Worker interface {
 	Retire() error
 	Prune() error
 	Delete() error
+
+	FindContainerOnWorker(owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
+	CreateContainer(owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
 }
 
 type worker struct {
@@ -235,4 +241,102 @@ func (worker *worker) ResourceCerts() (*UsedWorkerResourceCerts, bool, error) {
 	}
 
 	return nil, false, nil
+}
+
+func (worker *worker) FindContainerOnWorker(owner ContainerOwner) (CreatingContainer, CreatedContainer, error) {
+	ownerQuery, found, err := owner.Find(worker.conn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !found {
+		return nil, nil, nil
+	}
+
+	return worker.findContainer(sq.And{
+		sq.Eq{"worker_name": worker.name},
+		ownerQuery,
+	})
+}
+
+func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error) {
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
+	var containerID int
+	cols := []interface{}{&containerID}
+
+	metadata := &ContainerMetadata{}
+	cols = append(cols, metadata.ScanTargets()...)
+
+	tx, err := worker.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	insMap := meta.SQLMap()
+	insMap["worker_name"] = worker.name
+	insMap["handle"] = handle.String()
+
+	ownerCols, err := owner.Create(tx, worker.name)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range ownerCols {
+		insMap[k] = v
+	}
+
+	err = psql.Insert("containers").
+		SetMap(insMap).
+		Suffix("RETURNING id, " + strings.Join(containerMetadataColumns, ", ")).
+		RunWith(tx).
+		QueryRow().
+		Scan(cols...)
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
+			return nil, ErrBuildDisappeared
+		}
+
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return newCreatingContainer(
+		containerID,
+		handle.String(),
+		worker.name,
+		*metadata,
+		worker.conn,
+	), nil
+}
+
+func (worker *worker) findContainer(whereClause sq.Sqlizer) (CreatingContainer, CreatedContainer, error) {
+	creating, created, destroying, _, err := scanContainer(
+		selectContainers().
+			Where(whereClause).
+			RunWith(worker.conn).
+			QueryRow(),
+		worker.conn,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil, nil
+		}
+		return nil, nil, err
+	}
+
+	if destroying != nil {
+		return nil, nil, nil
+	}
+
+	return creating, created, nil
 }

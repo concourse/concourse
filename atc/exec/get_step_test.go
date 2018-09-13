@@ -162,7 +162,7 @@ var _ = Describe("GetStep", func() {
 			atc.Params{"some-param": "some-value"},
 			creds.NewVersionedResourceTypes(variables, resourceTypes),
 			nil,
-			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID)),
+			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID), teamID),
 		)))
 		Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
 		Expect(delegate).To(Equal(fakeDelegate))

@@ -171,7 +171,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		params,
 		step.resourceTypes,
 		resourceCache,
-		db.NewBuildStepContainerOwner(step.buildID, step.planID),
+		db.NewBuildStepContainerOwner(step.buildID, step.planID, step.teamID),
 	)
 
 	versionedSource, err := step.resourceFetcher.Fetch(

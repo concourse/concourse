@@ -229,9 +229,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					}, 0)
 					Expect(err).ToNot(HaveOccurred())
 
-					container, err = defaultTeam.CreateContainer(
-						worker.Name(),
-						db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"),
+					container, err = worker.CreateContainer(
+						db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan", defaultTeam.ID()),
 						db.ContainerMetadata{},
 					)
 					Expect(err).ToNot(HaveOccurred())

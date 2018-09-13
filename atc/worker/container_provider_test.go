@@ -42,6 +42,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeImageFactory       *workerfakes.FakeImageFactory
 		fakeImage              *workerfakes.FakeImage
 		fakeDBTeam             *dbfakes.FakeTeam
+		fakeDBWorker           *dbfakes.FakeWorker
 		fakeDBVolumeRepository *dbfakes.FakeVolumeRepository
 		fakeLockFactory        *lockfakes.FakeLockFactory
 
@@ -104,7 +105,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 
-		fakeDBWorker := new(dbfakes.FakeWorker)
+		fakeDBWorker = new(dbfakes.FakeWorker)
 		fakeDBWorker.HTTPProxyURLReturns("http://proxy.com")
 		fakeDBWorker.HTTPSProxyURLReturns("https://proxy.com")
 		fakeDBWorker.NoProxyReturns("http://noproxy.com")
@@ -602,7 +603,7 @@ var _ = Describe("ContainerProvider", func() {
 
 	Describe("FindOrCreateContainer", func() {
 		BeforeEach(func() {
-			fakeDBTeam.CreateContainerReturns(fakeCreatingContainer, nil)
+			fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 			fakeLockFactory.AcquireReturns(new(lockfakes.FakeLock), true, nil)
 		})
 
@@ -620,7 +621,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindContainerOnWorkerReturns(fakeCreatingContainer, nil, nil)
+				fakeDBWorker.FindContainerOnWorkerReturns(fakeCreatingContainer, nil, nil)
 			})
 
 			ItHandlesContainerInCreatingState()
@@ -628,7 +629,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in created state", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindContainerOnWorkerReturns(nil, fakeCreatedContainer, nil)
+				fakeDBWorker.FindContainerOnWorkerReturns(nil, fakeCreatedContainer, nil)
 			})
 
 			ItHandlesContainerInCreatedState()
@@ -636,11 +637,11 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindContainerOnWorkerReturns(nil, nil, nil)
+				fakeDBWorker.FindContainerOnWorkerReturns(nil, nil, nil)
 			})
 
 			ItHandlesNonExistentContainer(func() int {
-				return fakeDBTeam.CreateContainerCallCount()
+				return fakeDBWorker.CreateContainerCallCount()
 			})
 		})
 	})

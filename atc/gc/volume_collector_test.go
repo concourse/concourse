@@ -52,7 +52,7 @@ var _ = Describe("VolumeCollector", func() {
 			}, 5*time.Minute)
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer1, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer1, err = worker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", team.ID()), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
@@ -86,7 +86,7 @@ var _ = Describe("VolumeCollector", func() {
 			var expectedOrphanedVolumeHandles []string
 
 			JustBeforeEach(func() {
-				creatingContainer2, err = team.CreateContainer(worker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				creatingContainer2, err = worker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", team.ID()), db.ContainerMetadata{
 					Type:     "task",
 					StepName: "some-task",
 				})

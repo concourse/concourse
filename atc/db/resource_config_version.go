@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 //go:generate counterfeiter . ResourceConfigVersion

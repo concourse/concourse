@@ -229,7 +229,7 @@ func (scanner *resourceTypeScanner) check(
 	res, err := scanner.resourceFactory.NewResource(
 		context.Background(),
 		logger,
-		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, scanner.dbPipeline.TeamID()),
+		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

@@ -167,7 +167,7 @@ var _ = Describe("PutStep", func() {
 
 				_, _, owner, cm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(cm).To(Equal(containerMetadata))
-				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID))))
+				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "some-resource-type",
 				}))

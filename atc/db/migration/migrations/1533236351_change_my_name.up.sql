@@ -73,4 +73,10 @@ BEGIN;
   CREATE UNIQUE INDEX resource_caches_resource_config_id_version_params_hash_uniq
   ON resource_caches (resource_config_id, md5(version::text), params_hash);
 
+  ALTER TABLE worker_resource_config_check_sessions
+    DROP COLUMN team_id;
+
+  CREATE UNIQUE INDEX worker_resource_config_check_sessions_uniq
+  ON worker_resource_config_check_sessions (resource_config_check_session_id, worker_base_resource_type_id);
+
 COMMIT;

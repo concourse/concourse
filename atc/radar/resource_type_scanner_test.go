@@ -155,7 +155,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession, teamID)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -207,7 +207,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 					_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession, teamID)))
+					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
 					}))
@@ -420,7 +420,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession, teamID)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -541,7 +541,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 					_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession, teamID)))
+					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
 					}))

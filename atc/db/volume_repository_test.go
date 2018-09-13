@@ -78,7 +78,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		Context("with container volumes", func() {
 			JustBeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 					Type:     "task",
 					StepName: "some-task",
 				})
@@ -166,7 +166,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
@@ -329,7 +329,7 @@ var _ = Describe("VolumeFactory", func() {
 	Describe("DestroyFailedVolumes", func() {
 
 		BeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
@@ -354,7 +354,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		Context("when worker has detroying volumes", func() {
 			BeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 					Type:     "task",
 					StepName: "some-task",
 				})
@@ -485,7 +485,7 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 					Type:     "get",
 					StepName: "some-resource",
 				})

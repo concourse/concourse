@@ -196,7 +196,7 @@ var _ = Describe("TaskStep", func() {
 				Expect(fakeWorkerClient.FindOrCreateContainerCallCount()).To(Equal(1))
 				_, cancel, delegate, owner, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 				Expect(cancel).ToNot(BeNil())
-				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID)))
+				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID, teamID)))
 				Expect(createdMetadata).To(Equal(db.ContainerMetadata{
 					Type:     db.ContainerTypeTask,
 					StepName: "some-step",
@@ -250,7 +250,7 @@ var _ = Describe("TaskStep", func() {
 					Expect(fakeWorkerClient.FindOrCreateContainerCallCount()).To(Equal(1))
 					_, cancel, delegate, owner, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateContainerArgsForCall(0)
 					Expect(cancel).ToNot(BeNil())
-					Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID)))
+					Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID, teamID)))
 					Expect(createdMetadata).To(Equal(db.ContainerMetadata{
 						Type:     db.ContainerTypeTask,
 						StepName: "some-step",

@@ -78,7 +78,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
 		fakeResourceInstance.ResourceCacheReturns(fakeUsedResourceCache)
-		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id")))
+		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42))
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceMetadataField{
 			{Name: "some", Value: "metadata"},
@@ -197,7 +197,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 				_, logger, delegate, owner, metadata, spec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(delegate).To(Equal(fakeDelegate))
-				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"))))
+				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
 				Expect(metadata).To(BeZero())
 				Expect(spec).To(Equal(worker.ContainerSpec{
 					TeamID: 42,

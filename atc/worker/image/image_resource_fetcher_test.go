@@ -280,7 +280,7 @@ var _ = Describe("Image", func() {
 									Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 									cctx, _, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 									Expect(cctx).To(Equal(ctx))
-									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer)))
+									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
@@ -321,7 +321,7 @@ var _ = Describe("Image", func() {
 								Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 								cctx, _, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 								Expect(cctx).To(Equal(ctx))
-								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer)))
+								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 								Expect(metadata).To(Equal(db.ContainerMetadata{
 									Type: db.ContainerTypeCheck,
 								}))
@@ -366,7 +366,7 @@ var _ = Describe("Image", func() {
 									atc.Params{"some": "params"},
 									customTypes,
 									fakeUsedResourceCache,
-									db.NewImageGetContainerOwner(fakeCreatingContainer),
+									db.NewImageGetContainerOwner(fakeCreatingContainer, teamID),
 								)))
 								Expect(actualCustomTypes).To(Equal(customTypes))
 								Expect(delegate).To(Equal(fakeImageFetchingDelegate))
@@ -582,7 +582,7 @@ var _ = Describe("Image", func() {
 							atc.Params{"some": "params"},
 							customTypes,
 							fakeUsedResourceCache,
-							db.NewImageGetContainerOwner(fakeCreatingContainer),
+							db.NewImageGetContainerOwner(fakeCreatingContainer, teamID),
 						)))
 						Expect(actualCustomTypes).To(Equal(customTypes))
 						Expect(delegate).To(Equal(fakeImageFetchingDelegate))

@@ -188,9 +188,9 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				containerOwner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, defaultTeam.ID())
+				containerOwner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
 
-				container, err = defaultTeam.CreateContainer(defaultWorker.Name(), containerOwner, db.ContainerMetadata{})
+				container, err = defaultWorker.CreateContainer(containerOwner, db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
 				_ = createResourceCacheWithUser(db.ForContainer(container.ID()))
@@ -322,9 +322,9 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, defaultTeam.ID())
+				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
 
-				container, err := defaultTeam.CreateContainer(defaultWorker.Name(), containerOwner, db.ContainerMetadata{})
+				container, err := defaultWorker.CreateContainer(containerOwner, db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
 				rc := createResourceCacheWithUser(db.ForContainer(container.ID()))
