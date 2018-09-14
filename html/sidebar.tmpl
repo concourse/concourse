@@ -22,7 +22,11 @@
         <table>
         {{range .Section.Children}}
           <tr>
-            <td class="number-cell" align="right">{{.Number}}&nbsp;</td>
+            {{if and .Parent (lt .Depth 3)}}
+              <td class="number-cell" align="right">{{.Number}}&nbsp;</td>
+            {{else}}
+              <td class="number-cell" align="left"></td>
+            {{end}}
             <td class="title-cell">{{template "section-link" walkContext $.Current .}}</td>
           </tr>
         {{end}}

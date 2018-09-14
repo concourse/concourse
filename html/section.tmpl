@@ -1,7 +1,7 @@
 <div class="section" id="section_{{.PrimaryTag.Name}}">
   {{if .Parent}}
   <h{{headerDepth .}} class="section-header"><a name="{{.PrimaryTag.Name}}"></a>
-    {{- if .Parent -}}
+    {{- if and .Parent (lt .Depth 3) -}}
       <span class="section-number">{{.Number}} </span>
     {{- end -}}
     {{- .Title | render -}}
