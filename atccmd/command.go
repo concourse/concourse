@@ -422,18 +422,17 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
-	httpClient, err := cmd.httpClient()
+	httpClient, err := cmd.skyHttpClient()
 	if err != nil {
 		return nil, err
 	}
 	authHandler, err := skymarshal.NewServer(&skymarshal.Config{
-		Logger:       logger,
-		TeamFactory:  teamFactory,
-		Flags:        cmd.Auth.AuthFlags,
-		ExternalURL:  cmd.ExternalURL.String(),
-		InternalHost: cmd.defaultURL().Host,
-		HttpClient:   httpClient,
-		Postgres:     cmd.Postgres,
+		Logger:      logger,
+		TeamFactory: teamFactory,
+		Flags:       cmd.Auth.AuthFlags,
+		ExternalURL: cmd.ExternalURL.String(),
+		HttpClient:  httpClient,
+		Postgres:    cmd.Postgres,
 	})
 	if err != nil {
 		return nil, err
@@ -891,8 +890,9 @@ func webHandler(logger lager.Logger) (http.Handler, error) {
 	return metric.WrapHandler(logger, "web", webHandler), nil
 }
 
-func (cmd *RunCommand) httpClient() (*http.Client, error) {
+func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
 	httpClient := http.DefaultClient
+
 	if cmd.isTLSEnabled() {
 		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
 		if err != nil {
@@ -916,8 +916,34 @@ func (cmd *RunCommand) httpClient() (*http.Client, error) {
 				RootCAs: certpool,
 			},
 		}
+	} else {
+		httpClient.Transport = http.DefaultTransport
 	}
+
+	httpClient.Transport = mitmRoundTripper{
+		RoundTripper: httpClient.Transport,
+
+		SourceHost: cmd.ExternalURL.URL.Host,
+		TargetURL:  cmd.defaultURL().URL,
+	}
+
 	return httpClient, nil
+}
+
+type mitmRoundTripper struct {
+	http.RoundTripper
+
+	SourceHost string
+	TargetURL  *url.URL
+}
+
+func (tripper mitmRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Host == tripper.SourceHost {
+		req.URL.Scheme = tripper.TargetURL.Scheme
+		req.URL.Host = tripper.TargetURL.Host
+	}
+
+	return tripper.RoundTripper.RoundTrip(req)
 }
 
 func (cmd *RunCommand) tlsConfig() (*tls.Config, error) {
