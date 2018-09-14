@@ -25,3 +25,10 @@ type Container struct {
 	User             string `json:"user,omitempty"`
 	WorkingDirectory string `json:"working_directory,omitempty"`
 }
+
+const (
+	ContainerStateCreated    = "created"
+	ContainerStateCreating   = "creating"
+	ContainerStateDestroying = "destroying"
+	ContainerStateFailed     = "failed"
+)

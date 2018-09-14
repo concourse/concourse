@@ -5,18 +5,12 @@ import (
 	"errors"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/atc"
 )
 
 var ErrContainerDisappeared = errors.New("container disappeared from db")
 
 type ContainerState string
-
-const (
-	ContainerStateCreated    = "created"
-	ContainerStateCreating   = "creating"
-	ContainerStateDestroying = "destroying"
-	ContainerStateFailed     = "failed"
-)
 
 //go:generate counterfeiter . Container
 
@@ -62,19 +56,19 @@ func newCreatingContainer(
 }
 
 func (container *creatingContainer) ID() int                     { return container.id }
-func (container *creatingContainer) State() string               { return ContainerStateCreating }
+func (container *creatingContainer) State() string               { return atc.ContainerStateCreating }
 func (container *creatingContainer) Handle() string              { return container.handle }
 func (container *creatingContainer) WorkerName() string          { return container.workerName }
 func (container *creatingContainer) Metadata() ContainerMetadata { return container.metadata }
 
 func (container *creatingContainer) Created() (CreatedContainer, error) {
 	rows, err := psql.Update("containers").
-		Set("state", ContainerStateCreated).
+		Set("state", atc.ContainerStateCreated).
 		Where(sq.And{
 			sq.Eq{"id": container.id},
 			sq.Or{
-				sq.Eq{"state": string(ContainerStateCreating)},
-				sq.Eq{"state": string(ContainerStateCreated)},
+				sq.Eq{"state": string(atc.ContainerStateCreating)},
+				sq.Eq{"state": string(atc.ContainerStateCreated)},
 			},
 		}).
 		RunWith(container.conn).
@@ -104,12 +98,12 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 
 func (container *creatingContainer) Failed() (FailedContainer, error) {
 	rows, err := psql.Update("containers").
-		Set("state", ContainerStateFailed).
+		Set("state", atc.ContainerStateFailed).
 		Where(sq.And{
 			sq.Eq{"id": container.id},
 			sq.Or{
-				sq.Eq{"state": string(ContainerStateCreating)},
-				sq.Eq{"state": string(ContainerStateFailed)},
+				sq.Eq{"state": string(atc.ContainerStateCreating)},
+				sq.Eq{"state": string(atc.ContainerStateFailed)},
 			},
 		}).
 		RunWith(container.conn).
@@ -177,7 +171,7 @@ func newCreatedContainer(
 }
 
 func (container *createdContainer) ID() int                     { return container.id }
-func (container *createdContainer) State() string               { return ContainerStateCreated }
+func (container *createdContainer) State() string               { return atc.ContainerStateCreated }
 func (container *createdContainer) Handle() string              { return container.handle }
 func (container *createdContainer) WorkerName() string          { return container.workerName }
 func (container *createdContainer) Metadata() ContainerMetadata { return container.metadata }
@@ -188,12 +182,12 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 	var isDiscontinued bool
 
 	err := psql.Update("containers").
-		Set("state", ContainerStateDestroying).
+		Set("state", atc.ContainerStateDestroying).
 		Where(sq.And{
 			sq.Eq{"id": container.id},
 			sq.Or{
-				sq.Eq{"state": string(ContainerStateDestroying)},
-				sq.Eq{"state": string(ContainerStateCreated)},
+				sq.Eq{"state": string(atc.ContainerStateDestroying)},
+				sq.Eq{"state": string(atc.ContainerStateCreated)},
 			},
 		}).
 		Suffix("RETURNING discontinued").
@@ -220,13 +214,13 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 
 func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
 	rows, err := psql.Update("containers").
-		Set("state", ContainerStateDestroying).
+		Set("state", atc.ContainerStateDestroying).
 		Set("discontinued", true).
 		Where(sq.And{
 			sq.Eq{"id": container.id},
 			sq.Or{
-				sq.Eq{"state": string(ContainerStateDestroying)},
-				sq.Eq{"state": string(ContainerStateCreated)},
+				sq.Eq{"state": string(atc.ContainerStateDestroying)},
+				sq.Eq{"state": string(atc.ContainerStateCreated)},
 			},
 		}).
 		RunWith(container.conn).
@@ -263,7 +257,7 @@ func (container *createdContainer) MarkAsHijacked() error {
 		Set("hijacked", true).
 		Where(sq.Eq{
 			"id":    container.id,
-			"state": ContainerStateCreated,
+			"state": atc.ContainerStateCreated,
 		}).
 		RunWith(container.conn).
 		Exec()
@@ -322,7 +316,7 @@ func newDestroyingContainer(
 }
 
 func (container *destroyingContainer) ID() int                     { return container.id }
-func (container *destroyingContainer) State() string               { return ContainerStateDestroying }
+func (container *destroyingContainer) State() string               { return atc.ContainerStateDestroying }
 func (container *destroyingContainer) Handle() string              { return container.handle }
 func (container *destroyingContainer) WorkerName() string          { return container.workerName }
 func (container *destroyingContainer) Metadata() ContainerMetadata { return container.metadata }
@@ -333,7 +327,7 @@ func (container *destroyingContainer) Destroy() (bool, error) {
 	rows, err := psql.Delete("containers").
 		Where(sq.Eq{
 			"id":    container.id,
-			"state": ContainerStateDestroying,
+			"state": atc.ContainerStateDestroying,
 		}).
 		RunWith(container.conn).
 		Exec()
@@ -386,7 +380,7 @@ func newFailedContainer(
 }
 
 func (container *failedContainer) ID() int                     { return container.id }
-func (container *failedContainer) State() string               { return ContainerStateFailed }
+func (container *failedContainer) State() string               { return atc.ContainerStateFailed }
 func (container *failedContainer) Handle() string              { return container.handle }
 func (container *failedContainer) WorkerName() string          { return container.workerName }
 func (container *failedContainer) Metadata() ContainerMetadata { return container.metadata }
@@ -395,7 +389,7 @@ func (container *failedContainer) Destroy() (bool, error) {
 	rows, err := psql.Delete("containers").
 		Where(sq.Eq{
 			"id":    container.id,
-			"state": ContainerStateFailed,
+			"state": atc.ContainerStateFailed,
 		}).
 		RunWith(container.conn).
 		Exec()
