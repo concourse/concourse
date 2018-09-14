@@ -554,8 +554,9 @@ func (cmd *RunCommand) constructAPIMembers(
 			logger,
 
 			tlsRedirectHandler{
-				externalHost: cmd.ExternalURL.URL.Host,
-				baseHandler:  webHandler,
+				matchHostname: cmd.ExternalURL.URL.Hostname(),
+				externalHost:  cmd.ExternalURL.URL.Host,
+				baseHandler:   webHandler,
 			},
 
 			// note: intentionally not wrapping API; redirecting is more trouble than
@@ -568,8 +569,9 @@ func (cmd *RunCommand) constructAPIMembers(
 			apiHandler,
 
 			tlsRedirectHandler{
-				externalHost: cmd.ExternalURL.URL.Host,
-				baseHandler:  authHandler,
+				matchHostname: cmd.ExternalURL.URL.Hostname(),
+				externalHost:  cmd.ExternalURL.URL.Host,
+				baseHandler:   authHandler,
 			},
 		)
 
@@ -1290,12 +1292,13 @@ func (cmd *RunCommand) constructAPIHandler(
 }
 
 type tlsRedirectHandler struct {
-	externalHost string
-	baseHandler  http.Handler
+	matchHostname string
+	externalHost  string
+	baseHandler   http.Handler
 }
 
 func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" || r.Method == "HEAD" {
+	if r.URL.Hostname() == h.matchHostname && (r.Method == "GET" || r.Method == "HEAD") {
 		u := url.URL{
 			Scheme:   "https",
 			Host:     h.externalHost,
