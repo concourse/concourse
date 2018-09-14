@@ -11,6 +11,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -1298,7 +1299,7 @@ type tlsRedirectHandler struct {
 }
 
 func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Hostname() == h.matchHostname && (r.Method == "GET" || r.Method == "HEAD") {
+	if strings.HasPrefix(r.Host, h.matchHostname) && (r.Method == "GET" || r.Method == "HEAD") {
 		u := url.URL{
 			Scheme:   "https",
 			Host:     h.externalHost,
