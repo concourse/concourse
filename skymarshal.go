@@ -19,13 +19,12 @@ import (
 )
 
 type Config struct {
-	Logger       lager.Logger
-	TeamFactory  db.TeamFactory
-	Flags        skycmd.AuthFlags
-	ExternalURL  string
-	InternalHost string
-	HttpClient   *http.Client
-	Postgres     flag.PostgresConfig
+	Logger      lager.Logger
+	TeamFactory db.TeamFactory
+	Flags       skycmd.AuthFlags
+	ExternalURL string
+	HttpClient  *http.Client
+	Postgres    flag.PostgresConfig
 }
 
 type Server struct {
@@ -59,25 +58,17 @@ func NewServer(config *Config) (*Server, error) {
 	tokenVerifier := token.NewVerifier(clientId, issuerURL)
 	tokenIssuer := token.NewIssuer(config.TeamFactory, token.NewGenerator(signingKey), config.Flags.Expiration)
 
-	internalURL, err := url.Parse(issuerURL)
-	if err != nil {
-		return nil, err
-	}
-
-	internalURL.Host = config.InternalHost
-
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
-		Logger:               config.Logger.Session("sky"),
-		TokenVerifier:        tokenVerifier,
-		TokenIssuer:          tokenIssuer,
-		SigningKey:           signingKey,
-		DexExternalIssuerURL: issuerURL,
-		DexInternalIssuerURL: internalURL.String(),
-		DexClientID:          clientId,
-		DexClientSecret:      clientSecret,
-		DexRedirectURL:       redirectURL,
-		DexHttpClient:        config.HttpClient,
-		SecureCookies:        config.Flags.SecureCookies,
+		Logger:          config.Logger.Session("sky"),
+		TokenVerifier:   tokenVerifier,
+		TokenIssuer:     tokenIssuer,
+		SigningKey:      signingKey,
+		DexIssuerURL:    issuerURL,
+		DexClientID:     clientId,
+		DexClientSecret: clientSecret,
+		DexRedirectURL:  redirectURL,
+		DexHttpClient:   config.HttpClient,
+		SecureCookies:   config.Flags.SecureCookies,
 	})
 	if err != nil {
 		return nil, err

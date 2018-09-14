@@ -293,7 +293,7 @@ var _ = Describe("Sky Server API", func() {
 				})
 			})
 
-			Context("the dex server errors", func() {
+			Context("requesting a token from dex fails", func() {
 				BeforeEach(func() {
 					dexServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -308,7 +308,7 @@ var _ = Describe("Sky Server API", func() {
 				})
 			})
 
-			Context("the dex server is running", func() {
+			Context("requesting a token from dex succeeds", func() {
 				var fakeVerifiedClaims *token.VerifiedClaims
 				var fakeOAuthToken *oauth2.Token
 
@@ -326,16 +326,6 @@ var _ = Describe("Sky Server API", func() {
 							}),
 						),
 					)
-				})
-
-				Context("when the internal issuer URL is not set", func() {
-					BeforeEach(func() {
-						config.DexInternalIssuerURL = ""
-					})
-
-					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
 				})
 
 				Context("the token verification fails", func() {

@@ -18,17 +18,16 @@ import (
 )
 
 type SkyConfig struct {
-	Logger               lager.Logger
-	TokenVerifier        token.Verifier
-	TokenIssuer          token.Issuer
-	SigningKey           *rsa.PrivateKey
-	SecureCookies        bool
-	DexClientID          string
-	DexClientSecret      string
-	DexRedirectURL       string
-	DexExternalIssuerURL string
-	DexInternalIssuerURL string
-	DexHttpClient        *http.Client
+	Logger          lager.Logger
+	TokenVerifier   token.Verifier
+	TokenIssuer     token.Issuer
+	SigningKey      *rsa.PrivateKey
+	SecureCookies   bool
+	DexClientID     string
+	DexClientSecret string
+	DexRedirectURL  string
+	DexIssuerURL    string
+	DexHttpClient   *http.Client
 }
 
 const stateCookieName = "skymarshal_state"
@@ -398,8 +397,8 @@ func (self *skyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 
 func (self *skyServer) endpoint() oauth2.Endpoint {
 	return oauth2.Endpoint{
-		AuthURL:  strings.TrimRight(self.config.DexExternalIssuerURL, "/") + "/auth",
-		TokenURL: strings.TrimRight(self.config.DexInternalIssuerURL, "/") + "/token",
+		AuthURL:  strings.TrimRight(self.config.DexIssuerURL, "/") + "/auth",
+		TokenURL: strings.TrimRight(self.config.DexIssuerURL, "/") + "/token",
 	}
 }
 
