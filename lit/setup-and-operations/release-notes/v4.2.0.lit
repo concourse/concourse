@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\release{2018-9-13}{4.2.0}{1.16.3}{
+\release{2018-9-14}{4.2.0}{1.16.3}{
   \image{images/vapenaysh.png}{vape naysh}
 
   \note{fix,security}{
