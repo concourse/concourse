@@ -3,6 +3,7 @@ package tsa_test
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -20,7 +21,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
 	"github.com/tedsuo/rata"
 )
 
@@ -170,7 +170,8 @@ var _ = Describe("Heartbeater", func() {
 	})
 
 	AfterEach(func() {
-		ginkgomon.Interrupt(heartbeater)
+		heartbeater.Signal(os.Interrupt)
+		<-heartbeater.Wait()
 		fakeATC2.Close()
 		fakeATC1.Close()
 	})
