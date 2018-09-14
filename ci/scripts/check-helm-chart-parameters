@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-CHART=$PWD/helm-chart
+CHART=$PWD/helm-chart/stable/concourse
 concourse_ignore_list="CONCOURSE_VERSION|CREDHUB"
 k8s_ignore_list="LIVENESS_PROBE_FATAL_ERRORS|POD_IP"
 
