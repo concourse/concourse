@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/commands/internal/hijacker"
@@ -76,7 +75,7 @@ func (command *HijackCommand) Execute([]string) error {
 	hijackableContainers := make([]atc.Container, 0)
 
 	for _, container := range containers {
-		if container.State == db.ContainerStateCreated || container.State == db.ContainerStateFailed {
+		if container.State == atc.ContainerStateCreated || container.State == atc.ContainerStateFailed {
 			hijackableContainers = append(hijackableContainers, container)
 		}
 	}

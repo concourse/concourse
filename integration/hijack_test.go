@@ -6,7 +6,6 @@ import (
 	"os/exec"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
@@ -151,7 +150,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", State: db.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", User: user},
+						{ID: "container-id-1", State: atc.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -183,7 +182,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", State: db.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", WorkingDirectory: workingDirectory, User: user},
+						{ID: "container-id-1", State: atc.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", WorkingDirectory: workingDirectory, User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -211,7 +210,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", State: db.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", User: "amelia"},
+						{ID: "container-id-1", State: atc.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", User: "amelia"},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -338,7 +337,7 @@ var _ = Describe("Hijacking", func() {
 					StepName:     "some-input",
 					Attempt:      "1.1.1",
 					User:         user,
-					State:        db.ContainerStateCreated,
+					State:        atc.ContainerStateCreated,
 				},
 				{
 					ID:           "container-id-2",
@@ -351,7 +350,7 @@ var _ = Describe("Hijacking", func() {
 					StepName:     "some-output",
 					Attempt:      "1.1.2",
 					User:         user,
-					State:        db.ContainerStateCreated,
+					State:        atc.ContainerStateCreated,
 				},
 				{
 					ID:           "container-id-3",
@@ -364,7 +363,7 @@ var _ = Describe("Hijacking", func() {
 					Type:         "task",
 					Attempt:      "1",
 					User:         user,
-					State:        db.ContainerStateCreated,
+					State:        atc.ContainerStateCreated,
 				},
 				{
 					ID:           "container-id-4",
@@ -373,7 +372,7 @@ var _ = Describe("Hijacking", func() {
 					ResourceName: "banana",
 					User:         user,
 					Type:         "check",
-					State:        db.ContainerStateCreated,
+					State:        atc.ContainerStateCreated,
 				},
 			}
 		})
@@ -435,7 +434,7 @@ var _ = Describe("Hijacking", func() {
 						StepName:     "some-input",
 						Attempt:      "1.1.1",
 						User:         user,
-						State:        db.ContainerStateCreating,
+						State:        atc.ContainerStateCreating,
 					},
 				}
 			})
@@ -468,7 +467,7 @@ var _ = Describe("Hijacking", func() {
 						StepName:     "some-input",
 						Attempt:      "1.1.1",
 						User:         user,
-						State:        db.ContainerStateCreating,
+						State:        atc.ContainerStateCreating,
 					},
 					{
 						ID:           "container-id-2",
@@ -481,7 +480,7 @@ var _ = Describe("Hijacking", func() {
 						StepName:     "some-output",
 						Attempt:      "1.1.2",
 						User:         user,
-						State:        db.ContainerStateCreated,
+						State:        atc.ContainerStateCreated,
 					},
 					{
 						ID:           "container-id-3",
@@ -494,7 +493,7 @@ var _ = Describe("Hijacking", func() {
 						Type:         "task",
 						Attempt:      "1",
 						User:         user,
-						State:        db.ContainerStateFailed,
+						State:        atc.ContainerStateFailed,
 					},
 					{
 						ID:           "container-id-4",
@@ -503,7 +502,7 @@ var _ = Describe("Hijacking", func() {
 						ResourceName: "banana",
 						User:         user,
 						Type:         "check",
-						State:        db.ContainerStateDestroying,
+						State:        atc.ContainerStateDestroying,
 					},
 				}
 			})
@@ -577,7 +576,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", containerArguments),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", State: db.ContainerStateCreated, WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, Type: stepType, StepName: stepName, ResourceName: resourceName, Attempt: attempt, User: user},
+						{ID: "container-id-1", State: atc.ContainerStateCreated, WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, Type: stepType, StepName: stepName, ResourceName: resourceName, Attempt: attempt, User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, hijackHandlerError),
