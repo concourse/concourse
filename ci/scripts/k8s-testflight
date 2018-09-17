@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
+trap "cat /tmp/pids | xargs kill" EXIT
 mkdir -p ~/.kube
 echo "$KUBE_CONFIG" > ~/.kube/config
 version=$(cat version/version)
@@ -16,6 +17,9 @@ helm upgrade -f values.yaml \
   --set image="concourse/concourse-rc" \
   --set imageTag="$version" \
   --set concourse.worker.garden.allowHostAccess="true" \
+  --set concourse.worker.baggageclaim.driver="detect" \
+  --set worker.resources.requests.cpu="500m" \
+  --set worker.replicas="1" \
   "$RELEASE_NAME" \
   . \
   --wait \
@@ -23,7 +27,8 @@ helm upgrade -f values.yaml \
 
 pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
 
-kubectl port-forward "$pod_name" "8080:8080" 2>&1 >/dev/null &
+kubectl port-forward "$pod_name" "8080:8080" >/dev/null 2>&1 &
+echo $! >> /tmp/pids
 external_ip='127.0.0.1'
 
 until curl -s -f "http://$external_ip:8080/api/v1/info"; do
@@ -44,13 +49,11 @@ ports=$(curl -H"Authorization:Bearer $bearer_token" "http://$external_ip:8080/ap
 
 set -x
 
-pids=""
 for port in $ports; do
   iptables -t nat -A OUTPUT -m tcp -p tcp -d "$internal_ip" --dport "$port" -j DNAT --to-destination "127.0.0.1:$port"
   kubectl port-forward "$pod_name" "$port:$port" >/dev/null &
-  pids+="$! "
+  echo $! >> /tmp/pids
 done
-trap "kill $pids" EXIT
 
 popd
 
