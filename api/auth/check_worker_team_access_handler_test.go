@@ -176,12 +176,12 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 					fakeaccess.IsAdminReturns(false)
 				})
 
-				It("calls worker delegate", func() {
-					Expect(delegate.IsCalled).To(BeTrue())
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				It("does not call worker delegate", func() {
+					Expect(delegate.IsCalled).To(BeFalse())
 				})
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})

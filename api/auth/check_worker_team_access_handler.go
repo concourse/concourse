@@ -65,12 +65,10 @@ func (h checkWorkerTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if worker.TeamName() != "" {
-		if !acc.IsAuthorized(worker.TeamName()) {
-			h.rejector.Forbidden(w, r)
-			return
-		}
+	if worker.TeamName() != "" && acc.IsAuthorized(worker.TeamName()) {
+		h.delegateHandler.ServeHTTP(w, r)
+		return
 	}
 
-	h.delegateHandler.ServeHTTP(w, r)
+	h.rejector.Forbidden(w, r)
 }
