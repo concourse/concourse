@@ -125,7 +125,7 @@ func (command *HijackCommand) Execute([]string) error {
 			return err
 		}
 	} else {
-		chosenContainer = containers[0]
+		chosenContainer = hijackableContainers[0]
 	}
 
 	privileged := true

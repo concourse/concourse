@@ -538,6 +538,63 @@ var _ = Describe("Hijacking", func() {
 				Expect(sess.ExitCode()).To(Equal(123))
 			})
 		})
+
+		Context("and only one container is in hijackable state", func() {
+			BeforeEach(func() {
+				containerList = []atc.Container{
+					{
+						ID:           "container-id-1",
+						WorkerName:   "worker-name-1",
+						PipelineName: "pipeline-name-1",
+						JobName:      "some-job",
+						BuildName:    "1",
+						BuildID:      12,
+						Type:         "get",
+						StepName:     "some-input",
+						Attempt:      "1.1.1",
+						User:         user,
+						State:        atc.ContainerStateDestroying,
+					},
+					{
+						ID:           "container-id-2",
+						WorkerName:   "worker-name-2",
+						PipelineName: "pipeline-name-1",
+						JobName:      "some-job",
+						BuildName:    "2",
+						BuildID:      13,
+						Type:         "put",
+						StepName:     "some-output",
+						Attempt:      "1.1.2",
+						User:         user,
+						State:        atc.ContainerStateCreated,
+					},
+				}
+			})
+
+			It("hijacks the hijackable container", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "-j", "pipeline-name-1/some-job")
+
+				stdin, err := flyCmd.StdinPipe()
+				Expect(err).NotTo(HaveOccurred())
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(hijacked).Should(BeClosed())
+
+				_, err = fmt.Fprintf(stdin, "some stdin")
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("some stdout"))
+				Eventually(sess.Err).Should(gbytes.Say("some stderr"))
+
+				err = stdin.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(123))
+			})
+		})
 	})
 
 	Context("when hijack returns a single container", func() {
