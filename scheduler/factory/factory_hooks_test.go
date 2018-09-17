@@ -71,16 +71,16 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who resist our will",
+						Name:                   "those who resist our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "step failure",
+						Name:                   "step failure",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "job failure",
+					Name:                   "job failure",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -122,20 +122,20 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who resist our will",
+						Name:                   "those who resist our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who also resist our will",
+						Name:                   "those who also resist our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "third task",
+						Name:                   "third task",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "some other failure",
+					Name:                   "some other failure",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -174,16 +174,16 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who resist our will",
+						Name:                   "those who resist our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who also resist our will",
+						Name:                   "those who also resist our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "some other failure",
+					Name:                   "some other failure",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -235,17 +235,17 @@ var _ = Describe("Factory Hooks", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "some-task",
+					Name:                   "some-task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "agg-task-1",
+						Name:                   "agg-task-1",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.AggregatePlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "agg-agg-task-1",
+							Name:                   "agg-agg-task-1",
 							VersionedResourceTypes: resourceTypes,
 						}),
 					}),
@@ -282,12 +282,12 @@ var _ = Describe("Factory Hooks", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "some-task",
+					Name:                   "some-task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "do-task-1",
+						Name:                   "do-task-1",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -336,26 +336,26 @@ var _ = Describe("Factory Hooks", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "some-task",
+					Name:                   "some-task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "do-task-1",
+						Name:                   "do-task-1",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.DoPlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "do-task-2",
+							Name:                   "do-task-2",
 							VersionedResourceTypes: resourceTypes,
 						}),
 						expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 							Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name: "do-task-3",
+								Name:                   "do-task-3",
 								VersionedResourceTypes: resourceTypes,
 							}),
 							Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name: "do-task-4",
+								Name:                   "do-task-4",
 								VersionedResourceTypes: resourceTypes,
 							}),
 						}),
@@ -399,22 +399,22 @@ var _ = Describe("Factory Hooks", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "some-task",
+					Name:                   "some-task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "agg-task-1",
+							Name:                   "agg-task-1",
 							VersionedResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "agg-task-1-success",
+							Name:                   "agg-task-1-success",
 							VersionedResourceTypes: resourceTypes,
 						}),
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "agg-task-2",
+						Name:                   "agg-task-2",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -467,7 +467,7 @@ var _ = Describe("Factory Hooks", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "those who resist our will",
+					Name:                   "those who resist our will",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.GetPlan{
@@ -501,7 +501,7 @@ var _ = Describe("Factory Hooks", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "those who resist our will",
+					Name:                   "those who resist our will",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TimeoutPlan{
@@ -540,7 +540,7 @@ var _ = Describe("Factory Hooks", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "those who resist our will",
+					Name:                   "those who resist our will",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
@@ -555,7 +555,7 @@ var _ = Describe("Factory Hooks", func() {
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who still resist our will",
+						Name:                   "those who still resist our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -582,7 +582,7 @@ var _ = Describe("Factory Hooks", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "those who resist our will",
+					Name:                   "those who resist our will",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.EnsurePlan{
@@ -597,7 +597,7 @@ var _ = Describe("Factory Hooks", func() {
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who still resist our will",
+						Name:                   "those who still resist our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -629,21 +629,21 @@ var _ = Describe("Factory Hooks", func() {
 				Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 					Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "those who resist our will",
+							Name:                   "those who resist our will",
 							VersionedResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "those who failed to resist our will",
+							Name:                   "those who failed to resist our will",
 							VersionedResourceTypes: resourceTypes,
 						}),
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who successfully resisted our will",
+						Name:                   "those who successfully resisted our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "those who always resist our will",
+					Name:                   "those who always resist our will",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -673,7 +673,7 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who resist our will",
+						Name:                   "those who resist our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.EnsurePlan{
@@ -688,7 +688,7 @@ var _ = Describe("Factory Hooks", func() {
 							VersionedResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "those who still resist our will",
+							Name:                   "those who still resist our will",
 							VersionedResourceTypes: resourceTypes,
 						}),
 					}),
@@ -735,25 +735,25 @@ var _ = Describe("Factory Hooks", func() {
 					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 							Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name: "those who resist our will",
+								Name:                   "those who resist our will",
 								VersionedResourceTypes: resourceTypes,
 							}),
 							Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name: "some other task",
+								Name:                   "some other task",
 								VersionedResourceTypes: resourceTypes,
 							}),
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "some other success task",
+							Name:                   "some other success task",
 							VersionedResourceTypes: resourceTypes,
 						}),
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who still resist our will",
+						Name:                   "those who still resist our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "shall be defeated",
+						Name:                   "shall be defeated",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				})
@@ -788,28 +788,28 @@ var _ = Describe("Factory Hooks", func() {
 
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who start resisting our will",
+						Name:                   "those who start resisting our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.DoPlan{
 						expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 							Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 								Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-									Name: "those who resist our will",
+									Name:                   "those who resist our will",
 									VersionedResourceTypes: resourceTypes,
 								}),
 								Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-									Name: "some other task",
+									Name:                   "some other task",
 									VersionedResourceTypes: resourceTypes,
 								}),
 							}),
 							Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name: "some other success task",
+								Name:                   "some other success task",
 								VersionedResourceTypes: resourceTypes,
 							}),
 						}),
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "those who used to resist our will",
+							Name:                   "those who used to resist our will",
 							VersionedResourceTypes: resourceTypes,
 						}),
 					}),
@@ -840,17 +840,17 @@ var _ = Describe("Factory Hooks", func() {
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.DoPlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "those who resist our will",
+							Name:                   "those who resist our will",
 							VersionedResourceTypes: resourceTypes,
 						}),
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name: "those who used to resist our will",
+							Name:                   "those who used to resist our will",
 							VersionedResourceTypes: resourceTypes,
 						}),
 					}),
 
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name: "those who start resisting our will",
+						Name:                   "those who start resisting our will",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				})

@@ -625,7 +625,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 			workerBaseResourceTypeID: workerBaseResourceTypeID,
 			workerTaskCacheID:        workerTaskCacheID,
 			workerResourceCertsID:    workerResourceCertsID,
-			conn: conn,
+			conn:                     conn,
 		}, nil, nil, nil
 	case VolumeStateCreating:
 		return &creatingVolume{
@@ -641,7 +641,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 			workerBaseResourceTypeID: workerBaseResourceTypeID,
 			workerTaskCacheID:        workerTaskCacheID,
 			workerResourceCertsID:    workerResourceCertsID,
-			conn: conn,
+			conn:                     conn,
 		}, nil, nil, nil, nil
 	case VolumeStateDestroying:
 		return nil, nil, &destroyingVolume{

@@ -49,7 +49,7 @@ var _ = Describe("Factory Timeout Step", func() {
 			expected := expectedPlanFactory.NewPlan(atc.TimeoutPlan{
 				Duration: "10s",
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name: "first task",
+					Name:                   "first task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})

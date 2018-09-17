@@ -22,13 +22,13 @@ import (
 
 var _ = Describe("BuildStarter", func() {
 	var (
-		fakePipeline     *dbfakes.FakePipeline
-		fakeUpdater      *maxinflightfakes.FakeUpdater
-		fakeFactory      *schedulerfakes.FakeBuildFactory
-		fakeEngine       *enginefakes.FakeEngine
-		pendingBuilds    []db.Build
-		fakeScanner      *schedulerfakes.FakeScanner
-		fakeInputMapper  *inputmapperfakes.FakeInputMapper
+		fakePipeline    *dbfakes.FakePipeline
+		fakeUpdater     *maxinflightfakes.FakeUpdater
+		fakeFactory     *schedulerfakes.FakeBuildFactory
+		fakeEngine      *enginefakes.FakeEngine
+		pendingBuilds   []db.Build
+		fakeScanner     *schedulerfakes.FakeScanner
+		fakeInputMapper *inputmapperfakes.FakeInputMapper
 
 		buildStarter scheduler.BuildStarter
 

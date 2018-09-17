@@ -44,7 +44,7 @@ func NewRadarSchedulerFactory(
 		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,
 		resourceTypeCheckingInterval:      resourceTypeCheckingInterval,
 		resourceCheckingInterval:          resourceCheckingInterval,
-		engine: engine,
+		engine:                            engine,
 	}
 }
 

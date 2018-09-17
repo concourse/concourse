@@ -19,8 +19,8 @@ func NewFetcherFactory(
 	dbResourceCacheFactory db.ResourceCacheFactory,
 ) FetcherFactory {
 	return &fetcherFactory{
-		lockFactory: lockFactory,
-		clock:       clock,
+		lockFactory:            lockFactory,
+		clock:                  clock,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }

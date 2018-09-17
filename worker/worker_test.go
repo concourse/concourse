@@ -22,23 +22,23 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		logger                     *lagertest.TestLogger
-		fakeVolumeClient           *wfakes.FakeVolumeClient
-		fakeClock                  *fakeclock.FakeClock
-		fakeContainerProvider      *wfakes.FakeContainerProvider
-		activeContainers           int
-		resourceTypes              []atc.WorkerResourceType
-		platform                   string
-		tags                       atc.Tags
-		teamID                     int
-		ephemeral                  bool
-		workerName                 string
-		workerStartTime            int64
-		workerUptime               uint64
-		gardenWorker               Worker
-		workerVersion              string
-		fakeGardenClient           *gardenfakes.FakeClient
-		fakeBaggageClaimClient     *baggageclaimfakes.FakeClient
+		logger                 *lagertest.TestLogger
+		fakeVolumeClient       *wfakes.FakeVolumeClient
+		fakeClock              *fakeclock.FakeClock
+		fakeContainerProvider  *wfakes.FakeContainerProvider
+		activeContainers       int
+		resourceTypes          []atc.WorkerResourceType
+		platform               string
+		tags                   atc.Tags
+		teamID                 int
+		ephemeral              bool
+		workerName             string
+		workerStartTime        int64
+		workerUptime           uint64
+		gardenWorker           Worker
+		workerVersion          string
+		fakeGardenClient       *gardenfakes.FakeClient
+		fakeBaggageClaimClient *baggageclaimfakes.FakeClient
 	)
 
 	BeforeEach(func() {

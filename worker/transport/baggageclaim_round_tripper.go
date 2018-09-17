@@ -14,9 +14,9 @@ type baggageclaimRoundTripper struct {
 
 func NewBaggageclaimRoundTripper(workerName string, baggageclaimURL *string, db TransportDB, innerRoundTripper http.RoundTripper) http.RoundTripper {
 	return &baggageclaimRoundTripper{
-		innerRoundTripper: innerRoundTripper,
-		workerName:        workerName,
-		db:                db,
+		innerRoundTripper:     innerRoundTripper,
+		workerName:            workerName,
+		db:                    db,
 		cachedBaggageclaimURL: baggageclaimURL,
 	}
 }
