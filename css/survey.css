@@ -1,0 +1,17 @@
+#survey {
+  background-color: #2A2929;
+  line-height: 50px;
+  color: #fff;
+  font-family: 'PT Sans', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.1em;
+  font-size: 15px;
+  text-align: center;
+}
+
+#survey a {
+  color: white;
+}
+
+.search-results {
+  top: 100px;
+}
