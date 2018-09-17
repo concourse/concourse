@@ -52,6 +52,12 @@
   }
 
   \note{fix}{
+    The \reference{fly-intercept} command will no longer list containers that
+    are still being created and are not yet interceptible, which would lead to
+    an unhelpful \code{websocket: bad handshake} error.
+  }
+
+  \note{fix}{
     Fixed one more instance where logged-in users would get logged out too
     soon. Specifically, on first login the cookie would expire in 1 hour rather
     than 24 hours.
