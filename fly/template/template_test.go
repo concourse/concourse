@@ -80,9 +80,10 @@ var _ = Describe("Template", func() {
 		byteSlice := []byte("{{not-specified-one}}{{not-specified-two}}")
 		variables := template.Variables{}
 		errorMsg := `2 errors occurred:
+	* unbound variable in template: 'not-specified-one'
+	* unbound variable in template: 'not-specified-two'
 
-* unbound variable in template: 'not-specified-one'
-* unbound variable in template: 'not-specified-two'`
+`
 
 		_, err := template.Evaluate(byteSlice, variables, false)
 		Expect(err).To(HaveOccurred())

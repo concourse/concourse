@@ -17,7 +17,7 @@ type Passed struct {
 }
 
 func FirstNodeFlySetup(atcURL, targetedConcourse string, teamName, username, password string) ([]byte, error) {
-	flyBin, err := gexec.Build("github.com/concourse/fly", "-race")
+	flyBin, err := gexec.Build("github.com/concourse/concourse/fly", "-race")
 	if err != nil {
 		return nil, err
 	}

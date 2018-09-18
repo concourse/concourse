@@ -29,7 +29,7 @@ const atcVersion = "4.0.0"
 const workerVersion = "4.5.6"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	binPath, err := gexec.Build("github.com/concourse/fly")
+	binPath, err := gexec.Build("github.com/concourse/concourse/fly")
 	Expect(err).NotTo(HaveOccurred())
 
 	return []byte(binPath)

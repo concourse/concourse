@@ -485,8 +485,8 @@ var _ = Describe("login Command", func() {
 
 				flyVersion = fmt.Sprintf("%d.%d.%d", major+1, minor, patch)
 				flyPath, err := gexec.Build(
-					"github.com/concourse/fly",
-					"-ldflags", fmt.Sprintf("-X github.com/concourse/fly/version.Version=%s", flyVersion),
+					"github.com/concourse/concourse/fly",
+					"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse/fly/version.Version=%s", flyVersion),
 				)
 				Expect(err).NotTo(HaveOccurred())
 				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "user", "-p", "pass")

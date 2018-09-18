@@ -46,8 +46,8 @@ var _ = Describe("Syncing", func() {
 	JustBeforeEach(func() {
 		var err error
 		flyPath, err = gexec.Build(
-			"github.com/concourse/fly",
-			"-ldflags", fmt.Sprintf("-X github.com/concourse/fly/version.Version=%s", flyVersion),
+			"github.com/concourse/concourse/fly",
+			"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse/fly/version.Version=%s", flyVersion),
 		)
 		Expect(err).NotTo(HaveOccurred())
 

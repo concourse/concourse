@@ -23,9 +23,9 @@ import (
 	gserver "code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/localip"
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/baggageclaim"
 	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -47,7 +47,7 @@ var tsaPath string
 
 var _ = BeforeSuite(func() {
 	var err error
-	tsaPath, err = gexec.Build("github.com/concourse/tsa/cmd/tsa")
+	tsaPath, err = gexec.Build("github.com/concourse/concourse/tsa/cmd/tsa")
 
 	Expect(err).NotTo(HaveOccurred())
 })

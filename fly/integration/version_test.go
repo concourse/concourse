@@ -32,8 +32,8 @@ var _ = Describe("Version Checks", func() {
 
 	JustBeforeEach(func() {
 		flyPath, err := gexec.Build(
-			"github.com/concourse/fly",
-			"-ldflags", fmt.Sprintf("-X github.com/concourse/fly/version.Version=%s", flyVersion),
+			"github.com/concourse/concourse/fly",
+			"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse/fly/version.Version=%s", flyVersion),
 		)
 		Expect(err).NotTo(HaveOccurred())
 
