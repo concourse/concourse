@@ -1,0 +1,24 @@
+---
+resource_types:
+- name: custom-resource-type
+  type: registry-image
+  privileged: ((privileged))
+  source:
+    repository: concourse/registry-image-resource
+    tag: latest
+
+jobs:
+- name: task-using-custom-type
+  plan:
+  - task: echo
+    config:
+      platform: linux
+      image_resource:
+        type: custom-resource-type
+        source:
+          repository: alpine
+          tag: latest
+      run:
+        path: echo
+        args: ["hello world"]
+

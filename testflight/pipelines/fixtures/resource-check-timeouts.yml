@@ -1,0 +1,21 @@
+---
+resource_types:
+- name: custom-resource-type
+  type: git
+  privileged: ((privileged))
+  check_every: 5s
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+resources:
+- name: my-resource
+  type: custom-resource-type
+  check_timeout: 10s
+  source: {}
+
+jobs:
+- name: resource-getter
+  plan:
+  - get: my-resource
+    trigger: true

@@ -1,0 +1,66 @@
+---
+jobs:
+- name: retry-job
+  plan:
+  - &init-task
+    task: initial-output
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      outputs:
+      - name: attempts-log
+
+      run:
+        path: touch
+        args: ['attempts-log/attempts']
+  - &attempts-task
+    task: succeed-on-3rd-attempt
+    attempts: 5
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      inputs:
+      - name: attempts-log
+        path: old
+      outputs:
+      - name: attempts-log
+        path: new
+      run:
+        path: sh
+        args:
+        - -ec
+        - |
+          cp old/attempts new/
+
+          echo attempt >> new/attempts
+          attempts=$(cat new/attempts | wc -l)
+
+          echo $attempts > /tmp/retry_number
+          echo -n "attempts: $attempts; "
+
+          if [ $attempts -eq 3 ]; then
+            echo 'success!'
+          else
+            echo 'failing'
+            exit 1
+          fi
+
+- name: retry-job-fail-for-hijacking
+  plan:
+  - *init-task
+  - *attempts-task
+  - task: fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run: {path: 'false'}

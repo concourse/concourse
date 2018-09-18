@@ -1,0 +1,22 @@
+---
+resources:
+  - name: git-repo
+    type: git
+    source:
+      uri: {{git-server}}
+      branch: master
+
+jobs:
+- name: file-test
+  plan:
+  - get: git-repo
+  - task: output-producer
+    file: git-repo/task.yml
+
+- name: file-params-test
+  plan:
+  - get: git-repo
+  - task: output-producer
+    file: git-repo/task.yml
+    params:
+      SOURCE_PARAM: job_params_source

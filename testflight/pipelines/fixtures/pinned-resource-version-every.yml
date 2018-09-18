@@ -1,0 +1,27 @@
+---
+resources:
+  - name: some-git-resource
+    type: git
+    version: {ref: {{pinned-resource-version}}}
+    source:
+      uri: {{origin-git-server}}
+      branch: master
+
+jobs:
+  - name: some-passing-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+        version: every
+      - task: print-guid
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          inputs:
+            - name: some-git-resource
+              path: .
+          run:
+            path: tail
+            args: ["-1", "guids"]
