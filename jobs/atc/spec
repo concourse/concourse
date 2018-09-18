@@ -163,12 +163,13 @@ properties:
 
   add_local_users:
     description: |
-      List of local concourse users to add with their bcrypted passwords.
-      bcrypted password must have a strength of 10 or higher or the user will not be able to login
+      List of username:password combinations for all your local users. The password can be bcrypted.
+      Bcrypted password must have a strength of 10 or higher or the user will not be able to login.
     default: []
     example:
     - some-user:$2a$10$sKZelZprWWcBAWbp28rB1uFef0Ybxsiqh05uo.H8EIm0sWc6IZGJu
     - some-other-user:$2a$10$.YIYH.5EWQcCvfE49xH/.OhIhGFiNtn.tQq.4pznpcrqZvoLxuKeC
+    - some-plaintext-user:a-plaintext-password
 
   github_auth.client_id:
     description: |
