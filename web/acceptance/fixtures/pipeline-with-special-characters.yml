@@ -1,0 +1,10 @@
+---
+jobs:
+- name: some$job
+  plan:
+  - get: some-resource
+
+resources:
+- name: some-resource
+  type: time
+  source: {interval: 1h}

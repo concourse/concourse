@@ -1,0 +1,219 @@
+.login-page {
+  text-align: center;
+}
+
+.auth-method {
+  padding-top: 10px;
+}
+
+.small-title {
+  font-size: 10pt;
+  font-style: italic;
+  color: @base04;
+  padding-top: 55px;
+  text-align: center;
+}
+
+.small-title a {
+  color: inherit;
+  width: 450px;
+  display: inline-block;
+  text-align: left;
+}
+
+.small-title i {
+  position: relative;
+  top: 1px;
+  padding-right: 3px;
+}
+
+.login-box {
+  box-sizing: border-box;
+  display: inline-block;
+  text-align: left;
+  font-size: 12pt;
+  margin: 22px;
+  width: 450px;
+  background: @base00;
+  color: @base04;
+  min-height: 300px;
+  padding: 10px 40px 40px;
+
+  &.team-selection {
+    padding: 0;
+  }
+}
+
+.team-selection {
+  line-height: 35px;
+}
+
+.bright-text {
+  color: @base05;
+}
+
+.auth-methods-title {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.basic-auth label {
+  margin-bottom: 3px;
+  display: block;
+}
+
+.basic-auth .input-holder {
+  padding-right: 20px;
+}
+
+.basic-auth input {
+  background: @base01;
+  padding: 4px 10px;
+  margin-bottom: 12px;
+  border-radius: 2px;
+}
+
+.login-button {
+  text-align: center;
+
+  button {
+    font: inherit;
+    background: @base02;
+    color: @base05;
+    border: none;
+    border-radius: 2px;
+    padding: 4px 22px;
+    cursor: pointer;
+  }
+}
+
+.basic-auth .login-button {
+  margin-top: 5px;
+}
+
+.auth-methods a {
+  display: inline-block;
+  width: 250px;
+  line-height: 30px;
+  text-align: center;
+  border-radius: 2px;
+  background: @base02;
+  color: @base05;
+  margin-bottom: 10px;
+}
+
+.login-box input {
+  font: inherit;
+  color: inherit;
+  border: none;
+  width: 100%;
+
+  &::-webkit-input-placeholder { /* WebKit, Blink, Edge */
+    color: @base03;
+  }
+
+  &::-moz-placeholder { /* Mozilla Firefox 19+ */
+    color: @base03;
+    opacity: 1;
+  }
+
+  &:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+    color: @base03;
+    opacity: 1;
+  }
+
+  &:-ms-input-placeholder { /* Internet Explorer 10-11 */
+    color: @base03;
+  }
+}
+
+.filter-form input {
+  background: inherit;
+  padding: 0 18px 0 48px;
+}
+
+.team-selection .input-holder {
+  padding-right: 66px;
+}
+
+.team-selection form {
+  border-bottom: 1px solid @base01;
+}
+
+.team-selection a {
+  border-bottom: 1px solid @base01;
+  display: block;
+  color: inherit;
+  padding: 0 18px;
+}
+
+.filter-form {
+  position: relative;
+
+  i {
+    font-size: 1.1em;
+    line-height: inherit;
+    color: @base02;
+
+    &.search-icon {
+      position: absolute;
+      top: 0;
+      left: 18px;
+    }
+  }
+
+  .clear-button {
+    position: absolute;
+    top: 0;
+    right: 18px;
+    font: inherit;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+
+    &:active {
+      outline: none;
+    }
+  }
+
+  .search-input:invalid ~ .clear-button {
+    display: none;
+  }
+}
+
+.loading {
+  line-height: inherit;
+  text-align: center;
+}
+
+.or-bar {
+  position: relative;
+  text-align: center;
+  background: inherit;
+  color: @base03;
+}
+
+.or-bar div {
+  position: absolute;
+  height: 2px;
+  background: @base03;
+  width: 100%;
+  margin: 27px 0;
+}
+
+.or-bar span {
+  line-height: 56px;
+  display: inline-block;
+  background: inherit;
+  position: relative;
+  padding: 0 25px;
+}
+
+.login-error {
+  font-size: 11pt;
+  color: @base08;
+  padding-top: 15px;
+  padding-bottom: 15px;
+  text-align: center;
+}

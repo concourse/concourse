@@ -1,0 +1,46 @@
+jobs:
+- name: on_abort
+  on_abort:
+    task: say-bye-from-job
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run:
+        path: echo
+        args: [bye from job]
+  plan:
+  - task: run
+    on_abort:
+      task: say-bye-from-step
+      config:
+        platform: linux
+
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+
+        run:
+          path: echo
+          args: [bye from step]
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run:
+        path: sh
+        args:
+        - -ec
+        - |
+          echo hello
+
+          while sleep 1; do
+            echo looping
+          done
+

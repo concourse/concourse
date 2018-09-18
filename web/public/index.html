@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Concourse</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="manifest" href="./manifest.json" />
+    <link href="{{asset "main.css"}}" media="all" rel="stylesheet" type="text/css" />
+    <link id="favicon" rel="icon" type="image/png" href="{{asset "images/favicon.png"}}" />
+    <script src="{{asset "index.js"}}"></script>
+    <script src="{{asset "d3.v355.min.js"}}"></script>
+    <script src="{{asset "graph.js"}}"></script>
+    <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
+    <script src="{{asset "elm.min.js"}}"></script>
+    <script src="{{asset "jquery.pin.min.js"}}"></script>
+  </head>
+  <body>
+    <div id="elm-app-embed"></div>
+
+    <script type="text/javascript">
+      var node = document.getElementById("elm-app-embed");
+
+      var app = Elm.Main.embed(node, {
+        turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+        notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
+        csrfToken: {{ .CSRFToken }}
+      });
+
+      if (window.location.pathname == '/') {
+        app.ports.pinTeamNames.subscribe(function() {
+          $(document).on('scroll', function() {
+            $(".dashboard-team-header").pin({
+              containerSelector: ".dashboard-team-group",
+              padding: { top: 54 }
+            });
+          });
+        });
+      }
+
+      app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
+
+      app.ports.renderPipeline.subscribe(function (values) {
+        setTimeout(function(){ // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
+          foundSvg = d3.select(".pipeline-graph");
+          var svg = createPipelineSvg(foundSvg)
+          if (svg.node() != null) {
+            var jobs = values[0];
+            var resources = values[1];
+            draw(svg, jobs, resources, app.ports.newUrl);
+          }
+        }, 0)
+      });
+
+      app.ports.requestLoginRedirect.subscribe(function (message) {
+        var path = document.location.pathname;
+        var query = document.location.search;
+        var redirect = encodeURIComponent(path + query);
+        var loginUrl = "/sky/login?redirect_uri="+ redirect;
+        document.location.href = loginUrl;
+      });
+
+      app.ports.setTitle.subscribe(function(title) {
+        setTimeout(function(){
+          document.title = title + "Concourse";
+        }, 0)
+      });
+
+      app.ports.tooltip.subscribe(function (pipelineInfo) {
+        var pipelineName = pipelineInfo[0];
+        var pipelineTeamName = pipelineInfo[1];
+
+        var team = $('#' + pipelineTeamName);
+        var title = team.find('.dashboard-pipeline[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name');
+
+        if(title.get(0).offsetWidth < title.get(0).scrollWidth){
+            title.parent().attr('data-tooltip', pipelineName);
+        }
+      });
+
+      app.ports.tooltipHd.subscribe(function (pipelineInfo) {
+        var pipelineName = pipelineInfo[0];
+        var pipelineTeamName = pipelineInfo[1];
+
+        var title = $('.dashboard-pipeline[data-pipeline-name="' + pipelineName + '"][data-team-name="' + pipelineTeamName + '"]').find('.dashboardhd-pipeline-name');
+
+        if(title.get(0).offsetWidth < title.get(0).scrollWidth){
+            title.parent().attr('data-tooltip', pipelineName);
+        }
+      });
+
+      var storageKey = "csrf_token";
+      app.ports.saveToken.subscribe(function(value) {
+        localStorage.setItem(storageKey, value);
+      });
+      app.ports.loadToken.subscribe(function() {
+        app.ports.tokenReceived.send(localStorage.getItem(storageKey));
+      });
+      window.addEventListener('storage', function(event) {
+        if (event.key == storageKey) {
+          app.ports.tokenReceived.send(localStorage.getItem(storageKey));
+        }
+      }, false);
+
+    </script>
+  </body>
+</html>

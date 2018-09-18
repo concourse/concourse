@@ -1,0 +1,177 @@
+@import (reference) "_vars.less";
+
+.steps .nest.even { background: @base01; }
+
+#builds { background: @base00; }
+.builds-list { background: @base00; }
+.build-step .header { background: @base00; }
+.build-step.first-occurrence .fa-arrow-down { color: @base0A; }
+
+.top-bar { background: @base00; }
+
+.steps .nest.odd { background: @base02; }
+
+.build-action { background-color: transparent; }
+.build-action i { color: @base07; }
+.build-action:hover i { background: @base02; }
+.build-action:active i { background: @base04; }
+.build-action:focus i { background: @base04; }
+
+.build-action-abort i { color: @base08; }
+.build-action-abort:hover i { background: @base08; color: @base07; }
+.build-action-abort:active i { color: @base07; background: @base0F; }
+.build-action-abort:focus i { background: @base0F; }
+
+.build-step i.failed    { color: @base07; background: @base08; }
+.build-step i.succeeded { color: @base07; background: @base0B; }
+.build-step i.errored   { color: @base07; background: @base09; }
+
+// combined statuses go first so previous status background wins
+.pending { background: @grey-primary; }
+.started { background: @base0A; }
+.no-builds { background: @base03; }
+.succeeded { background: @green-primary; }
+.failed { background: @red-primary; }
+.errored { background: @amber-primary; }
+.aborted { background: @brown-primary; }
+.paused { background: @blue-primary; }
+
+.build-step .header i.pending { color: @base04; background: transparent; }
+.build-step .header i.started { color: @base0A; background: transparent; }
+.build-step .header i.succeeded { color: @base0B; background: transparent; }
+.build-step .header i.failed { color: @base08; background: transparent; }
+.build-step .header i.errored { color: @base09; background: transparent; }
+.build-step .header i.aborted { color: @base0F; background: transparent; }
+
+.fail-triangle {
+  stroke: @base01;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: @base08;
+}
+
+.fail-triangle-outline {
+  fill: @base08;
+  opacity: 0.7;
+}
+
+span.error { color: @base08; }
+.resource-check-status pre { color: @base08; }
+
+.build-step .header .dictionary { color: @base06; }
+
+.build-header .build-duration { color: @base07; }
+.pagination-header h1 { color: @base07; }
+
+.builds-list li a { color: @base07; }
+#builds li a { color: @base07; }
+.groups li a { color: @base07; }
+.groups li.active a { background: @base0G; }
+#cli-downloads a { color: @base07; }
+
+.job-animation-node .animation,
+.legend dt.started,
+.legend dt.pending,
+.legend dt.failed {
+  border-radius: 1px;
+}
+
+.legend dt.started {
+  .ripple-animation("small-started-ripple-@{theme}", 2px, @base0A);
+
+  background: transparent;
+}
+
+.legend dt.pending {
+  .pending-outline(2px, 3px);
+
+  background: transparent;
+}
+
+.legend dt.failed {
+  .failed-outline(2px, 3px);
+}
+
+.job-animation-node {
+  &.failed  .animation-xlarge{.failed-outline(24px, 36px);}
+  &.pending .animation-xlarge{.pending-outline(24px, 36px);}
+  &.started .animation-xlarge{.ripple-animation("xlarge-started-ripples-@{theme}", 20px, @base0A);}
+
+  &.failed  .animation-large{.failed-outline(18px, 27px);}
+  &.pending .animation-large{.pending-outline(18px, 27px);}
+  &.started .animation-large{.ripple-animation("large-started-ripples-@{theme}", 15px, @base0A);}
+
+  &.failed  .animation-medium{.failed-outline(8px, 12px);}
+  &.pending .animation-medium{.pending-outline(8px, 12px);}
+  &.started .animation-medium{.ripple-animation("medium-started-ripples-@{theme}", 7px, @base0A);}
+
+  &.failed  .animation-small{.failed-outline(4px, 6px);}
+  &.pending .animation-small{.pending-outline(4px, 6px);}
+  &.started .animation-small{.ripple-animation("small-started-ripples-@{theme}", 3px, @base0A);}
+}
+
+.halo-outline(@grey-radius, @color-radius, @color) {
+  box-shadow: 0 0 0 @grey-radius @base02, 0 0 0 @grey-radius + @color-radius fade(@color, 70%);
+}
+
+.failed-outline(@grey-radius, @red-radius) {
+  .halo-outline(@grey-radius, @red-radius, @base08);
+}
+
+.pending-outline(@grey-radius, @yellow-radius) {
+  .halo-outline(@grey-radius, @yellow-radius, @base04);
+}
+
+.ripple-animation(@name, @ripple-factor, @ripple-color) {
+  -webkit-animation: @name 1s linear infinite;
+  animation: @name 1s linear infinite;
+
+  @-webkit-keyframes @name {
+    0% {
+      box-shadow: 0 0 0 -@ripple-factor @base02, 0 0 0 0 @ripple-color, 0 0 0 @ripple-factor @base02, 0 0 0 @ripple-factor * 2 @ripple-color;
+    }
+
+    50% {
+      box-shadow: 0 0 0 0 @base02, 0 0 0 @ripple-factor @ripple-color, 0 0 0 @ripple-factor * 2  @base02, 0 0 0 @ripple-factor * 3 fade(@ripple-color, 50%);
+    }
+
+    100% {
+      box-shadow: 0 0 0 @ripple-factor @base02, 0 0 0 @ripple-factor * 2  @ripple-color, 0 0 0 @ripple-factor * 3 @base02, 0 0 0 @ripple-factor * 4 transparent;
+    }
+  }
+
+  @keyframes @name {
+    0% {
+      box-shadow: 0 0 0 -@ripple-factor @base02, 0 0 0 0 @ripple-color, 0 0 0 @ripple-factor @base02, 0 0 0 @ripple-factor * 2 @ripple-color;
+    }
+
+    50% {
+      box-shadow: 0 0 0 0 @base02, 0 0 0 @ripple-factor @ripple-color, 0 0 0 @ripple-factor * 2  @base02, 0 0 0 @ripple-factor * 3 fade(@ripple-color, 50%);
+    }
+
+    100% {
+      box-shadow: 0 0 0 @ripple-factor @base02, 0 0 0 @ripple-factor * 2  @ripple-color, 0 0 0 @ripple-factor * 3 @base02, 0 0 0 @ripple-factor * 4 transparent;
+    }
+  }
+}
+
+.build-number {
+  font-size: 2em;
+  color: @base07;
+  padding: 5px;
+  text-align: center;
+  border: 5px solid @base00;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.build-one-off {
+  background-color: @base03;
+}
+
+.build-action.btn-pause i {
+  font-size: 23px;
+}
+
+.build-login input { background: @base01; color: @base06; }
+.build-login input:hover { background: @base04; }
