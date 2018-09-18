@@ -9,11 +9,11 @@ import (
 )
 
 type MockAuther struct {
-	LoggedIn   chan bool
-	Renewed    chan bool
-	Delay      time.Duration
-	LoginError error
-	RenewError error
+	LoginAttempt chan bool
+	Renewed      chan bool
+	Delay        time.Duration
+	LoginError   error
+	RenewError   error
 }
 
 func (ma *MockAuther) Login() (time.Duration, error) {
@@ -22,7 +22,7 @@ func (ma *MockAuther) Login() (time.Duration, error) {
 		loggedIn = false
 	}
 
-	ma.LoggedIn <- loggedIn
+	ma.LoginAttempt <- loggedIn
 	return ma.Delay, ma.LoginError
 }
 func (ma *MockAuther) Renew() (time.Duration, error) {
@@ -42,9 +42,9 @@ func TestReAuther(t *testing.T) {
 
 func testWithoutVaultErrors(t *testing.T) {
 	ma := &MockAuther{
-		LoggedIn: make(chan bool, 1),
-		Renewed:  make(chan bool, 1),
-		Delay:    1 * time.Second,
+		LoginAttempt: make(chan bool, 1),
+		Renewed:      make(chan bool, 1),
+		Delay:        1 * time.Second,
 	}
 	ra := NewReAuther(ma, 10*time.Second, 1*time.Second, 64*time.Second)
 	select {
@@ -54,7 +54,7 @@ func testWithoutVaultErrors(t *testing.T) {
 	}
 
 	select {
-	case li := <-ma.LoggedIn:
+	case li := <-ma.LoginAttempt:
 		if !li {
 			t.Error("Error, should have logged in after loggedin closed")
 		}
@@ -63,7 +63,7 @@ func testWithoutVaultErrors(t *testing.T) {
 	}
 
 	select {
-	case <-ma.LoggedIn:
+	case <-ma.LoginAttempt:
 		t.Error("Should not have logged in again")
 	case r := <-ma.Renewed:
 		if !r {
@@ -74,7 +74,7 @@ func testWithoutVaultErrors(t *testing.T) {
 	}
 
 	select {
-	case <-ma.LoggedIn:
+	case <-ma.LoginAttempt:
 		t.Error("Should not have logged in again")
 	case r := <-ma.Renewed:
 		if !r {
@@ -85,7 +85,7 @@ func testWithoutVaultErrors(t *testing.T) {
 	}
 
 	select {
-	case <-ma.LoggedIn:
+	case <-ma.LoginAttempt:
 	case r := <-ma.Renewed:
 		if !r {
 			t.Error("Error, should have logged in again after the maxTTL")
@@ -100,10 +100,10 @@ func testExponentialBackoff(t *testing.T) {
 	maxRetryInterval := 2 * time.Second
 
 	ma := &MockAuther{
-		LoggedIn:   make(chan bool, 1),
-		Renewed:    make(chan bool, 1),
-		Delay:      1 * time.Second,
-		LoginError: fmt.Errorf("Could not login to Vault"),
+		LoginAttempt: make(chan bool, 1),
+		Renewed:      make(chan bool, 1),
+		Delay:        1 * time.Second,
+		LoginError:   fmt.Errorf("Could not login to Vault"),
 	}
 	ra := NewReAuther(ma, 0, 1*time.Second, maxRetryInterval)
 
@@ -118,7 +118,7 @@ func testExponentialBackoff(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		start := time.Now()
 		select {
-		case li := <-ma.LoggedIn:
+		case li := <-ma.LoginAttempt:
 			lastRetryInterval = time.Now().Sub(start)
 			if li {
 				t.Error("error, shouldn't have logged in succesfully")
@@ -129,9 +129,9 @@ func testExponentialBackoff(t *testing.T) {
 	}
 
 	// default randomization factor is 0.5
-	smallestInterval := float64(maxRetryInterval) * (1 - backoff.DefaultRandomizationFactor)
+	smallestMaxRandomizedInterval := float64(maxRetryInterval) * (1 - backoff.DefaultRandomizationFactor)
 
-	if float64(lastRetryInterval) < smallestInterval {
+	if float64(lastRetryInterval) < smallestMaxRandomizedInterval {
 		t.Error("maxRetryInterval reached, but login was reattempted before maxRetryInterval")
 	}
 }
