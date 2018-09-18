@@ -1,0 +1,7 @@
+---
+large-string-param: |
+  -----BEGIN SOME KEY-----
+  this is super secure
+  -----END SOME KEY-----
+bool-param: true
+array-param: ["val-1", "val-2"]

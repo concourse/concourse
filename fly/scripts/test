@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+
+not_installed() {
+  ! command -v $1 > /dev/null 2>&1
+}
+
+if not_installed ginkgo; then
+  echo "# ginkgo is not installed! run the following command:"
+  echo "    go install github.com/onsi/ginkgo/ginkgo"
+  exit 1
+fi
+
+cd $(dirname $0)/..
+ginkgo -r -p -race
