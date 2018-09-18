@@ -18,7 +18,7 @@ helm upgrade -f values.yaml \
   --set imageTag="$version" \
   --set concourse.worker.garden.allowHostAccess="true" \
   --set concourse.worker.baggageclaim.driver="detect" \
-  --set worker.resources.requests.cpu="500m" \
+  --set worker.resources.requests.cpu="1000m" \
   --set worker.replicas="1" \
   "$RELEASE_NAME" \
   . \
