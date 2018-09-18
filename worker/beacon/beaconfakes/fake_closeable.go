@@ -4,7 +4,7 @@ package beaconfakes
 import (
 	"sync"
 
-	"github.com/concourse/worker/beacon"
+	"github.com/concourse/concourse/worker/beacon"
 )
 
 type FakeCloseable struct {

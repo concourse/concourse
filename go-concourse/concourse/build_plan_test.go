@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

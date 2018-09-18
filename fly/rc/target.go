@@ -10,10 +10,10 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/ui"
-	"github.com/concourse/fly/version"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/version"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
 	"golang.org/x/oauth2"
 )

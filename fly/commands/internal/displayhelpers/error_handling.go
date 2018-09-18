@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/ui"
 )
 
 func PrintDeprecationWarningHeader() {

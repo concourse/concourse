@@ -1,7 +1,7 @@
 package gc
 
 import (
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type BuildLogRetentionCalculator interface {

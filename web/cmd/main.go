@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/web"
-	"github.com/concourse/web/proxyhandler"
+	"github.com/concourse/concourse/web"
+	"github.com/concourse/concourse/web/proxyhandler"
 )
 
 func NewLogger() lager.Logger {

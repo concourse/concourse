@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/api/auth"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type EventHandlerFactory func(lager.Logger, db.Build) http.Handler

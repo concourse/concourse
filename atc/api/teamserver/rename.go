@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 // RenameTeam allows an authenticated user with authority or admin to rename a team

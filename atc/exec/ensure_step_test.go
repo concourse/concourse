@@ -7,9 +7,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/execfakes"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 var _ = Describe("Ensure Step", func() {

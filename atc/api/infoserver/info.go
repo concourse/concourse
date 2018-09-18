@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 func (s *Server) Info(w http.ResponseWriter, r *http.Request) {

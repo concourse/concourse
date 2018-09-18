@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 
 	"gopkg.in/yaml.v2"
 )

@@ -3,7 +3,7 @@ package buildserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 
 	"code.cloudfoundry.org/lager"
 )

@@ -1,7 +1,7 @@
 package pipelines_test
 
 import (
-	"github.com/concourse/testflight/gitserver"
+	"github.com/concourse/concourse/testflight/gitserver"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/rata"
 )

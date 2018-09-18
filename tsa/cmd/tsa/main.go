@@ -5,7 +5,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 
-	"github.com/concourse/tsa/tsacmd"
+	"github.com/concourse/concourse/tsa/tsacmd"
 	"github.com/jessevdk/go-flags"
 )
 

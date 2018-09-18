@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/jessevdk/go-flags"
 
-	"github.com/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/rc"
 )
 
 type JobFlag struct {

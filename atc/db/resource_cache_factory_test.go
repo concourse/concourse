@@ -9,9 +9,9 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

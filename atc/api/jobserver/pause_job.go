@@ -3,7 +3,7 @@ package jobserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
 

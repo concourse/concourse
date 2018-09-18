@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 
 	"github.com/onsi/gomega/gbytes"

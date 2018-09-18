@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/rc"
 )
 
 type RenameTeamCommand struct {

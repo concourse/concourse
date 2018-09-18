@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 func (s *Server) ListDestroyingVolumes(w http.ResponseWriter, r *http.Request) {

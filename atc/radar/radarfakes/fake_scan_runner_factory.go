@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/radar"
 )
 
 type FakeScanRunnerFactory struct {

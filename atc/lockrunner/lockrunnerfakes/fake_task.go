@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/atc/lockrunner"
+	"github.com/concourse/concourse/atc/lockrunner"
 )
 
 type FakeTask struct {

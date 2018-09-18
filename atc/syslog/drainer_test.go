@@ -9,10 +9,10 @@ import (
 
 	"time"
 
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
-	"github.com/concourse/atc/event"
-	"github.com/concourse/atc/syslog"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/syslog"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

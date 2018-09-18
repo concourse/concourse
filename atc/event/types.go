@@ -1,6 +1,6 @@
 package event
 
-import "github.com/concourse/atc"
+import "github.com/concourse/concourse/atc"
 
 const (
 	// build log (e.g. from input or build execution)

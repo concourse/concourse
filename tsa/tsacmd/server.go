@@ -16,9 +16,9 @@ import (
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	bclient "github.com/concourse/baggageclaim/client"
-	"github.com/concourse/tsa"
+	"github.com/concourse/concourse/tsa"
 	"github.com/tedsuo/ifrit"
 	"golang.org/x/crypto/ssh"
 )

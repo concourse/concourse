@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/radar"
 )
 
 type FakeIntervalRunner struct {

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/concourse/fly/rc"
-	"github.com/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/ui"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/color"
 )

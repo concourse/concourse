@@ -1,7 +1,7 @@
 package algorithm_test
 
 import (
-	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/concourse/atc/db/algorithm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -4,11 +4,11 @@ package pipelinesfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/pipelines"
-	"github.com/concourse/atc/radar"
-	"github.com/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/pipelines"
+	"github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeRadarSchedulerFactory struct {

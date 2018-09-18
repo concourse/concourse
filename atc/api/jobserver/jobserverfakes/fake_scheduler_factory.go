@@ -4,10 +4,10 @@ package jobserverfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/api/jobserver"
-	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/api/jobserver"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeSchedulerFactory struct {

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/present"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {

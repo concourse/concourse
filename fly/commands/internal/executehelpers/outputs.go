@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 )
 
 type Output struct {

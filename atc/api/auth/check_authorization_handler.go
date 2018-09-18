@@ -3,7 +3,7 @@ package auth
 import (
 	"net/http"
 
-	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 type checkAuthorizationHandler struct {

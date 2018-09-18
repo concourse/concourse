@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tedsuo/rata"

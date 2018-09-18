@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 type eventTable map[atc.EventType]eventVersions

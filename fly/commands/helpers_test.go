@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/concourse/atc"
-	. "github.com/concourse/fly/commands"
-	"github.com/concourse/go-concourse/concourse"
-	fakes "github.com/concourse/go-concourse/concourse/concoursefakes"
+	"github.com/concourse/concourse/atc"
+	. "github.com/concourse/concourse/fly/commands"
+	"github.com/concourse/concourse/go-concourse/concourse"
+	fakes "github.com/concourse/concourse/go-concourse/concourse/concoursefakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -1,8 +1,8 @@
 package present
 
 import (
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func BuildInput(input db.BuildInput, config atc.JobInput, source atc.Source) atc.BuildInput {

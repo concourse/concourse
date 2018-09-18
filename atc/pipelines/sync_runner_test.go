@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
-	. "github.com/concourse/atc/pipelines"
-	"github.com/concourse/atc/pipelines/pipelinesfakes"
+	. "github.com/concourse/concourse/atc/pipelines"
+	"github.com/concourse/concourse/atc/pipelines/pipelinesfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"

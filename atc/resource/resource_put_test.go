@@ -14,8 +14,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
-	"github.com/concourse/atc"
-	. "github.com/concourse/atc/resource"
+	"github.com/concourse/concourse/atc"
+	. "github.com/concourse/concourse/atc/resource"
 )
 
 var _ = Describe("Resource Put", func() {

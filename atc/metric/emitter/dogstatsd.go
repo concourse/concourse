@@ -9,7 +9,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/datadog-go/statsd"
-	"github.com/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type DogstatsdEmitter struct {

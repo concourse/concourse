@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/concourse/atc/worker/transport"
+	"github.com/concourse/concourse/atc/worker/transport"
 	"github.com/tedsuo/rata"
 )
 

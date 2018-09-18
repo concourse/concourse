@@ -12,7 +12,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 var _ = Describe("Fly CLI", func() {

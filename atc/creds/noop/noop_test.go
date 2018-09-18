@@ -2,7 +2,7 @@ package noop_test
 
 import (
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	. "github.com/concourse/atc/creds/noop"
+	. "github.com/concourse/concourse/atc/creds/noop"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

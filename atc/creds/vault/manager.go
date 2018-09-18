@@ -10,7 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 

@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/resource"
 )
 
 type FakeFetchSource struct {

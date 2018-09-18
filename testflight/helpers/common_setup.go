@@ -3,7 +3,7 @@ package helpers
 import (
 	"time"
 
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 )

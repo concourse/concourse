@@ -4,7 +4,7 @@ package accessorfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 type FakeAccess struct {

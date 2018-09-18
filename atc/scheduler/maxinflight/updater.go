@@ -2,7 +2,7 @@ package maxinflight
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 //go:generate counterfeiter . Updater

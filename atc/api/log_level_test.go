@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -5,8 +5,8 @@ import (
 	"path"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 //go:generate counterfeiter . VersionedSource

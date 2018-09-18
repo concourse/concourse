@@ -1,8 +1,8 @@
 package present
 
 import (
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func Volume(volume db.CreatedVolume) (atc.Volume, error) {

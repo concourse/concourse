@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/concourse/atc/api/auth"
-	"github.com/concourse/atc/api/pipelineserver"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/pipelineserver"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

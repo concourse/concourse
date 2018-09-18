@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 var _ = Describe("Plan", func() {

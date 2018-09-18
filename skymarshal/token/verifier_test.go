@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/skymarshal/token"
+	"github.com/concourse/concourse/skymarshal/token"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"

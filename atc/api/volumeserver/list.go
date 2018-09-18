@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/present"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) ListVolumes(team db.Team) http.Handler {

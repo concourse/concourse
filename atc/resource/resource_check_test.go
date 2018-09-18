@@ -7,7 +7,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

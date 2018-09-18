@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	"github.com/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds"
 	flags "github.com/jessevdk/go-flags"
 )
 

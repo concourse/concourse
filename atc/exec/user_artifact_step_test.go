@@ -5,9 +5,9 @@ import (
 	"context"
 	"io/ioutil"
 
-	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/execfakes"
-	"github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

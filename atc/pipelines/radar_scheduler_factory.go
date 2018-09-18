@@ -4,17 +4,17 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/radar"
-	"github.com/concourse/atc/resource"
-	"github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/scheduler/factory"
-	"github.com/concourse/atc/scheduler/inputmapper"
-	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
-	"github.com/concourse/atc/scheduler/maxinflight"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/scheduler/factory"
+	"github.com/concourse/concourse/atc/scheduler/inputmapper"
+	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
+	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 )
 
 //go:generate counterfeiter . RadarSchedulerFactory

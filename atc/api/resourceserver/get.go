@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/api/accessor"
-	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/present"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {

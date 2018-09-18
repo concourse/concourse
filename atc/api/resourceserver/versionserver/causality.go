@@ -7,7 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) GetCausality(pipeline db.Pipeline) http.Handler {

@@ -9,14 +9,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/executehelpers"
-	"github.com/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/fly/config"
-	"github.com/concourse/fly/eventstream"
-	"github.com/concourse/fly/rc"
-	"github.com/concourse/fly/ui"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/executehelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/config"
+	"github.com/concourse/concourse/fly/eventstream"
+	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type ExecuteCommand struct {

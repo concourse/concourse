@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/rc"
 )
 
 type PruneWorkerCommand struct {

@@ -13,7 +13,7 @@ import (
 	"code.cloudfoundry.org/guardian/guardiancmd"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"

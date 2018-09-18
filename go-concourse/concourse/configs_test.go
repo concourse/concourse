@@ -6,8 +6,8 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

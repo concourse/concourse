@@ -10,10 +10,10 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/encryption"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/event"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/encryption"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/lib/pq"
 )
 

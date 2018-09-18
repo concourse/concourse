@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"

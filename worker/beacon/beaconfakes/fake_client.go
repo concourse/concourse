@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/concourse/worker/beacon"
+	"github.com/concourse/concourse/worker/beacon"
 )
 
 type FakeClient struct {

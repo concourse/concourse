@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/tsa"
+	"github.com/concourse/concourse/tsa"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc"
-	"github.com/concourse/tsa/tsafakes"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/tsa/tsafakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"

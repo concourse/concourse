@@ -1,6 +1,6 @@
 package creds
 
-import "github.com/concourse/atc"
+import "github.com/concourse/concourse/atc"
 
 type VersionedResourceType struct {
 	atc.VersionedResourceType

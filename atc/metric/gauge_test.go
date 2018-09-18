@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"sync"
 
-	. "github.com/concourse/atc/metric"
+	. "github.com/concourse/concourse/atc/metric"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

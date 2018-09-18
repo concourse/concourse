@@ -7,9 +7,9 @@ import (
 	"io"
 	"os/exec"
 
-	"github.com/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/go-archive/tgzfs"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 func Upload(client concourse.Client, buildID int, input Input, includeIgnored bool) {

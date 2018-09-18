@@ -3,7 +3,7 @@ package credhub
 import (
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds"
 )
 
 type credhubFactory struct {

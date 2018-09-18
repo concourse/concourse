@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) DeletePipeline(pipelineDB db.Pipeline) http.Handler {

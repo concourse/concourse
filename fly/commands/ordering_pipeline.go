@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/rc"
 )
 
 var ErrMissingPipelineName = errors.New("Need to specify atleast one pipeline name")

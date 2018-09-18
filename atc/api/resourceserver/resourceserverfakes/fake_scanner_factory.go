@@ -4,9 +4,9 @@ package resourceserverfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/api/resourceserver"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/api/resourceserver"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/radar"
 )
 
 type FakeScannerFactory struct {

@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/fly/template"
+	"github.com/concourse/concourse/fly/template"
 )
 
 var _ = Describe("Template", func() {

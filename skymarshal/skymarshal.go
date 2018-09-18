@@ -9,13 +9,13 @@ import (
 	"net/url"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/flag"
-	"github.com/concourse/skymarshal/dexserver"
-	"github.com/concourse/skymarshal/legacyserver"
-	"github.com/concourse/skymarshal/skycmd"
-	"github.com/concourse/skymarshal/skyserver"
-	"github.com/concourse/skymarshal/token"
+	"github.com/concourse/concourse/skymarshal/dexserver"
+	"github.com/concourse/concourse/skymarshal/legacyserver"
+	"github.com/concourse/concourse/skymarshal/skycmd"
+	"github.com/concourse/concourse/skymarshal/skyserver"
+	"github.com/concourse/concourse/skymarshal/token"
 )
 
 type Config struct {

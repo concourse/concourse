@@ -2,10 +2,10 @@ package engine
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) exec.Step {

@@ -8,8 +8,8 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	yamlpatch "github.com/krishicks/yaml-patch"
 )
 

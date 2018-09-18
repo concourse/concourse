@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) RenamePipeline(pipeline db.Pipeline) http.Handler {

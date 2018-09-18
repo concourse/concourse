@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/atc/api/accessor"
-	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/present"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {

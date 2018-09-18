@@ -7,11 +7,11 @@ import (
 
 	pb "gopkg.in/cheggaaa/pb.v1"
 
-	"github.com/concourse/fly/version"
+	"github.com/concourse/concourse/fly/version"
 	update "github.com/inconshreveable/go-update"
 
-	"github.com/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/rc"
 )
 
 type SyncCommand struct{}

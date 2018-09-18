@@ -4,7 +4,7 @@ package credsfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds"
 )
 
 type FakeVariablesFactory struct {

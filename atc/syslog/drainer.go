@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/event"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/event"
 	sl "github.com/papertrail/remote_syslog2/syslog"
 )
 

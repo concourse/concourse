@@ -3,8 +3,8 @@ package factory
 import (
 	"errors"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 )
 
 var ErrResourceNotFound = errors.New("resource not found")

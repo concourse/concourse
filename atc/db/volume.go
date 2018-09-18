@@ -10,7 +10,7 @@ import (
 	"github.com/lib/pq"
 	uuid "github.com/nu7hatch/gouuid"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 var (

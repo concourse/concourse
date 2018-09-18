@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/dex/storage"
 	"github.com/concourse/dex/storage/sql"
 	"github.com/concourse/flag"
-	"github.com/concourse/skymarshal/skycmd"
+	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/gobuffalo/packr"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"

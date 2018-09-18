@@ -1,7 +1,7 @@
 package creds
 
 import (
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	"github.com/mitchellh/mapstructure"
 )
 

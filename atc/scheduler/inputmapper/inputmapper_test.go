@@ -4,12 +4,12 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/db/dbfakes"
-	"github.com/concourse/atc/scheduler/inputmapper"
-	"github.com/concourse/atc/scheduler/inputmapper/inputconfig/inputconfigfakes"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/algorithm"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/scheduler/inputmapper"
+	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig/inputconfigfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

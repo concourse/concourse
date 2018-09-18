@@ -4,8 +4,8 @@ package enginefakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/engine"
 )
 
 type FakeBuildDelegateFactory struct {

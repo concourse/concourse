@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/algorithm"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . Job

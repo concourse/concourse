@@ -14,8 +14,8 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/version"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/version"
 )
 
 var _ = Describe("login Command", func() {

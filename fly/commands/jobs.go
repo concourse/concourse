@@ -3,10 +3,10 @@ package commands
 import (
 	"os"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/fly/rc"
-	"github.com/concourse/fly/ui"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 )
 

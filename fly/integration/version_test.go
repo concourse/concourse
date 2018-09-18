@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os/exec"
 
-	"github.com/concourse/fly/version"
+	"github.com/concourse/concourse/fly/version"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 

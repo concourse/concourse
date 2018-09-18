@@ -1,7 +1,7 @@
 package template_test
 
 import (
-	. "github.com/concourse/atc/template"
+	. "github.com/concourse/concourse/atc/template"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

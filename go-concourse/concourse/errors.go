@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/concourse/go-concourse/concourse/internal"
+	"github.com/concourse/concourse/go-concourse/concourse/internal"
 )
 
 var ErrUnauthorized = internal.ErrUnauthorized

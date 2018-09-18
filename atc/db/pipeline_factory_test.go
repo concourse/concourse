@@ -1,8 +1,8 @@
 package db_test
 
 import (
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

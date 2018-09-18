@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

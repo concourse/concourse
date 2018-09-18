@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/resource"
 )
 
 // ScannerFactory is the same interface as resourceserver/server.go

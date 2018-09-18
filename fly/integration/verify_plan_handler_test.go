@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/testhelpers"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/testhelpers"
 	"github.com/onsi/gomega"
 )
 

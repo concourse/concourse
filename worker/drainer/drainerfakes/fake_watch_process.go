@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/worker/drainer"
+	"github.com/concourse/concourse/worker/drainer"
 )
 
 type FakeWatchProcess struct {

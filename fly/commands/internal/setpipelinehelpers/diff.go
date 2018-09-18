@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/aryann/difflib"
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gexec"
 	"gopkg.in/yaml.v2"

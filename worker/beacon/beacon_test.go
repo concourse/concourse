@@ -10,10 +10,10 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/baggageclaim/volume"
-	. "github.com/concourse/worker/beacon"
-	"github.com/concourse/worker/beacon/beaconfakes"
+	. "github.com/concourse/concourse/worker/beacon"
+	"github.com/concourse/concourse/worker/beacon/beaconfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

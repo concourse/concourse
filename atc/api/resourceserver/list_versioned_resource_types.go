@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) ListVersionedResourceTypes(pipeline db.Pipeline) http.Handler {

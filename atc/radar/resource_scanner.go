@@ -9,12 +9,12 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/metric"
-	"github.com/concourse/atc/resource"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 var GlobalResourceCheckTimeout time.Duration

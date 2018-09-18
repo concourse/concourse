@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/metric"
 
 	influxclient "github.com/influxdata/influxdb/client/v2"
 )

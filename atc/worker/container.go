@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 var ErrMissingVolume = errors.New("volume mounted to container is missing")

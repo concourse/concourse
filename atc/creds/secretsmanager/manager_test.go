@@ -1,7 +1,7 @@
 package secretsmanager_test
 
 import (
-	"github.com/concourse/atc/creds/secretsmanager"
+	"github.com/concourse/concourse/atc/creds/secretsmanager"
 	"github.com/jessevdk/go-flags"
 
 	. "github.com/onsi/ginkgo"

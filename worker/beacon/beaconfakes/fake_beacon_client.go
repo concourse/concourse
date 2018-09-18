@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/worker/beacon"
+	"github.com/concourse/concourse/worker/beacon"
 )
 
 type FakeBeaconClient struct {

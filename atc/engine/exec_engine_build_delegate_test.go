@@ -5,9 +5,9 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
-	. "github.com/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/engine"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

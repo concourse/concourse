@@ -4,8 +4,8 @@ package eventstreamfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/go-concourse/concourse/eventstream"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/go-concourse/concourse/eventstream"
 )
 
 type FakeEventStream struct {

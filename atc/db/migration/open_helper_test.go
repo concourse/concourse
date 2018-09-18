@@ -3,10 +3,10 @@ package migration_test
 import (
 	"database/sql"
 
-	"github.com/concourse/atc/db/encryption"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/migration"
-	"github.com/concourse/atc/db/migration/migrationfakes"
+	"github.com/concourse/concourse/atc/db/encryption"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/atc/db/migration/migrationfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

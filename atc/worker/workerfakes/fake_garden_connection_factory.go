@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	gconn "code.cloudfoundry.org/garden/client/connection"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeGardenConnectionFactory struct {

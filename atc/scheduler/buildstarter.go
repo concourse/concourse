@@ -2,11 +2,11 @@ package scheduler
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/scheduler/inputmapper"
-	"github.com/concourse/atc/scheduler/maxinflight"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/scheduler/inputmapper"
+	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 )
 
 //go:generate counterfeiter . BuildStarter

@@ -3,9 +3,9 @@ package executehelpers
 import (
 	"fmt"
 
-	"github.com/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/go-archive/tgzfs"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 func Download(client concourse.Client, buildID int, output Output) {

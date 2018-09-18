@@ -11,8 +11,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/vito/go-sse/sse"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/event"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"

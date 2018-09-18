@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 func CSRFValidationHandler(

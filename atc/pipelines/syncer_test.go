@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
-	. "github.com/concourse/atc/pipelines"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/pipelines"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 )

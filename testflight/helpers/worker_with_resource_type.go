@@ -12,7 +12,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/retryhttp"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -7,7 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	"github.com/tedsuo/rata"
 )
 

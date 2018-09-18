@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/tedsuo/ifrit"
 )
 

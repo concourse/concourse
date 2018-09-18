@@ -3,7 +3,7 @@ package resource
 import (
 	"context"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 type putRequest struct {

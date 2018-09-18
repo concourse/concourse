@@ -3,8 +3,8 @@ package accessor_test
 import (
 	"net/http"
 
-	"github.com/concourse/atc/api/accessor"
-	"github.com/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

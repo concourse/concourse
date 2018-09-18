@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 
 	"code.cloudfoundry.org/lager"

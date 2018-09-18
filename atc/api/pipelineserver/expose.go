@@ -3,7 +3,7 @@ package pipelineserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) ExposePipeline(pipeline db.Pipeline) http.Handler {

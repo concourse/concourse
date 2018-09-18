@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/worker/beacon"
+	"github.com/concourse/concourse/worker/beacon"
 )
 
 type Drainer struct {

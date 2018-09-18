@@ -3,11 +3,11 @@ package gc_test
 import (
 	"context"
 
-	"github.com/concourse/atc/gc"
+	"github.com/concourse/concourse/atc/gc"
 
 	"errors"
 
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

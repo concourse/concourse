@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc/api/accessor"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type CheckBuildReadAccessHandlerFactory interface {

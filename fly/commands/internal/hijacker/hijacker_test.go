@@ -14,8 +14,8 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/hijacker"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/hijacker"
 )
 
 var _ = Describe("Hijacker", func() {

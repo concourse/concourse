@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeResourceConfig struct {

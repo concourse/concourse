@@ -11,8 +11,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/atc/atccmd"
-	"github.com/concourse/atc/postgresrunner"
+	"github.com/concourse/concourse/atc/atccmd"
+	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/concourse/flag"
 	flags "github.com/jessevdk/go-flags"
 	. "github.com/onsi/ginkgo"

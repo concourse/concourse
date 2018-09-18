@@ -6,8 +6,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type ArtifactOutputStep struct {

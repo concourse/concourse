@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"runtime"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/exec"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/exec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

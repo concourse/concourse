@@ -7,9 +7,9 @@ import (
 
 	"code.cloudfoundry.org/clock/fakeclock"
 
-	"github.com/concourse/atc/db/dbfakes"
-	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/event"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

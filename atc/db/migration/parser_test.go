@@ -1,8 +1,8 @@
 package migration_test
 
 import (
-	"github.com/concourse/atc/db/migration"
-	"github.com/concourse/atc/db/migration/migrationfakes"
+	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/atc/db/migration/migrationfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

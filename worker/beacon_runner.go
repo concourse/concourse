@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
-	"github.com/concourse/worker/beacon"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/worker/beacon"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/restart"
 	"golang.org/x/crypto/ssh"

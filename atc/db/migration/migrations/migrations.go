@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"reflect"
 
-	"github.com/concourse/atc/db/encryption"
+	"github.com/concourse/concourse/atc/db/encryption"
 )
 
 func NewMigrations(db *sql.DB, es encryption.Strategy) *migrations {

@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 type VersionedResource struct {

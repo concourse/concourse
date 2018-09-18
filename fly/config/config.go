@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"syscall"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 func LoadTaskConfig(configPath string, args []string) (atc.TaskConfig, error) {

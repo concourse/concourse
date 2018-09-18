@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/concourse/atc/wrappa"
+	"github.com/concourse/concourse/atc/wrappa"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

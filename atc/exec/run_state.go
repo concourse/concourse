@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type runState struct {

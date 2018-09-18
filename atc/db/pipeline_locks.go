@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(

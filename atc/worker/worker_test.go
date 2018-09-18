@@ -8,11 +8,11 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db/dbfakes"
-	. "github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/worker"
+	wfakes "github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
 

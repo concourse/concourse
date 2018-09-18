@@ -9,8 +9,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 
-	. "github.com/concourse/atc/radar"
-	"github.com/concourse/atc/radar/radarfakes"
+	. "github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/radar/radarfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

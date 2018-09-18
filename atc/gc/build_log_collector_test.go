@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
-	. "github.com/concourse/atc/gc"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

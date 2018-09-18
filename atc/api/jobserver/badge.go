@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 var (

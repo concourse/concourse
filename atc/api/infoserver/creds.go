@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds"
 )
 
 // Creds returns information on the credential manager attached to this instance of concourse.

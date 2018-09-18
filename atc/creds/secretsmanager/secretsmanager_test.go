@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	varTemplate "github.com/cloudfoundry/bosh-cli/director/template"
 
-	. "github.com/concourse/atc/creds/secretsmanager"
+	. "github.com/concourse/concourse/atc/creds/secretsmanager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

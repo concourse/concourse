@@ -8,9 +8,9 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/metric"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/worker"
 	multierror "github.com/hashicorp/go-multierror"
 )
 

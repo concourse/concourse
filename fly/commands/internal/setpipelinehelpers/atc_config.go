@@ -9,12 +9,12 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/fly/commands/internal/flaghelpers"
-	temp "github.com/concourse/fly/template"
-	"github.com/concourse/fly/ui"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	temp "github.com/concourse/concourse/fly/template"
+	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/onsi/gomega/gexec"
 	"github.com/vito/go-interact/interact"
 )

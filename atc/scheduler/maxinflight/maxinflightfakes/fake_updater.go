@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/scheduler/maxinflight"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 )
 
 type FakeUpdater struct {

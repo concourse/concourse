@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/ui"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/gbytes"
 )

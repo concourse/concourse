@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func CountQueries(conn db.Conn) db.Conn {

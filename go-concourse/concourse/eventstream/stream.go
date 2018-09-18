@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/event"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/vito/go-sse/sse"
 )
 

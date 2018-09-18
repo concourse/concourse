@@ -6,9 +6,9 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/accessor"
-	"github.com/concourse/atc/api/present"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/present"
 )
 
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {

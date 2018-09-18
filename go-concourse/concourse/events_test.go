@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/event"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"

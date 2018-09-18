@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type Input struct {

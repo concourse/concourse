@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 type FakeAccessFactory struct {

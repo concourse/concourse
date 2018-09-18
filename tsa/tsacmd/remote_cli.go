@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/concourse/tsa"
+	"github.com/concourse/concourse/tsa"
 )
 
 type request interface{}

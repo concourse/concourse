@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type ResourceFlag struct {

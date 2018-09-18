@@ -8,15 +8,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/concourse/atc/atccmd"
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/flag"
-	"github.com/concourse/tsa/tsacmd"
+	"github.com/concourse/concourse/tsa/tsacmd"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
 
-	"github.com/concourse/bin/bindata"
+	"github.com/concourse/concourse/bin/bindata"
 )
 
 type WebCommand struct {

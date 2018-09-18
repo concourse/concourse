@@ -14,8 +14,8 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/concourse/flag"
-	"github.com/concourse/tsa"
-	"github.com/concourse/tsa/tsaflags"
+	"github.com/concourse/concourse/tsa"
+	"github.com/concourse/concourse/tsa/tsaflags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"

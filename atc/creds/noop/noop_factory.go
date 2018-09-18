@@ -1,6 +1,6 @@
 package noop
 
-import "github.com/concourse/atc/creds"
+import "github.com/concourse/concourse/atc/creds"
 
 type noopFactory struct{}
 

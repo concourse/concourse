@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor"
 	jwt "github.com/dgrijalva/jwt-go"
 
 	. "github.com/onsi/ginkgo"

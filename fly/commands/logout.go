@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/rc"
 )
 
 type LogoutCommand struct {

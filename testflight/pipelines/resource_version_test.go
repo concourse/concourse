@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/concourse/testflight/gitserver"
+	"github.com/concourse/concourse/testflight/gitserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"

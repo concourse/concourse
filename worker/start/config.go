@@ -3,7 +3,7 @@ package start
 import (
 	"time"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 type Config struct {

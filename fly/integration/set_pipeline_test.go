@@ -19,7 +19,7 @@ import (
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 var _ = Describe("Fly CLI", func() {

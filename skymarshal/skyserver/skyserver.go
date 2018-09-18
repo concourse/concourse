@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/skymarshal/token"
+	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/coreos/go-oidc"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2/jwt"

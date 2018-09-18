@@ -10,8 +10,8 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/go-concourse/concourse"
-	"github.com/concourse/testflight/helpers"
+	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/testflight/helpers"
 	"github.com/mgutz/ansi"
 	"github.com/nu7hatch/gouuid"
 

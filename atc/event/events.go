@@ -1,6 +1,6 @@
 package event
 
-import "github.com/concourse/atc"
+import "github.com/concourse/concourse/atc"
 
 type Error struct {
 	Message string `json:"message"`

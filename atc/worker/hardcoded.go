@@ -8,8 +8,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func NewHardcoded(

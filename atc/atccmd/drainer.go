@@ -3,10 +3,10 @@ package atccmd
 import (
 	"os"
 
-	"github.com/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/builds"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type drainer struct {

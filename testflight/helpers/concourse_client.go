@@ -7,7 +7,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"golang.org/x/oauth2"
 )
 

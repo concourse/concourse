@@ -1,7 +1,7 @@
 package resource_test
 
 import (
-	. "github.com/concourse/atc/resource"
+	. "github.com/concourse/concourse/atc/resource"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

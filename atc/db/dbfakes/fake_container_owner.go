@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeContainerOwner struct {

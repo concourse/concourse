@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/concourse/atc/api/buildserver"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
-	"github.com/concourse/atc/event"
+	. "github.com/concourse/concourse/atc/api/buildserver"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"

@@ -20,8 +20,8 @@ import (
 	"github.com/onsi/gomega/ghttp"
 	"github.com/vito/go-sse/sse"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/event"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/event"
 )
 
 var _ = Describe("Fly CLI", func() {

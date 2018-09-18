@@ -4,7 +4,7 @@ package tokenfakes
 import (
 	"sync"
 
-	"github.com/concourse/skymarshal/token"
+	"github.com/concourse/concourse/skymarshal/token"
 	"golang.org/x/oauth2"
 )
 

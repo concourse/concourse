@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 	"golang.org/x/oauth2"
 )
 

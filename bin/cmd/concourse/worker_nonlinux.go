@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )

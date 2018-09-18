@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 )
 
 var ErrContainerDisappeared = errors.New("container disappeared from db")

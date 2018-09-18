@@ -8,10 +8,10 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/creds"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
 )
 

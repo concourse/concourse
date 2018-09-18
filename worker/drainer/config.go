@@ -4,10 +4,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/worker"
-	"github.com/concourse/worker/beacon"
-	"github.com/concourse/worker/tsa"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/worker"
+	"github.com/concourse/concourse/worker/beacon"
+	"github.com/concourse/concourse/worker/tsa"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"

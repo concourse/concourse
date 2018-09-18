@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/worker/drainer"
-	"github.com/concourse/worker/land"
-	"github.com/concourse/worker/retire"
-	"github.com/concourse/worker/start"
+	"github.com/concourse/concourse/worker/drainer"
+	"github.com/concourse/concourse/worker/land"
+	"github.com/concourse/concourse/worker/retire"
+	"github.com/concourse/concourse/worker/start"
 	flags "github.com/jessevdk/go-flags"
 )
 

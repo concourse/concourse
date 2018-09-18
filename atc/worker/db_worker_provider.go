@@ -7,13 +7,13 @@ import (
 	"code.cloudfoundry.org/clock"
 	gclient "code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/worker/transport"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/worker/transport"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type dbWorkerProvider struct {

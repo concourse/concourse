@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/skymarshal/token"
+	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/onsi/gomega/ghttp"
 	"golang.org/x/oauth2"
 )

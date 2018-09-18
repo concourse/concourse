@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/accessor"
-	"github.com/concourse/atc/metric"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type IntMetric int

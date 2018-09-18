@@ -3,9 +3,9 @@ package metric_test
 import (
 	"errors"
 
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
-	"github.com/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/metric"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

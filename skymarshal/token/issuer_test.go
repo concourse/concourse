@@ -8,10 +8,10 @@ import (
 	. "github.com/onsi/gomega"
 	"golang.org/x/oauth2"
 
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
-	"github.com/concourse/skymarshal/token"
-	"github.com/concourse/skymarshal/token/tokenfakes"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
 )
 
 var _ = Describe("Token Issuer", func() {

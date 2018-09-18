@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/concourse/atc/db/algorithm"
 	. "github.com/onsi/gomega"
 )
 

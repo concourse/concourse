@@ -7,11 +7,11 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc/atccmd"
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/flag"
-	"github.com/concourse/skymarshal/dexserver"
-	"github.com/concourse/skymarshal/skycmd"
+	"github.com/concourse/concourse/skymarshal/dexserver"
+	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/jessevdk/go-flags"
 	"golang.org/x/crypto/bcrypt"
 )

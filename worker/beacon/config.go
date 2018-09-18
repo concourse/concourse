@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/concourse/worker/tsa"
+	"github.com/concourse/concourse/worker/tsa"
 	"golang.org/x/crypto/ssh"
 )
 

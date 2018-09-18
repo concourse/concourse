@@ -3,8 +3,8 @@ package resource_test
 import (
 	"testing"
 
-	"github.com/concourse/atc/resource"
-	"github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

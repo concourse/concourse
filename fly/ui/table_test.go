@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/concourse/fly/pty"
-	. "github.com/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/pty"
+	. "github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 
 	. "github.com/onsi/ginkgo"

@@ -13,9 +13,9 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/baggageclaim/client"
-	"github.com/concourse/tsa"
+	"github.com/concourse/concourse/tsa"
 )
 
 const (
