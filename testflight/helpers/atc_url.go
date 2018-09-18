@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"net/http"
 	"os"
 )
 
@@ -16,11 +15,6 @@ func AtcURL() string {
 
 	atcURL := os.Getenv("ATC_URL")
 	if atcURL == "" {
-		response, err := http.Get(defaultATCURL + "/api/v1/info")
-		if err != nil || response.StatusCode != http.StatusOK {
-			panic("must set $ATC_URL")
-		}
-
 		atcURL = defaultATCURL
 	}
 
@@ -31,9 +25,8 @@ func AtcURL() string {
 
 func AtcUsername() string {
 	username := os.Getenv("ATC_USERNAME")
-
 	if username == "" {
-		panic("must set $ATC_USERNAME")
+		username = "test"
 	}
 
 	return username
@@ -41,9 +34,8 @@ func AtcUsername() string {
 
 func AtcPassword() string {
 	password := os.Getenv("ATC_PASSWORD")
-
 	if password == "" {
-		panic("must set $ATC_PASSWORD")
+		password = "test"
 	}
 
 	return password
