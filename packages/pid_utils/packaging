@@ -1,3 +1,0 @@
-set -e -x
-
-cp pid_utils.sh ${BOSH_INSTALL_TARGET}

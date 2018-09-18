@@ -1,5 +1,0 @@
----
-name: git_resource
-
-files:
-  - resources/git-resource*.tar.gz

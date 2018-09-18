@@ -1,4 +1,0 @@
-#!/bin/bash
-# vim: set ft=sh
-
-$(dirname $0)/list-dependencies | anderson

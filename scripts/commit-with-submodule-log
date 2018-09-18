@@ -1,3 +1,0 @@
-#!/bin/bash
-
-$(dirname $0)/submodule-log "$@" | git ci --file -

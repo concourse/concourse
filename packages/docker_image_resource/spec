@@ -1,5 +1,0 @@
----
-name: docker_image_resource
-
-files:
-  - resources/docker-image-resource*.tar.gz

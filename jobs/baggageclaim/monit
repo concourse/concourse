@@ -1,5 +1,0 @@
-check process baggageclaim
-  with pidfile /var/vcap/sys/run/baggageclaim/baggageclaim.pid
-  start program "/var/vcap/jobs/baggageclaim/bin/baggageclaim_ctl start"
-  stop program "/var/vcap/jobs/baggageclaim/bin/baggageclaim_ctl stop"
-  group vcap

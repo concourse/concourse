@@ -1,3 +1,0 @@
-set -e -u -x
-
-cp worker-version/version $BOSH_INSTALL_TARGET/version

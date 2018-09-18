@@ -1,5 +1,0 @@
----
-name: registry_image_resource
-
-files:
-  - resources/registry-image-resource*.tar.gz

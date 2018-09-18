@@ -1,5 +1,0 @@
----
-name: semver_resource
-
-files:
-  - resources/semver-resource*.tar.gz

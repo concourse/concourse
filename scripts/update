@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set -e -u
-
-git submodule sync
-git submodule update --init --recursive

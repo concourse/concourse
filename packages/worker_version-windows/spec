@@ -1,8 +1,0 @@
----
-name: worker_version-windows
-
-dependencies: []
-
-files:
-  - exiter.ps1
-  - worker-version/*

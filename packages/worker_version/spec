@@ -1,7 +1,0 @@
----
-name: worker_version
-
-dependencies: []
-
-files:
-  - worker-version/*

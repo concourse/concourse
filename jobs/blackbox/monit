@@ -1,5 +1,0 @@
-check process blackbox
-  with pidfile /var/vcap/sys/run/blackbox/blackbox.pid
-  start program "/var/vcap/jobs/blackbox/bin/blackbox_ctl start"
-  stop program "/var/vcap/jobs/blackbox/bin/blackbox_ctl stop"
-  group vcap

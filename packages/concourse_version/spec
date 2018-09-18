@@ -1,7 +1,0 @@
----
-name: concourse_version
-
-dependencies: []
-
-files:
-  - version/*

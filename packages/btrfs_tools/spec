@@ -1,5 +1,0 @@
----
-name: btrfs_tools
-
-files:
-- btrfs/btrfs-tools*.tar.gz

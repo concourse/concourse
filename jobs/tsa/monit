@@ -1,5 +1,0 @@
-check process tsa
-  with pidfile /var/vcap/sys/run/tsa/tsa.pid
-  start program "/var/vcap/jobs/tsa/bin/tsa_ctl start"
-  stop program "/var/vcap/jobs/tsa/bin/tsa_ctl stop"
-  group vcap

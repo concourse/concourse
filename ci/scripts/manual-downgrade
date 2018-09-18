@@ -1,8 +1,0 @@
-#!/bin/bash
-
-set -e
-
-eval $(ssh-agent)
-ssh-add <(echo "$BOSH_KEY")
-
-bosh ssh web -c "find /var/vcap/data/jobs/atc -name experimental_downgrade_db -printf '%T+ %p\n' | sort | head -1 | cut -d' ' -f2 | xargs sh -c"

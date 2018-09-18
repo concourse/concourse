@@ -1,5 +1,0 @@
----
-name: bosh_io_stemcell_resource
-
-files:
-  - resources/bosh-io-stemcell-resource*.tar.gz

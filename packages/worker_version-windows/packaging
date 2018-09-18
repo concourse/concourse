@@ -1,5 +1,0 @@
-. ./exiter.ps1
-
-# vim: set ft=ps1
-
-Copy-Item worker-version/version ${env:BOSH_INSTALL_TARGET}/version

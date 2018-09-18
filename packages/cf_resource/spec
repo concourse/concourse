@@ -1,5 +1,0 @@
----
-name: cf_resource
-
-files:
-  - resources/cf-resource*.tar.gz

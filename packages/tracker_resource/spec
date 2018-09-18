@@ -1,5 +1,0 @@
----
-name: tracker_resource
-
-files:
-  - resources/tracker-resource*.tar.gz

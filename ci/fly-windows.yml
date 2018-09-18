@@ -1,8 +1,0 @@
----
-platform: windows
-
-inputs:
-- name: concourse
-
-run:
-  path: concourse/ci/scripts/fly.bat
