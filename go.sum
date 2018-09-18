@@ -112,6 +112,8 @@ github.com/concourse/dex v0.0.0-20180906143828-2bb7b6850d06 h1:HGL+LQk5fGU5Cd/mS
 github.com/concourse/dex v0.0.0-20180906143828-2bb7b6850d06/go.mod h1:STWtPbe/d8ON/IO5kVxR3e9CkGxPFb1Oe9yMCBs5pAs=
 github.com/concourse/flag v0.0.0-20180709134844-b093f650fadb h1:E1ep58Drny+cfePT6DaWfYY2Jz3ypf38GG+/TkfC6uQ=
 github.com/concourse/flag v0.0.0-20180709134844-b093f650fadb/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
+github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c h1:SwMKBc36jGTSS5/3AqVtbRjbGTvDfR3pJ5MkzfiYSas=
+github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f h1:Z7s60kZd9kuWiosivO9QPGH1vmfC/lzLDiuWIy0MT+o=
 github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
 github.com/concourse/guardian v0.0.0-20180820201906-5b8676daf250 h1:z3NhAuD2Hzw60iYp/fWkq8zCzbRRAW7cVjKAps6kP2A=
