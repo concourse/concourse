@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)/..
+
+ROOT=$(pwd)
+
+DEVDIR=/tmp/concourse-dev
+KEYSDIR=$DEVDIR/keys
+
+go install ./tsa/cmd/tsa
+
+external_ip="$($ROOT/dev/util/external-ip)"
+
+exec tsa \
+  --atc-url http://127.0.0.1:8080 \
+  --host-key $KEYSDIR/web/tsa_host_key \
+  --peer-ip $external_ip \
+  --authorized-keys $KEYSDIR/web/authorized_worker_keys \
+  --session-signing-key $KEYSDIR/web/session_signing_key \
+  "$@"

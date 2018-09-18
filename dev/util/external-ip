@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if which ip >/dev/null 2>&1; then
+  ip route get 8.8.8.8 | grep src | head -1 | sed 's/.*src \([^ ]\+\).*/\1/'
+else
+  ipconfig getifaddr $(route get 8.8.8.8 | grep interface: | awk '{print $NF}')
+fi

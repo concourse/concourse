@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)/..
+
+ROOT=$(pwd)
+
+go install github.com/mattn/goreman
+
+cd dev
+
+# set up keys
+./setup
+
+# start everything up
+exec goreman start "$@"
