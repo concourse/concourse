@@ -10,7 +10,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"code.cloudfoundry.org/guardian/guardiancmd"
+	"github.com/concourse/guardian/guardiancmd"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
