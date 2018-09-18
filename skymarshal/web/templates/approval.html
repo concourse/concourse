@@ -1,0 +1,40 @@
+{{ template "header.html" . }}
+
+<div class="theme-panel">
+  <h2 class="theme-heading">Grant Access</h2>
+
+  <hr class="dex-separator">
+  <div>
+    <div class="dex-subtle-text">{{ .Client }} would like to:</div>
+    <ul class="dex-list">
+      {{ range $scope := .Scopes }}
+      <li>{{ $scope }}</li>
+      {{ end }}
+    </ul>
+  </div>
+  <hr class="dex-separator">
+
+  <div>
+    <div class="theme-form-row">
+      <form method="post">
+        <input type="hidden" name="req" value="{{ .AuthReqID }}"/>
+        <input type="hidden" name="approval" value="approve">
+        <button type="submit" class="dex-btn theme-btn--success">
+            <span class="dex-btn-text">Grant Access</span>
+        </button>
+      </form>
+    </div>
+    <div class="theme-form-row">
+      <form method="post">
+        <input type="hidden" name="req" value="{{ .AuthReqID }}"/>
+        <input type="hidden" name="approval" value="rejected">
+        <button type="submit" class="dex-btn theme-btn-provider">
+            <span class="dex-btn-text">Cancel</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{{ template "footer.html" . }}
