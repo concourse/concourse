@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/cenkalti/backoff"
 )
 
 type MockAuther struct {
@@ -96,7 +98,6 @@ func testWithoutVaultErrors(t *testing.T) {
 
 func testExponentialBackoff(t *testing.T) {
 	maxRetryInterval := 2 * time.Second
-	buffer := 300 * time.Millisecond
 
 	ma := &MockAuther{
 		LoggedIn:   make(chan bool, 1),
@@ -127,7 +128,10 @@ func testExponentialBackoff(t *testing.T) {
 		}
 	}
 
-	if lastRetryInterval < (maxRetryInterval - buffer) {
+	// default randomization factor is 0.5
+	smallestInterval := float64(maxRetryInterval) * (1 - backoff.DefaultRandomizationFactor)
+
+	if float64(lastRetryInterval) < smallestInterval {
 		t.Error("maxRetryInterval reached, but login was reattempted before maxRetryInterval")
 	}
 }
