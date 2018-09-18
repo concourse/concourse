@@ -1,0 +1,117 @@
+.dashboard-hd {
+  padding-top: 40px;
+
+  .dashboard-content {
+    display: flex;
+    flex-flow: column wrap;
+    height: ~"calc(100vh - 180px)";
+    margin: 60px 0 60px 60px;
+    padding: 0;
+    letter-spacing: 0.2em;
+    align-content: flex-start;
+  }
+
+  .dashboard-team-group {
+    display: inline-block;
+    width: 100%;
+  }
+
+  .dashboard-team-name {
+    font-size: 20px;
+    padding: 0;
+    height: 60px;
+    line-height: 60px;
+  }
+
+  .dashboard-team-name-wrapper {
+    break-inside: avoid;
+  }
+
+  .dashboard-team-pipelines {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-pipeline {
+    display: flex;
+    height: 60px;
+    max-height: 60px;
+    margin: 0 60px 4px 0;
+    break-inside: avoid;
+    width: ~"calc((100vw - 600px) / 9)";
+    min-width: 200px;
+    position: relative;
+
+    &.dashboard-status-succeeded {
+      .dashboard-pipeline-content {
+        background-color: rgba(17, 197, 96, 0.2);
+      }
+    }
+
+    &.dashboard-status-failed {
+      .dashboard-pipeline-content {
+        background-color: @red-primary;
+      }
+    }
+
+    &.dashboard-status-errored {
+      .dashboard-pipeline-content {
+        background-color: @amber-primary;
+      }
+    }
+  }
+
+  .dashboard-pipeline-banner {
+    min-width: 8px;
+    width: 8px;
+    height: 100% !important;
+    z-index: 1;
+  }
+
+  .dashboard-pipeline-content {
+    display: table !important;
+    // 100% - banner width - left/right padding
+    width: ~"calc(100% - 18px)";
+    min-width: 170px;
+    height: 100%;
+    padding: 0 5px;
+
+    &.no-set {
+      width: ~"calc(100% - 10px)";
+
+      a {
+        font-size: 14px;
+        color: @base04;
+      }
+    }
+
+    a {
+      letter-spacing: 1px;
+      display: table-cell;
+      vertical-align: middle;
+      text-align: left;
+      font-size: 19px;
+      line-height: 18px;
+      padding-left: 4px;
+
+      &[data-tooltip]:hover::before {
+        z-index: 2;
+      }
+
+      &[data-tooltip]::after {
+        left: ~"calc(100% - 5px)";
+      }
+
+      &[data-tooltip]::before {
+        left: ~"calc(100% + 3px)";
+      }
+
+      .dashboardhd-pipeline-name {
+        width: 180px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+}

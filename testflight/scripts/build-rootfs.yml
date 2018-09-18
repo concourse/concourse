@@ -1,0 +1,34 @@
+---
+platform: linux
+params:
+  DOCKER_IMAGE: null
+  VERSION: null
+outputs:
+- name: output
+image_resource:
+  type: registry-image
+  source:
+    repository: concourse/registry-image-resource
+run:
+  path: sh
+  args:
+  - -ec
+  - |
+    base=$(pwd)
+    cidfile=/tmp/container.id
+
+    source /opt/resource/common.sh
+    start_docker
+
+    mkdir export-dir && cd export-dir
+    mkdir rootfs
+
+    docker run --cidfile=${cidfile} \
+       -v /opt/resource/print-metadata:/tmp/print-metadata \
+       --entrypoint /tmp/print-metadata  \
+       ${DOCKER_IMAGE} > metadata.json
+
+    docker export $(cat ${cidfile}) | tar --exclude="dev/*" -xf - -C ./rootfs/
+
+    cd ${base}/output
+    tar -czf $(basename ${DOCKER_IMAGE})-${VERSION}.tar.gz -C ${base}/export-dir .

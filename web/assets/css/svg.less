@@ -1,0 +1,23 @@
+@import (reference) "_vars.less";
+
+svg {
+  .node rect { fill: @base00; }
+  .node.pending rect { fill: @grey-primary; }
+  .node.succeeded rect { fill: @green-primary; }
+  .node.failed rect { fill: @red-primary; }
+  .node.errored rect { fill: @amber-primary; }
+  .node.aborted rect { fill: @brown-primary; }
+  .node.failing rect { fill: @amber-primary; }
+  .node.paused rect { fill: @blue-primary; }
+  .node.job.no-builds rect { fill: @grey-primary; }
+  .node.resource a { color: @base06; }
+
+  .edge { stroke: @grey-secondary; }
+  .edge.pending { stroke: @base04; }
+  .edge.succeeded { stroke: @green-primary; }
+  .edge.failed { stroke: @red-primary; }
+  .edge.errored { stroke: @amber-primary; }
+  .edge.aborted { stroke: @brown-primary; }
+  .edge.paused { stroke: @blue-primary; }
+  .edge.trigger-false { stroke-dasharray: 5, 5; }
+}

@@ -1,0 +1,80 @@
+#!/bin/bash
+
+set -e -u -x
+
+ASSETS_DIR=$PWD/assets
+
+rm -rf $ASSETS_DIR
+mkdir -p $ASSETS_DIR
+
+mkdir -p $ASSETS_DIR/bin
+cp /opt/static-assets/tar $ASSETS_DIR/bin/tar
+
+mkdir -p $ASSETS_DIR/btrfs
+cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $ASSETS_DIR/btrfs
+
+cp -a /opt/static-assets/iptables $ASSETS_DIR/iptables
+
+# go-bindata does weird stuff with symlinks. we only care about iptables anyway
+rm $ASSETS_DIR/iptables/sbin/*
+rm -r $ASSETS_DIR/iptables/bin
+cp -aL /opt/static-assets/iptables/sbin/iptables $ASSETS_DIR/iptables/sbin/iptables
+
+pushd garden-runc-release/
+  # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
+  HOME=$PWD bosh sync-blobs
+
+  (
+    set -e -u -x
+
+    export GOPATH=$PWD
+
+    go build -o $ASSETS_DIR/bin/dadoo code.cloudfoundry.org/guardian/cmd/dadoo
+
+    pushd src/code.cloudfoundry.org/guardian/cmd/init
+      gcc -static -o $ASSETS_DIR/bin/init init.c
+    popd
+
+    pushd src/github.com/opencontainers/runc
+      PKG_CONFIG_PATH=/opt/static-assets/libseccomp/lib/pkgconfig \
+        GOPATH=$PWD/Godeps/_workspace:$GOPATH \
+        BUILDTAGS=seccomp \
+        make static
+
+      mv runc $ASSETS_DIR/bin
+    popd
+
+    pushd src/code.cloudfoundry.org/guardian/rundmc/nstar
+      make
+      mv nstar $ASSETS_DIR/bin
+    popd
+  )
+popd
+
+pushd concourse/
+  # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
+  HOME=$PWD bosh sync-blobs
+
+  mkdir -p $ASSETS_DIR/resources
+
+  for resource in blobs/resources/*-resource*.tar.gz; do
+    resource_name="$(basename $resource | sed -e 's/-resource-.*.tar.gz//')"
+    resource_version="$(sha1sum $resource | awk '{print $1}')"
+    if [ -z "$resource_version" ]; then
+      echo "could not compute resource version" >&2
+      exit 1
+    fi
+
+    resource_dir=$ASSETS_DIR/resources/$resource_name
+
+    mkdir -p $resource_dir
+    cp -L "$resource" $resource_dir/rootfs.tar.gz
+
+    echo $resource_version > $resource_dir/version
+
+    package_name="$(echo $resource_name | tr '-' '_')_resource"
+    if grep '"privileged": true' packages/$package_name/packaging >/dev/null; then
+      touch $resource_dir/privileged
+    fi
+  done
+popd

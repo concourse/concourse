@@ -1,0 +1,11 @@
+groups: []
+resources:
+- name: some-resource
+  type: {{resource-type}}
+  source:
+    source-config: some-value
+- name: some-other-resource
+  type: some-other-type
+  source:
+    secret_key: {{resource-key}}
+jobs: []

@@ -1,0 +1,37 @@
+---
+resources:
+  - name: git-repo-a
+    type: git
+    source:
+      uri: {{git-server-a}}
+      branch: master
+
+  - name: git-repo-b
+    type: git
+    source:
+      uri: {{git-server-b}}
+      branch: master
+
+jobs:
+  - name: some-job
+    plan:
+      - get: git-repo-a
+        trigger: true
+      - get: git-repo-b
+        trigger: true
+      - task: cat-files
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          inputs:
+            - name: git-repo-a
+            - name: git-repo-b
+          run:
+            path: sh
+            args:
+              - -c
+              - |
+                echo a has $(cat git-repo-a/guids)
+                echo b has $(cat git-repo-b/guids)

@@ -1,0 +1,27 @@
+---
+resources:
+- name: some-git-resource
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+jobs:
+- name: clear-task-cache
+  plan:
+  - get: some-git-resource
+  - task: some-task
+    config:
+      inputs:
+      - name: some-git-resource
+      caches:
+      - path: some-git-resource/cache
+      image_resource:
+        type: registry-image
+        source:
+          repository: busybox
+      platform: linux
+      run:
+        path: sh
+        args:
+        - some-git-resource/script.sh

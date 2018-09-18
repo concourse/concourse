@@ -1,0 +1,31 @@
+.retry-tabs {
+  margin: 0;
+  font-size: 16px;
+  line-height: 26px;
+  background: @base02;
+
+  li {
+    display: inline-block;
+    font-weight: bold;
+    cursor: pointer;
+    color: @base06;
+
+    a {
+      padding: 0 5px;
+      display: inline-block;
+    }
+  }
+
+  li:hover {
+    background: @base03;
+  }
+
+  li.current {
+    background: @base03;
+    opacity: 1;
+  }
+
+  li.inactive {
+    opacity: 0.5;
+  }
+}

@@ -1,0 +1,6 @@
+*.test
+.DS_Store
+.idea
+/README.html
+cmd/atc/atc
+*-packr.go

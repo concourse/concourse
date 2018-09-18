@@ -1,0 +1,31 @@
+---
+jobs:
+- name: duration-successful-job
+  plan:
+  - get: busybox
+  - task: passing-task
+    timeout: 5m
+    image: busybox
+    config:
+      platform: linux
+      run:
+        path: echo
+        args: ["passing-task succeeded"]
+
+- name: duration-fail-job
+  plan:
+  - get: busybox
+  - task: timeout-task
+    image: busybox
+    timeout: 5s
+    config:
+      platform: linux
+      run:
+        path: sleep
+        args: ["10"]
+
+resources:
+- name: busybox
+  type: registry-image
+  source:
+    repository: busybox

@@ -1,0 +1,224 @@
+---
+resource_types:
+- name: echo-resource
+  type: registry-image
+  source:
+    repository: concourse/echo-resource
+    tag: latest
+
+jobs:
+- name: checker
+  plan:
+  - get: many-versions
+  - get: few-versions
+
+resources:
+- name: few-versions
+  type: echo-resource
+  source:
+    versions:
+      - { version: "1" }
+      - { version: "2" }
+      - { version: "3" }
+      - { version: "4" }
+      - { version: "5" }
+      - { version: "6" }
+      - { version: "7" }
+      - { version: "8" }
+      - { version: "9" }
+      - { version: "10" }
+      - { version: "11" }
+      - { version: "12" }
+      - { version: "13" }
+      - { version: "14" }
+      - { version: "15" }
+      - { version: "16" }
+      - { version: "17" }
+      - { version: "18" }
+      - { version: "19" }
+      - { version: "20" }
+      - { version: "21" }
+      - { version: "22" }
+      - { version: "23" }
+      - { version: "24" }
+      - { version: "25" }
+      - { version: "26" }
+      - { version: "27" }
+      - { version: "28" }
+      - { version: "29" }
+      - { version: "30" }
+      - { version: "31" }
+      - { version: "32" }
+      - { version: "33" }
+      - { version: "34" }
+      - { version: "35" }
+      - { version: "36" }
+      - { version: "37" }
+      - { version: "38" }
+      - { version: "39" }
+      - { version: "40" }
+      - { version: "41" }
+      - { version: "42" }
+      - { version: "43" }
+      - { version: "44" }
+      - { version: "45" }
+      - { version: "46" }
+      - { version: "47" }
+      - { version: "48" }
+      - { version: "49" }
+      - { version: "50" }
+      - { version: "51" }
+      - { version: "52" }
+      - { version: "53" }
+      - { version: "54" }
+      - { version: "55" }
+      - { version: "56" }
+      - { version: "57" }
+      - { version: "58" }
+      - { version: "59" }
+      - { version: "60" }
+      - { version: "61" }
+      - { version: "62" }
+      - { version: "63" }
+      - { version: "64" }
+      - { version: "65" }
+      - { version: "66" }
+      - { version: "67" }
+      - { version: "68" }
+      - { version: "69" }
+      - { version: "70" }
+      - { version: "71" }
+      - { version: "72" }
+      - { version: "73" }
+      - { version: "74" }
+      - { version: "75" }
+      - { version: "76" }
+      - { version: "77" }
+      - { version: "78" }
+      - { version: "79" }
+      - { version: "80" }
+      - { version: "81" }
+      - { version: "82" }
+      - { version: "83" }
+      - { version: "84" }
+      - { version: "85" }
+      - { version: "86" }
+      - { version: "87" }
+      - { version: "88" }
+      - { version: "89" }
+      - { version: "90" }
+      - { version: "91" }
+      - { version: "92" }
+      - { version: "93" }
+      - { version: "94" }
+      - { version: "95" }
+      - { version: "96" }
+      - { version: "97" }
+      - { version: "98" }
+      - { version: "99" }
+
+- name: many-versions
+  type: echo-resource
+  source:
+    versions:
+      - { version: "1" }
+      - { version: "2" }
+      - { version: "3" }
+      - { version: "4" }
+      - { version: "5" }
+      - { version: "6" }
+      - { version: "7" }
+      - { version: "8" }
+      - { version: "9" }
+      - { version: "10" }
+      - { version: "11" }
+      - { version: "12" }
+      - { version: "13" }
+      - { version: "14" }
+      - { version: "15" }
+      - { version: "16" }
+      - { version: "17" }
+      - { version: "18" }
+      - { version: "19" }
+      - { version: "20" }
+      - { version: "21" }
+      - { version: "22" }
+      - { version: "23" }
+      - { version: "24" }
+      - { version: "25" }
+      - { version: "26" }
+      - { version: "27" }
+      - { version: "28" }
+      - { version: "29" }
+      - { version: "30" }
+      - { version: "31" }
+      - { version: "32" }
+      - { version: "33" }
+      - { version: "34" }
+      - { version: "35" }
+      - { version: "36" }
+      - { version: "37" }
+      - { version: "38" }
+      - { version: "39" }
+      - { version: "40" }
+      - { version: "41" }
+      - { version: "42" }
+      - { version: "43" }
+      - { version: "44" }
+      - { version: "45" }
+      - { version: "46" }
+      - { version: "47" }
+      - { version: "48" }
+      - { version: "49" }
+      - { version: "50" }
+      - { version: "51" }
+      - { version: "52" }
+      - { version: "53" }
+      - { version: "54" }
+      - { version: "55" }
+      - { version: "56" }
+      - { version: "57" }
+      - { version: "58" }
+      - { version: "59" }
+      - { version: "60" }
+      - { version: "61" }
+      - { version: "62" }
+      - { version: "63" }
+      - { version: "64" }
+      - { version: "65" }
+      - { version: "66" }
+      - { version: "67" }
+      - { version: "68" }
+      - { version: "69" }
+      - { version: "70" }
+      - { version: "71" }
+      - { version: "72" }
+      - { version: "73" }
+      - { version: "74" }
+      - { version: "75" }
+      - { version: "76" }
+      - { version: "77" }
+      - { version: "78" }
+      - { version: "79" }
+      - { version: "80" }
+      - { version: "81" }
+      - { version: "82" }
+      - { version: "83" }
+      - { version: "84" }
+      - { version: "85" }
+      - { version: "86" }
+      - { version: "87" }
+      - { version: "88" }
+      - { version: "89" }
+      - { version: "90" }
+      - { version: "91" }
+      - { version: "92" }
+      - { version: "93" }
+      - { version: "94" }
+      - { version: "95" }
+      - { version: "96" }
+      - { version: "97" }
+      - { version: "98" }
+      - { version: "99" }
+      - { version: "100" }
+      - { version: "101" }

@@ -1,0 +1,65 @@
+---
+resources:
+  - name: some-git-resource
+    type: git
+    source:
+      uri: {{origin-git-server}}
+      branch: master
+
+  - name: other-git-resource
+    type: git
+    source:
+      uri: {{origin-git-server}}
+      branch: other-branch
+
+jobs:
+  - name: some-passing-job
+    serial_groups:
+      - serial-group-1
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: print-guid
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          inputs:
+            - name: some-git-resource
+              path: .
+          run:
+            path: tail
+            args: ["-1", "guids"]
+
+  - name: some-pending-job
+    serial_groups:
+      - serial-group-1
+    plan:
+      - get: other-git-resource
+        trigger: true
+      - get: some-git-resource
+      - task: print-guid-other-git-resource
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          inputs:
+            - name: other-git-resource
+              path: .
+          run:
+            path: tail
+            args: ["-1", "guids"]
+      - task: print-guid-some-git-resource
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          inputs:
+            - name: some-git-resource
+              path: .
+          run:
+            path: tail
+            args: ["-1", "guids"]

@@ -1,0 +1,95 @@
+---
+resources:
+- name: impossible-time
+  type: time
+  source:
+    start: 1:00 AM
+    stop: 1:00 AM
+
+- name: broken-time
+  type: time
+  source: {interval: banana}
+
+jobs:
+- name: failing
+  plan:
+  - task: fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run:
+        path: sh
+        args:
+        - '-ec'
+        - |
+          echo i failed
+          exit 1
+
+- name: passing_or_failing
+  plan:
+  - task: pass_or_fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run: {path: ((path))}
+
+- name: passing
+  plan:
+  - task: pass
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run: {path: 'echo', args: ['i passed']}
+
+- name: erroring
+  plan:
+  - task: error
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run: {path: 'banana'}
+
+- name: running
+  plan:
+  - task: run
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run:
+        path: sh
+        args:
+        - '-ec'
+        - |
+          echo hello
+
+          while sleep 1; do
+            echo looping
+          done
+
+- name: pending
+  plan:
+  - get: impossible-time
+
+- name: broken-resource
+  plan:
+  - get: broken-time

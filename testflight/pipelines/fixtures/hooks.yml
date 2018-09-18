@@ -1,0 +1,281 @@
+---
+jobs:
+  - name: some-passing-job
+    plan:
+      - task: pass
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          run:
+            path: echo
+            args: ["pass"]
+        ensure:
+          task: passing-job-ensure
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["passing job ensure"]
+        on_success:
+          task: passing-job-on-success
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["passing job on success"]
+        on_failure:
+          task: passing-job-on-failure
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["passing job on failure"]
+        on_abort:
+          task: passing-job-on-abort
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["passing job on abort"]
+    ensure:
+      task: passing-job-on-job-ensure
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["passing job on job ensure"]
+    on_success:
+      task: passing-job-on-job-success
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["passing job on job success"]
+    on_failure:
+      task: passing-job-on-job-failure
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["passing job on job failure"]
+    on_abort:
+      task: passing-job-on-job-abort
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["passing job on job abort"]
+
+  - name: some-failing-job
+    plan:
+      - task: fail
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          run:
+            path: "false"
+        ensure:
+          task: failing-job-ensure
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["failing job ensure"]
+        on_success:
+          task: failing-job-on-success
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["failing job on success"]
+        on_failure:
+          task: failing-job-on-failure
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["failing job on failure"]
+        on_abort:
+          task: failing-job-on-abort
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["failing job on abort"]
+    ensure:
+      task: failing-job-on-job-ensure
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["failing job on job ensure"]
+    on_success:
+      task: failing-job-on-job-success
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["failing job on job success"]
+    on_failure:
+      task: failing-job-on-job-failure
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["failing job on job failure"]
+    on_abort:
+      task: failing-job-on-job-abort
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["failing job on job abort"]
+
+  - name: some-aborted-job
+    plan:
+      - task: abort
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          run:
+            path: sh
+            args:
+            - -c
+            - |
+              while sleep 1; do
+                echo waiting to be aborted
+              done
+        ensure:
+          task: aborted-job-ensure
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["aborted job ensure"]
+        on_success:
+          task: aborted-job-on-success
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["aborted job on success"]
+        on_failure:
+          task: aborted-job-on-failure
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["aborted job on failure"]
+        on_abort:
+          task: aborted-job-on-abort
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["aborted job on abort"]
+    ensure:
+      task: aborted-job-on-job-ensure
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["aborted job on job ensure"]
+    on_success:
+      task: aborted-job-on-job-success
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["aborted job on job success"]
+    on_failure:
+      task: aborted-job-on-job-failure
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["aborted job on job failure"]
+    on_abort:
+      task: aborted-job-on-job-abort
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["aborted job on job abort"]

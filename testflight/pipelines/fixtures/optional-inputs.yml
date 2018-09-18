@@ -1,0 +1,70 @@
+---
+jobs:
+- name: job-using-optional-inputs
+  plan:
+  - task: task-generate-data
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      outputs:
+      - name: some-data
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          set -euxo pipefail
+          echo "banana" > some-data/foo
+          echo "step 1 complete: generated some required data"
+  - task: task-missing-optional-input
+    input_mapping:
+      required-input: some-data
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      inputs:
+      - name: required-input
+      - name: optional-input
+        optional: true
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          set -euxo pipefail
+          ls
+          cat required-input/foo
+          if [ -d optional-input ] ; then
+            echo "error: optional-input should not be present"
+            exit 1
+          fi
+          echo "step 2 complete: tolerates missing optional inputs"
+  - task: task-with-mapped-optional-input
+    input_mapping:
+      required-input: some-data
+      optional-input: some-data
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      inputs:
+      - name: required-input
+      - name: optional-input
+        optional: true
+      run:
+        path: sh
+        args:
+        - -e
+        - -c
+        - |
+          set -euxo pipefail
+          ls
+          cat required-input/foo
+          cat optional-input/foo  # should exist now
+          echo "step 3 complete: sees mapped optional inputs"
+          echo "SUCCESS"

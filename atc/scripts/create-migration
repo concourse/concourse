@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e -u
+
+go build -tags 'postgres' -o $GOPATH/bin/migrate github.com/concourse/atc/db/migration/cli
+
+migrate generate -d db/migration/migrations/ -n"$1" -t ${2-"sql"}

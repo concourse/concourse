@@ -1,0 +1,13 @@
+---
+resources:
+- name: some-repo
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+jobs:
+- name: broken-put
+  plan:
+  - put: some-repo
+    params: {repository: bogus}

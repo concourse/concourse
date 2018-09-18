@@ -1,0 +1,23 @@
+---
+jobs:
+  - name: try-job
+    plan:
+      - try:
+          task: failing-task
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: exit
+              args: ["1"]
+      - task: passing-task
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          run:
+            path: echo
+            args: ["passing-task succeeded"]

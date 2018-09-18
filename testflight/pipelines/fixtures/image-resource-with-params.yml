@@ -1,0 +1,46 @@
+---
+resources:
+- name: some-git-resource
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+jobs:
+- name: without-params
+  plan:
+  - get: some-git-resource
+
+- name: with-params
+  plan:
+  - get: some-git-resource
+    params:
+      foo: bar
+
+- name: image-resource-with-params
+  plan:
+  - task: image-resource-task
+    config:
+      platform: linux
+      image_resource:
+        type: git
+        source:
+          uri: {{origin-git-server}}
+          branch: master
+        params:
+          foo: bar
+      run:
+        path: /bin/true
+
+- name: image-resource-without-params
+  plan:
+  - task: image-resource-task
+    config:
+      platform: linux
+      image_resource:
+        type: git
+        source:
+          uri: {{origin-git-server}}
+          branch: master
+      run:
+        path: /bin/true

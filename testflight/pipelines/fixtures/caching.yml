@@ -1,0 +1,18 @@
+---
+resources:
+- name: some-git-resource
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+- name: some-cached-resource
+  type: git
+  source:
+    uri: {{cached-git-server}}
+    branch: master
+
+jobs:
+- name: some-passing-job
+  plan:
+  - get: some-git-resource
+  - get: some-cached-resource

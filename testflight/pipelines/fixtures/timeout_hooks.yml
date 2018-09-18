@@ -1,0 +1,44 @@
+---
+jobs:
+  - name: duration-fail-job
+    plan:
+      - task: timeout-task
+        timeout: 5s
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          run:
+            path: sleep
+            args: ["10"]
+        ensure:
+          task: duration-fail-job-ensure
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["duration fail job ensure"]
+        on_success:
+          task: duration-fail-job-on-success
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["duration fail job on success"]
+        on_failure:
+          task: duration-fail-job-on-failure
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            run:
+              path: echo
+              args: ["duration fail job on failure"]

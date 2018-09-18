@@ -1,0 +1,131 @@
+---
+resources:
+- name: some-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/test.git
+
+- name: broken-time
+  type: time
+  source: {interval: banana}
+
+- name: impossible-time
+  type: time
+  source:
+    start: 1:00 AM
+    stop: 1:00 AM
+
+jobs:
+- name: failing
+  plan:
+  - task: fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run:
+        path: sh
+        args:
+        - '-ec'
+        - |
+          echo i failed
+          exit 1
+
+- name: passing_or_failing
+  plan:
+  - task: pass_or_fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run: {path: ((path))}
+
+- name: passing
+  plan:
+  - task: pass
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run: {path: 'echo', args: ['i passed']}
+
+- name: erroring
+  plan:
+  - task: error
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run: {path: 'banana'}
+
+- name: running
+  plan:
+  - task: run
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run:
+        path: sh
+        args:
+        - -ec
+        - |
+          echo hello
+
+          while sleep 1; do
+            echo looping
+          done
+
+- name: pending
+  plan:
+  - get: impossible-time
+
+- name: broken-resource
+  plan:
+  - get: broken-time
+  - put: broken-time
+
+- name: resource-metadata
+  plan:
+  - get: some-resource
+
+- name: unavailable-pinned-input
+  plan:
+  - get: impossible-time
+    version: {time: "2017-08-11T00:13:33.123805549Z"}
+
+- name: unavailable-constrained-input
+  plan:
+  - get: impossible-time
+    passed: [pending]
+
+groups:
+- name: some-group
+  jobs:
+  - failing
+  - passing_or_failing
+  - passing
+  - erroring
+  - running
+  - pending
+  - broken-resource
+  - resource-metadata
+  - unavailable-pinned-input
+  - unavailable-constrained-input
+
+- name: some-other-group

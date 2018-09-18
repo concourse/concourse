@@ -1,0 +1,82 @@
+---
+resources:
+  - name: some-git-resource
+    type: git
+    source:
+      uri: {{origin-git-server}}
+      branch: master
+
+jobs:
+  - name: fancy-build-matrix
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - aggregate:
+          - task: passing-unit-1
+            config:
+              platform: linux
+              image_resource:
+                type: registry-image
+                source: {repository: busybox}
+              run:
+                path: touch
+                args: [file]
+              outputs:
+              - name: passing-unit-1
+                path: .
+          - task: passing-unit-2
+            config:
+              platform: linux
+              image_resource:
+                type: registry-image
+                source: {repository: busybox}
+              run:
+                path: touch
+                args: [file]
+              outputs:
+              - name: passing-unit-2
+                path: .
+      - task: print-guid
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          inputs:
+            - name: passing-unit-1
+            - name: passing-unit-2
+            - name: some-git-resource
+          run:
+            path: sh
+            args: ["-c", "echo $(ls passing-unit-*/file) $(tail -1 some-git-resource/guids)"]
+      - aggregate:
+          - task: second-passing-unit-1
+            config:
+              platform: linux
+              image_resource:
+                type: registry-image
+                source: {repository: busybox}
+              run:
+                path: sh
+                args: [-c, exit 0]
+          - task: second-failing-unit-2
+            config:
+              platform: linux
+              image_resource:
+                type: registry-image
+                source: {repository: busybox}
+              run:
+                path: sh
+                args: [-c, exit 1]
+        on_failure:
+          task: print-guid-failure
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source: {repository: busybox}
+            inputs:
+              - name: some-git-resource
+            run:
+              path: sh
+              args: ["-c", "echo failed $(tail -1 some-git-resource/guids)"]

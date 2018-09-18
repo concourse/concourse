@@ -1,0 +1,15 @@
+groups: []
+resources:
+- name: my-image
+  type: registry-image
+  source: {repository: bar}
+jobs:
+- name: some-job
+  plan:
+  - task: some-task
+    file: some-file
+    image: my-image
+    config:
+      image_resource:
+        type: registry-image
+        source: {repository: foo}

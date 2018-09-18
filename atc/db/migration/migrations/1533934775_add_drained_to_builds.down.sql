@@ -1,0 +1,3 @@
+BEGIN;
+  ALTER TABLE builds DROP COLUMN drained;
+COMMIT;

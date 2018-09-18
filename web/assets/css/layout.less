@@ -1,0 +1,225 @@
+@import (reference) "_vars.less";
+
+html,
+body,
+#elm-app-embed,
+#subpage,
+.content-frame {
+  height: 100%;
+}
+
+@scale: 0.5;
+@top-bar-height: 108px * @scale;
+@fixed-header-height: 64px;
+@builds-list-height: 30px;
+@pagination-header-height: 64px;
+
+@user-menu-z-index: 100;
+@fixed-header-z-index: @user-menu-z-index - 1;
+
+.content-frame {
+  display: flex;
+  flex-direction: column;
+
+  .top-bar {
+    position: fixed;
+    top: 0;
+    height: @top-bar-height;
+    z-index: @user-menu-z-index;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: row;
+
+    .main {
+      border-right: 1px solid @base02;
+    }
+
+    .topbar-logo {
+      width: unset;
+    }
+
+    .groups {
+      overflow: hidden;
+      font-size: 14px;
+      flex-grow: 1;
+      display: flex;
+      flex-flow: row wrap;
+    }
+
+    .groups li {
+      padding: 0 10px;
+    }
+
+    .groups .nav-item a {
+      max-width: 40vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .breadcrumb-icon {
+      display: inline-block;
+      vertical-align: -webkit-baseline-middle;
+      vertical-align: -moz-middle-with-baseline;
+      background-size: contain;
+      width: 32px;
+      height: 26px;
+      background-repeat: no-repeat;
+      margin-right: 10px;
+    }
+
+    .breadcrumb-pipeline-icon {
+      background-image: url('images/ic_breadcrumb_pipeline.svg');
+    }
+
+    .breadcrumb-job-icon {
+      background-image: url('images/ic_breadcrumb_job.svg');
+    }
+
+    .breadcrumb-resource-icon {
+      background-image: url('images/ic_breadcrumb_resource.svg');
+    }
+  }
+
+  .groups-bar {
+    background: #2b2a2a;
+    color: white;
+
+    .groups {
+      flex-grow: 1;
+      display: flex;
+      flex-flow: row wrap;
+      padding: 5px;
+    }
+
+    .groups li a {
+      font-size: 1.2em;
+      opacity: 0.6;
+      background: rgba(151, 151, 151, 0.1);
+      margin: 5px;
+      padding: 10px;
+      border: 1px solid #2b2a2a;
+    }
+
+    .groups li.active a {
+      opacity: 1;
+      background: inherit;
+      border-color: #979797;
+    }
+  }
+
+  .bottom {
+    flex-grow: 1;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    padding-top: @top-bar-height;
+  }
+}
+
+.with-fixed-header {
+  .fixed-header {
+    height: @fixed-header-height;
+    position: fixed;
+    top: @top-bar-height;
+    left: 0;
+    right: 0;
+    z-index: @fixed-header-z-index;
+    background: @base01;
+  }
+
+  .scrollable-body {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    padding-top: @fixed-header-height + 10px;
+    position: absolute;
+
+    &.build-body {
+      padding-top: @fixed-header-height + @builds-list-height + 10px;
+    }
+
+    &.job-body {
+      padding-top: @fixed-header-height + @pagination-header-height + 10px;
+    }
+  }
+}
+
+.pagination-header {
+  background: @base01;
+  line-height: @pagination-header-height;
+}
+
+#content { // TODO: kill id
+  flex-grow: 1;
+
+  // for absolutely positioned content in pipeline graph
+  position: relative;
+}
+
+.display-in-middle {
+  position: absolute;
+  width: 100%;
+  top: 50%;
+  transform: translate(0, -70%);
+  text-align: center;
+}
+
+nav .groups {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+nav .groups li a {
+  display: inline-block;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+.nav-item {
+  &,
+  a {
+    color: @base07;
+  }
+
+  font-size: 18px;
+  line-height: @top-bar-height;
+}
+
+.build-actions {
+  width: 150px;
+}
+
+#builds {
+  overflow-x: hidden;
+}
+
+.step-body {
+  position: relative;
+}
+
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.vri {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 33%;
+  padding-left: 4px;
+  padding-right: 5px;
+}
+
+.metadata-container {
+  max-width: 34%;
+}
+
+.metadata-field {
+  margin-top: 0;
+  margin-bottom: 0.3em;
+}

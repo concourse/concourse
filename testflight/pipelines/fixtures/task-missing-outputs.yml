@@ -1,0 +1,24 @@
+---
+jobs:
+  - name: missing-outputs-job
+    plan:
+      - task: missing-outputs
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          run:
+            path: touch
+            args: ["abandonedfile"]
+      - task: input-deprived
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          inputs:
+            - name: missing-outputs
+              path: .
+          run:
+            path: /bin/true

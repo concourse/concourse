@@ -1,0 +1,83 @@
+// the following is a work-around a performance issue in Chrome wherein
+// updating the values of the duration fields forces a repaint of the entire
+// page.
+//
+// firefox and safari are unaffected.
+.dict-value {
+  position: relative;
+
+  span {
+    /* "remove" element from layout to prevent repainting entire page */
+    position: absolute;
+    width: 100px;
+    top: 0;
+  }
+}
+
+.keyboard-help {
+  position: fixed;
+  width: 100%;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 30px 0;
+
+  .help-title {
+    font-size: 15px;
+    margin-left: 32px;
+  }
+
+  .help-line {
+    margin: 35px 0;
+  }
+
+  .keys {
+    display: inline-block;
+    width: 110px;
+    text-align: right;
+    margin-right: 10px;
+  }
+
+  .key {
+    margin: 0 9px;
+    padding: 6px 8px;
+    border: 1px solid #979797;
+  }
+}
+
+.timestamped-line {
+  display: flex;
+  flex-direction: row;
+
+  .timestamped-content {
+    word-break: break-all;
+  }
+
+  .timestamp {
+    padding-right: 20px;
+    flex-shrink: 0;
+    user-select: none;
+
+    &::before {
+      content: attr(data-timestamp);
+      color: @grey-secondary;
+      display: inline-block;
+    }
+
+    &:hover::before {
+      color: @base06;
+    }
+
+    &.placeholder::before {
+      content: "        ";
+    }
+  }
+
+  &.highlighted-line {
+    background: @base02;
+
+    .timestamp::before {
+      color: @base0A;
+    }
+  }
+}
